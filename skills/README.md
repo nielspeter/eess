@@ -22,6 +22,26 @@ The loop: **author** a rule for a clause → **validate** the translation before
 marking the row `gated`. The author skill hands off to the validator; the
 validator is also useful standalone when reviewing any ADR Enforcement table.
 
+## When they help most
+
+Testing these against unaided agents was honest about their ceiling. A capable
+agent working **inside this repo** got little lift from them — the manifesto,
+`CLAUDE.md`, and the existing ADRs already teach the tier model, the
+`pending`/`gated` discipline, and the vacuity traps, so a strong model rediscovers
+the same guidance by reading. The skills earn their keep where that context is
+**absent or unread**:
+
+- **Consuming repos** — an application governed by its own ADRs that just depends
+  on `eess-ts` and has none of eess's own docs. There the skills inject the whole
+  mental model the repo lacks.
+- **Weaker or context-starved models** — where the discipline needs to be handed
+  over explicitly rather than inferred.
+- **Consistency** — they make the tier-routing, honesty, and vacuity checks happen
+  _every_ time, instead of depending on the agent thinking of them.
+
+So treat them as portable, guaranteed guidance for other repos and models — not as
+a lift for an already-well-grounded agent in this one.
+
 ## Activating them
 
 They are plain skills — no build step. Make them available to an agent by placing
