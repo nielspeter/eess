@@ -87,7 +87,7 @@ eess/
 │   ├── md/                 # @nielspeter/eess-md — Markdown corpus (links, pointers, ADR tables)
 │   └── crossvalidate/      # @nielspeter/eess-crossvalidate — bind two dialects, fail on drift
 ├── scripts/                # check-*.mjs dogfood gates + nonvacuity fixtures
-├── skills/                 # AI integration layer: author-rule + validate-faithfulness agent skills
+├── skills/                 # AI integration layer: eess-adr-author + eess-adr-validate agent skills
 ├── arch.rules.ts           # dogfood: architecture rules over this repo
 ├── spec.rules.ts           # dogfood: bind README/ADR-index specs to code
 ├── mermaid.rules.ts        # dogfood: diagram ↔ code correspondence

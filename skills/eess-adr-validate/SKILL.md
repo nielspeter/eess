@@ -1,10 +1,10 @@
 ---
-name: eess-validate-faithfulness
+name: eess-adr-validate
 description: Adversarially audit whether an eess-ts rule faithfully enforces the ADR clause it claims to — the Tier-4 semantic check the deterministic gates cannot do. Returns a verdict (FAITHFUL / PARTIAL / DRIFTED) with cited evidence, hunting for under-enforcement, over-broad exclusions / vacuity, and scope mismatch. Use as the validation step right after authoring or editing an eess rule, when reviewing an ADR `## Enforcement` / `## Håndhævelse` table, or when the user asks "does this rule actually enforce the clause", "is this ADR really gated", "check spec-code faithfulness", or "validate the rule against the decision". It is a soft flag — it surfaces drift, it never blocks the build.
 user-invocable: true
 ---
 
-# eess-validate-faithfulness
+# eess-adr-validate
 
 eess's deterministic gates prove two things: the cited rule **exists**, and the
 code **satisfies** it. They cannot prove the third and most important: that the

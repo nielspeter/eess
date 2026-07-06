@@ -69,7 +69,7 @@ The full audit surface — every adopted rule, every exclusion with its written 
 
 ## AI integration layer
 
-The deterministic gates prove a rule _exists_ and the code _satisfies_ it — not that the rule _means_ what the ADR clause says. That last check is a judgment (Tier 4), so it's done by an agent. [`skills/`](./skills) ships two Claude Code skills for the loop: **`eess-author-rule`** (translate a decision into an enforceable rule + an honest Enforcement row) and **`eess-validate-faithfulness`** (adversarially audit that the rule faithfully enforces the clause). See [skills/README.md](./skills/README.md).
+The deterministic gates prove a rule _exists_ and the code _satisfies_ it — not that the rule _means_ what the ADR clause says. That last check is a judgment (Tier 4), so it's done by an agent. [`skills/`](./skills) ships two Claude Code skills for the loop: **`eess-adr-author`** (translate a decision into an enforceable rule + an honest Enforcement row) and **`eess-adr-validate`** (adversarially audit that the rule faithfully enforces the clause). See [skills/README.md](./skills/README.md).
 
 ## License
 

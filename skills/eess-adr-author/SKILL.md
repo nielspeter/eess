@@ -1,10 +1,10 @@
 ---
-name: eess-author-rule
-description: Translate an ADR / architecture-decision clause into an enforceable eess mechanism — usually an eess-ts architecture rule (the fluent modules/classes/functions/types DSL) plus the Enforcement-table row (Tier | Mechanism | Status). Use whenever you're making an ADR clause enforceable, filling in or adding an `## Enforcement` / `## Håndhævelse` table, writing an `arch.rules.ts` / `*.rules.ts` rule for a decision, or the user says "make this decision enforceable", "write an eess rule", "gate this ADR", "add enforcement", or asks which tier/mechanism a clause needs. Pair it with eess-validate-faithfulness to check the translation afterward.
+name: eess-adr-author
+description: Translate an ADR / architecture-decision clause into an enforceable eess mechanism — usually an eess-ts architecture rule (the fluent modules/classes/functions/types DSL) plus the Enforcement-table row (Tier | Mechanism | Status). Use whenever you're making an ADR clause enforceable, filling in or adding an `## Enforcement` / `## Håndhævelse` table, writing an `arch.rules.ts` / `*.rules.ts` rule for a decision, or the user says "make this decision enforceable", "write an eess rule", "gate this ADR", "add enforcement", or asks which tier/mechanism a clause needs. Pair it with eess-adr-validate to check the translation afterward.
 user-invocable: true
 ---
 
-# eess-author-rule
+# eess-adr-author
 
 Turn a decision written in English into something the build can enforce. eess
 (Executable Enforceable Specification System) works because every ADR clause
@@ -127,5 +127,5 @@ Every ADR ends with a table; add one row per clause:
 ## Step 5 — validate the translation
 
 You wrote English→rule; you are the worst judge of whether it's faithful. Hand
-off to **eess-validate-faithfulness** (or ask for a faithfulness check) on the
+off to **eess-adr-validate** (or ask for a faithfulness check) on the
 clause + the rule you just wrote, before considering the row `gated`.

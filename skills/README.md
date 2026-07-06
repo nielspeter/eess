@@ -13,10 +13,10 @@ diverge. That gap is **Tier 4** in the [manifesto](../docs/manifesto.md): a
 judgment with no deterministic checker. These skills are that judgment (and its
 authoring counterpart) — done by an agent, flagging softly, never blocking.
 
-| Skill                        | Half of the loop | What it does                                                                                                                                                                             |
-| ---------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `eess-author-rule`           | author           | Translate an ADR clause into the right mechanism (routed by tier), write the eess-ts rule, and record an honest Enforcement row (`gated` vs `pending`). Guards against vacuous rules.    |
-| `eess-validate-faithfulness` | validate         | Adversarially audit whether a rule faithfully enforces its clause — `FAITHFUL` / `PARTIAL` / `DRIFTED` with cited evidence. Hunts vacuity, under-enforcement, scope mismatch. Soft flag. |
+| Skill               | Half of the loop | What it does                                                                                                                                                                             |
+| ------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `eess-adr-author`   | author           | Translate an ADR clause into the right mechanism (routed by tier), write the eess-ts rule, and record an honest Enforcement row (`gated` vs `pending`). Guards against vacuous rules.    |
+| `eess-adr-validate` | validate         | Adversarially audit whether a rule faithfully enforces its clause — `FAITHFUL` / `PARTIAL` / `DRIFTED` with cited evidence. Hunts vacuity, under-enforcement, scope mismatch. Soft flag. |
 
 The loop: **author** a rule for a clause → **validate** the translation before
 marking the row `gated`. The author skill hands off to the validator; the
@@ -29,10 +29,10 @@ them where it looks for skills:
 
 ```bash
 # per-repo (this or a consuming project):
-cp -R skills/eess-author-rule skills/eess-validate-faithfulness .claude/skills/
+cp -R skills/eess-adr-author skills/eess-adr-validate .claude/skills/
 
 # or globally for all your projects:
-cp -R skills/eess-author-rule skills/eess-validate-faithfulness ~/.claude/skills/
+cp -R skills/eess-adr-author skills/eess-adr-validate ~/.claude/skills/
 ```
 
 (Symlinking instead of copying keeps them in sync with this repo as the source of
