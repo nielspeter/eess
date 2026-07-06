@@ -1,0 +1,50 @@
+{
+  "name": "@nielspeter/eess-mermaid",
+  "version": "0.1.0",
+  "description": "Architecture testing for Mermaid class diagrams — the Mermaid dialect of the eess family (formerly mermaidunit)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "eess-mermaid": "./dist/cli/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nielspeter/eess.git",
+    "directory": "packages/mermaid"
+  },
+  "author": "Niels Peter",
+  "license": "MIT",
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "langium:gen": "langium generate --file langium-config.json",
+    "build": "npm run langium:gen && tsc -p tsconfig.build.json && chmod +x dist/cli/bin.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mermaid",
+    "architecture",
+    "testing",
+    "diagram",
+    "eess"
+  ],
+  "dependencies": {
+    "@nielspeter/eess": "^0.1.0",
+    "jiti": "^2.7.0",
+    "langium": "^4.2.3"
+  }
+}

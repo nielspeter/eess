@@ -1,0 +1,56 @@
+{
+  "name": "eess-monorepo",
+  "version": "0.0.0",
+  "description": "eess — Executable Enforceable Specification System. Monorepo root.",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "validate": "npm run build && npm run check:integrity && npm run check:arch && npm run check:diagram && npm run check:crossval && npm run check:corpus && npm run check:spec && npm run check:nonvacuity && npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "fix": "npm run lint:fix && npm run format",
+    "check:integrity": "node scripts/check-workspace-integrity.mjs",
+    "check:arch": "eess-ts check arch.rules.ts arch.internal.rules.ts",
+    "check:diagram": "eess-mermaid check mermaid.rules.ts",
+    "check:crossval": "node scripts/check-crossval.mjs",
+    "check:corpus": "node scripts/check-corpus.mjs",
+    "check:spec": "eess-ts check spec.rules.ts",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "npm run validate && changeset publish",
+    "lint": "eslint packages/*/src packages/*/tests",
+    "lint:fix": "eslint packages/*/src packages/*/tests --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "check:nonvacuity": "node scripts/check-nonvacuity.mjs"
+  },
+  "author": "Niels Peter",
+  "license": "MIT",
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.19.15",
+    "@types/picomatch": "^4.0.2",
+    "@vitest/coverage-v8": "^4.1.1",
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "graphql": "^16.13.2",
+    "jiti": "^2.6.1",
+    "langium-cli": "^4.2.1",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.57.2",
+    "vitepress": "^1.6.4",
+    "vitest": "^4.1.1"
+  }
+}

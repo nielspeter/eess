@@ -1,0 +1,10 @@
+classDiagram
+%% NON-VACUITY FIXTURE — deliberately violating input for the diagram gate.
+%% NakedClass carries NO <<kernel>> stereotype, so the mermaid.rules.ts charter
+%% rule `diagram/kernel-stereotype` (classes should haveStereotype('kernel'))
+%% MUST report a violation. If this diagram ever passed, the gate would be
+%% vacuous. See scripts/check-nonvacuity.mjs, gate `diagram`.
+
+class NakedClass {
+  +doThing()
+}

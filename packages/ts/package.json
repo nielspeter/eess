@@ -1,0 +1,121 @@
+{
+  "name": "@nielspeter/eess-ts",
+  "version": "0.12.0",
+  "description": "Architecture testing for TypeScript — the TS dialect of the eess family (formerly ts-archunit)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cli": {
+      "import": "./dist/cli/bin.js"
+    },
+    "./rules/typescript": {
+      "types": "./dist/rules/typescript.d.ts",
+      "import": "./dist/rules/typescript.js"
+    },
+    "./rules/security": {
+      "types": "./dist/rules/security.d.ts",
+      "import": "./dist/rules/security.js"
+    },
+    "./rules/errors": {
+      "types": "./dist/rules/errors.d.ts",
+      "import": "./dist/rules/errors.js"
+    },
+    "./rules/naming": {
+      "types": "./dist/rules/naming.d.ts",
+      "import": "./dist/rules/naming.js"
+    },
+    "./rules/dependencies": {
+      "types": "./dist/rules/dependencies.d.ts",
+      "import": "./dist/rules/dependencies.js"
+    },
+    "./rules/code-quality": {
+      "types": "./dist/rules/code-quality.d.ts",
+      "import": "./dist/rules/code-quality.js"
+    },
+    "./rules/metrics": {
+      "types": "./dist/rules/metrics.d.ts",
+      "import": "./dist/rules/metrics.js"
+    },
+    "./rules/architecture": {
+      "types": "./dist/rules/architecture.d.ts",
+      "import": "./dist/rules/architecture.js"
+    },
+    "./rules/hygiene": {
+      "types": "./dist/rules/hygiene.d.ts",
+      "import": "./dist/rules/hygiene.js"
+    },
+    "./presets": {
+      "types": "./dist/presets/index.d.ts",
+      "import": "./dist/presets/index.js"
+    },
+    "./graphql": {
+      "types": "./dist/graphql/index.d.ts",
+      "import": "./dist/graphql/index.js"
+    }
+  },
+  "bin": {
+    "eess-ts": "./dist/cli/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nielspeter/eess.git",
+    "directory": "packages/ts"
+  },
+  "homepage": "https://github.com/nielspeter/eess#readme",
+  "bugs": {
+    "url": "https://github.com/nielspeter/eess/issues"
+  },
+  "author": "Niels Peter",
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/bin.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "typescript",
+    "architecture",
+    "testing",
+    "archunit",
+    "static-analysis",
+    "ast",
+    "ts-morph",
+    "code-quality",
+    "dependency-rules",
+    "layer-architecture",
+    "clean-architecture",
+    "cycle-detection",
+    "complexity",
+    "metrics",
+    "lint",
+    "guard-rails",
+    "ci"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "graphql": "^16.0.0"
+  },
+  "peerDependenciesMeta": {
+    "graphql": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@nielspeter/eess": "^0.1.0",
+    "jiti": "^2.6.1",
+    "picomatch": "^4.0.4",
+    "ts-morph": "^27.0.2"
+  }
+}

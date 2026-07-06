@@ -1,0 +1,80 @@
+import { execFileSync } from 'node:child_process'
+import path from 'node:path'
+import type { ArchViolation } from './violation.js'
+
+/**
+ * A diff filter that restricts violation reporting to files
+ * changed since a base branch.
+ *
+ * IMPORTANT: Rules evaluate the FULL project (needed for cross-file
+ * rules like cycles and layer ordering). Only the REPORTING is filtered
+ * to changed files. This ensures correctness — a new file that creates
+ * a cycle is detected even though the cycle involves unchanged files.
+ */
+export class DiffFilter {
+  private readonly changedFiles: Set<string> | null
+
+  constructor(changedFiles: Set<string> | null) {
+    this.changedFiles = changedFiles
+  }
+
+  /**
+   * Filter violations to only those in changed files.
+   * If changedFiles is null (git error), returns all violations unfiltered.
+   */
+  filterToChanged(violations: ArchViolation[]): ArchViolation[] {
+    const files = this.changedFiles
+    if (files === null) return violations
+    return violations.filter((v) => files.has(v.file))
+  }
+
+  /** Number of changed files detected, or -1 if diff unavailable */
+  get size(): number {
+    return this.changedFiles === null ? -1 : this.changedFiles.size
+  }
+}
+
+/**
+ * Create a diff filter from git, comparing HEAD against a base branch.
+ *
+ * Uses `git diff --name-only <base>...HEAD` to find changed files.
+ * Resolves relative paths to absolute paths for matching against
+ * violation file paths (which are always absolute).
+ *
+ * @param baseBranch - The base branch to diff against (default: 'main')
+ * @returns A DiffFilter for use with check(\{ diff \})
+ *
+ * @example
+ * // Only report violations in files changed since main
+ * classes(p).should().notContain(call('eval')).check(\{ diff: diffAware('main') \})
+ */
+export function diffAware(baseBranch: string = 'main'): DiffFilter {
+  const cwd = process.cwd()
+
+  let output: string
+  try {
+    output = execFileSync('git', ['diff', '--name-only', `${baseBranch}...HEAD`], {
+      encoding: 'utf-8',
+      cwd,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim()
+  } catch (err) {
+    // Not a git repo, or base branch doesn't exist — skip filtering (report all violations)
+    const detail = err instanceof Error ? ` (${err.message.split('\n')[0] ?? ''})` : ''
+    console.warn(
+      `[eess] Could not run git diff against '${baseBranch}'${detail}. All violations will be reported.`,
+    )
+    return new DiffFilter(null)
+  }
+
+  if (output === '') {
+    // No changes — empty set means nothing is "changed", so all violations are filtered out
+    return new DiffFilter(new Set())
+  }
+
+  const changedFiles = new Set(
+    output.split('\n').map((relativePath) => path.resolve(cwd, relativePath)),
+  )
+
+  return new DiffFilter(changedFiles)
+}

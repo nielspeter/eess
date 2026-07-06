@@ -1,0 +1,294 @@
+# Function Rules
+
+The `functions()` entry point operates on functions, arrow functions, and class methods. eess-ts wraps all of these in a unified `ArchFunction` model.
+
+## When to Use
+
+- Enforce naming conventions on functions
+- Require or forbid async functions in certain folders
+- Check parameter counts
+- Prevent copy-pasted utility functions from appearing in the wrong places
+- Inspect function bodies (see [Body Analysis](/body-analysis))
+
+## ArchFunction
+
+Unlike most linters that treat function declarations, arrow functions, and class methods as separate constructs, eess-ts collects all three into a single `ArchFunction` type. This lets you write one rule that covers every function shape in your codebase.
+
+1. **Function declarations** -- `function handleRequest() { ... }`
+2. **Arrow function variables** -- `const handleRequest = () => { ... }`
+3. **Class methods** -- `class OrderService { handleRequest() { ... } }`
+
+All three support the same predicates and conditions, so you write one rule and it applies everywhere.
+
+## Basic Usage
+
+```typescript
+import { project, functions } from '@nielspeter/eess-ts'
+
+const p = project('tsconfig.json')
+
+functions(p).that().resideInFolder('**/handlers/**').should().beAsync().check()
+```
+
+## Available Predicates
+
+Predicates filter which functions a rule targets. Combine them with `.and()` to build precise selections. All identity predicates (`haveNameMatching`, `resideInFolder`, `areExported`, etc.) work on functions. The function-specific predicates below let you filter by async status, visibility, parameter shape, and return type:
+
+| Predicate                          | Description                                          | Example                                      |
+| ---------------------------------- | ---------------------------------------------------- | -------------------------------------------- |
+| `areAsync`                         | Function is async                                    | `.that().areAsync()`                         |
+| `areNotAsync`                      | Function is not async                                | `.that().areNotAsync()`                      |
+| `arePublic()`                      | Function/method is public (or standalone)            | `.that().arePublic()`                        |
+| `areProtected()`                   | Method is protected                                  | `.that().areProtected()`                     |
+| `arePrivate()`                     | Method is private                                    | `.that().arePrivate()`                       |
+| `haveParameterCount(n)`            | Function has exactly n parameters                    | `.that().haveParameterCount(0)`              |
+| `haveParameterCountGreaterThan(n)` | Function has more than n parameters                  | `.that().haveParameterCountGreaterThan(5)`   |
+| `haveParameterCountLessThan(n)`    | Function has fewer than n parameters                 | `.that().haveParameterCountLessThan(2)`      |
+| `haveParameterNamed(name)`         | Function has a parameter with the given name         | `.that().haveParameterNamed('ctx')`          |
+| `haveReturnType(type)`             | Function has the given return type                   | `.that().haveReturnType('Promise')`          |
+| `haveRestParameter()`              | Function has a `...args` rest parameter              | `.that().haveRestParameter()`                |
+| `haveOptionalParameter()`          | Function has an optional or default-valued parameter | `.that().haveOptionalParameter()`            |
+| `haveParameterOfType(i, matcher)`  | Parameter at index i matches the TypeMatcher         | `.that().haveParameterOfType(0, isString())` |
+| `haveParameterNameMatching(regex)` | Function has a parameter name matching regex         | `.that().haveParameterNameMatching(/^ctx/)`  |
+
+## Available Conditions
+
+Conditions define what matched functions must satisfy. They go after `.should()` and cover export visibility, async requirements, naming, body analysis, return types, and parameter types.
+
+| Condition                           | Description                                   | Example                                                          |
+| ----------------------------------- | --------------------------------------------- | ---------------------------------------------------------------- |
+| `notExist()`                        | No functions should match the predicates      | `.should().notExist()`                                           |
+| `beExported()`                      | Function must be exported                     | `.should().beExported()`                                         |
+| `beAsync()`                         | Function must be async                        | `.should().beAsync()`                                            |
+| `conditionHaveNameMatching(re)`     | Function name must match the regex            | `.should().conditionHaveNameMatching(/^handle/)`                 |
+| `contain(matcher)`                  | Function body must contain the expression     | `.should().contain(call('validate'))`                            |
+| `notContain(matcher)`               | Function body must not contain the expression | `.should().notContain(call('eval'))`                             |
+| `useInsteadOf(ban, alt)`            | Replace banned expression with an alternative | `.should().useInsteadOf(call('parseInt'), ...)`                  |
+| `haveReturnTypeMatching(matcher)`   | Return type must satisfy TypeMatcher          | `.should().haveReturnTypeMatching(matching(/Collection/))`       |
+| `acceptParameterOfType(matcher)`    | At least one parameter matches TypeMatcher    | `.should().acceptParameterOfType(matching(/Event/))`             |
+| `notAcceptParameterOfType(matcher)` | No parameter matches TypeMatcher              | `.should().notAcceptParameterOfType(matching(/DatabaseClient/))` |
+
+## Real-World Examples
+
+### Ban Copy-Pasted Parsers
+
+```typescript
+functions(p)
+  .that()
+  .haveNameMatching(/^parse\w+Order$/)
+  .and()
+  .resideInFolder('**/routes/**')
+  .should()
+  .notExist()
+  .rule({
+    id: 'route/no-copy-paste-parsers',
+    because: 'Copy-pasted parsers diverge over time',
+    suggestion: "Import parseOrder from '@company/server-common' and pass a column map",
+  })
+  .check()
+```
+
+### Route Handlers Must Be Async
+
+```typescript
+functions(p)
+  .that()
+  .resideInFolder('**/handlers/**')
+  .should()
+  .beAsync()
+  .because('route handlers must be async for proper error handling')
+  .check()
+```
+
+### No `new URLSearchParams` in Wrappers
+
+```typescript
+functions(p)
+  .that()
+  .resideInFolder('**/wrappers/**')
+  .should()
+  .notContain(newExpr('URLSearchParams'))
+  .rule({
+    id: 'sdk/no-raw-urlsearchparams',
+    suggestion: 'Use buildQueryString() utility',
+  })
+  .check()
+```
+
+### Exported Functions Must Have Limited Parameters
+
+```typescript
+functions(p)
+  .that()
+  .areExported()
+  .and()
+  .haveParameterCountGreaterThan(5)
+  .should()
+  .notExist()
+  .because('functions with many parameters should use an options object')
+  .check()
+```
+
+### No Rest Parameters in Route Handlers
+
+```typescript
+functions(p)
+  .that()
+  .resideInFolder('**/routes/**')
+  .and()
+  .haveRestParameter()
+  .should()
+  .notExist()
+  .because('route handlers must have explicitly typed parameters')
+  .check()
+```
+
+### Event Handlers Must Accept an Event Parameter
+
+```typescript
+import { matching } from '@nielspeter/eess-ts'
+
+functions(p)
+  .that()
+  .haveNameMatching(/^handle/)
+  .and()
+  .haveParameterOfType(0, matching(/Event$/))
+  .and()
+  .haveParameterCountGreaterThan(1)
+  .should()
+  .notExist()
+  .because('event handlers should accept exactly one Event parameter')
+  .check()
+```
+
+### Visibility Predicates
+
+The `arePublic()`, `areProtected()`, and `arePrivate()` predicates filter functions and methods by their visibility modifier. Standalone functions and arrow functions always match `arePublic()`.
+
+```typescript
+import { project, functions, matching } from '@nielspeter/eess-ts'
+
+const p = project('tsconfig.json')
+
+// Public methods on repositories must accept TenancyContext
+functions(p)
+  .that()
+  .resideInFolder('**/repositories/**')
+  .and()
+  .arePublic()
+  .should()
+  .acceptParameterOfType(matching(/TenancyContext/))
+  .because('all public repo methods must be tenant-scoped')
+  .check()
+```
+
+```typescript
+// Private methods should not have too many parameters
+functions(p)
+  .that()
+  .arePrivate()
+  .and()
+  .haveParameterCountGreaterThan(5)
+  .should()
+  .notExist()
+  .because('private methods with many params should use an options object')
+  .check()
+```
+
+### Return Type Condition
+
+`haveReturnTypeMatching(matcher)` asserts that the return type of matched functions satisfies a `TypeMatcher`. This works with all type matchers: `matching()`, `exactly()`, `isString()`, `not()`, `arrayOf()`, etc.
+
+```typescript
+import { project, functions, matching } from '@nielspeter/eess-ts'
+
+const p = project('tsconfig.json')
+
+// List methods must return a Collection
+functions(p)
+  .that()
+  .haveNameMatching(/^list/)
+  .should()
+  .haveReturnTypeMatching(matching(/Collection/))
+  .because('list methods must return a Collection for consistent pagination')
+  .check()
+```
+
+```typescript
+import { not, exactly } from '@nielspeter/eess-ts'
+
+// Create methods must not return void
+functions(p)
+  .that()
+  .haveNameMatching(/^create/)
+  .should()
+  .haveReturnTypeMatching(not(exactly('void')))
+  .because('create methods should return the created entity')
+  .check()
+```
+
+### Parameter Type Conditions
+
+`acceptParameterOfType(matcher)` and `notAcceptParameterOfType(matcher)` scan all parameters of matched functions. For class methods accessed via `functions()`, only the method's own parameter list is checked (not the entire class). Use the `classes()` builder if you need to scan constructor + methods + setters together.
+
+```typescript
+import { project, functions, matching } from '@nielspeter/eess-ts'
+
+const p = project('tsconfig.json')
+
+// Factory functions should not accept database clients
+functions(p)
+  .that()
+  .haveNameMatching(/^create.*Service$/)
+  .should()
+  .notAcceptParameterOfType(matching(/DatabaseClient/))
+  .because('factory functions should not wire database dependencies directly')
+  .check()
+```
+
+### Pattern Templates
+
+Enforce return type shapes across functions:
+
+```typescript
+import { definePattern, functions } from '@nielspeter/eess-ts'
+
+const paginatedCollection = definePattern('paginated-collection', {
+  returnShape: {
+    total: 'number',
+    skip: 'number',
+    limit: 'number',
+    items: 'T[]',
+  },
+})
+
+functions(p)
+  .that()
+  .resideInFolder('**/routes/**')
+  .should()
+  .followPattern(paginatedCollection)
+  .check()
+```
+
+## Scoped Rules with `within()`
+
+Use `within()` to restrict rules to callback functions inside matched call expressions:
+
+```typescript
+import { calls, call, within } from '@nielspeter/eess-ts'
+
+// Select route registrations
+const routes = calls(p)
+  .that()
+  .onObject('app')
+  .and()
+  .withMethod(/^(get|post|put|delete|patch)$/)
+
+// Within route handlers, enforce normalizePagination
+within(routes)
+  .functions()
+  .should()
+  .contain(call('normalizePagination'))
+  .rule({ id: 'route/pagination', because: 'All list endpoints must use shared pagination' })
+  .check()
+```

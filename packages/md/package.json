@@ -1,0 +1,56 @@
+{
+  "name": "@nielspeter/eess-md",
+  "version": "0.1.0",
+  "description": "Architecture testing for a Markdown corpus — the Markdown dialect of the eess family. Links resolve, code pointers ground, ADRs declare enforcement.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./rules/adr": {
+      "types": "./dist/rules/adr.d.ts",
+      "import": "./dist/rules/adr.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nielspeter/eess.git",
+    "directory": "packages/md"
+  },
+  "author": "Niels Peter",
+  "license": "MIT",
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "markdown",
+    "architecture",
+    "testing",
+    "adr",
+    "documentation",
+    "eess"
+  ],
+  "dependencies": {
+    "@nielspeter/eess": "^0.1.0",
+    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-gfm": "^3.1.0",
+    "micromark-extension-gfm": "^3.0.0",
+    "picomatch": "^4.0.4"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4"
+  }
+}

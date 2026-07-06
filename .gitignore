@@ -1,0 +1,12 @@
+node_modules/
+**/dist/
+**/coverage/
+*.tsbuildinfo
+.DS_Store
+.idea/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+/.claude/
+/.serena/
+.playwright-mcp/
+.claude/

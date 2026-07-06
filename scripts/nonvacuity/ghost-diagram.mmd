@@ -1,0 +1,11 @@
+classDiagram
+%% NON-VACUITY FIXTURE — deliberately violating input for the crossval gate.
+%% GhostClassXyz is declared <<kernel>> here but does NOT exist in
+%% packages/core/src, so diagramMatchesCode(..., completeness 'both') MUST throw:
+%% the diagram claims a class the code lacks (and the code has classes this
+%% diagram lacks). See scripts/nonvacuity/bad-crossval.mjs.
+
+class GhostClassXyz {
+  <<kernel>>
+  +vanish()
+}

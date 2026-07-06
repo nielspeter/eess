@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Build first: dialects typecheck and test against the kernel's built
+      # declarations (@nielspeter/eess resolves to packages/core/dist).
+      - run: npm run build
+      # Workspace guardrails: no phantom deps, all @nielspeter/eess* locally linked.
+      - run: npm run check:integrity
+      # Dogfood: eess-ts validates the family's own architecture (kernel purity, dialect isolation).
+      - run: npm run check:arch
+      # Dogfood: eess-mermaid validates the kernel architecture diagram (plan 0060 charter).
+      - run: npm run check:diagram
+      # Dogfood: eess-crossvalidate — diagram↔code (both directions) + ADR↔test citations.
+      - run: npm run check:crossval
+      # Dogfood: the whole corpus (plans/adr/bugs/docs) — links, live pointers, ADR enforcement.
+      - run: npm run check:corpus
+      # Every gate above is proven non-vacuous: violating fixtures must make it exit 1.
+      - run: npm run check:nonvacuity
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test

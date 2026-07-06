@@ -1,0 +1,40 @@
+{
+  "name": "@nielspeter/eess",
+  "version": "0.1.0",
+  "description": "eess kernel — the dialect-independent rule engine (RuleBuilder, Predicate, Condition, baseline, formatters). Specifications you can run.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nielspeter/eess.git",
+    "directory": "packages/core"
+  },
+  "author": "Niels Peter",
+  "license": "MIT",
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "eess",
+    "architecture-testing",
+    "rule-engine",
+    "specification"
+  ]
+}

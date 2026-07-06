@@ -1,0 +1,72 @@
+{
+  "name": "@nielspeter/eess-crossvalidate",
+  "version": "0.1.0",
+  "description": "Cross-validation presets for the eess family — bind two dialects' artifacts and fail when they drift.",
+  "type": "module",
+  "exports": {
+    "./mermaid-ts": {
+      "types": "./dist/mermaid-ts.d.ts",
+      "import": "./dist/mermaid-ts.js"
+    },
+    "./md-ts": {
+      "types": "./dist/md-ts.d.ts",
+      "import": "./dist/md-ts.js"
+    },
+    "./md-mermaid": {
+      "types": "./dist/md-mermaid.d.ts",
+      "import": "./dist/md-mermaid.js"
+    },
+    "./files": {
+      "types": "./dist/files.d.ts",
+      "import": "./dist/files.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nielspeter/eess.git",
+    "directory": "packages/crossvalidate"
+  },
+  "author": "Niels Peter",
+  "license": "MIT",
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "eess",
+    "cross-validation",
+    "architecture",
+    "mermaid",
+    "markdown"
+  ],
+  "dependencies": {
+    "@nielspeter/eess": "^0.1.0",
+    "picomatch": "^4.0.4"
+  },
+  "peerDependencies": {
+    "@nielspeter/eess-ts": "^0.12.0",
+    "@nielspeter/eess-mermaid": "^0.1.0",
+    "@nielspeter/eess-md": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@nielspeter/eess-ts": {
+      "optional": true
+    },
+    "@nielspeter/eess-mermaid": {
+      "optional": true
+    },
+    "@nielspeter/eess-md": {
+      "optional": true
+    }
+  }
+}

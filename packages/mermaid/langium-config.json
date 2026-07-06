@@ -1,0 +1,12 @@
+{
+  "projectName": "MermaidUnit",
+  "languages": [
+    {
+      "id": "mermaidunit-class",
+      "grammar": "src/parser/grammar/class-diagram.langium",
+      "fileExtensions": [".mmd"]
+    }
+  ],
+  "out": "src/parser/generated",
+  "mode": "production"
+}

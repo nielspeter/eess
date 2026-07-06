@@ -1,0 +1,43 @@
+classDiagram
+%% eess kernel architecture — the @nielspeter/eess classes (plan 0060 charter:
+%% this diagram depicts packages/core/src classes, declared a-priori; it is
+%% cross-validated against the code by scripts/check-crossval.mjs in BOTH
+%% directions. A class added to the kernel must be added here, and vice versa.
+
+class RuleBuilder {
+  <<kernel>>
+  +that()
+  +should()
+  +check()
+  +violations()
+}
+
+class TerminalBuilder {
+  <<kernel>>
+  +check()
+  +warn()
+  +violations()
+}
+
+class CorrespondenceBuilder {
+  <<kernel>>
+  +should()
+  +beComplete()
+  +preserveRelations()
+}
+
+class Baseline {
+  <<kernel>>
+}
+
+class DiffFilter {
+  <<kernel>>
+}
+
+class ArchRuleError {
+  <<kernel>>
+}
+
+TerminalBuilder <|-- CorrespondenceBuilder
+RuleBuilder ..> ArchRuleError : throws
+TerminalBuilder ..> ArchRuleError : throws

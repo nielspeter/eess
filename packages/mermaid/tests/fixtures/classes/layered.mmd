@@ -1,0 +1,35 @@
+classDiagram
+
+%% @schema ./layered.schema.ts
+%% @stereotype service { allowedDeps: [repository] }
+%% @stereotype repository { forbiddenDeps: [service] }
+
+class BaseService {
+  <<abstract>>
+  #logger: Logger
+  +execute()*
+}
+
+class OrderService {
+  <<service>>
+  -repo: OrderRepository
+  +execute()
+  +findById(id: string) Order
+}
+
+class OrderRepository {
+  <<repository>>
+  +findById(id: string) Order
+  +save(order: Order)
+}
+
+class PaymentService {
+  <<service>>
+  +charge(amount: int)
+}
+
+BaseService <|-- OrderService
+BaseService <|-- PaymentService
+OrderService "1" --> "many" OrderRepository : owns
+
+note for OrderService "see ADR-042 for ordering invariants"
