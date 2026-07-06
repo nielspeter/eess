@@ -41,8 +41,17 @@ author→validate loop by copying these two directories in.
 
 ## Provenance
 
-The validator's judgment prompt was evaluated 4/4 on a controlled set (two
-faithful clause↔rule pairs, two with injected drift — a vacuous rule and an
-under-enforcing one), catching each correctly with cited evidence, and it
-surfaced a real escape-hatch gap in this repo's own ADR-002 rule. The worked
-cases are embedded in the validator skill as examples.
+These were tested with-skill against naive baselines, and testing did its job —
+it caught a factual bug. An early validator modeled `.excluding()` as a file
+selector, so it wrongly called a dead string-exclusion "vacuous"; a baseline
+agent that read `packages/core/src/execute-rule.ts` corrected it (`.excluding()`
+is a post-hoc violation _suppressor_ — string = exact match, regex = test — so a
+glob string suppresses nothing). The skill was fixed to the real semantics and
+re-tested: it now rules the dead-exclusion case FAITHFUL and a genuine
+empty-selection rule DRIFTED, both with cited evidence. It also surfaced a real
+`notImportFrom` re-export blind spot in eess-ts (imports only, not
+`export … from`). The corrected worked cases are embedded in the validator skill.
+
+That episode is the thesis in miniature: the early skill was a spec that had
+drifted from the code, and grounding against the code caught it — read the
+source, don't trust prose.

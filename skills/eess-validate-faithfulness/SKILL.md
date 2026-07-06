@@ -40,10 +40,14 @@ rule _literally_ — what set of files does it select after all exclusions, and
 what does the condition actually assert on them? Then compare that to the clause.
 Check, in order:
 
-- **Vacuity** (the worst case). Do the exclusions or the selection leave the rule
-  checking (nearly) nothing? `.excluding('**/*.ts')` on a TypeScript source glob
-  removes everything — the rule passes because it inspects zero files. A
-  green-but-empty rule is drift dressed as compliance.
+- **Vacuity** (the worst case). Does the rule check (nearly) nothing? Two ways it
+  happens in eess: a `.that()` selection whose glob/predicate matches **no files**
+  (the rule passes because it inspects an empty set), or an over-broad
+  `.excluding()` **regex** (e.g. `/./`, `/.*/`) that matches every violation's
+  message and suppresses them all. Confirm against the gate's count line — a rule
+  reporting 0 elements is a green-but-empty no-op, drift dressed as compliance.
+  (Note: a **string** `.excluding('**/*.ts')` is _not_ vacuity — see the DSL
+  primer; it's a dead line that suppresses nothing.)
 - **Under-enforcement.** Does the clause claim _more_ than the rule checks? "No
   `as` AND no `satisfies`" enforced by a condition that only bans `as` leaves half
   the clause unguarded.
@@ -89,8 +93,16 @@ narrower exclusion, a wider scope) so the author can act.
   There is no built-in condition for the `satisfies` operator.
 - `.should().notContain(call('x') | newExpr('X') | access('a.b') | expression(/re/))`
   bans those in bodies.
-- `.excluding(REGEX | GLOB)` removes matching files from the selection — they are
-  **not checked**. Multiple `.excluding()` calls stack.
+- `.excluding(pattern)` is a post-hoc **violation suppressor**, not a file
+  selector — it filters the violations the rule already produced
+  (`packages/core/src/execute-rule.ts`). A **string** pattern must **exactly
+  equal** a violation's element name, file path, or message; a **regex** is
+  `.test()`-matched against those three. So `.excluding(/\/generated\//)` (regex)
+  suppresses violations whose file path contains `/generated/`, but
+  `.excluding('**/*.ts')` (a string) equals no real path — it suppresses nothing
+  and only prints an "unused exclusion" warning; it does **not** neuter the rule.
+  A glob string in `.excluding()` is a bug (a dead line), not a way to exclude by
+  path — that's what regexes are for.
 
 ## Worked examples
 
@@ -104,10 +116,15 @@ Clause: "All AST work goes through ts-morph, never the raw `typescript` compiler
 Rule: `modules(p).that().resideInFolder('**/packages/*/src/**').should().notImportFrom('**/node_modules/typescript/**')`
 → VERDICT: PARTIAL — bans the direct `typescript` import, but the same compiler API is reachable via ts-morph's re-exported `ts` namespace, which the rule doesn't catch.
 
-**Drifted (vacuity):**
+**Drifted (real vacuity — empty selection):**
 Clause: "No `as` type assertions in source, outside documented interop boundaries."
-Rule: `…resideInFolder('**/packages/*/src/**').excluding(/\/parser\/generated\//).excluding('**/*.ts').should().satisfy(moduleNoTypeAssertions())`
-→ VERDICT: DRIFTED — `.excluding('**/*.ts')` strips every TypeScript file, so the rule checks nothing; a vacuously-passing gate that enforces zero of the clause.
+Rule: `modules(p).that().resideInFolder('source/**').should().satisfy(moduleNoTypeAssertions())`
+→ VERDICT: DRIFTED — the repo's source lives under `packages/*/src/**`; `source/**` matches zero files, so the rule inspects an empty set and passes vacuously. (The gate's count line reads 0 elements.)
+
+**Not vacuity — a dead exclusion (the trap):**
+Clause: "No `as` type assertions in source, outside documented interop boundaries."
+Rule: `…resideInFolder('**/packages/*/src/**').excluding('**/*.ts').should().satisfy(moduleNoTypeAssertions())`
+→ VERDICT: FAITHFUL — tempting to call this vacuous, but `.excluding()` is a violation _suppressor_ matched by exact string / regex, not a file glob. The string `'**/*.ts'` equals no violation's path, so it suppresses nothing and the rule still bans `as` across all source (it just emits an "unused exclusion" warning). Flag the dead line as a lint nit, but the clause is enforced.
 
 **Drifted (under-enforcement):**
 Clause: "No `as` type assertions AND no `satisfies` operator in source."

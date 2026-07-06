@@ -86,15 +86,19 @@ Entry points: `modules` (imports/deps/body), `classes`, `functions`, `types`,
 
 This is the failure the validator hunts for, so pre-empt it:
 
-- **Exclusions must be narrow and named.** `.excluding(/\/generated\//)` for one
-  generated dir is fine. `.excluding('**/*.ts')` deletes the whole selection —
-  the rule then passes because it checks _nothing_. Every exclusion needs a
-  written reason and must leave real files selected.
-- **Verify the selection is non-empty.** Run the gate and read its count line —
-  `check:arch` now reports `✓ eess-ts — N rules across M files · 0 failing`, and
-  `check:corpus` reports per-check counts. A rule that matches zero elements is a
-  silent no-op, not a pass. If your new rule's target count is 0, the glob is
-  wrong or the rule is vacuous.
+- **Verify the selection is non-empty** — this is where real vacuity comes from.
+  A `.that().resideInFolder(GLOB)` whose glob matches no files makes the rule
+  inspect an empty set and pass silently. Run the gate and read its count line —
+  `check:arch` reports `✓ eess-ts — N rules across M files · 0 failing`,
+  `check:corpus` reports per-check counts. If your new rule's target count is 0,
+  the glob is wrong or the rule is a no-op, not a pass.
+- **Know what `.excluding()` actually does.** It is a post-hoc violation
+  suppressor, not a file selector: a **string** must _exactly equal_ a
+  violation's element/file/message; a **regex** is `.test()`-matched against
+  them. So exclude by path with a **regex** (`.excluding(/\/generated\//)`), give
+  it a written reason, and keep it narrow — an over-broad regex like `/./`
+  suppresses every violation and neuters the rule. A glob string
+  (`.excluding('**/*.ts')`) is a dead line: it matches nothing and only warns.
 - **Enforce the _whole_ clause.** If the clause says "no `as` AND no `satisfies`",
   one condition covering `as` leaves half unenforced. Either add a second
   mechanism or narrow the clause to what you actually gate.
