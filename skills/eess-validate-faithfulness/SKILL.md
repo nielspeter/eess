@@ -1,0 +1,115 @@
+---
+name: eess-validate-faithfulness
+description: Adversarially audit whether an eess-ts rule faithfully enforces the ADR clause it claims to — the Tier-4 semantic check the deterministic gates cannot do. Returns a verdict (FAITHFUL / PARTIAL / DRIFTED) with cited evidence, hunting for under-enforcement, over-broad exclusions / vacuity, and scope mismatch. Use as the validation step right after authoring or editing an eess rule, when reviewing an ADR `## Enforcement` / `## Håndhævelse` table, or when the user asks "does this rule actually enforce the clause", "is this ADR really gated", "check spec-code faithfulness", or "validate the rule against the decision". It is a soft flag — it surfaces drift, it never blocks the build.
+user-invocable: true
+---
+
+# eess-validate-faithfulness
+
+eess's deterministic gates prove two things: the cited rule **exists**, and the
+code **satisfies** it. They cannot prove the third and most important: that the
+rule **means what the ADR clause says**. A coding agent translated English → a
+rule; that translation can be wrong while every deterministic gate stays green —
+a reworded clause paired with an unchanged rule, or a rule neutered by a broad
+exclusion. That gap is Tier 4: a judgment with no deterministic checker. This
+skill is that judgment.
+
+You are a **soft flag, not a gate**. A false "drifted" costs a human a glance; a
+false "faithful" lets silent drift through — the exact failure eess exists to
+prevent. So when you're genuinely unsure whether the rule covers the _whole_
+clause, lean toward PARTIAL/DRIFTED. Never let this block a build; it flags for
+review.
+
+## Inputs
+
+For each clause you audit you need three things:
+
+1. **The clause** — the prose in the ADR Enforcement row (the decision itself).
+2. **The mechanism citation** — the rule id + file named in the row's Mechanism
+   column.
+3. **The actual rule code.** Resolve the citation: open the cited file, find the
+   rule by its `id`, and read the _whole_ chain — selection (`.that()`,
+   `.resideInFolder`, every `.excluding`), condition (`.should()...`), and any
+   helper it uses (what does `moduleNoTypeAssertions()` actually ban?). Auditing
+   the row's prose against the clause's prose is not enough — read the code.
+
+## How to audit
+
+Be adversarial. Assume the translation is wrong and try to prove it. Read the
+rule _literally_ — what set of files does it select after all exclusions, and
+what does the condition actually assert on them? Then compare that to the clause.
+Check, in order:
+
+- **Vacuity** (the worst case). Do the exclusions or the selection leave the rule
+  checking (nearly) nothing? `.excluding('**/*.ts')` on a TypeScript source glob
+  removes everything — the rule passes because it inspects zero files. A
+  green-but-empty rule is drift dressed as compliance.
+- **Under-enforcement.** Does the clause claim _more_ than the rule checks? "No
+  `as` AND no `satisfies`" enforced by a condition that only bans `as` leaves half
+  the clause unguarded.
+- **Scope mismatch.** Does the selection cover _where the clause applies_? A
+  clause about all source paired with a rule scoped to one folder under-covers; a
+  clause about one layer paired with a repo-wide rule over-reaches.
+- **Different thing.** Does the rule enforce something adjacent but not the
+  clause? (Bans importing package X, but the clause is about calling API Y.)
+- **Escape hatches.** Does the clause's intent have a bypass the rule doesn't
+  see? (Bans `import 'typescript'`, but the same compiler API is reachable via a
+  re-export the rule doesn't cover.)
+- **Faithful.** Selection + condition, read literally, assert exactly the clause —
+  and the exclusions are narrow, named boundaries, not neutering.
+
+## Output
+
+Respond in exactly this shape, one block per clause:
+
+```
+VERDICT: FAITHFUL | PARTIAL | DRIFTED
+CONFIDENCE: high | medium | low
+GAP: <one sentence — the specific gap, or "none">
+EVIDENCE: <one or two sentences tying a clause phrase to a rule construct>
+```
+
+- **FAITHFUL** — the rule enforces the whole clause; exclusions are justified.
+- **PARTIAL** — enforces part of it, or has a real but bounded gap (an escape
+  hatch, one uncovered sub-clause). Name what's missing.
+- **DRIFTED** — enforces little/nothing of the clause, or the wrong thing
+  (includes vacuous rules). Name why.
+
+When you flag PARTIAL/DRIFTED, say what would close the gap (a second condition, a
+narrower exclusion, a wider scope) so the author can act.
+
+## eess-ts DSL primer
+
+- `modules(p).that().resideInFolder(GLOB)` selects source files under GLOB.
+- `.should().notImportFrom(GLOB…)` fails if a selected file imports any GLOB;
+  `.notDependOn(GLOB)` is the layer form.
+- `.should().satisfy(cond())` fails if a file violates cond. Common conditions:
+  `moduleNoTypeAssertions()` bans `as` casts **only**; `moduleNoNonNullAssertions()`
+  bans `!`; `moduleNoEval()`; `moduleNoProcessEnv()`; `moduleNoConsoleLog()`.
+  There is no built-in condition for the `satisfies` operator.
+- `.should().notContain(call('x') | newExpr('X') | access('a.b') | expression(/re/))`
+  bans those in bodies.
+- `.excluding(REGEX | GLOB)` removes matching files from the selection — they are
+  **not checked**. Multiple `.excluding()` calls stack.
+
+## Worked examples
+
+**Faithful:**
+Clause: "No `as` type assertions in source, outside documented interop boundaries."
+Rule: `modules(p).that().resideInFolder('**/packages/*/src/**').excluding(/\/parser\/generated\//).should().satisfy(moduleNoTypeAssertions())`
+→ VERDICT: FAITHFUL — selection covers all packages' `src`, condition bans `as`, and the single `.excluding` is one real generated dir (a named boundary), not a neuter.
+
+**Partial (escape hatch):**
+Clause: "All AST work goes through ts-morph, never the raw `typescript` compiler API."
+Rule: `modules(p).that().resideInFolder('**/packages/*/src/**').should().notImportFrom('**/node_modules/typescript/**')`
+→ VERDICT: PARTIAL — bans the direct `typescript` import, but the same compiler API is reachable via ts-morph's re-exported `ts` namespace, which the rule doesn't catch.
+
+**Drifted (vacuity):**
+Clause: "No `as` type assertions in source, outside documented interop boundaries."
+Rule: `…resideInFolder('**/packages/*/src/**').excluding(/\/parser\/generated\//).excluding('**/*.ts').should().satisfy(moduleNoTypeAssertions())`
+→ VERDICT: DRIFTED — `.excluding('**/*.ts')` strips every TypeScript file, so the rule checks nothing; a vacuously-passing gate that enforces zero of the clause.
+
+**Drifted (under-enforcement):**
+Clause: "No `as` type assertions AND no `satisfies` operator in source."
+Rule: `…should().satisfy(moduleNoTypeAssertions())`
+→ VERDICT: PARTIAL — `moduleNoTypeAssertions()` covers `as` only; nothing checks `satisfies`, so half the clause is unenforced.
