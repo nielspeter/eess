@@ -1,5 +1,6 @@
 import type { SourceFile } from 'ts-morph'
 import type { Slice } from '../models/slice.js'
+import { getDependencyDecls } from '../core/module-dependencies.js'
 
 /**
  * An edge in the slice dependency graph.
@@ -46,7 +47,7 @@ function collectEdgesFromFile(
   edgeSet: Set<string>,
   edges: SliceEdge[],
 ): void {
-  for (const importDecl of file.getImportDeclarations()) {
+  for (const importDecl of getDependencyDecls(file)) {
     const resolved = importDecl.getModuleSpecifierSourceFile()
     if (!resolved) continue
 
@@ -103,7 +104,7 @@ export function findSliceDependencyDetails(
 
   const details: Array<{ sourceFile: SourceFile; importPath: string; importLine: number }> = []
   for (const file of fromSlice.files) {
-    for (const importDecl of file.getImportDeclarations()) {
+    for (const importDecl of getDependencyDecls(file)) {
       const resolved = importDecl.getModuleSpecifierSourceFile()
       if (!resolved) continue
 

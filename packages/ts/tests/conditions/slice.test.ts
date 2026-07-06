@@ -33,6 +33,17 @@ describe('beFreeOfCycles', () => {
     expect(violations.some((v) => v.message.includes('feature-b'))).toBe(true)
   })
 
+  it('detects cycles formed only by `export … from` re-exports', () => {
+    // reexport-x and reexport-y re-export each other with `export * from` and
+    // have no regular imports — the cycle exists only on re-export edges, which
+    // slice-graph missed until getDependencyDecls() included them.
+    const reexportSlices = resolveByMatching(p, 'src/reexport-')
+    const condition = beFreeOfCycles()
+    const violations = condition.evaluate(reexportSlices, ctx)
+    expect(violations.length).toBeGreaterThan(0)
+    expect(violations.some((v) => v.message.includes('Cycle detected'))).toBe(true)
+  })
+
   it('passes when there are no cycles', () => {
     const layerSlices = resolveByDefinition(p, {
       domain: '**/domain/**',
