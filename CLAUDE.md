@@ -128,6 +128,21 @@ Add `--format json` for a machine-readable stream, e.g.
 failing is not a blocker to route around; it is the repo telling you a spec and
 the code have drifted. Fix the drift (either side), then re-run.
 
+On success, every gate reports what it actually scanned — a summary line with
+the denominator and elapsed time — so a fast green is provably non-vacuous, not
+a silent no-op:
+
+- `check:corpus` → `✓ corpus integrity — 104 checks across 46 documents, 0
+violations (254ms)`, with per-check counts above it (documents live/frozen,
+  links, live `path:line` pointers, ADRs).
+- `check:arch` / `check:spec` → `✓ eess-ts — N rules across M files · 0 failing
+(Xs)`; `check:diagram` → the same for `eess-mermaid`.
+
+If a count reads zero or far lower than expected, the gate matched nothing —
+treat that as a red flag (a vacuous rule or wrong glob), not a pass. These
+summaries print to **stderr in terminal format only**, so `--format json` /
+`github` output on stdout stays machine-clean.
+
 ## Commit Messages
 
 - Use conventional commits (feat:, fix:, refactor:, test:, docs:, chore:)
