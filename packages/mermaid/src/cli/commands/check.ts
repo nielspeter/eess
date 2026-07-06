@@ -16,6 +16,7 @@ function isArchRuleError(value: unknown): boolean {
 }
 
 export async function runCheck(args: CheckArgs): Promise<number> {
+  const started = Date.now()
   const format: OutputFormat = args.format === 'auto' ? detectFormat() : args.format
   const options: CheckOptions = { format }
 
@@ -33,6 +34,21 @@ export async function runCheck(args: CheckArgs): Promise<number> {
         throw error
       }
     }
+  }
+
+  // Report the denominator so a fast green is provably non-vacuous, not silence.
+  // Terminal only — JSON/GitHub-annotation output on stdout stays machine-clean.
+  if (format === 'terminal') {
+    const ms = Date.now() - started
+    const time = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
+    const rules = builders.length
+    const files = args.ruleFiles.length
+    const scope = `${rules} rule${rules === 1 ? '' : 's'} across ${files} file${files === 1 ? '' : 's'}`
+    process.stderr.write(
+      failures === 0
+        ? `\n✓ eess-mermaid — ${scope} · 0 failing (${time})\n`
+        : `\n✗ eess-mermaid — ${failures} of ${scope} failing (${time})\n`,
+    )
   }
 
   return failures
