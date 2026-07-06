@@ -6,7 +6,7 @@ eess is a dialect-independent kernel with **sibling dialects** around it — Typ
 
 Inspired by Java's [ArchUnit](https://www.archunit.org/). Powered by [ts-morph](https://ts-morph.com/).
 
-[Get Started →](/getting-started) · [What Can It Check?](/what-to-check) · [GitHub](https://github.com/NielsPeter/eess)
+[What is eess? →](/what-is-eess) · [Get Started](/getting-started) · [What Can It Check?](/what-to-check) · [GitHub](https://github.com/NielsPeter/eess)
 
 > **The eess family** — one kernel, sibling dialects:
 >

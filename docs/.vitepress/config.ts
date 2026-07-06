@@ -17,7 +17,9 @@ export default defineConfig({
       {
         text: 'Introduction',
         items: [
-          { text: 'What is eess?', link: '/' },
+          { text: 'What is eess?', link: '/what-is-eess' },
+          { text: 'The Manifesto', link: '/manifesto' },
+          { text: 'Calculator Walkthrough', link: '/eess-walkthrough-calculator' },
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'What to Check', link: '/what-to-check' },
         ],

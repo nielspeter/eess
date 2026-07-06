@@ -1,5 +1,8 @@
 # Executable Enforceable Specification System
 
+> **New to eess?** This is the full design spec — dense by design. For a
+> five-minute plain-language intro, start with [What is eess?](/what-is-eess).
+
 ## Core Thesis
 
 Modern software systems suffer from semantic drift.

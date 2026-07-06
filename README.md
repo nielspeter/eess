@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org/)
 
-A repo's architecture, diagrams, and specifications should be **executable and enforced**, not prose that drifts. eess validates each artifact against the code — and against its sibling artifacts — so drift in either direction fails the build. See the [manifesto](./docs/manifesto.md) and the [worked example](./docs/eess-walkthrough-calculator.md).
+A repo's architecture, diagrams, and specifications should be **executable and enforced**, not prose that drifts. eess validates each artifact against the code — and against its sibling artifacts — so drift in either direction fails the build. New here? Start with [What is eess?](./docs/what-is-eess.md) (a five-minute intro); then the [manifesto](./docs/manifesto.md) and the [worked example](./docs/eess-walkthrough-calculator.md).
 
 Artifacts are **siblings, not hierarchical**: TypeScript, Mermaid diagrams, and Markdown specs all sit on equal footing, validated by one shared kernel. This monorepo is built the same way — a dialect-independent kernel with dialects as sibling packages around it.
 
