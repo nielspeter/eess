@@ -3,6 +3,12 @@ import type { SourceFile, ImportDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
 import { isTypeOnlyImport } from '../core/import-options.js'
+import {
+  getDependencyDecls,
+  resolveDependencyPath,
+  isTypeOnlyDependency,
+  type DependencyDecl,
+} from '../core/module-dependencies.js'
 
 export type { ImportOptions } from '../core/import-options.js'
 import type { ImportOptions } from '../core/import-options.js'
@@ -16,11 +22,12 @@ function resolveImportPath(decl: ImportDeclaration): string {
 }
 
 /**
- * Create a violation for a source file with a specific offending import.
+ * Create a violation for a source file with a specific offending dependency edge
+ * (an `import … from` or an `export … from` re-export).
  */
 function importViolation(
   sourceFile: SourceFile,
-  importDecl: ImportDeclaration,
+  importDecl: DependencyDecl,
   message: string,
   context: ConditionContext,
 ): ArchViolation {
@@ -62,9 +69,9 @@ export function onlyImportFrom(
     evaluate(sourceFiles: SourceFile[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const sf of sourceFiles) {
-        for (const decl of sf.getImportDeclarations()) {
-          if (ignoreType && isTypeOnlyImport(decl)) continue
-          const importPath = resolveImportPath(decl)
+        for (const decl of getDependencyDecls(sf)) {
+          if (ignoreType && isTypeOnlyDependency(decl)) continue
+          const importPath = resolveDependencyPath(decl)
           if (!matchers.some((m) => m(importPath))) {
             violations.push(
               importViolation(
@@ -110,9 +117,9 @@ export function notImportFrom(
     evaluate(sourceFiles: SourceFile[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const sf of sourceFiles) {
-        for (const decl of sf.getImportDeclarations()) {
-          if (ignoreType && isTypeOnlyImport(decl)) continue
-          const importPath = resolveImportPath(decl)
+        for (const decl of getDependencyDecls(sf)) {
+          if (ignoreType && isTypeOnlyDependency(decl)) continue
+          const importPath = resolveDependencyPath(decl)
           if (matchers.some((m) => m(importPath))) {
             violations.push(
               importViolation(
@@ -162,9 +169,9 @@ export function dependOn(...args: [string[], ImportOptions] | string[]): Conditi
     evaluate(sourceFiles: SourceFile[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const sf of sourceFiles) {
-        const hasMatch = sf.getImportDeclarations().some((decl) => {
-          if (ignoreType && isTypeOnlyImport(decl)) return false
-          const importPath = resolveImportPath(decl)
+        const hasMatch = getDependencyDecls(sf).some((decl) => {
+          if (ignoreType && isTypeOnlyDependency(decl)) return false
+          const importPath = resolveDependencyPath(decl)
           return matchers.some((m) => m(importPath))
         })
         if (!hasMatch) {

@@ -2,23 +2,22 @@ import picomatch from 'picomatch'
 import type { SourceFile } from 'ts-morph'
 import type { Predicate } from '@nielspeter/eess'
 import type { ImportOptions } from '../core/import-options.js'
-import { isTypeOnlyImport } from '../core/import-options.js'
+import {
+  getDependencyDecls,
+  resolveDependencyPath,
+  isTypeOnlyDependency,
+} from '../core/module-dependencies.js'
 
 /**
- * Resolve the import paths for a source file, optionally filtering out type-only imports.
- * Returns absolute paths for resolvable imports, raw specifiers for external packages.
+ * Resolve the dependency paths for a source file — `import … from` plus
+ * `export … from` re-exports (both are dependency edges) — optionally filtering
+ * out type-only edges. Returns absolute paths for resolvable targets, raw
+ * specifiers for external packages.
  */
 function getImportPaths(sourceFile: SourceFile, ignoreTypeImports = false): string[] {
-  return sourceFile
-    .getImportDeclarations()
-    .filter((decl) => {
-      if (!ignoreTypeImports) return true
-      return !isTypeOnlyImport(decl)
-    })
-    .map((decl) => {
-      const resolved = decl.getModuleSpecifierSourceFile()
-      return resolved ? resolved.getFilePath() : decl.getModuleSpecifierValue()
-    })
+  return getDependencyDecls(sourceFile)
+    .filter((decl) => (ignoreTypeImports ? !isTypeOnlyDependency(decl) : true))
+    .map(resolveDependencyPath)
 }
 
 /**
