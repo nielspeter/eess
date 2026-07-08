@@ -1,97 +1,109 @@
 # eess as a harness
 
-_Where eess sits in the wider conversation about grounding AI coding agents —
-specifically Thoughtworks' [Exploring Generative
-AI](https://martinfowler.com/articles/exploring-gen-ai.html) series on Martin
-Fowler's site. eess didn't invent a category; this note situates it honestly in
-one that's being named there, and is clear about what eess adds and where the
-same caveats bite._
+_Where eess sits in the wider conversation about grounding AI coding agents. The
+term of art is emerging as **harness engineering**: the tooling and practices that
+constrain and guide agents so their output stays reliable at scale. eess didn't
+invent this category — this note situates it honestly against the people naming
+it, and is clear about what eess adds and where the same caveats bite._
 
-## eess is a "harness"
+## The harness, in the wild
+
+Two of the most aggressive agent-first engineering efforts published case studies
+of building a harness from scratch:
+
+- **OpenAI — [Harness
+  engineering](https://openai.com/index/harness-engineering/)**: an internal
+  product, ~1M lines of code in five months with **zero manually-written lines** —
+  every line written by Codex. _"Humans steer. Agents execute."_
+- **Stripe — [Minions](https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents)**:
+  one-shot end-to-end agents merging **1,000+ agent-produced PRs per week** into a
+  codebase that _"moves well over $1 trillion per year of payment volume."_
 
 Birgitta Böckeler's [Harness
 Engineering](https://martinfowler.com/articles/exploring-gen-ai/harness-engineering-memo.html)
-memo describes the tooling that "constrains and guides AI agents" so their output
-stays reliable and maintainable at scale. Her three harness categories map almost
-one-to-one onto eess:
+memo (part of Thoughtworks' [Exploring Generative
+AI](https://martinfowler.com/articles/exploring-gen-ai.html)) is the analysis that
+names the category.
 
-| Harness category (Böckeler)                                                                                                        | In eess                                                          |
-| ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **Context engineering** — knowledge embedded in the codebase                                                                       | `CLAUDE.md`, `docs/`, the `eess-adr-*` [skills](/dogfooding)     |
-| **Architectural constraints** — "deterministic custom linters and structural tests… alongside LLM agents" (she names **ArchUnit**) | **eess-ts** — exactly this, evolved from ts-archunit             |
-| **Entropy management** — "agents that detect documentation inconsistencies and architectural violations"                           | `check:corpus` + the `eess-adr-validate` skill (spec↔code drift) |
+## Both shops hand-rolled what eess packages
 
-Her sharpest critique of the approach she analysed is the opening for eess: it
-_"lacks verification of functionality and behaviour — focusing on maintainability
-while leaving actual correctness verification unexplored."_ That gap is exactly
-what eess's [enforcement tiers](/manifesto) name. The harness half covers Tier 1
-(static, maintainability); Tier 2 (behavioural correctness) is the hole she points
-at — and eess forces every clause to _declare_ whether it is Tier-1-gated or needs
-a Tier-2 behavioural test, rather than quietly leaving it unverified. Her call to
-_"direct human input to where it is most important"_ is the same move as eess's
-**gate-on-the-declaration**: deterministic gates handle Tiers 1–3, human/LLM
-judgment goes to Tiers 4–5.
+The striking thing about the OpenAI and Stripe write-ups is how much they
+independently reinvented — per repo, from scratch — the exact pieces eess offers
+as a reusable, cross-artifact framework:
 
-## Spec-driven, but by validation — not generation
+| What they built ad-hoc                                                                                                                                                                                                                                                                                         | In eess                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenAI: _"a rigid architectural model… a fixed set of layers, strictly validated dependency directions and a limited set of permissible edges… enforced mechanically via custom linters and structural tests"_ (Types→Config→Repo→Service→Runtime→UI, forward-only, cross-cutting via one Providers interface) | **eess-ts** — `layeredArchitecture`, `notDependOn`, `slices().respectLayerOrder()`. They cite ArchUnit; eess-ts is that, reusable.                                                                                                                 |
+| OpenAI: docs/ as _"the system of record,"_ `AGENTS.md` as _"the table of contents, not the encyclopedia"_ — after _"one big AGENTS.md"_ failed because _"it doesn't lend itself to mechanical checks (coverage, freshness, cross-links), so drift is inevitable"_                                              | **`CLAUDE.md` + the corpus**, and **eess-md's `check:corpus` is exactly those mechanical checks** — cross-links resolve, code pointers ground, ADR tables valid. Their `exec-plans/{active,completed}` + `tech-debt-tracker` mirror `work/plans/`. |
+| OpenAI: _"because the lints are custom, we write the error messages to inject remediation instructions into agent context"_                                                                                                                                                                                    | eess-ts `.because()` / `.rule({ suggestion, docs })`, and gate output that reports what it scanned                                                                                                                                                 |
+| OpenAI: _"when documentation falls short, we promote the rule into code"_; _"human taste captured once, then enforced continuously"_                                                                                                                                                                           | the **tier / mechanism / status model** — a clause moving `manual` → `gated` _is_ "promote prose to code," made explicit and tracked                                                                                                               |
+| OpenAI: background tasks that _"scan for deviations, update quality grades, and open targeted refactoring pull requests"_ (entropy / garbage collection)                                                                                                                                                       | `check:corpus` + the `eess-adr-validate` skill — the drift-scanner half                                                                                                                                                                            |
+| Stripe: _"mix the creativity of an agent with the assurance that they'll always complete Stripe-required steps like linters"_; _"shift feedback left"_ (local lints < 5s before CI)                                                                                                                            | eess's exact split — **deterministic gates + agent only for Tier 4** — run locally (`npm run validate`, and `--changed` / `--watch`) and in CI                                                                                                     |
+| Stripe: _"almost all agent rules… conditionally applied based on subdirectories"_                                                                                                                                                                                                                              | eess-ts rules scoped by `resideInFolder` / globs                                                                                                                                                                                                   |
 
-Böckeler's [Understanding
-Spec-Driven-Development](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html)
-compares Kiro, spec-kit, and Tessl, and sorts SDD into _spec-first_ →
-_spec-anchored_ → _spec-as-source_. All three tools are **generative**: spec →
-agent → code. eess is **validational**: spec ↔ code, drift fails the build.
+The headline: the two most aggressive agent-first shops in the industry
+independently built layered-architecture structural tests, doc-as-system-of-record
+with mechanical consistency checks, remediation-in-lint-messages,
+promote-prose-to-code, and continuous entropy cleanup. **eess is those pieces,
+packaged** — reusable across artifacts (TS, Mermaid, Markdown), with an explicit
+tier model — instead of hand-rolled per repo.
 
-That difference matters because of her central warning — that spec-as-source
-risks _"the downsides of both MDD and LLMs: inflexibility **and**
-non-determinism."_ eess **refuses spec-as-source**: it never generates code from
-the spec. Code stays hand- or AI-written; the spec is validated against it, and
-[neither is privileged](/what-is-eess). So eess is _spec-anchored_ — but anchored
-by validation rather than generation, sidestepping the MDD trap she flags.
+## What eess adds: the tier model — not a "missing verification" fix
+
+An earlier version of this note repeated a claim (from a summary of the OpenAI
+memo) that its harness _"lacks verification of functionality and behaviour."_
+Reading the [primary source](https://openai.com/index/harness-engineering/)
+corrects that — fittingly, the eess thesis biting a doc that drifted from its
+source. OpenAI's _"Increasing application legibility"_ section **is** behavioural
+verification: the app is bootable per git-worktree, the Chrome DevTools Protocol
+is wired into the agent, observability is exposed via LogQL/PromQL, and they assert
+performance SLOs like _"ensure service startup completes in under 800ms"_ and
+_"no span exceeds two seconds."_ That is Tier 2/3 enforcement.
+
+So eess's contribution is not filling a gap they left. It is making the split
+**explicit and declarable**: eess's [enforcement tiers](/manifesto) force every
+clause to name _which kind of fact it is_ (static / behavioural / operational /
+judgment / rationale), _what mechanism_ checks it, and _what status_ it's in
+(`gated` / `pending` / `manual` / …). OpenAI and Stripe verify across several
+tiers; eess adds the taxonomy so that nothing is _silently_ unverified — the
+unenforced surface becomes a queryable list rather than an assumption.
+
+## Spec-driven — by validation, not generation
+
+Böckeler's [SDD
+survey](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) sorts
+spec-driven development into _spec-first_ → _spec-anchored_ → _spec-as-source_.
+OpenAI, Stripe, and the SDD tools are all **generative**: intent → agent → code.
+eess is orthogonal: it is **validational** — spec ↔ code, drift fails the build,
+and it does not care _who_ wrote the code. That is why eess composes _with_ a
+generative harness rather than competing with it: OpenAI and Stripe would use an
+eess-style layer as the mechanical guardrail their agents run against.
+
+It also sidesteps Böckeler's warning that _spec-as-source_ risks _"the downsides
+of both MDD and LLMs: inflexibility and non-determinism."_ eess never generates
+code from the spec; [neither spec nor code is privileged](/what-is-eess).
 
 ## Context engineering — and the illusion of control
 
-Her [Context Engineering for Coding
-Agents](https://martinfowler.com/articles/exploring-gen-ai/context-engineering-coding-agents.html)
-enumerates the very Claude Code primitives eess ships with: `CLAUDE.md`, rules
-files, **Skills** (lazy-loaded guidance), subagents, hooks. Two of her points land
-directly on eess:
+Böckeler's [Context
+Engineering](https://martinfowler.com/articles/exploring-gen-ai/context-engineering-coding-agents.html)
+and OpenAI's _"give Codex a map, not a 1,000-page instruction manual"_ land on the
+same two lessons eess lives:
 
-- _"As long as LLMs are involved, we can never be **certain** of anything."_ This
-  is why eess **gates rather than trusts** — and why the `eess-adr-validate` skill
-  flags softly, never blocks.
-- _"Well-structured code serves as powerful implicit context."_ This is why the
+- _"As long as LLMs are involved, we can never be **certain** of anything."_ →
+  eess **gates rather than trusts**, and the `eess-adr-validate` skill flags
+  softly, never blocks.
+- _"Well-structured code serves as powerful implicit context."_ → this is why the
   `eess-adr-*` skills give a capable agent working _inside this repo_ little lift:
-  the repo itself — manifesto, ADRs, `CLAUDE.md` — already is the context. The
-  skills earn their keep in consuming repos that lack those docs.
-
-## Anchoring, and "deterministic where you can"
-
-Her [Anchoring AI to a reference
-application](https://martinfowler.com/articles/exploring-gen-ai/anchoring-to-reference.html)
-is the closest cousin: a compilable source of truth plus **drift detection**. The
-difference is instructive — hers is example-based (few-shot from real code, AI
-closes the gaps); eess is rule-based (specs as executable rules). Her own caveat —
-_"when is AI bringing something new? Simple transformations work better with
-deterministic tools"_ — is the same instinct as eess's split: **deterministic for
-Tiers 1–3, AI only for Tier 4.**
-
-## The problem eess answers
-
-Erik Doernenburg's [Assessing internal quality while coding with an
-agent](https://martinfowler.com/articles/exploring-gen-ai/ccmenu-quality.html) is
-the problem statement. Using only manual review (no gates), he finds agents _"have
-a strong tendency to introduce technical debt."_ His vivid example — the agent
-inventing "an empty string signals no token," i.e. _"it kinda works"_ /
-_"working code ≠ good code"_ — is precisely the plausible-but-wrong drift eess
-exists to make loud, and his duplicated URL-construction logic is what eess-ts
-arch/smell rules catch. His conclusion that manual oversight is still required is
-also eess's honest admission: the semantic-intent half (does the rule _mean_ the
-clause?) can't be made deterministic — that is Tier 4, flagged softly.
+  the manifesto, ADRs, and `CLAUDE.md` already are the context. The skills earn
+  their keep in consuming repos that lack those docs.
 
 ## The throughline
 
 Every author lands on the same principle: **you cannot get certainty from an LLM,
-so put the determinism where you can and be honest where you can't.** eess's whole
-design is that principle made concrete — hard gates for Tiers 1–3, soft-flagging
-LLM judgment for Tier 4, and `pending` for "decided but not yet green." Its
-distinctive contribution to the harness idea is the **tier model**: a way to
+so put the determinism where you can and be honest where you can't.** OpenAI
+_"promote the rule into code."_ Stripe _"always complete required steps like
+linters."_ eess makes that principle a taxonomy: hard gates for Tiers 1–3,
+soft-flagging LLM judgment for Tier 4, `pending` for "decided but not yet green."
+Its distinctive contribution to the harness idea is the **tier model** — a way to
 decide, per clause, which mechanism enforces it and how hard.
