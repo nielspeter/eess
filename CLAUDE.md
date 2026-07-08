@@ -123,11 +123,19 @@ or diagrams, run the relevant gate and fix what it reports:
   the kernel diagram, and their agreement.
 
 Each gate prints a violation with a file, a line, a message, and (often) a fix.
+The output is written to be **agent-actionable** — every violation surfaces its
+rationale (`.because`), a `Fix:` line (the rule's `suggestion`), and a `Docs:`
+link where present, so a failing gate reads as an instruction, not just an error.
 Add `--format json` for a machine-readable stream, e.g.
 `eess-ts check spec.rules.ts --format json` — each violation carries
-`file`/`line`/`message`/`ruleId`, and the fix is stated in the message. A gate
+`file`/`line`/`message`/`ruleId`/`because`/`suggestion`/`docs`. A gate
 failing is not a blocker to route around; it is the repo telling you a spec and
 the code have drifted. Fix the drift (either side), then re-run.
+
+For a fast pre-commit / on-save loop, `npm run check:fast` runs just the spec and
+architecture gates (corpus + spec + arch), skipping build, tests, lint, and the
+slower gates — the "shift feedback left" tier. Run the full `npm run validate`
+before proposing a commit.
 
 On success, every gate reports what it actually scanned — a summary line with
 the denominator and elapsed time — so a fast green is provably non-vacuous, not

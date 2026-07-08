@@ -56,3 +56,9 @@ own code.
 No externally-committed roadmap. This is an experimental repo; the next dialect
 (workflows) ships only if demand emerges. Design ideas are captured as new plans
 under `work/plans/` when scheduled.
+
+[Plan 0067](./0067-harness-informed-roadmap.md) captures harness-engineering
+learnings (from OpenAI's and Stripe's public write-ups): quick wins landed
+(`check:fast`, agent-actionable gate output), plus proposed phases — coverage
+grades over time, broader autofix, an author→validate→fix loop, and the Tier 2/3
+mechanization frontier.
