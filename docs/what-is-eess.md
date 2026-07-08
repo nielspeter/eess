@@ -97,3 +97,5 @@ own build fails. See [eess validates eess](/dogfooding).
   project grow specs-first, from an empty directory.
 - **[The manifesto](/manifesto)** — the full design: principles, architecture,
   enforcement tiers, executable ADRs.
+- **[eess as a harness](/eess-as-a-harness)** — how eess relates to Thoughtworks'
+  writing on spec-driven development, harnesses, and grounding AI agents.
