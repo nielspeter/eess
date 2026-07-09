@@ -19,7 +19,7 @@ Artifacts are **siblings, not hierarchical**: TypeScript, Mermaid diagrams, and 
 | [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables  | 0.1.x  |
 | [`@nielspeter/eess-crossvalidate`](./packages/crossvalidate) | Cross-validation — bind two dialects, fail on drift | 0.1.x  |
 
-Each dialect depends only on the kernel and its own parser (ts-morph for TS, Langium for Mermaid, mdast for Markdown). The Markdown dialect ([plan 0058](./work/plans/0058-markdown-dialect-eess-md.md)) and cross-validation between dialects ([plan 0059](./work/plans/0059-cross-validation-eess-crossvalidate.md)) are sibling packages on the same kernel — new dialects land without restructuring.
+Each dialect depends only on the kernel and its own parser (ts-morph for TS, Langium for Mermaid, mdast for Markdown). The Markdown dialect ([plan 0058](./work/plans/completed/0058-markdown-dialect-eess-md.md)) and cross-validation between dialects ([plan 0059](./work/plans/completed/0059-cross-validation-eess-crossvalidate.md)) are sibling packages on the same kernel — new dialects land without restructuring.
 
 ## Quick start
 

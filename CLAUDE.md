@@ -88,6 +88,7 @@ eess/
 │   └── crossvalidate/      # @nielspeter/eess-crossvalidate — bind two dialects, fail on drift
 ├── scripts/                # check-*.mjs dogfood gates + nonvacuity fixtures
 ├── skills/                 # AI integration layer: eess-adr-author + eess-adr-validate agent skills
+├── kit/                    # the portable working-method kit (plan 0068): skills + templates + bootstrap
 ├── arch.rules.ts           # dogfood: architecture rules over this repo
 ├── spec.rules.ts           # dogfood: bind README/ADR-index specs to code
 ├── mermaid.rules.ts        # dogfood: diagram ↔ code correspondence
@@ -119,6 +120,11 @@ or diagrams, run the relevant gate and fix what it reports:
 - `npm run check:corpus` — cross-links and `path:line` code pointers in
   `work/`, `adr/`, and `docs/` must resolve. A pointer you cite must hit the
   real line.
+- `npm run check:ledger` — honesty at close: a _done_ plan (a terminal `State:`
+  token, or a plan in `work/plans/completed/`) carries no silently-open `- [ ]`.
+  Close a plan by disposing every box (done-otherwise / deferred→<home> /
+  dropped-on-purpose / validation-owed) and moving it to `completed/`. Dogfoods the
+  `eess-md` `honestyAtClose` preset that the portable kit under `kit/` ships.
 - `npm run check:arch` / `check:diagram` / `check:crossval` — architecture,
   the kernel diagram, and their agreement.
 
