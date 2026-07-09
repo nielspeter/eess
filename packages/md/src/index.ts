@@ -24,6 +24,10 @@ export { pointers, PointerRuleBuilder } from './builders/pointers.js'
 export type { MdPointer } from './builders/pointers.js'
 export type { PointerResolveOptions } from './conditions/pointer-resolve.js'
 export { rows, RowsRuleBuilder } from './builders/rows.js'
+export { taskItems, TaskItemRuleBuilder } from './builders/task-items.js'
+export type { MdTaskItem } from './builders/task-items.js'
+export { collectTaskItems } from './model/task-items.js'
+export type { MdTaskItemRef } from './model/task-items.js'
 
 // Conditions (for composing custom rules / presets)
 export { haveSection, haveTable } from './conditions/structure.js'

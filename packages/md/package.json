@@ -11,6 +11,10 @@
     "./rules/adr": {
       "types": "./dist/rules/adr.d.ts",
       "import": "./dist/rules/adr.js"
+    },
+    "./rules/ledger": {
+      "types": "./dist/rules/ledger.d.ts",
+      "import": "./dist/rules/ledger.js"
     }
   },
   "files": [
