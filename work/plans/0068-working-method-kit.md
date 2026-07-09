@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — reviewed and revised; **not** promoted to Ready (not yet
-  committed to implementation) — dogfooding this plan's own draft/ready distinction
+- **State:** In progress — the **thin spine** is delivered and shipped; the
+  remaining phases are deferred out loud (ledger below). Not `Done`, not merely a
+  `Draft` — a slice landed.
 - **Priority:** P2 — packages a proven internal practice for reuse; no blockers
 - **Effort:** Phase 1 ≈ 0.5 day; Phases 2–4 sized below
 - **Created:** 2026-07-09
@@ -11,6 +12,30 @@
   ([PR #68](https://github.com/the-org/consumer-app/pull/68)): the
   clause↔mechanism split (mdast vs. zero-dep emulation), the three named findings,
   and the gate/absence asymmetry. The validation half feeding the authoring half.
+
+### Progress ledger — this plan closing honestly on itself
+
+The plan's own **honesty at close** applied to the plan: every part disposed, the
+deferrals said out loud (its "first real dogfood," per Phase 3). The thin spine —
+the one gate + its convention + the author/close skills — is the agreed stopping
+point for the PoC; the rest is real work that is _deferred_, not silently dropped.
+
+- [x] **Phase 3 — the one gate.** Delivered as the `eess-md` `honestyAtClose` preset
+      (the non-hack implementation), cut over in consumer PR #68, wired into CI,
+      proven non-vacuous. This is the phase that mattered most, and it is complete.
+- [ ] **Phase 2 — workflow skills** — `deferred→ follow-on`: 4 of 7 shipped
+      (`/plan`, `/plan-ready`, `/bug`, `/close`); the later lifecycle skills
+      `/plan-build`, `/refine`, `/case` remain.
+- [ ] **Phase 1 — method current + templates** — `deferred→ follow-on`: the ledger
+      convention (neutral `State:` token + disposition tokens + the corpus migration)
+      landed; the full `working-method.md` vendored into a consumer's `docs/`, and the
+      `AGENTS.md`/`CLAUDE.md` nudge, remain. Seed templates are `dropped-on-purpose`
+      for a mature corpus (the corpus is the template).
+- [ ] **Phase 4 — bootstrap** — `deferred→ future` (the plan itself marks it
+      cuttable).
+
+Deferred: Phases 1 (remainder), 2 (remainder), and 4 → future increments of this
+plan. Promote to Ready and pick them up when a project actually needs them.
 
 ## Problem
 
