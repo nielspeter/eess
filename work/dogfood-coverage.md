@@ -120,4 +120,4 @@ drift in either direction fails the build. Two bindings, both dogfooded:
   `eess-crossvalidate` (both in the workspace) — caught red, then fixed.
 - **Closed loop verified:** a fresh agent given only the gate's `--format json`
   repaired an introduced drift with no human interpretation. `check:spec`
-  wall-clock ≈ 0.4s. Full account: [plan 0061 as-built](./plans/0061-spec-code-hard-feedback-poc.md).
+  wall-clock ≈ 0.4s. Full account: [plan 0061 as-built](./plans/completed/0061-spec-code-hard-feedback-poc.md).

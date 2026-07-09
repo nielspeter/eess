@@ -2,11 +2,12 @@
 
 ## Status
 
-- **State:** In progress — the **thin spine** is delivered and shipped; the
-  remaining phases are deferred out loud (ledger below). Not `Done`, not merely a
-  `Draft` — a slice landed.
-- **Priority:** P2 — packages a proven internal practice for reuse; no blockers
-- **Effort:** Phase 1 ≈ 0.5 day; Phases 2–4 sized below
+- **State:** Done — the full portable kit shipped under `kit/` (7 skills · seed
+  templates · cold-start board stub · `AGENTS` nudge · zero-dep bootstrap) on top of
+  Phase 3's gate; `working-method.md` is current; and eess now **dogfoods** the
+  ledger gate on its own corpus (`check:ledger` in `validate`).
+- **Priority:** P2 — packaged a proven internal practice for reuse
+- **Effort:** delivered across two branches — the thin spine, then the full kit + dogfood
 - **Created:** 2026-07-09
 - **Refined:** 2026-07-09 — Phase 3 updated from the consumer PoC
   ([PR #68](https://github.com/the-org/consumer-app/pull/68)): the
@@ -15,37 +16,37 @@
 
 ### Progress ledger — this plan closing honestly on itself
 
-The plan's own **honesty at close** applied to the plan: every part disposed, the
-deferrals said out loud (its "first real dogfood," per Phase 3). The thin spine —
-the one gate + its convention + the author/close skills — is the agreed stopping
-point for the PoC; the rest is real work that is _deferred_, not silently dropped.
+The plan's own **honesty at close** applied to the plan: every phase disposed, and
+its "first real dogfood" (per Phase 3) made literal — eess now runs `check:ledger`
+on this very corpus, and this plan is the first item closed by the convention.
 
-- [x] **Phase 3 — the one gate.** Delivered as the `eess-md` `honestyAtClose` preset
-      (the non-hack implementation), cut over in consumer PR #68, wired into CI,
-      proven non-vacuous. This is the phase that mattered most, and it is complete.
-- [ ] **Phase 2 — workflow skills** — `deferred→ follow-on`: 4 of 7 shipped
-      (`/plan`, `/plan-ready`, `/bug`, `/close`); the later lifecycle skills
-      `/plan-build`, `/refine`, `/case` remain.
-- [ ] **Phase 1 — method current + templates** — `deferred→ follow-on`: the ledger
-      convention (neutral `State:` token + disposition tokens + the corpus migration)
-      landed; the full `working-method.md` vendored into a consumer's `docs/`, and the
-      `AGENTS.md`/`CLAUDE.md` nudge, remain. Seed templates are `dropped-on-purpose`
-      for a mature corpus (the corpus is the template).
-- [ ] **Phase 4 — bootstrap** — `deferred→ future` (the plan itself marks it
-      cuttable).
+- [x] **Phase 1 — method current + kit seeds.** `working-method.md` brought current
+      (tier model + harness pairing · three-layer + promote-a-clause · nudge-not-instruct
+      · corpus-is-the-template); seed plan/bug templates, the cold-start board stub, and
+      the `AGENTS` nudge shipped under `kit/`.
+- [x] **Phase 2 — workflow skills.** All 7 shipped to `kit/skills/` — `/plan`,
+      `/plan-ready`, `/plan-build`, `/bug`, `/close`, `/refine`, `/case` —
+      de-projected from the consumer PoC into the language-neutral kit.
+- [x] **Phase 3 — the one gate.** The `eess-md` `honestyAtClose` preset + `taskItems`
+      primitive; cut over in consumer PR #68, and now wired into eess's own `validate`
+      as `check:ledger`.
+- [x] **Phase 4 — bootstrap.** `kit/bootstrap.mjs` — zero-dep, dry-run-by-default,
+      idempotent; installs skills + corpus skeleton + method doc + nudge. Smoke-tested.
+- [x] **eess self-adoption (dogfood).** `check:ledger` wired into `validate`; the
+      plans corpus migrated to the terminal-`State:` + `completed/` convention; this
+      plan is the first item closed by it.
 
-Deferred: Phases 1 (remainder), 2 (remainder), and 4 → future increments of this
-plan. Promote to Ready and pick them up when a project actually needs them.
+Deferred: none. The portable kit (Phases 1–4) and eess's own dogfood are complete.
 
 ## Problem
 
 eess packages the **mechanical** half of harness engineering — the tier model,
 `eess-ts`, and `eess-md`'s `check:corpus` (see [eess as a
-harness](../../docs/eess-as-a-harness.md)). But the _other_ half — **how a
+harness](../../../docs/eess-as-a-harness.md)). But the _other_ half — **how a
 human + AI team actually works**: triage, plan/bug/refinement lanes, the honest
 close-out, the corpus-as-memory — has lived only as tacit habit, re-typed into
 prompts every session. It is now written down as [the working
-method](../../docs/working-method.md), and it is genuinely proven: it has
+method](../../../docs/working-method.md), and it is genuinely proven: it has
 produced hundreds of completed plans across more than one project. Two costs
 remain:
 
@@ -57,7 +58,7 @@ remain:
 
 This plan packages the method into a **portable, agent-usable kit** so the
 guidelines half of the harness is as reusable as the mechanical half. It also
-brings [`working-method.md`](../../docs/working-method.md) _current_ — that draft
+brings [`working-method.md`](../../../docs/working-method.md) _current_ — that draft
 predates the tier-pairing, the three-layer (docs / skills / gates) model,
 nudge-not-instruct, and the corpus-is-the-template insight. The two costs retire
 in **different phases** — Phase 1 buys _portability_ (a new project can adopt);
@@ -65,7 +66,7 @@ Phase 2 buys back the _repetition_ (the skills carry the mechanics, so the human
 gives a one-line intent). The MVP alone does not remove the repetition; the plan
 says so plainly rather than implying it.
 
-Related: plan [0067](./0067-harness-informed-roadmap.md) _informs_ this (the
+Related: plan [0067](../0067-harness-informed-roadmap.md) _informs_ this (the
 harness thesis and quick wins) but isn't a blocker; the one hard dependency is
 `eess-md` (plan [0058](./0058-markdown-dialect-eess-md.md)), which Phase 3's gate
 builds on. The "Workflow dialect" idea sits at ROADMAP row 9 (a _mechanical_
@@ -94,7 +95,7 @@ dogfood of the method-as-product:
 
 ### Phase 1 — Make the method current + seed templates (the MVP — buys portability)
 
-Bring [`working-method.md`](../../docs/working-method.md) up to where the thinking
+Bring [`working-method.md`](../../../docs/working-method.md) up to where the thinking
 actually landed, in the same light voice (additions are nudges, not a spec): the
 tier model and its harness pairing; the **three-layer system** (method docs /
 agent-callable skills / mechanical gates) and the _promote-a-clause_ path;

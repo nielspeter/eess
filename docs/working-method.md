@@ -1,4 +1,4 @@
-# A Working Method for Human + AI Knowledge Work — DRAFT
+# A Working Method for Human + AI Knowledge Work
 
 _(This is the portable version — the method itself, not one project's copy of it.
 It emerged in practice and has already travelled between projects, gaining
@@ -80,6 +80,14 @@ The corpus _is the team's durable, reloadable memory_ — the standing-in for th
 meetings, the board, the retro, and the institutional "why did we do it that way."
 A fresh agent reconstitutes context by reading it. That's why we point rather than
 duplicate, and why we don't let it rot.
+
+**The corpus is the template.** The house shape of a plan or a bug isn't kept as a
+form to fill in — it's _read from the last few real items_. When authoring, skim two
+or three recent items in the lane and match what they actually do. A brand-new
+project with no examples yet may seed a minimal template to bootstrap the shape, but
+that template is scaffolding: **delete it the moment real items exist to imitate.** A
+living example is a truer template than a frozen form, and a form that outlives its
+examples quietly starts to lie about the shape.
 
 ## The lanes are a toolkit, not a pipeline
 
@@ -213,6 +221,45 @@ pointers to _live_ authority (the code) that can still _drift_. Checked pointers
 still the frontier for _both_ the projects this method has lived in — treat it as
 unfinished, not solved.
 
+## Three layers: the method, the skills, the harness
+
+This method is one layer of three, and knowing which layer a thing belongs to is
+what keeps each of them honest:
+
+- **The method (this document)** — the _guidelines_. How the work moves, what the
+  lanes are, the three firm things. Read by humans and agents alike; it teaches
+  judgment, it doesn't police it.
+- **The skills** — thin, agent-callable _nudges_ that carry the method's
+  **repetitive mechanics** (author a plan the house way, walk the close-out ledger)
+  so nobody re-narrates them each session. A skill is a paragraph aimed at the few
+  things a capable model actually forgets — above all, _state the deferrals out
+  loud_ — not a re-description of the whole procedure. **Nudge, not instruct:** the
+  model already knows how to write a plan, so the skill points it at the corpus for
+  the shape and guards the failure mode, then gets out of the way. A skill that
+  swells into a manual has become the compliance regime this method rejects.
+- **The harness** — the mechanical _gates_ that fail the build when a spec and the
+  code (or two specs) drift. This is where determinism lives, and _only_ here.
+
+The line between "leave it to judgment" and "make it a gate" is the **tier model**
+the harness half uses (Tier 1 static · 2 behavioural · 3 operational · 4
+semantic/judgment · 5 ratification). Most of what this method asks for is **Tier
+4** — honest, but not mechanically knowable, so it stays a habit a skill nudges and
+a reviewer enforces. A clause earns a gate _only when it names a
+mechanically-knowable fact_, and then you **promote** it: keep the guideline, add
+the gate beneath it, and say plainly which slice is gated and which stays judgment.
+Three of this method's clauses have earned that promotion — _keep cross-references
+alive_ and _point, don't duplicate_ (a corpus link-and-pointer gate), and the
+**silent** slice of _honesty at close_ (a ledger-reconciliation gate: it catches an
+undisposed box and a self-contradicting deferral summary, but whether a disposition
+is _truthful_ stays with the reviewer). Everything else is deliberately left
+un-gated — and _naming_ the unenforced surface, rather than quietly leaving it
+unchecked, is itself part of the discipline.
+
+Promotion runs one way only: a guideline may grow a gate beneath it; a gate may
+never quietly widen into policing judgment. When in doubt, it stays a habit — the
+same test as the three firm things: a mechanism earns its place only if it protects
+the discovery, never if it starts policing it.
+
 ## Core vs per-project configuration
 
 What makes the method _portable_ is the line between what you carry unchanged and
@@ -223,7 +270,9 @@ what you tailor:
   draft→ready freeze (point live authority, record settled decisions by value); the
   close-out honesty ritual; the merged-and-green definition of done; human-gated
   authoring/review with optionally-autonomous implementation; the corpus as
-  reloadable memory; and the standing invitation to invent new shapes.
+  reloadable memory; the three-layer split (method / skills / harness) and the
+  one-way promote-a-clause path; corpus-as-template; and the standing invitation to
+  invent new shapes.
 - **Tailor per project:** which lanes exist; the numbering and id style; the exact
   state names and any gate checklists; the tooling's tech; and _which_ external
   sources of truth apply.
@@ -245,7 +294,8 @@ then pick the lanes the work actually calls for.
 
 ---
 
-_Draft, in the intended voice: a colleague's habits, not a compliance regime.
-Three things firm because they protect the discovery; everything else a default to
-bend when the work is better for it; and explicit room for a smarter agent to
-invent structure this document doesn't yet have. Correct freely._
+_In the intended voice: a colleague's habits, not a compliance regime. Three things
+firm because they protect the discovery; everything else a default to bend when the
+work is better for it; and explicit room for a smarter agent to invent structure
+this document doesn't yet have. Current, not finished — the honest open edge above
+says which part is still frontier. Correct freely._
