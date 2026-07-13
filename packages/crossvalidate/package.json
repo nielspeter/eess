@@ -19,6 +19,14 @@
     "./files": {
       "types": "./dist/files.d.ts",
       "import": "./dist/files.js"
+    },
+    "./md-gherkin": {
+      "types": "./dist/md-gherkin.d.ts",
+      "import": "./dist/md-gherkin.js"
+    },
+    "./md-mermaid-er": {
+      "types": "./dist/md-mermaid-er.d.ts",
+      "import": "./dist/md-mermaid-er.js"
     }
   },
   "files": [
@@ -56,7 +64,8 @@
   "peerDependencies": {
     "@nielspeter/eess-ts": "^0.12.0",
     "@nielspeter/eess-mermaid": "^0.1.0",
-    "@nielspeter/eess-md": "^0.1.0"
+    "@nielspeter/eess-md": "^0.1.0",
+    "@nielspeter/eess-gherkin": "^0.1.0"
   },
   "peerDependenciesMeta": {
     "@nielspeter/eess-ts": {
@@ -66,6 +75,9 @@
       "optional": true
     },
     "@nielspeter/eess-md": {
+      "optional": true
+    },
+    "@nielspeter/eess-gherkin": {
       "optional": true
     }
   }

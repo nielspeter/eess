@@ -10,7 +10,7 @@
 - **Effort:** delivered across two branches — the thin spine, then the full kit + dogfood
 - **Created:** 2026-07-09
 - **Refined:** 2026-07-09 — Phase 3 updated from the consumer PoC
-  ([PR #68](https://github.com/the-org/consumer-app/pull/68)): the
+  (its PR #68): the
   clause↔mechanism split (mdast vs. zero-dep emulation), the three named findings,
   and the gate/absence asymmetry. The validation half feeding the authoring half.
 
@@ -28,7 +28,7 @@ on this very corpus, and this plan is the first item closed by the convention.
       `/plan-ready`, `/plan-build`, `/bug`, `/close`, `/refine`, `/case` —
       de-projected from the consumer PoC into the language-neutral kit.
 - [x] **Phase 3 — the one gate.** The `eess-md` `honestyAtClose` preset + `taskItems`
-      primitive; cut over in consumer PR #68, and now wired into eess's own `validate`
+      primitive; cut over in the consumer PoC (PR #68), and now wired into eess's own `validate`
       as `check:ledger`.
 - [x] **Phase 4 — bootstrap.** `kit/bootstrap.mjs` — zero-dep, dry-run-by-default,
       idempotent; installs skills + corpus skeleton + method doc + nudge. Smoke-tested.
@@ -251,11 +251,11 @@ necessary-not-sufficient floor with the reviewer as the real enforcer:
 
 **Mechanism is not the clause (from the consumer PoC).** An earlier draft of this phase
 said "key off the mdast task-item state, never a line regex." Dogfooding the gate in
-consumer (PR #68) showed that over-specifies: it is eess-config, not portable core. The
+the consumer PoC (PR #68) showed that over-specifies: it is eess-config, not portable core. The
 **clause** is "detect open ledger boxes and guard the three false-positive contexts
 (fenced code, blockquotes, seed templates)." The **mechanism** is mdast where a parser
 is available — and an explicit zero-dep emulation where the host repo's house style
-forbids dependencies (consumer's corpus tools are zero-dep, so its gate strips fences in
+forbids dependencies (that repo's corpus tools are zero-dep, so its gate strips fences in
 place to preserve line numbers, skips `>` lines, and word-bounds the disposition
 tokens so prose like "dropped in prod" can't falsely exempt a silent box). Both satisfy
 the clause; a portable kit must not force a parser on every consumer. The reusable way
@@ -281,7 +281,7 @@ preset** — a `taskItems()` primitive (GFM task-list items via mdast) plus a
 The consumer PoC (`ledger-check.ts` + its 7 fixtures + 18 tests) is the **reference
 spec**: its behaviour (the three findings, the disposition tokens, the asymmetry)
 ports 1:1; only the parsing layer changes — the regex fence/blockquote emulation is
-dropped because mdast gives those guards for free. A consuming repo (consumer first)
+dropped because mdast gives those guards for free. A consuming repo (the PoC project first)
 then retires its `ledger-check.ts` and calls the preset, exactly as it retired its
 four hand-built corpus validators for `adrEnforcement`.
 

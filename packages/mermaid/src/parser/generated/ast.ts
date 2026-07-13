@@ -6,46 +6,119 @@
 /* eslint-disable */
 import * as langium from 'langium';
 
+/** Contains the reachable terminals & keywords and all available types of the 'ClassDiagramGrammar' language. */
+export namespace ClassDiagramGrammar {
+
+    export const Terminals = {
+        ID: /[A-Za-z_][A-Za-z0-9_]*/,
+        STRING: /"[^"]*"/,
+        DIRECTIVE: /%%[ \t]*@[^\n\r]*/,
+        WS: /\s+/,
+        SL_COMMENT: /%%(?![ \t]*@)[^\n\r]*/,
+    };
+
+    export type TerminalNames = keyof typeof Terminals;
+
+    export type KeywordNames =
+        | "#"
+        | "$"
+        | "("
+        | ")"
+        | "*"
+        | "*--"
+        | "+"
+        | ","
+        | "-"
+        | "--"
+        | "-->"
+        | "--|>"
+        | "..>"
+        | "..|>"
+        | ":"
+        | "<<"
+        | "<|--"
+        | "<|.."
+        | ">>"
+        | "class"
+        | "classDiagram"
+        | "for"
+        | "note"
+        | "o--"
+        | "{"
+        | "}"
+        | "~";
+
+    export type TokenNames = TerminalNames | KeywordNames;
+
+    export type AstType = {
+        ClassDef: ClassDef
+        ClassMember: ClassMember
+        Diagram: Diagram
+        Directive: Directive
+        Note: Note
+        Param: Param
+        Relationship: Relationship
+        StereotypeAssignment: StereotypeAssignment
+        StereotypeMarker: StereotypeMarker
+    }
+
+}
+
+/** Contains the reachable terminals & keywords and all available types of the 'ErDiagramGrammar' language. */
+export namespace ErDiagramGrammar {
+
+    export const Terminals = {
+        CARDINALITY: /(\|o|\|\||\}o|\}\|)(--|\.\.)(o\||\|\||o\{|\|\{)/,
+        ID: /[A-Za-z_][A-Za-z0-9_-]*/,
+        STRING: /"[^"]*"/,
+        WS: /\s+/,
+        SL_COMMENT: /%%[^\n\r]*/,
+    };
+
+    export type TerminalNames = keyof typeof Terminals;
+
+    export type KeywordNames =
+        | ","
+        | ":"
+        | "FK"
+        | "PK"
+        | "UK"
+        | "erDiagram"
+        | "for"
+        | "note"
+        | "{"
+        | "}";
+
+    export type TokenNames = TerminalNames | KeywordNames;
+
+    export type AstType = {
+        ErAttribute: ErAttribute
+        ErDiagram: ErDiagram
+        ErEntityDef: ErEntityDef
+        ErNote: ErNote
+        ErRelationship: ErRelationship
+    }
+
+}
+
+
+// the terminals, keywords and types of the whole 'MermaidUnit' project
+
 export const MermaidUnitTerminals = {
-    ID: /[A-Za-z_][A-Za-z0-9_]*/,
-    STRING: /"[^"]*"/,
-    DIRECTIVE: /%%[ \t]*@[^\n\r]*/,
-    WS: /\s+/,
-    SL_COMMENT: /%%(?![ \t]*@)[^\n\r]*/,
+    ...ClassDiagramGrammar.Terminals,
+    ...ErDiagramGrammar.Terminals,
 };
 
 export type MermaidUnitTerminalNames = keyof typeof MermaidUnitTerminals;
 
-export type MermaidUnitKeywordNames =
-    | "#"
-    | "$"
-    | "("
-    | ")"
-    | "*"
-    | "*--"
-    | "+"
-    | ","
-    | "-"
-    | "--"
-    | "-->"
-    | "--|>"
-    | "..>"
-    | "..|>"
-    | ":"
-    | "<<"
-    | "<|--"
-    | "<|.."
-    | ">>"
-    | "class"
-    | "classDiagram"
-    | "for"
-    | "note"
-    | "o--"
-    | "{"
-    | "}"
-    | "~";
+export type MermaidUnitKeywordNames = ClassDiagramGrammar.KeywordNames | ErDiagramGrammar.KeywordNames;
 
 export type MermaidUnitTokenNames = MermaidUnitTerminalNames | MermaidUnitKeywordNames;
+
+export type MermaidUnitAstType = ClassDiagramGrammar.AstType & ErDiagramGrammar.AstType
+
+
+// all type definitions of the the whole 'MermaidUnit' project
 
 export type Arrow = '*--' | '--' | '-->' | '--|>' | '..>' | '..|>' | '<|--' | '<|..' | 'o--';
 
@@ -136,6 +209,106 @@ export const Directive = {
 
 export function isDirective(item: unknown): item is Directive {
     return reflection.isInstance(item, Directive.$type);
+}
+
+export interface ErAttribute extends langium.AstNode {
+    readonly $container: ErEntityDef;
+    readonly $type: 'ErAttribute';
+    comment?: string;
+    keys: Array<ErKey>;
+    name: string;
+    type: string;
+}
+
+export const ErAttribute = {
+    $type: 'ErAttribute',
+    comment: 'comment',
+    keys: 'keys',
+    name: 'name',
+    type: 'type'
+} as const;
+
+export function isErAttribute(item: unknown): item is ErAttribute {
+    return reflection.isInstance(item, ErAttribute.$type);
+}
+
+export interface ErDiagram extends langium.AstNode {
+    readonly $type: 'ErDiagram';
+    entities: Array<ErEntityDef>;
+    notes: Array<ErNote>;
+    relationships: Array<ErRelationship>;
+}
+
+export const ErDiagram = {
+    $type: 'ErDiagram',
+    entities: 'entities',
+    notes: 'notes',
+    relationships: 'relationships'
+} as const;
+
+export function isErDiagram(item: unknown): item is ErDiagram {
+    return reflection.isInstance(item, ErDiagram.$type);
+}
+
+export interface ErEntityDef extends langium.AstNode {
+    readonly $container: ErDiagram;
+    readonly $type: 'ErEntityDef';
+    attributes: Array<ErAttribute>;
+    name: string;
+}
+
+export const ErEntityDef = {
+    $type: 'ErEntityDef',
+    attributes: 'attributes',
+    name: 'name'
+} as const;
+
+export function isErEntityDef(item: unknown): item is ErEntityDef {
+    return reflection.isInstance(item, ErEntityDef.$type);
+}
+
+export type ErKey = 'FK' | 'PK' | 'UK';
+
+export function isErKey(item: unknown): item is ErKey {
+    return item === 'PK' || item === 'FK' || item === 'UK';
+}
+
+export interface ErNote extends langium.AstNode {
+    readonly $container: ErDiagram;
+    readonly $type: 'ErNote';
+    target?: string;
+    text: string;
+}
+
+export const ErNote = {
+    $type: 'ErNote',
+    target: 'target',
+    text: 'text'
+} as const;
+
+export function isErNote(item: unknown): item is ErNote {
+    return reflection.isInstance(item, ErNote.$type);
+}
+
+export interface ErRelationship extends langium.AstNode {
+    readonly $container: ErDiagram;
+    readonly $type: 'ErRelationship';
+    cardinality: string;
+    label?: string;
+    lhs: string;
+    rhs: string;
+}
+
+export const ErRelationship = {
+    $type: 'ErRelationship',
+    cardinality: 'cardinality',
+    label: 'label',
+    lhs: 'lhs',
+    rhs: 'rhs'
+} as const;
+
+export function isErRelationship(item: unknown): item is ErRelationship {
+    return reflection.isInstance(item, ErRelationship.$type);
 }
 
 export interface Note extends langium.AstNode {
@@ -233,18 +406,6 @@ export type Visibility = '#' | '+' | '-' | '~';
 
 export function isVisibility(item: unknown): item is Visibility {
     return item === '+' || item === '-' || item === '#' || item === '~';
-}
-
-export type MermaidUnitAstType = {
-    ClassDef: ClassDef
-    ClassMember: ClassMember
-    Diagram: Diagram
-    Directive: Directive
-    Note: Note
-    Param: Param
-    Relationship: Relationship
-    StereotypeAssignment: StereotypeAssignment
-    StereotypeMarker: StereotypeMarker
 }
 
 export class MermaidUnitAstReflection extends langium.AbstractAstReflection {
@@ -345,6 +506,94 @@ export class MermaidUnitAstReflection extends langium.AbstractAstReflection {
             properties: {
                 text: {
                     name: Directive.text
+                }
+            },
+            superTypes: []
+        },
+        ErAttribute: {
+            name: ErAttribute.$type,
+            properties: {
+                comment: {
+                    name: ErAttribute.comment,
+                    optional: true
+                },
+                keys: {
+                    name: ErAttribute.keys,
+                    defaultValue: [],
+                    optional: true
+                },
+                name: {
+                    name: ErAttribute.name
+                },
+                type: {
+                    name: ErAttribute.type
+                }
+            },
+            superTypes: []
+        },
+        ErDiagram: {
+            name: ErDiagram.$type,
+            properties: {
+                entities: {
+                    name: ErDiagram.entities,
+                    defaultValue: [],
+                    optional: true
+                },
+                notes: {
+                    name: ErDiagram.notes,
+                    defaultValue: [],
+                    optional: true
+                },
+                relationships: {
+                    name: ErDiagram.relationships,
+                    defaultValue: [],
+                    optional: true
+                }
+            },
+            superTypes: []
+        },
+        ErEntityDef: {
+            name: ErEntityDef.$type,
+            properties: {
+                attributes: {
+                    name: ErEntityDef.attributes,
+                    defaultValue: [],
+                    optional: true
+                },
+                name: {
+                    name: ErEntityDef.name
+                }
+            },
+            superTypes: []
+        },
+        ErNote: {
+            name: ErNote.$type,
+            properties: {
+                target: {
+                    name: ErNote.target,
+                    optional: true
+                },
+                text: {
+                    name: ErNote.text
+                }
+            },
+            superTypes: []
+        },
+        ErRelationship: {
+            name: ErRelationship.$type,
+            properties: {
+                cardinality: {
+                    name: ErRelationship.cardinality
+                },
+                label: {
+                    name: ErRelationship.label,
+                    optional: true
+                },
+                lhs: {
+                    name: ErRelationship.lhs
+                },
+                rhs: {
+                    name: ErRelationship.rhs
                 }
             },
             superTypes: []

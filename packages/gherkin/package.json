@@ -1,0 +1,46 @@
+{
+  "name": "@nielspeter/eess-gherkin",
+  "version": "0.1.0",
+  "description": "Architecture testing for Gherkin feature files — the Gherkin dialect of the eess family. Features and scenarios as first-class elements, ready for cross-validation against a markdown corpus.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nielspeter/eess.git",
+    "directory": "packages/gherkin"
+  },
+  "author": "Niels Peter",
+  "license": "MIT",
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "gherkin",
+    "cucumber",
+    "bdd",
+    "architecture",
+    "testing",
+    "eess"
+  ],
+  "dependencies": {
+    "@nielspeter/eess": "^0.1.0",
+    "picomatch": "^4.0.4"
+  }
+}

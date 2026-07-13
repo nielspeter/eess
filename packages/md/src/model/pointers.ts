@@ -18,8 +18,9 @@ export interface MdPointerRef {
   readonly pathEnd: number
 }
 
-/** Code file extensions a pointer may target. */
-const CODE_EXT = 'ts|tsx|js|mjs|cjs|vue|json|sql|sh|ya?ml'
+/** Code file extensions a pointer may target — web stack plus the JVM/legacy
+ * languages an external-root traceability matrix cites (plan 0069 Phase 5). */
+const CODE_EXT = 'ts|tsx|js|mjs|cjs|vue|json|sql|sh|ya?ml|groovy|java|kt|kts|cs|py|rb|go|rs|php'
 // `path.ext:line` or `path.ext:start-end`. Path class includes `[` `]` so Nuxt
 // dynamic routes like `[id].vue` match. Backticks aren't in the class, so
 // `` `admin.ts:493` `` delimits naturally.

@@ -5,11 +5,18 @@
 
 import type { LangiumSharedCoreServices, LangiumCoreServices, LangiumGeneratedCoreServices, LangiumGeneratedSharedCoreServices, LanguageMetaData, Module } from 'langium';
 import { MermaidUnitAstReflection } from './ast.js';
-import { ClassDiagramGrammarGrammar } from './grammar.js';
+import { ClassDiagramGrammarGrammar, ErDiagramGrammarGrammar } from './grammar.js';
 
 export const ClassDiagramGrammarLanguageMetaData = {
     languageId: 'mermaidunit-class',
     fileExtensions: ['.mmd'],
+    caseInsensitive: false,
+    mode: 'production'
+} as const satisfies LanguageMetaData;
+
+export const ErDiagramGrammarLanguageMetaData = {
+    languageId: 'mermaidunit-er',
+    fileExtensions: ['.ermmd'],
     caseInsensitive: false,
     mode: 'production'
 } as const satisfies LanguageMetaData;
@@ -21,5 +28,11 @@ export const MermaidUnitGeneratedSharedModule: Module<LangiumSharedCoreServices,
 export const ClassDiagramGrammarGeneratedModule: Module<LangiumCoreServices, LangiumGeneratedCoreServices> = {
     Grammar: () => ClassDiagramGrammarGrammar(),
     LanguageMetaData: () => ClassDiagramGrammarLanguageMetaData,
+    parser: {}
+};
+
+export const ErDiagramGrammarGeneratedModule: Module<LangiumCoreServices, LangiumGeneratedCoreServices> = {
+    Grammar: () => ErDiagramGrammarGrammar(),
+    LanguageMetaData: () => ErDiagramGrammarLanguageMetaData,
     parser: {}
 };
