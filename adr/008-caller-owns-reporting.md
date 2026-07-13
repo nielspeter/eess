@@ -3,7 +3,7 @@
 ## Status
 
 Accepted (2026-07-13). Implements plan
-[0070](../work/plans/0070-caller-owns-reporting.md).
+[0070](../work/plans/completed/0070-caller-owns-reporting.md).
 
 ## Context
 

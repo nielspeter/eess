@@ -17,6 +17,7 @@
  */
 import { corpus, links, pointers } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
+import { reportViolations } from '@nielspeter/eess'
 
 const ROOTS = ['work/plans/**', 'adr/**', 'docs/**']
 const t0 = Date.now()
@@ -63,11 +64,18 @@ const pointersChecked = pointerRule.select({ label: 'pointer', ...anon }).elemen
 const stale = pointerRule.violations()
 
 // dir MUST be set: the preset default is 'docs/adr/**'; ours live at /adr.
-let adrError
-try {
-  adrEnforcement(c, { dir: 'adr/**' })
-} catch (err) {
-  adrError = err
+// report: 'return' — the preset emits nothing; this script owns reporting
+// (no double render — plan 0070 / ADR-008).
+const adrViolations = adrEnforcement(c, { dir: 'adr/**', report: 'return' })
+const adrError = adrViolations.length > 0
+
+// --format json/github — emit all violations machine-readable, then exit (plan 0070).
+const fmtArg = process.argv.indexOf('--format')
+const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
+if (format === 'json' || format === 'github') {
+  const all = [...broken, ...stale, ...adrViolations]
+  reportViolations(all, { format })
+  process.exit(all.length > 0 ? 1 : 0)
 }
 
 // ---------- report ----------
@@ -107,16 +115,12 @@ if (problems.length > 0) {
 if (adrError) {
   console.error('')
   console.error('  ADR enforcement failed:')
-  console.error(
-    adrError.message
-      .split('\n')
-      .map((l) => `    ${l}`)
-      .join('\n'),
-  )
+  for (const v of adrViolations)
+    console.error(`    ${relTo(v.file)}:${v.line}  ${v.message.split('\n')[0]}`)
 }
 
 const totalChecked = linksChecked + pointersChecked + adrDocs.length
-const failed = problems.length > 0 || adrError !== undefined
+const failed = problems.length > 0 || adrError
 console.error('')
 if (!failed) {
   console.error(

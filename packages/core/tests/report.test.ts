@@ -25,7 +25,7 @@ describe('reportViolations()', () => {
     const out = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     reportViolations(v(1), { format: 'json' })
     expect(out).toHaveBeenCalledOnce()
-    const payload = JSON.parse(String(out.mock.calls[0]?.[0]))
+    const payload = JSON.parse(String(out.mock.calls[0]?.[0])) as { violations: unknown[] }
     expect(payload.violations).toHaveLength(1)
   })
 

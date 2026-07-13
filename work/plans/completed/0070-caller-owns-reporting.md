@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Ready — floor frozen 2026-07-13. The open decision is resolved:
+- **State:** Done — all three phases delivered and validated; `npm run validate` green end-to-end. Floor frozen 2026-07-13; built 2026-07-14. The open decision is resolved:
   **contract (a), non-breaking.** Presets gain an optional `{ report?:
 'throw' | 'return' | 'warn', format? }` and change return type `void →
 ArchViolation[]` (safe — existing callers ignore it; default `'throw'` keeps
@@ -157,6 +157,13 @@ proven by piping one script to `--format json`.
 
 - [x] Phase 1 — kernel `reportViolations` + `finishPreset`; `throwIfViolations`/`executeCheck` rewired onto them; ADR-008; 8 core tests (CLI unchanged by design)
 - [x] Phase 2 — 8 presets migrated (md adr/ledger, crossvalidate ×3, ts ×3): options extend PresetReportOptions via PresetBaseOptions, return finishPreset; non-breaking; preset-level report:return test
-- [ ] Phase 3 — format threaded through the dogfood scripts
+- [x] Phase 3 — check-corpus/check-ledger own reporting via `report: return` (double-print killed); `--format json` emits preset violations (proven: injected ADR break → 1 JSON violation, exit 1)
 
-Deferred: none — Ready; ledger goes live during the build.
+Deferred: none. Two follow-ons were named in Out of scope (parse-error fix-hints; widening check:crossval across packages) — deferred there, not dropped.
+
+## Validation (2026-07-14)
+
+- `npm run validate` green: build · arch (24 rules) · diagram · crossval · corpus 112/0 · ledger 9/0 · spec · nonvacuity · typecheck · lint · format · full suite (1895+ ts, core 30, md 72, crossvalidate 30, gherkin 9).
+- Double-print killed: kernel test asserts a preset writes nothing to stderr under `report: return`; the dogfood scripts render each violation once.
+- Format-blind gap closed: `check:corpus --format json` emits preset-sourced violations as JSON (proven by an injected ADR break).
+- Non-breaking: every prior call site unchanged (default `throw`); 1895+ existing tests green.
