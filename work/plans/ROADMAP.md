@@ -29,7 +29,7 @@ here.
 | 8     | [Working-method kit (0068)](./completed/0068-working-method-kit.md)                           | portable method: current docs + seed templates + skills (`/plan-*`, `/bug`, universal `/close`) + one promoted gate (close); freeze stays a skill-borne habit           | Done    | 0058 (0067 informs) |
 | 9     | Workflow dialect (future, numbered when scheduled)                                            | `@nielspeter/eess-workflow` — only if demand emerges                                                                                                                    | idea    | 0051                |
 | 10    | [Spec-corpus reach (0069)](./completed/0069-spec-corpus-reach.md)                             | `eess-gherkin` sibling dialect · md↔gherkin citation crossval · erDiagram grammar + parameterized table↔diagram binding · vocabulary primitive · external-root pointers | Done    | 0058, 0059          |
-| 11    | [Caller owns reporting (0070)](./0070-caller-owns-reporting.md)                               | split detect/report/throw — one format-aware reporter; presets emit `--format json` + a non-throwing return; kills double-print (ADR-008)                               | Draft   | —                   |
+| 11    | [Caller owns reporting (0070)](./0070-caller-owns-reporting.md)                               | split detect/report/throw — one format-aware reporter; presets emit `--format json` + a non-throwing return; kills double-print (ADR-008)                               | Ready   | —                   |
 
 ---
 

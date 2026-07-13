@@ -2,9 +2,17 @@
 
 ## Status
 
-- **State:** Draft — direction sketched from a usability review + source recon;
-  the one load-bearing design decision (preset return contract) is named as an
-  open question, unresolved until the freeze.
+- **State:** Ready — floor frozen 2026-07-13. The open decision is resolved:
+  **contract (a), non-breaking.** Presets gain an optional `{ report?:
+'throw' | 'return' | 'warn', format? }` and change return type `void →
+ArchViolation[]` (safe — existing callers ignore it; default `'throw'` keeps
+  today's behavior). Two kernel primitives: `reportViolations(violations,
+{format,reason})` (the single emitter, no throw) and `finishPreset(violations,
+opts)` (emit-per-mode + throw-or-return). `throwIfViolations` and
+  `executeCheck` are reimplemented on top of `reportViolations` (behavior
+  unchanged). The CLI-swallow question is **sidestepped**: default `'throw'`
+  still prints, so no CLI catch-and-format change is needed — callers opt into
+  `'return'` to own emission.
 - **Priority:** P2 — highest-leverage usability fix; a soft prerequisite to
   publishing eess (a new consumer hits this on day one)
 - **Effort:** Phase 1 ≈ 1 session; Phase 2 ≈ 1 session; Phase 3 ≈ 0.5 session
@@ -94,9 +102,15 @@ the decision the freeze must resolve** — two candidate shapes:
   `ArchViolation[]`; a thin `assertClean(violations)` throws. Composes better
   but changes every preset's signature and every dogfood call site.
 
-Draft leans (a) — non-breaking, and `{ report: 'return' }` directly retires the
+**Frozen: (a).** Non-breaking, and `{ report: 'return' }` directly retires the
 `collect()` wrapper and the `.slice(0, 0)` count-only hack from the 0069 harness.
-Frozen at `/plan-ready`.
+Concrete shape:
+
+```ts
+export type ReportMode = 'throw' | 'return' | 'warn' // default 'throw'
+export function finishPreset(v: ArchViolation[], o?: PresetReportOptions): ArchViolation[]
+// preset options extend PresetReportOptions; preset returns finishPreset(v, o)
+```
 
 **Files changed:** every preset (`md/src/rules/{adr,ledger}.ts`,
 `crossvalidate/src/md-{mermaid,mermaid-er,gherkin}.ts`, `ts/src/presets/*`),
@@ -141,4 +155,4 @@ proven by piping one script to `--format json`.
 - [ ] Phase 2 — preset return contract (shape frozen at ready)
 - [ ] Phase 3 — format threaded through the dogfood scripts
 
-Deferred: none yet — Draft; the preset-contract decision resolves at the freeze.
+Deferred: none — Ready; ledger goes live during the build.
