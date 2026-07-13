@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { ArchRuleError } from '@nielspeter/eess'
@@ -75,5 +75,18 @@ describe('scenarioCitationsResolve() — md↔gherkin', () => {
       { path: 'a/b.feature' },
     ])
     expect(defaultExtract('no citation on this line')).toEqual([])
+  })
+})
+
+describe('report modes (ADR-008)', () => {
+  it('report: return hands back violations without writing to stderr', () => {
+    const errSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+    const result = scenarioCitationsResolve(c(['docs/bad-missing-feature.md']), set(), {
+      extract: undefined,
+      report: 'return',
+    })
+    expect(result).toHaveLength(1) // returned, not thrown
+    expect(errSpy).not.toHaveBeenCalled() // caller owns emission
+    errSpy.mockRestore()
   })
 })

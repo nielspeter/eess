@@ -5,7 +5,7 @@ import { slices } from '../builders/slice-rule-builder.js'
 import { modules } from '../builders/module-rule-builder.js'
 import { smells } from '../smells/index.js'
 import type { PresetBaseOptions } from './shared.js'
-import { dispatchRule, validateOverrides, throwIfViolations } from './shared.js'
+import { dispatchRule, validateOverrides, finishPreset } from './shared.js'
 
 export interface StrictBoundariesOptions extends PresetBaseOptions {
   /** Glob pattern for boundary folders (e.g., 'src/features/*') */
@@ -84,7 +84,10 @@ function applyTestIsolation(
  * Enforce strict module boundaries: no cycles, no cross-boundary imports,
  * shared isolation, and optional copy-paste detection.
  */
-export function strictBoundaries(p: ArchProject, options: StrictBoundariesOptions): void {
+export function strictBoundaries(
+  p: ArchProject,
+  options: StrictBoundariesOptions,
+): ArchViolation[] {
   const overrides = options.overrides
   validateOverrides(overrides, [...RULE_IDS])
 
@@ -161,5 +164,5 @@ export function strictBoundaries(p: ArchProject, options: StrictBoundariesOption
     )
   }
 
-  throwIfViolations(violations)
+  return finishPreset(violations, options)
 }

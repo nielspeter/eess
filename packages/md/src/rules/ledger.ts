@@ -1,4 +1,4 @@
-import { throwIfViolations } from '@nielspeter/eess'
+import { finishPreset, type PresetReportOptions } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
 import type { ArchViolation } from '../model/violation.js'
@@ -23,7 +23,7 @@ import { collectTaskItems } from '../model/task-items.js'
  * for free — no hand-rolled stripping. `deferred: none` summaries and the
  * `State:` header token are unambiguous prose lines, scanned from the source.
  */
-export interface HonestyAtCloseOptions {
+export interface HonestyAtCloseOptions extends PresetReportOptions {
   /**
    * Path segments that mark a document as *done* (in addition to a terminal
    * `State:` token in its header). Default: the common terminal folders.
@@ -183,7 +183,10 @@ function ledgerViolations(doc: MdDocument): ArchViolation[] {
  * finding. Placement is checked on every item; ledger reconciliation only on
  * done-items (the inverse of the frozen-folder exemption).
  */
-export function honestyAtClose(corpus: Corpus, options: HonestyAtCloseOptions = {}): void {
+export function honestyAtClose(
+  corpus: Corpus,
+  options: HonestyAtCloseOptions = {},
+): ArchViolation[] {
   const doneFolders = options.doneFolders ?? DEFAULT_DONE_FOLDERS
   const boardFiles = new Set(options.boardFiles ?? DEFAULT_BOARD_FILES)
   const closeInPlace = options.closeInPlace ?? false
@@ -200,5 +203,5 @@ export function honestyAtClose(corpus: Corpus, options: HonestyAtCloseOptions = 
     if (isDoneItem(doc, doneFolders)) violations.push(...ledgerViolations(doc))
   }
 
-  throwIfViolations(violations)
+  return finishPreset(violations, options)
 }

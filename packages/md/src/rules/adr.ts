@@ -2,9 +2,10 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   dispatchRule,
-  throwIfViolations,
+  finishPreset,
   validateOverrides,
   not,
+  type ArchViolation,
   type PresetBaseOptions,
 } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
@@ -98,7 +99,10 @@ function validateCitations(ctx: TableRowContext, corpus: Corpus): string[] {
  *
  * Emits per-rule ids so `overrides` can downgrade/disable individual checks.
  */
-export function adrEnforcement(corpus: Corpus, options: AdrEnforcementOptions = {}): void {
+export function adrEnforcement(
+  corpus: Corpus,
+  options: AdrEnforcementOptions = {},
+): ArchViolation[] {
   const dir = options.dir ?? 'docs/adr/**'
   const section = options.section ?? /^enforcement$/i
   const columns = options.columns ?? {
@@ -141,5 +145,5 @@ export function adrEnforcement(corpus: Corpus, options: AdrEnforcementOptions = 
     violations.push(...dispatchRule(citations, 'adr/citations-resolve', 'error', options.overrides))
   }
 
-  throwIfViolations(violations)
+  return finishPreset(violations, options)
 }

@@ -156,7 +156,7 @@ proven by piping one script to `--format json`.
 ## Progress ledger
 
 - [x] Phase 1 — kernel `reportViolations` + `finishPreset`; `throwIfViolations`/`executeCheck` rewired onto them; ADR-008; 8 core tests (CLI unchanged by design)
-- [ ] Phase 2 — preset return contract (shape frozen at ready)
+- [x] Phase 2 — 8 presets migrated (md adr/ledger, crossvalidate ×3, ts ×3): options extend PresetReportOptions via PresetBaseOptions, return finishPreset; non-breaking; preset-level report:return test
 - [ ] Phase 3 — format threaded through the dogfood scripts
 
 Deferred: none — Ready; ledger goes live during the build.

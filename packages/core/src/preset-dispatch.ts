@@ -1,13 +1,17 @@
 import type { ArchViolation } from './violation.js'
 import type { RuleMetadata } from './rule-metadata.js'
 import { formatViolations } from './format.js'
-import { finishPreset } from './report.js'
+import { finishPreset, type PresetReportOptions } from './report.js'
 
 /** Per-rule severity within a preset. */
 export type RuleSeverity = 'error' | 'warn' | 'off'
 
-/** Base options every preset accepts: per-rule severity overrides. */
-export interface PresetBaseOptions {
+/**
+ * Base options every preset accepts: per-rule severity overrides, plus the
+ * reporting controls (`report` / `format`) from ADR-008 — so every preset that
+ * extends this can `{ report: 'return' }` without its own plumbing.
+ */
+export interface PresetBaseOptions extends PresetReportOptions {
   overrides?: Record<string, RuleSeverity>
 }
 
