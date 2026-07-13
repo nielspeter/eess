@@ -76,4 +76,4 @@ here as `check:ledger`.
 demand-driven by a real consumer corpus: an `eess-gherkin` sibling dialect,
 md↔gherkin citation crossvalidation, the `erDiagram` grammar with a
 parameterized table↔diagram binding, a vocabulary primitive, and external-root
-pointers. Draft.
+pointers. Ready — floor frozen, being built.
