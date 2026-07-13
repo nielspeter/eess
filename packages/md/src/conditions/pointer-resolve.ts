@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Condition } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
@@ -23,6 +23,32 @@ export interface PointerResolveOptions {
    *   paths (e.g. the external repo's `spec-check.ts` strictness).
    */
   readonly paths?: 'suffix' | 'exact'
+  /**
+   * Additional absolute roots to try when a pointer does not resolve in-repo —
+   * e.g. a sibling checkout of the legacy system a traceability matrix cites
+   * (plan 0069 Phase 5). Resolution under an external root is by exact
+   * relative path (no suffix leniency; no tree walk). Semantics when a pointer
+   * fails in-repo:
+   *  - some listed root exists → the pointer must ground there (broken/stale
+   *    violations name the roots searched);
+   *  - **no listed root exists** → the pointer is **skipped, not passed** — it
+   *    yields no violation, and the calling gate must say so out loud (use
+   *    `presentExternalRoots` to report the skipped scope in its summary line;
+   *    a skip that reads as a pass is the vacuity this option must not create).
+   */
+  readonly externalRoots?: readonly string[]
+}
+
+/** The subset of `roots` that actually exist on disk — for gate summary lines. */
+export function presentExternalRoots(roots: readonly string[]): readonly string[] {
+  return roots.filter((r) => {
+    try {
+      return statSync(r).isDirectory()
+    } catch (err) {
+      void err // absent / unreadable root — by definition not present
+      return false
+    }
+  })
 }
 
 /**
@@ -47,6 +73,7 @@ export function pointerResolves(
   options: PointerResolveOptions = {},
 ): Condition<MdPointer> {
   const mode = options.paths ?? 'suffix'
+  const externalRoots = options.externalRoots ?? []
   const byBasename = new Map<string, string[]>()
   for (const rel of corpus.fileIndex) {
     const base = rel.slice(rel.lastIndexOf('/') + 1)
@@ -90,6 +117,45 @@ export function pointerResolves(
           const m = uniqueSuffix()
           if (m.kind === 'ambiguous') return [] // reported elsewhere, never failed
           targetRel = m.kind === 'unique' ? m.file : null
+        }
+
+        if (targetRel === null && externalRoots.length > 0) {
+          // Not in-repo, external roots configured (plan 0069 Phase 5).
+          const present = presentExternalRoots(externalRoots)
+          if (present.length === 0) return [] // skipped, not passed — caller reports the scope
+          for (const rootDir of present) {
+            const abs = join(rootDir, wanted)
+            let external: number
+            try {
+              external = readFileSync(abs, 'utf8').split('\n').length
+            } catch (err) {
+              void err // not under this root — try the next configured root
+              continue
+            }
+            if (Math.max(p.startLine, p.endLine) > external) {
+              return [
+                mdViolation({
+                  element: `${p.doc.relPath} → ${p.raw}`,
+                  file: p.doc.file,
+                  line: p.line,
+                  message: `stale code pointer: ${rootDir}/${wanted} has ${external} lines; "${p.raw}" references line ${Math.max(p.startLine, p.endLine)}`,
+                  sourceText: p.doc.text,
+                  context: ctx,
+                }),
+              ]
+            }
+            return [] // grounds in the external root
+          }
+          return [
+            mdViolation({
+              element: `${p.doc.relPath} → ${p.raw}`,
+              file: p.doc.file,
+              line: p.line,
+              message: `broken code pointer: "${p.raw}" — not in the repo, and not under external root(s) ${present.join(', ')}`,
+              sourceText: p.doc.text,
+              context: ctx,
+            }),
+          ]
         }
 
         if (targetRel === null) {
