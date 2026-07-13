@@ -50,6 +50,7 @@ const p = workspace([
   'packages/ts/tsconfig.build.json',
   'packages/mermaid/tsconfig.build.json',
   'packages/md/tsconfig.build.json',
+  'packages/gherkin/tsconfig.build.json',
   'packages/crossvalidate/tsconfig.build.json',
 ])
 
@@ -63,6 +64,7 @@ const ENTRY_POINTS = [
   /\/ts\/src\/rules\/(typescript|security|errors|naming|dependencies|code-quality|metrics|architecture|hygiene)\.ts$/,
   /\/mermaid\/src\/(index|cli\/bin)\.ts$/,
   /\/md\/src\/(index|rules\/(adr|ledger))\.ts$/,
+  /\/gherkin\/src\/index\.ts$/,
   /\/crossvalidate\/src\/(mermaid-ts|md-ts|md-mermaid|files)\.ts$/,
 ]
 

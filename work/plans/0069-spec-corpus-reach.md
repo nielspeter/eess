@@ -193,7 +193,7 @@ citations. (The spike script was scratchpad-ephemeral; this table is the record.
 
 ## Progress ledger
 
-- [ ] Phase 1 — opaque corpus members
+- [x] Phase 1 — `@nielspeter/eess-gherkin` sibling dialect (loader + model + builder; 9 tests)
 - [ ] Phase 2 — Gherkin scenario citations
 - [ ] Phase 3 — erDiagram + table↔diagram preset
 - [ ] Phase 4 — vocabulary primitive
