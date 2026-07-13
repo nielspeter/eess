@@ -194,7 +194,7 @@ citations. (The spike script was scratchpad-ephemeral; this table is the record.
 ## Progress ledger
 
 - [x] Phase 1 — `@nielspeter/eess-gherkin` sibling dialect (loader + model + builder; 9 tests)
-- [ ] Phase 2 — Gherkin scenario citations
+- [x] Phase 2 — md↔gherkin `scenarioCitationsResolve` in crossvalidate (7 tests: green/red×3/fence-guard/convention)
 - [ ] Phase 3 — erDiagram + table↔diagram preset
 - [ ] Phase 4 — vocabulary primitive
 - [ ] Phase 5 — external-root pointers
