@@ -17,17 +17,18 @@ here.
 
 ## Track
 
-| Order | Plan                                                                                          | Ships                                                                                                                                                         | Status  | Depends on          |
-| ----- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------- |
-| 1     | [Consolidation — `eess` monorepo (0051)](./completed/0051-consolidation-eess-monorepo.md)     | `@nielspeter/eess` kernel + `eess-ts`, `eess-mermaid` on it                                                                                                   | Built ✓ | —                   |
-| 2     | [Markdown dialect (0058)](./completed/0058-markdown-dialect-eess-md.md)                       | `@nielspeter/eess-md` — corpus links, code pointers, tiered ADR enforcement gate                                                                              | Built ✓ | 0051                |
-| 3     | [Cross-validation primitive (0059)](./completed/0059-cross-validation-eess-crossvalidate.md)  | `@nielspeter/eess-crossvalidate` — `correspondence()`, Mermaid↔TS + MD↔TS presets                                                                             | Built ✓ | 0051, 0058          |
-| 4     | [Full-coverage dogfooding (0060)](./completed/0060-full-coverage-dogfooding.md)               | eess validates eess for real — all six gates active + proven non-vacuous                                                                                      | Built ✓ | 0051, 0058, 0059    |
-| 5     | [Spec↔code hard feedback PoC (0061)](./completed/0061-spec-code-hard-feedback-poc.md)         | `rows()` + md `.select()`; `check:spec` binds README + ADR-index to code                                                                                      | Built ✓ | 0058, 0059, 0060    |
-| 6     | [Correspondence ergonomic bricks (0062)](./completed/0062-correspondence-ergonomic-bricks.md) | split `keyBy` on `correspondence()` + `files()` selection factory                                                                                             | Built ✓ | 0061                |
-| 7     | [Deterministic autofix (0066)](./completed/0066-eess-deterministic-autofix.md)                | `--fix` for unique link/pointer resolutions — kernel `ArchFix` + md fixers                                                                                    | Built ✓ | 0062                |
-| 8     | [Working-method kit (0068)](./completed/0068-working-method-kit.md)                           | portable method: current docs + seed templates + skills (`/plan-*`, `/bug`, universal `/close`) + one promoted gate (close); freeze stays a skill-borne habit | Done    | 0058 (0067 informs) |
-| 9     | Workflow dialect (future, numbered when scheduled)                                            | `@nielspeter/eess-workflow` — only if demand emerges                                                                                                          | idea    | 0051                |
+| Order | Plan                                                                                          | Ships                                                                                                                                                                   | Status  | Depends on          |
+| ----- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------- |
+| 1     | [Consolidation — `eess` monorepo (0051)](./completed/0051-consolidation-eess-monorepo.md)     | `@nielspeter/eess` kernel + `eess-ts`, `eess-mermaid` on it                                                                                                             | Built ✓ | —                   |
+| 2     | [Markdown dialect (0058)](./completed/0058-markdown-dialect-eess-md.md)                       | `@nielspeter/eess-md` — corpus links, code pointers, tiered ADR enforcement gate                                                                                        | Built ✓ | 0051                |
+| 3     | [Cross-validation primitive (0059)](./completed/0059-cross-validation-eess-crossvalidate.md)  | `@nielspeter/eess-crossvalidate` — `correspondence()`, Mermaid↔TS + MD↔TS presets                                                                                       | Built ✓ | 0051, 0058          |
+| 4     | [Full-coverage dogfooding (0060)](./completed/0060-full-coverage-dogfooding.md)               | eess validates eess for real — all six gates active + proven non-vacuous                                                                                                | Built ✓ | 0051, 0058, 0059    |
+| 5     | [Spec↔code hard feedback PoC (0061)](./completed/0061-spec-code-hard-feedback-poc.md)         | `rows()` + md `.select()`; `check:spec` binds README + ADR-index to code                                                                                                | Built ✓ | 0058, 0059, 0060    |
+| 6     | [Correspondence ergonomic bricks (0062)](./completed/0062-correspondence-ergonomic-bricks.md) | split `keyBy` on `correspondence()` + `files()` selection factory                                                                                                       | Built ✓ | 0061                |
+| 7     | [Deterministic autofix (0066)](./completed/0066-eess-deterministic-autofix.md)                | `--fix` for unique link/pointer resolutions — kernel `ArchFix` + md fixers                                                                                              | Built ✓ | 0062                |
+| 8     | [Working-method kit (0068)](./completed/0068-working-method-kit.md)                           | portable method: current docs + seed templates + skills (`/plan-*`, `/bug`, universal `/close`) + one promoted gate (close); freeze stays a skill-borne habit           | Done    | 0058 (0067 informs) |
+| 9     | Workflow dialect (future, numbered when scheduled)                                            | `@nielspeter/eess-workflow` — only if demand emerges                                                                                                                    | idea    | 0051                |
+| 10    | [Spec-corpus reach (0069)](./0069-spec-corpus-reach.md)                                       | `eess-gherkin` sibling dialect · md↔gherkin citation crossval · erDiagram grammar + parameterized table↔diagram binding · vocabulary primitive · external-root pointers | Draft   | 0058, 0059          |
 
 ---
 
@@ -68,5 +69,11 @@ mechanization frontier.
 harness — [the working method](../../docs/working-method.md) — as a portable,
 agent-usable kit (current docs + seed templates + skills — `/plan-*`, `/bug`,
 universal `/close` — + one promoted gate: a ledger-reconciliation check at close; the
-freeze at draft→ready stays a skill-borne habit). Draft — reviewed, not yet committed
-to implementation.
+freeze at draft→ready stays a skill-borne habit). Done — delivered, and dogfooded
+here as `check:ledger`.
+
+[Plan 0069](./0069-spec-corpus-reach.md) grows eess's reach over _spec corpora_,
+demand-driven by a real consumer corpus: an `eess-gherkin` sibling dialect,
+md↔gherkin citation crossvalidation, the `erDiagram` grammar with a
+parameterized table↔diagram binding, a vocabulary primitive, and external-root
+pointers. Draft.
