@@ -50,3 +50,12 @@ describe('parseErDiagram()', () => {
     expect(() => parseErDiagram('erDiagram\n  X {{ nope')).toThrow(MermaidUnitParseError)
   })
 })
+
+describe('erDiagram notes', () => {
+  it('parses note-for lines alongside relationships', () => {
+    const ast = parseErDiagram(
+      'erDiagram\n  A ||--o{ B : "x"\n  note for A "A is optional"\n  note "floating"\n',
+    )
+    expect(collectErRelationships(ast)).toHaveLength(1)
+  })
+})

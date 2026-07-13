@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Ready — floor frozen 2026-07-13. The two unknowns are resolved: the
+- **State:** Done — all five phases delivered and validated against the real
+  consumer corpus (acceptance table below). Floor was frozen 2026-07-13; built
+  the same day. The two unknowns are resolved: the
   Gherkin architecture is a sibling dialect + crossvalidate pairing (settled by
   the genericity review — no kernel change), and the **citation convention is
   fixed**: a backticked feature path and a quoted scenario title on the same
@@ -199,4 +201,23 @@ citations. (The spike script was scratchpad-ephemeral; this table is the record.
 - [x] Phase 4 — `vocabulary()` + `terms()` in eess-md (folders/headings/explicit sources, consumer label; 8 tests)
 - [x] Phase 5 — `resolve({ externalRoots })` + `presentExternalRoots` (skip-not-pass semantics; pointer extensions widened to JVM/legacy languages; 5 tests)
 
-Deferred: none yet — Ready; ledger goes live during the build.
+Deferred: none. All five phases shipped; the two consumer-side chores the plan
+assigned to the consumer (migrate 26 prose citations to the eess convention;
+fix its 2 non-standard erDiagram blocks) remain the consumer's, as stated.
+
+## Validation — acceptance run against the consumer corpus (2026-07-13)
+
+The plan's manual acceptance, executed at close (the corpus is local to this
+machine; CI runs the in-repo fixtures instead):
+
+| Gate                                                     | Denominator                            | Findings                                                                                                                          |
+| -------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Gherkin dialect                                          | 22 feature files · 464 scenarios       | 0 duplicate titles (fully citable)                                                                                                |
+| Scenario citations (transition matcher over their prose) | 26 citations                           | **4 broken** — stories citing scenarios that do not exist                                                                         |
+| erDiagram grammar                                        | 51 real diagrams                       | 49 parse (96%); 2 rejected = the consumer's non-standard syntax (`PK_FK`, `o{--o{`), now **flagged as violations, never a crash** |
+| table↔erDiagram agreement                                | 43 docs · 167 entities · 68 attributes | **8 findings** (drift between a doc's table and its own diagram, incl. the 2 parse rejections)                                    |
+| Vocabulary (bounded contexts vs context folders)         | 41 references                          | 41 unresolved — prose names ≠ folder names, quantified for reconciliation                                                         |
+
+Every layer that was invisible in the original spike is now gated, with real
+denominators — and the run found real drift the consumer's LLM-QA pipeline had
+not caught.

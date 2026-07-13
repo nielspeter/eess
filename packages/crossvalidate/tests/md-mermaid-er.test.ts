@@ -70,3 +70,11 @@ describe('tableErAgree() — md↔mermaid-er', () => {
     expect(tableErStats(c(['no-diagram.md']), OPTS).docs).toBe(0)
   })
 })
+
+describe('tableErAgree() — non-standard syntax', () => {
+  it('flags an unparseable erDiagram as a violation instead of crashing', () => {
+    const violations = violationsOf(() => tableErAgree(c(['bad-unparseable.md']), OPTS))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain('does not parse as standard Mermaid ER syntax')
+  })
+})

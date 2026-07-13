@@ -6,7 +6,11 @@ entry ErDiagram:
     (
         entities+=ErEntityDef
         | relationships+=ErRelationship
+        | notes+=ErNote
     )*;
+
+ErNote:
+    'note' ('for' target=ID)? text=STRING;
 
 // An entity block. Mermaid also declares entities *implicitly* as relationship
 // endpoints — that union is assembled by the model layer, not the grammar.

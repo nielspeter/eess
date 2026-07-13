@@ -84,6 +84,8 @@ export namespace ErDiagramGrammar {
         | "PK"
         | "UK"
         | "erDiagram"
+        | "for"
+        | "note"
         | "{"
         | "}";
 
@@ -93,6 +95,7 @@ export namespace ErDiagramGrammar {
         ErAttribute: ErAttribute
         ErDiagram: ErDiagram
         ErEntityDef: ErEntityDef
+        ErNote: ErNote
         ErRelationship: ErRelationship
     }
 
@@ -232,12 +235,14 @@ export function isErAttribute(item: unknown): item is ErAttribute {
 export interface ErDiagram extends langium.AstNode {
     readonly $type: 'ErDiagram';
     entities: Array<ErEntityDef>;
+    notes: Array<ErNote>;
     relationships: Array<ErRelationship>;
 }
 
 export const ErDiagram = {
     $type: 'ErDiagram',
     entities: 'entities',
+    notes: 'notes',
     relationships: 'relationships'
 } as const;
 
@@ -266,6 +271,23 @@ export type ErKey = 'FK' | 'PK' | 'UK';
 
 export function isErKey(item: unknown): item is ErKey {
     return item === 'PK' || item === 'FK' || item === 'UK';
+}
+
+export interface ErNote extends langium.AstNode {
+    readonly $container: ErDiagram;
+    readonly $type: 'ErNote';
+    target?: string;
+    text: string;
+}
+
+export const ErNote = {
+    $type: 'ErNote',
+    target: 'target',
+    text: 'text'
+} as const;
+
+export function isErNote(item: unknown): item is ErNote {
+    return reflection.isInstance(item, ErNote.$type);
 }
 
 export interface ErRelationship extends langium.AstNode {
@@ -517,6 +539,11 @@ export class MermaidUnitAstReflection extends langium.AbstractAstReflection {
                     defaultValue: [],
                     optional: true
                 },
+                notes: {
+                    name: ErDiagram.notes,
+                    defaultValue: [],
+                    optional: true
+                },
                 relationships: {
                     name: ErDiagram.relationships,
                     defaultValue: [],
@@ -535,6 +562,19 @@ export class MermaidUnitAstReflection extends langium.AbstractAstReflection {
                 },
                 name: {
                     name: ErEntityDef.name
+                }
+            },
+            superTypes: []
+        },
+        ErNote: {
+            name: ErNote.$type,
+            properties: {
+                target: {
+                    name: ErNote.target,
+                    optional: true
+                },
+                text: {
+                    name: ErNote.text
                 }
             },
             superTypes: []

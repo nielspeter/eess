@@ -28,7 +28,7 @@ here.
 | 7     | [Deterministic autofix (0066)](./completed/0066-eess-deterministic-autofix.md)                | `--fix` for unique link/pointer resolutions — kernel `ArchFix` + md fixers                                                                                              | Built ✓ | 0062                |
 | 8     | [Working-method kit (0068)](./completed/0068-working-method-kit.md)                           | portable method: current docs + seed templates + skills (`/plan-*`, `/bug`, universal `/close`) + one promoted gate (close); freeze stays a skill-borne habit           | Done    | 0058 (0067 informs) |
 | 9     | Workflow dialect (future, numbered when scheduled)                                            | `@nielspeter/eess-workflow` — only if demand emerges                                                                                                                    | idea    | 0051                |
-| 10    | [Spec-corpus reach (0069)](./0069-spec-corpus-reach.md)                                       | `eess-gherkin` sibling dialect · md↔gherkin citation crossval · erDiagram grammar + parameterized table↔diagram binding · vocabulary primitive · external-root pointers | Ready   | 0058, 0059          |
+| 10    | [Spec-corpus reach (0069)](./completed/0069-spec-corpus-reach.md)                             | `eess-gherkin` sibling dialect · md↔gherkin citation crossval · erDiagram grammar + parameterized table↔diagram binding · vocabulary primitive · external-root pointers | Done    | 0058, 0059          |
 
 ---
 
@@ -72,8 +72,8 @@ universal `/close` — + one promoted gate: a ledger-reconciliation check at clo
 freeze at draft→ready stays a skill-borne habit). Done — delivered, and dogfooded
 here as `check:ledger`.
 
-[Plan 0069](./0069-spec-corpus-reach.md) grows eess's reach over _spec corpora_,
+[Plan 0069](./completed/0069-spec-corpus-reach.md) grows eess's reach over _spec corpora_,
 demand-driven by a real consumer corpus: an `eess-gherkin` sibling dialect,
 md↔gherkin citation crossvalidation, the `erDiagram` grammar with a
 parameterized table↔diagram binding, a vocabulary primitive, and external-root
-pointers. Ready — floor frozen, being built.
+pointers. Done — delivered and validated against the consumer corpus (4 broken scenario citations, 8 table↔diagram drifts found).

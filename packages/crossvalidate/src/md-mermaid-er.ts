@@ -37,10 +37,25 @@ const v = (doc: MdDocument, line: number, message: string, because: string): Arc
   because,
 })
 
-function erEntitiesOf(doc: MdDocument): { entities: ErEntityInfo[]; line: number }[] {
+interface ErBlock {
+  readonly entities: ErEntityInfo[]
+  readonly line: number
+  /** First parse error when the block is not standard Mermaid ER syntax. */
+  readonly parseError?: string
+}
+
+function erEntitiesOf(doc: MdDocument): ErBlock[] {
   return doc.codeBlocks
     .filter((b) => (b.lang === 'mermaid' || b.lang === null) && ER_HEADER.test(b.value))
-    .map((b) => ({ entities: collectEntities(parseErDiagram(b.value)), line: b.line }))
+    .map((b): ErBlock => {
+      try {
+        return { entities: collectEntities(parseErDiagram(b.value)), line: b.line }
+      } catch (err) {
+        const message =
+          err instanceof Error ? (err.message.split('\n')[1] ?? err.message) : String(err)
+        return { entities: [], line: b.line, parseError: message }
+      }
+    })
 }
 
 /**
@@ -65,6 +80,22 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): void
     if (entityName === undefined) continue
     const blocks = erEntitiesOf(doc)
     if (blocks.length === 0) continue
+
+    // A block that is not standard Mermaid ER syntax is itself drift — flag
+    // it (never crash, never silently skip) and compare what did parse.
+    for (const b of blocks) {
+      if (b.parseError !== undefined) {
+        violations.push(
+          v(
+            doc,
+            b.line,
+            `erDiagram does not parse as standard Mermaid ER syntax: ${b.parseError}`,
+            'a diagram the standard grammar rejects cannot be validated — fix the syntax',
+          ),
+        )
+      }
+    }
+    if (blocks.every((b) => b.parseError !== undefined)) continue
 
     const entity = blocks.flatMap((b) => b.entities).find((e) => e.name === entityName)
     const diagramLine = blocks[0]?.line ?? 1
