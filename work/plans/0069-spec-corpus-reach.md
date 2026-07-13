@@ -2,10 +2,13 @@
 
 ## Status
 
-- **State:** Draft — evidence gathered from a real consumer corpus; API sketches
-  are directional, not frozen. Genericity-reviewed 2026-07-13: Gherkin is a
-  sibling dialect + crossvalidate pairing (not an eess-md bolt-on, no kernel
-  change), and every house shape is a consumer parameter.
+- **State:** Ready — floor frozen 2026-07-13. The two unknowns are resolved: the
+  Gherkin architecture is a sibling dialect + crossvalidate pairing (settled by
+  the genericity review — no kernel change), and the **citation convention is
+  fixed**: a backticked feature path and a quoted scenario title on the same
+  line — `` `path/to/x.feature` `` · `'Scenario title'` — the exact analogue of
+  the `it('…')` test-citation convention (matcher configurable for transition
+  periods). Every house shape is a consumer parameter.
 - **Priority:** P2 — first demand-driven dialect growth from a corpus eess did not
   shape; unblocks validating reverse-engineered spec packages
 - **Effort:** phased below; Phases 1–2 ≈ 2 sessions, 3 ≈ 1–2 sessions, 4 ≈ 1
@@ -196,4 +199,4 @@ citations. (The spike script was scratchpad-ephemeral; this table is the record.
 - [ ] Phase 4 — vocabulary primitive
 - [ ] Phase 5 — external-root pointers
 
-Deferred: none yet — Draft; unknowns resolve at the freeze.
+Deferred: none yet — Ready; ledger goes live during the build.
