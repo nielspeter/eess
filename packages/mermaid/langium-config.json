@@ -5,6 +5,11 @@
       "id": "mermaidunit-class",
       "grammar": "src/parser/grammar/class-diagram.langium",
       "fileExtensions": [".mmd"]
+    },
+    {
+      "id": "mermaidunit-er",
+      "grammar": "src/parser/grammar/er-diagram.langium",
+      "fileExtensions": [".ermmd"]
     }
   ],
   "out": "src/parser/generated",

@@ -81,3 +81,8 @@ export type {
   BridgeRuleInheritance,
   BridgeOutput,
 } from './bridge/from-diagram.js'
+
+// ER diagrams (plan 0069 Phase 3)
+export { parseErDiagram } from './parser/parse-er-diagram.js'
+export { collectEntities, collectErRelationships } from './models/er-entity.js'
+export type { ErAttributeInfo, ErEntityInfo, ErRelationshipInfo } from './models/er-entity.js'

@@ -195,7 +195,7 @@ citations. (The spike script was scratchpad-ephemeral; this table is the record.
 
 - [x] Phase 1 — `@nielspeter/eess-gherkin` sibling dialect (loader + model + builder; 9 tests)
 - [x] Phase 2 — md↔gherkin `scenarioCitationsResolve` in crossvalidate (7 tests: green/red×3/fence-guard/convention)
-- [ ] Phase 3 — erDiagram + table↔diagram preset
+- [x] Phase 3 — erDiagram Langium grammar in eess-mermaid + parameterized `tableErAgree` in crossvalidate (12 tests)
 - [x] Phase 4 — `vocabulary()` + `terms()` in eess-md (folders/headings/explicit sources, consumer label; 8 tests)
 - [x] Phase 5 — `resolve({ externalRoots })` + `presentExternalRoots` (skip-not-pass semantics; pointer extensions widened to JVM/legacy languages; 5 tests)
 
