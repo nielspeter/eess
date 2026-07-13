@@ -136,6 +136,10 @@ proven by piping one script to `--format json`.
   decision, not a reporting-boundary concern.
 - **Changing the violation _format_ itself** — this plan moves _where_ emission
   happens, not what a violation looks like.
+- **Widening `check:crossval` to resolve ADR `it('…')` citations across every
+  package** — it scans only the eess-ts project today, so ADR-008 (a kernel
+  concern) cites its `packages/core` tests by file + prose case name instead.
+  A focused follow-on.
 
 ## Success definition
 
@@ -151,7 +155,7 @@ proven by piping one script to `--format json`.
 
 ## Progress ledger
 
-- [ ] Phase 1 — ADR-008 + `reportViolations`; CLI/scripts format on catch
+- [x] Phase 1 — kernel `reportViolations` + `finishPreset`; `throwIfViolations`/`executeCheck` rewired onto them; ADR-008; 8 core tests (CLI unchanged by design)
 - [ ] Phase 2 — preset return contract (shape frozen at ready)
 - [ ] Phase 3 — format threaded through the dogfood scripts
 

@@ -1,7 +1,7 @@
 import type { ArchViolation } from './violation.js'
 import type { RuleMetadata } from './rule-metadata.js'
-import { ArchRuleError } from './errors.js'
 import { formatViolations } from './format.js'
+import { finishPreset } from './report.js'
 
 /** Per-rule severity within a preset. */
 export type RuleSeverity = 'error' | 'warn' | 'off'
@@ -68,10 +68,13 @@ export function validateOverrides(
   }
 }
 
-/** Throw a single `ArchRuleError` with all aggregated violations, if any. */
+/**
+ * Emit (stderr text) and throw a single `ArchRuleError` with all aggregated
+ * violations, if any. Kept for backward compatibility; it is now `finishPreset`
+ * in the default `throw` mode. New presets take `PresetReportOptions` and call
+ * `finishPreset` so a caller can opt into `report: 'return'` / `--format json`
+ * (plan 0070).
+ */
 export function throwIfViolations(violations: ArchViolation[]): void {
-  if (violations.length > 0) {
-    process.stderr.write(formatViolations(violations) + '\n')
-    throw new ArchRuleError(violations)
-  }
+  finishPreset(violations, { report: 'throw' })
 }
