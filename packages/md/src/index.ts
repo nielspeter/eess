@@ -28,6 +28,8 @@ export { taskItems, TaskItemRuleBuilder } from './builders/task-items.js'
 export type { MdTaskItem } from './builders/task-items.js'
 export { collectTaskItems } from './model/task-items.js'
 export type { MdTaskItemRef } from './model/task-items.js'
+export { vocabulary, terms, TermRuleBuilder } from './builders/vocabulary.js'
+export type { Vocabulary, VocabularyOptions, MdTerm, TermsOptions } from './builders/vocabulary.js'
 
 // Conditions (for composing custom rules / presets)
 export { haveSection, haveTable } from './conditions/structure.js'

@@ -196,7 +196,7 @@ citations. (The spike script was scratchpad-ephemeral; this table is the record.
 - [x] Phase 1 — `@nielspeter/eess-gherkin` sibling dialect (loader + model + builder; 9 tests)
 - [x] Phase 2 — md↔gherkin `scenarioCitationsResolve` in crossvalidate (7 tests: green/red×3/fence-guard/convention)
 - [ ] Phase 3 — erDiagram + table↔diagram preset
-- [ ] Phase 4 — vocabulary primitive
+- [x] Phase 4 — `vocabulary()` + `terms()` in eess-md (folders/headings/explicit sources, consumer label; 8 tests)
 - [ ] Phase 5 — external-root pointers
 
 Deferred: none yet — Ready; ledger goes live during the build.
