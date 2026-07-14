@@ -19,6 +19,11 @@ jobs:
       # Build first: dialects typecheck and test against the kernel's built
       # declarations (@nielspeter/eess resolves to packages/core/dist).
       - run: npm run build
+      # Relink workspace bins now that dist exists. `npm ci` can't create the
+      # `.bin/eess-ts` (etc.) symlinks pre-build (their `dist/cli/bin.js` targets
+      # don't exist at install time), so the dogfood `check:*` gates below would
+      # otherwise fail with `eess-ts: not found` (exit 127).
+      - run: npm rebuild
       # Workspace guardrails: no phantom deps, all @nielspeter/eess* locally linked.
       - run: npm run check:integrity
       # Dogfood: eess-ts validates the family's own architecture (kernel purity, dialect isolation).
