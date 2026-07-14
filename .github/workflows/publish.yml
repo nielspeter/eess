@@ -35,6 +35,13 @@ jobs:
 
       - run: npm ci
 
+      # The dialect CLIs (eess-ts, eess-mermaid) live in each package's *unbuilt*
+      # dist at install time, so `npm ci` can't link their bins into
+      # node_modules/.bin. Build first, then `npm rebuild` links the now-existing
+      # bins — otherwise the gates fail with "eess-ts: not found".
+      - run: npm run build
+      - run: npm rebuild
+
       # Full gate chain (build + all check:* + typecheck + lint + format + tests).
       - run: npm run validate
 
