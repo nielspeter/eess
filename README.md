@@ -14,7 +14,7 @@ Artifacts are **siblings, not hierarchical**: TypeScript, Mermaid diagrams, and 
 | Package                                                      | What it validates                                   | Status |
 | ------------------------------------------------------------ | --------------------------------------------------- | ------ |
 | [`@nielspeter/eess`](./packages/core)                        | The kernel — rule engine, no dialect knowledge      | 0.1.x  |
-| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)  | 0.12.x |
+| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)  | 0.1.x  |
 | [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                              | 0.1.x  |
 | [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables  | 0.1.x  |
 | [`@nielspeter/eess-gherkin`](./packages/gherkin)             | Gherkin features — scenarios as citable elements    | 0.1.x  |
