@@ -35,15 +35,15 @@ jobs:
 
       - run: npm ci
 
-      # The dialect CLIs (eess-ts, eess-mermaid) live in each package's *unbuilt*
-      # dist at install time, so `npm ci` can't link their bins into
-      # node_modules/.bin. Build first, then `npm rebuild` links the now-existing
-      # bins — otherwise the gates fail with "eess-ts: not found".
+      # Standard release gates (as ts-archunit does) — not the dogfood check:*
+      # chain, which is eess's own PR-time self-validation, not a release
+      # concern. Build first: dialects typecheck/test against the kernel's built
+      # declarations, and cross-package tests import the built dist.
       - run: npm run build
-      - run: npm rebuild
-
-      # Full gate chain (build + all check:* + typecheck + lint + format + tests).
-      - run: npm run validate
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test
 
       # Publish in dependency order so an internal dep range never 404s:
       # kernel first, then the dialects on it, then cross-validate last.
