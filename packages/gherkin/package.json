@@ -1,6 +1,6 @@
 {
   "name": "@nielspeter/eess-gherkin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Architecture testing for Gherkin feature files — the Gherkin dialect of the eess family. Features and scenarios as first-class elements, ready for cross-validation against a markdown corpus.",
   "type": "module",
   "exports": {
@@ -40,7 +40,7 @@
     "eess"
   ],
   "dependencies": {
-    "@nielspeter/eess": "^0.1.0",
+    "@nielspeter/eess": "^0.1.1",
     "picomatch": "^4.0.4"
   }
 }

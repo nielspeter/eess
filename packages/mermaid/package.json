@@ -1,6 +1,6 @@
 {
   "name": "@nielspeter/eess-mermaid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Architecture testing for Mermaid class diagrams — the Mermaid dialect of the eess family (formerly mermaidunit)",
   "type": "module",
   "exports": {
@@ -43,7 +43,7 @@
     "eess"
   ],
   "dependencies": {
-    "@nielspeter/eess": "^0.1.0",
+    "@nielspeter/eess": "^0.1.1",
     "jiti": "^2.7.0",
     "langium": "^4.2.3"
   }
