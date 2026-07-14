@@ -1,6 +1,12 @@
 export type { RuleSeverity, PresetBaseOptions } from './shared.js'
 export { dispatchRule, validateOverrides, throwIfViolations } from './shared.js'
 
+export type { RecommendedOptions } from './recommended.js'
+export { recommended } from './recommended.js'
+
+export type { AgentGuardrailsOptions } from './agent-guardrails.js'
+export { agentGuardrails } from './agent-guardrails.js'
+
 export type { LayeredArchitectureOptions } from './layered.js'
 export { layeredArchitecture } from './layered.js'
 

@@ -81,6 +81,7 @@ export abstract class TerminalBuilder {
       because: this._reason,
       suggestion: this._metadata?.suggestion,
       docs: this._metadata?.docs,
+      imperative: this._metadata?.imperative,
     }
   }
 

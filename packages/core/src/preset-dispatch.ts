@@ -33,14 +33,19 @@ interface Dispatchable {
  */
 export function dispatchRule(
   builder: Dispatchable,
-  ruleId: string,
+  rule: string | (RuleMetadata & { id: string }),
   defaultSeverity: RuleSeverity,
   overrides: Record<string, RuleSeverity> | undefined,
 ): ArchViolation[] {
-  const effective = overrides?.[ruleId] ?? defaultSeverity
+  // Accept either a bare id (existing layered/data-layer/boundaries callers) or
+  // full metadata — the latter lets a preset attach because/suggestion/imperative
+  // so the rule's guidance reaches `check --format json` and `explain --format
+  // agent`, not just the id.
+  const meta = typeof rule === 'string' ? { id: rule } : rule
+  const effective = overrides?.[meta.id] ?? defaultSeverity
   if (effective === 'off') return []
 
-  const violations = builder.rule({ id: ruleId }).violations()
+  const violations = builder.rule(meta).violations()
 
   if (effective === 'warn') {
     if (violations.length > 0) {

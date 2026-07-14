@@ -187,6 +187,70 @@ describe('runExplain JSON output', () => {
   })
 })
 
+describe('runExplain agent output (plan 0071)', () => {
+  it('emits a sentinel-wrapped imperative block grouped by id namespace', async () => {
+    const descs: RuleDescription[] = [
+      {
+        rule: 'functions should not call eval',
+        id: 'preset/recommended/no-eval',
+        imperative: 'Do NOT call eval()',
+      },
+      {
+        rule: 'functions should not have an empty body',
+        id: 'preset/agent/no-empty-bodies',
+        imperative: 'Do NOT leave a function body empty',
+      },
+    ]
+    mockedLoadRuleFiles.mockResolvedValue(descs.map((d) => mockBuilder({ describeRule: () => d })))
+
+    const chunks: string[] = []
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      chunks.push(String(chunk))
+      return true
+    })
+
+    await runExplain({ ruleFiles: ['rules.ts'], format: 'agent' })
+    const output = chunks.join('')
+
+    expect(output).toContain('<!-- eess-ts:start -->')
+    expect(output).toContain('<!-- eess-ts:end -->')
+    expect(output).toContain('### Preset') // both ids share the "preset" namespace
+    expect(output).toContain('- Do NOT call eval()')
+    expect(output).toContain('- Do NOT leave a function body empty')
+    expect(output).toContain('eess-ts check --format json') // verify-loop preamble
+  })
+
+  it('falls back to the rule text when imperative is unset', async () => {
+    const desc: RuleDescription = { rule: 'modules should not cycle', id: 'arch/no-cycles' }
+    mockedLoadRuleFiles.mockResolvedValue([mockBuilder({ describeRule: () => desc })])
+
+    const chunks: string[] = []
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      chunks.push(String(chunk))
+      return true
+    })
+
+    await runExplain({ ruleFiles: ['rules.ts'], format: 'agent' })
+    expect(chunks.join('')).toContain('- modules should not cycle')
+  })
+
+  it('emits the "No rules found" block wrapped in sentinels', async () => {
+    mockedLoadRuleFiles.mockResolvedValue([])
+
+    const chunks: string[] = []
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      chunks.push(String(chunk))
+      return true
+    })
+
+    await runExplain({ ruleFiles: ['rules.ts'], format: 'agent' })
+    const output = chunks.join('')
+    expect(output).toContain('<!-- eess-ts:start -->')
+    expect(output).toContain('_No rules found._')
+    expect(output).toContain('<!-- eess-ts:end -->')
+  })
+})
+
 describe('runExplain markdown output', () => {
   it('outputs markdown table with header row', async () => {
     const desc: RuleDescription = {

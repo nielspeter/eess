@@ -8,6 +8,7 @@ import { resolveConfig } from './resolve-config.js'
 import { runCheck } from './commands/check.js'
 import { runBaseline } from './commands/baseline.js'
 import { runExplain } from './commands/explain.js'
+import { runInit } from './commands/init.js'
 import { watchAndRerun } from './watch.js'
 
 function getVersion(): string {
@@ -23,17 +24,24 @@ const HELP_TEXT = `
 eess-ts — Architecture testing for TypeScript
 
 Usage:
+  eess-ts init                          Scaffold a starter setup (config + rules + scripts)
   eess-ts check [files...]              Run architecture rules
   eess-ts baseline [files...]           Generate baseline file
   eess-ts explain [files...]            Dump all active rules as JSON
 
 Options:
+  --preset <name>       init: recommended (default) | agent-guardrails
+  --tsconfig <path>     init: tsconfig the generated rules point at (default: tsconfig.json)
+  --force               init: overwrite existing files
+  --dry-run             init: print the plan, write nothing
+  --no-baseline         init: skip arch-baseline.json
   --baseline <path>     Baseline file for filtering known violations
   --output <path>       Output path for baseline file (default: arch-baseline.json)
   --changed             Only report violations in changed files (git diff)
   --base <branch>       Base branch for diff (default: main)
-  --format <format>     Output format: terminal, json, github, auto (default: auto)
-  --markdown            Output explain results as markdown table
+  --format <format>     check: terminal, json, github, auto (default: auto);
+                        explain: json (default), markdown, agent
+  --markdown            Output explain results as markdown table (alias for --format markdown)
   --fix                 Apply deterministic fixes; dry-run (preview) unless --apply
   --apply               With --fix, write the fixes to disk
   -w, --watch           Watch for changes and re-run (check command only)
@@ -56,6 +64,11 @@ interface ParsedArgs {
     markdown?: boolean
     fix?: boolean
     apply?: boolean
+    preset?: string
+    tsconfig?: string
+    force?: boolean
+    'dry-run'?: boolean
+    'no-baseline'?: boolean
   }
   positionals: string[]
 }
@@ -77,6 +90,11 @@ export function parseCliArgs(args: string[]): ParsedArgs {
       watch: { type: 'boolean', short: 'w', default: false },
       fix: { type: 'boolean', default: false },
       apply: { type: 'boolean', default: false },
+      preset: { type: 'string' },
+      tsconfig: { type: 'string' },
+      force: { type: 'boolean', default: false },
+      'dry-run': { type: 'boolean', default: false },
+      'no-baseline': { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -147,9 +165,13 @@ async function handleBaseline(ruleFiles: string[], output: string): Promise<void
 }
 
 /** Handle the `explain` subcommand. */
-async function handleExplain(ruleFiles: string[], markdown: boolean | undefined): Promise<void> {
+async function handleExplain(
+  ruleFiles: string[],
+  markdown: boolean | undefined,
+  format: string | undefined,
+): Promise<void> {
   if (!requireRuleFiles(ruleFiles)) return
-  await runExplain({ ruleFiles, markdown })
+  await runExplain({ ruleFiles, markdown, format })
 }
 
 export async function run(args: string[]): Promise<void> {
@@ -171,6 +193,18 @@ export async function run(args: string[]): Promise<void> {
   if (command === undefined) {
     console.error('Error: No command specified. Use --help for usage.')
     process.exitCode = 1
+    return
+  }
+
+  // `init` scaffolds files; it needs no config resolution or rule files.
+  if (command === 'init') {
+    process.exitCode = runInit({
+      preset: values.preset,
+      tsconfig: values.tsconfig,
+      force: values.force,
+      dryRun: values['dry-run'],
+      noBaseline: values['no-baseline'],
+    })
     return
   }
 
@@ -199,7 +233,7 @@ export async function run(args: string[]): Promise<void> {
   } else if (command === 'baseline') {
     await handleBaseline(ruleFiles, values.output ?? 'arch-baseline.json')
   } else if (command === 'explain') {
-    await handleExplain(ruleFiles, values.markdown)
+    await handleExplain(ruleFiles, values.markdown, values.format)
   } else {
     console.error(`Error: Unknown command "${command}". Use --help for usage.`)
     process.exitCode = 1

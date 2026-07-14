@@ -41,6 +41,21 @@ describe('.describeRule() method', () => {
     expect(desc.rule).toContain('should')
   })
 
+  it('carries imperative from .rule() into the description (plan 0071)', () => {
+    const desc = modules(p)
+      .that()
+      .resideInFolder('**/services/**')
+      .should()
+      .notImportFrom('**/routes/**')
+      .rule({
+        id: 'layer/no-routes-in-services',
+        imperative: 'Do NOT import routes from a service',
+      })
+      .describeRule()
+
+    expect(desc.imperative).toBe('Do NOT import routes from a service')
+  })
+
   it('returns rule description without metadata (RuleBuilder)', () => {
     const desc = modules(p)
       .that()
