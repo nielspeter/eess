@@ -6,7 +6,7 @@ import { resideInFolder as resideInFolderPredicate } from '../predicates/identit
 import { slices } from '../builders/slice-rule-builder.js'
 import { modules } from '../builders/module-rule-builder.js'
 import type { PresetBaseOptions } from './shared.js'
-import { dispatchRule, validateOverrides, throwIfViolations } from './shared.js'
+import { dispatchRule, validateOverrides, finishPreset } from './shared.js'
 
 export interface LayeredArchitectureOptions extends PresetBaseOptions {
   /** Layer name → glob pattern mapping. Order = dependency direction (first depends on second, etc.) */
@@ -104,7 +104,10 @@ function applyRestrictedPackages(
  * Enforce a layered architecture: dependency direction, cycle freedom,
  * and optional package restrictions.
  */
-export function layeredArchitecture(p: ArchProject, options: LayeredArchitectureOptions): void {
+export function layeredArchitecture(
+  p: ArchProject,
+  options: LayeredArchitectureOptions,
+): ArchViolation[] {
   const overrides = options.overrides
   validateOverrides(overrides, [...RULE_IDS])
 
@@ -173,5 +176,5 @@ export function layeredArchitecture(p: ArchProject, options: LayeredArchitecture
     violations.push(...applyRestrictedPackages(p, options.restrictedPackages, overrides))
   }
 
-  throwIfViolations(violations)
+  return finishPreset(violations, options)
 }

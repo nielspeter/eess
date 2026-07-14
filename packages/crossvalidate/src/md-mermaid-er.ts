@@ -1,9 +1,9 @@
 import picomatch from 'picomatch'
-import { throwIfViolations, type ArchViolation } from '@nielspeter/eess'
+import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { parseErDiagram, collectEntities, type ErEntityInfo } from '@nielspeter/eess-mermaid'
 
-export interface TableErAgreeOptions {
+export interface TableErAgreeOptions extends PresetReportOptions {
   /** Glob selecting the documents to check. Default `**`. */
   readonly docs?: string
   /**
@@ -70,7 +70,7 @@ function erEntitiesOf(doc: MdDocument): ErBlock[] {
  * `undefined`, are skipped — gate diagram *presence* separately with
  * `docs()` conformance if the corpus requires one.
  */
-export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): void {
+export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): ArchViolation[] {
   const inDocs = picomatch(options.docs ?? '**')
   const violations: ArchViolation[] = []
 
@@ -169,7 +169,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): void
     }
   }
 
-  throwIfViolations(violations)
+  return finishPreset(violations, options)
 }
 
 /** Count compared docs/entities/attributes for a caller's non-vacuity summary. */

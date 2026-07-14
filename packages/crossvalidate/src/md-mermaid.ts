@@ -1,14 +1,15 @@
 import {
   correspondence,
-  throwIfViolations,
+  finishPreset,
   type ArchViolation,
   type Direction,
+  type PresetReportOptions,
 } from '@nielspeter/eess'
 import type { Corpus } from '@nielspeter/eess-md'
 import { diagram, classes as mmdClasses } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
 
-export interface EmbeddedDiagramsMatchCodeOptions {
+export interface EmbeddedDiagramsMatchCodeOptions extends PresetReportOptions {
   /** Glob (matched against a class's directory) restricting which TS classes participate. */
   readonly scope?: string
   /**
@@ -29,7 +30,7 @@ export function embeddedDiagramsMatchCode(
   corpus: Corpus,
   project: ArchProject,
   options: EmbeddedDiagramsMatchCodeOptions = {},
-): void {
+): ArchViolation[] {
   const scope = options.scope ?? '**/src/**'
   const direction = options.completeness ?? 'left-to-right'
 
@@ -64,5 +65,5 @@ export function embeddedDiagramsMatchCode(
       )
     }
   }
-  throwIfViolations(violations)
+  return finishPreset(violations, options)
 }

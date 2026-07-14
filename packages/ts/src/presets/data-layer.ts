@@ -3,7 +3,7 @@ import type { ArchViolation } from '../core/violation.js'
 import { classes } from '../builders/class-rule-builder.js'
 import { newExpr } from '../helpers/matchers.js'
 import type { PresetBaseOptions } from './shared.js'
-import { dispatchRule, validateOverrides, throwIfViolations } from './shared.js'
+import { dispatchRule, validateOverrides, finishPreset } from './shared.js'
 
 export interface DataLayerIsolationOptions extends PresetBaseOptions {
   /** Glob pattern for repository files */
@@ -23,7 +23,10 @@ const RULE_IDS = ['preset/data/extend-base', 'preset/data/typed-errors'] as cons
  * Does NOT duplicate layer ordering or import direction — those
  * are `layeredArchitecture`'s job.
  */
-export function dataLayerIsolation(p: ArchProject, options: DataLayerIsolationOptions): void {
+export function dataLayerIsolation(
+  p: ArchProject,
+  options: DataLayerIsolationOptions,
+): ArchViolation[] {
   const overrides = options.overrides
   validateOverrides(overrides, [...RULE_IDS])
 
@@ -57,5 +60,5 @@ export function dataLayerIsolation(p: ArchProject, options: DataLayerIsolationOp
     )
   }
 
-  throwIfViolations(violations)
+  return finishPreset(violations, options)
 }

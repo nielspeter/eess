@@ -15,7 +15,7 @@
  */
 import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
-import { ArchRuleError } from '@nielspeter/eess'
+import { reportViolations } from '@nielspeter/eess'
 
 const ROOTS = ['work/plans/**']
 const DONE_FOLDERS = ['/completed/', '/wont-do/', '/archived/']
@@ -40,12 +40,19 @@ const doneItems = items.filter(
     DONE_STATE_RE.test(d.text.split(/^##\s/m)[0] ?? ''),
 )
 
-let error
-try {
-  honestyAtClose(c, { doneFolders: DONE_FOLDERS, boardFiles: BOARD_FILES })
-} catch (err) {
-  if (err instanceof ArchRuleError) error = err
-  else throw err
+// report: 'return' — the preset hands back violations and emits nothing, so we
+// own reporting (no double render). --format json/github emits machine-readable
+// output for the preset's violations (ADR-008 / plan 0070).
+const violations = honestyAtClose(c, {
+  doneFolders: DONE_FOLDERS,
+  boardFiles: BOARD_FILES,
+  report: 'return',
+})
+const fmtArg = process.argv.indexOf('--format')
+const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
+if (format === 'json' || format === 'github') {
+  reportViolations(violations, { format })
+  process.exit(violations.length > 0 ? 1 : 0)
 }
 
 const relTo = (file) =>
@@ -58,7 +65,6 @@ line('roots', ROOTS.join(', '))
 console.error('')
 line('items', `${items.length} scanned · ${doneItems.length} done (ledger-checked)`)
 
-const violations = error?.violations ?? []
 if (violations.length > 0) {
   line('findings', `✗ ${violations.length}`)
   console.error('')

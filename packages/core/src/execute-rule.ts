@@ -6,6 +6,7 @@ import { ArchRuleError } from './errors.js'
 import { formatViolations } from './format.js'
 import { formatViolationsJson } from './format-json.js'
 import { formatViolationsGitHub } from './format-github.js'
+import { reportViolations } from './report.js'
 import { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
 
 /**
@@ -121,15 +122,8 @@ export function executeCheck(
   }
 
   if (filtered.length > 0) {
-    if (options?.format === 'json') {
-      process.stdout.write(formatViolationsJson(filtered, ctx.reason) + '\n')
-    } else if (options?.format === 'github') {
-      process.stdout.write(formatViolationsGitHub(filtered, 'error') + '\n')
-    } else {
-      // Print rich format to stderr before throwing — test runners show the
-      // plain-text error message, but stderr gets the colorized Why/Fix/Docs output
-      process.stderr.write(formatViolations(filtered, ctx.reason) + '\n')
-    }
+    // One emitter for both paths (plan 0070) — text/json/github, then throw.
+    reportViolations(filtered, { format: options?.format, reason: ctx.reason })
     throw new ArchRuleError(filtered, ctx.reason)
   }
 }
