@@ -62,7 +62,7 @@
     "picomatch": "^4.0.4"
   },
   "peerDependencies": {
-    "@nielspeter/eess-ts": "^0.12.0",
+    "@nielspeter/eess-ts": "^0.1.0",
     "@nielspeter/eess-mermaid": "^0.1.0",
     "@nielspeter/eess-md": "^0.1.0",
     "@nielspeter/eess-gherkin": "^0.1.0"

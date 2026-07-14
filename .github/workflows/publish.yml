@@ -1,0 +1,61 @@
+name: Publish to npm
+
+# Publishes all workspace packages on a version tag, via npm OIDC **trusted
+# publishing** (no NPM_TOKEN) with build provenance — the same mechanism the
+# sibling ts-archunit repo uses, adapted for this monorepo's six packages.
+#
+# Release flow:
+#   npm run changeset          # record what changed
+#   npm run version-packages   # apply version bumps + changelogs
+#   git commit -am "release: vX.Y.Z" && git tag vX.Y.Z && git push --follow-tags
+# The tag push triggers this workflow.
+#
+# One-time npm setup (per package): on npmjs.com add a Trusted Publisher →
+#   GitHub owner/repo: nielspeter/eess · Workflow: publish.yml · Environment: (blank)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub Release
+      id-token: write # OIDC trusted publishing + provenance (no token)
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      # Full gate chain (build + all check:* + typecheck + lint + format + tests).
+      - run: npm run validate
+
+      # Publish in dependency order so an internal dep range never 404s:
+      # kernel first, then the dialects on it, then cross-validate last.
+      - name: Publish to npm (trusted publishing + provenance)
+        env:
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: |
+          for pkg in core ts md mermaid gherkin crossvalidate; do
+            name=$(node -p "require('./packages/$pkg/package.json').name")
+            version=$(node -p "require('./packages/$pkg/package.json').version")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "· $name@$version already on npm — skipping"
+            else
+              echo "→ publishing $name@$version"
+              npm publish --workspace "packages/$pkg" --provenance --access public
+            fi
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
