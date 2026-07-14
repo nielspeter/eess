@@ -8,4 +8,6 @@ export interface RuleDescription {
   because?: string
   suggestion?: string
   docs?: string
+  /** One-line imperative for AI-agent prompts (see {@link RuleMetadata.imperative}). */
+  imperative?: string
 }

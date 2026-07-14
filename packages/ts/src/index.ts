@@ -298,6 +298,13 @@ export { followPattern } from './conditions/pattern.js'
 // Smell detectors (plan 0018)
 export { smells } from './smells/index.js'
 export { SmellBuilder } from './smells/smell-builder.js'
+export { tsconfig, TsconfigBuilder } from './tsconfig/tsconfig-builder.js'
+export {
+  isStrictFamily,
+  resolveFlag,
+  STRICT_FAMILY_SIZE,
+  type StrictFamilyFlag,
+} from './tsconfig/strict-family.js'
 export { DuplicateBodiesBuilder } from './smells/duplicate-bodies.js'
 export { InconsistentSiblingsBuilder } from './smells/inconsistent-siblings.js'
 export type { Fingerprint } from './smells/fingerprint.js'

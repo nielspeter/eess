@@ -141,14 +141,37 @@ layeredArchitecture(p, {
 })
 ```
 
-Three presets available: [`layeredArchitecture`](https://nielspeter.github.io/ts-archunit/presets), [`dataLayerIsolation`](https://nielspeter.github.io/ts-archunit/presets#datalayerisolation), [`strictBoundaries`](https://nielspeter.github.io/ts-archunit/presets#strictboundaries).
+**Shape presets** (architecture patterns): `layeredArchitecture`, `dataLayerIsolation`, `strictBoundaries`.
+
+**Floor presets** (universal safety, scoped by glob):
+
+- `recommended(p)` — a thin, universal safety floor (no `eval`, no Function constructor, no silent catches, no empty bodies) that fires ~never on healthy code.
+- `agentGuardrails(p, { src })` — the mistakes AI coding agents make most: generic errors, stub comments, empty bodies, copy-paste, and banned inline calls. Each rule carries `imperative` metadata for `explain --format agent`.
+
+Every preset returns `ArchViolation[]` and, by default, throws on any error-severity violation. Pass `{ report: 'return' }` to own emission, `{ report: 'warn' }` to report without failing, or `{ format: 'json' }` for machine-readable output — the caller owns reporting (ADR-008). Per-rule severity is tunable via `overrides`.
+
+### Scaffold a starter setup
+
+`eess-ts init` writes a working `arch.rules.ts` (the floor preset expanded as editable builders), an `eess-ts.config.ts`, and `arch` / `arch:baseline` npm scripts:
+
+```bash
+npx eess-ts init                        # recommended floor (default)
+npx eess-ts init --preset agent-guardrails
+npx eess-ts init --dry-run              # preview; writes nothing
+```
 
 ## Feed Your Architecture to the Agent
 
 The `explain` command dumps all active rules as structured JSON — pipe it into your agent's system prompt so it knows the constraints before writing code:
 
 ```bash
-npx ts-archunit explain arch.rules.ts
+npx eess-ts explain arch.rules.ts
+```
+
+For an agent's system prompt specifically, `--format agent` emits an imperative, sentinel-wrapped rules block (grouped by rule namespace) built from each rule's `imperative` metadata, with a check-in-the-loop preamble:
+
+```bash
+npx eess-ts explain arch.rules.ts --format agent
 ```
 
 ```json
@@ -300,15 +323,16 @@ smells
 
 ## Entry Points
 
-| Function       | Operates on                               | Use case                                        |
-| -------------- | ----------------------------------------- | ----------------------------------------------- |
-| `modules(p)`   | Source files                              | Import/dependency rules                         |
-| `classes(p)`   | Class declarations                        | Inheritance, decorators, methods, body analysis |
-| `functions(p)` | Functions, arrow functions, class methods | Naming, parameters, body analysis               |
-| `types(p)`     | Interfaces + type aliases                 | Property types, type safety                     |
-| `slices(p)`    | Groups of files                           | Cycles, layer ordering                          |
-| `calls(p)`     | Call expressions                          | Framework-agnostic route/handler matching       |
-| `within(sel)`  | Scoped callbacks                          | Rules inside matched call callbacks             |
+| Function       | Operates on                               | Use case                                              |
+| -------------- | ----------------------------------------- | ----------------------------------------------------- |
+| `modules(p)`   | Source files                              | Import/dependency rules                               |
+| `classes(p)`   | Class declarations                        | Inheritance, decorators, methods, body analysis       |
+| `functions(p)` | Functions, arrow functions, class methods | Naming, parameters, body analysis                     |
+| `types(p)`     | Interfaces + type aliases                 | Property types, type safety                           |
+| `slices(p)`    | Groups of files                           | Cycles, layer ordering                                |
+| `calls(p)`     | Call expressions                          | Framework-agnostic route/handler matching             |
+| `within(sel)`  | Scoped callbacks                          | Rules inside matched call callbacks                   |
+| `tsconfig(p)`  | Resolved compiler options                 | Assert `strict`, `target`, etc. via `.requires(spec)` |
 
 ## Compared to Other Tools
 

@@ -46,7 +46,16 @@ const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_prob
 
 /** Run a command from the repo root and capture combined stdout+stderr + exit code. */
 function sh(cmd, args) {
-  const r = spawnSync(cmd, args, { cwd: repoRoot, encoding: 'utf8' })
+  // Force deterministic terminal-format output from the child CLIs: under
+  // GitHub Actions, `--format auto` switches to `::error` annotations whose
+  // text differs from the terminal renderer (e.g. it never contains the
+  // literal "silent catch" phrase gateInternalArch greps for), so this
+  // meta-check failed in CI while passing locally. The gates assert on output
+  // substrings, so the child format must not vary by environment.
+  const env = { ...process.env }
+  delete env.GITHUB_ACTIONS
+  delete env.CI
+  const r = spawnSync(cmd, args, { cwd: repoRoot, encoding: 'utf8', env })
   if (r.error) return { code: 2, out: String(r.error.message) }
   // status is null when the process was killed by a signal — treat as harness error.
   return { code: r.status ?? 2, out: (r.stdout ?? '') + (r.stderr ?? '') }

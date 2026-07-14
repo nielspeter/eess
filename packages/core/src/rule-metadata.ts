@@ -16,4 +16,11 @@ export interface RuleMetadata {
 
   /** Link to documentation — ADR, wiki, style guide */
   docs?: string
+
+  /**
+   * One-line imperative statement of the rule for an AI-agent system prompt,
+   * e.g. `'Do NOT call eval()'`. Surfaced by `explain --format agent`; falls
+   * back to the rule description when unset.
+   */
+  imperative?: string
 }
