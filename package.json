@@ -11,7 +11,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build -w @nielspeter/eess && npm run build -w @nielspeter/eess-ts -w @nielspeter/eess-md -w @nielspeter/eess-mermaid -w @nielspeter/eess-gherkin && npm run build -w @nielspeter/eess-crossvalidate",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "validate": "npm run build && npm run check:integrity && npm run check:arch && npm run check:diagram && npm run check:crossval && npm run check:corpus && npm run check:ledger && npm run check:spec && npm run check:nonvacuity && npm run typecheck && npm run lint && npm run format:check && npm run test",
