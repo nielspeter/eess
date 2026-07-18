@@ -1,12 +1,12 @@
 ---
 name: release
 description: "Drive the eess monorepo npm release — changeset version bump, lockfile sync, validate, commit, tag, and the tag push that triggers publish.yml (OIDC trusted publishing + provenance). Use this whenever the user says release, publish, cut a release, ship it, new version, bump the version, or wants to get the eess packages onto npm. This is the eess-specific release (changesets + six workspace packages + publish.yml) — NOT the ts-archunit single-package release skill; if you're in the eess repo, use this one."
-argument-hint: "[patch|minor|major hint, optional]"
+argument-hint: '[patch|minor|major hint, optional]'
 ---
 
 # Releasing eess
 
-The authoritative, human-facing description lives in **[`RELEASING.md`](../../../RELEASING.md)** at the repo root — read it first (it carries the current command list and the "learned the hard way" gotchas). This skill is the *executable* companion: it walks the same flow, turns the gotchas into active checks, and stops at the two moments where a human must decide. Keep the two in sync — if the process changes, `RELEASING.md` is the source of truth and this skill follows it.
+The authoritative, human-facing description lives in **[`RELEASING.md`](../../../RELEASING.md)** at the repo root — read it first (it carries the current command list and the "learned the hard way" gotchas). This skill is the _executable_ companion: it walks the same flow, turns the gotchas into active checks, and stops at the two moments where a human must decide. Keep the two in sync — if the process changes, `RELEASING.md` is the source of truth and this skill follows it.
 
 **Why a skill and not just docs:** the release is periodic, gotcha-laden, and **irreversible** (it publishes to npm with provenance). The failure modes — a stale lockfile, a tag that never triggers the workflow, an out-of-order build — are silent and only surface in clean CI. Running the same guarded sequence every time is what keeps a release from becoming a five-attempt debugging session.
 

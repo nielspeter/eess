@@ -1,5 +1,12 @@
 # @nielspeter/eess-md
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [2f219de]
+  - @nielspeter/eess@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

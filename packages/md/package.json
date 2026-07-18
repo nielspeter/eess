@@ -1,6 +1,6 @@
 {
   "name": "@nielspeter/eess-md",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Architecture testing for a Markdown corpus — the Markdown dialect of the eess family. Links resolve, code pointers ground, ADRs declare enforcement.",
   "type": "module",
   "exports": {
@@ -48,7 +48,7 @@
     "eess"
   ],
   "dependencies": {
-    "@nielspeter/eess": "^0.1.1",
+    "@nielspeter/eess": "^0.2.0",
     "mdast-util-from-markdown": "^2.0.3",
     "mdast-util-gfm": "^3.1.0",
     "micromark-extension-gfm": "^3.0.0",
