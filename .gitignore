@@ -6,7 +6,9 @@ node_modules/
 .idea/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
-/.claude/
 /.serena/
 .playwright-mcp/
-.claude/
+# .claude/ is tracked so repo-specific skills (e.g. /release) ship with the repo.
+# Keep personal/local state out of git:
+.claude/settings.local.json
+.claude/**/*.local.*
