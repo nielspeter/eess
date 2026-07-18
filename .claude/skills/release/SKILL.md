@@ -20,16 +20,24 @@ Run these and stop if any is wrong:
 - `ls .changeset/*.md | grep -v README` → there must be **at least one pending changeset**. No changeset = nothing to release; if the user wants a release with no changeset, they first need `npm run changeset` to describe what changed.
 - Confirm CI on the current `main` is green (`gh run list --branch main --limit 1`). Don't cut a release on top of a red `main`.
 
-## Decision 1 — version lockstep (ask the user)
+## Versioning — let changesets decide
 
-`.changeset/config.json` uses `updateInternalDependencies: patch` with no `fixed`/`linked` groups, so **packages version independently**. A changeset that marks only some packages (say `@nielspeter/eess` + `@nielspeter/eess-ts` as `minor`) will bump the rest only by a **patch** (their internal dependency range moved), leaving the family at mixed versions.
+**Default: don't pick versions, and never hand-edit one.** The changeset says which packages changed and how; `changeset version` computes the rest. Mixed versions across the family are the normal, correct outcome — the packages that actually changed take the feature bump, the others take a patch for the dependency update. `.changeset/config.json` has no `fixed`/`linked` groups, so packages version independently by design.
 
-`RELEASING.md`'s convention is to **keep the six in lockstep at one version**. So before bumping, surface the choice:
+Resist two tempting mistakes:
 
-- **A — lockstep (usually preferred):** if the changeset doesn't already cover all six, add the untouched packages to it at the same bump level so every package lands on the same version. Cleanest; matches the documented convention and makes the tag name unambiguous.
-- **B — semver-strict:** leave the changeset as-is; only changed packages take the feature bump, the rest take the dependency patch. More literally honest, but the family versions diverge.
+- **Don't pad the changeset** with untouched packages just to force every version to match. That fakes a change that didn't happen, and it's the wrong reflex even though `RELEASING.md` mentions a lockstep habit. If the user genuinely wants lockstep, that's a `fixed` group in the config — a deliberate config decision, not a per-release hack.
+- **Don't edit a version in `package.json` after the bump.** If the computed version looks wrong, the cause is upstream (a changeset entry or a dependency range) — fix the cause and re-run. `git reset --hard` + re-run is cheap and safe up until the tag push.
 
-Show the user which packages the current changeset(s) bump and to what, name the resulting versions under each option, recommend A unless there's a reason not to, and let them pick. Don't proceed until they choose.
+If the user asks for "the latest version" without naming one, that means: run the tool, report what it computed, don't editorialize.
+
+## After the bump — check for a surprise major
+
+`changeset version` can escalate a package to **major** on its own when a dependency bump falls outside a declared range. For a `0.x` package, major means **`1.0.0`** — a loud, permanent "this is stable now" claim you cannot retract once published.
+
+This bit us for real: `eess-crossvalidate` is the only package with `peerDependencies` on the sibling dialects. They were pinned `^0.1.1`, which on a `0.x` package admits only `0.1.x`, so any family minor fell out of range and changesets escalated crossvalidate to `1.0.0`. The fix (already applied) was to widen those peer ranges to `>=0.1.1` and set `onlyUpdatePeerDependentsWhenOutOfRange` in the config — so the bridge package now tracks the family instead of claiming stability.
+
+So after running the bump, **print every package's before → after and read them.** Anything that jumped a major, or moved when you expected it not to, stop and explain it to the user before continuing. A surprise major is nearly always a range problem upstream, not an intended release decision.
 
 ## The release sequence
 
@@ -46,7 +54,9 @@ npm run version-packages
 npm install
 
 # 3. Sanity gate locally BEFORE tagging — build order, typecheck, lint,
-#    format, every check:* gate, full test suite.
+#    format, every check:* gate, full test suite. EXPECT check:spec to fail
+#    here on a major/minor bump (see the note under this block) — fix and
+#    re-run until this exits 0.
 npm run validate
 
 # 4. Commit everything the bump touched: package.json(s), CHANGELOG.md(s),
@@ -62,6 +72,14 @@ git push origin main
 ```
 
 After step 5, **stop.** The next command is the irreversible one.
+
+### Expect `check:spec` to fail on a major/minor bump
+
+The README **Packages table has a Status column gated against the real package versions** (`spec.rules.ts`), so the moment a package's `major.minor` changes, the old `0.1.x` cell becomes a lie and `check:spec` fails with a `Fix:` naming the package and the expected `0.2.x`. This is the spec-code binding working, not a bug.
+
+Fix it by editing the Status cell for each package whose `major.minor` moved (packages taking only a patch keep their cell), then re-run `npm run validate`. Do this **before** the commit so the release lands in one clean commit.
+
+Also note: `.claude/` is tracked, so `format:check` covers skill files too — if you edit this skill, run prettier on it.
 
 ## Decision 2 — the publish trigger (mandatory pause)
 
