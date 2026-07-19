@@ -32,6 +32,7 @@ here.
 | 11    | [Caller owns reporting (0070)](./completed/0070-caller-owns-reporting.md)                     | split detect/report/throw — one format-aware reporter; presets emit `--format json` + a non-throwing return; kills double-print (ADR-008)                               | Done    | —                   |
 | 12    | [ts-archunit parity (0071)](./completed/0071-ts-archunit-parity.md)                           | `recommended` + `agentGuardrails` presets · `explain --format agent` + `imperative` metadata · `tsconfig()` rule · `eess-ts init` (builder-expanded floor)              | Done    | 0070                |
 | 13    | [Adoption surface (0072)](./0072-adoption-surface.md)                                         | front-door README inversion (the wedge) · manifesto heritage + constraints-not-a-map + staleness stance · agent-loop recipes (Action/hook/AGENTS.md) · 5-min red gate   | Draft   | 0071                |
+| 14    | Violation telemetry + rule staleness (0073 — number reserved; authored after 0072)            | aggregate `--format json` runs + baselines → dominating-pattern analysis, imperative-block/rule proposals (human-ratified), telemetry-driven rule retirement            | idea    | 0072, real usage    |
 
 ---
 

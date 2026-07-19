@@ -8,7 +8,7 @@
   is adoption attention, not capability; the window where "we already built
   this, with proofs" differentiates is open but closing.
 - **Effort:** Phase 1 ≈ 0.5 session · Phase 2 ≈ 0.5 session · Phase 3 ≈ 1
-  session · Phase 4 ≈ 0.5 session.
+  session · Phase 4 ≈ 0.5 session · Phase 5 ≈ 0.25 session.
 - **Created:** 2026-07-19
 
 ## Problem
@@ -127,10 +127,27 @@ onboarding, by our own standards).
 `check:corpus` green; the timed walkthrough documented in the plan's ledger at
 close.
 
+### Phase 5 — Skill-guidance touch-ups (research candidates #8 + #9)
+
+Two paragraph-sized additions from the research doc that are too small to be
+plans and would otherwise rot unhomed:
+
+- **`skills/eess-adr-author`** gains the ADR authoring heuristic (write an ADR
+  only when the decision is hard to reverse, surprising without context, or a
+  real trade-off — Pocock's criteria).
+- **`skills/eess-adr-validate`** gains the judge-sycophancy checklist: ask
+  neutral, adversarial, binary questions; never show the judge the desired
+  conclusion; know the drift triggers (expert citation, emotional stakes, long
+  context) — Anthropic safeguards.
+
+**Files:** `skills/eess-adr-author/SKILL.md`, `skills/eess-adr-validate/SKILL.md`.
+**Validation:** `check:corpus` green. Effort ≈ 0.25 session.
+
 ## Out of scope
 
-- **Violation telemetry / staleness engine** — future plan 0073 (research-doc
-  candidates #1+#2); this plan ships only the stated _stance_.
+- **Violation telemetry / staleness engine** — plan 0073 (number reserved on
+  the board as an idea row; research-doc candidates #1+#2); this plan ships
+  only the stated _stance_.
 - **Renaming** — evaluated and declined 2026-07-19; `eess` stays.
 - **New dialects, new rules, engine changes** — nothing in `packages/*/src`
   changes in this plan.
@@ -156,4 +173,5 @@ close.
 - [ ] Phase 2 — manifesto (heritage · constraints-not-a-map · staleness stance)
 - [ ] Phase 3 — agent-loop integration recipes (×3, each executed once)
 - [ ] Phase 4 — quickstart around time-to-first-red-gate (timed)
+- [ ] Phase 5 — skill-guidance touch-ups (ADR heuristic · sycophancy checklist)
 - [ ] Board row updated to Done · validate green
