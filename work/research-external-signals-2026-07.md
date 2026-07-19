@@ -5,9 +5,23 @@ self-improvement loops (Annabell Schäfer, "encode domain expertise into
 high-signal evaluators before burning tokens"), and a sweep of 186 conference /
 practitioner video summaries (AI Engineer, AI Native Dev, LangChain, Anthropic,
 DeepMind, OpenAI, Better Stack, and creator channels) — 83 of which carried
-something eess can use. Sources live outside this repo (a private transcripts
-project, `docs/summaries/` by channel/video-id); this doc is the distilled,
-citable record. Talks are cited by speaker/company inline.
+something eess can use. Talks are cited by speaker/company inline; every inline
+citation resolves to a summary file in the **source index (§7)** at the bottom.
+
+**Sources.** The summaries are published at
+<https://nielspeter.github.io/youtube-ai-digest/> as
+`summaries/<channel>/<youtube-video-id>` pages (each carries the talk's title,
+speaker, TL;DR, and a timestamped breakdown; the video id also resolves on
+YouTube as `youtube.com/watch?v=<id>`). The Langfuse talk was supplied as a
+pasted summary in the research session, not from that corpus: Annabell Schäfer
+(Langfuse), on self-improvement loops and high-signal evaluators, June 2026.
+
+**Reader context.** This doc assumes eess vocabulary — the enforcement-tier
+model (Tier 1 static · 2 behavioral · 3 operational · 4 semantic-judgment ·
+5 human ratification), rule metadata (`because` / `Fix:`), `check:nonvacuity`,
+and the honesty-at-close ledger. If any of that is unfamiliar, read
+[the manifesto](../docs/manifesto.md) and the ADR conventions in
+[CLAUDE.md](../CLAUDE.md) first.
 
 **Status:** reference, not a plan. Feature candidates below graduate by
 becoming numbered plans; positioning items graduate into the manifesto/README.
@@ -169,3 +183,71 @@ highest-value move). See §5, candidate #2.
 - Defense-in-depth: _"many imperfect techniques that complement each other's
   weak points"_ beat any single oracle (Neel Nanda, DeepMind) — the tier model
   stated by a safety researcher.
+
+## 7. Source index
+
+Every talk cited above, as `channel/video-id` → public summary page (base:
+`https://nielspeter.github.io/youtube-ai-digest/summaries/`).
+
+**ai-engineer**
+
+- [TJPInBjhE4Q](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-engineer/TJPInBjhE4Q) — Sachin Gupta (eBay), "ReviewDebt: Scoring Every Pull Request" (§1)
+- [WLXxTaPagA8](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-engineer/WLXxTaPagA8) — Sumaiya Shrabony, "Every Solo Agent Builder Reinvents a Worse Version of CI/CD" (§6)
+- [vJukHCIv7Ck](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-engineer/vJukHCIv7Ck) — Elizabeth Fuentes (AWS), "Stop AI Agent Hallucinations" — rule-in-prompt vs rule-in-code (§1, §6)
+- [EUsPvBeIx70](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-engineer/EUsPvBeIx70) — Raahul Singh & Vanč Levstik (Phaidra), "Semantic Blindness" — the Karpathy-inversion (§1)
+- [7P0elyLIxXo](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-engineer/7P0elyLIxXo) — Dotta (Paperclip), "What Does Done Even Mean?" — done-as-an-object (§5)
+- [uU5Gv2h8-9g](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-engineer/uU5Gv2h8-9g) — Simon Willison × Cat Wu & Thariq Shihipar (Anthropic) — incident→eval, over-constraining (§1, §3c)
+- [EfcfUB2uprc](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-engineer/EfcfUB2uprc) — Alejandro Vidal, "Stop Evaluating Models Like It's the 50s" — IRT discrimination (§5)
+- [ZSQb5fzRFPw](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-engineer/ZSQb5fzRFPw) — Francesco Bonacci et al. (Cua), "Computer-Use 2.0" — attack-the-gate admission (§5)
+
+**ai-native-dev**
+
+- [tFffUnSq7VA](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-native-dev/tFffUnSq7VA) — Birgitta Böckeler (ThoughtWorks), "State of Play: AI Coding Assistants" — guides/sensors, Hashimoto's principle (§1)
+- [D_cw-k0F1DM](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-native-dev/D_cw-k0F1DM) — Dru Knox (Tessl), "Harness Engineering" — binary glob-scoped verifiers (§1, §5)
+- [Rgwu9nF_Xok](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-native-dev/Rgwu9nF_Xok) — Steve Yegge & Dru Knox — rule retirement, mutation testing (§1, §3a)
+- [6VRKZQ3pmoU](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-native-dev/6VRKZQ3pmoU) — James Moss (Tessl), "Context Development Life Cycle" — skill staleness (§3a)
+- [UvhmYntrLMI](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-native-dev/UvhmYntrLMI) — Patrick Debois, "Maps the Patterns of AI-Native Dev" — "agent must convince you" (§2)
+- [I9RWrW32QEw](https://nielspeter.github.io/youtube-ai-digest/summaries/ai-native-dev/I9RWrW32QEw) — Patrick Debois, "The Rise of Agent Enablement" — fix-the-system loop (§1)
+
+**langchain**
+
+- [HbUznYhKFOc](https://nielspeter.github.io/youtube-ai-digest/summaries/langchain/HbUznYhKFOc) — Factory (CTO), "The best AI agents need more humans than you think" — agent readiness, Missions (§1, §3a)
+- [J77ro1AJGa0](https://nielspeter.github.io/youtube-ai-digest/summaries/langchain/J77ro1AJGa0) — Podium — failing trace → permanent eval (§1)
+- [3lb_4OEOykc](https://nielspeter.github.io/youtube-ai-digest/summaries/langchain/3lb_4OEOykc) — Rippling — Wilson confidence intervals for evals (§3c)
+- [NxJjMvDN6aE](https://nielspeter.github.io/youtube-ai-digest/summaries/langchain/NxJjMvDN6aE) — Brace (LangChain), "OpenWiki adopts the OKF spec" (§5)
+- [sBg90v2qfas](https://nielspeter.github.io/youtube-ai-digest/summaries/langchain/sBg90v2qfas) — Brace (LangChain), "OpenWiki Brains" — open-questions file (§5)
+
+**better-stack**
+
+- [pHAbwL7w83Q](https://nielspeter.github.io/youtube-ai-digest/summaries/better-stack/pHAbwL7w83Q) — "AI Benchmarks Are Fake!?" — 63% retrieved SWE-Bench fixes, sealed environments (§2)
+- [27QLmUQvL2A](https://nielspeter.github.io/youtube-ai-digest/summaries/better-stack/27QLmUQvL2A) — METR on a top model gaming its harness (§2)
+- [0TSxrzBVEwQ](https://nielspeter.github.io/youtube-ai-digest/summaries/better-stack/0TSxrzBVEwQ) — Bun's Zig→Rust port — adversarial reviewers, machine-readable specs (§2)
+- [vRTliPb8fjg](https://nielspeter.github.io/youtube-ai-digest/summaries/better-stack/vRTliPb8fjg) — Strix — "validated findings, not 400 maybes" (§2)
+
+**anthropic**
+
+- [nvbq39yVYRk](https://nielspeter.github.io/youtube-ai-digest/summaries/anthropic/nvbq39yVYRk) — "What is sycophancy in AI models?" — judge-drift triggers (§3c)
+- [rKV5JcALQoQ](https://nielspeter.github.io/youtube-ai-digest/summaries/anthropic/rKV5JcALQoQ) — "The different levels of how Claude thinks" — fabricated data to pass a test (§2)
+- [D4XTefP3Lsc](https://nielspeter.github.io/youtube-ai-digest/summaries/anthropic/D4XTefP3Lsc) — "When AIs act emotional" — impossible targets causally increase cheating (§2)
+
+**google-deepmind**
+
+- [1DtMiRKg-cs](https://nielspeter.github.io/youtube-ai-digest/summaries/google-deepmind/1DtMiRKg-cs) — Neel Nanda × Hannah Fry — defense-in-depth, eval-awareness (§2, §6)
+
+**the-pragmatic-engineer**
+
+- [xafwfGVBxos](https://nielspeter.github.io/youtube-ai-digest/summaries/the-pragmatic-engineer/xafwfGVBxos) — NeetCode × Gergely Orosz — "you cannot prompt caring" (§6)
+- [cSIMVYjVF28](https://nielspeter.github.io/youtube-ai-digest/summaries/the-pragmatic-engineer/cSIMVYjVF28) — Pragmatic Engineer AMA — "AI-native is overrated as identity" (§3c)
+
+**ray-amjad**
+
+- [hMgB1bjkI7o](https://nielspeter.github.io/youtube-ai-digest/summaries/ray-amjad/hMgB1bjkI7o) — "I Spent a Day With Anthropic Engineers" — "the map is not the territory" (§3b)
+- [2-0lxK2wgJ8](https://nielspeter.github.io/youtube-ai-digest/summaries/ray-amjad/2-0lxK2wgJ8) — "Loop Engineering" — external oracles ground the loop (§6)
+- [EVyhcfo_Zsw](https://nielspeter.github.io/youtube-ai-digest/summaries/ray-amjad/EVyhcfo_Zsw) — Claude Code experimental observer agents (§5)
+
+**matt-pocock / cole-medin / matthew-berman**
+
+- [6BB6exR8Zd8](https://nielspeter.github.io/youtube-ai-digest/summaries/matt-pocock/6BB6exR8Zd8) — Matt Pocock — ADR criteria, ubiquitous language (§5)
+- [T33iI6izAKw](https://nielspeter.github.io/youtube-ai-digest/summaries/cole-medin/T33iI6izAKw) — Cole Medin on Google's Open Knowledge Format (§5)
+- [bjHuGNo3spk](https://nielspeter.github.io/youtube-ai-digest/summaries/matthew-berman/bjHuGNo3spk) — Matthew Berman on J-Space — models detect evaluation (§2)
+- [etduwo9Lu3M](https://nielspeter.github.io/youtube-ai-digest/summaries/matthew-berman/etduwo9Lu3M) — Matthew Berman — review rules files at every model release (§3a)
