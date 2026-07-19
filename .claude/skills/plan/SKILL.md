@@ -58,6 +58,12 @@ shape this project doesn't already use.
   it's a separate item, and the board is where unscheduled ones live. Split it
   now: a plan whose finished work reads as open work lies to every later reader.
 - **Number collisions** — always check the board _and_ the folder.
+- **Phantom numbers and naked ideas** — never reserve a number for work with no
+  plan file, and never park an item on the board as a numberless "idea". Both
+  make the board unreadable: a number resolving to nothing reads as an artifact
+  that exists, and an idea with no plan has no state, no priority and nothing to
+  read. **If it is worth listing, it is worth a Draft.** Authoring one is cheap
+  and commits you to nothing — that is the entire point of stopping at Draft.
 - **Un-placed items** — a plan not on the board is invisible; add the row.
 - **Buried decisions** — a real design choice belongs in an ADR the plan links, not
   as a paragraph.

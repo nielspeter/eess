@@ -171,15 +171,17 @@ highest-value move). See §5, candidate #2.
 **Graduation status (as of 2026-07-19).** #8 landed in the `eess-adr-author`
 skill (its "is this worth an ADR?" step); #9 landed in `eess-adr-validate`; #10
 is already congruent with the working-method kit's ledger deferrals; §3b and the
-§6 vocabulary shipped through plan 0072. #1 and #2 are reserved as plan 0073
-(ROADMAP row 14), which also absorbs the _coverage-growth_ half of the same
+§6 vocabulary shipped through plan 0072. #1 and #2 are drafted as
+[plan 0073](plans/0073-violation-telemetry-rule-staleness.md) (waiting on real
+adopter usage), which also absorbs the _coverage-growth_ half of the same
 telemetry from plan 0067 Phase 2. The rest are unclaimed.
 
 **Not answered by this sweep.** eess mechanizes Tier 1 plus the md/crossval
 binding; a **Tier-2/3 mechanism** (clause → contract test, or a policy-as-code
 hook) is the standing frontier — and nothing in 83 talks supplies one. Candidate
 #4 above is Tier _4_, a different gap; §2's Bun port is the nearest field
-evidence, not a mechanism. Tracked as ROADMAP row 18, from
+evidence, not a mechanism. Drafted as
+[plan 0079](plans/0079-tier-2-3-mechanization.md), from
 [plan 0067](plans/completed/0067-harness-informed-roadmap.md) Phase 5.
 
 ## 6. Vocabulary worth adopting

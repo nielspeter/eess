@@ -7,7 +7,7 @@
   Phase 1, which is its honest delivery: Phases 2–5 were never scheduled work,
   they were a standing backlog wearing a plan's clothes. Each is re-homed to the
   board as a separately-schedulable item — see [Close-out](#close-out-2026-07-19).
-  **Deferred: plan 0073 (Phase 2) · ROADMAP rows 16, 17, 18 (Phases 3, 4, 5).**
+  **Deferred: plans [0073](../0073-violation-telemetry-rule-staleness.md), [0076](../0076-broader-deterministic-autofix.md), [0077](../0077-author-validate-fix-loop.md), [0079](../0079-tier-2-3-mechanization.md) — all Draft.**
 - **Priority:** P2 — sharpen eess as a reusable harness; no blockers
 - **Effort:** Phase 1 ≈ 0.5 day (done); Phases 2–5 sized below, re-homed unbuilt
 - **Created:** 2026-07-08
@@ -64,12 +64,13 @@ grade, emitted by a gate and trended, so the enforced surface is visibly growing
 rotting. Sits naturally on `check:spec` (coverage = direction already exists from
 plan 0061). **Effort: ~1 session.**
 
-**Re-homed** to plan 0073 (ROADMAP row 14). 0073 measures rule _decay_ from the
+**Re-homed** into [plan 0073](../0073-violation-telemetry-rule-staleness.md),
+which measures rule _decay_ from the
 same telemetry this measures _growth_ from — one mechanism, two questions
 ("which rules no longer earn their place" / "is the enforced surface growing or
 rotting"). Two plans over one data source would have been written twice.
 
-## Phase 3 — Broaden deterministic autofix (re-homed → ROADMAP row 16)
+## Phase 3 — Broaden deterministic autofix (re-homed → plan 0076)
 
 Both shops lean on autofix (Stripe _auto-applies_ test autofixes). eess's `--fix`
 (plan 0066) is link/pointer-only. Extend the `ArchFix` model to more rule classes
@@ -77,9 +78,12 @@ where the repair is provably unique (e.g. a missing `.because`, a sanctioned
 `eess-exclude` with reason, an import moved to satisfy a layer). **Effort: ~2
 sessions.** Continues plan 0066's fix-side-of-the-tier-model direction.
 
-**Re-homed** to ROADMAP row 16 (number 0076 reserved), unchanged in scope.
+**Re-homed** as [plan 0076](../0076-broader-deterministic-autofix.md) (Draft,
+P2, unblocked) — where its scoping step promptly found that two of the repair
+candidates named here are _not_ provably unique, so they are recorded as rejects
+rather than inherited unexamined.
 
-## Phase 4 — author → validate → fix loop (re-homed → ROADMAP row 17)
+## Phase 4 — author → validate → fix loop (re-homed → plan 0077)
 
 OpenAI's _"Ralph Wiggum Loop"_ of agent reviewers until satisfied; Stripe's bounded
 _two rounds_. eess ships the `eess-adr-author` and `eess-adr-validate` skills that
@@ -87,7 +91,7 @@ hand off, but no loop that runs author → validate → fix → re-validate unti
 green-or-escalate, with a bounded round count. Formalize it as a skill/workflow.
 **Effort: ~1 session.**
 
-**Re-homed** to ROADMAP row 17 (number 0077 reserved), and **smaller than
+**Re-homed** as [plan 0077](../0077-author-validate-fix-loop.md) (Draft, P2, unblocked), and **smaller than
 written**: plan 0068 shipped the working-method kit, so the lane discipline
 (`/plan-*`, `/bug`, `/close`) now exists — what is still missing is only the
 bounded re-validate round. Two constraints from
@@ -96,7 +100,7 @@ the loop may _propose_ rule changes but adoption stays a human act (§4, the
 anti-Goodhart guard, = Tier 5), and the verifier must be separated from the
 author — fresh context, ideally a different model (§2).
 
-## Phase 5 — Tier 2/3 mechanization (frontier; re-homed → ROADMAP row 18)
+## Phase 5 — Tier 2/3 mechanization (frontier; re-homed → plan 0079)
 
 The honest gap. eess mechanizes **Tier 1** (eess-ts) plus the md/crossval binding;
 the manifesto _describes_ Tiers 2–5 but eess provides no mechanism for them — it
@@ -106,7 +110,8 @@ Tier-2 binding (clause → contract/property test, beyond citation resolution) o
 Tier-3 policy-as-code hook would extend eess past the static tier. **Large scope;
 own plan when scheduled.** Explicitly not attempted here.
 
-**Re-homed** to ROADMAP row 18, still as a frontier rather than a numbered plan —
+**Re-homed** as [plan 0079](../0079-tier-2-3-mechanization.md), Draft and
+blocked on a mechanism rather than on scheduling —
 no external source offers a mechanism to copy. The 2026-07 research sweep read 83
 of 186 talks and produced nothing that closes it: its nearest candidate (§5 #4,
 glob-scoped binary LLM verifiers) is **Tier 4**, a different gap. The closest
@@ -121,18 +126,22 @@ dropped:
 
 - [x] **Phase 1** — `check:fast` (`package.json`) + agent-actionable gate output
       documented in `CLAUDE.md`. Shipped with the plan, 2026-07-08.
-- [ ] **Phase 2** — coverage grades over time · `deferred→plan 0073` (ROADMAP
-      row 14), merged with its rule-staleness half: one telemetry mechanism, not two.
-- [ ] **Phase 3** — broader deterministic autofix · `deferred→ROADMAP row 16`
-      (0076 reserved), unchanged in scope.
-- [ ] **Phase 4** — author → validate → fix loop · `deferred→ROADMAP row 17`
-      (0077 reserved), narrowed: the kit (0068) already shipped the lane
-      discipline; only the bounded re-validate round remains.
-- [ ] **Phase 5** — Tier 2/3 mechanization · `deferred→ROADMAP row 18`, kept as a
-      frontier; own plan when a mechanism (or a demanding adopter) exists.
+- [ ] **Phase 2** — coverage grades over time ·
+      `deferred→plan 0073`, merged with its
+      decay half: one telemetry mechanism, not two.
+- [ ] **Phase 3** — broader deterministic autofix ·
+      `deferred→plan 0076` (P2, unblocked),
+      unchanged in scope.
+- [ ] **Phase 4** — author → validate → fix loop ·
+      `deferred→plan 0077` (P2, unblocked),
+      narrowed: the kit (0068) already shipped the lane discipline; only the
+      bounded re-validate round remains.
+- [ ] **Phase 5** — Tier 2/3 mechanization ·
+      `deferred→plan 0079`, kept as a frontier; it earns a
+      plan when a mechanism (or a demanding adopter) exists.
 
-**Deferred: plan 0073 (Phase 2) · ROADMAP row 16 / 0076 (Phase 3) · ROADMAP row
-17 / 0077 (Phase 4) · ROADMAP row 18 (Phase 5).** Nothing dropped.
+**Deferred: plans 0073, 0076, 0077, 0079 — each a real Draft on the board, not a
+reserved number.** Nothing dropped.
 
 ### Why this closed at Phase 1
 
