@@ -2,10 +2,16 @@
 
 ## Status
 
-- **State:** Phase 1 done (quick wins landed with this plan); Phases 2–5 proposed
+- **State:** Done — Phase 1 shipped with the plan on 2026-07-08 (`check:fast`
+  plus the agent-actionable gate-output documentation). Closed 2026-07-19 at
+  Phase 1, which is its honest delivery: Phases 2–5 were never scheduled work,
+  they were a standing backlog wearing a plan's clothes. Each is re-homed to the
+  board as a separately-schedulable item — see [Close-out](#close-out-2026-07-19).
+  **Deferred: plan 0073 (Phase 2) · ROADMAP rows 16, 17, 18 (Phases 3, 4, 5).**
 - **Priority:** P2 — sharpen eess as a reusable harness; no blockers
-- **Effort:** Phase 1 ≈ 0.5 day (done); Phases 2–5 sized below
+- **Effort:** Phase 1 ≈ 0.5 day (done); Phases 2–5 sized below, re-homed unbuilt
 - **Created:** 2026-07-08
+- **Closed:** 2026-07-19
 
 ## Problem
 
@@ -16,7 +22,7 @@ engineering](https://openai.com/index/harness-engineering/) and Stripe's
 packages: layered-architecture structural tests, doc-as-system-of-record with
 mechanical consistency checks, remediation-in-lint-messages, promote-prose-to-code,
 and continuous entropy cleanup. The positioning is written up in
-[eess as a harness](../../docs/eess-as-a-harness.md).
+[eess as a harness](../../../docs/eess-as-a-harness.md).
 
 Reading those write-ups against eess surfaces concrete, in-scope improvements — and
 one honest frontier. eess is a **validation** framework (spec ↔ code, drift fails
@@ -48,7 +54,7 @@ Caveat (documented): `check:fast` runs the installed/built CLI against current
 source; it does not rebuild the engine, so if you change the engine itself, run a
 full `validate`. In a consuming repo the CLI is installed, so this is moot.
 
-## Phase 2 — Coverage grades over time (proposed)
+## Phase 2 — Coverage grades over time (re-homed → plan 0073)
 
 OpenAI grade _each domain/layer_ in a `QUALITY_SCORE.md` and their background tasks
 _"update quality grades."_ eess has `work/dogfood-coverage.md` — but as a snapshot,
@@ -58,7 +64,12 @@ grade, emitted by a gate and trended, so the enforced surface is visibly growing
 rotting. Sits naturally on `check:spec` (coverage = direction already exists from
 plan 0061). **Effort: ~1 session.**
 
-## Phase 3 — Broaden deterministic autofix (proposed)
+**Re-homed** to plan 0073 (ROADMAP row 14). 0073 measures rule _decay_ from the
+same telemetry this measures _growth_ from — one mechanism, two questions
+("which rules no longer earn their place" / "is the enforced surface growing or
+rotting"). Two plans over one data source would have been written twice.
+
+## Phase 3 — Broaden deterministic autofix (re-homed → ROADMAP row 16)
 
 Both shops lean on autofix (Stripe _auto-applies_ test autofixes). eess's `--fix`
 (plan 0066) is link/pointer-only. Extend the `ArchFix` model to more rule classes
@@ -66,7 +77,9 @@ where the repair is provably unique (e.g. a missing `.because`, a sanctioned
 `eess-exclude` with reason, an import moved to satisfy a layer). **Effort: ~2
 sessions.** Continues plan 0066's fix-side-of-the-tier-model direction.
 
-## Phase 4 — author → validate → fix loop (proposed)
+**Re-homed** to ROADMAP row 16 (number 0076 reserved), unchanged in scope.
+
+## Phase 4 — author → validate → fix loop (re-homed → ROADMAP row 17)
 
 OpenAI's _"Ralph Wiggum Loop"_ of agent reviewers until satisfied; Stripe's bounded
 _two rounds_. eess ships the `eess-adr-author` and `eess-adr-validate` skills that
@@ -74,7 +87,16 @@ hand off, but no loop that runs author → validate → fix → re-validate unti
 green-or-escalate, with a bounded round count. Formalize it as a skill/workflow.
 **Effort: ~1 session.**
 
-## Phase 5 — Tier 2/3 mechanization (frontier)
+**Re-homed** to ROADMAP row 17 (number 0077 reserved), and **smaller than
+written**: plan 0068 shipped the working-method kit, so the lane discipline
+(`/plan-*`, `/bug`, `/close`) now exists — what is still missing is only the
+bounded re-validate round. Two constraints from
+[the external-signals research](../../research-external-signals-2026-07.md) bind it:
+the loop may _propose_ rule changes but adoption stays a human act (§4, the
+anti-Goodhart guard, = Tier 5), and the verifier must be separated from the
+author — fresh context, ideally a different model (§2).
+
+## Phase 5 — Tier 2/3 mechanization (frontier; re-homed → ROADMAP row 18)
 
 The honest gap. eess mechanizes **Tier 1** (eess-ts) plus the md/crossval binding;
 the manifesto _describes_ Tiers 2–5 but eess provides no mechanism for them — it
@@ -83,6 +105,48 @@ only resolves a cited behavioural test. OpenAI and Stripe verify Tier 2/3
 Tier-2 binding (clause → contract/property test, beyond citation resolution) or a
 Tier-3 policy-as-code hook would extend eess past the static tier. **Large scope;
 own plan when scheduled.** Explicitly not attempted here.
+
+**Re-homed** to ROADMAP row 18, still as a frontier rather than a numbered plan —
+no external source offers a mechanism to copy. The 2026-07 research sweep read 83
+of 186 talks and produced nothing that closes it: its nearest candidate (§5 #4,
+glob-scoped binary LLM verifiers) is **Tier 4**, a different gap. The closest
+field evidence is §2's Bun Zig→Rust port, which drove adversarial review from
+machine-readable spec files (`porting.mmd`, `lifetimes.tsv`) — the eess-mermaid
+premise shipped in anger, but an existence proof, not a mechanism.
+
+## Close-out (2026-07-19)
+
+Closed at Phase 1 — what this plan actually delivered. The rest is re-homed, not
+dropped:
+
+- [x] **Phase 1** — `check:fast` (`package.json`) + agent-actionable gate output
+      documented in `CLAUDE.md`. Shipped with the plan, 2026-07-08.
+- [ ] **Phase 2** — coverage grades over time · `deferred→plan 0073` (ROADMAP
+      row 14), merged with its rule-staleness half: one telemetry mechanism, not two.
+- [ ] **Phase 3** — broader deterministic autofix · `deferred→ROADMAP row 16`
+      (0076 reserved), unchanged in scope.
+- [ ] **Phase 4** — author → validate → fix loop · `deferred→ROADMAP row 17`
+      (0077 reserved), narrowed: the kit (0068) already shipped the lane
+      discipline; only the bounded re-validate round remains.
+- [ ] **Phase 5** — Tier 2/3 mechanization · `deferred→ROADMAP row 18`, kept as a
+      frontier; own plan when a mechanism (or a demanding adopter) exists.
+
+**Deferred: plan 0073 (Phase 2) · ROADMAP row 16 / 0076 (Phase 3) · ROADMAP row
+17 / 0077 (Phase 4) · ROADMAP row 18 (Phase 5).** Nothing dropped.
+
+### Why this closed at Phase 1
+
+This plan was the repo's only item that could not be closed: a `State:` line of
+free prose ("Phase 1 done; Phases 2–5 proposed") that no terminal token fit, so
+`check:ledger` correctly never looked at it. Meanwhile the work it had actually
+delivered was complete on day one, and plans 0068–0072 shipped past it while it
+kept reading as active.
+
+The lesson is a working-method one, and it is now a guard in the `/plan` skill:
+**a plan must be closable.** Phases are for slicing one coherent delivery, not
+for parking a backlog — if a plan's later phases can outlive its close, it is
+several items, and the board is where the unscheduled ones belong. Splitting them
+here cost nothing; leaving them made a finished plan read as open work.
 
 ## Files Changed
 

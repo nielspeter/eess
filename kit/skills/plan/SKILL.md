@@ -52,6 +52,11 @@ shape this project doesn't already use.
 
 ## Guards (the failures models actually have)
 
+- **Unclosable mega-plans** — a plan must be _closable_. Phases slice one
+  coherent delivery; they are not a place to park a backlog. If a later phase
+  could still be unbuilt when the rest is shipped and merged, it isn't a phase —
+  it's a separate item, and the board is where unscheduled ones live. Split it
+  now: a plan whose finished work reads as open work lies to every later reader.
 - **Number collisions** — always check the board _and_ the folder.
 - **Un-placed items** — a plan not on the board is invisible; add the row.
 - **Buried decisions** — a real design choice belongs in an ADR the plan links, not

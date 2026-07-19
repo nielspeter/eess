@@ -168,6 +168,20 @@ highest-value move). See §5, candidate #2.
 | 9   | **Sycophancy checklist for judges** (see §3c)                                                                                                                             | Anthropic safeguards               | Authoring guidance in `eess-adr-validate`                                                    |
 | 10  | **Open-questions convention** — an agent logs what it cannot answer instead of hallucinating or silently skipping; humans fill in                                         | LangChain OpenWiki                 | Already congruent with ledger deferrals; could be named explicitly in the working-method kit |
 
+**Graduation status (as of 2026-07-19).** #8 landed in the `eess-adr-author`
+skill (its "is this worth an ADR?" step); #9 landed in `eess-adr-validate`; #10
+is already congruent with the working-method kit's ledger deferrals; §3b and the
+§6 vocabulary shipped through plan 0072. #1 and #2 are reserved as plan 0073
+(ROADMAP row 14), which also absorbs the _coverage-growth_ half of the same
+telemetry from plan 0067 Phase 2. The rest are unclaimed.
+
+**Not answered by this sweep.** eess mechanizes Tier 1 plus the md/crossval
+binding; a **Tier-2/3 mechanism** (clause → contract test, or a policy-as-code
+hook) is the standing frontier — and nothing in 83 talks supplies one. Candidate
+#4 above is Tier _4_, a different gap; §2's Bun port is the nearest field
+evidence, not a mechanism. Tracked as ROADMAP row 18, from
+[plan 0067](plans/completed/0067-harness-informed-roadmap.md) Phase 5.
+
 ## 6. Vocabulary worth adopting
 
 - _"An external oracle that grounds the loop and stops slop compounding"_ —
