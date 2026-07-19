@@ -45,7 +45,7 @@ decision and the code can no longer disagree in silence.
 ## Try it in five minutes — and see it go red
 
 Don't take a green run on faith; the whole point is a gate that can fail. In
-any TypeScript project (ESM, Node >= 24):
+any TypeScript project (Node >= 24):
 
 ```bash
 npm install -D @nielspeter/eess-ts

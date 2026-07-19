@@ -6,9 +6,10 @@ and `file:line`, in terminal, `--format json`, or `--format github` form. These
 three recipes wire that signal into the places agents actually meet it. Each
 snippet was executed against a real project before being written down.
 
-_Prerequisite for all three: eess is ESM-only ([ADR-004](../adr/004-esm-only-package.md)) —
-your project needs `"type": "module"` in `package.json` (`npm pkg set
-type=module`) and Node >= 24._
+_Prerequisite for all three: Node >= 24. eess itself is ESM-only
+([ADR-004](../adr/004-esm-only-package.md)), but your project doesn't have to
+be — the CLI loads your config and rule files via jiti, so `"type":
+"commonjs"` projects work as-is (bug 0074)._
 
 ## 1. CI gate — GitHub Actions
 

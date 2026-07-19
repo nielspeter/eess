@@ -1,5 +1,6 @@
 import path from 'node:path'
 import fs from 'node:fs'
+import { createJiti } from 'jiti'
 import type { CliConfig } from './config.js'
 
 // Config file names, in resolution order. First match wins.
@@ -18,7 +19,16 @@ export async function resolveConfig(explicitPath?: string): Promise<CliConfig> {
 
   if (configPath === undefined) return {}
 
-  const mod: unknown = await import(path.resolve(configPath))
+  // jiti, not raw import(): Node decides a .ts file's module-ness from the
+  // CONSUMER project's package.json `type` field, so an ESM-syntax config
+  // crashes in a "type": "commonjs" project (what `npm init -y` writes) —
+  // bug 0074. Rule files already load via jiti (load-rules.ts); the config
+  // must behave identically regardless of the host package's type.
+  // interopDefault: false — extractDefault reads `.default` itself, and the
+  // interop proxy breaks on `export default null` (its `then` probe during
+  // await dereferences the null default).
+  const jiti = createJiti(import.meta.url, { interopDefault: false })
+  const mod: unknown = await jiti.import(path.resolve(configPath))
   return extractDefault(mod)
 }
 
