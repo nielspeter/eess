@@ -33,6 +33,7 @@ here.
 | 12    | [ts-archunit parity (0071)](./completed/0071-ts-archunit-parity.md)                           | `recommended` + `agentGuardrails` presets · `explain --format agent` + `imperative` metadata · `tsconfig()` rule · `eess-ts init` (builder-expanded floor)              | Done    | 0070                |
 | 13    | [Adoption surface (0072)](./completed/0072-adoption-surface.md)                               | front-door README inversion (the wedge) · manifesto heritage + constraints-not-a-map + staleness stance · agent-loop recipes (Action/hook/AGENTS.md) · 5-min red gate   | Done    | 0071                |
 | 14    | Violation telemetry + rule staleness (0073 — number reserved; authored after 0072)            | aggregate `--format json` runs + baselines → dominating-pattern analysis, imperative-block/rule proposals (human-ratified), telemetry-driven rule retirement            | idea    | 0072, real usage    |
+| 15    | Manifesto reconciliation (0075 — number reserved; after adopter feedback)                     | restructure: defensible thesis · shipped doctrine (tiers/ADRs/drift) · horizon-as-vision; deep pass beyond the 2026-07-19 honesty labels; binding doc → Tier-5 ratified | idea    | adopter feedback    |
 
 ---
 

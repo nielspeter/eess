@@ -48,6 +48,12 @@ _that_ it got there is the build's. A high-agency agent with a fuzzy goal and
 a few hard constraints outperforms one marched through a script — eess exists
 to make those few constraints real.
 
+Read the founding thesis above through this lens: "specifications are
+authoritative" means the **binding decisions** — the invariants, the
+boundaries, the contracts — are authoritative and enforced. It has never
+meant that every step of the work is prescribed. The spec pins _what must
+hold_; the territory between the constraints belongs to whoever is building.
+
 ---
 
 # Core Principles
@@ -102,6 +108,12 @@ The AI generates:
 - architecture changes
 - enforcement rules
 
+Formalization is an **offer, not a pipeline**: the AI may draft the spec, but
+the validator judges it and a human ratifies it (Tier 5) — the same contract
+as "Constraints, not a map." What ships today is the enforcement-rule half
+(the `eess-adr-author` skill translates a decision into a rule + an honest
+Enforcement row); the broader workflow/state-machine formalization is vision.
+
 ---
 
 ## 4. Specifications Must Be Human Readable
@@ -146,9 +158,18 @@ Without the validator the AI is fast and unreliable. With it, the system is fast
 
 ---
 
-# Proposed System Architecture
+# The System Architecture — shipped and envisioned
 
-## Semantic Source Layer
+This section originally described a _proposed_ system. Part of it has since
+shipped (the eess family on npm: kernel + `eess-ts`, `eess-md`,
+`eess-mermaid`, `eess-gherkin`, `eess-crossvalidate`, and the CI gates this
+repo runs on itself); part remains vision. In a system whose thesis is "drift
+fails the build," the design spec must not blur that line — so each layer
+below carries its own status, in the manifesto's own vocabulary: **shipped**
+(exists, runs in CI today) · **partial** (a real subset exists) · **vision**
+(decided direction, nothing built).
+
+## Semantic Source Layer — shipped
 
 Human-readable semantic artifacts:
 
@@ -170,7 +191,11 @@ architecture.mmd
 
 ---
 
-## Schema Layer
+## Schema Layer — partial
+
+_What exists: the ADR Enforcement-table schema (`adrEnforcement`), the Mermaid
+class/er grammars, the Gherkin line grammar, and the corpus link/pointer
+rules. The generic per-spec-type schema system described below is not built._
 
 Every specification type has schemas.
 
@@ -195,7 +220,7 @@ workflow schema
 
 ---
 
-## Mermaid Semantic Schemas
+## Mermaid Semantic Schemas — shipped
 
 Mermaid diagrams become semantic architecture artifacts.
 
@@ -215,7 +240,7 @@ Schema validation may enforce:
 
 ---
 
-## Enforcement Layer
+## Enforcement Layer — shipped
 
 Architectural constraints become executable rules.
 
@@ -236,7 +261,12 @@ This is Tier 1 — statically decidable facts about code. Not every decision is.
 
 ---
 
-## AI Integration Layer
+## AI Integration Layer — partial
+
+_What exists: agent-actionable gate output (`because` / `Fix:` / `--format
+json`), `explain --format agent` (rules rendered as an agent-prompt block),
+and the `eess-adr-author` / `eess-adr-validate` skills. The consequence
+analyzer is vision._
 
 AI agents consume:
 
@@ -256,7 +286,13 @@ The AI becomes:
 
 ---
 
-## Runtime / Generation Layer
+## Runtime / Generation Layer — vision
+
+_Nothing here is built, and eess works fully without it: today the human (or
+their agent) writes the code, and eess verifies the invariants — see
+"Constraints, not a map." This layer describes the long-horizon direction,
+kept because the validator-closes-the-gap argument below is why generation
+would be safe **if** pursued._
 
 The runtime realizes semantic specifications into operational systems.
 
