@@ -2,8 +2,10 @@
 
 ## Status
 
-- **State:** Draft — scope set from the product-strategy pass; awaiting review /
-  `/plan-ready`.
+- **State:** Ready — floor frozen 2026-07-19: evidence base in-corpus
+  (research doc, dated), all touched files and mechanisms verified to exist,
+  recipe contents and guidance text internalised by value, no open questions.
+  Reviewed via PR #8.
 - **Priority:** P1 — the market-signals research concluded the scarce resource
   is adoption attention, not capability; the window where "we already built
   this, with proofs" differentiates is open but closing.
