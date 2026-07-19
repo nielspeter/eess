@@ -13,6 +13,34 @@ Inspired by Java's [ArchUnit](https://www.archunit.org/). Powered by [ts-morph](
 
 [Documentation](https://nielspeter.github.io/ts-archunit/) · [Getting Started](https://nielspeter.github.io/ts-archunit/getting-started) · [What Can It Check?](https://nielspeter.github.io/ts-archunit/what-to-check)
 
+## Quickstart — zero to a red gate
+
+A green check you've never seen fail proves nothing. This path takes you to a
+**real, correct violation** — timed at seconds on a warm npm cache, minutes
+cold:
+
+```bash
+npm pkg set type=module         # eess is ESM-only (Node >= 24)
+npm install -D @nielspeter/eess-ts
+npx eess-ts init                # scaffolds arch.rules.ts — editable guardrail rules
+npx eess-ts check               # runs them against your source
+```
+
+On most existing codebases the floor fires immediately (a silent `catch {}`,
+an empty stub body, an `eval`). If yours comes up clean — good; now **prove
+the gate is real** the same way eess proves its own gates in CI: introduce a
+violation, watch it go red, revert.
+
+```bash
+echo 'export function probe(s: string): unknown { return eval(s) }' >> src/probe.ts
+npx eess-ts check               # ✗ red — preset/recommended/no-eval, with why + fix
+rm src/probe.ts                 # green again — and now you trust the green
+```
+
+Then wire the rules into your agent's loop — CI annotations, a Claude Code
+hook, and an AGENTS.md block regenerated from the actual rules:
+[agent integration recipes](../../docs/agent-integration.md).
+
 ## The Problem
 
 AI coding agents don't know your architecture. They generate code that compiles, passes type checks, and looks correct in isolation — but violates the structural decisions your team spent months establishing.

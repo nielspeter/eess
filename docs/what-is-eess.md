@@ -42,6 +42,24 @@ Run it in CI. The day someone adds that import, the build fails — on the pull
 request that introduces it, not eighteen months later in a manual review. The
 decision and the code can no longer disagree in silence.
 
+## Try it in five minutes — and see it go red
+
+Don't take a green run on faith; the whole point is a gate that can fail. In
+any TypeScript project (ESM, Node >= 24):
+
+```bash
+npm install -D @nielspeter/eess-ts
+npx eess-ts init      # scaffolds editable guardrail rules
+npx eess-ts check     # runs them — violations carry why + how to fix
+```
+
+If your codebase is clean, prove the gate is real the way eess proves its own
+gates in CI (`check:nonvacuity`): add a deliberate violation — an `eval`, an
+empty function — watch the check go red with the rule, the rationale, and the
+fix, then revert it. A green you've watched fail is a green you can trust.
+From there, the [agent integration recipes](/agent-integration) wire the same
+rules into CI annotations, agent hooks, and an AGENTS.md instructions block.
+
 ## "But not everything is a code rule"
 
 True — and this is the honest part most tools skip. _"Payments must be

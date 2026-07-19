@@ -62,6 +62,21 @@ Check, in order:
 - **Faithful.** Selection + condition, read literally, assert exactly the clause —
   and the exclusions are narrow, named boundaries, not neutering.
 
+### Guard your own judgment (the auditor is a model too)
+
+LLM judges drift toward agreement — especially when shown the author's desired
+conclusion, an expert-sounding rationale, emotional stakes, or a long
+supportive context. Defend against your own sycophancy:
+
+- Work from **binary questions** ("does this selection match zero files —
+  yes/no?"), never from an overall impression score.
+- **Never anchor on the Enforcement row's claimed status** — derive your
+  verdict from the rule text alone, then compare with what the row claims.
+- Treat a persuasive `because` as **evidence of intent, not of enforcement** —
+  the rationale being right says nothing about the rule being faithful.
+- If you notice yourself agreeing early, that is the trigger to re-read the
+  rule literally once more. Default to refuting; let the rule earn FAITHFUL.
+
 ## Output
 
 Respond in exactly this shape, one block per clause:

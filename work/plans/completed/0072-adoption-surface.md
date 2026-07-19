@@ -2,8 +2,12 @@
 
 ## Status
 
-- **State:** Draft — scope set from the product-strategy pass; awaiting review /
-  `/plan-ready`.
+- **State:** Done — all five phases built and validated 2026-07-19 (PR #9);
+  `npm run validate` green end-to-end, every recipe executed against the
+  published npm package before being documented, the 5-minute claim timed at
+  2s warm-cache. Floor frozen 2026-07-19 via PR #8.
+  **Deferred: /bug `0074-init-esm-type-module`** (the one finding — see
+  ledger; filed immediately after this merge).
 - **Priority:** P1 — the market-signals research concluded the scarce resource
   is adoption attention, not capability; the window where "we already built
   this, with proofs" differentiates is open but closing.
@@ -19,7 +23,7 @@ a dogfooded gate chain, agent-grounding features (`agentGuardrails`,
 users. The front door doesn't sell what the market is asking for.
 
 Evidence, distilled in
-[the external-signals research doc](../research-external-signals-2026-07.md):
+[the external-signals research doc](../../research-external-signals-2026-07.md):
 
 1. **The buyer's pain is agent slop, not spec management.** Every channel in
    the 186-summary sweep converged on "AI agents ship confident drift that
@@ -169,9 +173,42 @@ plans and would otherwise rot unhomed:
 
 ## Progress ledger
 
-- [ ] Phase 1 — README inversion
-- [ ] Phase 2 — manifesto (heritage · constraints-not-a-map · staleness stance)
-- [ ] Phase 3 — agent-loop integration recipes (×3, each executed once)
-- [ ] Phase 4 — quickstart around time-to-first-red-gate (timed)
-- [ ] Phase 5 — skill-guidance touch-ups (ADR heuristic · sycophancy checklist)
-- [ ] Board row updated to Done · validate green
+- [x] Phase 1 — README inversion — done 2026-07-19; wedge (init → check →
+      explain --format agent) is the first section, family reframed as the moat,
+      Packages table + all bound elements preserved byte-identical.
+- [x] Phase 2 — manifesto — done 2026-07-19; H1 → "The eess manifesto" with the
+      acronym as an origin note; "Constraints, not a map" after the Core Thesis;
+      "Rules age — enforcement is not monotone" after the status section
+      (retirement = `deprecated` status transition, Tier-5 human act; mechanism
+      → plan 0073).
+- [x] Phase 3 — agent-loop recipes — done 2026-07-19; `docs/agent-integration.md`
+      with CI action, Claude Code hook, AGENTS.md sentinel script. All three
+      executed first against the **published** npm package in a scratch project:
+      the sentinel loop proven idempotent (2 runs, 1 sentinel pair, guard added
+      after the first execution wiped on empty output), `--format github`
+      annotations verified, the monorepo-vs-consumer `npm rebuild` nuance
+      corrected (consumers don't need it; only source workspaces do).
+- [x] Phase 4 — quickstart — done 2026-07-19; both entry docs now demonstrate a
+      genuine red + the introduce-violation-revert probe. **Timed:** npm init →
+      red gate in 2s on a warm npm cache (cold adds only npm download time) —
+      the ≤5-min claim holds with wide margin. Verified the scaffolded rules are
+      all blocking (exit 1), so the demonstrated red is a true red.
+- [x] Phase 5 — skill touch-ups — done 2026-07-19; Step 0 (ADR-worthiness
+      heuristic) in eess-adr-author; "Guard your own judgment" anti-sycophancy
+      subsection in eess-adr-validate.
+- [x] Board row updated to Done · validate green — done 2026-07-19 in the
+      close commit (PR #9); ROADMAP row 13 → Done, link repointed to
+      `completed/`.
+
+**Finding — deferred→/bug `0074-init-esm-type-module`:** executing the wedge
+against a fresh `npm init -y` project exposed that `eess-ts init` scaffolds an
+ESM-syntax `eess-ts.config.ts` without ensuring `"type": "module"` — the setup
+crashes on first `check` in a CJS-default project (works in this repo only
+because the root is already ESM). Recipes/quickstart document the
+`npm pkg set type=module` prerequisite as the interim answer; the real fix
+(init sets or verifies it, or fails loudly) is init behavior — out of scope
+per this plan, deferred to the named bug, filed as the immediate next act
+after this PR merges.
+
+**Deferred: /bug `0074-init-esm-type-module`.** Nothing else — every phase box
+above is done as written.
