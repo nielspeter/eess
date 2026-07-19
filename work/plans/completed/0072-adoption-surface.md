@@ -2,10 +2,12 @@
 
 ## Status
 
-- **State:** Ready — floor frozen 2026-07-19: evidence base in-corpus
-  (research doc, dated), all touched files and mechanisms verified to exist,
-  recipe contents and guidance text internalised by value, no open questions.
-  Reviewed via PR #8.
+- **State:** Done — all five phases built and validated 2026-07-19 (PR #9);
+  `npm run validate` green end-to-end, every recipe executed against the
+  published npm package before being documented, the 5-minute claim timed at
+  2s warm-cache. Floor frozen 2026-07-19 via PR #8.
+  **Deferred: /bug `0074-init-esm-type-module`** (the one finding — see
+  ledger; filed immediately after this merge).
 - **Priority:** P1 — the market-signals research concluded the scarce resource
   is adoption attention, not capability; the window where "we already built
   this, with proofs" differentiates is open but closing.
@@ -21,7 +23,7 @@ a dogfooded gate chain, agent-grounding features (`agentGuardrails`,
 users. The front door doesn't sell what the market is asking for.
 
 Evidence, distilled in
-[the external-signals research doc](../research-external-signals-2026-07.md):
+[the external-signals research doc](../../research-external-signals-2026-07.md):
 
 1. **The buyer's pain is agent slop, not spec management.** Every channel in
    the 186-summary sweep converged on "AI agents ship confident drift that
@@ -194,13 +196,19 @@ plans and would otherwise rot unhomed:
 - [x] Phase 5 — skill touch-ups — done 2026-07-19; Step 0 (ADR-worthiness
       heuristic) in eess-adr-author; "Guard your own judgment" anti-sycophancy
       subsection in eess-adr-validate.
-- [ ] Board row updated to Done · validate green
+- [x] Board row updated to Done · validate green — done 2026-07-19 in the
+      close commit (PR #9); ROADMAP row 13 → Done, link repointed to
+      `completed/`.
 
-**Finding (out-of-scope defect, to file as /bug):** executing the wedge against
-a fresh `npm init -y` project exposed that `eess-ts init` scaffolds an
+**Finding — deferred→/bug `0074-init-esm-type-module`:** executing the wedge
+against a fresh `npm init -y` project exposed that `eess-ts init` scaffolds an
 ESM-syntax `eess-ts.config.ts` without ensuring `"type": "module"` — the setup
 crashes on first `check` in a CJS-default project (works in this repo only
 because the root is already ESM). Recipes/quickstart document the
 `npm pkg set type=module` prerequisite as the interim answer; the real fix
 (init sets or verifies it, or fails loudly) is init behavior — out of scope
-here per this plan, owed to a bug item.
+per this plan, deferred to the named bug, filed as the immediate next act
+after this PR merges.
+
+**Deferred: /bug `0074-init-esm-type-module`.** Nothing else — every phase box
+above is done as written.
