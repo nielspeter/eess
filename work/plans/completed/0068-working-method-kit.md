@@ -66,7 +66,7 @@ Phase 2 buys back the _repetition_ (the skills carry the mechanics, so the human
 gives a one-line intent). The MVP alone does not remove the repetition; the plan
 says so plainly rather than implying it.
 
-Related: plan [0067](../0067-harness-informed-roadmap.md) _informs_ this (the
+Related: plan [0067](./0067-harness-informed-roadmap.md) _informs_ this (the
 harness thesis and quick wins) but isn't a blocker; the one hard dependency is
 `eess-md` (plan [0058](./0058-markdown-dialect-eess-md.md)), which Phase 3's gate
 builds on. The "Workflow dialect" idea sits at ROADMAP row 9 (a _mechanical_

@@ -455,7 +455,8 @@ for history), and the decision to retire is Tier 5, a human act, exactly like
 the decision to adopt. What's planned beyond the stance: a `review-by`
 discipline on enforcement rows, and telemetry-driven retirement signals —
 "this rule hasn't fired in N months across all runs; retire or keep
-deliberately?" — from violation-history analysis (plan 0073). Until then the
+deliberately?" — from violation-history analysis (plan 0073, Draft: it needs
+real adopter usage before there is anything to analyse). Until then the
 principle stands: a rule earns its place by discriminating, and a green that
 can no longer fail is not enforcement.
 
