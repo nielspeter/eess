@@ -2,7 +2,8 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'eess',
-  description: 'Executable Enforceable Specification System — specifications you can run',
+  description:
+    'Architecture guardrails for AI coding agents — deterministic gates that ground the agent loop; drift fails the build',
   base: '/eess/',
 
   themeConfig: {

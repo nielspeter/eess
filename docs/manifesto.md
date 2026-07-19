@@ -22,7 +22,7 @@ Business intent, architectural decisions, workflows, constraints, and operationa
 
 Over time, the implementation becomes the only source of truth.
 
-The central idea of an Executable Enforceable Specification System (EESS) is:
+The central idea is:
 
 > Specifications become the authoritative semantic representation of the system.
 
@@ -832,7 +832,7 @@ This step is not optional polish. It is the moment legacy stops being truth-by-a
 
 # Final Vision
 
-An Executable Enforceable Specification System is:
+A system whose specifications are executable and enforceable is:
 
 - human-readable
 - AI-maintained
