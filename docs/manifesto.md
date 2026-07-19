@@ -1,7 +1,11 @@
-# Executable Enforceable Specification System
+# The eess manifesto
 
 > **New to eess?** This is the full design spec — dense by design. For a
 > five-minute plain-language intro, start with [What is eess?](/what-is-eess).
+
+_On the name: **eess** originated as an acronym — Executable Enforceable
+Specification System — the founding idea recorded below. Today it is just the
+name; nothing about using eess requires adopting a "specification system"._
 
 ## Core Thesis
 
@@ -27,6 +31,22 @@ The implementation becomes a realization artifact.
 Code stops being the only truth.
 
 Spec and code are validated against each other. Neither is privileged in isolation. The spec describes what should be. The code is what exists. The validator confirms they agree. Drift in either direction fails the build.
+
+## Constraints, not a map
+
+A fair critique of spec-driven frameworks: an over-specified plan forces the
+builder — human or agent — down a predetermined path, and produces worse
+results the moment reality diverges from the plan. The map is not the
+territory.
+
+eess takes the other side of that trade deliberately. It does **not** dictate
+how work gets done — no prescribed steps, no workflow the agent must follow,
+no generated task lists. It verifies **invariants on the finished work**: the
+layering holds, the diagram matches the code, the ADR's clause is satisfied,
+the citation resolves. How the builder gets there is the builder's business;
+_that_ it got there is the build's. A high-agency agent with a fuzzy goal and
+a few hard constraints outperforms one marched through a script — eess exists
+to make those few constraints real.
 
 ---
 
@@ -381,6 +401,27 @@ because the code does not satisfy it yet. That is a third state: `pending`.
 shape as baseline mode: record the gap, don't fake the gate, ratchet it closed.
 When the code catches up, status flips to `gated`. A rule that fails today is not a
 broken ADR; it is a declared, tracked debt.
+
+## Rules age — enforcement is not monotone
+
+The honest counterpoint to "every correction becomes a permanent check": rules
+can outlive their usefulness. Models stop making the mistake a guardrail was
+written for; a convention becomes universal; a constraint's reason disappears
+in a refactor. A rule that never fires is either a solved problem or a vacuous
+check — and the two look identical from the green side. Practitioners running
+agent harnesses report reviewing their rule sets at every model generation and
+retiring what no longer earns its place; forgetting is part of a functioning
+memory.
+
+eess's stance: retirement is a **status transition, not a deletion** — the
+existing vocabulary already carries it (`deprecated`: no longer in force, kept
+for history), and the decision to retire is Tier 5, a human act, exactly like
+the decision to adopt. What's planned beyond the stance: a `review-by`
+discipline on enforcement rows, and telemetry-driven retirement signals —
+"this rule hasn't fired in N months across all runs; retire or keep
+deliberately?" — from violation-history analysis (plan 0073). Until then the
+principle stands: a rule earns its place by discriminating, and a green that
+can no longer fail is not enforcement.
 
 ## This is not hypothetical
 

@@ -17,6 +17,23 @@ worse than no rule, because it reads as green. Optimize for a rule that fails
 loudly the day the code violates the clause, and for an Enforcement row whose
 status is the truth.
 
+## Step 0 — is this a decision worth an ADR?
+
+Not every choice deserves a record. Write an ADR only when the decision is at
+least one of:
+
+- **hard to reverse** — undoing it later is expensive (a storage engine, a
+  module boundary, a wire format);
+- **surprising without context** — a future reader would ask "why on earth?"
+  and the answer isn't in the code;
+- **a real trade-off** — credible alternatives existed and something was
+  deliberately given up.
+
+A choice that is easily reversed, obvious in context, and had no serious
+alternative is convention, not architecture — putting it in an ADR dilutes the
+corpus and buries the decisions that matter. When in doubt, ask which of the
+three tests it passes; if none, don't author it.
+
 ## Step 1 — classify the clause by tier
 
 A tier says _what kind of fact_ the clause is. It decides the mechanism. Don't
