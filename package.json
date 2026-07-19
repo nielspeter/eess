@@ -1,7 +1,7 @@
 {
   "name": "eess-monorepo",
   "version": "0.0.0",
-  "description": "eess — Executable Enforceable Specification System. Monorepo root.",
+  "description": "eess — architecture guardrails for AI coding agents. Monorepo root.",
   "type": "module",
   "private": true,
   "workspaces": [

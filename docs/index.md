@@ -1,6 +1,6 @@
 # eess
 
-**Executable Enforceable Specification System.** _Specifications you can run._ A repo's architecture, diagrams, and specs should be enforced against the code, not prose that drifts.
+**Architecture guardrails for AI coding agents.** _Deterministic gates that ground the agent loop — drift fails the build._ A repo's architecture, diagrams, and specs should be enforced against the code, not prose that drifts.
 
 eess is a dialect-independent kernel with **sibling dialects** around it — TypeScript, Mermaid class diagrams, and a Markdown corpus, plus cross-validation that binds them. This site documents the flagship **TypeScript dialect, `eess-ts`** (evolved from ts-archunit's engine).
 

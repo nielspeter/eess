@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**eess** (Executable Enforceable Specification System) is a deterministic "compiler for specs" that grounds AI coding agents: markdown specs, diagrams, ADRs, and architecture rules are validated against the code — and each other — so drift fails the build. It is a **family**: a dialect-independent kernel (`@nielspeter/eess`) with sibling dialects — `eess-ts` (the flagship TypeScript dialect, evolved from ts-archunit's engine), `eess-mermaid`, `eess-md`, and `eess-crossvalidate`. The repo dogfoods itself — the validate chain enforces these specs against this code.
+**eess** is a deterministic "compiler for specs" that grounds AI coding agents: markdown specs, diagrams, ADRs, and architecture rules are validated against the code — and each other — so drift fails the build. It is a **family**: a dialect-independent kernel (`@nielspeter/eess`) with sibling dialects — `eess-ts` (the flagship TypeScript dialect, evolved from ts-archunit's engine), `eess-mermaid`, `eess-md`, and `eess-crossvalidate`. The repo dogfoods itself — the validate chain enforces these specs against this code.
 
 **Spec:** `docs/manifesto.md` is the design specification, together with the binding decisions in `/adr/`. All implementation must align with them.
 

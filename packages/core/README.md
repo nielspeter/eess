@@ -1,6 +1,6 @@
 # @nielspeter/eess
 
-The dialect-independent **kernel** of the [eess](../../README.md) family — _Executable Enforceable Specification System._
+The dialect-independent **kernel** of the [eess](../../README.md) family.
 
 This package is the engine every eess dialect runs on. It knows nothing about TypeScript, Mermaid, or any specific artifact format; it is generic over the element type being validated.
 

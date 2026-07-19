@@ -7,8 +7,8 @@ user-invocable: true
 # eess-adr-author
 
 Turn a decision written in English into something the build can enforce. eess
-(Executable Enforceable Specification System) works because every ADR clause
-names _how_ it's enforced and the mechanism actually runs in CI. Your job is to
+works because every ADR clause names _how_ it's enforced and the mechanism
+actually runs in CI. Your job is to
 pick the right mechanism, write it, and record the Enforcement row honestly.
 
 The hard part is not the DSL — it's **not lying**. A rule that looks like it
