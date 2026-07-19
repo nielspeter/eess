@@ -20,10 +20,9 @@ A green check you've never seen fail proves nothing. This path takes you to a
 cold:
 
 ```bash
-npm pkg set type=module         # eess is ESM-only (Node >= 24)
-npm install -D @nielspeter/eess-ts
-npx eess-ts init                # scaffolds arch.rules.ts — editable guardrail rules
-npx eess-ts check               # runs them against your source
+npm install -D @nielspeter/eess-ts   # Node >= 24; your project may be ESM or CJS
+npx eess-ts init                     # scaffolds arch.rules.ts — editable guardrail rules
+npx eess-ts check                    # runs them against your source
 ```
 
 On most existing codebases the floor fires immediately (a silent `catch {}`,
