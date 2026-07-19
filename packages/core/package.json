@@ -1,6 +1,6 @@
 {
   "name": "@nielspeter/eess",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "eess kernel — the dialect-independent rule engine (RuleBuilder, Predicate, Condition, baseline, formatters). Specifications you can run.",
   "type": "module",
   "exports": {

@@ -1,5 +1,13 @@
 # @nielspeter/eess
 
+## 0.2.1
+
+### Patch Changes
+
+- README: lead with what the kernel is for rather than the retired acronym. The
+  package page is a live surface — it kept showing "Executable Enforceable
+  Specification System" after that expansion was removed everywhere else.
+
 ## 0.2.0
 
 ### Minor Changes

@@ -16,10 +16,15 @@ blocked on an external signal.
 ## State of play — 2026-07-19
 
 **Nothing is in flight.** No plan is `Ready` or part-built; no bug is open
-([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). One release chore is outstanding.
-The six open plans are all `Draft` — written down, none committed to; three of
-them are blocked on signals that do not exist yet (adopter data, adopter
-feedback, a mechanism nobody has).
+([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). The six open plans are all `Draft` —
+written down, none committed to; three are blocked on signals that do not exist
+yet (adopter data, adopter feedback, a mechanism nobody has).
+
+**Released v0.2.1** — `@nielspeter/eess` and `@nielspeter/eess-ts` to `0.2.1`
+(the other four dialects unchanged at `0.1.2`). Ships the
+[bug 0074](../bugs/fixed/0074-init-esm-type-module.md) fix: the CLI loads its
+config through jiti, so `eess-ts check` no longer crashes on its own scaffolded
+config in a CommonJS-default project — the first thing a new adopter hit.
 
 To start work: pick a P2, run `/plan-ready` to freeze its floor, then
 `/plan-build`.
@@ -30,9 +35,6 @@ To start work: pick a P2, run `/plan-ready` to freeze its floor, then
 
 | Item                                                                                        | Priority | State | Ships                                                                                                                                                                       | Blocked on                                                |
 | ------------------------------------------------------------------------------------------- | -------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Item                                                                                        | Priority | State | Ships                                                                                                                                                                       | Blocked on                                                |
-| ----                                                                                        | -------- | ----- | -----                                                                                                                                                                       | ----------                                                |
-| **Release 0.2.1** — publish the [0074](../bugs/fixed/0074-init-esm-type-module.md) CLI fix  | **P1**   | chore | the jiti config-loader fix (`af595d6`) reaches npm; the published 0.2.0 still crashes on its own scaffolded config in a CJS-default project                                 | — changeset written; run `/release`                       |
 | [0076 — broader deterministic autofix](./0076-broader-deterministic-autofix.md)             | P2       | Draft | extend the `ArchFix` model past link/pointer to other **provably-unique** repairs; two originally-named candidates fail that test and are recorded as rejects               | — buildable now                                           |
 | [0077 — author → validate → fix loop](./0077-author-validate-fix-loop.md)                   | P2       | Draft | bounded-round loop over `eess-adr-author` → `eess-adr-validate` → fix → re-validate, green-or-escalate; verifier separated from author; adoption stays a human act (Tier 5) | — buildable now                                           |
 | [0073 — violation telemetry + rule staleness](./0073-violation-telemetry-rule-staleness.md) | P2       | Draft | aggregate `--format json` runs + baselines → dominating-pattern analysis, human-ratified rule proposals, retirement signals (_decay_) + coverage grades trended (_growth_)  | real adopter usage — no data to analyse yet               |
