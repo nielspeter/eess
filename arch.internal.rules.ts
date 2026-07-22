@@ -69,7 +69,7 @@ const ENTRY_POINTS = [
   /\/mermaid\/src\/(index|cli\/bin)\.ts$/,
   /\/md\/src\/(index|rules\/(adr|ledger))\.ts$/,
   /\/gherkin\/src\/index\.ts$/,
-  /\/crossvalidate\/src\/(mermaid-ts|md-ts|md-mermaid|md-mermaid-er|md-gherkin|files)\.ts$/,
+  /\/crossvalidate\/src\/(mermaid-ts|md-ts|md-mermaid|md-mermaid-er|md-gherkin|gherkin-ts|files)\.ts$/,
 ]
 
 const src = () => modules(p).that().resideInFolder('**/packages/*/src/**')

@@ -24,6 +24,10 @@
       "types": "./dist/md-gherkin.d.ts",
       "import": "./dist/md-gherkin.js"
     },
+    "./gherkin-ts": {
+      "types": "./dist/gherkin-ts.d.ts",
+      "import": "./dist/gherkin-ts.js"
+    },
     "./md-mermaid-er": {
       "types": "./dist/md-mermaid-er.d.ts",
       "import": "./dist/md-mermaid-er.js"
