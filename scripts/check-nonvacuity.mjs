@@ -15,6 +15,9 @@
  *                 `catch {}` → eess/no-silent-catch. (This gate has in-flight
  *                 violations from other agents; the clean direction is reported
  *                 informationally, not asserted.)
+ *   baseline      packages/core/src/__nonvacuity_probe_eval__.ts has a function
+ *                 calling `eval()` → preset/recommended/no-eval (the shipped
+ *                 `recommended` preset run against our source by check:baseline).
  *   diagram       scripts/nonvacuity/bad-diagram.mmd has a class with no
  *                 <<kernel>> stereotype → diagram/kernel-stereotype.
  *   crossval      scripts/nonvacuity/ghost-diagram.mmd declares a class absent
@@ -24,7 +27,7 @@
  *   corpus/links  scripts/nonvacuity/bad-links/broken.md links a missing file →
  *                 the links().should().resolve() check.
  *
- * The two probe files are ephemeral: created just before their run, deleted in a
+ * The three probe files are ephemeral: created just before their run, deleted in a
  * finally block, and swept at startup so a prior crash can never leave one in
  * packages/core/src. Everything else is a committed fixture under
  * scripts/nonvacuity/. Uses only node builtins + the workspace packages.
@@ -43,6 +46,7 @@ const EESS_MERMAID = join(repoRoot, 'node_modules', '.bin', 'eess-mermaid')
 
 const PROBE_ARCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe__.ts')
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
+const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
 
 /** Run a command from the repo root and capture combined stdout+stderr + exit code. */
 function sh(cmd, args) {
@@ -74,6 +78,7 @@ function withProbe(path, contents, fn) {
 // Sweep any leftover probes before doing anything — they must never survive.
 rmSync(PROBE_ARCH, { force: true })
 rmSync(PROBE_CATCH, { force: true })
+rmSync(PROBE_EVAL, { force: true })
 
 // --- Gate: arch (root cross-package rules) ---
 function gateArch() {
@@ -109,6 +114,21 @@ function gateInternalArch() {
   return { ok, detail: `bad → exit ${bad.code} (eess/no-silent-catch on probe) · ${cleanNote}` }
 }
 
+// --- Gate: baseline (the shipped `recommended` preset via check:baseline) ---
+function gateBaseline() {
+  const bad = withProbe(PROBE_EVAL, "export function probe() {\n  return eval('1 + 1')\n}\n", () =>
+    sh(process.execPath, [join('scripts', 'check-baseline.mjs')]),
+  )
+  const ok = bad.code === 1 && bad.out.includes('__nonvacuity_probe_eval__')
+  // Clean direction is a bonus proof the gate is not always-red (informational).
+  const clean = sh(process.execPath, [join('scripts', 'check-baseline.mjs')])
+  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code}`
+  return {
+    ok,
+    detail: `bad → exit ${bad.code} (preset/recommended/no-eval on probe) · ${cleanNote}`,
+  }
+}
+
 // --- Gate: diagram (eess-mermaid) ---
 function gateDiagram() {
   const r = sh(EESS_MERMAID, ['check', 'scripts/nonvacuity/bad-diagram.rules.ts'])
@@ -136,6 +156,7 @@ function gateNode(script, ruleNote) {
 const gates = [
   ['arch (root rules)', gateArch],
   ['internal arch', gateInternalArch],
+  ['baseline', gateBaseline],
   ['diagram', gateDiagram],
   ['spec', gateSpec],
   ['crossval', () => gateNode('bad-crossval.mjs', 'crossval/diagram-completeness')],

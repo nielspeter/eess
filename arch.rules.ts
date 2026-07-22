@@ -6,8 +6,9 @@
  * (package.json declarations); this checks the actual import graph via the AST.
  *
  *  - Kernel purity: @nielspeter/eess imports no ts-morph / picomatch / dialect.
- *  - Dialect isolation: eess-ts / eess-mermaid / eess-md never import each other
- *    (siblings on the kernel; only eess-crossvalidate bridges them).
+ *  - Dialect isolation: eess-ts / eess-mermaid / eess-md / eess-gherkin never
+ *    import each other (siblings on the kernel; only eess-crossvalidate bridges
+ *    them).
  */
 import { workspace, modules } from '@nielspeter/eess-ts'
 
@@ -16,6 +17,7 @@ const p = workspace([
   'packages/ts/tsconfig.build.json',
   'packages/mermaid/tsconfig.build.json',
   'packages/md/tsconfig.build.json',
+  'packages/gherkin/tsconfig.build.json',
   'packages/crossvalidate/tsconfig.build.json',
 ])
 
@@ -48,7 +50,13 @@ export default [
     .that()
     .resideInFolder(only('core'))
     .should()
-    .notImportFrom(inPkg('ts'), inPkg('mermaid'), inPkg('md'), inPkg('crossvalidate'))
+    .notImportFrom(
+      inPkg('ts'),
+      inPkg('mermaid'),
+      inPkg('md'),
+      inPkg('gherkin'),
+      inPkg('crossvalidate'),
+    )
     .rule({ id: 'eess/kernel-no-dialects', because: 'the kernel must not depend on any dialect' }),
 
   // Dialect isolation — siblings never import each other.
@@ -56,18 +64,24 @@ export default [
     .that()
     .resideInFolder(only('ts'))
     .should()
-    .notImportFrom(inPkg('mermaid'), inPkg('md'))
+    .notImportFrom(inPkg('mermaid'), inPkg('md'), inPkg('gherkin'))
     .rule({ id: 'eess/ts-isolated', because: 'dialects are siblings, not cross-dependent' }),
   modules(p)
     .that()
     .resideInFolder(only('mermaid'))
     .should()
-    .notImportFrom(inPkg('ts'), inPkg('md'))
+    .notImportFrom(inPkg('ts'), inPkg('md'), inPkg('gherkin'))
     .rule({ id: 'eess/mermaid-isolated', because: 'dialects are siblings, not cross-dependent' }),
   modules(p)
     .that()
     .resideInFolder(only('md'))
     .should()
-    .notImportFrom(inPkg('ts'), inPkg('mermaid'))
+    .notImportFrom(inPkg('ts'), inPkg('mermaid'), inPkg('gherkin'))
     .rule({ id: 'eess/md-isolated', because: 'dialects are siblings, not cross-dependent' }),
+  modules(p)
+    .that()
+    .resideInFolder(only('gherkin'))
+    .should()
+    .notImportFrom(inPkg('ts'), inPkg('mermaid'), inPkg('md'))
+    .rule({ id: 'eess/gherkin-isolated', because: 'dialects are siblings, not cross-dependent' }),
 ]
