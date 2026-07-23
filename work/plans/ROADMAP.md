@@ -16,7 +16,7 @@ blocked on an external signal.
 ## State of play — 2026-07-23
 
 **Nothing is in flight.** No plan is `Ready` or part-built; no bug is open
-([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). Six open plans, all `Draft` — written down, none committed to; three are blocked on signals that do not exist yet (adopter data, adopter feedback, a mechanism nobody has). [0080](./completed/0080-gherkin-ts-crossvalidation.md) shipped 2026-07-22 — both directions of the scenario↔test binding; its live `check:crossval` gate was wired 2026-07-23 over `specs/scenario-binding.feature` (the deferred item, now dogfooded).
+([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). Seven open plans, all `Draft` — written down, none committed to; three are blocked on signals that do not exist yet (adopter data, adopter feedback, a mechanism nobody has). [0080](./completed/0080-gherkin-ts-crossvalidation.md) shipped 2026-07-22 — both directions of the scenario↔test binding; its live `check:crossval` gate was wired 2026-07-23 over `specs/scenario-binding.feature` (the deferred item, now dogfooded).
 
 **Released v0.2.1** — `@nielspeter/eess` and `@nielspeter/eess-ts` to `0.2.1`
 (the other four dialects unchanged at `0.1.2`). Ships the
@@ -39,8 +39,9 @@ To start work: pick a P2, run `/plan-ready` to freeze its floor, then
 | [0075 — manifesto reconciliation](./0075-manifesto-reconciliation.md)                       | P3       | Draft | restructure into thesis · shipped doctrine · horizon; give the binding doc an Enforcement table and Tier-5 ratification                                                     | adopter feedback                                          |
 | [0078 — workflow dialect](./0078-workflow-dialect.md)                                       | P3       | Draft | `@nielspeter/eess-workflow` — CI workflows validated against `package.json` scripts and the packages table                                                                  | demand; the dogfood case may not justify a sixth package  |
 | [0079 — Tier 2/3 mechanization](./0079-tier-2-3-mechanization.md)                           | P3       | Draft | bind a clause to a _behaviour_, not just to a test's name — the frontier eess has never crossed                                                                             | a mechanism; none exists, and an 83-talk sweep found none |
+| [0081 — port checkAll](./0081-port-checkall.md)                                             | P3       | Draft | test-file terminal for an array of rules — run all, aggregate, throw one `ArchRuleError`; the one ts-archunit 0.17.0 export eess-ts still lacks                             | — buildable now (XS)                                      |
 
-Six Drafts, none committed to — they came from [plan 0067](./completed/0067-harness-informed-roadmap.md)'s proposed phases and the [external-signals research](../research-external-signals-2026-07.md). Nothing here is externally promised.
+Seven Drafts, none committed to — six came from [plan 0067](./completed/0067-harness-informed-roadmap.md)'s proposed phases and the [external-signals research](../research-external-signals-2026-07.md); 0081 came from the 2026-07-23 ts-archunit parity audit. Nothing here is externally promised.
 
 ---
 
