@@ -14,6 +14,10 @@
   that mattered most; restructuring is improvement, not repair.
 - **Effort:** ~1 session.
 - **Created:** 2026-07-19
+- **Adopter data-point (2026-07-23):** a real external spec corpus exercised the
+  dialects — confirming eess already validates a project's whole corpus in-repo, and
+  that "spec-first" is the manifesto's existing mission generalised, not a new one.
+  One reading toward the restructure; does not lift the Phase 2–3 gate.
 
 ## Problem
 

@@ -12,6 +12,11 @@
   retire; staleness), but still cannot be validated without real churning data.
 - **Effort:** ~2 sessions once real data exists.
 - **Created:** 2026-07-19
+- **Adopter lead (2026-07-23):** a greenfield build driven _from_ an external spec
+  corpus would churn violations red→green as it is built — a candidate churning
+  adopter, _if_ such a build is ever run inside eess. A lead, not the resolution: a
+  spec corpus at rest is static (same trap as ts-archunit if measured without an
+  active build).
 
 ## Problem
 
