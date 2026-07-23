@@ -13,12 +13,10 @@ blocked on an external signal.
 
 ---
 
-## State of play — 2026-07-19
+## State of play — 2026-07-23
 
 **Nothing is in flight.** No plan is `Ready` or part-built; no bug is open
-([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). The six open plans are all `Draft` —
-written down, none committed to; three are blocked on signals that do not exist
-yet (adopter data, adopter feedback, a mechanism nobody has).
+([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). Six open plans, all `Draft` — written down, none committed to; three are blocked on signals that do not exist yet (adopter data, adopter feedback, a mechanism nobody has). [0080](./completed/0080-gherkin-ts-crossvalidation.md) shipped 2026-07-22 — both directions of the scenario↔test binding; its live `check:crossval` gate was wired 2026-07-23 over `specs/scenario-binding.feature` (the deferred item, now dogfooded).
 
 **Released v0.2.1** — `@nielspeter/eess` and `@nielspeter/eess-ts` to `0.2.1`
 (the other four dialects unchanged at `0.1.2`). Ships the
@@ -42,30 +40,28 @@ To start work: pick a P2, run `/plan-ready` to freeze its floor, then
 | [0078 — workflow dialect](./0078-workflow-dialect.md)                                       | P3       | Draft | `@nielspeter/eess-workflow` — CI workflows validated against `package.json` scripts and the packages table                                                                  | demand; the dogfood case may not justify a sixth package  |
 | [0079 — Tier 2/3 mechanization](./0079-tier-2-3-mechanization.md)                           | P3       | Draft | bind a clause to a _behaviour_, not just to a test's name — the frontier eess has never crossed                                                                             | a mechanism; none exists, and an 83-talk sweep found none |
 
-Six Drafts, none committed to. They came from
-[plan 0067](./completed/0067-harness-informed-roadmap.md)'s proposed phases and
-the [external-signals research](../research-external-signals-2026-07.md).
-Nothing here is externally promised.
+Six Drafts, none committed to — they came from [plan 0067](./completed/0067-harness-informed-roadmap.md)'s proposed phases and the [external-signals research](../research-external-signals-2026-07.md). Nothing here is externally promised.
 
 ---
 
 ## Shipped
 
-| Plan                                                                                          | Ships                                                                                                                                                                   | State |
-| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| [0051 — consolidation onto one kernel](./completed/0051-consolidation-eess-monorepo.md)       | `@nielspeter/eess` kernel + `eess-ts`, `eess-mermaid` on it                                                                                                             | Done  |
-| [0058 — Markdown dialect](./completed/0058-markdown-dialect-eess-md.md)                       | `@nielspeter/eess-md` — corpus links, code pointers, tiered ADR enforcement gate                                                                                        | Done  |
-| [0059 — cross-validation primitive](./completed/0059-cross-validation-eess-crossvalidate.md)  | `@nielspeter/eess-crossvalidate` — `correspondence()`, Mermaid↔TS + MD↔TS presets                                                                                       | Done  |
-| [0060 — full-coverage dogfooding](./completed/0060-full-coverage-dogfooding.md)               | eess validates eess for real — all six gates active + proven non-vacuous                                                                                                | Done  |
-| [0061 — spec↔code hard feedback PoC](./completed/0061-spec-code-hard-feedback-poc.md)         | `rows()` + md `.select()`; `check:spec` binds README + ADR-index to code                                                                                                | Done  |
-| [0062 — correspondence ergonomic bricks](./completed/0062-correspondence-ergonomic-bricks.md) | split `keyBy` on `correspondence()` + `files()` selection factory                                                                                                       | Done  |
-| [0066 — deterministic autofix](./completed/0066-eess-deterministic-autofix.md)                | `--fix` for unique link/pointer resolutions — kernel `ArchFix` + md fixers                                                                                              | Done  |
-| [0067 — harness-informed roadmap](./completed/0067-harness-informed-roadmap.md)               | `check:fast` + agent-actionable gate output (closed at Phase 1; its four proposed phases are the unnumbered rows above)                                                 | Done  |
-| [0068 — working-method kit](./completed/0068-working-method-kit.md)                           | portable method: docs + seed templates + skills (`/plan-*`, `/bug`, universal `/close`) + one promoted gate (`check:ledger`); the freeze stays a skill-borne habit      | Done  |
-| [0069 — spec-corpus reach](./completed/0069-spec-corpus-reach.md)                             | `eess-gherkin` sibling dialect · md↔gherkin citation crossval · erDiagram grammar + parameterized table↔diagram binding · vocabulary primitive · external-root pointers | Done  |
-| [0070 — caller owns reporting](./completed/0070-caller-owns-reporting.md)                     | split detect/report/throw — one format-aware reporter; presets emit `--format json` + a non-throwing return; kills double-print (ADR-008)                               | Done  |
-| [0071 — ts-archunit parity](./completed/0071-ts-archunit-parity.md)                           | `recommended` + `agentGuardrails` presets · `explain --format agent` + `imperative` metadata · `tsconfig()` rule · `eess-ts init` (builder-expanded floor)              | Done  |
-| [0072 — adoption surface](./completed/0072-adoption-surface.md)                               | front-door README inversion (the wedge) · manifesto heritage + constraints-not-a-map + staleness stance · agent-loop recipes (Action/hook/AGENTS.md) · 5-min red gate   | Done  |
+| Plan                                                                                          | Ships                                                                                                                                                                                      | State |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| [0051 — consolidation onto one kernel](./completed/0051-consolidation-eess-monorepo.md)       | `@nielspeter/eess` kernel + `eess-ts`, `eess-mermaid` on it                                                                                                                                | Done  |
+| [0058 — Markdown dialect](./completed/0058-markdown-dialect-eess-md.md)                       | `@nielspeter/eess-md` — corpus links, code pointers, tiered ADR enforcement gate                                                                                                           | Done  |
+| [0059 — cross-validation primitive](./completed/0059-cross-validation-eess-crossvalidate.md)  | `@nielspeter/eess-crossvalidate` — `correspondence()`, Mermaid↔TS + MD↔TS presets                                                                                                          | Done  |
+| [0060 — full-coverage dogfooding](./completed/0060-full-coverage-dogfooding.md)               | eess validates eess for real — all six gates active + proven non-vacuous                                                                                                                   | Done  |
+| [0061 — spec↔code hard feedback PoC](./completed/0061-spec-code-hard-feedback-poc.md)         | `rows()` + md `.select()`; `check:spec` binds README + ADR-index to code                                                                                                                   | Done  |
+| [0062 — correspondence ergonomic bricks](./completed/0062-correspondence-ergonomic-bricks.md) | split `keyBy` on `correspondence()` + `files()` selection factory                                                                                                                          | Done  |
+| [0066 — deterministic autofix](./completed/0066-eess-deterministic-autofix.md)                | `--fix` for unique link/pointer resolutions — kernel `ArchFix` + md fixers                                                                                                                 | Done  |
+| [0067 — harness-informed roadmap](./completed/0067-harness-informed-roadmap.md)               | `check:fast` + agent-actionable gate output (closed at Phase 1; its four proposed phases are the unnumbered rows above)                                                                    | Done  |
+| [0068 — working-method kit](./completed/0068-working-method-kit.md)                           | portable method: docs + seed templates + skills (`/plan-*`, `/bug`, universal `/close`) + one promoted gate (`check:ledger`); the freeze stays a skill-borne habit                         | Done  |
+| [0069 — spec-corpus reach](./completed/0069-spec-corpus-reach.md)                             | `eess-gherkin` sibling dialect · md↔gherkin citation crossval · erDiagram grammar + parameterized table↔diagram binding · vocabulary primitive · external-root pointers                    | Done  |
+| [0070 — caller owns reporting](./completed/0070-caller-owns-reporting.md)                     | split detect/report/throw — one format-aware reporter; presets emit `--format json` + a non-throwing return; kills double-print (ADR-008)                                                  | Done  |
+| [0071 — ts-archunit parity](./completed/0071-ts-archunit-parity.md)                           | `recommended` + `agentGuardrails` presets · `explain --format agent` + `imperative` metadata · `tsconfig()` rule · `eess-ts init` (builder-expanded floor)                                 | Done  |
+| [0072 — adoption surface](./completed/0072-adoption-surface.md)                               | front-door README inversion (the wedge) · manifesto heritage + constraints-not-a-map + staleness stance · agent-loop recipes (Action/hook/AGENTS.md) · 5-min red gate                      | Done  |
+| [0080 — gherkin↔ts crossvalidation](./completed/0080-gherkin-ts-crossvalidation.md)           | scenario↔test binding, both directions — `scenarioTestsResolve` + `scenariosCovered`; live in `check:crossval` (2026-07-23) over `specs/scenario-binding.feature`, with a nonvacuity probe | Done  |
 
 ---
 

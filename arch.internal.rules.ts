@@ -55,7 +55,11 @@ const p = workspace([
 ])
 
 // A-priori exclusions (work/dogfood-coverage.md):
-const GENERATED = /\/parser\/generated\// // generated Langium code — "fix the code" is meaningless
+// Generated Langium code — "fix the code" is meaningless. Scoped to only the
+// rules generated code actually violates (public fields, unused exports); on
+// every other rule the generated code is already clean, so excluding it there
+// would be a vacuous exclusion (the nonvacuity gate flags those).
+const GENERATED = /\/parser\/generated\//
 const ENV_ADAPTERS = /\/core\/src\/(ansi|environment)\.ts$/ // these modules ARE the env boundary
 // Entry points = import-graph roots (the packages' exports+bin maps, verbatim):
 const ENTRY_POINTS = [
@@ -65,13 +69,12 @@ const ENTRY_POINTS = [
   /\/mermaid\/src\/(index|cli\/bin)\.ts$/,
   /\/md\/src\/(index|rules\/(adr|ledger))\.ts$/,
   /\/gherkin\/src\/index\.ts$/,
-  /\/crossvalidate\/src\/(mermaid-ts|md-ts|md-mermaid|md-mermaid-er|md-gherkin|files)\.ts$/,
+  /\/crossvalidate\/src\/(mermaid-ts|md-ts|md-mermaid|md-mermaid-er|md-gherkin|gherkin-ts|files)\.ts$/,
 ]
 
 const src = () => modules(p).that().resideInFolder('**/packages/*/src/**')
-const srcClasses = () =>
-  classes(p).that().resideInFolder('**/packages/*/src/**').excluding(GENERATED)
-const srcFns = () => functions(p).that().resideInFolder('**/packages/*/src/**').excluding(GENERATED)
+const srcClasses = () => classes(p).that().resideInFolder('**/packages/*/src/**')
+const srcFns = () => functions(p).that().resideInFolder('**/packages/*/src/**')
 
 const rules = [
   // -- security --
@@ -94,25 +97,23 @@ const rules = [
     }),
 
   // -- errors --
-  src().excluding(GENERATED).should().satisfy(moduleNoSilentCatch()).rule({
+  src().should().satisfy(moduleNoSilentCatch()).rule({
     id: 'eess/no-silent-catch',
     because: 'every discarded error carries a written reason',
   }),
 
   // -- ADR-005: first mechanical enforcement of the as/non-null ban --
-  src().excluding(GENERATED).should().satisfy(moduleNoTypeAssertions()).rule({
+  src().should().satisfy(moduleNoTypeAssertions()).rule({
     id: 'eess/adr005-no-type-assertions',
     because: 'ADR-005: sanctioned boundaries use eess-exclude with a reason',
   }),
   src()
-    .excluding(GENERATED)
     .should()
     .satisfy(moduleNoNonNullAssertions())
     .rule({ id: 'eess/adr005-no-non-null', because: 'ADR-005' }),
 
   // -- hygiene --
   src()
-    .excluding(GENERATED)
     .excluding(...ENTRY_POINTS)
     .should()
     .satisfy(noDeadModules())
@@ -137,7 +138,10 @@ const rules = [
     id: 'eess/jsdoc-on-public-methods',
     because: 'the fluent surface is what users hover in IDEs',
   }),
-  srcClasses().should().satisfy(noPublicFields()).rule({ id: 'eess/no-public-fields' }),
+  srcClasses().excluding(GENERATED).should().satisfy(noPublicFields()).rule({
+    id: 'eess/no-public-fields',
+    because: 'generated Langium classes expose public fields by design',
+  }),
   srcClasses().should().satisfy(noMagicNumbers()).rule({ id: 'eess/no-magic-numbers' }),
 
   // -- metrics (builders + kernel RuleBuilder excluded per ADR-003: wide fluent surfaces are the design) --
