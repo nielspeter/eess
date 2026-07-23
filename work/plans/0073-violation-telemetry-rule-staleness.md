@@ -2,13 +2,21 @@
 
 ## Status
 
-- **State:** Draft — waiting on real adopter usage. The mechanism is designable
-  today; the _input_ is not. Aggregating violation history across one repo that
-  is already green tells us nothing. Promote to Ready when there is a corpus of
-  runs from at least one repo that is not this one.
-- **Priority:** P2 — answers the strongest external critique of eess, but
-  cannot be validated without data.
-- **Effort:** ~2 sessions once data exists.
+- **State:** Draft — **buildable now.** The mechanism was always designable; the
+  missing input was a run corpus from a repo that is not this one — and this
+  plan's own promotion bar was exactly "a corpus of runs from at least one repo
+  that is not this one." **ts-archunit meets it**: a 202-commit (2026-03 → 07),
+  non-eess TS codebase whose history, replayed through eess's `recommended`
+  preset, yields real violation churn — the decay/growth signal a green
+  customer-zero cannot produce. Promote to Ready once the data-generation step
+  (replay history → JSON time-series) and the corpus-location decisions are
+  scoped. _Caveat:_ ts-archunit is same-author, so it validates the **mechanism**
+  on real longitudinal data; **independent-adopter insight** (surprising patterns
+  from strangers) still wants an external repo.
+- **Priority:** P2 — answers the strongest external critique of eess (rules must
+  retire; staleness), and is now validatable against real data.
+- **Effort:** ~2 sessions + a one-time data-generation step (replay ts-archunit's
+  history through the preset).
 - **Created:** 2026-07-19
 
 ## Problem
