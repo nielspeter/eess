@@ -25,7 +25,7 @@ import {
   scenarioTestStats,
 } from '@nielspeter/eess-crossvalidate/gherkin-ts'
 import { diagram } from '@nielspeter/eess-mermaid'
-import { features } from '@nielspeter/eess-gherkin'
+import { features, scenarios } from '@nielspeter/eess-gherkin'
 import { project } from '@nielspeter/eess-ts'
 import { corpus } from '@nielspeter/eess-md'
 
@@ -77,6 +77,13 @@ const scenarioSpecProject = project('packages/crossvalidate/specs/gate.tsconfig.
 
 gate('scenario↔test (every citation resolves)', () =>
   scenarioTestsResolve(scenarioSpecProject, scenarioSpecs),
+)
+
+// Precondition for sound coverage: scenariosCovered keys on `relPath + title`,
+// so duplicate titles in a file would let one citation cover its twin. Enforce
+// eess-gherkin's own haveUniqueTitles here so that can't happen.
+gate('scenario↔test (scenario titles are unique)', () =>
+  scenarios(scenarioSpecs).should().haveUniqueTitles().check(),
 )
 
 gate('scenario↔test (every scenario is proven by a test)', () => {
