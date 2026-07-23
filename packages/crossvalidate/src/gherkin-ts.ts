@@ -41,8 +41,9 @@ interface TestCitationSite {
 // md↔gherkin) then the scenario title, separated by `›` or `·`.
 const IT_CITE_RE = /^(?<path>.*\.feature)\s*[›·]\s*(?<title>.+)$/
 // Parse a title out of an enriched call name like `it('does a thing')` — the
-// same shape md↔ts reads, so `` it(`template title`) `` is seen too.
-const IT_NAME_RE = /^it(?:\.\w+)?\(\s*['"`]([^'"`]+)['"`]/
+// same shape md↔ts reads, so `` it(`template title`) `` is seen too. Also
+// matches the `test` alias and modifier forms (`it.only('…')`, `test.skip('…')`).
+const IT_NAME_RE = /^(?:it|test)(?:\.\w+)?\(\s*['"`]([^'"`]+)['"`]/
 const RULE = 'tests that cite a scenario should cite one that exists'
 
 /** The default `it()`-title convention: `<path>.feature › <title>`. */
@@ -66,9 +67,15 @@ function itTitles(project: ArchProject): TestCitationSite[] {
   }).elements
   const out: TestCitationSite[] = []
   for (const call of allCalls) {
-    if (call.getName() !== 'it') continue
-    const enriched = call.getName({ withArgument: 0 }) ?? ''
-    const title = IT_NAME_RE.exec(enriched)?.[1]
+    // Accept `it(...)` / `test(...)` and their modifier forms (`it.only`,
+    // `it.skip`, `test.concurrent`, …) — the root callee is what matters, not
+    // the modifier. The gate binds a citation, it does not run the test, so a
+    // skipped test's citation is still checked (consistent with "cites, not
+    // exercises"). `it.each(table)(...)` is a call-of-a-call with a templated
+    // `%s` title — no static citation — so `root` is undefined and it is skipped.
+    const root = call.getObjectName() ?? call.getMethodName()
+    if (root !== 'it' && root !== 'test') continue
+    const title = IT_NAME_RE.exec(call.getName({ withArgument: 0 }) ?? '')?.[1]
     if (title === undefined) continue
     out.push({ title, file: call.getSourceFile().getFilePath(), line: call.getStartLineNumber() })
   }
@@ -189,6 +196,11 @@ function citedScenarioKeys(
  * the coverage (right→left) direction, the complement of `scenarioTestsResolve`.
  * A scenario shipped with no citing test fails; `include` narrows the scope so
  * `@wip` / un-implemented flows do not force a red build.
+ *
+ * Assumes scenario titles are unique within a file — coverage keys on
+ * `relPath + title`, so two identically-titled scenarios share one key and
+ * citing one marks its twin covered. Pair with eess-gherkin's `haveUniqueTitles`
+ * to close that gap.
  *
  * Coverage means "a test cites this scenario", not "a test exercises its steps"
  * (Tier 2, still open — plan 0079).

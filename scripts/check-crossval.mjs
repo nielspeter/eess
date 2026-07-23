@@ -68,7 +68,11 @@ gate('ADR↔test (citations resolve in the AST)', () =>
 // (covered). Scoped via a dedicated tsconfig to ONE spec test, so the gherkin-ts
 // *fixtures* — whose .cases.ts carry citation-shaped it() titles by design —
 // never pollute it. (The same 'scope the project' lesson the ADR gate learned.)
-const scenarioSpecs = features({ cwd: 'packages/crossvalidate/specs', roots: ['*.feature'] })
+// `**/*.feature` (not `*.feature`) so a nested spec can't slip in ungated.
+const scenarioSpecs = features({
+  cwd: 'packages/crossvalidate/specs',
+  roots: ['**/*.feature'],
+})
 const scenarioSpecProject = project('packages/crossvalidate/specs/gate.tsconfig.json')
 
 gate('scenario↔test (every citation resolves)', () =>

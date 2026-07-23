@@ -48,6 +48,13 @@ describe('scenarioTestsResolve() — gherkin↔ts', () => {
     )
   })
 
+  it('sees it.only and the test() alias, not just plain it()', () => {
+    // Both cite real checkout scenarios via modifier/alias forms.
+    const stats = scenarioTestStats(proj('aliases'), set())
+    expect(stats.citations).toBe(2)
+    expect(() => scenarioTestsResolve(proj('aliases'), set())).not.toThrow()
+  })
+
   it('report: return hands violations back without writing to stderr (ADR-008)', () => {
     const errSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
     const result = scenarioTestsResolve(proj('red'), set(), { report: 'return' })
