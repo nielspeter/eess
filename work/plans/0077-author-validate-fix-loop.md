@@ -111,10 +111,11 @@ dimension) is deliberately out of MVP; it is iteration over this, not new machin
 
 ## Resolved at freeze (2026-07-23)
 
-- [x] **Round cap: 2.** Stripe's deliberate two rounds over OpenAI's unbounded loop
-      (constraints, above) — unbounded iteration against a judge converges on
-      satisfying the judge. Round 1 applies the fix, round 2 re-validates; still not
-      `FAITHFUL` → escalate.
+- [x] **Round cap: one fix (two validation passes).** Stripe's deliberate two rounds
+      over OpenAI's unbounded loop (constraints, above) — unbounded iteration against a
+      judge converges on satisfying the judge. Validate → (if not `FAITHFUL`) one fix →
+      re-validate → escalate. In code: `MAX_FIX_ROUNDS = 1` (reconciled with the code at
+      review — the first cut allowed two fixes, review finding #3).
 - [x] **Escalation = a `pending` Enforcement row + the last verdict surfaced, never
       a silent accept.** The loop writes the row as `pending` with the validator's
       `PARTIAL/DRIFTED` evidence attached; a human ratifies or rejects (Tier 5,
@@ -157,3 +158,23 @@ dimension) is deliberately out of MVP; it is iteration over this, not new machin
       against a deliberately-flawed rule is a follow-on demonstration, not a blocker
       for the mechanism (deterministic loop; its correctness is readable in the
       script). Left open here, to be shown when a naturally-flawed clause comes through.
+
+## Review + re-dogfood (2026-07-24)
+
+A branch code-review found four issues in the workflow; #1–#3 applied, #4 noted:
+
+- [x] **#1 — the loop now verifies executability, not just faithfulness.** The
+      validator runs `npx eess-ts check <rule>` first; a zero-selection (vacuous) rule
+      → `DRIFTED`. Re-dogfooded on the same clause — the journal confirms the validator
+      **ran** the rule (count line, 60 violations) and even ran `check:corpus` /
+      `check:arch`. Vacuity is now caught deterministically, not by an LLM reading alone.
+- [x] **#2 — a dedicated `fixPrompt`** that _updates_ the existing rule/row, replacing
+      the reused author prompt whose "add the row" risked a duplicate on the fix path.
+- [x] **#3 — `MAX_FIX_ROUNDS = 1`** (one fix, two validation passes), reconciling the
+      code with the plan's "two rounds."
+- [x] **#4 — noted:** the workflow mutates the tree in place; the header now says to run
+      it on a branch.
+
+Re-run result: fresh author → non-vacuous rule (60 violations) → **FAITHFUL** round 0,
+gates green. The fix path (#2/#3) still did not fire (faithful first-pass), so the
+_Honest limit_ above stands — those two are code-verified, not run-verified.
