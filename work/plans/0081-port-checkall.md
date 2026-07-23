@@ -38,6 +38,28 @@ it (eess has the full family — kernel + `ts`/`mermaid`/`md`/`gherkin` +
 `crossvalidate` — where ts-archunit's `packages/` is still an empty skeleton).
 This plan closes the single remaining delta.
 
+## Is it worth building? — marginal; parked on demand
+
+Honest answer: **low value for eess specifically.** The gap is real but narrow,
+and three things make it low-leverage:
+
+- **eess is CLI-first, and the CLI already aggregates.** `eess-ts check
+arch.rules.ts` runs the whole default-export array and reports every violation.
+  `checkAll` only serves the **test-file** workflow eess de-emphasizes.
+- **Its flagship ts-archunit use case does not apply.** There the win was
+  `checkAll([...recommended(p), ...layered(p)])` — spreading presets. eess presets
+  return `ArchViolation[]`, not builders (`packages/ts/src/presets/*`), so that
+  does not type-check. `checkAll` here only aggregates hand-assembled arrays of
+  raw rule builders — a much smaller need.
+- **No demand signal.** This surfaced from a self-audit, not an adopter.
+
+So `checkAll` is **strictly less capable** than eess's existing `dispatchRule` /
+`finishPreset` / CLI machinery, for a workflow eess does not lead with. Parked as
+a Draft pending a concrete signal: an adopter who writes arch rules in a test
+runner (not the CLI) and wants one aggregated failure across raw builders — not
+built speculatively. (Corollary for "is eess-ts behind ts-archunit?": this was
+the one remaining delta, and it is one **not worth closing** now.)
+
 ## Design
 
 The port is small because eess's kernel already ships every part:
@@ -68,8 +90,8 @@ export interface RuleLike {
 }
 
 /**
- * Run an array of rules (e.g. a spread preset, or an `arch.rules.ts` default
- * export) in a test file and aggregate: report once, then throw a single
+ * Run an array of rule builders (an `arch.rules.ts`-style default export, or a
+ * hand-assembled array) in a test file and aggregate: report once, then throw a single
  * `ArchRuleError` listing every violation — where `.check()` per rule would stop
  * at the first failure.
  */
