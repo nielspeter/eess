@@ -77,7 +77,7 @@ rules —
 
 - `check:arch` — eess-ts validates the monorepo's own architecture: kernel purity, dialect isolation, and an internal policy (layering, cycles, security, hygiene, metrics, the ADR-005 `as`/`!` bans) over every package ([arch.rules.ts](./arch.rules.ts), [arch.internal.rules.ts](./arch.internal.rules.ts))
 - `check:diagram` — eess-mermaid validates [docs/architecture.mmd](./docs/architecture.mmd), the kernel's class diagram
-- `check:crossval` — eess-crossvalidate keeps that diagram and the kernel's code in agreement (both directions) and resolves every test an ADR cites against the real AST
+- `check:crossval` — eess-crossvalidate keeps that diagram and the kernel's code in agreement (both directions), resolves every test an ADR cites against the real AST, and binds each Gherkin scenario to the test that proves it (both directions) — a renamed or uncited scenario fails the build
 - `check:corpus` — eess-md validates 100 markdown docs: cross-links, live `path:line` code pointers, and the tiered `## Enforcement` table in every [ADR](./adr)
 - `check:spec` — eess-md + `correspondence()` bind markdown _specs_ to code: this Packages table stays in sync with the workspace, and the [CLAUDE.md](./CLAUDE.md) ADR index stays in sync with [`adr/`](./adr) — drift either way fails the build ([spec.rules.ts](./spec.rules.ts))
 - `check:nonvacuity` — every gate above is proven to fail on committed violating fixtures: no green-but-empty gates
