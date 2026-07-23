@@ -15,10 +15,12 @@ blocked on an external signal.
 
 ## State of play — 2026-07-23
 
-**Nothing is in flight.** No plan is `Ready` or part-built; no bug is open
-([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). Seven open plans, all `Draft` —
-written down, none committed to; three are blocked on signals that do not exist
-yet (adopter data, adopter feedback, a mechanism nobody has). A 2026-07-23
+**0077 is Ready and building** (frozen 2026-07-23) — the author→validate→fix loop as
+a Workflow, after a harness check confirmed the author/verifier separation can be
+_enforced_ (separate `agent()` context + `model:` split), not just documented. No bug
+is open ([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). Six other open plans, all
+`Draft`; three are blocked on signals that do not exist yet (adopter data, adopter
+feedback, a mechanism nobody has). A 2026-07-23
 attempt to unblock 0073 with ts-archunit as a proxy corpus was rejected (fixture
 noise + thin signal — recorded in the plan). [0080](./completed/0080-gherkin-ts-crossvalidation.md) shipped 2026-07-22 — both directions of the scenario↔test binding; its live `check:crossval` gate was wired 2026-07-23 over `specs/scenario-binding.feature` (the deferred item, now dogfooded).
 
@@ -38,7 +40,7 @@ To start work: pick a P2, run `/plan-ready` to freeze its floor, then
 | Item                                                                                        | Priority | State | Ships                                                                                                                                                                       | Blocked on                                                                             |
 | ------------------------------------------------------------------------------------------- | -------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | [0076 — broader deterministic autofix](./0076-broader-deterministic-autofix.md)             | P2       | Draft | extend the `ArchFix` model past link/pointer to other **provably-unique** repairs; two originally-named candidates fail that test and are recorded as rejects               | — buildable now                                                                        |
-| [0077 — author → validate → fix loop](./0077-author-validate-fix-loop.md)                   | P2       | Draft | bounded-round loop over `eess-adr-author` → `eess-adr-validate` → fix → re-validate, green-or-escalate; verifier separated from author; adoption stays a human act (Tier 5) | — buildable now                                                                        |
+| [0077 — author → validate → fix loop](./0077-author-validate-fix-loop.md)                   | P2       | Ready | bounded-round loop over `eess-adr-author` → `eess-adr-validate` → fix → re-validate, green-or-escalate; verifier separated from author; adoption stays a human act (Tier 5) | — frozen + building 2026-07-23 (Workflow enforces the separation)                      |
 | [0073 — violation telemetry + rule staleness](./0073-violation-telemetry-rule-staleness.md) | P2       | Draft | aggregate `--format json` runs + baselines → dominating-pattern analysis, human-ratified rule proposals, retirement signals (_decay_) + coverage grades trended (_growth_)  | real, churning adopter — ts-archunit rejected 2026-07-23 (fixture noise + thin signal) |
 | [0075 — manifesto reconciliation](./0075-manifesto-reconciliation.md)                       | P3       | Draft | restructure into thesis · shipped doctrine · horizon; give the binding doc an Enforcement table and Tier-5 ratification                                                     | adopter feedback                                                                       |
 | [0078 — workflow dialect](./0078-workflow-dialect.md)                                       | P3       | Draft | `@nielspeter/eess-workflow` — CI workflows validated against `package.json` scripts and the packages table                                                                  | demand; the dogfood case may not justify a sixth package                               |
