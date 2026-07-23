@@ -15,8 +15,11 @@ blocked on an external signal.
 
 ## State of play — 2026-07-23
 
-**Nothing is in flight.** No plan is `Ready` or part-built; no bug is open
-([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). Seven open plans, all `Draft` — written down, none committed to; two are blocked on signals that do not exist yet (adopter feedback, a mechanism nobody has) — 0073 was unblocked by using ts-archunit as a proxy corpus. [0080](./completed/0080-gherkin-ts-crossvalidation.md) shipped 2026-07-22 — both directions of the scenario↔test binding; its live `check:crossval` gate was wired 2026-07-23 over `specs/scenario-binding.feature` (the deferred item, now dogfooded).
+**0073 is Ready** — floor frozen 2026-07-23 (its data blocker resolved by
+pinning ts-archunit as a proxy corpus), so it can go to `/plan-build`. No bug is
+open ([`BUGS.md`](../bugs/BUGS.md) — 0074 fixed). The other six open plans are
+`Draft`; two are blocked on signals that do not exist yet (adopter feedback, a
+mechanism nobody has). [0080](./completed/0080-gherkin-ts-crossvalidation.md) shipped 2026-07-22 — both directions of the scenario↔test binding; its live `check:crossval` gate was wired 2026-07-23 over `specs/scenario-binding.feature` (the deferred item, now dogfooded).
 
 **Released v0.2.1** — `@nielspeter/eess` and `@nielspeter/eess-ts` to `0.2.1`
 (the other four dialects unchanged at `0.1.2`). Ships the
@@ -33,7 +36,7 @@ To start work: pick a P2, run `/plan-ready` to freeze its floor, then
 
 | Item                                                                                        | Priority | State | Ships                                                                                                                                                                       | Blocked on                                                                                              |
 | ------------------------------------------------------------------------------------------- | -------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| [0073 — violation telemetry + rule staleness](./0073-violation-telemetry-rule-staleness.md) | P2       | Draft | aggregate `--format json` runs + baselines → dominating-pattern analysis, human-ratified rule proposals, retirement signals (_decay_) + coverage grades trended (_growth_)  | buildable — replay ts-archunit's 202-commit history as a proxy corpus (independent adopter still ideal) |
+| [0073 — violation telemetry + rule staleness](./0073-violation-telemetry-rule-staleness.md) | P2       | Ready | aggregate `--format json` runs + baselines → dominating-pattern analysis, human-ratified rule proposals, retirement signals (_decay_) + coverage grades trended (_growth_)  | buildable — replay ts-archunit's 202-commit history as a proxy corpus (independent adopter still ideal) |
 | [0076 — broader deterministic autofix](./0076-broader-deterministic-autofix.md)             | P2       | Draft | extend the `ArchFix` model past link/pointer to other **provably-unique** repairs; two originally-named candidates fail that test and are recorded as rejects               | — buildable now                                                                                         |
 | [0077 — author → validate → fix loop](./0077-author-validate-fix-loop.md)                   | P2       | Draft | bounded-round loop over `eess-adr-author` → `eess-adr-validate` → fix → re-validate, green-or-escalate; verifier separated from author; adoption stays a human act (Tier 5) | — buildable now                                                                                         |
 | [0075 — manifesto reconciliation](./0075-manifesto-reconciliation.md)                       | P3       | Draft | restructure into thesis · shipped doctrine · horizon; give the binding doc an Enforcement table and Tier-5 ratification                                                     | adopter feedback                                                                                        |
@@ -41,7 +44,7 @@ To start work: pick a P2, run `/plan-ready` to freeze its floor, then
 | [0079 — Tier 2/3 mechanization](./0079-tier-2-3-mechanization.md)                           | P3       | Draft | bind a clause to a _behaviour_, not just to a test's name — the frontier eess has never crossed                                                                             | a mechanism; none exists, and an 83-talk sweep found none                                               |
 | [0081 — port checkAll](./0081-port-checkall.md)                                             | P3       | Draft | test-file terminal for an array of rules — run all, aggregate, throw one `ArchRuleError`; the one ts-archunit 0.17.0 export eess-ts still lacks                             | demand — a test-file adopter (eess's CLI already aggregates)                                            |
 
-Seven Drafts, none committed to — six came from [plan 0067](./completed/0067-harness-informed-roadmap.md)'s proposed phases and the [external-signals research](../research-external-signals-2026-07.md); 0081 came from the 2026-07-23 ts-archunit parity audit. Nothing here is externally promised.
+Six Drafts + one Ready (0073); none committed to — the Drafts came from [plan 0067](./completed/0067-harness-informed-roadmap.md)'s proposed phases and the [external-signals research](../research-external-signals-2026-07.md); 0081 came from the 2026-07-23 ts-archunit parity audit. Nothing here is externally promised.
 
 ---
 
