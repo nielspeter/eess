@@ -40,6 +40,44 @@ adrCitationsResolve(corpus({ roots: ['docs/**'] }), project('tsconfig.json'), {
 
 This closes the loop `eess-md` opens: `eess-md` checks the table is well-formed; `eess-crossvalidate` checks its citations resolve against the compiled test AST — so an ADR can't claim a test that doesn't exist, and a renamed test can't silently orphan its ADR.
 
+## Markdown ↔ Gherkin
+
+Every scenario a markdown story cites — a backticked `.feature` path plus an optional quoted title — must exist in the loaded feature set:
+
+```typescript
+import { scenarioCitationsResolve } from '@nielspeter/eess-crossvalidate/md-gherkin'
+import { corpus } from '@nielspeter/eess-md'
+import { features } from '@nielspeter/eess-gherkin'
+
+// a story cites `checkout.feature` · 'Apply a valid code'
+scenarioCitationsResolve(
+  corpus({ roots: ['docs/**'] }),
+  features({ roots: ['features/**/*.feature'] }),
+)
+```
+
+Three failure modes fail the build: the cited feature file is missing, the path is ambiguous, or the scenario title doesn't exist. Spec↔spec — it binds a _story_ to the _behaviour spec_ it references, so a renamed or deleted scenario can't silently orphan the story that cites it.
+
+## Gherkin ↔ TypeScript
+
+The mirror image of the above, one layer down: instead of a story citing a scenario, a **test** cites the scenario it proves — in its `it()` title, using the same convention. Both directions are gated:
+
+```typescript
+import { scenarioTestsResolve, scenariosCovered } from '@nielspeter/eess-crossvalidate/gherkin-ts'
+import { features } from '@nielspeter/eess-gherkin'
+import { project } from '@nielspeter/eess-ts'
+
+const set = features({ roots: ['features/**/*.feature'] })
+const p = project('tsconfig.json')
+
+scenarioTestsResolve(p, set) // every it('checkout.feature › Apply a valid code') resolves
+scenariosCovered(p, set) // every scenario is cited by at least one test
+```
+
+`scenarioTestsResolve` catches a test orphaned by a renamed or deleted scenario; `scenariosCovered` catches a scenario shipped with no test at all — the pincer that keeps `.feature` files and the test suite from drifting apart. The citation is read from the test AST via eess-ts's public API (no ts-morph, per ADR-007), so it also sees `it.only`, `it.skip`, and the `test` alias. Because coverage keys on `relPath + title`, pair it with eess-gherkin's `haveUniqueTitles` so duplicate scenario titles can't let one citation cover its twin.
+
+**Honest scope:** it proves a test _cites_ a scenario, not that the test _exercises_ its behaviour — that last step is Tier 2, still open. eess dogfoods this pairing on itself: `packages/crossvalidate/specs/scenario-binding.feature` is a use case, proven by a test whose `it()` titles cite its scenarios, gated live in `check:crossval`.
+
 ## Coverage is just a direction
 
 `beComplete()` takes a `direction`, and that one option is also the **coverage** primitive. A correspondence checks two things at once:
