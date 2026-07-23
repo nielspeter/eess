@@ -1,0 +1,12 @@
+{
+  "//": "Scopes the check:crossval scenario↔test gate to ONE test file, so the gherkin-ts fixtures (whose .cases.ts carry citation-shaped it() titles by design) never pollute it. Loaded only by ts-morph via project(); not part of the package's own build/typecheck.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["../tests/scenario-binding.spec.ts"]
+}

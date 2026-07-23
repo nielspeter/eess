@@ -4,9 +4,14 @@
 
 - **State:** Done — both directions of the scenario↔test binding built and
   validated (`scenarioTestsResolve` + `scenariosCovered`; 40 crossvalidate tests);
-  `npm run validate` green end-to-end 2026-07-22. The live `check:crossval` gate
-  is deferred to the board (blocked on an in-repo product `.feature` — wiring it
-  now would scan zero citations).
+  `npm run validate` green end-to-end 2026-07-22.
+  - _Update 2026-07-23:_ the once-deferred live gate is now **wired and
+    dogfooded** — `specs/scenario-binding.feature` (the use case) is proven by
+    `tests/scenario-binding.spec.ts` (its `it()` titles cite the scenarios), and
+    `check:crossval` runs `scenarioTestsResolve` + `scenariosCovered` over it,
+    scoped by `specs/gate.tsconfig.json` so the gherkin-ts fixtures don't pollute
+    it. A `bad-gherkin-ts.mjs` nonvacuity probe proves the gate bites. Nothing on
+    the board is deferred anymore.
 - **Priority:** P2 — closes the one gap the Gherkin dialect left open: a use
   case (`.feature`) can be cited by a _story_ (md↔gherkin, plan 0069 Phase 2)
   but not bound to the _test_ that proves it. This is the code↔spec half that
@@ -282,4 +287,5 @@ the resolver shipped and proven by fixtures.
 
 - [x] Phase 1 — `scenarioTestsResolve` (+ `scenarioTestStats`, `defaultExtract`) + red/green fixtures + 6 tests (dangling direction); entry-points + README updated; full `validate` green
 - [x] Phase 2 — `scenariosCovered` + `include` tag filter (`@wip`) + 3 tests (coverage direction); `covered/` fixture cites all four scenarios green non-vacuously; full `validate` green
-- [x] Phase 3 — `scenarioTestStats` delivered in Phase 1; the red/green fixture suite is complete across Phases 1–2 (resolve: green + red×3; coverage: red + include + green). Live `check:crossval` wiring remains **deferred → ROADMAP** until a product `.feature` + citing test exists in this repo (wiring it now would scan zero citations — a vacuous gate)
+- [x] Phase 3 — `scenarioTestStats` delivered in Phase 1; the red/green fixture suite is complete across Phases 1–2 (resolve: green + red×3; coverage: red + include + green).
+- [x] Live wiring (was deferred; shipped 2026-07-23) — `specs/scenario-binding.feature` proven by `tests/scenario-binding.spec.ts`, gated by `check:crossval` (`scenarioTestsResolve` + `scenariosCovered`, scoped via `specs/gate.tsconfig.json`) with a `bad-gherkin-ts.mjs` nonvacuity probe

@@ -22,6 +22,8 @@
  *                 <<kernel>> stereotype → diagram/kernel-stereotype.
  *   crossval      scripts/nonvacuity/ghost-diagram.mmd declares a class absent
  *                 from the kernel code → crossval/diagram-completeness.
+ *   crossval/gk   the gherkin-ts `red` fixture project cites scenarios absent
+ *                 from the feature set → crossval/scenario-tests-resolve.
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
  *   corpus/links  scripts/nonvacuity/bad-links/broken.md links a missing file →
@@ -160,6 +162,7 @@ const gates = [
   ['diagram', gateDiagram],
   ['spec', gateSpec],
   ['crossval', () => gateNode('bad-crossval.mjs', 'crossval/diagram-completeness')],
+  ['crossval/gherkin-ts', () => gateNode('bad-gherkin-ts.mjs', 'crossval/scenario-tests-resolve')],
   ['corpus/adr', () => gateNode('bad-adr.mjs', 'adr/valid-tiers')],
   ['corpus/links', () => gateNode('bad-links.mjs', 'links resolve check')],
   ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'live pointers resolve check')],
