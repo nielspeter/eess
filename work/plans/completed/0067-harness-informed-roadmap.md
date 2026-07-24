@@ -7,7 +7,7 @@
   Phase 1, which is its honest delivery: Phases 2–5 were never scheduled work,
   they were a standing backlog wearing a plan's clothes. Each is re-homed to the
   board as a separately-schedulable item — see [Close-out](#close-out-2026-07-19).
-  **Deferred: plans [0073](../0073-violation-telemetry-rule-staleness.md), [0076](../0076-broader-deterministic-autofix.md), [0077](../0077-author-validate-fix-loop.md), [0079](../0079-tier-2-3-mechanization.md) — all Draft.**
+  **Deferred: plans [0073](../0073-violation-telemetry-rule-staleness.md), [0076](../0076-broader-deterministic-autofix.md), [0077](./0077-author-validate-fix-loop.md), [0079](../0079-tier-2-3-mechanization.md) — all Draft.**
 - **Priority:** P2 — sharpen eess as a reusable harness; no blockers
 - **Effort:** Phase 1 ≈ 0.5 day (done); Phases 2–5 sized below, re-homed unbuilt
 - **Created:** 2026-07-08
@@ -91,7 +91,7 @@ hand off, but no loop that runs author → validate → fix → re-validate unti
 green-or-escalate, with a bounded round count. Formalize it as a skill/workflow.
 **Effort: ~1 session.**
 
-**Re-homed** as [plan 0077](../0077-author-validate-fix-loop.md) (Draft, P2, unblocked), and **smaller than
+**Re-homed** as [plan 0077](./0077-author-validate-fix-loop.md) (Draft, P2, unblocked), and **smaller than
 written**: plan 0068 shipped the working-method kit, so the lane discipline
 (`/plan-*`, `/bug`, `/close`) now exists — what is still missing is only the
 bounded re-validate round. Two constraints from

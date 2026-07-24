@@ -2,10 +2,11 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-07-23. The load-bearing open question (can the
-  author/verifier separation be _enforced_, not just documented?) is resolved: yes,
-  via a **Workflow** — verified against the harness (see _Design decisions
-  internalised at freeze_). All three open questions resolved; floor is self-contained.
+- **State:** Done — merged 2026-07-24 (PR #22). Built the `adr-enforce` workflow
+  (author/verifier separation enforced structurally), dogfooded twice on ADR-007's
+  confinement clause (FAITHFUL, non-vacuous, gates green), and applied a branch
+  code-review (#1–#3). **Deferred: none; 1 validation-owed** — the fix/re-validate
+  path is code-verified but never fired live (author faithful first-pass both runs).
 - **Priority:** P2 — closes a loop whose two ends already exist.
 - **Effort:** ~1 session.
 - **Created:** 2026-07-19
@@ -24,14 +25,14 @@ faithful._ Today that hand-off is a human remembering to make it.
 What is missing is the **bounded loop**: author → validate → fix → re-validate,
 until green or escalate, with a round cap.
 
-Arriving from [plan 0067](./completed/0067-harness-informed-roadmap.md) Phase 4,
+Arriving from [plan 0067](./0067-harness-informed-roadmap.md) Phase 4,
 and narrower than that phase assumed: 0067 was written before the working-method
 kit existed, so it scoped building the loop machinery too. `/plan-*`, `/bug` and
 `/close` now exist. Only the re-validate round is missing.
 
 ## The two constraints that bind this
 
-Both from [the external-signals research](../research-external-signals-2026-07.md):
+Both from [the external-signals research](../../research-external-signals-2026-07.md):
 
 1. **Adoption stays a human act (§4).** A loop may _propose_ a rule change; a
    human ratifies it. A gate that rewrites its own rules is not an external
@@ -128,7 +129,7 @@ dimension) is deliberately out of MVP; it is iteration over this, not new machin
 
 ## Build log (2026-07-23)
 
-- [x] **Phase 1–2 built.** [`.claude/workflows/adr-enforce.mjs`](../../.claude/workflows/adr-enforce.mjs)
+- [x] **Phase 1–2 built.** [`.claude/workflows/adr-enforce.mjs`](../../../.claude/workflows/adr-enforce.mjs)
       — the author→validate→fix loop as a Workflow. `author` = `agent(model: opus)`
       carrying eess-adr-author → writes the rule + a `pending` Enforcement row;
       `validate` = a **separate** `agent(model: sonnet)` carrying eess-adr-validate,
@@ -140,7 +141,7 @@ dimension) is deliberately out of MVP; it is iteration over this, not new machin
 - [x] **Phase 3 dogfooded (2026-07-23).** Ran `adr-enforce` on ADR-007's Tier-1
       confinement clause. Two agents — author (opus), validator (sonnet, _separate
       context_) — 51 tool uses, ~9 min, 153k tokens. The author wrote
-      [`adr007.rules.ts`](../../adr007.rules.ts) (modules outside
+      [`adr007.rules.ts`](../../../adr007.rules.ts) (modules outside
       `packages/ts/src/core/engine/` must `notImportFrom` ts-morph) + updated the
       ADR-007 Enforcement row, honestly `pending` and deliberately un-gated so
       `check:arch` stays green. The validator returned **FAITHFUL** (round 0) with a
@@ -152,12 +153,12 @@ dimension) is deliberately out of MVP; it is iteration over this, not new machin
       `args.clause` was undefined and the workflow no-op'd. Fixed (the script now
       parses a string-or-object `args`). The dogfood earned its keep before it even
       ran the loop.
-- [ ] **Honest limit — the fix path did not fire.** The author was faithful
-      first-pass (rounds 0), so the `while` fix/re-validate branch is built and
-      logically sound but **not yet exercised by a live run**. Re-home: exercising it
-      against a deliberately-flawed rule is a follow-on demonstration, not a blocker
-      for the mechanism (deterministic loop; its correctness is readable in the
-      script). Left open here, to be shown when a naturally-flawed clause comes through.
+- [ ] **validation-owed — the fix path is not run-verified.** The author was faithful
+      first-pass on both dogfood runs (rounds 0), so the `while` fix/re-validate branch
+      is built and code-verified (syntax + readable deterministic logic) but **never
+      fired by a live run**. Owed: a demonstration against a naturally-flawed clause —
+      not contrived here, and not a blocker for the shipped mechanism. It surfaces the
+      first time a real clause draws a `PARTIAL`/`DRIFTED` verdict.
 
 ## Review + re-dogfood (2026-07-24)
 
