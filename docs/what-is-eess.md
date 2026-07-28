@@ -82,6 +82,11 @@ tier_ fails. That single move turns "what is actually enforced here?" from a
 guess into a queryable list — and the unenforced clauses are exactly the ones an
 AI agent will silently optimize away.
 
+When a clause genuinely needs judgment — a Tier-4 check that a rule _means_ what
+its ADR clause says — eess runs the verifier as a **separate agent from the
+author, on a different model**. A gate can't mark its own homework: the model
+that wrote the rule never gets to bless it.
+
 `pending` is the quiet star. A rule can be correct, correctly Tier 1, and still
 not gate today because the code doesn't satisfy it _yet_. You ship it as a
 tracked, skipped rule — honest debt that ratchets green when the code catches up.
