@@ -37,7 +37,8 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "check:nonvacuity": "node scripts/check-nonvacuity.mjs",
-    "check:ledger": "node scripts/check-ledger.mjs"
+    "check:ledger": "node scripts/check-ledger.mjs",
+    "postinstall": "patch-package"
   },
   "author": "Niels Peter",
   "license": "MIT",
@@ -52,6 +53,7 @@
     "graphql": "^16.13.2",
     "jiti": "^2.6.1",
     "langium-cli": "^4.2.1",
+    "patch-package": "^8.0.1",
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.2",

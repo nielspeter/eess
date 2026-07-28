@@ -2,12 +2,14 @@
 
 ## Status
 
-- **State:** Draft — reproduced and root-caused (2026-07-24). The fix is a
-  **decision**, not a quick change: `langium` and `jsonschema` are already at their
-  latest, so no bump resolves it — it is an unresolved upstream interaction with Node
-  26's stricter URL parser. Recommended mitigation below; not yet applied.
+- **State:** Done — fixed 2026-07-24 (PR #29). What first looked like a decision
+  turned out trivial: the failing call is a **single** site, and Node 26 accepts
+  `'thismessage:///'` while producing the identical `.hash`. A one-character,
+  behavior-preserving patch to `jsonschema` (via `patch-package`) makes Node 26 build
+  again — no Node pin needed. Full `build` + `validate` green on Node 26.5.0 (146 test
+  files, 1934 tests). **Deferred: none.**
 - **Found:** 2026-07-24, in passing, while running `npm run validate` for
-  [plan 0082](../plans/completed/0082-doc-code-fence-typecheck.md) — the build step
+  [plan 0082](../../plans/completed/0082-doc-code-fence-typecheck.md) — the build step
   failed before any gate ran. Local machine had moved to Node 26.
 
 ## Symptom
@@ -67,23 +69,30 @@ Verified dead ends (both already newest):
 So there is no clean dependency-bump fix today; the real fix is upstream
 (`langium-cli` or `jsonschema` handling Node 26).
 
-## Fix (options — undecided; recommend the mitigation)
+## Fix
 
-1. **Mitigation (recommended, immediate):** pin the local toolchain to a working Node
-   — a `.nvmrc` (`24`) so `nvm use` gives contributors a buildable version — and note
-   the known Node-26 langium breakage in the contributor docs. CI already uses Node 24,
-   so nothing there changes. This unblocks contributors now without waiting on upstream.
-2. **Root fix (owed, upstream):** track `langium-cli` / `jsonschema` for a Node-26 fix,
-   then bump. This bug ratchets to fixed when the pinned mitigation can be removed.
-3. **Alternative:** `patch-package` the `new URL(...)` call in `jsonschema`
-   (`validator.js:263`) to guard the malformed base — heavier machinery for a
-   transitive-dep patch; prefer the `.nvmrc` pin unless pinning is unacceptable.
+A one-character, behavior-preserving patch to `jsonschema`, applied via
+`patch-package`. The single failing site (`validator.js:263`) uses only the parsed
+URL's `.hash`, so changing the sentinel base `'thismessage::/'` → `'thismessage:///'`
+— which Node 26 accepts and which yields the **identical** hash — fixes the crash
+without touching any validation behaviour.
+
+- `patches/jsonschema+1.5.0.patch` — the one-line change.
+- `patch-package` added as a dev dependency; a `postinstall` script re-applies the
+  patch on every install (verified: revert the dep edit → `patch-package` →
+  `jsonschema@1.5.0 ✔` → green).
+
+The options this bug first weighed — a `.nvmrc` Node pin, or a bigger patch-package
+effort — proved unnecessary: the real fix was much smaller than the worry (it took
+knowing there was exactly one call site and that one valid base preserves the hash).
+The root cause is still upstream (`jsonschema` / `langium-cli` on Node 26); when a
+fixed release lands, drop the patch and the `postinstall`.
 
 ## Verification
 
-- [ ] **Red — reproduced.** `npm run langium:gen -w @nielspeter/eess-mermaid` on Node
-      26.5.0 → `TypeError: Invalid URL` (stack captured above). This is a
-      toolchain/environment defect — the build command is the test; there is no unit
-      test to write.
-- [ ] **Green — owed.** On the pinned/working Node the build succeeds. Applied once a
-      mitigation is chosen.
+- [x] **Red — reproduced.** `npm run langium:gen -w @nielspeter/eess-mermaid` on Node
+      26.5.0 → `TypeError: Invalid URL` (stack captured above). A toolchain/environment
+      defect — the build command is the test; there is no unit test to write.
+- [x] **Green — confirmed.** With the patch, `langium:gen`, the full `npm run build`,
+      and the full `npm run validate` all pass on Node 26.5.0 (146 test files, 1934
+      tests). CI (Node 24) is unaffected — it applies the same harmless patch.
