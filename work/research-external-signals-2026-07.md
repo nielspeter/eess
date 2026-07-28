@@ -60,6 +60,22 @@ talks is the vocabulary eess's audience already speaks.
   Knox, Yegge, Factory, Podium, Anthropic, Debois): _every agent mistake
   becomes a permanent check so it can never recur._ This is the loop eess
   automates.
+- **Dave Farley (Continuous Delivery), "Vibe Coding — is this the best we can
+  do?"** (AI Native DevCon, added 2026-07-24 — post-sweep) — the fullest
+  independent statement of the eess thesis to date: _"AI assistance is rather
+  like the compiler… we're not going to care about the code it generates, as
+  long as we verify we got the results."_ The program shifts "from being
+  solution-focused to a precise description of the **problem**, encoded as
+  executable specifications" that both specify and verify — eess's manifesto
+  almost verbatim (AI-as-compiler, spec-driven, BDD/Gherkin DSLs). Corroborates
+  §2 from the QA side: run the tests yourself in the pipeline and **withhold some
+  test values so the AI can't game them** — the author/verifier separation shipped
+  in [plan 0077](plans/completed/0077-author-validate-fix-loop.md), plus a
+  _held-back oracle_ eess does not yet mechanise. His sharpest cut against
+  code-inferred tests: _"you can't infer the goals from the solution, because the
+  solution can always be wrong"_ — the case for human-authored, goal-first specs
+  bound to code. Strong positioning material for
+  [plan 0075](plans/0075-manifesto-reconciliation.md) (manifesto reconciliation).
 
 ## 2. Reward hacking is the decade's threat — and eess's best argument
 
@@ -224,6 +240,7 @@ talk's video directly (`youtube.com/watch?v=<id>`).
 - [6VRKZQ3pmoU](https://www.youtube.com/watch?v=6VRKZQ3pmoU) — James Moss (Tessl), "Context Development Life Cycle" — skill staleness (§3a)
 - [UvhmYntrLMI](https://www.youtube.com/watch?v=UvhmYntrLMI) — Patrick Debois, "Maps the Patterns of AI-Native Dev" — "agent must convince you" (§2)
 - [I9RWrW32QEw](https://www.youtube.com/watch?v=I9RWrW32QEw) — Patrick Debois, "The Rise of Agent Enablement" — fix-the-system loop (§1)
+- [libNzUdL9eM](https://www.youtube.com/watch?v=libNzUdL9eM) — Dave Farley, "Vibe Coding — Is this really the best we can do?" — AI-as-compiler, spec-driven, withhold-tests anti-cheat (§1, §2)
 
 **langchain**
 
