@@ -88,6 +88,8 @@ The full audit surface — every adopted rule, every exclusion with its written 
 
 The deterministic gates prove a rule _exists_ and the code _satisfies_ it — not that the rule _means_ what the ADR clause says. That last check is a judgment (Tier 4), so it's done by an agent. [`skills/`](./skills) ships two Claude Code skills for the loop: **`eess-adr-author`** (translate a decision into an enforceable rule + an honest Enforcement row) and **`eess-adr-validate`** (adversarially audit that the rule faithfully enforces the clause). See [skills/README.md](./skills/README.md).
 
+This repo wires those two halves into an **enforced** loop: [`.claude/workflows/adr-enforce.mjs`](./.claude/workflows/adr-enforce.mjs) runs the author and the validator as **separate agents on different models** (a gate can't mark its own homework), with a bounded fix loop that escalates to a human for the Tier-5 ratify — never auto-`gated`.
+
 ## Development
 
 npm workspaces. Build order is kernel → dialects (a dialect typechecks against the kernel's built declarations).

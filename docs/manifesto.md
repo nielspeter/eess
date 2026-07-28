@@ -265,8 +265,9 @@ This is Tier 1 — statically decidable facts about code. Not every decision is.
 
 _What exists: agent-actionable gate output (`because` / `Fix:` / `--format
 json`), `explain --format agent` (rules rendered as an agent-prompt block),
-and the `eess-adr-author` / `eess-adr-validate` skills. The consequence
-analyzer is vision._
+the `eess-adr-author` / `eess-adr-validate` skills, and the enforced
+author→validate→fix workflow that connects them (`.claude/workflows/adr-enforce.mjs`
+— separate agents, different models). The consequence analyzer is vision._
 
 AI agents consume:
 

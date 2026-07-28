@@ -100,7 +100,7 @@ modules(p)
   .that()
   .resideInFolder('**/domain/**')
   .should()
-  .notImportFromCondition('**/repositories/**')
+  .notImportFrom('**/repositories/**')
   .check()
 ```
 

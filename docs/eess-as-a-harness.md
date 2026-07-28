@@ -107,3 +107,12 @@ linters."_ eess makes that principle a taxonomy: hard gates for Tiers 1–3,
 soft-flagging LLM judgment for Tier 4, `pending` for "decided but not yet green."
 Its distinctive contribution to the harness idea is the **tier model** — a way to
 decide, per clause, which mechanism enforces it and how hard.
+
+A second, newer contribution keeps the Tier-4 judgment itself honest by
+**structural separation**. [`.claude/workflows/adr-enforce.mjs`](../.claude/workflows/adr-enforce.mjs)
+runs the rule-author and the rule-validator as separate agents on different
+models — the model that wrote the rule never gets to bless it, and the validator
+runs the rule to catch a vacuous "green-but-empty" — with a bounded fix loop that
+escalates to a human for the Tier-5 ratify. "A gate can't mark its own homework"
+becomes a mechanism, not a hope — the same "model proposes, harness decides" split
+Stripe and OpenAI describe, packaged.

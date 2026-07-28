@@ -146,7 +146,7 @@ Use `describe` blocks to group rules by concern:
 
 ```typescript
 import { describe, it } from 'vitest'
-import { project, modules, classes, slices, call, newExpr } from '@nielspeter/eess-ts'
+import { project, modules, classes, slices, call, newExpr, jsxElements } from '@nielspeter/eess-ts'
 
 const p = project('tsconfig.json')
 

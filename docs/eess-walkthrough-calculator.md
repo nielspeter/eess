@@ -95,8 +95,7 @@ Operations register themselves at module-load time via a manual
 The agent generates `arch.rules.ts`:
 
 ```typescript
-import { project, modules, functions, classes } from '@nielspeter/eess-ts'
-import { call } from '@nielspeter/eess-ts/helpers'
+import { project, modules, functions, classes, call } from '@nielspeter/eess-ts'
 
 const p = project('tsconfig.json')
 

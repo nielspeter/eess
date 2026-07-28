@@ -117,3 +117,11 @@ The three compose into one loop: the **sentinel block** tells the agent the
 rules before it writes, the **hook** corrects it while it works, and **CI**
 is the backstop that makes the rules non-negotiable. Same rules, three
 delivery points, zero drift between them.
+
+A fourth loop **authors** the rules in the first place: the
+[`eess-adr-author` / `eess-adr-validate` skills](../skills/README.md) turn an ADR
+clause into an enforceable rule and check the translation is faithful. In this
+repo they run as an enforced workflow —
+[`.claude/workflows/adr-enforce.mjs`](../.claude/workflows/adr-enforce.mjs) — with
+the author and validator as separate agents on different models, so an agent can't
+bless its own rule.

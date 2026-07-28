@@ -145,4 +145,7 @@ Every ADR ends with a table; add one row per clause:
 
 You wrote English→rule; you are the worst judge of whether it's faithful. Hand
 off to **eess-adr-validate** (or ask for a faithfulness check) on the
-clause + the rule you just wrote, before considering the row `gated`.
+clause + the rule you just wrote, before considering the row `gated`. In a repo
+that ships the `adr-enforce` workflow, this hand-off runs automatically as an
+independent-agent step — a different model, its own context, so the author can't
+bless its own work.

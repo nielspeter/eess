@@ -39,6 +39,7 @@ jobs:
       # Every gate above is proven non-vacuous: violating fixtures must make it exit 1.
       - run: npm run check:nonvacuity
       - run: npm run typecheck
+      - run: npm run check:examples
       - run: npm run lint
       - run: npm run format:check
       - run: npm run test
