@@ -30,11 +30,13 @@ stay true — a check that goes red the moment the code and the spec disagree.
 The decision _"domain must not import from infrastructure"_ becomes one rule:
 
 ```ts
+import { modules, project } from '@nielspeter/eess-ts'
+
 modules(project('tsconfig.json'))
   .that()
   .resideInFolder('src/domain/**')
   .should()
-  .notDependOn('src/infrastructure/**')
+  .notImportFrom('src/infrastructure/**')
   .check()
 ```
 

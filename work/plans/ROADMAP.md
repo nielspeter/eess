@@ -19,11 +19,14 @@ blocked on an external signal.
 `adr-enforce` **Workflow**, with the author/verifier separation _enforced_
 structurally (separate `agent()` context + `model:` split). Dogfooded twice on
 ADR-007's confinement clause; one item is `validation-owed` (the fix path is
-code-verified but never fired live). No bug is open ([`BUGS.md`](../bugs/BUGS.md) —
-0074 fixed). Six open plans, all `Draft`; three are blocked on signals that do not
-exist yet (adopter data, adopter feedback, a mechanism nobody has). A 2026-07-23
-attempt to unblock 0073 with ts-archunit as a proxy corpus was rejected (fixture
-noise + thin signal — recorded in the plan).
+code-verified but never fired live). A 2026-07-24 dogfooding audit + doc-freshness
+sweep followed: shipped `check:examples` (type-check the `examples/` templates in CI)
+and froze [0082](./0082-doc-code-fence-typecheck.md) (Ready, after a review corrected
+its premise) to close the top remaining gap — doc code fences aren't compiled, so
+stale examples rot uncaught. No bug is open ([`BUGS.md`](../bugs/BUGS.md) — 0074
+fixed). Seven open plans (0082 `Ready`, six `Draft`); three are blocked on signals
+that do not exist yet (adopter data, adopter feedback, a mechanism nobody has). A 2026-07-23 attempt to unblock 0073 with ts-archunit as a proxy corpus
+was rejected (fixture noise + thin signal — recorded in the plan).
 
 **Released v0.2.1** — `@nielspeter/eess` and `@nielspeter/eess-ts` to `0.2.1`
 (the other four dialects unchanged at `0.1.2`). Ships the
@@ -38,16 +41,17 @@ To start work: pick a P2, run `/plan-ready` to freeze its floor, then
 
 ## To do
 
-| Item                                                                                        | Priority | State | Ships                                                                                                                                                                      | Blocked on                                                                             |
-| ------------------------------------------------------------------------------------------- | -------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [0076 — broader deterministic autofix](./0076-broader-deterministic-autofix.md)             | P2       | Draft | extend the `ArchFix` model past link/pointer to other **provably-unique** repairs; two originally-named candidates fail that test and are recorded as rejects              | — buildable now                                                                        |
-| [0073 — violation telemetry + rule staleness](./0073-violation-telemetry-rule-staleness.md) | P2       | Draft | aggregate `--format json` runs + baselines → dominating-pattern analysis, human-ratified rule proposals, retirement signals (_decay_) + coverage grades trended (_growth_) | real, churning adopter — ts-archunit rejected 2026-07-23 (fixture noise + thin signal) |
-| [0075 — manifesto reconciliation](./0075-manifesto-reconciliation.md)                       | P3       | Draft | restructure into thesis · shipped doctrine · horizon; give the binding doc an Enforcement table and Tier-5 ratification                                                    | adopter feedback                                                                       |
-| [0078 — workflow dialect](./0078-workflow-dialect.md)                                       | P3       | Draft | `@nielspeter/eess-workflow` — CI workflows validated against `package.json` scripts and the packages table                                                                 | demand; the dogfood case may not justify a sixth package                               |
-| [0079 — Tier 2/3 mechanization](./0079-tier-2-3-mechanization.md)                           | P3       | Draft | bind a clause to a _behaviour_, not just to a test's name — the frontier eess has never crossed                                                                            | a mechanism; none exists, and an 83-talk sweep found none                              |
-| [0081 — port checkAll](./0081-port-checkall.md)                                             | P3       | Draft | test-file terminal for an array of rules — run all, aggregate, throw one `ArchRuleError`; the one ts-archunit 0.17.0 export eess-ts still lacks                            | demand — a test-file adopter (eess's CLI already aggregates)                           |
+| Item                                                                                        | Priority | State | Ships                                                                                                                                                                                  | Blocked on                                                                              |
+| ------------------------------------------------------------------------------------------- | -------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| [0082 — doc code-fence check gate](./0082-doc-code-fence-typecheck.md)                      | P2       | Ready | type-check + `no-deprecated`-lint the import-bearing TS examples in `docs/` (check, don't run) so a stale example fails the build — the `check:examples` mechanic applied to the guide | — frozen 2026-07-24, buildable (catches all 3 sweep findings — `tsc` + `no-deprecated`) |
+| [0076 — broader deterministic autofix](./0076-broader-deterministic-autofix.md)             | P2       | Draft | extend the `ArchFix` model past link/pointer to other **provably-unique** repairs; two originally-named candidates fail that test and are recorded as rejects                          | — buildable now                                                                         |
+| [0073 — violation telemetry + rule staleness](./0073-violation-telemetry-rule-staleness.md) | P2       | Draft | aggregate `--format json` runs + baselines → dominating-pattern analysis, human-ratified rule proposals, retirement signals (_decay_) + coverage grades trended (_growth_)             | real, churning adopter — ts-archunit rejected 2026-07-23 (fixture noise + thin signal)  |
+| [0075 — manifesto reconciliation](./0075-manifesto-reconciliation.md)                       | P3       | Draft | restructure into thesis · shipped doctrine · horizon; give the binding doc an Enforcement table and Tier-5 ratification                                                                | adopter feedback                                                                        |
+| [0078 — workflow dialect](./0078-workflow-dialect.md)                                       | P3       | Draft | `@nielspeter/eess-workflow` — CI workflows validated against `package.json` scripts and the packages table                                                                             | demand; the dogfood case may not justify a sixth package                                |
+| [0079 — Tier 2/3 mechanization](./0079-tier-2-3-mechanization.md)                           | P3       | Draft | bind a clause to a _behaviour_, not just to a test's name — the frontier eess has never crossed                                                                                        | a mechanism; none exists, and an 83-talk sweep found none                               |
+| [0081 — port checkAll](./0081-port-checkall.md)                                             | P3       | Draft | test-file terminal for an array of rules — run all, aggregate, throw one `ArchRuleError`; the one ts-archunit 0.17.0 export eess-ts still lacks                                        | demand — a test-file adopter (eess's CLI already aggregates)                            |
 
-Six Drafts, none committed to — they came from [plan 0067](./completed/0067-harness-informed-roadmap.md)'s proposed phases and the [external-signals research](../research-external-signals-2026-07.md); 0081 came from the 2026-07-23 ts-archunit parity audit. Nothing here is externally promised.
+Six Drafts + one Ready (0082), none committed to — most came from [plan 0067](./completed/0067-harness-informed-roadmap.md)'s proposed phases and the [external-signals research](../research-external-signals-2026-07.md); 0081 came from the 2026-07-23 ts-archunit parity audit; 0082 from the 2026-07-24 dogfooding audit (a freshness sweep found stale doc examples no gate caught). Nothing here is externally promised.
 
 ---
 

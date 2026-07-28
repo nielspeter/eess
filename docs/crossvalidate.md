@@ -19,7 +19,7 @@ import { diagramMatchesCode } from '@nielspeter/eess-crossvalidate/mermaid-ts'
 import { project } from '@nielspeter/eess-ts'
 import { diagram } from '@nielspeter/eess-mermaid'
 
-diagramMatchesCode(diagram('docs/architecture.mmd'), project('tsconfig.json')).check?.()
+diagramMatchesCode(diagram('docs/architecture.mmd'), project('tsconfig.json'))
 ```
 
 If the code gains a class the diagram doesn't have (or vice versa), the build fails with a two-sided, actionable message — class-level correspondence, both directions.

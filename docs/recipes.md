@@ -372,7 +372,7 @@ In practice, you combine multiple recipes in a single test file. Group them by c
 
 ```typescript
 import { describe, it } from 'vitest'
-import { project } from '@nielspeter/eess-ts'
+import { project, functions, mustCall, call } from '@nielspeter/eess-ts'
 
 const p = project('tsconfig.json')
 
