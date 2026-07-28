@@ -35,6 +35,12 @@ the real test AST. Rules:
 - **Mechanism**: name what actually checks the clause. Cite file paths in backticks (they must exist) and test citations as `` `path/to/file.test.ts` `` · `it('exact title')` on the same row (the title must exist in that file, and be unique across the suite — duplicate titles are ambiguous to the resolver).
 - **Status** (fixed vocabulary): `gated` (mechanism runs in CI, failing blocks) · `warn` (runs, reports, doesn't block) · `pending` (decided, mechanism known, not yet green/wired) · `manual` (human review; no mechanism possible) · `n/a` (context/rationale; nothing to enforce) · `deprecated` (no longer in force, kept for history).
 
+**Authoring a row.** To make a clause enforceable, use the `eess-adr-author` skill
+(translate the clause → the right mechanism + an honest row), then `eess-adr-validate`
+(adversarial faithfulness check) — or run both as one enforced step via
+`.claude/workflows/adr-enforce.mjs`, which keeps the author and validator as separate
+agents on different models so neither blesses its own work (plan 0077).
+
 ## IMPORTANT: ADR Compliance
 
 **Before writing ANY code or plan, check the ADRs.** Every ADR is binding. Specifically:
