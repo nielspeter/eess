@@ -17,3 +17,7 @@ These examples are templates, not runnable tests — they reference project stru
 1. Copy an example to your project's test directory
 2. Adjust folder paths to match your project structure
 3. Run with your test runner: `npx vitest run arch.test.ts`
+
+Although they don't run here, they are **type-checked in CI** (`npm run check:examples`,
+via [`tsconfig.json`](./tsconfig.json)) against the current `@nielspeter/eess-ts` types —
+so the API they demonstrate can't silently drift out of date.
