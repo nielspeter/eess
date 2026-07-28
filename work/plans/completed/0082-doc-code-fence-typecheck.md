@@ -2,14 +2,14 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-07-24. A branch review found that a `tsc` type-check
-  catches import / API-existence / signature drift but **not** deprecation
-  (`@deprecated` is a suggestion, not a compile error — verified: `tsc --noEmit` exits
-  0 on it). Rather than punt deprecation, the gate pairs the type-check with an ESLint
-  `@typescript-eslint/no-deprecated` pass over the same fences — so it catches **all
-  three** stale-example classes the sweep found. Confirmed available: typescript-eslint
-  8.57.2 ships `no-deprecated`. All open questions resolved; the floor is
-  self-contained.
+- **State:** Done — merged 2026-07-24 (PR #26). `check:docs-code` ships: `tsc` +
+  ESLint `@typescript-eslint/no-deprecated` over the 32 self-contained doc fences,
+  wired into `validate` + `ci.yml` (CI-green on Node 24). On its first run it caught
+  **4 real doc bugs** the manual sweep and the PR review both missed — incl. an invalid
+  API (`modules(…).notDependOn`) in the flagship `what-is-eess.md` one-pager. The
+  "import-bearing" selector was corrected mid-build to "import + own project" (166 false
+  positives → 0). **Deferred: none.** (The Node-26/langium build breakage found in
+  passing is a separate contributor issue, not part of this plan.)
 - **Priority:** P2 — buildable now; the highest-value gap from the 2026-07-24
   dogfooding audit.
 - **Effort:** ~2 sessions. Two checks over one shared extraction; the variable part is
