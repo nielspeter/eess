@@ -22,6 +22,12 @@ The loop: **author** a rule for a clause → **validate** the translation before
 marking the row `gated`. The author skill hands off to the validator; the
 validator is also useful standalone when reviewing any ADR Enforcement table.
 
+In a repo with the workflow, that hand-off is **enforced** rather than
+remembered: [`.claude/workflows/adr-enforce.mjs`](../.claude/workflows/adr-enforce.mjs)
+runs author and validator as separate-context agents on different models, with a
+bounded fix loop → green-or-escalate (the row stays `pending` for a human to
+ratify — Tier 5). The skills stay the portable, drop-in halves for consuming repos.
+
 ## When they help most
 
 Testing these against unaided agents was honest about their ceiling. A capable

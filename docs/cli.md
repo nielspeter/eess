@@ -57,23 +57,28 @@ npx eess-ts explain arch.rules.ts
 
 # Markdown table
 npx eess-ts explain arch.rules.ts --markdown
+
+# Agent prompt block — sentinel-wrapped, for pasting into an agent's context
+npx eess-ts explain arch.rules.ts --format agent
 ```
 
-Outputs a structured description of every rule — id, description, because, suggestion — without executing them. See [Explain Command](/explain) for use cases.
+Outputs a structured description of every rule — id, description, because, suggestion — without executing them. `--format agent` emits an imperative, sentinel-wrapped block an agent can consume directly. See [Explain Command](/explain) for use cases.
 
 ## Options
 
-| Flag                | Short | Description                                                           |
-| ------------------- | ----- | --------------------------------------------------------------------- |
-| `--baseline <path>` |       | Baseline file for filtering known violations                          |
-| `--output <path>`   |       | Output path for baseline file (default: `arch-baseline.json`)         |
-| `--changed`         |       | Only report violations in files changed since base branch             |
-| `--base <branch>`   |       | Base branch for `--changed` (default: `main`)                         |
-| `--format <format>` |       | Output format: `terminal`, `json`, `github`, `auto` (default: `auto`) |
-| `--watch`           | `-w`  | Watch for file changes and re-run (check command only)                |
-| `--config <path>`   |       | Path to config file                                                   |
-| `--version`         | `-v`  | Show version number                                                   |
-| `--help`            | `-h`  | Show help message                                                     |
+| Flag                | Short | Description                                                                                           |
+| ------------------- | ----- | ----------------------------------------------------------------------------------------------------- |
+| `--baseline <path>` |       | Baseline file for filtering known violations                                                          |
+| `--output <path>`   |       | Output path for baseline file (default: `arch-baseline.json`)                                         |
+| `--changed`         |       | Only report violations in files changed since base branch                                             |
+| `--base <branch>`   |       | Base branch for `--changed` (default: `main`)                                                         |
+| `--format <format>` |       | Output format: `terminal`, `json`, `github`, `auto` (default: `auto`); `explain` also accepts `agent` |
+| `--fix`             |       | Show deterministic autofixes for unique repairs (dry run)                                             |
+| `--apply`           |       | Write the fixes surfaced by `--fix`                                                                   |
+| `--watch`           | `-w`  | Watch for file changes and re-run (check command only)                                                |
+| `--config <path>`   |       | Path to config file                                                                                   |
+| `--version`         | `-v`  | Show version number                                                                                   |
+| `--help`            | `-h`  | Show help message                                                                                     |
 
 ## Config File
 
@@ -105,11 +110,7 @@ const p = project('tsconfig.json')
 
 export default [
   classes(p).that().extend('BaseRepository').should().notContain(call('parseInt')),
-  modules(p)
-    .that()
-    .resideInFolder('src/domain/**')
-    .should()
-    .notImportFromCondition('src/repositories/**'),
+  modules(p).that().resideInFolder('src/domain/**').should().notImportFrom('src/repositories/**'),
 ]
 ```
 

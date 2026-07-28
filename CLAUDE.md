@@ -89,6 +89,7 @@ eess/
 │   └── crossvalidate/      # @nielspeter/eess-crossvalidate — bind two dialects, fail on drift
 ├── scripts/                # check-*.mjs dogfood gates + nonvacuity fixtures
 ├── skills/                 # AI integration layer: eess-adr-author + eess-adr-validate agent skills
+├── .claude/workflows/      # adr-enforce.mjs — enforced author→validate→fix loop, separate agents (plan 0077)
 ├── kit/                    # the portable working-method kit (plan 0068): skills + templates + bootstrap
 ├── arch.rules.ts           # dogfood: architecture rules over this repo
 ├── spec.rules.ts           # dogfood: bind README/ADR-index specs to code

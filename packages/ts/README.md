@@ -1,7 +1,7 @@
 # @nielspeter/eess-ts
 
 [![npm version](https://img.shields.io/npm/v/@nielspeter/eess-ts)](https://www.npmjs.com/package/@nielspeter/eess-ts)
-[![CI](https://github.com/nielspeter/ts-archunit/actions/workflows/ci.yml/badge.svg)](https://github.com/nielspeter/ts-archunit/actions/workflows/ci.yml)
+[![CI](https://github.com/nielspeter/eess/actions/workflows/ci.yml/badge.svg)](https://github.com/nielspeter/eess/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js >= 24](https://img.shields.io/badge/node-%3E%3D24-brightgreen)](https://nodejs.org/)
 
@@ -11,7 +11,7 @@ Inspired by Java's [ArchUnit](https://www.archunit.org/). Powered by [ts-morph](
 
 > **The TypeScript dialect of the [eess](../../README.md) family.** Formerly published as `@nielspeter/ts-archunit` — that name still works as an alias, so existing installs are unaffected. New projects should prefer `@nielspeter/eess-ts`.
 
-[Documentation](https://nielspeter.github.io/ts-archunit/) · [Getting Started](https://nielspeter.github.io/ts-archunit/getting-started) · [What Can It Check?](https://nielspeter.github.io/ts-archunit/what-to-check)
+[Documentation](https://nielspeter.github.io/eess/) · [Getting Started](https://nielspeter.github.io/eess/getting-started) · [What Can It Check?](https://nielspeter.github.io/eess/what-to-check)
 
 ## Quickstart — zero to a red gate
 
@@ -56,7 +56,7 @@ Code review catches some of this. But at scale — with multiple agents generati
 
 ## The Solution
 
-ts-archunit turns your architecture decisions into executable tests. They run in CI. Violations show up inline on the PR with clear messages explaining **what's wrong, why it matters, and how to fix it** — exactly the context an agent needs to self-correct.
+eess-ts turns your architecture decisions into executable tests. They run in CI. Violations show up inline on the PR with clear messages explaining **what's wrong, why it matters, and how to fix it** — exactly the context an agent needs to self-correct.
 
 ```typescript
 classes(p)
@@ -96,7 +96,7 @@ Every other tool (dependency-cruiser, eslint-plugin-boundaries, ts-arch) only ch
 
 AI agents don't violate architecture by importing wrong files. They violate it by **writing the wrong code in the right place** — inlining logic instead of delegating, using raw APIs instead of abstractions, skipping validation, throwing generic errors.
 
-ts-archunit checks what happens **inside** your functions:
+eess-ts checks what happens **inside** your functions:
 
 ```typescript
 // "Services must delegate to repositories, not hardcode data"
@@ -119,22 +119,22 @@ functions(p)
   .check()
 ```
 
-| Capability                                         | ts-archunit | [dependency-cruiser](https://github.com/sverweij/dependency-cruiser) | [eslint-plugin-boundaries](https://github.com/javierbrea/eslint-plugin-boundaries) | [Biome](https://biomejs.dev) | [ts-arch](https://github.com/ts-arch/ts-arch) |
-| -------------------------------------------------- | ----------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------- |
-| Import path rules                                  | Yes         | Yes                                                                  | Yes                                                                                | Yes                          | Yes                                           |
-| **Body analysis** (what's called inside functions) | Yes         | No                                                                   | No                                                                                 | No                           | No                                            |
-| **Type checking** (string vs typed union)          | Yes         | No                                                                   | No                                                                                 | No                           | No                                            |
-| JSX element rules                                  | Yes         | No                                                                   | No                                                                                 | No                           | No                                            |
-| Cross-layer rules                                  | Yes         | No                                                                   | No                                                                                 | No                           | Partial                                       |
-| Cycle detection                                    | Yes         | Yes                                                                  | No                                                                                 | No                           | Yes                                           |
-| Code smell detection (duplicate bodies)            | Yes         | No                                                                   | No                                                                                 | No                           | No                                            |
-| Code metrics (cyclomatic, LOC)                     | Yes         | No                                                                   | No                                                                                 | No                           | No                                            |
-| Pattern matching (reusable rule templates)         | Yes         | No                                                                   | No                                                                                 | No                           | No                                            |
-| Baseline (gradual adoption)                        | Yes         | No                                                                   | No                                                                                 | No                           | No                                            |
-| Diff-aware / PR-only checking                      | Yes         | No                                                                   | No                                                                                 | No                           | No                                            |
-| Watch mode                                         | Yes         | No                                                                   | No                                                                                 | Yes                          | No                                            |
-| Inline exclusion comments                          | Yes         | No                                                                   | Via ESLint                                                                         | Yes                          | No                                            |
-| GitHub PR annotations                              | Yes         | No                                                                   | Via ESLint                                                                         | No                           | No                                            |
+| Capability                                         | eess-ts | [dependency-cruiser](https://github.com/sverweij/dependency-cruiser) | [eslint-plugin-boundaries](https://github.com/javierbrea/eslint-plugin-boundaries) | [Biome](https://biomejs.dev) | [ts-arch](https://github.com/ts-arch/ts-arch) |
+| -------------------------------------------------- | ------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------- |
+| Import path rules                                  | Yes     | Yes                                                                  | Yes                                                                                | Yes                          | Yes                                           |
+| **Body analysis** (what's called inside functions) | Yes     | No                                                                   | No                                                                                 | No                           | No                                            |
+| **Type checking** (string vs typed union)          | Yes     | No                                                                   | No                                                                                 | No                           | No                                            |
+| JSX element rules                                  | Yes     | No                                                                   | No                                                                                 | No                           | No                                            |
+| Cross-layer rules                                  | Yes     | No                                                                   | No                                                                                 | No                           | Partial                                       |
+| Cycle detection                                    | Yes     | Yes                                                                  | No                                                                                 | No                           | Yes                                           |
+| Code smell detection (duplicate bodies)            | Yes     | No                                                                   | No                                                                                 | No                           | No                                            |
+| Code metrics (cyclomatic, LOC)                     | Yes     | No                                                                   | No                                                                                 | No                           | No                                            |
+| Pattern matching (reusable rule templates)         | Yes     | No                                                                   | No                                                                                 | No                           | No                                            |
+| Baseline (gradual adoption)                        | Yes     | No                                                                   | No                                                                                 | No                           | No                                            |
+| Diff-aware / PR-only checking                      | Yes     | No                                                                   | No                                                                                 | No                           | No                                            |
+| Watch mode                                         | Yes     | No                                                                   | No                                                                                 | Yes                          | No                                            |
+| Inline exclusion comments                          | Yes     | No                                                                   | Via ESLint                                                                         | Yes                          | No                                            |
+| GitHub PR annotations                              | Yes     | No                                                                   | Via ESLint                                                                         | No                           | No                                            |
 
 ## Quick Start with Presets
 
@@ -339,14 +339,14 @@ smells
 
 ### More Features
 
-- **[Call matching](https://nielspeter.github.io/ts-archunit/calls)** — framework-agnostic route/handler inspection (Express, Fastify, Hono)
-- **[Scoped rules](https://nielspeter.github.io/ts-archunit/body-analysis)** — `within(routes).functions()` for callback-level rules
-- **[Pattern templates](https://nielspeter.github.io/ts-archunit/patterns)** — enforce return type shapes (`{ items, total, skip, limit }`)
-- **[GraphQL rules](https://nielspeter.github.io/ts-archunit/graphql)** — schema and resolver conventions
-- **[Cross-layer validation](https://nielspeter.github.io/ts-archunit/cross-layer)** — route/schema/SDK consistency
-- **[Custom predicates and conditions](https://nielspeter.github.io/ts-archunit/custom-rules)** — `definePredicate()`, `defineCondition()`, `and`/`or`/`not` combinators
-- **[Metrics](https://nielspeter.github.io/ts-archunit/metrics)** — cyclomatic complexity, lines of code, method count limits
-- **[CLI](https://nielspeter.github.io/ts-archunit/cli)** — `check`, `baseline`, `explain`, `--watch` mode
+- **[Call matching](https://nielspeter.github.io/eess/calls)** — framework-agnostic route/handler inspection (Express, Fastify, Hono)
+- **[Scoped rules](https://nielspeter.github.io/eess/body-analysis)** — `within(routes).functions()` for callback-level rules
+- **[Pattern templates](https://nielspeter.github.io/eess/patterns)** — enforce return type shapes (`{ items, total, skip, limit }`)
+- **[GraphQL rules](https://nielspeter.github.io/eess/graphql)** — schema and resolver conventions
+- **[Cross-layer validation](https://nielspeter.github.io/eess/cross-layer)** — route/schema/SDK consistency
+- **[Custom predicates and conditions](https://nielspeter.github.io/eess/custom-rules)** — `definePredicate()`, `defineCondition()`, `and`/`or`/`not` combinators
+- **[Metrics](https://nielspeter.github.io/eess/metrics)** — cyclomatic complexity, lines of code, method count limits
+- **[CLI](https://nielspeter.github.io/eess/cli)** — `check`, `baseline`, `explain`, `--watch` mode
 
 ## Entry Points
 
@@ -363,7 +363,7 @@ smells
 
 ## Compared to Other Tools
 
-| Capability                                        | ts-archunit     | [dependency-cruiser](https://github.com/sverweij/dependency-cruiser) | [ArchUnitTS](https://github.com/LukasNiessen/ArchUnitTS) | [Biome](https://biomejs.dev) | [ts-arch](https://github.com/ts-arch/ts-arch) |
+| Capability                                        | eess-ts         | [dependency-cruiser](https://github.com/sverweij/dependency-cruiser) | [ArchUnitTS](https://github.com/LukasNiessen/ArchUnitTS) | [Biome](https://biomejs.dev) | [ts-arch](https://github.com/ts-arch/ts-arch) |
 | ------------------------------------------------- | --------------- | -------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------- | --------------------------------------------- |
 | Import path rules                                 | Yes             | Yes                                                                  | Yes                                                      | Yes (`noRestrictedImports`)  | Yes                                           |
 | **Body analysis** (calls, access, constructors)   | Yes             | No                                                                   | No                                                       | No                           | No                                            |
@@ -390,17 +390,17 @@ smells
 | License checking                                  | No              | Yes                                                                  | No                                                       | No                           | No                                            |
 | Nx monorepo support                               | No              | No                                                                   | Yes                                                      | No                           | No                                            |
 
-**Use ts-archunit** when you need to enforce what happens _inside_ functions — call patterns, error types, missing delegation, stub comments — and when AI agents are generating code that needs architectural guardrails. This is the only tool that catches "service calls parseInt instead of extractCount()", flags duplicate function bodies as smells, and can restrict checking to only the files changed in a PR.
+**Use eess-ts** when you need to enforce what happens _inside_ functions — call patterns, error types, missing delegation, stub comments — and when AI agents are generating code that needs architectural guardrails. This is the only tool that catches "service calls parseInt instead of extractCount()", flags duplicate function bodies as smells, and can restrict checking to only the files changed in a PR.
 
 **Use dependency-cruiser** when you only need import direction rules and want fast graph visualization, license compliance checking, or stability metrics. It's faster (no ts-morph project load) and has mature HTML/dot reporting.
 
 **Use ArchUnitTS** when you need OO metrics (LCOM cohesion, coupling factor, distance from main sequence), PlantUML diagram validation, or Nx monorepo project-graph awareness.
 
-**Use Biome** when you want a fast Rust-based lint + format toolchain and only need lint-level import restrictions (`noRestrictedImports`) — not architecture rules over class hierarchies, function bodies, or slice cycles. Pair it with ts-archunit if you want both.
+**Use Biome** when you want a fast Rust-based lint + format toolchain and only need lint-level import restrictions (`noRestrictedImports`) — not architecture rules over class hierarchies, function bodies, or slice cycles. Pair it with eess-ts if you want both.
 
 **Use ts-arch** when you want the classic ArchUnit-style fluent API scoped to file/folder dependency rules and layered slices, and don't need body analysis, type-checker rules, or CI integrations like baselines, diff-aware runs, or GitHub annotations.
 
-**Use ts-archunit + dependency-cruiser together** if you want both body-level enforcement and dependency graph visualization.
+**Use eess-ts + dependency-cruiser together** if you want both body-level enforcement and dependency graph visualization.
 
 ## Install
 
