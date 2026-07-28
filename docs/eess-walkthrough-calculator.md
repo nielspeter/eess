@@ -104,7 +104,7 @@ modules(p)
   .that()
   .resideInFolder('src/core/**')
   .should()
-  .notDependOn('src/operations/**')
+  .notImportFrom('src/operations/**')
   .rule({ id: 'adr-0001/core-doesnt-import-operations' })
   .check()
 

@@ -110,7 +110,7 @@ Resolver rules let you enforce patterns inside your GraphQL resolver functions -
 
 ```typescript
 import { resolvers } from '@nielspeter/eess-ts/graphql'
-import { call } from '@nielspeter/eess-ts'
+import { call, project } from '@nielspeter/eess-ts'
 
 const p = project('tsconfig.json')
 const r = resolvers(p, 'src/resolvers/**')

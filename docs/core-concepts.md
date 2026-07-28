@@ -134,6 +134,8 @@ classes(p).that().extend('BaseRepository').and().resideInFolder('**/repositories
 
 Use combinators for complex logic:
 
+<!-- eess-docs-code-skip: illustrative — truncated `.should(). /* ... */` pseudo-code, and references `classes`/`extend`/`p` from earlier fences -->
+
 ```typescript
 import { and, or, not } from '@nielspeter/eess-ts'
 

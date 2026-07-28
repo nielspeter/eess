@@ -2,6 +2,8 @@
 
 The `crossLayer()` entry point checks consistency between layers of your application. Use it to verify that every route has a matching schema, every schema has a matching SDK method, or any other pairwise relationship between file groups.
 
+> **Deprecated:** `crossLayer()` still works, but is superseded by the kernel `correspondence()` primitive (`@nielspeter/eess`), which binds two `Selection`s from any loaders (not just globs within one project). Prefer `correspondence()` for new rules; this page documents `crossLayer()` for existing users.
+
 ## What It Solves
 
 In a typical backend project, related concepts are spread across multiple layers:
@@ -13,6 +15,8 @@ In a typical backend project, related concepts are spread across multiple layers
 When someone adds a new route but forgets the schema, the API documentation silently falls out of sync. Cross-layer validation catches this drift automatically.
 
 ## Basic Usage
+
+<!-- eess-docs-code-skip: documents the deprecated-but-supported crossLayer() API on purpose (see the callout above) -->
 
 ```typescript
 import { project, crossLayer, haveMatchingCounterpart } from '@nielspeter/eess-ts'

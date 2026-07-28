@@ -12,3 +12,6 @@ docs/.vitepress/cache/
 # Keep personal/local state out of git:
 .claude/settings.local.json
 .claude/**/*.local.*
+
+# doc code-fence check scratch (plan 0082)
+.docs-code-check/
