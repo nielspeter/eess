@@ -19,7 +19,9 @@ import { corpus, links, pointers } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
 import { reportViolations } from '@nielspeter/eess'
 
-const ROOTS = ['work/plans/**', 'adr/**', 'docs/**']
+// `work/bugs/**` is not gated yet — blocked on bug 0086 (directory links) and
+// the `fixed/` frozen-folder omission it names.
+const ROOTS = ['work/plans/**', 'work/proposals/**', 'adr/**', 'docs/**']
 const t0 = Date.now()
 const elapsed = () => {
   const ms = Date.now() - t0
