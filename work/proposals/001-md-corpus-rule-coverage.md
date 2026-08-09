@@ -288,15 +288,35 @@ element rather than a new one:
    files) and it is one field on one interface — see the new open question
    below, because _matching_ a drifted spelling needs an API decision, not just
    a field.
-2. **Header-region scoping.** `terms()` scans the whole document; a `region:
-'header' | 'document'` option confines it to the header (before the first
-   `##`), which is what `headerRegion()` in `rules/ledger.ts:70` already computes.
+2. **Region scoping — and frontmatter is already being read.** `terms()` scans
+   the whole document **as text lines**, not as an AST walk, so it already picks
+   up YAML frontmatter today — silently, and indistinguishably from a body
+   field. Verified 2026-08-09 against a fixture carrying both: a `State:` in
+   frontmatter and a `**State:**` in the header yield **two** terms, and nothing
+   says which came from where. A `region: 'header' | 'frontmatter' | 'document'`
+   option makes the source explicit; `'header'` confines to the region before
+   the first `##`, which `headerRegion()` in `rules/ledger.ts:70` already
+   computes. This costs no new dependency and no new extractor — and it is what
+   turns the precedence question below from theoretical into enforceable, since
+   a rule cannot express "frontmatter wins" without naming the two sources.
 3. **Blockquote exclusion.** `stripFencedCode` blanks _fences only_. A
    blockquoted `> **State:** Done` is skipped today only because the `^` anchor
    fails on `>` — incidental, not designed, and an mdast-based extractor would
    silently lose it. Reuse the explicit `inBlockquote` walk in
    `model/task-items.ts:37-46`, which is tested against a fixture.
 4. **`beFresherThan(duration)`** — see below.
+
+> **Caveat on frontmatter, and a prerequisite.** Reading it is free; the _AST_ is
+> wrong about it. The corpus parses with GFM extensions only
+> (`packages/md/src/corpus.ts:95-98`) and no frontmatter extension, so the
+> closing `---` turns the last frontmatter line into a **setext heading**. The
+> fixture above is reported by `docs()` as having a depth-2 section named
+> `"State: Ready\ntitle: A doc"` — a phantom section at line 2. `haveSection`
+> and every `sectionPath` are distorted on any frontmatter-bearing document
+> today. Filed as
+> [bug 0087](../bugs/0087-frontmatter-parsed-as-setext-heading.md); the
+> `region: 'frontmatter'` option should land on top of a parser that models
+> frontmatter, not beside one that mis-parses it.
 
 **Presence is document-scoped and cannot live here.** `.should().bePresent()` on
 a term/field builder is vacuously green by construction: a document carrying only
@@ -473,11 +493,15 @@ should be memoised per document alongside the existing pointer extraction.
   Faster to ship, but presets bake in one corpus's vocabulary. The reference corpus
   is Danish, four-lane, and uses `Rod-årsag` and `Rettelse`; a preset built for
   it would not fit the next corpus. Builders first, presets on top.
-- **Frontmatter instead of header fields.** Would make the header extractor unnecessary —
-  YAML parses for free. Rejected as a requirement: the corpus deliberately uses
-  neutral-token-plus-local-prose (`**State:** Done — leveret i PR #47`), and a
-  dialect that only reads frontmatter cannot gate the corpora that exist today.
-  The term element should read frontmatter **as well**, as a second source.
+- **Frontmatter instead of header fields.** Would make the header extractor
+  unnecessary — YAML parses for free. Rejected as a **requirement**: the corpus
+  deliberately uses neutral-token-plus-local-prose (`**State:** Done — shipped
+in PR #47`), and a dialect that only reads frontmatter cannot gate the corpora
+  that exist today. Not rejected as a **source** — and it turns out not to be a
+  choice at all: the text-line extractor already reads frontmatter (see the
+  Design section). The live question is not whether to support it but how to
+  tell the two sources apart, which is why it is now a `region` value and a
+  ruling rather than a feature.
 
 ## Documentation
 
@@ -502,9 +526,11 @@ writing a rules file.
 
 Under `### Added`:
 
-- `terms()` gains the matched label on `MdTerm`, a `region: 'header' |
-'document'` option, a designed blockquote guard, and `matchValue` /
-  `beFresherThan`. (No new element type — see the Design correction.)
+- `terms()` gains the matched label on `MdTerm`, a
+  `region: 'header' | 'frontmatter' | 'document'` option, a designed blockquote
+  guard, and `matchValue` / `beFresherThan`. (No new element type — see the
+  Design correction. `region` does not _add_ frontmatter reading, which already
+  happens; it makes the source nameable, and therefore rulable.)
 - `haveField(name, value?)` — dual-use on `docs()`; the presence half, which
   cannot live on an element builder.
 - `fileRefs()` — inline-code repo-relative path references, scoped and resolvable.
@@ -556,6 +582,23 @@ violation must _say_. Colour alone is not the proof; attribution is.
       would send an author to add a second field rather than rename the first.
 - [ ] **Field value — off-enum.** `**State:** Implemented` goes **red**
       quoting the actual value and listing the permitted set.
+- [ ] **Frontmatter — the source is nameable.** A document whose `State` lives
+      **only** in YAML frontmatter is found under `region: 'frontmatter'` and
+      **not** under `region: 'header'`; a body field is the inverse. Proven by
+      fixture in both directions — this is the whole point of the option, and a
+      `region` that silently matches everything is indistinguishable from no
+      option at all.
+- [ ] **Frontmatter — precedence fires as ruled.** A document carrying `State`
+      in **both** frontmatter and header behaves per the Open Questions ruling:
+      under (c) it goes **red** naming both lines; under (a)/(b) the losing
+      source is not reported and the winning value is the one asserted against.
+      Untestable until that ruling exists — which is the point of ruling first.
+- [ ] **Frontmatter — no phantom section.** A frontmatter-bearing document
+      reports the sections it actually has. Today it does not: the closing `---`
+      yields a depth-2 heading containing the frontmatter block
+      ([bug 0087](../bugs/0087-frontmatter-parsed-as-setext-heading.md)). This
+      criterion fails until that bug is fixed, and is the reason it is a
+      prerequisite rather than a footnote.
 - [ ] **Field value — no false positive from examples.** A `**State:** Done`
       inside a fenced code block or a blockquote is **green**, proven by
       fixture. The blockquote half needs the explicit `inBlockquote` walk —
@@ -656,12 +699,15 @@ six packages, and preset-default retention is a semver policy.
       missing" — the outcome the criterion calls a failure. **This is the
       proposal's best-measured finding (49 files); it should not enter a plan
       undecided.**
-- [ ] **Frontmatter precedence.** The term element is proposed to read both
-      `**Name:** value` header fields and YAML frontmatter. Undefined: what wins
-      when a document carries both. Options are (a) frontmatter wins, (b) header
-      wins, (c) carrying both is itself a violation. (c) is the most eess-like
-      answer — two sources of truth for one field is the defect, not a merge
-      problem — but it forecloses gradual migration from one form to the other.
+- [ ] **Frontmatter precedence.** _Not contingent on a feature — this is live
+      today._ The extractor already reads both `**Name:** value` header fields
+      and YAML frontmatter, so a document carrying both already yields two terms
+      with no way to tell them apart. Undefined: what wins. Options are (a)
+      frontmatter wins, (b) header wins, (c) carrying both is itself a
+      violation. (c) is the most eess-like answer — two sources of truth for one
+      field is the defect, not a merge problem — but it forecloses gradual
+      migration from one form to the other. Whichever wins, the ruling is only
+      _expressible_ once `region` distinguishes the sources.
 - [ ] **Does `honestyAtClose` keep its defaults?** Drafted above as additive
       (defaults `State` + the five-token enum), which makes this a **minor**
       release. Requiring explicit options would make it **major** but would
