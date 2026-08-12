@@ -96,7 +96,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-12 · **Open:** 11 · **Fixed:** 2 · **Rejected:** 0
+**Updated:** 2026-08-12 · **Open:** 12 · **Fixed:** 2 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -122,3 +122,4 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0097](./0097-crossval-presets-bypass-caller-owns-reporting.md) | two crossvalidate presets return `void` — no `report`/`format` control, and ADR-008's `gated` row can't see the gap                     | Medium   | 🔴 Draft            | self-found · devops review of plan 0096                                | —         |
 | [0098](./0098-scenario-stats-report-set-size-as-scan-count.md)  | the scenario stats APIs report the feature set's size as `scenarios` — a non-vacuity guard built on it is vacuous                       | Medium   | 🔴 Draft            | self-found · verifying the plan-0096 review's filings                  | —         |
 | [0099](./0099-nul-bytes-make-md-gherkin-unsearchable.md)        | two raw NUL bytes make `md-gherkin.ts` binary — invisible to `grep`/`rg`, unreviewable in `git diff`                                    | Medium   | 🔴 Draft            | self-found · verifying the plan-0096 review's filings                  | —         |
+| [0103](./0103-adr-009-cited-but-does-not-exist.md)              | two shipped scripts cite `ADR-009` as settled doctrine; `adr/` stops at 008 — plan 0088 Phase 2 is what creates it                      | Low      | 🔴 Draft            | self-found · review of inbound proposal 002                            | —         |
