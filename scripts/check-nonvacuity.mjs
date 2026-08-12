@@ -36,6 +36,14 @@
  *                 tokens → check-review-harness.mjs.
  *   work/numbers  scripts/nonvacuity/bad-numbers/ claims one number in two lanes
  *                 → kit/scripts/next-number.mjs --check.
+ *   release       scripts/nonvacuity/bad-release.mjs drives the release gate's
+ *                 pure core with a changed-but-undeclared package and a
+ *                 changeset naming a package that does not exist →
+ *                 release/changed-package-needs-changeset +
+ *                 release/changeset-names-real-package. Synthetic inputs, no git:
+ *                 the diff half is the impure shell in check-release.mjs, and its
+ *                 failure mode is a hard error on an unresolvable base ref rather
+ *                 than a silent green.
  *
  * THE FIXTURE CONTRACT (bug 0109). A node fixture must print its own
  * `bad-<name>:` sentinel on EVERY exit path, and exit 1 only for the specific
@@ -349,6 +357,18 @@ const gates = [
   ['corpus/ledger/state', () => gateNode('bad-ledger.mjs', 'ledger/unknown-state')],
   ['corpus/links', () => gateNode('bad-links.mjs', 'nonvacuity/broken-links')],
   ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'nonvacuity/pointers-resolve')],
+  // Two rows, one per release rule. The fixture asserts rule AND element as an
+  // exact set: neutering the changed-package correspondence still emits its rule
+  // id (for the ghost declaration instead of the undeclared package), so a
+  // rule-name assertion passes a gate that no longer checks anything.
+  [
+    'release/needs-changeset',
+    () => gateNode('bad-release.mjs', 'release/changed-package-needs-changeset'),
+  ],
+  [
+    'release/names-real-package',
+    () => gateNode('bad-release.mjs', 'release/changeset-names-real-package'),
+  ],
   ['review-harness', () => gateNode('bad-review-harness.mjs', 'foreign-project token')],
   ['work/numbers', () => gateNode('bad-numbers.mjs', 'duplicate number across lanes')],
 ]
@@ -382,6 +402,7 @@ const GATE_FOR = {
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
   'check:ledger': ['corpus/ledger/box', 'corpus/ledger/placement', 'corpus/ledger/state'],
+  'check:release': ['release/needs-changeset', 'release/names-real-package'],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.

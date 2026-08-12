@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # check:release is a Diff-mode gate — it compares against the PR's base
+          # commit. The default depth of 1 leaves no `origin/main` to resolve, and
+          # the gate hard-errors rather than degrading to "nothing changed" (0106).
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -36,6 +41,9 @@ jobs:
       - run: npm run check:corpus
       # Dogfood: eess-ts binds README Packages table + CLAUDE ADR-index to the code.
       - run: npm run check:spec
+      # Release readiness: a package cannot change without declaring a bump. Needs
+      # the fetch-depth: 0 above — this is the one gate that reads a base ref.
+      - run: npm run check:release
       # Every gate above is proven non-vacuous: violating fixtures must make it exit 1.
       - run: npm run check:nonvacuity
       - run: npm run typecheck
