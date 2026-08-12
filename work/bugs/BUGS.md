@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-12 · **Open:** 21 · **Fixed:** 9 · **Rejected:** 0
+**Updated:** 2026-08-12 · **Open:** 23 · **Fixed:** 9 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -150,3 +150,5 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0117](./0117-conditional-modifier-tests-are-invisible.md)              | `it.skipIf(cond)('…')` / `it.runIf` are invisible to `adrCitationsResolve` — 0105's symptom, one shape narrower                          | Medium   | 🔴 Draft            | self-found · testing review of 0105's fix                                    | —         |
 | [0118](./fixed/0118-ledger-gate-skips-the-bug-lane.md)                  | `check:ledger` reads `work/plans/**` only — a bug can claim `Fixed` with open boxes, and 8 of 9 deferrals go through that lane           | Medium   | ✅ Fixed → `fixed/` | self-found · asked where deferrals go, during the 0105 review round          | #45       |
 | [0119](./fixed/0119-placement-check-never-ran.md)                       | the state↔folder placement check never examined a real document — it looked for `State:` one heading above where all 55 records write it | High     | ✅ Fixed → `fixed/` | self-found · fixing 0118, when the drift it predicted did not appear         | #45       |
+| [0120](./0120-no-state-and-cannot-find-it-are-the-same-answer.md)       | "no state" and "could not find its state" are the same answer — the region heuristic can go blind again one heading over                 | Medium   | 🔴 Draft            | self-found · enforcement + testing reviews of 0119's fix                     | —         |
+| [0121](./0121-ledger-reads-two-of-four-lanes.md)                        | `check:ledger` reads two of four `work/` lanes — proposals carry `State:` and nothing opens them                                         | Low      | 🔴 Draft            | self-found · enforcement review of 0119's fix                                | —         |

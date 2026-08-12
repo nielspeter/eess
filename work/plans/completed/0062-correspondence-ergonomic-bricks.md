@@ -1,6 +1,6 @@
 # 0062 — Two correspondence bricks: split keys + `files()`
 
-**Status:** IMPLEMENTED (2026-07-06)
+**State:** Done — implemented 2026-07-06
 **Priority:** Medium
 **Effort:** ~2 small phases + a dogfood refactor (1 session)
 
