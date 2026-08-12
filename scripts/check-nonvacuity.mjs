@@ -147,7 +147,7 @@ function gateSpec() {
   return { ok, detail: `exit ${r.code} (spec/nonvacuity-probe)` }
 }
 
-// --- Node-script gates (crossval / adr / links): exit 1 = expected violation ---
+// --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
 function gateNode(script, ruleNote) {
   const r = sh(process.execPath, [join('scripts', 'nonvacuity', script)])
   // The fixture scripts exit 1 only on the intended violation (2 = unexpected
@@ -166,6 +166,10 @@ const gates = [
   ['corpus/adr', () => gateNode('bad-adr.mjs', 'adr/valid-tiers')],
   ['corpus/links', () => gateNode('bad-links.mjs', 'links resolve check')],
   ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'live pointers resolve check')],
+  [
+    'review-harness',
+    () => gateNode('bad-review-harness.mjs', 'foreign-project drift in .claude review harness'),
+  ],
 ]
 
 let allOk = true
