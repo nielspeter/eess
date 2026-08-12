@@ -1,4 +1,4 @@
-# Bug 0118: the honesty-at-close gate reads plans only — the bug lane, where the deferrals actually go, is ungated
+# Bug 0118: an unreadable `State:` token silently disables the placement check — and `check:ledger` never opens the bug lane at all
 
 ## Status
 
@@ -37,7 +37,7 @@ lane. The gate covers the lane the traffic is not in.
 
 ## Root cause
 
-Two separate causes, and the second is why this is not a one-line fix.
+Three causes. The first is why this is not a one-line fix; the third is why it is not only about the bug lane.
 
 **1. The roots, and a narrowed default.** `check-ledger.mjs:21` also overrides
 the preset's done-folders:
@@ -91,6 +91,34 @@ Also worth noting from the same run: `honestyAtClose` over the **real**
 clean — so widening the roots costs nothing to land, and the vocabulary work is
 what buys the second row.
 
+**3. And the blind spot is already live in the lane that _is_ gated.** An
+unrecognised state token does not fail — it makes `stateLine` stay `0`, so
+`placementViolation` returns `null` and the state↔folder check is **silently
+skipped**. Counting the plan lane's actual tokens:
+
+| token         | count | in the preset's enum? |
+| ------------- | ----- | --------------------- |
+| `Draft`       | 12    | yes                   |
+| `Done`        | 9     | yes                   |
+| `Ready`       | 1     | yes                   |
+| `IMPLEMENTED` | 3     | **no**                |
+| `BUILDABLE`   | 1     | **no**                |
+
+Four plans — `0051`, `0058`, `0059`, `0060` — carry tokens the gate cannot read,
+and for those four the placement half has been off the whole time. No corruption
+is masked today (all four are genuinely complete and sit in `completed/`), but
+the gate cannot say so, and it never announced that it wasn't looking.
+
+That changes what this bug is. The headline is the missing lane; the mechanism is
+broader: **the state vocabulary is a closed set, and anything outside it turns off
+half the check without a word.** Whether the bug lane is scanned is a
+configuration question. Whether an unparseable state is silence or a violation is
+a correctness question, and it is live right now.
+
+BUGS.md line 52 also claims the bug states are "the same vocabulary as plans",
+which is not true — plans close on `Done`/`Won't-do`, bugs on `Fixed`/`Rejected`.
+Fixing the sentence is not the fix, but the sentence is why nobody noticed.
+
 ## Why it matters
 
 `check:ledger`'s summary line reads `honesty at close — 16 done-items across 29
@@ -103,10 +131,23 @@ running it over a bug-shaped lane inherits the same half-blindness with no notic
 
 ## Fix
 
-1. **Preset** — accept the vocabulary as options rather than hard-coding one
-   lane's enum: `terminalStates?: readonly string[]` and the neutral-enum
-   equivalent, defaulting to today's values so nothing moves for plans. `minor` on
+1. **Preset — an unrecognised state must not be silence.** This is the ordering
+   decision, and it comes first because it is the live defect. A `State:` line
+   whose token is outside the configured set should produce a violation
+   (`ledger/unknown-state`), not disable the placement check. Land that and the
+   four plans above light up immediately, which is the point.
+
+   Then accept the vocabulary as options rather than hard-coding one lane's enum:
+   `terminalStates?: readonly string[]` and the neutral-enum equivalent,
+   defaulting to today's values so nothing moves for plans. `minor` on
    `@nielspeter/eess-md`.
+
+   Sequence matters: parameterising first and reporting second would let the four
+   plans be quietly absorbed by a widened enum, which is the opposite of the fix.
+   Report first, decide `IMPLEMENTED`/`BUILDABLE` deliberately (they read as
+   `Done`, so most likely they are corrected in the plans rather than admitted to
+   the enum), then parameterise for the bug lane.
+
 2. **Script** — add `work/bugs/**` to `ROOTS`, restore `/fixed/` to
    `DONE_FOLDERS`, pass the bug vocabulary, and report the two lanes separately so
    the denominator stays readable (`N done-items across M plans + K bugs`).
@@ -121,8 +162,11 @@ apart so the cheaper half is not held hostage to the harder one.
 
 ## Verification
 
-- [ ] Red test written first: a bug record in `fixed/` with an unticked `- [ ]`
-      is reported. Passes today.
+- [ ] Red test written first: a document whose `State:` token is outside the
+      configured set is reported, rather than silently exempted from the
+      placement check. Fails today, and the four plans named above are the
+      standing proof — they must go red, then be corrected.
+- [ ] A bug record in `fixed/` with an unticked `- [ ]` is reported. Passes today.
 - [ ] A record with `State: Fixed` left in `work/bugs/` is reported as an
       orphaned close. Passes today, and fails for the right reason only after the
       vocabulary is configurable.
