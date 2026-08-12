@@ -113,7 +113,36 @@ vocabulary existed, using the plan lane's tokens.
 - [x] The six drifts are corrected in this PR rather than accommodated by
       widening the vocabulary.
 - [x] `check:ledger` is represented in `scripts/check-nonvacuity.mjs`, retiring
-      its `no-gate-yet` waiver.
+      its `no-gate-yet` waiver — by **three** rows, one per rule the preset can
+      raise, with a fixture that exits 0 unless all three fire.
+
+      The first draft of this claim was one-third true and review measured it:
+      the fixture asserted only `ledger/silent-open-box`, and both its documents
+      sat in `/completed/`, so they were classified done by *folder* and
+      `findState` was never called. Reverting 0119 exactly, reverting 0118
+      exactly, nulling `findState`, discarding the placement finding, or making
+      `state-folder-mismatch` unreachable **all** left the fixture exiting 1 and
+      the harness reporting the gate proven — 2 of 7 mutations caught. Retiring
+      0110's waiver on a gate that could not see the code path it guards was
+      0110's own finding, one level up. Now 7 of 7:
+
+      | mutation | before | after |
+      | --- | --- | --- |
+      | empty all violations | caught | caught |
+      | delete the `silent-open-box` branch | caught | caught |
+      | revert 0119 (the region) | **OK** | caught |
+      | `findState` always null | **OK** | caught |
+      | revert 0118 (`unknown-state`) | **OK** | caught |
+      | discard the placement finding | **OK** | caught |
+      | `state-folder-mismatch` unreachable | **OK** | caught |
+
+- [x] The denominator is computed by the preset (`ledgerStats`), not re-derived.
+      The first draft re-derived it in `check-ledger.mjs` with a copy of the very
+      expression this bug removed, and that copy disagreed with the preset on
+      **56 of 56** records — under a header reading "reports the denominator so a
+      green is provably non-vacuous". `withReadableState` is now printed on every
+      run (`29 scanned · 26 with a readable State · 16 done`), so the number that
+      was invisibly `0/55` cannot be invisible again.
 - [x] `npm run validate` green.
 
 Deferred: none.

@@ -307,3 +307,51 @@ export function honestyAtClose(
 
   return finishPreset(violations, options)
 }
+
+/** What a {@link honestyAtClose} run actually examined. */
+export interface LedgerStats {
+  /** Documents considered (board files excluded). */
+  readonly scanned: number
+  /** …of which carry a `State:` line the declared vocabulary can read. */
+  readonly withReadableState: number
+  /** …of which carry a `State:` line whose value is not in the vocabulary. */
+  readonly unreadableState: number
+  /** …of which are *done* — by folder or by terminal state — and so ledger-checked. */
+  readonly doneItems: number
+}
+
+/**
+ * The denominator, computed by the preset itself.
+ *
+ * `withReadableState` is the number nobody could see when bug 0119 happened: the
+ * placement check had never examined a document, and every summary line in the
+ * repo reported a healthy done-count derived purely from folder membership. A
+ * caller that prints this cannot be blind and green at the same time — if the
+ * region assumption drifts from the corpus again, this drops and says so.
+ *
+ * Callers must not re-derive it. `check-ledger.mjs` did, with a copy of the very
+ * expression 0119 removed, and its copy disagreed with the preset on 56 of 56
+ * records while heading a section captioned "so a green is provably non-vacuous".
+ */
+export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {}): LedgerStats {
+  const doneFolders = options.doneFolders ?? DEFAULT_DONE_FOLDERS
+  const boardFiles = new Set(options.boardFiles ?? DEFAULT_BOARD_FILES)
+  const states = options.states ?? DEFAULT_STATES
+  const terminalStates = options.terminalStates ?? DEFAULT_TERMINAL_STATES
+  const known = [...new Set([...states, ...terminalStates])]
+
+  let scanned = 0
+  let withReadableState = 0
+  let unreadableState = 0
+  let doneItems = 0
+  for (const doc of corpus.documents()) {
+    const base = doc.relPath.split('/').pop() ?? doc.relPath
+    if (boardFiles.has(base)) continue
+    scanned += 1
+    const found = findState(doc.text, known)
+    if (found?.state !== undefined) withReadableState += 1
+    else if (found !== null) unreadableState += 1
+    if (isDoneItem(doc, doneFolders, terminalStates)) doneItems += 1
+  }
+  return { scanned, withReadableState, unreadableState, doneItems }
+}

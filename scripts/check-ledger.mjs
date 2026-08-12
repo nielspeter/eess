@@ -14,7 +14,7 @@
  * Exits non-zero on any finding. Run: `npm run check:ledger`.
  */
 import { corpus } from '@nielspeter/eess-md'
-import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
+import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 import { reportViolations } from '@nielspeter/eess'
 
 // Two lanes, two vocabularies. A plan closes on `Done`/`Won't-do`; a bug closes
@@ -51,35 +51,25 @@ const elapsed = () => {
 // owns reporting (no double render, ADR-008 / plan 0070).
 const scans = LANES.map((lane) => {
   const c = corpus({ roots: lane.roots })
-  const boards = new Set(lane.boardFiles)
-  const items = c.documents().filter((d) => !boards.has(d.relPath.split('/').pop() ?? d.relPath))
-  // Denominator: the preset's own done-item test, per lane's vocabulary.
-  const stateOf = (d) => {
-    const header = d.text.split(/^##\s/m)[0] ?? ''
-    for (const ln of header.split('\n')) {
-      const m = /^\s*(?:[-*]\s+)?(?:\*\*)?State:?(?:\*\*)?\s*(\S+)/i.exec(ln)
-      if (m) return m[1]
-    }
-    return undefined
-  }
-  const doneItems = items.filter(
-    (d) =>
-      lane.doneFolders.some((seg) => `/${d.relPath}`.includes(seg)) ||
-      lane.terminalStates.includes(stateOf(d)),
-  )
-  const violations = honestyAtClose(c, {
+  const opts = {
     doneFolders: lane.doneFolders,
     boardFiles: lane.boardFiles,
     states: lane.states,
     terminalStates: lane.terminalStates,
-    report: 'return',
-  })
-  return { lane, c, items, doneItems, violations }
+  }
+  // The denominator comes from the preset, not from a copy of its logic here.
+  // The previous version re-derived it with the pre-0119 region expression, so it
+  // found a State line in 0 of 59 records while this section claimed to prove the
+  // green non-vacuous. A denominator that can disagree with the gate is not one.
+  const stats = ledgerStats(c, opts)
+  const violations = honestyAtClose(c, { ...opts, report: 'return' })
+  return { lane, stats, violations }
 })
 
 const violations = scans.flatMap((s) => s.violations)
-const items = scans.flatMap((s) => s.items)
-const doneItems = scans.flatMap((s) => s.doneItems)
+const scanned = scans.reduce((n, s) => n + s.stats.scanned, 0)
+const doneCount = scans.reduce((n, s) => n + s.stats.doneItems, 0)
+const readable = scans.reduce((n, s) => n + s.stats.withReadableState, 0)
 
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
@@ -96,7 +86,11 @@ const line = (label, detail) => console.error(`  ${label.padEnd(11)}${detail}`)
 console.error('')
 console.error('check:ledger · honesty at close')
 for (const sc of scans)
-  line(sc.lane.name, `${sc.items.length} scanned · ${sc.doneItems.length} done (ledger-checked)`)
+  line(
+    sc.lane.name,
+    `${sc.stats.scanned} scanned · ${sc.stats.withReadableState} with a readable State · ` +
+      `${sc.stats.doneItems} done (ledger-checked)`,
+  )
 
 if (violations.length > 0) {
   line('findings', `✗ ${violations.length}`)
@@ -112,17 +106,18 @@ if (violations.length > 0) {
 console.error('')
 if (violations.length === 0) {
   console.error(
-    `  ✓ honesty at close — ${doneItems.length} done-items across ${items.length} records ` +
-      `(${scans.map((sc) => `${sc.items.length} ${sc.lane.name}`).join(' + ')}), 0 findings (${elapsed()})`,
+    `  ✓ honesty at close — ${doneCount} done-items across ${scanned} records ` +
+      `(${scans.map((sc) => `${sc.stats.scanned} ${sc.lane.name}`).join(' + ')}), ` +
+      `${readable} with a readable State, 0 findings (${elapsed()})`,
   )
 } else {
   console.error(
-    `  ✗ honesty at close — ${violations.length} finding(s) across ${doneItems.length} done-items (${elapsed()})`,
+    `  ✗ honesty at close — ${violations.length} finding(s) across ${doneCount} done-items (${elapsed()})`,
   )
 }
 console.error('')
 
-if (doneItems.length === 0)
+if (doneCount === 0)
   console.error(
     '  ⚠ 0 done-items scanned — vacuous. Adopt the terminal State: token / completed/ folder.\n',
   )

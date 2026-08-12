@@ -185,4 +185,21 @@ had no findings to preserve because the check had never run there either. The
 plan lane gained four findings, all real, all corrected here. Preserving its
 results would have meant preserving the silence.
 
-Deferred: none.
+**Not disposed here, and named rather than left implicit** — review found more
+than this record's fix covers:
+
+- **Three plans carry `**Status:** IMPLEMENTED`** (`0061`, `0062`, `0066`) — the
+  same drift corrected in four siblings, invisible because the key is spelled
+  `Status:`. This record's own table counted them as "no `State:` line" without
+  noticing. They are why `withReadableState` reads 26 of 29 rather than 29 of 29,
+  which is now visible on every run. **→ a follow-up.**
+- **`work/proposals/**`is a third lane** with`State:` records that no lane
+  opens. This record's title says "reads plans only"; the fix reads two of four.
+  **→ a follow-up.**
+- **The region rule re-arms the same trap one heading over** — a document whose
+  first section is not `## Status` is silent again, with 0119's exact signature.
+  Splitting "no state line" from "could not find one" is the structural answer.
+  **→ a follow-up.**
+
+Deferred: none of the above is left unnamed; each needs its own record before
+this lane can claim the class is closed.

@@ -340,7 +340,13 @@ const gates = [
   ['crossval/gherkin-ts', () => gateNode('bad-gherkin-ts.mjs', 'crossval/scenario-tests-resolve')],
   ['crossval/md-ts', () => gateNode('bad-md-ts.mjs', 'crossval/adr-citations-resolve')],
   ['corpus/adr', () => gateNode('bad-adr.mjs', 'adr/valid-tiers')],
-  ['corpus/ledger', () => gateNode('bad-ledger.mjs', 'ledger/silent-open-box')],
+  // Three rows, one per rule the fixture must make fire. The fixture exits 0
+  // unless ALL three do, so any one of them going quiet reddens all three rows —
+  // and the gate list NAMES what is proven, instead of one row standing in for a
+  // preset with three findings (bug 0110's lesson, applied to its own waiver).
+  ['corpus/ledger/box', () => gateNode('bad-ledger.mjs', 'ledger/silent-open-box')],
+  ['corpus/ledger/placement', () => gateNode('bad-ledger.mjs', 'ledger/state-folder-mismatch')],
+  ['corpus/ledger/state', () => gateNode('bad-ledger.mjs', 'ledger/unknown-state')],
   ['corpus/links', () => gateNode('bad-links.mjs', 'nonvacuity/broken-links')],
   ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'nonvacuity/pointers-resolve')],
   ['review-harness', () => gateNode('bad-review-harness.mjs', 'foreign-project token')],
@@ -375,7 +381,7 @@ const GATE_FOR = {
   'check:corpus': ['corpus/adr', 'corpus/links', 'corpus/pointers'],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
-  'check:ledger': ['corpus/ledger'],
+  'check:ledger': ['corpus/ledger/box', 'corpus/ledger/placement', 'corpus/ledger/state'],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.

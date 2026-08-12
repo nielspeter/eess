@@ -22,7 +22,14 @@ import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
 
 const ROOT = 'scripts/nonvacuity/bad-ledger'
-const RULE = 'ledger/silent-open-box'
+// All THREE rules, not one. The first version of this fixture asserted only
+// `silent-open-box`, and both its documents sat in `/completed/` — so they were
+// classified done by FOLDER and `findState` was never called. Review measured the
+// consequence: reverting bug 0119 exactly, or bug 0118 exactly, or making
+// `findState` return null outright, all left this fixture exiting 1 and the
+// harness reporting the gate proven. A gate that cannot see the code path it
+// guards is the defect it exists to catch, one level up.
+const RULES = ['ledger/silent-open-box', 'ledger/state-folder-mismatch', 'ledger/unknown-state']
 
 let c
 try {
@@ -36,9 +43,9 @@ try {
 // "no violation" would be trivially true and this gate would sit green forever
 // on a drifted root (bug 0110's class).
 const docs = c.documents().length
-if (docs !== 2) {
+if (docs !== 4) {
   console.error(
-    `bad-ledger: the corpus loaded ${docs} document(s), expected 2 — this fixture proves ` +
+    `bad-ledger: the corpus loaded ${docs} document(s), expected 4 — this fixture proves ` +
       `nothing against an empty corpus; check ${ROOT}`,
   )
   process.exit(2)
@@ -63,16 +70,19 @@ if (fromReconciled.length > 0) {
   process.exit(2)
 }
 
-const silent = violations.filter((v) => v.rule === RULE)
-if (silent.length > 0) {
+const fired = new Set(violations.map((v) => v.rule))
+const missing = RULES.filter((r) => !fired.has(r))
+if (missing.length > 0) {
   console.error(
-    `bad-ledger: undisposed box detected as expected — ${RULE}, ` +
-      `${silent.length} of ${violations.length} violation(s) across ${docs} documents`,
+    `bad-ledger: ${missing.length} of ${RULES.length} rules did not fire — gate is vacuous for ` +
+      `${missing.join(', ')} (fired: ${[...fired].join(', ') || 'none'})`,
   )
-  for (const v of silent) console.error(`  x ${v.message.split('\n')[0]}`)
-  process.exit(1)
+  process.exit(0)
 }
 
-const seen = [...new Set(violations.map((v) => v.rule))].join(', ') || 'none'
-console.error(`bad-ledger: no ${RULE} violation detected — gate is vacuous (rules seen: ${seen})`)
-process.exit(0)
+console.error(
+  `bad-ledger: all ${RULES.length} rules fired as expected across ${docs} documents — ` +
+    RULES.join(', '),
+)
+for (const v of violations) console.error(`  x ${v.rule} · ${v.message.split('\n')[0]}`)
+process.exit(1)
