@@ -18,8 +18,10 @@
  * THE SHELL IS FIXTURED TOO. Review measured the first version: the pure core
  * caught 11 of 11 mutations and the shell caught 0 of 7 — including deleting the
  * `process.exit(1)` on the last line, the one statement that makes this a gate
- * rather than a report. `bad-release.mjs` now spawns this script against a
- * throwaway git repo and asserts it exits 1, so that line is covered.
+ * rather than a report. `bad-release-e2e.mjs` spawns this script against
+ * fourteen throwaway git repositories and asserts its exit code and what it
+ * named, so that line — and the diff, waiver and consumed-changeset paths around
+ * it — are covered.
  *
  * Run: `npm run check:release`. Exits non-zero on any finding, and on an
  * unresolvable base ref. `--format json|github` for machine-readable output.
@@ -205,16 +207,67 @@ const noDiff = baseIsHead && changedFiles.length === 0
 // it exists to enable — `npm run release` is `validate && changeset publish`, so
 // it could never reach the publish. The consumed files ARE the declarations for
 // that commit, so read them back out of the base ref.
-const consumed = lines(
-  git('diff', '--name-only', '--diff-filter=D', mergeBase, '--', '.changeset'),
-).filter((f) => isChangeset(f.replace('.changeset/', '')))
-for (const file of consumed) {
+// A changeset is "consumed" when `changeset version` applies and deletes it. The
+// deletion can show up three ways, and the gate has to find the content in all
+// three or it accuses its own package of being undeclared:
+//
+//   1. present at the merge base, gone now      — the ordinary release commit
+//   2. present in HEAD, deleted in the tree     — the documented preflight, where
+//      RELEASING.md runs `npm run validate` before committing the bump
+//   3. added AND consumed by commits on this branch — invisible to a diff against
+//      either endpoint, because it exists at neither
+//
+// Case 3 was found by a fixture written for case 1: the gate reported
+// `@nielspeter/eess` undeclared while its changeset sat one commit back.
+//
+// KNOWN, AND BOUNDED: a hand `rm` of a changeset is indistinguishable from
+// `changeset version` consuming it, so an abandoned changeset is credited too.
+// Requiring a committed deletion would red the documented preflight — bug 0106's
+// first blocker. It is local-only: once pushed, the changeset never existed
+// relative to `origin/main`, nothing is credited, and CI reds.
+const consumedPaths = new Set()
+const addDeleted = (...args) => {
   try {
-    const r = declarationsIn(git('show', `${mergeBase}:${file}`), file)
-    declarations.push(...r.declarations)
+    for (const f of lines(git(...args)))
+      if (isChangeset(f.replace('.changeset/', ''))) consumedPaths.add(f)
   } catch {
-    continue // unreadable at the base — nothing to credit, and never a waiver
+    /* no such range in a shallow or fresh repo — nothing to credit */
   }
+}
+addDeleted('diff', '--name-only', '--diff-filter=D', mergeBase, '--', '.changeset')
+addDeleted('diff', '--name-only', '--diff-filter=D', headSha, '--', '.changeset')
+addDeleted(
+  'log',
+  '--diff-filter=D',
+  '--name-only',
+  '--pretty=format:',
+  `${mergeBase}..${headSha}`,
+  '--',
+  '.changeset',
+)
+
+/** The file's content at the last ref that still had it. */
+function consumedContent(file) {
+  for (const ref of [headSha, mergeBase]) {
+    try {
+      return git('show', `${ref}:${file}`)
+    } catch {
+      /* not present at that ref — try the next */
+    }
+  }
+  try {
+    const lastTouch = git('rev-list', '-1', headSha, '--', file)
+    if (lastTouch) return git('show', `${lastTouch}^:${file}`)
+  } catch {
+    /* deleted in the root commit, or unreadable — nothing to credit */
+  }
+  return undefined
+}
+
+const consumed = [...consumedPaths]
+for (const file of consumed) {
+  const text = consumedContent(file)
+  if (text !== undefined) declarations.push(...declarationsIn(text, file).declarations)
 }
 
 // A waiver counts only when it is in THIS diff. Scanning `.changeset/` alone let

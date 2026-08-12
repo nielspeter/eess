@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — **narrowed on 2026-08-12.** The headline symptom is fixed:
+- **State:** Parked — **narrowed on 2026-08-12.** Parked rather than Draft: it is
+  waiting on a ruling, not on work, and the bug lane has a state for that. The headline symptom is fixed:
   [0122](./fixed/0122-violations-path-drops-because.md) stamps `suggestion`,
   `docs`, `because` and `ruleId` from the rule onto every violation in
   `applyFilters`, so a correspondence rule now renders its `Fix:` line
@@ -91,7 +92,11 @@ obviously right: a `suggest.left` written for the unmatched case reads as
 the row matched _too many_ things. The remedy there is "disambiguate", and the
 two are different enough that reusing the text would mis-advise. Either accept
 that and apply it anyway, or give the ambiguous case its own `suggest.ambiguous`.
-That is the call this record is now waiting on.
+That is the call this record is now waiting on, and
+[0124](./0124-correspondence-stamps-one-remedy-onto-opposite-branches.md) is the
+same call arriving from the other side: its preferred fix — `correspondence()`
+populating `v.suggestion` per branch — answers this record's question as a
+byproduct. Decide them together.
 
 **The ambiguous branch also mis-attributes, not just under-advises.** Its
 violation points at the _left_ element (the ADR row) and says "matches multiple

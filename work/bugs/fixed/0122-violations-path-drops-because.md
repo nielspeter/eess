@@ -2,11 +2,13 @@
 
 ## Status
 
-- **State:** Fixed — `applyFilters` now stamps `ruleId`, `because`, `suggestion`
-  and `docs` from the rule onto every violation that does not carry its own.
-  Proven by `packages/core/tests/correspondence.test.ts` ·
-  `it('carries because, suggestion, docs and ruleId onto violations from .violations()')`,
-  verified red before the fix.
+- **State:** Fixed — `applyFilters` stamps `ruleId`, `because`, `suggestion` and
+  `docs` from the rule onto every violation that does not carry its own, and the
+  terminal formatter now prints the message. Proven by
+  `packages/core/tests/execute-rule.test.ts` and
+  `packages/core/tests/correspondence.test.ts`. A six-persona review found two
+  properties the first version could not test and three false claims in these
+  artifacts; all are below rather than edited away.
 - **Severity:** Medium — not a false green. It is an honesty gap: CLAUDE.md
   promises agents that every violation carries its `because`, and for two-sided
   rules that promise was false.
@@ -106,11 +108,35 @@ if (result.length > 0) {
 
 One stamp for every builder rather than a correspondence-local patch: the four
 fields are properties of the **rule**, so this is their single source of truth,
-and a condition that set its own is left untouched. That is the same argument the
-existing `ruleId` stamp already carries in its comment.
+and a condition that set its own is left untouched.
 
-No output changes on the `.check()` path: `format.ts` renders `v.because ?? reason`,
-and the two are now the same string.
+**The affected population was smaller than first claimed, twice over.** The first
+correction below narrowed it from "every `.violations()` caller" to
+`TerminalBuilder` subclasses. Review narrowed it again: the pair, slice, schema
+and resolver builders all thread metadata through `ConditionContext` — measured,
+by dropping the stamp and observing only the correspondence tests redden. The
+builders that genuinely had no path are `correspondence()` and `TsconfigBuilder`.
+The record, the kernel comment and the changeset all named the pair builders
+falsely; all three are corrected.
+
+**The terminal formatter never printed `message`, which made this fix half a
+fix.** For a one-sided rule that is survivable — element, rule description and
+code frame carry the meaning. For a two-sided rule `message` is the only place
+the finding exists, so a correspondence violation rendered as a name and a
+rationale with no statement of which side drifted. Spiked across four dialects
+before changing it: `md`, `mermaid`, `gherkin` and `ts` one-sided rules gain a
+mildly redundant but useful line; correspondence goes from unintelligible to
+stated. Rendering the **whole** message also makes the per-side `suggest` remedy
+visible — it is appended as a continuation line, so truncating to the first line
+was what kept `md-ts`'s carefully written remedy invisible. No baseline impact:
+`hashViolation` reads `message`, which is unchanged; only the rendering is.
+
+On the `.check()` path the default terminal format is unchanged **for
+`because`** — `format.ts` renders `v.because ?? reason` and the two are now the
+same string — but `--format json` and `--format github` gain it there too, and
+every format gains the `Fix:`/`Docs:` lines that were previously impossible. An
+earlier version of this record said flatly "no output changes on the `.check()`
+path"; that was measured false and is corrected here.
 
 **This also closes the headline half of [0113](../0113-correspondence-drops-rule-suggestion.md)**
 — `.rule({ suggestion })` on a correspondence now renders its `Fix:` line. 0113
@@ -122,6 +148,31 @@ is unchanged because the kernel now supplies what it was stamping.
 `packages/md/src/rules/ledger.ts` is **not** affected — it is a preset returning
 hand-built violations, not a builder, so its per-violation `because` is the right
 thing and stays.
+
+## What review found that the first version could not test
+
+Two properties of the stamp were asserted by four documents and falsifiable by
+nothing. Both are now tested directly against `applyFilters`, which is exported:
+
+- **Precedence.** Inverting all four `v.X === undefined` guards — so the rule's
+  generic value clobbers what a condition computed for a specific violation —
+  passed 1934 tests and all 20 non-vacuity gates. `TsconfigBuilder` computes a
+  per-key remedy and `spec.rules.ts` a per-row one; both would have been silently
+  replaced.
+- **Reach.** Stamping only `result[0]` passed everything too. Every correspondence
+  in this repo emits one violation per fixture, so nothing could see it.
+
+A third test claimed to guard precedence and could not: it declared no rule-level
+`suggestion`, so nothing was stamped and its assertion was vacuous. It is renamed
+to what it actually pins — that `suggest` folds into the message and never becomes
+`v.suggestion` — which is the property that lets the two remedy routes coexist.
+
+**A limitation is now pinned rather than shipped silently.** A rule-level
+`suggestion` is stamped onto all three branches a correspondence can emit, so on
+a `direction: 'both'` rule one remedy is shown for opposite causes. 0113 refuses
+to ship that mis-advice through `suggest`; it should not arrive through
+`suggestion` unexamined. Recorded as [0124](../0124-correspondence-stamps-one-remedy-onto-opposite-branches.md),
+documented in the changeset, and pinned by a test that will fail when it is fixed.
 
 ## Verification
 

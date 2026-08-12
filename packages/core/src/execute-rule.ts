@@ -23,11 +23,16 @@ export interface ExecuteRuleContext {
 }
 
 /**
- * Apply exclusion patterns, inline exclusion comments, baseline,
- * and diff filtering to a set of violations, then execute the
- * terminal action (throw or warn).
+ * Stamp rule metadata onto violations and apply the rule's exclusions.
  *
- * Extracted to eliminate terminal-method duplication across builders.
+ * Extracted to eliminate terminal-method duplication across builders. Baseline
+ * and diff filtering are NOT done here — `executeCheck`/`executeWarn` apply
+ * those after calling this — and neither is the terminal action.
+ *
+ * **Mutates the violations it is given** and returns a filtered array of the
+ * same objects. Every in-repo producer builds fresh violations per call, so this
+ * is safe today; a caller that hands one array to two rules would see the first
+ * rule's metadata stick. Stated because this is exported API.
  */
 export function applyFilters(
   violations: ArchViolation[],
@@ -72,10 +77,18 @@ export function applyFilters(
   //
   // `id`, `because`, `suggestion` and `docs` are properties of the RULE, so this
   // is their single source of truth; a condition that already set one is left
-  // untouched. `RuleBuilder` also threads them through `ConditionContext`, which
-  // is why most one-sided rules already carry them — but `TerminalBuilder`
-  // subclasses (`correspondence()`, the pair builders) construct violations
-  // directly and have no such path. Before this, they silently lost all four:
+  // untouched. That guard is load-bearing, not decorative: `TsconfigBuilder`
+  // computes a per-key `suggestion` ("required X, actual Y") that must survive a
+  // rule-level generic one, and `spec.rules.ts` builds a per-row remedy the same
+  // way. It is tested directly in `packages/core/tests/execute-rule.test.ts`,
+  // because inverting it passed the whole suite and every gate.
+  //
+  // Most builders already carried these: `RuleBuilder`, the pair/slice/schema/
+  // resolver builders and the ts dialect's `createViolation` all thread them
+  // through `ConditionContext`. (An earlier version of this comment named the
+  // pair builders as affected — measured false: dropping the stamp reddens only
+  // the correspondence tests.) The ones that construct violations directly and
+  // had no such path are `correspondence()` and `TsconfigBuilder`, which lost:
   //
   //   - `.because()` reached the terminal renderer only via the report-level
   //     `reason` that `.check()` passes separately, so the `.violations()` path

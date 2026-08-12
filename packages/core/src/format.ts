@@ -33,7 +33,17 @@ function formatSingleViolation(
   const fixLine = v.suggestion ? `  ${dim('Fix:')} ${v.suggestion}` : ''
   const docsLine = v.docs ? `  ${dim('Docs:')} ${v.docs}` : ''
 
-  const parts = [counter, '', ruleLine, '', location]
+  // The message is the finding itself. It was omitted here for years, which is
+  // survivable for a one-sided rule — `element` plus the rule description plus a
+  // code frame usually carry the meaning — and not survivable for a two-sided
+  // one, where `message` is the ONLY place the correspondence states which side
+  // drifted. Measured before adding: `check:spec` rendered a ghost ADR row as
+  // `Rule: correspondence / CLAUDE.md:24 — 099 / Why: …` and never said what was
+  // wrong. Rendered in full, not just the first line: `correspondence()` folds
+  // its per-side `suggest` remedy onto a continuation line, so truncating here
+  // is what made that remedy invisible.
+  const messageLine = `  ${dim('What:')} ${v.message.split('\n').join('\n  ')}`
+  const parts = [counter, '', ruleLine, '', location, messageLine]
   if (codeLine) parts.push(codeLine)
   if (whyLine) parts.push(whyLine)
   if (fixLine) parts.push(fixLine)
