@@ -19,6 +19,7 @@ neutral tokens (`State:`, the disposition tokens); they ignore the prose.
 | `templates/work/`             | cold-start corpus skeleton | lane README + `ROADMAP.md` / `BUGS.md` boards                        |
 | `templates/plan.md`, `bug.md` | seed item templates        | **delete once real items exist** — the corpus is the template        |
 | `AGENTS.snippet.md`           | agent-entry nudge          | paste into your `AGENTS.md` / `CLAUDE.md`                            |
+| `scripts/next-number.mjs`     | number allocator + gate    | one definition of the numbering rule; `--check` gates collisions     |
 | `bootstrap.mjs`               | one-command installer      | zero-dep, dry-run by default, never clobbers                         |
 
 **The skills, by lane:**
@@ -39,18 +40,21 @@ node path/to/kit/bootstrap.mjs            # preview the plan
 node path/to/kit/bootstrap.mjs --apply    # perform it
 ```
 
-It installs the skills into `.claude/skills/`, seeds `work/` (boards + templates),
-copies the method doc into `docs/`, and appends the agent-entry nudge — skipping
-anything already present, so re-running is safe.
+It installs the skills into `.claude/skills/`, the number allocator into
+`scripts/next-number.mjs`, seeds `work/` (boards + templates), copies the method doc
+into `docs/`, and appends the agent-entry nudge — skipping anything already present,
+so re-running is safe.
 
 **Or by hand** — copy `skills/*` into `.claude/skills/` (or `~/.claude/skills/` for
-all projects), `templates/work/` into `work/`, and paste `AGENTS.snippet.md` into
-your agent-entry doc.
+all projects), `scripts/next-number.mjs` into `scripts/`, `templates/work/` into
+`work/`, and paste `AGENTS.snippet.md` into your agent-entry doc.
 
 ## Wire the gates
 
-The kit's skills call two gates; wire them into `package.json` + CI so drift fails
-the build. Both come from the [eess](https://github.com/nielspeter/eess) family
+The kit's skills call these by **script name**, not by path — wire them into
+`package.json` + CI so drift fails the build.
+
+Two come from the [eess](https://github.com/nielspeter/eess) family
 (`@nielspeter/eess-md`):
 
 - `check:corpus` — cross-links resolve, `path:line` pointers ground, ADR enforcement
@@ -59,5 +63,23 @@ the build. Both come from the [eess](https://github.com/nielspeter/eess) family
   (`honestyAtClose`). Necessary-not-sufficient: the reviewer enforces whether a
   disposition is _truthful_; the gate catches the _silent_ case.
 
-The `close` skill and the seed corpus assume these two script names; alias them if
-your project names things differently.
+Two are the number allocator `bootstrap.mjs` installs at `scripts/next-number.mjs`:
+
+```
+"next-number":   "node scripts/next-number.mjs",
+"check:numbers": "node scripts/next-number.mjs --check"
+```
+
+- `next-number` — what `/plan`, `/bug` and `/case` call to allocate. A corpus runs
+  **one sequence per number width, shared across every lane**, so `work/plans/0100-…`
+  and `work/bugs/0100-…` are the same number claimed twice. An allocator that scans
+  only its own lane hands out a number another lane already holds — the failure is
+  intermittent (it only bites once the other lane pulls ahead), so it survives until
+  two people or two agents work the corpus at once.
+- `check:numbers` — the gate for the same invariant: exits non-zero when any number
+  is claimed twice at the same width. Run it in CI; a collision is cheap to fix at
+  the commit and expensive to unpick later, because every board row, `path:line`
+  pointer and `[NNN](…)` link then resolves ambiguously.
+
+The `close` skill and the seed corpus assume these script names; alias them if your
+project names things differently.

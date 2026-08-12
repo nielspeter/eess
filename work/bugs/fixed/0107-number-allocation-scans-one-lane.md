@@ -2,13 +2,13 @@
 
 ## Status
 
-- **State:** Draft — confirmed against the skill sources and demonstrated by two
-  real collisions on 2026-08-12. No red test written yet.
+- **State:** Fixed — allocator + collision gate shipped in the kit, all six skill
+  files corrected, red test in the non-vacuity harness.
 - **Severity:** Medium — an honesty gap between a stated claim and its
   mechanism. The instruction says "take the next free number" and "guard against
   a collision"; the procedure it gives cannot do either.
 - **Origin:** self-found · two number collisions in one working session
-- **Reported:** 2026-08-12
+- **Reported:** 2026-08-12 · **Fixed:** 2026-08-12 (PR #39)
 
 ## Symptom
 
@@ -44,7 +44,8 @@ boards" — and it is visible in the numbering itself: plans hold 0051, 0058–0
 0066–0073, 0075–0082, 0088–0091, 0096, 0100–0101, while bugs hold 0074,
 0083–0087, 0092–0095, 0097–0099, 0103–0106. One sequence, two lanes.
 
-Every allocation instruction scans **one** lane:
+Every allocation instruction scans **one** lane (line numbers as of the report
+date — the fix rewrote these passages, so they no longer read this way):
 
 ```
 kit/skills/bug/SKILL.md:25   Scan `work/bugs/` **and** `BUGS.md` for the
@@ -113,23 +114,62 @@ item. That catches the collision at the commit, not at the next reviewer.
 
 No changeset — `kit/` and `.claude/` are not published packages.
 
+## What shipped, and one deviation from the fix above
+
+Parts 1 and 2 landed as written. **Part 3 did not go into
+`scripts/check-workspace-integrity.mjs`**, and the reason is this bug's own
+argument: that script is eess-only npm-workspace logic (phantom deps, symlink
+checking) and is **not** part of `kit/`. Putting the collision gate there would
+have fixed eess and left every adopter of the kit unguarded — reproducing the
+exact complaint this record makes. The gate ships **with the kit instead**, as
+`--check` on the same helper that allocates, so one file defines the rule, proves
+it, and enforces it.
+
+Wired as two script names, matching how the kit already refers to `check:corpus`
+and `check:ledger` — the skills call names, never paths, so an adopter whose copy
+lives at `scripts/next-number.mjs` and this repo's copy at
+`kit/scripts/next-number.mjs` both work:
+
+```
+"next-number":   "node kit/scripts/next-number.mjs",
+"check:numbers": "node kit/scripts/next-number.mjs --check"
+```
+
+`check:numbers` runs in `validate` before `check:nonvacuity`.
+
+One refinement the record did not anticipate: a corpus legitimately runs **more
+than one sequence**, distinguished by digit width — plans and bugs share 4-digit
+numbers while `work/proposals/` runs its own 3-digit one. The helper groups by
+width, so only same-width numbers can collide and `--width 3` allocates for
+proposals.
+
 ## Verification
 
-- [ ] Red test written first: a fixture corpus with `plans/0100-a.md` and
-      `bugs/0100-b.md` fails the new duplicate-number check; removing one turns
-      it green.
-- [ ] The allocator helper returns `max+1` across all lanes and their terminal
-      folders. Regression fixture reproducing the 2026-08-12 state (bugs highest
-      `0099`, plans highest `0101`): the helper returns **0102**, where the
-      per-lane bug scan returned `0100` and collided.
-- [ ] All six SKILL.md files state the shared-sequence rule and scan the union.
-- [ ] `npm run validate` green.
+- [x] Red test written first: a fixture corpus with `work/plans/0100-a-plan.md`
+      and `work/bugs/0100-a-bug.md` (`scripts/nonvacuity/bad-numbers/`) fails the
+      check. Written and run **before** the checker existed — and it caught a
+      defect in itself on that first run: node exits `1` on `MODULE_NOT_FOUND`,
+      which the fixture initially misread as "duplicate detected". It now
+      requires the checker's `next-number:` sentinel in the output, so a crash
+      can never read as a detected violation.
+- [x] The allocator returns `max+1` across all lanes and their terminal folders.
+      Regression fixture reproducing the 2026-08-12 state (bugs highest `0099`,
+      plans highest `0101`) returns **0102** — where the per-lane bug scan
+      returned `0100` and collided.
+- [x] All six SKILL.md files state the shared-sequence rule and call the
+      allocator; none still says "scan `work/<lane>/`".
+- [x] `bootstrap.mjs` installs the helper, verified by running it into an empty
+      directory: the installed copy allocates `0001` on a fresh corpus.
+- [x] `npm run check:nonvacuity` — 12 gates, including the new `work/numbers`,
+      all fail on violating input.
+- [x] `npm run validate` green.
 
 Deferred:
 
 - **Whether `work/support/` and any future lane join the same sequence** —
-  `kit/skills/case/SKILL.md:23` gives no scope at all, so it is being corrected
-  to the union here on the assumption that one corpus means one sequence. If a
-  project wants per-lane sequences, that is a kit-configuration question and
-  belongs with the kit's tailoring notes (`docs/working-method.md:276`), not
-  with this fix.
+  done-otherwise. `/case` was corrected to the union along with the other five,
+  and lanes are **discovered** rather than hardcoded, so a lane added later joins
+  the sequence with no edit to the helper. A project wanting genuinely separate
+  sequences uses distinct digit widths, which the helper already keys on; that is
+  the configuration point, and the kit's tailoring notes
+  (`docs/working-method.md:276`) already cover "the numbering and id style".

@@ -170,6 +170,7 @@ const gates = [
     'review-harness',
     () => gateNode('bad-review-harness.mjs', 'foreign-project drift in .claude review harness'),
   ],
+  ['work/numbers', () => gateNode('bad-numbers.mjs', 'one number claimed by two lanes')],
 ]
 
 let allOk = true

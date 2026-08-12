@@ -20,9 +20,16 @@ Read the _shape_ from the corpus: skim recent cases in
    the code, no customer involved → `/bug` directly. A feature request → `/refine`
    or `/plan`.
 
-2. **Take the next free number** and write it in the house shape at
-   `work/support/NNN-slug.md`. Header: `**State:** Open — <free prose>`. Put it on
-   the support board.
+2. **Take the next free number** — from **every lane, not just this one**:
+
+   ```bash
+   npm run next-number        # prints the next free number
+   ```
+
+   The corpus runs **one sequence per number width, shared across all lanes**, so
+   a support case takes its number from the same pool as plans and bugs. Write it
+   in the house shape at `work/support/NNN-slug.md`. Header:
+   `**State:** Open — <free prose>`. Put it on the support board.
 
 3. **Keep the raw evidence by pointer.** Email, screenshots, chat logs — logged as
    **dated pointers to the live source** (or stored as raw attachments), never
