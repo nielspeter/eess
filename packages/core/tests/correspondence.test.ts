@@ -16,6 +16,62 @@ const sel = <T>(
 })
 
 describe('correspondence()', () => {
+  // Bugs 0122 and 0113: `TerminalBuilder` subclasses build violations directly,
+  // with no `ConditionContext` to carry the rule's own metadata. Before the
+  // stamp in `applyFilters`, `.violations()` returned them bare — so the
+  // caller-owns-emission path (ADR-008) lost the rationale in every format, and
+  // `.rule({ suggestion })` on a two-sided rule could never render a `Fix:` line.
+  it('carries because, suggestion, docs and ruleId onto violations from .violations()', () => {
+    const left = sel([{ name: 'A' }, { name: 'GHOST' }], 'index row', idName)
+    const right = sel([{ name: 'A' }], 'file', idName)
+    const v = correspondence({ left, right, keyBy: (e: Named) => e.name })
+      .should()
+      .beComplete({ direction: 'left-to-right' })
+      .because('an index row that names no file is a spec pointing at nothing')
+      .rule({ id: 'spec/index-matches-files', suggestion: 'remove the row', docs: 'adr/001.md' })
+      .violations()
+
+    expect(v).toHaveLength(1)
+    expect(v[0]?.ruleId).toBe('spec/index-matches-files')
+    expect(v[0]?.because).toBe('an index row that names no file is a spec pointing at nothing')
+    expect(v[0]?.suggestion).toBe('remove the row')
+    expect(v[0]?.docs).toBe('adr/001.md')
+  })
+
+  it('stamps because without .rule() — .because() alone is enough', () => {
+    const left = sel([{ name: 'GHOST' }], 'index row', idName)
+    const right = sel<Named>([], 'file', idName)
+    const v = correspondence({ left, right, keyBy: (e: Named) => e.name })
+      .should()
+      .beComplete({ direction: 'left-to-right' })
+      .because('the rationale')
+      .violations()
+
+    expect(v[0]?.because).toBe('the rationale')
+    expect(v[0]?.ruleId).toBeUndefined()
+  })
+
+  it('does not overwrite metadata a violation already carries', () => {
+    const left = sel([{ name: 'GHOST' }], 'index row', idName)
+    const right = sel<Named>([], 'file', idName)
+    const v = correspondence({
+      left,
+      right,
+      keyBy: (e: Named) => e.name,
+      suggest: { left: (info) => `drop the row for ${info.name}` },
+    })
+      .should()
+      .beComplete({ direction: 'left-to-right' })
+      .because('why')
+      .rule({ id: 'r' })
+      .violations()
+
+    // `suggest` folds its text into the message; the rule sets no `suggestion`,
+    // so nothing is stamped and the two routes do not collide.
+    expect(v[0]?.message).toContain('drop the row for GHOST')
+    expect(v[0]?.suggestion).toBeUndefined()
+  })
+
   it('beComplete passes when both sets match by key', () => {
     const left = sel([{ name: 'A' }, { name: 'B' }], 'diagram class', idName)
     const right = sel([{ name: 'A' }, { name: 'B' }], 'TS class', idName)

@@ -68,16 +68,38 @@ export function applyFilters(
     })
   }
 
-  // Scan source files for inline exclusion comments (when rule has an ID)
-  if (ctx.metadata?.id && result.length > 0) {
-    // Tag violations with the rule id so inline exclusion comments (which match
-    // on ruleId) work for every condition — not just the few that stamp it
-    // themselves. The id is a property of the rule, so this is its single
-    // source of truth; conditions that already set it are left untouched.
-    const ruleId = ctx.metadata.id
+  // Stamp rule-level metadata onto every violation that doesn't carry its own.
+  //
+  // `id`, `because`, `suggestion` and `docs` are properties of the RULE, so this
+  // is their single source of truth; a condition that already set one is left
+  // untouched. `RuleBuilder` also threads them through `ConditionContext`, which
+  // is why most one-sided rules already carry them — but `TerminalBuilder`
+  // subclasses (`correspondence()`, the pair builders) construct violations
+  // directly and have no such path. Before this, they silently lost all four:
+  //
+  //   - `.because()` reached the terminal renderer only via the report-level
+  //     `reason` that `.check()` passes separately, so the `.violations()` path
+  //     — ADR-008's caller-owns-emission route — dropped it entirely, in every
+  //     format (bug 0122). Two gates had already hand-written the same
+  //     workaround, which is the signal it belongs here.
+  //   - `.rule({ suggestion })` type-checked, ran, and could never render a
+  //     `Fix:` line for a two-sided rule (bug 0113).
+  //
+  // Done before the exclusion-comment scan below, and outside its `metadata.id`
+  // guard: `.because()` is usable without `.rule({ id })`.
+  if (result.length > 0) {
     for (const v of result) {
-      if (v.ruleId === undefined) v.ruleId = ruleId
+      if (v.ruleId === undefined && ctx.metadata?.id !== undefined) v.ruleId = ctx.metadata.id
+      if (v.because === undefined && ctx.reason !== undefined) v.because = ctx.reason
+      if (v.suggestion === undefined && ctx.metadata?.suggestion !== undefined)
+        v.suggestion = ctx.metadata.suggestion
+      if (v.docs === undefined && ctx.metadata?.docs !== undefined) v.docs = ctx.metadata.docs
     }
+  }
+
+  // Scan source files for inline exclusion comments (when rule has an ID).
+  // Matching is on ruleId, which the block above has just guaranteed is present.
+  if (ctx.metadata?.id && result.length > 0) {
     const filePaths = new Set(result.map((v) => v.file))
     const allComments = [...filePaths].flatMap((filePath) => {
       try {

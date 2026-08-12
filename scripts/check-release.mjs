@@ -103,11 +103,7 @@ try {
   ])
 }
 const headSha = git('rev-parse', 'HEAD')
-// merge-base === HEAD means there is nothing between the base and here: every
-// `push` to main is this shape. The diff half genuinely did not run, and saying
-// "nothing to declare" would be the same sentence a real empty diff prints
-// (bug 0120's lesson — "found nothing" and "could not look" must not collide).
-const noDiff = mergeBase === headSha
+const baseIsHead = mergeBase === headSha
 
 // --- the workspace: base ∪ head --------------------------------------------
 
@@ -186,12 +182,22 @@ const {
 // reports only the destination, so a module leaving a published package's
 // surface is invisible to the ownership test. The source path is the half that
 // matters here.
-const changedFiles = noDiff
-  ? []
-  : [
-      ...lines(git('diff', '--name-only', '--no-renames', mergeBase)),
-      ...lines(git('ls-files', '--others', '--exclude-standard')),
-    ]
+// Always computed, even when merge-base is HEAD. `git diff <mergeBase>` compares
+// against the WORKING TREE, so it still sees uncommitted work — which is the
+// shape of every local run on a fresh branch, and precisely when the reminder is
+// wanted. An earlier version short-circuited on `merge-base === HEAD` and
+// reported `0 changed` while `packages/core/src` sat modified in the tree: a
+// false negative in the gate, found by running it on its own branch.
+const changedFiles = [
+  ...lines(git('diff', '--name-only', '--no-renames', mergeBase)),
+  ...lines(git('ls-files', '--others', '--exclude-standard')),
+]
+
+// Only now is "the changed-package rule had nothing to read" true: the base is
+// HEAD *and* the tree is clean. Saying "nothing to declare" in that case would
+// be the same sentence a real empty diff prints — bug 0120's lesson, that
+// "found nothing" and "could not look" must not collide.
+const noDiff = baseIsHead && changedFiles.length === 0
 
 // A release commit consumes its changesets: `changeset version` DELETES them and
 // rewrites packages/*/package.json + CHANGELOG.md. Reading only `.changeset/`
@@ -199,11 +205,9 @@ const changedFiles = noDiff
 // it exists to enable — `npm run release` is `validate && changeset publish`, so
 // it could never reach the publish. The consumed files ARE the declarations for
 // that commit, so read them back out of the base ref.
-const consumed = noDiff
-  ? []
-  : lines(git('diff', '--name-only', '--diff-filter=D', mergeBase, '--', '.changeset')).filter(
-      (f) => isChangeset(f.replace('.changeset/', '')),
-    )
+const consumed = lines(
+  git('diff', '--name-only', '--diff-filter=D', mergeBase, '--', '.changeset'),
+).filter((f) => isChangeset(f.replace('.changeset/', '')))
 for (const file of consumed) {
   try {
     const r = declarationsIn(git('show', `${mergeBase}:${file}`), file)
@@ -243,7 +247,7 @@ console.error('')
 console.error('check:release · every changed package declares a release')
 line('base', `${baseRef} (merge-base ${mergeBase.slice(0, 8)})`)
 if (noDiff) {
-  line('changed', 'base is HEAD — the changed-package rule did not run')
+  line('changed', 'base is HEAD and the tree is clean — nothing to read')
 } else {
   line(
     'changed',

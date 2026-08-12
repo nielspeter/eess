@@ -335,6 +335,18 @@ persists.
    The gate now honours a waiver only when the file is in this diff, and prints
    the packages it left unchecked instead of "every changed package is declared".
 
+5. **Found after merge, in the shipped gate: an uncommitted change was invisible
+   when the base was `HEAD`.** The diff side short-circuited on
+   `merge-base === HEAD` and reported `0 changed packages`. But
+   `git diff <mergeBase>` compares against the **working tree**, so it still sees
+   uncommitted work — and `merge-base === HEAD` is the shape of every local run
+   on a fresh branch before the first commit, which is precisely when the
+   reminder is wanted. It surfaced on this gate's own follow-up branch: the gate
+   printed `0 changed of 6` while `packages/core/src/execute-rule.ts` sat
+   modified in the tree. `changedFiles` is now always computed, and "nothing to
+   read" is claimed only when the base is HEAD **and** the tree is clean. Two
+   end-to-end scenarios cover both halves. Fixed in #47.
+
 Two further defects the round found, both fixed and neither previously claimed:
 `changeset version` consumes the changesets it applies, so a release commit
 showed bumped packages with zero declarations — **the gate blocked the release it
