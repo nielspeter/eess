@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** IMPLEMENTED 2026-07-03 on branch `eess-consolidation` (`packages/md`, `@nielspeter/eess-md`, 24 tests). All 5 phases built: corpus() loader (mdast+GFM), docs()/links()/pointers() entry points, haveSection/haveTable/haveTableRowsSatisfying conditions, opt-in adrEnforcement() preset (subpath `/rules/adr`), README + plain-MADR + non-English-localization acceptance tests. Review revisions applied (adrEnforcement opinionated + generic-fitness acceptance test; neutral examples + minimal frozen default; haveSection dual-use). Not merged/published.
+- **State:** Done — implemented 2026-07-03 on branch `eess-consolidation` (`packages/md`, `@nielspeter/eess-md`, 24 tests). All 5 phases built: corpus() loader (mdast+GFM), docs()/links()/pointers() entry points, haveSection/haveTable/haveTableRowsSatisfying conditions, opt-in adrEnforcement() preset (subpath `/rules/adr`), README + plain-MADR + non-English-localization acceptance tests. Review revisions applied (adrEnforcement opinionated + generic-fitness acceptance test; neutral examples + minimal frozen default; haveSection dual-use). Not merged/published.
 - **Priority:** P1 once 0051 lands — **promoted ahead of 0059** (see "Why this jumps the queue")
 - **Effort:** ~1 week
 - **Created:** 2026-07-03

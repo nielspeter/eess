@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Done — fixed 2026-07-24 (PR #29). What first looked like a decision
+- **State:** Fixed — fixed 2026-07-24 (PR #29). What first looked like a decision
   turned out trivial: the failing call is a **single** site, and Node 26 accepts
   `'thismessage:///'` while producing the identical `.hash`. A one-character,
   behavior-preserving patch to `jsonschema` (via `patch-package`) makes Node 26 build

@@ -14,12 +14,32 @@
  * Exits non-zero on any finding. Run: `npm run check:ledger`.
  */
 import { corpus } from '@nielspeter/eess-md'
-import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
+import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 import { reportViolations } from '@nielspeter/eess'
 
-const ROOTS = ['work/plans/**']
-const DONE_FOLDERS = ['/completed/', '/wont-do/', '/archived/']
-const BOARD_FILES = ['ROADMAP.md', 'README.md']
+// Two lanes, two vocabularies. A plan closes on `Done`/`Won't-do`; a bug closes
+// on `Fixed`/`Rejected` (work/bugs/BUGS.md). They are scanned separately because
+// a union would let a plan marked `Fixed` pass as a known state — the precision
+// this gate exists for. Before bug 0118 only the plan lane was read at all, and
+// an unrecognised token silently disabled half the check rather than reporting.
+const LANES = [
+  {
+    name: 'plans',
+    roots: ['work/plans/**'],
+    doneFolders: ['/completed/', '/wont-do/', '/archived/'],
+    boardFiles: ['ROADMAP.md', 'README.md'],
+    states: ['Draft', 'Ready', 'Open', 'Done', "Won't-do"],
+    terminalStates: ['Done', "Won't-do"],
+  },
+  {
+    name: 'bugs',
+    roots: ['work/bugs/**'],
+    doneFolders: ['/fixed/', '/rejected/'],
+    boardFiles: ['BUGS.md', 'README.md'],
+    states: ['Draft', 'Ready', 'Fixed', 'Rejected', 'Parked'],
+    terminalStates: ['Fixed', 'Rejected'],
+  },
+]
 
 const t0 = Date.now()
 const elapsed = () => {
@@ -27,27 +47,30 @@ const elapsed = () => {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
 }
 
-const c = corpus({ roots: ROOTS })
-
-// Denominator: replicate the preset's done-item test for an honest scanned-count.
-const DONE_STATE_RE = /^\s*(?:[-*]\s+)?(?:\*\*)?State:?(?:\*\*)?\s*(Done|Won't-do)\b/im
-const docs = c.documents()
-const boards = new Set(BOARD_FILES)
-const items = docs.filter((d) => !boards.has(d.relPath.split('/').pop() ?? d.relPath))
-const doneItems = items.filter(
-  (d) =>
-    DONE_FOLDERS.some((seg) => `/${d.relPath}`.includes(seg)) ||
-    DONE_STATE_RE.test(d.text.split(/^##\s/m)[0] ?? ''),
-)
-
-// report: 'return' — the preset hands back violations and emits nothing, so we
-// own reporting (no double render). --format json/github emits machine-readable
-// output for the preset's violations (ADR-008 / plan 0070).
-const violations = honestyAtClose(c, {
-  doneFolders: DONE_FOLDERS,
-  boardFiles: BOARD_FILES,
-  report: 'return',
+// Per-lane scan. `report: 'return'` — the preset emits nothing and this script
+// owns reporting (no double render, ADR-008 / plan 0070).
+const scans = LANES.map((lane) => {
+  const c = corpus({ roots: lane.roots })
+  const opts = {
+    doneFolders: lane.doneFolders,
+    boardFiles: lane.boardFiles,
+    states: lane.states,
+    terminalStates: lane.terminalStates,
+  }
+  // The denominator comes from the preset, not from a copy of its logic here.
+  // The previous version re-derived it with the pre-0119 region expression, so it
+  // found a State line in 0 of 59 records while this section claimed to prove the
+  // green non-vacuous. A denominator that can disagree with the gate is not one.
+  const stats = ledgerStats(c, opts)
+  const violations = honestyAtClose(c, { ...opts, report: 'return' })
+  return { lane, stats, violations }
 })
+
+const violations = scans.flatMap((s) => s.violations)
+const scanned = scans.reduce((n, s) => n + s.stats.scanned, 0)
+const doneCount = scans.reduce((n, s) => n + s.stats.doneItems, 0)
+const readable = scans.reduce((n, s) => n + s.stats.withReadableState, 0)
+
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
 if (format === 'json' || format === 'github') {
@@ -55,15 +78,19 @@ if (format === 'json' || format === 'github') {
   process.exit(violations.length > 0 ? 1 : 0)
 }
 
+const repoRoot = process.cwd()
 const relTo = (file) =>
-  file.startsWith(c.root) ? file.slice(c.root.length).replace(/^[/\\]/, '') : file
+  file.startsWith(repoRoot) ? file.slice(repoRoot.length).replace(/^[/\\]/, '') : file
 const line = (label, detail) => console.error(`  ${label.padEnd(11)}${detail}`)
 
 console.error('')
 console.error('check:ledger · honesty at close')
-line('roots', ROOTS.join(', '))
-console.error('')
-line('items', `${items.length} scanned · ${doneItems.length} done (ledger-checked)`)
+for (const sc of scans)
+  line(
+    sc.lane.name,
+    `${sc.stats.scanned} scanned · ${sc.stats.withReadableState} with a readable State · ` +
+      `${sc.stats.doneItems} done (ledger-checked)`,
+  )
 
 if (violations.length > 0) {
   line('findings', `✗ ${violations.length}`)
@@ -79,16 +106,18 @@ if (violations.length > 0) {
 console.error('')
 if (violations.length === 0) {
   console.error(
-    `  ✓ honesty at close — ${doneItems.length} done-items across ${items.length} plans, 0 findings (${elapsed()})`,
+    `  ✓ honesty at close — ${doneCount} done-items across ${scanned} records ` +
+      `(${scans.map((sc) => `${sc.stats.scanned} ${sc.lane.name}`).join(' + ')}), ` +
+      `${readable} with a readable State, 0 findings (${elapsed()})`,
   )
 } else {
   console.error(
-    `  ✗ honesty at close — ${violations.length} finding(s) across ${doneItems.length} done-items (${elapsed()})`,
+    `  ✗ honesty at close — ${violations.length} finding(s) across ${doneCount} done-items (${elapsed()})`,
   )
 }
 console.error('')
 
-if (doneItems.length === 0)
+if (doneCount === 0)
   console.error(
     '  ⚠ 0 done-items scanned — vacuous. Adopt the terminal State: token / completed/ folder.\n',
   )

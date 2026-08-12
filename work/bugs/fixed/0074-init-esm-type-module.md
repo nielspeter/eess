@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Done — red-first reproduced, fixed to green (config loads via jiti), e2e re-verified, suite + validate green. Deferred: none.
+- **State:** Fixed — red-first reproduced, fixed to green (config loads via jiti), e2e re-verified, suite + validate green. Deferred: none.
 - **Reported:** 2026-07-19 — self-found while executing plan 0072's recipes
   against the published npm package (deferred from that plan's close as
   `0074-init-esm-type-module`).

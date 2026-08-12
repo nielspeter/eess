@@ -1,6 +1,6 @@
 # 0061 — Spec↔code hard feedback: the EESS PoC
 
-**Status:** IMPLEMENTED (Phases 0–4, 2026-07-06) — PoC PASSED; Phase 5 deferred
+**State:** Done — implemented (Phases 0–4, 2026-07-06); PoC PASSED; Phase 5 deferred
 **Priority:** High
 **Effort:** ~5 phases, 1–2 sessions (Phase 5 is the cuttable one; Phase 4 is not)
 

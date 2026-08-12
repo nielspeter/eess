@@ -37,17 +37,67 @@ export interface HonestyAtCloseOptions extends PresetReportOptions {
    * check is disabled. Default `false`.
    */
   readonly closeInPlace?: boolean
+  /**
+   * The full `State:` vocabulary this corpus uses. A token outside it is
+   * **reported** (`ledger/unknown-state`), not ignored. Default: the plan lane's
+   * enum. A bug-shaped lane passes its own, e.g.
+   * `['Draft', 'Ready', 'Fixed', 'Rejected', 'Parked']`.
+   */
+  readonly states?: readonly string[]
+  /**
+   * Which of {@link states} mean *closed*. Default `['Done', "Won't-do"]`; a
+   * bug lane passes `['Fixed', 'Rejected']`. Members are treated as known states
+   * whether or not they also appear in {@link states}.
+   */
+  readonly terminalStates?: readonly string[]
 }
 
 const DEFAULT_DONE_FOLDERS = ['/completed/', '/fixed/', '/wont-do/', '/delivered/', '/archived/']
 const DEFAULT_BOARD_FILES = ['ROADMAP.md', 'BUGS.md', 'REFINEMENT.md', 'SUPPORT.md', 'README.md']
+const DEFAULT_STATES = ['Draft', 'Ready', 'Open', 'Done', "Won't-do"]
+const DEFAULT_TERMINAL_STATES = ['Done', "Won't-do"]
 
-// A terminal `State:` token in the header — `**State:** Done` / `Won't-do`.
-const DONE_STATE_RE = /^\s*(?:[-*]\s+)?(?:\*\*)?State:?(?:\*\*)?\s*(Done|Won't-do)\b/im
-// The full neutral State enum on one line (for state↔folder coherence).
-const STATE_TOKEN_LINE_RE =
-  /^\s*(?:[-*]\s+)?(?:\*\*)?State:?(?:\*\*)?\s*(Draft|Ready|Open|Done|Won't-do)\b/i
-const TERMINAL_STATES = new Set(['Done', "Won't-do"])
+// The `State:` label. A colon is **required** in every form: making it optional
+// turned any line beginning with the word "State" into a state declaration, so
+// `Stateless rendering is the default` reported its state as `less` and
+// `State machine transitions are documented` reported `machine`. Both were
+// silent before and would have been build failures.
+const LABEL = String.raw`^\s*(?:[-*+]\s+)?(?:\*\*State:\*\*|\*\*State\*\*\s*:|__State__\s*:|State\s*:)\s*`
+// An emphasis wrapper or a leading symbol on the value — `**Done**`, `` `Done` ``,
+// `✅ Done`. Markdown, not vocabulary.
+const WRAP = String.raw`(?:\*\*|__|\x60|_)?(?:[^\w\s'’-]+\s*)?`
+
+const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * A matcher built **from the declared vocabulary**, not a blind token grab.
+ *
+ * Capturing `(\S+)` and comparing it to the enum looked equivalent and was not:
+ * it regressed shapes the old enum regex read correctly — `**State: Done**`
+ * captured `Done**`, `- **State:** Done.` captured `Done.` — and told the author
+ * their corpus does not declare a state it plainly declares. It also made a
+ * multi-word state (`In progress`) unrepresentable, so `states` could not
+ * express the vocabularies it exists to express.
+ *
+ * Alternatives are sorted longest-first so `In progress` wins over `In`, the
+ * apostrophe accepts either glyph (an editor smart-quoting `Won't-do` should not
+ * break a build over two near-identical characters), and matching is
+ * case-insensitive with the declared spelling returned as canonical.
+ */
+function stateMatcher(states: readonly string[]): RegExp {
+  const alts = [...states]
+    .sort((a, b) => b.length - a.length)
+    .map((s) => escapeRe(s).replace(/['’]/g, "['’]"))
+    .join('|')
+  return new RegExp(`${LABEL}${WRAP}(${alts})(?![\\w'’-])`, 'i')
+}
+
+// Fallback: the line IS a state declaration, but its value is not in the
+// vocabulary. Used only to name the offending value in the message — so it
+// captures up to the house `—` separator rather than one whitespace-delimited
+// token, or a multi-word state would be reported by its first word alone.
+const UNREADABLE_RE = new RegExp(`${LABEL}(\\S[^—–]*?)\\s*(?:[—–].*)?$`, 'i')
+const ELIDE = 32
 
 // Any one of these on a box's line marks it *disposed* (not silent). Tokens are
 // the canonical hyphenated enum, word-bounded — so prose like "…the connection
@@ -67,13 +117,53 @@ function stripFencedCode(s: string): string {
   return s.replace(FENCE_RE, (m) => '\n'.repeat((m.match(/\n/g) ?? []).length))
 }
 
-function headerRegion(text: string): string {
-  return stripFencedCode(text).split(/^##\s/m)[0] ?? ''
+/**
+ * The `State:` token in the header region, with its line — one scan, shared by
+ * the done-item test and the placement check so the two cannot disagree about
+ * what a document says it is.
+ */
+function findState(
+  text: string,
+  vocabulary: readonly string[],
+): { state?: string; raw: string; line: number } | null {
+  const known = stateMatcher(vocabulary)
+  const canonical = (m: string): string =>
+    vocabulary.find(
+      (s) => s.toLowerCase().replace(/’/g, "'") === m.toLowerCase().replace(/’/g, "'"),
+    ) ?? m
+  const lines = stripFencedCode(text).split('\n')
+  // The preamble **and the first section**. Stopping at the first `##` — as this
+  // did — meant the check never ran on a real document in the corpus it was
+  // written for: the house template is `# Title` / `## Status` / `- **State:** X`,
+  // so every single `State:` line sat one heading past where it looked, and the
+  // whole placement half reported green having examined nothing (bug 0119).
+  let seenHeading = 0
+  for (let i = 0; i < lines.length; i++) {
+    if (/^##\s/.test(lines[i] ?? '')) {
+      seenHeading += 1
+      if (seenHeading > 1) break
+      continue
+    }
+    const line = lines[i] ?? ''
+    const hit = known.exec(line)
+    if (hit?.[1] !== undefined) return { state: canonical(hit[1]), raw: hit[1], line: i + 1 }
+    const unreadable = UNREADABLE_RE.exec(line)
+    if (unreadable?.[1] !== undefined) {
+      const raw = unreadable[1]
+      return { raw: raw.length > ELIDE ? `${raw.slice(0, ELIDE)}…` : raw, line: i + 1 }
+    }
+  }
+  return null
 }
 
-function isDoneItem(doc: MdDocument, doneFolders: readonly string[]): boolean {
+function isDoneItem(
+  doc: MdDocument,
+  doneFolders: readonly string[],
+  terminalStates: readonly string[],
+): boolean {
   if (doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))) return true
-  return DONE_STATE_RE.test(headerRegion(doc.text))
+  const found = findState(doc.text, terminalStates)
+  return found?.state !== undefined && terminalStates.includes(found.state)
 }
 
 const v = (
@@ -91,32 +181,42 @@ const v = (
   because,
 })
 
-/** State↔folder coherence — the two mechanically-knowable placement defects. */
-function placementViolation(
+/**
+ * What the header's `State:` line establishes — an unreadable token first, then
+ * state↔folder coherence. The order matters: a token the vocabulary does not
+ * contain cannot be classified as terminal or not, so reporting it is the only
+ * honest answer. Returning `null` there is what made this check silently
+ * self-disabling (bug 0118).
+ */
+function headerStateViolation(
   doc: MdDocument,
   inDoneFolder: boolean,
   closeInPlace: boolean,
+  states: readonly string[],
+  terminalStates: readonly string[],
 ): ArchViolation | null {
-  const lines = stripFencedCode(doc.text).split('\n')
-  let stateLine = 0
-  let state = ''
-  for (let i = 0; i < lines.length; i++) {
-    if (/^##\s/.test(lines[i] ?? '')) break // header region only
-    const m = STATE_TOKEN_LINE_RE.exec(lines[i] ?? '')
-    if (m) {
-      stateLine = i + 1
-      state = m[1] ?? ''
-      break
-    }
+  const known = [...new Set([...states, ...terminalStates])]
+  const found = findState(doc.text, known)
+  if (!found) return null // no State line at all → this document is not an item
+
+  if (found.state === undefined) {
+    return v(
+      'ledger/unknown-state',
+      doc,
+      found.line,
+      `State: ${found.raw} is not a state this corpus declares — expected one of ${known.join(', ')}.` +
+        ` An unreadable state cannot be checked against its folder, so it is reported rather than skipped.`,
+      'a state nobody can read is a check that silently stops running',
+    )
   }
-  if (!stateLine) return null // no neutral State token → nothing to check
-  const terminal = TERMINAL_STATES.has(state)
+
+  const terminal = terminalStates.includes(found.state)
   if (inDoneFolder && !terminal) {
     return v(
       'ledger/state-folder-mismatch',
       doc,
-      stateLine,
-      `State: ${state} but filed in a done-folder — move it back to the active lane or close it out.`,
+      found.line,
+      `State: ${found.state} but filed in a done-folder — move it back to the active lane or close it out.`,
       'a done-folder item marked as not-done is a silent placement corruption',
     )
   }
@@ -124,8 +224,8 @@ function placementViolation(
     return v(
       'ledger/state-folder-mismatch',
       doc,
-      stateLine,
-      `State: ${state} but not in a done-folder — the move-to-done was never made (orphaned close).`,
+      found.line,
+      `State: ${found.state} but not in a done-folder — the move-to-done was never made (orphaned close).`,
       'a done item left in an active lane is an orphaned post-merge move',
     )
   }
@@ -190,6 +290,8 @@ export function honestyAtClose(
   const doneFolders = options.doneFolders ?? DEFAULT_DONE_FOLDERS
   const boardFiles = new Set(options.boardFiles ?? DEFAULT_BOARD_FILES)
   const closeInPlace = options.closeInPlace ?? false
+  const states = options.states ?? DEFAULT_STATES
+  const terminalStates = options.terminalStates ?? DEFAULT_TERMINAL_STATES
 
   const violations: ArchViolation[] = []
   for (const doc of corpus.documents()) {
@@ -197,11 +299,59 @@ export function honestyAtClose(
     if (boardFiles.has(base)) continue
 
     const inDoneFolder = doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))
-    const placement = placementViolation(doc, inDoneFolder, closeInPlace)
-    if (placement) violations.push(placement)
+    const header = headerStateViolation(doc, inDoneFolder, closeInPlace, states, terminalStates)
+    if (header) violations.push(header)
 
-    if (isDoneItem(doc, doneFolders)) violations.push(...ledgerViolations(doc))
+    if (isDoneItem(doc, doneFolders, terminalStates)) violations.push(...ledgerViolations(doc))
   }
 
   return finishPreset(violations, options)
+}
+
+/** What a {@link honestyAtClose} run actually examined. */
+export interface LedgerStats {
+  /** Documents considered (board files excluded). */
+  readonly scanned: number
+  /** …of which carry a `State:` line the declared vocabulary can read. */
+  readonly withReadableState: number
+  /** …of which carry a `State:` line whose value is not in the vocabulary. */
+  readonly unreadableState: number
+  /** …of which are *done* — by folder or by terminal state — and so ledger-checked. */
+  readonly doneItems: number
+}
+
+/**
+ * The denominator, computed by the preset itself.
+ *
+ * `withReadableState` is the number nobody could see when bug 0119 happened: the
+ * placement check had never examined a document, and every summary line in the
+ * repo reported a healthy done-count derived purely from folder membership. A
+ * caller that prints this cannot be blind and green at the same time — if the
+ * region assumption drifts from the corpus again, this drops and says so.
+ *
+ * Callers must not re-derive it. `check-ledger.mjs` did, with a copy of the very
+ * expression 0119 removed, and its copy disagreed with the preset on 56 of 56
+ * records while heading a section captioned "so a green is provably non-vacuous".
+ */
+export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {}): LedgerStats {
+  const doneFolders = options.doneFolders ?? DEFAULT_DONE_FOLDERS
+  const boardFiles = new Set(options.boardFiles ?? DEFAULT_BOARD_FILES)
+  const states = options.states ?? DEFAULT_STATES
+  const terminalStates = options.terminalStates ?? DEFAULT_TERMINAL_STATES
+  const known = [...new Set([...states, ...terminalStates])]
+
+  let scanned = 0
+  let withReadableState = 0
+  let unreadableState = 0
+  let doneItems = 0
+  for (const doc of corpus.documents()) {
+    const base = doc.relPath.split('/').pop() ?? doc.relPath
+    if (boardFiles.has(base)) continue
+    scanned += 1
+    const found = findState(doc.text, known)
+    if (found?.state !== undefined) withReadableState += 1
+    else if (found !== null) unreadableState += 1
+    if (isDoneItem(doc, doneFolders, terminalStates)) doneItems += 1
+  }
+  return { scanned, withReadableState, unreadableState, doneItems }
 }

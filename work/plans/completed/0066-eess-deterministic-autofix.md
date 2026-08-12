@@ -1,6 +1,6 @@
 # 0066 — Deterministic autofix: the fix-side of the tier model
 
-**Status:** IMPLEMENTED (2026-07-06)
+**State:** Done — implemented 2026-07-06
 **Priority:** Medium
 **Effort:** ~2 sessions (kernel fix model → md fixers → CLI → dogfood)
 

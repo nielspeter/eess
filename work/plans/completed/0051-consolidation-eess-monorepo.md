@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** BUILDABLE SCOPE COMPLETE — all offline/code work done and validated on branch `eess-consolidation` (2026-07-03, ~18 commits ahead of main; **not merged, nothing published**). The only remainder is the external cutover, which the user has gated behind: _all EESS plans (0051 + 0058 + 0059) complete and confirmed as a full ts-archunit replacement_. See "Execution status" below.
+- **State:** Done — buildable scope complete; all offline/code work done and validated on branch `eess-consolidation` (2026-07-03, ~18 commits ahead of main; **not merged, nothing published**). The only remainder is the external cutover, which the user has gated behind: _all EESS plans (0051 + 0058 + 0059) complete and confirmed as a full ts-archunit replacement_. See "Execution status" below.
 - **Priority:** P1 — gates 0058/0059 work on the MD dialect, cross-validation, workflows
 - **Updated:** 2026-07-03 — work order reordered: MD dialect promoted ahead of cross-validation, based on field evidence from an external repo and another internal repo (see plan 0058, "Why this jumps the queue"). Follow-on plans renumbered: the 0052/0053/0054 forward references written here originally were never allocated as files, and 0055–0057 were taken in the meantime — MD dialect is now **0058**, cross-validation **0059**, workflow dialect unnumbered until scheduled. All four open questions decided (workspace tool, versioning, repo name, unscoped npm name) — plan is decision-complete. See "Decisions & open questions".
 - **Effort:** 1–2 weeks for the structural move; cross-validation is a follow-on plan (0059)
