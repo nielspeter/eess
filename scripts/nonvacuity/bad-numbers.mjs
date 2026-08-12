@@ -40,7 +40,7 @@ if (r.status === null || !out.includes(SENTINEL)) {
 }
 
 if (r.status === 1) {
-  console.error('bad-numbers: duplicate number detected as expected')
+  console.error('bad-numbers: detected as expected — duplicate number across lanes')
   for (const line of out.trim().split('\n')) console.error(`  x ${line}`)
   process.exit(1)
 }

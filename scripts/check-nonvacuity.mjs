@@ -48,8 +48,16 @@
  * violation's `ruleId` (and, for a two-directional check, its direction), or the
  * gate stays green when the rule it names is deleted.
  *
- * `harness self-check` is the instrument, not a measurement: it feeds gateNode
- * three deliberately-crashing stubs and requires each to be REJECTED. It is
+ * The fixture must also PRINT that identifier — `gateNode`'s second argument is
+ * asserted against the output, not just displayed (bug 0110), so a fixture that
+ * exits 1 for some other reason cannot answer for the gate it is listed under.
+ *
+ * `harness self-check` and `gate coverage` are instruments, not measurements.
+ * The first feeds gateNode four bad stubs — three that crash without printing a
+ * sentinel, one that runs cleanly and exits 1 for the WRONG rule — and requires
+ * every one to be REJECTED (liveness and identity, proven separately). The
+ * second asserts that every `check:*` in package.json has a gate row or a stated
+ * waiver, so deleting a row can no longer be a silent, green change. Both are
  * excluded from the gate count so the denominator stays honest.
  *
  * The four probe files are ephemeral: created just before their run, deleted in a
@@ -62,7 +70,7 @@
  * the `validate` chain). Exits 0 iff every gate failed on its violating input.
  */
 import { spawnSync } from 'node:child_process'
-import { writeFileSync, rmSync } from 'node:fs'
+import { writeFileSync, rmSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -86,9 +94,51 @@ function sh(cmd, args) {
   delete env.GITHUB_ACTIONS
   delete env.CI
   const r = spawnSync(cmd, args, { cwd: repoRoot, encoding: 'utf8', env })
-  if (r.error) return { code: 2, out: String(r.error.message) }
+  if (r.error) return { code: 2, out: String(r.error.message), stdout: '', stderr: '' }
   // status is null when the process was killed by a signal — treat as harness error.
-  return { code: r.status ?? 2, out: (r.stdout ?? '') + (r.stderr ?? '') }
+  const stdout = r.stdout ?? ''
+  const stderr = r.stderr ?? ''
+  // `out` is the merged view (for prose assertions); stdout is kept separate so a
+  // gate can JSON.parse it — the CLIs put machine output on stdout and their
+  // scan summaries on stderr (bug 0110).
+  return { code: r.status ?? 2, out: stdout + stderr, stdout, stderr }
+}
+
+/**
+ * Violations from a CLI run with `--format json`.
+ *
+ * `eess-ts check --format json` emits ONE pretty-printed document per failing
+ * rule, concatenated — a JSON *stream*, not a document, so `JSON.parse` on the
+ * whole of stdout throws as soon as two rules fail. Accumulate lines and parse
+ * at each top-level `}`. Returns [] when nothing parses, which fails the
+ * caller's assertion — the safe direction.
+ */
+function violationsOf(r) {
+  const out = []
+  let buf = ''
+  for (const line of (r.stdout ?? '').split('\n')) {
+    if (buf === '' && line.trim() === '') continue
+    buf += buf === '' ? line : '\n' + line
+    if (line === '}') {
+      try {
+        const doc = JSON.parse(buf)
+        out.push(...(Array.isArray(doc) ? doc : (doc?.violations ?? [])))
+        buf = ''
+      } catch {
+        // not a complete document yet — keep accumulating
+      }
+    }
+  }
+  return out
+}
+
+/** True when ONE violation carries both the rule and (optionally) the file. */
+function firedOn(r, ruleId, fileFragment) {
+  return violationsOf(r).some(
+    (v) =>
+      v?.ruleId === ruleId &&
+      (fileFragment === undefined || String(v?.file ?? '').includes(fileFragment)),
+  )
 }
 
 /** Write a probe file, run `fn`, and always delete the probe afterward. */
@@ -113,12 +163,11 @@ function gateArch() {
     "import ts from 'typescript'\nexport const k = ts.SyntaxKind.ClassDeclaration\n",
     () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
   )
-  // Require the ruleId too, not just the probe filename: a crash whose message
-  // mentions the file would otherwise read as the rule firing (bug 0109).
-  const ok =
-    bad.code === 1 &&
-    bad.out.includes('__nonvacuity_probe__') &&
-    bad.out.includes('eess/adr002-no-raw-typescript')
+  // ONE violation must carry both the probe file and the rule. Two independent
+  // substrings anywhere in the output could come from different findings — an
+  // unrelated ADR-002 violation elsewhere would have satisfied the old check
+  // (bug 0110).
+  const ok = bad.code === 1 && firedOn(bad, 'eess/adr002-no-raw-typescript', '__nonvacuity_probe__')
   // Clean direction is a bonus proof that the gate is not always-red (informational).
   const clean = sh(EESS_TS, ['check', 'arch.rules.ts'])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
@@ -130,13 +179,12 @@ function gateInternalArch() {
   const bad = withProbe(
     PROBE_CATCH,
     "export function probe() {\n  try {\n    JSON.parse('x')\n  } catch {}\n}\n",
-    () => sh(EESS_TS, ['check', 'arch.internal.rules.ts']),
+    () => sh(EESS_TS, ['check', 'arch.internal.rules.ts', '--format', 'json']),
   )
-  // Exit 1 alone is weak here (in-flight violations exist), so require the probe
-  // itself to be named AND the silent-catch rule to have fired on it.
-  const probeCaught =
-    bad.out.includes('__nonvacuity_probe_catch__') && bad.out.includes('silent catch')
-  const ok = bad.code === 1 && probeCaught
+  // Exit 1 alone is weak here (in-flight violations exist), so require the rule
+  // to have fired ON THE PROBE — one record with both. Was a grep for the rule's
+  // rendered description, which any rewording would have broken (bug 0110).
+  const ok = bad.code === 1 && firedOn(bad, 'eess/no-silent-catch', '__nonvacuity_probe_catch__')
   const clean = sh(EESS_TS, ['check', 'arch.internal.rules.ts'])
   const cleanNote =
     clean.code === 0
@@ -148,15 +196,13 @@ function gateInternalArch() {
 // --- Gate: baseline (the shipped `recommended` preset via check:baseline) ---
 function gateBaseline() {
   const bad = withProbe(PROBE_EVAL, "export function probe() {\n  return eval('1 + 1')\n}\n", () =>
-    sh(process.execPath, [join('scripts', 'check-baseline.mjs')]),
+    sh(process.execPath, [join('scripts', 'check-baseline.mjs'), '--format', 'json']),
   )
-  // The rule as well as the probe filename — see gateArch (bug 0109).
-  // check-baseline.mjs renders terminal format, which prints the rule's
-  // description rather than its id, so assert on the description's own phrase.
+  // One record carrying both the probe file and the rule id. This used to assert
+  // the rule's rendered *description* ("call to 'eval'") because check-baseline
+  // had no --format flag; it now has one (bug 0110), so no gate keys on prose.
   const ok =
-    bad.code === 1 &&
-    bad.out.includes('__nonvacuity_probe_eval__') &&
-    bad.out.includes("call to 'eval'")
+    bad.code === 1 && firedOn(bad, 'preset/recommended/no-eval', '__nonvacuity_probe_eval__')
   // Clean direction is a bonus proof the gate is not always-red (informational).
   const clean = sh(process.execPath, [join('scripts', 'check-baseline.mjs')])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code}`
@@ -176,7 +222,7 @@ function gateDiagram() {
     '--format',
     'json',
   ])
-  const ok = r.code === 1 && r.out.includes('diagram/kernel-stereotype')
+  const ok = r.code === 1 && firedOn(r, 'diagram/kernel-stereotype')
   return { ok, detail: `exit ${r.code} (diagram/kernel-stereotype)` }
 }
 
@@ -185,12 +231,12 @@ function gateSpec() {
   // --format json so the ruleId is literally present (terminal format prints the
   // rule description, not the id).
   const r = sh(EESS_TS, ['check', 'scripts/nonvacuity/bad-spec.rules.ts', '--format', 'json'])
-  const ok = r.code === 1 && r.out.includes('spec/nonvacuity-probe')
+  const ok = r.code === 1 && firedOn(r, 'spec/nonvacuity-probe')
   return { ok, detail: `exit ${r.code} (spec/nonvacuity-probe)` }
 }
 
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
-function gateNode(script, ruleNote) {
+function gateNode(script, mustSay) {
   const r = sh(process.execPath, [join('scripts', 'nonvacuity', script)])
   // Exit 1 is NOT sufficient on its own (bug 0109): node also exits 1 on an
   // unhandled throw, a syntax error, and a failed module resolution — and a
@@ -209,7 +255,21 @@ function gateNode(script, ruleNote) {
   }
   // The fixture scripts exit 1 only on the intended violation (2 = unexpected
   // error, 0 = vacuous), so require exactly 1.
-  return { ok: r.code === 1, code: r.code, detail: `exit ${r.code} (${ruleNote})` }
+  if (r.code !== 1) {
+    return { ok: false, code: r.code, detail: `exit ${r.code} (${mustSay})` }
+  }
+  // ...and it must name the rule the gate claims. Proving the fixture RAN is not
+  // proving the RIGHT rule fired: where a preset bundles several checks, any of
+  // them satisfies "it exited 1", so the named rule could be deleted with the
+  // gate still green (bug 0110). `mustSay` used to be display-only.
+  if (!r.out.includes(mustSay)) {
+    return {
+      ok: false,
+      code: r.code,
+      detail: `exit 1 but never named "${mustSay}" — the fixture failed for some other reason`,
+    }
+  }
+  return { ok: true, code: r.code, detail: `exit ${r.code} (${mustSay})` }
 }
 
 // --- Harness self-check: a crashed fixture must NOT read as a detected violation ---
@@ -229,8 +289,15 @@ const SELFTEST_STUBS = [
   ['syntax error', 'const = = =\n'],
   ['top-level throw', "throw new Error('selftest')\n"],
 ]
+// A stub that runs perfectly, prints its sentinel and exits 1 — but for a
+// different rule than the gate names. It must be rejected too: liveness is not
+// identity (bug 0110). This one exits 1 on purpose, so it is asserted separately
+// from the three crash stubs above.
+const SELFTEST_WRONG_RULE =
+  "console.error('__selftest_crash__: detected something, but not what was asked')\nprocess.exit(1)\n"
 function gateHarnessSelfCheck() {
   const bad = []
+  // Liveness: three crash modes, each exiting 1 without ever printing a sentinel.
   for (const [label, source] of SELFTEST_STUBS) {
     const res = withProbe(SELFTEST, source, () =>
       gateNode('__selftest_crash__.mjs', 'self-check stub'),
@@ -239,20 +306,31 @@ function gateHarnessSelfCheck() {
       bad.push(`${label} → ok=${String(res.ok)} exit=${String(res.code)}`)
     }
   }
+  // Identity: a stub that runs, speaks and exits 1 — for the wrong rule.
+  const wrong = withProbe(SELFTEST, SELFTEST_WRONG_RULE, () =>
+    gateNode('__selftest_crash__.mjs', 'the/rule-that-was-asked-for'),
+  )
+  if (wrong.ok !== false || wrong.code !== 1) {
+    bad.push(`wrong rule → ok=${String(wrong.ok)} exit=${String(wrong.code)}`)
+  }
+  const modes = SELFTEST_STUBS.length + 1
   return {
     ok: bad.length === 0,
     status:
-      bad.length === 0 ? 'OK (rejects a crashed fixture)' : 'FAILED (accepted a crashed fixture)',
+      bad.length === 0
+        ? 'OK (rejects a crashed or mis-firing fixture)'
+        : 'FAILED (accepted a crashed or mis-firing fixture)',
     detail:
       bad.length === 0
-        ? `all ${SELFTEST_STUBS.length} crash modes rejected — each exited 1 with no sentinel`
-        : `ACCEPTED a crashing stub — the sentinel check is broken (bug 0109): ${bad.join(' · ')}`,
+        ? `all ${modes} modes rejected — 3 crashes with no sentinel, 1 exiting 1 for the wrong rule`
+        : `ACCEPTED a bad stub — the gateNode assertions are broken (bugs 0109/0110): ${bad.join(' · ')}`,
   }
 }
 rmSync(SELFTEST, { force: true })
 
 const gates = [
   ['harness self-check', gateHarnessSelfCheck],
+  ['gate coverage', () => gateCoverage()],
   ['arch (root rules)', gateArch],
   ['internal arch', gateInternalArch],
   ['baseline', gateBaseline],
@@ -261,14 +339,58 @@ const gates = [
   ['crossval', () => gateNode('bad-crossval.mjs', 'crossval/diagram-completeness')],
   ['crossval/gherkin-ts', () => gateNode('bad-gherkin-ts.mjs', 'crossval/scenario-tests-resolve')],
   ['corpus/adr', () => gateNode('bad-adr.mjs', 'adr/valid-tiers')],
-  ['corpus/links', () => gateNode('bad-links.mjs', 'links resolve check')],
-  ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'live pointers resolve check')],
-  [
-    'review-harness',
-    () => gateNode('bad-review-harness.mjs', 'foreign-project drift in .claude review harness'),
-  ],
-  ['work/numbers', () => gateNode('bad-numbers.mjs', 'one number claimed by two lanes')],
+  ['corpus/links', () => gateNode('bad-links.mjs', 'nonvacuity/broken-links')],
+  ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'nonvacuity/pointers-resolve')],
+  ['review-harness', () => gateNode('bad-review-harness.mjs', 'foreign-project token')],
+  ['work/numbers', () => gateNode('bad-numbers.mjs', 'duplicate number across lanes')],
 ]
+
+// --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
+// The gate list is hand-maintained, so deleting a row was a silent, green change
+// — the same class as a vacuous gate, one level up (bug 0110). Waivers are
+// explicit and must say why.
+const NO_GATE_NEEDED = {
+  'check:fast': 'an alias — runs corpus + spec + arch, each gated on its own',
+  'check:nonvacuity': 'this harness',
+  'check:numbers': 'gated as work/numbers',
+  'check:integrity': 'no-gate-yet — npm workspace guardrails, see 0110',
+  'check:ledger': 'no-gate-yet — honestyAtClose, see 0110',
+  'check:examples': 'no-gate-yet — tsc over examples/, see 0110',
+  'check:docs-code': 'no-gate-yet — doc fences compile, see 0110',
+}
+const GATE_FOR = {
+  'check:arch': 'arch (root rules)',
+  'check:baseline': 'baseline',
+  'check:diagram': 'diagram',
+  'check:spec': 'spec',
+  'check:crossval': 'crossval',
+  'check:corpus': 'corpus/adr',
+  'check:review-harness': 'review-harness',
+}
+function gateCoverage() {
+  const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
+  const checks = Object.keys(pkg.scripts ?? {}).filter((k) => k.startsWith('check:'))
+  const names = new Set(gates.map(([n]) => n))
+  const problems = []
+  for (const c of checks) {
+    if (NO_GATE_NEEDED[c] !== undefined) continue
+    const g = GATE_FOR[c]
+    if (g === undefined) problems.push(`${c} has no gate and no waiver`)
+    else if (!names.has(g)) problems.push(`${c} maps to gate "${g}", which is not in the list`)
+  }
+  const waived = Object.keys(NO_GATE_NEEDED).filter((k) => checks.includes(k)).length
+  return {
+    ok: problems.length === 0,
+    status:
+      problems.length === 0
+        ? 'OK (every check:* accounted for)'
+        : 'FAILED (a check:* is unaccounted for)',
+    detail:
+      problems.length === 0
+        ? `${checks.length} check:* scripts — ${Object.keys(GATE_FOR).length} gated, ${waived} waived`
+        : problems.join(' · '),
+  }
+}
 
 let allOk = true
 // The self-check is the instrument, not a measurement: it does not "fail on

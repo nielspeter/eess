@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-12 · **Open:** 17 · **Fixed:** 4 · **Rejected:** 0
+**Updated:** 2026-08-12 · **Open:** 16 · **Fixed:** 5 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >

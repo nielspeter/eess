@@ -52,6 +52,17 @@ const filesScanned = p.getSourceFiles().filter((sf) => matches(sf.getFilePath())
 // report:'return' so this script owns emission and the exit code / summary.
 const violations = recommended(p, { include: INCLUDE, report: 'return' })
 
+// --format json/github — machine-readable on stdout, then exit. Mirrors
+// check-corpus.mjs. Without it a caller (the non-vacuity harness) can only
+// assert on the rendered rule *description*, which breaks on any rewording
+// (bug 0110).
+const fmtArg = process.argv.indexOf('--format')
+const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
+if (format === 'json' || format === 'github') {
+  reportViolations(violations, { format })
+  process.exit(violations.length > 0 ? 1 : 0)
+}
+
 console.error('')
 if (violations.length > 0) {
   reportViolations(violations)

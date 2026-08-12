@@ -24,7 +24,7 @@ const expectedViolation = status === 1 && /foreign-project token/.test(out)
 // distinguished from one that crashed (bug 0109), and the harness now requires
 // this `bad-review-harness:` sentinel as proof the check actually ran.
 if (expectedViolation) {
-  console.error('bad-review-harness: foreign-project drift detected as expected')
+  console.error('bad-review-harness: detected as expected — foreign-project token')
   process.exit(1)
 }
 console.error(

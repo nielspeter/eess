@@ -2,15 +2,16 @@
 
 ## Status
 
-- **State:** Draft — confirmed against the source; the failure is demonstrable
-  today for `corpus/adr` (see [0109](./fixed/0109-nonvacuity-fixtures-read-a-crash-as-a-pass.md),
-  where two instances of it were fixed). No red test written yet.
+- **State:** Fixed — `gateNode` asserts the identifier it prints, every fixture
+  names the rule it proved, the five CLI gates parse violations instead of
+  grepping prose, and the gate list itself is guarded.
 - **Severity:** Medium — a missing capability plus an honesty gap: each gate
   prints a rule name it never checks. It cannot hide a violation, but it can let
   a named rule be deleted without the gate noticing.
-- **Origin:** self-found · four-persona review of 0109's fix, which found the
-  same class three more times
-- **Reported:** 2026-08-12
+- **Origin:** self-found · four-persona review of
+  [0109](./0109-nonvacuity-fixtures-read-a-crash-as-a-pass.md)'s fix, which found
+  the same class three more times
+- **Reported:** 2026-08-12 · **Fixed:** 2026-08-12 (PR #41)
 
 ## Symptom
 
@@ -102,24 +103,41 @@ hypothetical — it was reproduced twice while reviewing 0109.
 
 No changeset — `scripts/` is not a published package.
 
+## One thing found while fixing it
+
+`eess-ts check --format json` emits **one pretty-printed document per failing
+rule, concatenated** — a JSON _stream_, not a document. `JSON.parse` on the whole
+of stdout throws as soon as two rules fail (`jq` copes, since it parses streams).
+The first cut of the parsed assertions returned `[]` and turned `internal arch`
+red, which is how it surfaced — the safe direction, but only by luck of ordering.
+The harness now accumulates lines and parses at each top-level `}`. Whether the
+CLI should emit one document (or NDJSON) is an adopter-facing question about a
+published surface, not a harness question — **deferred→ its own bug**, unfiled
+pending a ruling on which shape is intended.
+
 ## Verification
 
-- [ ] Red test written first: with the fixture ADR's tier set to a valid value
-      and its citation broken instead, `corpus/adr` must go **red** (today the
-      fixture correctly reports itself vacuous and exits 0, so the gate fails —
-      confirm the harness reports that as a failure, not as a pass).
-- [ ] For each preset-driven fixture, deleting the rule the gate names turns
-      that gate red.
-- [ ] `gateArch` asserts one violation record carrying both the probe file and
-      the ruleId — not two substrings anywhere in the output.
-- [ ] `check-baseline.mjs --format json` exists and `gateBaseline` asserts a
-      ruleId; no gate asserts a rendered description.
-- [ ] `bad-gherkin-ts` reports itself vacuous when its feature set loads zero
-      features, instead of exiting 1 on citations that dangle only because there
-      is nothing to resolve against.
-- [ ] Every `check:*` in `package.json` has a non-vacuity gate or a waiver, and
-      removing a gate row fails the harness.
-- [ ] `npm run validate` green.
+- [x] Red test written first: the identity assertion was added to `gateNode`
+      **before** any fixture was changed, and turned **six gates red** at once —
+      `crossval`, `crossval/gherkin-ts`, `corpus/links`, `corpus/pointers`,
+      `review-harness`, `work/numbers` — each reporting `exit 1 but never named
+"<rule>"`. `corpus/adr` stayed green because 0109 had already fixed it.
+- [x] The self-check gained a fourth stub that runs cleanly, prints its sentinel
+      and exits 1 for the **wrong** rule; it must be rejected. Liveness is now
+      asserted separately from identity, and both are proven.
+- [x] `gateArch`, `gateInternalArch` and `gateBaseline` assert **one violation
+      record** carrying both the probe file and the ruleId — not two substrings
+      anywhere in the output.
+- [x] `check-baseline.mjs --format json|github` exists (mirroring
+      `check-corpus.mjs`), and no gate asserts a rendered rule description.
+- [x] `bad-gherkin-ts` exits **2** when its feature set loads zero features,
+      naming the empty denominator, instead of exiting 1 on citations that dangle
+      only because there is nothing to resolve against.
+- [x] Every `check:*` in `package.json` has a gate or an explicit waiver, and the
+      guard is red in both directions — deleting the `spec` row gives
+      `check:spec maps to gate "spec", which is not in the list`; adding an
+      ungated `check:invented` gives `check:invented has no gate and no waiver`.
+- [x] `npm run validate` green.
 
 Deferred:
 
