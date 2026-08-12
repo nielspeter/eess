@@ -11,6 +11,7 @@
  *   0 = NO drift detected (the gate is vacuous — the harness treats this as fail)
  *   2 = unexpected error (module load, etc.) — the harness treats this as fail
  */
+import { ArchRuleError } from '@nielspeter/eess'
 import { scenarioTestsResolve } from '@nielspeter/eess-crossvalidate/gherkin-ts'
 import { features } from '@nielspeter/eess-gherkin'
 import { project } from '@nielspeter/eess-ts'
@@ -23,8 +24,16 @@ try {
     features({ cwd: root, roots: ['features/**'] }),
   )
 } catch (err) {
-  // ArchRuleError from the citation check — the intended failure.
-  console.error(`bad-gherkin-ts: dangling citation detected as expected — ${err.message.split('\n')[0]}`)
+  // Only an ArchRuleError is the intended failure. Anything else — a missing
+  // fixture project, a parse error — is a broken harness, not a detected
+  // violation. Reporting it as success is bug 0109.
+  if (!(err instanceof ArchRuleError)) {
+    console.error(`bad-gherkin-ts: unexpected error (not ArchRuleError) — ${err.message}`)
+    process.exit(2)
+  }
+  console.error(
+    `bad-gherkin-ts: dangling citation detected as expected — ${err.message.split('\n')[0]}`,
+  )
   process.exit(1)
 }
 
