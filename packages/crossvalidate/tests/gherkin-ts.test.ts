@@ -13,6 +13,8 @@ import {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/gherkin-ts')
 const set = () => features({ cwd: root, roots: ['features/**'] })
+// Its own root, so this fixture's scenario does not move the counts above.
+const quotedSet = () => features({ cwd: root, roots: ['quoted-features/**'] })
 const proj = (name: string) => project(join(root, name, 'tsconfig.json'))
 
 const violationsOf = (fn: () => void) => {
@@ -71,6 +73,18 @@ describe('scenarioTestsResolve() — gherkin↔ts', () => {
     }
     // The fixture uses the `›` convention, so a different one finds zero citations.
     expect(scenarioTestStats(proj('green'), set(), { extract }).citations).toBe(0)
+  })
+
+  it('resolves a citation whose scenario title contains a backtick (bug 0104)', () => {
+    // Truncated at the backtick, the citation read `discount.feature › Reject a `
+    // — no such scenario — so the gate went red over a scenario that is present.
+    const violations = violationsOf(() => scenarioTestsResolve(proj('quoted'), quotedSet()))
+    expect(violations).toEqual([])
+    expect(scenarioTestStats(proj('quoted'), quotedSet()).citations).toBe(1)
+  })
+
+  it('counts a backticked scenario as covered by the test that cites it', () => {
+    expect(() => scenariosCovered(proj('quoted'), quotedSet())).not.toThrow()
   })
 
   it('defaultExtract parses the it()-title convention', () => {

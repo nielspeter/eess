@@ -2,6 +2,7 @@ import picomatch from 'picomatch'
 import { correspondence, type Selection } from '@nielspeter/eess'
 import type { Corpus } from '@nielspeter/eess-md'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
+import { citedItTitles, itTitleOf } from './it-title.js'
 
 export interface AdrCitationsResolveOptions {
   /** Glob selecting ADR files. Default `docs/adr/**`. */
@@ -21,10 +22,6 @@ interface TestDef {
   readonly title: string
   readonly file: string
 }
-
-const IT_CITE_RE = /it(?:\.\w+)?\(\s*['"`]([^'"`]+)['"`]/g
-// Parse a title out of an enriched call name like `it('does a thing')`.
-const IT_NAME_RE = /^it(?:\.\w+)?\(\s*['"`]([^'"`]+)['"`]/
 
 function matchName(value: string, name: string | RegExp): boolean {
   return typeof name === 'string' ? value === name : name.test(value)
@@ -51,9 +48,8 @@ function extractCitations(opts: {
     if (mechIdx < 0) continue
     for (const row of table.rows) {
       const mech = row[mechIdx] ?? ''
-      for (const m of mech.matchAll(IT_CITE_RE)) {
-        const title = m[1]
-        if (title !== undefined) out.push({ title, adr: doc.relPath, line: table.line })
+      for (const title of citedItTitles(mech)) {
+        out.push({ title, adr: doc.relPath, line: table.line })
       }
     }
   }
@@ -69,10 +65,9 @@ function extractTestDefs(project: ArchProject): TestDef[] {
   const out: TestDef[] = []
   for (const call of allCalls) {
     if (call.getName() !== 'it') continue
-    const enriched = call.getName({ withArgument: 0 }) ?? ''
-    const m = IT_NAME_RE.exec(enriched)
-    if (m?.[1] !== undefined) {
-      out.push({ title: m[1], file: call.getSourceFile().getFilePath() })
+    const title = itTitleOf(call.getName({ withArgument: 0 }) ?? '')
+    if (title !== undefined) {
+      out.push({ title, file: call.getSourceFile().getFilePath() })
     }
   }
   return out

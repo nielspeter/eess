@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-12 · **Open:** 16 · **Fixed:** 5 · **Rejected:** 0
+**Updated:** 2026-08-12 · **Open:** 15 · **Fixed:** 6 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -134,7 +134,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0098](./0098-scenario-stats-report-set-size-as-scan-count.md)     | the scenario stats APIs report the feature set's size as `scenarios` — a non-vacuity guard built on it is vacuous                       | Medium   | 🔴 Draft            | self-found · verifying the plan-0096 review's filings                        | —         |
 | [0099](./0099-nul-bytes-make-md-gherkin-unsearchable.md)           | two raw NUL bytes make `md-gherkin.ts` binary — invisible to `grep`/`rg`, unreviewable in `git diff`                                    | Medium   | 🔴 Draft            | self-found · verifying the plan-0096 review's filings                        | —         |
 | [0103](./0103-adr-009-cited-but-does-not-exist.md)                 | two shipped scripts cite `ADR-009` as settled doctrine; `adr/` stops at 008 — plan 0088 Phase 2 is what creates it                      | Low      | 🔴 Draft            | self-found · review of inbound proposal 002                                  | —         |
-| [0104](./0104-it-title-capture-stops-at-any-quote.md)              | `it('…')` title capture stops at any quote, not the opening one — a backticked title truncates and resolves against the wrong test      | High     | 🔴 Draft            | inbound · adopter integration, verified 2026-08-12                           | —         |
+| [0104](./fixed/0104-it-title-capture-stops-at-any-quote.md)        | `it('…')` title capture stops at any quote, not the opening one — a backticked title truncates and resolves against the wrong test      | High     | ✅ Fixed → `fixed/` | inbound · adopter integration, verified 2026-08-12                           | #42       |
 | [0105](./0105-md-ts-drops-modifier-forms.md)                       | `md-ts` drops every `it.skip`/`it.only` definition — its own regex permits modifiers, the guard one line above does not                 | Medium   | 🔴 Draft            | inbound · adopter integration, verified 2026-08-12                           | —         |
 | [0106](./0106-no-gate-requires-a-changeset.md)                     | nothing requires a changeset, so a feature merges green and unreleasable — `gherkin-ts` is on `main` and in no published version        | High     | 🔴 Draft            | inbound · adopter integration, verified 2026-08-12                           | —         |
 | [0107](./fixed/0107-number-allocation-scans-one-lane.md)           | `/bug` and `/plan` allocate from their own lane, but the number sequence is shared — two collisions in one session                      | Medium   | ✅ Fixed → `fixed/` | self-found · two number collisions on 2026-08-12                             | #39       |
