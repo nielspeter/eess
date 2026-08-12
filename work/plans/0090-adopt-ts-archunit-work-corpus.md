@@ -233,6 +233,14 @@ items, (c) the migration matrix recording every item's disposition.
   the archived repo.
 - `npm run validate` green end-to-end; the migration matrix is the honesty record
   (stated `manual`, since it lives outside the gated roots).
+- **Deferred dependent re-checked at close.** Proposal
+  [002](../proposals/002-comment-embedded-links.md) (comment-embedded doc
+  citations) was reviewed 2026-08-12 and deferred **on this plan**: 49 of the 51
+  unresolved citations in this repo's source comments are ts-archunit ancestor
+  numbers, so a citation-resolution gate cannot go green until they are
+  classified here. Closing 0090 is the trigger to re-open that ruling — recorded
+  in this plan's success definition, not only in the proposal, so the dependency
+  is visible from the side that resolves it.
 
 ## Progress ledger
 
