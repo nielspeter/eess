@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-12 · **Open:** 18 · **Fixed:** 7 · **Rejected:** 0
+**Updated:** 2026-08-12 · **Open:** 21 · **Fixed:** 7 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -145,3 +145,6 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0112](./0112-three-crossval-presets-have-no-fixture.md)                | three of `check:crossval`'s five presets have no non-vacuity fixture — emptying any of them leaves the gate green                       | Medium   | 🔴 Draft            | self-found · enforcement review of 0104's fix                                | —         |
 | [0113](./0113-correspondence-drops-rule-suggestion.md)                  | `correspondence()` silently drops `.rule({ suggestion })` — no `Fix:` line can render for any two-sided rule                            | Medium   | 🔴 Draft            | self-found · enforcement review of 0104's fix                                | —         |
 | [0114](./0114-string-literal-lexis-lives-outside-the-engine.md)         | `ArchCall` has no accessor for a literal argument, so the bridge re-lexes TypeScript strings — ADR-007 Rule 2                           | Medium   | 🔴 Draft            | self-found · architect review of 0104's fix                                  | —         |
+| [0115](./0115-two-test-definition-readers.md)                           | `md-ts` and `gherkin-ts` carry the same four-step test-definition reader — the shape that produced both 0104 and 0105                   | Low      | 🔴 Draft            | self-found · architect review of 0105's fix                                  | —         |
+| [0116](./0116-gated-row-resolves-against-a-skipped-test.md)             | an enforcement row marked `gated` resolves against `it.skip(…)` — a clause claiming CI blocks it, proven by a test that never runs      | Medium   | 🔴 Draft            | self-found · architect review of 0105's fix                                  | —         |
+| [0117](./0117-conditional-modifier-tests-are-invisible.md)              | `it.skipIf(cond)('…')` / `it.runIf` are invisible to `adrCitationsResolve` — 0105's symptom, one shape narrower                         | Medium   | 🔴 Draft            | self-found · testing review of 0105's fix                                    | —         |

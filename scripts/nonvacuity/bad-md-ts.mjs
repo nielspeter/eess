@@ -37,7 +37,12 @@ let tests
 try {
   tests = calls(orphan())
     .select({ label: 'call', identify: (x) => ({ name: x.getName() ?? '' }) })
-    .elements.filter((x) => x.getName() === 'it').length
+    // The ROOT callee, matching `extractTestDefs`. Comparing the full name is
+    // the predicate bug 0105 retired: it counts 0 for a fixture written as
+    // `it.skip(…)`, and this script would then blame its own premise while the
+    // gate was fine. A denominator that does not count what the preset counts
+    // is a denominator that can disagree with it.
+    .elements.filter((x) => (x.getObjectName() ?? x.getMethodName()) === 'it').length
 } catch (err) {
   console.error(`bad-md-ts: unexpected error loading the orphan project — ${String(err)}`)
   process.exit(2)

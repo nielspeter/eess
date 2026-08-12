@@ -151,6 +151,22 @@ contract, not smuggled in with this fix. Filing this as-is keeps `it` only —
 and 0104 kept the callee alternation at each call site precisely so this fix
 could not smuggle it in.
 
+**The stronger reason, found in review and worth recording:** `eess-md`'s
+text-level check is `it`-only too (`packages/md/src/rules/adr.ts:44` and `:51`
+both read `it(?:\.\w+)?\(`). Widening `md-ts` alone would put `check:crossval`
+and `check:corpus` out of sync about what an ADR may cite — one gate green and
+the other red on the same table row. The contract has three implementations and
+no binding home; that is [0111](../0111-md-adr-citations-resolve-by-prefix.md)'s
+territory, and the `test` question is one clause of it.
+
+**The guard is not what performs the exclusion.** `itTitleOf` is anchored on the
+literal callee, so the grammar alone already rejects `describe(…)`, `test(…)`,
+`suite.it(…)` and the outer `it.each([…])(…)`. Review measured it: delete the
+guard entirely and all 68 tests stay green. It is kept as a cheap pre-filter
+(skipping `getArguments()` + `getText()` for every call in the project) and as
+defence in depth — a widening needs both fences — not for a rejection it does
+not perform. The code comment says so now; the first draft did not.
+
 A `patch` changeset on `@nielspeter/eess-crossvalidate`.
 
 ## Verification
@@ -161,14 +177,45 @@ guard that must keep passing). 68 green after.
 - [x] Red test written first: an ADR citing `it('x')` resolves against
       `it.skip('x')` in the project — `0006-modifiers.md` against
       `tests/modifiers.cases.ts`. Failed before the fix.
-- [x] `it.only` and `it.concurrent` resolve (same ADR); `it.each(table)(…)` and
-      `describe('x')` still do not — `0008-not-tests.md` asserts **two**
-      unresolved citations, and passed before the fix as well as after, which is
-      what makes it a guard rather than a symptom.
+- [x] `it.only`, `it.concurrent` and `it.todo` resolve (same ADR).
 - [x] An ADR citing `it.skip('x')` — the form the citation side already permits —
       resolves against the same definition (`0007-cited-in-modifier-form.md`).
       Failed before the fix.
+- [x] **The containment half reddens on the widening it names.**
+      `0008-not-tests.md` asserts four unresolved citations — a templated title,
+      `it.skipIf(cond)(…)`, `describe(…)`, and `test(…)`. Widening md↔ts to its
+      sibling's `it|test` turns it red; measured. The first draft of this record
+      claimed 0008 was "a guard rather than a symptom" because it passed before
+      and after — **that was wrong**, and review measured it: passing on both
+      sides is necessary, not sufficient. As first written, deleting the guard,
+      widening it to accept anything, or adding `describe` all left it green,
+      because it carried no row that any single change could reach. The `test(…)`
+      row is what makes it a guard; without it, "md↔ts accepts `it` only" was a
+      habit rather than a decision.
+- [x] Each test pins its own citation count via `adrCitationStats` before
+      asserting `not.toThrow()`. Review demonstrated the bare form: misspell
+      `## Enforcement` in a fixture ADR and both new positive tests pass while
+      checking nothing — the trap the sibling test 12 lines up already documents.
 - [x] `npm run validate` green.
 
-Deferred: whether `md-ts` should also accept `test(…)`, as `gherkin-ts` does —
-a contract question for the ADR enforcement table, not a parser fix.
+Deferred — each re-homed, none left with this record:
+
+- **Whether `md-ts` should also accept `test(…)`**, as `gherkin-ts` does — a
+  contract question for the ADR enforcement table, not a parser fix. Now pinned
+  by a failing test rather than a comment (`0008-not-tests.md`), so the decision
+  cannot drift silently while it waits. **→ [0111](../0111-md-adr-citations-resolve-by-prefix.md)**,
+  which owns the three-implementation contract this is a clause of.
+- **`it.skipIf(cond)(…)` / `it.runIf(cond)(…)` still show this bug's symptom** —
+  a static, citable title that resolves to nothing, because the callee is itself
+  a call. **→ [0117](../0117-conditional-modifier-tests-are-invisible.md)**.
+- **A `gated` row now resolves against `it.skip(…)`** — a clause claiming "runs
+  in CI, failing blocks", backed by a test that never runs. This fix does not
+  create the hole (the text-level check always accepted modifier text) but it
+  makes the strong gate agree with it. **→ [0116](../0116-gated-row-resolves-against-a-skipped-test.md)**.
+- **`extractTestDefs` and `itTitles` are now the same four-step reader**,
+  differing only in callee set and whether `line` is kept. **→ [0115](../0115-two-test-definition-readers.md)**.
+
+**Not dogfooded.** This repo's own `check:crossval` does not exercise the new
+behaviour: its three ADR citations are all plain `it(`, and `packages/ts` holds
+no `it.skip`/`it.only`/`it.concurrent`. A green `check:crossval` is not evidence
+the modifier path works — only the unit suite is.

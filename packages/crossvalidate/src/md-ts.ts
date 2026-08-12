@@ -95,13 +95,15 @@ function extractTestDefs(project: ArchProject): TestDef[] {
     // skipped test's citation is still checked. Same reasoning, same shape as
     // `gherkin-ts.ts` — which is where it was already written down.
     //
-    // `it.each(table)(…)` stays out, and it is worth being exact about how,
-    // because it is TWO calls and only one of them is stopped here. The outer
-    // call's callee is a CallExpression, so its root is the whole
-    // `it.each([1, 2])` text — excluded by this guard. The inner `it.each` has
-    // root `it` and passes; it is stopped one line down, because argument 0 is
-    // an array rather than a string literal, so the enriched name is bare
-    // `it.each` and `itTitleOf` finds no `(`. `describe(…)` is excluded here.
+    // **This guard is not what decides.** `itTitleOf` is anchored on the literal
+    // callee (`^` + `(?:it)(?:\.\w+)?\(`), so the grammar alone already rejects
+    // `describe(…)`, `test(…)`, `suite.it(…)`, `it.a.b(…)` and the outer
+    // `it.each([…])(…)`. Review measured it: delete these two lines and the whole
+    // suite stays green. What the guard buys is a cheap pre-filter — it skips
+    // `getArguments()` + `getText()` for every call expression in the project —
+    // and defence in depth: widening what counts as a test takes BOTH this line
+    // and the grammar, so neither can smuggle one in alone. Keep it for those
+    // reasons, not for a rejection it does not perform.
     const root = call.getObjectName() ?? call.getMethodName()
     if (root !== 'it') continue
     const title = itTitleOf(call.getName({ withArgument: 0 }) ?? '')

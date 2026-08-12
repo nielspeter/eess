@@ -78,6 +78,16 @@ to the ambiguous branch too.
 Where both are present, `suggest` (specific) should win over `suggestion`
 (generic); document that rather than leaving it to call order.
 
+**The ambiguous branch also mis-attributes, not just under-advises.** Its
+violation points at the _left_ element (the ADR row) and says "matches multiple
+tests" without naming a single one — no file, no line, for either colliding
+match. An author is told there is a collision and not where. The message should
+list the matching right-hand elements' `identify().file`, which the
+correspondence already has in hand. Raised again during review of
+[0105](./fixed/0105-md-ts-drops-modifier-forms.md), which widens the population
+reaching this branch: modifier-form definitions now count toward ambiguity, so a
+title existing both live and skipped lands here.
+
 `patch` on `@nielspeter/eess`, plus a `Fix:` line appearing in any downstream
 correspondence gate output — worth a note in the changeset since CI logs change.
 
