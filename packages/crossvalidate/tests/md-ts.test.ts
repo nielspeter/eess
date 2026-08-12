@@ -64,6 +64,32 @@ describe('adrCitationsResolve() — a title ends at the delimiter that opened it
     expect(violations[0]?.message).toMatch(/catches `GONE` in a deleted test.*no matching test/)
   })
 
+  it('resolves a citation against a test written in modifier form (bug 0105)', () => {
+    // `it.skip` is named `'it.skip'` by eess-ts, and the callee guard compared
+    // the full name — so a skipped test, the honest record of a known gap, was
+    // dropped before its title was read and its ADR row went red.
+    expect(() => adrCitationsResolve(c(['docs/adr/0006-modifiers.md']), proj())).not.toThrow()
+  })
+
+  it('resolves a citation itself written as it.skip(…) — the form the ADR side already allowed', () => {
+    expect(() =>
+      adrCitationsResolve(c(['docs/adr/0007-cited-in-modifier-form.md']), proj()),
+    ).not.toThrow()
+  })
+
+  it('still refuses it.each(…)(…) and describe(…) — the fix widens nothing else', () => {
+    const violations = violationsOf(() =>
+      adrCitationsResolve(c(['docs/adr/0008-not-tests.md']), proj()),
+    )
+    expect(violations).toHaveLength(2)
+    expect(violations.map((v) => v.message)).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/a templated guarantee %s.*no matching test/),
+        expect.stringMatching(/a suite that is not a test.*no matching test/),
+      ]),
+    )
+  })
+
   it('round-trips titles delimited by ", ` and one holding an escaped quote', () => {
     // Its own denominator: `not.toThrow()` is trivially true if the ADR side
     // extracted nothing at all, so pin the citation count first.

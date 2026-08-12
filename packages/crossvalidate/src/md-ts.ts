@@ -87,7 +87,23 @@ function extractTestDefs(project: ArchProject): TestDef[] {
   }).elements
   const out: TestDef[] = []
   for (const call of allCalls) {
-    if (call.getName() !== 'it') continue
+    // The ROOT callee, not the full name. eess-ts names a modifier call by its
+    // whole member expression, so `it.skip(…)` is `'it.skip'` and comparing the
+    // full name dropped every skipped, focused or concurrent test before its
+    // title was read — while the citation side had always accepted those forms
+    // (bug 0105). The gate binds a citation; it does not run the test, so a
+    // skipped test's citation is still checked. Same reasoning, same shape as
+    // `gherkin-ts.ts` — which is where it was already written down.
+    //
+    // `it.each(table)(…)` stays out, and it is worth being exact about how,
+    // because it is TWO calls and only one of them is stopped here. The outer
+    // call's callee is a CallExpression, so its root is the whole
+    // `it.each([1, 2])` text — excluded by this guard. The inner `it.each` has
+    // root `it` and passes; it is stopped one line down, because argument 0 is
+    // an array rather than a string literal, so the enriched name is bare
+    // `it.each` and `itTitleOf` finds no `(`. `describe(…)` is excluded here.
+    const root = call.getObjectName() ?? call.getMethodName()
+    if (root !== 'it') continue
     const title = itTitleOf(call.getName({ withArgument: 0 }) ?? '')
     if (title !== undefined) {
       out.push({ title, file: call.getSourceFile().getFilePath() })

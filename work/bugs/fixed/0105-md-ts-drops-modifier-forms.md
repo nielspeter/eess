@@ -2,9 +2,9 @@
 
 ## Status
 
-- **State:** Draft — claim confirmed against the source; the callee-naming
-  behaviour was read from `eess-ts`'s own model rather than taken on report. No
-  red test written yet.
+- **State:** Fixed — `extractTestDefs` filters on the root callee, so the
+  `(?:\.\w+)?` the grammar has always carried finally applies. Three red tests
+  before, 68 green after.
 - **Severity:** Medium — **false red**, plus a missing capability. It can only
   add violations, never hide one, so it does not reach High.
 - **Origin:** **inbound** — filed by an agent in an external project during its
@@ -12,7 +12,7 @@
   adopted here on 2026-08-12 after verification. Its illustrative example was
   re-sourced (it carried the reporting project's domain vocabulary); the
   diagnosis and fix are as submitted.
-- **Reported:** 2026-08-12
+- **Reported:** 2026-08-12 · **Fixed:** 2026-08-12 (PR #43)
 
 ## Symptom
 
@@ -119,27 +119,56 @@ const root = call.getObjectName() ?? call.getMethodName()
 if (root !== 'it') continue
 ```
 
-Then `IT_NAME_RE`'s existing `(?:\.\w+)?` finally does its job.
-`it.each(table)(…)` stays excluded for free: its callee is a call expression, so
-`objectName` is undefined and `methodName` is the whole `it.each(table)` text,
-which is not `it`.
+Then the optional `(?:\.\w+)?` in the title grammar finally does its job.
+
+**Two corrections to this record, found while fixing it.**
+
+1. **The regex moved.** This record was filed against `IT_NAME_RE` at
+   `md-ts.ts:27`. [0104](./0104-it-title-capture-stops-at-any-quote.md)
+   replaced it with `itTitleOf` in `packages/crossvalidate/src/it-title.ts`,
+   where the modifier group lives in `CALL()`. Same optional group, different
+   home; the diagnosis is unaffected.
+
+2. **`it.each(table)(…)` is not excluded the way this record claimed.** It is
+   _two_ calls, and only one is stopped by the guard. Measured against the real
+   model:
+
+   | call                      | `getName()`       | root              |
+   | ------------------------- | ----------------- | ----------------- |
+   | outer `it.each([1,2])(…)` | `it.each([1, 2])` | `it.each([1, 2])` |
+   | inner `it.each([1,2])`    | `it.each`         | **`it`**          |
+
+   The inner call's root **is** `it`, so it passes the guard. It is stopped one
+   line later instead: argument 0 is an array, not a string literal, so the
+   enriched name is bare `it.each` and `itTitleOf` finds no `(`. The outcome the
+   record predicted is right; the mechanism it gave was right for the outer call
+   only. Both paths are now asserted by `0008-not-tests.md`.
 
 One deliberate difference to settle rather than copy blindly: `gherkin-ts`
 accepts `test` as well as `it`; `md-ts` does not. Widening `md-ts` to `test`
 would change what an ADR is allowed to cite, so it belongs in the ADR-table
-contract, not smuggled in with this fix. Filing this as-is keeps `it` only.
+contract, not smuggled in with this fix. Filing this as-is keeps `it` only —
+and 0104 kept the callee alternation at each call site precisely so this fix
+could not smuggle it in.
 
 A `patch` changeset on `@nielspeter/eess-crossvalidate`.
 
 ## Verification
 
-- [ ] Red test written first: an ADR citing `it('x')` resolves against
-      `it.skip('x')` in the project. Fails today.
-- [ ] `it.only` and `it.concurrent` resolve; `it.each(table)(…)` and
-      `describe('x')` still do not.
-- [ ] An ADR citing `it.skip('x')` — the form `IT_CITE_RE` already permits —
-      resolves against the same definition.
-- [ ] `npm run validate` green.
+Red first: three new tests, two of which fail before the change (the third is the
+guard that must keep passing). 68 green after.
+
+- [x] Red test written first: an ADR citing `it('x')` resolves against
+      `it.skip('x')` in the project — `0006-modifiers.md` against
+      `tests/modifiers.cases.ts`. Failed before the fix.
+- [x] `it.only` and `it.concurrent` resolve (same ADR); `it.each(table)(…)` and
+      `describe('x')` still do not — `0008-not-tests.md` asserts **two**
+      unresolved citations, and passed before the fix as well as after, which is
+      what makes it a guard rather than a symptom.
+- [x] An ADR citing `it.skip('x')` — the form the citation side already permits —
+      resolves against the same definition (`0007-cited-in-modifier-form.md`).
+      Failed before the fix.
+- [x] `npm run validate` green.
 
 Deferred: whether `md-ts` should also accept `test(…)`, as `gherkin-ts` does —
 a contract question for the ADR enforcement table, not a parser fix.
