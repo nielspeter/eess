@@ -2,8 +2,10 @@
 
 ## Status
 
-- **State:** Draft — the gap is confirmed against the script and the preset, and
-  the preset's state vocabulary was read rather than assumed. No red test yet.
+- **State:** Draft — the gap is confirmed by running `honestyAtClose` over a
+  scratch corpus with the proposed configuration (see _Root cause_), including a
+  plan-lane control that isolates the vocabulary as the cause. Not `Ready`: the
+  differential exists as a measurement, not yet as a committed red test.
 - **Severity:** Medium — an honesty gap between a stated claim and its mechanism.
   A bug record can claim `Fixed` while carrying open verification boxes, or defer
   to nowhere, and nothing reports it.
@@ -58,17 +60,36 @@ const TERMINAL_STATES = new Set(['Done', "Won't-do"])
 
 Bugs use `Draft | Ready | Fixed | Rejected | Parked` ([BUGS.md](./BUGS.md)).
 `Fixed` and `Rejected` are not in either set, so with roots widened the gate
-would be **half-blind rather than wrong**:
+would be **half-blind rather than wrong**.
 
-| record                              | open `- [ ]` caught? | placement caught? |
-| ----------------------------------- | -------------------- | ----------------- |
-| `work/bugs/fixed/NNNN.md`, `Fixed`  | ✅ (done-folder)     | ❌ state unparsed |
-| `work/bugs/NNNN.md`, `State: Fixed` | ❌                   | ❌                |
-| `work/bugs/NNNN.md`, `State: Draft` | n/a                  | ✅                |
+**Measured, not reasoned.** `honestyAtClose` run over a scratch corpus holding
+one record per case, with `doneFolders: ['/completed/', '/fixed/']` — i.e. the
+configuration this bug proposes:
 
-Row 2 is the orphaned close — a record marked `Fixed` that was never moved. It is
-exactly the failure the placement half exists to catch, and it is the one the
-vocabulary cannot see.
+```
+scanned: 3 | violations: 2
+  ledger/silent-open-box       · bugs/fixed/0001-closed-with-open-box.md:9
+      unchecked box with no disposition
+  ledger/state-folder-mismatch · plans/0003-orphaned-plan.md:3
+      State: Done but not in a done-folder — the move-to-done was never made
+```
+
+| record                                          | reported?                         |
+| ----------------------------------------------- | --------------------------------- |
+| `bugs/fixed/…`, `State: Fixed`, open `- [ ]`    | ✅ `ledger/silent-open-box`       |
+| `bugs/…`, `State: Fixed`, never moved           | ❌ **silent**                     |
+| `plans/…`, `State: Done`, never moved (control) | ✅ `ledger/state-folder-mismatch` |
+
+Rows 2 and 3 are the same failure in two lanes, and only the plan lane reports
+it. That is the orphaned close — a record marked terminal that was never moved —
+and it is exactly what the placement half exists to catch. Row 1 works because
+the done-folder test never consults the state vocabulary; the placement half
+does, and that is the whole difference.
+
+Also worth noting from the same run: `honestyAtClose` over the **real**
+`work/bugs/**` today reports `30 documents scanned, 0 violations`. The lane is
+clean — so widening the roots costs nothing to land, and the vocabulary work is
+what buys the second row.
 
 ## Why it matters
 
