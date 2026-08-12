@@ -340,6 +340,7 @@ const gates = [
   ['crossval/gherkin-ts', () => gateNode('bad-gherkin-ts.mjs', 'crossval/scenario-tests-resolve')],
   ['crossval/md-ts', () => gateNode('bad-md-ts.mjs', 'crossval/adr-citations-resolve')],
   ['corpus/adr', () => gateNode('bad-adr.mjs', 'adr/valid-tiers')],
+  ['corpus/ledger', () => gateNode('bad-ledger.mjs', 'ledger/silent-open-box')],
   ['corpus/links', () => gateNode('bad-links.mjs', 'nonvacuity/broken-links')],
   ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'nonvacuity/pointers-resolve')],
   ['review-harness', () => gateNode('bad-review-harness.mjs', 'foreign-project token')],
@@ -354,7 +355,6 @@ const NO_GATE_NEEDED = {
   'check:fast': 'an alias — runs corpus + spec + arch, each gated on its own',
   'check:nonvacuity': 'this harness',
   'check:integrity': 'no-gate-yet — npm workspace guardrails, see 0110',
-  'check:ledger': 'no-gate-yet — honestyAtClose, see 0110',
   'check:examples': 'no-gate-yet — tsc over examples/, see 0110',
   'check:docs-code': 'no-gate-yet — doc fences compile, see 0110',
 }
@@ -375,6 +375,7 @@ const GATE_FOR = {
   'check:corpus': ['corpus/adr', 'corpus/links', 'corpus/pointers'],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
+  'check:ledger': ['corpus/ledger'],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.

@@ -2,17 +2,17 @@
 
 ## Status
 
-- **State:** Draft — the gap is confirmed by running `honestyAtClose` over a
-  scratch corpus with the proposed configuration (see _Root cause_), including a
-  plan-lane control that isolates the vocabulary as the cause. Not `Ready`: the
-  differential exists as a measurement, not yet as a committed red test.
+- **State:** Fixed — `check:ledger` scans both lanes with the vocabulary each
+  one uses, and an unreadable `State:` token is reported rather than skipped.
+  Fixing it uncovered [0119](./0119-placement-check-never-ran.md), without which
+  this fix would have been inert: the token was never read in the first place.
 - **Severity:** Medium — an honesty gap between a stated claim and its mechanism.
   A bug record can claim `Fixed` while carrying open verification boxes, or defer
   to nowhere, and nothing reports it.
 - **Origin:** self-found · asked directly during the 0105 review round — "if you
   defer things, where do they go then?" — which is a question the repo should be
   able to answer mechanically and cannot
-- **Reported:** 2026-08-12
+- **Reported:** 2026-08-12 · **Fixed:** 2026-08-12 (PR #45)
 
 ## Symptom
 
@@ -58,7 +58,7 @@ const STATE_TOKEN_LINE_RE = /…\s*(Draft|Ready|Open|Done|Won't-do)\b/i
 const TERMINAL_STATES = new Set(['Done', "Won't-do"])
 ```
 
-Bugs use `Draft | Ready | Fixed | Rejected | Parked` ([BUGS.md](./BUGS.md)).
+Bugs use `Draft | Ready | Fixed | Rejected | Parked` ([BUGS.md](../BUGS.md)).
 `Fixed` and `Rejected` are not in either set, so with roots widened the gate
 would be **half-blind rather than wrong**.
 
@@ -156,27 +156,33 @@ running it over a bug-shaped lane inherits the same half-blindness with no notic
    scanned, or its template's example `- [ ]` boxes will report.
 
 Deliberately **not** in scope: gating `work/bugs/**` in `check:corpus` (links and
-`path:line` pointers). That is [0086](./0086-links-to-directories-do-not-resolve.md)'s
+`path:line` pointers). That is [0086](../0086-links-to-directories-do-not-resolve.md)'s
 blocker and needs the directory-link fix; this needs none of it. Filing them
 apart so the cheaper half is not held hostage to the harder one.
 
 ## Verification
 
-- [ ] Red test written first: a document whose `State:` token is outside the
-      configured set is reported, rather than silently exempted from the
-      placement check. Fails today, and the four plans named above are the
-      standing proof — they must go red, then be corrected.
-- [ ] A bug record in `fixed/` with an unticked `- [ ]` is reported. Passes today.
-- [ ] A record with `State: Fixed` left in `work/bugs/` is reported as an
-      orphaned close. Passes today, and fails for the right reason only after the
-      vocabulary is configurable.
-- [ ] The plan lane's findings and denominator are unchanged — this widens
-      coverage, it must not move existing results.
-- [ ] `BUGS.md`'s own template boxes do not report.
-- [ ] A non-vacuity fixture: a bug-shaped corpus with a silent open box makes the
-      gate exit 1, asserting `ledger/…` as the rule id (`check:ledger` is
-      currently waived in `scripts/check-nonvacuity.mjs` as `no-gate-yet`, so this
-      also retires one waiver).
-- [ ] `npm run validate` green.
+- [x] Red test written first: a document whose `State:` token is outside the
+      configured set is reported (`ledger/unknown-state`) rather than silently
+      exempted. Four plans and two bugs went red on the first run and were
+      corrected — see [0119](./0119-placement-check-never-ran.md) for the table.
+- [x] A bug record in `fixed/` with an unticked `- [ ]` is reported.
+- [x] A record with `State: Fixed` left in `work/bugs/` is reported as an
+      orphaned close, and a `Draft` parked in `fixed/` reports the other
+      direction — both measured against the **real** corpus, not fixtures.
+- [x] `BUGS.md`'s own template boxes do not report (it is a `boardFiles` entry
+      in the bug lane's config).
+- [x] A non-vacuity fixture: `scripts/nonvacuity/bad-ledger.mjs` asserts
+      `ledger/silent-open-box`, guards its denominator, and proves the clean
+      direction. `check:ledger`'s `no-gate-yet` waiver is retired — the harness
+      now runs 14 gates, 9 `check:*` scripts gated, 5 waived.
+- [x] `npm run validate` green.
+
+**One box from the original list was withdrawn, not ticked.** It read _"the plan
+lane's findings and denominator are unchanged — this widens coverage, it must not
+move existing results."_ That premise was wrong, and 0119 is why: the plan lane
+had no findings to preserve because the check had never run there either. The
+plan lane gained four findings, all real, all corrected here. Preserving its
+results would have meant preserving the silence.
 
 Deferred: none.
