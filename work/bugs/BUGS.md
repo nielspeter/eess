@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-12 · **Open:** 15 · **Fixed:** 2 · **Rejected:** 0
+**Updated:** 2026-08-12 · **Open:** 17 · **Fixed:** 2 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -137,3 +137,5 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0104](./0104-it-title-capture-stops-at-any-quote.md)           | `it('…')` title capture stops at any quote, not the opening one — a backticked title truncates and resolves against the wrong test      | High     | 🔴 Draft            | inbound · adopter integration, verified 2026-08-12                     | —         |
 | [0105](./0105-md-ts-drops-modifier-forms.md)                    | `md-ts` drops every `it.skip`/`it.only` definition — its own regex permits modifiers, the guard one line above does not                 | Medium   | 🔴 Draft            | inbound · adopter integration, verified 2026-08-12                     | —         |
 | [0106](./0106-no-gate-requires-a-changeset.md)                  | nothing requires a changeset, so a feature merges green and unreleasable — `gherkin-ts` is on `main` and in no published version        | High     | 🔴 Draft            | inbound · adopter integration, verified 2026-08-12                     | —         |
+| [0107](./0107-number-allocation-scans-one-lane.md)              | `/bug` and `/plan` allocate from their own lane, but the number sequence is shared — two collisions in one session                      | Medium   | 🔴 Draft            | self-found · two number collisions on 2026-08-12                       | —         |
+| [0108](./0108-work-readme-lanes-table-lists-one-lane.md)        | `work/README.md`'s Lanes table lists one lane and calls the rest cargo-cult; four exist — the one-screen map is the least-gated doc     | Low      | 🔴 Draft            | self-found · reviewing inbound proposal 002                            | —         |
