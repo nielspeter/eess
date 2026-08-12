@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { ArchRuleError } from '@nielspeter/eess'
 import { corpus } from '@nielspeter/eess-md'
 import { project } from '@nielspeter/eess-ts'
 import { adrCitationsResolve } from '../src/md-ts.js'
+import { citedItTitles } from '../src/it-title.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/citations')
 const proj = () => project(join(root, 'tsconfig.json'))
@@ -63,6 +65,10 @@ describe('adrCitationsResolve() — a title ends at the delimiter that opened it
   })
 
   it('round-trips titles delimited by ", ` and one holding an escaped quote', () => {
+    // Its own denominator: `not.toThrow()` is trivially true if the ADR side
+    // extracted nothing at all, so pin the citation count first.
+    const adr = readFileSync(join(root, 'docs/adr/0004-delimiters.md'), 'utf8')
+    expect(citedItTitles(adr)).toHaveLength(3)
     expect(() => adrCitationsResolve(c(['docs/adr/0004-delimiters.md']), proj())).not.toThrow()
   })
 })

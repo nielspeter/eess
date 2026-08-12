@@ -56,6 +56,29 @@ function extractCitations(opts: {
   return out
 }
 
+/**
+ * Count what this preset would actually scan — the caller's non-vacuity guard.
+ * `adrCitationsResolve` reports OK when it resolves zero citations, so a drifted
+ * `dir` or `roots` reads exactly like a clean pass; a gate that prints this
+ * number can tell the two apart. Mirrors `scenarioTestStats` in gherkin↔ts.
+ */
+export function adrCitationStats(
+  corpus: Corpus,
+  options: AdrCitationsResolveOptions = {},
+): { citations: number; adrs: number } {
+  const dir = options.dir ?? 'docs/adr/**'
+  const inDir = picomatch(dir)
+  return {
+    citations: extractCitations({
+      corpus,
+      dir,
+      section: options.section ?? /^enforcement$/i,
+      mechanismColumn: options.mechanismColumn ?? /mechanism/i,
+    }).length,
+    adrs: corpus.documents().filter((d) => inDir(d.relPath)).length,
+  }
+}
+
 /** Collect actual `it('…')` definitions from the project via eess-ts's public call API. */
 function extractTestDefs(project: ArchProject): TestDef[] {
   const allCalls = calls(project).select({
@@ -108,6 +131,15 @@ export function adrCitationsResolve(
     left,
     right,
     keyBy: (e) => e.title,
+    // `suggest.left`, not `.rule({ suggestion })` — the correspondence path drops
+    // rule-level suggestions, so a `Fix:` line never renders there (bug 0113).
+    // This appends the remedy to the message instead, which does.
+    suggest: {
+      left: () =>
+        'Fix: the cited title is compared as raw source text — if the test was renamed, ' +
+        'match the citation to it character for character (escapes included); ' +
+        'if it was deleted, restore it or retire the clause it enforced.',
+    },
   })
     .should()
     .beComplete({ direction: 'left-to-right' })

@@ -84,6 +84,9 @@ describe('scenarioTestsResolve() — gherkin↔ts', () => {
   })
 
   it('counts a backticked scenario as covered by the test that cites it', () => {
+    // Its own denominator: a drifted `quoted-features/**` root would load zero
+    // scenarios and leave "nothing uncovered" trivially true.
+    expect(scenarioTestStats(proj('quoted'), quotedSet()).scenarios).toBe(1)
     expect(() => scenariosCovered(proj('quoted'), quotedSet())).not.toThrow()
   })
 

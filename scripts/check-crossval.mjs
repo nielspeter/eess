@@ -18,7 +18,7 @@
  * Run: `npm run check:crossval`. Exits non-zero on drift.
  */
 import { diagramMatchesCode } from '@nielspeter/eess-crossvalidate/mermaid-ts'
-import { adrCitationsResolve } from '@nielspeter/eess-crossvalidate/md-ts'
+import { adrCitationsResolve, adrCitationStats } from '@nielspeter/eess-crossvalidate/md-ts'
 import {
   scenarioTestsResolve,
   scenariosCovered,
@@ -56,11 +56,16 @@ gate('diagram↔code (kernel charter, both directions)', () =>
 // The DEV tsconfig (includes tests/) — the build tsconfig excludes tests, so
 // cited it() titles would never resolve against it (this gate caught exactly
 // that misconfiguration on first run with real citations).
-gate('ADR↔test (citations resolve in the AST)', () =>
-  adrCitationsResolve(corpus({ roots: ['adr/**'] }), project('packages/ts/tsconfig.json'), {
-    dir: 'adr/**',
-  }),
-)
+gate('ADR↔test (citations resolve in the AST)', () => {
+  const adrs = corpus({ roots: ['adr/**'] })
+  adrCitationsResolve(adrs, project('packages/ts/tsconfig.json'), { dir: 'adr/**' })
+  // The denominator this gate ran on. A preset that resolves zero citations
+  // reports OK, so without a count a drifted `dir`/`roots` reads as a clean pass
+  // (CLAUDE.md: "if a count reads zero, treat that as a red flag"). Counted by
+  // the preset's own extractor, so the number cannot disagree with what it saw.
+  const s = adrCitationStats(adrs, { dir: 'adr/**' })
+  console.error(`  ADR↔test — ${s.citations} citations across ${s.adrs} ADRs`)
+})
 
 // scenario↔test — eess-crossvalidate's own scenario↔test binding contract
 // (specs/scenario-binding.feature) is proven by tests whose it() titles cite it;

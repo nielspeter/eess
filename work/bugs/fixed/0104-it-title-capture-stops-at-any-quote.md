@@ -2,9 +2,11 @@
 
 ## Status
 
-- **State:** Fixed — one title grammar, shared by both presets, ends the capture
-  at the delimiter that opened the string. 12 tests red before the change, 60
-  green after.
+- **State:** Fixed — the title grammar ends the capture at the delimiter that
+  opened the string, in one module both presets read. 12 tests red before the
+  change, 65 green after; the ADR↔test gate now has a non-vacuity fixture.
+  A three-persona review of the fix found a regression in it before merge (see
+  _Fix_) and three further defects, filed as 0111–0114.
 - **Severity:** High — **false green.** A citation whose test no longer exists
   resolved successfully against a _different_ test that shared a truncated
   prefix, so `adrCitationsResolve` passed over exactly the drift it exists to
@@ -105,7 +107,7 @@ helper they share — it landed in the helper.
 ## Why it matters
 
 This repo's severity scale calls a check that passes while the drift is present
-the cardinal sin ([BUGS.md](./BUGS.md)), and this is that case with no
+the cardinal sin ([BUGS.md](../BUGS.md)), and this is that case with no
 qualifier: a mechanism ADR tables cite as `gated` reports green over a citation
 pointing at a deleted test.
 
@@ -134,28 +136,58 @@ Named groups rather than the submitted `\1`/group-2 form, so the pattern can be
 embedded after other groups without renumbering. Three consumers are built from
 it — `itTitleOf` (`it`, for md↔ts), `itOrTestTitleOf` (`it|test`, for gherkin↔ts)
 and `citedItTitles` (unanchored + global, for an ADR's Mechanism cell) — which
-keeps the callee alternation at the call site. That matters: [0105](./0105-md-ts-drops-modifier-forms.md)
+keeps the callee alternation at the call site. That matters: [0105](../0105-md-ts-drops-modifier-forms.md)
 records that widening md↔ts to accept `test(…)` is a contract question for the
 ADR table, not a parser change, and a single shared regex would have smuggled it
 in the moment 0105's callee guard is fixed.
 
 Titles are compared as **raw source text**, so `it('it\'s fine')` keys on
 `it\'s fine`, backslash included. Both sides read the same grammar, so an ADR
-cites what the test file says rather than what the string evaluates to; this is
-stated in the module header.
+cites what the test file says rather than what the string evaluates to. That has
+a cost the first draft did not state and the review made explicit: a title's raw
+text is prettier's to change — `it("say 'hi' to \"them\"")` reformats to
+`it('say \'hi\' to "them"')`, moving the key while the citation's code span stays
+put, so a correct citation can go red after a routine `npm run format`. Loud, not
+silent, but it belongs in the contract. It is now in the module header, in
+`CLAUDE.md`'s enforcement-table convention, and in the `eess-adr-author` skill.
+
+**The review caught a regression in this fix, before merge.** Sharing one
+permissive grammar between two input classes was wrong: the anchored readers get
+guaranteed-valid TypeScript from `getText()`, where `\` is always an escape and
+delimiters balance; `citedItTitles` reads arbitrary prose, where neither holds.
+Given a cell with a malformed citation followed by a good one —
+
+```text
+`it('first` and `it('second')`
+```
+
+— the permissive body ran past the second citation's opening quote and closed
+there, yielding one bogus key and **dropping a real citation from the check
+entirely**. The old grammar, which could not cross a quote, recovered both. A
+citation nobody checks is the same false green this record is about, so the fix
+briefly made one direction worse. The prose variant is now tempered: it cannot
+cross a line, and cannot consume the start of another citation. Tempering on the
+full opening — callee, paren and quote — leaves a title that merely mentions
+`it(x)` intact.
+
+The same review found the unanchored scanner had no left word boundary, so
+`submit('save')`, `emit('drift')` and `audit('x')` all read as citations. Fixed
+here; it predates this change.
 
 The open question — whether a citation matching several tests should report the
 source text rather than the truncated key — **resolved itself**. The key now
 _is_ the source text, so the violation reads
 `it('catches `GONE` in a deleted test')`, which appears in the ADR verbatim.
 
-A `patch` changeset on `@nielspeter/eess-crossvalidate` — a resolution fix, no
-surface change.
+A `minor` changeset on `@nielspeter/eess-crossvalidate`: the resolution fix is a
+`patch`, but closing the non-vacuity gap below needed a denominator the package
+did not expose, so `adrCitationStats` is added — the md↔ts counterpart of
+`scenarioTestStats`.
 
 ## Verification
 
 Red first: with the old grammar restored under the new tests, **12 fail**; with
-the fix, all **60** crossvalidate tests pass.
+the fix, all **65** crossvalidate tests pass.
 
 - [x] Red test written first: a title containing a backtick inside single quotes
       resolves to its full text (`0003-backticked.md` — two tests identical up to
@@ -172,6 +204,34 @@ the fix, all **60** crossvalidate tests pass.
       `packages/crossvalidate/tests/it-title.test.ts`, and end-to-end through an
       ADR in `0004-delimiters.md`.
 - [x] An escaped delimiter inside a title (`it('it\'s fine')`) captures whole.
+- [x] The closing back-reference is load-bearing: review mutated it away and all
+      60 tests stayed green, so `it("mismatch')` → `undefined` is now asserted.
+- [x] The prose scanner survives a malformed neighbour, refuses a line break, and
+      ignores `submit(`/`emit(`/`audit(` — the three cases the tempering exists
+      for, each a test.
+- [x] **The gate is non-vacuous.** `scripts/nonvacuity/bad-md-ts.mjs` asserts
+      `crossval/adr-citations-resolve` on the `0005-renamed.md` + `orphan/`
+      collision, guards its own denominator, and proves the clean direction so a
+      permanently-red gate cannot pass for a working one. Measured: exit 1 clean ·
+      exit 0 with the extractor emptied · exit 2 with 0104's truncation restored.
+      Before this, stubbing `citedItTitles` to `[]` left `check:crossval` **and**
+      `check:nonvacuity` green.
+- [x] `GATE_FOR` maps a `check:*` to a **list** of gates, and every gate row must
+      be claimed by some `check:*`. The reverse direction found an unclaimed row
+      on its first run (`internal arch`, which `check:arch` does run).
 - [x] `npm run validate` green.
 
-Deferred: none.
+Deferred — each re-homed, none left with this record:
+
+- **`eess-md` carries the same defect, in a stronger form** — its citation check
+  resolves by _prefix_. It cannot import this module (crossvalidate → md, and
+  `eess/md-isolated` forbids the reverse), so the fix is a design decision, not a
+  patch. **→ [0111](../0111-md-adr-citations-resolve-by-prefix.md)** (High).
+- **Three of `check:crossval`'s five presets still have no fixture** — code→diagram,
+  `haveUniqueTitles`, `scenariosCovered`. **→ [0112](../0112-three-crossval-presets-have-no-fixture.md)**.
+- **`correspondence()` drops `.rule({ suggestion })`**, so this rule's remedy had
+  to go through `suggest.left` instead. **→ [0113](../0113-correspondence-drops-rule-suggestion.md)**.
+- **String-literal lexis belongs behind the eess-ts boundary** — `ArchCall` has no
+  accessor for a literal argument, which is why this grammar exists in a bridge
+  package at all. **→ [0114](../0114-string-literal-lexis-lives-outside-the-engine.md)**,
+  which is the prerequisite for retiring 0111's duplicate.

@@ -49,6 +49,14 @@ describe('itTitleOf() — the title ends at the delimiter that opened it', () =>
   it('does not run away past an unterminated string', () => {
     expect(itTitleOf("it('unterminated")).toBeUndefined()
   })
+
+  it('requires the closing delimiter to be the one that opened the string', () => {
+    // Without the `\k<q>` back-reference this returns 'mismatch'. Unreachable
+    // from real TypeScript source, which is why every other test stayed green
+    // when the closing back-reference was mutated away in review — this is the
+    // one that makes it load-bearing rather than decorative.
+    expect(itTitleOf(`it("mismatch')`)).toBeUndefined()
+  })
 })
 
 describe('itOrTestTitleOf() — the gherkin↔ts variant also accepts test()', () => {
@@ -87,5 +95,28 @@ describe('citedItTitles() — citations embedded in an ADR mechanism cell', () =
 
   it('finds nothing in a cell that cites no test', () => {
     expect(citedItTitles('`scripts/check-corpus.mjs` · manual review')).toEqual([])
+  })
+
+  // The prose variant is tempered because these three cases are not hypothetical
+  // — the first is a regression the shared grammar introduced, caught in review.
+  it('does not let a malformed citation swallow the next one', () => {
+    // A citation nobody checks is a false green. Losing the second citation here
+    // is worse than the ambiguity 0104 was about, so the first must fail alone.
+    expect(citedItTitles("`it('first` and `it('second')`")).toEqual(['second'])
+  })
+
+  it('does not read a call that merely ends in "it" as a citation', () => {
+    expect(citedItTitles("`form.submit('save')` · `emitter.emit('drift')`")).toEqual([])
+    expect(citedItTitles("`audit('x')` and `omit('y')`")).toEqual([])
+  })
+
+  it('does not run a citation across a line break', () => {
+    expect(citedItTitles("`it('unterminated\n| next row | 1 | `it('real')` |")).toEqual(['real'])
+  })
+
+  it('keeps a title that merely mentions a call with the same shape', () => {
+    expect(citedItTitles("vitest · `it('rejects it(x) in a comment')`")).toEqual([
+      'rejects it(x) in a comment',
+    ])
   })
 })

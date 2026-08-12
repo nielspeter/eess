@@ -131,6 +131,13 @@ Every ADR ends with a table; add one row per clause:
 - **Mechanism** must cite things that exist: a file path in backticks (it must
   resolve) and, where a test proves it, `` `path/to/x.test.ts` `` · `it('exact title')`
   (the title must exist and be unique). The corpus/crossval gates check these.
+  **"Exact" is the title's raw source text, character for character** — the
+  resolver compares what the test file _says_, not what the string evaluates to.
+  Cite an escaped delimiter with its escape (`it('it\'s fine')`), and fence a
+  title containing a backtick in a double-backtick code span
+  (``` ``it('catches `HACK` in a comment')`` ```). When you have a choice, write
+  test titles that need no escaping — a raw-text key moves when a formatter
+  restyles the quotes, and the citation does not move with it.
 - **Status** is a fixed vocabulary — and this is where honesty lives:
   - `gated` — the mechanism runs in CI and failing blocks. Only claim this if the
     rule is wired into a gate **and green today**.

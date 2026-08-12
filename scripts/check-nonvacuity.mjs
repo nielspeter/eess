@@ -338,6 +338,7 @@ const gates = [
   ['spec', gateSpec],
   ['crossval', () => gateNode('bad-crossval.mjs', 'crossval/diagram-completeness')],
   ['crossval/gherkin-ts', () => gateNode('bad-gherkin-ts.mjs', 'crossval/scenario-tests-resolve')],
+  ['crossval/md-ts', () => gateNode('bad-md-ts.mjs', 'crossval/adr-citations-resolve')],
   ['corpus/adr', () => gateNode('bad-adr.mjs', 'adr/valid-tiers')],
   ['corpus/links', () => gateNode('bad-links.mjs', 'nonvacuity/broken-links')],
   ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'nonvacuity/pointers-resolve')],
@@ -352,21 +353,32 @@ const gates = [
 const NO_GATE_NEEDED = {
   'check:fast': 'an alias — runs corpus + spec + arch, each gated on its own',
   'check:nonvacuity': 'this harness',
-  'check:numbers': 'gated as work/numbers',
   'check:integrity': 'no-gate-yet — npm workspace guardrails, see 0110',
   'check:ledger': 'no-gate-yet — honestyAtClose, see 0110',
   'check:examples': 'no-gate-yet — tsc over examples/, see 0110',
   'check:docs-code': 'no-gate-yet — doc fences compile, see 0110',
 }
+// A check:* script may run several presets, and one gate row proves only the one
+// preset its fixture violates. Mapping a script to a single row therefore
+// over-claims: `check:crossval` ran five presets against one row and printed
+// "every check:* accounted for" while the ADR↔test direction — the subject of
+// bug 0104 — could be emptied and stay green. So the value is a LIST, and it is
+// the list a reader can audit against the script. Bug 0112 tracks the three
+// presets still uncovered.
 const GATE_FOR = {
-  'check:arch': 'arch (root rules)',
-  'check:baseline': 'baseline',
-  'check:diagram': 'diagram',
-  'check:spec': 'spec',
-  'check:crossval': 'crossval',
-  'check:corpus': 'corpus/adr',
-  'check:review-harness': 'review-harness',
+  // `eess-ts check arch.rules.ts arch.internal.rules.ts` — two rule files, two rows.
+  'check:arch': ['arch (root rules)', 'internal arch'],
+  'check:baseline': ['baseline'],
+  'check:diagram': ['diagram'],
+  'check:spec': ['spec'],
+  'check:crossval': ['crossval', 'crossval/gherkin-ts', 'crossval/md-ts'],
+  'check:corpus': ['corpus/adr', 'corpus/links', 'corpus/pointers'],
+  'check:review-harness': ['review-harness'],
+  'check:numbers': ['work/numbers'],
 }
+// Rows that measure the harness itself rather than a check:* script. They are
+// excluded from the count for the reason stated at the run loop below.
+const INSTRUMENTS = new Set(['harness self-check', 'gate coverage'])
 function gateCoverage() {
   const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
   const checks = Object.keys(pkg.scripts ?? {}).filter((k) => k.startsWith('check:'))
@@ -376,7 +388,19 @@ function gateCoverage() {
     if (NO_GATE_NEEDED[c] !== undefined) continue
     const g = GATE_FOR[c]
     if (g === undefined) problems.push(`${c} has no gate and no waiver`)
-    else if (!names.has(g)) problems.push(`${c} maps to gate "${g}", which is not in the list`)
+    else if (g.length === 0) problems.push(`${c} maps to an empty gate list`)
+    else
+      for (const one of g) {
+        if (!names.has(one)) problems.push(`${c} maps to gate "${one}", which is not in the list`)
+      }
+  }
+  // Every gate row must be claimed by some check:*, or the list has grown a row
+  // nothing runs — the same silent drift one level over.
+  const claimed = new Set(Object.values(GATE_FOR).flat())
+  for (const [n] of gates) {
+    if (typeof n === 'string' && !claimed.has(n) && !INSTRUMENTS.has(n)) {
+      problems.push(`gate "${n}" is in the list but no check:* claims it`)
+    }
   }
   const waived = Object.keys(NO_GATE_NEEDED).filter((k) => checks.includes(k)).length
   return {
@@ -387,7 +411,8 @@ function gateCoverage() {
         : 'FAILED (a check:* is unaccounted for)',
     detail:
       problems.length === 0
-        ? `${checks.length} check:* scripts — ${Object.keys(GATE_FOR).length} gated, ${waived} waived`
+        ? `${checks.length} check:* scripts — ${Object.keys(GATE_FOR).length} gated by ` +
+          `${Object.values(GATE_FOR).flat().length} fixtures, ${waived} waived`
         : problems.join(' · '),
   }
 }
