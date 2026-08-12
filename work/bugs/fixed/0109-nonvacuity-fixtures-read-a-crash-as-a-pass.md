@@ -2,18 +2,21 @@
 
 ## Status
 
-- **State:** Fixed — sentinel required at the harness, both catch-alls typed,
-  three weak assertions strengthened, and a self-check that proves the harness.
+- **State:** Fixed — sentinel required at the harness; the three fixtures that
+  could announce the wrong failure now assert violation identity; three weak
+  assertions strengthened; a self-check that proves the harness, itself proven
+  against three crash modes. Review found three further defects before merge —
+  see _What review found_.
 - **Severity:** High — **false green**, in the one gate whose entire job is
   proving the others cannot go falsely green.
-- **Origin:** self-found · while fixing [0107](./fixed/0107-number-allocation-scans-one-lane.md),
+- **Origin:** self-found · while fixing [0107](./0107-number-allocation-scans-one-lane.md),
   whose own red test caught this class in itself on its first run
 - **Reported:** 2026-08-12 · **Fixed:** 2026-08-12 (PR #40)
 
 ## Symptom
 
-`gateNode` (`scripts/check-nonvacuity.mjs:151`) asserts an exit code and nothing
-else:
+`gateNode` asserted an exit code and nothing else (line numbers below are as of
+the report, before the fix moved them):
 
 ```js
 function gateNode(script, ruleNote) {
@@ -92,7 +95,7 @@ future rule failing in that fixture would keep it green.
 
 ## Why it matters
 
-This is the cardinal sin from [BUGS.md](./BUGS.md)'s severity scale — a check
+This is the cardinal sin from [BUGS.md](../BUGS.md)'s severity scale — a check
 that passes while the drift it exists to catch is present — located in the gate
 that exists to prove the other gates cannot do that. Everything downstream of it
 inherits its confidence: the harness prints _"all gates fail on violating input
@@ -156,6 +159,45 @@ which is the point of the exercise:
   output for `foreign-project token`) but impossible to distinguish from a
   crash. It now prints the house sentinel on both paths.
 
+## What review found
+
+A four-persona review of the fix (architect · product · enforcement · testing)
+found **three further instances of this bug's own class in the fix itself**. All
+three were reproduced, fixed, and re-verified before merge; they are recorded
+here rather than folded in silently, because a record that hides what review
+caught teaches the next author nothing.
+
+1. **The self-check was itself vacuous.** It asserted only that `gateNode`
+   _rejected_ the stub — and a stub that exits 0 is also rejected. Emptying the
+   stub therefore left it green while proving nothing, and emptying it _plus_
+   reverting the sentinel line restored the full defect with the harness still
+   printing `rejects a crashing stub`. The self-check now requires the stub to
+   have really crashed (`exit === 1`) **and** been rejected, which makes the stub
+   contents load-bearing, and it runs **three** stubs — unresolvable import,
+   syntax error, top-level throw — so it pins the property rather than one crash
+   shape.
+
+2. **`bad-adr.mjs` still had the untyped catch-all.** The fix named "two
+   catch-alls"; there were three. Reproduced: set the fixture ADR's tier to a
+   valid `1` and break its Mechanism citation instead — a _different_ check
+   fires, the fixture prints `invalid tier rejected as expected`, exit 1, and the
+   gate reports OK naming `adr/valid-tiers` while that rule never ran. A typed
+   catch could not have fixed it, because the throw **is** an `ArchRuleError`.
+   It now takes `report: 'return'` and asserts `ruleId === 'adr/valid-tiers'`.
+
+3. **A typed catch is a proxy, not a discriminator.** `diagramMatchesCode`
+   checks completeness in both directions and the fixture violates both, so the
+   code→diagram half alone satisfied a gate labelled for the diagram→code half.
+   Reproduced with a diagram whose classes all exist in code: still threw, still
+   exit 1, direction under test never exercised. `bad-crossval.mjs` now reads the
+   violations off the thrown error (`diagramMatchesCode` returns `void` — bug 0097) and requires a diagram→code violation specifically.
+
+The generalisation these three share — _proving a gate ran is not proving the
+right rule fired_ — is only half-done. Five `gateNode` gates still pass a
+`ruleNote` that is interpolated into the display string and asserted nowhere.
+That, and the structural findings behind it, are re-homed to
+[0110](../0110-nonvacuity-gates-do-not-assert-which-rule-fired.md).
+
 ## Verification
 
 - [x] Red test written first: a crashing stub (unresolvable import → exit 1, no
@@ -163,18 +205,24 @@ which is the point of the exercise:
       permanent gate, `harness self-check`, and it is genuinely red without the
       fix — reverting the sentinel line to `const spoke = true` produces
       `FAILED · ACCEPTED a crashing stub — the sentinel check is broken`.
-- [x] `bad-crossval` and `bad-gherkin-ts` exit **2**, not 1, when their input is
-      unreachable. The original reproduction now reads
+- [x] `bad-crossval` and `bad-gherkin-ts` exit **2**, not 1, when the specific
+      inputs verified — a missing `.mmd` and a missing tsconfig. The original
+      reproduction now reads
       `bad-crossval: unexpected error (not ArchRuleError) — MermaidUnit parse failed:`
-      instead of `drift detected as expected`.
+      instead of `drift detected as expected`. Narrowed from "their input" on
+      review: `bad-gherkin-ts` still exits 1 on a drifted **feature root**, where
+      an empty feature set makes every citation dangle — re-homed to 0110.
 - [x] Both still exit 1 on their real, intended violation — `crossval` and
       `crossval/gherkin-ts` remain OK in the harness.
 - [x] `gateDiagram` asserts `diagram/kernel-stereotype` via `--format json`;
       `gateArch` asserts `eess/adr002-no-raw-typescript`; `gateBaseline` asserts
       the eval rule's description.
-- [x] `npm run check:nonvacuity` reports **13 gates**, all failing on violating
-      input — the hardening turned no sound gate red once the two defects above
-      were fixed.
+- [x] `npm run check:nonvacuity` reports **12 gates** each failing on their
+      violating input, plus the self-check instrument reported separately — the
+      instrument is no longer counted among the measurements.
+- [x] The self-check is red under both mutations that defeated its first version:
+      an emptied stub (`syntax error → ok=false exit=0`) and a reverted sentinel
+      (all three modes `ok=true exit=1`).
 - [x] `npm run validate` green.
 
 Deferred: none.

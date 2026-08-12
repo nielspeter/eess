@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-12 · **Open:** 16 · **Fixed:** 4 · **Rejected:** 0
+**Updated:** 2026-08-12 · **Open:** 17 · **Fixed:** 4 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -140,3 +140,4 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0107](./fixed/0107-number-allocation-scans-one-lane.md)           | `/bug` and `/plan` allocate from their own lane, but the number sequence is shared — two collisions in one session                      | Medium   | ✅ Fixed → `fixed/` | self-found · two number collisions on 2026-08-12                             | #39       |
 | [0108](./0108-work-readme-lanes-table-lists-one-lane.md)           | `work/README.md`'s Lanes table lists one lane and calls the rest cargo-cult; four exist — the one-screen map is the least-gated doc     | Low      | 🔴 Draft            | self-found · reviewing inbound proposal 002                                  | —         |
 | [0109](./fixed/0109-nonvacuity-fixtures-read-a-crash-as-a-pass.md) | the non-vacuity harness read a crashed fixture as a detected violation — the meta-gate had the defect it exists to catch                | High     | ✅ Fixed → `fixed/` | self-found · auditing the fixtures after 0107's red test caught it in itself | #40       |
+| [0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)  | five non-vacuity gates prove a fixture ran but not which rule fired — `ruleNote` is printed, never asserted                             | Medium   | 🔴 Draft            | self-found · four-persona review of 0109's fix                               | —         |

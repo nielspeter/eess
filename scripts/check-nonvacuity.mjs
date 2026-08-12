@@ -20,22 +20,46 @@
  *                 `recommended` preset run against our source by check:baseline).
  *   diagram       scripts/nonvacuity/bad-diagram.mmd has a class with no
  *                 <<kernel>> stereotype → diagram/kernel-stereotype.
+ *   spec          scripts/nonvacuity/bad-spec.rules.ts → spec/nonvacuity-probe.
  *   crossval      scripts/nonvacuity/ghost-diagram.mmd declares a class absent
- *                 from the kernel code → crossval/diagram-completeness.
+ *                 from the kernel code → crossval/diagram-completeness, in the
+ *                 diagram→code direction specifically.
  *   crossval/gk   the gherkin-ts `red` fixture project cites scenarios absent
  *                 from the feature set → crossval/scenario-tests-resolve.
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
  *   corpus/links  scripts/nonvacuity/bad-links/broken.md links a missing file →
  *                 the links().should().resolve() check.
+ *   corpus/ptr    scripts/nonvacuity/bad-pointers/ cites a line that does not
+ *                 exist → the pointers().should().resolve() check.
+ *   review-harness  scripts/nonvacuity/bad-review-harness/ carries foreign-project
+ *                 tokens → check-review-harness.mjs.
+ *   work/numbers  scripts/nonvacuity/bad-numbers/ claims one number in two lanes
+ *                 → kit/scripts/next-number.mjs --check.
  *
- * The three probe files are ephemeral: created just before their run, deleted in a
+ * THE FIXTURE CONTRACT (bug 0109). A node fixture must print its own
+ * `bad-<name>:` sentinel on EVERY exit path, and exit 1 only for the specific
+ * violation its gate is named for — 2 for any unexpected error, 0 when it found
+ * nothing. `gateNode` disbelieves an exit code that arrives without the
+ * sentinel, because node also exits 1 on an unhandled throw, a syntax error and
+ * a failed module resolution; and a top-level import resolves before the
+ * fixture's own try/catch, so only the harness can prove the fixture ran. Where
+ * a preset bundles several checks, "it threw" is not enough either: assert the
+ * violation's `ruleId` (and, for a two-directional check, its direction), or the
+ * gate stays green when the rule it names is deleted.
+ *
+ * `harness self-check` is the instrument, not a measurement: it feeds gateNode
+ * three deliberately-crashing stubs and requires each to be REJECTED. It is
+ * excluded from the gate count so the denominator stays honest.
+ *
+ * The four probe files are ephemeral: created just before their run, deleted in a
  * finally block, and swept at startup so a prior crash can never leave one in
- * packages/core/src. Everything else is a committed fixture under
- * scripts/nonvacuity/. Uses only node builtins + the workspace packages.
+ * packages/core/src or scripts/nonvacuity/. Everything else is a committed
+ * fixture under scripts/nonvacuity/. Uses only node builtins + the workspace
+ * packages.
  *
- * Run: `node scripts/check-nonvacuity.mjs`. Exits 0 iff every gate failed on its
- * violating input. Not yet wired into package.json/CI (that lands in Phase 6).
+ * Run: `node scripts/check-nonvacuity.mjs` (`npm run check:nonvacuity`, and in
+ * the `validate` chain). Exits 0 iff every gate failed on its violating input.
  */
 import { spawnSync } from 'node:child_process'
 import { writeFileSync, rmSync } from 'node:fs'
@@ -179,31 +203,51 @@ function gateNode(script, ruleNote) {
   if (!spoke) {
     return {
       ok: false,
-      detail: `exit ${r.code} but no "${sentinel}" output — the fixture died before reporting`,
+      code: r.code,
+      detail: `exit ${r.code} but no "${sentinel}" output — the fixture never printed its sentinel`,
     }
   }
   // The fixture scripts exit 1 only on the intended violation (2 = unexpected
   // error, 0 = vacuous), so require exactly 1.
-  return { ok: r.code === 1, detail: `exit ${r.code} (${ruleNote})` }
+  return { ok: r.code === 1, code: r.code, detail: `exit ${r.code} (${ruleNote})` }
 }
 
 // --- Harness self-check: a crashed fixture must NOT read as a detected violation ---
-// The harness proves every gate; this proves the harness. A stub whose top-level
-// import cannot resolve exits 1 without ever running its body — exactly the
-// shape of bug 0109 — and `gateNode` must reject it. If this ever passes the
-// stub, the sentinel check has been weakened and every gateNode result below is
-// worth nothing.
+// The harness proves every gate; this proves the harness.
+//
+// Each stub below dies a *different* way, and all three exit 1 without printing a
+// sentinel — the exact three modes bug 0109 names. `gateNode` must reject every
+// one. Rejection alone is not enough to assert: a stub that exits 0 is also
+// rejected, so an emptied stub would "pass" while proving nothing (that was this
+// self-check's own first defect, found in review). The stub must be shown to have
+// really crashed — `code === 1` — *and* been rejected. That makes the stub
+// contents load-bearing: empty one and this goes red.
 const SELFTEST = join(repoRoot, 'scripts', 'nonvacuity', '__selftest_crash__.mjs')
+const SELFTEST_STUBS = [
+  // Relative, so no published-package name can ever accidentally satisfy it.
+  ['unresolvable import', "import x from './__selftest_absent__.mjs'\nconsole.log(x)\n"],
+  ['syntax error', 'const = = =\n'],
+  ['top-level throw', "throw new Error('selftest')\n"],
+]
 function gateHarnessSelfCheck() {
-  return withProbe(SELFTEST, "import x from '@nielspeter/eess-definitely-not-installed'\n", () => {
-    const res = gateNode('__selftest_crash__.mjs', 'self-check')
-    return {
-      ok: res.ok === false,
-      detail: res.ok
-        ? 'ACCEPTED a crashing stub — the sentinel check is broken (bug 0109)'
-        : 'rejects a crashing stub (exit 1 without reaching its reporting path)',
+  const bad = []
+  for (const [label, source] of SELFTEST_STUBS) {
+    const res = withProbe(SELFTEST, source, () =>
+      gateNode('__selftest_crash__.mjs', 'self-check stub'),
+    )
+    if (res.ok !== false || res.code !== 1) {
+      bad.push(`${label} → ok=${String(res.ok)} exit=${String(res.code)}`)
     }
-  })
+  }
+  return {
+    ok: bad.length === 0,
+    status:
+      bad.length === 0 ? 'OK (rejects a crashed fixture)' : 'FAILED (accepted a crashed fixture)',
+    detail:
+      bad.length === 0
+        ? `all ${SELFTEST_STUBS.length} crash modes rejected — each exited 1 with no sentinel`
+        : `ACCEPTED a crashing stub — the sentinel check is broken (bug 0109): ${bad.join(' · ')}`,
+  }
 }
 rmSync(SELFTEST, { force: true })
 
@@ -227,6 +271,11 @@ const gates = [
 ]
 
 let allOk = true
+// The self-check is the instrument, not a measurement: it does not "fail on
+// violating input", it rejects a crashed fixture. Counting it among the gates
+// would inflate the denominator — the exact over-claim this harness exists to
+// prevent — so it carries its own status wording and is excluded from the count.
+let gateCount = 0
 for (const [name, run] of gates) {
   let res
   try {
@@ -235,15 +284,16 @@ for (const [name, run] of gates) {
     res = { ok: false, detail: `harness error: ${err.message}` }
   }
   if (!res.ok) allOk = false
-  const status = res.ok
-    ? 'OK (fails on violating input)'
-    : 'FAILED (did not fail on violating input)'
+  if (res.status === undefined) gateCount++
+  const status =
+    res.status ??
+    (res.ok ? 'OK (fails on violating input)' : 'FAILED (did not fail on violating input)')
   console.log(`nonvacuity: ${name} — ${status} · ${res.detail}`)
 }
 
 console.log(
   allOk
-    ? '\nnonvacuity: all gates fail on violating input — no gate is vacuous.'
+    ? `\nnonvacuity: ${gateCount} gates each failed on their violating input — none is silently green.`
     : '\nnonvacuity: at least one gate did NOT fail on violating input — see above.',
 )
 process.exit(allOk ? 0 : 1)
