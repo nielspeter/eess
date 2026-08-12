@@ -87,7 +87,25 @@ function extractTestDefs(project: ArchProject): TestDef[] {
   }).elements
   const out: TestDef[] = []
   for (const call of allCalls) {
-    if (call.getName() !== 'it') continue
+    // The ROOT callee, not the full name. eess-ts names a modifier call by its
+    // whole member expression, so `it.skip(…)` is `'it.skip'` and comparing the
+    // full name dropped every skipped, focused or concurrent test before its
+    // title was read — while the citation side had always accepted those forms
+    // (bug 0105). The gate binds a citation; it does not run the test, so a
+    // skipped test's citation is still checked. Same reasoning, same shape as
+    // `gherkin-ts.ts` — which is where it was already written down.
+    //
+    // **This guard is not what decides.** `itTitleOf` is anchored on the literal
+    // callee (`^` + `(?:it)(?:\.\w+)?\(`), so the grammar alone already rejects
+    // `describe(…)`, `test(…)`, `suite.it(…)`, `it.a.b(…)` and the outer
+    // `it.each([…])(…)`. Review measured it: delete these two lines and the whole
+    // suite stays green. What the guard buys is a cheap pre-filter — it skips
+    // `getArguments()` + `getText()` for every call expression in the project —
+    // and defence in depth: widening what counts as a test takes BOTH this line
+    // and the grammar, so neither can smuggle one in alone. Keep it for those
+    // reasons, not for a rejection it does not perform.
+    const root = call.getObjectName() ?? call.getMethodName()
+    if (root !== 'it') continue
     const title = itTitleOf(call.getName({ withArgument: 0 }) ?? '')
     if (title !== undefined) {
       out.push({ title, file: call.getSourceFile().getFilePath() })
