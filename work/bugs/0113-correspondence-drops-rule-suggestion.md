@@ -2,8 +2,15 @@
 
 ## Status
 
-- **State:** Draft — confirmed against the source and against a live gate run; no
-  red test written yet.
+- **State:** Parked — **narrowed on 2026-08-12.** Parked rather than Draft: it is
+  waiting on a ruling, not on work, and the bug lane has a state for that. The headline symptom is fixed:
+  [0122](./fixed/0122-violations-path-drops-because.md) stamps `suggestion`,
+  `docs`, `because` and `ruleId` from the rule onto every violation in
+  `applyFilters`, so a correspondence rule now renders its `Fix:` line
+  (`packages/core/tests/correspondence.test.ts` · `it('carries because,
+suggestion, docs and ruleId onto violations from .violations()')`). What
+  remains is the **ambiguous branch**, which is a design call rather than a
+  missing stamp — see _Fix_.
 - **Severity:** Medium — an honesty gap between a stated claim and its mechanism.
   The builder accepts a documented field and does nothing with it, and CLAUDE.md
   promises every violation surfaces a `Fix:` line.
@@ -70,13 +77,26 @@ the whole `eess-crossvalidate` surface.
 
 ## Fix
 
-Carry rule metadata into the violation, as the other paths do — `suggestion` and
-`docs` from the condition context onto `violationFor`. Keep `suggest` for the
-per-element case, where the remedy depends on which element failed, and apply it
-to the ambiguous branch too.
+**Done, by 0122.** Rule metadata is now carried onto the violation in
+`applyFilters` — one stamp for every builder, rather than a correspondence-local
+patch. Precedence fell out correctly and is worth stating: `suggest` folds its
+text into the **message**, `suggestion` is a separate field, so the two do not
+collide and both can be present. A condition that sets its own `suggestion` is
+never overwritten.
 
-Where both are present, `suggest` (specific) should win over `suggestion`
-(generic); document that rather than leaving it to call order.
+**Still open — the ambiguous branch, and it needs a decision, not a stamp.**
+`suggestLeft` is applied to `leftUnmatched` (`packages/core/src/correspondence.ts`)
+and not to `leftAmbiguous`. Applying the same callback is one line, but it is not
+obviously right: a `suggest.left` written for the unmatched case reads as
+"remove this row or restore the missing thing", which is the wrong advice when
+the row matched _too many_ things. The remedy there is "disambiguate", and the
+two are different enough that reusing the text would mis-advise. Either accept
+that and apply it anyway, or give the ambiguous case its own `suggest.ambiguous`.
+That is the call this record is now waiting on, and
+[0124](./0124-correspondence-stamps-one-remedy-onto-opposite-branches.md) is the
+same call arriving from the other side: its preferred fix — `correspondence()`
+populating `v.suggestion` per branch — answers this record's question as a
+byproduct. Decide them together.
 
 **The ambiguous branch also mis-attributes, not just under-advises.** Its
 violation points at the _left_ element (the ADR row) and says "matches multiple
@@ -93,10 +113,13 @@ correspondence gate output — worth a note in the changeset since CI logs chang
 
 ## Verification
 
-- [ ] Red test written first: a correspondence rule declaring `suggestion`
-      renders a `Fix:` line. Fails today.
-- [ ] An ambiguous match renders its `suggest.left` output.
-- [ ] `--format json` carries `suggestion` for a correspondence violation.
+- [x] Red test written first: a correspondence rule declaring `suggestion`
+      renders a `Fix:` line — done in 0122, and verified red before the fix.
+- [x] `--format json` carries `suggestion` for a correspondence violation.
+- [ ] The ambiguous branch advises — blocked on the decision above, not on work.
+- [ ] The ambiguous message names the colliding right-hand elements (file and
+      line), which the correspondence already holds. Independent of the
+      suggest question, and the sharper half of this record.
 - [ ] `npm run validate` green.
 
 Deferred: none.

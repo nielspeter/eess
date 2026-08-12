@@ -123,12 +123,6 @@ export function declarationsIn(text, file) {
   return { declarations, empty: declarations.length === 0 }
 }
 
-/** Rationale is stamped here: the kernel's `.violations()` path drops `ctx.reason` (bug 0122). */
-function stamp(violations, because) {
-  for (const v of violations) if (v.because === undefined) v.because = because
-  return violations
-}
-
 const WHY_UNDECLARED =
   'a package can change, pass every gate and merge without ever reaching a consumer: with no ' +
   'changeset, `changeset version` never bumps it and `changeset publish` never ships it'
@@ -224,8 +218,8 @@ export function releaseViolations({
   }))
 
   const violations = [
-    ...(waived ? [] : stamp(needsChangeset.violations(), WHY_UNDECLARED)),
-    ...stamp(namesRealPackage.violations(), WHY_GHOST),
+    ...(waived ? [] : needsChangeset.violations()),
+    ...namesRealPackage.violations(),
     ...unreadable,
   ]
 

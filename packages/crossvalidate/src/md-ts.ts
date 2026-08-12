@@ -149,9 +149,15 @@ export function adrCitationsResolve(
     left,
     right,
     keyBy: (e) => e.title,
-    // `suggest.left`, not `.rule({ suggestion })` — the correspondence path drops
-    // rule-level suggestions, so a `Fix:` line never renders there (bug 0113).
-    // This appends the remedy to the message instead, which does.
+    // `suggest.left`, not `.rule({ suggestion })`, and now for the right reason.
+    // The original comment here said rule-level suggestions never render on a
+    // correspondence (true until bug 0122 fixed it) and that appending to the
+    // message "does" render — which was never true: the terminal formatter
+    // dropped `message` entirely, so this remedy was invisible in the one format
+    // an agent reads. Both halves are fixed. `suggest` stays because the remedy
+    // is per-branch: a rule-level `suggestion` is stamped onto every branch of
+    // the correspondence, and "match the citation character for character" is
+    // advice for a *dangling* citation, not for an ambiguous or an uncited one.
     suggest: {
       left: () =>
         'Fix: the cited title is compared as raw source text — if the test was renamed, ' +

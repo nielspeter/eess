@@ -81,6 +81,77 @@ const branch = ({ g }) => g('checkout', '-q', '-b', 'feature')
 
 const E2E = [
   [
+    'an UNCOMMITTED change is seen even when the base is HEAD',
+    ({ write }) => {
+      // No branch, no commit: merge-base === HEAD. An earlier version
+      // short-circuited on that and reported `0 changed` while the package sat
+      // modified in the working tree — a false negative in the shape of every
+      // local run before the first commit, which is exactly when the reminder
+      // is wanted. Found by running the gate on its own branch.
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+    },
+    1,
+    ['release/changed-package-needs-changeset', '@fixture/alpha'],
+  ],
+  [
+    'a clean tree with the base at HEAD says it had nothing to read',
+    () => {},
+    0,
+    ['nothing to read'],
+  ],
+  [
+    'a dirty tree at base HEAD does not claim it had nothing to read',
+    ({ write }) => {
+      // The `&& changedFiles.length === 0` conjunct is what separates "could not
+      // look" from "found nothing" (bug 0120). Without it the gate prints
+      // `base is HEAD and the tree is clean — nothing to read` directly above
+      // `findings ✗ 1`. Three reviewers killed that mutation independently and
+      // no existing scenario could see it: the first asserts only that the
+      // finding fires, the second runs on a clean tree where both forms agree.
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+    },
+    1,
+    ['1 package(s)'],
+    ['nothing to read'],
+  ],
+  [
+    'a changeset added on THIS branch and then consumed still counts',
+    ({ dir, g, write, pkg }) => {
+      // `--diff-filter=D` against the merge base cannot see a changeset that
+      // never existed there. Before this was read from HEAD too, the gate
+      // accused its own package while the declaration sat one commit back.
+      branch({ g })
+      write('.changeset/a.md', "---\n'@fixture/alpha': minor\n---\n\nnote\n")
+      g('add', '-A')
+      g('commit', '-qm', 'changeset on the branch')
+      rmSync(join(dir, '.changeset/a.md'))
+      write('packages/alpha/package.json', pkg('@fixture/alpha', '1.1.0'))
+      g('add', '-A')
+      g('commit', '-qm', 'version packages')
+    },
+    0,
+    ['consumed by this diff'],
+  ],
+  [
+    'a changeset committed on this branch and consumed UNCOMMITTED still counts',
+    ({ dir, g, write, pkg }) => {
+      // RELEASING.md runs `npm run validate` BEFORE committing the version bump,
+      // so the deletion is usually still in the working tree. When the changeset
+      // also entered on this branch it exists at neither endpoint of a
+      // merge-base diff — only in HEAD. Dropping that lookup survived every
+      // other scenario here.
+      branch({ g })
+      write('.changeset/a.md', "---\n'@fixture/alpha': minor\n---\n\nnote\n")
+      g('add', '-A')
+      g('commit', '-qm', 'changeset on the branch')
+      rmSync(join(dir, '.changeset/a.md'))
+      write('packages/alpha/package.json', pkg('@fixture/alpha', '1.1.0'))
+      // deliberately NOT committed
+    },
+    0,
+    ['consumed by this diff'],
+  ],
+  [
     'a changed, undeclared package fails the build',
     ({ g, write }) => {
       branch({ g })
@@ -196,7 +267,7 @@ const E2E = [
 ]
 
 try {
-  for (const [name, build, wantCode, wantSaid] of E2E) {
+  for (const [name, build, wantCode, wantSaid, wantUnsaid = []] of E2E) {
     const { code, out } = scenario(build)
     if (code !== wantCode)
       vacuous(
@@ -206,6 +277,12 @@ try {
     for (const said of wantSaid) {
       if (!out.includes(said))
         vacuous(`end to end — "${name}": exited ${code} but never said "${said}"`)
+    }
+    for (const unsaid of wantUnsaid) {
+      if (out.includes(unsaid))
+        vacuous(
+          `end to end — "${name}": said "${unsaid}", which contradicts the finding it reported`,
+        )
     }
   }
 } catch (err) {

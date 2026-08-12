@@ -23,11 +23,16 @@ export interface ExecuteRuleContext {
 }
 
 /**
- * Apply exclusion patterns, inline exclusion comments, baseline,
- * and diff filtering to a set of violations, then execute the
- * terminal action (throw or warn).
+ * Stamp rule metadata onto violations and apply the rule's exclusions.
  *
- * Extracted to eliminate terminal-method duplication across builders.
+ * Extracted to eliminate terminal-method duplication across builders. Baseline
+ * and diff filtering are NOT done here — `executeCheck`/`executeWarn` apply
+ * those after calling this — and neither is the terminal action.
+ *
+ * **Mutates the violations it is given** and returns a filtered array of the
+ * same objects. Every in-repo producer builds fresh violations per call, so this
+ * is safe today; a caller that hands one array to two rules would see the first
+ * rule's metadata stick. Stated because this is exported API.
  */
 export function applyFilters(
   violations: ArchViolation[],
@@ -68,16 +73,46 @@ export function applyFilters(
     })
   }
 
-  // Scan source files for inline exclusion comments (when rule has an ID)
-  if (ctx.metadata?.id && result.length > 0) {
-    // Tag violations with the rule id so inline exclusion comments (which match
-    // on ruleId) work for every condition — not just the few that stamp it
-    // themselves. The id is a property of the rule, so this is its single
-    // source of truth; conditions that already set it are left untouched.
-    const ruleId = ctx.metadata.id
+  // Stamp rule-level metadata onto every violation that doesn't carry its own.
+  //
+  // `id`, `because`, `suggestion` and `docs` are properties of the RULE, so this
+  // is their single source of truth; a condition that already set one is left
+  // untouched. That guard is load-bearing, not decorative: `TsconfigBuilder`
+  // computes a per-key `suggestion` ("required X, actual Y") that must survive a
+  // rule-level generic one, and `spec.rules.ts` builds a per-row remedy the same
+  // way. It is tested directly in `packages/core/tests/execute-rule.test.ts`,
+  // because inverting it passed the whole suite and every gate.
+  //
+  // Most builders already carried these: `RuleBuilder`, the pair/slice/schema/
+  // resolver builders and the ts dialect's `createViolation` all thread them
+  // through `ConditionContext`. (An earlier version of this comment named the
+  // pair builders as affected — measured false: dropping the stamp reddens only
+  // the correspondence tests.) The ones that construct violations directly and
+  // had no such path are `correspondence()` and `TsconfigBuilder`, which lost:
+  //
+  //   - `.because()` reached the terminal renderer only via the report-level
+  //     `reason` that `.check()` passes separately, so the `.violations()` path
+  //     — ADR-008's caller-owns-emission route — dropped it entirely, in every
+  //     format (bug 0122). Two gates had already hand-written the same
+  //     workaround, which is the signal it belongs here.
+  //   - `.rule({ suggestion })` type-checked, ran, and could never render a
+  //     `Fix:` line for a two-sided rule (bug 0113).
+  //
+  // Done before the exclusion-comment scan below, and outside its `metadata.id`
+  // guard: `.because()` is usable without `.rule({ id })`.
+  if (result.length > 0) {
     for (const v of result) {
-      if (v.ruleId === undefined) v.ruleId = ruleId
+      if (v.ruleId === undefined && ctx.metadata?.id !== undefined) v.ruleId = ctx.metadata.id
+      if (v.because === undefined && ctx.reason !== undefined) v.because = ctx.reason
+      if (v.suggestion === undefined && ctx.metadata?.suggestion !== undefined)
+        v.suggestion = ctx.metadata.suggestion
+      if (v.docs === undefined && ctx.metadata?.docs !== undefined) v.docs = ctx.metadata.docs
     }
+  }
+
+  // Scan source files for inline exclusion comments (when rule has an ID).
+  // Matching is on ruleId, which the block above has just guaranteed is present.
+  if (ctx.metadata?.id && result.length > 0) {
     const filePaths = new Set(result.map((v) => v.file))
     const allComments = [...filePaths].flatMap((filePath) => {
       try {

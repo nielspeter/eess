@@ -223,9 +223,11 @@ if (actual.join(' | ') !== [...EXPECTED].sort().join(' | ')) {
   )
 }
 
-// Every violation must carry its rationale: the kernel's `.violations()` path
-// drops `ctx.reason`, so the gate stamps it. Unstamped, CLAUDE.md's promise that
-// each violation explains itself is false for this gate in every format.
+// Every violation must carry its rationale. The gate used to stamp this itself,
+// because the kernel's `.violations()` path dropped `ctx.reason`; bug 0122 moved
+// the stamp into `applyFilters` and the local helper was deleted. The assertion
+// stays and is now a gate-level break class for that kernel fix — removing the
+// stamp reddens this fixture, not just the unit tests.
 const unexplained = result.violations.filter((v) => !v.because)
 if (unexplained.length > 0)
   vacuous(
