@@ -46,7 +46,8 @@ try {
     process.exit(0)
   }
   console.error(
-    `bad-crossval: drift detected as expected — ${ghost.length} diagram class(es) absent from the code: ${ghost.map((v) => v.element).join(', ')}`,
+    `bad-crossval: drift detected as expected — crossval/diagram-completeness, ` +
+      `${ghost.length} diagram class(es) absent from the code: ${ghost.map((v) => v.element).join(', ')}`,
   )
   process.exit(1)
 }

@@ -27,11 +27,15 @@ try {
   process.exit(2)
 }
 
-if (broken.length > 0) {
-  console.error(`bad-links: ${broken.length} broken internal link(s) found as expected`)
-  for (const v of broken) console.error(`  x ${v.message}`)
+const RULE = 'nonvacuity/broken-links'
+const fired = broken.filter((v) => v.ruleId === RULE)
+if (fired.length > 0) {
+  // Name the rule, not just the count: the harness asserts this token, so a
+  // failure from some other rule cannot answer for this gate (bug 0110).
+  console.error(`bad-links: ${fired.length} broken internal link(s) found as expected — ${RULE}`)
+  for (const v of fired) console.error(`  x ${v.message}`)
   process.exit(1)
 }
 
-console.error('bad-links: NO broken link detected — gate is vacuous')
+console.error(`bad-links: no ${RULE} violation detected — gate is vacuous`)
 process.exit(0)

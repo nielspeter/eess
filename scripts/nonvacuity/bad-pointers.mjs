@@ -26,10 +26,15 @@ try {
   process.exit(2)
 }
 
-if (stale.length > 0) {
-  console.error(`bad-pointers: ${stale.length} unresolved pointer(s) found as expected`)
+const RULE = 'nonvacuity/pointers-resolve'
+const fired = stale.filter((v) => v.ruleId === RULE)
+if (fired.length > 0) {
+  // Name the rule the harness asserts, so a failure from elsewhere cannot
+  // answer for this gate (bug 0110).
+  console.error(`bad-pointers: ${fired.length} unresolved pointer(s) found as expected — ${RULE}`)
+  for (const v of fired) console.error(`  x ${v.message.split('\n')[0]}`)
   process.exit(1)
 }
 
-console.error('bad-pointers: NO unresolved pointer detected — gate is vacuous')
+console.error(`bad-pointers: no ${RULE} violation detected — gate is vacuous`)
 process.exit(0)
