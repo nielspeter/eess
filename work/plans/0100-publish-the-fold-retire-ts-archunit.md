@@ -67,9 +67,19 @@ runs them.
   dialects at **at least** `minor` with their kernel ranges bumped in lockstep.
 - **Verify the window never opened:** after publish, resolve a fresh install of
   each sibling and assert exactly one `@nielspeter/eess` version in the tree.
+- **Carries bug [0106](../bugs/0106-no-gate-requires-a-changeset.md)'s deferral.**
+  `gherkin-ts` merged without a changeset and is on `main` but in no published
+  version — an adopter importing the documented `./gherkin-ts` subpath gets
+  `ERR_PACKAGE_PATH_NOT_EXPORTED`. 0106 adds the changeset and the gate that
+  stops it recurring; this phase is what consumes that changeset. Its
+  release-only checks land here: `npm view` lists the new version, a clean
+  project imports `@nielspeter/eess-crossvalidate/gherkin-ts` without a
+  resolution error, and the published README documents every shipped subpath
+  (`md-gherkin` is undocumented in `0.1.2`).
 
 **Definition of done:** all six packages published at compatible ranges; a clean
-install of any dialect yields a single kernel copy.
+install of any dialect yields a single kernel copy; the `./gherkin-ts` subpath
+resolves from the registry.
 
 ### Phase 2 — Deprecate and archive the fork
 
