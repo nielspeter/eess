@@ -84,7 +84,7 @@ The decision, not yet made:
 2. **Drop the region.** Take the first line-anchored `State:` match anywhere in
    the document. Now defensible in a way it was not before — the label requires a
    colon and one of the bold/list forms, so prose no longer matches — but review
-   demonstrated the over-read direction: a prose line that *begins* with a state
+   demonstrated the over-read direction: a prose line that _begins_ with a state
    declaration and then discusses it shadows the document's real one, and emits a
    finding naming a state the document does not have. Wrong attribution is worse
    than silence.
