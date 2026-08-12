@@ -9,6 +9,37 @@ packages are versioned with [changesets](https://github.com/changesets/changeset
 The whole loop is: describe the change → bump versions → tag → push. The tag does
 the rest.
 
+## The changeset is not optional (bug 0106)
+
+`npm run check:release` fails any PR that changes a package without declaring a
+release for it. "Changes a package" means **any file under `packages/<name>/`** —
+tests and package-local docs included. That is changesets' own definition, and
+sharing it is deliberate: a second, private notion of "a change that doesn't
+count" would live in the tool where nobody can review it.
+
+Three ways to satisfy it, all of them declarations:
+
+| situation                        | declare it with                                   |
+| -------------------------------- | ------------------------------------------------- |
+| the change ships something       | `npm run changeset` — pick the package and a bump |
+| it ships nothing a consumer sees | `'@nielspeter/eess-<x>': none` in a changeset     |
+| nothing in the PR ships, at all  | `npx changeset add --empty`                       |
+
+`none` is a real changesets bump type: recorded, no version change. Prefer it
+over `--empty` in a mixed PR — `--empty` waives the whole run, and the gate says
+which packages it therefore left unchecked.
+
+The gate reads a **base ref** (`EESS_RELEASE_BASE`, else the PR's target, else
+`origin/main`, else `main`) and hard-errors if none resolves, so CI checks out
+with `fetch-depth: 0`. It runs on pull requests only: after a merge there is no
+diff left to read.
+
+**On a release commit it stays green by design.** `changeset version` deletes the
+changesets it applies, so step 4 below looks like "packages bumped, nothing
+pending". The gate reads the consumed files back out of the base ref and credits
+them — but it still fails if `changeset version` bumped a package no changeset
+named.
+
 ## Release steps
 
 From a clean `main`:

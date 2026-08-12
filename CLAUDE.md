@@ -136,6 +136,15 @@ or diagrams, run the relevant gate and fix what it reports:
   `eess-md` `honestyAtClose` preset that the portable kit under `kit/` ships.
 - `npm run check:arch` / `check:diagram` / `check:crossval` — architecture,
   the kernel diagram, and their agreement.
+- `npm run check:release` — every package you changed declares a release. Touch
+  anything under `packages/<name>/` and that package needs a changeset naming it
+  (`npx changeset`), or an explicit `'@nielspeter/eess-<x>': none` if the change
+  ships nothing a consumer can observe. Tests and package-local docs count as
+  changes — the definition is changesets' own, and declining the bump is your
+  call to declare, not the tool's to guess. This is the only gate that reads a
+  **base ref**: `EESS_RELEASE_BASE`, else the PR's target, else `origin/main`,
+  else `main`, and it hard-errors rather than pretending nothing changed, so a
+  shallow clone fails loudly (CI needs `fetch-depth: 0`).
 
 Each gate prints a violation with a file, a line, a message, and (often) a fix.
 The output is written to be **agent-actionable** — every violation surfaces its

@@ -357,10 +357,15 @@ const gates = [
   ['corpus/ledger/state', () => gateNode('bad-ledger.mjs', 'ledger/unknown-state')],
   ['corpus/links', () => gateNode('bad-links.mjs', 'nonvacuity/broken-links')],
   ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'nonvacuity/pointers-resolve')],
-  // Two rows, one per release rule. The fixture asserts rule AND element as an
-  // exact set: neutering the changed-package correspondence still emits its rule
-  // id (for the ghost declaration instead of the undeclared package), so a
-  // rule-name assertion passes a gate that no longer checks anything.
+  // One row per release rule, asserting rule AND element as an exact set:
+  // neutering the changed-package correspondence still emits its rule id (for the
+  // ghost declaration instead of the undeclared package), so a rule-name
+  // assertion passes a gate that no longer checks anything.
+  //
+  // Plus a fourth row for the impure SHELL, which the pure fixture cannot see.
+  // Measured while fixing 0106: the core caught 11 of 11 mutations and the shell
+  // 0 of 7 — including deleting its `process.exit(1)`, leaving a gate that
+  // reports every violation and fails no build.
   [
     'release/needs-changeset',
     () => gateNode('bad-release.mjs', 'release/changed-package-needs-changeset'),
@@ -368,6 +373,11 @@ const gates = [
   [
     'release/names-real-package',
     () => gateNode('bad-release.mjs', 'release/changeset-names-real-package'),
+  ],
+  ['release/unparseable', () => gateNode('bad-release.mjs', 'release/unparseable-changeset')],
+  [
+    'release/gate-fails-the-build',
+    () => gateNode('bad-release-e2e.mjs', 'release/changed-package-needs-changeset'),
   ],
   ['review-harness', () => gateNode('bad-review-harness.mjs', 'foreign-project token')],
   ['work/numbers', () => gateNode('bad-numbers.mjs', 'duplicate number across lanes')],
@@ -402,7 +412,12 @@ const GATE_FOR = {
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
   'check:ledger': ['corpus/ledger/box', 'corpus/ledger/placement', 'corpus/ledger/state'],
-  'check:release': ['release/needs-changeset', 'release/names-real-package'],
+  'check:release': [
+    'release/needs-changeset',
+    'release/names-real-package',
+    'release/unparseable',
+    'release/gate-fails-the-build',
+  ],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.

@@ -2,8 +2,11 @@
 
 ## Status
 
-- **State:** Fixed — `check:release` gates both directions, proven non-vacuous by
-  `scripts/nonvacuity/bad-release.mjs`; the `gherkin-ts` changeset is written.
+- **State:** Fixed — `check:release` gates three rules, proven non-vacuous by
+  `scripts/nonvacuity/bad-release.mjs` (pure core) and `bad-release-e2e.mjs` (the
+  real script against real repositories); the `gherkin-ts` changeset is written.
+  A six-persona review found four blockers in the first version and four false
+  claims in this record; both are recorded below rather than edited away.
 - **Severity:** High — an adopter's first run is broken. A whole public binding
   is on `main`, gated in CI, documented in the package README, and unreachable
   from any published version. (The releasability half decayed to Medium between
@@ -143,13 +146,16 @@ one ([`docs/manifesto.md:577`](../../../docs/manifesto.md)):
 > engine, two invocations: Drift: `validator(current) → violations`; Diff:
 > `validator(proposed) − validator(current) → required follow-ups`.
 
-Confirmed by survey: **no gate in `scripts/` or `kit/scripts/` reads git today.**
-So this bug is not merely a missing check — it is the first concrete instance of
-a capability the manifesto specifies and nobody has built. That framing is
-recorded here as evidence, not acted on: generalising "changed since a base ref"
-into a reusable kernel-side `Selection` is a design question with its own
-tradeoffs, and it belongs in a proposal, not smuggled into a bug fix. This record
-builds the one-off and says so.
+No gate in `scripts/` or `kit/scripts/` reads git today, so this is the first
+**gate** to ask a diff-shaped question. It is not, as the first version of this
+record claimed, a capability nobody has built — `packages/core/src/diff-aware.ts`
+already shells out to git for it, with the opposite failure posture; see
+_Corrections_ (3). Nor is it the manifesto's Diff mode in the strict sense: that
+is `validator(proposed) − validator(current)`, two runs differenced, whereas this
+is a Drift correspondence whose right-hand **selection** is derived from a diff.
+Recorded as evidence, not acted on: generalising "changed since a base ref"
+belongs in a proposal that reconciles with `diffAware`, not smuggled into a bug
+fix. This record builds the one-off and says so.
 
 ## Fix
 
@@ -178,23 +184,40 @@ reporting and prints its own denominator, exactly as
 `honestyAtClose` + `ledgerStats` — the pattern the gated `check:*` scripts share,
 and the one the ungated ones (`check:integrity`, `check:docs-code`) do not.
 
-Two claims, because one of them holds even when the diff is empty:
+Three rules. The last two need no base ref, so a run with no diff still checks
+something and says which half it skipped:
 
-| rule                                      | direction       | holds when                        |
-| ----------------------------------------- | --------------- | --------------------------------- |
-| `release/changed-package-needs-changeset` | `right-to-left` | a changed package declares a bump |
-| `release/changeset-names-real-package`    | `left-to-right` | every changeset names a real one  |
+| rule                                      | direction       | holds when                          |
+| ----------------------------------------- | --------------- | ----------------------------------- |
+| `release/changed-package-needs-changeset` | `right-to-left` | a changed package declares a bump   |
+| `release/changeset-names-real-package`    | `left-to-right` | every changeset names a real one    |
+| `release/unparseable-changeset`           | —               | every file in `.changeset/` is read |
 
-The second is pure Drift and needs no base ref, so the gate is never a no-op: a
-typo'd package name in a changeset is a declaration that silently publishes
-nothing — the same failure class one layer over, and it would sail past
-`changeset status`.
+The third exists because of how the first version failed: it hand-rolled a
+frontmatter regex, and any file that regex could not read was promoted to a
+`--empty` waiver. Inability to read a declaration was treated as the _strongest_
+declaration. The parse now delegates to `@changesets/parse` — the same parser
+`changeset version` uses, so there is one definition of a changeset — and a file
+it rejects is a finding, never a waiver.
 
-The base ref is required, not optional: `EESS_RELEASE_BASE`, else
-`GITHUB_BASE_REF`, else `origin/main`, else `main`, and a hard error when none
-resolves. `ci.yml:13` checks out at the default depth 1, where `origin/main` does
-not exist — so `fetch-depth: 0` is part of this fix, and the hard error is what
-makes a future regression of it loud instead of silently green.
+**Waivers.** An empty changeset is the author declaring "this ships nothing", and
+it is honoured — but only when the file is in this diff, and the summary names
+the packages left unchecked rather than printing a ✓ over them. For a mixed
+change the precise tool is `'@pkg': none`, which declares per package instead of
+blanketing the run.
+
+**Release commits.** `changeset version` deletes the changesets it applies, so a
+release commit is a diff full of bumped packages with nothing pending. The gate
+reads the consumed files back out of the base ref and credits them; without that
+it reddened `npm run release`, which is `validate && changeset publish`, and the
+publish could never be reached.
+
+The base ref is required, not optional: `EESS_RELEASE_BASE` (a hard error if set
+and unresolvable — an explicit override is a promise, not a hint), else
+`GITHUB_BASE_REF`, else `origin/main`, else `main`. `actions/checkout` defaulted
+to depth 1, where `origin/main` does not exist, so `fetch-depth: 0` is part of
+this fix, and the hard error is what makes a future regression of it loud instead
+of silently green.
 
 Worth considering alongside, and close to what
 [0092](../0092-integrity-gate-misses-three-packages.md) already edits: assert that
@@ -217,13 +240,30 @@ the acts that cannot land in a PR and whose Phase 1 is the coordinated
 six-package release. The changeset this bug adds is what that phase will
 consume.
 
+**Open question the review raised, and this record does not settle.** 0100 runs
+"after both 0088 and 0089 have merged", and its Phase 1 is a _six-package_
+release because kernel 0.2 → 0.3 is a contract break at 0.x. Nothing about
+`gherkin-ts` needs that coupling — measured: `packages/crossvalidate` depends on
+`@nielspeter/eess: ^0.2.0`, satisfied by the **published** 0.2.1, and its peers
+are all `>=0.1.1` and published. A crossvalidate-only `changeset version &&
+changeset publish` would ship `0.2.0` today and touch nothing the fold owns.
+
+So the adopter who filed this bug stays broken until a release gated on a fork
+retirement in another repository, and this record says `Fixed`. The gate half is
+genuinely fixed and closes here; whether to cut a standalone crossvalidate
+release now is a release-cadence decision, which is not a bug's to make. Stated
+so it is visible rather than buried in a deferral.
+
 ## Verification
 
-- [x] Red first: a changed package with no changeset produces
-      `release/changed-package-needs-changeset`; a changeset naming a package
-      that does not exist produces `release/changeset-names-real-package`. Both
-      proven by `scripts/nonvacuity/bad-release.mjs`, which also proves the clean
-      direction stays silent.
+- [x] Red first: all three rules proven by `scripts/nonvacuity/bad-release.mjs`
+      as an exact (rule, element) set, plus the clean direction staying silent
+      and the printed denominator being right.
+- [x] The impure shell is proven too — `scripts/nonvacuity/bad-release-e2e.mjs`
+      runs the real script against nine throwaway repositories: a rename out of a
+      package, a non-ASCII path, a deleted package, a stale waiver, a waiver in
+      the diff, a release commit, and a release commit bumping something no
+      changeset named. 21 of 21 mutations rejected across both halves.
 - [x] No exemption table — the gate shares changesets' definition of a changed
       package, and `--empty` is an accepted declaration. (The filed clause
       demanding path exemptions is retained above as a correction, not
@@ -232,20 +272,78 @@ consume.
       changed" and "I could not resolve a base" are not the same output
       ([0120](../0120-no-state-and-cannot-find-it-are-the-same-answer.md)'s lesson,
       applied before the bug instead of after it). `ci.yml` gets `fetch-depth: 0`.
-- [x] Both rules carry a gate row in `scripts/check-nonvacuity.mjs`, so
-      `gateCoverage` claims `check:release` and neither row can be deleted
-      silently.
+- [x] Four gate rows in `scripts/check-nonvacuity.mjs` — one per rule, one for
+      the shell — so `gateCoverage` claims `check:release` and no row can be
+      deleted silently.
 - [x] `npx changeset status` reports `@nielspeter/eess-crossvalidate` pending a
       minor bump — true before this fix by accident (PRs #42, #43); the changeset
       added here is what makes `gherkin-ts` appear in the changelog.
 - [x] `npm run validate` green.
 
-**What the gate rows prove, and what they do not.** The fixture drives the pure
-core — the path→package mapping and the two correspondences — with synthetic
-inputs, so it needs no git and no fake repository. The `git diff` invocation
-itself is the one uncovered line; it is a single shell-out whose failure mode is
-a hard error, not a false green, which is why it is stated here rather than
-worked around with a throwaway repo fixture.
+**What the gate rows prove.** `bad-release.mjs` drives the pure core with
+synthetic data — parser shapes, the path→package mapping, the three rules as an
+exact (rule, element) set, and the printed denominator.
+`bad-release-e2e.mjs` runs the **real script** against nine throwaway git
+repositories and asserts its exit code and what it named. Measured: 21 of 21
+mutations rejected, 11 in the core and 10 in the shell.
+
+## Corrections — four claims in the first version of this record were false
+
+The first version of this fix shipped a review round's worth of over-claiming,
+recorded here rather than edited away, because the record is the artifact that
+persists.
+
+1. **"The `git diff` invocation itself is the one uncovered line."** It was not.
+   The whole 192-line shell was uncovered — declaration parsing, waiver
+   detection, workspace discovery, base resolution, and the exit code. A mutation
+   matrix put the pure core at 11 of 11 caught and the shell at **0 of 7**,
+   including deleting the `process.exit(1)` on the last line, which leaves a gate
+   that reports every violation and fails no build. `gateCoverage` printed "every
+   `check:*` accounted for" over that. The split into pure and impure halves was
+   made precisely so the logic could be fixtured, and then the quality of the
+   tested half was allowed to stand for coverage of the whole — stated as a
+   _limit_, which reads as rigour. That is this project's own failure mode,
+   committed inside the gate built to prevent it. Fixed by `bad-release-e2e.mjs`
+   and a fourth gate row.
+
+2. **"The gate is never a no-op."** True of the ghost-declaration rule, false of
+   the changed-package rule: when `merge-base` equals `HEAD` there is no diff to
+   read, which is the shape of **every push to `main`**. It printed
+   `0 packages — nothing to declare`, the same sentence a genuinely empty diff
+   prints — [0120](../0120-no-state-and-cannot-find-it-are-the-same-answer.md)'s
+   exact collision, in the record that cites 0120 for having learned it. The gate
+   now says `base is HEAD — the changed-package rule did not run`, and CI runs it
+   on `pull_request` only, where it has something to read.
+
+3. **"No gate in `scripts/` or `kit/scripts/` reads git today. So this is the
+   first concrete instance of a capability the manifesto specifies and nobody has
+   built."** The first sentence holds; the conclusion does not.
+   `packages/core/src/diff-aware.ts` ships `diffAware()`, publicly exported, and
+   it shells out to `git diff --name-only <base>...HEAD` for this same question.
+   It matters behaviourally, not just editorially: `diffAware` warns and reports
+   **everything** when git fails, this gate hard-errors — two git-diff semantics
+   with opposite failure postures in one repo, neither citing the other. The
+   deferred proposal below is therefore scoped "reconcile with `diffAware`", not
+   "build from scratch".
+
+4. **"A waiver is a file in the diff, and the summary names it, so it is
+   countable rather than silent."** The first half was false: `blanketWaivers`
+   came from a disk scan of `.changeset/` with no relation to the diff. Because
+   pending changesets accumulate until `changeset version`, one `--empty` merged
+   by any PR silenced the changed-package rule for **every subsequent PR** until
+   the next release — weeks — and never appeared in the diffs it was silencing.
+   The gate now honours a waiver only when the file is in this diff, and prints
+   the packages it left unchecked instead of "every changed package is declared".
+
+Two further defects the round found, both fixed and neither previously claimed:
+`changeset version` consumes the changesets it applies, so a release commit
+showed bumped packages with zero declarations — **the gate blocked the release it
+exists to enable**, and `npm run release` could never have reached
+`changeset publish`. And the hand-rolled frontmatter regex diverged from
+changesets' own parser on five shapes, each of which was then promoted to a
+blanket waiver; `'@pkg': none` — a valid bump type meaning "no release,
+recorded" — meant the most honest changeset a contributor can write switched the
+gate off. Both now covered by end-to-end scenarios.
 
 Deferred:
 

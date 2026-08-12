@@ -17,8 +17,8 @@
     "check:examples": "tsc -p examples/tsconfig.json",
     "check:docs-code": "node scripts/check-docs-code.mjs",
     "check:review-harness": "node scripts/check-review-harness.mjs",
-    "validate": "npm run build && npm run check:integrity && npm run check:arch && npm run check:baseline && npm run check:diagram && npm run check:crossval && npm run check:corpus && npm run check:ledger && npm run check:release && npm run check:spec && npm run check:numbers && npm run check:nonvacuity && npm run typecheck && npm run check:examples && npm run check:docs-code && npm run check:review-harness && npm run lint && npm run format:check && npm run test",
-    "check:fast": "npm run check:corpus && npm run check:spec && npm run check:arch",
+    "validate": "npm run build && npm run check:release && npm run check:integrity && npm run check:arch && npm run check:baseline && npm run check:diagram && npm run check:crossval && npm run check:corpus && npm run check:ledger && npm run check:spec && npm run check:numbers && npm run check:nonvacuity && npm run typecheck && npm run check:examples && npm run check:docs-code && npm run check:review-harness && npm run lint && npm run format:check && npm run test",
+    "check:fast": "npm run check:release && npm run check:corpus && npm run check:spec && npm run check:arch",
     "fix": "npm run lint:fix && npm run format",
     "check:integrity": "node scripts/check-workspace-integrity.mjs",
     "check:arch": "eess-ts check arch.rules.ts arch.internal.rules.ts",
@@ -48,6 +48,7 @@
   "license": "MIT",
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
+    "@changesets/parse": "^0.4.1",
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.19.15",
     "@types/picomatch": "^4.0.2",
