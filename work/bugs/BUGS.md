@@ -4,10 +4,21 @@ A **bug** is a concrete defect in the code or its specs — root cause + fix. It
 not a plan: a plan is work we chose to do, a bug is something that is already
 wrong. A bug stands on its own; it needn't come from anywhere (`/bug`).
 
-- **Origin.** Every bug here is self-found — from a persona review, a gate, a
-  spike, or a verification pass. eess is private and pre-adopter, so there is no
-  support funnel yet; when there is, `/case` records what was reported and the
-  bug it spawns internalises the reproduction.
+- **Origin.** Most bugs here are **self-found** — from a persona review, a gate,
+  a spike, or a verification pass. Since 2026-08-12 some are **inbound**: filed
+  by an agent in a consuming project against a published package. eess is
+  private and has no support funnel, so an inbound record arrives as prose, not
+  a case number.
+- **Adopting an inbound bug.** It becomes ours only after we **verify every
+  load-bearing claim against our own source or the registry** — an inbound
+  report is evidence, not a finding. On intake it is renumbered into this
+  sequence, its `Origin` records that it came from outside, and any material
+  identifying the reporting project (its language, domain vocabulary, file
+  names) is **re-sourced to our own corpus** — the reproduction has to stand on
+  evidence a reader here can check. Where verification changes the record — a
+  wrong premise, or a fix that cannot close in one PR — the change is stated in
+  the record rather than made silently. A report we cannot verify is not filed
+  as a bug.
 - **Fixed** bugs move to `fixed/` in the same PR as the fix (`/close`).
 - **Rejected** bugs move to `rejected/` — and are **never deleted**. A record
   whose premise did not hold is kept with the reasoning that killed it, so the
@@ -96,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-12 · **Open:** 12 · **Fixed:** 2 · **Rejected:** 0
+**Updated:** 2026-08-12 · **Open:** 15 · **Fixed:** 2 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -123,3 +134,6 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0098](./0098-scenario-stats-report-set-size-as-scan-count.md)  | the scenario stats APIs report the feature set's size as `scenarios` — a non-vacuity guard built on it is vacuous                       | Medium   | 🔴 Draft            | self-found · verifying the plan-0096 review's filings                  | —         |
 | [0099](./0099-nul-bytes-make-md-gherkin-unsearchable.md)        | two raw NUL bytes make `md-gherkin.ts` binary — invisible to `grep`/`rg`, unreviewable in `git diff`                                    | Medium   | 🔴 Draft            | self-found · verifying the plan-0096 review's filings                  | —         |
 | [0103](./0103-adr-009-cited-but-does-not-exist.md)              | two shipped scripts cite `ADR-009` as settled doctrine; `adr/` stops at 008 — plan 0088 Phase 2 is what creates it                      | Low      | 🔴 Draft            | self-found · review of inbound proposal 002                            | —         |
+| [0104](./0104-it-title-capture-stops-at-any-quote.md)           | `it('…')` title capture stops at any quote, not the opening one — a backticked title truncates and resolves against the wrong test      | High     | 🔴 Draft            | inbound · adopter integration, verified 2026-08-12                     | —         |
+| [0105](./0105-md-ts-drops-modifier-forms.md)                    | `md-ts` drops every `it.skip`/`it.only` definition — its own regex permits modifiers, the guard one line above does not                 | Medium   | 🔴 Draft            | inbound · adopter integration, verified 2026-08-12                     | —         |
+| [0106](./0106-no-gate-requires-a-changeset.md)                  | nothing requires a changeset, so a feature merges green and unreleasable — `gherkin-ts` is on `main` and in no published version        | High     | 🔴 Draft            | inbound · adopter integration, verified 2026-08-12                     | —         |
