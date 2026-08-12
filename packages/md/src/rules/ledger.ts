@@ -57,12 +57,47 @@ const DEFAULT_BOARD_FILES = ['ROADMAP.md', 'BUGS.md', 'REFINEMENT.md', 'SUPPORT.
 const DEFAULT_STATES = ['Draft', 'Ready', 'Open', 'Done', "Won't-do"]
 const DEFAULT_TERMINAL_STATES = ['Done', "Won't-do"]
 
-// A `State:` line and whatever token follows it. The capture is deliberately NOT
-// an enum: the previous version matched only known states, so an unknown token
-// looked like "no State line at all" and switched the placement check off in
-// silence (bug 0118 — four of this repo's own plans, for as long as the gate had
-// existed). To report a token you do not know, you must first be able to read it.
-const STATE_LINE_RE = /^\s*(?:[-*]\s+)?(?:\*\*)?State:?(?:\*\*)?\s*(\S+)/i
+// The `State:` label. A colon is **required** in every form: making it optional
+// turned any line beginning with the word "State" into a state declaration, so
+// `Stateless rendering is the default` reported its state as `less` and
+// `State machine transitions are documented` reported `machine`. Both were
+// silent before and would have been build failures.
+const LABEL = String.raw`^\s*(?:[-*+]\s+)?(?:\*\*State:\*\*|\*\*State\*\*\s*:|__State__\s*:|State\s*:)\s*`
+// An emphasis wrapper or a leading symbol on the value — `**Done**`, `` `Done` ``,
+// `✅ Done`. Markdown, not vocabulary.
+const WRAP = String.raw`(?:\*\*|__|\x60|_)?(?:[^\w\s'’-]+\s*)?`
+
+const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * A matcher built **from the declared vocabulary**, not a blind token grab.
+ *
+ * Capturing `(\S+)` and comparing it to the enum looked equivalent and was not:
+ * it regressed shapes the old enum regex read correctly — `**State: Done**`
+ * captured `Done**`, `- **State:** Done.` captured `Done.` — and told the author
+ * their corpus does not declare a state it plainly declares. It also made a
+ * multi-word state (`In progress`) unrepresentable, so `states` could not
+ * express the vocabularies it exists to express.
+ *
+ * Alternatives are sorted longest-first so `In progress` wins over `In`, the
+ * apostrophe accepts either glyph (an editor smart-quoting `Won't-do` should not
+ * break a build over two near-identical characters), and matching is
+ * case-insensitive with the declared spelling returned as canonical.
+ */
+function stateMatcher(states: readonly string[]): RegExp {
+  const alts = [...states]
+    .sort((a, b) => b.length - a.length)
+    .map((s) => escapeRe(s).replace(/['’]/g, "['’]"))
+    .join('|')
+  return new RegExp(`${LABEL}${WRAP}(${alts})(?![\\w'’-])`, 'i')
+}
+
+// Fallback: the line IS a state declaration, but its value is not in the
+// vocabulary. Used only to name the offending value in the message — so it
+// captures up to the house `—` separator rather than one whitespace-delimited
+// token, or a multi-word state would be reported by its first word alone.
+const UNREADABLE_RE = new RegExp(`${LABEL}(\\S[^—–]*?)\\s*(?:[—–].*)?$`, 'i')
+const ELIDE = 32
 
 // Any one of these on a box's line marks it *disposed* (not silent). Tokens are
 // the canonical hyphenated enum, word-bounded — so prose like "…the connection
@@ -87,7 +122,15 @@ function stripFencedCode(s: string): string {
  * the done-item test and the placement check so the two cannot disagree about
  * what a document says it is.
  */
-function findState(text: string): { token: string; line: number } | null {
+function findState(
+  text: string,
+  vocabulary: readonly string[],
+): { state?: string; raw: string; line: number } | null {
+  const known = stateMatcher(vocabulary)
+  const canonical = (m: string): string =>
+    vocabulary.find(
+      (s) => s.toLowerCase().replace(/’/g, "'") === m.toLowerCase().replace(/’/g, "'"),
+    ) ?? m
   const lines = stripFencedCode(text).split('\n')
   // The preamble **and the first section**. Stopping at the first `##` — as this
   // did — meant the check never ran on a real document in the corpus it was
@@ -101,8 +144,14 @@ function findState(text: string): { token: string; line: number } | null {
       if (seenHeading > 1) break
       continue
     }
-    const m = STATE_LINE_RE.exec(lines[i] ?? '')
-    if (m?.[1] !== undefined) return { token: m[1], line: i + 1 }
+    const line = lines[i] ?? ''
+    const hit = known.exec(line)
+    if (hit?.[1] !== undefined) return { state: canonical(hit[1]), raw: hit[1], line: i + 1 }
+    const unreadable = UNREADABLE_RE.exec(line)
+    if (unreadable?.[1] !== undefined) {
+      const raw = unreadable[1]
+      return { raw: raw.length > ELIDE ? `${raw.slice(0, ELIDE)}…` : raw, line: i + 1 }
+    }
   }
   return null
 }
@@ -113,8 +162,8 @@ function isDoneItem(
   terminalStates: readonly string[],
 ): boolean {
   if (doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))) return true
-  const found = findState(doc.text)
-  return found !== null && terminalStates.includes(found.token)
+  const found = findState(doc.text, terminalStates)
+  return found?.state !== undefined && terminalStates.includes(found.state)
 }
 
 const v = (
@@ -146,28 +195,28 @@ function headerStateViolation(
   states: readonly string[],
   terminalStates: readonly string[],
 ): ArchViolation | null {
-  const found = findState(doc.text)
+  const known = [...new Set([...states, ...terminalStates])]
+  const found = findState(doc.text, known)
   if (!found) return null // no State line at all → this document is not an item
 
-  const known = [...new Set([...states, ...terminalStates])]
-  if (!known.includes(found.token)) {
+  if (found.state === undefined) {
     return v(
       'ledger/unknown-state',
       doc,
       found.line,
-      `State: ${found.token} is not a state this corpus declares — expected one of ${known.join(', ')}.` +
+      `State: ${found.raw} is not a state this corpus declares — expected one of ${known.join(', ')}.` +
         ` An unreadable state cannot be checked against its folder, so it is reported rather than skipped.`,
       'a state nobody can read is a check that silently stops running',
     )
   }
 
-  const terminal = terminalStates.includes(found.token)
+  const terminal = terminalStates.includes(found.state)
   if (inDoneFolder && !terminal) {
     return v(
       'ledger/state-folder-mismatch',
       doc,
       found.line,
-      `State: ${found.token} but filed in a done-folder — move it back to the active lane or close it out.`,
+      `State: ${found.state} but filed in a done-folder — move it back to the active lane or close it out.`,
       'a done-folder item marked as not-done is a silent placement corruption',
     )
   }
@@ -176,7 +225,7 @@ function headerStateViolation(
       'ledger/state-folder-mismatch',
       doc,
       found.line,
-      `State: ${found.token} but not in a done-folder — the move-to-done was never made (orphaned close).`,
+      `State: ${found.state} but not in a done-folder — the move-to-done was never made (orphaned close).`,
       'a done item left in an active lane is an orphaned post-merge move',
     )
   }

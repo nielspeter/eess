@@ -36,6 +36,13 @@ honestyAtClose(corpus, {
 })
 ```
 
+**The value is matched against your declared vocabulary**, not grabbed as the
+next whitespace-delimited run — so `**State: Done**`, `- **State:** Done.`,
+`**State**: Done`, an emphasised `**Done**`, a lowercase `done` and a
+smart-quoted `Won’t-do` all read as the states they obviously are. A colon is
+required, so a prose line like `Stateless rendering is the default` is not a
+state declaration. Multi-word states (`In progress`) work.
+
 **New finding: `ledger/unknown-state`.** A `State:` token outside the declared
 vocabulary is now reported rather than skipped. Previously an unrecognised token
 looked identical to "no state at all" and disabled the placement check for that

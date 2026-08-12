@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { ArchRuleError, type ArchViolation } from '@nielspeter/eess'
 import { corpus } from '../../src/index.js'
 import { taskItems } from '../../src/builders/task-items.js'
@@ -12,6 +14,13 @@ const ledgerRoot = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures
 // A single-fixture corpus so each case is isolated.
 function corpusFor(glob: string) {
   return corpus({ roots: [glob], cwd: ledgerRoot })
+}
+
+/** A one-document corpus written to a temp dir — for line-shape cases. */
+function corpusForText(text: string) {
+  const dir = mkdtempSync(join(tmpdir(), 'ledger-'))
+  writeFileSync(join(dir, 'doc.md'), text)
+  return corpus({ roots: ['doc.md'], cwd: dir })
 }
 
 /** The violations `honestyAtClose` raises (empty if it passes). */
@@ -170,5 +179,54 @@ describe('honestyAtClose — the State line sits under ## Status, as every recor
     // prose further down is not this document's state.
     const f = findingsOf(() => honestyAtClose(corpusFor('green-state-mentioned-later.md')))
     expect(f).toEqual([])
+  })
+})
+
+// Review of the first draft of this fix found the token capture had regressed:
+// `(\S+)` grabbed one whitespace-delimited run, so shapes the *old* enum regex
+// read correctly — `**State: Done**`, `- **State:** Done.` — became build
+// failures telling the author their corpus does not declare a state it declares.
+// The matcher is now built from the declared vocabulary, which also makes a
+// multi-word state expressible at all.
+describe('honestyAtClose — the State value is read, not grabbed', () => {
+  const readsAs = (line: string, opts = {}) => {
+    const doc = `# T\n\n## Status\n\n${line}\n\n## Verification\n\n- [x] ok\n\nDeferred: none.\n`
+    return honestyAtClose(corpusForText(doc), { closeInPlace: true, report: 'return', ...opts })
+  }
+
+  it.each([
+    ['- **State:** Done'],
+    ['**State: Done**'], // bold wraps the whole line
+    ['- **State:** Done.'], // trailing punctuation
+    ['- **State:** **Done**'], // emphasised value
+    ['- **State**: Done'], // colon outside the bold
+    ['- **State:** done'], // case
+    ['- **State:** Done, shipped'],
+    ['- **State:** Done—fixed in PR #45'], // em-dash, no space
+    ['- **State:** ✅ Done'], // leading symbol
+    ['- **State:** Won’t-do'], // typographic apostrophe on the vocabulary's own token
+  ])('reads %s as a declared state', (line) => {
+    expect(readsAs(line).filter((v) => v.rule === 'ledger/unknown-state')).toEqual([])
+  })
+
+  it.each([
+    ['Stateless rendering is the default here.'],
+    ['- State machine transitions are documented in adr/012'],
+    ['- **Statement:** Done'],
+  ])('does not read %s as a state declaration at all', (line) => {
+    // The colon is required. Without it, any line starting with the word "State"
+    // became a declaration and reported its second word as the state.
+    expect(readsAs(line)).toEqual([])
+  })
+
+  it('supports a multi-word vocabulary, which (\\S+) could not express', () => {
+    const opts = { states: ['In progress', 'In review'], terminalStates: ['Shipped'] }
+    expect(readsAs('- **State:** In progress', opts)).toEqual([])
+    const unknown = readsAs('- **State:** In limbo', opts).filter(
+      (v) => v.rule === 'ledger/unknown-state',
+    )
+    expect(unknown).toHaveLength(1)
+    // Names the whole value, not its first word.
+    expect(unknown[0]?.message).toMatch(/State: In limbo is not/)
   })
 })
