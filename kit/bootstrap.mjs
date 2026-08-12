@@ -49,6 +49,17 @@ for (const rel of ['README.md', 'plans/ROADMAP.md', 'bugs/BUGS.md']) {
   else plan('corpus', dst, () => copyFile(src, dst))
 }
 
+// 2b. The number allocator the skills call. One definition of the numbering
+//     rule — the corpus runs one sequence per width across every lane, so an
+//     allocator that scans a single lane hands out numbers another lane holds.
+//     Also the collision gate: `--check` exits non-zero on a duplicate.
+{
+  const src = join(KIT, 'scripts', 'next-number.mjs')
+  const dst = join(DEST, 'scripts', 'next-number.mjs')
+  if (existsSync(dst)) skip('scripts/next-number.mjs (exists)')
+  else plan('script', dst, () => copyFile(src, dst))
+}
+
 // 3. Seed item templates (delete once real examples exist).
 for (const [src, dst] of [
   [join(KIT, 'templates', 'plan.md'), join(DEST, 'work', 'plans', '_TEMPLATE.md')],

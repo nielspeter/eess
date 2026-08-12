@@ -22,8 +22,19 @@ template.**
 1. **Confirm it's really a bug.** Wrong behaviour in existing code → bug. Needs
    design/unknowns worked out → `/plan`. Small enough to just fix → say so.
 
-2. **Take the next free number.** Scan `work/bugs/` **and** `BUGS.md` for the
-   highest `NNN`; use `NNN+1`. Guard against a collision.
+2. **Take the next free number** — from **every lane, not just this one**:
+
+   ```bash
+   npm run next-number        # prints the next free number
+   ```
+
+   The corpus runs **one sequence per number width, shared across all lanes**:
+   `work/plans/0100-…` and `work/bugs/0100-…` are the same number claimed twice.
+   Scanning only `work/bugs/` hands out a number the plan lane already holds —
+   the guard has to see both lanes to be a guard at all. If the helper is not
+   installed, take `max + 1` over every numbered item under `work/**` (including
+   terminal folders like `completed/` and `fixed/` — a closed item keeps its
+   number).
 
 3. **Write it in the house shape** at `work/bugs/NNN-slug.md` — symptom, repro,
    root cause, fix, plus a **verification** ledger. Header:

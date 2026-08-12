@@ -17,7 +17,7 @@
     "check:examples": "tsc -p examples/tsconfig.json",
     "check:docs-code": "node scripts/check-docs-code.mjs",
     "check:review-harness": "node scripts/check-review-harness.mjs",
-    "validate": "npm run build && npm run check:integrity && npm run check:arch && npm run check:baseline && npm run check:diagram && npm run check:crossval && npm run check:corpus && npm run check:ledger && npm run check:spec && npm run check:nonvacuity && npm run typecheck && npm run check:examples && npm run check:docs-code && npm run check:review-harness && npm run lint && npm run format:check && npm run test",
+    "validate": "npm run build && npm run check:integrity && npm run check:arch && npm run check:baseline && npm run check:diagram && npm run check:crossval && npm run check:corpus && npm run check:ledger && npm run check:spec && npm run check:numbers && npm run check:nonvacuity && npm run typecheck && npm run check:examples && npm run check:docs-code && npm run check:review-harness && npm run lint && npm run format:check && npm run test",
     "check:fast": "npm run check:corpus && npm run check:spec && npm run check:arch",
     "fix": "npm run lint:fix && npm run format",
     "check:integrity": "node scripts/check-workspace-integrity.mjs",
@@ -39,7 +39,9 @@
     "docs:preview": "vitepress preview docs",
     "check:nonvacuity": "node scripts/check-nonvacuity.mjs",
     "check:ledger": "node scripts/check-ledger.mjs",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "check:numbers": "node kit/scripts/next-number.mjs --check",
+    "next-number": "node kit/scripts/next-number.mjs"
   },
   "author": "Niels Peter",
   "license": "MIT",

@@ -26,9 +26,19 @@ shape this project doesn't already use.
    stakeholders) → `/refine` first. If it's small enough to just do, say so and skip
    the ceremony.
 
-2. **Take the next free number.** Scan `work/plans/` **and** the board for the
-   highest `NNN`; use `NNN+1`. Guard against a collision with an existing or
-   board-listed number.
+2. **Take the next free number** — from **every lane, not just this one**:
+
+   ```bash
+   npm run next-number        # prints the next free number
+   ```
+
+   The corpus runs **one sequence per number width, shared across all lanes**:
+   `work/plans/0100-…` and `work/bugs/0100-…` are the same number claimed twice.
+   Scanning only `work/plans/` and its board hands out a number the bug lane
+   already holds — "an existing or board-listed number" means _every_ lane's, not
+   this one's. If the helper is not installed, take `max + 1` over every numbered
+   item under `work/**` (including terminal folders like `completed/` and
+   `fixed/` — a closed item keeps its number).
 
 3. **Write it in the house shape** at `work/plans/NNN-slug.md`, matching the
    sections recent plans actually use (Problem · phases · Out of scope · Success —
