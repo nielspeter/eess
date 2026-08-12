@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-12 · **Open:** 21 · **Fixed:** 7 · **Rejected:** 0
+**Updated:** 2026-08-12 · **Open:** 22 · **Fixed:** 7 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -148,3 +148,4 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0115](./0115-two-test-definition-readers.md)                           | `md-ts` and `gherkin-ts` carry the same four-step test-definition reader — the shape that produced both 0104 and 0105                   | Low      | 🔴 Draft            | self-found · architect review of 0105's fix                                  | —         |
 | [0116](./0116-gated-row-resolves-against-a-skipped-test.md)             | an enforcement row marked `gated` resolves against `it.skip(…)` — a clause claiming CI blocks it, proven by a test that never runs      | Medium   | 🔴 Draft            | self-found · architect review of 0105's fix                                  | —         |
 | [0117](./0117-conditional-modifier-tests-are-invisible.md)              | `it.skipIf(cond)('…')` / `it.runIf` are invisible to `adrCitationsResolve` — 0105's symptom, one shape narrower                         | Medium   | 🔴 Draft            | self-found · testing review of 0105's fix                                    | —         |
+| [0118](./0118-ledger-gate-skips-the-bug-lane.md)                        | `check:ledger` reads `work/plans/**` only — a bug can claim `Fixed` with open boxes, and 8 of 9 deferrals go through that lane          | Medium   | 🔴 Draft            | self-found · asked where deferrals go, during the 0105 review round          | —         |
