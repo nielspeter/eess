@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft
-- **Priority:** P3 — the one API gap surfaced by the 2026-07-23 ts-archunit
+- **Priority:** Low — the one API gap surfaced by the 2026-07-23 ts-archunit
   audit. A convenience, not a hole: eess is CLI-first, so it was reasonably
   skipped in the [0071 parity pass](./completed/0071-ts-archunit-parity.md). But
   the test-file workflow is a supported, documented shape in ts-archunit, and

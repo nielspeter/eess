@@ -10,7 +10,7 @@
   discovery session added a **candidate thesis** (the constitution + gate
   formulation, below) — internal-clarity material the restructure can start from;
   it does not lift the adopter-feedback gate on Phases 2–3.
-- **Priority:** P3 — the document is currently _honest_, which is the property
+- **Priority:** High — the document is currently _honest_, which is the property
   that mattered most; restructuring is improvement, not repair.
 - **Effort:** ~1 session.
 - **Created:** 2026-07-19

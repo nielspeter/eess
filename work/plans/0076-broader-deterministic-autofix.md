@@ -4,7 +4,7 @@
 
 - **State:** Draft — unblocked; buildable now. Nothing external is waited on.
   Needs a scoping decision (which repair classes qualify) before Ready.
-- **Priority:** P2 — direct continuation of shipped work, no new concepts.
+- **Priority:** Medium — direct continuation of shipped work, no new concepts.
 - **Effort:** ~2 sessions.
 - **Created:** 2026-07-19
 
