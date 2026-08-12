@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # check:release is a Diff-mode gate — it compares against the PR's base
+          # commit. The default depth of 1 leaves no `origin/main` to resolve, and
+          # the gate hard-errors rather than degrading to "nothing changed" (0106).
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -24,6 +29,15 @@ jobs:
       # don't exist at install time), so the dogfood `check:*` gates below would
       # otherwise fail with `eess-ts: not found` (exit 127).
       - run: npm rebuild
+      # Release readiness: a package cannot change without declaring a bump.
+      # Placed first among the gates because a forgotten changeset is the most
+      # mechanical failure in the chain and costs ~150ms to find. Needs the
+      # fetch-depth: 0 above — this is the only gate that reads a base ref.
+      # pull_request only: on a push, merge-base is HEAD, so the changed-package
+      # rule has no diff to read. It reports that honestly rather than printing a
+      # zero, but running it there would be theatre — the PR run is the gate.
+      - run: npm run check:release
+        if: github.event_name == 'pull_request'
       # Workspace guardrails: no phantom deps, all @nielspeter/eess* locally linked.
       - run: npm run check:integrity
       # Dogfood: eess-ts validates the family's own architecture (kernel purity, dialect isolation).

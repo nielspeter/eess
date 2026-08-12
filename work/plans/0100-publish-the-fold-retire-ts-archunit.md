@@ -67,7 +67,7 @@ runs them.
   dialects at **at least** `minor` with their kernel ranges bumped in lockstep.
 - **Verify the window never opened:** after publish, resolve a fresh install of
   each sibling and assert exactly one `@nielspeter/eess` version in the tree.
-- **Carries bug [0106](../bugs/0106-no-gate-requires-a-changeset.md)'s deferral.**
+- **Carries bug [0106](../bugs/fixed/0106-no-gate-requires-a-changeset.md)'s deferral.**
   `gherkin-ts` merged without a changeset and is on `main` but in no published
   version — an adopter importing the documented `./gherkin-ts` subpath gets
   `ERR_PACKAGE_PATH_NOT_EXPORTED`. 0106 adds the changeset and the gate that
