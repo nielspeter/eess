@@ -2,8 +2,12 @@
 
 ## Status
 
-- **State:** Draft — measured by differencing `package.json`'s `validate` chain
-  against `.github/workflows/`. No red test yet.
+- **State:** Fixed — the four steps now run in `ci.yml` in `validate` order, and
+  the class is closed rather than the instance: a new `ci runs the chain`
+  instrument in `check:nonvacuity` derives **both** lists — the chain from
+  `package.json`, the runs from every `pull_request`-triggered workflow — so the
+  two can no longer drift. Written red first: it named exactly the four before
+  `ci.yml` was touched.
 - **Severity:** High — a live false green, and the only one on this board that is
   live in **CI** rather than in a record. Four gates that block locally block
   nothing on a pull request, and every ADR row citing "CI runs …" is a claim about
@@ -91,16 +95,48 @@ step granularity is not worth a second list.
 
 ## Verification
 
-- [ ] Red test written first: a gate present in `validate` and absent from
-      `.github/workflows/**` is a violation. Fails today on exactly these four.
-- [ ] The four gates run on a pull request, in `validate` order.
-- [ ] The membership check derives both sides — the `validate` chain and the
-      workflow — so the two lists cannot drift apart again
-      ([0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)'s
-      lesson).
-- [ ] `gateBaseline`'s clean direction is either asserted or documented as
-      deliberately informational, so "a real violation passes this row" is a stated
-      property rather than a discovered one.
-- [ ] `npm run validate` green.
+- [x] Red test written first: measured before `ci.yml` was touched —
+      `ci runs the chain — FAILED · 4 of 19 run in no PR workflow: check:baseline,
+check:ledger, check:numbers, check:review-harness`, exit 1.
+- [x] The four gates run on a pull request, in `validate` order — the step list in
+      `ci.yml` and the chain in `package.json` now `diff` identical.
+- [x] The membership check derives both sides: `validateChain()` reads
+      `package.json`, and the covered set is read from every workflow whose `on:`
+      block names `pull_request` — the `on:` block alone, so the words in a step
+      name cannot vote. A tag- or dispatch-triggered workflow does not count; it
+      runs after the merge it was meant to block.
+- [x] Every failure to **look** fails loudly rather than passing over an empty set
+      ([0120](./0120-no-state-and-cannot-find-it-are-the-same-answer.md)): no
+      workflow directory, no `pull_request` workflow, and an unreadable chain each
+      return a failure. Two of those branches are driven as controls by the gate
+      itself, through the same `ciChainCoverage()` the verdict uses — not a copy of
+      it, which is the defect
+      [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) is about.
+- [x] `gateBaseline`'s clean direction is documented as deliberately informational
+      at its site: `cleanNote` never enters `ok`, so a real `recommended` violation
+      leaves that row green — correct division of labour, since catching one is
+      `check:baseline`'s job, and that now runs in CI.
+- [x] `npm run validate` green — 19 of 19, 146 test files, 1934 tests.
 
 Deferred: none.
+
+## Outcome
+
+The instance was four lines of YAML; the fix that mattered is the derivation. On a
+green tree the new row reads:
+
+```
+nonvacuity: ci runs the chain — OK (every validate step blocks a merge) · 19 validate steps across 1 PR workflow(s), 0 unrun
+```
+
+Note which list is authoritative, because `gateCoverage()` beside it reads the
+other one: for "this gate blocks a merge" the workflow is the source of truth, and
+`package.json` is exactly the list a gate can be absent from while still looking
+accounted for. That asymmetry is why the harness could report `every check:*
+accounted for` for months while four of them ran nowhere.
+
+Found while fixing, and worth recording: the first `validate` run after the fix
+exited **1** at `format:check` — my own edit was unformatted — and the chain
+reported nothing about the three steps it then skipped. That is
+[0126](./0126-validate-cannot-say-it-stopped-short.md), hit for the third time in
+one session, inside the fix for its sibling.
