@@ -5,7 +5,7 @@
 - **State:** Draft — waiting on demand. This has sat on the board as an idea
   since the family was consolidated; no consumer has asked for it. It is written
   down so the shape is on record, not because it is scheduled.
-- **Priority:** P3 — speculative. Building a sixth dialect nobody has asked for
+- **Priority:** Low — speculative. Building a sixth dialect nobody has asked for
   costs maintenance on every kernel change.
 - **Effort:** ~2 sessions (the dialect pattern is well-worn by now).
 - **Created:** 2026-07-19

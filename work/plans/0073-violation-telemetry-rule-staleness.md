@@ -8,7 +8,7 @@
   test-fixture code, and its real source is thin and stable (well-maintained), so
   there is no decay/growth churn to analyse. Promote to Ready when a genuinely
   messy external repo's run history exists.
-- **Priority:** P2 — answers the strongest external critique of eess (rules must
+- **Priority:** Low — answers the strongest external critique of eess (rules must
   retire; staleness), but still cannot be validated without real churning data.
 - **Effort:** ~2 sessions once real data exists.
 - **Created:** 2026-07-19

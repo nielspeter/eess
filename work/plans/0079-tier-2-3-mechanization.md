@@ -6,7 +6,7 @@
   is the one open item where the obstacle is not scheduling or data but that
   nobody, inside this project or outside it, has a design worth copying. Kept as
   a Draft so the gap is on the board rather than folklore.
-- **Priority:** P3 — the largest opportunity and the least tractable.
+- **Priority:** High — the largest opportunity and the least tractable.
 - **Effort:** unknown. Any estimate today would be fiction.
 - **Created:** 2026-07-19
 
