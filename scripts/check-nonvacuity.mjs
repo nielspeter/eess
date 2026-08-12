@@ -78,7 +78,7 @@
  * the `validate` chain). Exits 0 iff every gate failed on its violating input.
  */
 import { spawnSync } from 'node:child_process'
-import { writeFileSync, rmSync, readFileSync } from 'node:fs'
+import { writeFileSync, rmSync, readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -211,7 +211,12 @@ function gateBaseline() {
   // had no --format flag; it now has one (bug 0110), so no gate keys on prose.
   const ok =
     bad.code === 1 && firedOn(bad, 'preset/recommended/no-eval', '__nonvacuity_probe_eval__')
-  // Clean direction is a bonus proof the gate is not always-red (informational).
+  // Clean direction is a bonus proof the gate is not always-red, and it is
+  // DELIBERATELY informational: `cleanNote` never enters `ok`, so a genuine
+  // `recommended` violation in packages/*/src leaves this row green. That is
+  // correct division of labour and stated rather than discovered (bug 0129) —
+  // this row's job is "the gate can fail", and catching a real violation is
+  // `check:baseline`'s own, which runs in CI as of 0129's fix.
   const clean = sh(process.execPath, [join('scripts', 'check-baseline.mjs')])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code}`
   return {
@@ -339,6 +344,7 @@ rmSync(SELFTEST, { force: true })
 const gates = [
   ['harness self-check', gateHarnessSelfCheck],
   ['gate coverage', () => gateCoverage()],
+  ['ci runs the chain', gateCiRunsValidate],
   ['arch (root rules)', gateArch],
   ['internal arch', gateInternalArch],
   ['baseline', gateBaseline],
@@ -421,7 +427,119 @@ const GATE_FOR = {
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.
-const INSTRUMENTS = new Set(['harness self-check', 'gate coverage'])
+const INSTRUMENTS = new Set(['harness self-check', 'gate coverage', 'ci runs the chain'])
+
+// --- Coverage: every `validate` step runs in a merge-blocking workflow ---
+// `validate` and `.github/workflows/` are two hand-maintained lists of the same
+// thing and nothing bound them, so four gates were added to the chain in PRs
+// whose CI was green because the workflow was not part of the change (bug 0129).
+//
+// Note which list is authoritative here, because `gateCoverage()` above reads
+// the other one: for the claim "this gate blocks a merge" the workflow is the
+// source of truth, and `package.json` is precisely the list a gate can be absent
+// from while still looking accounted for.
+//
+// Every failure to LOOK is reported as a failure, never as "nothing found"
+// (bug 0120): no workflow directory, no PR-triggered workflow and an unreadable
+// `validate` chain each fail loudly rather than passing over an empty set.
+const WORKFLOWS = join(repoRoot, '.github', 'workflows')
+
+function validateChain() {
+  const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
+  return String(pkg.scripts?.validate ?? '')
+    .split('&&')
+    .map((s) => s.trim())
+    .filter((s) => s.startsWith('npm run '))
+    .map((s) => s.slice('npm run '.length).trim())
+}
+
+// The verdict, as ONE function taking its inputs — so the controls below drive
+// the same code the gate does. A control holding its own copy of this logic
+// would pass while the gate was reverted, which is the defect bug 0127 is about
+// and the shape ts-archunit's vacuity matrix found in its own expiry gate.
+function ciChainCoverage(chain, workflowDir) {
+  const fail = (why) => ({
+    ok: false,
+    status: 'FAILED (cannot prove CI runs the chain)',
+    detail: why,
+  })
+
+  if (chain.length === 0) return fail('the validate chain is empty or unreadable')
+
+  if (!existsSync(workflowDir)) return fail(`${workflowDir} does not exist`)
+  const files = readdirSync(workflowDir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
+  if (files.length === 0) return fail('no workflow files')
+
+  // A workflow counts only if it is triggered by `pull_request` — a tag- or
+  // dispatch-triggered one runs after the merge it was supposed to block.
+  // The trigger is read from the `on:` block alone, not from the file at large,
+  // so the words "pull_request" in a step name or comment cannot vote.
+  const merging = []
+  for (const f of files) {
+    const src = readFileSync(join(workflowDir, f), 'utf8')
+    const lines = src.split('\n')
+    const start = lines.findIndex((l) => /^on:/.test(l))
+    if (start === -1) continue
+    let end = lines.length
+    for (let i = start + 1; i < lines.length; i++) {
+      if (/^\S/.test(lines[i])) {
+        end = i
+        break
+      }
+    }
+    if (!/pull_request/.test(lines.slice(start, end).join('\n'))) continue
+    merging.push({
+      file: f,
+      runs: new Set([...src.matchAll(/npm run ([\w:@/-]+)/g)].map((m) => m[1])),
+    })
+  }
+  if (merging.length === 0) return fail('no workflow is triggered by pull_request')
+
+  // A workflow running `validate` itself covers every step by construction.
+  if (merging.some((w) => w.runs.has('validate'))) {
+    return {
+      ok: true,
+      status: 'OK (a PR workflow runs the whole chain)',
+      detail: `${chain.length} validate steps covered by npm run validate`,
+    }
+  }
+
+  const covered = new Set(merging.flatMap((w) => [...w.runs]))
+  const missing = chain.filter((step) => !covered.has(step))
+  return {
+    ok: missing.length === 0,
+    status:
+      missing.length === 0
+        ? 'OK (every validate step blocks a merge)'
+        : 'FAILED (a validate step runs in no merge-blocking workflow)',
+    detail:
+      missing.length === 0
+        ? `${chain.length} validate steps across ${merging.length} PR workflow(s), 0 unrun`
+        : `${missing.length} of ${chain.length} run in no PR workflow: ${missing.join(', ')}`,
+  }
+}
+
+function gateCiRunsValidate() {
+  const chain = validateChain()
+  // Controls, driving `ciChainCoverage` itself: prove the instrument can report
+  // a failure to LOOK rather than passing over an empty set (bug 0120). Without
+  // these, a version that returned `{ ok: true }` on a missing directory would
+  // be green here forever — a gate that cannot fail, inside the harness whose
+  // whole subject is gates that cannot fail.
+  const controls = [
+    ['no workflow directory', ciChainCoverage(chain, join(repoRoot, '__no_such_workflows__'))],
+    ['empty validate chain', ciChainCoverage([], WORKFLOWS)],
+  ]
+  const blind = controls.filter(([, r]) => r.ok !== false).map(([label]) => label)
+  if (blind.length > 0) {
+    return {
+      ok: false,
+      status: 'FAILED (the instrument cannot report a failure to look)',
+      detail: `these should have failed and did not: ${blind.join(' · ')}`,
+    }
+  }
+  return ciChainCoverage(chain, WORKFLOWS)
+}
 function gateCoverage() {
   const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
   const checks = Object.keys(pkg.scripts ?? {}).filter((k) => k.startsWith('check:'))

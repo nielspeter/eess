@@ -43,19 +43,29 @@ jobs:
       - run: npm run check:integrity
       # Dogfood: eess-ts validates the family's own architecture (kernel purity, dialect isolation).
       - run: npm run check:arch
+      # Dogfood: the shipped `recommended` preset over this repo, against its baseline.
+      - run: npm run check:baseline
       # Dogfood: eess-mermaid validates the kernel architecture diagram (plan 0060 charter).
       - run: npm run check:diagram
       # Dogfood: eess-crossvalidate — diagram↔code (both directions) + ADR↔test citations.
       - run: npm run check:crossval
       # Dogfood: the whole corpus (plans/adr/docs) — links, live pointers, ADR enforcement.
       - run: npm run check:corpus
+      # Dogfood: honesty at close — a done record carries no undisposed `- [ ]`.
+      - run: npm run check:ledger
       # Dogfood: eess-ts binds README Packages table + CLAUDE ADR-index to the code.
       - run: npm run check:spec
+      # Work-item numbers are unique across every lane (plans, bugs, proposals).
+      - run: npm run check:numbers
       # Every gate above is proven non-vacuous: violating fixtures must make it exit 1.
+      # Also proves every step of `validate` runs here — this list and the chain
+      # in package.json are two lists of one thing, and were allowed to drift (0129).
       - run: npm run check:nonvacuity
       - run: npm run typecheck
       - run: npm run check:examples
       - run: npm run check:docs-code
+      # The review harness stays runnable against a foreign project.
+      - run: npm run check:review-harness
       - run: npm run lint
       - run: npm run format:check
       - run: npm run test
