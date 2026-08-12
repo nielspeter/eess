@@ -2,6 +2,7 @@ import picomatch from 'picomatch'
 import { correspondence, type Selection } from '@nielspeter/eess'
 import type { Corpus } from '@nielspeter/eess-md'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
+import { citedItTitles, itTitleOf } from './it-title.js'
 
 export interface AdrCitationsResolveOptions {
   /** Glob selecting ADR files. Default `docs/adr/**`. */
@@ -21,10 +22,6 @@ interface TestDef {
   readonly title: string
   readonly file: string
 }
-
-const IT_CITE_RE = /it(?:\.\w+)?\(\s*['"`]([^'"`]+)['"`]/g
-// Parse a title out of an enriched call name like `it('does a thing')`.
-const IT_NAME_RE = /^it(?:\.\w+)?\(\s*['"`]([^'"`]+)['"`]/
 
 function matchName(value: string, name: string | RegExp): boolean {
   return typeof name === 'string' ? value === name : name.test(value)
@@ -51,13 +48,35 @@ function extractCitations(opts: {
     if (mechIdx < 0) continue
     for (const row of table.rows) {
       const mech = row[mechIdx] ?? ''
-      for (const m of mech.matchAll(IT_CITE_RE)) {
-        const title = m[1]
-        if (title !== undefined) out.push({ title, adr: doc.relPath, line: table.line })
+      for (const title of citedItTitles(mech)) {
+        out.push({ title, adr: doc.relPath, line: table.line })
       }
     }
   }
   return out
+}
+
+/**
+ * Count what this preset would actually scan — the caller's non-vacuity guard.
+ * `adrCitationsResolve` reports OK when it resolves zero citations, so a drifted
+ * `dir` or `roots` reads exactly like a clean pass; a gate that prints this
+ * number can tell the two apart. Mirrors `scenarioTestStats` in gherkin↔ts.
+ */
+export function adrCitationStats(
+  corpus: Corpus,
+  options: AdrCitationsResolveOptions = {},
+): { citations: number; adrs: number } {
+  const dir = options.dir ?? 'docs/adr/**'
+  const inDir = picomatch(dir)
+  return {
+    citations: extractCitations({
+      corpus,
+      dir,
+      section: options.section ?? /^enforcement$/i,
+      mechanismColumn: options.mechanismColumn ?? /mechanism/i,
+    }).length,
+    adrs: corpus.documents().filter((d) => inDir(d.relPath)).length,
+  }
 }
 
 /** Collect actual `it('…')` definitions from the project via eess-ts's public call API. */
@@ -69,10 +88,9 @@ function extractTestDefs(project: ArchProject): TestDef[] {
   const out: TestDef[] = []
   for (const call of allCalls) {
     if (call.getName() !== 'it') continue
-    const enriched = call.getName({ withArgument: 0 }) ?? ''
-    const m = IT_NAME_RE.exec(enriched)
-    if (m?.[1] !== undefined) {
-      out.push({ title: m[1], file: call.getSourceFile().getFilePath() })
+    const title = itTitleOf(call.getName({ withArgument: 0 }) ?? '')
+    if (title !== undefined) {
+      out.push({ title, file: call.getSourceFile().getFilePath() })
     }
   }
   return out
@@ -113,6 +131,15 @@ export function adrCitationsResolve(
     left,
     right,
     keyBy: (e) => e.title,
+    // `suggest.left`, not `.rule({ suggestion })` — the correspondence path drops
+    // rule-level suggestions, so a `Fix:` line never renders there (bug 0113).
+    // This appends the remedy to the message instead, which does.
+    suggest: {
+      left: () =>
+        'Fix: the cited title is compared as raw source text — if the test was renamed, ' +
+        'match the citation to it character for character (escapes included); ' +
+        'if it was deleted, restore it or retire the clause it enforced.',
+    },
   })
     .should()
     .beComplete({ direction: 'left-to-right' })

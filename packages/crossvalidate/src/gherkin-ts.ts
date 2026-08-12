@@ -1,6 +1,7 @@
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
+import { itOrTestTitleOf } from './it-title.js'
 
 export interface ScenarioTestsResolveOptions extends PresetReportOptions {
   /**
@@ -40,10 +41,6 @@ interface TestCitationSite {
 // proves in its `it()` title — a feature path (unique `/`-boundary suffix, like
 // md↔gherkin) then the scenario title, separated by `›` or `·`.
 const IT_CITE_RE = /^(?<path>.*\.feature)\s*[›·]\s*(?<title>.+)$/
-// Parse a title out of an enriched call name like `it('does a thing')` — the
-// same shape md↔ts reads, so `` it(`template title`) `` is seen too. Also
-// matches the `test` alias and modifier forms (`it.only('…')`, `test.skip('…')`).
-const IT_NAME_RE = /^(?:it|test)(?:\.\w+)?\(\s*['"`]([^'"`]+)['"`]/
 const RULE = 'tests that cite a scenario should cite one that exists'
 
 /** The default `it()`-title convention: `<path>.feature › <title>`. */
@@ -58,7 +55,8 @@ function defaultExtract(itTitle: string): ExtractedTestCitation | undefined {
 /**
  * Read every `it('…')` title from the project via eess-ts's public call API —
  * no ts-morph here, per ADR-007, exactly as `adrCitationsResolve` does. Sees
- * `` it(`no-substitution template`) `` titles a source regex would miss.
+ * `` it(`no-substitution template`) `` titles a source regex would miss. The
+ * title grammar itself lives in `it-title.ts`, shared with md↔ts (bug 0104).
  */
 function itTitles(project: ArchProject): TestCitationSite[] {
   const allCalls = calls(project).select({
@@ -75,7 +73,7 @@ function itTitles(project: ArchProject): TestCitationSite[] {
     // `%s` title — no static citation — so `root` is undefined and it is skipped.
     const root = call.getObjectName() ?? call.getMethodName()
     if (root !== 'it' && root !== 'test') continue
-    const title = IT_NAME_RE.exec(call.getName({ withArgument: 0 }) ?? '')?.[1]
+    const title = itOrTestTitleOf(call.getName({ withArgument: 0 }) ?? '')
     if (title === undefined) continue
     out.push({ title, file: call.getSourceFile().getFilePath(), line: call.getStartLineNumber() })
   }
