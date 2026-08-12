@@ -17,5 +17,17 @@ const r = spawnSync('node', ['scripts/check-review-harness.mjs', '--root', 'scri
   encoding: 'utf8',
 })
 const status = r.status ?? 2
-const expectedViolation = status === 1 && /foreign-project token/.test((r.stdout ?? '') + (r.stderr ?? ''))
-process.exit(expectedViolation ? 1 : 0)
+const out = (r.stdout ?? '') + (r.stderr ?? '')
+const expectedViolation = status === 1 && /foreign-project token/.test(out)
+
+// Say so out loud. A fixture that reports only through its exit code cannot be
+// distinguished from one that crashed (bug 0109), and the harness now requires
+// this `bad-review-harness:` sentinel as proof the check actually ran.
+if (expectedViolation) {
+  console.error('bad-review-harness: foreign-project drift detected as expected')
+  process.exit(1)
+}
+console.error(
+  `bad-review-harness: NO foreign-project drift detected (child exit ${String(status)}) — gate is vacuous`,
+)
+process.exit(0)

@@ -10,6 +10,7 @@
  *   0 = NO drift detected (the gate is vacuous — the harness treats this as fail)
  *   2 = unexpected error (module load, etc.) — the harness treats this as fail
  */
+import { ArchRuleError } from '@nielspeter/eess'
 import { diagramMatchesCode } from '@nielspeter/eess-crossvalidate/mermaid-ts'
 import { diagram } from '@nielspeter/eess-mermaid'
 import { project } from '@nielspeter/eess-ts'
@@ -21,7 +22,13 @@ try {
     { scope: '**/packages/core/src/**' },
   )
 } catch (err) {
-  // ArchRuleError from the correspondence check — the intended failure.
+  // Only an ArchRuleError is the intended failure. A parse error, a missing
+  // fixture, or any other throw is a broken harness, not a detected violation —
+  // reporting it as success is bug 0109, which this file demonstrated.
+  if (!(err instanceof ArchRuleError)) {
+    console.error(`bad-crossval: unexpected error (not ArchRuleError) — ${err.message}`)
+    process.exit(2)
+  }
   console.error(`bad-crossval: drift detected as expected — ${err.message.split('\n')[0]}`)
   process.exit(1)
 }
