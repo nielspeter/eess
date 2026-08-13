@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-13 · **Open:** 31 (30 Draft · 1 Parked) · **Fixed:** 11 · **Rejected:** 0
+**Updated:** 2026-08-13 · **Open:** 32 (31 Draft · 1 Parked) · **Fixed:** 12 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -159,6 +159,8 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0126](./0126-validate-cannot-say-it-stopped-short.md)                    | a truncated `validate` run looks like a green one — the chain reports the steps it ran and nothing about the ones it did not                               | Medium   | 🔴 Draft            | self-found · hid the test suite for a full session                           | —         |
 | [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)          | no `gateNode` fixture proves the production gate still invokes its rule — two rebuild it, five exercise the preset; 35 of 44 dogfood rules have none       | High     | 🔴 Draft            | self-found · instrumented both kernel seams while scoping 0088               | —         |
 | [0128](./0128-enforcement-status-is-the-cell-nothing-derives.md)          | `Status` is the only Enforcement cell nothing validates — 20 rows claim `gated`, 3 checked at case granularity, 17 only at file existence                  | Medium   | 🔴 Draft            | self-found · same measurement as 0127                                        | —         |
-| [0129](./0129-four-validate-gates-run-in-no-workflow.md)                  | four gates in `validate` run in no workflow — a ledger violation, a duplicate number or a preset violation merges green                                    | High     | 🔴 Draft            | self-found · devops review of 0127 + 0128                                    | —         |
+| [0129](./fixed/0129-four-validate-gates-run-in-no-workflow.md)            | four gates in `validate` ran in no workflow — a ledger violation, a duplicate number or a preset violation merged green                                    | High     | ✅ Fixed → `fixed/` | self-found · devops review of 0127 + 0128                                    | #49       |
 | [0130](./0130-cli-summary-counts-the-invocation.md)                       | the shipped `eess-ts check` summary counts the command line, not the work — under a comment claiming it proves non-vacuity                                 | Medium   | 🔴 Draft            | self-found · customer review of 0127 + 0128                                  | —         |
 | [0131](./0131-honesty-at-close-bypasses-the-builder-dsl.md)               | `honestyAtClose` builds no rule — a shipped preset hand-iterating the corpus, which 0088's fail-closed floor can never reach                               | Medium   | 🔴 Draft            | self-found · architect review of 0127 + 0128                                 | —         |
+| [0132](./0132-the-chain-and-the-workflow-need-a-derivation.md)            | nothing binds the `validate` chain to the workflow that runs it — the derivation 0129 twice failed to build, with what review established about how        | Medium   | 🔴 Draft            | self-found · re-homed from 0129 after two failed attempts                    | —         |
+| [0133](./0133-nothing-requires-a-check-to-join-the-chain.md)              | a `check:*` need never join the `validate` chain — three authored lists of the same gates, two joins asserted                                              | Medium   | 🔴 Draft            | self-found · architect + product review of 0129's fix                        | —         |

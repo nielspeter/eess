@@ -211,7 +211,12 @@ function gateBaseline() {
   // had no --format flag; it now has one (bug 0110), so no gate keys on prose.
   const ok =
     bad.code === 1 && firedOn(bad, 'preset/recommended/no-eval', '__nonvacuity_probe_eval__')
-  // Clean direction is a bonus proof the gate is not always-red (informational).
+  // Clean direction is a bonus proof the gate is not always-red, and it is
+  // DELIBERATELY informational: `cleanNote` never enters `ok`, so a genuine
+  // `recommended` violation in packages/*/src leaves this row green. That is
+  // correct division of labour and stated rather than discovered (bug 0129) —
+  // this row's job is "the gate can fail"; catching a real violation is
+  // `check:baseline`'s, and that runs in CI as of 0129's fix.
   const clean = sh(process.execPath, [join('scripts', 'check-baseline.mjs')])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code}`
   return {
