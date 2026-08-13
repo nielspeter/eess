@@ -1,13 +1,15 @@
-# Bug 0127: two non-vacuity fixtures rebuild the rule they guard and five exercise the shipped preset, so neither proves the production gate still invokes it — 35 of 44 dogfood rules have no fixture of any kind
+# Bug 0127: two non-vacuity fixtures rebuild the rule they guard and five exercise the shipped preset, so neither proves the production gate still invokes it — 36 of 45 dogfood rules have no fixture of any kind
 
 ## Status
 
 - **State:** Draft — measured, corrected under review, and the correction is
-  recorded below rather than edited away. No red test yet.
+  recorded below rather than edited away. Citations and counts refreshed
+  2026-08-13 after unrelated PRs (0086, 0121) moved the lines this record
+  cites — see that correction below too. No red test yet.
 - **Severity:** High — on the reproduction, not on the ratio. `check:arch` passes
   green over six rules that assert nothing, which is `BUGS.md`'s High row (a gate
   passes over drift it should catch). Note what is _not_ claimed: only one of the
-  44 rules examines zero units today, and that one is a legitimate empty (see
+  45 rules examines zero units today, and that one is a legitimate empty (see
   Symptom). [0112](./0112-three-crossval-presets-have-no-fixture.md) is a strict
   subset of this record's population at Medium; if that severity is right, the
   boundary is that 0112 counts absent fixtures and this counts fixtures that
@@ -38,6 +40,55 @@ complete, so the three gates that assert via `firedOn(...)` were invisible. Two
 reviewers found it independently; a third disproved the reproduction's
 interpretation by experiment.
 
+### Correction, 2026-08-13 — citations and counts refreshed, unrelated PRs moved them
+
+This record was accurate when filed and is a different kind of correction than
+the block above: not a flawed measurement, just drift — several unrelated things
+landed since 2026-08-12 (bugs 0086, 0121, 0137, and the v0.2.3 release) and
+happened to touch files or consume state this record cites. Re-verified live
+before anyone picks this up; the defect itself is unchanged.
+
+**A second pass, 2026-08-13, by an independent enforcement reviewer, found this
+first refresh pass itself had drifted in three places** — the exact failure mode
+this bug is about, one level up: a passing `check:corpus` (which verifies a
+`path:line` citation *resolves*) says nothing about whether the citing prose is
+still true. Folded in below and at point of use rather than a second correction
+table: the `release/changed-package-needs-changeset` example's "5 declarations"
+(Symptom — stale by 2026-08-13, the v0.2.3 release consumed them), the
+`ledger.ts:297→320` "why" cell (this table, above — wrongly attributed to
+`findUncoveredLanes`, which lives in `scripts/lib/lane-coverage.mjs`, not
+`ledger.ts`), and the "8/44 → 9/45 inline rules" claim (Fix section — not
+reproducible by any stated counting rule; softened to what a direct `grep` can
+actually show).
+
+**A third pass, same day, by an independent testing reviewer, found the second
+pass's own fix to the `ledger.ts` cell was itself wrong** — the relocated line
+(`:320`) resolves to a real line, but the wrong one: it lands on `finishPreset`
+itself, not the `for (const doc of corpus.documents())` loop the citing prose
+actually means by "iterates directly". Correct target is `:309`. Three revisions
+to get one citation right, each wrong version passing `check:corpus` cleanly the
+whole time — because that gate proves a `path:line` *resolves*, never that the
+line says what the prose claims. This record's own thesis, demonstrated three
+times over inside the record describing it, is the strongest evidence in this
+correction section that the thesis is correct.
+
+| citation / figure                     | as filed (2026-08-12)                                | now (2026-08-13)                                                                          | why                                                                                |
+| -------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `scripts/check-corpus.mjs:54`          | `const broken = linkRule.violations()`                 | line 115; `broken` now unions two rule instances (`linkRule`/`repoLinkRule` — site vs. repo-native routing) | bug 0086 (PR #54) rewrote directory-link resolution                                 |
+| `check:corpus` row (Symptom table)     | 5 rules, 1 covered                                      | **6** rules, 1 covered                                                                        | the link check is now two `RuleBuilder` constructs sharing one id, not one          |
+| rule totals                            | 44 total, 35 uncovered                                  | **45** total, **36** uncovered                                                                | follows from the corpus row above; `9` covered is unchanged                         |
+| gate count (`check:nonvacuity` summary)| 20 gates                                                | **22** gates                                                                                   | bug 0086 added `corpus/link-routing`; bug 0121 added `corpus/ledger/uncovered-lane` — reprinted live via `npm run check:nonvacuity` |
+| `packages/md/src/rules/ledger.ts:297`  | `for (const doc of corpus.documents())` — the direct-iteration loop the citing prose means by "iterates directly" (mislabelled "`finishPreset` call" in this correction's first two revisions — `finishPreset` was at `:308`, a different line, evidencing the weaker half of the claim) | same loop, now **line 309**                                                                  | PR #45 (bugs 0118/0119) is what *produced* line 297 in the first place (182 insertions/32 deletions, landed 2026-08-12 19:02, hours before this record was filed) — it is not a shift applied to a pre-existing 297. The 297→309 shift is one clean insertion: PR #53's `stateMatcher([])` guard (bug 0121), +12 lines, nothing else. `:320` is where `finishPreset` itself lands, which resolves fine but evidences the wrong clause. Four revisions to get this one cell right, caught by three independent review passes in succession — the record's own thesis, reproduced inside the record describing it |
+
+Re-verified live, 2026-08-13: emptying the (relocated) `broken` array in
+`check-corpus.mjs` still leaves `check:corpus` green (`✓ corpus integrity — 599
+checks across 96 documents, 0 violations`) while `bad-links.mjs` run directly
+still exits 1 on its own rebuilt rule — the exact defect this bug describes,
+reproduced against the current shape, then reverted (`git checkout --
+scripts/check-corpus.mjs`, confirmed byte-identical). The Fix section's plan
+(convert `bad-links.mjs`/`bad-pointers.mjs` to the `gateArch` pattern) is
+unaffected — neither fixture has changed since filing.
+
 ## Symptom
 
 Instrumenting the two examining seams the dogfood gates use — `RuleBuilder`'s
@@ -49,22 +100,36 @@ rule-running gates in the `validate` chain:
 | `check:arch`     | 25     | 2                    |
 | `check:spec`     | 4      | 0                    |
 | `check:diagram`  | 1      | 1                    |
-| `check:corpus`   | 5      | 1                    |
+| `check:corpus`   | 6      | 1                    |
 | `check:ledger`   | 0      | —                    |
 | `check:crossval` | 3      | 2                    |
 | `check:baseline` | 4      | 1                    |
 | `check:release`  | 2      | 2                    |
-| **total**        | **44** | **9**                |
+| **total**        | **45** | **9**                |
 
-**35 rules have no fixture of any kind.** Every rule in `check:spec` — the gate
+(`check:corpus` was 5/44 total at filing; bug 0086 split the link check into
+two `RuleBuilder` instances since — see the 2026-08-13 correction above.)
+
+**36 rules have no fixture of any kind.** Every rule in `check:spec` — the gate
 binding the README and the ADR index — is among them.
 
-**Only one rule examines zero units**, and it is legitimate:
-`release/changed-package-needs-changeset` sees 5 changeset declarations against 0
-changed packages on a clean tree, which is the rule being satisfied, not failing.
-Recorded because it is the concrete case a fail-closed floor must not red — see
-Fix. (Caveat on the metric: a correspondence's "examined" was taken as
-`min(left, right)`, a judgement, not a derivation.)
+**At least one rule examines zero units, and it is legitimate** — pinned to
+2026-08-12 (filing day) rather than restated live, since it depends on
+`.changeset/` contents that shift with every release: `release/changed-package-needs-changeset`
+saw 5 changeset declarations against 0 changed packages on a clean tree, which is
+the rule being satisfied, not failing. Recorded because it is the concrete case a
+fail-closed floor must not red — see Fix. (Caveat on the metric: a correspondence's
+"examined" was taken as `min(left, right)`, a judgement, not a derivation.)
+
+_Measured 2026-08-13, after v0.2.2 and v0.2.3 both shipped and consumed every
+pending declaration: `.changeset/` now holds 0. That makes it **two** rules
+examining zero elements on a clean tree, not one —
+`release/changeset-names-real-package` takes the same declaration set as its left
+side (`scripts/release-gate.mjs:159-190`), so it drops from `min(5, 6)` to
+`min(0, 6)`. Both are the rule being satisfied. This doesn't weaken the point the
+Fix section makes — a naive fail-closed floor now has two legitimate zero-examination
+cases to tolerate instead of one, which is a stronger reason to get the declared-empty
+grammar right, not a weaker one._
 
 The three fixtures that do reach a production rule are the strongest in the
 harness and were missed by the first draft. `gateArch`
@@ -84,6 +149,19 @@ The rest fall into two weaker tiers:
   Stronger: the published code really fires. Still silent on whether the
   production gate script invokes it.
 
+**Taxonomy note, added 2026-08-13.** The two gates that joined since filing don't
+sort cleanly into either tier above. `bad-corpus-link-routing.mjs` asserts the
+actual functions `scripts/check-corpus.mjs` imports from
+`scripts/lib/corpus-link-routing.mjs` — not a rebuilt copy. `bad-lane-coverage.mjs`
+imports `findUncoveredLanes` from `scripts/lib/lane-coverage.mjs`, the identical
+module `scripts/check-ledger.mjs:20` imports — so it drives the real production
+function directly, stronger evidence than "exercise the shipped preset" and closer
+to the `gateArch` tier, without going through the production gate *script* itself.
+Neither is folded into the Symptom table above (both test plain functions outside
+any `RuleBuilder`, the table's unit of measurement) — noted here as a live
+counter-example to "only three fixtures reach a production rule," so a future
+editor doesn't read the table as the complete taxonomy.
+
 ## Reproduction
 
 Two rots, and the contrast between them is the finding.
@@ -100,7 +178,7 @@ perl -pi -e 's{packages/\$\{pkg\}/src/\*\*}{packages/\$\{pkg\}/NO_SUCH/**}' arch
 git diff --quiet arch.rules.ts && echo "PATCH DID NOT APPLY — do not trust the result"
 
 npm run check:arch        # exit 0 — "✓ eess-ts — 25 rules across 2 files · 0 failing"
-npm run check:nonvacuity  # exit 0 — "20 gates each failed on their violating input"
+npm run check:nonvacuity  # exit 0 — "22 gates each failed on their violating input"
 
 git checkout -- arch.rules.ts
 ```
@@ -120,7 +198,7 @@ npm run check:nonvacuity  # exit 1
 
 **The harness is partial, not blind.** A rot that lands on a covered rule is
 caught within one edit; A stays green only because the rules it empties are among
-the 35. The first draft ran A, read the green as blindness, and built its prose on
+the 36. The first draft ran A, read the green as blindness, and built its prose on
 that — a reproduction constructed so it could not have failed.
 
 _(The first draft used `sed -i ''`, which is BSD-only. Under GNU sed the `''` is
@@ -132,10 +210,14 @@ own reproduction. Hence the anchored, self-verifying form above.)_
 
 Scoped to where it is true. The `gateNode` fixtures — both tiers — build their own
 invocation, so nothing binds them to the production gate script. Measured, by an
-enforcement reviewer: neutering the production link rule at
-`scripts/check-corpus.mjs:54` (`const broken = linkRule.violations()` → `[]`) left
+enforcement reviewer: neutering the production link rule (then at
+`scripts/check-corpus.mjs:54`; bug 0086 restructured this into two rule instances
+— `broken` now lives at line 115, see the 2026-08-13 correction above) left
 **`check:corpus` green and `bad-links.mjs` green**, the fixture still exiting 1 on
-its own rebuilt copy. Fixture and subject are written from the same understanding
+its own rebuilt copy. Re-verified live 2026-08-13 against the current shape:
+emptying `broken` still greens `check:corpus` (`✓ corpus integrity — 599 checks
+across 96 documents, 0 violations`) while `bad-links.mjs` is untouched. Fixture
+and subject are written from the same understanding
 and agree even when the understanding is wrong — the shape
 [0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md) closed one
 layer down, when it made a fixture name the rule that fired. The rule it names is
@@ -151,7 +233,7 @@ to put evidence at all.
 **The symptom ships.** `packages/ts/src/cli/commands/check.ts:65-66` computes the
 summary from `builders.length` and `args.ruleFiles.length` — the invocation, never
 work done — under a comment reading _"Report the denominator so a fast green is
-provably non-vacuous."_ This is not a property of this repo's harness; every
+provably non-vacuous, not silence."_ This is not a property of this repo's harness; every
 adopter gets it, and `eess-ts init` scaffolds rule files against a guessed layout,
 so an adopter whose sources sit outside the scaffolded glob gets a confident green
 on their first run.
@@ -159,9 +241,10 @@ on their first run.
 ## Why it matters
 
 ts-archunit's ADR-008: _"A check that cannot fail is worth less than no check,
-because it is counted as coverage."_ `check:nonvacuity` prints `20 gates each
-failed on their violating input — none is silently green`, which reads as the
-gates being proven. It proves 20 fixtures and 9 rules.
+because it is counted as coverage."_ `check:nonvacuity` prints `22 gates each
+failed on their violating input — none is silently green` (measured 2026-08-13;
+two gates joined since filing — see the correction above), which reads as the
+gates being proven. It proves 22 fixtures and 9 rules.
 
 ## Fix
 
@@ -173,7 +256,28 @@ and its lead item could not go red on its own reproduction (below).
    `scripts/check-corpus.mjs`, assert one violation carrying the production rule
    id and the planted file. This is generalising a working in-repo pattern, not
    new machinery, and it is falsifiable by the sabotage above: with it in place,
-   neutering `check-corpus.mjs:54` must red the gate.
+   neutering `check-corpus.mjs`'s `broken` array (line 115) must red the gate.
+
+   **Refinement, found 2026-08-13 by a testing reviewer of this refresh.** Since
+   bug 0086, `broken` is not one collection but two independently-filtered spreads
+   routed by region (`scripts/lib/corpus-link-routing.mjs`'s `REPO_NATIVE_ROOTS =
+   ['work/', 'adr/']` vs. everything else):
+   ```js
+   const broken = [
+     ...linkRule.violations().filter((v) => !isRepoNativeLink(relTo(v.file))),     // docs/, the site profile
+     ...repoLinkRule.violations().filter((v) => isRepoNativeLink(relTo(v.file))),  // work/, adr/
+   ]
+   ```
+   A single planted probe exercises only one branch — deleting the *other* spread
+   line (a smaller, more realistic sabotage than emptying the whole array) would
+   leave that gate green with only one probe in place. The conversion needs **two**
+   probes, one per routing region, as two rows in the gate list — the same
+   treatment `corpus/ledger/*` already gets at `scripts/check-nonvacuity.mjs:357-362`
+   for its three sub-rules. Verification checkbox 1 below is scoped to the
+   single-probe case only; it should be split in two when this fix is built.
+   The conversion is easier than it was at filing, not harder: `check-corpus.mjs:141`
+   now supports `--format json`, so asserting `firedOn(v, 'corpus/broken-links')`
+   against the production script's own output is a direct fit for either probe.
 2. **Correct `check:nonvacuity`'s summary sentence** to state what it measured —
    fixtures that fired, not gates proven — so the harness stops over-claiming
    while the coverage gap is open.
@@ -186,9 +290,13 @@ without (1) is a docs change.
 - **A rule-level coverage denominator.** The first draft closed on this. It
   cannot: a count of which rules a fixture _names_ does not move when a rule
   examines nothing, so it stays green on both reproductions above — this record's
-  own reviewer question answered "pass". It also cannot be derived today (8 of the
-  44 rules are constructed inline inside `.mjs` scripts and exported nowhere), so
-  the total would arrive hand-typed. If it is built, it must be a **set** measured
+  own reviewer question answered "pass". It also cannot be derived today — rule
+  construction inside `.mjs` scripts is inline and exported nowhere for reuse
+  (`grep -n '\.rule(' scripts/*.mjs` finds 5 today, across `check-corpus.mjs` and
+  `release-gate.mjs`; how many of the remaining rules count as "inline" depends on
+  where you draw that line, and the record's original 8/44 estimate at filing was
+  already not independently reproducible by any stated rule) — so the total would
+  arrive hand-typed. If it is built, it must be a **set** measured
   against a dated committed baseline, not a scalar that a rule leaving and another
   joining leaves unmoved. → [0088](../plans/0088-fold-ts-archunit-into-eess.md)
   Phase 4a, which already specifies a shrink-only list with an expiry.
@@ -203,10 +311,14 @@ without (1) is a docs change.
   adopter. → 0088 Phase 3/4.
 
 **A measured constraint on the seam fix, which should not be rediscovered later:**
-it reaches 44 of the family's checks and **not** `check:ledger`'s. `honestyAtClose`
+it reaches 45 of the family's checks and **not** `check:ledger`'s. `honestyAtClose`
 constructs no builder — it imports `finishPreset` and iterates directly
-(`packages/md/src/rules/ledger.ts:297`) — so it emitted zero evidence records. A
-floor is necessary and not sufficient.
+(`packages/md/src/rules/ledger.ts:309`, the `for (const doc of corpus.documents())`
+loop — at `:297` when PR #45 (bugs 0118/0119) produced it, hours before this
+record was filed; PR #53's bug 0121 `stateMatcher([])` guard then inserted 12
+lines above it, `:297`→`:309`; see the 2026-08-13 correction above, fourth
+revision) — so it emitted zero evidence records. A floor is necessary and not
+sufficient.
 
 **Method scope, stated so it is not read as more than it is:** two of the family's
 eight seams were instrumented, chosen because the dogfood gates use only those. The
@@ -216,9 +328,11 @@ is outside it by construction.
 
 ## Verification
 
-- [ ] Red test written first: with (1) in place, neutering
-      `scripts/check-corpus.mjs:54` must make `check:nonvacuity` exit 1 naming
-      `corpus/broken-links`. Green today — measured.
+- [ ] Red test written first: with (1) in place, neutering **either** spread in
+      `scripts/check-corpus.mjs`'s two-region `broken` array (line 115 as of
+      2026-08-13 — two probes, one per region, per the Fix refinement above; a
+      single-probe test only covers one) must make `check:nonvacuity` exit 1
+      naming `corpus/broken-links`. Green today — measured 2026-08-13.
 - [ ] The converted fixtures assert the production rule id **and** the planted
       file in one violation, per `firedOn`'s existing contract.
 - [ ] The probe surface moves out of `packages/*/src` first, or concurrent runs
