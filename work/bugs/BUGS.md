@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-13 · **Open:** 34 (33 Draft · 1 Parked) · **Fixed:** 14 · **Rejected:** 0
+**Updated:** 2026-08-13 · **Open:** 33 (32 Draft · 1 Parked) · **Fixed:** 15 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -169,4 +169,4 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0134](./0134-explain-empty-green-wipes-the-agents-block.md)              | `explain --format agent` renders "no rules" as a valid sentinel block and exits 0 — the documented `-s` guard cannot see it, and the AGENTS.md block is overwritten | Medium   | 🔴 Draft            | self-found · enforcement review of proposal 004                              | —         |
 | [0135](./0135-graphql-resolver-binding-is-a-text-grep.md)                 | `haveMatchingResolver` greps concatenated file text — a shipped Tier-1 claim whose red is unreachable for a field named `id`, on a surface no gate runs             | Medium   | 🔴 Draft            | self-found · enforcement review of proposal 003                              | —         |
 | [0136](./0136-link-fragments-are-never-checked.md)                        | `linkResolves` discards the fragment — a dead anchor is green, and the autofix transplants anchors onto other files without validating them                         | Medium   | 🔴 Draft            | self-found · probed the gate while adding an anchor to proposal 001          | —         |
-| [0137](./0137-directory-link-violation-does-not-say-why.md)               | a broken directory link and a typo'd file link report the identical message — no hint that `docs/` and `work/**` deliberately resolve directories differently       | Low      | 🔴 Draft            | self-found · enforcement review of 0086's fix                                | —         |
+| [0137](./fixed/0137-directory-link-violation-does-not-say-why.md)         | a broken directory link and a typo'd file link report the identical message — no hint that `docs/` and `work/**` deliberately resolve directories differently       | Low      | ✅ Fixed → `fixed/` | self-found · enforcement review of 0086's fix                                | #55       |
