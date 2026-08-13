@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-13 · **Open:** 31 (30 Draft · 1 Parked) · **Fixed:** 12 · **Rejected:** 0
+**Updated:** 2026-08-13 · **Open:** 32 (31 Draft · 1 Parked) · **Fixed:** 12 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -162,4 +162,5 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0129](./fixed/0129-four-validate-gates-run-in-no-workflow.md)            | four gates in `validate` ran in no workflow — a ledger violation, a duplicate number or a preset violation merged green                                    | High     | ✅ Fixed → `fixed/` | self-found · devops review of 0127 + 0128                                    | #49       |
 | [0130](./0130-cli-summary-counts-the-invocation.md)                       | the shipped `eess-ts check` summary counts the command line, not the work — under a comment claiming it proves non-vacuity                                 | Medium   | 🔴 Draft            | self-found · customer review of 0127 + 0128                                  | —         |
 | [0131](./0131-honesty-at-close-bypasses-the-builder-dsl.md)               | `honestyAtClose` builds no rule — a shipped preset hand-iterating the corpus, which 0088's fail-closed floor can never reach                               | Medium   | 🔴 Draft            | self-found · architect review of 0127 + 0128                                 | —         |
-| [0132](./0132-workflow-coverage-is-regex-over-yaml.md)                    | 0129's instrument reads YAML with regexes, and nothing joins `check:*` to the `validate` chain — the residuals 0129 named rather than closed               | Medium   | 🔴 Draft            | self-found · five-persona review of 0129's fix                               | —         |
+| [0132](./0132-the-chain-and-the-workflow-need-a-derivation.md)            | nothing binds the `validate` chain to the workflow that runs it — the derivation 0129 twice failed to build, with what review established about how        | Medium   | 🔴 Draft            | self-found · re-homed from 0129 after two failed attempts                    | —         |
+| [0133](./0133-nothing-requires-a-check-to-join-the-chain.md)              | a `check:*` need never join the `validate` chain — three authored lists of the same gates, two joins asserted                                              | Medium   | 🔴 Draft            | self-found · architect + product review of 0129's fix                        | —         |
