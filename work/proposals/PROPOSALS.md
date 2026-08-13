@@ -137,7 +137,7 @@ Recorded rather than left to be rediscovered:
   (002) sits in place with its ruling in its header. That works while the lane is
   small; it means the board is the only thing distinguishing live from settled.
 - **`check:ledger` does not read this lane** — bug
-  [0121](../bugs/0121-ledger-reads-two-of-four-lanes.md). Proposals carry a
+  [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md). Proposals carry a
   `State:` and nothing opens them, so a proposal cannot be held honest at close
   the way a plan or a bug is.
 - **The `work/` README lanes table lists one lane** — bug

@@ -2,12 +2,12 @@
 
 ## Status
 
-- **State:** Ready — fix implemented, both parts verified against the real
-  corpus and by a checked-in nonvacuity fixture; not yet merged, so not moved to
-  `fixed/` (that move is `/close`'s job, in the same PR as the merge).
+- **State:** Fixed — both parts verified against the real corpus and by a
+  checked-in nonvacuity fixture, reviewed by three personas, moved to `fixed/`
+  in this same PR (#53) so the merge and the close are one atomic act.
 - **Severity:** Low — proposals remain a small lane, and because the lane has no
   terminal state to reach, nothing is currently mis-stated. It is the same shape
-  of blindness as [0118](./fixed/0118-ledger-gate-skips-the-bug-lane.md), one
+  of blindness as [0118](./0118-ledger-gate-skips-the-bug-lane.md), one
   lane over.
 - **Origin:** self-found · enforcement review of 0119's fix
 - **Reported:** 2026-08-12 · **Counts refreshed:** 2026-08-13
@@ -34,7 +34,7 @@ contains only `node_modules`), so proposals is the live gap.
 
 **The lane has since grown and gained a board.** It was two records when this was
 filed and is four now, all of them carrying a recorded ruling, plus
-[`PROPOSALS.md`](../proposals/PROPOSALS.md). The board is not a substitute for the
+[`PROPOSALS.md`](../../proposals/PROPOSALS.md). The board is not a substitute for the
 gate — it is hand-maintained, exactly like the lane list this bug is about — but
 it does settle part of the Fix's open question below.
 
@@ -42,7 +42,7 @@ it does settle part of the Fix's open question below.
 
 The lane list is hand-maintained, and the gate reports what it _did_ scan without
 reporting what it did **not** open. Same class as the gate-list drift bug
-[0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md) fixed one
+[0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md) fixed one
 level up, where `GATE_FOR` gained a reverse check that every gate row is claimed
 by some `check:*`.
 
@@ -72,7 +72,7 @@ Two parts, implemented 2026-08-13. The second is the one that generalises.
      the literal header token `Draft` forever — reviewed or not, accepted or
      declined — with the outcome recorded as prose plus a separate `Ruling` in
      a `## Review` section, not a second `State` value.
-     [`PROPOSALS.md`](../proposals/PROPOSALS.md)'s own Vocabulary section made
+     [`PROPOSALS.md`](../../proposals/PROPOSALS.md)'s own Vocabulary section made
      this same false claim (a two-value `State` enum) and is corrected in the
      same commit as this fix — the board's "Reviewed" label is a derived,
      hand-maintained fact shown in a renamed **Status** column, not a second
@@ -195,7 +195,7 @@ terminal `State:` token; a proposal closes by being **ruled on**, and that
 ruling is a fact this gate does not read at all (mechanizing "does `Ruling:
 Ship as-is` on a proposal `LANES` entry imply it should now be Tier-4-checked
 against whether a plan citing it still treats it as unbuilt" is
-proposal [001](../proposals/001-md-corpus-rule-coverage.md)'s own `agree()`
+proposal [001](../../proposals/001-md-corpus-rule-coverage.md)'s own `agree()`
 rule-13 shape, not this bug's scope).
 
 ## Verification
