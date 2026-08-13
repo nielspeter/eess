@@ -2,13 +2,14 @@
 
 ## Status
 
-- **State:** Draft — read from the source during bug 0086's review round; no
-  red test yet.
+- **State:** Fixed — fix implemented and verified, red-then-green confirmed,
+  reviewed by two personas with two real findings fixed. Moved to `fixed/` in
+  this same PR, so the merge and the close are one atomic act.
 - **Severity:** Low — a missing-attribution gap, not a false green. Nothing
   here passes over drift; a reader gets a correct "broken" verdict, just no
   hint at _why_, which costs them a debugging step rather than a wrong answer.
 - **Origin:** self-found · enforcement review of
-  [bug 0086](./fixed/0086-links-to-directories-do-not-resolve.md)'s fix
+  [bug 0086](./0086-links-to-directories-do-not-resolve.md)'s fix
 - **Reported:** 2026-08-13
 
 ## Symptom
@@ -67,31 +68,90 @@ directory-exists-but-no-index vs. directory-doesn't-exist-at-all).
 
 ## Fix
 
-Not designed yet — the shape is a real design question, not a one-line patch:
+Took the second framing named as "probably the right shape": the condition
+detects and reports the specific near-miss itself, without needing to know
+which profile is calling it.
 
-- The condition itself doesn't know it's "the docs/ profile" vs. "the repo
-  profile" — that labelling exists only in `scripts/check-corpus.mjs`'s
-  routing (`scripts/lib/corpus-link-routing.mjs`), one layer above
-  `LinkResolveOptions`. Widening the message requires either passing a
-  profile label into `resolve()`, or having the condition detect and report
-  the specific near-miss (e.g. "this resolves as a directory once
-  `resolveDirectories` is set" or "this directory has no index file") without
-  needing to know the caller's label at all — the second is more general and
-  probably the right shape, since it wouldn't require `check-corpus.mjs` (or
-  any other consumer) to thread a profile name through.
-- Candidate framing: when a link fails, check what it _would_ have taken to
-  resolve (an index file present, `resolveDirectories` on, an extension
-  added) and say that specific gap in the message, rather than a single
-  generic "does not resolve."
+`linkResolves()` (`packages/md/src/conditions/resolve.ts`) builds a lazy,
+memoized directory index — the same `directoryIndex()` function `dirIndex`
+already uses when `resolveDirectories` is on, just invoked from the opposite
+side. When a link fails to resolve and `resolveDirectories` is **off**, it
+checks whether the (slash-stripped) target names a real directory; if so, the
+message gains a clause naming it:
+
+```
+broken link: "./guide/" does not resolve to a file in the repo — "docs/guide" is a real directory; this check runs with resolveDirectories off
+```
+
+A genuinely nonexistent target keeps the plain message, unchanged.
+
+**Scoped narrower than the Root cause section's full list of near-misses.**
+Only the directory case is covered — not a missing `tryIndex` file, not a
+missing `tryExtensions` entry. Those are real, symmetrical gaps (an
+extensionless link that would resolve with the right `tryExtensions` entry
+gets the same generic message today), but this bug's own Symptom and
+Reproduction are specifically about the directory case bug 0086 introduced;
+widening to the other two would be answering a question this record never
+asked. Left as a candidate follow-up, not filed — no evidence yet that either
+one has actually confused anyone, unlike the directory case, which did.
+
+**Cost:** the diagnostic directory index is built at most once per
+`linkResolves()` call, lazily — only if a violation is actually being
+reported with `resolveDirectories` off. A clean corpus, or one that never hits
+this specific near-miss, pays nothing extra. When `resolveDirectories` is
+**on**, a real directory already resolved before reaching the
+violation-construction branch at all, so the hint path is provably
+unreachable there — no redundant check.
+
+## Review round — 2026-08-13
+
+Reviewed by enforcement + testing personas (not architect — no new placement
+or kernel/dialect decision here, only message text inside an existing
+condition). Two findings were real and fixed:
+
+- **The primary new test was vacuous.** Demonstrated by mutation: hardcoding
+  the wrong directory name into the hint still passed all 16 original tests,
+  because the assertion used loose `toMatch(/is a real directory/)` /
+  `toMatch(/resolveDirectories/)` patterns that any hint text satisfies,
+  correct or not. Fixed by switching to an exact `toBe()` match on the full
+  message — re-verified the strengthened test correctly fails against the
+  same sabotage (3 of 19 tests now catch it) before restoring the real fix.
+- **A site-absolute link with `rootDir` set yields two resolution candidates
+  (repo-root, then content-root), and either can independently be a real
+  directory.** The original hint reported whichever came first, unlabelled —
+  for this repo's own `docs/` profile (`rootDir: 'docs'`), a repo-root
+  directory sharing a name with an intended content-root page would be named
+  as if it were the page the author meant, sending them to toggle
+  `resolveDirectories` — which would resolve the unrelated repo-root
+  directory, not fix the actual missing page. Not live in the real corpus
+  today (confirmed: 0 such links exist), but reachable. Fixed by labelling
+  the hint (`"decoy" (repo-root)` vs. `"decoy" (content-root)`) whenever
+  there are two candidates to disambiguate between; the common single-target
+  case (no `rootDir`) is unaffected.
+
+Also closed two coverage gaps named during review: the no-trailing-slash
+directory shape (`./fixed`, not just `./fixed/`) and the
+`resolveDirectories: true` + genuinely-missing-target combination both now
+have their own exact-match tests.
+
+**Not acted on, deliberately:** the claim that the diagnostic directory index
+is built "at most once, memoized" rests on a source comment, not a test —
+confirmed true by temporary instrumentation during review, but making it
+self-checking would mean exporting an internal for test-only introspection,
+disproportionate for a performance property rather than a correctness one.
 
 ## Verification
 
-- [ ] Red test written first: a link to a real directory with no index,
+- [x] Red test written first: a link to a real directory with no index,
       checked under `resolve()` with `resolveDirectories` off, reports a
       message distinguishing "directory exists, no index" from "target
-      doesn't exist at all."
-- [ ] The existing generic "does not resolve" message is not lost for the
+      doesn't exist at all." Confirmed to fail before the fix (one assertion
+      red, the other two — which describe pre-existing behaviour — already
+      green), pass after.
+- [x] The existing generic "does not resolve" message is not lost for the
       genuinely-nonexistent case — only sharpened for the near-miss cases.
-- [ ] `npm run validate` green.
+      `packages/md/tests/links.test.ts`'s "a genuinely missing target keeps
+      the generic message" asserts the exact unchanged string.
+- [x] `npm run validate` green.
 
 Deferred: none.

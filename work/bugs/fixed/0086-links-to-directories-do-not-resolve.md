@@ -161,7 +161,7 @@ clarifications in `resolve.ts`: the directory-vs-mistyped-file ambiguity (not
 a new failure mode — GitHub would render the same link the same way), and
 that `directoryIndex` deliberately excludes the repo root itself.
 
-**Deferred→[bug 0137](../0137-directory-link-violation-does-not-say-why.md):**
+**Deferred→[bug 0137](./0137-directory-link-violation-does-not-say-why.md):**
 the violation message (`broken link: "..." does not resolve to a file in the
 repo`) doesn't tell a `docs/`-region author _why_ a directory link fails there
 when the same shape resolves elsewhere in the repo. Real, flagged Important by
@@ -186,6 +186,6 @@ design question of its own, not a one-line patch inside this bug.
       documents, 446 links, 0 violations.
 - [x] Suite + `npm run validate` green.
 
-Deferred: [0137](../0137-directory-link-violation-does-not-say-why.md) — the
+Deferred: [0137](./0137-directory-link-violation-does-not-say-why.md) — the
 violation message doesn't say why a directory link failed under a given
 resolution profile.
