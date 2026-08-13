@@ -94,7 +94,7 @@ with sections, so the data exists for any target inside the corpus — but
 parsed at all, which is the real constraint: three of the five live anchor links
 point at `work/bugs/BUGS.md`, and `work/bugs/**` is outside `check:corpus`'s
 roots (`scripts/check-corpus.mjs:22-24`, blocked on
-[0086](./0086-links-to-directories-do-not-resolve.md)). So a complete fix has a
+[0086](./fixed/0086-links-to-directories-do-not-resolve.md)). So a complete fix has a
 scope question, not just an implementation.
 
 ## Why it matters
@@ -147,7 +147,7 @@ Verified by hand, which is the point: nothing else can.
    instead of missing it.
 5. **Decide the out-of-roots scope.** Three of five live anchors point into
    `work/bugs/**`, which `check:corpus` does not load. Either widen the roots
-   (blocked on [0086](./0086-links-to-directories-do-not-resolve.md)) or parse
+   (blocked on [0086](./fixed/0086-links-to-directories-do-not-resolve.md)) or parse
    link targets on demand for fragment checking only. This is the scope question
    the fix must answer, not an implementation detail.
 
@@ -173,7 +173,7 @@ Verified by hand, which is the point: nothing else can.
 Deferred:
 
 - **Widening `check:corpus` roots to `work/bugs/**`\*\* → blocked on
-  [0086](./0086-links-to-directories-do-not-resolve.md), which already owns that
+  [0086](./fixed/0086-links-to-directories-do-not-resolve.md), which already owns that
   scope decision. This record closes on fragment checking within whatever roots
   are loaded; if the answer to fix (5) is on-demand parsing, it closes without
   waiting on 0086 at all.
