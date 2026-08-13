@@ -43,13 +43,23 @@ Three proposals, three capabilities that already existed. **Survey first.**
 
 ## Vocabulary
 
-**State** — a proposal's header carries its own status line; a row means what the
-header says.
+**State** — a proposal's header carries a `**State:**` line, and in practice it
+carries exactly one value forever: `Draft`. Going through review does not flip
+it to a second token — every proposal filed so far, reviewed or not, accepted or
+declined, still reads `**State:** Draft` in its own file (verified against all
+four: 001-004). What changes on review is the `Ruling`, below, plus the prose
+after the em dash and the presence of a `## Review` section — not the token
+itself. `check:ledger`'s `proposals` lane (bug 0121) reads only this one literal
+value; anything else is reported as `ledger/unknown-state`, not silently ignored.
 
-| State      | Meaning                                                                        |
-| ---------- | ------------------------------------------------------------------------------ |
-| `Draft`    | filed; not yet through the three-lens review                                   |
-| `Reviewed` | survey + architect/product/enforcement run; the ruling is recorded in the file |
+| State   | Meaning                                                         |
+| ------- | --------------------------------------------------------------- |
+| `Draft` | filed. The only value a proposal's own header has ever carried. |
+
+The board's **Status** column below is a different, _derived_ fact — whether a
+`## Review — YYYY-MM-DD` section exists in the file — not a second `State` value.
+Nothing mechanizes that derivation today; it is asserted by whoever last updated
+the board, the same hand-maintained trust every other board in `work/` runs on.
 
 **Ruling** — the verdict `review-proposal` returns. It is recorded _in the
 proposal_, as a `## Review — YYYY-MM-DD` section, with the submission preserved
@@ -82,7 +92,7 @@ false claims about corpus state contained one.
 
 ## Board
 
-| Item                                                                            | Priority | State       | Ruling         | Origin                      | Related plans                                                                                                                                                                                     |
+| Item                                                                            | Priority | Status      | Ruling         | Origin                      | Related plans                                                                                                                                                                                     |
 | ------------------------------------------------------------------------------- | -------- | ----------- | -------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [001 — express a corpus's own conventions](./001-md-corpus-rule-coverage.md)    | High     | 🔵 Reviewed | Rewrite needed | self-found                  | builds on [0069](../plans/completed/0069-spec-corpus-reach.md) ✅; out of scope for [0089](../plans/0089-family-standalone-sufficiency.md), [0101](../plans/0101-sibling-gates-go-fail-closed.md) |
 | [002 — links embedded in source-code comments](./002-comment-embedded-links.md) | Medium   | 🔵 Reviewed | Rewrite needed | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md) ⇄ (cited both ways)                                                                                                        |
@@ -127,7 +137,7 @@ Recorded rather than left to be rediscovered:
   (002) sits in place with its ruling in its header. That works while the lane is
   small; it means the board is the only thing distinguishing live from settled.
 - **`check:ledger` does not read this lane** — bug
-  [0121](../bugs/0121-ledger-reads-two-of-four-lanes.md). Proposals carry a
+  [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md). Proposals carry a
   `State:` and nothing opens them, so a proposal cannot be held honest at close
   the way a plan or a bug is.
 - **The `work/` README lanes table lists one lane** — bug

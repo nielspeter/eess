@@ -83,8 +83,20 @@ const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
  * apostrophe accepts either glyph (an editor smart-quoting `Won't-do` should not
  * break a build over two near-identical characters), and matching is
  * case-insensitive with the declared spelling returned as canonical.
+ *
+ * An empty `states` must never match — a lane with no known/terminal
+ * vocabulary (`terminalStates: []`, a legitimate config: bug 0121's
+ * `proposals` lane, where nothing is ledger-closed by design) is a real,
+ * supported input, not a caller error. Naively joining zero alternatives
+ * makes the capture group `()`, a zero-width match that fires at almost any
+ * position — `findState` would then read every `State:`-shaped line as
+ * "readable, value ''" instead of falling through to the `UNREADABLE_RE`
+ * fallback, silently miscounting `withReadableState`/`unreadableState` and
+ * (for `isDoneItem`, which calls this with `terminalStates` directly) relying
+ * on `[].includes('')` being `false` by accident rather than by design.
  */
 function stateMatcher(states: readonly string[]): RegExp {
+  if (states.length === 0) return /(?!)/ // never matches: forces the UNREADABLE_RE fallback
   const alts = [...states]
     .sort((a, b) => b.length - a.length)
     .map((s) => escapeRe(s).replace(/['’]/g, "['’]"))

@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-13 · **Open:** 35 (34 Draft · 1 Parked) · **Fixed:** 12 · **Rejected:** 0
+**Updated:** 2026-08-13 · **Open:** 34 (33 Draft · 1 Parked) · **Fixed:** 13 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -151,7 +151,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0118](./fixed/0118-ledger-gate-skips-the-bug-lane.md)                    | `check:ledger` reads `work/plans/**` only — a bug can claim `Fixed` with open boxes, and 8 of 9 deferrals go through that lane                                      | Medium   | ✅ Fixed → `fixed/` | self-found · asked where deferrals go, during the 0105 review round          | #45       |
 | [0119](./fixed/0119-placement-check-never-ran.md)                         | the state↔folder placement check never examined a real document — it looked for `State:` one heading above where all 55 records write it                            | High     | ✅ Fixed → `fixed/` | self-found · fixing 0118, when the drift it predicted did not appear         | #45       |
 | [0120](./0120-no-state-and-cannot-find-it-are-the-same-answer.md)         | "no state" and "could not find its state" are the same answer — the region heuristic can go blind again one heading over                                            | Medium   | 🔴 Draft            | self-found · enforcement + testing reviews of 0119's fix                     | —         |
-| [0121](./0121-ledger-reads-two-of-four-lanes.md)                          | `check:ledger` reads two of four `work/` lanes — proposals carry `State:` and nothing opens them                                                                    | Low      | 🔴 Draft            | self-found · enforcement review of 0119's fix                                | —         |
+| [0121](./fixed/0121-ledger-reads-two-of-four-lanes.md)                    | `check:ledger` reads two of four `work/` lanes — proposals carry `State:` and nothing opens them                                                                    | Low      | ✅ Fixed → `fixed/` | self-found · enforcement review of 0119's fix                                | #53       |
 | [0122](./fixed/0122-violations-path-drops-because.md)                     | the `.violations()` path drops `.because`, so every caller-owns-reporting gate ships violations with no rationale                                                   | Medium   | ✅ Fixed → `fixed/` | self-found · architect + testing reviews of 0106's fix                       | #47       |
 | [0123](./0123-crossvalidate-readme-documents-four-of-seven-subpaths.md)   | `eess-crossvalidate` publishes seven subpaths and documents four — `./files` ships undiscoverable                                                                   | Medium   | 🔴 Draft            | self-found · customer review of 0106's fix                                   | —         |
 | [0124](./0124-correspondence-stamps-one-remedy-onto-opposite-branches.md) | a rule-level `suggestion` is stamped onto all three correspondence branches — one remedy shown for opposite causes                                                  | Medium   | 🔴 Draft            | self-found · enforcement review of 0122's fix                                | —         |

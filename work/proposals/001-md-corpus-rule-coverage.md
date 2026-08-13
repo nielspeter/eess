@@ -124,7 +124,7 @@ becomes a plan, both clauses are false, and nothing notices:
   still true. That is exactly rule 13's gap — `beComplete()` and
   `preserveRelations()` prove existence and structure, never value.
 - `check:ledger` does not read the proposals lane at all
-  ([bug 0121](../bugs/0121-ledger-reads-two-of-four-lanes.md)), so no lane
+  ([bug 0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md)), so no lane
   mechanism reaches it from the other end either.
 
 **Why it is rule 13's shape and not a new one.** A plan's out-of-scope clause is
