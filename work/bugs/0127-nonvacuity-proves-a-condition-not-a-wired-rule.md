@@ -51,7 +51,7 @@ before anyone picks this up; the defect itself is unchanged.
 **A second pass, 2026-08-13, by an independent enforcement reviewer, found this
 first refresh pass itself had drifted in three places** — the exact failure mode
 this bug is about, one level up: a passing `check:corpus` (which verifies a
-`path:line` citation *resolves*) says nothing about whether the citing prose is
+`path:line` citation _resolves_) says nothing about whether the citing prose is
 still true. Folded in below and at point of use rather than a second correction
 table: the `release/changed-package-needs-changeset` example's "5 declarations"
 (Symptom — stale by 2026-08-13, the v0.2.3 release consumed them), the
@@ -67,18 +67,18 @@ pass's own fix to the `ledger.ts` cell was itself wrong** — the relocated line
 itself, not the `for (const doc of corpus.documents())` loop the citing prose
 actually means by "iterates directly". Correct target is `:309`. Three revisions
 to get one citation right, each wrong version passing `check:corpus` cleanly the
-whole time — because that gate proves a `path:line` *resolves*, never that the
+whole time — because that gate proves a `path:line` _resolves_, never that the
 line says what the prose claims. This record's own thesis, demonstrated three
 times over inside the record describing it, is the strongest evidence in this
 correction section that the thesis is correct.
 
-| citation / figure                     | as filed (2026-08-12)                                | now (2026-08-13)                                                                          | why                                                                                |
-| -------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `scripts/check-corpus.mjs:54`          | `const broken = linkRule.violations()`                 | line 115; `broken` now unions two rule instances (`linkRule`/`repoLinkRule` — site vs. repo-native routing) | bug 0086 (PR #54) rewrote directory-link resolution                                 |
-| `check:corpus` row (Symptom table)     | 5 rules, 1 covered                                      | **6** rules, 1 covered                                                                        | the link check is now two `RuleBuilder` constructs sharing one id, not one          |
-| rule totals                            | 44 total, 35 uncovered                                  | **45** total, **36** uncovered                                                                | follows from the corpus row above; `9` covered is unchanged                         |
-| gate count (`check:nonvacuity` summary)| 20 gates                                                | **22** gates                                                                                   | bug 0086 added `corpus/link-routing`; bug 0121 added `corpus/ledger/uncovered-lane` — reprinted live via `npm run check:nonvacuity` |
-| `packages/md/src/rules/ledger.ts:297`  | `for (const doc of corpus.documents())` — the direct-iteration loop the citing prose means by "iterates directly" (mislabelled "`finishPreset` call" in this correction's first two revisions — `finishPreset` was at `:308`, a different line, evidencing the weaker half of the claim) | same loop, now **line 309**                                                                  | PR #45 (bugs 0118/0119) is what *produced* line 297 in the first place (182 insertions/32 deletions, landed 2026-08-12 19:02, hours before this record was filed) — it is not a shift applied to a pre-existing 297. The 297→309 shift is one clean insertion: PR #53's `stateMatcher([])` guard (bug 0121), +12 lines, nothing else. `:320` is where `finishPreset` itself lands, which resolves fine but evidences the wrong clause. Four revisions to get this one cell right, caught by three independent review passes in succession — the record's own thesis, reproduced inside the record describing it |
+| citation / figure                       | as filed (2026-08-12)                                                                                                                                                                                                                                                                    | now (2026-08-13)                                                                                            | why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/check-corpus.mjs:54`           | `const broken = linkRule.violations()`                                                                                                                                                                                                                                                   | line 115; `broken` now unions two rule instances (`linkRule`/`repoLinkRule` — site vs. repo-native routing) | bug 0086 (PR #54) rewrote directory-link resolution                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `check:corpus` row (Symptom table)      | 5 rules, 1 covered                                                                                                                                                                                                                                                                       | **6** rules, 1 covered                                                                                      | the link check is now two `RuleBuilder` constructs sharing one id, not one                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| rule totals                             | 44 total, 35 uncovered                                                                                                                                                                                                                                                                   | **45** total, **36** uncovered                                                                              | follows from the corpus row above; `9` covered is unchanged                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| gate count (`check:nonvacuity` summary) | 20 gates                                                                                                                                                                                                                                                                                 | **22** gates                                                                                                | bug 0086 added `corpus/link-routing`; bug 0121 added `corpus/ledger/uncovered-lane` — reprinted live via `npm run check:nonvacuity`                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `packages/md/src/rules/ledger.ts:297`   | `for (const doc of corpus.documents())` — the direct-iteration loop the citing prose means by "iterates directly" (mislabelled "`finishPreset` call" in this correction's first two revisions — `finishPreset` was at `:308`, a different line, evidencing the weaker half of the claim) | same loop, now **line 309**                                                                                 | PR #45 (bugs 0118/0119) is what _produced_ line 297 in the first place (182 insertions/32 deletions, landed 2026-08-12 19:02, hours before this record was filed) — it is not a shift applied to a pre-existing 297. The 297→309 shift is one clean insertion: PR #53's `stateMatcher([])` guard (bug 0121), +12 lines, nothing else. `:320` is where `finishPreset` itself lands, which resolves fine but evidences the wrong clause. Four revisions to get this one cell right, caught by three independent review passes in succession — the record's own thesis, reproduced inside the record describing it |
 
 Re-verified live, 2026-08-13: emptying the (relocated) `broken` array in
 `check-corpus.mjs` still leaves `check:corpus` green (`✓ corpus integrity — 599
@@ -156,7 +156,7 @@ actual functions `scripts/check-corpus.mjs` imports from
 imports `findUncoveredLanes` from `scripts/lib/lane-coverage.mjs`, the identical
 module `scripts/check-ledger.mjs:20` imports — so it drives the real production
 function directly, stronger evidence than "exercise the shipped preset" and closer
-to the `gateArch` tier, without going through the production gate *script* itself.
+to the `gateArch` tier, without going through the production gate _script_ itself.
 Neither is folded into the Symptom table above (both test plain functions outside
 any `RuleBuilder`, the table's unit of measurement) — noted here as a live
 counter-example to "only three fixtures reach a production rule," so a future
@@ -261,14 +261,16 @@ and its lead item could not go red on its own reproduction (below).
    **Refinement, found 2026-08-13 by a testing reviewer of this refresh.** Since
    bug 0086, `broken` is not one collection but two independently-filtered spreads
    routed by region (`scripts/lib/corpus-link-routing.mjs`'s `REPO_NATIVE_ROOTS =
-   ['work/', 'adr/']` vs. everything else):
+['work/', 'adr/']` vs. everything else):
+
    ```js
    const broken = [
-     ...linkRule.violations().filter((v) => !isRepoNativeLink(relTo(v.file))),     // docs/, the site profile
-     ...repoLinkRule.violations().filter((v) => isRepoNativeLink(relTo(v.file))),  // work/, adr/
+     ...linkRule.violations().filter((v) => !isRepoNativeLink(relTo(v.file))), // docs/, the site profile
+     ...repoLinkRule.violations().filter((v) => isRepoNativeLink(relTo(v.file))), // work/, adr/
    ]
    ```
-   A single planted probe exercises only one branch — deleting the *other* spread
+
+   A single planted probe exercises only one branch — deleting the _other_ spread
    line (a smaller, more realistic sabotage than emptying the whole array) would
    leave that gate green with only one probe in place. The conversion needs **two**
    probes, one per routing region, as two rows in the gate list — the same
@@ -278,6 +280,7 @@ and its lead item could not go red on its own reproduction (below).
    The conversion is easier than it was at filing, not harder: `check-corpus.mjs:141`
    now supports `--format json`, so asserting `firedOn(v, 'corpus/broken-links')`
    against the production script's own output is a direct fit for either probe.
+
 2. **Correct `check:nonvacuity`'s summary sentence** to state what it measured —
    fixtures that fired, not gates proven — so the harness stops over-claiming
    while the coverage gap is open.

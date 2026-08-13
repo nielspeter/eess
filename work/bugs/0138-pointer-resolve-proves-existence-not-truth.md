@@ -26,7 +26,7 @@ through four revisions in one review round, each wrong in a different way:
 1. `:297`, labelled "the `finishPreset` call" — wrong: `:297` was the
    `for (const doc of corpus.documents())` loop, not `finishPreset`.
 2. `:320`, attributed to "bug 0121 added the `proposals` lane + `findUncoveredLanes`
-   above it" — wrong on both counts: `:320` is `finishPreset` (the *other* line,
+   above it" — wrong on both counts: `:320` is `finishPreset` (the _other_ line,
    evidencing the weaker half of the claim), and `findUncoveredLanes` isn't in
    this file at all — it lives in `scripts/lib/lane-coverage.mjs`.
 3. `:320` again, re-attributed to "PR #45 and PR #53 each inserted 12 lines
