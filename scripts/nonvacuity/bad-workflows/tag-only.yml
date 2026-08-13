@@ -1,0 +1,22 @@
+# NON-VACUITY FIXTURE — the `ci runs the chain` instrument must refuse to count a
+# workflow that cannot block a merge. This one is tag-triggered, so it runs after
+# the merge it would have to gate.
+#
+# The comment below is deliberate: it names `pull_request` and `npm run validate`
+# in prose. The first version of the instrument let both vote — a comment
+# mentioning `npm run validate` turned the gate permanently green (bug 0129's own
+# review). If this fixture ever reports OK, comments are voting again.
+#
+# Not a pull_request workflow. Do not run `npm run validate` here.
+name: tag-only fixture
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm run build
+      - run: npm run test
