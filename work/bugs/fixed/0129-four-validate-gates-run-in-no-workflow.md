@@ -2,19 +2,22 @@
 
 ## Status
 
-- **State:** Fixed — the four steps now run in `ci.yml` in `validate` order, and
-  the class is closed rather than the instance: a new `ci runs the chain`
-  instrument in `check:nonvacuity` derives **both** lists — the chain from
-  `package.json`, the runs from every `pull_request`-triggered workflow — so the
-  two can no longer drift. Written red first: it named exactly the four before
-  `ci.yml` was touched.
+- **State:** Fixed — the four steps now run in `ci.yml` in `validate` order, and a
+  new `ci runs the chain` instrument in `check:nonvacuity` derives **both** lists:
+  the chain from `package.json`, the covered set from the `run:` bodies of live
+  steps in PR-triggered workflows. Written red first — it named exactly the four
+  before `ci.yml` was touched. **The first version of that instrument was itself a
+  false green**; a five-persona review took it apart and the corrected form, with
+  six controls and a status string scoped to what it measured, is below under
+  Correction. What it proves and the residuals it does not are stated there and at
+  its site, rather than claimed away.
 - **Severity:** High — a live false green, and the only one on this board that is
   live in **CI** rather than in a record. Four gates that block locally block
   nothing on a pull request, and every ADR row citing "CI runs …" is a claim about
   a list these four are not on.
 - **Origin:** self-found · devops persona, six-persona review of
-  [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) and
-  [0128](./0128-enforcement-status-is-the-cell-nothing-derives.md)
+  [0127](../0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) and
+  [0128](../0128-enforcement-status-is-the-cell-nothing-derives.md)
 - **Reported:** 2026-08-12
 
 ## Symptom
@@ -62,11 +65,11 @@ its rows drive those gates' **fixtures**, never the repo. `bad-ledger.mjs`,
 in `cleanNote` and never enters `ok` (`scripts/check-nonvacuity.mjs`), so a genuine
 `recommended` violation in `packages/*/src` leaves that row green.
 
-This is [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s shape one
+This is [0127](../0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s shape one
 level up, and worse in one respect: 0127's 35 uncovered rules at least **run** in
 CI. These four do not run at all.
 
-It is also [0128](./0128-enforcement-status-is-the-cell-nothing-derives.md)'s subject
+It is also [0128](../0128-enforcement-status-is-the-cell-nothing-derives.md)'s subject
 made concrete — `gated` means "mechanism runs in CI, failing blocks", and for any
 clause citing one of these four it is false. (Measured, and to 0128's credit: none of
 the 20 `gated` rows currently cites any of the four. The exposure is the next row
@@ -101,24 +104,40 @@ check:ledger, check:numbers, check:review-harness`, exit 1.
 - [x] The four gates run on a pull request, in `validate` order — the step list in
       `ci.yml` and the chain in `package.json` now `diff` identical.
 - [x] The membership check derives both sides: `validateChain()` reads
-      `package.json`, and the covered set is read from every workflow whose `on:`
-      block names `pull_request` — the `on:` block alone, so the words in a step
-      name cannot vote. A tag- or dispatch-triggered workflow does not count; it
-      runs after the merge it was meant to block.
+      `package.json`; the covered set is read from the `run:` bodies of steps that
+      actually run, in workflows whose comment-stripped `on:` block names
+      `pull_request`/`merge_group` and applies no path filter. A tag- or
+      dispatch-triggered workflow does not count; it runs after the merge it was
+      meant to block.
 - [x] Every failure to **look** fails loudly rather than passing over an empty set
-      ([0120](./0120-no-state-and-cannot-find-it-are-the-same-answer.md)): no
-      workflow directory, no `pull_request` workflow, and an unreadable chain each
-      return a failure. Two of those branches are driven as controls by the gate
-      itself, through the same `ciChainCoverage()` the verdict uses — not a copy of
-      it, which is the defect
-      [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) is about.
+      ([0120](../0120-no-state-and-cannot-find-it-are-the-same-answer.md)), and so
+      does every failure to **discriminate**. Six controls drive `ciChainCoverage()`
+      itself — not a copy of it, which is the defect
+      [0127](../0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) is about —
+      covering all four give-up branches plus the verdict: a chain step no live PR
+      step runs, and an unreadable `validate` segment.
 - [x] `gateBaseline`'s clean direction is documented as deliberately informational
       at its site: `cleanNote` never enters `ok`, so a real `recommended` violation
       leaves that row green — correct division of labour, since catching one is
       `check:baseline`'s job, and that now runs in CI.
+- [x] The status string says what was measured — _"every validate step is named in
+      a live PR step"_ — never "blocks a merge", which needs branch protection and
+      is not in this tree. Claiming the stronger thing was
+      [0128](../0128-enforcement-status-is-the-cell-nothing-derives.md)'s subject,
+      committed in this record's own first fix.
 - [x] `npm run validate` green — 19 of 19, 146 test files, 1934 tests.
 
-Deferred: none.
+Deferred:
+
+- **The residuals the parser cannot read**, named rather than assumed away:
+  job-level `if:`/`needs:`, matrix skips, reusable workflows (`uses:`), branch
+  protection, and a `run:` body that merely echoes the string. All fail **closed**
+  except the last. Own record — the parser is regex over YAML, and the honest
+  trigger for taking a real YAML dependency is a second workflow-shaped check, not
+  this one.
+- **Nothing asserts `check:*` ⊆ `validate`.** A new script waived in
+  `NO_GATE_NEEDED` and never added to the chain is green in both instruments and
+  runs nowhere — this record's shape, one list over. `gateCoverage()`'s to close.
 
 ## Outcome
 
@@ -126,17 +145,47 @@ The instance was four lines of YAML; the fix that mattered is the derivation. On
 green tree the new row reads:
 
 ```
-nonvacuity: ci runs the chain — OK (every validate step blocks a merge) · 19 validate steps across 1 PR workflow(s), 0 unrun
+nonvacuity: ci runs the chain — OK (every validate step is named in a live PR step)
+  · 19 validate steps across 1 PR workflow(s), 0 unrun
+  · branch protection and job-level if:/uses: not read · 6 controls
 ```
 
 Note which list is authoritative, because `gateCoverage()` beside it reads the
-other one: for "this gate blocks a merge" the workflow is the source of truth, and
-`package.json` is exactly the list a gate can be absent from while still looking
-accounted for. That asymmetry is why the harness could report `every check:*
-accounted for` for months while four of them ran nowhere.
+other one: for "does this gate run on a PR" the workflow is the source of truth,
+and `package.json` is exactly the list a gate can be absent from while still
+looking accounted for. That asymmetry is why the harness could report `every
+check:* accounted for` for months while four of them ran nowhere.
+
+### Correction — the first version of this fix was a false green
+
+A five-persona review took the shipped instrument apart, and every persona found
+the same two defects. Kept here because a gate that closed a false green by
+shipping one is the whole subject of this record.
+
+| the first version                                | measured                                                                |
+| ------------------------------------------------ | ----------------------------------------------------------------------- |
+| controls prove the instrument can fail           | **only its give-up branches** — `const missing = []` stayed green       |
+| "the words in a comment cannot vote"             | a comment saying `npm run validate` turned the whole gate green         |
+| the `on:` block alone decides the trigger        | a comment **inside** that block made a push-only workflow count         |
+| a step present means the step runs               | `if: false` and `continue-on-error: true` both read as covered          |
+| status: "every validate step **blocks a merge**" | branch protection is not in the tree; nothing read it                   |
+| the chain is 19 steps                            | a segment not spelled `npm run X` was dropped, silently, from the count |
+
+The verdict control is the one that matters: the instrument's own comment cited
+[0127](../0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the rule that
+a control must drive the gate's own function — and then routed two controls
+through branches that return before the comparison the gate exists to perform. The
+red-first run recorded above was therefore a property of that afternoon's source,
+not a guarded one. There are now six controls and the last of them fails on a
+chain step no live PR step runs.
+
+The status-string over-claim is the second: asserting an operational property from
+a text scan is exactly
+[0128](../0128-enforcement-status-is-the-cell-nothing-derives.md)'s subject,
+committed inside its sibling's fix, one day after filing it.
 
 Found while fixing, and worth recording: the first `validate` run after the fix
 exited **1** at `format:check` — my own edit was unformatted — and the chain
 reported nothing about the three steps it then skipped. That is
-[0126](./0126-validate-cannot-say-it-stopped-short.md), hit for the third time in
+[0126](../0126-validate-cannot-say-it-stopped-short.md), hit for the third time in
 one session, inside the fix for its sibling.
