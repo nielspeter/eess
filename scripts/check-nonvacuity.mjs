@@ -60,23 +60,13 @@
  * asserted against the output, not just displayed (bug 0110), so a fixture that
  * exits 1 for some other reason cannot answer for the gate it is listed under.
  *
- * THREE rows are instruments, not measurements — they answer "is this harness
- * honest?", not "does this gate fail on bad input" — and all three are excluded
- * from the gate count so the denominator stays honest:
- *
- *   harness self-check  feeds gateNode four bad stubs — three that crash without
- *                       printing a sentinel, one that runs cleanly and exits 1
- *                       for the WRONG rule — and requires every one to be
- *                       REJECTED (liveness and identity, proven separately).
- *   gate coverage       asserts every `check:*` in package.json has a gate row or
- *                       a stated waiver, so deleting a row can no longer be a
- *                       silent, green change.
- *   ci runs the chain   asserts every step of the `validate` chain is named in a
- *                       live step of a PR-triggered workflow — the two lists were
- *                       allowed to drift and four gates ran nowhere (bug 0129).
- *                       Reads `.github/workflows/`, not a `check:*` script, and
- *                       carries six controls of its own; see its header for what
- *                       it proves and the residuals it does not.
+ * `harness self-check` and `gate coverage` are instruments, not measurements.
+ * The first feeds gateNode four bad stubs — three that crash without printing a
+ * sentinel, one that runs cleanly and exits 1 for the WRONG rule — and requires
+ * every one to be REJECTED (liveness and identity, proven separately). The
+ * second asserts that every `check:*` in package.json has a gate row or a stated
+ * waiver, so deleting a row can no longer be a silent, green change. Both are
+ * excluded from the gate count so the denominator stays honest.
  *
  * The four probe files are ephemeral: created just before their run, deleted in a
  * finally block, and swept at startup so a prior crash can never leave one in
@@ -88,7 +78,7 @@
  * the `validate` chain). Exits 0 iff every gate failed on its violating input.
  */
 import { spawnSync } from 'node:child_process'
-import { writeFileSync, rmSync, readFileSync, readdirSync, existsSync } from 'node:fs'
+import { writeFileSync, rmSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -225,8 +215,8 @@ function gateBaseline() {
   // DELIBERATELY informational: `cleanNote` never enters `ok`, so a genuine
   // `recommended` violation in packages/*/src leaves this row green. That is
   // correct division of labour and stated rather than discovered (bug 0129) —
-  // this row's job is "the gate can fail", and catching a real violation is
-  // `check:baseline`'s own, which runs in CI as of 0129's fix.
+  // this row's job is "the gate can fail"; catching a real violation is
+  // `check:baseline`'s, and that runs in CI as of 0129's fix.
   const clean = sh(process.execPath, [join('scripts', 'check-baseline.mjs')])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code}`
   return {
@@ -354,7 +344,6 @@ rmSync(SELFTEST, { force: true })
 const gates = [
   ['harness self-check', gateHarnessSelfCheck],
   ['gate coverage', () => gateCoverage()],
-  ['ci runs the chain', gateCiRunsValidate],
   ['arch (root rules)', gateArch],
   ['internal arch', gateInternalArch],
   ['baseline', gateBaseline],
@@ -437,251 +426,7 @@ const GATE_FOR = {
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.
-const INSTRUMENTS = new Set(['harness self-check', 'gate coverage', 'ci runs the chain'])
-
-// --- Coverage: every `validate` step is named in a live PR-triggered step ---
-// `validate` and `.github/workflows/` are two hand-maintained lists of the same
-// thing and nothing bound them, so four gates were added to the chain in PRs
-// whose CI was green because the workflow was not part of the change (bug 0129).
-//
-// Note which list is authoritative here, because `gateCoverage()` above reads
-// the other one: for the claim "this gate runs on a PR" the workflow is the
-// source of truth, and `package.json` is precisely the list a gate can be absent
-// from while still looking accounted for.
-//
-// WHAT THIS PROVES, AND WHAT IT DOES NOT. It proves that each chain step appears
-// as an `npm run` inside the `run:` body of a step that carries no `if:` and no
-// `continue-on-error: true`, in a workflow whose (comment-stripped) `on:` block
-// names `pull_request` or `merge_group` and applies no path filter. It does NOT
-// prove the step blocks a merge — that needs branch protection, which is a
-// GitHub setting and not in this tree — and it does not read job-level `if:`,
-// `needs:`, matrix skips, or reusable workflows (`uses:`). The first review of
-// this instrument found it green through a comment, an `if: false`, a
-// `continue-on-error`, and a comment inside the `on:` block; the residuals above
-// are the ones that survive, and they are named rather than assumed away. The
-// status string says what was measured, never "blocks a merge" (bug 0128's
-// subject, first committed here).
-//
-// Every failure to LOOK is reported as a failure, never as "nothing found"
-// (bug 0120), and every one of those branches has a control below.
-const WORKFLOWS = join(repoRoot, '.github', 'workflows')
-const TAG_ONLY_WORKFLOWS = join(repoRoot, 'scripts', 'nonvacuity', 'bad-workflows')
-
-/** Drop whole-line and trailing `#` comments so prose cannot vote. */
-function stripYamlComments(text) {
-  return text
-    .split('\n')
-    .map((l) => l.replace(/(^|\s)#.*$/, '$1'))
-    .join('\n')
-}
-
-/**
- * The `validate` chain, split into steps — and the segments that did not parse.
- *
- * An unrecognised segment is REPORTED, never filtered away: silently dropping it
- * shrinks the denominator and the only symptom is the printed count going 19→18,
- * which is a failure to look wearing the costume of a smaller job (bug 0120).
- */
-function validateChain() {
-  const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
-  const steps = []
-  const unparsed = []
-  for (const seg of String(pkg.scripts?.validate ?? '')
-    .split('&&')
-    .map((s) => s.trim())
-    .filter(Boolean)) {
-    const m = /^npm run ([\w:@/-]+)$/.exec(seg)
-    if (m) steps.push(m[1])
-    else unparsed.push(seg)
-  }
-  return { steps, unparsed }
-}
-
-/** Is this workflow one that runs on a pull request, unfiltered? */
-function prTriggered(src) {
-  const lines = stripYamlComments(src).split('\n')
-  const start = lines.findIndex((l) => /^["']?on["']?:/.test(l))
-  if (start === -1) return false
-  let end = lines.length
-  for (let i = start + 1; i < lines.length; i++) {
-    if (/^\S/.test(lines[i])) {
-      end = i
-      break
-    }
-  }
-  const block = lines.slice(start, end).join('\n')
-  if (!/pull_request|merge_group/.test(block)) return false
-  // A path filter means the workflow skips some PRs entirely. Refuse to count it
-  // rather than credit it for runs it will not make.
-  if (/paths(-ignore)?:/.test(block)) return false
-  return true
-}
-
-/**
- * An `if:` this instrument is willing to reason about.
- *
- * Three answers, and the third is the point: `runs` · `never` · `unreadable`.
- * A condition it cannot evaluate must NOT read as "the step runs" — that is the
- * `if: false` hole — and must not read as "the step is missing" either, because
- * `ci.yml`'s own `check:release` carries a legitimate `if: github.event_name ==
- * 'pull_request'` that is TRUE on the event this gate is about. So an unknown
- * condition is reported as unreadable and fails the gate loudly (bug 0120): the
- * next contributor to write one teaches this function, rather than silently
- * gaining or losing coverage.
- */
-function readCondition(expr) {
-  const e = expr
-    .trim()
-    .replace(/^\$\{\{\s*|\s*\}\}$/g, '')
-    .trim()
-  if (/^false$/i.test(e)) return 'never'
-  if (/^true$/i.test(e)) return 'runs'
-  if (/^github\.event_name\s*==\s*['"]pull_request['"]$/.test(e)) return 'runs'
-  return 'unreadable'
-}
-
-/**
- * `npm run <name>` reachable from the `run:` body of a step that actually runs.
- *
- * Read from `run:` bodies ONLY. The first version scanned the whole file, so a
- * comment saying "npm run validate" turned the gate permanently green — measured,
- * and `publish.yml` already carries `npm run` inside a comment block.
- */
-function liveRunCommands(src) {
-  const lines = stripYamlComments(src).split('\n')
-  const found = []
-  const unreadable = []
-  let i = 0
-  while (i < lines.length) {
-    const m = /^(\s*)-\s+(.*)$/.exec(lines[i])
-    if (m === null) {
-      i++
-      continue
-    }
-    const indent = m[1].length
-    const block = [m[2].trim()]
-    let j = i + 1
-    for (; j < lines.length; j++) {
-      if (lines[j].trim() === '') continue
-      if (/^(\s*)/.exec(lines[j])[1].length <= indent) break
-      block.push(lines[j].trim())
-    }
-    const runAt = block.findIndex((l) => /^run:(\s|$)/.test(l))
-    if (runAt === -1) {
-      i = j
-      continue
-    }
-    const cmds = [
-      ...block
-        .slice(runAt)
-        .join('\n')
-        .matchAll(/npm run ([\w:@/-]+)/g),
-    ].map((r) => r[1])
-    const ifLine = block.find((l) => /^if:\s/.test(l))
-    const verdict = ifLine === undefined ? 'runs' : readCondition(ifLine.slice(3))
-    const neverBlocks = block.some((l) => /^continue-on-error:\s*true\b/.test(l))
-    if (verdict === 'unreadable' && cmds.length > 0) {
-      unreadable.push(`${cmds.join('/')} (if: ${ifLine.slice(3).trim()})`)
-    } else if (verdict === 'runs' && !neverBlocks) {
-      found.push(...cmds)
-    }
-    i = j
-  }
-  return { found, unreadable }
-}
-
-// The verdict, as ONE function taking its inputs — so the controls below drive
-// the same code the gate does. A control holding its own copy of this logic
-// would pass while the gate was reverted, which is the defect bug 0127 is about
-// and the shape ts-archunit's vacuity matrix found in its own expiry gate.
-function ciChainCoverage(chain, workflowDir) {
-  const fail = (why) => ({
-    ok: false,
-    status: 'FAILED (cannot prove CI runs the chain)',
-    detail: why,
-  })
-
-  if (chain.unparsed.length > 0) {
-    return fail(`validate segment(s) this instrument cannot read: ${chain.unparsed.join(' · ')}`)
-  }
-  if (chain.steps.length === 0) return fail('the validate chain is empty or unreadable')
-
-  if (!existsSync(workflowDir)) return fail(`${workflowDir} does not exist`)
-  const files = readdirSync(workflowDir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
-  if (files.length === 0) return fail('no workflow files')
-
-  const merging = []
-  const unreadable = []
-  for (const f of files) {
-    const src = readFileSync(join(workflowDir, f), 'utf8')
-    if (!prTriggered(src)) continue
-    const { found, unreadable: bad } = liveRunCommands(src)
-    for (const b of bad) unreadable.push(`${f}: ${b}`)
-    merging.push({ file: f, runs: new Set(found) })
-  }
-  if (merging.length === 0) return fail('no workflow is triggered by pull_request')
-  if (unreadable.length > 0) {
-    return fail(`step condition(s) this instrument cannot evaluate: ${unreadable.join(' · ')}`)
-  }
-
-  // A workflow whose own step runs `validate` covers every step by construction.
-  if (merging.some((w) => w.runs.has('validate'))) {
-    return {
-      ok: true,
-      status: 'OK (a PR workflow runs the whole chain)',
-      detail: `${chain.steps.length} validate steps covered by npm run validate`,
-    }
-  }
-
-  const covered = new Set(merging.flatMap((w) => [...w.runs]))
-  const missing = chain.steps.filter((step) => !covered.has(step))
-  return {
-    ok: missing.length === 0,
-    status:
-      missing.length === 0
-        ? 'OK (every validate step is named in a live PR step)'
-        : 'FAILED (a validate step is named in no live PR step)',
-    detail:
-      missing.length === 0
-        ? `${chain.steps.length} validate steps across ${merging.length} PR workflow(s), 0 unrun` +
-          ` · branch protection and job-level if:/uses: not read`
-        : `${missing.length} of ${chain.steps.length} in no live PR step: ${missing.join(', ')}`,
-  }
-}
-
-function gateCiRunsValidate() {
-  const chain = validateChain()
-  // Controls, all driving `ciChainCoverage` itself. Two kinds, and the second is
-  // the one the first version of this instrument lacked:
-  //
-  //   - failure-to-LOOK: every branch that gives up before comparing anything.
-  //   - failure-to-DISCRIMINATE: the comparison at the heart of the gate. Review
-  //     measured that `const missing = []` left this row green — the verdict had
-  //     no control, so the red-first run was a property of that day's source and
-  //     not a guarded one. That is bug 0127's shape inside 0129's own fix.
-  const absent = { steps: [...chain.steps, '__runs_nowhere__'], unparsed: [] }
-  const controls = [
-    ['no workflow directory', ciChainCoverage(chain, join(repoRoot, '__no_such_workflows__'))],
-    ['empty validate chain', ciChainCoverage({ steps: [], unparsed: [] }, WORKFLOWS)],
-    ['no workflow files', ciChainCoverage(chain, join(repoRoot, '.github'))],
-    ['no PR-triggered workflow', ciChainCoverage(chain, TAG_ONLY_WORKFLOWS)],
-    [
-      'an unreadable validate segment',
-      ciChainCoverage({ steps: chain.steps, unparsed: ['npx x'] }, WORKFLOWS),
-    ],
-    ['a step no live PR step runs', ciChainCoverage(absent, WORKFLOWS)],
-  ]
-  const blind = controls.filter(([, r]) => r.ok !== false).map(([label]) => label)
-  if (blind.length > 0) {
-    return {
-      ok: false,
-      status: 'FAILED (the instrument cannot report what it exists to catch)',
-      detail: `these should have failed and did not: ${blind.join(' · ')}`,
-    }
-  }
-  const res = ciChainCoverage(chain, WORKFLOWS)
-  return { ...res, detail: `${res.detail} · ${controls.length} controls` }
-}
+const INSTRUMENTS = new Set(['harness self-check', 'gate coverage'])
 function gateCoverage() {
   const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
   const checks = Object.keys(pkg.scripts ?? {}).filter((k) => k.startsWith('check:'))

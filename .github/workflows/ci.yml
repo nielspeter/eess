@@ -3,8 +3,12 @@ name: CI
 on:
   push:
     branches: [main]
+  # No `branches:` filter, deliberately. It filters the PR's BASE ref, so with
+  # `[main]` a stacked PR — one whose base is another open branch — matched
+  # nothing and ran zero gates. Measured on this repo's own PR #49, the one
+  # fixing "four gates run in no workflow": `gh pr checks 49` reported none.
+  # Stacked branches are how this repo works, so every PR gets the chain.
   pull_request:
-    branches: [main]
 
 jobs:
   test:
