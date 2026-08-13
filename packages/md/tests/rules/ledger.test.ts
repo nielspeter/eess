@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { ArchRuleError, type ArchViolation } from '@nielspeter/eess'
 import { corpus } from '../../src/index.js'
 import { taskItems } from '../../src/builders/task-items.js'
-import { honestyAtClose } from '../../src/rules/ledger.js'
+import { honestyAtClose, ledgerStats } from '../../src/rules/ledger.js'
 
 // this test lives in tests/rules/, fixtures live in tests/fixtures/
 const ledgerRoot = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'ledger')
@@ -228,5 +228,53 @@ describe('honestyAtClose — the State value is read, not grabbed', () => {
     expect(unknown).toHaveLength(1)
     // Names the whole value, not its first word.
     expect(unknown[0]?.message).toMatch(/State: In limbo is not/)
+  })
+})
+
+// Bug 0121. `terminalStates: []` is a legitimate config (a lane where nothing
+// is ever ledger-closed — eess's own proposals lane), not a caller error, and
+// `isDoneItem` calls `findState(doc.text, terminalStates)` with that array
+// directly. Naively joining zero alternatives built the regex's capture group
+// as `()` — a zero-width match that fires at almost any position — so every
+// genuine `State:`-shaped line was misread as "readable, value ''" instead of
+// falling through to the unreadable-token fallback. `isDoneItem` stayed
+// correct only because `[].includes('')` happens to be `false`, not because
+// `findState` reported "no known state" for the right reason.
+describe('honestyAtClose — an empty vocabulary is a real config, not a caller error', () => {
+  it('never marks a document done when terminalStates is empty', () => {
+    // An undisposed open box would normally be `ledger/silent-open-box` for a
+    // done item. With terminalStates: [], nothing is ever done, so the box
+    // check must never even run — the false-positive machine bug 0121's
+    // proposals lane exists to avoid.
+    const doc = '# T\n\n## Status\n\n- **State:** Draft\n\n## Verification\n\n- [ ] not disposed\n'
+    const f = honestyAtClose(corpusForText(doc), {
+      states: ['Draft'],
+      terminalStates: [],
+      closeInPlace: true,
+      doneFolders: [],
+      report: 'return',
+    })
+    expect(f).toEqual([])
+  })
+
+  it('ledgerStats reports a State:-shaped line as unreadable, not readable, when states is empty', () => {
+    // The direct regression test for the stateMatcher([]) fix: an empty
+    // vocabulary must force every genuine State: line into `unreadableState`,
+    // never `withReadableState` — the distinction findUncoveredLanes (bug
+    // 0121's reverse lane-coverage check) relies on to detect "this directory
+    // has state-shaped records" independent of what value they carry.
+    const doc = '# T\n\n## Status\n\n- **State:** Draft\n'
+    const stats = ledgerStats(corpusForText(doc), { states: [], terminalStates: [] })
+    expect(stats.withReadableState).toBe(0)
+    expect(stats.unreadableState).toBe(1)
+  })
+
+  it('an empty vocabulary still reports nothing for a document with no State line at all', () => {
+    const stats = ledgerStats(corpusForText('# T\n\nNo state here.\n'), {
+      states: [],
+      terminalStates: [],
+    })
+    expect(stats.withReadableState).toBe(0)
+    expect(stats.unreadableState).toBe(0)
   })
 })
