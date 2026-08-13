@@ -4,7 +4,7 @@
 
 - **State:** Fixed — fix implemented and verified, red-then-green confirmed,
   reviewed by two personas with two real findings fixed. Moved to `fixed/` in
-  this same PR, so the merge and the close are one atomic act.
+  this same PR (#55), so the merge and the close are one atomic act.
 - **Severity:** Low — a missing-attribution gap, not a false green. Nothing
   here passes over drift; a reader gets a correct "broken" verdict, just no
   hint at _why_, which costs them a debugging step rather than a wrong answer.
