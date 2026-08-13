@@ -6,8 +6,8 @@
   verified, the coverage this bug blocked (`work/bugs/**`) is on and green
   against the real corpus. Reviewed by three personas; the routing gap they
   found live is fixed and proven by a permanent nonvacuity fixture, not just
-  documented. Moved to `fixed/` in this same PR, so the merge and the close
-  are one atomic act.
+  documented. Moved to `fixed/` in this same PR (#54), so the merge and the
+  close are one atomic act.
 - **Reported:** 2026-08-08 — self-found while extending `check:corpus` to cover
   `work/bugs/**` ([bug 0084](../0084-preserve-relations-right-to-left.md) and
   [0085](../0085-table-row-violations-report-table-line.md) prompted the
