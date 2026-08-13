@@ -196,7 +196,7 @@ The generalisation these three share — _proving a gate ran is not proving the
 right rule fired_ — is only half-done. Five `gateNode` gates still pass a
 `ruleNote` that is interpolated into the display string and asserted nowhere.
 That, and the structural findings behind it, are re-homed to
-[0110](../0110-nonvacuity-gates-do-not-assert-which-rule-fired.md).
+[0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md).
 
 ## Verification
 

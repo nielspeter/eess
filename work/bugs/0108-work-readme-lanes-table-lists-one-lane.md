@@ -73,7 +73,7 @@ until [002](../proposals/002-comment-embedded-links.md) was reviewed.
 terminal `fixed/`), `proposals/`, and `spikes/`. Replace the solo-greenfield
 sentence with what is now true: which lanes exist, and that further lanes join
 the same skeleton and the same number sequence (see
-[0107](./0107-number-allocation-scans-one-lane.md)) when the work calls for
+[0107](./fixed/0107-number-allocation-scans-one-lane.md)) when the work calls for
 them.
 
 **2 — Bind it, so it cannot drift again.** This is a markdown table making a
