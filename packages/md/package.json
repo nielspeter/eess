@@ -1,6 +1,6 @@
 {
   "name": "@nielspeter/eess-md",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Architecture testing for a Markdown corpus — the Markdown dialect of the eess family. Links resolve, code pointers ground, ADRs declare enforcement.",
   "type": "module",
   "exports": {

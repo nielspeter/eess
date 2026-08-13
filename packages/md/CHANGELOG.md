@@ -1,5 +1,74 @@
 # @nielspeter/eess-md
 
+## 0.3.0
+
+### Minor Changes
+
+- 3a4600b: `resolve()` can now resolve a link naming a real directory, even with no index
+  file: `LinkResolveOptions.resolveDirectories` (default `false`).
+
+  A link to `./fixed/` (or `./fixed`, no trailing slash — both forms resolve)
+  was always reported broken if `fixed/` had no `tryIndex` file inside it, even
+  though the directory genuinely exists and GitHub/GitLab render it fine as a
+  listing. There was no resolvable shape for "this is a directory" at all —
+  `tryIndex` only covers "this directory's page is its index file," a different,
+  narrower claim.
+
+  ```ts
+  links(c).that().areInternal().should().resolve({ resolveDirectories: true })
+  ```
+
+  Directory existence is derived from the corpus's own file index — every
+  indexed file's ancestors are known directories — so this costs no new
+  filesystem access.
+
+  **Off by default, deliberately.** Widening what "resolves" means is a false
+  green waiting to happen: correct for a repo-hosted corpus (GitHub, GitLab
+  render any real directory), wrong for a static-site corpus where a bare
+  directory with no index is not a page the site would actually serve. Existing
+  callers see no behaviour change unless they opt in.
+
+### Patch Changes
+
+- cd0361b: `linkResolves()`'s broken-link message now names the near-miss when the
+  target is a real directory: `broken link: "./guide/" does not resolve to a
+file in the repo — "docs/guide" is a real directory; this check runs with
+resolveDirectories off`.
+
+  Before this, a link to a real directory with `resolveDirectories` off and a
+  link to a target that doesn't exist at all reported the identical generic
+  message. A corpus that deliberately runs different resolution profiles for
+  different regions (a static-site guide vs. repo-hosted markdown, say) gave an
+  author no way to tell, from the message alone, which case they'd hit.
+
+  The hint only appears when it's true — a genuinely nonexistent target keeps
+  the plain message unchanged — and is computed lazily, only when a violation
+  is actually being reported, so a clean corpus pays nothing extra.
+
+- d54b041: Fix `honestyAtClose`/`ledgerStats` silently misreading a `**State:**` line when
+  `states` is an empty array — a legitimate config for a lane where nothing is
+  ever ledger-closed (a corpus-content vocabulary this repo now uses for its own
+  proposals lane, where the review outcome is a separate field, not a second
+  `State` token).
+
+  `stateMatcher([])` built its regex's capture group from zero alternatives —
+  `()`, a zero-width match that fires at almost any position — so every genuine
+  `State:`-shaped line was read as "readable, value `''`" instead of falling
+  through to the unreadable-token fallback. Callers passing a non-empty
+  `terminalStates` were never affected. A caller passing `terminalStates: []`
+  (the only way to trigger this) still got the right answer from `isDoneItem`,
+  but only because `[].includes('')` happens to be `false` — not because
+  `findState` reported "no known state" for the right reason. `ledgerStats`'s own
+  `withReadableState`/`unreadableState` counts were wrong for such a lane: a
+  directory full of `State:`-shaped records would report as `withReadableState`
+  instead of `unreadableState`, which matters to any caller distinguishing "has
+  state-shaped content" from "has content in my declared vocabulary" — exactly
+  the distinction a coverage-style check needs.
+
+  Fixed with a one-line guard: an empty vocabulary now never matches, forcing the
+  documented unreadable-token fallback for every path. No change to any existing
+  caller with a non-empty `states`/`terminalStates`.
+
 ## 0.2.0
 
 ### Minor Changes
