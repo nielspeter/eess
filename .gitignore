@@ -15,3 +15,7 @@ docs/.vitepress/cache/
 
 # doc code-fence check scratch (plan 0082)
 .docs-code-check/
+
+# Local research/positioning drafts — not part of the engineering corpus, so no
+# gate covers them (check:corpus roots are work/, adr/, docs/).
+reports/
