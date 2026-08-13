@@ -39,40 +39,71 @@ through four revisions in one review round, each wrong in a different way:
 
 `check:corpus` was green on **every one** of these four states, because each
 cited line was a real line in a real file within range — `pointerResolves`
-(`packages/md/src/conditions/pointer-resolve.ts:94-207`) never reads what the
-line actually contains beyond counting total lines in the file. Three of the
-four wrong states also passed a human review pass before the next one caught
-it, for the same underlying reason a machine gate would miss it: nothing in the
-toolchain compares a citation's prose to its target's content.
+(`packages/md/src/conditions/pointer-resolve.ts:71-208`, including the
+`lineCount` helper at `:79-92` that does the only comparison the condition
+makes) never reads what the line actually contains beyond counting total lines
+in the file. Three of the four wrong states also passed a human review pass
+before the next one caught it, for the same underlying reason a machine gate
+would miss it: nothing in _this_ mechanism — a `path:line` pointer — compares a
+citation's prose to its target's content.
+
+Scoped deliberately: the family does own a content-aware cross-dialect binding
+elsewhere. `packages/crossvalidate/src/md-ts.ts`'s `adrCitationsResolve` binds
+an ADR's cited `it('…')` titles against the real test AST, and already fought
+this exact failure mode once, as
+[bug 0104](./fixed/0104-it-title-capture-stops-at-any-quote.md) — a title
+truncated at the wrong quote resolved against a _different_, wrong test that
+happened to share the truncated prefix, the gate green throughout. `path:line`
+pointers have no equivalent binding; this record is about that narrower,
+unfixed case.
 
 ## Reproduction
 
-Live, self-contained, no repo files left modified:
+Live, self-contained, no repo files left modified. Run from the repo root
+**after `npm run build`** — `@nielspeter/eess-md` resolves through the
+workspace `exports` map to `./dist/index.js`, so an unbuilt checkout fails with
+`ERR_MODULE_NOT_FOUND` instead of printing the demo:
 
 ```bash
 mkdir -p reports/__pointer_demo__
 cat > reports/__pointer_demo__/claim.md <<'EOF'
 The kernel exports `ArchRuleError` from `packages/core/src/index.ts:1`.
 EOF
-cat > ./__pointer_demo__.mjs <<'EOF'
+cat > reports/__pointer_demo__/run.mjs <<'EOF'
 import { corpus, pointers } from '@nielspeter/eess-md'
 const c = corpus({ roots: ['reports/__pointer_demo__/*.md'] })
 const v = pointers(c).that().areLive().should().resolve().violations()
-console.log('violations:', v.length)
+console.log('docs seen  :', c.documents().length)
+console.log('violations :', v.length)
 EOF
-node ./__pointer_demo__.mjs
-# violations: 0
+node reports/__pointer_demo__/run.mjs
+# docs seen  : 1
+# violations : 0
 
 sed -n '1p' packages/core/src/index.ts
 # // @nielspeter/eess — the dialect-independent kernel.
 # — not ArchRuleError, not an export statement, not remotely what the claim said.
 
-rm -f ./__pointer_demo__.mjs && rm -rf reports/__pointer_demo__
+# Control — a genuinely out-of-range pointer added to the same corpus, proving
+# the rule actually examines documents rather than silently matching zero:
+cat > reports/__pointer_demo__/redcontrol.md <<'EOF'
+Fabricated: `packages/core/src/index.ts:99999`.
+EOF
+node reports/__pointer_demo__/run.mjs
+# docs seen  : 2
+# violations : 1
+
+rm -rf reports/__pointer_demo__
 ```
 
 `packages/core/src/index.ts:1` is a real, in-range line, so the pointer
 "resolves" — 0 violations — no matter what the surrounding prose claims about
-its content.
+its content. The control rules out the alternative explanation: `violations: 0`
+is not the corpus glob matching nothing, or the pointer syntax going
+unrecognized — the same green would print either way without it, which is
+[0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s own lesson
+("a reproduction constructed so it could not have failed") applied to this
+record's own reproduction.
 
 ## Root cause
 
@@ -94,7 +125,16 @@ The same shape almost certainly extends to `linkResolves()`
 says nothing about whether that file still contains what the linking prose
 describes — but this record's Reproduction and root cause are scoped to
 pointers, the case actually measured. Extending the claim to links without
-measuring it would repeat the exact failure this bug is about.
+measuring it would repeat the exact failure this bug is about;
+[0136](./0136-link-fragments-are-never-checked.md) already measured one
+instance of it (`linkResolves` discards the fragment, so a dead anchor is
+green) without generalizing to the claim made here.
+[0128](./0128-enforcement-status-is-the-cell-nothing-derives.md) is the same
+defect one level coarser — an ADR Enforcement cell verified only at
+file-existence granularity, never reading what the file says — filed the day
+before this one, about a different surface. All three are Medium, all three
+Draft, none referencing the others until now; the honest fix for the shared
+thesis is one cross-link each, not three separate mechanisms.
 
 ## Why it matters
 
@@ -111,22 +151,34 @@ single line number.
 
 ## Fix
 
-**Not proposed here.** Line-content verification is a real Tier-4 problem —
-semantic drift between prose and code is exactly what
+**No Tier-4 mechanism proposed here.** Line-content verification is a real
+Tier-4 problem — semantic drift between prose and code is exactly what
 [0079](../plans/0079-tier-2-3-mechanization.md) (Tier 2/3 mechanization) is
-scoped to, and this bug's own root cause states there's no mechanism for it
-yet ("an 83-talk sweep found none"). What this record can responsibly close on
-is narrower: **say the ceiling out loud** where an adopter would otherwise
-over-trust it.
+scoped to, and that plan's own board row states there's no mechanism for it
+yet (`work/plans/ROADMAP.md:58`: "a mechanism; none exists, and an 83-talk
+sweep found none" — the sweep itself is
+`work/plans/0079-tier-2-3-mechanization.md:35`). What this record can
+responsibly close on is narrower: **say the ceiling out loud** where it's
+actually read — which review found is not where the first draft pointed.
 
-1. Tighten `pointerResolves`'s doc comment and `check:corpus`'s summary
-   language so "resolves" doesn't read as "is accurate" — e.g. the corpus
-   summary could name what it checked (existence + line range) rather than
-   implying completeness.
-2. Consider whether `docs/manifesto.md` or `CLAUDE.md`'s pointer-citation
-   convention should say this ceiling explicitly, so an agent citing
-   `path:line` evidence knows a green `check:corpus` is necessary, not
-   sufficient, for the citation being true.
+1. `pointerResolves`'s doc comment
+   (`packages/md/src/conditions/pointer-resolve.ts:54-56`) is already honest —
+   quoted approvingly in Root cause — and `check:corpus`'s summary lives in
+   `scripts/check-corpus.mjs`, a repo-local dogfood script no adopter ever
+   runs. Tightening either changes nothing for anyone outside this repo. The
+   over-claim ships in the surfaces an adopter actually reads —
+   `packages/md/README.md:28` and `docs/markdown.md:26` both say "`path:line`
+   code pointers ground against real files," unqualified — and in the
+   portable kit an agent treats as its own instructions:
+   `kit/templates/bug.md:24`, `kit/templates/plan.md:31`,
+   `kit/skills/bug/SKILL.md:41-42`, and `kit/README.md:60` all use "grounds"
+   the same unqualified way. Fix there, not here.
+2. State the ceiling once, explicitly, and link to it from the surfaces in
+   (1) rather than repeating the caveat in five places: a green pointer/link
+   check proves the citation _resolves_ — file exists, line in range — not
+   that the cited line still supports the sentence next to it.
+   `docs/manifesto.md` mentions pointers only twice (`:197`, `:485`) and
+   assigns them no tier; this is the natural home.
 3. Out of scope here, named for a future record: actually mechanizing
    line-content verification (e.g. hashing the cited line/range and flagging
    drift) — that is new capability, not a fix to what exists, and belongs with

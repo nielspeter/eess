@@ -81,10 +81,11 @@ correction section that the thesis is correct.
 | `packages/md/src/rules/ledger.ts:297`   | `for (const doc of corpus.documents())` — the direct-iteration loop the citing prose means by "iterates directly" (mislabelled "`finishPreset` call" in this correction's first two revisions — `finishPreset` was at `:308`, a different line, evidencing the weaker half of the claim) | same loop, now **line 309**                                                                                 | PR #45 (bugs 0118/0119) is what _produced_ line 297 in the first place (182 insertions/32 deletions, landed 2026-08-12 19:02, hours before this record was filed) — it is not a shift applied to a pre-existing 297. The 297→309 shift is one clean insertion: PR #53's `stateMatcher([])` guard (bug 0121), +12 lines, nothing else. `:320` is where `finishPreset` itself lands, which resolves fine but evidences the wrong clause. Four revisions to get this one cell right, caught by three independent review passes in succession — the record's own thesis, reproduced inside the record describing it |
 
 Re-verified live, 2026-08-13: emptying the (relocated) `broken` array in
-`check-corpus.mjs` still leaves `check:corpus` green (`✓ corpus integrity — 599
-checks across 96 documents, 0 violations`) while `bad-links.mjs` run directly
-still exits 1 on its own rebuilt rule — the exact defect this bug describes,
-reproduced against the current shape, then reverted (`git checkout --
+`check-corpus.mjs` still leaves `check:corpus` green (measured 2026-08-13, before
+this commit added bug 0138 to the corpus: `✓ corpus integrity — 599 checks across
+96 documents, 0 violations`) while `bad-links.mjs` run directly still exits 1 on
+its own rebuilt rule — the exact defect this bug describes, reproduced against
+the current shape, then reverted (`git checkout --
 scripts/check-corpus.mjs`, confirmed byte-identical). The Fix section's plan
 (convert `bad-links.mjs`/`bad-pointers.mjs` to the `gateArch` pattern) is
 unaffected — neither fixture has changed since filing.
@@ -121,15 +122,25 @@ the rule being satisfied, not failing. Recorded because it is the concrete case 
 fail-closed floor must not red — see Fix. (Caveat on the metric: a correspondence's
 "examined" was taken as `min(left, right)`, a judgement, not a derivation.)
 
-_Measured 2026-08-13, after v0.2.2 and v0.2.3 both shipped and consumed every
+\_Measured 2026-08-13, after v0.2.2 and v0.2.3 both shipped and consumed every
 pending declaration: `.changeset/` now holds 0. That makes it **two** rules
 examining zero elements on a clean tree, not one —
 `release/changeset-names-real-package` takes the same declaration set as its left
-side (`scripts/release-gate.mjs:159-190`), so it drops from `min(5, 6)` to
-`min(0, 6)`. Both are the rule being satisfied. This doesn't weaken the point the
-Fix section makes — a naive fail-closed floor now has two legitimate zero-examination
-cases to tolerate instead of one, which is a stronger reason to get the declared-empty
-grammar right, not a weaker one._
+side (`declarationSelection`, `scripts/release-gate.mjs:154-158`, consumed at
+`:192-193`), so it drops from `min(5, 6)` to `min(0, 6)`. Both are the rule being
+satisfied. This doesn't weaken the point the Fix section makes — a naive
+fail-closed floor now has two legitimate zero-examination cases to tolerate
+instead of one, which is a stronger reason to get the declared-empty grammar
+right, not a weaker one.
+
+_Correction, 2026-08-13, same review round: the first version of this paragraph
+cited `:159-190` — a range that contains neither `declarationSelection` nor
+`namesRealPackage`, only the sibling rule (`changedSelection`,
+`workspaceSelection`, `needsChangeset`). It resolved, so `check:corpus` stayed
+green over it — a fifth instance of exactly what [0138](./0138-pointer-resolve-proves-existence-not-truth.md)
+files, caught independently by five of six reviewers (architect, product,
+devops, testing, enforcement) auditing this same commit. The underlying claim
+was already correct; only the pointer was wrong._
 
 The three fixtures that do reach a production rule are the strongest in the
 harness and were missed by the first draft. `gateArch`
@@ -213,10 +224,14 @@ invocation, so nothing binds them to the production gate script. Measured, by an
 enforcement reviewer: neutering the production link rule (then at
 `scripts/check-corpus.mjs:54`; bug 0086 restructured this into two rule instances
 — `broken` now lives at line 115, see the 2026-08-13 correction above) left
-**`check:corpus` green and `bad-links.mjs` green**, the fixture still exiting 1 on
-its own rebuilt copy. Re-verified live 2026-08-13 against the current shape:
-emptying `broken` still greens `check:corpus` (`✓ corpus integrity — 599 checks
-across 96 documents, 0 violations`) while `bad-links.mjs` is untouched. Fixture
+the `corpus/links` row stayed OK while `bad-links.mjs` still exited 1 on its own
+rebuilt copy. Re-verified live 2026-08-13 against the current shape, before this
+commit added bug 0138 to the corpus: emptying `broken` still greens `check:corpus`
+(`✓ corpus integrity — 599 checks across 96 documents, 0 violations`) while
+`bad-links.mjs` is untouched. Stronger than stated: the denominator itself doesn't
+move under the sabotage either — `linksChecked` (`scripts/check-corpus.mjs:114`)
+comes from `linkRule.select()`, independent of `.violations()`, so the number the
+summary line prints is insensitive to the very rule being neutered. Fixture
 and subject are written from the same understanding
 and agree even when the understanding is wrong — the shape
 [0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md) closed one
@@ -260,8 +275,8 @@ and its lead item could not go red on its own reproduction (below).
 
    **Refinement, found 2026-08-13 by a testing reviewer of this refresh.** Since
    bug 0086, `broken` is not one collection but two independently-filtered spreads
-   routed by region (`scripts/lib/corpus-link-routing.mjs`'s `REPO_NATIVE_ROOTS =
-['work/', 'adr/']` vs. everything else):
+   routed by region — `scripts/lib/corpus-link-routing.mjs`'s
+   `REPO_NATIVE_ROOTS = ['work/', 'adr/']` vs. everything else:
 
    ```js
    const broken = [
@@ -274,7 +289,7 @@ and its lead item could not go red on its own reproduction (below).
    line (a smaller, more realistic sabotage than emptying the whole array) would
    leave that gate green with only one probe in place. The conversion needs **two**
    probes, one per routing region, as two rows in the gate list — the same
-   treatment `corpus/ledger/*` already gets at `scripts/check-nonvacuity.mjs:357-362`
+   treatment `corpus/ledger/*` already gets at `scripts/check-nonvacuity.mjs:356-362`
    for its three sub-rules. Verification checkbox 1 below is scoped to the
    single-probe case only; it should be split in two when this fix is built.
    The conversion is easier than it was at filing, not harder: `check-corpus.mjs:141`

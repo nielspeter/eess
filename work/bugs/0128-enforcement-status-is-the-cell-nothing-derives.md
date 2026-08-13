@@ -26,6 +26,9 @@
 The first row is the **strong** one: those three are the only clauses whose named
 mechanism is checked at case granularity. The other 17 are verified at
 file-existence granularity — the file is there, and nothing reads what it says.
+[0138](./0138-pointer-resolve-proves-existence-not-truth.md) is the same defect
+one level finer: `corpus/pointers-resolve` verifies a `path:line` citation to
+line-range granularity, still without reading what the line says.
 
 The five test-file-only rows are all ADR-008's, and that ADR **discloses the
 limitation in its own preamble** (`adr/008-caller-owns-reporting.md:57`): the

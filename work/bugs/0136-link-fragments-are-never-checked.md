@@ -39,7 +39,9 @@ Four consequences:
    cross-links in `work/`, `adr/` and `docs/` "must resolve". A reader concludes
    their anchors are covered. The condition's own `description` is honest —
    `'resolve to an existing file'` (`:83`) — but nothing surfaces that distinction
-   at the gate.
+   at the gate. [0138](./0138-pointer-resolve-proves-existence-not-truth.md)
+   measures the sibling condition, `pointerResolves`: same shape, a `path:line`
+   citation instead of a `#fragment`.
 4. **The autofix carries a fragment it has never validated.** `movedLinkFix`
    deliberately preserves the fragment when rewriting a moved link
    (`resolve.ts:114-115`, `:123`):
