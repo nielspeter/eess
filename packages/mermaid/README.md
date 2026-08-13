@@ -22,7 +22,7 @@ const d = diagram('docs/architecture.mmd')
 classes(d).that().haveStereotype('repository').should().haveNameEndingWith('Repository').check()
 ```
 
-The diagram is validated for internal consistency (valid class references, stereotypes, relationships) via the Langium grammar. Cross-validation against TypeScript code — binding a diagram to its implementation so either side drifting fails the build — is [plan 0059](../../plans/0059-cross-validation-eess-crossvalidate.md).
+The diagram is validated for internal consistency (valid class references, stereotypes, relationships) via the Langium grammar. Cross-validation against TypeScript code — binding a diagram to its implementation so either side drifting fails the build — ships as `diagramMatchesCode()` in [`@nielspeter/eess-crossvalidate`](../crossvalidate) (design history: [plan 0059](../../plans/0059-cross-validation-eess-crossvalidate.md)).
 
 ## License
 
