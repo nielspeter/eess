@@ -360,6 +360,13 @@ const gates = [
   ['corpus/ledger/box', () => gateNode('bad-ledger.mjs', 'ledger/silent-open-box')],
   ['corpus/ledger/placement', () => gateNode('bad-ledger.mjs', 'ledger/state-folder-mismatch')],
   ['corpus/ledger/state', () => gateNode('bad-ledger.mjs', 'ledger/unknown-state')],
+  // The reverse check (bug 0121): a work/ subdirectory no LANES entry claims,
+  // but which carries State:-shaped records, must fail loudly — not silently
+  // widen the "not scanned" gap the way work/proposals/** did for two rounds.
+  [
+    'corpus/ledger/uncovered-lane',
+    () => gateNode('bad-lane-coverage.mjs', 'ledger/uncovered-lane'),
+  ],
   ['corpus/links', () => gateNode('bad-links.mjs', 'nonvacuity/broken-links')],
   ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'nonvacuity/pointers-resolve')],
   // One row per release rule, asserting rule AND element as an exact set:
@@ -416,7 +423,12 @@ const GATE_FOR = {
   'check:corpus': ['corpus/adr', 'corpus/links', 'corpus/pointers'],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
-  'check:ledger': ['corpus/ledger/box', 'corpus/ledger/placement', 'corpus/ledger/state'],
+  'check:ledger': [
+    'corpus/ledger/box',
+    'corpus/ledger/placement',
+    'corpus/ledger/state',
+    'corpus/ledger/uncovered-lane',
+  ],
   'check:release': [
     'release/needs-changeset',
     'release/names-real-package',
