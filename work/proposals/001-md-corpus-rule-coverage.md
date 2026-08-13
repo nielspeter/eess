@@ -1,7 +1,9 @@
 # Proposal 001 — eess-md: Express a Corpus's Own Conventions
 
 **State:** Draft — reviewed 2026-08-08 (architect · product · enforcement); the
-design is rewritten against `terms()`, five decisions remain open
+design is rewritten against `terms()`, five decisions remain open. **Evidence
+extended 2026-08-13** with the first in-repo instance of `agree()` (rule 13's
+shape), so one capability here is fixturable without the reference corpus.
 **Priority:** High
 **Affects:** `terms()`/`vocabulary()`, `docs()`, `taskItems()`, `links()`,
 `haveNameMatching`, `honestyAtClose()`, `adrEnforcement()`,
@@ -96,6 +98,69 @@ Section vocabulary shows the same drift the field builder would catch:
 `Root cause` ×21 vs `Rod-årsag` ×8, `Fix` ×38 vs `Rettelse` ×11, plus
 `Konsekvens` ×16 — a section 16 records need that the published template does
 not define.
+
+### This repo, measured 2026-08-13 — rule 13's shape, dogfooded
+
+Everything above is measured in the reference corpus, which is not in this repo
+and cannot be named. That is this section's structural weakness: a reader here
+can check none of it. The instance below is the first one for
+[`correspondence().agree()`](#correspondenceagree--value-not-just-existence)
+that lives in **this** corpus, so it can be verified, fixtured, and gated
+without access to anything external.
+
+**The corruption.** Two live plans fence off this proposal by name as out of
+scope — [`0089`](../plans/0089-family-standalone-sufficiency.md) and
+[`0101`](../plans/0101-sibling-gates-go-fail-closed.md) both read "_md adopting
+`terms()`/`vocabulary()` (proposal 001) … new surface is a proposal_". Both are
+**correct today**, because 001 is unbuilt. The day 001 is ruled `Ship as-is` and
+becomes a plan, both clauses are false, and nothing notices:
+
+- They were written as **bare prose** (`(proposal 001)`), so `links()` never saw
+  them — the same invisibility class as evidence item (6)'s inline-code file
+  refs, one reference shape over. _Corrected 2026-08-13: both sites are now
+  markdown links, so `check:corpus` resolves them._
+- **Resolution is not agreement.** A link proves 001 exists; it says nothing
+  about whether the claim _"this is out of scope because 001 is unbuilt"_ is
+  still true. That is exactly rule 13's gap — `beComplete()` and
+  `preserveRelations()` prove existence and structure, never value.
+- `check:ledger` does not read the proposals lane at all
+  ([bug 0121](../bugs/0121-ledger-reads-two-of-four-lanes.md)), so no lane
+  mechanism reaches it from the other end either.
+
+**Why it is rule 13's shape and not a new one.** A plan's out-of-scope clause is
+a claim about another document's state, expressed in different vocabulary from
+the state itself — precisely the board↔item mapping rule 13 describes.
+[`PROPOSALS.md`](./PROPOSALS.md) now publishes the vocabulary that makes it
+projectable: `State` (`Draft | Reviewed`) and a terminal `Ruling`
+(`Ship as-is | … | Reject`). So both sides have a comparable value and need a
+`normalize` to meet: `Ship as-is`/`Ship with changes` normalise to _accepted_,
+everything else to _not yet_.
+
+**Break class.** A plan cites a proposal as out of scope while that proposal's
+`Ruling` reads `Ship as-is` or `Ship with changes` → **red**, naming the plan's
+line and the proposal's ruling line. Corruption that must produce it: flip 001's
+Ruling to `Ship as-is` and leave 0089 and 0101 untouched. The inverse direction
+is deliberately **not** a violation — a plan may cite a declined proposal for
+context, as [003](./003-future-dialect-candidates.md) and
+[004](./004-corpus-content-explain.md) both do.
+
+**What the violation must say.** Both sides, both lines — per this section's own
+two-sided rule. `plan 0089:176 excludes "proposal 001" as future surface, but
+001's Ruling is "Ship as-is"` sends the author to reconcile the clause. A
+one-sided `"proposal 001" has no matching ruling` would send them to add a
+ruling that already exists.
+
+**Non-vacuity sketch.** A fixture pair under `scripts/nonvacuity/`: a proposal
+whose `Ruling` row reads `Ship as-is`, and a plan whose out-of-scope list cites
+it. The gate must exit 1 naming `corpus/out-of-scope-cites-accepted-proposal`;
+flipping the ruling to `Reject` must return it to green, so both directions are
+proven.
+
+**Honest weight.** n=2, both in `Draft` plans, and nothing is mis-stated today —
+this is **not** a demand signal by the bar this proposal sets for itself, and it
+does not on its own justify `agree()`. Its value is different and specific: it is
+the one instance of this capability that this repo can hold a red fixture for.
+Evidence items (4)–(13) can only ever be asserted here.
 
 ## Proposed API
 

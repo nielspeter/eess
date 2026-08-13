@@ -113,9 +113,10 @@ unknown bugs cannot ride inside one plan's ledger.
 - **Fixing the defects this plan surfaces.** Filing them is the deliverable;
   fixing each is that bug's own PR.
 - **Sibling engine features beyond reconciliation** — e.g. md adopting
-  `terms()`/`vocabulary()` (proposal 001), or any dialect gaining new capability
-  from the ported engine. Honest-gate _adoption_ is this plan; new _surface_ is a
-  proposal.
+  `terms()`/`vocabulary()`
+  ([proposal 001](../proposals/001-md-corpus-rule-coverage.md)), or any dialect
+  gaining new capability from the ported engine. Honest-gate _adoption_ is this
+  plan; new _surface_ is a proposal.
 
 ## Success definition
 

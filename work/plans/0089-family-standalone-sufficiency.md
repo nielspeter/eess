@@ -172,8 +172,10 @@ crossvalidate) installed.
   [0101](./0101-sibling-gates-go-fail-closed.md), the other half of this split.
   That work cannot start until the folded kernel seam exists; this can.
 - **Sibling engine features beyond the re-export surface** — e.g. md adopting
-  `terms()`/`vocabulary()` (proposal 001), or any dialect gaining new capability
-  from the ported engine. New _surface_ is a proposal/plan.
+  `terms()`/`vocabulary()`
+  ([proposal 001](../proposals/001-md-corpus-rule-coverage.md)), or any dialect
+  gaining new capability from the ported engine. New _surface_ is a
+  proposal/plan.
 - **Standalone sufficiency for `eess-ts` itself** — 0088's binding invariant.
 
 ## Success definition
