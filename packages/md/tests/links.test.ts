@@ -133,6 +133,80 @@ describe('links() — directory targets (bug 0086)', () => {
   })
 })
 
+describe('links() — broken-link messages name the near-miss (bug 0137)', () => {
+  const repoLinksCorpus = () =>
+    corpus({
+      roots: ['repo-links/board.md', 'repo-links/fixed/**', 'repo-links/indexed/**'],
+      cwd: fixtureRoot,
+    })
+
+  it('a real directory with resolveDirectories off says so, naming it exactly', () => {
+    const v = links(repoLinksCorpus()).that().areInternal().should().resolve().violations()
+    const fixedViolation = v.find((x) => x.message.includes('"./fixed/"'))
+    // Exact match, not a loose pattern — a hint naming the wrong directory
+    // would still satisfy /is a real directory/ + /resolveDirectories/.
+    expect(fixedViolation?.message).toBe(
+      'broken link: "./fixed/" does not resolve to a file in the repo — ' +
+        '"repo-links/fixed" is a real directory; this check runs with resolveDirectories off',
+    )
+  })
+
+  it('the same directory written with no trailing slash gets the hint too', () => {
+    const v = links(repoLinksCorpus()).that().areInternal().should().resolve().violations()
+    const fixedViolation = v.find((x) => x.message.includes('"./fixed"'))
+    expect(fixedViolation?.message).toBe(
+      'broken link: "./fixed" does not resolve to a file in the repo — ' +
+        '"repo-links/fixed" is a real directory; this check runs with resolveDirectories off',
+    )
+  })
+
+  it('a genuinely missing target keeps the generic message — the hint is not a blanket addition', () => {
+    const v = links(repoLinksCorpus()).that().areInternal().should().resolve().violations()
+    const missingViolation = v.find((x) => x.message.includes('"./missing/"'))
+    expect(missingViolation?.message).toBe(
+      'broken link: "./missing/" does not resolve to a file in the repo',
+    )
+  })
+
+  it('the hint disappears once resolveDirectories is on — the link resolves instead of merely explaining itself', () => {
+    const v = links(repoLinksCorpus())
+      .that()
+      .areInternal()
+      .should()
+      .resolve({ resolveDirectories: true })
+      .violations()
+    expect(v.some((x) => x.message.includes('"./fixed/"'))).toBe(false)
+  })
+
+  it('resolveDirectories on + a genuinely missing target still gets the plain message', () => {
+    const v = links(repoLinksCorpus())
+      .that()
+      .areInternal()
+      .should()
+      .resolve({ resolveDirectories: true })
+      .violations()
+    const missingViolation = v.find((x) => x.message.includes('"./missing/"'))
+    expect(missingViolation?.message).toBe(
+      'broken link: "./missing/" does not resolve to a file in the repo',
+    )
+  })
+
+  it('a rootDir ambiguity names WHICH candidate is real, not just that one is', () => {
+    // site/ambiguous.md links /decoy/ with rootDir: 'site'. The repo-root
+    // candidate ("decoy") is a real directory; the content-root candidate
+    // ("site/decoy") is not. An unlabelled hint would report "decoy" as if
+    // it were the page the author meant — it isn't, and toggling
+    // resolveDirectories would resolve the wrong, unrelated directory.
+    const c = corpus({ roots: ['site/ambiguous.md'], cwd: fixtureRoot })
+    const v = links(c).that().areInternal().should().resolve({ rootDir: 'site' }).violations()
+    const decoyViolation = v.find((x) => x.message.includes('"/decoy/"'))
+    expect(decoyViolation?.message).toBe(
+      'broken link: "/decoy/" does not resolve to a file in the repo — ' +
+        '"decoy" (repo-root) is a real directory; this check runs with resolveDirectories off',
+    )
+  })
+})
+
 describe('links() — rootDir (site-absolute links)', () => {
   it('resolves leading-/ links against the content root', () => {
     const c = corpus({ roots: ['site/absolute.md'], cwd: fixtureRoot })

@@ -126,6 +126,33 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
   }
   const dirIndex = options.resolveDirectories === true ? directoryIndex(corpus) : undefined
 
+  // Bug 0137: a link that names a real directory and one that names nothing
+  // at all both reported the identical "does not resolve" message — no hint
+  // that `resolveDirectories` exists, or that this specific target would
+  // resolve with it on. Built lazily (at most once, memoized) rather than
+  // unconditionally alongside `dirIndex`, so the happy path (no violations)
+  // never pays for it, and only when `resolveDirectories` is already off —
+  // when it's on, a real directory already resolved above and can't reach
+  // this branch at all.
+  //
+  // A site-absolute link with `rootDir` set yields two candidates
+  // (repo-root, then content-root — see `resolveTargets`), and either can
+  // independently be a real directory. Reporting whichever comes first
+  // unlabelled can name the *wrong* one: a repo-root directory that happens
+  // to share a name with the intended content-root page sends the author to
+  // toggle `resolveDirectories`, which would resolve the unrelated
+  // repo-root directory, not fix their actual (still-missing) page. Labelled
+  // only when there are two candidates to disambiguate between — the common,
+  // single-target case (no `rootDir`) is unaffected.
+  let diagnosticDirIndex: ReadonlySet<string> | undefined
+  const directoryHint = (target: string, label: string): string => {
+    diagnosticDirIndex ??= directoryIndex(corpus)
+    const bare = target.replace(/\/+$/, '')
+    return diagnosticDirIndex.has(bare)
+      ? ` — "${bare}"${label} is a real directory; this check runs with resolveDirectories off`
+      : ''
+  }
+
   return {
     description: 'resolve to an existing file',
     evaluate: (links, ctx) =>
@@ -137,12 +164,23 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
           return []
         if (dirIndex !== undefined && targets.some((t) => dirIndex.has(t.replace(/\/+$/, ''))))
           return []
+        const hint =
+          options.resolveDirectories === true
+            ? ''
+            : (targets
+                .map((t, i) =>
+                  directoryHint(
+                    t,
+                    targets.length > 1 ? (i === 0 ? ' (repo-root)' : ' (content-root)') : '',
+                  ),
+                )
+                .find((h) => h) ?? '')
         return [
           mdViolation({
             element: `${link.doc.relPath} → ${link.url}`,
             file: link.doc.file,
             line: link.line,
-            message: `broken link: "${link.url}" does not resolve to a file in the repo`,
+            message: `broken link: "${link.url}" does not resolve to a file in the repo${hint}`,
             sourceText: link.doc.text,
             fix: movedLinkFix(link, byBasename),
             context: ctx,
