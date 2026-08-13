@@ -156,7 +156,7 @@ running it over a bug-shaped lane inherits the same half-blindness with no notic
    scanned, or its template's example `- [ ]` boxes will report.
 
 Deliberately **not** in scope: gating `work/bugs/**` in `check:corpus` (links and
-`path:line` pointers). That is [0086](../0086-links-to-directories-do-not-resolve.md)'s
+`path:line` pointers). That is [0086](./0086-links-to-directories-do-not-resolve.md)'s
 blocker and needs the directory-link fix; this needs none of it. Filing them
 apart so the cheaper half is not held hostage to the harder one.
 

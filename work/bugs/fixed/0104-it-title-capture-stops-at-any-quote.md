@@ -136,7 +136,7 @@ Named groups rather than the submitted `\1`/group-2 form, so the pattern can be
 embedded after other groups without renumbering. Three consumers are built from
 it — `itTitleOf` (`it`, for md↔ts), `itOrTestTitleOf` (`it|test`, for gherkin↔ts)
 and `citedItTitles` (unanchored + global, for an ADR's Mechanism cell) — which
-keeps the callee alternation at the call site. That matters: [0105](../0105-md-ts-drops-modifier-forms.md)
+keeps the callee alternation at the call site. That matters: [0105](./0105-md-ts-drops-modifier-forms.md)
 records that widening md↔ts to accept `test(…)` is a contract question for the
 ADR table, not a parser change, and a single shared regex would have smuggled it
 in the moment 0105's callee guard is fixed.

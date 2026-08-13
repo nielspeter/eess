@@ -150,7 +150,7 @@ their ROADMAP/BUGS.md rows. **Tests / honesty-of-gating:** `check:ledger` green
 
 **The `work/bugs/**`gap — decided 2026-08-12.**`check:corpus`gates`work/plans/**`+`work/proposals/**`+`adr/**`+`docs/**`, but **not**
 `work/bugs/**` (`scripts/check-corpus.mjs:22-24`, blocked on
-[bug 0086](../bugs/0086-links-to-directories-do-not-resolve.md) — directory links
+[bug 0086](../bugs/fixed/0086-links-to-directories-do-not-resolve.md) — directory links
 — and the `fixed/`frozen-folder omission it names). So a corpus claim over
 _adopted bugs_ would be vacuous by construction. An earlier draft left this as an
 open either/or: gate`work/bugs` here (closing 0086 inside this plan), or scope

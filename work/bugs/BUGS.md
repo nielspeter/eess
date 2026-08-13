@@ -107,16 +107,18 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-13 · **Open:** 34 (33 Draft · 1 Parked) · **Fixed:** 13 · **Rejected:** 0
+**Updated:** 2026-08-13 · **Open:** 34 (33 Draft · 1 Parked) · **Fixed:** 14 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
-> **Nothing enforces this table.** `work/bugs/**` sits outside `check:corpus`'s
-> roots (`scripts/check-corpus.mjs:22-24`), blocked on
-> [0086](./0086-links-to-directories-do-not-resolve.md) and the `fixed/`
-> frozen-folder omission it names. So no gate verifies that a row points at a
-> real file, that every file has a row, or that these three numbers are right —
-> the one corpus in this repo that isn't dogfooded. Fixing 0086 unblocks it.
+> **Partially enforced now.** `work/bugs/**` joined `check:corpus`'s roots when
+> [0086](./fixed/0086-links-to-directories-do-not-resolve.md) fixed
+> directory-link resolution — every row's link above must now point at a real
+> file, or `check:corpus` fails. What's still unenforced: nothing verifies
+> **every file has a row** (the reverse direction — a filed bug with no board
+> entry), and nothing verifies the **Open/Fixed/Rejected counts** above are
+> right — both are still hand-counted, the same way every other board in
+> `work/` is.
 
 | ID                                                                        | Title                                                                                                                                                               | Severity | State               | Origin                                                                       | PR        |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------- | ---------------------------------------------------------------------------- | --------- |
@@ -124,7 +126,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0083](./fixed/0083-langium-node26-invalid-url.md)                        | `langium generate` (mermaid build) throws `Invalid URL` on Node ≥26                                                                                                 | High     | ✅ Fixed → `fixed/` | self-found · the build, on Node 26                                           | #29 · #30 |
 | [0084](./0084-preserve-relations-right-to-left.md)                        | `preserveRelations` checks nothing right→left; `both` is half a gate                                                                                                | High     | 🔴 Draft            | self-found · architect review of proposal 001                                | —         |
 | [0085](./0085-table-row-violations-report-table-line.md)                  | table-row violations report the table's line and a row ordinal, not the row                                                                                         | Medium   | 🔴 Draft            | self-found · review of proposal 001                                          | —         |
-| [0086](./0086-links-to-directories-do-not-resolve.md)                     | a link to a directory that exists is reported broken — the blocker for gating `work/bugs/`                                                                          | Medium   | 🔴 Draft            | self-found · extending `check:corpus` to `work/bugs/**`                      | —         |
+| [0086](./fixed/0086-links-to-directories-do-not-resolve.md)               | a link to a directory that exists is reported broken — the blocker for gating `work/bugs/`                                                                          | Medium   | ✅ Fixed → `fixed/` | self-found · extending `check:corpus` to `work/bugs/**`                      | #54       |
 | [0087](./0087-frontmatter-parsed-as-setext-heading.md)                    | YAML frontmatter parses as a setext heading — every such document reports a phantom section                                                                         | Medium   | 🔴 Draft            | self-found · checking proposal 001's frontmatter support                     | —         |
 | [0092](./0092-integrity-gate-misses-three-packages.md)                    | `check:integrity`'s local-linking guard checks 3 of 6 packages — a registry copy of `eess-crossvalidate`/`-md`/`-gherkin` sails through                             | High     | 🔴 Draft            | self-found · devops review of plan 0091                                      | —         |
 | [0093](./0093-stale-no-workspace-protocol-comment.md)                     | `check:integrity` claims npm has no `workspace:` protocol — it does (npm 9+); the false comment blessed a bare-pin drift                                            | Low      | 🔴 Draft            | self-found · plan 0091 review                                                | —         |
@@ -167,3 +169,4 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0134](./0134-explain-empty-green-wipes-the-agents-block.md)              | `explain --format agent` renders "no rules" as a valid sentinel block and exits 0 — the documented `-s` guard cannot see it, and the AGENTS.md block is overwritten | Medium   | 🔴 Draft            | self-found · enforcement review of proposal 004                              | —         |
 | [0135](./0135-graphql-resolver-binding-is-a-text-grep.md)                 | `haveMatchingResolver` greps concatenated file text — a shipped Tier-1 claim whose red is unreachable for a field named `id`, on a surface no gate runs             | Medium   | 🔴 Draft            | self-found · enforcement review of proposal 003                              | —         |
 | [0136](./0136-link-fragments-are-never-checked.md)                        | `linkResolves` discards the fragment — a dead anchor is green, and the autofix transplants anchors onto other files without validating them                         | Medium   | 🔴 Draft            | self-found · probed the gate while adding an anchor to proposal 001          | —         |
+| [0137](./0137-directory-link-violation-does-not-say-why.md)               | a broken directory link and a typo'd file link report the identical message — no hint that `docs/` and `work/**` deliberately resolve directories differently       | Low      | 🔴 Draft            | self-found · enforcement review of 0086's fix                                | —         |

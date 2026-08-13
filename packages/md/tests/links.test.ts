@@ -55,6 +55,84 @@ describe('links()', () => {
   })
 })
 
+describe('links() — directory targets (bug 0086)', () => {
+  const repoLinksCorpus = () =>
+    corpus({
+      roots: ['repo-links/board.md', 'repo-links/fixed/**', 'repo-links/indexed/**'],
+      cwd: fixtureRoot,
+    })
+
+  it('a link to an existing directory with no index file is broken today (the bug)', () => {
+    const v = links(repoLinksCorpus()).that().areInternal().should().resolve().violations()
+    // Every directory-shaped link is flagged — the corpus is right, the gate is wrong.
+    expect(v.map((x) => x.message).filter((m) => m.includes('fixed')).length).toBe(2)
+  })
+
+  it('resolve({ resolveDirectories: true }) resolves a real directory, slash or not', () => {
+    const v = links(repoLinksCorpus())
+      .that()
+      .areInternal()
+      .should()
+      .resolve({ resolveDirectories: true })
+      .violations()
+    expect(v.some((x) => x.message.includes('"./fixed/"'))).toBe(false)
+    expect(v.some((x) => x.message.includes('"./fixed"'))).toBe(false)
+  })
+
+  it('resolve({ resolveDirectories: true }) still flags a directory that does not exist', () => {
+    const v = links(repoLinksCorpus())
+      .that()
+      .areInternal()
+      .should()
+      .resolve({ resolveDirectories: true })
+      .violations()
+    // The fix must not resolve everything — ./missing/ and ./missing stay broken.
+    expect(v.map((x) => x.message).filter((m) => m.includes('missing')).length).toBe(2)
+  })
+
+  it('an ordinary file resolution is unaffected by resolveDirectories', () => {
+    // The new directory branch is a fallback tried after the file index, not
+    // a replacement for it — a link to a real file inside a directory that is
+    // ALSO directory-linked elsewhere in the same corpus must keep resolving
+    // via the normal path either way.
+    const withOption = links(repoLinksCorpus())
+      .that()
+      .areInternal()
+      .should()
+      .resolve({ resolveDirectories: true })
+      .violations()
+    const withoutOption = links(repoLinksCorpus())
+      .that()
+      .areInternal()
+      .should()
+      .resolve()
+      .violations()
+    expect(withOption.some((x) => x.message.includes('0001-item.md'))).toBe(false)
+    expect(withoutOption.some((x) => x.message.includes('0001-item.md'))).toBe(false)
+  })
+
+  it('tryIndex and resolveDirectories compose — a directory WITH an index resolves either way', () => {
+    const v = links(repoLinksCorpus())
+      .that()
+      .areInternal()
+      .should()
+      .resolve({ tryIndex: 'index.md', resolveDirectories: true })
+      .violations()
+    expect(v.some((x) => x.message.includes('indexed'))).toBe(false)
+  })
+
+  it('resolveDirectories defaults to off — existing callers see no behaviour change', () => {
+    const withOption = links(repoLinksCorpus()).that().areInternal().should().resolve().violations()
+    const withoutOption = links(repoLinksCorpus())
+      .that()
+      .areInternal()
+      .should()
+      .resolve({ resolveDirectories: false })
+      .violations()
+    expect(withOption.length).toBe(withoutOption.length)
+  })
+})
+
 describe('links() — rootDir (site-absolute links)', () => {
   it('resolves leading-/ links against the content root', () => {
     const c = corpus({ roots: ['site/absolute.md'], cwd: fixtureRoot })

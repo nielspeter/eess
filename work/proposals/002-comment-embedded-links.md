@@ -153,7 +153,7 @@ makes the rework cheap rather than a rewrite.
    protection back. The submission cites the technique and drops the guard.
    Stripping inline-code spans removes both false positives — and still yields
    zero true positives here.
-4. **It inherits bug [0086](../bugs/0086-links-to-directories-do-not-resolve.md),
+4. **It inherits bug [0086](../bugs/fixed/0086-links-to-directories-do-not-resolve.md),
    unnamed.** Reusing `linkResolves()` unmodified inherits every open defect in
    it, including "a link to a directory that exists is reported broken". A
    comment citing `../../work/bugs/` is exactly that shape. The submission cites

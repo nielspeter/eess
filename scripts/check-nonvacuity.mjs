@@ -368,6 +368,14 @@ const gates = [
     () => gateNode('bad-lane-coverage.mjs', 'ledger/uncovered-lane'),
   ],
   ['corpus/links', () => gateNode('bad-links.mjs', 'nonvacuity/broken-links')],
+  // Bug 0086's review round: check-corpus.mjs's directory-link routing
+  // (which region gets resolveDirectories) must fail closed on an
+  // unclassified root and default-deny an unrecognised one — both were
+  // demonstrated live to fail open under the previous design.
+  [
+    'corpus/link-routing',
+    () => gateNode('bad-corpus-link-routing.mjs', 'corpus/link-routing-fails-closed'),
+  ],
   ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'nonvacuity/pointers-resolve')],
   // One row per release rule, asserting rule AND element as an exact set:
   // neutering the changed-package correspondence still emits its rule id (for the
@@ -420,7 +428,7 @@ const GATE_FOR = {
   'check:diagram': ['diagram'],
   'check:spec': ['spec'],
   'check:crossval': ['crossval', 'crossval/gherkin-ts', 'crossval/md-ts'],
-  'check:corpus': ['corpus/adr', 'corpus/links', 'corpus/pointers'],
+  'check:corpus': ['corpus/adr', 'corpus/links', 'corpus/link-routing', 'corpus/pointers'],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
   'check:ledger': [

@@ -28,6 +28,24 @@ export interface LinkResolveOptions {
    * resolution is still tried first, so plain repo-absolute links keep working.
    */
   readonly rootDir?: string
+  /**
+   * Resolve a link naming a real directory (`./fixed/` or `./fixed`, with or
+   * without the trailing slash — both forms occur in this repo's own corpus)
+   * even when it has no index file. Correct for a repo-hosted corpus (GitHub,
+   * GitLab render a directory link as its listing); wrong for a static-site
+   * corpus where a bare directory is not itself a page — there, reach for
+   * {@link tryIndex} instead. Off by default: this widens what "resolves"
+   * means, and a link resolving that shouldn't is a false green, not a
+   * convenience. Default `false`.
+   *
+   * A link naming a real directory always wins over an unrelated typo — if
+   * `./foo` was meant as a deleted `foo.md` but a directory `foo/` happens to
+   * exist at that path, it resolves as the directory. Not a new failure mode:
+   * GitHub renders that link as the directory listing too, so this only
+   * closes the gap between the gate and what the link actually does when
+   * followed, it doesn't introduce a new way to be surprised by it.
+   */
+  readonly resolveDirectories?: boolean
 }
 
 /**
@@ -64,10 +82,38 @@ function candidates(target: string, options: LinkResolveOptions): string[] {
 }
 
 /**
+ * Every known directory reachable from `fileIndex`'s files, derived from it
+ * rather than new I/O: each indexed file's ancestors are known directories.
+ * `fileIndex` itself spans the whole physical repo walk from `cwd`, not just
+ * the corpus's configured `roots` (`roots` only filters which files become
+ * *documents* — see `corpus()`), so a directory link can resolve against
+ * something outside any configured root. Built only when `resolveDirectories`
+ * is on — the cost of a directory-shaped link resolving is opt-in, so is the
+ * cost of computing it.
+ *
+ * The repo root itself (`.`) is deliberately excluded — `[root](/)` still
+ * won't resolve even with the option on. Nobody links "the whole repo," and
+ * `resolveTargets` never had a resolvable shape for it before this option
+ * existed either.
+ */
+function directoryIndex(corpus: Corpus): ReadonlySet<string> {
+  const dirs = new Set<string>()
+  for (const rel of corpus.fileIndex) {
+    let dir = posix.dirname(rel)
+    while (dir !== '.' && dir !== '/' && !dirs.has(dir)) {
+      dirs.add(dir)
+      dir = posix.dirname(dir)
+    }
+  }
+  return dirs
+}
+
+/**
  * Condition: every (internal) link resolves to a file in the corpus's repo tree.
  * Closes over the `Corpus` for the file index. External links and pure anchors
  * are skipped. `options` adds extensionless-link resolution (`tryExtensions`,
- * `tryIndex`) for static-site corpora.
+ * `tryIndex`) for static-site corpora, and directory resolution
+ * (`resolveDirectories`) for repo-hosted ones.
  */
 export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): Condition<MdLink> {
   // Basename → repo files, for finding a uniquely-moved target of a broken link.
@@ -78,6 +124,7 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
     if (list) list.push(rel)
     else byBasename.set(base, [rel])
   }
+  const dirIndex = options.resolveDirectories === true ? directoryIndex(corpus) : undefined
 
   return {
     description: 'resolve to an existing file',
@@ -87,6 +134,8 @@ export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): 
         const targets = resolveTargets(link, options)
         if (targets.length === 0) return []
         if (targets.some((t) => candidates(t, options).some((c) => corpus.fileIndex.has(c))))
+          return []
+        if (dirIndex !== undefined && targets.some((t) => dirIndex.has(t.replace(/\/+$/, ''))))
           return []
         return [
           mdViolation({

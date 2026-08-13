@@ -2,8 +2,11 @@
 /**
  * Dogfood: validate this repo's own engineering-corpus markdown with eess-md.
  *
- * The corpus (work/plans, adr/, docs/) must stay honest:
- *  - internal cross-links resolve (safety net for doc moves);
+ * The corpus (work/plans, work/proposals, work/bugs, adr/, docs/) must stay
+ * honest:
+ *  - internal cross-links resolve (safety net for doc moves) — including a
+ *    link to a directory that exists (bug 0086), everywhere except docs/,
+ *    where a bare directory is not a page the VitePress site would serve;
  *  - live code pointers ground in real code (frozen folders are historical);
  *  - every ADR declares valid EESS enforcement (tier table, citations resolve)
  *    via the adrEnforcement preset — the executable-ADR model applied to us
@@ -12,16 +15,35 @@
  * Always reports what it scanned (documents, per-check counts, elapsed time) so
  * a fast green is provably non-vacuous, not a silent no-op.
  *
- * `**‍/completed/**`, `**‍/wont-do/**`, `**‍/archived/**` are frozen (historical).
- * Exits non-zero on a live violation. Run: `npm run check:corpus`.
+ * `**‍/completed/**`, `**‍/wont-do/**`, `**‍/fixed/**`, `**‍/archived/**` are
+ * frozen (historical). Exits non-zero on a live violation. Run:
+ * `npm run check:corpus`.
  */
 import { corpus, links, pointers } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
 import { reportViolations } from '@nielspeter/eess'
+import { isRepoNativeLink, siteOptsAreSafe, unclassifiedRoots } from './lib/corpus-link-routing.mjs'
 
-// `work/bugs/**` is not gated yet — blocked on bug 0086 (directory links) and
-// the `fixed/` frozen-folder omission it names.
-const ROOTS = ['work/plans/**', 'work/proposals/**', 'adr/**', 'docs/**']
+// `fixed/` is the bugs lane's own done-folder (bug 0086) — frozen alongside
+// the others so bug history is reported, not gated against today's code.
+const ROOTS = ['work/plans/**', 'work/proposals/**', 'work/bugs/**', 'adr/**', 'docs/**']
+const SITE_ROOTS = ['docs/']
+
+// Every root must be explicitly classified for link-resolution routing (see
+// lib/corpus-link-routing.mjs) — a new root nobody classified is exactly the
+// gap bug 0086's review round found: it silently fell into the loose
+// (resolveDirectories) profile by default, a false green waiting to happen.
+// Refuse to run rather than guess.
+const unclassified = unclassifiedRoots(ROOTS, SITE_ROOTS)
+if (unclassified.length > 0) {
+  console.error(
+    `check:corpus: ${unclassified.join(', ')} in ROOTS but not classified as site or ` +
+      `repo-native — add it to SITE_ROOTS here or REPO_NATIVE_ROOTS in ` +
+      `scripts/lib/corpus-link-routing.mjs before this gate can run.`,
+  )
+  process.exit(1)
+}
+
 const t0 = Date.now()
 const elapsed = () => {
   const ms = Date.now() - t0
@@ -30,8 +52,10 @@ const elapsed = () => {
 
 const c = corpus({
   roots: ROOTS,
-  frozen: ['**/completed/**', '**/wont-do/**', '**/archived/**'],
+  frozen: ['**/completed/**', '**/wont-do/**', '**/fixed/**', '**/archived/**'],
 })
+const relTo = (file) =>
+  file.startsWith(c.root) ? file.slice(c.root.length).replace(/^[/\\]/, '') : file
 
 const allDocs = c.documents()
 const liveDocs = allDocs.filter((d) => !d.frozen)
@@ -41,17 +65,57 @@ const adrDocs = liveDocs.filter(
 )
 const anon = { identify: () => ({ name: '' }) }
 
-// Static-site resolution for the docs/ guide: extensionless links
-// (./page → page.md, ./dir/ → dir/index.md) and site-absolute links
-// (/page → docs/page.md — the site's content root is docs/, not the repo root).
-const linkRule = links(c)
-  .that()
-  .areInternal()
-  .should()
-  .resolve({ tryExtensions: ['.md'], tryIndex: 'index.md', rootDir: 'docs' })
-  .rule({ id: 'corpus/broken-links' })
+// Two resolution profiles, routed by which root a link's own document lives
+// in — a single shared options object would be wrong in one direction or the
+// other, not just imprecise:
+//
+// - docs/ is the VitePress guide: extensionless links (./page → page.md,
+//   ./dir/ → dir/index.md) and site-absolute links (/page → docs/page.md,
+//   the site's content root, not the repo root). `resolveDirectories` must
+//   stay OFF here — a bare directory with no index is not a page VitePress
+//   would actually serve, so resolving it would be a false green over a
+//   genuinely dead link (bug 0086's own caveat).
+// - `REPO_NATIVE_ROOTS` (lib/corpus-link-routing.mjs) is repo-hosted markdown
+//   rendered by GitHub: a link to a directory that exists
+//   (`work/bugs/fixed/`, `work/plans/completed/`) is real and GitHub renders
+//   it as the listing — `resolveDirectories: true` closes exactly that gap
+//   (bug 0086). No `rootDir`: site-absolute-link semantics don't apply
+//   outside the site.
+//
+// The routing itself is `isRepoNativeLink` — an explicit allowlist, not
+// `!isSiteDoc`. An earlier version used the site as the named case and
+// everything else as the default, which meant a link in any *future*
+// unclassified root silently got the loose profile — the false-green
+// direction this whole fix exists to prevent, found live by review (bug
+// 0086's own record). `unclassifiedRoots` above closes the gap that let a
+// new root go unrouted at all; this closes which profile is the *default*
+// for a root that is routed.
+const SITE_OPTS = { tryExtensions: ['.md'], tryIndex: 'index.md', rootDir: 'docs' }
+const REPO_OPTS = { tryExtensions: ['.md'], tryIndex: 'index.md', resolveDirectories: true }
+if (!siteOptsAreSafe(SITE_OPTS)) {
+  console.error(
+    'check:corpus: SITE_OPTS.resolveDirectories is true — the VitePress site would resolve a ' +
+      'bare directory with no index as if it were a real page, which is a false green, not a ' +
+      'convenience (bug 0086). Remove it, or move the affected root to REPO_NATIVE_ROOTS in ' +
+      'scripts/lib/corpus-link-routing.mjs if it genuinely is repo-hosted.',
+  )
+  process.exit(1)
+}
+
+const linkRule = links(c).that().areInternal().should().resolve(SITE_OPTS).rule({
+  id: 'corpus/broken-links',
+})
+const repoLinkRule = links(c).that().areInternal().should().resolve(REPO_OPTS).rule({
+  id: 'corpus/broken-links',
+})
+// The element set (which links count as "internal") is options-independent,
+// so either rule's .select() reports the same total — the split only changes
+// which options apply to which link's resolution, not how many are checked.
 const linksChecked = linkRule.select({ label: 'link', ...anon }).elements.length
-const broken = linkRule.violations()
+const broken = [
+  ...linkRule.violations().filter((v) => !isRepoNativeLink(relTo(v.file))),
+  ...repoLinkRule.violations().filter((v) => isRepoNativeLink(relTo(v.file))),
+]
 
 // Live code pointers must ground in the repo (frozen folders are historical).
 // Illustrative pointers in prose are sanctioned inline via
@@ -82,8 +146,6 @@ if (format === 'json' || format === 'github') {
 
 // ---------- report ----------
 
-const relTo = (file) =>
-  file.startsWith(c.root) ? file.slice(c.root.length).replace(/^[/\\]/, '') : file
 const line = (label, detail) => console.error(`  ${label.padEnd(10)}${detail}`)
 
 console.error('')
