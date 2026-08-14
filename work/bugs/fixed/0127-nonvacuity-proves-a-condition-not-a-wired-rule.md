@@ -10,7 +10,7 @@
   correctly reddens `check:nonvacuity` now, all three confirmed to leave
   `scripts/check-corpus.mjs` reverted byte-identical after. `check:nonvacuity`'s
   summary corrected to "fixtures fired," not "gates proven." Moved to `fixed/`
-  in this same PR, so the merge and the close are one atomic act.
+  in this same PR (#57), so the merge and the close are one atomic act.
 - **Severity:** High — on the reproduction, not on the ratio. `check:arch` passes
   green over six rules that assert nothing, which is `BUGS.md`'s High row (a gate
   passes over drift it should catch). Note what is _not_ claimed: only one of the
@@ -22,7 +22,7 @@
 - **Origin:** self-found · instrumented both kernel seams while scoping the
   ts-archunit doctrine port ([0088](../../plans/0088-fold-ts-archunit-into-eess.md),
   and [0103](../0103-adr-009-cited-but-does-not-exist.md), which cites the doctrine)
-- **Reported:** 2026-08-12 · **Fixed:** 2026-08-14 (PR #TBD)
+- **Reported:** 2026-08-12 · **Fixed:** 2026-08-14 (PR #57)
 
 ### Correction, 2026-08-12 — what the six-persona review found wrong in this record
 
