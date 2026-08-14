@@ -5,7 +5,11 @@
 - **State:** Parked — real, narrow, and each independently judged
   non-blocking by the reviewers who found it; recorded so the paragraph
   describing them has an owner outside a closed record, not because either
-  is urgent.
+  is urgent. **Reopens on:** a real `check:fast` or `check:corpus` violation
+  naming a `__nonvacuity_probe*` file, observed even once (Symptom 1); or a
+  `ROOTS` entry actually removed from `scripts/check-corpus.mjs` without
+  `check:nonvacuity` catching it (Symptom 2) — both falsifiable, not
+  judgment calls.
 - **Severity:** Low — neither is a gate passing over drift present today;
   both are a smaller class of the same repo (probe/root coverage) still
   narrower than what it guards.
