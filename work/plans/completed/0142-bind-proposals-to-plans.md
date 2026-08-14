@@ -2,22 +2,21 @@
 
 ## Status
 
-- **State:** Ready — created 2026-08-14 as a Draft following a six-persona
-  review of [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)'s
+- **State:** Done — built and merged 2026-08-14 (PR #59, plus two follow-up
+  fix rounds from a second full branch review, PR #59 also). Both phases
+  landed, `npm run validate` green, `check:corpus` proves the mechanism
+  against real content. Created the same day as a Draft following a
+  six-persona review of [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)'s
   own draft Fix section (the review confirmed the gap but found the proposed
   mechanism unbuildable against this repo's real corpus in five independent,
   demonstrated ways, annotated in place in the bug record). This plan exists
   because the bug skill's own routing rule applies: real design/unknowns need
   working out first — a mechanical patch to the bug's regex is not enough.
-  Frozen to Ready the same day: both open decisions (Ruling casing, the
-  back-reference convention) are settled and recorded by value in Phase 1 and
-  Phase 2 below — nothing left dangling. No refinement to harvest, no
-  live-source cords (every citation is this repo's own version-controlled
-  corpus, already `check:corpus`-clean). Not an ADR-level decision: nothing
-  here binds the eess tool's own architecture, only this repo's
-  `work/proposals/` lane convention (the same footing as bugs 0118/0119/0121
-  fixing `check:ledger`'s state vocabulary without minting one).
-- **Priority:** Medium — mirrors [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)'s
+  Not an ADR-level decision: nothing here binds the eess tool's own
+  architecture, only this repo's `work/proposals/` lane convention (the same
+  footing as bugs 0118/0119/0121 fixing `check:ledger`'s state vocabulary
+  without minting one).
+- **Priority:** Medium — mirrors [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)'s
   own severity call and the same reasoning: zero proposals have ever been
   accepted in this repo, so the gap is unexercised, not currently lying. It
   would earn High the day a proposal is actually accepted without this landing
@@ -31,11 +30,11 @@
 
 `work/proposals/PROPOSALS.md` states the lifecycle directly: _"An accepted
 proposal becomes a Draft plan on the roadmap."_ Nothing checks that this
-happens — verified in [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md):
+happens — verified in [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md):
 `check:corpus` gates `work/proposals/**` for link resolution only, and
 `check:ledger`'s proposals lane deliberately opts out of terminal-state
 checking (bug 0121). The absence is invisible by construction, the same shape
-[bug 0138](../bugs/0138-pointer-resolve-proves-existence-not-truth.md) names
+[bug 0138](../../bugs/0138-pointer-resolve-proves-existence-not-truth.md) names
 for `path:line` pointers: a gate that proves a reference resolves is not a
 gate that proves a required reference exists.
 
@@ -63,7 +62,7 @@ not just one regex bug:
    (`:45`, `:204`, from two review rounds) — a non-global regex reads the
    wrong one on any re-reviewed proposal.
 4. **The proposed non-vacuity fixture regresses to the exact tier
-   [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
+   [bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
    deleted hours earlier the same day** — a standalone
    `scripts/nonvacuity/bad-proposal-plan-link.mjs` outside `check-corpus.mjs`'s
    `ROOTS`, structurally invisible to the check under test.
@@ -73,7 +72,7 @@ not just one regex bug:
    ships here is repo-local unless a separate decision says otherwise.
 
 Full findings are recorded in
-[bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)'s
+[bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)'s
 `## Review — 2026-08-14` section.
 
 ## Approach
@@ -155,7 +154,7 @@ proposal.
   two-plan fixture before shipping.
 
 Non-vacuity: follow `gateCorpusProbe()` (`scripts/check-nonvacuity.mjs`, the
-shape [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
+shape [bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
 established) — plant a real, ephemeral accepted-and-orphaned proposal probe
 under `work/proposals/`, run `scripts/check-corpus.mjs` both as
 `--format json` (rule + file identity) and as the bare terminal invocation
@@ -193,7 +192,7 @@ check is wired to the production script, not a standalone rule.
   to the fixed shape (content unchanged).
 - `scripts/check-corpus.mjs` — fourth check.
 - `scripts/check-nonvacuity.mjs` — new `gateCorpusProbe` row.
-- [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md) — closes
+- [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md) — closes
   once Phase 2 lands and the Fix section is superseded by this plan.
 
 ## Out of scope
@@ -213,7 +212,7 @@ check is wired to the production script, not a standalone rule.
 - **Fixing bug 0141's Fix section in place.** This plan supersedes it; 0141
   closes by reference to this plan rather than by its own Fix section being
   built as originally written.
-- **[Proposal 001](../proposals/001-md-corpus-rule-coverage.md)'s related but
+- **[Proposal 001](../../proposals/001-md-corpus-rule-coverage.md)'s related but
   distinct break class.** Found while building Phase 1 (not caught by any of
   0141's six reviewers): 001's own Evidence already dogfoods a _different_
   corruption on this same proposal↔plan pair — a plan citing a proposal as
@@ -272,7 +271,7 @@ the same branch before merge:
    `terms()`/`vocabulary()`**, a shipped `eess-md` primitive with zero
    dogfood usage today. Not swapped live (a bigger, riskier change under
    review-driven time pressure); recorded as
-   [bug 0143](../bugs/0143-proposal-ruling-parser-duplicates-terms-vocabulary.md)
+   [bug 0143](../../bugs/0143-proposal-ruling-parser-duplicates-terms-vocabulary.md)
    instead.
 
 Also addressed: proposal-side selection is now live-only, matching the
@@ -340,3 +339,5 @@ record, not reproduced here per this file's own brevity convention.
       mirroring the real 0089/0090/0101 citations → still red; garbled Ruling
       → red, distinct message). `check:nonvacuity` proves both new rows are
       bound to the production script (json + terminal exit both asserted).
+
+Deferred: none.

@@ -166,7 +166,7 @@ Evidence items (4)–(13) can only ever be asserted here.
 
 **Ruling: Rewrite needed**
 
-Backfilled 2026-08-14 by [plan 0142](../plans/0142-bind-proposals-to-plans.md).
+Backfilled 2026-08-14 by [plan 0142](../plans/completed/0142-bind-proposals-to-plans.md).
 No `## Review` section was ever written into this file, even though commit
 `1af4a65` ("proposal 001 reviewed + rewritten…", 2026-08-09) records that the
 review happened — three lenses (architect, product, enforcement) — and that

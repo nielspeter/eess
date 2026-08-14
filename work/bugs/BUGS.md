@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-14 · **Open:** 37 (35 Draft · 2 Parked) · **Fixed:** 17 · **Rejected:** 0
+**Updated:** 2026-08-14 · **Open:** 36 (34 Draft · 2 Parked) · **Fixed:** 18 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -173,6 +173,6 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0138](./0138-pointer-resolve-proves-existence-not-truth.md)              | `corpus/pointers-resolve` proves a `path:line` citation exists, never that the line says what the prose claims — demonstrated 4 times in one review round on 0127             | Medium   | 🔴 Draft            | self-found · enforcement + testing review of 0127's citation refresh         | —         |
 | [0139](./0139-nonvacuity-adopter-docs-still-overclaim.md)                 | README/docs/dogfood-coverage still say "every gate proven to fail" — check:nonvacuity's own comment now says otherwise for most fixtures                                      | Medium   | 🔴 Draft            | self-found · product + customer review of 0127's fix                         | —         |
 | [0140](./0140-nonvacuity-corpus-probes-residual-gaps.md)                  | corpus nonvacuity probes now overlap check:fast/check:ledger/check:numbers' roots, and ROOTS itself has no self-defense against a deleted entry                               | Low      | 🅿️ Parked           | self-found · enforcement + devops review of 0127's fix                       | —         |
-| [0141](./0141-no-check-binds-accepted-proposals-to-plans.md)              | nothing verifies an accepted proposal ever got a plan — the Ruling a proposal carries is never checked against reality                                                        | Medium   | 🔴 Draft            | self-found · asked directly whether proposal→plan linkage is dogfooded       | —         |
+| [0141](./fixed/0141-no-check-binds-accepted-proposals-to-plans.md)        | nothing verifies an accepted proposal ever got a plan — the Ruling a proposal carries is never checked against reality                                                        | Medium   | ✅ Fixed → `fixed/` | self-found · asked directly whether proposal→plan linkage is dogfooded       | #59       |
 | [0143](./0143-proposal-ruling-parser-duplicates-terms-vocabulary.md)      | proposal-ruling.mjs hand-rolls a fence-stripper + closed-vocabulary matcher that terms()/vocabulary() already ships, with zero dogfood usage of the primitive anywhere        | Low      | 🔴 Draft            | self-found · architect review of the branch that built plan 0142             | —         |
 | [0144](./fixed/0144-md-gherkin-nul-bytes-break-grep.md)                   | md-gherkin.ts carried raw NUL bytes, making grep silently treat it as binary — produced a live false negative in this session's own proposal-review survey                    | Medium   | ✅ Fixed → `fixed/` | self-found · architect review of proposal 005 Rewrite v2                     | —         |

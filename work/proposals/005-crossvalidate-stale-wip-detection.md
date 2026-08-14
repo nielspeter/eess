@@ -5,8 +5,8 @@ product · enforcement, plus survey; round 2, scoped: architect · enforcement,
 on the round-1 rewrite; round 3, full again: architect · product ·
 enforcement, on whether the round-2 rewrite was ready for actual acceptance —
 the first proposal in this repo evaluated against a real, built proposal→plan
-linkage gate, [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
-0142](../plans/0142-bind-proposals-to-plans.md)). **`Rewrite v3`** below is
+linkage gate, [bug 0141](../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
+0142](../plans/completed/0142-bind-proposals-to-plans.md)). **`Rewrite v3`** below is
 the operative section — round 3 found the core thesis (placement, break
 class, evidence) sound for the first time, and two closable-not-fundamental
 defect classes: the `isExempt`/`include` defaults were jointly unsatisfiable,
@@ -387,8 +387,8 @@ lifecycle, reserved for the library author, not settled here.
 Replaces _Rewrite v2_ (now _Appendix C_) in full. Third review round (this
 time full: architect, product, enforcement), triggered because this proposal
 was being evaluated for actual acceptance for the first time — the first
-proposal in this repo to reach that point since [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
-0142](../plans/0142-bind-proposals-to-plans.md) wired a real gate to it. All
+proposal in this repo to reach that point since [bug 0141](../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
+0142](../plans/completed/0142-bind-proposals-to-plans.md) wired a real gate to it. All
 three reviewers independently confirmed the placement, break class, and
 evidence discipline are now correct — the first round of the three where the
 core thesis survived intact. Two classes of real defect remained, both

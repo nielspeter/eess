@@ -2,14 +2,12 @@
 
 ## Status
 
-- **State:** Ready — created 2026-08-14 as a Draft following proposal 005's
-  acceptance (`Ship as-is`, third review round — architect · product ·
-  enforcement, all three full). Frozen the same day: the one open item (the
-  `scenariosCovered` fixture's name/placement) is resolved above — folded
-  into `bad-crossval-gherkin-e2e.mjs` as a third scenario, not a separate
-  file. No refinement to harvest. No live-source cords: every citation
-  (`Rewrite v3`, `bad-release-e2e.mjs`, bugs 0112/0127/0141/0144, plan 0079)
-  is this repo's own version-controlled corpus, already `check:corpus`-clean.
+- **State:** Done — built and merged 2026-08-14 (PR #61). All three phases
+  landed: `scenarioExemptionsCurrent` + `citedScenarioSites` shipped, 31
+  non-vacuity fixtures (both new rows mutation-verified), the production
+  gate's own denominator honestly non-zero. Created the same day as a Draft
+  following proposal 005's acceptance (`Ship as-is`, third review round —
+  architect · product · enforcement, all three full).
 - **Implements:** proposal 005
 - **Priority:** Medium — extends the reach of an already-shipped primitive
   (`scenariosCovered`'s `include` option); does not close a correctness gap
@@ -31,7 +29,7 @@ a real citing test already exists for it. The exemption, once granted, never
 expires on its own.
 
 Full problem statement, evidence, and the accepted design are in
-[proposal 005](../proposals/005-crossvalidate-stale-wip-detection.md)'s
+[proposal 005](../../proposals/005-crossvalidate-stale-wip-detection.md)'s
 `## Rewrite v3 — 2026-08-14` section (the operative one — `## Review —
 2026-08-14 (third pass...)` immediately above it carries the `Ship as-is`
 Ruling and a synthesis of what three rounds of review settled). This plan
@@ -90,7 +88,7 @@ Per `Rewrite v3 → Non-vacuity` exactly:
   2. exempt + uncited → silent (the negative control);
   3. non-exempt + uncited → fires `crossval/scenarios-covered` — this third
      scenario is what closes one of
-     [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)'s
+     [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md)'s
      three named rows, folded into this same fixture rather than a separate
      file, since it needs the identical throwaway-corpus machinery the other
      two already build.
@@ -117,7 +115,7 @@ is not evidence, re-derive it).
   capability, not an unrelated example) rather than a generic placeholder:
   "a cited scenario's steps are proven to run, not just cited" — the exact
   Tier-2 gap `scenarioTestsResolve`/`scenariosCovered`'s own docstrings
-  already name as open ([plan 0079](../plans/0079-tier-2-3-mechanization.md),
+  already name as open ([plan 0079](../../plans/0079-tier-2-3-mechanization.md),
   "a mechanism; none exists"). Genuinely unbuilt, not a scenario this change
   itself will make stale.
 - `packages/crossvalidate/README.md`: document `scenariosCovered` (currently
@@ -127,8 +125,8 @@ is not evidence, re-derive it).
 
 **Definition of done:** `npm run check:corpus` shows `1 accepted` and
 `✓ every accepted proposal has a plan, every Ruling/Implements parses` —
-the proposal→plan linkage gate ([bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
-0142](../plans/0142-bind-proposals-to-plans.md)) proven against a real
+the proposal→plan linkage gate ([bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
+0142](../../plans/completed/0142-bind-proposals-to-plans.md)) proven against a real
 accepted proposal and a real implementing plan for the first time since it
 was built. `npm run check:crossval` shows the new gate green in steady
 state (the committed `@wip` scenario present and uncited, satisfying
@@ -202,3 +200,5 @@ state (the committed `@wip` scenario present and uncited, satisfying
 - [x] Phase 3 — dogfood wiring, docs, changeset; `check:corpus` shows a real
       accepted+implemented pair (`1 accepted`, ✓), `check:crossval` shows a
       real, non-zero, honestly-uncited `1 exempt scenario(s) evaluated`
+
+Deferred: none.

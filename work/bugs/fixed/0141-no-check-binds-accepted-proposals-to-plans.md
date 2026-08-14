@@ -2,11 +2,12 @@
 
 ## Status
 
-- **State:** Draft — measured against real corpus state and a synthetic
-  fixture pair; a working check spiked and reverted, not yet built. No red
-  test yet. **Reviewed 2026-08-14 (all six personas): the gap is real, the
-  Fix as specified is not buildable — see `## Review — 2026-08-14` below.
-  Do not implement the Fix section as written.**
+- **State:** Fixed — closed 2026-08-14 via
+  [plan 0142](../../plans/completed/0142-bind-proposals-to-plans.md), not via
+  this bug's own Fix section (falsified by a six-persona review — the
+  reproduction's own printed code didn't reproduce its own results table,
+  and the extraction regex failed on 4/5 real proposals). The redesign that
+  actually shipped is 0142's, re-homed and built there.
 - **Severity:** Medium — an honesty gap between a stated claim (`PROPOSALS.md`'s
   own vocabulary: "an accepted proposal becomes a Draft plan on the roadmap")
   and its actual mechanism (none). Not High: no proposal has ever been
@@ -48,7 +49,7 @@ resolution (Tier 1: does a link point at a real file), but that is a
 different claim than "does an accepted proposal have a plan at all" — a
 proposal with _no_ plan-link has nothing for `check:corpus` to resolve or
 fail to resolve. The absence is invisible to it by construction, the same
-shape [0138](./0138-pointer-resolve-proves-existence-not-truth.md) names for
+shape [0138](../0138-pointer-resolve-proves-existence-not-truth.md) names for
 `path:line` pointers: a gate that proves a reference resolves is not a gate
 that proves a required reference exists.
 
@@ -206,7 +207,7 @@ critical findings below.
    `ACCEPTED` set that matches none of them. See the Correction above.
 4. The non-vacuity fixture design (`scripts/nonvacuity/bad-proposal-plan-link.mjs`,
    citing `bad-links/`/`bad-adr/` as precedent) regresses to the exact tier
-   bug [0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
+   bug [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
    deleted the same day, for the same reason: `bad-links/` no longer
    exists, deleted by 0127's own fix, because a hand-built fixture proves
    only that the rule fires in isolation, never that the production script
@@ -261,16 +262,20 @@ rather than substring co-occurrence, then rebuild the non-vacuity fixture on
 `gateCorpusProbe()`.
 
 **Re-homed 2026-08-14:** that redesign is
-[plan 0142](../plans/0142-bind-proposals-to-plans.md) — Ready. The Fix
+[plan 0142](../../plans/completed/0142-bind-proposals-to-plans.md) — Done, merged
+(PR #59, plus a second full branch review's follow-up fixes, same PR). The Fix
 section above stays as the falsified original, per this repo's own
-corrections-stay-in-the-record convention; do not implement it. This bug
-closes when 0142's Phase 2 lands.
+corrections-stay-in-the-record convention; it was never implemented as
+written. This bug closes here, now that 0142 has landed.
 
 ## Verification
 
-- [ ] Red test written first: the fixture pair above, committed, proving
-      `check:corpus` does not currently assert this (no such check exists to
-      even fail red — the red state is "the check doesn't exist yet").
-- [ ] `npm run validate` green.
+- [ ] Red test written first: done-otherwise — 0142's own Phase 2 fixtures
+      (`gateCorpusProbe`-shaped, driving the real production script both as
+      `--format json` and bare terminal) are the actual red-then-green
+      proof, not the fixture pair this bug's own (falsified) Fix section
+      sketched.
+- [ ] `npm run validate` green: done-otherwise — verified as part of
+      0142's own close, not re-run standalone here.
 
 Deferred: none.
