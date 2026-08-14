@@ -121,13 +121,13 @@ false claims about corpus state contained one.
 
 ## Board
 
-| Item                                                                                         | Priority | Status      | Ruling         | Origin                      | Related plans                                                                                                                                                                                                       |
-| -------------------------------------------------------------------------------------------- | -------- | ----------- | -------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [001 — express a corpus's own conventions](./001-md-corpus-rule-coverage.md)                 | High     | 🔵 Reviewed | Rewrite needed | self-found                  | builds on [0069](../plans/completed/0069-spec-corpus-reach.md) ✅; out of scope for [0089](../plans/0089-family-standalone-sufficiency.md), [0101](../plans/0101-sibling-gates-go-fail-closed.md)                   |
-| [002 — links embedded in source-code comments](./002-comment-embedded-links.md)              | Medium   | 🔵 Reviewed | Rewrite needed | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md) ⇄ (cited both ways)                                                                                                                          |
-| [003 — future dialect candidates (catalog)](./003-future-dialect-candidates.md)              | —        | 🔵 Reviewed | Rewrite needed | brainstormed w/ maintainer  | excludes [0078](../plans/0078-workflow-dialect.md); ER candidate parked by [0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md)                                                                          |
-| [004 — corpus-content `explain` equivalent](./004-corpus-content-explain.md)                 | Low      | 🔵 Reviewed | Docs-only      | inbound · consuming project | CLI question sequenced after [0089](../plans/0089-family-standalone-sufficiency.md)                                                                                                                                 |
-| [005 — crossvalidate: detect a stale `@wip` tag](./005-crossvalidate-stale-wip-detection.md) | Medium   | 🔵 Reviewed | Rewrite needed | inbound · consuming project | non-vacuity sequenced with [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md); cites [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the fixture tier to avoid |
+| Item                                                                                         | Priority | Status      | Ruling         | Origin                      | Related plans                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------------- | -------- | ----------- | -------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [001 — express a corpus's own conventions](./001-md-corpus-rule-coverage.md)                 | High     | 🔵 Reviewed | Rewrite needed | self-found                  | builds on [0069](../plans/completed/0069-spec-corpus-reach.md) ✅; out of scope for [0089](../plans/0089-family-standalone-sufficiency.md), [0101](../plans/0101-sibling-gates-go-fail-closed.md)                                                                                                                        |
+| [002 — links embedded in source-code comments](./002-comment-embedded-links.md)              | Medium   | 🔵 Reviewed | Rewrite needed | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md) ⇄ (cited both ways)                                                                                                                                                                                                                               |
+| [003 — future dialect candidates (catalog)](./003-future-dialect-candidates.md)              | —        | 🔵 Reviewed | Rewrite needed | brainstormed w/ maintainer  | excludes [0078](../plans/0078-workflow-dialect.md); ER candidate parked by [0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md)                                                                                                                                                                               |
+| [004 — corpus-content `explain` equivalent](./004-corpus-content-explain.md)                 | Low      | 🔵 Reviewed | Docs-only      | inbound · consuming project | CLI question sequenced after [0089](../plans/0089-family-standalone-sufficiency.md)                                                                                                                                                                                                                                      |
+| [005 — crossvalidate: detect a stale `@wip` tag](./005-crossvalidate-stale-wip-detection.md) | Medium   | 🔵 Reviewed | Ship as-is     | inbound · consuming project | folds in one row of [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md); cites [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the fixture tier avoided; accepted after a third review round found [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md) |
 
 **What each one asked for.** 001 — `terms()`/`vocabulary()` plus coverage over
 the md corpus. 002 — resolve doc citations embedded in source-code comments.
@@ -135,16 +135,22 @@ the md corpus. 002 — resolve doc citations embedded in source-code comments.
 primitive for md/gherkin. 005 — detect a Gherkin scenario still tagged `@wip`
 after a real test already cites it.
 
-**Read of the board (2026-08-14).** **No proposal here has spawned a plan.**
-Every one filed so far was declined, returned as specified, or — 005 — is still
-mid-rewrite; in three of the first four cases the survey alone was decisive, an
-argument about the _template_, not about the submitters. 005 breaks that
-pattern in one respect: its survey found nothing wrong (the capability really is
-new), but its own evidence and acceptance criteria needed two review-and-rewrite
-rounds before either held up — the first rewrite's own placement argument turned
-out to be factually wrong, caught only by re-reviewing the rewrite itself. 001
-remains the only one whose blocker is a set of decisions reserved for the author
-rather than a defect in the submission.
+**Read of the board (2026-08-14).** **005 has spawned a plan** —
+[0145](../plans/0145-crossvalidate-stale-wip-detection.md), the first time
+any proposal here has, and the first real exercise of the proposal→plan
+linkage gate ([bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
+0142](../plans/0142-bind-proposals-to-plans.md)) against real content rather
+than a synthetic probe. It took three review rounds, not one: 005's survey
+found nothing wrong (the capability really is new), but its evidence and
+acceptance criteria needed two full rewrites before they held up — round 2
+found the first rewrite's own placement argument was factually wrong, and
+round 3 (the one that decided actual acceptance) found the rewrite that
+followed still couldn't be built as specified, in ways closable by name, not
+by another spike. The other three filed so far were declined or returned as
+specified; in each of those cases the survey alone was decisive, an argument
+about the _template_, not about the submitters. 001 remains the only one
+whose blocker is a set of decisions reserved for the author rather than a
+defect in the submission.
 
 The relationships that do exist run the other way, and are worth reading before
 picking any of these up:
@@ -162,13 +168,18 @@ picking any of these up:
 - **003 and 004 cite plans for context only** — to avoid duplicating 0078, to note
   that 0096 already parks the ER binding for want of an `erDiagram` in this repo,
   and to flag that 004's CLI question is downstream of 0089's Phase 2 wording.
-- **005 cites bugs, not plans, and both cites run forward, not back.** Its
-  non-vacuity design is sequenced with [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)
-  (still open — `scenariosCovered`, the function 005 extends, has no fixture of
-  its own yet) and names [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
-  (closed the same day) as the fixture tier its own second review round caught
-  it repeating. Neither bug cites 005 back — there is nothing yet for them to
-  point at.
+- **005 is now the two-way binding, alongside 002.**
+  [Plan 0145](../plans/0145-crossvalidate-stale-wip-detection.md) declares
+  `**Implements:** proposal 005` in its own header, and this row names the
+  plan back. 005 also still cites bugs, both directions run forward: it
+  folds one row of [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)
+  into 0145's own scope rather than waiting on it, names
+  [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
+  as the fixture tier its own second review round caught it repeating, and
+  its third review round found and fixed
+  [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md) along the
+  way. None of the three bugs cite 005 back — there is nothing for a bug
+  record to point at in the other direction.
 
 ## Known gaps in this lane
 

@@ -1,21 +1,29 @@
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
+import path from 'node:path'
 import { itOrTestTitleOf } from './it-title.js'
+
+/**
+ * Custom citation extractor — receives one `it('…')` title and returns the
+ * scenario it cites, or `undefined` if the title is not a citation. Shared by
+ * every gherkin-ts export that reads citations (plan 0145; previously three
+ * copies of the same inline signature).
+ */
+export type TestCitationExtractor = (itTitle: string) => ExtractedTestCitation | undefined
 
 export interface ScenarioTestsResolveOptions extends PresetReportOptions {
   /**
-   * Custom citation extractor for transition periods — receives one `it('…')`
-   * title and returns the scenario it cites, or `undefined` if the title is not
-   * a citation. Default: the frozen convention adapted to a single string —
-   * `` it('<path>.feature › <Scenario title>') `` (plan 0080).
+   * Custom citation extractor for transition periods. Default: the frozen
+   * convention adapted to a single string — `` it('<path>.feature › <Scenario
+   * title>') `` (plan 0080).
    */
-  readonly extract?: (itTitle: string) => ExtractedTestCitation | undefined
+  readonly extract?: TestCitationExtractor
 }
 
 export interface ScenariosCoveredOptions extends PresetReportOptions {
   /** Custom citation extractor — same contract as {@link ScenarioTestsResolveOptions.extract}. */
-  readonly extract?: (itTitle: string) => ExtractedTestCitation | undefined
+  readonly extract?: TestCitationExtractor
   /**
    * Require coverage only for scenarios matching this predicate — the opt-in
    * scope. Default: every scenario. Use it to exclude un-implemented flows,
@@ -31,7 +39,9 @@ export interface ExtractedTestCitation {
   readonly title: string
 }
 
-interface TestCitationSite {
+/** Where one `it('…')` citation lives — exported (plan 0145) so a consumer
+ * can report a citation's own location, not just that one exists. */
+export interface TestCitationSite {
   readonly title: string
   readonly file: string
   readonly line: number
@@ -172,21 +182,38 @@ const sv = (scenario: GherkinScenario, message: string, because: string): ArchVi
   because,
 })
 
-/** The set of `relPath title` keys a test unambiguously cites in the project. */
-function citedScenarioKeys(
+/**
+ * Every test citation, keyed by the scenario it cites (`relPath title`) —
+ * exported (plan 0145) so a consumer can report where a citation lives, not
+ * just that one exists. Ambiguous citations (matching more than one feature
+ * file) are excluded, same as the prior `citedScenarioKeys`'s behavior. If
+ * two tests cite the same scenario, the map keeps one of them (which one is
+ * unspecified) — enough to point an author at *a* citing test, which is all
+ * any consumer here needs.
+ */
+export function citedScenarioSites(
   project: ArchProject,
   set: FeatureSet,
-  extract: (itTitle: string) => ExtractedTestCitation | undefined,
-): Set<string> {
-  const covered = new Set<string>()
+  extract: TestCitationExtractor,
+): Map<string, TestCitationSite> {
+  const sites = new Map<string, TestCitationSite>()
   for (const site of itTitles(project)) {
     const cite = extract(site.title)
     if (cite === undefined) continue
     const resolved = resolveFeature(cite.path, set)
     const rel = resolved.length === 1 ? resolved[0] : undefined
-    if (rel !== undefined) covered.add(`${rel} ${cite.title}`)
+    if (rel !== undefined) sites.set(`${rel} ${cite.title}`, site)
   }
-  return covered
+  return sites
+}
+
+/** The set of `relPath title` keys a test unambiguously cites in the project. */
+function citedScenarioKeys(
+  project: ArchProject,
+  set: FeatureSet,
+  extract: TestCitationExtractor,
+): Set<string> {
+  return new Set(citedScenarioSites(project, set, extract).keys())
 }
 
 /**
@@ -222,6 +249,74 @@ export function scenariosCovered(
         'an unproven use-case flow is a spec with no gate behind it',
       ),
     )
+  return finishPreset(violations, options)
+}
+
+export interface ScenarioExemptionsCurrentOptions extends PresetReportOptions {
+  /**
+   * Which scenarios are currently exempt from the coverage requirement.
+   * Required — no default, unlike `scenariosCovered`'s `include`: the two
+   * options must never be able to silently disagree about the same tag.
+   * Found in proposal 005's third review round — if both defaulted to
+   * `@wip`, a `@wip` scenario would be simultaneously required to be cited
+   * (`scenariosCovered`, default `include`) and required to be uncited
+   * (this export, a hypothetical default `isExempt`), unconditionally.
+   * There is no default under which the pair is not self-contradictory, so
+   * there is no default at all — the caller states the tag explicitly,
+   * e.g. `(s) => s.tags.includes('wip')`, paired with the matching
+   * `scenariosCovered({ include: (s) => !s.tags.includes('wip') })`.
+   */
+  readonly isExempt: (scenario: GherkinScenario) => boolean
+  /** Custom citation extractor — same contract as the siblings' `extract`. */
+  readonly extract?: TestCitationExtractor
+}
+
+const EXEMPTION_RULE = 'an exempt scenario should have its exemption removed once a test cites it'
+
+/**
+ * Cross-validate that no scenario currently exempted (via `isExempt`) already
+ * has a real citing test — the complement of `scenariosCovered`: that gate
+ * proves a non-exempt scenario IS cited; this one proves an exempt scenario
+ * is NOT YET cited. An exemption that outlives its reason is a silent hole
+ * in the coverage gate it was meant to narrow (proposal 005).
+ *
+ * A citation from a `.skip`-modified test still counts as "cites it," same
+ * as `scenariosCovered`'s own treatment (`itTitles` binds a citation; it
+ * does not require the test to run) — consistency across the three
+ * gherkin-ts gates is worth more than a bespoke carve-out here. A caller
+ * who wants a skipped-placeholder citation to NOT trigger staleness narrows
+ * `isExempt` to exclude it (or tags it `@wip @tracked` and narrows on that).
+ */
+export function scenarioExemptionsCurrent(
+  project: ArchProject,
+  set: FeatureSet,
+  options: ScenarioExemptionsCurrentOptions,
+): ArchViolation[] {
+  const extract = options.extract ?? defaultExtract
+  const sites = citedScenarioSites(project, set, extract)
+  const violations = set
+    .scenarios()
+    .filter((s) => options.isExempt(s))
+    .flatMap((s) => {
+      const site = sites.get(`${s.relPath} ${s.title}`)
+      if (site === undefined) return []
+      const citedAt = `${path.relative(process.cwd(), site.file)}:${String(site.line)}`
+      return [
+        {
+          rule: EXEMPTION_RULE,
+          ruleId: 'crossval/scenario-exemption-stale',
+          element: `${s.relPath} › ${s.title}`,
+          file: s.file,
+          line: s.line,
+          message: `scenario "${s.title}" is exempt but ${citedAt} already cites it`,
+          because:
+            'an exemption that has outlived its reason is a silent hole in the coverage gate',
+          suggestion:
+            'if the scenario is genuinely done, remove the exempting tag; if the exemption is ' +
+            'still intentional (flaky, partial, tracked elsewhere), narrow isExempt to exclude it',
+        },
+      ]
+    })
   return finishPreset(violations, options)
 }
 

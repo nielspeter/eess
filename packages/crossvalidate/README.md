@@ -73,6 +73,43 @@ ADR-007). A scenario renamed or deleted out from under the test that cites it
 fails the build. It resolves the citation; it does not claim the test exercises
 the scenario's steps (Tier 2, still open).
 
+```typescript
+import { scenariosCovered } from '@nielspeter/eess-crossvalidate/gherkin-ts'
+
+// every scenario must be cited by at least one test — the coverage
+// (right→left) direction, the complement of scenarioTestsResolve. `include`
+// narrows the requirement so not-yet-implemented flows don't force a red
+// build.
+scenariosCovered(project('tsconfig.json'), features({ roots: ['features/**/*.feature'] }), {
+  include: (s) => !s.tags.includes('wip'),
+})
+```
+
+A scenario shipped with no citing test fails the build. Pair `include` with
+`scenarioExemptionsCurrent`'s `isExempt`, below — the two must use the same
+tag, and neither has a default, on purpose: a `@wip` scenario excluded from
+one but not the other would fail one gate or the other unconditionally.
+
+```typescript
+import { scenarioExemptionsCurrent } from '@nielspeter/eess-crossvalidate/gherkin-ts'
+
+// the reverse of scenariosCovered: an exempt scenario must NOT already have a
+// citing test. Once a test proves it, the exemption has outlived its reason.
+scenarioExemptionsCurrent(
+  project('tsconfig.json'),
+  features({ roots: ['features/**/*.feature'] }),
+  {
+    isExempt: (s) => s.tags.includes('wip'),
+  },
+)
+```
+
+An exemption (`@wip` by the convention above, or any tag `isExempt` reads) that
+is still in force when a real test starts citing the scenario is a silent hole
+in the coverage gate it was meant to narrow — the exemption should have been
+removed the moment the work landed. The violation names both the scenario and
+the citing test's own `file`/`line`.
+
 ## Peers
 
 The dialects are optional peer dependencies — install the ones your presets use

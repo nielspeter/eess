@@ -20,3 +20,9 @@ Feature: A scenario stays bound to the test that proves it
     Given a scenario that no test cites
     When scenariosCovered runs
     Then it reports the uncovered scenario
+
+  @wip
+  Scenario: A cited scenario's steps are proven to run, not just cited
+    Given a test whose title cites a scenario
+    When the test body actually exercises the scenario's Given/When/Then steps
+    Then scenarioTestsResolve considers the scenario proven, not merely cited
