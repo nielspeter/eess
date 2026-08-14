@@ -53,8 +53,23 @@
   `check:nonvacuity`'s own coverage gate, missing `...opts` threading, a
   factually-wrong rationale for a dead-code check, `docs/architecture.md`
   landing as an unlinked page in the published guide, and `md↔mermaid-er`'s
-  parking language overselling an unscheduled trigger as an open one. All are
-  fixed inline below; this plan stays **Ready**.
+  parking language overselling an unscheduled trigger as an open one.
+- **Re-review (2026-08-14).** A second six-persona pass, specifically checking
+  whether the first round's fixes actually held up rather than trusting the
+  fix commit's own message, found the fixes had introduced two new defects,
+  both since corrected: Phase 1's "keep the full path in adjoining prose" fix
+  re-backticked a `.feature`-suffixed span, which `FEATURE_PATH_RE` extracts as
+  a second citation regardless of context — reintroducing the exact
+  unresolvable-citation failure Phase 1 exists to remove (the path is now
+  plain, unbackticked prose). And Phase 3's emptied-diagram regex,
+  `/has no matching class/`, does not match the real `rightUnmatched` message
+  (`"... has no matching diagram class ..."`) — corrected to
+  `/has no matching diagram class/`, verified against the actual label
+  composition in `correspondence.ts`/`md-mermaid.ts`, not just the message
+  shape. Both were caught because the re-review ran the real regex/preset
+  against the plan's own proposed text rather than reading it for plausibility
+  — the same discipline this plan asks Phase 3 to apply to its own fixtures.
+  All fixed inline below; this plan stays **Ready**.
 - **Priority:** High — a dogfood gap, same class as 0091. Not a blocker; nothing
   gates on it.
 - **Effort:** Small — two bindings to mount, each needing one planted artifact
@@ -122,14 +137,23 @@ the path in the form the resolver actually matches.
   the scenario title is never checked.
 
 So fix line 79 to a single-line scenario-title citation, keeping the full path
-in adjoining prose so the fix doesn't cost a reader the file's real location
-(the exact backticked citation has to be the bare, cwd-relative form for the
-resolver — that constraint doesn't extend to the surrounding sentence):
+in adjoining prose so the fix doesn't cost a reader the file's real location —
+but **not backticked**. `FEATURE_PATH_RE` (``/`([^`\n]+\.feature)`/g``) matches
+_every_ backtick-delimited `.feature`-suffixed span on a line, independently,
+with no concept of "this one is the real citation, that one is prose" — a
+second backticked copy of the full repo-root path is itself extracted as a
+second citation and fails to resolve exactly the way the un-fixed original
+does (`resolveFeature` only matches an exact `relPath` or a `/`-bounded
+_suffix_ of a longer one; the repo-root form is longer than the real
+`relPath`, so neither branch matches). An earlier version of this fix
+backticked the full path in the parenthetical and reintroduced that exact
+failure — caught by re-review, running the real preset against the proposed
+text. The full path must appear as plain prose, unbackticked:
 
 ```markdown
 **Honest scope:** it proves a test _cites_ a scenario, not that the test _exercises_
 its behaviour — that last step is Tier 2, still open. eess dogfoods this pairing on
-itself (`packages/crossvalidate/specs/scenario-binding.feature`):
+itself (at packages/crossvalidate/specs/scenario-binding.feature):
 `scenario-binding.feature` · 'A cited scenario resolves to a real scenario'
 is a use case, proven by a test whose `it()` titles cite its scenarios, gated live
 in `check:crossval`.
@@ -317,21 +341,37 @@ that's simply stuck always-red:
   path is live, not merely that citations were counted. A second, clean-direction
   case in the same fixture — the real feature file and an existing scenario
   title — must resolve with zero violations.
-- **`scripts/nonvacuity/bad-md-mermaid.mjs`** + two planted docs:
+- **`scripts/nonvacuity/bad-md-mermaid.mjs`** + three planted docs, all three
+  cases required to pass before the fixture prints its sentinel (the
+  `bad-md-ts.mjs` clean+dangling contract, extended to three cases rather than
+  two — a single `gates`-array row, `crossval/md-mermaid`, covering all of
+  them, since they exercise one preset's two submodes plus its negative
+  control):
   - `bad-md-mermaid/drifted-diagram.md` — an embedded `mermaid` classDiagram
     declaring a class absent from `packages/core`. Must fire
     `crossval/embedded-diagram` **matching `/has no matching TS class/`**
     (directly analogous to the existing `ghost-diagram.mmd` fixture, which
-    proves the same submode for the standalone `.mmd` form).
+    proves the same submode for the standalone `.mmd` form). This is the
+    `leftUnmatched` message — `` `${right.label} "${name}" has no matching
+${left.label}` `` with `right.label = 'TS class'` — verified against
+    `correspondence.ts`'s message template and `md-mermaid.ts`'s label
+    assignment, not just the shape.
   - `bad-md-mermaid/emptied-diagram.md` — a syntactically valid but
     content-free `classDiagram` fence (zero classes). Under Phase 2's
     `completeness: 'both'`, every real kernel class in `packages/core` becomes
     unmatched on the code side — must fire `crossval/embedded-diagram`
-    **matching `/has no matching class/`** on the code-side message, proving the
-    emptied-fence hole (a `left-to-right`-only gate passes this vacuously —
-    verified against `correspondence.ts`'s `completeness()`) is actually closed.
+    **matching `/has no matching diagram class/`** (the `rightUnmatched`
+    message: `left.label` is `` `diagram class (in ${doc.relPath})` ``, not
+    bare `'diagram'` or `'class'` — a plain `/has no matching class/` does
+    **not** match the real string, "diagram" sits between "matching" and
+    "class"; confirmed by constructing the label and message directly and
+    testing the regex against it). Proves the emptied-fence hole (a
+    `left-to-right`-only gate passes this vacuously) is actually closed.
   - A clean-direction case — the real, undrifted `docs/architecture.mmd`
-    content embedded verbatim — must resolve with zero violations.
+    content embedded verbatim — must resolve with zero violations. This is a
+    **third** hand-maintained copy of the kernel diagram (alongside the
+    standalone `.mmd` and Phase 2's embed) — same no-automated-sync caveat as
+    Phase 2's note applies here too.
 
 Both register in `check-nonvacuity.mjs`'s `gates` array as
 `crossval/md-gherkin` and `crossval/md-mermaid` — **and those two names must
@@ -353,7 +393,9 @@ which is the file's own inventory of what is proven.
 - `docs/crossvalidate.md` — fix line 79's citation to the cwd-relative
   `scenario-binding.feature` path + a scenario title on the same line, keeping
   the full `packages/crossvalidate/specs/scenario-binding.feature` path in
-  adjoining prose so the fix doesn't cost a reader the file's real location.
+  adjoining prose, **unbackticked** (see Phase 1) so the fix doesn't cost a
+  reader the file's real location without reintroducing a second, unresolvable
+  citation.
 - `docs/architecture.md` — new: embeds the kernel class diagram (mirroring
   `docs/architecture.mmd`) as a `mermaid` fence, with a one-line note that it's
   a hand-maintained mirror with no automated sync to the `.mmd` original.
