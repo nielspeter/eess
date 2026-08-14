@@ -523,7 +523,7 @@ P>` generic** every builder in the family depends on.
       ~54 kernel-bound candidate files import `ts-morph` directly and need the
       Phase-4 engine-neutral seam — the spike names them explicitly as Phase
       4's starting worklist.
-- [ ] Phase 2 — port ADR-008 → eess ADR-009
+- [x] Phase 2 — port ADR-008 → eess ADR-009
 - [ ] Phase 3 — port ADR-009 → eess ADR-010
 - [ ] Phase 4 — fold the engine (kernel seam + `RuleBuilder<T,P>` + eess-ts)
 - [ ] Phase 4a — build the vacuity matrix (exports-map enumeration + ratchet)

@@ -22,6 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | [006](./adr/006-framework-rules-architecture.md)          | Framework Rules | Rules are code, not config. Separate npm packages per framework. Presets are functions.                     |
 | [007](./adr/007-isolate-ast-engine-boundary.md)           | Engine Boundary | Confine ts-morph behind one engine module; batch-first boundary. (Proposed; confinement `pending`)          |
 | [008](./adr/008-caller-owns-reporting.md)                 | Reporting       | Detection is separate from emission. One `reportViolations`; presets take `{ report }` (default unchanged). |
+| [009](./adr/009-agent-first-failure-surfaces.md)          | Fail-Closed     | A check that cannot fail is worth less than no check. Ported from `ts-archunit` ADR-008; six binding rules. |
 
 ### ADR authoring convention — the Enforcement table (eess enforcement-table v1)
 
