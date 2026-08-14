@@ -2,7 +2,14 @@
 
 ## Status
 
-- **State:** Draft — awaiting freeze.
+- **State:** Done — built and merged 2026-08-14. Frozen 2026-08-14 after a
+  three-persona pre-freeze review (architect, product, enforcement) found and
+  fixed a real defect in the draft itself (wrong fixture arithmetic, a missing
+  `@wip` tag — see the Approach section's Correction note); every load-bearing
+  claim was verified directly against the real `examples/fixtures/gherkin-ts/`
+  tree, not assumed by analogy to the package's fixture. Built exactly as
+  frozen — all predicted counts held on the first run, no further deviation.
+  Deferred: none.
 - **Priority:** Medium — adoption-surface completeness, the same class as 0091
   itself (which this follows on from). `check:crossval` already dogfoods both
   functions this plan demonstrates on the repo's own artifacts (the
@@ -18,7 +25,7 @@
 
 ## Problem
 
-Plan 0091 ([`work/plans/completed/0091-cross-dialect-examples-checked.md`](./completed/0091-cross-dialect-examples-checked.md))
+Plan 0091 ([`work/plans/completed/0091-cross-dialect-examples-checked.md`](./0091-cross-dialect-examples-checked.md))
 built one executing example per README-documented `@nielspeter/eess-crossvalidate`
 binding, including Gherkin↔TS. But `packages/crossvalidate/README.md`'s
 "Gherkin ↔ TypeScript" section documents **three** exports, not one:
@@ -29,10 +36,10 @@ binding, including Gherkin↔TS. But `packages/crossvalidate/README.md`'s
 3. `scenarioExemptionsCurrent` — the reverse of #2: an exempt (`@wip`) scenario
    must not already have a citing test
 
-[`examples/cross-dialect.gherkin-ts.test.ts`](../../examples/cross-dialect.gherkin-ts.test.ts)
+[`examples/cross-dialect.gherkin-ts.test.ts`](../../../examples/cross-dialect.gherkin-ts.test.ts)
 exercises only `scenarioTestsResolve`. This was found during 0091's review (three
 reviewers ran against the built PR; testing flagged it directly), disclosed
-honestly in [`examples/README.md`](../../examples/README.md)'s binding table
+honestly in [`examples/README.md`](../../../examples/README.md)'s binding table
 rather than silently shipped as if complete, and deliberately left unbuilt there
 to keep 0091 at its frozen "Small" scope. This plan is that named follow-up.
 
