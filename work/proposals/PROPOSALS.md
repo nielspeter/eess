@@ -92,24 +92,30 @@ false claims about corpus state contained one.
 
 ## Board
 
-| Item                                                                            | Priority | Status      | Ruling         | Origin                      | Related plans                                                                                                                                                                                     |
-| ------------------------------------------------------------------------------- | -------- | ----------- | -------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [001 — express a corpus's own conventions](./001-md-corpus-rule-coverage.md)    | High     | 🔵 Reviewed | Rewrite needed | self-found                  | builds on [0069](../plans/completed/0069-spec-corpus-reach.md) ✅; out of scope for [0089](../plans/0089-family-standalone-sufficiency.md), [0101](../plans/0101-sibling-gates-go-fail-closed.md) |
-| [002 — links embedded in source-code comments](./002-comment-embedded-links.md) | Medium   | 🔵 Reviewed | Rewrite needed | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md) ⇄ (cited both ways)                                                                                                        |
-| [003 — future dialect candidates (catalog)](./003-future-dialect-candidates.md) | —        | 🔵 Reviewed | Rewrite needed | brainstormed w/ maintainer  | excludes [0078](../plans/0078-workflow-dialect.md); ER candidate parked by [0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md)                                                        |
-| [004 — corpus-content `explain` equivalent](./004-corpus-content-explain.md)    | Low      | 🔵 Reviewed | Docs-only      | inbound · consuming project | CLI question sequenced after [0089](../plans/0089-family-standalone-sufficiency.md)                                                                                                               |
+| Item                                                                                         | Priority | Status      | Ruling         | Origin                      | Related plans                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------- | -------- | ----------- | -------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [001 — express a corpus's own conventions](./001-md-corpus-rule-coverage.md)                 | High     | 🔵 Reviewed | Rewrite needed | self-found                  | builds on [0069](../plans/completed/0069-spec-corpus-reach.md) ✅; out of scope for [0089](../plans/0089-family-standalone-sufficiency.md), [0101](../plans/0101-sibling-gates-go-fail-closed.md)                   |
+| [002 — links embedded in source-code comments](./002-comment-embedded-links.md)              | Medium   | 🔵 Reviewed | Rewrite needed | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md) ⇄ (cited both ways)                                                                                                                          |
+| [003 — future dialect candidates (catalog)](./003-future-dialect-candidates.md)              | —        | 🔵 Reviewed | Rewrite needed | brainstormed w/ maintainer  | excludes [0078](../plans/0078-workflow-dialect.md); ER candidate parked by [0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md)                                                                          |
+| [004 — corpus-content `explain` equivalent](./004-corpus-content-explain.md)                 | Low      | 🔵 Reviewed | Docs-only      | inbound · consuming project | CLI question sequenced after [0089](../plans/0089-family-standalone-sufficiency.md)                                                                                                                                 |
+| [005 — crossvalidate: detect a stale `@wip` tag](./005-crossvalidate-stale-wip-detection.md) | Medium   | 🔵 Reviewed | Rewrite needed | inbound · consuming project | non-vacuity sequenced with [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md); cites [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the fixture tier to avoid |
 
 **What each one asked for.** 001 — `terms()`/`vocabulary()` plus coverage over
 the md corpus. 002 — resolve doc citations embedded in source-code comments.
 003 — a catalog of eight candidate future dialects. 004 — a corpus-listing
-primitive for md/gherkin.
+primitive for md/gherkin. 005 — detect a Gherkin scenario still tagged `@wip`
+after a real test already cites it.
 
-**Read of the board (2026-08-13).** **No proposal here has spawned a plan.** Every
-one filed so far was declined or returned as specified, and in three of four cases
-the survey alone was decisive — an argument about the _template_, not about the
-submitters: the survey belongs before the design, not after it. 001 is the only
-one whose remaining blocker is a set of decisions reserved for the author rather
-than a defect in the submission.
+**Read of the board (2026-08-14).** **No proposal here has spawned a plan.**
+Every one filed so far was declined, returned as specified, or — 005 — is still
+mid-rewrite; in three of the first four cases the survey alone was decisive, an
+argument about the _template_, not about the submitters. 005 breaks that
+pattern in one respect: its survey found nothing wrong (the capability really is
+new), but its own evidence and acceptance criteria needed two review-and-rewrite
+rounds before either held up — the first rewrite's own placement argument turned
+out to be factually wrong, caught only by re-reviewing the rewrite itself. 001
+remains the only one whose blocker is a set of decisions reserved for the author
+rather than a defect in the submission.
 
 The relationships that do exist run the other way, and are worth reading before
 picking any of these up:
@@ -127,6 +133,13 @@ picking any of these up:
 - **003 and 004 cite plans for context only** — to avoid duplicating 0078, to note
   that 0096 already parks the ER binding for want of an `erDiagram` in this repo,
   and to flag that 004's CLI question is downstream of 0089's Phase 2 wording.
+- **005 cites bugs, not plans, and both cites run forward, not back.** Its
+  non-vacuity design is sequenced with [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)
+  (still open — `scenariosCovered`, the function 005 extends, has no fixture of
+  its own yet) and names [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
+  (closed the same day) as the fixture tier its own second review round caught
+  it repeating. Neither bug cites 005 back — there is nothing yet for them to
+  point at.
 
 ## Known gaps in this lane
 
@@ -136,10 +149,12 @@ Recorded rather than left to be rediscovered:
   `fixed/`/`rejected/`. Proposals have no such convention — a declined proposal
   (002) sits in place with its ruling in its header. That works while the lane is
   small; it means the board is the only thing distinguishing live from settled.
-- **`check:ledger` does not read this lane** — bug
-  [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md). Proposals carry a
-  `State:` and nothing opens them, so a proposal cannot be held honest at close
-  the way a plan or a bug is.
+- **`check:ledger` reads this lane but can't hold it honest at close** — bug
+  [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md), fixed: the lane
+  is scanned and its `State:` verified readable. What the fix couldn't add is a
+  terminal state — proposals carry only `Draft` forever (see _Vocabulary_
+  above), so the box-disposition check this lane's own `terminalStates: []`
+  deliberately opts out of never runs here, by design, not by gap.
 - **The `work/` README lanes table lists one lane** — bug
   [0108](../bugs/0108-work-readme-lanes-table-lists-one-lane.md). This board does
   not fix that; it gives the lane something to point at.
