@@ -260,6 +260,12 @@ prerequisite), then redesign `matchBy` around a declared back-reference
 rather than substring co-occurrence, then rebuild the non-vacuity fixture on
 `gateCorpusProbe()`.
 
+**Re-homed 2026-08-14:** that redesign is
+[plan 0142](../plans/0142-bind-proposals-to-plans.md) — Ready. The Fix
+section above stays as the falsified original, per this repo's own
+corrections-stay-in-the-record convention; do not implement it. This bug
+closes when 0142's Phase 2 lands.
+
 ## Verification
 
 - [ ] Red test written first: the fixture pair above, committed, proving

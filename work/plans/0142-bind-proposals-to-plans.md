@@ -2,16 +2,19 @@
 
 ## Status
 
-- **State:** Draft — created 2026-08-14, following a six-persona review of
-  [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)'s own
-  draft Fix section. The review confirmed the gap but found the proposed
+- **State:** Ready — created 2026-08-14 as a Draft following a six-persona
+  review of [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)'s
+  own draft Fix section (the review confirmed the gap but found the proposed
   mechanism unbuildable against this repo's real corpus in five independent,
-  demonstrated ways (annotated in place in the bug record). This plan exists
+  demonstrated ways, annotated in place in the bug record). This plan exists
   because the bug skill's own routing rule applies: real design/unknowns need
   working out first — a mechanical patch to the bug's regex is not enough.
-  Two decisions are still open (below) and are small enough to settle inline
-  before `/plan-ready`, not big enough for an ADR — nothing here is a binding
-  decision about the eess tool's own architecture, only about this repo's
+  Frozen to Ready the same day: both open decisions (Ruling casing, the
+  back-reference convention) are settled and recorded by value in Phase 1 and
+  Phase 2 below — nothing left dangling. No refinement to harvest, no
+  live-source cords (every citation is this repo's own version-controlled
+  corpus, already `check:corpus`-clean). Not an ADR-level decision: nothing
+  here binds the eess tool's own architecture, only this repo's
   `work/proposals/` lane convention (the same footing as bugs 0118/0119/0121
   fixing `check:ledger`'s state vocabulary without minting one).
 - **Priority:** Medium — mirrors [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)'s
@@ -100,22 +103,20 @@ with `<verdict>` constrained to `PROPOSALS.md`'s six-value vocabulary
 parser reads `**Ruling: X**` as a fixed-shape header line, never a sentence to
 truncate a regex against.
 
-Decisions to settle before this phase is buildable (small, but real, so
-naming them here rather than baking in an answer):
+**Decided 2026-08-14:**
 
-- **Casing.** All five real files already write lowercase free prose
-  (`rewrite needed`, `docs-only`), not `PROPOSALS.md`'s title-case table. Pick
-  one and change the other — most likely relax `PROPOSALS.md`'s vocabulary
-  table to lowercase, since that's what actually shipped five times running,
-  and normalizing five files against a table nobody followed is the wrong
-  direction to force.
-- **Normalizing the five existing proposals.** Once the shape is fixed,
-  `002:117` and `005:45`/`205` need their `**Ruling:` lines reformatted to the
-  new bounded shape (content unchanged — this is a formatting pass, not a
-  re-review). `001` has no `**Ruling:` line at all despite `PROPOSALS.md:95`
-  recording it as `Rewrite needed` — decide whether to backfill one or leave
-  it as a named, separate gap (it's the board/file divergence testing flagged
-  as bug-0141-adjacent).
+- **Casing: uppercase.** `PROPOSALS.md`'s existing title-case vocabulary table
+  (`Ship as-is`, `Docs-only`, `Rewrite needed`, …) is the standard —
+  consistent with how `State:` tokens are always capitalized in `BUGS.md` and
+  `ROADMAP.md` (`Draft`, `Ready`, `Done`). The five real proposal files
+  normalize **up** to match the table (`002:117`, `003:41`, `004:62`,
+  `005:45`/`204`), not the other way around.
+- **Normalizing the five existing proposals.** Reformat each `**Ruling:` line
+  to the new bounded, title-case shape (content/reasoning unchanged — a
+  formatting pass, not a re-review). `001` has no `**Ruling:` line at all
+  despite `PROPOSALS.md:95` recording it as `Rewrite needed` — backfill one
+  from the board's own recorded value (there is no other source of truth for
+  what 001's ruling was) rather than leave a fifth divergence unresolved.
 - **One parser, not two.** `check:ledger`'s proposals lane
   (`scripts/check-ledger.mjs`, bug 0121) already scans this same lane with its
   own vocabulary matcher for `State:`. Phase 2's Ruling matcher should reuse
@@ -135,19 +136,18 @@ literal `**Ruling:` (Phase 1) is `Ship as-is` or `Ship with changes` must have
 at least one plan that declares — not merely mentions — it implements that
 proposal.
 
-Decision to settle before this phase is buildable:
+**Decided 2026-08-14:**
 
-- **The back-reference convention.** `text.includes()` is out (problem
-  statement, point 2). The corpus already has one organic precedent —
-  002 ⇄ 0090 cite each other by name in prose, which `matchBy` still can't
-  parse reliably. The candidates: (a) the plan's own header carries a
-  declared line (e.g. `**Implements:** proposal 002`, the same shape
-  `ROADMAP.md`'s `Blocked on` column already uses for a different relation),
-  (b) the proposal carries a `→ plan NNNN` line once one exists (0141 notes
-  this has literally never happened), or (c) both, so the binding is
-  verifiably two-way rather than asserted from one side. Pick one; (a) is the
-  cheapest to retrofit since plans, not proposals, are created after
-  acceptance and can name their source at creation time.
+- **The back-reference convention: the plan's own `**Implements:**` header
+  line.** `text.includes()` is out (problem statement, point 2). The plan
+  header carries a declared line — `**Implements:** proposal 002` — the same
+  shape `ROADMAP.md`'s `Blocked on` column already uses for a different
+  relation. Chosen over a `→ plan NNNN` line on the proposal (0141 notes this
+  has literally never existed) or a two-way requirement, because plans, not
+  proposals, are created after acceptance and can name their source at
+  creation time — the cheapest to retrofit, and it matches the `Status`
+  header block's own existing convention of declaring relationships as
+  literal header lines rather than prose mentions.
 - **`beComplete()` direction and cardinality.** `left-to-right` reports
   `leftAmbiguous` for a proposal matching more than one plan — the correct
   outcome for a `Split and sequence` ruling, but untested by 0141's spike
@@ -184,8 +184,9 @@ check is wired to the production script, not a standalone rule.
 ## Files changed
 
 - `.claude/skills/review-proposal/SKILL.md` — Ruling emission shape.
-- `work/proposals/PROPOSALS.md` — vocabulary table casing reconciled to the
-  corpus; back-reference convention documented once decided.
+- `work/proposals/PROPOSALS.md` — the back-reference convention
+  (`**Implements:**`) documented alongside the existing `Ruling` vocabulary
+  table.
 - `work/proposals/002-comment-embedded-links.md`,
   `003-future-dialect-candidates.md`, `004-corpus-content-explain.md`,
   `005-crossvalidate-stale-wip-detection.md` — `**Ruling:` lines reformatted
