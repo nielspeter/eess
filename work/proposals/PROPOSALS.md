@@ -80,15 +80,28 @@ parseable, and every proposal filed before 0142 had drifted into its own shape):
 | `Reject`             | the premise did not hold                                           |
 
 A proposal reviewed more than once carries more than one `## Review —` section,
-stacked in order, never replacing an earlier one; the **most recent** Ruling is
-the operative one.
+stacked in order, never replacing an earlier one; the **most recent** — the last
+`**Ruling: <verdict>**` line anywhere in the file — is the operative one,
+independent of which `## Review` section it happens to sit under (`check:corpus`
+does not require the heading to be well-formed to find the Ruling; a well-formed
+Ruling with a malformed or missing heading still counts).
+
+`Split and sequence` deliberately does **not** require a plan: it means "more
+than one shippable thing; split before planning" — the next step is decomposing
+the proposal itself, not yet a single plan to declare `**Implements:**` against.
 
 **Implements** — the back-reference a plan built from an accepted proposal
-declares in its own `## Status` header: `**Implements:** proposal NNN`. A
-textual mention of a proposal is not this — [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)
-found that 0089, 0090, and 0101 all cite a proposal in prose without
-implementing it (two exclude one from scope; one cites another only as a
-re-check dependency). Only a declared `**Implements:**` line counts.
+declares in its own `## Status` header, e.g. `- **Implements:** proposal 002` or
+`- **Implements:** [proposal 002](./002-comment-embedded-links.md)` — a bare
+number or a markdown link, optionally bulleted (every real `## Status` header in
+this repo is a bulleted list), with any trailing rationale after it ignored. A
+textual mention of a proposal elsewhere in the plan is not this —
+[bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md) found that
+0089, 0090, and 0101 all cite a proposal in prose without implementing it (two
+exclude one from scope; one cites another only as a re-check dependency). Only a
+declared `**Implements:**` line counts, and it must name a real proposal number —
+`check:corpus` reports both a malformed line and one naming a proposal that
+doesn't exist.
 
 **Priority** is the same scale as [`ROADMAP.md`](../plans/ROADMAP.md)'s: High
 closes a gap between what eess claims and what it checks; Medium extends reach or

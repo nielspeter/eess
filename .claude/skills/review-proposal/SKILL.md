@@ -260,6 +260,16 @@ the verdict — `**Ruling: Rewrite needed**`, not `**Ruling: Rewrite needed — 
 truncate a regex against. A proposal reviewed more than once gets more than one
 `## Review —` section, in order; the most recent one is the operative Ruling.
 
+**A consequence, not a decision made here.** Writing `Ship as-is` or `Ship with
+changes` makes `check:corpus` go red on this proposal the moment the file is
+saved — [plan 0142](../../../work/plans/0142-bind-proposals-to-plans.md)'s
+linkage gate has nothing to point at until a plan declares
+`**Implements:** proposal NNN` against it. That red is expected and does not mean
+the review did anything wrong; it means `/plan` (the next step, a human decision,
+not this skill's) is now owed before `check:corpus` is clean again — this skill
+records the finding and stops, per its own guard below, and does not accept the
+proposal by writing the Ruling.
+
 ## Guards (the failures models actually have)
 
 - **Skipping the survey.** Every duplication finding in this project's history came from

@@ -227,6 +227,64 @@ with changes` — via a proposed new kernel primitive, `correspondence().agree()
   here. Phase 1's literal-`Ruling`-token work is a shared prerequisite either
   way, which is worth knowing if 001 is ever picked up.
 
+## Post-review fixes — 2026-08-14
+
+Six-persona branch review of the built code (not the plan document) found
+five critical, independently-reproduced defects — several confirmed by
+multiple reviewers via live mutation testing, not just reading. All fixed on
+the same branch before merge:
+
+1. **A proposal implemented by two plans reddened the build with no `Fix:`
+   line**, under a rule id that said "uncited" for a proposal cited twice.
+   This is normal practice here (0100 split from 0088; 0089/0101 sequenced),
+   and the plan's own text above had named it as needing pre-ship
+   confirmation — the confirmation was not run before the ledger box below
+   was checked. Fixed: `correspondence().beComplete()` replaced with a direct
+   `matchSelections()` call reporting only `leftUnmatched`; multiplicity is
+   legal and unreported, recorded in a code comment. `ACCEPTED_RULINGS`
+   excluding `Split and sequence` is now documented as a stated policy (that
+   ruling means "split before planning" — no single plan yet), not an
+   unstated side effect.
+2. **`**Implements:**`as documented (in a bulleted`## Status` header, the
+   shape every real plan uses) could not be written** — the regex required
+   an unbulleted, unadorned, end-of-line match. Fixed: widened to accept a
+   list marker, a markdown-link form (this repo's house style for every
+   other cross-lane reference), and trailing prose. Added the symmetric
+   `hasUnparseableImplements` check the Ruling side already had, plus a
+   dangling-target check for a plan citing a proposal number that doesn't
+   exist.
+3. **No non-vacuity coverage for the "green" half of the join** — two
+   reviewers independently gutted `declaredImplements()`/loosened
+   `IMPLEMENTS_RE` to a prose-matching pattern (reproducing the exact
+   0089/0101 false-positive shape bug 0141 exists to prevent) and every
+   fixture stayed green, because both committed probes were unmatched-left
+   probes. Fixed: a new `gateCorpusProposalImplementsDiscriminates` probe
+   pair asserts both directions in one run — a prose-only citation stays
+   red, a real declared citation goes green — verified to catch the actual
+   mutation both reviewers used.
+4. **A near-miss `## Review` heading (hyphen instead of em dash, missing
+   entirely — proposal 001's own original shape — or `###`) made an accepted
+   Ruling silently invisible.** Fixed: dropped heading-scoping entirely; the
+   operative Ruling is now the last `**Ruling: <verdict>**` line anywhere in
+   the document, verified safe against all five real proposals including
+   005's two-round file.
+5. **Architect found `scripts/lib/proposal-ruling.mjs` duplicates
+   `terms()`/`vocabulary()`**, a shipped `eess-md` primitive with zero
+   dogfood usage today. Not swapped live (a bigger, riskier change under
+   review-driven time pressure); recorded as
+   [bug 0143](../bugs/0143-proposal-ruling-parser-duplicates-terms-vocabulary.md)
+   instead.
+
+Also addressed: proposal-side selection is now live-only, matching the
+plan-side denominator (both halves were inconsistent before); Fix text moved
+from embedded message prose to the `suggestion` field, now printed by both
+the terminal reporter and `--format json`; `PROPOSALS.md`, `CLAUDE.md`, and
+the `review-proposal`/`plan` skills updated to document the actual shapes and
+the Ruling→red-gate consequence.
+
+Full findings (six full reviews) are in the session record, not reproduced
+here per this file's own brevity convention.
+
 ## Success definition
 
 - `PROPOSALS.md`'s stated lifecycle claim ("an accepted proposal becomes a

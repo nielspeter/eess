@@ -46,6 +46,14 @@ shape this project doesn't already use.
    project's own prose after it:
    `**State:** Draft — <free prose, e.g. "awaiting acceptance criteria">`.
 
+   If this plan builds an accepted proposal from
+   [`work/proposals/`](../../../work/proposals/PROPOSALS.md), declare it in the
+   `## Status` block: `**Implements:** proposal NNN` (bare number or a markdown
+   link to the proposal both parse — see `PROPOSALS.md`'s `Implements` entry for
+   the exact shape). `check:corpus` binds accepted proposals to the plans that
+   declare this; a plan that only mentions a proposal in prose does not count
+   (bug 0141's own finding — a mention can mean "cites it to exclude it").
+
 4. **Prerequisite decisions become ADRs.** If a real design decision surfaces while
    drafting ("what must we decide before we can build this?"), write it as an ADR in
    the project's ADR directory (e.g. `adr/`) with its tiered `## Enforcement` table
