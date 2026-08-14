@@ -4,7 +4,7 @@
 
 - **State:** Draft — confirmed against the source and the README; no red test
   written yet.
-- **Reported:** 2026-08-12 — self-found during the [plan 0091](../plans/0091-cross-dialect-examples-checked.md)
+- **Reported:** 2026-08-12 — self-found during the [plan 0091](../plans/completed/0091-cross-dialect-examples-checked.md)
   review, when the customer persona checked whether the copyable snippet would
   actually fail on drift.
 

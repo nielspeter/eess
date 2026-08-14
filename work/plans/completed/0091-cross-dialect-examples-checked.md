@@ -2,15 +2,19 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-08-12 after a six-persona review and a targeted
-  re-review of the non-vacuity section; re-verified 2026-08-14 after plan 0096
-  landed (a floor drift check found `md-ts`'s stats export had already shipped
-  independently and two `check-crossval.mjs` line citations had shifted — both
-  corrected in place, no re-review needed since neither changes scope or approach).
-  Born from a dogfood irony: the monorepo's own crossvalidate consumption was
-  audited and found wanting on every side. The package exists to bind dialects
-  together; this repo describes that but never demonstrates it. No prerequisite
-  plan; it stands on its own.
+- **State:** Done — built and merged 2026-08-14. Frozen 2026-08-12 after a
+  six-persona review and a targeted re-review of the non-vacuity section;
+  re-verified 2026-08-14 after plan 0096 landed (a floor drift check found
+  `md-ts`'s stats export had already shipped independently and two
+  `check-crossval.mjs` line citations had shifted — both corrected in place, no
+  re-review needed since neither changed scope or approach). Born from a dogfood
+  irony: the monorepo's own crossvalidate consumption was audited and found
+  wanting on every side. The package exists to bind dialects together; this repo
+  describes that but never demonstrates it. No prerequisite plan; it stood on its
+  own. Deferred: none — the two follow-ups the plan itself names (the five legacy
+  `examples/*.test.ts` staying typecheck-only; the `md-mermaid-er`/`files`
+  bindings having no example) are named in Out of Scope below, not new open items
+  this plan owes a home.
 - **Priority:** Medium — a dogfood gap, in the same class as 0089 (family
   reconciliation of the `crossval` gate). Not a blocker; nothing else gates on it.
 - **Effort:** Small — roughly a box of small fixtures, four example test files, and
@@ -21,6 +25,39 @@
   draft assumed still needed had, in fact, already shipped independently by then —
   Effort trimmed from Small–Medium to Small accordingly; see Phase 2.)
 - **Created:** 2026-08-12
+- **Build (2026-08-14):** All three phases landed as designed, with one real
+  deviation from the plan text: Phase 3's literal script,
+  `vitest run --dir examples`, does not pick up `examples/vitest.config.ts` —
+  Vitest resolves config from `--root`, not `--dir` — so it silently ran all nine
+  `examples/*.test.ts` files unfiltered instead of the intended four. Fixed by
+  using `--root examples` instead, verified by running both ways: `--dir`
+  produced 5 failed / 5 passed (the five legacy examples failing exactly as
+  Phase 3 predicts, proving the fold is load-bearing), `--root` produces the
+  intended 4 passed / 0 failed. `check:examples` now runs
+  `tsc --noEmit -p examples/tsconfig.json && vitest run --root examples`.
+  `mermaid-ts`'s diagram→code fixture uses a fifth `.mmd` (`ghost.mmd`: the
+  `complete.mmd` classes plus one, `GhostClass`, with no code counterpart) rather
+  than a second use of `drift.mmd` — `drift.mmd` already proves the code→diagram
+  direction alone, since `diagramMatchesCode`'s own default `completeness` is
+  already `'both'` (confirmed reading `packages/crossvalidate/src/mermaid-ts.ts`).
+- **Review-fix (2026-08-14):** Five reviewers (architect, product, enforcement,
+  testing, devops) ran against the built PR; no Criticals. Three independently
+  found the same gap — the plan's own "Fixture-duplication budget" section
+  (Phase 2) commits to a one-line comment marking twin fixtures shared with
+  `packages/crossvalidate/tests/fixtures/`, and none had been added. Fixed: each
+  `cross-dialect.*.test.ts` now carries a comment naming its fixture dir's twins.
+  Devops and enforcement independently flagged `scripts/check-nonvacuity.mjs`'s
+  `check:examples` waiver text as stale (still said "tsc over examples/",
+  undercounting what this plan just made real); corrected. Testing found the
+  gherkin-ts and mermaid-ts examples' red assertions were weaker than their
+  `toHaveLength`-asserting siblings in the same PR (an `arrayContaining`/`.some()`
+  check proves the expected violations fire but not that only they fire);
+  tightened to match. Testing also found the Gherkin↔TS example exercises only
+  `scenarioTestsResolve`, one of that binding's three README-documented exports
+  (`scenariosCovered`, `scenarioExemptionsCurrent` have no checked example) —
+  disclosed in `examples/README.md`'s binding table rather than expanded here, to
+  keep this plan's scope at the pair level it was designed at; a fuller binding
+  demo is a candidate follow-up, not filed as its own item yet.
 
 ## Problem
 

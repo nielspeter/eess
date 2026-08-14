@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — confirmed against the source; no red test written yet.
-- **Reported:** 2026-08-12 — self-found during the [plan 0091](../plans/0091-cross-dialect-examples-checked.md)
+- **Reported:** 2026-08-12 — self-found during the [plan 0091](../plans/completed/0091-cross-dialect-examples-checked.md)
   review, when the devops persona checked whether a root devDependency on
   `@nielspeter/eess-crossvalidate` would be caught if it drifted.
 

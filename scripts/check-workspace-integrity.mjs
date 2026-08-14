@@ -12,10 +12,11 @@
  *     kernel-purity guarantee for free: `@nielspeter/eess` declares no deps, so
  *     any bare import there (ts-morph, picomatch, a dialect) fails.
  *
- *  2. Broken local linking — npm has no `workspace:` protocol, so a lagging
- *     version range can silently install the published kernel instead of linking
- *     the local one. Every `@nielspeter/eess*` package must resolve to a symlink
- *     into `packages/`, not a real directory from the registry.
+ *  2. Broken local linking — a bare version range (not the `workspace:*`
+ *     protocol npm 11.x supports) can silently install the published kernel
+ *     instead of linking the local one. Every `@nielspeter/eess*` package must
+ *     resolve to a symlink into `packages/`, not a real directory from the
+ *     registry.
  *
  * Exits non-zero on any violation. Zero dependencies — node builtins only.
  * Run: `npm run check:integrity`.
@@ -27,7 +28,14 @@ import { join } from 'node:path'
 
 const ROOT = process.cwd()
 const BUILTINS = new Set(builtinModules)
-const WORKSPACE_PKGS = ['@nielspeter/eess', '@nielspeter/eess-ts', '@nielspeter/eess-mermaid']
+const WORKSPACE_PKGS = [
+  '@nielspeter/eess',
+  '@nielspeter/eess-ts',
+  '@nielspeter/eess-mermaid',
+  '@nielspeter/eess-md',
+  '@nielspeter/eess-gherkin',
+  '@nielspeter/eess-crossvalidate',
+]
 
 const problems = []
 

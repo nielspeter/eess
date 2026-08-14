@@ -5,7 +5,7 @@
 - **State:** Draft — confirmed against the folder and the README's own framing;
   no red test written yet (a doc-clarity bug; verification is that the
   instruction names something real).
-- **Reported:** 2026-08-12 — self-found during the [plan 0091](../plans/0091-cross-dialect-examples-checked.md)
+- **Reported:** 2026-08-12 — self-found during the [plan 0091](../plans/completed/0091-cross-dialect-examples-checked.md)
   review, when the product persona checked the examples folder's discovery
   surface. **Reframed 2026-08-12** after review: the first filing called this a
   stale pointer to a repo file and proposed substituting a real example
@@ -79,4 +79,4 @@ Deferred: none — but note that no gate covers this. `check:corpus` resolves
 links and `path:line` pointers, and a backticked bare filename in prose is
 neither, so an unanchored filename in adopter-facing docs is currently caught
 only by review. Whether that is worth a mechanism is
-[0091](../plans/0091-cross-dialect-examples-checked.md)'s lane, not this bug's.
+[0091](../plans/completed/0091-cross-dialect-examples-checked.md)'s lane, not this bug's.
