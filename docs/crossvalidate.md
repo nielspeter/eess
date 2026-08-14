@@ -76,7 +76,7 @@ scenariosCovered(p, set) // every scenario is cited by at least one test
 
 `scenarioTestsResolve` catches a test orphaned by a renamed or deleted scenario; `scenariosCovered` catches a scenario shipped with no test at all — the pincer that keeps `.feature` files and the test suite from drifting apart. The citation is read from the test AST via eess-ts's public API (no ts-morph, per ADR-007), so it also sees `it.only`, `it.skip`, and the `test` alias. Because coverage keys on `relPath + title`, pair it with eess-gherkin's `haveUniqueTitles` so duplicate scenario titles can't let one citation cover its twin.
 
-**Honest scope:** it proves a test _cites_ a scenario, not that the test _exercises_ its behaviour — that last step is Tier 2, still open. eess dogfoods this pairing on itself: `packages/crossvalidate/specs/scenario-binding.feature` is a use case, proven by a test whose `it()` titles cite its scenarios, gated live in `check:crossval`.
+**Honest scope:** it proves a test _cites_ a scenario, not that the test _exercises_ its behaviour — that last step is Tier 2, still open. eess dogfoods this pairing on itself (at packages/crossvalidate/specs/scenario-binding.feature): `scenario-binding.feature` · 'A cited scenario resolves to a real scenario' is a use case, proven by a test whose `it()` titles cite its scenarios, gated live in `check:crossval`.
 
 ## Coverage is just a direction
 

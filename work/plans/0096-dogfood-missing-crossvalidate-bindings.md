@@ -70,6 +70,20 @@
   against the plan's own proposed text rather than reading it for plausibility
   — the same discipline this plan asks Phase 3 to apply to its own fixtures.
   All fixed inline below; this plan stays **Ready**.
+- **Build (2026-08-14).** Both phases implemented and verified empirically —
+  `check-crossval.mjs` mounts both gates, `docs/architecture.md` embeds the
+  kernel diagram, both Phase 3 sabotage fixtures fire on message (not just
+  ruleId), `check:nonvacuity` gains the two rows (`gates` + `GATE_FOR`), and
+  all three of this plan's own "Reviewer's checks" were run by hand and
+  behaved exactly as stated. Running the full `check:nonvacuity` harness (not
+  just the two new fixtures in isolation) surfaced one real defect the three
+  prior review rounds never caught, because none of them ran it: reusing
+  `scenarioSpecs` for the `md↔gherkin` gate, as Phase 1 originally specified,
+  broke plan 0145's `bad-crossval-gherkin-e2e.mjs` fixture by silently
+  widening what `EESS_CROSSVAL_GHERKIN_ROOT` affects. Fixed inline in Phase 1
+  (a gate-local `FeatureSet` unaffected by the override) and reverified —
+  `npm run validate` is green, 33 nonvacuity fixtures fire (was 31). Stopped
+  before merge per `/plan-build`'s guard; hand to `/close` after merge.
 - **Priority:** High — a dogfood gap, same class as 0091. Not a blocker; nothing
   gates on it.
 - **Effort:** Small — two bindings to mount, each needing one planted artifact
@@ -160,10 +174,22 @@ in `check:crossval`.
 ```
 
 Then mount the gate in `check:crossval.mjs`, **after** `scenarioSpecs` is
-defined — reusing it rather than re-hardcoding a second, independent
-`FeatureSet` over the same directory (the file already computes exactly this
-for the gherkin-ts trio; a second copy would silently diverge from the file's
-own `EESS_CROSSVAL_GHERKIN_ROOT` override convention documented just above it):
+defined. **Corrected during build (2026-08-14):** the plan as originally
+written said to reuse `scenarioSpecs` rather than re-hardcode a second,
+independent `FeatureSet`, reasoning that a second copy would silently diverge
+from the file's own `EESS_CROSSVAL_GHERKIN_ROOT` override convention. Running
+the real `bad-crossval-gherkin-e2e.mjs` fixture against the built gate proved
+that reasoning backwards: `scenarioSpecs` **follows**
+`EESS_CROSSVAL_GHERKIN_ROOT`, the override that exists so a fixture can point
+the gherkin-ts trio at a throwaway corpus — reusing it here silently widened
+that override's scope, so the e2e fixture's real-`check-crossval.mjs`
+sub-invocations started failing on an unrelated `md↔gherkin` violation
+(`docs/crossvalidate.md` citing the real `scenario-binding.feature`, absent
+from the throwaway corpus) instead of the scenario each was built to test. The
+built gate computes its own `FeatureSet` from the literal default path,
+joining `diagram↔code` and `ADR↔test` as unaffected by the override — exactly
+the invariant the file's own comment already documented ("Only these three
+gates read it"):
 
 ```js
 import {
@@ -171,6 +197,7 @@ import {
   scenarioCitationStats,
 } from '@nielspeter/eess-crossvalidate/md-gherkin'
 
+const mdGherkinSpecs = features({ cwd: 'packages/crossvalidate/specs', roots: ['**/*.feature'] })
 const citingDocs = () => corpus({ roots: ['docs/crossvalidate.md'] })
 
 gate('md↔gherkin (story citations resolve in the corpus)', () => {
@@ -179,8 +206,8 @@ gate('md↔gherkin (story citations resolve in the corpus)', () => {
   // as the existing ADR↔test gate above, which never inspects a return value
   // either. No manual `violations.length` check: on the violating path there is
   // no return to discard, so a leftover check here would be dead code.
-  scenarioCitationsResolve(citingDocs(), scenarioSpecs, opts)
-  const s = scenarioCitationStats(citingDocs(), scenarioSpecs)
+  scenarioCitationsResolve(citingDocs(), mdGherkinSpecs, opts)
+  const s = scenarioCitationStats(citingDocs(), mdGherkinSpecs)
   if (s.citations === 0) throw new Error('md↔gherkin scanned zero citations — green-but-empty')
   console.error(`  md↔gherkin — ${s.citations} citations across ${s.scenarios} scenarios`)
 })
@@ -488,13 +515,18 @@ gains two rows and stays green.
   model is ever diagrammed for real, mounting `md↔mermaid-er` against it
   becomes a numbered plan then. Until then eess dogfoods **5 of 7** bindings
   and says so.
-- **`scenarioCitationsResolve`'s violation actionability** — unlike
-  `gherkin-ts.ts`, its violations carry no `suggestion`/`docs` field. This plan
-  makes that preset load-bearing in CI for the first time without closing that
-  gap. Worth a follow-up bug rather than blocking this plan, since fixing it is
-  a `packages/crossvalidate/src` change and this plan ships no new public
-  surface — alongside bugs 0097/0098, already linked above, against the same
-  file.
+- **`scenarioCitationsResolve`'s and `embeddedDiagramsMatchCode`'s violation
+  actionability** — unlike `gherkin-ts.ts`, neither preset's violations carry a
+  `suggestion`/`docs` field (`embeddedDiagramsMatchCode` never supplies
+  `correspondence()`'s `suggest` option; confirmed by build-time review — the
+  first draft of this section named only `scenarioCitationsResolve`, which
+  understated the gap this plan actually introduces). This plan makes both
+  load-bearing in CI for the first time without closing it: a title-drift or
+  ghost-class violation sends an author only a raw diff-shaped message, no
+  `Fix:` line. Worth a follow-up bug rather than blocking this plan, since
+  fixing it is a `packages/crossvalidate/src` change and this plan ships no new
+  public surface — alongside bugs 0097/0098, already linked above, against the
+  same package.
 - **The `files` entry point** — a selection factory, not a dialect-pair binding;
   not a dogfood target.
 - **The adopter-facing examples** — that is plan 0091.

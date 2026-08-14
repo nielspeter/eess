@@ -25,6 +25,11 @@ import {
   scenarioExemptionsCurrent,
   scenarioTestStats,
 } from '@nielspeter/eess-crossvalidate/gherkin-ts'
+import {
+  scenarioCitationsResolve,
+  scenarioCitationStats,
+} from '@nielspeter/eess-crossvalidate/md-gherkin'
+import { embeddedDiagramsMatchCode } from '@nielspeter/eess-crossvalidate/md-mermaid'
 import { diagram } from '@nielspeter/eess-mermaid'
 import { features, scenarios } from '@nielspeter/eess-gherkin'
 import { project } from '@nielspeter/eess-ts'
@@ -94,7 +99,8 @@ gate('ADR↔test (citations resolve in the AST)', () => {
 // rule (bug 0127's lesson). Only these three gates read it; diagram↔code and
 // ADR↔test are unaffected, so a fixture pointing this at a throwaway
 // directory can never mask drift in the other two.
-const gherkinRoot = process.env.EESS_CROSSVAL_GHERKIN_ROOT ?? 'packages/crossvalidate/specs'
+const GHERKIN_SPECS_DIR = 'packages/crossvalidate/specs'
+const gherkinRoot = process.env.EESS_CROSSVAL_GHERKIN_ROOT ?? GHERKIN_SPECS_DIR
 const scenarioSpecs = features({
   cwd: gherkinRoot,
   roots: ['**/*.feature'],
@@ -139,6 +145,59 @@ gate('scenario↔exemption (no exempt scenario is already cited)', () => {
   scenarioExemptionsCurrent(scenarioSpecProject, scenarioSpecs, { isExempt: isWip, ...opts })
   const exempt = scenarioSpecs.scenarios().filter(isWip).length
   console.error(`  scenario↔exemption — ${exempt} exempt scenario(s) evaluated`)
+})
+
+// md↔gherkin — the repo's own docs cite a real scenario, not just a test does
+// (plan 0096). Deliberately NOT scenarioSpecs: that FeatureSet follows
+// EESS_CROSSVAL_GHERKIN_ROOT, the override that exists so a fixture can point
+// the gherkin-ts trio above at a throwaway corpus (documented above — "Only
+// these three gates read it; diagram↔code and ADR↔test are unaffected").
+// Reusing it here would silently widen that contract: docs/crossvalidate.md
+// cites the real scenario-binding.feature, which isn't in a throwaway corpus,
+// so this gate would fail for an unrelated reason and poison the override's
+// isolation guarantee — caught running bad-crossval-gherkin-e2e.mjs, which
+// failed with md↔gherkin's own violation instead of the scenario it tests.
+// md↔gherkin joins diagram↔code and ADR↔test as unaffected by the override.
+// GHERKIN_SPECS_DIR, not gherkinRoot: the latter follows the env override
+// above, which this gate must never read (that's the whole point).
+const mdGherkinSpecs = features({ cwd: GHERKIN_SPECS_DIR, roots: ['**/*.feature'] })
+const citingDocs = () => corpus({ roots: ['docs/crossvalidate.md'] })
+
+gate('md↔gherkin (story citations resolve in the corpus)', () => {
+  // scenarioCitationsResolve's default `report: 'throw'` (finishPreset) already
+  // reports and throws *inside* the preset when violations exist — same idiom
+  // as the ADR↔test gate above, which never inspects a return value either. No
+  // manual `violations.length` check: on the violating path there is no return
+  // to discard, so a leftover check here would be dead code.
+  scenarioCitationsResolve(citingDocs(), mdGherkinSpecs, opts)
+  const s = scenarioCitationStats(citingDocs(), mdGherkinSpecs)
+  if (s.citations === 0) throw new Error('md↔gherkin scanned zero citations — green-but-empty')
+  console.error(`  md↔gherkin — ${s.citations} citations across ${s.scenarios} scenarios`)
+})
+
+// md↔mermaid — the repo's own embedded kernel diagram (docs/architecture.md)
+// stays in agreement with packages/core, same as the standalone .mmd gate
+// above but on the markdown-embedded form (plan 0096).
+gate('md↔mermaid (embedded diagrams match code)', () => {
+  // completeness: 'both' matches the standalone mermaid↔ts gate above on the
+  // same source diagram — left-to-right alone only catches the embed naming a
+  // class code lacks; 'both' also catches code gaining a class the
+  // hand-maintained embed was never updated with, and closes an emptied-fence
+  // hole left-to-right leaves open (an empty diagram vacuously satisfies
+  // leftUnmatched; 'both' makes every real kernel class fail as
+  // rightUnmatched instead — verified against correspondence.ts).
+  embeddedDiagramsMatchCode(
+    corpus({ roots: ['docs/architecture.md'] }),
+    project('packages/core/tsconfig.build.json'),
+    { scope: '**/packages/core/src/**', completeness: 'both', ...opts },
+  )
+  const fences = corpus({ roots: ['docs/architecture.md'] })
+    .documents()
+    .flatMap((d) => d.codeBlocks)
+    .filter((b) => b.lang === 'mermaid')
+  if (fences.length === 0)
+    throw new Error('md↔mermaid scanned zero mermaid fences — green-but-empty')
+  console.error(`  md↔mermaid — ${fences.length} mermaid fence(s) in docs/architecture.md`)
 })
 
 process.exit(failures > 0 ? 1 : 0)
