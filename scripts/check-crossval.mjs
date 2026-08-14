@@ -99,7 +99,8 @@ gate('ADR↔test (citations resolve in the AST)', () => {
 // rule (bug 0127's lesson). Only these three gates read it; diagram↔code and
 // ADR↔test are unaffected, so a fixture pointing this at a throwaway
 // directory can never mask drift in the other two.
-const gherkinRoot = process.env.EESS_CROSSVAL_GHERKIN_ROOT ?? 'packages/crossvalidate/specs'
+const GHERKIN_SPECS_DIR = 'packages/crossvalidate/specs'
+const gherkinRoot = process.env.EESS_CROSSVAL_GHERKIN_ROOT ?? GHERKIN_SPECS_DIR
 const scenarioSpecs = features({
   cwd: gherkinRoot,
   roots: ['**/*.feature'],
@@ -157,7 +158,9 @@ gate('scenario↔exemption (no exempt scenario is already cited)', () => {
 // isolation guarantee — caught running bad-crossval-gherkin-e2e.mjs, which
 // failed with md↔gherkin's own violation instead of the scenario it tests.
 // md↔gherkin joins diagram↔code and ADR↔test as unaffected by the override.
-const mdGherkinSpecs = features({ cwd: 'packages/crossvalidate/specs', roots: ['**/*.feature'] })
+// GHERKIN_SPECS_DIR, not gherkinRoot: the latter follows the env override
+// above, which this gate must never read (that's the whole point).
+const mdGherkinSpecs = features({ cwd: GHERKIN_SPECS_DIR, roots: ['**/*.feature'] })
 const citingDocs = () => corpus({ roots: ['docs/crossvalidate.md'] })
 
 gate('md↔gherkin (story citations resolve in the corpus)', () => {
@@ -194,6 +197,7 @@ gate('md↔mermaid (embedded diagrams match code)', () => {
     .filter((b) => b.lang === 'mermaid')
   if (fences.length === 0)
     throw new Error('md↔mermaid scanned zero mermaid fences — green-but-empty')
+  console.error(`  md↔mermaid — ${fences.length} mermaid fence(s) in docs/architecture.md`)
 })
 
 process.exit(failures > 0 ? 1 : 0)

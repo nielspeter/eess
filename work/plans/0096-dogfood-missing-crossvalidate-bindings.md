@@ -515,13 +515,18 @@ gains two rows and stays green.
   model is ever diagrammed for real, mounting `md↔mermaid-er` against it
   becomes a numbered plan then. Until then eess dogfoods **5 of 7** bindings
   and says so.
-- **`scenarioCitationsResolve`'s violation actionability** — unlike
-  `gherkin-ts.ts`, its violations carry no `suggestion`/`docs` field. This plan
-  makes that preset load-bearing in CI for the first time without closing that
-  gap. Worth a follow-up bug rather than blocking this plan, since fixing it is
-  a `packages/crossvalidate/src` change and this plan ships no new public
-  surface — alongside bugs 0097/0098, already linked above, against the same
-  file.
+- **`scenarioCitationsResolve`'s and `embeddedDiagramsMatchCode`'s violation
+  actionability** — unlike `gherkin-ts.ts`, neither preset's violations carry a
+  `suggestion`/`docs` field (`embeddedDiagramsMatchCode` never supplies
+  `correspondence()`'s `suggest` option; confirmed by build-time review — the
+  first draft of this section named only `scenarioCitationsResolve`, which
+  understated the gap this plan actually introduces). This plan makes both
+  load-bearing in CI for the first time without closing it: a title-drift or
+  ghost-class violation sends an author only a raw diff-shaped message, no
+  `Fix:` line. Worth a follow-up bug rather than blocking this plan, since
+  fixing it is a `packages/crossvalidate/src` change and this plan ships no new
+  public surface — alongside bugs 0097/0098, already linked above, against the
+  same package.
 - **The `files` entry point** — a selection factory, not a dialect-pair binding;
   not a dogfood target.
 - **The adopter-facing examples** — that is plan 0091.

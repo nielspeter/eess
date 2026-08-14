@@ -28,4 +28,38 @@ describe('embeddedDiagramsMatchCode() — embedded ```mermaid in markdown', () =
     // violation points at the markdown file, not the parsed diagram
     expect(v.some((x) => x.file.endsWith('embedded-bad.md'))).toBe(true)
   })
+
+  it("completeness: 'both' passes when the embedded diagram and code fully agree", () => {
+    expect(() =>
+      embeddedDiagramsMatchCode(c(['docs/embedded-complete.md']), proj(), {
+        completeness: 'both',
+      }),
+    ).not.toThrow()
+  })
+
+  it("completeness: 'both' fails when code has a class missing from the embedded diagram", () => {
+    // ModuloOperation exists in src/ but not in embedded-good.md — plan 0096
+    // makes this the load-bearing check that closes an emptied-diagram hole:
+    // left-to-right alone only checks every DIAGRAM class exists in code,
+    // which passes trivially even for an empty diagram (see the test below).
+    let err: unknown
+    try {
+      embeddedDiagramsMatchCode(c(['docs/embedded-good.md']), proj(), { completeness: 'both' })
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeInstanceOf(ArchRuleError)
+    const messages = (err as ArchRuleError).violations.map((v) => v.message).join('\n')
+    expect(messages).toMatch(/TS class "ModuloOperation" has no matching diagram class/)
+  })
+
+  it("left-to-right only: ignores extra code classes embedded-good.md doesn't name", () => {
+    // The default. embedded-good.md is missing ModuloOperation, but
+    // left-to-right only checks that every DIAGRAM class exists in code.
+    expect(() =>
+      embeddedDiagramsMatchCode(c(['docs/embedded-good.md']), proj(), {
+        completeness: 'left-to-right',
+      }),
+    ).not.toThrow()
+  })
 })
