@@ -2,18 +2,31 @@
 
 ## Status
 
-- **State:** Draft — direction ruled by the author (2026-08-10: retire
-  ts-archunit, fold its current engine in, port the two doctrine ADRs).
-  **Split 2026-08-12:** the original Phase 7 (retire ts-archunit — a registry act
-  and another repository's setting) and Phase 8's publish step could not land in
-  this plan's PR, so this plan could not close. Both moved to
+- **State:** Ready — frozen 2026-08-14. Direction ruled by the author
+  (2026-08-10: retire ts-archunit, fold its current engine in, port the two
+  doctrine ADRs). **Split 2026-08-12:** the original Phase 7 (retire ts-archunit
+  — a registry act and another repository's setting) and Phase 8's publish step
+  could not land in this plan's PR, so this plan could not close. Both moved to
   [0100](./0100-publish-the-fold-retire-ts-archunit.md); what remains of the
   release work is Phase 7, which authors it as merged changesets. 0088 now closes
   at merge. The
   engine-drift measurement is cited (`ts-archunit` ADR-010: **10,342 diff-lines
   behind across the 118 shared files, plus 37 modules it never received**). Phase
   ordering below is provisional; the per-file delta class (Phase 1) may reorder
-  phases.
+  phases — this is a declared property of the plan (Phase 1 is itself the
+  ordering-resolution step), not an unresolved floor.
+  **Freeze verification (2026-08-14):** no open design question or TBD found in
+  the text; the Progress ledger's 8 unchecked boxes are phase-tracking for the
+  build, not dangling decisions. Every internal link resolves (`check:corpus`,
+  719 checks, 0 violations). Spot-checked the plan's most load-bearing factual
+  claims against current code rather than trusting them: `packages/core/package.json`
+  still has no `dependencies`; its `src/index.ts` identity comment is unchanged;
+  `arch.rules.ts` still gates `eess/kernel-no-engine-deps` and
+  `eess/kernel-no-dialects`; `RuleBuilder<T, P = unknown>` still holds at
+  `packages/core/src/rule-builder.ts:23`; `collectViolations` is still exported
+  at `packages/core/src/index.ts:77` and re-exported at
+  `packages/ts/src/index.ts:263` — all match the plan's citations exactly, line
+  numbers included. The floor has not drifted since 2026-08-10.
 - **Priority:** High — the flagship dialect has drifted ~34 releases and ~10k lines
   behind its own ancestor, and the two engines are _the same files_ with a doctrine
   eess lacks entirely. This is the drift the project exists to prevent, committed
