@@ -2,15 +2,19 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-08-12 after a six-persona review and a targeted
-  re-review of the non-vacuity section; re-verified 2026-08-14 after plan 0096
-  landed (a floor drift check found `md-ts`'s stats export had already shipped
-  independently and two `check-crossval.mjs` line citations had shifted — both
-  corrected in place, no re-review needed since neither changes scope or approach).
-  Born from a dogfood irony: the monorepo's own crossvalidate consumption was
-  audited and found wanting on every side. The package exists to bind dialects
-  together; this repo describes that but never demonstrates it. No prerequisite
-  plan; it stands on its own.
+- **State:** Done — built and merged 2026-08-14. Frozen 2026-08-12 after a
+  six-persona review and a targeted re-review of the non-vacuity section;
+  re-verified 2026-08-14 after plan 0096 landed (a floor drift check found
+  `md-ts`'s stats export had already shipped independently and two
+  `check-crossval.mjs` line citations had shifted — both corrected in place, no
+  re-review needed since neither changed scope or approach). Born from a dogfood
+  irony: the monorepo's own crossvalidate consumption was audited and found
+  wanting on every side. The package exists to bind dialects together; this repo
+  describes that but never demonstrates it. No prerequisite plan; it stood on its
+  own. Deferred: none — the two follow-ups the plan itself names (the five legacy
+  `examples/*.test.ts` staying typecheck-only; the `md-mermaid-er`/`files`
+  bindings having no example) are named in Out of Scope below, not new open items
+  this plan owes a home.
 - **Priority:** Medium — a dogfood gap, in the same class as 0089 (family
   reconciliation of the `crossval` gate). Not a blocker; nothing else gates on it.
 - **Effort:** Small — roughly a box of small fixtures, four example test files, and
@@ -21,6 +25,21 @@
   draft assumed still needed had, in fact, already shipped independently by then —
   Effort trimmed from Small–Medium to Small accordingly; see Phase 2.)
 - **Created:** 2026-08-12
+- **Build (2026-08-14):** All three phases landed as designed, with one real
+  deviation from the plan text: Phase 3's literal script,
+  `vitest run --dir examples`, does not pick up `examples/vitest.config.ts` —
+  Vitest resolves config from `--root`, not `--dir` — so it silently ran all nine
+  `examples/*.test.ts` files unfiltered instead of the intended four. Fixed by
+  using `--root examples` instead, verified by running both ways: `--dir`
+  produced 5 failed / 5 passed (the five legacy examples failing exactly as
+  Phase 3 predicts, proving the fold is load-bearing), `--root` produces the
+  intended 4 passed / 0 failed. `check:examples` now runs
+  `tsc --noEmit -p examples/tsconfig.json && vitest run --root examples`.
+  `mermaid-ts`'s diagram→code fixture uses a fifth `.mmd` (`ghost.mmd`: the
+  `complete.mmd` classes plus one, `GhostClass`, with no code counterpart) rather
+  than a second use of `drift.mmd` — `drift.mmd` already proves the code→diagram
+  direction alone, since `diagramMatchesCode`'s own default `completeness` is
+  already `'both'` (confirmed reading `packages/crossvalidate/src/mermaid-ts.ts`).
 
 ## Problem
 

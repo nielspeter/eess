@@ -160,7 +160,7 @@ Deferred:
   — its `citations` is already a genuine scan count over the project, so the
   record is usable as-is once documented. It gets part 1 (doc clarity), not part
   2 (no missing count).
-- **Plan [0091](../plans/0091-cross-dialect-examples-checked.md) is `Ready` and
+- **Plan [0091](../plans/completed/0091-cross-dialect-examples-checked.md) is `Ready` and
   plans a new `adrCitationStats` on `md-ts.ts` "mirroring its two siblings"** —
   mirroring the current shape would replicate this defect into a third API. The
   plan's floor is frozen, so this bug does not edit it; the sibling to mirror is

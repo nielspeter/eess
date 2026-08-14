@@ -4,7 +4,7 @@
 
 - **State:** Draft — confirmed against the source and the installed npm; no red
   test written yet (a comment bug; verification is accuracy, not a fixture).
-- **Reported:** 2026-08-12 — self-found during the [plan 0091](../plans/0091-cross-dialect-examples-checked.md)
+- **Reported:** 2026-08-12 — self-found during the [plan 0091](../plans/completed/0091-cross-dialect-examples-checked.md)
   review, when the comment's claim was used to justify a bare version pin.
 
 ## Symptom
