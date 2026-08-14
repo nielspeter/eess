@@ -407,8 +407,12 @@ is outside it by construction.
       entirely) — all three rows now correctly red; (S6) rename the
       `corpus/broken-links` rule id on one of the two rule constructions —
       only the matching row reds, proving rule-identity is asserted per row,
-      not just liveness. Every mutation was green on `main` before this fix
-      and is red on this branch after it.
+      not just liveness; (S7) drop `broken` from the `--format json` branch's
+      `all` array (`scripts/check-corpus.mjs:142`) without touching the
+      terminal path — both link rows red (json exit 0 fails the `ok`
+      conjunction even though the terminal path alone would have passed),
+      `corpus/pointers` unaffected. Every mutation was green on `main` before
+      this fix and is red on this branch after it.
 - [x] The converted fixtures assert the production rule id **and** the planted
       file in one violation, per `firedOn`'s existing contract —
       `firedOn(json, 'corpus/broken-links', 'docs/__nonvacuity_probe_site__.md')`,

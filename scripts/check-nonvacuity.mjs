@@ -8,10 +8,11 @@
  * "every gate actually FAILS" over-claimed — most fixtures prove their own
  * condition fires or a shipped preset fires over a hand-built fixture corpus,
  * not that the real `check:*` invocation invokes it. `arch`, `internal arch`,
- * `baseline`, and — since bug 0127 — `corpus/links/*` and `corpus/pointers`
- * genuinely drive the production script or CLI; everything else is one tier
- * weaker. Neither the per-row output nor "N fixtures fired" below distinguishes
- * the two — read the tier from this list, not from a fixture having exited 1).
+ * `baseline`, `release/gate-fails-the-build` (bug 0106), and — since bug 0127
+ * — `corpus/links/*` and `corpus/pointers` genuinely drive the production
+ * script or CLI; everything else is one tier weaker. Neither the per-row
+ * output nor "N fixtures fired" below distinguishes the two — read the tier
+ * from this list, not from a fixture having exited 1).
  * Each gate is run against a hand-crafted bad input and asserted to exit 1 (and,
  * where possible, to name the specific rule that fired).
  *
