@@ -4,11 +4,29 @@
 
 - **State:** Draft — measured against the shipped `terms()`/`vocabulary()`
   primitive; not reproduced as a working replacement, no red test.
-- **Severity:** Low — the hand-rolled parser is correct today (verified
-  against all five real proposals plus a branch review's adversarial edge
-  cases); this is a duplication/architecture finding, not a live defect. It
-  would earn Medium if `proposal-ruling.mjs` picks up a second unrelated
-  vocabulary-matching need and drifts further from the shipped primitive.
+- **Severity:** Low — the hand-rolled parser is correct today, as of the
+  correction below; this is a duplication/architecture finding, not a live
+  defect. It would earn Medium if `proposal-ruling.mjs` picks up a second
+  unrelated vocabulary-matching need and drifts further from the shipped
+  primitive.
+
+  > **Correction — 2026-08-14.** The claim above ("correct today, verified
+  > against all five real proposals plus a branch review's adversarial edge
+  > cases") was false when first written. A second review round (architect,
+  > independently: customer, enforcement) found the hand-rolled
+  > `RULING_LINE_RE_G`/`RULING_LABEL_RE` were anchored at column 0 with no
+  > list-marker, blockquote, or indentation tolerance — a bulleted,
+  > blockquoted, or indented `**Ruling:` line was silently invisible,
+  > reproduced live against the real corpus. The shipped `terms()`/
+  > `vocabulary()` primitive this bug is about does **not** have that defect
+  > (`collectTerms` uses an unanchored `label.exec(line)` —
+  > `packages/md/src/builders/vocabulary.ts:118` — so a line prefix is
+  > irrelevant by construction). That is the strongest evidence this bug
+  > argues, and the first draft undercut it by asserting correctness instead
+  > of citing the defect. Now fixed (both sides share a `LABEL_PREFIX`
+  > tolerating `-`/`*`/`+`/`>`/indentation) — see the Reproduction section,
+  > updated in place rather than rewritten.
+
 - **Origin:** self-found · architect review of the branch that built
   [plan 0142](../plans/0142-bind-proposals-to-plans.md), 2026-08-14
 - **Reported:** 2026-08-14
@@ -61,6 +79,18 @@ match), or the "last `## Review —`/`**Ruling:**` in the file wins" scoping
 plan 0142's Phase 2 rework settled on. Both are open questions this bug does
 not answer.
 
+**The stronger evidence, found the same day.** The hand-rolled parser
+independently reintroduced a defect the shipped primitive had already solved.
+`packages/md/src/builders/vocabulary.ts`'s `collectTerms` matches via
+`label.exec(line)` — unanchored, so a bulleted, blockquoted, or indented line
+matches unconditionally — while `proposal-ruling.mjs`'s first cut anchored
+`^\*\*Ruling:` at column 0, silently invisible on exactly those shapes
+(measured: `- **Ruling: Ship as-is**`, `> **Ruling: Ship as-is**`, and an
+indented line all parsed to `null` with no violation, on the real production
+script). Fixed the same day by hand-widening the anchor to tolerate the same
+prefixes `vocabulary.ts` never had to special-case. This is not a hypothetical
+cost of not reusing the primitive — it is the actual cost, paid once already.
+
 ## Root cause
 
 `scripts/lib/proposal-ruling.mjs` was written by extracting policy out of
@@ -75,7 +105,8 @@ no equivalent mandated survey step for new script-local code.
 ## Why it matters
 
 Not urgent: the hand-rolled parser is correct today, independently verified
-by five reviewers plus mutation testing. It matters because it is a second,
+by six reviewers plus mutation testing — after one review round found it was
+not (see the Correction above). It matters because it is a second,
 independently-maintained copy of logic `eess-md` already ships and tests —
 exactly the drift class [bug 0141](./0141-no-check-binds-accepted-proposals-to-plans.md)
 itself diagnosed (a documented

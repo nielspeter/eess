@@ -69,11 +69,20 @@ function stripFencedCode(text) {
 // hypothetical shorter alternative sharing a prefix — the same discipline
 // `packages/md/src/rules/ledger.ts`'s `stateMatcher` applies to `State:`.
 const RULING_ALTS = [...RULING_VOCABULARY].sort((a, b) => b.length - a.length).join('|')
-const RULING_LINE_RE_G = new RegExp(`^\\*\\*Ruling: (${RULING_ALTS})\\*\\*\\s*$`, 'gm')
+// A leading list marker, blockquote marker, or plain indentation — the same
+// tolerance IMPLEMENTS_RE below needed, and branch review found (twice,
+// independently) that the Ruling side lacked it: a bulleted, blockquoted, or
+// indented `**Ruling:` line was silently invisible, reproduced live against
+// the real corpus. Both sides now share this prefix.
+const LABEL_PREFIX = String.raw`^(?:[-*+]\s+|>\s*)?\s*`
+const RULING_LINE_RE_G = new RegExp(
+  `${LABEL_PREFIX}\\*\\*Ruling: (${RULING_ALTS})\\*\\*\\s*$`,
+  'gm',
+)
 // The bare label, unbounded — matches a line someone clearly meant as a
 // Ruling declaration even when the rest of it doesn't parse. Used only to
 // distinguish "attempted and garbled" from "never reviewed at all".
-const RULING_LABEL_RE = /^\*\*Ruling:/m
+const RULING_LABEL_RE = new RegExp(`${LABEL_PREFIX}\\*\\*Ruling:`, 'm')
 
 function lineAt(text, index) {
   return text.slice(0, index).split('\n').length
@@ -126,9 +135,12 @@ export function isAccepted(ruling) {
 // own Status block cites `[bug 0141](../bugs/…)`), and no end anchor, so
 // trailing rationale after the number (matching `- **State:** Ready — …`'s
 // own shape) doesn't break the match.
-const IMPLEMENTS_RE =
-  /^(?:[-*+]\s+)?\*\*Implements:\*\*\s*(?:\[proposal (\d+)\b[^\]]*\]\([^)]*\)|proposal\s+(\d+)\b)/im
-const IMPLEMENTS_LABEL_RE = /^(?:[-*+]\s+)?\*\*Implements:\*\*/m
+const IMPLEMENTS_RE = new RegExp(
+  LABEL_PREFIX +
+    String.raw`\*\*Implements:\*\*\s*(?:\[proposal (\d+)\b[^\]]*\]\([^)]*\)|proposal\s+(\d+)\b)`,
+  'im',
+)
+const IMPLEMENTS_LABEL_RE = new RegExp(`${LABEL_PREFIX}\\*\\*Implements:\\*\\*`, 'm')
 
 /**
  * The proposal number a plan declares it implements, via its own

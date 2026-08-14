@@ -147,6 +147,25 @@ const PROBE_CORPUS_PLAN_IMPLEMENTS = join(
   'plans',
   '__nonvacuity_probe_implements__.md',
 )
+// Second-round branch review (architect, customer, enforcement — all three,
+// enforcement by mutation): the two checks added in the FIRST fix round
+// (corpus/plan-implements-unparseable, corpus/plan-implements-unresolved)
+// shipped with no non-vacuity coverage at all — gateCoverage() asserts
+// per-script, not per-rule-id, so a new rule inside an already-covered
+// script is invisible to it. Deleting either check's spread from `problems`
+// left check:nonvacuity green. These two probes close that.
+const PROBE_CORPUS_PLAN_IMPLEMENTS_UNPARSEABLE = join(
+  repoRoot,
+  'work',
+  'plans',
+  '__nonvacuity_probe_implements_unparseable__.md',
+)
+const PROBE_CORPUS_PLAN_IMPLEMENTS_UNRESOLVED = join(
+  repoRoot,
+  'work',
+  'plans',
+  '__nonvacuity_probe_implements_unresolved__.md',
+)
 
 /** Run a command from the repo root and capture combined stdout+stderr + exit code. */
 function sh(cmd, args) {
@@ -228,6 +247,8 @@ rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
 rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
 rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS, { force: true })
+rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS_UNPARSEABLE, { force: true })
+rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS_UNRESOLVED, { force: true })
 
 // --- Gate: arch (root cross-package rules) ---
 function gateArch() {
@@ -464,6 +485,29 @@ function gateCorpusProposalImplementsDiscriminates() {
   }
 }
 
+// A plan with an "**Implements:**"-shaped line that doesn't parse (garbled
+// number, wrong keyword) is its own finding — mirrors the Ruling side's
+// probe above, closing the coverage gap the second review round found.
+function gateCorpusPlanImplementsUnparseable() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_PLAN_IMPLEMENTS_UNPARSEABLE,
+    '# Non-vacuity probe plan\n\n## Status\n\n- **Implements:** prop 004\n',
+    'corpus/plan-implements-unparseable',
+    'work/plans/__nonvacuity_probe_implements_unparseable__.md',
+  )
+}
+
+// A plan declaring "**Implements:** proposal N" where no proposal N exists —
+// the dangling-target check found uncovered in the same review round.
+function gateCorpusPlanImplementsUnresolved() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_PLAN_IMPLEMENTS_UNRESOLVED,
+    '# Non-vacuity probe plan\n\n## Status\n\n- **Implements:** proposal 88888\n',
+    'corpus/plan-implements-unresolved',
+    'work/plans/__nonvacuity_probe_implements_unresolved__.md',
+  )
+}
+
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
 function gateNode(script, mustSay) {
   const r = sh(process.execPath, [join('scripts', 'nonvacuity', script)])
@@ -605,6 +649,8 @@ const gates = [
   ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
   ['corpus/proposal-ruling-unparseable', gateCorpusRulingUnparseable],
   ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
+  ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
+  ['corpus/plan-implements-unresolved', gateCorpusPlanImplementsUnresolved],
   // One row per release rule, asserting rule AND element as an exact set:
   // neutering the changed-package correspondence still emits its rule id (for the
   // ghost declaration instead of the undeclared package), so a rule-name
@@ -665,6 +711,8 @@ const GATE_FOR = {
     'corpus/proposal-plan-linkage',
     'corpus/proposal-ruling-unparseable',
     'corpus/proposal-implements-discriminates',
+    'corpus/plan-implements-unparseable',
+    'corpus/plan-implements-unresolved',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
