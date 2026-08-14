@@ -514,7 +514,15 @@ P>` generic** every builder in the family depends on.
 
 ## Progress ledger
 
-- [ ] Phase 1 — delta classification matrix + ts-morph-import audit
+- [x] Phase 1 — delta classification matrix + ts-morph-import audit. Done
+      2026-08-14: [`work/spikes/0002-fold-delta.md`](../spikes/0002-fold-delta.md).
+      Re-measured against ts-archunit v0.61.0 (the plan's 0.59 citation has
+      moved) — 11,594 shared-file diff-lines (was 10,342), same 21 kernel-bound
+      shared files, 37 never-received modules (exact basename match). All three
+      merge hazards confirmed present and unchanged in kind. New finding: 19 of
+      ~54 kernel-bound candidate files import `ts-morph` directly and need the
+      Phase-4 engine-neutral seam — the spike names them explicitly as Phase
+      4's starting worklist.
 - [ ] Phase 2 — port ADR-008 → eess ADR-009
 - [ ] Phase 3 — port ADR-009 → eess ADR-010
 - [ ] Phase 4 — fold the engine (kernel seam + `RuleBuilder<T,P>` + eess-ts)
