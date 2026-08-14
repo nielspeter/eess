@@ -114,8 +114,10 @@ only evidence that the _link_ encoding occurs in the wild at all.
 
 ## Review — 2026-08-12
 
-**Ruling: adopt the problem, decline the primitive, defer the API behind plan
-[0090](../plans/0090-adopt-ts-archunit-work-corpus.md).**
+**Ruling: Rewrite needed**
+
+Adopt the problem, decline the primitive, defer the API behind plan
+[0090](../plans/0090-adopt-ts-archunit-work-corpus.md).
 
 Everything below this section is the submission as received. It is preserved,
 not endorsed — where the review falsified a claim, the claim is annotated in

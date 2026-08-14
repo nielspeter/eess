@@ -117,6 +117,55 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
 const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
+// Plan 0142 (closing bug 0141): no leading digits in the basename — unlike
+// the real 001-005 proposals, so proposalNumberFromPath() can never collide
+// with a real proposal number (testing review's fixture-numbering finding).
+const PROBE_CORPUS_PROPOSAL_UNCITED = join(
+  repoRoot,
+  'work',
+  'proposals',
+  '__nonvacuity_probe_proposal__.md',
+)
+const PROBE_CORPUS_RULING_UNPARSEABLE = join(
+  repoRoot,
+  'work',
+  'proposals',
+  '__nonvacuity_probe_ruling__.md',
+)
+// A second pair, digit-bearing on purpose (9001) — unlike the two probes
+// above, this one must exercise the real number-keyed join, not the
+// null-key fallback (branch review, architect M7).
+const PROBE_CORPUS_PROPOSAL_MATCHED = join(
+  repoRoot,
+  'work',
+  'proposals',
+  '__nonvacuity_probe_9001-matched__.md',
+)
+const PROBE_CORPUS_PLAN_IMPLEMENTS = join(
+  repoRoot,
+  'work',
+  'plans',
+  '__nonvacuity_probe_implements__.md',
+)
+// Second-round branch review (architect, customer, enforcement — all three,
+// enforcement by mutation): the two checks added in the FIRST fix round
+// (corpus/plan-implements-unparseable, corpus/plan-implements-unresolved)
+// shipped with no non-vacuity coverage at all — gateCoverage() asserts
+// per-script, not per-rule-id, so a new rule inside an already-covered
+// script is invisible to it. Deleting either check's spread from `problems`
+// left check:nonvacuity green. These two probes close that.
+const PROBE_CORPUS_PLAN_IMPLEMENTS_UNPARSEABLE = join(
+  repoRoot,
+  'work',
+  'plans',
+  '__nonvacuity_probe_implements_unparseable__.md',
+)
+const PROBE_CORPUS_PLAN_IMPLEMENTS_UNRESOLVED = join(
+  repoRoot,
+  'work',
+  'plans',
+  '__nonvacuity_probe_implements_unresolved__.md',
+)
 
 /** Run a command from the repo root and capture combined stdout+stderr + exit code. */
 function sh(cmd, args) {
@@ -194,6 +243,12 @@ rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
 rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
 rmSync(PROBE_CORPUS_POINTER, { force: true })
+rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
+rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
+rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
+rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS, { force: true })
+rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS_UNPARSEABLE, { force: true })
+rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS_UNRESOLVED, { force: true })
 
 // --- Gate: arch (root cross-package rules) ---
 function gateArch() {
@@ -353,6 +408,106 @@ function gateCorpusPointers() {
   )
 }
 
+// Plan 0142 (closing bug 0141): an accepted proposal with no plan declaring
+// it — planted directly in work/proposals/ so a fixture rebuilding the rule
+// elsewhere can't stand in for proving the production script's own parser
+// and correspondence are wired (bug 0127's lesson, applied on day one this
+// time rather than found by review — see the bug's own Review section).
+function gateCorpusProposalUncited() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_PROPOSAL_UNCITED,
+    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
+      'Accepted, on purpose, with no implementing plan — the probe.\n',
+    'corpus/accepted-proposal-uncited',
+    'work/proposals/__nonvacuity_probe_proposal__.md',
+  )
+}
+
+// A Review section whose Ruling doesn't parse to the closed vocabulary must
+// be its own finding, not silently "not accepted" — the exact failure mode
+// bug 0141's own first draft committed against its own reproduction (a
+// four-reviewer-independent find, 2026-08-14).
+function gateCorpusRulingUnparseable() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_RULING_UNPARSEABLE,
+    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n' +
+      '**Ruling: ship as-is — old-style free prose, garbled on purpose.**\n\nThe probe.\n',
+    'corpus/proposal-ruling-unparseable',
+    'work/proposals/__nonvacuity_probe_ruling__.md',
+  )
+}
+
+// Branch review (testing + enforcement, independently, both by mutation):
+// the two probes above are both unmatched-left probes. Neutering
+// declaredImplements() to always return null, or loosening IMPLEMENTS_RE to
+// a prose-matching pattern that reproduces the exact 0089/0101 false-
+// positive shape bug 0141 exists to prevent, left every fixture above still
+// green — nothing ever asserted that a REAL match makes the check pass, or
+// that a prose-only mention (this repo's only real citation shape today)
+// still fails it. This closes both directions with one probe pair: plant an
+// accepted proposal, first cite it only in prose (must stay red), then swap
+// to a real **Implements:** line (must go green), asserted both ways in one
+// run so a regression in either direction fails this row.
+function gateCorpusProposalImplementsDiscriminates() {
+  const proposalMd =
+    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
+    'Accepted — the discrimination probe.\n'
+  // Deliberately contains the word "implements" near "proposal 9001", in a
+  // negating sentence — a loose prose-matching regex (testing review's
+  // mutation: /[Ii]mplements[^\n]*?proposal\s+(\d+)/) reads this as a match
+  // despite the negation; a probe that merely avoids the word "implements"
+  // wouldn't exercise that specific, demonstrated vulnerability.
+  const proseOnlyPlanMd =
+    '# Non-vacuity probe plan\n\n## Status\n\n' +
+    'This plan implements nothing from proposal 9001; it is explicitly out of scope.\n'
+  const declaredPlanMd =
+    '# Non-vacuity probe plan\n\n## Status\n\n- **Implements:** proposal 9001\n'
+  try {
+    writeFileSync(PROBE_CORPUS_PROPOSAL_MATCHED, proposalMd)
+    writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, proseOnlyPlanMd)
+    const proseRun = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
+    const proseStillRed = proseRun.code === 1
+
+    writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, declaredPlanMd)
+    const matchedRun = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
+    const matchedGoesGreen = matchedRun.code === 0
+
+    const ok = proseStillRed && matchedGoesGreen
+    return {
+      ok,
+      detail:
+        `discriminates cited-in-prose from declared · prose-only exit ${proseRun.code} ` +
+        `(want 1), declared exit ${matchedRun.code} (want 0)`,
+    }
+  } finally {
+    rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
+    rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS, { force: true })
+  }
+}
+
+// A plan with an "**Implements:**"-shaped line that doesn't parse (garbled
+// number, wrong keyword) is its own finding — mirrors the Ruling side's
+// probe above, closing the coverage gap the second review round found.
+function gateCorpusPlanImplementsUnparseable() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_PLAN_IMPLEMENTS_UNPARSEABLE,
+    '# Non-vacuity probe plan\n\n## Status\n\n- **Implements:** prop 004\n',
+    'corpus/plan-implements-unparseable',
+    'work/plans/__nonvacuity_probe_implements_unparseable__.md',
+  )
+}
+
+// A plan declaring "**Implements:** proposal N" where no proposal N exists —
+// the dangling-target check found uncovered in the same review round.
+function gateCorpusPlanImplementsUnresolved() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_PLAN_IMPLEMENTS_UNRESOLVED,
+    '# Non-vacuity probe plan\n\n## Status\n\n- **Implements:** proposal 88888\n',
+    'corpus/plan-implements-unresolved',
+    'work/plans/__nonvacuity_probe_implements_unresolved__.md',
+  )
+}
+
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
 function gateNode(script, mustSay) {
   const r = sh(process.execPath, [join('scripts', 'nonvacuity', script)])
@@ -489,6 +644,23 @@ const gates = [
   // Bug 0127: converted from a rebuilt-rule fixture to driving the
   // production script, matching the links gates above.
   ['corpus/pointers', gateCorpusPointers],
+  // Plan 0142 (closing bug 0141): proposal→plan linkage, built on the
+  // gateCorpusProbe shape from day one.
+  ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
+  ['corpus/proposal-ruling-unparseable', gateCorpusRulingUnparseable],
+  ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
+  ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
+  ['corpus/plan-implements-unresolved', gateCorpusPlanImplementsUnresolved],
+  // Second-round branch review's own mutation matrix: several of
+  // proposal-ruling.mjs's exported behaviors (last-Ruling-wins scoping, the
+  // markdown-link Implements form, fence-blindness, multi-Implements
+  // rejection) survived being mutated away with all the end-to-end probes
+  // above still green — none of them individually exercises every shape.
+  // Direct module-level assertions, the corpus-link-routing.mjs shape.
+  [
+    'corpus/proposal-ruling-module',
+    () => gateNode('bad-proposal-ruling.mjs', 'proposal-ruling/module-behavior'),
+  ],
   // One row per release rule, asserting rule AND element as an exact set:
   // neutering the changed-package correspondence still emits its rule id (for the
   // ghost declaration instead of the undeclared package), so a rule-name
@@ -546,6 +718,12 @@ const GATE_FOR = {
     'corpus/links/repo-native',
     'corpus/link-routing',
     'corpus/pointers',
+    'corpus/proposal-plan-linkage',
+    'corpus/proposal-ruling-unparseable',
+    'corpus/proposal-implements-discriminates',
+    'corpus/plan-implements-unparseable',
+    'corpus/plan-implements-unresolved',
+    'corpus/proposal-ruling-module',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],

@@ -231,6 +231,45 @@ question is a binding decision — ADR first"; "accept asks 1–2, `/plan` them 
 leave 3–6 in the proposal". Say explicitly whether the proposal is ready to become a
 plan, and what must be settled first.
 
+## Step 5: Record the Ruling in the proposal file
+
+The synthesis above is chat-facing. The proposal file itself needs the verdict in
+one fixed, literal shape — `PROPOSALS.md`'s own Vocabulary section promises this
+("recorded _in the proposal_, as a `## Review — YYYY-MM-DD` section, with the
+submission preserved below it"), and [bug 0141](../../../work/bugs/0141-no-check-binds-accepted-proposals-to-plans.md)
+found that promise was never wired to an actual instruction — five different
+proposals ended up with five different shapes of `**Ruling:` line, none of them
+reliably parseable.
+
+Append to the proposal file (never edit the submission above it away — corrections
+and re-reviews stack, they don't replace):
+
+```markdown
+## Review — YYYY-MM-DD
+
+**Ruling: <verdict>**
+
+<the reasoning — the synthesis above, in prose>
+```
+
+`<verdict>` is copied **verbatim, same casing**, from `PROPOSALS.md`'s Ruling
+table — exactly one of: `Ship as-is` / `Ship with changes` / `Split and sequence` /
+`Rewrite needed` / `Docs-only` / `Reject`. The bold span closes immediately after
+the verdict — `**Ruling: Rewrite needed**`, not `**Ruling: Rewrite needed — because
+…**` — so the line is a fixed-shape header a parser can key on, never a sentence to
+truncate a regex against. A proposal reviewed more than once gets more than one
+`## Review —` section, in order; the most recent one is the operative Ruling.
+
+**A consequence, not a decision made here.** Writing `Ship as-is` or `Ship with
+changes` makes `check:corpus` go red on this proposal the moment the file is
+saved — [plan 0142](../../../work/plans/0142-bind-proposals-to-plans.md)'s
+linkage gate has nothing to point at until a plan declares
+`**Implements:** proposal NNN` against it. That red is expected and does not mean
+the review did anything wrong; it means `/plan` (the next step, a human decision,
+not this skill's) is now owed before `check:corpus` is clean again — this skill
+records the finding and stops, per its own guard below, and does not accept the
+proposal by writing the Ruling.
+
 ## Guards (the failures models actually have)
 
 - **Skipping the survey.** Every duplication finding in this project's history came from

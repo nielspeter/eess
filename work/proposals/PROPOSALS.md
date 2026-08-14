@@ -63,7 +63,12 @@ the board, the same hand-maintained trust every other board in `work/` runs on.
 
 **Ruling** — the verdict `review-proposal` returns. It is recorded _in the
 proposal_, as a `## Review — YYYY-MM-DD` section, with the submission preserved
-below it rather than edited away:
+below it rather than edited away. The Ruling itself is a fixed-shape, literal
+line — `**Ruling: <verdict>**`, bold closing immediately after the verdict, one
+of the six values below **verbatim, same casing** (bug 0141, fixed 2026-08-14 by
+[plan 0142](../plans/0142-bind-proposals-to-plans.md): a Ruling written as a
+sentence — `**Ruling: rewrite needed — because …**` — is not reliably
+parseable, and every proposal filed before 0142 had drifted into its own shape):
 
 | Ruling               | Meaning                                                            |
 | -------------------- | ------------------------------------------------------------------ |
@@ -73,6 +78,30 @@ below it rather than edited away:
 | `Rewrite needed`     | the material is worth keeping; the shape or the container is wrong |
 | `Docs-only`          | the capability exists — the gap is discoverability                 |
 | `Reject`             | the premise did not hold                                           |
+
+A proposal reviewed more than once carries more than one `## Review —` section,
+stacked in order, never replacing an earlier one; the **most recent** — the last
+`**Ruling: <verdict>**` line anywhere in the file — is the operative one,
+independent of which `## Review` section it happens to sit under (`check:corpus`
+does not require the heading to be well-formed to find the Ruling; a well-formed
+Ruling with a malformed or missing heading still counts).
+
+`Split and sequence` deliberately does **not** require a plan: it means "more
+than one shippable thing; split before planning" — the next step is decomposing
+the proposal itself, not yet a single plan to declare `**Implements:**` against.
+
+**Implements** — the back-reference a plan built from an accepted proposal
+declares in its own `## Status` header, e.g. `- **Implements:** proposal 002` or
+`- **Implements:** [proposal 002](./002-comment-embedded-links.md)` — a bare
+number or a markdown link, optionally bulleted (every real `## Status` header in
+this repo is a bulleted list), with any trailing rationale after it ignored. A
+textual mention of a proposal elsewhere in the plan is not this —
+[bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md) found that
+0089, 0090, and 0101 all cite a proposal in prose without implementing it (two
+exclude one from scope; one cites another only as a re-check dependency). Only a
+declared `**Implements:**` line counts, and it must name a real proposal number —
+`check:corpus` reports both a malformed line and one naming a proposal that
+doesn't exist.
 
 **Priority** is the same scale as [`ROADMAP.md`](../plans/ROADMAP.md)'s: High
 closes a gap between what eess claims and what it checks; Medium extends reach or

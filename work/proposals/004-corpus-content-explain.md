@@ -59,7 +59,9 @@ to its own wrapper.
 
 ## Review — 2026-08-13
 
-**Ruling: docs-only — adopt the problem, decline the primitive.** The capability
+**Ruling: Docs-only**
+
+Adopt the problem, decline the primitive. The capability
 already ships in the public API of the package the incident was about; what was
 missing is any documentation pointing at it.
 

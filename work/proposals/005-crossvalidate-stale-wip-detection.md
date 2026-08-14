@@ -42,10 +42,12 @@ exempting.
 
 ## Review — 2026-08-14
 
-**Ruling: rewrite needed — the gap is real and all three reviewers
+**Ruling: Rewrite needed**
+
+The gap is real and all three reviewers
 independently validated it, but the same two defects surfaced from all three
 angles, one of which means the proposal's own evidence disproves its own
-claim.** Nothing here argues the capability shouldn't be built. The Evidence
+claim. Nothing here argues the capability shouldn't be built. The Evidence
 and Acceptance Criteria sections need rework before this is plan-ready, and a
 genuine three-way design disagreement (placement, and `isExempt` vs.
 `include`) needs the library author's decision, not a synthesis picking a
@@ -201,10 +203,12 @@ the evidence suggests it'd be).
 
 ## Review — 2026-08-14 (second pass, scoped to the Rewrite)
 
-**Ruling: not plan-ready, second time. The Rewrite's placement argument was
+**Ruling: Rewrite needed**
+
+Not plan-ready, second time. The Rewrite's placement argument was
 factually wrong, and its non-vacuity plan silently regressed to the exact
 fixture tier bug 0127 — closed hours earlier in this same session — fixed
-away from.** Requested and run at reduced scope (architect + enforcement
+away from. Requested and run at reduced scope (architect + enforcement
 only; product's round-1 concerns were the most resolved by the spike
 evidence). Everything from here through the end of the old _Rewrite_ section
 is preserved as _Rewrite v1_ in _Appendix B_ below, not endorsed — this

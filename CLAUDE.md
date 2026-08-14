@@ -128,7 +128,11 @@ or diagrams, run the relevant gate and fix what it reports:
   package or an ADR, this fails until you update the matching table row.
 - `npm run check:corpus` — cross-links and `path:line` code pointers in
   `work/`, `adr/`, and `docs/` must resolve. A pointer you cite must hit the
-  real line.
+  real line. It also binds `work/proposals/` to `work/plans/`: an accepted
+  proposal (`**Ruling: Ship as-is**`/`Ship with changes`) needs a plan that
+  declares `**Implements:** proposal NNN` against it (a prose mention doesn't
+  count), and a malformed `**Ruling:**`/`**Implements:**` line or one naming a
+  proposal that doesn't exist is reported rather than silently ignored.
 - `npm run check:ledger` — honesty at close: a _done_ plan (a terminal `State:`
   token, or a plan in `work/plans/completed/`) carries no silently-open `- [ ]`.
   Close a plan by disposing every box (done-otherwise / deferred→<home> /
