@@ -132,6 +132,21 @@ const PROBE_CORPUS_RULING_UNPARSEABLE = join(
   'proposals',
   '__nonvacuity_probe_ruling__.md',
 )
+// A second pair, digit-bearing on purpose (9001) — unlike the two probes
+// above, this one must exercise the real number-keyed join, not the
+// null-key fallback (branch review, architect M7).
+const PROBE_CORPUS_PROPOSAL_MATCHED = join(
+  repoRoot,
+  'work',
+  'proposals',
+  '__nonvacuity_probe_9001-matched__.md',
+)
+const PROBE_CORPUS_PLAN_IMPLEMENTS = join(
+  repoRoot,
+  'work',
+  'plans',
+  '__nonvacuity_probe_implements__.md',
+)
 
 /** Run a command from the repo root and capture combined stdout+stderr + exit code. */
 function sh(cmd, args) {
@@ -211,6 +226,8 @@ rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
 rmSync(PROBE_CORPUS_POINTER, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
 rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
+rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
+rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS, { force: true })
 
 // --- Gate: arch (root cross-package rules) ---
 function gateArch() {
@@ -399,6 +416,54 @@ function gateCorpusRulingUnparseable() {
   )
 }
 
+// Branch review (testing + enforcement, independently, both by mutation):
+// the two probes above are both unmatched-left probes. Neutering
+// declaredImplements() to always return null, or loosening IMPLEMENTS_RE to
+// a prose-matching pattern that reproduces the exact 0089/0101 false-
+// positive shape bug 0141 exists to prevent, left every fixture above still
+// green — nothing ever asserted that a REAL match makes the check pass, or
+// that a prose-only mention (this repo's only real citation shape today)
+// still fails it. This closes both directions with one probe pair: plant an
+// accepted proposal, first cite it only in prose (must stay red), then swap
+// to a real **Implements:** line (must go green), asserted both ways in one
+// run so a regression in either direction fails this row.
+function gateCorpusProposalImplementsDiscriminates() {
+  const proposalMd =
+    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
+    'Accepted — the discrimination probe.\n'
+  // Deliberately contains the word "implements" near "proposal 9001", in a
+  // negating sentence — a loose prose-matching regex (testing review's
+  // mutation: /[Ii]mplements[^\n]*?proposal\s+(\d+)/) reads this as a match
+  // despite the negation; a probe that merely avoids the word "implements"
+  // wouldn't exercise that specific, demonstrated vulnerability.
+  const proseOnlyPlanMd =
+    '# Non-vacuity probe plan\n\n## Status\n\n' +
+    'This plan implements nothing from proposal 9001; it is explicitly out of scope.\n'
+  const declaredPlanMd =
+    '# Non-vacuity probe plan\n\n## Status\n\n- **Implements:** proposal 9001\n'
+  try {
+    writeFileSync(PROBE_CORPUS_PROPOSAL_MATCHED, proposalMd)
+    writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, proseOnlyPlanMd)
+    const proseRun = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
+    const proseStillRed = proseRun.code === 1
+
+    writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, declaredPlanMd)
+    const matchedRun = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
+    const matchedGoesGreen = matchedRun.code === 0
+
+    const ok = proseStillRed && matchedGoesGreen
+    return {
+      ok,
+      detail:
+        `discriminates cited-in-prose from declared · prose-only exit ${proseRun.code} ` +
+        `(want 1), declared exit ${matchedRun.code} (want 0)`,
+    }
+  } finally {
+    rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
+    rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS, { force: true })
+  }
+}
+
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
 function gateNode(script, mustSay) {
   const r = sh(process.execPath, [join('scripts', 'nonvacuity', script)])
@@ -539,6 +604,7 @@ const gates = [
   // gateCorpusProbe shape from day one.
   ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
   ['corpus/proposal-ruling-unparseable', gateCorpusRulingUnparseable],
+  ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
   // One row per release rule, asserting rule AND element as an exact set:
   // neutering the changed-package correspondence still emits its rule id (for the
   // ghost declaration instead of the undeclared package), so a rule-name
@@ -598,6 +664,7 @@ const GATE_FOR = {
     'corpus/pointers',
     'corpus/proposal-plan-linkage',
     'corpus/proposal-ruling-unparseable',
+    'corpus/proposal-implements-discriminates',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
