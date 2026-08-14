@@ -2,9 +2,14 @@
 
 ## Status
 
-- **State:** Draft — created 2026-08-14, following proposal 005's acceptance
-  (`Ship as-is`, third review round — architect · product · enforcement, all
-  three full).
+- **State:** Ready — created 2026-08-14 as a Draft following proposal 005's
+  acceptance (`Ship as-is`, third review round — architect · product ·
+  enforcement, all three full). Frozen the same day: the one open item (the
+  `scenariosCovered` fixture's name/placement) is resolved above — folded
+  into `bad-crossval-gherkin-e2e.mjs` as a third scenario, not a separate
+  file. No refinement to harvest. No live-source cords: every citation
+  (`Rewrite v3`, `bad-release-e2e.mjs`, bugs 0112/0127/0141/0144, plan 0079)
+  is this repo's own version-controlled corpus, already `check:corpus`-clean.
 - **Implements:** proposal 005
 - **Priority:** Medium — extends the reach of an already-shipped primitive
   (`scenariosCovered`'s `include` option); does not close a correctness gap
@@ -77,18 +82,20 @@ Per `Rewrite v3 → Non-vacuity` exactly:
   `scenariosCovered` call, and correct its printed denominator to the
   **filtered** count.
 - New fixture `scripts/nonvacuity/bad-crossval-gherkin-e2e.mjs`
-  (`bad-release-e2e.mjs`-shaped): builds a throwaway directory per scenario,
-  runs the real `scripts/check-crossval.mjs` with the env override set,
-  asserts both the fire direction (exempt + cited → `crossval/scenario-
-exemption-stale`) and the no-fire direction (exempt + uncited → silent) via
-  `--format json`'s `firedOn`, plus a bare-terminal exit-code run (bug 0127's
-  two-run discipline).
-- New fixture (name TBD at build time, `bad-gherkin-ts.mjs`-adjacent, or
-  folded into the e2e fixture above if that proves cleaner) proving
-  `scenariosCovered` itself can fail — closing one of
-  [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)'s three
-  named rows as part of this change, per the proposal's own conclusion that
-  the `include` edit makes that gap load-bearing.
+  (`bad-release-e2e.mjs`-shaped): one shared throwaway-directory-per-scenario
+  helper (mirroring `bad-release-e2e.mjs`'s own `scenario()` helper and its
+  `E2E` array of cases), driving three scenarios in one file rather than
+  three separate fixtures duplicating the same scaffolding:
+  1. exempt + cited → fires `crossval/scenario-exemption-stale`;
+  2. exempt + uncited → silent (the negative control);
+  3. non-exempt + uncited → fires `crossval/scenarios-covered` — this third
+     scenario is what closes one of
+     [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)'s
+     three named rows, folded into this same fixture rather than a separate
+     file, since it needs the identical throwaway-corpus machinery the other
+     two already build.
+     Each scenario asserts via `--format json`'s `firedOn`, plus a bare-
+     terminal exit-code run (bug 0127's two-run discipline).
 - `scripts/check-nonvacuity.mjs`: new `PROBE_*` sweep entries if any
   ephemeral probes are needed beyond the throwaway-directory shell already
   used by `bad-release-e2e.mjs`; new `GATES` rows; `GATE_FOR['check:crossval']`
@@ -130,10 +137,10 @@ state (the committed `@wip` scenario present and uncited, satisfying
   `citedScenarioSites` map correctness; `scenarioExemptionsCurrent` fire/
   silent/`.skip` cases; `TestCitationExtractor` default behavior unchanged
   from `defaultExtract`.
-- Phase 2: `bad-crossval-gherkin-e2e.mjs` (or split) proves both directions
-  against the real `check-crossval.mjs`, mutation-verified before Phase 2 is
-  considered done — delete the new `gate(...)` call, confirm the row reddens;
-  revert `include`, confirm `scenariosCovered`'s own new fixture reddens.
+- Phase 2: `bad-crossval-gherkin-e2e.mjs`'s three scenarios prove all three
+  directions against the real `check-crossval.mjs`, mutation-verified before
+  Phase 2 is considered done — delete the new `gate(...)` call, confirm the
+  row reddens; revert `include`, confirm the third scenario's row reddens.
 - Phase 3: `npm run check:corpus` and `npm run check:crossval` both green,
   the former showing a real `1 accepted` for the first time.
 
