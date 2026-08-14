@@ -805,6 +805,12 @@ and has no generic `assertsSomething`.
 > import the library directly and must exit 1 — **no CLI is involved**. The
 > claim was load-bearing in the section that sequences follow-on work, and it
 > made the acceptance criteria below look harder to meet than they are.
+>
+> **Update, 2026-08-14 (bug 0127's fix, PR #57).** `bad-links.mjs` and
+> `bad-pointers.mjs` no longer exist — both were converted to plant a probe
+> and drive `scripts/check-corpus.mjs` itself, so "no CLI is involved" is now
+> false for those two specifically (`bad-adr.mjs` is unchanged and the claim
+> still holds for it). Left as history rather than rewritten; see 0127.
 
 That gap is real but separable. **This proposal covers only expressiveness** —
 the element-level capabilities a corpus needs to state its own conventions.

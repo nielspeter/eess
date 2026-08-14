@@ -6,10 +6,14 @@
  * worse than no gate: it manufactures false confidence. This harness proves that
  * every FIXTURE below fails when fed deliberately-violating input (bug 0127:
  * "every gate actually FAILS" over-claimed — most fixtures prove their own
- * condition fires, not that the production `check:*` script invokes it; the rows
- * marked "production script" below are the exception). Each gate is run against
- * a hand-crafted bad input and asserted to exit 1 (and, where possible, to name
- * the specific rule that fired).
+ * condition fires or a shipped preset fires over a hand-built fixture corpus,
+ * not that the real `check:*` invocation invokes it. `arch`, `internal arch`,
+ * `baseline`, and — since bug 0127 — `corpus/links/*` and `corpus/pointers`
+ * genuinely drive the production script or CLI; everything else is one tier
+ * weaker. Neither the per-row output nor "N fixtures fired" below distinguishes
+ * the two — read the tier from this list, not from a fixture having exited 1).
+ * Each gate is run against a hand-crafted bad input and asserted to exit 1 (and,
+ * where possible, to name the specific rule that fired).
  *
  * Gate → violating input → rule that must fire:
  *   arch          packages/core/src/__nonvacuity_probe__.ts imports the raw
@@ -34,11 +38,15 @@
  *   corpus/links/site, corpus/links/repo-native (production script — bug 0127)
  *                 a probe planted under docs/ and under work/bugs/ respectively
  *                 links a missing file, and the PRODUCTION `scripts/check-corpus.mjs`
- *                 is run over it (not a rebuilt private copy) → corpus/broken-links,
- *                 one row per routing region bug 0086 split `broken` into.
+ *                 is run BOTH ways — `--format json` for `firedOn`'s rule+file
+ *                 identity, and the real no-flags invocation CI runs, asserted
+ *                 on its exit code too (not just the JSON branch's own separate
+ *                 exit) — → corpus/broken-links, one row per routing region bug
+ *                 0086 split `broken` into.
  *   corpus/pointers (production script — bug 0127)
  *                 a probe cites a line that does not exist and the PRODUCTION
- *                 `scripts/check-corpus.mjs` is run over it → corpus/pointers-resolve.
+ *                 `scripts/check-corpus.mjs` is run both ways, same as above →
+ *                 corpus/pointers-resolve.
  *   review-harness  scripts/nonvacuity/bad-review-harness/ carries foreign-project
  *                 tokens → check-review-harness.mjs.
  *   work/numbers  scripts/nonvacuity/bad-numbers/ claims one number in two lanes
@@ -100,9 +108,13 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 // site-vs-repo-native split), and corpus/pointers must drive the production
 // script — not a private rebuilt copy. One probe per region/rule, planted in
 // real corpus roots (never packages/*/src, so these never collide with the
-// three probes above).
-const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe__.md')
-const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe__.md')
+// three probes above). Distinct basenames per probe (review found on this fix
+// itself, 2026-08-14): with a shared basename, `firedOn`'s fragment match
+// can't tell which region a violation came from — sound only because the two
+// probes are never co-present, a fact three separate reviewers independently
+// flagged as circumstantial rather than structural.
+const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
+const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
 
 /** Run a command from the repo root and capture combined stdout+stderr + exit code. */
@@ -266,59 +278,78 @@ function gateSpec() {
   return { ok, detail: `exit ${r.code} (spec/nonvacuity-probe)` }
 }
 
-// --- Gate: corpus/links, site region (docs/) ---
-// Bug 0127: `bad-links.mjs` rebuilt its own rule with its own id
-// (`nonvacuity/broken-links`), proving only that the underlying condition
-// fires over a fixture corpus it built by hand — nothing bound it to the
-// production script. This drives `scripts/check-corpus.mjs` itself, on a
-// probe planted under `docs/` — the SITE_OPTS-routed region bug 0086 split
-// `broken` into.
-function gateCorpusLinksSite() {
-  const bad = withProbe(
-    PROBE_CORPUS_LINK_SITE,
-    '# Non-vacuity probe\n\nSee the [missing page](./__nonvacuity_does_not_exist__.md).\n',
-    () => sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
-  )
-  const ok = bad.code === 1 && firedOn(bad, 'corpus/broken-links', '__nonvacuity_probe__.md')
-  const clean = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
-  return { ok, detail: `bad → exit ${bad.code} (corpus/broken-links, docs/) · ${cleanNote}` }
+// --- Gate: corpus/links (both regions) and corpus/pointers ---
+// Bug 0127: `bad-links.mjs`/`bad-pointers.mjs` rebuilt their own rule with
+// their own id, proving only that the underlying condition fires over a
+// fixture corpus built by hand — nothing bound it to the production script.
+// These plant a probe in the real corpus and run `scripts/check-corpus.mjs`
+// itself.
+//
+// Two runs, not one — found on THIS fix by three independent reviewers,
+// 2026-08-14. `--format json` returns through its own early exit
+// (`check-corpus.mjs:141-145`); the terminal path CI actually runs
+// (`"check:corpus": "node scripts/check-corpus.mjs"`, no flags) computes
+// failure separately and exits at `:201`. A gate that only ever passes
+// `--format json` proves the violation-collection logic, never the exit
+// statement that makes the script a gate — the exact shell/core split bug
+// 0106 already named on `check:release` (see `release/gate-fails-the-build`
+// below). Measured: deleting `check-corpus.mjs:201` alone left all three
+// corpus rows green while `npm run check:corpus` printed a real violation and
+// exited 0. So the json run is for `firedOn`'s machine-readable rule+file
+// identity; the terminal run is the one that actually asserts CI's exit code
+// — it replaces the old purely-informational `clean` direction, since a
+// second real assertion is worth more than a decorative one.
+function gateCorpusProbe(probePath, probeContent, ruleId, fileFragment) {
+  const { json, terminal } = withProbe(probePath, probeContent, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const ok = json.code === 1 && firedOn(json, ruleId, fileFragment) && terminal.code === 1
+  return {
+    ok,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId}, ${fileFragment})`,
+  }
 }
 
-// --- Gate: corpus/links, repo-native region (work/, adr/) ---
+const CORPUS_PROBE_LINK_MD =
+  '# Non-vacuity probe\n\nSee the [missing page](./__nonvacuity_does_not_exist__.md).\n'
+
+function gateCorpusLinksSite() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_LINK_SITE,
+    CORPUS_PROBE_LINK_MD,
+    'corpus/broken-links',
+    'docs/__nonvacuity_probe_site__.md',
+  )
+}
+
 // The other half of the same split — `broken` unions two independently
 // filtered spreads (`scripts/check-corpus.mjs:115-118`), so a probe in only
 // one region cannot prove the other branch is wired. Two rows, not one,
 // mirroring the `corpus/ledger/*` precedent for a single fixture proving
-// several rules.
+// several rules. Known limitation, not a hole: this fragment can tell "site
+// probe's violation is present" from "repo-native probe's violation is
+// present," but not which *spread* caught it — a corrupted `isRepoNativeLink`
+// that misroutes without dropping anything would leave both rows green,
+// caught instead by the separate `corpus/link-routing` gate, which asserts
+// the classifier directly.
 function gateCorpusLinksRepoNative() {
-  const bad = withProbe(
+  return gateCorpusProbe(
     PROBE_CORPUS_LINK_REPO,
-    '# Non-vacuity probe\n\nSee the [missing page](./__nonvacuity_does_not_exist__.md).\n',
-    () => sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    CORPUS_PROBE_LINK_MD,
+    'corpus/broken-links',
+    'work/bugs/__nonvacuity_probe_repo__.md',
   )
-  const ok = bad.code === 1 && firedOn(bad, 'corpus/broken-links', '__nonvacuity_probe__.md')
-  const clean = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
-  return { ok, detail: `bad → exit ${bad.code} (corpus/broken-links, work/) · ${cleanNote}` }
 }
 
-// --- Gate: corpus/pointers ---
-// Same defect as the links gates, one condition over: `bad-pointers.mjs`
-// rebuilt `nonvacuity/pointers-resolve` rather than driving
-// `corpus/pointers-resolve` in the production script. Pointer resolution
-// isn't region-split (unlike links), so one probe suffices.
+// Pointer resolution isn't region-split (unlike links), so one probe suffices.
 function gateCorpusPointers() {
-  const bad = withProbe(
+  return gateCorpusProbe(
     PROBE_CORPUS_POINTER,
     '# Non-vacuity probe\n\nA live claim about code that does not exist: `src/__nonvacuity_does_not_exist__.ts:12`\n',
-    () => sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    'corpus/pointers-resolve',
+    'docs/__nonvacuity_probe_pointer__.md',
   )
-  const ok =
-    bad.code === 1 && firedOn(bad, 'corpus/pointers-resolve', '__nonvacuity_probe_pointer__.md')
-  const clean = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
-  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
-  return { ok, detail: `bad → exit ${bad.code} (corpus/pointers-resolve) · ${cleanNote}` }
 }
 
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
@@ -597,7 +628,7 @@ for (const [name, run] of gates) {
 // what was actually measured.
 console.log(
   allOk
-    ? `\nnonvacuity: ${gateCount} fixtures each fired on their violating input — none is silently green.`
+    ? `\nnonvacuity: ${gateCount} fixtures each fired on their violating input — no fixture is silently green.`
     : '\nnonvacuity: at least one fixture did NOT fire on its violating input — see above.',
 )
 process.exit(allOk ? 0 : 1)

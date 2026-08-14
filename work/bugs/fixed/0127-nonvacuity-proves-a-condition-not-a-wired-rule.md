@@ -4,13 +4,22 @@
 
 - **State:** Fixed — `corpus/links` converted from a rebuilt-rule fixture to
   two production-script-driven gates, one per bug 0086's routing region;
-  `corpus/pointers` converted the same way. All three verified live against
-  three independent sabotage tests (whole-`broken`-array neutering,
-  single-region-spread deletion, pointer-collection neutering) — each
-  correctly reddens `check:nonvacuity` now, all three confirmed to leave
-  `scripts/check-corpus.mjs` reverted byte-identical after. `check:nonvacuity`'s
-  summary corrected to "fixtures fired," not "gates proven." Moved to `fixed/`
-  in this same PR (#57), so the merge and the close are one atomic act.
+  `corpus/pointers` converted the same way. A six-persona branch review found
+  the first version still passed only `check-corpus.mjs --format json`, never
+  the no-flags terminal invocation `check:corpus` actually runs in CI — three
+  reviewers independently reproduced a live false green from it (deleting
+  `check-corpus.mjs`'s terminal `process.exit(1)` alone left all three new
+  rows green while a real broken link passed the build). Each gate now asserts
+  **both** exit codes. Verified against a seven-mutation sabotage matrix
+  (whole-array neutering, each spread deleted independently, pointer
+  collection neutered, the terminal exit statement deleted, the rule id
+  renamed) — every mutation reddens exactly the row(s) it should and nothing
+  else, `scripts/check-corpus.mjs` confirmed reverted byte-identical after
+  each. `check:nonvacuity`'s summary corrected to "fixtures fired," not "gates
+  proven," and tightened once more after review to "no fixture is silently
+  green" (the original wording still read as a claim about the whole gate,
+  which is not what's measured). Moved to `fixed/` in this same PR (#57), so
+  the merge and the close are one atomic act.
 - **Severity:** High — on the reproduction, not on the ratio. `check:arch` passes
   green over six rules that assert nothing, which is `BUGS.md`'s High row (a gate
   passes over drift it should catch). Note what is _not_ claimed: only one of the
@@ -258,6 +267,20 @@ adopter gets it, and `eess-ts init` scaffolds rule files against a guessed layou
 so an adopter whose sources sit outside the scaffolded glob gets a confident green
 on their first run.
 
+**Residual risk, found 2026-08-14 by an enforcement reviewer of the fix.** Before
+this fix, `check:nonvacuity`'s probes lived only under `packages/core/src` — a
+concurrency hazard the harness's own header comment already names, but a narrow
+one. Converting `corpus/links`/`corpus/pointers` moved two more probes into
+`docs/` and `work/bugs/` — real, git-tracked `check:corpus` roots also read by
+`check:fast` (this repo's own recommended on-save loop), `check:ledger`, and
+`check:numbers`. `withProbe` still writes-then-deletes within one call and a
+hard kill still can't leave a committed leftover (`**/__nonvacuity_probe*` is
+now `.gitignore`d), but a `check:fast` run racing the write-to-delete window can
+observe a transient probe mid-flight and report a spurious violation against a
+file that's already gone by the time anyone looks. Not eliminated, only
+narrowed — the probe surface now overlaps four gates it never touched before,
+not zero.
+
 ## Why it matters
 
 ts-archunit's ADR-008: _"A check that cannot fail is worth less than no check,
@@ -300,6 +323,25 @@ and its lead item could not go red on its own reproduction (below).
    The conversion is easier than it was at filing, not harder: `check-corpus.mjs:141`
    now supports `--format json`, so asserting `firedOn(v, 'corpus/broken-links')`
    against the production script's own output is a direct fit for either probe.
+
+   **Second refinement, found 2026-08-14 by three reviewers independently
+   (architect, enforcement, testing) auditing the fix this Fix item describes.**
+   `--format json` returns through its own early exit
+   (`scripts/check-corpus.mjs:141-145`); the no-flags terminal invocation
+   `"check:corpus": "node scripts/check-corpus.mjs"` actually runs computes
+   failure separately and exits at a different line entirely. A gate built only
+   against `--format json` — as the first version of this fix was — proves the
+   violation-collection logic and the JSON branch's own exit, never the
+   statement that makes the real CI invocation a gate. Measured: deleting that
+   terminal `process.exit(1)` alone left all three converted rows green while
+   `npm run check:corpus` printed a real violation and exited 0. Same shape as
+   bug 0106's `release/gate-fails-the-build` (the pure core vs. the impure
+   shell) — the repo had already named this failure class and the first
+   version of this fix rediscovered it rather than avoiding it. The built fix
+   runs `check-corpus.mjs` **both** ways per probe: `--format json` for
+   `firedOn`'s rule+file identity, the no-flags form for the exit code CI
+   actually depends on — replacing the old purely-informational `clean`
+   direction, which three reviewers separately flagged as decorative anyway.
 
 2. **Correct `check:nonvacuity`'s summary sentence** to state what it measured —
    fixtures that fired, not gates proven — so the harness stops over-claiming
@@ -351,36 +393,61 @@ is outside it by construction.
 
 ## Verification
 
-- [x] Red test written first: with (1) in place, neutering **either** spread in
-      `scripts/check-corpus.mjs`'s two-region `broken` array (line 115) makes
-      `check:nonvacuity` exit 1, naming `corpus/broken-links`. Verified live,
-      two ways: neutering the whole array reddens **both** new rows
-      (`corpus/links/site`, `corpus/links/repo-native`); deleting only the
-      site spread reddens `corpus/links/site` alone and leaves
-      `corpus/links/repo-native` green — proving the two-probe split actually
-      discriminates between regions, not just between "some broken link
-      exists." A third test neutered `corpus/pointers-resolve`'s violation
-      collection and reddened the new `corpus/pointers` row the same way.
-      `scripts/check-corpus.mjs` confirmed byte-identical after each revert.
-      Was green before this fix — measured 2026-08-13, the day before the fix
-      landed.
+- [x] Red test written first, then re-run against a wider matrix after review
+      found the first version incomplete. Seven mutations to
+      `scripts/check-corpus.mjs`, each applied alone and reverted (confirmed
+      byte-identical) before the next: (S1) empty the whole `broken` array —
+      both link rows red, `corpus/pointers` unaffected; (S2) delete only the
+      site spread — `corpus/links/site` red alone; (S3) delete only the
+      repo-native spread — `corpus/links/repo-native` red alone (S2/S3 prove
+      the two-probe split discriminates by region, not just "a broken link
+      exists somewhere"); (S4) empty the pointer-violation collection —
+      `corpus/pointers` red alone; (S5) delete the terminal `process.exit(1)`
+      (the mutation review found the first version of this fix missed
+      entirely) — all three rows now correctly red; (S6) rename the
+      `corpus/broken-links` rule id on one of the two rule constructions —
+      only the matching row reds, proving rule-identity is asserted per row,
+      not just liveness. Every mutation was green on `main` before this fix
+      and is red on this branch after it.
 - [x] The converted fixtures assert the production rule id **and** the planted
       file in one violation, per `firedOn`'s existing contract —
-      `firedOn(bad, 'corpus/broken-links', '__nonvacuity_probe__.md')` and
-      `firedOn(bad, 'corpus/pointers-resolve', '__nonvacuity_probe_pointer__.md')`.
-- [x] `done-otherwise` — the probe surface concern is satisfied for the new
-      `corpus/links`/`corpus/pointers` probes by construction: they're planted
-      under `docs/` and `work/bugs/`, never `packages/*/src`, so they cannot
-      collide with the three pre-existing arch probes there. The pre-existing
-      arch/internal-arch/baseline probes themselves are unchanged — moving
-      those is a separate, larger restructuring this bug's Fix section never
-      scoped in (it named only converting the corpus fixtures and correcting
-      the summary sentence). `dropped-on-purpose`: no observed collision, and
-      speculatively refactoring three unrelated gates isn't this PR's job.
+      `firedOn(json, 'corpus/broken-links', 'docs/__nonvacuity_probe_site__.md')`,
+      `firedOn(json, 'corpus/broken-links', 'work/bugs/__nonvacuity_probe_repo__.md')`,
+      `firedOn(json, 'corpus/pointers-resolve', 'docs/__nonvacuity_probe_pointer__.md')`
+      — region-specific basenames, changed from a shared one after four
+      reviewers independently flagged that an identical fragment let either
+      row's assertion pass on either probe's violation (sound only because
+      the two probes were never co-present, not because the assertion pinned
+      it).
+- [ ] deferred→this record's own Root cause section (the residual-risk
+      paragraph added above) —
+      the probe-surface checkbox as filed asked about **concurrency**, not
+      just adjacency to `packages/*/src`, and review found the real answer is
+      worse than the first version of this close claimed: the new probes sit
+      in `docs/` and `work/bugs/`, roots also read by `check:fast` (the
+      recommended on-save loop), `check:ledger`, and `check:numbers` — a
+      collision surface that did not exist before this fix, not one this fix
+      merely failed to shrink. Mitigated, not eliminated: `**/__nonvacuity_probe*`
+      is now `.gitignore`d (closes the "a hard-killed run commits a leftover"
+      half) and every probe writes then deletes within one `withProbe` call
+      (milliseconds of exposure), but a `check:fast` racing that window can
+      still observe a transient probe and report a spurious violation against
+      a file gone by the time anyone looks. Moving the probe surface out of
+      every tracked corpus root entirely is the real fix and is out of scope
+      for a two-fixture conversion — this checkbox stays open, pointing at
+      this paragraph as its home, rather than closing on a narrower answer
+      than it asked.
 - [x] `check:nonvacuity`'s summary states fixtures fired, not gates proven —
-      now prints "N fixtures each fired on their violating input," and the
-      header doc comment's opening claim and closing line were corrected the
-      same way (they made the identical over-claim).
+      prints "N fixtures each fired on their violating input — no fixture is
+      silently green" (tightened once more after review: "none is silently
+      green" without "fixture" still read as a claim about the whole gate).
+      The header doc comment's opening claim, its per-gate `corpus/links`/
+      `corpus/pointers` bullets, and its closing line were corrected the same
+      way, and — after review found the correction itself over-claimed in the
+      opposite direction (naming only the three new rows as
+      production-script-driven when `gateArch`/`gateInternalArch`/`gateBaseline`
+      already were) — reworded again to name all five honestly rather than
+      implying the new rows are the only exception.
 - [x] `npm run validate` green — 146 test files, 1934 tests, 0 failures; all 23
       nonvacuity fixtures OK; `check:corpus` and `check:ledger` both clean.
 
