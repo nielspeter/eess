@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-14 · **Open:** 34 (33 Draft · 1 Parked) · **Fixed:** 16 · **Rejected:** 0
+**Updated:** 2026-08-14 · **Open:** 35 (33 Draft · 2 Parked) · **Fixed:** 16 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -172,3 +172,4 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0137](./fixed/0137-directory-link-violation-does-not-say-why.md)         | a broken directory link and a typo'd file link report the identical message — no hint that `docs/` and `work/**` deliberately resolve directories differently                 | Low      | ✅ Fixed → `fixed/` | self-found · enforcement review of 0086's fix                                | #55       |
 | [0138](./0138-pointer-resolve-proves-existence-not-truth.md)              | `corpus/pointers-resolve` proves a `path:line` citation exists, never that the line says what the prose claims — demonstrated 4 times in one review round on 0127             | Medium   | 🔴 Draft            | self-found · enforcement + testing review of 0127's citation refresh         | —         |
 | [0139](./0139-nonvacuity-adopter-docs-still-overclaim.md)                 | README/docs/dogfood-coverage still say "every gate proven to fail" — check:nonvacuity's own comment now says otherwise for most fixtures                                      | Medium   | 🔴 Draft            | self-found · product + customer review of 0127's fix                         | —         |
+| [0140](./0140-nonvacuity-corpus-probes-residual-gaps.md)                  | corpus nonvacuity probes now overlap check:fast/check:ledger/check:numbers' roots, and ROOTS itself has no self-defense against a deleted entry                               | Low      | 🅿️ Parked           | self-found · enforcement + devops review of 0127's fix                       | —         |

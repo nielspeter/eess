@@ -279,7 +279,9 @@ now `.gitignore`d), but a `check:fast` run racing the write-to-delete window can
 observe a transient probe mid-flight and report a spurious violation against a
 file that's already gone by the time anyone looks. Not eliminated, only
 narrowed — the probe surface now overlaps four gates it never touched before,
-not zero.
+not zero. Tracked as [0140](../0140-nonvacuity-corpus-probes-residual-gaps.md)
+rather than left owned by this paragraph alone, once `fixed/` — a closed
+record's own prose is not a home a future reader would think to check.
 
 ## Why it matters
 
@@ -423,10 +425,9 @@ is outside it by construction.
       row's assertion pass on either probe's violation (sound only because
       the two probes were never co-present, not because the assertion pinned
       it).
-- [ ] deferred→this record's own Root cause section (the residual-risk
-      paragraph added above) —
-      the probe-surface checkbox as filed asked about **concurrency**, not
-      just adjacency to `packages/*/src`, and review found the real answer is
+- [ ] deferred→[0140](../0140-nonvacuity-corpus-probes-residual-gaps.md) — the
+      probe-surface checkbox as filed asked about **concurrency**, not just
+      adjacency to `packages/*/src`, and review found the real answer is
       worse than the first version of this close claimed: the new probes sit
       in `docs/` and `work/bugs/`, roots also read by `check:fast` (the
       recommended on-save loop), `check:ledger`, and `check:numbers` — a
@@ -436,11 +437,13 @@ is outside it by construction.
       half) and every probe writes then deletes within one `withProbe` call
       (milliseconds of exposure), but a `check:fast` racing that window can
       still observe a transient probe and report a spurious violation against
-      a file gone by the time anyone looks. Moving the probe surface out of
-      every tracked corpus root entirely is the real fix and is out of scope
-      for a two-fixture conversion — this checkbox stays open, pointing at
-      this paragraph as its home, rather than closing on a narrower answer
-      than it asked.
+      a file gone by the time anyone looks. First closed this by pointing at
+      a paragraph inside this same record — caught on a second review pass as
+      the wrong kind of home, since a `fixed/` record has no future owner.
+      0140 also carries the `ROOTS`-coverage gap devops found in the same
+      round (a classified root can be _deleted_ from `ROOTS` without any
+      nonvacuity row noticing) — same shape, same fix-scope decision, one
+      record.
 - [x] `check:nonvacuity`'s summary states fixtures fired, not gates proven —
       prints "N fixtures each fired on their violating input — no fixture is
       silently green" (tightened once more after review: "none is silently
