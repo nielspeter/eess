@@ -748,7 +748,8 @@ const NO_GATE_NEEDED = {
   'check:fast': 'an alias — runs corpus + spec + arch, each gated on its own',
   'check:nonvacuity': 'this harness',
   'check:integrity': 'no-gate-yet — npm workspace guardrails, see 0110',
-  'check:examples': 'no-gate-yet — tsc over examples/, see 0110',
+  'check:examples':
+    'no-gate-yet — tsc over the single-dialect templates + vitest over cross-dialect.*.test.ts (plan 0091 made the latter half real: it runs eess-crossvalidate presets with genuine red fixtures), see 0110',
   'check:docs-code': 'no-gate-yet — doc fences compile, see 0110',
 }
 // A check:* script may run several presets, and one gate row proves only the one

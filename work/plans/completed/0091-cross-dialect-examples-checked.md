@@ -40,6 +40,24 @@
   than a second use of `drift.mmd` — `drift.mmd` already proves the code→diagram
   direction alone, since `diagramMatchesCode`'s own default `completeness` is
   already `'both'` (confirmed reading `packages/crossvalidate/src/mermaid-ts.ts`).
+- **Review-fix (2026-08-14):** Five reviewers (architect, product, enforcement,
+  testing, devops) ran against the built PR; no Criticals. Three independently
+  found the same gap — the plan's own "Fixture-duplication budget" section
+  (Phase 2) commits to a one-line comment marking twin fixtures shared with
+  `packages/crossvalidate/tests/fixtures/`, and none had been added. Fixed: each
+  `cross-dialect.*.test.ts` now carries a comment naming its fixture dir's twins.
+  Devops and enforcement independently flagged `scripts/check-nonvacuity.mjs`'s
+  `check:examples` waiver text as stale (still said "tsc over examples/",
+  undercounting what this plan just made real); corrected. Testing found the
+  gherkin-ts and mermaid-ts examples' red assertions were weaker than their
+  `toHaveLength`-asserting siblings in the same PR (an `arrayContaining`/`.some()`
+  check proves the expected violations fire but not that only they fire);
+  tightened to match. Testing also found the Gherkin↔TS example exercises only
+  `scenarioTestsResolve`, one of that binding's three README-documented exports
+  (`scenariosCovered`, `scenarioExemptionsCurrent` have no checked example) —
+  disclosed in `examples/README.md`'s binding table rather than expanded here, to
+  keep this plan's scope at the pair level it was designed at; a fuller binding
+  demo is a candidate follow-up, not filed as its own item yet.
 
 ## Problem
 

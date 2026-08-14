@@ -6,6 +6,9 @@ import { ArchRuleError } from '@nielspeter/eess'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
+// `docs/adr/0001-good.md`, `tests/example.test.ts`, and `tsconfig.json` here
+// are deliberate twins of packages/crossvalidate/tests/fixtures/citations/'s
+// files of the same name — keep them in sync, or drop the reuse if they diverge.
 const root = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/adr')
 const proj = () => project(join(root, 'tsconfig.json'))
 const c = (roots: string[]) => corpus({ roots, cwd: root })

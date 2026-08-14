@@ -9,6 +9,9 @@ import { ArchRuleError } from '@nielspeter/eess'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
+// `job-management.feature` and `docs/good.md`'s citation line here are
+// deliberate twins of packages/crossvalidate/tests/fixtures/gherkin-citations/'s
+// files of the same name — keep them in sync, or drop the reuse if they diverge.
 const root = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/gherkin')
 const c = (roots: string[]) => corpus({ roots, cwd: root })
 const set = () => features({ cwd: root, roots: ['features/**'] })

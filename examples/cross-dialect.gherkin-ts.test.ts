@@ -6,6 +6,9 @@ import { ArchRuleError } from '@nielspeter/eess'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
+// `red/dangling.cases.ts` and `green/tsconfig.json` here are deliberate
+// near-twins of packages/crossvalidate/tests/fixtures/gherkin-ts/'s files of
+// the same name — keep them in sync, or drop the reuse if they diverge.
 const root = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/gherkin-ts')
 const set = () => features({ cwd: root, roots: ['features/**'] })
 const proj = (name: string) => project(join(root, name, 'tsconfig.json'))
@@ -27,6 +30,7 @@ it('non-vacuous — the green project really cites a scenario', () =>
 
 it('red — a dangling path, an ambiguous suffix, and a missing scenario each fail the build', () => {
   const v = violations(() => scenarioTestsResolve(proj('red'), set()))
+  expect(v).toHaveLength(3)
   expect(v.map((x) => x.message)).toEqual(
     expect.arrayContaining([
       expect.stringMatching(/ghost\.feature.*no such feature file/),

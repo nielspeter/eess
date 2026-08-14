@@ -35,18 +35,22 @@ Each of the four README-documented `@nielspeter/eess-crossvalidate` bindings has
 build, with an actionable message), and a non-vacuity assertion proving the green
 case isn't silently checking nothing.
 
-| Example                                                                | Binding          | Fixtures                                                                                                                                                      |
-| ---------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [cross-dialect.md-gherkin.test.ts](./cross-dialect.md-gherkin.test.ts) | Markdown↔Gherkin | [fixtures/gherkin/](./fixtures/gherkin/) — `docs/bad-missing.md` is intentionally broken: it cites a scenario that isn't there                                |
-| [cross-dialect.md-ts.test.ts](./cross-dialect.md-ts.test.ts)           | Markdown↔TS      | [fixtures/adr/](./fixtures/adr/) — `docs/adr/0002-bad.md` is intentionally broken: it cites an `it()` that doesn't exist                                      |
-| [cross-dialect.gherkin-ts.test.ts](./cross-dialect.gherkin-ts.test.ts) | Gherkin↔TS       | [fixtures/gherkin-ts/red/](./fixtures/gherkin-ts/red/) — a dangling path, an ambiguous suffix, and a missing scenario, one per file, all intentionally broken |
-| [cross-dialect.mermaid-ts.test.ts](./cross-dialect.mermaid-ts.test.ts) | Mermaid↔TS       | [fixtures/calc/](./fixtures/calc/) — `drift.mmd` is missing a real code class (code→diagram); `ghost.mmd` names a class no code has (diagram→code)            |
+| Example                                                                | Binding          | Fixtures                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [cross-dialect.md-gherkin.test.ts](./cross-dialect.md-gherkin.test.ts) | Markdown↔Gherkin | [fixtures/gherkin/](./fixtures/gherkin/) — `docs/bad-missing.md` is intentionally broken: it cites a scenario that isn't there                                                                                                                                                                                                          |
+| [cross-dialect.md-ts.test.ts](./cross-dialect.md-ts.test.ts)           | Markdown↔TS      | [fixtures/adr/](./fixtures/adr/) — `docs/adr/0002-bad.md` is intentionally broken: it cites an `it()` that doesn't exist                                                                                                                                                                                                                |
+| [cross-dialect.gherkin-ts.test.ts](./cross-dialect.gherkin-ts.test.ts) | Gherkin↔TS       | [fixtures/gherkin-ts/red/](./fixtures/gherkin-ts/red/) — a dangling path, an ambiguous suffix, and a missing scenario, one per file, all intentionally broken. Exercises `scenarioTestsResolve` only — the README's other two Gherkin↔TS exports, `scenariosCovered` and `scenarioExemptionsCurrent`, have no checked example here yet. |
+| [cross-dialect.mermaid-ts.test.ts](./cross-dialect.mermaid-ts.test.ts) | Mermaid↔TS       | [fixtures/calc/](./fixtures/calc/) — `drift.mmd` is missing a real code class (code→diagram); `ghost.mmd` names a class no code has (diagram→code)                                                                                                                                                                                      |
 
 Fixture files with a `.ts` extension that sit outside a `cross-dialect.*.test.ts`
-file's own directory (e.g. `fixtures/calc/src/calc.ts`, `fixtures/gherkin-ts/**/*.cases.ts`)
-are read as text by ts-morph via the crossvalidate presets — they are intentionally
-**not** part of `examples/tsconfig.json`'s `include` and are never typechecked or
-executed on their own.
+file's own directory (e.g. `fixtures/calc/src/calc.ts`, `fixtures/gherkin-ts/**/*.cases.ts`,
+`fixtures/adr/tests/example.test.ts`) are read as text by ts-morph via the
+crossvalidate presets — they are intentionally **not** part of
+`examples/tsconfig.json`'s `include`, so they're never checked by `tsc` and never
+run by vitest as tests of their own. Several of these fixtures load under their
+own strict `tsconfig.json` at runtime, via the same `project()` call the
+crossvalidate preset uses to build its AST — that's a different, narrower check
+than `examples/tsconfig.json`'s typecheck, not the absence of one.
 
 ## Running
 
