@@ -2,7 +2,15 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-08-14. Created 2026-08-12; reworked 2026-08-12
+- **State:** Done — built and merged 2026-08-14 (PR #64, review-fix follow-up
+  in the same PR). `check:crossval` mounts `md↔gherkin` and `md↔mermaid`; the
+  repo dogfoods 5 of 7 `@nielspeter/eess-crossvalidate` bindings on its own
+  artifacts. `md↔mermaid-er` stays out of scope indefinitely (no erDiagram in
+  the corpus). Deferred: none — the two disclosed follow-ups (missing
+  `suggestion`/`docs` field on both new presets' violations; no
+  `EESS_CROSSVAL_*_ROOT`-style e2e tier for these two gates) are named in Out
+  of Scope below, alongside existing bugs 0097/0098, not new open items this
+  plan owes a home. Created 2026-08-12; reworked 2026-08-12
   after a six-persona review found the first pass manufactured proof that could
   not go green (a repo-root citation that wouldn't resolve, a two-line citation
   that never checked the scenario, and an md↔mermaid gate over fictional/flowchart
@@ -11,7 +19,7 @@
   verification of the review's own bug filings found that both reworked phases
   still rested on non-vacuity guards that cannot do the job: Phase 1's
   `scenarios > 0` counts the feature set's size, not anything scanned
-  ([bug 0098](../bugs/0098-scenario-stats-report-set-size-as-scan-count.md)), and
+  ([bug 0098](../../bugs/0098-scenario-stats-report-set-size-as-scan-count.md)), and
   Phase 2's fence count does not distinguish a classDiagram from a flowchart. Both
   now use the repo's real non-vacuity mechanism — a sabotage fixture — with the
   stats line demoted to a summary. The eess project dogfoods only **3 of the 7**
@@ -228,7 +236,7 @@ by title-bearing citations. It does not: `md-gherkin.ts:162` returns
 consulting the corpus at all. That guard is satisfied by the `.feature` files
 loading, whether or not a single document cites them, and would have shipped
 exactly the green-but-empty gate this plan exists to prevent
-([bug 0098](../bugs/0098-scenario-stats-report-set-size-as-scan-count.md)).
+([bug 0098](../../bugs/0098-scenario-stats-report-set-size-as-scan-count.md)).
 
 `s.citations === 0` is the honest floor available today: `citations` _is_ a
 corpus-side scan count. It is a weak floor — `docs/crossvalidate.md` already
@@ -414,7 +422,7 @@ which is the file's own inventory of what is proven.
   gate reuses the file's existing `scenarioSpecs` rather than a second
   hardcoded `FeatureSet`. Their imports.
   - **Not** the header comment: lines 6–8 are
-    [bug 0097](../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md)'s
+    [bug 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md)'s
     lane, and that bug changes two preset signatures, so it owns what the comment
     must end up saying. Whichever lands second inherits a correct comment.
 - `docs/crossvalidate.md` — fix line 79's citation to the cwd-relative
@@ -457,7 +465,7 @@ correct.
 - **md↔gherkin** — `s.citations === 0` throws. `citations` is a corpus-side scan
   count, so a misglobbed root or a doc that cites nothing fails rather than
   passes. It does **not** prove the title-resolution path ran; no exported field
-  can until [bug 0098](../bugs/0098-scenario-stats-report-set-size-as-scan-count.md)
+  can until [bug 0098](../../bugs/0098-scenario-stats-report-set-size-as-scan-count.md)
   adds `titled`, at which point this tightens to `s.titled === 0`. Stating the
   floor's limit is the point — the earlier `scenarios > 0` form claimed a
   strength it did not have.

@@ -5,7 +5,7 @@
 - **State:** Draft — reproduced with `file`, `grep`, `rg`, `git grep`, and
   `git show` on a real commit; root cause read from the bytes.
 - **Reported:** 2026-08-12 — self-found while verifying the bug reports filed
-  from the [plan 0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md)
+  from the [plan 0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)
   review, when repeated greps over the crossvalidate package returned nothing
   for a symbol that is plainly defined there.
 

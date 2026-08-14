@@ -211,7 +211,7 @@ existing `mermaid-ts`, and ship no new subpath.
   "sequence GraphQL second", "rank last") is unearned by the document's own
   standard — it has no demand signal — and the GraphQL finding proves it wrong in
   practice. The house already has the better pattern: plan
-  [0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md) parks the ER
+  [0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md) parks the ER
   binding with an explicit trigger — _the day a doc in this repo gains an
   erDiagram, that is when it becomes work_. A classification (tier +
   falsifiability + parser dependency + trigger) survives; a rank rots.

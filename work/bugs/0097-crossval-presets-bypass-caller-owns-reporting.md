@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — confirmed against the source; no red test written yet.
-- **Reported:** 2026-08-12 — self-found during the [plan 0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md)
+- **Reported:** 2026-08-12 — self-found during the [plan 0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)
   review, when the devops persona checked whether the existing dogfood gates
   actually fail on violations. **Rewritten 2026-08-12** after review: the first
   filing accused `scripts/check-crossval.mjs:6` of a stale comment ("the

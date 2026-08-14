@@ -4,7 +4,7 @@
 
 - **State:** Draft — confirmed against the source; no red test written yet.
 - **Reported:** 2026-08-12 — self-found while verifying the bug reports filed
-  from the [plan 0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md)
+  from the [plan 0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)
   review, when the field's actual expression was read rather than its name.
 
 ## Symptom
