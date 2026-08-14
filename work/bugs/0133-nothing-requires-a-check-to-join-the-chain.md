@@ -70,7 +70,7 @@ check:arch`), not an alias. The waiver's reason should say the true thing.
 - [ ] The chain-membership waiver is its own map, not `NO_GATE_NEEDED` — reusing the
       fixture waiver reintroduces the hole.
 - [ ] The control asserts **which** failure fired, not merely that one did
-      ([0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s lesson,
+      ([0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s lesson,
       and the one 0129's two failed attempts kept missing).
 - [ ] `check:fast`'s waiver reason describes a subset chain, not an alias.
 - [ ] `npm run validate` green.

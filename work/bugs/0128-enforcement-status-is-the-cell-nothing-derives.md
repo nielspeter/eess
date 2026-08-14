@@ -8,7 +8,7 @@
   cell a reader trusts most is the only one in the table that is a hand-typed
   claim, so it can become false without any gate moving.
 - **Origin:** self-found · same measurement as
-  [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md), scoping the
+  [0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md), scoping the
   ts-archunit doctrine port
 - **Reported:** 2026-08-12
 
@@ -159,7 +159,7 @@ Three, in ascending cost; the first is independent of any engine work.
       `scripts/nonvacuity/bad-adr/` carrying an invalid Status token, and a gate row
       asserting `adr/valid-status` fired. Without it, `adr/valid-status` ships as the
       next rule nothing can prove — this record's sibling
-      ([0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)) is exactly
+      ([0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)) is exactly
       that population, and a record about unverified claims must not add one.
 - [ ] The vocabulary is an option with an eess default, and `kit/` states it.
 - [ ] A changeset naming `@nielspeter/eess-md`, `breaking`-flagged, with the

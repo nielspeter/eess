@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-13 · **Open:** 34 (33 Draft · 1 Parked) · **Fixed:** 15 · **Rejected:** 0
+**Updated:** 2026-08-14 · **Open:** 33 (32 Draft · 1 Parked) · **Fixed:** 16 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -159,7 +159,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0124](./0124-correspondence-stamps-one-remedy-onto-opposite-branches.md) | a rule-level `suggestion` is stamped onto all three correspondence branches — one remedy shown for opposite causes                                                  | Medium   | 🔴 Draft            | self-found · enforcement review of 0122's fix                                | —         |
 | [0125](./0125-condition-context-metadata-is-now-redundant.md)             | five builders thread rule metadata that `applyFilters` now stamps anyway — dead weight that can only drift                                                          | Low      | 🔴 Draft            | self-found · architect review of 0122's fix                                  | —         |
 | [0126](./0126-validate-cannot-say-it-stopped-short.md)                    | a truncated `validate` run looks like a green one — the chain reports the steps it ran and nothing about the ones it did not                                        | Medium   | 🔴 Draft            | self-found · hid the test suite for a full session                           | —         |
-| [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)          | no `gateNode` fixture proves the production gate still invokes its rule — two rebuild it, five exercise the preset; 36 of 45 dogfood rules have none                | High     | 🔴 Draft            | self-found · instrumented both kernel seams while scoping 0088               | —         |
+| [0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)    | no `gateNode` fixture proves the production gate still invokes its rule — two rebuild it, five exercise the preset; 36 of 45 dogfood rules have none                | High     | ✅ Fixed → `fixed/` | self-found · instrumented both kernel seams while scoping 0088               | #TBD      |
 | [0128](./0128-enforcement-status-is-the-cell-nothing-derives.md)          | `Status` is the only Enforcement cell nothing validates — 20 rows claim `gated`, 3 checked at case granularity, 17 only at file existence                           | Medium   | 🔴 Draft            | self-found · same measurement as 0127                                        | —         |
 | [0129](./fixed/0129-four-validate-gates-run-in-no-workflow.md)            | four gates in `validate` ran in no workflow — a ledger violation, a duplicate number or a preset violation merged green                                             | High     | ✅ Fixed → `fixed/` | self-found · devops review of 0127 + 0128                                    | #49       |
 | [0130](./0130-cli-summary-counts-the-invocation.md)                       | the shipped `eess-ts check` summary counts the command line, not the work — under a comment claiming it proves non-vacuity                                          | Medium   | 🔴 Draft            | self-found · customer review of 0127 + 0128                                  | —         |

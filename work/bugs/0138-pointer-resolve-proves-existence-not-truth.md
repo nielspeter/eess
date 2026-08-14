@@ -10,7 +10,7 @@
   session's own work leaned on as if it were stronger.
 - **Origin:** self-found · surfaced three times over by an enforcement reviewer
   and a testing reviewer auditing successive citation fixes to
-  [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) on
+  [0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) on
   2026-08-13 — every wrong `path:line` attribution in that round-trip still
   resolved, so `check:corpus` stayed green through all four revisions.
 - **Reported:** 2026-08-13
@@ -101,7 +101,7 @@ rm -rf reports/__pointer_demo__
 its content. The control rules out the alternative explanation: `violations: 0`
 is not the corpus glob matching nothing, or the pointer syntax going
 unrecognized — the same green would print either way without it, which is
-[0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s own lesson
+[0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s own lesson
 ("a reproduction constructed so it could not have failed") applied to this
 record's own reproduction.
 

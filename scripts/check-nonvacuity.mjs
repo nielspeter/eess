@@ -3,10 +3,13 @@
  * NON-VACUITY HARNESS (plan 0060 Phase 6).
  *
  * A dogfood gate that passes because it inspects nothing (green-but-empty) is
- * worse than no gate: it manufactures false confidence. This harness proves the
- * opposite — that every gate actually FAILS when fed deliberately-violating
- * input. Each gate below is run against a hand-crafted bad input and asserted to
- * exit 1 (and, where possible, to name the specific rule that fired).
+ * worse than no gate: it manufactures false confidence. This harness proves that
+ * every FIXTURE below fails when fed deliberately-violating input (bug 0127:
+ * "every gate actually FAILS" over-claimed — most fixtures prove their own
+ * condition fires, not that the production `check:*` script invokes it; the rows
+ * marked "production script" below are the exception). Each gate is run against
+ * a hand-crafted bad input and asserted to exit 1 (and, where possible, to name
+ * the specific rule that fired).
  *
  * Gate → violating input → rule that must fire:
  *   arch          packages/core/src/__nonvacuity_probe__.ts imports the raw
@@ -28,10 +31,14 @@
  *                 from the feature set → crossval/scenario-tests-resolve.
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
- *   corpus/links  scripts/nonvacuity/bad-links/broken.md links a missing file →
- *                 the links().should().resolve() check.
- *   corpus/ptr    scripts/nonvacuity/bad-pointers/ cites a line that does not
- *                 exist → the pointers().should().resolve() check.
+ *   corpus/links/site, corpus/links/repo-native (production script — bug 0127)
+ *                 a probe planted under docs/ and under work/bugs/ respectively
+ *                 links a missing file, and the PRODUCTION `scripts/check-corpus.mjs`
+ *                 is run over it (not a rebuilt private copy) → corpus/broken-links,
+ *                 one row per routing region bug 0086 split `broken` into.
+ *   corpus/pointers (production script — bug 0127)
+ *                 a probe cites a line that does not exist and the PRODUCTION
+ *                 `scripts/check-corpus.mjs` is run over it → corpus/pointers-resolve.
  *   review-harness  scripts/nonvacuity/bad-review-harness/ carries foreign-project
  *                 tokens → check-review-harness.mjs.
  *   work/numbers  scripts/nonvacuity/bad-numbers/ claims one number in two lanes
@@ -75,7 +82,7 @@
  * packages.
  *
  * Run: `node scripts/check-nonvacuity.mjs` (`npm run check:nonvacuity`, and in
- * the `validate` chain). Exits 0 iff every gate failed on its violating input.
+ * the `validate` chain). Exits 0 iff every fixture fired on its violating input.
  */
 import { spawnSync } from 'node:child_process'
 import { writeFileSync, rmSync, readFileSync } from 'node:fs'
@@ -89,6 +96,14 @@ const EESS_MERMAID = join(repoRoot, 'node_modules', '.bin', 'eess-mermaid')
 const PROBE_ARCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe__.ts')
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
 const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
+// Bug 0127: corpus/links must prove BOTH routing regions (bug 0086's
+// site-vs-repo-native split), and corpus/pointers must drive the production
+// script — not a private rebuilt copy. One probe per region/rule, planted in
+// real corpus roots (never packages/*/src, so these never collide with the
+// three probes above).
+const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe__.md')
+const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe__.md')
+const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
 
 /** Run a command from the repo root and capture combined stdout+stderr + exit code. */
 function sh(cmd, args) {
@@ -163,6 +178,9 @@ function withProbe(path, contents, fn) {
 rmSync(PROBE_ARCH, { force: true })
 rmSync(PROBE_CATCH, { force: true })
 rmSync(PROBE_EVAL, { force: true })
+rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
+rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
+rmSync(PROBE_CORPUS_POINTER, { force: true })
 
 // --- Gate: arch (root cross-package rules) ---
 function gateArch() {
@@ -246,6 +264,61 @@ function gateSpec() {
   const r = sh(EESS_TS, ['check', 'scripts/nonvacuity/bad-spec.rules.ts', '--format', 'json'])
   const ok = r.code === 1 && firedOn(r, 'spec/nonvacuity-probe')
   return { ok, detail: `exit ${r.code} (spec/nonvacuity-probe)` }
+}
+
+// --- Gate: corpus/links, site region (docs/) ---
+// Bug 0127: `bad-links.mjs` rebuilt its own rule with its own id
+// (`nonvacuity/broken-links`), proving only that the underlying condition
+// fires over a fixture corpus it built by hand — nothing bound it to the
+// production script. This drives `scripts/check-corpus.mjs` itself, on a
+// probe planted under `docs/` — the SITE_OPTS-routed region bug 0086 split
+// `broken` into.
+function gateCorpusLinksSite() {
+  const bad = withProbe(
+    PROBE_CORPUS_LINK_SITE,
+    '# Non-vacuity probe\n\nSee the [missing page](./__nonvacuity_does_not_exist__.md).\n',
+    () => sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+  )
+  const ok = bad.code === 1 && firedOn(bad, 'corpus/broken-links', '__nonvacuity_probe__.md')
+  const clean = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
+  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
+  return { ok, detail: `bad → exit ${bad.code} (corpus/broken-links, docs/) · ${cleanNote}` }
+}
+
+// --- Gate: corpus/links, repo-native region (work/, adr/) ---
+// The other half of the same split — `broken` unions two independently
+// filtered spreads (`scripts/check-corpus.mjs:115-118`), so a probe in only
+// one region cannot prove the other branch is wired. Two rows, not one,
+// mirroring the `corpus/ledger/*` precedent for a single fixture proving
+// several rules.
+function gateCorpusLinksRepoNative() {
+  const bad = withProbe(
+    PROBE_CORPUS_LINK_REPO,
+    '# Non-vacuity probe\n\nSee the [missing page](./__nonvacuity_does_not_exist__.md).\n',
+    () => sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+  )
+  const ok = bad.code === 1 && firedOn(bad, 'corpus/broken-links', '__nonvacuity_probe__.md')
+  const clean = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
+  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
+  return { ok, detail: `bad → exit ${bad.code} (corpus/broken-links, work/) · ${cleanNote}` }
+}
+
+// --- Gate: corpus/pointers ---
+// Same defect as the links gates, one condition over: `bad-pointers.mjs`
+// rebuilt `nonvacuity/pointers-resolve` rather than driving
+// `corpus/pointers-resolve` in the production script. Pointer resolution
+// isn't region-split (unlike links), so one probe suffices.
+function gateCorpusPointers() {
+  const bad = withProbe(
+    PROBE_CORPUS_POINTER,
+    '# Non-vacuity probe\n\nA live claim about code that does not exist: `src/__nonvacuity_does_not_exist__.ts:12`\n',
+    () => sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+  )
+  const ok =
+    bad.code === 1 && firedOn(bad, 'corpus/pointers-resolve', '__nonvacuity_probe_pointer__.md')
+  const clean = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
+  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
+  return { ok, detail: `bad → exit ${bad.code} (corpus/pointers-resolve) · ${cleanNote}` }
 }
 
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
@@ -367,7 +440,12 @@ const gates = [
     'corpus/ledger/uncovered-lane',
     () => gateNode('bad-lane-coverage.mjs', 'ledger/uncovered-lane'),
   ],
-  ['corpus/links', () => gateNode('bad-links.mjs', 'nonvacuity/broken-links')],
+  // Bug 0127: converted from a rebuilt-rule fixture to driving the
+  // production `scripts/check-corpus.mjs` directly. Two rows, one per
+  // routing region bug 0086 split `broken` into — a single probe cannot
+  // prove the other region's spread is still wired.
+  ['corpus/links/site', gateCorpusLinksSite],
+  ['corpus/links/repo-native', gateCorpusLinksRepoNative],
   // Bug 0086's review round: check-corpus.mjs's directory-link routing
   // (which region gets resolveDirectories) must fail closed on an
   // unclassified root and default-deny an unrecognised one — both were
@@ -376,7 +454,9 @@ const gates = [
     'corpus/link-routing',
     () => gateNode('bad-corpus-link-routing.mjs', 'corpus/link-routing-fails-closed'),
   ],
-  ['corpus/pointers', () => gateNode('bad-pointers.mjs', 'nonvacuity/pointers-resolve')],
+  // Bug 0127: converted from a rebuilt-rule fixture to driving the
+  // production script, matching the links gates above.
+  ['corpus/pointers', gateCorpusPointers],
   // One row per release rule, asserting rule AND element as an exact set:
   // neutering the changed-package correspondence still emits its rule id (for the
   // ghost declaration instead of the undeclared package), so a rule-name
@@ -428,7 +508,13 @@ const GATE_FOR = {
   'check:diagram': ['diagram'],
   'check:spec': ['spec'],
   'check:crossval': ['crossval', 'crossval/gherkin-ts', 'crossval/md-ts'],
-  'check:corpus': ['corpus/adr', 'corpus/links', 'corpus/link-routing', 'corpus/pointers'],
+  'check:corpus': [
+    'corpus/adr',
+    'corpus/links/site',
+    'corpus/links/repo-native',
+    'corpus/link-routing',
+    'corpus/pointers',
+  ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
   'check:ledger': [
@@ -506,9 +592,12 @@ for (const [name, run] of gates) {
   console.log(`nonvacuity: ${name} — ${status} · ${res.detail}`)
 }
 
+// Bug 0127: "gates each failed" over-claimed — most fixtures prove their own
+// condition fires, not that the production gate script invokes it. State
+// what was actually measured.
 console.log(
   allOk
-    ? `\nnonvacuity: ${gateCount} gates each failed on their violating input — none is silently green.`
-    : '\nnonvacuity: at least one gate did NOT fail on violating input — see above.',
+    ? `\nnonvacuity: ${gateCount} fixtures each fired on their violating input — none is silently green.`
+    : '\nnonvacuity: at least one fixture did NOT fire on its violating input — see above.',
 )
 process.exit(allOk ? 0 : 1)

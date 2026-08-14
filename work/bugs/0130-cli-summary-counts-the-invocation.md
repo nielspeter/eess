@@ -7,7 +7,7 @@
 - **Severity:** Medium — an honesty gap between a stated claim and its actual
   mechanism, which is `BUGS.md`'s Medium row. Filed knowing the argument for High:
   its consequence lands on an **adopter's first run**, and it is the reporting half
-  of [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md). It is Medium
+  of [0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md). It is Medium
   because nothing here passes over drift that is present — the rules genuinely find
   nothing because they examine nothing, and it is the summary that misrepresents
   that.

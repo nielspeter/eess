@@ -12,7 +12,7 @@
   live in **CI** rather than in a record. Four gates that block locally blocked
   nothing on a pull request.
 - **Origin:** self-found · devops persona, six-persona review of
-  [0127](../0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) and
+  [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) and
   [0128](../0128-enforcement-status-is-the-cell-nothing-derives.md)
 - **Reported:** 2026-08-12 · **Fixed:** 2026-08-13 (PR #49)
 
@@ -64,7 +64,7 @@ in `cleanNote` and never enters `ok`, so a genuine `recommended` violation in
 `packages/*/src` leaves that row green. That is now stated at its site rather than
 left to be discovered.
 
-This is [0127](../0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s shape
+This is [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s shape
 one level up, and worse in one respect: 0127's uncovered rules at least **run** in
 CI. These four did not run at all.
 
