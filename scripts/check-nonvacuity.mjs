@@ -34,6 +34,16 @@
  *                 diagram→code direction specifically.
  *   crossval/gk   the gherkin-ts `red` fixture project cites scenarios absent
  *                 from the feature set → crossval/scenario-tests-resolve.
+ *   crossval/md-gherkin (plan 0096)
+ *                 scripts/nonvacuity/bad-md-gherkin/cites-missing-scenario.md
+ *                 cites a real feature file with a scenario title absent from
+ *                 it → crossval/scenario-citations-resolve, the title-missing
+ *                 submode specifically.
+ *   crossval/md-mermaid (plan 0096)
+ *                 scripts/nonvacuity/bad-md-mermaid/{drifted,emptied}-diagram.md
+ *                 declare a class absent from packages/core and a content-free
+ *                 classDiagram fence respectively → crossval/embedded-diagram,
+ *                 the leftUnmatched and rightUnmatched submodes.
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
  *   corpus/links/site, corpus/links/repo-native (production script — bug 0127)
@@ -634,6 +644,16 @@ const gates = [
   ['crossval', () => gateNode('bad-crossval.mjs', 'crossval/diagram-completeness')],
   ['crossval/gherkin-ts', () => gateNode('bad-gherkin-ts.mjs', 'crossval/scenario-tests-resolve')],
   ['crossval/md-ts', () => gateNode('bad-md-ts.mjs', 'crossval/adr-citations-resolve')],
+  // Plan 0096: md↔gherkin/md↔mermaid dogfood bindings. Both presets share one
+  // ruleId across multiple failure submodes, so each fixture asserts on
+  // message, not just ruleId — mustSay here is still the ruleId (gateNode's
+  // own substring check), the submode discrimination happens inside the
+  // fixture itself, matching bad-crossval.mjs's precedent.
+  [
+    'crossval/md-gherkin',
+    () => gateNode('bad-md-gherkin.mjs', 'crossval/scenario-citations-resolve'),
+  ],
+  ['crossval/md-mermaid', () => gateNode('bad-md-mermaid.mjs', 'crossval/embedded-diagram')],
   // Plan 0145 (proposal 005): strong tier from day one — drives the real
   // check-crossval.mjs via EESS_CROSSVAL_GHERKIN_ROOT, not a rebuilt copy.
   // One fixture, three rule ids (its own row count below matches).
@@ -750,6 +770,8 @@ const GATE_FOR = {
     'crossval/md-ts',
     'crossval/scenario-exemption-stale',
     'crossval/scenarios-covered-e2e',
+    'crossval/md-gherkin',
+    'crossval/md-mermaid',
   ],
   'check:corpus': [
     'corpus/adr',
