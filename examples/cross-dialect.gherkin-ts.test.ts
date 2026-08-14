@@ -49,6 +49,12 @@ it('red — a dangling path, an ambiguous suffix, and a missing scenario each fa
 it('green — every scenario is cited by at least one test (coverage)', () =>
   expect(() => scenariosCovered(proj('covered'), set())).not.toThrow())
 
+it('non-vacuous — the covered project really cites every scenario', () => {
+  const stats = scenarioTestStats(proj('covered'), set())
+  expect(stats.citations).toBe(3) // all three scenarios in this fixture's set
+  expect(stats.scenarios).toBe(3)
+})
+
 it('red — a scenario no test cites fails the build (coverage)', () => {
   const v = violations(() => scenariosCovered(proj('green'), set()))
   expect(v).toHaveLength(2)
