@@ -48,6 +48,28 @@
  *                 a probe cites a line that does not exist and the PRODUCTION
  *                 `scripts/check-corpus.mjs` is run both ways, same as above →
  *                 corpus/pointers-resolve.
+ *   corpus/proposal-plan-linkage, corpus/proposal-ruling-unparseable,
+ *   corpus/proposal-implements-discriminates, corpus/plan-implements-unparseable,
+ *   corpus/plan-implements-unresolved (production script — bug 0141 / plan 0142)
+ *                 ephemeral probes under work/proposals/ and work/plans/, the
+ *                 real `scripts/check-corpus.mjs` run both ways, same shape as
+ *                 corpus/links/pointers above → corpus/accepted-proposal-uncited,
+ *                 corpus/proposal-ruling-unparseable, the prose-vs-declared
+ *                 discrimination, corpus/plan-implements-unparseable,
+ *                 corpus/plan-implements-unresolved. (Omitted from this table
+ *                 when first added — found again, fixed here, plan 0145.)
+ *   corpus/proposal-ruling-module (bug 0141 / plan 0142)
+ *                 direct assertions on scripts/lib/proposal-ruling.mjs's own
+ *                 exports — one tier weaker (proves the module, not that
+ *                 check-corpus.mjs invokes it; the five rows above cover that).
+ *   crossval/scenario-exemption-stale, crossval/scenarios-covered-e2e
+ *   (production script — proposal 005 / plan 0145)
+ *                 a throwaway specs/ directory per scenario, the real
+ *                 `scripts/check-crossval.mjs` pointed at it via
+ *                 EESS_CROSSVAL_GHERKIN_ROOT and run both ways, same shape as
+ *                 corpus/links/pointers above → crossval/scenario-exemption-stale,
+ *                 crossval/scenarios-covered (closing one of bug 0112's three
+ *                 named rows).
  *   review-harness  scripts/nonvacuity/bad-review-harness/ carries foreign-project
  *                 tokens → check-review-harness.mjs.
  *   work/numbers  scripts/nonvacuity/bad-numbers/ claims one number in two lanes
@@ -612,6 +634,17 @@ const gates = [
   ['crossval', () => gateNode('bad-crossval.mjs', 'crossval/diagram-completeness')],
   ['crossval/gherkin-ts', () => gateNode('bad-gherkin-ts.mjs', 'crossval/scenario-tests-resolve')],
   ['crossval/md-ts', () => gateNode('bad-md-ts.mjs', 'crossval/adr-citations-resolve')],
+  // Plan 0145 (proposal 005): strong tier from day one — drives the real
+  // check-crossval.mjs via EESS_CROSSVAL_GHERKIN_ROOT, not a rebuilt copy.
+  // One fixture, three rule ids (its own row count below matches).
+  [
+    'crossval/scenario-exemption-stale',
+    () => gateNode('bad-crossval-gherkin-e2e.mjs', 'crossval/scenario-exemption-stale'),
+  ],
+  [
+    'crossval/scenarios-covered-e2e',
+    () => gateNode('bad-crossval-gherkin-e2e.mjs', 'crossval/scenarios-covered'),
+  ],
   ['corpus/adr', () => gateNode('bad-adr.mjs', 'adr/valid-tiers')],
   // Three rows, one per rule the fixture must make fire. The fixture exits 0
   // unless ALL three do, so any one of them going quiet reddens all three rows —
@@ -711,7 +744,13 @@ const GATE_FOR = {
   'check:baseline': ['baseline'],
   'check:diagram': ['diagram'],
   'check:spec': ['spec'],
-  'check:crossval': ['crossval', 'crossval/gherkin-ts', 'crossval/md-ts'],
+  'check:crossval': [
+    'crossval',
+    'crossval/gherkin-ts',
+    'crossval/md-ts',
+    'crossval/scenario-exemption-stale',
+    'crossval/scenarios-covered-e2e',
+  ],
   'check:corpus': [
     'corpus/adr',
     'corpus/links/site',

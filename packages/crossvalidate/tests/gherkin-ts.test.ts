@@ -7,6 +7,8 @@ import { project } from '@nielspeter/eess-ts'
 import {
   scenarioTestsResolve,
   scenariosCovered,
+  scenarioExemptionsCurrent,
+  citedScenarioSites,
   scenarioTestStats,
   defaultExtract,
 } from '../src/gherkin-ts.js'
@@ -132,5 +134,55 @@ describe('scenariosCovered() — the coverage direction', () => {
     const stats = scenarioTestStats(proj('covered'), set())
     expect(stats.citations).toBe(4) // all four scenarios cited
     expect(stats.scenarios).toBe(4)
+  })
+})
+
+describe('citedScenarioSites() — plan 0145', () => {
+  it('maps a cited scenario to the site of the test that cites it', () => {
+    const sites = citedScenarioSites(proj('covered'), set(), defaultExtract)
+    const site = sites.get('features/nested/dup.feature Another dup scenario')
+    expect(site).toBeDefined()
+    expect(site?.title).toBe('features/nested/dup.feature › Another dup scenario')
+    expect(site?.file).toMatch(/all\.cases\.ts$/)
+    expect(site?.line).toBeGreaterThan(0)
+  })
+
+  it('omits a scenario no test cites', () => {
+    const sites = citedScenarioSites(proj('green'), set(), defaultExtract)
+    expect(sites.has('features/nested/dup.feature Another dup scenario')).toBe(false)
+  })
+})
+
+describe('scenarioExemptionsCurrent() — plan 0145 (proposal 005)', () => {
+  const wip = { isExempt: (s: { tags: readonly string[] }) => s.tags.includes('wip') }
+
+  it('fires when an exempt scenario already has a citing test (stale exemption)', () => {
+    const violations = violationsOf(() => scenarioExemptionsCurrent(proj('covered'), set(), wip))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.element).toBe('features/nested/dup.feature › Another dup scenario')
+    expect(violations[0]?.ruleId).toBe('crossval/scenario-exemption-stale')
+    expect(violations[0]?.message).toMatch(/is exempt but .*all\.cases\.ts:\d+ already cites it/)
+    expect(violations[0]?.suggestion).toMatch(/remove the exempting tag/)
+  })
+
+  it('is silent when the exempt scenario has no citing test yet (green)', () => {
+    expect(() => scenarioExemptionsCurrent(proj('green'), set(), wip)).not.toThrow()
+  })
+
+  it('is silent for a non-exempt scenario regardless of citation (isExempt scopes the check)', () => {
+    // `covered` cites every scenario, including three non-@wip ones — none of
+    // them should be reported, since only exempt scenarios are ever checked.
+    const violations = violationsOf(() =>
+      scenarioExemptionsCurrent(proj('covered'), set(), { isExempt: () => false }),
+    )
+    expect(violations).toEqual([])
+  })
+
+  it('report: return hands violations back without writing to stderr (ADR-008)', () => {
+    const errSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+    const result = scenarioExemptionsCurrent(proj('covered'), set(), { ...wip, report: 'return' })
+    expect(result).toHaveLength(1)
+    expect(errSpy).not.toHaveBeenCalled()
+    errSpy.mockRestore()
   })
 })

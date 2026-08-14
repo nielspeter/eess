@@ -113,9 +113,13 @@ is not evidence, re-derive it).
 
 - Commit one new scenario to
   `packages/crossvalidate/specs/scenario-binding.feature`, tagged `@wip`,
-  describing [plan 0079](../plans/0079-tier-2-3-mechanization.md)'s own
-  still-open Tier-2 step-exercising gap — genuinely unbuilt, not a scenario
-  this change itself will make stale.
+  staying inside the feature's own real scope (a scenario↔test binding
+  capability, not an unrelated example) rather than a generic placeholder:
+  "a cited scenario's steps are proven to run, not just cited" — the exact
+  Tier-2 gap `scenarioTestsResolve`/`scenariosCovered`'s own docstrings
+  already name as open ([plan 0079](../plans/0079-tier-2-3-mechanization.md),
+  "a mechanism; none exists"). Genuinely unbuilt, not a scenario this change
+  itself will make stale.
 - `packages/crossvalidate/README.md`: document `scenariosCovered` (currently
   undocumented — the discoverability gap proposal 005's own Origin fell
   into) alongside `scenarioExemptionsCurrent`.
@@ -189,7 +193,12 @@ state (the committed `@wip` scenario present and uncited, satisfying
 
 ## Progress ledger
 
-- [ ] Phase 1 — core export, unit-tested
-- [ ] Phase 2 — non-vacuity, strong tier, mutation-verified
-- [ ] Phase 3 — dogfood wiring, docs, changeset; `check:corpus` shows a real
-      accepted+implemented pair
+- [x] Phase 1 — core export, unit-tested (18 tests in `gherkin-ts.test.ts`,
+      77/77 crossvalidate suite green, `tsc --noEmit` clean)
+- [x] Phase 2 — non-vacuity, strong tier, mutation-verified (31 fixtures
+      total, both new rows confirmed to catch their target mutation; also
+      fixed the harness header's pre-existing omission of plan 0142's rows,
+      found again while editing the same table)
+- [x] Phase 3 — dogfood wiring, docs, changeset; `check:corpus` shows a real
+      accepted+implemented pair (`1 accepted`, ✓), `check:crossval` shows a
+      real, non-zero, honestly-uncited `1 exempt scenario(s) evaluated`
