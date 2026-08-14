@@ -282,8 +282,42 @@ the terminal reporter and `--format json`; `PROPOSALS.md`, `CLAUDE.md`, and
 the `review-proposal`/`plan` skills updated to document the actual shapes and
 the Ruling→red-gate consequence.
 
-Full findings (six full reviews) are in the session record, not reproduced
-here per this file's own brevity convention.
+### Second review round — 2026-08-14
+
+A fresh six-persona review of the fixed code (not a blind repeat — each
+persona verified their own prior finding against the actual diff) found two
+more criticals and confirmed the first round's fixes hold:
+
+1. **A bulleted, blockquoted, or indented `**Ruling:`line was silently
+invisible** — the exact defect class item 2 above closed on the
+Implements side, never mirrored back onto Ruling. Two reviewers
+reproduced it live. Fixed: both regexes now share one`LABEL_PREFIX`.
+2. **The two checks added by item 2's own fix
+   (`corpus/plan-implements-unparseable`, `corpus/plan-implements-unresolved`)
+   shipped with zero non-vacuity coverage** — three reviewers independently
+   deleted their violation logic by mutation and `check:nonvacuity` stayed
+   green, because `gateCoverage()` asserts per-script, not per-rule-id.
+   Fixed: two more `gateCorpusProbe` rows.
+3. **Bug 0143's severity claim was corrected in place** (not silently) —
+   its premise that the hand-rolled parser was "correct today" was false
+   when written; the defect in (1) is now cited as the bug's own strongest
+   evidence.
+
+Then, independently re-verified and fixed three more well-corroborated
+findings before considering the branch done: a plan declaring two
+`**Implements:**` lines silently kept the first and told the author to add
+a line they already had (product, customer, testing — three reviewers) —
+now resolves to neither and is its own `plan-implements-unparseable`
+finding; the dangling-proposal-number check was built from `liveDocs`, so
+an archived proposal read as nonexistent (architect, devops) — now
+`allDocs`; and `scripts/lib/proposal-ruling.mjs` had no direct-policy
+non-vacuity fixture unlike its two `scripts/lib/` siblings (testing,
+devops) — added `scripts/nonvacuity/bad-proposal-ruling.mjs`, verified to
+catch the specific mutations testing's own matrix found surviving
+(last-Ruling-wins direction, the markdown-link Implements form).
+
+Full findings (twelve full reviews across two rounds) are in the session
+record, not reproduced here per this file's own brevity convention.
 
 ## Success definition
 

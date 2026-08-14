@@ -135,26 +135,35 @@ export function isAccepted(ruling) {
 // own Status block cites `[bug 0141](../bugs/…)`), and no end anchor, so
 // trailing rationale after the number (matching `- **State:** Ready — …`'s
 // own shape) doesn't break the match.
-const IMPLEMENTS_RE = new RegExp(
+const IMPLEMENTS_SOURCE =
   LABEL_PREFIX +
-    String.raw`\*\*Implements:\*\*\s*(?:\[proposal (\d+)\b[^\]]*\]\([^)]*\)|proposal\s+(\d+)\b)`,
-  'im',
-)
+  String.raw`\*\*Implements:\*\*\s*(?:\[proposal (\d+)\b[^\]]*\]\([^)]*\)|proposal\s+(\d+)\b)`
+const IMPLEMENTS_RE = new RegExp(IMPLEMENTS_SOURCE, 'im')
+// Global variant, for counting — a plan is a `keyBy` join input (one key per
+// element), so it must declare exactly one. Second-round branch review
+// (product, customer, testing — three, independently): a second
+// `**Implements:**` line was silently dropped, and the resulting violation
+// on the OTHER proposal told the author to add a line their plan already
+// had. Two-or-more is now the same "unparseable" finding as zero-that-parse,
+// not a silent pick-the-first.
+const IMPLEMENTS_RE_G = new RegExp(IMPLEMENTS_SOURCE, 'gim')
 const IMPLEMENTS_LABEL_RE = new RegExp(`${LABEL_PREFIX}\\*\\*Implements:\\*\\*`, 'm')
 
 /**
  * The proposal number a plan declares it implements, via its own
  * `**Implements:** proposal NNN` header line (bare or markdown-link form,
- * optionally bulleted) — `null` if it declares none. A textual mention
- * elsewhere in the plan's prose does not count: bug 0141 found the only
- * three real citations in this corpus mention a proposal while explicitly
- * excluding it from scope or citing it as a dependency to re-check, never
- * implementing it — a declared header line is required.
+ * optionally bulleted) — `null` if it declares none, or more than one (a
+ * plan is a single-key join input; see {@link hasUnparseableImplements}). A
+ * textual mention elsewhere in the plan's prose does not count: bug 0141
+ * found the only three real citations in this corpus mention a proposal
+ * while explicitly excluding it from scope or citing it as a dependency to
+ * re-check, never implementing it — a declared header line is required.
  */
 export function declaredImplements(text) {
   const stripped = stripFencedCode(text)
-  const m = stripped.match(IMPLEMENTS_RE)
-  if (!m) return null
+  const matches = [...stripped.matchAll(IMPLEMENTS_RE_G)]
+  if (matches.length !== 1) return null
+  const m = matches[0]
   // Normalized the same way as proposalNumberFromPath — "proposal 002" and
   // "proposal 2" must key identically, since the join is on the number, not
   // its zero-padding.
@@ -162,9 +171,10 @@ export function declaredImplements(text) {
 }
 
 /** True if the document has a line that looks like an Implements declaration
- * but doesn't parse — mirrors {@link hasUnparseableRuling} so a garbled
- * back-reference is a finding, not silence (plan 0142's own "zero silent
- * exclusions" success criterion, applied to both sides of the join). */
+ * but doesn't resolve to exactly one proposal number — zero that parse, or
+ * more than one — mirrors {@link hasUnparseableRuling} so a garbled or
+ * doubled back-reference is a finding, not silence (plan 0142's own "zero
+ * silent exclusions" success criterion, applied to both sides of the join). */
 export function hasUnparseableImplements(text) {
   const stripped = stripFencedCode(text)
   return IMPLEMENTS_LABEL_RE.test(stripped) && declaredImplements(stripped) === null

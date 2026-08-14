@@ -261,8 +261,12 @@ const unparseableImplementsViolations = unparseableImplementsDocs.map((d) => ({
   element: d.relPath,
   file: d.file,
   line: declaredImplementsLine(d.text),
-  message: `${d.relPath} has an "**Implements:**" line that does not name a proposal number`,
-  suggestion: 'write exactly "**Implements:** proposal NNN" (bare number or a markdown link).',
+  message:
+    `${d.relPath} has an "**Implements:**" declaration that does not resolve to exactly ` +
+    'one proposal number (missing, malformed, or more than one)',
+  suggestion:
+    'write exactly one "**Implements:** proposal NNN" line (bare number or a markdown ' +
+    'link) — a plan declares at most one proposal; if it builds two, file two plans.',
   codeFrame: undefined,
 }))
 
@@ -272,8 +276,12 @@ const unparseableImplementsViolations = unparseableImplementsDocs.map((d) => ({
 // plan introduces. Deliberately independent of Ruling/acceptance: a plan may
 // legitimately implement a proposal that isn't accepted yet (0142 itself did,
 // briefly, while Draft) — only existence is checked here.
+// allDocs, not liveDocs: existence isn't a liveness question — an archived
+// proposal still exists (branch review, architect + devops independently:
+// the first version used liveDocs, so a plan citing an archived proposal
+// was told to "file the missing proposal" for one that plainly exists).
 const allProposalNumbers = new Set(
-  liveDocs.filter(isProposalDoc).map((d) => proposalNumberFromPath(d.relPath)),
+  allDocs.filter(isProposalDoc).map((d) => proposalNumberFromPath(d.relPath)),
 )
 const danglingImplementsDocs = liveDocs.filter((d) => {
   if (!isPlanDoc(d)) return false

@@ -651,6 +651,16 @@ const gates = [
   ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
   ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
   ['corpus/plan-implements-unresolved', gateCorpusPlanImplementsUnresolved],
+  // Second-round branch review's own mutation matrix: several of
+  // proposal-ruling.mjs's exported behaviors (last-Ruling-wins scoping, the
+  // markdown-link Implements form, fence-blindness, multi-Implements
+  // rejection) survived being mutated away with all the end-to-end probes
+  // above still green — none of them individually exercises every shape.
+  // Direct module-level assertions, the corpus-link-routing.mjs shape.
+  [
+    'corpus/proposal-ruling-module',
+    () => gateNode('bad-proposal-ruling.mjs', 'proposal-ruling/module-behavior'),
+  ],
   // One row per release rule, asserting rule AND element as an exact set:
   // neutering the changed-package correspondence still emits its rule id (for the
   // ghost declaration instead of the undeclared package), so a rule-name
@@ -713,6 +723,7 @@ const GATE_FOR = {
     'corpus/proposal-implements-discriminates',
     'corpus/plan-implements-unparseable',
     'corpus/plan-implements-unresolved',
+    'corpus/proposal-ruling-module',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
