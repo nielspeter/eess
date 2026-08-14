@@ -66,7 +66,7 @@ proposal_, as a `## Review — YYYY-MM-DD` section, with the submission preserve
 below it rather than edited away. The Ruling itself is a fixed-shape, literal
 line — `**Ruling: <verdict>**`, bold closing immediately after the verdict, one
 of the six values below **verbatim, same casing** (bug 0141, fixed 2026-08-14 by
-[plan 0142](../plans/0142-bind-proposals-to-plans.md): a Ruling written as a
+[plan 0142](../plans/completed/0142-bind-proposals-to-plans.md): a Ruling written as a
 sentence — `**Ruling: rewrite needed — because …**` — is not reliably
 parseable, and every proposal filed before 0142 had drifted into its own shape):
 
@@ -96,7 +96,7 @@ declares in its own `## Status` header, e.g. `- **Implements:** proposal 002` or
 number or a markdown link, optionally bulleted (every real `## Status` header in
 this repo is a bulleted list), with any trailing rationale after it ignored. A
 textual mention of a proposal elsewhere in the plan is not this —
-[bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md) found that
+[bug 0141](../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md) found that
 0089, 0090, and 0101 all cite a proposal in prose without implementing it (two
 exclude one from scope; one cites another only as a re-check dependency). Only a
 declared `**Implements:**` line counts, and it must name a real proposal number —
@@ -121,13 +121,13 @@ false claims about corpus state contained one.
 
 ## Board
 
-| Item                                                                                         | Priority | Status      | Ruling         | Origin                      | Related plans                                                                                                                                                                                                                                                                                                            |
-| -------------------------------------------------------------------------------------------- | -------- | ----------- | -------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [001 — express a corpus's own conventions](./001-md-corpus-rule-coverage.md)                 | High     | 🔵 Reviewed | Rewrite needed | self-found                  | builds on [0069](../plans/completed/0069-spec-corpus-reach.md) ✅; out of scope for [0089](../plans/0089-family-standalone-sufficiency.md), [0101](../plans/0101-sibling-gates-go-fail-closed.md)                                                                                                                        |
-| [002 — links embedded in source-code comments](./002-comment-embedded-links.md)              | Medium   | 🔵 Reviewed | Rewrite needed | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md) ⇄ (cited both ways)                                                                                                                                                                                                                               |
-| [003 — future dialect candidates (catalog)](./003-future-dialect-candidates.md)              | —        | 🔵 Reviewed | Rewrite needed | brainstormed w/ maintainer  | excludes [0078](../plans/0078-workflow-dialect.md); ER candidate parked by [0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md)                                                                                                                                                                               |
-| [004 — corpus-content `explain` equivalent](./004-corpus-content-explain.md)                 | Low      | 🔵 Reviewed | Docs-only      | inbound · consuming project | CLI question sequenced after [0089](../plans/0089-family-standalone-sufficiency.md)                                                                                                                                                                                                                                      |
-| [005 — crossvalidate: detect a stale `@wip` tag](./005-crossvalidate-stale-wip-detection.md) | Medium   | 🔵 Reviewed | Ship as-is     | inbound · consuming project | folds in one row of [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md); cites [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the fixture tier avoided; accepted after a third review round found [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md) |
+| Item                                                                                         | Priority | Status      | Ruling         | Origin                      | Related plans                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------------------------------------------------------------------------- | -------- | ----------- | -------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [001 — express a corpus's own conventions](./001-md-corpus-rule-coverage.md)                 | High     | 🔵 Reviewed | Rewrite needed | self-found                  | builds on [0069](../plans/completed/0069-spec-corpus-reach.md) ✅; out of scope for [0089](../plans/0089-family-standalone-sufficiency.md), [0101](../plans/0101-sibling-gates-go-fail-closed.md)                                                                                                                                                                                                                |
+| [002 — links embedded in source-code comments](./002-comment-embedded-links.md)              | Medium   | 🔵 Reviewed | Rewrite needed | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md) ⇄ (cited both ways)                                                                                                                                                                                                                                                                                                                       |
+| [003 — future dialect candidates (catalog)](./003-future-dialect-candidates.md)              | —        | 🔵 Reviewed | Rewrite needed | brainstormed w/ maintainer  | excludes [0078](../plans/0078-workflow-dialect.md); ER candidate parked by [0096](../plans/0096-dogfood-missing-crossvalidate-bindings.md)                                                                                                                                                                                                                                                                       |
+| [004 — corpus-content `explain` equivalent](./004-corpus-content-explain.md)                 | Low      | 🔵 Reviewed | Docs-only      | inbound · consuming project | CLI question sequenced after [0089](../plans/0089-family-standalone-sufficiency.md)                                                                                                                                                                                                                                                                                                                              |
+| [005 — crossvalidate: detect a stale `@wip` tag](./005-crossvalidate-stale-wip-detection.md) | Medium   | 🔵 Reviewed | Ship as-is     | inbound · consuming project | implemented by [0145](../plans/completed/0145-crossvalidate-stale-wip-detection.md) ✅; folds in one row of [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md); cites [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the fixture tier avoided; accepted after a third review round found [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md) |
 
 **What each one asked for.** 001 — `terms()`/`vocabulary()` plus coverage over
 the md corpus. 002 — resolve doc citations embedded in source-code comments.
@@ -135,12 +135,14 @@ the md corpus. 002 — resolve doc citations embedded in source-code comments.
 primitive for md/gherkin. 005 — detect a Gherkin scenario still tagged `@wip`
 after a real test already cites it.
 
-**Read of the board (2026-08-14).** **005 has spawned a plan** —
-[0145](../plans/0145-crossvalidate-stale-wip-detection.md), the first time
-any proposal here has, and the first real exercise of the proposal→plan
-linkage gate ([bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
-0142](../plans/0142-bind-proposals-to-plans.md)) against real content rather
-than a synthetic probe. It took three review rounds, not one: 005's survey
+**Read of the board (2026-08-14).** **005 has spawned a plan, built and
+merged** —
+[0145](../plans/completed/0145-crossvalidate-stale-wip-detection.md), the
+first time any proposal here has, and the first real exercise of the
+proposal→plan linkage gate
+([bug 0141](../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
+0142](../plans/completed/0142-bind-proposals-to-plans.md)) against real
+content rather than a synthetic probe. It took three review rounds, not one: 005's survey
 found nothing wrong (the capability really is new), but its evidence and
 acceptance criteria needed two full rewrites before they held up — round 2
 found the first rewrite's own placement argument was factually wrong, and
@@ -169,7 +171,7 @@ picking any of these up:
   that 0096 already parks the ER binding for want of an `erDiagram` in this repo,
   and to flag that 004's CLI question is downstream of 0089's Phase 2 wording.
 - **005 is now the two-way binding, alongside 002.**
-  [Plan 0145](../plans/0145-crossvalidate-stale-wip-detection.md) declares
+  [Plan 0145](../plans/completed/0145-crossvalidate-stale-wip-detection.md) declares
   `**Implements:** proposal 005` in its own header, and this row names the
   plan back. 005 also still cites bugs, both directions run forward: it
   folds one row of [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)

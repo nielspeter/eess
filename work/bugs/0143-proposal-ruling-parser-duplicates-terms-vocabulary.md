@@ -28,7 +28,7 @@
   > updated in place rather than rewritten.
 
 - **Origin:** self-found · architect review of the branch that built
-  [plan 0142](../plans/0142-bind-proposals-to-plans.md), 2026-08-14
+  [plan 0142](../plans/completed/0142-bind-proposals-to-plans.md), 2026-08-14
 - **Reported:** 2026-08-14
 
 ## Symptom
@@ -108,7 +108,7 @@ Not urgent: the hand-rolled parser is correct today, independently verified
 by six reviewers plus mutation testing — after one review round found it was
 not (see the Correction above). It matters because it is a second,
 independently-maintained copy of logic `eess-md` already ships and tests —
-exactly the drift class [bug 0141](./0141-no-check-binds-accepted-proposals-to-plans.md)
+exactly the drift class [bug 0141](./fixed/0141-no-check-binds-accepted-proposals-to-plans.md)
 itself diagnosed (a documented
 capability and its actual mechanism disagreeing), one level up, in the tool
 that dogfoods the discipline of not doing that.
