@@ -1,18 +1,22 @@
 # Proposal 005 — crossvalidate: detect a stale `@wip` tag
 
-**State:** Draft — two review rounds 2026-08-14 (round 1: architect · product
-· enforcement, plus survey; round 2, scoped: architect · enforcement, on the
-round-1 rewrite). **`Rewrite v2`** below is the operative section — it
-replaces `Rewrite v1` after round 2 found v1's kernel-placement argument was
-factually wrong and its non-vacuity plan modeled the fixture on the exact
-tier bug 0127 had just fixed away from, hours earlier in the same session.
-`Rewrite v1` is preserved in _Appendix B_; the original submission in
-_Appendix A_. One question is explicitly still open (see `Rewrite v2 → Open
-questions`); the rest — including, now, "kernel primitive or dialect-local?"
-— are resolved with stated reasoning, not decided silently. Two review
-rounds on one proposal is not a sign this needs a third; it is what
-independent verification of a rewrite is supposed to look like when the
-rewrite itself turns out to be wrong somewhere.
+**State:** Draft — three review rounds 2026-08-14 (round 1: architect ·
+product · enforcement, plus survey; round 2, scoped: architect · enforcement,
+on the round-1 rewrite; round 3, full again: architect · product ·
+enforcement, on whether the round-2 rewrite was ready for actual acceptance —
+the first proposal in this repo evaluated against a real, built proposal→plan
+linkage gate, [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
+0142](../plans/0142-bind-proposals-to-plans.md)). **`Rewrite v3`** below is
+the operative section — round 3 found the core thesis (placement, break
+class, evidence) sound for the first time, and two closable-not-fundamental
+defect classes: the `isExempt`/`include` defaults were jointly unsatisfiable,
+and the non-vacuity design could not be built as specified, four separate
+ways. Both fixed by name, not by another spike. `Rewrite v2` is preserved in
+_Appendix C_, `Rewrite v1` in _Appendix B_, the original submission in
+_Appendix A_. See `## Review — 2026-08-14 (third pass...)` below for the
+round-3 Ruling. Three review rounds on one proposal is not a sign of a
+troubled proposal; it is what happens when review is genuinely independent
+and a rewrite is checked as hard as a submission.
 **Priority:** Medium — extends the reach of an already-shipped primitive
 (`scenariosCovered`'s `include` option); does not close a correctness gap in
 what eess currently _claims_ to check, since `scenariosCovered` never claimed
@@ -22,8 +26,9 @@ to detect this.
 exempt not-yet-built scenarios via `@wip` tags, per that option's own JSDoc
 example (`"handy for @wip scenarios"`).
 **Affects:** `@nielspeter/eess-crossvalidate` (`gherkin-ts` subpath) —
-`staleScenarioExemptions` — and `scripts/check-crossval.mjs` (this repo's own
-dogfood wiring, not a package). No kernel change. See `Rewrite v2 → Scope`.
+`scenarioExemptionsCurrent`, `citedScenarioSites` — and
+`scripts/check-crossval.mjs` (this repo's own dogfood wiring, not a
+package). No kernel change. See `Rewrite v3 → Scope`.
 
 ## Problem
 
@@ -315,7 +320,378 @@ Rewrite v2 below. Not spiked a second time — the corrections are analytical
 the fixture on 0127's _fixed_ shape, not its pre-fix one), not claims that
 need new measurement.
 
-## Rewrite v2 — 2026-08-14
+## Review — 2026-08-14 (third pass, full — evaluating for acceptance)
+
+**Ruling: Ship as-is**
+
+Full three-persona review (architect, product, enforcement — round 1's full
+roster, not round 2's scoped pair), because this pass decided whether the
+proposal is actually accepted, not just whether the rewrite improved. All
+three independently confirmed the core thesis is now sound: placement
+(`packages/crossvalidate`'s `gherkin-ts` subpath, no kernel change — verified
+against `matchSelections`'s real pair-duplication defect, which is what
+killed the kernel-routed design two rounds ago), the break class (a scenario
+matching a caller-supplied `isExempt` with a real citing test — verified
+against the model's actual line-attribution capability), and the evidence
+(a spike plus an analytical proof that the code path the finding depends on
+literally cannot represent the alternative hypothesis) all held under
+independent re-verification, for the first time across three rounds.
+
+Two real defect classes remained, both closable by name rather than by
+another spike, and both closed in `Rewrite v3` below rather than left as
+conditions on a future plan to rediscover:
+
+1. **The `isExempt`/`include` defaults were jointly unsatisfiable** — any
+   `@wip` scenario would fail one gate or the other, always, under both
+   shipped defaults. Found independently by two reviewers, confirmed by the
+   third. Closed by making `isExempt` required — no default, so no shape of
+   the API is silently self-contradictory.
+2. **The non-vacuity design could not be built as specified**, four separate
+   ways (a fixture harness that cannot drive a script needing its corpus
+   swapped; a citing-test file scoped to one exact path, not a glob; the
+   cited precedent being this repo's own named-weaker tier; a production
+   denominator that would read zero forever). Found independently by two
+   reviewers from different angles, both naming the same resolution
+   (`bad-release-e2e.mjs`'s real-script-plus-input-override shape). Closed
+   by redesigning around that precedent, adding `--format json` to
+   `scripts/check-crossval.mjs` (this repo's own bug-0110 precedent for
+   exactly this problem), and committing one honestly-still-unbuilt `@wip`
+   scenario to the real corpus so the production denominator is never zero
+   by construction.
+
+Also closed: two rounds of naming drift (`staleScenarioExemptions` read as a
+data-getter against its own siblings' property-sentence convention;
+`ScenarioCitationExtract` was justified by a citation the coordinator's own
+NUL-byte-defeated grep got wrong, and a corrected justification still called
+for a different name); no `suggestion`/citation-site on the violation (three
+independent findings across the three reviewers); and the `scenariosCovered`
+call this proposal must edit having zero non-vacuity coverage of its own —
+folded into this plan's scope rather than deferred to bug 0112, per two
+reviewers' independent conclusion that the edit is what makes that gap
+load-bearing.
+
+One thing was found and fixed _outside_ this proposal, in the course of
+verifying it: [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)
+— `md-gherkin.ts` contained raw NUL bytes that made `grep` silently treat it
+as binary, producing a real false negative in this very review round.
+
+The remaining open question (should a `@wip` scenario survive to its owning
+plan's close) is correctly left open — a different trigger on a different
+lifecycle, reserved for the library author, not settled here.
+
+`/plan` it as Draft; `**Implements:** proposal 005` in the plan's own
+`## Status` header, per `PROPOSALS.md`'s convention.
+
+## Rewrite v3 — 2026-08-14
+
+Replaces _Rewrite v2_ (now _Appendix C_) in full. Third review round (this
+time full: architect, product, enforcement), triggered because this proposal
+was being evaluated for actual acceptance for the first time — the first
+proposal in this repo to reach that point since [bug 0141](../bugs/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
+0142](../plans/0142-bind-proposals-to-plans.md) wired a real gate to it. All
+three reviewers independently confirmed the placement, break class, and
+evidence discipline are now correct — the first round of the three where the
+core thesis survived intact. Two classes of real defect remained, both
+closable without new measurement, and are closed below. A verification note
+first: the coordinator's own Step 2 survey claimed `ExtractedCitation` does
+not exist in `md-gherkin.ts`; it does (`md-gherkin.ts:18`) — the grep that
+said otherwise was defeated by two raw NUL bytes in that file, which made it
+read as binary. Filed and fixed as [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md),
+outside this proposal. `ExtractedTestCitation`, the type this proposal
+actually extends, remains `gherkin-ts.ts`'s own, not `md-gherkin.ts`'s — the
+naming decision below is corrected accordingly.
+
+### What this pass found wrong
+
+**The `isExempt`/`include` defaults are jointly unsatisfiable, unstated.**
+`scenariosCovered`'s default (`include = () => true`) requires every scenario
+be cited; `staleScenarioExemptions`'s default (`isExempt =
+s.tags.includes('wip')`) requires every `@wip` scenario be **uncited**. Any
+`@wip` scenario fails one gate or the other, always, under both defaults —
+found independently by two reviewers, and the third confirmed no default
+resolves it. This is also the load-bearing reason `scripts/check-crossval.mjs:95`
+must gain `include` — the Rewrite v2 text derived that necessity from a
+different, incorrect premise (that the repo "cannot host an uncited `@wip`
+scenario" — true, but irrelevant, since the new gate's own fixture needs a
+**cited** one).
+
+**The non-vacuity design could not be built as specified — confirmed
+independently by two reviewers, from different angles:**
+
+- `scripts/check-nonvacuity.mjs`'s `gateNode` runs fixtures under
+  `scripts/nonvacuity/` only — it cannot drive a script that itself needs
+  its target corpus swapped.
+- `packages/crossvalidate/specs/gate.tsconfig.json` scopes the citing side to
+  exactly one file (`../tests/scenario-binding.spec.ts`), by path, not a
+  glob — an ephemeral probe `.spec.ts` is invisible to the gate that would
+  need to see it.
+- The cited precedent (`crossval`/`crossval/gherkin-ts`/`crossval/md-ts`) is
+  the tier this repo's own harness docstring names as "one tier weaker" —
+  the exact class bug 0127 converted `corpus/links`/`corpus/pointers` away
+  from. The strong-tier precedent already exists in this repo
+  (`bad-release-e2e.mjs`) and was not the one cited.
+- Wired as specified, the production gate's own denominator (`exempt
+scenarios evaluated`) would be **structurally zero forever**: the real
+  corpus's only `@wip`-adjacent tag lives at the feature level (which does
+  not inherit to scenarios), so `set.scenarios().filter(isExempt)` is empty
+  on every real run once any ephemeral probe is removed. A printed-but-
+  unasserted count does not close this — round 1 already rejected "a stats
+  function a caller must remember to eyeball" as the answer, for the same
+  reason.
+- `mustSay` keyed on the rendered rule sentence is bug 0110's pre-fix shape,
+  re-derived one bug later — this repo's own `check-baseline.mjs` solved the
+  identical "no `--format json`" problem by adding the flag, not by keying
+  on prose.
+
+**Three smaller, real gaps, each independently found:** the violation sketch
+names the stale scenario but not the test that cites it (an author must grep
+to act on the finding); `STALE_RULE`'s wording ("proves") repeats the exact
+over-claim the Evidence section itself corrected two sections earlier; and
+`scenarioTestStats`'s existing denominator (unfiltered scenario count) would
+silently stop matching what `scenariosCovered` actually gates the moment
+`include` narrows it — a second gate's own honesty regresses as a side
+effect of shipping this one.
+
+### Decided 2026-08-14
+
+**`isExempt` has no default — it is required.** Closes the joint-
+unsatisfiability hazard by construction rather than by documentation: there
+is no shape in which a caller adds this export to an existing
+`scenariosCovered({ include })` call and gets a silently-contradictory pair.
+The cost is one extra argument at every call site; the benefit is that the
+`@wip` vocabulary is no longer baked into a public default (repo-wide,
+`@wip` appears only in two JSDoc examples, in no README, in no docs page —
+elevating an example to a shipped default would have bound every
+`eess-gherkin` adopter to one tag vocabulary).
+
+**Renamed, both for the reason each round-2/3 finding gave:**
+
+- `staleScenarioExemptions` → **`scenarioExemptionsCurrent`** — every sibling
+  export in this subpath is a property-sentence naming what must hold
+  (`scenarioTestsResolve`, `scenariosCovered`); the original name read as a
+  data-getter (compare `scenarioTestStats`, which _is_ one) while actually
+  throwing by default. `scenarioExemptionsCurrent` reads as the property: the
+  exemptions in force are still current, none has been overtaken by a
+  citation.
+- `ScenarioCitationExtract` → **`TestCitationExtractor`** — the type is a
+  function, and both `Extracted...` names in this package (`gherkin-ts.ts`'s
+  `ExtractedTestCitation`, `md-gherkin.ts`'s `ExtractedCitation`) are already
+  data shapes; a third bare `...Extract` noun reads as a fourth data shape,
+  not a callback. `TestCitationExtractor` says what it is and what it
+  returns, and does not compete with `md-gherkin`'s own, differently-shaped,
+  `ScenarioCitationsResolveOptions.extract`.
+
+**The citation-extraction machinery now returns sites, not just keys** —
+closes both the "no stats export" defect (I1, round 3) and the "no citation
+site in the violation" defect (I3, round 3) with one change:
+
+```ts
+/** Every test citation, keyed by the scenario it cites — `TestCitationSite`
+ * (already used internally by scenarioTestsResolve) is now exported so a
+ * consumer can report where a citation lives, not just that one exists. */
+export function citedScenarioSites(
+  project: ArchProject,
+  set: FeatureSet,
+  extract: TestCitationExtractor,
+): Map<string, TestCitationSite>
+```
+
+`citedScenarioKeys` (module-private) becomes a one-line wrapper
+(`new Set(citedScenarioSites(...).keys())`) so `scenariosCovered` is
+unchanged in behavior. `scenarioExemptionsCurrent` uses the sites map
+directly — the violation can now report the citing test's own `file`/`line`
+alongside the scenario's, and a caller can print `sites.size` as an honest
+denominator.
+
+### Proposed API (revised)
+
+```ts
+export interface ScenarioExemptionsCurrentOptions extends PresetReportOptions {
+  readonly isExempt: (scenario: GherkinScenario) => boolean // required — see Decided, above
+  readonly extract?: TestCitationExtractor
+}
+
+const RULE = 'an exempt scenario should have its exemption removed once a test cites it'
+
+export function scenarioExemptionsCurrent(
+  project: ArchProject,
+  set: FeatureSet,
+  options: ScenarioExemptionsCurrentOptions,
+): ArchViolation[] {
+  const extract = options.extract ?? defaultExtract
+  const sites = citedScenarioSites(project, set, extract)
+  const violations = set
+    .scenarios()
+    .filter((s) => options.isExempt(s))
+    .flatMap((s) => {
+      const site = sites.get(`${s.relPath} ${s.title}`)
+      if (site === undefined) return []
+      return [
+        {
+          rule: RULE,
+          ruleId: 'crossval/scenario-exemption-stale',
+          element: `${s.relPath} › ${s.title}`,
+          file: s.file,
+          line: s.line,
+          message: `scenario "${s.title}" is exempt but ${site.file}:${site.line} already cites it`,
+          because:
+            'an exemption that has outlived its reason is a silent hole in the coverage gate',
+          suggestion:
+            `if the scenario is genuinely done, remove the exempting tag; if the exemption is ` +
+            `still intentional (flaky, partial, tracked elsewhere), narrow isExempt to exclude it`,
+        },
+      ]
+    })
+  return finishPreset(violations, options)
+}
+```
+
+Same reuse claim as v2, strengthened: still composes existing, separately-
+tested pieces (`citedScenarioSites`'s new export wraps logic
+`scenarioTestsResolve`/`scenariosCovered` already exercise); the two-branch
+`suggestion` — delete the tag, or narrow `isExempt` — answers I3 (round 3)
+directly, at the failure site rather than only in JSDoc.
+
+### Escape hatch — unchanged design, one addition
+
+`isExempt` being required makes the escape hatch (`(s) => s.tags.includes('wip')
+&& !s.tags.includes('tracked')`) the caller's own explicit choice rather than
+an override of a shipped default — strictly better for discoverability. Add
+one JSDoc sentence naming the risk product's round-3 review flagged: `@wip
+@tracked` silences forever, with nothing checking the tracking claim stays
+true. Not built here — named, so a future proposal has the actual gap on
+record rather than rediscovering it.
+
+### Non-vacuity (revised — strong tier, driven by the real script with a scoped input override)
+
+**The registration surface, corrected first** (round-3 enforcement: the prior
+text named one site; there are four): the harness header docblock's gate
+table, the `gates` array, `GATE_FOR['check:crossval']`, and a startup-sweep
+entry per ephemeral probe path.
+
+**The mechanism**, following this repo's own strong-tier precedent
+(`bad-release-e2e.mjs`, which runs the real `check-release.mjs` against a
+throwaway git repository via `EESS_RELEASE_BASE`) rather than the `crossval/*`
+rows' weaker tier:
+
+1. **Add `--format json` to `scripts/check-crossval.mjs`**, matching
+   `check-corpus.mjs`/`check-baseline.mjs` (bug 0110's precedent: `gateBaseline`
+   dropped its prose-matching `mustSay` the moment the script gained the flag).
+   `finishPreset` already threads `format` through `reportViolations` — no
+   restructuring, one `{ format }` argument at each preset call the script
+   makes.
+2. **Scope the gherkin corpus behind one override**, read only by the three
+   gherkin-ts gates (`scenarioTestsResolve`, `scenariosCovered`,
+   `scenarioExemptionsCurrent`), leaving the other two gates (diagram↔code,
+   ADR↔test) untouched and still reading the real corpus unconditionally:
+
+   ```js
+   const gherkinRoot = process.env.EESS_CROSSVAL_GHERKIN_ROOT ?? 'packages/crossvalidate/specs'
+   const scenarioSpecs = features(`${gherkinRoot}/**/*.feature`)
+   const scenarioSpecProject = project(`${gherkinRoot}/gate.tsconfig.json`)
+   ```
+
+   A fixture sets `EESS_CROSSVAL_GHERKIN_ROOT` to a throwaway directory
+   holding its own `.feature`, `.spec.ts`, and `gate.tsconfig.json` — the
+   real, production `scripts/check-crossval.mjs` runs unmodified, its own
+   `gate(...)` wiring and exit path both exercised, with only the gherkin
+   data source swapped. This is the "input override," not a rebuilt copy —
+   the same shape `EESS_RELEASE_BASE` already established as this repo's
+   answer to "the real script needs a different environment to prove a
+   behavior."
+
+3. **The fixture** (`scripts/nonvacuity/bad-crossval-gherkin-e2e.mjs`,
+   mirroring `bad-release-e2e.mjs`'s per-scenario shape): build a throwaway
+   directory with a `.feature` carrying one `@wip` scenario and a
+   `.spec.ts` whose `it()` title cites it; run `node scripts/check-crossval.mjs
+--format json` with the override set; assert `firedOn(r,
+'crossval/scenario-exemption-stale', …)` **and** a bare-terminal run's exit
+   code, the two-run pattern bug 0127 established. A second scenario (no
+   citing test) proves the negative: the same gate must NOT fire when the
+   exemption is genuinely still in force.
+4. **The production denominator is fixed by committing one real, honestly
+   still-unbuilt scenario**, not by asserting a printed-but-unchecked count.
+   `packages/crossvalidate/specs/scenario-binding.feature` gains one new
+   scenario, tagged `@wip`, describing [plan 0079](../plans/0079-tier-2-3-mechanization.md)'s
+   own still-open Tier-2 step-exercising gap ("a scenario's steps are proven
+   to run, not just cited") — genuinely not yet built, by an existing,
+   independent High-priority plan with no mechanism in sight, the honest
+   candidate this proposal itself named as one option. `scenarioExemptionsCurrent`'s
+   own denominator is then ≥ 1 in the steady state, not 0.
+5. **`scenariosCovered`'s call gains `include: (s) => !s.tags.includes('wip')`**
+   at `check-crossval.mjs:95` — not optional, per _Decided_ above — and its
+   existing denominator line is corrected to print the **filtered** count
+   (`scenarios().filter(include).length`, not `scenarioTestStats`'s
+   unfiltered one), so it keeps meaning what it already claims to mean.
+6. **A `scenariosCovered` fixture joins this plan**, folding in one of [bug
+   0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)'s three
+   named rows rather than waiting on it — both round-3 product and
+   enforcement independently reached this conclusion: `include` is a new,
+   unpoliced exclusion lever on a gate with zero fixture coverage today, and
+   this proposal is what makes that gap load-bearing rather than latent.
+   This is a scope increase over v2, and the right one — it does not require
+   0112 to land first, since this proposal now closes the one row 0112 names
+   that its own change touches.
+
+### Acceptance criteria (revised)
+
+- Break class: a scenario matching the caller-supplied `isExempt` with a
+  real, resolvable citing test produces one violation naming the scenario's
+  own `file`/`line` **and** the citing test's `file`/`line` (via
+  `citedScenarioSites`) — not the tag's; the model has no per-tag position
+  (unchanged from v2, still correct).
+- The `.skip` question, left implicit in v1/v2, is decided: a citation from
+  a **skipped** test still counts as "cites it" for staleness, matching
+  `scenarioTestsResolve`/`scenariosCovered`'s own existing treatment
+  (`gherkin-ts.ts:70-75`) — consistency across the three gherkin-ts gates is
+  worth more than a bespoke carve-out, and the escape hatch (`isExempt`
+  narrowed, or `@wip @tracked`) is the same answer either way. Stated
+  explicitly so a plan does not have to re-derive it.
+- Non-vacuity: the strong-tier fixture (`bad-crossval-gherkin-e2e.mjs`) proving
+  both the fire and no-fire directions against the real script, **and** the
+  production denominator fixed by a committed, honestly-unbuilt `@wip`
+  scenario — not a fixture alone, not a printed-only count.
+- Precondition: `haveUniqueTitles()` must hold over the scenario set — owned
+  by the caller (`scripts/check-crossval.mjs`), matching the sibling's own
+  stated precondition.
+
+### Open questions — all resolved or explicitly deferred
+
+- ~~New export vs. a mode~~, ~~`isExempt` vs. inverted `include`~~, ~~escape
+  hatch~~ — resolved in Rewrite v1/v2, unchanged.
+- ~~Should `isExempt` have a default?~~ — **resolved this round**: no.
+- **Still open, correctly, and still not this proposal's to settle**: should
+  a `@wip` scenario be allowed to survive to its owning plan's close? A
+  different trigger (a plan closing) on a different lifecycle (not a
+  citation resolving) — its own proposal, if anyone wants it built.
+
+### Scope (revised)
+
+- `packages/crossvalidate` (`gherkin-ts` subpath, same file —
+  `citedScenarioKeys` is module-private, so this only ever meant
+  `src/gherkin-ts.ts`, now stated): `scenarioExemptionsCurrent`,
+  `citedScenarioSites` (exported), `TestCitationExtractor` (exported,
+  replaces two duplicated inline signatures), `TestCitationSite` (exported).
+- `packages/crossvalidate/README.md` — document `scenariosCovered` (currently
+  undocumented — the gap the proposal's own Origin fell into) alongside the
+  new export, not just the new export alone.
+- `packages/crossvalidate/specs/scenario-binding.feature` — one new,
+  genuinely-unbuilt `@wip` scenario (plan 0079's Tier-2 gap).
+- `scripts/check-crossval.mjs` — `--format json`; `EESS_CROSSVAL_GHERKIN_ROOT`
+  override; the new `include` on `scenariosCovered`'s call plus its corrected
+  denominator print; the new `scenarioExemptionsCurrent` gate call.
+- `scripts/nonvacuity/bad-crossval-gherkin-e2e.mjs` (new) plus
+  `scripts/nonvacuity/bad-gherkin-ts.mjs`-adjacent fixture for
+  `scenariosCovered` (closes one of bug 0112's three rows).
+- `scripts/check-nonvacuity.mjs` — new gate rows, `GATE_FOR` entries, header
+  docblock update (all four registration sites, per this round's own
+  correction).
+
+One changeset: `@nielspeter/eess-crossvalidate`, minor (two new exports,
+one renamed/removed export — `staleScenarioExemptions` never shipped, so
+this is still purely additive, not a breaking rename).
+
+## Appendix C — Rewrite v2 (superseded 2026-08-14, third pass)
 
 Replaces _Rewrite v1_ (now _Appendix B_) in full. Two spikes from v1 are still
 valid evidence (the corrected Evidence measurement; `beDisjoint()` existing
@@ -755,9 +1131,11 @@ additive). Two changesets when this becomes a plan.
 
 ## Appendix A — original submission (superseded 2026-08-14)
 
-Preserved for history, not as current design. The _Review_ section above
-documents what was found wrong; the _Rewrite_ section above is what replaces
-it. Nothing below this line is current.
+Preserved for history, not as current design. `## Review — 2026-08-14`
+documents what was found wrong with it; `## Rewrite v3 — 2026-08-14` (the
+operative section, near the top of this file) is what replaces it — by way
+of `Appendix B` (Rewrite v1) and `Appendix C` (Rewrite v2), each in turn
+superseded and preserved below. Nothing below this line is current.
 
 ### Evidence (original)
 
