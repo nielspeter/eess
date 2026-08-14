@@ -19,3 +19,9 @@ docs/.vitepress/cache/
 # Local research/positioning drafts — not part of the engineering corpus, so no
 # gate covers them (check:corpus roots are work/, adr/, docs/).
 reports/
+
+# scripts/check-nonvacuity.mjs's ephemeral probes (written just before a gate
+# runs, deleted in a finally block) — a hard kill (SIGKILL, cancelled CI job)
+# skips the finally, and since bug 0127 some probes live in tracked corpus
+# roots (docs/, work/bugs/) instead of only packages/*/src.
+**/__nonvacuity_probe*

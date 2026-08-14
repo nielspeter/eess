@@ -11,7 +11,7 @@
   a **published** preset, and its cost is that every kernel-level guarantee — the
   ones that exist and the ones 0088 will add — routes around it silently.
 - **Origin:** self-found · architect persona, six-persona review of
-  [0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) and
+  [0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) and
   [0128](./0128-enforcement-status-is-the-cell-nothing-derives.md)
 - **Reported:** 2026-08-12
 
@@ -58,7 +58,7 @@ mechanism that operates on rules:
 
 - **Today:** it emits no evidence at either examining seam, so a coverage
   measurement over the family cannot see it
-  ([0127](./0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) counts it as
+  ([0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) counts it as
   zero rules), and `.excluding()`, `select()`, baseline/diff and the combinators do
   not apply to it.
 - **After 0088:** the fail-closed floor lands at the terminal seam. `honestyAtClose`

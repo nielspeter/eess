@@ -2,22 +2,36 @@
 
 ## Status
 
-- **State:** Draft — measured, corrected under review, and the correction is
-  recorded below rather than edited away. Citations and counts refreshed
-  2026-08-13 after unrelated PRs (0086, 0121) moved the lines this record
-  cites — see that correction below too. No red test yet.
+- **State:** Fixed — `corpus/links` converted from a rebuilt-rule fixture to
+  two production-script-driven gates, one per bug 0086's routing region;
+  `corpus/pointers` converted the same way. A six-persona branch review found
+  the first version still passed only `check-corpus.mjs --format json`, never
+  the no-flags terminal invocation `check:corpus` actually runs in CI — three
+  reviewers independently reproduced a live false green from it (deleting
+  `check-corpus.mjs`'s terminal `process.exit(1)` alone left all three new
+  rows green while a real broken link passed the build). Each gate now asserts
+  **both** exit codes. Verified against a seven-mutation sabotage matrix
+  (whole-array neutering, each spread deleted independently, pointer
+  collection neutered, the terminal exit statement deleted, the rule id
+  renamed) — every mutation reddens exactly the row(s) it should and nothing
+  else, `scripts/check-corpus.mjs` confirmed reverted byte-identical after
+  each. `check:nonvacuity`'s summary corrected to "fixtures fired," not "gates
+  proven," and tightened once more after review to "no fixture is silently
+  green" (the original wording still read as a claim about the whole gate,
+  which is not what's measured). Moved to `fixed/` in this same PR (#57), so
+  the merge and the close are one atomic act.
 - **Severity:** High — on the reproduction, not on the ratio. `check:arch` passes
   green over six rules that assert nothing, which is `BUGS.md`'s High row (a gate
   passes over drift it should catch). Note what is _not_ claimed: only one of the
   45 rules examines zero units today, and that one is a legitimate empty (see
-  Symptom). [0112](./0112-three-crossval-presets-have-no-fixture.md) is a strict
+  Symptom). [0112](../0112-three-crossval-presets-have-no-fixture.md) is a strict
   subset of this record's population at Medium; if that severity is right, the
   boundary is that 0112 counts absent fixtures and this counts fixtures that
   cannot see the production gate.
 - **Origin:** self-found · instrumented both kernel seams while scoping the
-  ts-archunit doctrine port ([0088](../plans/0088-fold-ts-archunit-into-eess.md),
-  and [0103](./0103-adr-009-cited-but-does-not-exist.md), which cites the doctrine)
-- **Reported:** 2026-08-12
+  ts-archunit doctrine port ([0088](../../plans/0088-fold-ts-archunit-into-eess.md),
+  and [0103](../0103-adr-009-cited-but-does-not-exist.md), which cites the doctrine)
+- **Reported:** 2026-08-12 · **Fixed:** 2026-08-14 (PR #57)
 
 ### Correction, 2026-08-12 — what the six-persona review found wrong in this record
 
@@ -137,7 +151,7 @@ _Correction, 2026-08-13, same review round: the first version of this paragraph
 cited `:159-190` — a range that contains neither `declarationSelection` nor
 `namesRealPackage`, only the sibling rule (`changedSelection`,
 `workspaceSelection`, `needsChangeset`). It resolved, so `check:corpus` stayed
-green over it — a fifth instance of exactly what [0138](./0138-pointer-resolve-proves-existence-not-truth.md)
+green over it — a fifth instance of exactly what [0138](../0138-pointer-resolve-proves-existence-not-truth.md)
 files, caught independently by five of six reviewers (architect, product,
 devops, testing, enforcement) auditing this same commit. The underlying claim
 was already correct; only the pointer was wrong._
@@ -234,7 +248,7 @@ comes from `linkRule.select()`, independent of `.violations()`, so the number th
 summary line prints is insensitive to the very rule being neutered. Fixture
 and subject are written from the same understanding
 and agree even when the understanding is wrong — the shape
-[0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md) closed one
+[0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md) closed one
 layer down, when it made a fixture name the rule that fired. The rule it names is
 still the fixture's own.
 
@@ -252,6 +266,22 @@ provably non-vacuous, not silence."_ This is not a property of this repo's harne
 adopter gets it, and `eess-ts init` scaffolds rule files against a guessed layout,
 so an adopter whose sources sit outside the scaffolded glob gets a confident green
 on their first run.
+
+**Residual risk, found 2026-08-14 by an enforcement reviewer of the fix.** Before
+this fix, `check:nonvacuity`'s probes lived only under `packages/core/src` — a
+concurrency hazard the harness's own header comment already names, but a narrow
+one. Converting `corpus/links`/`corpus/pointers` moved two more probes into
+`docs/` and `work/bugs/` — real, git-tracked `check:corpus` roots also read by
+`check:fast` (this repo's own recommended on-save loop), `check:ledger`, and
+`check:numbers`. `withProbe` still writes-then-deletes within one call and a
+hard kill still can't leave a committed leftover (`**/__nonvacuity_probe*` is
+now `.gitignore`d), but a `check:fast` run racing the write-to-delete window can
+observe a transient probe mid-flight and report a spurious violation against a
+file that's already gone by the time anyone looks. Not eliminated, only
+narrowed — the probe surface now overlaps four gates it never touched before,
+not zero. Tracked as [0140](../0140-nonvacuity-corpus-probes-residual-gaps.md)
+rather than left owned by this paragraph alone, once `fixed/` — a closed
+record's own prose is not a home a future reader would think to check.
 
 ## Why it matters
 
@@ -296,6 +326,25 @@ and its lead item could not go red on its own reproduction (below).
    now supports `--format json`, so asserting `firedOn(v, 'corpus/broken-links')`
    against the production script's own output is a direct fit for either probe.
 
+   **Second refinement, found 2026-08-14 by three reviewers independently
+   (architect, enforcement, testing) auditing the fix this Fix item describes.**
+   `--format json` returns through its own early exit
+   (`scripts/check-corpus.mjs:141-145`); the no-flags terminal invocation
+   `"check:corpus": "node scripts/check-corpus.mjs"` actually runs computes
+   failure separately and exits at a different line entirely. A gate built only
+   against `--format json` — as the first version of this fix was — proves the
+   violation-collection logic and the JSON branch's own exit, never the
+   statement that makes the real CI invocation a gate. Measured: deleting that
+   terminal `process.exit(1)` alone left all three converted rows green while
+   `npm run check:corpus` printed a real violation and exited 0. Same shape as
+   bug 0106's `release/gate-fails-the-build` (the pure core vs. the impure
+   shell) — the repo had already named this failure class and the first
+   version of this fix rediscovered it rather than avoiding it. The built fix
+   runs `check-corpus.mjs` **both** ways per probe: `--format json` for
+   `firedOn`'s rule+file identity, the no-flags form for the exit code CI
+   actually depends on — replacing the old purely-informational `clean`
+   direction, which three reviewers separately flagged as decorative anyway.
+
 2. **Correct `check:nonvacuity`'s summary sentence** to state what it measured —
    fixtures that fired, not gates proven — so the harness stops over-claiming
    while the coverage gap is open.
@@ -316,7 +365,7 @@ without (1) is a docs change.
   already not independently reproducible by any stated rule) — so the total would
   arrive hand-typed. If it is built, it must be a **set** measured
   against a dated committed baseline, not a scalar that a rule leaving and another
-  joining leaves unmoved. → [0088](../plans/0088-fold-ts-archunit-into-eess.md)
+  joining leaves unmoved. → [0088](../../plans/0088-fold-ts-archunit-into-eess.md)
   Phase 4a, which already specifies a shrink-only list with an expiry.
 - **Evidence at the seam** (`{ violations, examined }`). The only fix that reddens
   reproduction A. Three costs the first draft understated: there are **eight**
@@ -346,26 +395,77 @@ is outside it by construction.
 
 ## Verification
 
-- [ ] Red test written first: with (1) in place, neutering **either** spread in
-      `scripts/check-corpus.mjs`'s two-region `broken` array (line 115 as of
-      2026-08-13 — two probes, one per region, per the Fix refinement above; a
-      single-probe test only covers one) must make `check:nonvacuity` exit 1
-      naming `corpus/broken-links`. Green today — measured 2026-08-13.
-- [ ] The converted fixtures assert the production rule id **and** the planted
-      file in one violation, per `firedOn`'s existing contract.
-- [ ] The probe surface moves out of `packages/*/src` first, or concurrent runs
-      hand each other spurious violations (`scripts/check-nonvacuity.mjs:89`).
-- [ ] `check:nonvacuity`'s summary states fixtures fired, not gates proven.
-- [ ] `npm run validate` green.
+- [x] Red test written first, then re-run against a wider matrix after review
+      found the first version incomplete. Seven mutations to
+      `scripts/check-corpus.mjs`, each applied alone and reverted (confirmed
+      byte-identical) before the next: (S1) empty the whole `broken` array —
+      both link rows red, `corpus/pointers` unaffected; (S2) delete only the
+      site spread — `corpus/links/site` red alone; (S3) delete only the
+      repo-native spread — `corpus/links/repo-native` red alone (S2/S3 prove
+      the two-probe split discriminates by region, not just "a broken link
+      exists somewhere"); (S4) empty the pointer-violation collection —
+      `corpus/pointers` red alone; (S5) delete the terminal `process.exit(1)`
+      (the mutation review found the first version of this fix missed
+      entirely) — all three rows now correctly red; (S6) rename the
+      `corpus/broken-links` rule id on one of the two rule constructions —
+      only the matching row reds, proving rule-identity is asserted per row,
+      not just liveness; (S7) drop `broken` from the `--format json` branch's
+      `all` array (`scripts/check-corpus.mjs:142`) without touching the
+      terminal path — both link rows red (json exit 0 fails the `ok`
+      conjunction even though the terminal path alone would have passed),
+      `corpus/pointers` unaffected. Every mutation was green on `main` before
+      this fix and is red on this branch after it.
+- [x] The converted fixtures assert the production rule id **and** the planted
+      file in one violation, per `firedOn`'s existing contract —
+      `firedOn(json, 'corpus/broken-links', 'docs/__nonvacuity_probe_site__.md')`,
+      `firedOn(json, 'corpus/broken-links', 'work/bugs/__nonvacuity_probe_repo__.md')`,
+      `firedOn(json, 'corpus/pointers-resolve', 'docs/__nonvacuity_probe_pointer__.md')`
+      — region-specific basenames, changed from a shared one after four
+      reviewers independently flagged that an identical fragment let either
+      row's assertion pass on either probe's violation (sound only because
+      the two probes were never co-present, not because the assertion pinned
+      it).
+- [ ] deferred→[0140](../0140-nonvacuity-corpus-probes-residual-gaps.md) — the
+      probe-surface checkbox as filed asked about **concurrency**, not just
+      adjacency to `packages/*/src`, and review found the real answer is
+      worse than the first version of this close claimed: the new probes sit
+      in `docs/` and `work/bugs/`, roots also read by `check:fast` (the
+      recommended on-save loop), `check:ledger`, and `check:numbers` — a
+      collision surface that did not exist before this fix, not one this fix
+      merely failed to shrink. Mitigated, not eliminated: `**/__nonvacuity_probe*`
+      is now `.gitignore`d (closes the "a hard-killed run commits a leftover"
+      half) and every probe writes then deletes within one `withProbe` call
+      (milliseconds of exposure), but a `check:fast` racing that window can
+      still observe a transient probe and report a spurious violation against
+      a file gone by the time anyone looks. First closed this by pointing at
+      a paragraph inside this same record — caught on a second review pass as
+      the wrong kind of home, since a `fixed/` record has no future owner.
+      0140 also carries the `ROOTS`-coverage gap devops found in the same
+      round (a classified root can be _deleted_ from `ROOTS` without any
+      nonvacuity row noticing) — same shape, same fix-scope decision, one
+      record.
+- [x] `check:nonvacuity`'s summary states fixtures fired, not gates proven —
+      prints "N fixtures each fired on their violating input — no fixture is
+      silently green" (tightened once more after review: "none is silently
+      green" without "fixture" still read as a claim about the whole gate).
+      The header doc comment's opening claim, its per-gate `corpus/links`/
+      `corpus/pointers` bullets, and its closing line were corrected the same
+      way, and — after review found the correction itself over-claimed in the
+      opposite direction (naming only the three new rows as
+      production-script-driven when `gateArch`/`gateInternalArch`/`gateBaseline`
+      already were) — reworded again to name all five honestly rather than
+      implying the new rows are the only exception.
+- [x] `npm run validate` green — 146 test files, 1934 tests, 0 failures; all 23
+      nonvacuity fixtures OK; `check:corpus` and `check:ledger` both clean.
 
 Deferred, each re-homed:
 
-- **The coverage denominator** → [0088](../plans/0088-fold-ts-archunit-into-eess.md)
+- **The coverage denominator** → [0088](../../plans/0088-fold-ts-archunit-into-eess.md)
   Phase 4a. Its four-verdict classification (`fail-open` · `config-finding` ·
   `other-throw` · `no-checks`) is a correction to that phase's stated three, and
   the `no-checks` cell is the preset-constructs-nothing hole 4a claims to expose.
 - **Evidence at the seam, and the declared-empty grammar it requires** → 0088
   Phase 3/4.
-- **The shipped CLI summary** (`packages/ts/src/cli/commands/check.ts:65`) — the
-  adopter-facing half of this defect, fixable independently of the seam. Needs its
-  own record.
+- **The shipped CLI summary** → [0130](../0130-cli-summary-counts-the-invocation.md)
+  — filed since this record was first drafted; it's the adopter-facing half of
+  this defect, exactly as anticipated here.
