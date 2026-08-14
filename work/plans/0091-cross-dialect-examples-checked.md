@@ -3,18 +3,23 @@
 ## Status
 
 - **State:** Ready — frozen 2026-08-12 after a six-persona review and a targeted
-  re-review of the non-vacuity section. Born from a dogfood irony: the monorepo's
-  own crossvalidate consumption was audited and found wanting on every side. The
-  package exists to bind dialects together; this repo describes that but never
-  demonstrates it. No prerequisite plan; it stands on its own.
+  re-review of the non-vacuity section; re-verified 2026-08-14 after plan 0096
+  landed (a floor drift check found `md-ts`'s stats export had already shipped
+  independently and two `check-crossval.mjs` line citations had shifted — both
+  corrected in place, no re-review needed since neither changes scope or approach).
+  Born from a dogfood irony: the monorepo's own crossvalidate consumption was
+  audited and found wanting on every side. The package exists to bind dialects
+  together; this repo describes that but never demonstrates it. No prerequisite
+  plan; it stands on its own.
 - **Priority:** Medium — a dogfood gap, in the same class as 0089 (family
   reconciliation of the `crossval` gate). Not a blocker; nothing else gates on it.
-- **Effort:** Small–Medium — roughly a box of small fixtures, four example test
-  files, a fold config, and one small added stats export on
-  `packages/crossvalidate/src/md-ts.ts`. The
-  execution wiring (Phase 3) and the honest non-vacuity mechanisms (Phase 2) are
-  the load-bearing parts — a review surfaced that the draft's first non-vacuity
-  inventory assumed APIs that don't exist; that is fixed here.
+- **Effort:** Small — roughly a box of small fixtures, four example test files, and
+  a fold config. The execution wiring (Phase 3) and the honest non-vacuity
+  mechanisms (Phase 2) are the load-bearing parts — a review surfaced that the
+  draft's first non-vacuity inventory assumed APIs that don't exist; that is fixed
+  here. (A 2026-08-14 freeze-time drift check found the `md-ts` stats export the
+  draft assumed still needed had, in fact, already shipped independently by then —
+  Effort trimmed from Small–Medium to Small accordingly; see Phase 2.)
 - **Created:** 2026-08-12
 
 ## Problem
@@ -33,10 +38,14 @@ promise**:
    only (`archunit-inspired`, `clean-architecture`, `custom-rules`, `rest-api`,
    `type-safety`). Grep across it for `crossvalidate`: no hits. The README's four
    snippets have no living counterpart in-repo.
-2. **`check:crossval` mounts 3 of the 7 bridges** — `mermaid-ts`, `md-ts`,
-   `gherkin-ts`. It never runs `md↔gherkin`, `md↔mermaid`, or `md↔mermaid-er`.
-   The package's reason for being — binding the _family_ together — is only half
-   exercised on the repo's own artifacts.
+2. **`check:crossval` mounts 5 of the 7 bridges** — `mermaid-ts`, `md-ts`,
+   `gherkin-ts`, and (as of plan 0096) `md↔gherkin` and `md↔mermaid`. It never runs
+   `md↔mermaid-er` (out of scope indefinitely — no `erDiagram` in this corpus).
+   Corrected by a 2026-08-14 freeze-time drift check: this item originally read
+   "mounts 3 of the 7 bridges... never runs `md↔gherkin`, `md↔mermaid`"; plan 0096
+   closed that gap on the gate side in the interim. It doesn't change this plan's
+   scope — the gate and the adopter-facing `examples/` below are deliberately
+   separate (see Out of Scope) — but the motivating claim needed correcting.
 3. **No `package.json` declares the dependency.** The root consumes it purely by
    npm-workspaces hoisting (a `file:` symlink from the workspace). From a fresh
    `npm ci`, `check:crossval` runs on hope, not a declared edge.
@@ -181,14 +190,17 @@ needs, each mirroring its package test:
   Fixture: an ADR-style `.md` with an Enforcement table citing an
   `it('…')` title; a bad twin citing a title that doesn't exist in the test AST.
   Mirrors `packages/crossvalidate/tests/md-ts.test.ts`. The `project()` tsconfig must include the test
-  file (the ADR-gate lesson, `scripts/check-crossval.mjs:54–62`). This binding has a
-  non-vacuity gap the others don't: `packages/crossvalidate/src/md-ts.ts` exports **only** `adrCitationsResolve`
-  (a void preset) — unlike `md-gherkin`'s `scenarioCitationStats` and
-  `gherkin-ts`'s `scenarioTestStats`, there is **no stats function**, and
-  `adrCitationsResolve` ends in `.beComplete({ direction: 'left-to-right' })`, so
-  a fixture whose citation row was deleted is _green-on-empty_, not red. So Phase 2
-  adds a small **`adrCitationStats` export to `packages/crossvalidate/src/md-ts.ts`** (mirroring its two
-  siblings — new public surface, deliberate) and the example asserts its count.
+  file (the ADR-gate lesson, `scripts/check-crossval.mjs:74-76` — corrected from
+  `:54–62` by a 2026-08-14 drift check; plan 0096 grew this file and the original
+  citation had shifted onto an unrelated line). `adrCitationsResolve` ends in
+  `.beComplete({ direction: 'left-to-right' })`, so a fixture whose citation row
+  was deleted is _green-on-empty_, not red, unless the example also asserts a
+  count. **`adrCitationStats` already exists** on `packages/crossvalidate/src/md-ts.ts`
+  for exactly that (added by bug 0104, the same day this plan was frozen — not new
+  work here; an earlier draft claimed it as new public surface this plan adds,
+  which the same drift check found stale and corrected). The example imports it
+  and asserts its count, same shape as `md-gherkin`'s `scenarioCitationStats` and
+  `gherkin-ts`'s `scenarioTestStats`.
 - **`examples/cross-dialect.gherkin-ts.test.ts`** — `scenarioTestsResolve(project, features)`
   - `scenarioTestStats`. Green over a `.feature` + an `it('feature › scenario')`;
     red on a dangling path / ambiguous suffix / missing scenario. Mirrors
@@ -214,13 +226,15 @@ All example files use **only the public APIs** (ADR-007): imports from
 pattern above, from the package tests) — never cwd-relative, which the audit showed
 breaking at runtime.
 
-**One published-surface consequence.** Adding `adrCitationStats` to `packages/crossvalidate/src/md-ts.ts` is
-a public addition to `@nielspeter/eess-crossvalidate` — the only package this plan
-touches. Everything else (root devDeps, `examples/`, `check:examples`,
-`WORKSPACE_PKGS`) is monorepo-internal and ships nothing. So this plan carries a
-**`minor` changeset** on `@nielspeter/eess-crossvalidate` at release, correcting
-the earlier draft's "no published package moves" line. The rest of the plan's
-public surface is verifiably untouched.
+**No published-surface consequence.** `adrCitationStats` on
+`packages/crossvalidate/src/md-ts.ts` already exists (bug 0104, shipped the same
+day this plan was frozen) — this plan does not add it, only consumes it. Everything
+this plan actually touches (root devDeps, `examples/`, `check:examples`,
+`WORKSPACE_PKGS`) is monorepo-internal and ships nothing, so this plan carries
+**no changeset**. (A prior draft claimed a `minor` changeset on
+`@nielspeter/eess-crossvalidate` for this export; a 2026-08-14 freeze-time drift
+check found the export had already shipped independently and corrected the claim.)
+The plan's public surface is verifiably untouched, full stop.
 
 **Fixture-duplication budget.** Several `examples/fixtures/*` are deliberate twins
 of `packages/crossvalidate/tests/fixtures/*` (a second `job-management.feature`, a
@@ -282,8 +296,6 @@ effort; bolting it onto this plan would balloon "Small–Medium" into a rewrite.
 - `examples/vitest.config.ts` — new: `include: ['cross-dialect.*.test.ts']`.
 - `scripts/check-workspace-integrity.mjs` — add `eess-crossvalidate`/`-md`/`-gherkin`
   to `WORKSPACE_PKGS`; correct the stale "no `workspace:` protocol" comment.
-- `packages/crossvalidate/src/md-ts.ts` — new `adrCitationStats` export (small,
-  public; mirror of its two siblings).
 - `examples/README.md` — correct now-false "templates, not runnable tests, only
   type-checked in CI" claims; add a row per cross-dialect example naming the
   good/bad fixture pair and a one-line "intentionally broken" note on red fixtures.
@@ -306,12 +318,15 @@ actually exists and actually fails on empty:
 
 - **md↔gherkin** — `scenarioCitationStats(...).citations > 0` (exists in `packages/crossvalidate/src/md-gherkin.ts`).
 - **gherkin↔ts** — `scenarioTestStats(...).citations > 0` (exists in `packages/crossvalidate/src/gherkin-ts.ts`).
-- **md↔ts** — `adrCitationStats(...)`, **added by this plan** to `packages/crossvalidate/src/md-ts.ts`: among
-  the three citation-count bindings (md↔gherkin, gherkin↔ts, md↔ts), md-ts is the
-  odd one out — no stats function, and a left-to-right `beComplete` that stays
-  green on an empty selection. Without the new export the md↔ts green case is
-  _unimplementable as a non-vacuity assertion_; the review caught this and the
-  plan now pays its cost as deliberate new public surface.
+- **md↔ts** — `adrCitationStats(...)`, **already exported** by
+  `packages/crossvalidate/src/md-ts.ts` (bug 0104 — not new work here; a prior
+  draft claimed this as new public surface the plan adds, corrected by a
+  2026-08-14 freeze-time drift check once the export was found to already exist).
+  Among the three citation-count bindings (md↔gherkin, gherkin↔ts, md↔ts), md-ts
+  is otherwise the odd one out — a left-to-right `beComplete` that stays green on
+  an empty selection — so without asserting this count, the md↔ts green case would
+  be _unimplementable as a non-vacuity assertion_; the example simply consumes the
+  existing export to close that gap.
 - **mermaid↔ts** — two red directions (`drift.mmd` code→diagram, a diagram-only
   class for diagram→code), so a broken single-direction implementation cannot pass
   both green and red. No count API exists or is needed; the two reds are the proof.
@@ -356,7 +371,7 @@ previously-open gaps. That framing is stated so the plan isn't overclaimed at cl
 
 The plan closes when all four README bindings have an **executing** example in
 `examples/` — each green + red + non-vacuous, with the md↔ts non-vacuity backed
-by the new `adrCitationStats` and mermaid↔ts by two directions — and all six
+by the existing `adrCitationStats` and mermaid↔ts by two directions — and all six
 internal packages the examples import are declared root devDependencies via
 `workspace:*`, with `WORKSPACE_PKGS` extended so `check:integrity` covers them.
 `npm run validate` runs the examples. The folder that once demonstrated nothing now
