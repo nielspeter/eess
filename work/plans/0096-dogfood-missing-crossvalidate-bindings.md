@@ -2,18 +2,19 @@
 
 ## Status
 
-- **State:** Draft — created 2026-08-12; reworked 2026-08-12 after a six-persona
-  review found the first pass manufactured proof that could not go green (a
-  repo-root citation that wouldn't resolve, a two-line citation that never checked
-  the scenario, and an md↔mermaid gate over fictional/flowchart fences that failed
-  on first run). The rework plants a resolvable scenario-title citation and a real
-  embedded class diagram. **Corrected again 2026-08-12** — verification of the
-  review's own bug filings found that both reworked phases still rested on
-  non-vacuity guards that cannot do the job: Phase 1's `scenarios > 0` counts the
-  feature set's size, not anything scanned ([bug 0098](../bugs/0098-scenario-stats-report-set-size-as-scan-count.md)),
-  and Phase 2's fence count does not distinguish a classDiagram from a flowchart.
-  Both now use the repo's real non-vacuity mechanism — a sabotage fixture — with
-  the stats line demoted to a summary. The eess project dogfoods only **3 of the 7**
+- **State:** Ready — frozen 2026-08-14. Created 2026-08-12; reworked 2026-08-12
+  after a six-persona review found the first pass manufactured proof that could
+  not go green (a repo-root citation that wouldn't resolve, a two-line citation
+  that never checked the scenario, and an md↔mermaid gate over fictional/flowchart
+  fences that failed on first run). The rework plants a resolvable scenario-title
+  citation and a real embedded class diagram. **Corrected again 2026-08-12** —
+  verification of the review's own bug filings found that both reworked phases
+  still rested on non-vacuity guards that cannot do the job: Phase 1's
+  `scenarios > 0` counts the feature set's size, not anything scanned
+  ([bug 0098](../bugs/0098-scenario-stats-report-set-size-as-scan-count.md)), and
+  Phase 2's fence count does not distinguish a classDiagram from a flowchart. Both
+  now use the repo's real non-vacuity mechanism — a sabotage fixture — with the
+  stats line demoted to a summary. The eess project dogfoods only **3 of the 7**
   `@nielspeter/eess-crossvalidate` bindings in its own gate
   (`scripts/check-crossval.mjs` mounts `mermaid-ts`, `md-ts`, `gherkin-ts`). The
   other four — `md-gherkin`, `md-mermaid`, `md-mermaid-er`, `files` — are never
@@ -21,6 +22,24 @@
   deliberately **not** 0091 (the adopter-facing examples) and **not** 0089/0101
   (per-dialect sufficiency + gate _honesty_); it is the project dogfooding more of
   crossvalidate's _surface_ on its own artifacts.
+- **Freeze check (2026-08-14).** Re-verified every load-bearing assumption
+  against current code, since `check-crossval.mjs`, `md-gherkin.ts`, and
+  `check-nonvacuity.mjs` all changed materially after this plan was drafted
+  (proposal 005 / plan 0145, merged 2026-08-14). Nothing dangled:
+  `docs/crossvalidate.md:79` still carries the unfixed repo-root, no-title form
+  Phase 1 targets; `docs/architecture.md` still does not exist (Phase 2's plant
+  is still needed); `scenarioCitationsResolve`/`scenarioCitationStats`
+  (`md-gherkin.ts`) and `embeddedDiagramsMatchCode` (`md-mermaid.ts`) are
+  unchanged; bugs 0097/0098 are still Draft, so `scenarioCitationStats` still has
+  no `titled` field and the Phase 1 floor's stated limit still holds exactly as
+  written. Phase 3's fixture tier (`gateNode`, matching `bad-gherkin-ts.mjs`) is
+  still the live convention for this class of gate — plan 0145 elevated only
+  `scenarioExemptionsCurrent`/`scenariosCovered` to the stronger
+  `EESS_CROSSVAL_GHERKIN_ROOT` e2e tier, and left the sibling
+  `crossval/gherkin-ts` and `crossval/md-ts` rows on the same weaker tier this
+  plan's Phase 3 uses — so Phase 3 is not adopting a tier the repo has since
+  moved past. `npm run check:corpus` is clean with the plan's own links as
+  written. No open questions, no refinement story to harvest.
 - **Priority:** High — a dogfood gap, same class as 0091. Not a blocker; nothing
   gates on it.
 - **Effort:** Small — two bindings to mount, each needing one planted artifact
