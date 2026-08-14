@@ -38,8 +38,10 @@ states plainly what is missing before any of them earns a plan.
 
 ## Review — 2026-08-13
 
-**Ruling: rewrite needed — keep the material, correct two entries, change the
-entry template, and settle the lane.** The framing is the most disciplined in
+**Ruling: Rewrite needed**
+
+Keep the material, correct two entries, change the entry template, and settle
+the lane. The framing is the most disciplined in
 `work/proposals/`; the failure is not the guard but what the guard cannot cover.
 A disclaimer that says "I did not survey" neutralizes _silence_. It does not
 neutralize an _affirmative false claim_, and the one entry a reader can check

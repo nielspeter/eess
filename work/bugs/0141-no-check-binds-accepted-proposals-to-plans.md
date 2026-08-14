@@ -85,7 +85,7 @@ the real corpus was touched.
 
 > **Correction — 2026-08-14.** The testing reviewer rebuilt this exact spike
 > independently and could not reproduce either claim above from the `matchBy`
-> as printed at line 67 (`` plan.text.includes(`proposals/${proposal.relPath}`) ``).
+> as printed at line 67 (``plan.text.includes(`proposals/${proposal.relPath}`)``).
 > `relPath` is repo-root-relative (`work/proposals/0900-x.md`), so the needle
 > interpolates to `proposals/work/proposals/0900-x.md` — a string no plan
 > contains. Under the code as literally printed: 0900 (claimed "0

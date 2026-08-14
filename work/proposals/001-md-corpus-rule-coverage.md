@@ -162,6 +162,28 @@ does not on its own justify `agree()`. Its value is different and specific: it i
 the one instance of this capability that this repo can hold a red fixture for.
 Evidence items (4)–(13) can only ever be asserted here.
 
+## Review — 2026-08-09
+
+**Ruling: Rewrite needed**
+
+Backfilled 2026-08-14 by [plan 0142](../plans/0142-bind-proposals-to-plans.md).
+No `## Review` section was ever written into this file, even though commit
+`1af4a65` ("proposal 001 reviewed + rewritten…", 2026-08-09) records that the
+review happened — three lenses (architect, product, enforcement) — and that
+the proposal was rewritten against the survey findings the same day.
+`PROPOSALS.md`'s board has carried `Rewrite needed` for 001 since that commit;
+this line makes the file agree with the board it was always meant to. Per
+that commit's own record: the design no longer proposes a `fields()` element
+type — `terms()`/`MdTerm` already models the labelled-value line the original
+draft called its headline finding; presence was split from value, since a
+field-scoped `bePresent()` is vacuously green; `via` became `normalize`
+(functions, not a declarative table in the kernel). Four corrections were
+recorded rather than silently fixed, per this lane's own convention. Five
+decisions were left open, two reserved for an ADR because they bind all six
+packages — unlike 002–005, this file has continued to accrue evidence since
+(most recently 2026-08-13), so there is no clean "submission as received"
+boundary below this section the way the other four proposals have.
+
 ## Proposed API
 
 ```ts

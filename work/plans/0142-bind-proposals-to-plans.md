@@ -79,7 +79,7 @@ Full findings are recorded in
 ## Approach
 
 Two phases, strictly sequenced — Phase 2 is meaningless without Phase 1
-(finding 1 above: there is nothing reliable to bind *from* until the Ruling
+(finding 1 above: there is nothing reliable to bind _from_ until the Ruling
 is a literal field).
 
 ### Phase 1 — Make `Ruling` a literal, parseable field
@@ -213,6 +213,19 @@ check is wired to the production script, not a standalone rule.
 - **Fixing bug 0141's Fix section in place.** This plan supersedes it; 0141
   closes by reference to this plan rather than by its own Fix section being
   built as originally written.
+- **[Proposal 001](../proposals/001-md-corpus-rule-coverage.md)'s related but
+  distinct break class.** Found while building Phase 1 (not caught by any of
+  0141's six reviewers): 001's own Evidence already dogfoods a _different_
+  corruption on this same proposal↔plan pair — a plan citing a proposal as
+  out of scope while that proposal's Ruling has since gone `Ship as-is`/`Ship
+with changes` — via a proposed new kernel primitive, `correspondence().agree()`
+  (value-agreement, not existence). This plan's Phase 2 checks "an accepted
+  proposal has no implementing plan" (existence, `beComplete()`); 001 sketches
+  "a plan's citation now contradicts the proposal's ruling" (staleness,
+  `agree()`, not yet built — 001 itself is still `Rewrite needed`). Different
+  break class, different mechanism, genuinely complementary — not duplicated
+  here. Phase 1's literal-`Ruling`-token work is a shared prerequisite either
+  way, which is worth knowing if 001 is ever picked up.
 
 ## Success definition
 
@@ -226,7 +239,8 @@ check is wired to the production script, not a standalone rule.
 
 ## Progress ledger
 
-- [ ] Phase 1 — `Ruling` is a literal, bounded field; skill + docs + five
-      real files aligned; casing and `001`'s missing line decided
+- [x] Phase 1 — `Ruling` is a literal, bounded field; skill + docs + five
+      real files aligned; casing and `001`'s missing line decided. Found and
+      recorded in scope: proposal 001's own adjacent, distinct break class.
 - [ ] Phase 2 — `check:corpus` gates proposal→plan linkage; back-reference
       convention decided and documented; non-vacuity probe wired and proven

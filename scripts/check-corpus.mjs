@@ -19,10 +19,19 @@
  * frozen (historical). Exits non-zero on a live violation. Run:
  * `npm run check:corpus`.
  */
-import { corpus, links, pointers } from '@nielspeter/eess-md'
+import { corpus, docs, links, pointers } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
-import { reportViolations } from '@nielspeter/eess'
+import { correspondence, definePredicate, reportViolations } from '@nielspeter/eess'
 import { isRepoNativeLink, siteOptsAreSafe, unclassifiedRoots } from './lib/corpus-link-routing.mjs'
+import {
+  declaredImplements,
+  declaredImplementsLine,
+  hasUnparseableRuling,
+  isAccepted,
+  operativeRuling,
+  operativeRulingLine,
+  proposalNumberFromPath,
+} from './lib/proposal-ruling.mjs'
 
 // `fixed/` is the bugs lane's own done-folder (bug 0086) — frozen alongside
 // the others so bug history is reported, not gated against today's code.
@@ -135,11 +144,101 @@ const stale = pointerRule.violations()
 const adrViolations = adrEnforcement(c, { dir: 'adr/**', report: 'return' })
 const adrError = adrViolations.length > 0
 
+// Proposal → plan linkage (bug 0141 / plan 0142): an accepted proposal
+// (Ruling: Ship as-is / Ship with changes) must have at least one plan that
+// DECLARES it implements that proposal — a plan's own **Implements:** header
+// line, never a textual mention. Bug 0141 found the only three real
+// citations in this corpus today mention a proposal while explicitly
+// excluding it from scope or citing it as a re-check dependency, never
+// implementing it — a substring/prose match would have gone green on all
+// three. `keyBy` (not `matchBy`): each side now yields exactly one key
+// (the proposal number), so this is an O(n+m) indexed join, not a predicate
+// scan.
+const isProposalDoc = (d) =>
+  d.relPath.startsWith('work/proposals/') && !/PROPOSALS\.md$/.test(d.relPath)
+
+const isAcceptedProposal = definePredicate(
+  'is an accepted proposal',
+  (d) => isProposalDoc(d) && isAccepted(operativeRuling(d.text)),
+)
+const proposalSelection = docs(c)
+  .that()
+  .satisfy(isAcceptedProposal)
+  .select({
+    label: 'accepted proposal',
+    identify: (d) => ({
+      name: proposalNumberFromPath(d.relPath) ?? d.relPath,
+      file: d.file,
+      line: operativeRulingLine(d.text),
+    }),
+  })
+
+const declaresImplements = definePredicate(
+  'declares an Implements back-reference',
+  (d) => d.relPath.startsWith('work/plans/') && declaredImplements(d.text) !== null,
+)
+const implementingPlanSelection = docs(c)
+  .that()
+  .satisfy(declaresImplements)
+  .select({
+    label: 'implementing plan',
+    identify: (d) => ({ name: d.relPath, file: d.file, line: declaredImplementsLine(d.text) }),
+  })
+
+const proposalPlanViolations = correspondence({
+  left: proposalSelection,
+  right: implementingPlanSelection,
+  keyBy: {
+    left: (d) => proposalNumberFromPath(d.relPath) ?? '',
+    right: (d) => declaredImplements(d.text) ?? '',
+  },
+  suggest: {
+    left: (info) =>
+      `Fix: add "**Implements:** proposal ${info.name}" to the plan header that builds it, or file one.`,
+  },
+})
+  .should()
+  .beComplete({ direction: 'left-to-right' })
+  .rule({ id: 'corpus/accepted-proposal-uncited' })
+  .violations()
+
+const acceptedProposalCount = proposalSelection.elements.length
+
+// A proposal that HAS been reviewed (a `## Review —` section exists) but
+// whose Ruling doesn't parse to the closed vocabulary is a real finding, not
+// silently "not accepted" — distinct from "never reviewed" (Draft, no
+// Review section yet), which is not a violation. Built directly rather than
+// through the RuleBuilder condition machinery: this is a flag-every-match
+// check with no baseline/exclusion needs, and a plain ArchViolation is the
+// kernel's whole contract (packages/core/src/violation.ts).
+const unparseableRulingDocs = liveDocs.filter(
+  (d) => isProposalDoc(d) && hasUnparseableRuling(d.text),
+)
+const unparseableRulingViolations = unparseableRulingDocs.map((d) => ({
+  rule: 'proposal-ruling',
+  ruleId: 'corpus/proposal-ruling-unparseable',
+  element: d.relPath,
+  file: d.file,
+  line: operativeRulingLine(d.text),
+  message:
+    `${d.relPath} has a "## Review —" section but its "**Ruling:**" line does not match the ` +
+    'closed vocabulary — currently silent, not "not accepted". Fix: write exactly ' +
+    '"**Ruling: <verdict>**" with one of Ship as-is / Ship with changes / Split and sequence / ' +
+    'Rewrite needed / Docs-only / Reject.',
+  codeFrame: undefined,
+}))
+
 // --format json/github — emit all violations machine-readable, then exit (plan 0070).
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
 if (format === 'json' || format === 'github') {
-  const all = [...broken, ...stale, ...adrViolations]
+  const all = [
+    ...broken,
+    ...stale,
+    ...adrViolations,
+    ...proposalPlanViolations,
+    ...unparseableRulingViolations,
+  ]
   reportViolations(all, { format })
   process.exit(all.length > 0 ? 1 : 0)
 }
@@ -168,8 +267,16 @@ line(
   'ADRs',
   `${adrDocs.length} enforced · ${adrError ? '✗ invalid' : '✓ tables + citations resolve'}`,
 )
+const proposalDocsCount = liveDocs.filter(isProposalDoc).length
+const proposalLinkageOk =
+  proposalPlanViolations.length === 0 && unparseableRulingViolations.length === 0
+line(
+  'proposals',
+  `${proposalDocsCount} total · ${acceptedProposalCount} accepted · ` +
+    `${proposalLinkageOk ? '✓ every accepted proposal has a plan, every Ruling parses' : `✗ ${proposalPlanViolations.length + unparseableRulingViolations.length} finding(s)`}`,
+)
 
-const problems = [...broken, ...stale]
+const problems = [...broken, ...stale, ...proposalPlanViolations, ...unparseableRulingViolations]
 if (problems.length > 0) {
   console.error('')
   console.error(`  ${problems.length} violation(s):`)
@@ -183,7 +290,7 @@ if (adrError) {
     console.error(`    ${relTo(v.file)}:${v.line}  ${v.message.split('\n')[0]}`)
 }
 
-const totalChecked = linksChecked + pointersChecked + adrDocs.length
+const totalChecked = linksChecked + pointersChecked + adrDocs.length + proposalDocsCount
 const failed = problems.length > 0 || adrError
 console.error('')
 if (!failed) {
