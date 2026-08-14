@@ -242,5 +242,9 @@ with changes` — via a proposed new kernel primitive, `correspondence().agree()
 - [x] Phase 1 — `Ruling` is a literal, bounded field; skill + docs + five
       real files aligned; casing and `001`'s missing line decided. Found and
       recorded in scope: proposal 001's own adjacent, distinct break class.
-- [ ] Phase 2 — `check:corpus` gates proposal→plan linkage; back-reference
-      convention decided and documented; non-vacuity probe wired and proven
+- [x] Phase 2 — `check:corpus` gates proposal→plan linkage; back-reference
+      convention decided and documented; non-vacuity probe wired and proven.
+      Sabotage-tested in an isolated worktree in all four directions (accepted + uncited → red; `**Implements:**` added → green; prose-only mention,
+      mirroring the real 0089/0090/0101 citations → still red; garbled Ruling
+      → red, distinct message). `check:nonvacuity` proves both new rows are
+      bound to the production script (json + terminal exit both asserted).

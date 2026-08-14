@@ -117,6 +117,21 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
 const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
+// Plan 0142 (closing bug 0141): no leading digits in the basename — unlike
+// the real 001-005 proposals, so proposalNumberFromPath() can never collide
+// with a real proposal number (testing review's fixture-numbering finding).
+const PROBE_CORPUS_PROPOSAL_UNCITED = join(
+  repoRoot,
+  'work',
+  'proposals',
+  '__nonvacuity_probe_proposal__.md',
+)
+const PROBE_CORPUS_RULING_UNPARSEABLE = join(
+  repoRoot,
+  'work',
+  'proposals',
+  '__nonvacuity_probe_ruling__.md',
+)
 
 /** Run a command from the repo root and capture combined stdout+stderr + exit code. */
 function sh(cmd, args) {
@@ -194,6 +209,8 @@ rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
 rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
 rmSync(PROBE_CORPUS_POINTER, { force: true })
+rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
+rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
 
 // --- Gate: arch (root cross-package rules) ---
 function gateArch() {
@@ -353,6 +370,35 @@ function gateCorpusPointers() {
   )
 }
 
+// Plan 0142 (closing bug 0141): an accepted proposal with no plan declaring
+// it — planted directly in work/proposals/ so a fixture rebuilding the rule
+// elsewhere can't stand in for proving the production script's own parser
+// and correspondence are wired (bug 0127's lesson, applied on day one this
+// time rather than found by review — see the bug's own Review section).
+function gateCorpusProposalUncited() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_PROPOSAL_UNCITED,
+    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
+      'Accepted, on purpose, with no implementing plan — the probe.\n',
+    'corpus/accepted-proposal-uncited',
+    'work/proposals/__nonvacuity_probe_proposal__.md',
+  )
+}
+
+// A Review section whose Ruling doesn't parse to the closed vocabulary must
+// be its own finding, not silently "not accepted" — the exact failure mode
+// bug 0141's own first draft committed against its own reproduction (a
+// four-reviewer-independent find, 2026-08-14).
+function gateCorpusRulingUnparseable() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_RULING_UNPARSEABLE,
+    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n' +
+      '**Ruling: ship as-is — old-style free prose, garbled on purpose.**\n\nThe probe.\n',
+    'corpus/proposal-ruling-unparseable',
+    'work/proposals/__nonvacuity_probe_ruling__.md',
+  )
+}
+
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
 function gateNode(script, mustSay) {
   const r = sh(process.execPath, [join('scripts', 'nonvacuity', script)])
@@ -489,6 +535,10 @@ const gates = [
   // Bug 0127: converted from a rebuilt-rule fixture to driving the
   // production script, matching the links gates above.
   ['corpus/pointers', gateCorpusPointers],
+  // Plan 0142 (closing bug 0141): proposal→plan linkage, built on the
+  // gateCorpusProbe shape from day one.
+  ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
+  ['corpus/proposal-ruling-unparseable', gateCorpusRulingUnparseable],
   // One row per release rule, asserting rule AND element as an exact set:
   // neutering the changed-package correspondence still emits its rule id (for the
   // ghost declaration instead of the undeclared package), so a rule-name
@@ -546,6 +596,8 @@ const GATE_FOR = {
     'corpus/links/repo-native',
     'corpus/link-routing',
     'corpus/pointers',
+    'corpus/proposal-plan-linkage',
+    'corpus/proposal-ruling-unparseable',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
