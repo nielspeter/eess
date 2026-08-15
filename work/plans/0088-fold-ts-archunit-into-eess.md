@@ -647,7 +647,7 @@ P>` generic** every builder in the family depends on.
 - [x] Phase 4a — build the vacuity matrix (exports-map enumeration + ratchet).
       Done 2026-08-15, uncommitted on `plan-0088-build`: `scripts/vacuity-matrix.mjs`
       (new) + `packages/ts/tests/fixtures/vacuity/tsconfig.json` (new, `include:
-    ["src"]` with no `src/` present — zero source files, the exact scenario
+  ["src"]` with no `src/` present — zero source files, the exact scenario
       ADR-010 part 3 names). Enumerates check-constructors from
       `@nielspeter/eess-ts`'s own dist-imported exports map (root, `/presets`,
       `/graphql` — the `/rules/*` subpaths export bare `Condition` factories with
@@ -704,17 +704,31 @@ P>` generic** every builder in the family depends on.
       rather than silently absorbed, in case a future pass wants it routed
       through the same `bypassFilters` mechanism as everything else.
 
-- [ ] Phase 5 — reconcile eess-ts dogfood gates (staged honest-gate, `validate`
-      green). **Likely already satisfied as a side effect of Phase 4's build —
-      not ticked here because it wasn't run as its own deliberate pass.**
-      `npm run validate` is green end-to-end except `check:release` (needs
-      changesets — explicitly Phase 7's job per this phase's own text: "the
-      changesets ... land in this plan's PR"). `check:nonvacuity` is green (33/33
-      fixtures fire, including the two release-gate rows this session's fix
-      touched). Sibling gates (`corpus`/`diagram`/`crossval`/`ledger`) pass
-      unchanged. Worth a second look before ticking it for real — this session
-      didn't go looking for more silent exclusions beyond what surfaced
-      incidentally while fixing Phase 4's own fallout.
+- [x] Phase 5 — reconcile eess-ts dogfood gates (staged honest-gate, `validate`
+      green). Done 2026-08-15, as its own deliberate pass this time (not just
+      Phase 4's incidental fallout): grepped every `.excluding(...)` call in
+      `arch.rules.ts`/`arch.internal.rules.ts`/`spec.rules.ts`/`mermaid.rules.ts`
+      (spec.rules.ts and mermaid.rules.ts have none; arch.internal.rules.ts has
+      7, all reviewed) and confirmed zero "[eess] Unused exclusion" warnings on
+      a clean `check:arch` run — the self-check mechanism that caught the one
+      real stale exclusion during Phase 4 (`rule-builder.ts` →
+      `terminal-builder.ts`) reports nothing further live. Every gate in the
+      chain run individually and confirmed green with a real, non-zero,
+      reported denominator: `check:arch` (25 rules/2 files), `check:spec` (4
+      rules/1 file), `check:baseline` (4 floor rules/187 source files),
+      `check:diagram` (1 rule/1 file), `check:crossval` (all directions OK),
+      `check:corpus` (738 checks/101 documents), `check:ledger` (0 findings),
+      `check:vacuity` (15 exports probed, 0 unaccounted fail-open),
+      `check:nonvacuity` (34/34 fixtures fire — 33 plus the new
+      `vacuity-matrix` row from Phase 4a), `check:examples`/`check:docs-code`/
+      `check:review-harness`/`check:numbers`/`check:integrity` all clean,
+      `npm test` (1961 tests), `npm run typecheck`/`lint`/`format:check` clean.
+      **`npm run validate` as a single command cannot run past `check:release`
+      yet** — it fails early in the chain (no changesets for the two changed
+      packages), which is correct and expected (explicitly Phase 7's job, not
+      a regression); every gate _after_ it in the chain has been verified the
+      same way `validate` would run it, individually, since the short-circuit
+      makes a true single-command green impossible before Phase 7 lands.
 - [ ] Phase 6 — extension-surface contract fixture
 - [ ] Phase 7 — version the break: changesets + breaking changelogs + migration
       story + compat test, all authored and merged (the publish itself is
