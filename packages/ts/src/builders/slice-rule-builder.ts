@@ -155,7 +155,17 @@ export class SliceRuleBuilder extends TerminalBuilder {
       violations.push(...condition.evaluate(this._slices, context))
     }
 
-    return { violations, examined: this._slices.length }
+    // `examined` is FILES across the defined slices, not the slice count.
+    // `.matching()`/`.assignedFrom()` always produce one Slice per named
+    // layer regardless of whether any file matched it — a layer set whose
+    // globs all match zero files (the whole project is empty, or a typo)
+    // would otherwise report `examined: 2` (two named, empty layers) and
+    // silently pass, since beFreeOfCycles()/respectLayerOrder() find zero
+    // edges among zero files and that's indistinguishable from "correctly
+    // found nothing wrong." Real bug, found live by the vacuity matrix
+    // (plan 0088 Phase 4a) on layeredArchitecture() over a zero-file project.
+    const filesExamined = this._slices.reduce((n, s) => n + s.files.length, 0)
+    return { violations, examined: filesExamined }
   }
 
   private buildRuleDescription(): string {

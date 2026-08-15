@@ -644,7 +644,66 @@ P>` generic** every builder in the family depends on.
       These are real, Important-tier findings, not Critical — recorded here
       so a future pass (or Phase 4a/5) doesn't have to rediscover them.
 
-- [ ] Phase 4a — build the vacuity matrix (exports-map enumeration + ratchet)
+- [x] Phase 4a — build the vacuity matrix (exports-map enumeration + ratchet).
+      Done 2026-08-15, uncommitted on `plan-0088-build`: `scripts/vacuity-matrix.mjs`
+      (new) + `packages/ts/tests/fixtures/vacuity/tsconfig.json` (new, `include:
+    ["src"]` with no `src/` present — zero source files, the exact scenario
+      ADR-010 part 3 names). Enumerates check-constructors from
+      `@nielspeter/eess-ts`'s own dist-imported exports map (root, `/presets`,
+      `/graphql` — the `/rules/*` subpaths export bare `Condition` factories with
+      no `.check()`, correctly skipped by the shape test, not a hand-picked
+      list). Probes each bare over the zero-file project; three-way verdict
+      (`fail-open`/`other-throw`/`config-finding`), a 4-control self-check
+      (including the adversarial "an ordinary `ArchRuleError` without
+      `bypassFilters` must read as `other-throw`, not `config-finding`" case) —
+      all three exit paths (0/1/2) sabotage-verified by hand before wiring in.
+      Wired into `check:vacuity` (new) and `npm run validate`, plus a
+      `check:nonvacuity` row (`scripts/nonvacuity/bad-vacuity-matrix.mjs`, new)
+      that runs a mutated copy of the real script with `KNOWN_FAIL_OPEN`
+      stripped to `[]` and asserts it correctly reddens naming the export —
+      "a committed rule file whose selector matches nothing must exit non-zero
+      naming the empty selection," per this phase's own spec, with a preset
+      standing in for the rule file. (Hit and fixed a real bug in the fixture
+      itself: `process.exit()` bypasses pending `finally` blocks in Node, so the
+      first version leaked its mutated temp file on every run — restructured to
+      compute the verdict, clean up, then exit once.)
+
+      **A real bug found live by the matrix itself, fixed for real (not
+      ratcheted around):** `SliceRuleBuilder.collectViolations()`'s `examined`
+      was `this._slices.length` — a count of NAMED LAYERS, not files. Since
+      `.assignedFrom()` always produces one `Slice` per named layer regardless
+      of whether any file matches its glob, `layeredArchitecture()` over a
+      zero-file project reported `examined: 2` (two empty layers) and silently
+      passed — `beFreeOfCycles()`/`respectLayerOrder()` correctly find zero
+      edges among zero files, indistinguishable from "correctly found nothing
+      wrong." Fixed: `examined` is now the sum of `files.length` across the
+      defined slices. Verified: `layeredArchitecture()` went from `fail-open` to
+      `config-finding` in the matrix's own report, full suite (1961 tests) still
+      green.
+
+      **Four real, honestly-dated `KNOWN_FAIL_OPEN` entries** (all expire
+      2026-11-15, none yet filed as their own eess bug/plan):
+      `agentGuardrails()` and `dataLayerIsolation()` — named explicitly in this
+      plan's own Phase 4a text, upstream ts-archunit plan 0100's still-open
+      "preset that constructs nothing" hole, adopted along with the presets;
+      `strictBoundaries()` — a newly-found instance of the same class (boundary
+      folders are *discovered* by scanning loaded source files, so a project
+      with none discovers none, regardless of options); `schemaFromSDL()` — a
+      differently-shaped gap: it parses its own literal SDL argument rather
+      than the shared zero-file project, so a bare, condition-less call never
+      reaches the `sourceEmpty` signal and instead hits `RuleBuilder`'s
+      pre-existing "predicates but no conditions" assertion-less path
+      (console.warn'd, not silent, but not a thrown finding either).
+
+      Also found live, incidentally, while probing `schema()`: it throws a
+      plain `Error` at construction time (`loadSchemaFromGlob`) when its glob
+      matches zero `.graphql` files — never reaches `ArchRuleError`/the
+      evidence gate at all. Classified `other-throw` (the plan's own three-way
+      verdict treats this as acceptable — loud and specific beats silent, even
+      if not uniform with the rest of the family) and left as-is; noted here
+      rather than silently absorbed, in case a future pass wants it routed
+      through the same `bypassFilters` mechanism as everything else.
+
 - [ ] Phase 5 — reconcile eess-ts dogfood gates (staged honest-gate, `validate`
       green). **Likely already satisfied as a side effect of Phase 4's build —
       not ticked here because it wasn't run as its own deliberate pass.**
