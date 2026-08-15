@@ -5,6 +5,7 @@ export type { ArchProject } from './core/project.js'
 // Core — predicate interface & combinators
 export type { Predicate } from '@nielspeter/eess'
 export { not, and, or } from '@nielspeter/eess'
+export type { Matcher } from '@nielspeter/eess'
 
 // Core — condition interface & violation model
 export type { Condition, ConditionContext } from '@nielspeter/eess'
@@ -19,9 +20,15 @@ export {
 // Core — rule builder, error & metadata
 export { RuleBuilder } from '@nielspeter/eess'
 export { TerminalBuilder } from '@nielspeter/eess'
+export type { CollectResult } from '@nielspeter/eess'
 export { ArchRuleError } from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'
+
+// Core — cardinality exemption (ADR-010): the extension point a standalone
+// consumer needs to give their own defineCondition() the same "satisfied by
+// emptiness" exemption .notExist() has, without a second @nielspeter/eess install.
+export { marksAssertsCardinality, assertsCardinality } from '@nielspeter/eess'
 
 // Core — code frame & formatting
 export { generateCodeFrame } from '@nielspeter/eess'
@@ -237,7 +244,7 @@ export { beFreeOfCycles, respectLayerOrder, notDependOn } from './conditions/sli
 export { slices, SliceRuleBuilder } from './builders/slice-rule-builder.js'
 
 // Check options
-export type { CheckOptions, OutputFormat } from '@nielspeter/eess'
+export type { CheckOptions, OutputFormat, BaselineFilter, DiffFilterLike } from '@nielspeter/eess'
 
 // Output formats
 export { formatViolationsJson } from '@nielspeter/eess'

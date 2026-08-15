@@ -64,9 +64,16 @@ export abstract class TerminalBuilder {
 
   /**
    * Declare that this rule's examined set must be non-empty — the opposite
-   * assertion. Zero examined units under this declaration reddens with the
-   * same message a bare zero-examined rule would, but the declaration makes
-   * the author's intent explicit rather than inferred.
+   * assertion, for a corpus the author has positive knowledge should never
+   * legitimately be empty. Unlike a bare, undeclared rule, this **overrides
+   * `assertsCardinality()`'s exemption**: a `.notExist()`-shaped condition
+   * that finds zero subjects normally passes silently (emptiness satisfies
+   * what it asserts) — but if the author declared `.expectNonEmpty()`, that
+   * silence is exactly what they said should never happen, so it reddens
+   * instead, naming the declaration as the reason. This is the real
+   * difference from not declaring anything: without it, a `.notExist()` rule
+   * over an accidentally-emptied corpus (a glob typo, a temporarily-missing
+   * folder) passes and says nothing; with it, that same emptiness is caught.
    */
   expectNonEmpty(): this {
     const next = this.copy()
@@ -203,29 +210,38 @@ export abstract class TerminalBuilder {
    *   widen, and a `.notExist()`-shaped condition "passing" against an
    *   instrument that never loaded anything is not evidence of anything.
    *   Always an unsuppressable configuration finding.
+   * - `examined === 0`, `.expectNonEmpty()` declared: the caller has positive
+   *   knowledge this corpus should never be empty — this OVERRIDES
+   *   `assertsCardinality()`'s exemption (a `.notExist()` rule that would
+   *   otherwise pass silently on zero subjects reddens instead, since silent
+   *   emptiness is exactly what the declaration rules out). Fails, naming the
+   *   unmet declaration.
    * - `examined === 0`, no `.expectEmpty()` declared: the rule's own
    *   instrument is broken (a dead selector, an unreachable seam) — this is
    *   a configuration finding, unsuppressable (`bypassFilters`), not a silent
    *   pass. This is the guarantee ADR-009/010 exist for.
    * - `examined === 0`, `.expectEmpty()` declared: satisfied. Passes.
-   * - `examined === 0`, `assertsCardinality()` true: the rule's own
-   *   conditions are satisfied BY emptiness (e.g. `.notExist()`) — a
-   *   different exemption from `.expectEmpty()`, because it is a property of
-   *   what the condition asserts, not a caller's declaration about the
-   *   corpus. Passes, with no finding at all (not even a silent one — the
-   *   condition already reported truthfully that it found nothing wrong).
+   * - `examined === 0`, `assertsCardinality()` true (and no `.expectNonEmpty()`
+   *   override above): the rule's own conditions are satisfied BY emptiness
+   *   (e.g. `.notExist()`) — a different exemption from `.expectEmpty()`,
+   *   because it is a property of what the condition asserts, not a caller's
+   *   declaration about the corpus. Passes, with no finding at all (not even
+   *   a silent one — the condition already reported truthfully that it found
+   *   nothing wrong).
    * - `examined > 0`, `.expectEmpty()` declared: the declaration has expired
    *   — a unit was examined despite the author's "this stays empty" claim.
    *   Fails, appending an expiry finding to whatever `collectViolations()`
    *   found (never replacing it — the underlying findings are still real).
-   * - `examined > 0`, no declaration (the ordinary case): the rule's own
-   *   violations stand as computed.
+   * - `examined > 0`, no declaration or `.expectNonEmpty()` (the ordinary
+   *   case — `.expectNonEmpty()` has nothing left to assert once subjects
+   *   exist): the rule's own violations stand as computed.
    */
   private evidencedViolations(): ArchViolation[] {
     const { violations, examined, sourceEmpty } = this.collectViolations()
     if (examined === 0) {
       if (sourceEmpty === true) return [...violations, this.zeroLoadedSourceViolation()]
       if (this._expectEmpty === true) return violations
+      if (this._expectEmpty === false) return [...violations, this.unmetExpectNonEmptyViolation()]
       if (this.assertsCardinality()) return violations
       return [...violations, this.zeroExaminedViolation()]
     }
@@ -249,6 +265,34 @@ export abstract class TerminalBuilder {
       `empty right now), declare it explicitly with .expectEmpty() — otherwise this is a ` +
       `dead selector, an empty project, or a rule that never reaches its own examining ` +
       `seam, and the fix is to widen the selection, not to suppress this finding.`
+    return {
+      rule: described.rule ?? name,
+      ruleId: described.id,
+      element: name,
+      file: '',
+      line: 0,
+      message,
+      suggestion: message,
+      because: this._reason,
+      bypassFilters: true,
+    }
+  }
+
+  /**
+   * The configuration finding for a `.expectNonEmpty()` declaration that
+   * wasn't met — the corpus the author said should never be empty is empty
+   * right now. Overrides `assertsCardinality()`'s silent pass on purpose:
+   * the declaration is a stronger, caller-level claim than what the
+   * condition itself would otherwise tolerate.
+   */
+  private unmetExpectNonEmptyViolation(): ArchViolation {
+    const described = this.describeRule()
+    const name = described.id ?? described.rule ?? this.constructor.name
+    const message =
+      `this rule declared .expectNonEmpty() but examined zero units — the corpus this ` +
+      `rule asserted should never be empty is empty right now. If that's still true, fix ` +
+      `the selection (a glob typo, a missing folder); if the corpus legitimately can be ` +
+      `empty, remove .expectNonEmpty().`
     return {
       rule: described.rule ?? name,
       ruleId: described.id,

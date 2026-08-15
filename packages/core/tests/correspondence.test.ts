@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { correspondence, formatViolationsJson, type Selection } from '../src/index.js'
+import {
+  correspondence,
+  formatViolationsJson,
+  type Selection,
+  ArchRuleError,
+} from '../src/index.js'
 
 interface Named {
   name: string
@@ -278,5 +283,45 @@ describe('correspondence()', () => {
       .violations()
     expect(v).toHaveLength(1)
     expect(v[0]?.element).toBe('ADR 002') // element uses the display name from identify()
+  })
+
+  describe('ADR-010 cardinality exemption — per-check, not blanket (plan 0088 review)', () => {
+    it('beComplete() over two empty sides passes — an absence assertion with nothing to be absent', () => {
+      const left = sel<Named>([], 'index row', idName)
+      const right = sel<Named>([], 'file', idName)
+      expect(() => {
+        correspondence({ left, right, keyBy: (e: Named) => e.name })
+          .should()
+          .beComplete()
+          .check()
+      }).not.toThrow()
+    })
+
+    it('preserveRelations() over two empty sides passes too — the exemption is not beComplete()-only', () => {
+      const left = sel<Named>([], 'index row', idName)
+      const right = sel<Named>([], 'file', idName)
+      expect(() => {
+        correspondence({ left, right, keyBy: (e: Named) => e.name })
+          .should()
+          .preserveRelations({ left: () => [], right: () => [] })
+          .check()
+      }).not.toThrow()
+    })
+
+    it('with no check chained at all, two empty sides is NOT exempt — an empty check list asserts nothing', () => {
+      // Mirrors RuleBuilder.assertsCardinality()'s own "[].every() is
+      // vacuously true" guard: an unconfigured correspondence over an empty
+      // project is a dead instrument, not a satisfied absence assertion.
+      const left = sel<Named>([], 'index row', idName)
+      const right = sel<Named>([], 'file', idName)
+      try {
+        correspondence({ left, right, keyBy: (e: Named) => e.name }).check()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ArchRuleError)
+        const archError = error as ArchRuleError
+        expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+      }
+    })
   })
 })

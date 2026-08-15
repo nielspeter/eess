@@ -1,6 +1,10 @@
 import type { ArchViolation } from './violation.js'
 import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
 import { matchSelections, type MatchOptions } from './matching.js'
+import {
+  marksAssertsCardinality,
+  assertsCardinality as checkAssertsCardinality,
+} from './cardinality.js'
 
 /** How to identify an element for a two-sided violation message. */
 export interface ElementInfo {
@@ -95,15 +99,31 @@ export class CorrespondenceBuilder<L, R> extends TerminalBuilder {
     return this
   }
 
-  /** Every element on the named side(s) has a counterpart on the other. */
+  /**
+   * Every element on the named side(s) has a counterpart on the other. An
+   * absence assertion — "no element lacks a counterpart" — so it's marked
+   * cardinality-exempt (see `assertsCardinality()`).
+   */
   beComplete(opts: { direction?: Direction } = {}): this {
-    this._checks.push((o, ruleId) => completeness(o, opts.direction ?? 'both', ruleId))
+    this._checks.push(
+      marksAssertsCardinality((o: CorrespondenceOptions<L, R>, ruleId?: string) =>
+        completeness(o, opts.direction ?? 'both', ruleId),
+      ),
+    )
     return this
   }
 
-  /** Related endpoints on one side have matching relations on the other. */
+  /**
+   * Related endpoints on one side have matching relations on the other. Also
+   * an absence assertion — "no matched pair disagrees" — cardinality-exempt
+   * for the same reason `beComplete()` is.
+   */
   preserveRelations(spec: RelationSpec<L, R>): this {
-    this._checks.push((o, ruleId) => relations(o, spec, ruleId))
+    this._checks.push(
+      marksAssertsCardinality((o: CorrespondenceOptions<L, R>, ruleId?: string) =>
+        relations(o, spec, ruleId),
+      ),
+    )
     return this
   }
 
@@ -119,20 +139,22 @@ export class CorrespondenceBuilder<L, R> extends TerminalBuilder {
   }
 
   /**
-   * ADR-010: `beComplete()`/`preserveRelations()` are, by construction,
-   * absence assertions — "no element lacks a counterpart", "no matched pair
-   * disagrees" — the same shape as `RuleBuilder`'s `.notExist()`. Neither can
-   * ever produce a violation from an empty side: there is no element to be
-   * unmatched, no pair to disagree. An empty selection here is the correctly
-   * computed input (e.g. release-gate's "no packages changed this diff" on a
-   * clean tree), not a broken instrument the way an empty `RuleBuilder`
-   * predicate-selector usually is — so, unlike `RuleBuilder`, this holds
-   * unconditionally rather than depending on which checks were chained.
-   * Real misconfiguration here (a selection that should have elements and
-   * doesn't) surfaces through each side's own summary line, not this gate.
+   * ADR-010: mirrors `RuleBuilder.assertsCardinality()` — per-check, not a
+   * blanket class-wide exemption. `beComplete()`/`preserveRelations()` mark
+   * the function they push via `marksAssertsCardinality()`, the same
+   * unforgeable registry `.notExist()` uses, because both are absence
+   * assertions ("no element lacks a counterpart", "no matched pair
+   * disagrees") that can never produce a violation from an empty side — an
+   * empty selection here is the correctly computed input (e.g. release-gate's
+   * "no packages changed this diff" on a clean tree), not a broken instrument.
+   * `.every()`, not `.some()`, for the same reason `RuleBuilder` uses it: a
+   * future check type that isn't an absence assertion must not silently
+   * inherit this exemption just because it's chained alongside one that is.
+   * An empty `_checks` list is not exempt — nothing was asserted yet.
    */
   protected override assertsCardinality(): boolean {
-    return true
+    if (this._checks.length === 0) return false
+    return this._checks.every((check) => checkAssertsCardinality(check))
   }
 }
 

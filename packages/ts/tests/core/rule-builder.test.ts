@@ -8,6 +8,7 @@ import {
   nameMatches,
   alwaysPass,
   alwaysFail,
+  notExistShaped,
 } from '../support/test-rule-builder.js'
 
 // --- Helpers unique to this file ---
@@ -247,6 +248,54 @@ describe('RuleBuilder', () => {
         expect(archError.violations[0]!.message).toMatch(/source loaded zero units/)
         expect(archError.violations[0]!.message).toMatch(/outranks any \.expectEmpty\(\)/)
       }
+    })
+  })
+
+  describe('.expectNonEmpty() — overrides the cardinality exemption (plan 0088 review)', () => {
+    it('a cardinality-exempt condition normally passes silently on zero examined', () => {
+      // Baseline: without .expectNonEmpty(), notExistShaped()'s exemption
+      // means a dead selector over it is NOT a configuration finding.
+      const builder = new TestRuleBuilder(stubProject, elements)
+      expect(() => {
+        builder
+          .that()
+          .withPredicate(nameMatches(/^NothingMatchesThis$/))
+          .should()
+          .withCondition(notExistShaped())
+          .check()
+      }).not.toThrow()
+    })
+
+    it('.expectNonEmpty() makes that same case redden — the declaration overrides the exemption', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      try {
+        builder
+          .that()
+          .withPredicate(nameMatches(/^NothingMatchesThis$/))
+          .should()
+          .withCondition(notExistShaped())
+          .expectNonEmpty()
+          .check()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ArchRuleError)
+        const archError = error as ArchRuleError
+        expect(archError.violations[0]!.message).toMatch(/declared \.expectNonEmpty\(\)/)
+        expect(archError.violations[0]!.bypassFilters).toBe(true)
+      }
+    })
+
+    it('.expectNonEmpty() is a no-op once real subjects exist — nothing left to assert', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      expect(() => {
+        builder
+          .that()
+          .withPredicate(nameMatches(/Service$/))
+          .should()
+          .withCondition(alwaysPass())
+          .expectNonEmpty()
+          .check()
+      }).not.toThrow()
     })
   })
 

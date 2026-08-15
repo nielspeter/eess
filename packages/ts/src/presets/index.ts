@@ -1,5 +1,10 @@
 export type { RuleSeverity, PresetBaseOptions } from './shared.js'
-export { dispatchRule, validateOverrides, throwIfViolations } from './shared.js'
+export { dispatchRule, validateOverrides, throwIfViolations, finishPreset } from './shared.js'
+
+// A standalone consumer building a custom preset (the same pattern this
+// package's own presets use) needs the underlying reporting primitive too.
+export { reportViolations } from '@nielspeter/eess'
+export type { ReportMode, ReportOptions, PresetReportOptions } from '@nielspeter/eess'
 
 export type { RecommendedOptions } from './recommended.js'
 export { recommended } from './recommended.js'
