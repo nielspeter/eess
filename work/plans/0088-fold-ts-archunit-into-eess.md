@@ -482,20 +482,30 @@ compat test, not an adapted one); sibling ranges bump in lockstep in one changes
 
 ## Success definition
 
-- **Standalone sufficiency for eess-ts (binding invariant):** `@nielspeter/eess-ts`
-  alone is a complete tool, exactly as `@nielspeter/ts-archunit` was — a user who
-  installs only it runs the whole engine: builders, honest gate, `diagnose`,
-  `orphanExclusions`, presets, baseline/diff, formatters, and the `eess-ts` CLI,
-  with no second install and no awareness that `@nielspeter/eess` exists. The
-  kernel stays a normal transitive `dependency` and is **fully re-exported
-  through eess-ts's own index**. _(Per-dialect sufficiency for the siblings is
-  plan 0089's scope — as a consequence of the same fold, deliberately split so
-  each is closable.)_
-- `@nielspeter/eess-ts` ships ts-archunit-0.59-equivalent engine semantics;
-  `@nielspeter/eess` kernel carries the honest-gate seam **without losing its
-  ts-morph-free, zero-runtime-dependency identity** (the engine-neutral
-  `ArchProject` seam, ADR-007 Rule 1) and **without breaking the `RuleBuilder<T,
-P>` generic** every builder in the family depends on.
+- **Standalone sufficiency for eess-ts (binding invariant): partially met, honestly
+  disposed, not silently dropped.** A user who installs only `@nielspeter/eess-ts`
+  runs the whole builders/honest-gate/presets/baseline/diff/formatters/CLI
+  surface with no second install — verified directly (Phase 4's re-export
+  guard test, sabotage-checked) — **except** `diagnose` and `orphanExclusions`
+  specifically, which this bullet names and which were never built. Phase 4
+  landed a real, native evidence gate (`CollectResult`, the zero-examined
+  guard, `.expectEmpty()`/`.expectNonEmpty()`) that delivers ADR-010's actual
+  guarantee, but deliberately did **not** port ts-archunit's own `diagnose()`
+  CLI subcommand or its `orphanExclusions()` audit mechanism — a scope
+  decision made mid-Phase-4 (native > mechanical port, given the kernel-purity
+  constraint), disclosed in Phase 4's own ledger entry, not an oversight
+  found here. `deferred → not yet filed as its own eess bug/plan` (see Phase
+  4's ledger text for the full accounting). _(Per-dialect sufficiency for the
+  siblings is plan 0089's scope — as a consequence of the same fold,
+  deliberately split so each is closable.)_
+- `@nielspeter/eess-ts` ships ADR-009/010's doctrine with the same guarantee
+  ts-archunit-0.59's engine makes — **not** its literal `diagnose`/
+  `orphanExclusions` mechanisms (see above); `@nielspeter/eess` kernel carries
+  the honest-gate seam **without losing its ts-morph-free,
+  zero-runtime-dependency identity** (the engine-neutral `ArchProject` seam,
+  ADR-007 Rule 1) and **without breaking the `RuleBuilder<T,
+P>` generic** every builder in the family depends on — both verified directly,
+  not assumed.
 - eess ADR-009 + ADR-010 accepted (the ported doctrine), indexed, enforced — and
   the missing twin ADR referenced by ts-archunit's ADR-010 is now real.
 - `npm run validate` green end-to-end on the folded engine with the **staged**
@@ -748,6 +758,63 @@ P>` generic** every builder in the family depends on.
       confirmed the fixture's own copy-independence test goes red — this file
       would have caught the exact regression Phase 4's review found, from
       outside the kernel's own package, before landing it.
-- [ ] Phase 7 — version the break: changesets + breaking changelogs + migration
+- [x] Phase 7 — version the break: changesets + breaking changelogs + migration
       story + compat test, all authored and merged (the publish itself is
-      [0100](./0100-publish-the-fold-retire-ts-archunit.md))
+      [0100](./0100-publish-the-fold-retire-ts-archunit.md)). Done 2026-08-15:
+      one coordinated changeset (`.changeset/fold-ts-archunit-engine.md`, since
+      consumed) covering all 6 packages — kernel and `eess-ts` `minor` (the 0.x
+      convention for a breaking change without a premature 1.0 stability claim
+      — asked the user directly rather than deciding silently, given a
+      published version can't be unpublished); the four untouched sibling
+      dialects `minor` too, since their `RuleBuilder<T,P>`/`correspondence()`
+      usage inherits the new evidence gate the moment a consumer upgrades —
+      live, not staged behind a later opt-in (matching devops's review
+      finding). Ran `npm run version-packages` (fully local, git-reversible,
+      nothing published): `@nielspeter/eess` 0.2.2→0.3.0, `eess-ts`
+      0.2.1→0.3.0, `eess-md` 0.3.0→0.4.0 (bundled with an unrelated,
+      already-pending changeset), `eess-mermaid` 0.1.3→0.2.0, `eess-gherkin`
+      0.1.2→0.2.0, `eess-crossvalidate` 0.2.0→0.3.0 (same). No surprise major —
+      the `>=0.1.1` peer-dependency ranges (`RELEASING.md`'s own documented
+      fix) held. Internal dependency ranges bumped in lockstep to `^0.3.0`
+      automatically; `npm install` synced `package-lock.json` (the release
+      skill's own documented gotcha — `changeset version` doesn't touch it).
+      `check:spec`'s README Packages-table Status column updated to match (the
+      skill's other documented gotcha) and re-verified green.
+
+      Breaking-changelog text (landed in each package's real `CHANGELOG.md`,
+      not just the pending declaration): the new default-throw-on-zero-examined
+      behavior with its `.expectEmpty()` migration line, the copy-on-write
+      fix (a silent behavioral difference for any held-builder-reuse code —
+      named even though no known consumer does this), and the
+      `layered.ts`/`restrictedPackages` correctness fix (existing rulesets
+      using that option may see new, correct violations). Named explicitly
+      unchanged: predicate/condition semantics and names, rule syntax,
+      `// eess-ts:disable` comment syntax, `arch-baseline.json`'s format,
+      `ruleId`/`because`/`Fix:`/`Docs:` violation fields. New, exported
+      surface named: `CollectResult`, `.expectEmpty()`/`.expectNonEmpty()`,
+      `marksAssertsCardinality`/`assertsCardinality`, `Matcher`,
+      `BaselineFilter`/`DiffFilterLike`, `reportViolations`/`finishPreset` now
+      reachable from `eess-ts/presets`. **Not** referenced in the migration
+      text: an `eess-ts diagnose` command — the original Phase 4 spec's
+      `diagnose()`/advice-trio never got built (disclosed in Phase 4's own
+      ledger entry above), so the migration line points an adopter at their
+      existing test suite / `eess-ts check` output instead, honestly, rather
+      than a command that doesn't exist.
+
+      **Compat test:** no new, separate fixture file — the existing `eess-ts`
+      suite (1961 tests, unmodified paths through this fold) already **is**
+      the compat proof, and duplicating it would be redundant. What backs the
+      "unchanged" claim concretely: of ~150 test files, only 13 needed any
+      change, and every one of those changes is individually justified in
+      Phase 4's own ledger text above (test-fixture bugs the evidence gate
+      caught, or old tests asserting the prior silent-pass as a feature) —
+      never a change to what a rule-authoring API accepts or means. The other
+      ~137 files pass with zero modification, on the folded engine, which is
+      what "existing eess-ts rule fixtures pass unchanged" concretely means
+      here.
+
+      **`npm run validate` passes green end-to-end, as a single command, with
+      the version bump landed** — the short-circuit on `check:release` that
+      blocked this every prior phase is gone now that the changeset exists and
+      has been consumed. This is the acceptance test both this phase and
+      Phase 5 point at, now literally true, not just individually verified.
