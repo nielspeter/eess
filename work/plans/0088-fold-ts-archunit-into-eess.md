@@ -646,9 +646,9 @@ P>` generic** every builder in the family depends on.
 
 - [x] Phase 4a — build the vacuity matrix (exports-map enumeration + ratchet).
       Done 2026-08-15, uncommitted on `plan-0088-build`: `scripts/vacuity-matrix.mjs`
-      (new) + `packages/ts/tests/fixtures/vacuity/tsconfig.json` (new, `include:
-  ["src"]` with no `src/` present — zero source files, the exact scenario
-      ADR-010 part 3 names). Enumerates check-constructors from
+      (new) + `packages/ts/tests/fixtures/vacuity/tsconfig.json` (new, `include`
+      set to a `src` directory that carries no files — zero source files, the
+      exact scenario ADR-010 part 3 names). Enumerates check-constructors from
       `@nielspeter/eess-ts`'s own dist-imported exports map (root, `/presets`,
       `/graphql` — the `/rules/*` subpaths export bare `Condition` factories with
       no `.check()`, correctly skipped by the shape test, not a hand-picked
@@ -668,9 +668,9 @@ P>` generic** every builder in the family depends on.
       first version leaked its mutated temp file on every run — restructured to
       compute the verdict, clean up, then exit once.)
 
-      **A real bug found live by the matrix itself, fixed for real (not
-      ratcheted around):** `SliceRuleBuilder.collectViolations()`'s `examined`
-      was `this._slices.length` — a count of NAMED LAYERS, not files. Since
+      A real bug found live by the matrix itself, fixed for real (not ratcheted
+      around): `SliceRuleBuilder.collectViolations()`'s `examined` was
+      `this._slices.length` — a count of named layers, not files. Since
       `.assignedFrom()` always produces one `Slice` per named layer regardless
       of whether any file matches its glob, `layeredArchitecture()` over a
       zero-file project reported `examined: 2` (two empty layers) and silently
@@ -681,28 +681,28 @@ P>` generic** every builder in the family depends on.
       `config-finding` in the matrix's own report, full suite (1961 tests) still
       green.
 
-      **Four real, honestly-dated `KNOWN_FAIL_OPEN` entries** (all expire
-      2026-11-15, none yet filed as their own eess bug/plan):
-      `agentGuardrails()` and `dataLayerIsolation()` — named explicitly in this
-      plan's own Phase 4a text, upstream ts-archunit plan 0100's still-open
-      "preset that constructs nothing" hole, adopted along with the presets;
-      `strictBoundaries()` — a newly-found instance of the same class (boundary
-      folders are *discovered* by scanning loaded source files, so a project
-      with none discovers none, regardless of options); `schemaFromSDL()` — a
-      differently-shaped gap: it parses its own literal SDL argument rather
-      than the shared zero-file project, so a bare, condition-less call never
-      reaches the `sourceEmpty` signal and instead hits `RuleBuilder`'s
-      pre-existing "predicates but no conditions" assertion-less path
-      (console.warn'd, not silent, but not a thrown finding either).
+      Four real, honestly-dated `KNOWN_FAIL_OPEN` entries (all expire
+      2026-11-15, none yet filed as their own eess bug/plan): `agentGuardrails()`
+      and `dataLayerIsolation()` — named explicitly in this plan's own Phase 4a
+      text, upstream ts-archunit plan 0100's still-open "preset that constructs
+      nothing" hole, adopted along with the presets; `strictBoundaries()` — a
+      newly-found instance of the same class (boundary folders are discovered by
+      scanning loaded source files, so a project with none discovers none,
+      regardless of options); `schemaFromSDL()` — a differently-shaped gap: it
+      parses its own literal SDL argument rather than the shared zero-file
+      project, so a bare, condition-less call never reaches the `sourceEmpty`
+      signal and instead hits `RuleBuilder`'s pre-existing "predicates but no
+      conditions" assertion-less path (console.warn'd, not silent, but not a
+      thrown finding either).
 
-      Also found live, incidentally, while probing `schema()`: it throws a
-      plain `Error` at construction time (`loadSchemaFromGlob`) when its glob
-      matches zero `.graphql` files — never reaches `ArchRuleError`/the
-      evidence gate at all. Classified `other-throw` (the plan's own three-way
-      verdict treats this as acceptable — loud and specific beats silent, even
-      if not uniform with the rest of the family) and left as-is; noted here
-      rather than silently absorbed, in case a future pass wants it routed
-      through the same `bypassFilters` mechanism as everything else.
+      Also found live, incidentally, while probing `schema()`: it throws a plain
+      `Error` at construction time (`loadSchemaFromGlob`) when its glob matches
+      zero `.graphql` files — never reaches `ArchRuleError`/the evidence gate at
+      all. Classified `other-throw` (the plan's own three-way verdict treats this
+      as acceptable — loud and specific beats silent, even if not uniform with
+      the rest of the family) and left as-is; noted here rather than silently
+      absorbed, in case a future pass wants it routed through the same
+      `bypassFilters` mechanism as everything else.
 
 - [x] Phase 5 — reconcile eess-ts dogfood gates (staged honest-gate, `validate`
       green). Done 2026-08-15, as its own deliberate pass this time (not just
@@ -729,7 +729,25 @@ P>` generic** every builder in the family depends on.
       a regression); every gate _after_ it in the chain has been verified the
       same way `validate` would run it, individually, since the short-circuit
       makes a true single-command green impossible before Phase 7 lands.
-- [ ] Phase 6 — extension-surface contract fixture
+- [x] Phase 6 — extension-surface contract fixture. Done 2026-08-15:
+      `packages/core/tests/contract/extension-surface.test.ts` (new). Plays the
+      stranger — imports only the bare `@nielspeter/eess` specifier
+      (dist-resolved via the workspace symlink, exactly as an out-of-repo
+      consumer resolves it, never a relative `../src/*` import into the
+      kernel's own source) and defines two fictional "widget" dialect builders:
+      a direct `TerminalBuilder` subclass (the harder contract — no
+      predicate/condition scaffolding, matching `SliceRuleBuilder`/
+      `SmellBuilder`/`CorrespondenceBuilder`'s shape) and a `RuleBuilder<T, P>`
+      subclass (the shape every real dialect — ts, md, mermaid — actually
+      builds on). Both exercise real behavior, not just compilation: chain
+      methods, copy-on-write independence across two branches, the ADR-010
+      evidence gate firing on a zero-examined stranger builder,
+      `assertsCardinality()`'s override being honored, `.expectEmpty()`, and
+      named-selection reuse not leaking conditions. Sabotage-verified: reverted
+      `.because()` to mutate-in-place (the pre-fold "bug 0016" shape) and
+      confirmed the fixture's own copy-independence test goes red — this file
+      would have caught the exact regression Phase 4's review found, from
+      outside the kernel's own package, before landing it.
 - [ ] Phase 7 — version the break: changesets + breaking changelogs + migration
       story + compat test, all authored and merged (the publish itself is
       [0100](./0100-publish-the-fold-retire-ts-archunit.md))
