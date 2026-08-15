@@ -525,9 +525,137 @@ P>` generic** every builder in the family depends on.
       4's starting worklist.
 - [x] Phase 2 — port ADR-008 → eess ADR-009
 - [x] Phase 3 — port ADR-009 → eess ADR-010
-- [ ] Phase 4 — fold the engine (kernel seam + `RuleBuilder<T,P>` + eess-ts)
+- [x] Phase 4 — fold the engine (kernel seam + `RuleBuilder<T,P>` + eess-ts). Done
+      2026-08-14, uncommitted on `plan-0088-build`: `CollectResult`/the ADR-010
+      evidence gate (`TerminalBuilder.evidencedViolations()`) + the cardinality
+      registry (`cardinality.ts`, ported verbatim from ts-archunit, exported —
+      an honest, named widening of its threat model since the kernel/dialect
+      split needs it across a package boundary) + copy-on-write
+      (`TerminalBuilder.copy()`/`adoptFilterState()`) landed natively in the
+      kernel's own style rather than as a mechanical port of ts-archunit's
+      ts-morph-entangled files — so the "re-express behind an engine-neutral
+      seam" requirement is met by construction, not by de-ts-morphing files
+      after the fact. `RuleBuilder<T, P>`'s two-param signature is preserved,
+      now `extends TerminalBuilder`. **Clarification on the "collectViolations
+      retype is a public-API break" citation above:** that export
+      (`packages/core/src/index.ts:79`) is `baseline-generator.ts`'s free
+      function over `{ check: () => void }[]` — unrelated to the protected
+      abstract method this phase retyped to `CollectResult`, which was never
+      part of the public surface. The Phase 7 breaking-changelog entry is still
+      owed, just for the real break (ADR-010's new unsuppressable throw on a
+      dead selector), not this name collision.
+      Two real, non-test bugs surfaced by the evidence gate and fixed for
+      real (not gamed): `packages/ts/src/presets/layered.ts`'s
+      `restrictedPackages` internal loop discarded `.satisfy()`'s return value
+      (only ever worked under the old mutation semantics — copy-on-write
+      exposed it); `correspondence()` treated a legitimately-empty two-sided
+      check (e.g. release-gate's "0 changed packages" on a clean tree) as a
+      dead selector — fixed by giving `CorrespondenceBuilder` its own
+      `assertsCardinality()`, since `beComplete()`/`preserveRelations()` are,
+      like `.notExist()`, absence assertions that can never fail on an empty
+      side. Caught live by `check:nonvacuity`'s `release/gate-fails-the-build`
+      e2e fixture — real dogfooding, not induced. 13 test-suite failures
+      surfaced by the same gate (Phase 5's "exclusions eess currently keeps
+      silent") diagnosed individually and fixed: 2 real broken-selector bugs in
+      test fixtures (`resideInFolder()` given a file glob instead of a folder
+      glob; `haveNameEndingWith('Repo')` matching a class that doesn't end in
+      "Repo"), 11 old tests asserting the prior silent-vacuous-pass as if it
+      were a feature, rewritten to assert the new throw plus a companion
+      `.expectEmpty()` case. `arch.internal.rules.ts`'s `rule-builder.ts`
+      exclusions on `max-class-lines`/`max-methods` (ADR-003, "the kernel
+      RuleBuilder is the fluent grammar base") were stale after the fold moved
+      that bulk into `TerminalBuilder` — re-targeted the still-needed one,
+      dropped the one that no longer matches anything.
+
+      **Multi-agent review (2026-08-15), still on `plan-0088-build`,
+      uncommitted:** 6 reviewer personas (architect/customer/devops/product/
+      testing/enforcement) ran against the full diff. Two real regressions
+      confirmed and fixed for real (not gamed):
+      - eess-mermaid's `notExist()` (`packages/mermaid/src/conditions/class.ts`)
+        shipped without `marksAssertsCardinality()`, unlike all four ts-dialect
+        equivalents — a legitimately-empty `.notExist()` match wrongly threw.
+        Fixed; regression test added (`class-rule-builder.test.ts`).
+      - `copy()`'s shallow-copy trap was unguarded in four direct
+        `TerminalBuilder` subclasses that never override it —
+        `SliceRuleBuilder`, `ResolverRuleBuilder`, `SchemaRuleBuilder`,
+        `SmellBuilder` — each with its own mutable array field pushed to in
+        place, silently shared across two `.because()`-derived branches of a
+        held selection (the exact "bug 0016" class, one layer down). All four
+        now override `copy()`; each has a sabotage-shaped regression test
+        proving independence.
+
+      Also closed from the same review: `bypassFilters` did not survive
+      `--changed`/`--diff` or `--baseline` (`DiffFilter.filterToChanged()`,
+      `Baseline.filterNew()`/`generateBaseline()` never checked the flag) —
+      the "unsuppressable" claim was false for the two most realistic
+      incremental-adoption paths. Fixed in `diff-aware.ts`/`baseline.ts`, both
+      directions (never write it to a baseline; never treat it as known even
+      from an older baseline file), with regression tests.
+
+      And ADR-010 part 3 ("an empty project outranks every token — zero
+      loaded source files is a configuration finding under any declaration")
+      is now real, not just written: `CollectResult` gained an optional
+      `sourceEmpty` flag, checked in `TerminalBuilder.evidencedViolations()`
+      *before* `.expectEmpty()`/`assertsCardinality()`. Deliberately **not**
+      `getElements().length === 0` — a first attempt at that broke
+      `JsxRuleBuilder`'s legitimate "zero JSX elements in a backend-only,
+      fully-loaded project" case, caught by its own existing test going red.
+      The correct, narrower signal (`project.getSourceFiles().length === 0`)
+      is wired via a `sourceEmpty()` hook, overridden only where a builder can
+      honestly answer it: `SmellBuilder` and the six ts-dialect `RuleBuilder`
+      subclasses that derive `getElements()` directly from
+      `project.getSourceFiles()` (class/function/jsx/module/call/type).
+      Deliberately **not** wired for `SliceRuleBuilder` (its glob/definition
+      fuses "get elements" and "select" into one step — no way to honestly
+      distinguish "empty project" from "glob doesn't match yet", and the
+      latter is a legitimate `.expectEmpty()` use case) or
+      `ResolverRuleBuilder`/`SchemaRuleBuilder` (constructed from an
+      already-globbed file list or, for `schemaFromSDL()`, no `ArchProject` at
+      all — same ambiguity).
+
+      **What the review found that is NOT fixed, left open on purpose:**
+      - The plan's own Phase 4 text (above) requires `diagnose()`,
+        `zeroSubjectsAdvice()`, and `orphanExclusions()` to land as an
+        "ordered pair"/"unit" with the gate. None of it exists — what shipped
+        is a real evidence gate in ADR-010's spirit, built natively rather
+        than ported, not the specific companion pieces this phase originally
+        scoped. ADR-010's own Enforcement table row for this stays `pending`
+        correctly.
+      - `CorrespondenceBuilder.assertsCardinality()` is an unconditional
+        class-wide `true`, not scoped per-check the way `RuleBuilder`'s
+        `.every()` treatment is — sound for `beComplete()`/`preserveRelations()`
+        today, but the first non-absence check type added to that builder
+        would silently inherit an exemption it isn't entitled to.
+      - `.expectNonEmpty()` is a behavioral no-op — `_expectEmpty === false`
+        is set but never read anywhere distinct from `undefined`.
+      - Standalone-sufficiency gap: `CollectResult`/`marksAssertsCardinality`/
+        `assertsCardinality` aren't re-exported from `packages/ts/src/index.ts`,
+        even though `TerminalBuilder` (the extension point that needs them) is.
+      - `.because()`/`.excluding()` still have no coverage in
+        `packages/core/tests/` directly (only indirectly via dialect tests) —
+        testing reviewer confirmed by reverting each to mutate-in-place and
+        finding the full suite still passed.
+      - The evidence gate is immediately live for eess-md/mermaid/gherkin's
+        own *published* `RuleBuilder` surface on the next kernel version bump,
+        not staged the way this plan's "family boundary" section implies —
+        Phase 7's changesets for those three dialects need to be written as
+        breaking, with a migration line, not as innocuous minors.
+
+      These are real, Important-tier findings, not Critical — recorded here
+      so a future pass (or Phase 4a/5) doesn't have to rediscover them.
+
 - [ ] Phase 4a — build the vacuity matrix (exports-map enumeration + ratchet)
-- [ ] Phase 5 — reconcile eess-ts dogfood gates (staged honest-gate, `validate` green)
+- [ ] Phase 5 — reconcile eess-ts dogfood gates (staged honest-gate, `validate`
+      green). **Likely already satisfied as a side effect of Phase 4's build —
+      not ticked here because it wasn't run as its own deliberate pass.**
+      `npm run validate` is green end-to-end except `check:release` (needs
+      changesets — explicitly Phase 7's job per this phase's own text: "the
+      changesets ... land in this plan's PR"). `check:nonvacuity` is green (33/33
+      fixtures fire, including the two release-gate rows this session's fix
+      touched). Sibling gates (`corpus`/`diagram`/`crossval`/`ledger`) pass
+      unchanged. Worth a second look before ticking it for real — this session
+      didn't go looking for more silent exclusions beyond what surfaced
+      incidentally while fixing Phase 4's own fallout.
 - [ ] Phase 6 — extension-surface contract fixture
 - [ ] Phase 7 — version the break: changesets + breaking changelogs + migration
       story + compat test, all authored and merged (the publish itself is

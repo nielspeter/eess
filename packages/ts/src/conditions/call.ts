@@ -1,5 +1,6 @@
 import { Node } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
@@ -43,7 +44,7 @@ function callNameForMessage(archCall: ArchCall, context: ConditionContext): stri
  * The filtered call set must be empty --- no calls should match the predicates.
  */
 export function notExist(): Condition<ArchCall> {
-  return {
+  return marksAssertsCardinality({
     description: 'not exist',
     evaluate(elements: ArchCall[], context: ConditionContext): ArchViolation[] {
       return elements.map((archCall) =>
@@ -54,7 +55,7 @@ export function notExist(): Condition<ArchCall> {
         ),
       )
     },
-  }
+  })
 }
 
 /**

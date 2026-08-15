@@ -1,5 +1,6 @@
 import picomatch from 'picomatch'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
@@ -46,7 +47,7 @@ function functionCondition(
  *   .because('use shared parseOrder() utility instead')
  */
 export function notExist(): Condition<ArchFunction> {
-  return {
+  return marksAssertsCardinality({
     description: 'not exist',
     evaluate(elements: ArchFunction[], context: ConditionContext): ArchViolation[] {
       return elements.map((fn) => ({
@@ -58,7 +59,7 @@ export function notExist(): Condition<ArchFunction> {
         because: context.because,
       }))
     },
-  }
+  })
 }
 
 /**

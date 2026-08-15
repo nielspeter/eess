@@ -40,11 +40,15 @@ export function applyFilters(
 ): ArchViolation[] {
   let result = violations
 
-  // Apply .excluding() chain exclusions
+  // Apply .excluding() chain exclusions — never against a bypassFilters
+  // (ADR-010 configuration) finding: it reports the rule's own instrument is
+  // broken, not a fault in what was examined, so an exclusion aimed at the
+  // latter cannot correctly suppress the former.
   const exclusions = ctx.exclusions ?? []
   if (exclusions.length > 0) {
     const matchedPatterns = new Set<number>()
     result = result.filter((v) => {
+      if (v.bypassFilters === true) return true
       // Match against element, file, or message — so that custom conditions
       // using createViolation() can be excluded by file path or message content,
       // not just by element name (which may be a generic AST node kind).
@@ -132,7 +136,9 @@ export function applyFilters(
     })
 
     if (allComments.length > 0) {
-      result = result.filter((v) => !isExcludedByComment(v, allComments))
+      result = result.filter(
+        (v) => v.bypassFilters === true || !isExcludedByComment(v, allComments),
+      )
     }
   }
 

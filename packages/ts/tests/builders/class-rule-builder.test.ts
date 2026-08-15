@@ -18,6 +18,16 @@ function loadTestProject(): ArchProject {
   }
 }
 
+/** A project that loaded zero source files — the tsconfig-matches-nothing case. */
+function emptyProject(): ArchProject {
+  const tsMorphProject = new Project({ useInMemoryFileSystem: true })
+  return {
+    tsConfigPath: '/virtual/tsconfig.json',
+    _project: tsMorphProject,
+    getSourceFiles: () => tsMorphProject.getSourceFiles(),
+  }
+}
+
 describe('ClassRuleBuilder', () => {
   const p = loadTestProject()
 
@@ -290,6 +300,37 @@ describe('ClassRuleBuilder', () => {
         expect(archError.message).toContain(
           'all services must implement init for lifecycle management',
         )
+      }
+    })
+  })
+
+  describe('ADR-010 part 3: a project that loaded zero source files', () => {
+    // Regression for a real gap found in review: `.expectEmpty()` could not
+    // distinguish "the project itself loaded nothing" (an unreadable
+    // tsconfig, a glob matching nothing) from an ordinary predicate narrowing
+    // a real corpus to zero — the former must outrank any declaration.
+
+    it('.notExist() does NOT pass — a genuinely empty project is not the same as "nothing of this kind exists"', () => {
+      const empty = emptyProject()
+      try {
+        new ClassRuleBuilder(empty).should().notExist().check()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ArchRuleError)
+        const archError = error as ArchRuleError
+        expect(archError.violations[0]!.message).toMatch(/source loaded zero units/)
+      }
+    })
+
+    it('.expectEmpty() cannot rescue it either', () => {
+      const empty = emptyProject()
+      try {
+        new ClassRuleBuilder(empty).should().notExist().expectEmpty().check()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ArchRuleError)
+        const archError = error as ArchRuleError
+        expect(archError.violations[0]!.message).toMatch(/outranks any \.expectEmpty\(\)/)
       }
     })
   })

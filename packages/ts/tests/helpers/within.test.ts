@@ -75,8 +75,8 @@ describe('within()', () => {
     }).not.toThrow()
   })
 
-  it('supports predicates on scoped functions', () => {
-    // The GET /api/users route callback is NOT async, so filtering for async should give no elements
+  it('supports predicates on scoped functions — filtering to 0 elements is a dead selector', () => {
+    // The GET /api/users route callback is NOT async, so filtering for async gives no elements
     const routes = calls(p)
       .that()
       .onObject('app')
@@ -85,19 +85,55 @@ describe('within()', () => {
       .and()
       .withStringArg(0, '/api/users')
 
-    // No async callbacks in the match set --- areAsync() should filter to 0 elements
-    // With 0 elements, no violations are produced (empty set passes)
-    expect(() => {
+    try {
       within(routes).functions().that().areAsync().should().contain(call('anything')).check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+    }
+  })
+
+  it('supports predicates on scoped functions — .expectEmpty() declares the filter intentional', () => {
+    const routes = calls(p)
+      .that()
+      .onObject('app')
+      .and()
+      .withMethod('get')
+      .and()
+      .withStringArg(0, '/api/users')
+
+    expect(() => {
+      within(routes)
+        .functions()
+        .that()
+        .areAsync()
+        .should()
+        .contain(call('anything'))
+        .expectEmpty()
+        .check()
     }).not.toThrow()
   })
 
-  it('returns no elements when no calls match the selection', () => {
+  it('a selection matching no calls is a dead selector, not a silent pass', () => {
     const noRoutes = calls(p).that().onObject('nonexistent')
 
-    // No matched calls -> no callbacks -> no violations (empty set passes)
-    expect(() => {
+    try {
       within(noRoutes).functions().should().contain(call('anything')).check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+    }
+  })
+
+  it('a selection matching no calls passes when declared with .expectEmpty()', () => {
+    const noRoutes = calls(p).that().onObject('nonexistent')
+
+    expect(() => {
+      within(noRoutes).functions().should().contain(call('anything')).expectEmpty().check()
     }).not.toThrow()
   })
 

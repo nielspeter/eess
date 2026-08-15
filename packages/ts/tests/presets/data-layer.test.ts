@@ -39,9 +39,13 @@ describe('dataLayerIsolation preset', () => {
   })
 
   it('passes when only good repo and baseClass not specified', () => {
+    // `resideInFolder` matches the directory portion of the path, not a
+    // filename — a bare `good-repo.ts` glob never selected the class this
+    // test means to exercise. Fixture lives under repositories/good/ so the
+    // folder glob actually scopes to it.
     expect(() => {
       dataLayerIsolation(p, {
-        repositories: '**/repositories/good-repo.ts',
+        repositories: '**/repositories/good/**',
         requireTypedErrors: true,
       })
     }).not.toThrow()
@@ -51,7 +55,7 @@ describe('dataLayerIsolation preset', () => {
     // bad-repo doesn't extend BaseRepository, but baseClass is not set
     expect(() => {
       dataLayerIsolation(p, {
-        repositories: '**/repositories/bad-repo.ts',
+        repositories: '**/repositories/bad/**',
       })
     }).not.toThrow()
   })

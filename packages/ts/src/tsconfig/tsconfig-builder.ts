@@ -1,6 +1,6 @@
 import { ScriptTarget, ModuleKind, ModuleResolutionKind } from 'ts-morph'
 import type { CompilerOptions } from 'ts-morph'
-import { TerminalBuilder } from '@nielspeter/eess'
+import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { ArchViolation } from '../core/violation.js'
 import { isStrictFamily, resolveFlag } from './strict-family.js'
@@ -33,12 +33,13 @@ export class TsconfigBuilder extends TerminalBuilder {
     return this
   }
 
-  protected collectViolations(): ArchViolation[] {
+  protected collectViolations(): CollectResult {
     const opts = this.project._project.getCompilerOptions()
     const file = this.project.tsConfigPath
     const violations: ArchViolation[] = []
+    const requiredKeys = Object.keys(this._requirements)
 
-    for (const key of Object.keys(this._requirements)) {
+    for (const key of requiredKeys) {
       const expected = this._requirements[key]
       const strictFamily = isStrictFamily(key)
       const actual = strictFamily ? resolveFlag(opts, key) : opts[key]
@@ -56,7 +57,10 @@ export class TsconfigBuilder extends TerminalBuilder {
       })
     }
 
-    return violations
+    // ADR-010: the unit is the required flag, not the project — a rule with
+    // no .requires() call examined nothing, regardless of how many compiler
+    // options the project itself resolves.
+    return { violations, examined: requiredKeys.length }
   }
 }
 

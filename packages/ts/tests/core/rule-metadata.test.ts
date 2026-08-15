@@ -218,13 +218,22 @@ describe('RuleMetadata', () => {
 
   it('SliceRuleBuilder supports .rule() method', () => {
     const builder = new SliceRuleBuilder(stubProject)
-    // Verify .rule() is callable and returns the builder for chaining
+    // .rule() returns a COPY carrying the metadata (plan 0088 Phase 4's
+    // copy-on-write fix — a held builder is never mutated by a chain call),
+    // not the same object: verify the metadata landed, not reference identity.
     const result = builder.rule({
       id: 'slice/test',
       because: 'slice reason',
       suggestion: 'slice suggestion',
       docs: 'https://example.com/slice',
     })
-    expect(result).toBe(builder)
+    expect(result.describeRule()).toMatchObject({
+      id: 'slice/test',
+      because: 'slice reason',
+      suggestion: 'slice suggestion',
+      docs: 'https://example.com/slice',
+    })
+    // The original, held builder is untouched.
+    expect(builder.describeRule().id).toBeUndefined()
   })
 })

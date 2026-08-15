@@ -1,4 +1,5 @@
 import type { Condition, ConditionContext } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
 import { createViolation } from '../core/violation.js'
 import type { ArchJsxElement } from '../models/arch-jsx-element.js'
@@ -33,14 +34,14 @@ function createJsxViolation(
  * jsxElements(p).that().areHtmlElements('button').should().notExist().check()
  */
 export function notExist(): Condition<ArchJsxElement> {
-  return {
+  return marksAssertsCardinality({
     description: 'not exist',
     evaluate(elements: ArchJsxElement[], context: ConditionContext): ArchViolation[] {
       return elements.map((el) =>
         createJsxViolation(el, `<${el.getName()}> should not exist`, context),
       )
     },
-  }
+  })
 }
 
 /**

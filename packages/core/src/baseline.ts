@@ -112,12 +112,18 @@ export function generateBaseline(violations: ArchViolation[], outputPath: string
   const resolved = path.resolve(outputPath)
   const baselineDir = path.dirname(resolved)
 
-  const entries: BaselineEntry[] = violations.map((v) => ({
-    rule: v.rule,
-    file: toRelativePath(v.file, baselineDir),
-    line: v.line,
-    hash: hashViolation(v),
-  }))
+  // A bypassFilters configuration finding (ADR-010) can never legitimately
+  // become "known, pre-existing debt" — it means the rule's own instrument
+  // is broken right now. Recording it would let a future run of `check
+  // --baseline` silently treat a dead selector as already-accepted.
+  const entries: BaselineEntry[] = violations
+    .filter((v) => v.bypassFilters !== true)
+    .map((v) => ({
+      rule: v.rule,
+      file: toRelativePath(v.file, baselineDir),
+      line: v.line,
+      hash: hashViolation(v),
+    }))
 
   const baseline: BaselineFile = {
     generatedAt: new Date().toISOString(),
@@ -148,9 +154,15 @@ export class Baseline {
 
   /**
    * Filter out known violations, returning only new ones.
+   *
+   * A `bypassFilters` configuration finding is never treated as known, even
+   * if an older or hand-edited baseline file happens to carry a matching
+   * hash — `generateBaseline()` no longer writes these, but a baseline
+   * generated before that fix (or hand-edited) must not be able to
+   * resurrect the suppression this defends against.
    */
   filterNew(violations: ArchViolation[]): ArchViolation[] {
-    return violations.filter((v) => !this.isKnown(v))
+    return violations.filter((v) => v.bypassFilters === true || !this.isKnown(v))
   }
 
   /** Number of known violations in the baseline */

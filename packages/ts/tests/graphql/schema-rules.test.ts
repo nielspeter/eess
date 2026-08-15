@@ -89,12 +89,28 @@ describe('SchemaRuleBuilder — predicates', () => {
     }).toThrow(ArchRuleError)
   })
 
-  it('typesNamed() with regex that matches nothing produces no violations', () => {
+  it('typesNamed() with regex that matches nothing is a dead selector, not a silent pass', () => {
+    try {
+      schemaFromSDL(fullSDL)
+        .typesNamed(/Nonexistent$/)
+        .should()
+        .haveFields('whatever')
+        .check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+    }
+  })
+
+  it('typesNamed() with regex that matches nothing passes when declared with .expectEmpty()', () => {
     expect(() => {
       schemaFromSDL(fullSDL)
         .typesNamed(/Nonexistent$/)
         .should()
         .haveFields('whatever')
+        .expectEmpty()
         .check()
     }).not.toThrow()
   })
@@ -224,6 +240,23 @@ describe('SchemaRuleBuilder — chain methods', () => {
         .should()
         .haveFields('total', 'skip', 'limit', 'items')
         .severity('warn')
+    }).not.toThrow()
+  })
+
+  it('branches from a held selection via .because() do not leak conditions into each other', () => {
+    // Regression for the copy() shallow-copy trap (plan 0088 Phase 4 review):
+    // without its own copy() override, SchemaRuleBuilder's _conditions array
+    // is shared by reference across two .because()-derived branches. Branch
+    // A's haveFields('total','skip','limit','items') genuinely fails
+    // (BadCollection has only 'items' — see the test above) — if it leaked
+    // into branch B, branch B's own, otherwise-passing haveFields('items')
+    // would wrongly throw too.
+    const base = schemaFromSDL(fullSDL).typesNamed(/Collection$/)
+    const a = base.because('branch A')
+    a.should().haveFields('total', 'skip', 'limit', 'items')
+    const b = base.because('branch B')
+    expect(() => {
+      b.should().haveFields('items').check()
     }).not.toThrow()
   })
 })

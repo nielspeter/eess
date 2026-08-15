@@ -144,20 +144,23 @@ const rules = [
   }),
   srcClasses().should().satisfy(noMagicNumbers()).rule({ id: 'eess/no-magic-numbers' }),
 
-  // -- metrics (builders + kernel RuleBuilder excluded per ADR-003: wide fluent surfaces are the design) --
+  // -- metrics (builders + kernel TerminalBuilder excluded per ADR-003: wide fluent surfaces
+  // are the design). Plan 0088 Phase 4 folded RuleBuilder's terminal methods (because/rule/
+  // excluding/check/warn/severity/copy) up into TerminalBuilder, so it — not RuleBuilder — is
+  // now the file carrying the fluent grammar base's bulk; RuleBuilder no longer needs the
+  // exclusion (it dropped back under both thresholds once the shared machinery moved out).
   srcClasses().should().satisfy(maxCyclomaticComplexity(10)).rule({ id: 'eess/max-complexity' }),
   srcClasses()
-    .excluding(/\/core\/src\/rule-builder\.ts$/)
+    .excluding(/\/core\/src\/terminal-builder\.ts$/)
     .should()
     .satisfy(maxClassLines(300))
     .rule({
       id: 'eess/max-class-lines',
-      because: 'ADR-003: the kernel RuleBuilder is the fluent grammar base',
+      because: 'ADR-003: the kernel TerminalBuilder is the fluent grammar base',
     }),
   srcClasses().should().satisfy(maxMethodLines(50)).rule({ id: 'eess/max-method-lines' }),
   srcClasses()
     .excluding(/\/builders\//)
-    .excluding(/\/core\/src\/rule-builder\.ts$/)
     .should()
     .satisfy(maxMethods(20))
     .rule({

@@ -85,6 +85,11 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction, ArchProject> 
     return this.project.getSourceFiles().flatMap((sf) => collectFunctions(sf))
   }
 
+  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
+  protected override sourceEmpty(): boolean {
+    return this.project.getSourceFiles().length === 0
+  }
+
   // --- Identity predicates (delegated to plan 0003 generics) ---
 
   /**

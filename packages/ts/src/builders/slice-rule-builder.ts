@@ -1,7 +1,7 @@
 import type { ArchProject } from '../core/project.js'
 import type { ArchViolation } from '../core/violation.js'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { TerminalBuilder } from '@nielspeter/eess'
+import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
 import type { Slice, SliceDefinition } from '../models/slice.js'
 import { resolveByMatching, resolveByDefinition } from '../models/slice.js'
 import {
@@ -23,10 +23,28 @@ import {
  */
 export class SliceRuleBuilder extends TerminalBuilder {
   private _slices: Slice[] = []
-  private readonly _conditions: Condition<Slice>[] = []
+  private _conditions: Condition<Slice>[] = []
 
   constructor(private readonly project: ArchProject) {
     super()
+  }
+
+  /**
+   * Independent copy of `_slices`/`_conditions`. `TerminalBuilder.copy()`
+   * (used by the inherited `.because()`/`.excluding()`/`.rule()`/
+   * `.expectEmpty()`) only shallow-copies via `Object.assign`, so without
+   * this override two branches derived from the same held selection (e.g.
+   * `base.because('A')` and `base.because('B')`) would share one
+   * `_conditions` array by reference — a condition pushed on one branch
+   * silently appearing on the other. Same bug class as `RuleBuilder`'s
+   * "bug 0016", one layer down: this builder never adopted `RuleBuilder`'s
+   * fix because it doesn't extend it.
+   */
+  protected override copy(): this {
+    const clone = super.copy()
+    clone._slices = [...this._slices]
+    clone._conditions = [...this._conditions]
+    return clone
   }
 
   /**
@@ -103,9 +121,16 @@ export class SliceRuleBuilder extends TerminalBuilder {
     return this
   }
 
-  protected collectViolations(): ArchViolation[] {
+  protected collectViolations(): CollectResult {
+    // Deliberately NOT marking this sourceEmpty: unlike RuleBuilder, there's
+    // no separate predicate-filter stage — `.matching()`/`.assignedFrom()`
+    // fuse "get elements" and "select" into one step, so zero slices here
+    // can't be honestly distinguished from a glob/definition that simply
+    // doesn't match yet (a legitimate `.expectEmpty()` use case, e.g. mid
+    // migration) versus a genuinely empty project. Conflating the two would
+    // make `.expectEmpty()` wrongly unusable for the ordinary case.
     if (this._slices.length === 0) {
-      return []
+      return { violations: [], examined: 0 }
     }
 
     if (this._conditions.length === 0) {
@@ -114,7 +139,7 @@ export class SliceRuleBuilder extends TerminalBuilder {
         `[eess] Slice rule '${ruleId}' has no conditions. ` +
           `Did you forget to add a condition like beFreeOfCycles()?`,
       )
-      return []
+      return { violations: [], examined: 0 }
     }
 
     const context: ConditionContext = {
@@ -130,7 +155,7 @@ export class SliceRuleBuilder extends TerminalBuilder {
       violations.push(...condition.evaluate(this._slices, context))
     }
 
-    return violations
+    return { violations, examined: this._slices.length }
   }
 
   private buildRuleDescription(): string {

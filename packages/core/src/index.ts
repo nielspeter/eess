@@ -19,6 +19,8 @@ export type { ApplyResult } from './apply-fixes.js'
 // Rule builder, terminal builder, error
 export { RuleBuilder } from './rule-builder.js'
 export { TerminalBuilder } from './terminal-builder.js'
+export type { CollectResult } from './terminal-builder.js'
+export { marksAssertsCardinality, assertsCardinality } from './cardinality.js'
 export { ArchRuleError } from './errors.js'
 export type { RuleMetadata } from './rule-metadata.js'
 export type { RuleDescription } from './rule-description.js'

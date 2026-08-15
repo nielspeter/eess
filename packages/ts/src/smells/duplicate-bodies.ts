@@ -19,6 +19,7 @@ const TEST_PATTERNS = ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**']
 
 export class DuplicateBodiesBuilder extends SmellBuilder {
   private _minSimilarity = 0.85
+  private _examined = 0
 
   constructor(project: ArchProject) {
     super(project)
@@ -30,8 +31,14 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
     return this
   }
 
+  /** ADR-010: functions entering pairwise comparison, set by `detect()`. */
+  protected examinedCount(): number {
+    return this._examined
+  }
+
   protected detect(): ArchViolation[] {
     const functions = this.collectFilteredFunctions()
+    this._examined = functions.length
     const fingerprinted = this.fingerprintAll(functions)
     const pairs = this.findSimilarPairs(fingerprinted)
     return this.buildViolations(pairs)

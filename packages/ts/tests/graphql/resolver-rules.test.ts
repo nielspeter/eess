@@ -55,13 +55,30 @@ describe('ResolverRuleBuilder — predicates', () => {
     }).toThrow(ArchRuleError)
   })
 
-  it('resolveFieldReturning() with no match produces no violations', () => {
+  it('resolveFieldReturning() with no match is a dead selector, not a silent pass', () => {
+    try {
+      resolvers(p, 'src/**/*.resolver.ts')
+        .that()
+        .resolveFieldReturning(/ZZZNonExistentType/)
+        .should()
+        .contain(call('loader.load'))
+        .check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+    }
+  })
+
+  it('resolveFieldReturning() with no match passes when declared with .expectEmpty()', () => {
     expect(() => {
       resolvers(p, 'src/**/*.resolver.ts')
         .that()
         .resolveFieldReturning(/ZZZNonExistentType/)
         .should()
         .contain(call('loader.load'))
+        .expectEmpty()
         .check()
     }).not.toThrow()
   })
@@ -121,6 +138,22 @@ describe('ResolverRuleBuilder — conditions (body analysis reuse)', () => {
         .should()
         .contain(call('loader.load'))
         .warn()
+    }).not.toThrow()
+  })
+
+  it('branches from a held selection via .because() do not leak conditions into each other', () => {
+    // Regression for the copy() shallow-copy trap (plan 0088 Phase 4 review):
+    // without its own copy() override, ResolverRuleBuilder's _conditions
+    // array is shared by reference across two .because()-derived branches.
+    // Branch A's contain(loader.load) genuinely fails against
+    // resolvePostAuthor (see the test above) — if it leaked into branch B,
+    // branch B's own, otherwise-passing condition would wrongly throw too.
+    const base = resolvers(p, 'src/**/*.resolver.ts').that().resolveFieldReturning(/User/)
+    const a = base.because('branch A')
+    a.should().contain(call('loader.load'))
+    const b = base.because('branch B')
+    expect(() => {
+      b.should().notContain(call('someNonexistentCall')).check()
     }).not.toThrow()
   })
 })

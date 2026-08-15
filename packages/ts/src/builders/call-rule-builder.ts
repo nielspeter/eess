@@ -76,6 +76,11 @@ export class CallRuleBuilder extends RuleBuilder<ArchCall, ArchProject> {
     return this.project.getSourceFiles().flatMap(collectCalls)
   }
 
+  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
+  protected override sourceEmpty(): boolean {
+    return this.project.getSourceFiles().length === 0
+  }
+
   protected override buildConditionContext(): ConditionContext {
     return {
       ...super.buildConditionContext(),

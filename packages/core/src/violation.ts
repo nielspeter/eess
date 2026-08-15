@@ -48,4 +48,14 @@ export interface ArchViolation {
   docs?: string
   /** A deterministic, unique text edit that repairs this violation (plan 0066). */
   fix?: ArchFix
+  /**
+   * ADR-010 — a configuration finding (the rule's own instrument is broken:
+   * zero examined units, an expired `.expectEmpty()` declaration) rather than
+   * an ordinary architectural finding. Unsuppressable: `.excluding()` and
+   * inline exclusion comments never match it, because the thing it reports is
+   * that the rule examined nothing, not that something is wrong with what it
+   * examined — an exclusion aimed at the latter cannot correctly apply to the
+   * former.
+   */
+  bypassFilters?: boolean
 }

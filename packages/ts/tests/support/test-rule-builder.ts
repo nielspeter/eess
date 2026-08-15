@@ -38,6 +38,17 @@ export class TestRuleBuilder extends RuleBuilder<TestElement, ArchProject> {
     return this.elements
   }
 
+  /**
+   * ADR-010 part 3: unlike a real dialect builder (which derives
+   * `getElements()` from `project.getSourceFiles()`), this harness's
+   * `elements` array IS its source, injected directly — no separate
+   * "domain extraction over a real project" to conflate it with. An empty
+   * `elements` array unambiguously means the source was empty.
+   */
+  protected override sourceEmpty(): boolean {
+    return this.elements.length === 0
+  }
+
   /** Register a predicate for testing. */
   withPredicate(predicate: Predicate<TestElement>): this {
     return this.addPredicate(predicate)

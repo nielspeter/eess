@@ -57,6 +57,23 @@ describe('ClassRuleBuilder', () => {
         classes(d).that().haveNameEndingWith('Repository').should().notExist().check()
       }).toThrow(ArchRuleError)
     })
+
+    it('notExist() passes when the predicate legitimately matches nothing', () => {
+      // ADR-010 cardinality exemption: `.notExist()` is satisfied BY emptiness
+      // — a matched-nothing set is not a dead selector here, it's the
+      // condition's own assertion holding. Regression coverage for a real
+      // fold-in bug (plan 0088 Phase 4): mermaid's notExist() shipped without
+      // marksAssertsCardinality(), so this legitimately-empty case wrongly
+      // threw "examined zero units" until fixed.
+      expect(() => {
+        classes(d)
+          .that()
+          .haveNameMatching(/DoesNotExistAnywhere/)
+          .should()
+          .notExist()
+          .check()
+      }).not.toThrow()
+    })
   })
 
   describe('condition wiring — extend', () => {

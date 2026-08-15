@@ -74,10 +74,12 @@ describe('classes() entry point integration', () => {
 
   describe('acceptParameterOfType (plan 0031)', () => {
     it('repos must accept DatabaseClient', () => {
+      // Fixture's repo-shaped class is `RepoAcceptingDb` — starts with "Repo",
+      // not ends with it. `haveNameEndingWith('Repo')` matched nothing here.
       expect(() => {
         classes(p)
           .that()
-          .haveNameEndingWith('Repo')
+          .haveNameStartingWith('Repo')
           .and()
           .resideInFile('**/members.ts')
           .should()

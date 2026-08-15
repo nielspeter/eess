@@ -1,5 +1,5 @@
 import type { ArchViolation } from './violation.js'
-import { TerminalBuilder } from './terminal-builder.js'
+import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
 import { matchSelections, type MatchOptions } from './matching.js'
 
 /** How to identify an element for a two-sided violation message. */
@@ -107,9 +107,32 @@ export class CorrespondenceBuilder<L, R> extends TerminalBuilder {
     return this
   }
 
-  protected collectViolations(): ArchViolation[] {
+  protected collectViolations(): CollectResult {
     const ruleId = this._metadata?.id
-    return this._checks.flatMap((check) => check(this.opts, ruleId))
+    const violations = this._checks.flatMap((check) => check(this.opts, ruleId))
+    // ADR-010: the unit is the key sets of both sides — a correspondence over
+    // an empty left AND an empty right examined nothing, regardless of how
+    // many checks were chained; one side alone being empty is still real
+    // examination of the other.
+    const examined = this.opts.left.elements.length + this.opts.right.elements.length
+    return { violations, examined }
+  }
+
+  /**
+   * ADR-010: `beComplete()`/`preserveRelations()` are, by construction,
+   * absence assertions — "no element lacks a counterpart", "no matched pair
+   * disagrees" — the same shape as `RuleBuilder`'s `.notExist()`. Neither can
+   * ever produce a violation from an empty side: there is no element to be
+   * unmatched, no pair to disagree. An empty selection here is the correctly
+   * computed input (e.g. release-gate's "no packages changed this diff" on a
+   * clean tree), not a broken instrument the way an empty `RuleBuilder`
+   * predicate-selector usually is — so, unlike `RuleBuilder`, this holds
+   * unconditionally rather than depending on which checks were chained.
+   * Real misconfiguration here (a selection that should have elements and
+   * doesn't) surfaces through each side's own summary line, not this gate.
+   */
+  protected override assertsCardinality(): boolean {
+    return true
   }
 }
 

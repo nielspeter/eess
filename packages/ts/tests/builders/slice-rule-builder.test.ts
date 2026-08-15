@@ -124,6 +124,28 @@ describe('SliceRuleBuilder chain methods', () => {
     }).not.toThrow()
   })
 
+  it('branches from a held selection via .because() do not leak conditions into each other', () => {
+    // Regression for the copy() shallow-copy trap (plan 0088 Phase 4 review):
+    // TerminalBuilder.copy() only deep-copies _exclusions/_silentIndices/
+    // _metadata — SliceRuleBuilder's own _conditions array needs its own
+    // override or two .because()-derived branches share one array by
+    // reference, and a condition added to branch A silently appears on
+    // branch B. `respectLayerOrder('domain', 'services')` is deliberately
+    // the WRONG order (services actually depends on domain) so a leak is
+    // observable: it fails on this selection's real edges, while branch B's
+    // own `notDependOn('controllers')` passes on its own.
+    const base = slices(p).assignedFrom({
+      domain: '**/domain/**',
+      services: '**/services/**',
+    })
+    const a = base.because('branch A')
+    a.should().respectLayerOrder('domain', 'services')
+    const b = base.because('branch B')
+    expect(() => {
+      b.should().notDependOn('controllers').check()
+    }).not.toThrow()
+  })
+
   it('.severity("error") throws on violations', () => {
     expect(() => {
       slices(p).matching('src/feature-').should().beFreeOfCycles().severity('error')

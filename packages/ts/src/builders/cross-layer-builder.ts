@@ -4,7 +4,7 @@ import type { ArchProject } from '../core/project.js'
 import type { PairCondition } from '../core/pair-condition.js'
 import type { ConditionContext } from '@nielspeter/eess'
 import type { Layer, LayerPair } from '../models/cross-layer.js'
-import { TerminalBuilder, matchSelections } from '@nielspeter/eess'
+import { TerminalBuilder, matchSelections, type CollectResult } from '@nielspeter/eess'
 
 /**
  * Resolve a layer by matching its glob against the project's source files.
@@ -146,7 +146,7 @@ export class PairFinalBuilder extends TerminalBuilder {
     super()
   }
 
-  protected collectViolations() {
+  protected collectViolations(): CollectResult {
     const layerNames = this.layers.map((l) => l.name)
     const context: ConditionContext = {
       rule: `cross-layer [${layerNames.join(', ')}] should ${this.condition.description}`,
@@ -156,7 +156,7 @@ export class PairFinalBuilder extends TerminalBuilder {
       docs: this._metadata?.docs,
     }
 
-    return this.condition.evaluate(this.pairs, context)
+    return { violations: this.condition.evaluate(this.pairs, context), examined: this.pairs.length }
   }
 }
 

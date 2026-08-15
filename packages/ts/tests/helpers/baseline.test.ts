@@ -78,6 +78,20 @@ describe('generateBaseline', () => {
     expect(data.violations[0]?.hash).toHaveLength(16)
   })
 
+  it('never records a bypassFilters configuration finding — it can never legitimately become "known" debt', () => {
+    const dir = createTmpDir()
+    const outputPath = path.join(dir, 'baseline.json')
+    const configFinding = mv({ element: 'unnamed', file: '', line: 0, bypassFilters: true })
+    const ordinary = mv({ element: 'OrderService' })
+
+    generateBaseline([configFinding, ordinary], outputPath)
+
+    const raw = fs.readFileSync(outputPath, 'utf-8')
+    const data = JSON.parse(raw) as BaselineFile
+    expect(data.count).toBe(1)
+    expect(data.violations[0]?.rule).toBe(ordinary.rule)
+  })
+
   it('stores relative paths', () => {
     const dir = createTmpDir()
     const outputPath = path.join(dir, 'baseline.json')
@@ -134,5 +148,16 @@ describe('Baseline', () => {
     const violations = [mv({ element: 'A' }), mv({ element: 'B' })]
     const result = baseline.filterNew(violations)
     expect(result).toHaveLength(2)
+  })
+
+  it('filterNew never suppresses a bypassFilters finding, even if its hash is already known', () => {
+    // Defense in depth for a baseline file generated before generateBaseline()
+    // stopped writing these, or a hand-edited one — the "unsuppressable"
+    // ADR-010 guarantee must hold regardless of what the baseline file says.
+    const configFinding = mv({ element: 'unnamed', file: '', line: 0, bypassFilters: true })
+    const knownHashes = new Set([hashViolation(configFinding)])
+    const baseline = new Baseline(knownHashes, '/tmp')
+    const result = baseline.filterNew([configFinding])
+    expect(result).toHaveLength(1)
   })
 })

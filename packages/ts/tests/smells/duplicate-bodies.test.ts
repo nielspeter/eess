@@ -37,9 +37,21 @@ describe('smells.duplicateBodies()', () => {
     expect(() => builder.check()).not.toThrow()
   })
 
-  it('respects minLines filter', () => {
+  it('respects minLines filter — a minLines high enough to exclude everything is a dead selector', () => {
     // With a very high minLines, no functions qualify
     const builder = smells.duplicateBodies(p).minLines(1000).withMinSimilarity(0.5)
+    try {
+      builder.check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+    }
+  })
+
+  it('respects minLines filter — passes when declared with .expectEmpty()', () => {
+    const builder = smells.duplicateBodies(p).minLines(1000).withMinSimilarity(0.5).expectEmpty()
     expect(() => builder.check()).not.toThrow()
   })
 

@@ -33,7 +33,7 @@ function violationFor(info: ElementInfo, message: string, ruleId?: string): Arch
 }
 ```
 
-`buildConditionContext()` (`packages/core/src/rule-builder.ts:372`) does put
+`buildConditionContext()` (`packages/core/src/rule-builder.ts:283`) does put
 `suggestion` in the context — the correspondence condition simply doesn't read
 it.
 

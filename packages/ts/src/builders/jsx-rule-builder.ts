@@ -62,6 +62,11 @@ export class JsxRuleBuilder extends RuleBuilder<ArchJsxElement, ArchProject> {
     return this.project.getSourceFiles().flatMap(collectJsxElements)
   }
 
+  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
+  protected override sourceEmpty(): boolean {
+    return this.project.getSourceFiles().length === 0
+  }
+
   // --- Identity predicates (predicate-only, following CallRuleBuilder pattern) ---
 
   /** Filter to JSX elements whose tag/component name matches the pattern. */

@@ -335,7 +335,36 @@ describe('.warn() vs .check()', () => {
 describe('empty layer', () => {
   const p = loadTestProject()
 
-  it('no violations and no crash when a layer matches no files', () => {
+  // ADR-009/010 (plan 0088 Phase 4): zero pairs from an empty layer is a
+  // configuration finding by default — an empty layer reads identically to
+  // "nothing to report" unless the author declares it.
+  it('throws — an empty layer producing zero pairs is a configuration finding, not a silent pass', () => {
+    try {
+      crossLayer(p)
+        .layer('routes', '**/routes/**')
+        .layer('nonexistent', '**/does-not-exist/**')
+        .mapping(() => true)
+        .forEachPair()
+        .should(
+          satisfyPairCondition('should not be called', () => ({
+            rule: 'test',
+            element: 'test',
+            file: 'test',
+            line: 1,
+            message: 'should not reach here',
+          })),
+        )
+        .check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations).toHaveLength(1)
+      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+    }
+  })
+
+  it('passes when the empty layer is declared with .expectEmpty()', () => {
     expect(() => {
       crossLayer(p)
         .layer('routes', '**/routes/**')
@@ -351,6 +380,7 @@ describe('empty layer', () => {
             message: 'should not reach here',
           })),
         )
+        .expectEmpty()
         .check()
     }).not.toThrow()
   })

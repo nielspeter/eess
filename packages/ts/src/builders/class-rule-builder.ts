@@ -83,6 +83,11 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration, ArchProject>
     return classes
   }
 
+  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
+  protected override sourceEmpty(): boolean {
+    return this.project.getSourceFiles().length === 0
+  }
+
   // --- Identity predicate methods (plan 0003) ---
 
   /**

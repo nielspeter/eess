@@ -16,9 +16,15 @@ const TEST_PATTERNS = ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**']
 
 export class InconsistentSiblingsBuilder extends SmellBuilder {
   private _pattern?: ExpressionMatcher
+  private _examined = 0
 
   constructor(project: ArchProject) {
     super(project)
+  }
+
+  /** ADR-010: files across all eligible sibling folders, set by `detect()`. */
+  protected examinedCount(): number {
+    return this._examined
   }
 
   /** The pattern that most siblings should follow. */
@@ -95,6 +101,7 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
     if (this._groupByFolder) {
       folderEntries.sort((a, b) => a[0].localeCompare(b[0]))
     }
+    this._examined = folderEntries.reduce((n, [, files]) => n + files.length, 0)
 
     const violations: ArchViolation[] = []
 

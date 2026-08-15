@@ -2,7 +2,7 @@ import type { SourceFile } from 'ts-morph'
 import type { ArchViolation } from '../core/violation.js'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
-import { TerminalBuilder } from '@nielspeter/eess'
+import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { collectFunctions } from '../models/arch-function.js'
@@ -53,11 +53,25 @@ export function resolveFieldReturning(pattern: RegExp | string): Predicate<ArchF
  * ```
  */
 export class ResolverRuleBuilder extends TerminalBuilder {
-  private readonly _predicates: Predicate<ArchFunction>[] = []
-  private readonly _conditions: Condition<ArchFunction>[] = []
+  private _predicates: Predicate<ArchFunction>[] = []
+  private _conditions: Condition<ArchFunction>[] = []
 
   constructor(private readonly sourceFiles: SourceFile[]) {
     super()
+  }
+
+  /**
+   * Independent copy of `_predicates`/`_conditions` — see
+   * `SliceRuleBuilder.copy()` for why this override is required: without it,
+   * two branches derived from the same held selection via the inherited
+   * `.because()`/`.excluding()`/`.rule()`/`.expectEmpty()` would share one
+   * mutable array by reference.
+   */
+  protected override copy(): this {
+    const clone = super.copy()
+    clone._predicates = [...this._predicates]
+    clone._conditions = [...this._conditions]
+    return clone
   }
 
   // --- Predicate methods ---
@@ -128,7 +142,7 @@ export class ResolverRuleBuilder extends TerminalBuilder {
 
   // --- Evaluation ---
 
-  protected collectViolations(): ArchViolation[] {
+  protected collectViolations(): CollectResult {
     const allElements = this.getElements()
 
     const filtered = allElements.filter((element) =>
@@ -136,7 +150,13 @@ export class ResolverRuleBuilder extends TerminalBuilder {
     )
 
     if (filtered.length === 0) {
-      return []
+      // Deliberately not claiming sourceEmpty: `sourceFiles` is already a
+      // glob-filtered list, so an empty result here is indistinguishable
+      // from "the resolver glob legitimately matches nothing yet" (e.g.
+      // mid-migration) versus "the project itself loaded nothing" — the
+      // same ambiguity that broke JsxRuleBuilder's .notExist() case when
+      // this was tried against getElements().length instead.
+      return { violations: [], examined: 0 }
     }
 
     if (this._conditions.length === 0) {
@@ -145,7 +165,7 @@ export class ResolverRuleBuilder extends TerminalBuilder {
         `[eess] Resolver rule '${ruleId}' has predicates but no conditions. ` +
           `Did you forget to add a condition after .should()?`,
       )
-      return []
+      return { violations: [], examined: filtered.length }
     }
 
     const context: ConditionContext = {
@@ -160,7 +180,7 @@ export class ResolverRuleBuilder extends TerminalBuilder {
     for (const condition of this._conditions) {
       violations.push(...condition.evaluate(filtered, context))
     }
-    return violations
+    return { violations, examined: filtered.length }
   }
 
   private getElements(): ArchFunction[] {
