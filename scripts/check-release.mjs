@@ -237,7 +237,18 @@ const addDeleted = (...args) => {
 addDeleted('diff', '--name-only', '--diff-filter=D', mergeBase, '--', '.changeset')
 addDeleted('diff', '--name-only', '--diff-filter=D', headSha, '--', '.changeset')
 addDeleted(
+  // `--full-history`: this is a RANGE query through `headSha`, which is a
+  // merge commit under GitHub Actions' default `pull_request` checkout
+  // (base + PR branch, not the PR branch's own tip). Default path-limited
+  // history simplification can still lose a commit whose path is absent
+  // from both of a merge's parents (added and deleted entirely on one
+  // side) even with a defined range — measured directly: this exact call,
+  // unchanged, found 0 of 3 real consumed changesets against a genuine
+  // GitHub PR merge ref in a small repro, though it happened to find all 3
+  // against this repo's own deeper history. Both shapes are real; only one
+  // is safe to depend on.
   'log',
+  '--full-history',
   '--diff-filter=D',
   '--name-only',
   '--pretty=format:',
@@ -256,7 +267,16 @@ function consumedContent(file) {
     }
   }
   try {
-    const lastTouch = git('rev-list', '-1', headSha, '--', file)
+    // `--full-history`: HEAD is a merge commit under GitHub Actions' default
+    // `pull_request` checkout (base + PR branch, not the PR branch's own
+    // tip). Default path-limited history simplification can silently follow
+    // only one parent when a path is absent from BOTH — exactly this case,
+    // a changeset created and deleted entirely on the PR-branch side — and
+    // never surface the commit that touched it, even though it is a real
+    // ancestor. Without this flag: green locally (HEAD is the branch tip),
+    // red in CI (HEAD is the merge preview) — verified against a real
+    // GitHub PR merge ref before adding it.
+    const lastTouch = git('rev-list', '-1', '--full-history', headSha, '--', file)
     if (lastTouch) return git('show', `${lastTouch}^:${file}`)
   } catch {
     /* deleted in the root commit, or unreadable — nothing to credit */

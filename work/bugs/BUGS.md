@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-14 · **Open:** 36 (34 Draft · 2 Parked) · **Fixed:** 18 · **Rejected:** 0
+**Updated:** 2026-08-16 · **Open:** 35 (33 Draft · 2 Parked) · **Fixed:** 20 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -176,3 +176,4 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0141](./fixed/0141-no-check-binds-accepted-proposals-to-plans.md)        | nothing verifies an accepted proposal ever got a plan — the Ruling a proposal carries is never checked against reality                                                        | Medium   | ✅ Fixed → `fixed/` | self-found · asked directly whether proposal→plan linkage is dogfooded       | #59       |
 | [0143](./0143-proposal-ruling-parser-duplicates-terms-vocabulary.md)      | proposal-ruling.mjs hand-rolls a fence-stripper + closed-vocabulary matcher that terms()/vocabulary() already ships, with zero dogfood usage of the primitive anywhere        | Low      | 🔴 Draft            | self-found · architect review of the branch that built plan 0142             | —         |
 | [0144](./fixed/0144-md-gherkin-nul-bytes-break-grep.md)                   | md-gherkin.ts carried raw NUL bytes, making grep silently treat it as binary — produced a live false negative in this session's own proposal-review survey                    | Medium   | ✅ Fixed → `fixed/` | self-found · architect review of proposal 005 Rewrite v2                     | —         |
+| [0149](./fixed/0149-release-gate-loses-history-through-a-merge-commit.md) | check:release silently under-credited consumed changesets when HEAD is a merge commit — exactly GitHub Actions' default PR checkout, false-positive-blocking a real release   | High     | ✅ Fixed → `fixed/` | self-found · diagnosing a genuine CI failure on PR #67 before a push         | —         |
