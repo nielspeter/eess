@@ -3,7 +3,7 @@
 ## Status
 
 Accepted (2026-08-14). Implements plan
-[0088](../work/plans/0088-fold-ts-archunit-into-eess.md). Ported from
+[0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md). Ported from
 `ts-archunit` [ADR-008](https://github.com/nielspeter/ts-archunit/blob/main/adr/008-agent-first-failure-surfaces.md)
 (accepted there 2026-07-29) — the doctrine eess's own fork of that engine
 predates. This is the "missing twin" `ts-archunit` ADR-010 names and eess never

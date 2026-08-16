@@ -29,7 +29,7 @@
   boundary is that 0112 counts absent fixtures and this counts fixtures that
   cannot see the production gate.
 - **Origin:** self-found · instrumented both kernel seams while scoping the
-  ts-archunit doctrine port ([0088](../../plans/0088-fold-ts-archunit-into-eess.md),
+  ts-archunit doctrine port ([0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md),
   and [0103](./0103-adr-009-cited-but-does-not-exist.md), which cites the doctrine)
 - **Reported:** 2026-08-12 · **Fixed:** 2026-08-14 (PR #57)
 
@@ -365,7 +365,7 @@ without (1) is a docs change.
   already not independently reproducible by any stated rule) — so the total would
   arrive hand-typed. If it is built, it must be a **set** measured
   against a dated committed baseline, not a scalar that a rule leaving and another
-  joining leaves unmoved. → [0088](../../plans/0088-fold-ts-archunit-into-eess.md)
+  joining leaves unmoved. → [0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)
   Phase 4a, which already specifies a shrink-only list with an expiry.
 - **Evidence at the seam** (`{ violations, examined }`). The only fix that reddens
   reproduction A. Three costs the first draft understated: there are **eight**
@@ -460,7 +460,7 @@ is outside it by construction.
 
 Deferred, each re-homed:
 
-- **The coverage denominator** → [0088](../../plans/0088-fold-ts-archunit-into-eess.md)
+- **The coverage denominator** → [0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md)
   Phase 4a. Its four-verdict classification (`fail-open` · `config-finding` ·
   `other-throw` · `no-checks`) is a correction to that phase's stated three, and
   the `no-checks` cell is the preset-constructs-nothing hole 4a claims to expose.

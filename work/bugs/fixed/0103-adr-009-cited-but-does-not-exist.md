@@ -4,7 +4,7 @@
 
 - **State:** Fixed — done-otherwise, 2026-08-16. Not via the originally-scoped
   red test (never written); the symptom resolved incidentally when plan
-  [0088](../../plans/0088-fold-ts-archunit-into-eess.md) Phase 2 created
+  [0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 2 created
   `adr/009-agent-first-failure-surfaces.md`. Both cited lines now name a real
   file — confirmed directly, `rg -n "ADR-009" scripts/` still finds the same
   two lines, and both now resolve.
@@ -40,7 +40,7 @@ rg -n "ADR-009" scripts/                   # two citations
 ## Root cause
 
 `ADR-009` was, at the time this bug was filed, a **forward reference**. Plan
-[0088](../../plans/0088-fold-ts-archunit-into-eess.md) Phase 2 is
+[0088](../../plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 2 is
 what created it — it ports ts-archunit's ADR-008 ("Agent-First Failure
 Surfaces") to this repo as `adr/009-agent-first-failure-surfaces.md`. The
 citation was written before the document; the document now exists.

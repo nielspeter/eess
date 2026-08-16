@@ -3,7 +3,7 @@
 ## Status
 
 Accepted (2026-08-14). Implements plan
-[0088](../work/plans/0088-fold-ts-archunit-into-eess.md). Ported from
+[0088](../work/plans/completed/0088-fold-ts-archunit-into-eess.md). Ported from
 `ts-archunit` [ADR-009](https://github.com/nielspeter/ts-archunit/blob/main/adr/009-a-pass-is-constructed-from-evidence.md)
 (accepted there 2026-08-06, after a defect class recurred four times on the
 source project). This ADR is **prospective on eess's own kernel**: the seam it

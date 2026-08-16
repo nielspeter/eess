@@ -2,12 +2,21 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-08-14. Direction ruled by the author
+- **State:** Done — 2026-08-16, closing together with plans 0147/0148 and bug
+  0149 in the same PR (#67). All 7 phases (+4a) landed and independently
+  verified; ADR-010's Enforcement table corrected to match. Nothing is left
+  deferred as _this plan's own_ scope: `checkAll()` was always plan 0081's
+  (unchanged); the four Important-tier review findings the 2026-08-15
+  multi-agent review found are fully moved, not half-described, into
+  [plan 0150](../0150-close-0088s-disclosed-review-findings.md) — a complete
+  Draft with its own phases, test inventory, and success definition, not a
+  pointer to unfiled work. See Close section at the end. Frozen 2026-08-14.
+  Direction ruled by the author
   (2026-08-10: retire ts-archunit, fold its current engine in, port the two
   doctrine ADRs). **Split 2026-08-12:** the original Phase 7 (retire ts-archunit
   — a registry act and another repository's setting) and Phase 8's publish step
   could not land in this plan's PR, so this plan could not close. Both moved to
-  [0100](./0100-publish-the-fold-retire-ts-archunit.md); what remains of the
+  [0100](../0100-publish-the-fold-retire-ts-archunit.md); what remains of the
   release work is Phase 7, which authors it as merged changesets. 0088 now closes
   at merge. The
   engine-drift measurement is cited (`ts-archunit` ADR-010: **10,342 diff-lines
@@ -380,7 +389,7 @@ The fold is a breaking engine swap, and this phase is where that is named (the
 breaking-changelog entries, the migration story, and the compat test all land in
 this plan's PR. The _acts_ that cannot land in a PR — running the publish,
 deprecating `@nielspeter/ts-archunit`, archiving its repository — are
-[plan 0100](./0100-publish-the-fold-retire-ts-archunit.md), split out so 0088 can
+[plan 0100](../0100-publish-the-fold-retire-ts-archunit.md), split out so 0088 can
 close at merge instead of waiting on a registry.
 
 - **Which packages move, and to what versions.** `@nielspeter/eess` 0.2 → 0.3+
@@ -394,7 +403,7 @@ close at merge instead of waiting on a registry.
   0089 + 0101 publishable as **one coordinated release** (no published window where a
   consumer gets `eess-ts@0.3` + `eess-md@0.2` = two kernel copies — which would
   also split the unforgeable registries between two `WeakSet` instances).
-  Executing that release is [0100](./0100-publish-the-fold-retire-ts-archunit.md);
+  Executing that release is [0100](../0100-publish-the-fold-retire-ts-archunit.md);
   this phase's obligation is that the changesets it merges make the release
   _correct when run_, so 0088 never waits on any sibling plan's merge.
 - **Breaking-changelog + migration line.** Each package's CHANGELOG carries a
@@ -439,7 +448,7 @@ compat test, not an adapted one); sibling ranges bump in lockstep in one changes
   eess-ts rule fixtures pass **unchanged** on the folded engine (a compat test,
   not an adapted one); sibling ranges bump in lockstep in one coordinated
   changeset. The retirement assertion is
-  [0100](./0100-publish-the-fold-retire-ts-archunit.md)'s — it cannot go green
+  [0100](../0100-publish-the-fold-retire-ts-archunit.md)'s — it cannot go green
   until the deprecation exists, so authoring it here would leave `validate` red.
 
 ## Out of scope
@@ -468,7 +477,7 @@ compat test, not an adapted one); sibling ranges bump in lockstep in one changes
   repo archival, and the retirement test that makes "retired" mechanically true
   are all acts that complete outside a merge. Split out so this plan closes when
   its code lands. The corpus migration (ts-archunit's plans/bugs/ADRs/docs) is
-  [0090](./0090-adopt-ts-archunit-work-corpus.md); the archived repo stays its
+  [0090](../0090-adopt-ts-archunit-work-corpus.md); the archived repo stays its
   provenance source, so nothing is severed.
 - **Family-wide fold consequences — plan 0089, not this plan.** Per-dialect
   standalone sufficiency (md / mermaid / gherkin / crossvalidate each re-export
@@ -482,22 +491,22 @@ compat test, not an adapted one); sibling ranges bump in lockstep in one changes
 
 ## Success definition
 
-- **Standalone sufficiency for eess-ts (binding invariant): partially met, honestly
-  disposed, not silently dropped.** A user who installs only `@nielspeter/eess-ts`
-  runs the whole builders/honest-gate/presets/baseline/diff/formatters/CLI
-  surface with no second install — verified directly (Phase 4's re-export
-  guard test, sabotage-checked) — **except** `diagnose` and `orphanExclusions`
-  specifically, which this bullet names and which were never built. Phase 4
-  landed a real, native evidence gate (`CollectResult`, the zero-examined
-  guard, `.expectEmpty()`/`.expectNonEmpty()`) that delivers ADR-010's actual
-  guarantee, but deliberately did **not** port ts-archunit's own `diagnose()`
-  CLI subcommand or its `orphanExclusions()` audit mechanism — a scope
-  decision made mid-Phase-4 (native > mechanical port, given the kernel-purity
-  constraint), disclosed in Phase 4's own ledger entry, not an oversight
-  found here. `deferred → not yet filed as its own eess bug/plan` (see Phase
-  4's ledger text for the full accounting). _(Per-dialect sufficiency for the
-  siblings is plan 0089's scope — as a consequence of the same fold,
-  deliberately split so each is closable.)_
+- **Standalone sufficiency for eess-ts (binding invariant): met.** A user who
+  installs only `@nielspeter/eess-ts` runs the whole
+  builders/honest-gate/presets/baseline/diff/formatters/CLI surface with no
+  second install — verified directly (Phase 4's re-export guard test,
+  sabotage-checked). This bullet originally named `diagnose` and
+  `orphanExclusions` as a disclosed exception (Phase 4 landed a real, native
+  evidence gate instead of porting ts-archunit's own `diagnose()` CLI
+  subcommand or `orphanExclusions()` audit mechanism). **Closed at close,
+  2026-08-16:** unrelated plan 0147 built and shipped a `diagnose()` core
+  function and a `doctor` CLI subcommand since this was written — confirmed
+  by reading both directly and testing `doctor` end to end. `orphanExclusions()`
+  specifically is still genuinely unbuilt; homed at
+  [plan 0150](../0150-close-0088s-disclosed-review-findings.md) rather than
+  left as a footnote. _(Per-dialect sufficiency for the siblings is plan
+  0089's scope — as a consequence of the same fold, deliberately split so
+  each is closable.)_
 - `@nielspeter/eess-ts` ships ADR-009/010's doctrine with the same guarantee
   ts-archunit-0.59's engine makes — **not** its literal `diagnose`/
   `orphanExclusions` mechanisms (see above); `@nielspeter/eess` kernel carries
@@ -517,7 +526,7 @@ P>` generic** every builder in the family depends on — both verified directly,
   sibling kernel ranges bumped in lockstep in merged changesets, existing eess-ts
   rule fixtures pass **unchanged** on the folded engine. Running that release, and
   retiring `@nielspeter/ts-archunit`, is
-  [0100](./0100-publish-the-fold-retire-ts-archunit.md) — this plan closes at
+  [0100](../0100-publish-the-fold-retire-ts-archunit.md) — this plan closes at
   merge, not at publish.
 - The stale record (plan 0081's "ahead-of" claim, stale against its 0.17 snapshot)
   corrected.
@@ -525,7 +534,7 @@ P>` generic** every builder in the family depends on — both verified directly,
 ## Progress ledger
 
 - [x] Phase 1 — delta classification matrix + ts-morph-import audit. Done
-      2026-08-14: [`work/spikes/0002-fold-delta.md`](../spikes/0002-fold-delta.md).
+      2026-08-14: [`work/spikes/0002-fold-delta.md`](../../spikes/0002-fold-delta.md).
       Re-measured against ts-archunit v0.61.0 (the plan's 0.59 citation has
       moved) — 11,594 shared-file diff-lines (was 10,342), same 21 kernel-bound
       shared files, 37 never-received modules (exact basename match). All three
@@ -776,7 +785,7 @@ P>` generic** every builder in the family depends on — both verified directly,
       outside the kernel's own package, before landing it.
 - [x] Phase 7 — version the break: changesets + breaking changelogs + migration
       story + compat test, all authored and merged (the publish itself is
-      [0100](./0100-publish-the-fold-retire-ts-archunit.md)). Done 2026-08-15:
+      [0100](../0100-publish-the-fold-retire-ts-archunit.md)). Done 2026-08-15:
       one coordinated changeset (`.changeset/fold-ts-archunit-engine.md`, since
       consumed) covering all 6 packages — kernel and `eess-ts` `minor` (the 0.x
       convention for a breaking change without a premature 1.0 stability claim
@@ -834,3 +843,35 @@ P>` generic** every builder in the family depends on — both verified directly,
       blocked this every prior phase is gone now that the changeset exists and
       has been consumed. This is the acceptance test both this phase and
       Phase 5 point at, now literally true, not just individually verified.
+
+## Close
+
+Deferred: `checkAll()`'s real implementation → [plan 0081 — port checkAll](../0081-port-checkall.md)
+(already the recorded home, unchanged at close). Four Important-tier findings
+the 2026-08-15 multi-agent review recorded as "not fixed, left open on
+purpose" but never gave a real home →
+[plan 0150 — close 0088's disclosed review findings](../0150-close-0088s-disclosed-review-findings.md):
+`CorrespondenceBuilder`'s class-wide cardinality exemption,
+`.expectNonEmpty()`'s no-op status, `RuleBuilder`'s missing direct kernel test
+coverage for `.because()`/`.excluding()`, and `orphanExclusions()` (the
+`diagnose()` half of that same finding closed since, incidentally, by
+unrelated plan 0147 — see the Success definition's standalone-sufficiency
+bullet above). Family-wide fold consequences (per-dialect standalone
+sufficiency, the sibling gates going fail-closed) remain plan 0089's and
+0101's scope respectively, as this plan always intended — not reopened here.
+
+ADR-010's own Enforcement table was corrected during this close (Phase 3's
+ledger entry above has the detail): 4 of 5 rows flipped from `pending` to
+`gated`, with real citations, after their mechanisms had been sitting built
+and running for a day without the table saying so.
+
+Nothing here is deferred as _this plan's own_ unfinished work — every item
+above is fully moved to a real, complete home (an existing plan, or a new one
+authored in this same close) rather than left half-described as a footnote.
+This plan carries nothing forward.
+
+This plan closes together with plans 0147 and 0148 and bug 0149 in the same
+PR (#67) — all on `plan-0088-build`, none of it published, none of it
+merged to `main` yet. "Closes at merge" (Status block, Phase 7) means the
+close is authored here, inside this PR, so it becomes true the moment the PR
+merges — not a separate step performed after.

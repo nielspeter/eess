@@ -6,9 +6,9 @@
   (`scripts/nonvacuity/bad-release-e2e.mjs`), fix applied, both halves of the
   fix independently sabotage-verified (revert either flag alone → the new
   scenario reds; restore → green). Confirmed against a real GitHub PR merge
-  ref (PR #67), not only the synthetic fixture. One item validation-owed: the
-  actual CI job re-run with the fix pushed, not yet observed (see
-  Verification).
+  ref (PR #67), not only the synthetic fixture. CI itself re-run with the fix
+  pushed and observed green (PR #67, `check:release` passing) — no item
+  left validation-owed.
 - **Severity:** High — the release gate exists specifically so a changed
   package cannot merge without a changeset (bug 0106). This defect makes it
   **fail closed in the wrong direction for a specific, common shape**: a real,
@@ -108,9 +108,7 @@ has no matching changeset declaration`).
 - [x] Confirmed against the real PR #67 merge ref, not only the synthetic
       fixture — the fixed script reports `6 changed · 6 declared` there.
 - [x] `npm run validate` green (167 test files, 2216 tests).
-- [x] validation-owed: CI itself re-run on PR #67 with this fix pushed, to
-      confirm green in the real GitHub Actions environment (the worktree
-      reproduction is strong evidence, not the same as watching the actual
-      job pass).
+- [x] CI itself re-run on PR #67 with this fix pushed — confirmed green
+      (`conclusion: success`), not just the worktree reproduction.
 
 Deferred: none.

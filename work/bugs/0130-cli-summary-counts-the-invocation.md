@@ -56,7 +56,7 @@ file load and construct rules?_ — and it does answer that honestly. The claim 
 comment makes needs a count from the examining seam.
 
 **Update, 2026-08-16 — the seam now exists; this bug does not close from that
-alone.** [0088](../plans/0088-fold-ts-archunit-into-eess.md) Phase 3/4 landed:
+alone.** [0088](../plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 3/4 landed:
 `TerminalBuilder`'s protected `collectViolations()` returns a real
 `CollectResult` with an `examined` count
 (`packages/core/src/terminal-builder.ts:313`), computed inside
@@ -124,7 +124,7 @@ remove, and it is currently the thing telling the next reader the problem is sol
       visible surface.
 - [ ] `npm run validate` green.
 
-Deferred: none, as of 2026-08-16. [0088](../plans/0088-fold-ts-archunit-into-eess.md)
+Deferred: none, as of 2026-08-16. [0088](../plans/completed/0088-fold-ts-archunit-into-eess.md)
 Phase 3/4 landed the seam this record originally deferred to (`CollectResult.examined`,
 see Root cause) — but 0088's own scope never wired it into this CLI's summary line,
 so fix (2) above is real, described, and unblocked, not a footnote pointing at
