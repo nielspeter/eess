@@ -30,7 +30,7 @@
   cannot see the production gate.
 - **Origin:** self-found · instrumented both kernel seams while scoping the
   ts-archunit doctrine port ([0088](../../plans/0088-fold-ts-archunit-into-eess.md),
-  and [0103](../0103-adr-009-cited-but-does-not-exist.md), which cites the doctrine)
+  and [0103](./0103-adr-009-cited-but-does-not-exist.md), which cites the doctrine)
 - **Reported:** 2026-08-12 · **Fixed:** 2026-08-14 (PR #57)
 
 ### Correction, 2026-08-12 — what the six-persona review found wrong in this record

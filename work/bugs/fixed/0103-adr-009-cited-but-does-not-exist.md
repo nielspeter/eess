@@ -2,11 +2,15 @@
 
 ## Status
 
-- **State:** Draft — confirmed against the source and against `adr/`; no red
-  test written yet.
+- **State:** Fixed — done-otherwise, 2026-08-16. Not via the originally-scoped
+  red test (never written); the symptom resolved incidentally when plan
+  [0088](../../plans/0088-fold-ts-archunit-into-eess.md) Phase 2 created
+  `adr/009-agent-first-failure-surfaces.md`. Both cited lines now name a real
+  file — confirmed directly, `rg -n "ADR-009" scripts/` still finds the same
+  two lines, and both now resolve.
 - **Severity:** Low
 - **Origin:** self-found · review of the inbound
-  [proposal 002](../proposals/002-comment-embedded-links.md), while measuring
+  [proposal 002](../../proposals/002-comment-embedded-links.md), while measuring
   how many doc citations in this repo's source comments resolve
 - **Reported:** 2026-08-12
 
@@ -35,12 +39,11 @@ rg -n "ADR-009" scripts/                   # two citations
 
 ## Root cause
 
-`ADR-009` is a **forward reference**. Plan
-[0088](../plans/0088-fold-ts-archunit-into-eess.md) Phase 2 is what creates it —
-it ports ts-archunit's ADR-008 ("Agent-First Failure Surfaces") to this repo as
-`adr/009-agent-first-failure-surfaces.md`. The doctrine the two scripts invoke
-is real and is the one 0088 will write down; the citation was simply written
-before the document.
+`ADR-009` was, at the time this bug was filed, a **forward reference**. Plan
+[0088](../../plans/0088-fold-ts-archunit-into-eess.md) Phase 2 is
+what created it — it ports ts-archunit's ADR-008 ("Agent-First Failure
+Surfaces") to this repo as `adr/009-agent-first-failure-surfaces.md`. The
+citation was written before the document; the document now exists.
 
 Both citations shipped in `c9edf6d` (PR #34, the review-harness adoption),
 merged 2026-08-12 under a full green `npm run validate`.
@@ -71,24 +74,33 @@ No changeset — comments only, no package surface and no runtime effect.
 
 ## Verification
 
-- [ ] Red test written first: a check that every `ADR-NNN` cited in
-      `scripts/**` and `packages/*/src/**` names a file present in `adr/`. It
-      fails today on these two lines and passes after the fix. (Natural home:
-      `scripts/check-workspace-integrity.mjs`, which already walks the
-      workspace reading files — see
-      [0092](./0092-integrity-gate-misses-three-packages.md) and
-      [0099](./0099-nul-bytes-make-md-gherkin-unsearchable.md), which edit the
-      same script.)
-- [ ] `rg -n "ADR-009" scripts/` shows no bare assertion of a non-existent ADR.
-- [ ] `npm run validate` green.
+- [x] dropped-on-purpose: Red test written first: a check that every `ADR-NNN`
+      cited in `scripts/**` and `packages/*/src/**` names a file present in
+      `adr/`. It fails today on these two lines and passes after the fix.
+      (Natural home: `scripts/check-workspace-integrity.mjs`, which already
+      walks the workspace reading files — see
+      [0092](../0092-integrity-gate-misses-three-packages.md) and
+      [0099](../0099-nul-bytes-make-md-gherkin-unsearchable.md), which edit the
+      same script.) Not written — the symptom this test would have caught
+      resolved on its own when plan 0088 created the target file, before
+      anyone built the guard. The general enforcement capability stays a real
+      gap (see Deferred below), just not one this bug's own narrow scope ever
+      required closing to fix its two citations.
+- [x] done-otherwise: `rg -n "ADR-009" scripts/` shows no bare assertion of a
+      non-existent ADR. Confirmed: the same two lines still cite `ADR-009`,
+      and it is no longer a forward reference — `adr/009-agent-first-failure-surfaces.md`
+      exists (created by plan 0088 Phase 2).
+- [x] `npm run validate` green.
 
-Deferred:
+Deferred: `check:workspace-integrity` (or equivalent) as a general
+bare-identifier-citation gate → [proposal 002](../../proposals/002-comment-embedded-links.md),
+behind [0090](../../plans/0090-adopt-ts-archunit-work-corpus.md).
 
 - **The general case — bare identifier citations (`plan NNNN`, `ADR-NNN`,
   `proposal NNN`) in source comments are unchecked repo-wide.** The same spike
   that found this bug counted 130 such citations with 51 unresolved; 49 of those
   are ts-archunit ancestor numbers awaiting
-  [0090](../plans/0090-adopt-ts-archunit-work-corpus.md), not rot. The red test
+  [0090](../../plans/0090-adopt-ts-archunit-work-corpus.md), not rot. The red test
   above deliberately covers only `ADR-NNN`, which is fully resolvable today, so
   this bug closes in one PR. The general capability is re-homed to proposal
-  [002](../proposals/002-comment-embedded-links.md), deferred behind 0090.
+  [002](../../proposals/002-comment-embedded-links.md), deferred behind 0090.
