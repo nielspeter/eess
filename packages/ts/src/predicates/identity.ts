@@ -1,6 +1,8 @@
 import picomatch from 'picomatch'
 import type { SourceFile } from 'ts-morph'
 import type { Predicate } from '@nielspeter/eess'
+import { globNode, isProjectRelative } from '@nielspeter/eess'
+import { relativeToRoot } from '../core/project-relative.js'
 
 /** Types that have a name — ClassDeclaration, FunctionDeclaration, InterfaceDeclaration, etc. */
 export interface Named {
@@ -67,15 +69,28 @@ export function haveNameEndingWith<T extends Named>(suffix: string): Predicate<T
  * Matches elements that reside in a file matching the given glob.
  * The glob is matched against the absolute file path using picomatch.
  *
+ * An unanchored, project-relative glob (e.g. `'src/routes.ts'`, no leading
+ * `**\/`) also matches against the path named from the file's own project
+ * root — in a `workspace()`, that's each package's own root.
+ *
  * @example
  * resideInFile('** /routes.ts')   // matches /abs/path/src/routes.ts
  * resideInFile('** /src/*.ts')    // matches any .ts file directly in src/
  */
 export function resideInFile<T extends Located>(glob: string): Predicate<T> {
   const isMatch = picomatch(glob)
+  const relative = isProjectRelative(glob)
   return {
+    globs: globNode({ glob, kind: 'file-path', base: relative ? 'normalized' : 'absolute' }),
     description: `reside in file matching "${glob}"`,
-    test: (element) => isMatch(element.getSourceFile().getFilePath()),
+    test: (element) => {
+      const sourceFile = element.getSourceFile()
+      const filePath = sourceFile.getFilePath()
+      if (isMatch(filePath)) return true
+      if (!relative) return false
+      const fromRoot = relativeToRoot(sourceFile, filePath)
+      return fromRoot !== undefined && isMatch(fromRoot)
+    },
   }
 }
 
@@ -83,18 +98,31 @@ export function resideInFile<T extends Located>(glob: string): Predicate<T> {
  * Matches elements that reside in a folder matching the given glob.
  * The glob is matched against the directory portion of the absolute file path.
  *
+ * An unanchored, project-relative glob (e.g. `'src/domain/**'`, no leading
+ * `**\/`) also matches against the directory named from the file's own
+ * project root — in a `workspace()`, that's each package's own root.
+ *
  * @example
  * resideInFolder('** /routes/**')   // matches files anywhere under a routes/ folder
  * resideInFolder('** /src/services/**')
  */
 export function resideInFolder<T extends Located>(glob: string): Predicate<T> {
   const isMatch = picomatch(glob)
+  const relative = isProjectRelative(glob)
   return {
+    // `parent-dir`, not `file-path`: the test below reads the directory
+    // portion, so this glob is matched against the immediate parent and
+    // nothing else — the only selector here that does.
+    globs: globNode({ glob, kind: 'parent-dir', base: relative ? 'normalized' : 'absolute' }),
     description: `reside in folder matching "${glob}"`,
     test: (element) => {
-      const filePath = element.getSourceFile().getFilePath()
+      const sourceFile = element.getSourceFile()
+      const filePath = sourceFile.getFilePath()
       const dirPath = filePath.substring(0, filePath.lastIndexOf('/'))
-      return isMatch(dirPath)
+      if (isMatch(dirPath)) return true
+      if (!relative) return false
+      const fromRoot = relativeToRoot(sourceFile, dirPath)
+      return fromRoot !== undefined && isMatch(fromRoot)
     },
   }
 }

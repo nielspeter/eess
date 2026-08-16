@@ -138,7 +138,7 @@ describe('Architecture', () => {
 })
 ```
 
-`workspace()` returns a standard `ArchProject` — all existing entry points and conditions work unchanged. Paths are sorted alphabetically; the first tsconfig after sorting provides compiler options for type checking.
+`workspace()` returns a standard `ArchProject` — all existing entry points and conditions work unchanged. Paths are sorted alphabetically; the first tsconfig after sorting provides the underlying type-checker's compiler options. Per-package facts this library tracks separately — `verbatimModuleSyntax` and project-relative glob matching (`resideInFolder('src/domain/**')` and friends) — resolve against each file's own package, not only the primary.
 
 ## Organizing Rules
 

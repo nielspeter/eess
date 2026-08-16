@@ -1,4 +1,4 @@
-import { RuleBuilder } from '@nielspeter/eess'
+import { RuleBuilder, marksAssertsCardinality } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 import type { Predicate } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
@@ -36,6 +36,17 @@ export class TestRuleBuilder extends RuleBuilder<TestElement, ArchProject> {
 
   protected getElements(): TestElement[] {
     return this.elements
+  }
+
+  /**
+   * ADR-010 part 3: unlike a real dialect builder (which derives
+   * `getElements()` from `project.getSourceFiles()`), this harness's
+   * `elements` array IS its source, injected directly — no separate
+   * "domain extraction over a real project" to conflate it with. An empty
+   * `elements` array unambiguously means the source was empty.
+   */
+  protected override sourceEmpty(): boolean {
+    return this.elements.length === 0
   }
 
   /** Register a predicate for testing. */
@@ -79,6 +90,28 @@ export function alwaysPass(): Condition<TestElement> {
     description: 'always passes',
     evaluate: () => [],
   }
+}
+
+/**
+ * A `.notExist()`-shaped condition for testing the cardinality exemption
+ * (and `.expectNonEmpty()`'s override of it) without depending on the real
+ * `packages/ts` condition: cardinality-exempt via `marksAssertsCardinality`,
+ * and fails for every element found (mirroring "should not exist").
+ */
+export function notExistShaped(): Condition<TestElement> {
+  return marksAssertsCardinality({
+    description: 'should not exist',
+    evaluate: (elements: TestElement[], context: ConditionContext): ArchViolation[] =>
+      elements.map((el) => ({
+        rule: context.rule,
+        ruleId: context.ruleId,
+        element: el.name,
+        file: el.file,
+        line: el.line,
+        message: `${el.name} should not exist`,
+        because: context.because,
+      })),
+  })
 }
 
 /**

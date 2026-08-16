@@ -53,10 +53,22 @@ The line is unchanged from the healthy run but for elapsed time.
 
 `builders.length` is the right denominator for a different question — _did my rule
 file load and construct rules?_ — and it does answer that honestly. The claim the
-comment makes needs a count from the examining seam, which the kernel does not carry
-(`packages/core/src/terminal-builder.ts:159` returns `ArchViolation[]`, with nowhere
-to put it) — that is 0127's fix (2), deferred to
-[0088](../plans/0088-fold-ts-archunit-into-eess.md) Phase 3/4.
+comment makes needs a count from the examining seam.
+
+**Update, 2026-08-16 — the seam now exists; this bug does not close from that
+alone.** [0088](../plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 3/4 landed:
+`TerminalBuilder`'s protected `collectViolations()` returns a real
+`CollectResult` with an `examined` count
+(`packages/core/src/terminal-builder.ts:313`), computed inside
+`evidencedViolations()` (`:250`). But the **public** surface `check.ts` calls,
+`violations()` (`:162`), discards it — it calls `evidencedViolations()`,
+filters the result, and returns bare `ArchViolation[]`, with `examined` computed
+and then thrown away at that exact call site. `check.ts:153` (verified live,
+unchanged) still builds its summary from `ruleCount`/`args.ruleFiles.length` —
+invocation counts, not examined units. The denominator this bug wants is no
+longer blocked on a kernel seam that doesn't exist; it is blocked on nothing —
+the value is computed one call away and never surfaced. Fix (1) below remains
+valid and independent either way.
 
 ## Why it matters
 
@@ -76,7 +88,7 @@ count it names cannot move for that reason.
 
 ## Fix
 
-Two, and the first does not wait on the kernel:
+Two, and neither waits on the kernel now:
 
 1. **Stop claiming what the number is not.** Either correct the comment and the
    summary wording to say what it counts (rules constructed, rule files read), or
@@ -87,7 +99,13 @@ Two, and the first does not wait on the kernel:
    glob narrows to zero over a loaded project still reads healthy), and the wording
    must not over-claim a second time.
 2. **The real denominator** — examined units at the seam — with the summary
-   reporting it. → 0088 Phase 3/4.
+   reporting it. The seam exists now (`CollectResult.examined`, per the Root
+   cause update above); this needs a public accessor (`violations()` computes
+   and discards it, so either a new method returns `{ violations, examined }`
+   together, or a second method exposes the count) plus wiring `check.ts`'s
+   `collectViolations()` helper and its summary line to use it instead of
+   `builders.length`/`args.ruleFiles.length`. No longer blocked on 0088 or any
+   other plan — this is a same-package, unblocked fix.
 
 Do (1) now regardless of (2)'s schedule: a false claim in a comment costs nothing to
 remove, and it is currently the thing telling the next reader the problem is solved.
@@ -96,7 +114,9 @@ remove, and it is currently the thing telling the next reader the problem is sol
 
 - [ ] Red test written first: a rule file whose selector matches nothing produces a
       summary distinguishable from the healthy run. Identical today but for timing.
-- [ ] The comment at `packages/ts/src/cli/commands/check.ts:60` states the property
+- [ ] The comment at `packages/ts/src/cli/commands/check.ts:148` (line moved from
+      `:60` since this bug was filed — the file was rewritten for per-file
+      attribution by plan 0147, unrelated to this defect) states the property
       the code has.
 - [ ] The `--format json` / `github` paths stay machine-clean (the comment's second
       line is correct and must survive).
@@ -104,8 +124,9 @@ remove, and it is currently the thing telling the next reader the problem is sol
       visible surface.
 - [ ] `npm run validate` green.
 
-Deferred:
-
-- **The examined-unit denominator** → [0088](../plans/0088-fold-ts-archunit-into-eess.md)
-  Phase 3/4, which owns the seam. This record closes on the honesty of the claim,
-  not on the measurement it aspires to.
+Deferred: none, as of 2026-08-16. [0088](../plans/completed/0088-fold-ts-archunit-into-eess.md)
+Phase 3/4 landed the seam this record originally deferred to (`CollectResult.examined`,
+see Root cause) — but 0088's own scope never wired it into this CLI's summary line,
+so fix (2) above is real, described, and unblocked, not a footnote pointing at
+someone else's plan. This record closes on the honesty of the claim (fix 1) or the
+real measurement (fix 2), whichever lands.

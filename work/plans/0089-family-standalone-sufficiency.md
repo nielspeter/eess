@@ -166,7 +166,7 @@ crossvalidate) installed.
 ## Out of scope
 
 - **The fold itself** (engine rejoining, ADR-008/009 port) — plan
-  [0088](./0088-fold-ts-archunit-into-eess.md). This plan does **not** depend on
+  [0088](./completed/0088-fold-ts-archunit-into-eess.md). This plan does **not** depend on
   it; both can proceed in either order.
 - **Reconciling the sibling dogfood gates to fail-closed** —
   [0101](./0101-sibling-gates-go-fail-closed.md), the other half of this split.

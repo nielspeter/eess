@@ -1,6 +1,7 @@
 import { Node } from 'ts-morph'
 import picomatch from 'picomatch'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
 import { createViolation, getElementFile, getElementName } from '../core/violation.js'
 import { elementCondition } from './helpers.js'
@@ -118,12 +119,12 @@ export function beExported<T extends Node>(): Condition<T> {
  *   .because('use shared parseOrder() utility instead')
  */
 export function notExist<T extends Node>(): Condition<T> {
-  return {
+  return marksAssertsCardinality({
     description: 'not exist',
     evaluate(elements: T[], context: ConditionContext): ArchViolation[] {
       return elements.map((element) =>
         createViolation(element, `${getElementName(element)} should not exist`, context),
       )
     },
-  }
+  })
 }

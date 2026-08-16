@@ -1,4 +1,18 @@
-import { type SyntaxKind, type Node, Node as NodeClass } from 'ts-morph'
+import { SyntaxKind, type Node, Node as NodeClass } from 'ts-morph'
+
+// Deliberately not exhaustive over every text-bearing kind — `TemplateHead`/
+// `TemplateMiddle`/`TemplateTail` (interpolated templates), `BigIntLiteral` and
+// `RegularExpressionLiteral` are omitted. Every omission UNDERcounts vocabulary,
+// which only makes `distinctVocabulary` more conservative — fewer pairs
+// compared, never a false positive from a body that reads as emptier than it
+// is. Widen this set if a real interpolated-template-heavy corpus needs it.
+const TEXT_KINDS = new Set<SyntaxKind>([
+  SyntaxKind.Identifier,
+  SyntaxKind.PrivateIdentifier,
+  SyntaxKind.StringLiteral,
+  SyntaxKind.NoSubstitutionTemplateLiteral,
+  SyntaxKind.NumericLiteral,
+])
 
 /**
  * Structural fingerprint of a function body.
@@ -12,6 +26,16 @@ export interface Fingerprint {
   readonly calls: readonly string[]
   /** Total AST node count (for line-count filtering) */
   readonly nodeCount: number
+  /**
+   * Count of DISTINCT identifier/literal texts in the body — the vocabulary
+   * a body actually carries, as opposed to its punctuation/keyword shape.
+   * Two bodies can share a syntactic shape for no reason other than the
+   * shape being mandated (a wither, a getter, a boilerplate skeleton); a
+   * "match" between two low-vocabulary bodies carries no information about
+   * what the code actually does. `DuplicateBodiesBuilder.minDistinctVocabulary()`
+   * is the floor that reads this — `computeSimilarity()` does not.
+   */
+  readonly distinctVocabulary: number
 }
 
 /**
@@ -22,15 +46,20 @@ export interface Fingerprint {
 export function buildFingerprint(body: Node): Fingerprint {
   const kinds: SyntaxKind[] = []
   const calls: string[] = []
+  const distinct = new Set<string>()
 
   for (const node of body.getDescendants()) {
-    kinds.push(node.getKind())
+    const kind = node.getKind()
+    kinds.push(kind)
     if (NodeClass.isCallExpression(node)) {
       calls.push(node.getExpression().getText().replace(/\?\./g, '.'))
     }
+    if (TEXT_KINDS.has(kind)) {
+      distinct.add(node.getText())
+    }
   }
 
-  return { kinds, calls, nodeCount: kinds.length }
+  return { kinds, calls, nodeCount: kinds.length, distinctVocabulary: distinct.size }
 }
 
 /**

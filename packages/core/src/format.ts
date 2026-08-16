@@ -1,4 +1,5 @@
 import type { ArchViolation } from './violation.js'
+import { remedyRepeatsMessage } from './violation.js'
 import { bold, red, cyan, dim } from './ansi.js'
 import path from 'node:path'
 
@@ -30,7 +31,8 @@ function formatSingleViolation(
 
   const whyText = v.because ?? reason
   const whyLine = whyText ? `  ${dim('Why:')} ${whyText}` : ''
-  const fixLine = v.suggestion ? `  ${dim('Fix:')} ${v.suggestion}` : ''
+  // Suppressed when the suggestion IS the message — see `remedyRepeatsMessage`.
+  const fixLine = v.suggestion && !remedyRepeatsMessage(v) ? `  ${dim('Fix:')} ${v.suggestion}` : ''
   const docsLine = v.docs ? `  ${dim('Docs:')} ${v.docs}` : ''
 
   // The message is the finding itself. It was omitted here for years, which is
@@ -94,7 +96,8 @@ export function formatViolationsPlain(violations: ArchViolation[], reason?: stri
         `  [${String(i + 1)}/${String(violations.length)}] ${v.element}: ${v.message} (${v.file}:${String(v.line)})`,
       ]
       if (v.codeFrame) parts.push(v.codeFrame)
-      if (v.suggestion) parts.push(`  Fix: ${v.suggestion}`)
+      // Suppressed when the suggestion IS the message — see `remedyRepeatsMessage`.
+      if (v.suggestion && !remedyRepeatsMessage(v)) parts.push(`  Fix: ${v.suggestion}`)
       return parts.join('\n')
     })
     .join('\n\n')

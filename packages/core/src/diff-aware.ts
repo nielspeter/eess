@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 import type { ArchViolation } from './violation.js'
+import { writeStderr } from './stderr.js'
 
 /**
  * A diff filter that restricts violation reporting to files
@@ -21,11 +22,19 @@ export class DiffFilter {
   /**
    * Filter violations to only those in changed files.
    * If changedFiles is null (git error), returns all violations unfiltered.
+   *
+   * A `bypassFilters` configuration finding (ADR-010's zero-examined /
+   * expired-`.expectEmpty()` violations) is never filtered here, even
+   * though its `file` is always `''` and can never be a member of
+   * `changedFiles`. Without this, "unsuppressable" was false for the most
+   * realistic adoption path: a rule whose instrument silently broke would
+   * report nothing at all under `--changed`, with no diagnostic that
+   * anything was ever hidden.
    */
   filterToChanged(violations: ArchViolation[]): ArchViolation[] {
     const files = this.changedFiles
     if (files === null) return violations
-    return violations.filter((v) => files.has(v.file))
+    return violations.filter((v) => v.bypassFilters === true || files.has(v.file))
   }
 
   /** Number of changed files detected, or -1 if diff unavailable */
@@ -61,7 +70,7 @@ export function diffAware(baseBranch: string = 'main'): DiffFilter {
   } catch (err) {
     // Not a git repo, or base branch doesn't exist — skip filtering (report all violations)
     const detail = err instanceof Error ? ` (${err.message.split('\n')[0] ?? ''})` : ''
-    console.warn(
+    writeStderr(
       `[eess] Could not run git diff against '${baseBranch}'${detail}. All violations will be reported.`,
     )
     return new DiffFilter(null)

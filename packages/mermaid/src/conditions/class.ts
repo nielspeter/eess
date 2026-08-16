@@ -1,4 +1,5 @@
 import type { Condition, ConditionContext } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
 import { createViolation } from '../core/violation.js'
 import type { ArchClass } from '../models/arch-class.js'
@@ -99,12 +100,12 @@ export function extendClass(superName: string): Condition<ArchClass> {
 }
 
 export function notExist(): Condition<ArchClass> {
-  return {
+  return marksAssertsCardinality({
     description: 'not exist',
     evaluate(elements: ArchClass[], context: ConditionContext): ArchViolation[] {
       return elements.map((c) => classViolation(c, `class ${c.name} should not exist`, context))
     },
-  }
+  })
 }
 
 export function haveStereotype(name: string): Condition<ArchClass> {

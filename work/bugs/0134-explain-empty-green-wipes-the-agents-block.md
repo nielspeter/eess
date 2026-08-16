@@ -164,5 +164,5 @@ Deferred:
 - **The examined-unit denominator for `explain`** (how many elements the rules
   would examine, not how many builders loaded) → same seam as
   [0130](./0130-cli-summary-counts-the-invocation.md) fix (2) and
-  [0088](../plans/0088-fold-ts-archunit-into-eess.md) Phase 3/4. This record
+  [0088](../plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 3/4. This record
   closes on the empty-rules case, which is decidable at the CLI layer today.

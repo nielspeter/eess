@@ -6,7 +6,7 @@
   [plan 0089](./0089-family-standalone-sufficiency.md). 0089 carried four phases
   of which two (the re-export shake-out, the standalone fixtures) are independent
   of the fold and two (this plan's) cannot begin until
-  [0088](./0088-fold-ts-archunit-into-eess.md) Phase 4 lands the folded kernel
+  [0088](./completed/0088-fold-ts-archunit-into-eess.md) Phase 4 lands the folded kernel
   seam. 0089 named that itself — _"the dependency is Phase-3-scoped, not
   plan-wide"_ — but naming it is not the same as being closable: as one plan,
   Phases 1–2 would merge and Phases 3–4 would sit open behind another plan's
@@ -22,7 +22,7 @@
 
 ## Problem
 
-Once [0088](./0088-fold-ts-archunit-into-eess.md) Phase 4 lands
+Once [0088](./completed/0088-fold-ts-archunit-into-eess.md) Phase 4 lands
 `collectWithAssertionGuard` in `@nielspeter/eess`, the rule "a check that
 examined nothing cannot read as green" reaches every sibling dialect **by
 inheritance, not by porting** — verified 2026-08-10: none of eess-md,
@@ -106,7 +106,7 @@ unknown bugs cannot ride inside one plan's ledger.
 
 ## Out of scope
 
-- **The fold itself** — [0088](./0088-fold-ts-archunit-into-eess.md).
+- **The fold itself** — [0088](./completed/0088-fold-ts-archunit-into-eess.md).
 - **Per-dialect standalone sufficiency and `check:family`** —
   [0089](./0089-family-standalone-sufficiency.md), the other half of this split.
   It is independent of the fold and can land first.

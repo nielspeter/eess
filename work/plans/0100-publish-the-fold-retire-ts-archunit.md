@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — created 2026-08-12 by splitting the unmergeable tail off
-  [plan 0088](./0088-fold-ts-archunit-into-eess.md). 0088 had nine phases ending
+  [plan 0088](./completed/0088-fold-ts-archunit-into-eess.md). 0088 had nine phases ending
   in "Retire ts-archunit" (work in **another repository**) and "Version, release,
   and the adopter migration story" (an act that completes at `npm publish`, not at
   merge). Neither can land in 0088's PR, so 0088 could not close — the failure
@@ -21,7 +21,7 @@
 
 ## Problem
 
-The fold ([0088](./0088-fold-ts-archunit-into-eess.md)) and its family
+The fold ([0088](./completed/0088-fold-ts-archunit-into-eess.md)) and its family
 consequences ([0089](./0089-family-standalone-sufficiency.md) +
 [0101](./0101-sibling-gates-go-fail-closed.md)) are code changes:
 they merge. Three things in the same story are **not** code changes, and mixing
@@ -134,7 +134,7 @@ ADR-009's row `gated`.
 
 ## Out of scope
 
-- **The fold itself** — [0088](./0088-fold-ts-archunit-into-eess.md).
+- **The fold itself** — [0088](./completed/0088-fold-ts-archunit-into-eess.md).
 - **Family reconciliation** — [0089](./0089-family-standalone-sufficiency.md)
   (standalone sufficiency) and [0101](./0101-sibling-gates-go-fail-closed.md)
   (the sibling gates going fail-closed).

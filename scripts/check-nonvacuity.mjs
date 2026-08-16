@@ -92,6 +92,12 @@
  *                 the diff half is the impure shell in check-release.mjs, and its
  *                 failure mode is a hard error on an unresolvable base ref rather
  *                 than a silent green.
+ *   vacuity-matrix (plan 0088 Phase 4a)
+ *                 scripts/nonvacuity/bad-vacuity-matrix.mjs runs a mutated COPY
+ *                 of the real scripts/vacuity-matrix.mjs with its KNOWN_FAIL_OPEN
+ *                 ratchet stripped to `[]`, turning schemaFromSDL()'s already-
+ *                 real, already-ratcheted fail-open into an unratcheted one →
+ *                 the mutated matrix must exit 1 naming exactly that export.
  *
  * THE FIXTURE CONTRACT (bug 0109). A node fixture must print its own
  * `bad-<name>:` sentinel on EVERY exit path, and exit 1 only for the specific
@@ -738,6 +744,14 @@ const gates = [
   ],
   ['review-harness', () => gateNode('bad-review-harness.mjs', 'foreign-project token')],
   ['work/numbers', () => gateNode('bad-numbers.mjs', 'duplicate number across lanes')],
+  [
+    'vacuity-matrix',
+    () =>
+      gateNode(
+        'bad-vacuity-matrix.mjs',
+        'schemaFromSDL() (builder) is fail-open with no KNOWN_FAIL_OPEN entry',
+      ),
+  ],
 ]
 
 // --- Coverage: every check:* in the validate chain has a gate, or a stated waiver ---
@@ -765,6 +779,7 @@ const GATE_FOR = {
   'check:baseline': ['baseline'],
   'check:diagram': ['diagram'],
   'check:spec': ['spec'],
+  'check:vacuity': ['vacuity-matrix'],
   'check:crossval': [
     'crossval',
     'crossval/gherkin-ts',

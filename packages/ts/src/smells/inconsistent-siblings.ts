@@ -16,15 +16,22 @@ const TEST_PATTERNS = ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**']
 
 export class InconsistentSiblingsBuilder extends SmellBuilder {
   private _pattern?: ExpressionMatcher
+  private _examined = 0
 
   constructor(project: ArchProject) {
     super(project)
   }
 
+  /** ADR-010: files across all eligible sibling folders, set by `detect()`. */
+  protected examinedCount(): number {
+    return this._examined
+  }
+
   /** The pattern that most siblings should follow. */
   forPattern(matcher: ExpressionMatcher): this {
-    this._pattern = matcher
-    return this
+    const next = this.copy()
+    next._pattern = matcher
+    return next
   }
 
   /** Check if a source file contains any function matching the pattern. */
@@ -78,6 +85,13 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
         message:
           `${String(matching.length)} of ${String(total)} files in ${folder} use ${patternDesc}, ` +
           `but ${sf.getBaseName()} does not`,
+        // The message states the population ("3 of 5"), which is a fact
+        // about the folder rather than about this file: adding one unrelated
+        // sibling rewrites it, and every already-accepted finding in the
+        // folder loses its identity. The finding itself is "this file, in
+        // this folder, does not follow this pattern" — that, and only that,
+        // is the identity.
+        identity: `inconsistent-sibling::${sf.getFilePath()}::${patternDesc}`,
         because: this._reason,
       })
     }
@@ -95,6 +109,7 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
     if (this._groupByFolder) {
       folderEntries.sort((a, b) => a[0].localeCompare(b[0]))
     }
+    this._examined = folderEntries.reduce((n, [, files]) => n + files.length, 0)
 
     const violations: ArchViolation[] = []
 

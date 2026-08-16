@@ -2,9 +2,81 @@
 export { project, workspace, resetProjectCache } from './core/project.js'
 export type { ArchProject } from './core/project.js'
 
+// Core — workspace multi-root awareness (plan 0148). `isAnchored`/
+// `isProjectRelative` (the pure glob-syntax half) already come from the
+// kernel re-export below; the rest — the root registry and per-root compiler
+// options — is ts-morph-typed and lives here.
+export {
+  registerProjectRoots,
+  rootFromTsConfigPath,
+  rootOf,
+  relativeToRoot,
+} from './core/project-relative.js'
+export {
+  registerRootCompilerOptions,
+  verbatimModuleSyntaxFor,
+} from './core/per-root-compiler-options.js'
+
+// Core — dead-glob diagnosis. The pure declaration model lives in the
+// kernel; the ArchProject-typed materializers (pathUniverse()/diskSet()) and
+// the picomatch-dependent evaluation (glob-diagnosis.js/glob-evaluator.js —
+// the kernel bans picomatch, so this half of the subsystem lives here) live
+// in this dialect.
+export {
+  isFaultPosition,
+  countDeclaredGlobs,
+  isGlobNode,
+  isOpaqueGlob,
+  globAnyOf,
+  globNode,
+  stampGlobs,
+  negateGlobs,
+  combineGlobs,
+} from '@nielspeter/eess'
+export type {
+  GlobKind,
+  GlobPosition,
+  GlobBase,
+  DeclaredGlob,
+  GlobSite,
+  OpaqueGlob,
+  GlobLeaf,
+  GlobTree,
+  DeclaredGlobs,
+  GlobNode,
+} from '@nielspeter/eess'
+export type { PathUniverse } from '@nielspeter/eess'
+export { viewsFor } from '@nielspeter/eess'
+export type { OnDisk, DiskSet } from '@nielspeter/eess'
+export { isAnchored, isProjectRelative } from '@nielspeter/eess'
+export { isRecord, isNullaryCallable } from '@nielspeter/eess'
+export { shallowClone } from '@nielspeter/eess'
+export { suppressionNotice, activeNotice, resetDiffDisclosureForTests } from '@nielspeter/eess'
+export {
+  resetCommentSuppression,
+  recordCommentSuppression,
+  commentSuppressions,
+  commentSuppressionNotice,
+} from '@nielspeter/eess'
+export { dedupeConfigFindings } from '@nielspeter/eess'
+export { discoverIdentityRoot, normalizeIdentityText } from '@nielspeter/eess'
+export { pathUniverse } from './core/path-universe.js'
+export { diskSet, buildDiskSet } from './core/disk-set.js'
+export { loadedNothing, emptyProjectAdvice } from './core/empty-project-advice.js'
+export type { GlobFault, GlobDiagnosis } from './core/glob-diagnosis.js'
+export {
+  syntacticFault,
+  diagnoseGlob,
+  FAULT_ADVICE,
+  ON_DISK_ADVICE,
+} from './core/glob-diagnosis.js'
+export { isDeadGlobTree, isDeadSite, globSitesOf } from './core/glob-evaluator.js'
+export { diagnoseDeadGlobs } from './core/dead-glob.js'
+
 // Core — predicate interface & combinators
 export type { Predicate } from '@nielspeter/eess'
 export { not, and, or } from '@nielspeter/eess'
+export type { Matcher } from '@nielspeter/eess'
 
 // Core — condition interface & violation model
 export type { Condition, ConditionContext } from '@nielspeter/eess'
@@ -19,15 +91,23 @@ export {
 // Core — rule builder, error & metadata
 export { RuleBuilder } from '@nielspeter/eess'
 export { TerminalBuilder } from '@nielspeter/eess'
+export type { CollectResult } from '@nielspeter/eess'
 export { ArchRuleError } from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'
+
+// Core — cardinality exemption (ADR-010): the extension point a standalone
+// consumer needs to give their own defineCondition() the same "satisfied by
+// emptiness" exemption .notExist() has, without a second @nielspeter/eess install.
+export { marksAssertsCardinality, assertsCardinality } from '@nielspeter/eess'
 
 // Core — code frame & formatting
 export { generateCodeFrame } from '@nielspeter/eess'
 export type { CodeFrameOptions } from '@nielspeter/eess'
 export { formatViolations, formatViolationsPlain } from '@nielspeter/eess'
 export type { FormatOptions } from '@nielspeter/eess'
+export { byCodepoint, severityFor, remedyRepeatsMessage } from '@nielspeter/eess'
+export { UNSUPPRESSABLE } from '@nielspeter/eess'
 
 // Core — custom predicate/condition factories
 export { definePredicate, defineCondition } from '@nielspeter/eess'
@@ -63,7 +143,7 @@ export {
 
 // Dependency conditions
 export type { ImportOptions } from './core/import-options.js'
-export { isTypeOnlyImport } from './core/import-options.js'
+export { isTypeOnlyImport, isTypeOnlyReExport, splitGlobArgs } from './core/import-options.js'
 export {
   onlyImportFrom,
   notImportFrom as conditionNotImportFrom,
@@ -103,12 +183,17 @@ export {
 // Function entry point
 export { functions, FunctionRuleBuilder } from './builders/function-rule-builder.js'
 export type { ArchFunction } from './models/arch-function.js'
+export type { FunctionCollectionOptions } from './models/arch-function.js'
 export {
   collectFunctions,
   fromFunctionDeclaration,
   fromArrowVariableDeclaration,
   fromMethodDeclaration,
+  fromObjectLiteralFunction,
 } from './models/arch-function.js'
+// Shared object-literal function traversal
+export { collectObjectLiteralFunctions } from './core/object-literal-functions.js'
+export type { ObjectLiteralFunction } from './core/object-literal-functions.js'
 
 // Function predicates
 export {
@@ -237,7 +322,7 @@ export { beFreeOfCycles, respectLayerOrder, notDependOn } from './conditions/sli
 export { slices, SliceRuleBuilder } from './builders/slice-rule-builder.js'
 
 // Check options
-export type { CheckOptions, OutputFormat } from '@nielspeter/eess'
+export type { CheckOptions, OutputFormat, BaselineFilter, DiffFilterLike } from '@nielspeter/eess'
 
 // Output formats
 export { formatViolationsJson } from '@nielspeter/eess'
@@ -250,6 +335,15 @@ export type { BaselineEntry, BaselineFile } from '@nielspeter/eess'
 
 // Diff-aware mode
 export { diffAware, DiffFilter } from '@nielspeter/eess'
+
+// Edge coverage — allowlist conditions disclose when they tested nothing
+export {
+  recordEdgeCoverage,
+  untestedRules,
+  edgeCoverageNotice,
+  resetEdgeCoverage,
+} from '@nielspeter/eess'
+export type { UntestedReason, EdgeCoverage } from '@nielspeter/eess'
 
 // Exclusion comments
 export { parseExclusionComments, isExcludedByComment } from '@nielspeter/eess'

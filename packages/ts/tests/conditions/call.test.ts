@@ -173,6 +173,40 @@ describe('call conditions', () => {
       expect(violations).toHaveLength(2)
     })
 
+    it('gives each match its own identity, distinct from its sibling in the same callback', () => {
+      // Bug-0010 class (plan 0147): two matches in the same callback must not
+      // share a baseline identity, or accepting one accepts both.
+      const archCall = makeTopLevelArchCall(`
+        app.get('/users', (req, res) => {
+          db.query('SELECT 1')
+          db.query('SELECT 2')
+        })
+      `)
+      const violations = notHaveCallbackContaining(call('db.query')).evaluate([archCall], ctx)
+      expect(violations).toHaveLength(2)
+      expect(violations[0]?.identity).toBeDefined()
+      expect(violations[1]?.identity).toBeDefined()
+      expect(violations[0]?.identity).not.toBe(violations[1]?.identity)
+    })
+
+    it('keeps identity stable when a line shifts above the match', () => {
+      const before = makeTopLevelArchCall(`
+        app.get('/users', (req, res) => {
+          db.query('SELECT 1')
+        })
+      `)
+      const after = makeTopLevelArchCall(`
+
+        app.get('/users', (req, res) => {
+          db.query('SELECT 1')
+        })
+      `)
+      const [v1] = notHaveCallbackContaining(call('db.query')).evaluate([before], ctx)
+      const [v2] = notHaveCallbackContaining(call('db.query')).evaluate([after], ctx)
+      expect(v1?.message).not.toBe(v2?.message) // sanity: the embedded line really did move
+      expect(v1?.identity).toBe(v2?.identity)
+    })
+
     it('reports correct line numbers for violations', () => {
       const archCall = makeTopLevelArchCall(`
         app.get('/users', (req, res) => {

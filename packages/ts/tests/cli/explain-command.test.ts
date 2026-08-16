@@ -249,6 +249,64 @@ describe('runExplain agent output (plan 0071)', () => {
     expect(output).toContain('_No rules found._')
     expect(output).toContain('<!-- eess-ts:end -->')
   })
+
+  it('prints an identical bullet ONCE, however many rules produce it', async () => {
+    // A preset generates one rule per configured folder with identical metadata
+    // — `strictBoundaries({ folders })` over six boundaries produces six
+    // `no-cross-boundary` rules — so the same bullet printed six times. This
+    // output gets committed into an agent's system prompt, where repetition is
+    // tokens on every request and reads as six different rules.
+    const descs: RuleDescription[] = [
+      {
+        rule: 'r1',
+        id: 'preset/boundaries/no-cross-boundary',
+        imperative: 'Do NOT cross a boundary',
+      },
+      {
+        rule: 'r2',
+        id: 'preset/boundaries/no-cross-boundary',
+        imperative: 'Do NOT cross a boundary',
+      },
+      {
+        rule: 'r3',
+        id: 'preset/boundaries/no-cross-boundary',
+        imperative: 'Do NOT cross a boundary',
+      },
+    ]
+    mockedLoadRuleFiles.mockResolvedValue(descs.map((d) => mockBuilder({ describeRule: () => d })))
+
+    const chunks: string[] = []
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      chunks.push(String(chunk))
+      return true
+    })
+
+    await runExplain({ ruleFiles: ['rules.ts'], format: 'agent' })
+    const output = chunks.join('')
+    expect(output.split('Do NOT cross a boundary').length - 1).toBe(1)
+  })
+
+  it('keeps DISTINCT bullets that share a rule id', async () => {
+    // Deduplicated on the bullet text, not the id: two rules can share an id and
+    // differ in imperative, and it is the line that would repeat. Dropping one
+    // of these would be silently deleting a rule from the agent's instructions.
+    const descs: RuleDescription[] = [
+      { rule: 'r1', id: 'preset/boundaries/x', imperative: 'Do NOT cross a boundary' },
+      { rule: 'r2', id: 'preset/boundaries/x', imperative: 'Do NOT import test helpers' },
+    ]
+    mockedLoadRuleFiles.mockResolvedValue(descs.map((d) => mockBuilder({ describeRule: () => d })))
+
+    const chunks: string[] = []
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      chunks.push(String(chunk))
+      return true
+    })
+
+    await runExplain({ ruleFiles: ['rules.ts'], format: 'agent' })
+    const output = chunks.join('')
+    expect(output).toContain('Do NOT cross a boundary')
+    expect(output).toContain('Do NOT import test helpers')
+  })
 })
 
 describe('runExplain markdown output', () => {

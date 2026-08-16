@@ -1,13 +1,55 @@
 import type { Predicate } from './predicate.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
-import type { CheckOptions } from './check-options.js'
-import type { RuleMetadata } from './rule-metadata.js'
 import type { RuleDescription } from './rule-description.js'
-import type { SilentExclusion } from './silent-exclusion.js'
-import { isSilent } from './silent-exclusion.js'
-import { executeCheck, executeWarn, applyFilters } from './execute-rule.js'
 import type { Selection, ElementInfo } from './correspondence.js'
+import type { DeclaredGlob, GlobNode } from './glob-site.js'
+import { countDeclaredGlobs, stampGlobs } from './glob-site.js'
+import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
+import { assertsCardinality as conditionAssertsCardinality } from './cardinality.js'
+import { writeStderr } from './stderr.js'
+
+/**
+ * A declared glob's own label in a dead-glob finding — the predicate/
+ * condition's description, disambiguated with the literal glob only when
+ * more than one site shares the description (a variadic predicate like
+ * `importFrom(...globs)` already spells every glob into its own
+ * description, so a substring test would collapse the one case this exists
+ * to separate — keyed on the site COUNT instead).
+ */
+function describeOrigin(description: string, glob: DeclaredGlob, siteCount: number): string {
+  return siteCount > 1 ? `${description} ("${glob.glob}")` : description
+}
+
+/**
+ * The actual walk `RuleBuilder.globs()` delegates to — a free function
+ * rather than a method body, to keep the class itself under this repo's own
+ * 300-line class-length gate (`arch.internal.rules.ts`).
+ */
+function declaredGlobsOf<T>(predicates: Predicate<T>[], conditions: Condition<T>[]): GlobNode[] {
+  const trees: GlobNode[] = []
+  for (const predicate of predicates) {
+    if (predicate.globs) {
+      const count = countDeclaredGlobs(predicate.globs)
+      trees.push(
+        stampGlobs(predicate.globs, 'selector', (g) =>
+          describeOrigin(predicate.description, g, count),
+        ),
+      )
+    }
+  }
+  for (const condition of conditions) {
+    if (condition.globs) {
+      const count = countDeclaredGlobs(condition.globs)
+      trees.push(
+        stampGlobs(condition.globs, 'condition', (g) =>
+          describeOrigin(condition.description, g, count),
+        ),
+      )
+    }
+  }
+  return trees
+}
 
 /**
  * Abstract base class for all rule builders.
@@ -18,29 +60,38 @@ import type { Selection, ElementInfo } from './correspondence.js'
  * 3. Add condition methods that call `addCondition()`
  *
  * The builder accumulates predicates and conditions. Nothing executes
- * until a terminal method (`.check()`, `.warn()`, `.severity()`) is called.
+ * until a terminal method (`.check()`, `.warn()`, `.severity()`) is called —
+ * inherited from {@link TerminalBuilder} (plan 0088 Phase 4), which also
+ * supplies `because`/`rule`/`excluding`/`violations`/`expectEmpty`/
+ * `expectNonEmpty` and the ADR-010 evidence gate. `RuleBuilder` keeps its own
+ * `<T, P>` two-param generic — `P` is the dialect's project type, kept
+ * separate from `TerminalBuilder` (which has no project concept, since
+ * `correspondence()`, `SmellBuilder`, and the graphql builders don't share a
+ * uniform notion of "one project") — every builder across all five dialects
+ * depends on this exact two-param signature, so it is not replaced by the
+ * fold, only extended.
  */
-export abstract class RuleBuilder<T, P = unknown> {
+export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   protected _predicates: Predicate<T>[] = []
   protected _conditions: Condition<T>[] = []
-  protected _reason?: string
-  protected _metadata?: RuleMetadata
-  protected _exclusions: (string | RegExp)[] = []
-  protected _silentIndices: Set<number> = new Set()
   protected _phase: 'predicate' | 'condition' = 'predicate'
 
-  constructor(protected readonly project: P) {}
+  constructor(protected readonly project: P) {
+    super()
+  }
 
   // --- Chain methods (grammar transitions) ---
 
   /**
-   * Begin the predicate phase. Returns `this` for chaining.
+   * Begin the predicate phase. Returns a COPY — a held selection is never
+   * edited by narrowing it (see `TerminalBuilder.copy()`).
    * Purely a readability marker — `.that().haveNameMatching(...)` reads like English.
    * Explicitly resets phase to 'predicate' — defensive against `.should().that()` misuse.
    */
   that(): this {
-    this._phase = 'predicate'
-    return this
+    const next = this.copy()
+    next._phase = 'predicate'
+    return next
   }
 
   /**
@@ -86,71 +137,11 @@ export abstract class RuleBuilder<T, P = unknown> {
     return this.addCondition(custom)
   }
 
-  /**
-   * Attach a human-readable rationale to the rule.
-   * Included in violation messages when `.check()` throws.
-   */
-  because(reason: string): this {
-    this._reason = reason
-    return this
-  }
-
-  /**
-   * Attach rich metadata to the rule.
-   * Provides educational context in violation output: why, how to fix, docs link.
-   *
-   * If `metadata.because` is set, it also sets the reason (same as `.because()`).
-   */
-  rule(metadata: RuleMetadata): this {
-    this._metadata = metadata
-    if (metadata.because) {
-      this._reason = metadata.because
-    }
-    return this
-  }
-
-  /**
-   * Exclude specific violations from reporting by matching against
-   * the violation's `element`, `file`, or `message` fields.
-   *
-   * Matched violations are silently suppressed. Use for permanent,
-   * intentional exceptions — not for temporary violations (use baseline for those).
-   *
-   * Patterns are matched against all three fields. Prefer anchored regexes
-   * or full string matches over short substrings, especially for `message`
-   * matching, to avoid accidentally suppressing unrelated violations whose
-   * messages happen to contain the same text.
-   *
-   * Emits a warning if an exclusion matches zero violations — so renamed
-   * or deleted exceptions don't silently stay in the rule.
-   *
-   * For narrowing a rule's scope at the predicate phase (so the rule never
-   * evaluates the excluded element), use `satisfy(not(<predicate>))` instead.
-   * See the "Excluding a file from a rule's scope" recipe in docs/recipes.md.
-   *
-   * @example
-   * // Exclude by element name (fully qualified)
-   * .excluding('Asset.getImageUrl')
-   *
-   * @example
-   * // Exclude by file path (regex anchored to suffix)
-   * .excluding(/repositories\/index\.ts$/)
-   *
-   * @example
-   * // Multiple exclusions, mixed forms
-   * .excluding('Asset.getImageUrl', /\/legacy\//, /generated/)
-   */
-  excluding(...patterns: (string | RegExp | SilentExclusion)[]): this {
-    for (const p of patterns) {
-      if (isSilent(p)) {
-        this._exclusions.push(p.pattern)
-        this._silentIndices.add(this._exclusions.length - 1)
-      } else {
-        this._exclusions.push(p)
-      }
-    }
-    return this
-  }
+  // `because`, `rule`, `excluding`, `violations`, `check`, `warn`, `severity`,
+  // `expectEmpty`, `expectNonEmpty` are inherited from `TerminalBuilder`
+  // (plan 0088 Phase 4) — this class used to duplicate all of them, and the
+  // two copies had already drifted (the exact hazard `ts-archunit`'s own
+  // `RuleBuilder`/`TerminalBuilder` merge commit documents).
 
   // --- Terminal methods ---
 
@@ -185,90 +176,74 @@ export abstract class RuleBuilder<T, P = unknown> {
   }
 
   /**
-   * Execute the rule and return violations after exclusion filtering.
-   * Does not throw — use for programmatic access (presets, aggregation).
-   */
-  violations(): ArchViolation[] {
-    const raw = this.evaluate()
-    return applyFilters(raw, {
-      reason: this._reason,
-      metadata: this._metadata,
-      exclusions: this._exclusions,
-      silentIndices: this._silentIndices,
-    })
-  }
-
-  /**
-   * Execute the rule and throw `ArchRuleError` if any violations are found.
-   * This is the primary terminal method — use in test assertions.
+   * ADR-010: is this rule's assertion satisfied by an empty selection, as a
+   * property of what its conditions assert (`.notExist()`) rather than a
+   * caller's `.expectEmpty()` declaration?
    *
-   * @param options - Optional baseline and diff filtering
+   * `.every()`, not `.some()` — `.andShould()` ANDs, so a rule reading
+   * `.should().notExist().andShould().beExported()` still asserts something
+   * about subjects that exist, and exempting it on the strength of the one
+   * cardinality condition would silence the other. An empty condition list is
+   * NOT exempt: `[].every()` is vacuously `true`, and a rule with zero
+   * conditions is the assertion-less case `collectViolations()`'s own
+   * stderr warning already names — this override must not paper over that
+   * by also declaring it cardinality-satisfied.
    */
-  check(options?: CheckOptions): void {
-    const violations = this.evaluate()
-    executeCheck(
-      violations,
-      {
-        reason: this._reason,
-        metadata: this._metadata,
-        exclusions: this._exclusions,
-        silentIndices: this._silentIndices,
-      },
-      options,
-    )
+  protected override assertsCardinality(): boolean {
+    if (this._conditions.length === 0) return false
+    return this._conditions.every((condition) => conditionAssertsCardinality(condition))
   }
 
   /**
-   * Execute the rule and log violations to stderr. Does not throw.
-   * Use for rules that should warn but not fail CI.
-   *
-   * @param options - Optional baseline and diff filtering
+   * ADR-010 part 3: did this rule's own underlying source (the project, a
+   * diagram, an SDL string — whatever `P` loads) produce nothing at all,
+   * before `getElements()`'s own domain-specific extraction or any
+   * predicate ran? Default `false` — the kernel has no way to know, since
+   * `P` is opaque here. A dialect's concrete builder, which knows `P`'s real
+   * shape (e.g. `ArchProject`), overrides this to check its own project's
+   * file count directly — never `getElements().length`, which conflates "the
+   * source is empty" with "this domain legitimately has nothing in a
+   * healthy project" (e.g. zero JSX elements in a backend-only codebase).
    */
-  warn(options?: CheckOptions): void {
-    const violations = this.evaluate()
-    executeWarn(
-      violations,
-      {
-        reason: this._reason,
-        metadata: this._metadata,
-        exclusions: this._exclusions,
-        silentIndices: this._silentIndices,
-      },
-      options,
-    )
+  protected sourceEmpty(): boolean {
+    return false
   }
 
-  /**
-   * Execute the rule with the given severity.
-   * `.severity('error')` is equivalent to `.check()`.
-   * `.severity('warn')` is equivalent to `.warn()`.
-   */
-  severity(level: 'error' | 'warn'): void {
-    if (level === 'error') {
-      this.check()
-    } else {
-      this.warn()
-    }
+  /** Declared globs, position derived from `_phase`. Pure — no `P` needed. */
+  globs(): readonly GlobNode[] {
+    return declaredGlobsOf(this._predicates, this._conditions)
+  }
+
+  /** This rule's own project, for `diagnose()`/`doctor` outside `.check()`. */
+  getProject(): P {
+    return this.project
+  }
+
+  /** A `globs()` tree diagnosably dead, when zero examined — same shape as `sourceEmpty()`. */
+  protected deadGlobDiagnosis(): string | undefined {
+    return undefined
   }
 
   // --- Protected: for subclasses ---
 
   /**
    * Register a predicate. Called by concrete builder methods like
-   * `.haveNameMatching()`, `.extend()`, etc.
+   * `.haveNameMatching()`, `.extend()`, etc. Returns a COPY — see `copy()`.
    */
   protected addPredicate(predicate: Predicate<T>): this {
-    this._predicates.push(predicate)
-    return this
+    const next = this.copy()
+    next._predicates.push(predicate)
+    return next
   }
 
   /**
    * Register a condition. Called by concrete builder methods like
-   * `.notContain()`, `.notExist()`, etc.
+   * `.notContain()`, `.notExist()`, etc. Returns a COPY — see `copy()`.
    */
   protected addCondition(condition: Condition<T>): this {
-    this._conditions.push(condition)
-    return this
+    const next = this.copy()
+    next._conditions.push(condition)
+    return next
   }
 
   /**
@@ -278,23 +253,29 @@ export abstract class RuleBuilder<T, P = unknown> {
   protected abstract getElements(): T[]
 
   /**
+   * An independent copy, carrying **both** predicates and conditions.
+   * Extends `TerminalBuilder.copy()` with the fields this class adds.
+   *
+   * Subclasses with additional mutable-reference fields of their own (arrays,
+   * sets, maps a chain method pushes onto) MUST override this and call
+   * `super.copy()` first, the same reason `TerminalBuilder.copy()`'s own
+   * docstring gives — `Object.assign` shallow-copies a field, it does not
+   * give it independent identity.
+   */
+  protected override copy(): this {
+    const clone = super.copy()
+    clone._predicates = [...this._predicates]
+    clone._conditions = [...this._conditions]
+    return clone
+  }
+
+  /**
    * Create a fork of this builder with the same predicates but empty conditions.
    * Used by `.should()` to support named selections without mutation.
-   *
-   * Subclasses with additional constructor args MUST override this method.
    */
   protected fork(): this {
-    // Object.create/getPrototypeOf return untyped — casts unavoidable at JS interop boundary
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const proto: object = Object.getPrototypeOf(this)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const fork: this = Object.create(proto)
-    Object.assign(fork, this)
-    fork._predicates = [...this._predicates]
+    const fork = this.copy()
     fork._conditions = []
-    fork._exclusions = [...this._exclusions]
-    fork._silentIndices = new Set(this._silentIndices)
-    fork._metadata = this._metadata ? { ...this._metadata } : undefined
     fork._reason = fork._metadata?.because ?? this._reason
     return fork
   }
@@ -314,35 +295,50 @@ export abstract class RuleBuilder<T, P = unknown> {
   }
 
   /**
-   * Execute the full pipeline: filter elements with predicates,
-   * evaluate conditions, return violations.
+   * Execute the full pipeline: filter elements with predicates, evaluate
+   * conditions, return violations plus the ADR-010 evidence — the
+   * post-predicate subject count, whatever it is. `TerminalBuilder.check()` /
+   * `.warn()` / `.violations()` decide what a zero count means (a
+   * configuration finding, unless `.expectEmpty()` was declared); this method
+   * only reports the count, never interprets it.
+   *
+   * `sourceEmpty` (ADR-010 part 3) is deliberately not `allElements.length
+   * === 0` — a domain's own `getElements()` legitimately returning nothing in
+   * a healthy, fully-loaded project (e.g. zero JSX elements in a
+   * backend-only codebase) is not brokenness, and conflating the two broke
+   * `.notExist()`'s cardinality exemption for exactly that case. Subclasses
+   * that can answer "did my underlying source load anything at all" override
+   * `sourceEmpty()`; the default assumes it did.
    */
-  private evaluate(): ArchViolation[] {
-    // Step 1: Get all elements from the concrete builder
+  protected collectViolations(): CollectResult {
     const allElements = this.getElements()
-
-    // Step 2: Filter with predicates (AND — all predicates must match)
     const filtered = allElements.filter((element) =>
       this._predicates.every((predicate) => predicate.test(element)),
     )
+    const examined = filtered.length
 
-    // Step 3: If no elements match predicates, no violations
     if (filtered.length === 0) {
-      return []
+      const sourceEmpty = this.sourceEmpty()
+      // Skip the diagnosis (a real filesystem walk, in a dialect's
+      // override) when the project itself is already known empty — nothing
+      // useful to say about one glob's fate against zero loaded files, and
+      // `sourceEmpty` outranks it in `evidencedViolations()` regardless.
+      const deadGlob = sourceEmpty ? undefined : this.deadGlobDiagnosis()
+      return { violations: [], examined, sourceEmpty, deadGlob }
     }
 
-    // Step 3b: Warn if no conditions were added and phase is still 'predicate'
-    // — likely a predicate-only method was called after .should().
-    // Phase-aware methods dispatch correctly, so this only fires for predicate-only methods.
+    // An assertion-less rule (subjects found, nothing asserted about them) is
+    // distinct from the zero-examined case above and stays a stderr warning,
+    // not the unsuppressable ADR-010 finding — examined is non-zero either way.
     if (this._conditions.length === 0 && this._phase === 'predicate') {
       const ruleId = this._metadata?.id ?? (this.buildRuleDescription() || 'unnamed')
-      console.warn(
+      writeStderr(
         `[eess] Rule '${ruleId}' has predicates but no conditions. ` +
           `Did you use a predicate-only method after .should()? ` +
           `Predicate-only methods (e.g. areExported, areAsync) filter elements; ` +
           `use a condition method or .satisfy() after .should().`,
       )
-      return []
+      return { violations: [], examined }
     }
 
     // Step 4: Build context for conditions
@@ -354,7 +350,7 @@ export abstract class RuleBuilder<T, P = unknown> {
       violations.push(...condition.evaluate(filtered, context))
     }
 
-    return violations
+    return { violations, examined }
   }
 
   /**

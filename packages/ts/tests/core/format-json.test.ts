@@ -31,9 +31,32 @@ describe('formatViolationsJson', () => {
           because: null,
           suggestion: null,
           docs: null,
+          codeFrame: null,
+          measured: null,
+          kind: 'violation',
         },
       ],
     })
+  })
+
+  it('reports kind: "configuration" for a bypassFilters finding, "violation" otherwise', () => {
+    const ordinary = formatViolationsJson([mv()])
+    const config = formatViolationsJson([mv({ bypassFilters: true })])
+    expect((JSON.parse(ordinary) as { violations: [{ kind: string }] }).violations[0].kind).toBe(
+      'violation',
+    )
+    expect((JSON.parse(config) as { violations: [{ kind: string }] }).violations[0].kind).toBe(
+      'configuration',
+    )
+  })
+
+  it('carries codeFrame and measured through onto the wire', () => {
+    const output = formatViolationsJson([mv({ codeFrame: '  1 | code', measured: 12 })])
+    const parsed = JSON.parse(output) as {
+      violations: [{ codeFrame: string | null; measured: number | null }]
+    }
+    expect(parsed.violations[0].codeFrame).toBe('  1 | code')
+    expect(parsed.violations[0].measured).toBe(12)
   })
 
   it('formats multiple violations with correct count', () => {

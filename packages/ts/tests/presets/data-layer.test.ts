@@ -39,21 +39,29 @@ describe('dataLayerIsolation preset', () => {
   })
 
   it('passes when only good repo and baseClass not specified', () => {
+    // `resideInFolder` matches the directory portion of the path, not a
+    // filename — a bare `good-repo.ts` glob never selected the class this
+    // test means to exercise. Fixture lives under repositories/good/ so the
+    // folder glob actually scopes to it.
     expect(() => {
       dataLayerIsolation(p, {
-        repositories: '**/repositories/good-repo.ts',
+        repositories: '**/repositories/good/**',
         requireTypedErrors: true,
       })
     }).not.toThrow()
   })
 
-  it('skips base class check when baseClass not specified', () => {
-    // bad-repo doesn't extend BaseRepository, but baseClass is not set
+  it('fails loudly when neither baseClass nor requireTypedErrors is set, instead of silently checking nothing', () => {
+    // Bug-0100-class (plan 0147, this session's own fix): both rules sit
+    // behind an independent optional flag, so a call with neither used to
+    // construct zero rules and pass silently — the vacuity matrix's own
+    // KNOWN_FAIL_OPEN entry for this preset. It now throws a configuration
+    // finding naming the cause.
     expect(() => {
       dataLayerIsolation(p, {
-        repositories: '**/repositories/bad-repo.ts',
+        repositories: '**/repositories/bad/**',
       })
-    }).not.toThrow()
+    }).toThrow(ArchRuleError)
   })
 
   it('override to off suppresses extend-base', () => {

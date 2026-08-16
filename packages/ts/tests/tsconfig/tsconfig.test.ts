@@ -94,3 +94,16 @@ describe('tsconfig().requires — set-valued options and excluding', () => {
     expect(flags(b)).toEqual(['noEmit'])
   })
 })
+
+describe('tsconfig().requires — a held builder is immutable (bug 0016)', () => {
+  it('two branches off one held builder do not accumulate each other’s requirements', () => {
+    // Without routing through copy(), .requires() reassigns this._requirements
+    // in place and returns `this` — so branch A and branch B are literally the
+    // SAME object, and branch B's requirement leaks back into branch A.
+    const base = tsconfig(mk({ strict: false, noEmit: false }))
+    const a = base.requires({ strict: true })
+    const b = base.requires({ noEmit: true })
+    expect(flags(a)).toEqual(['strict'])
+    expect(flags(b)).toEqual(['noEmit'])
+  })
+})

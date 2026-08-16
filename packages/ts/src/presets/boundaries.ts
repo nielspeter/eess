@@ -5,7 +5,12 @@ import { slices } from '../builders/slice-rule-builder.js'
 import { modules } from '../builders/module-rule-builder.js'
 import { smells } from '../smells/index.js'
 import type { PresetBaseOptions } from './shared.js'
-import { dispatchRule, validateOverrides, finishPreset } from './shared.js'
+import {
+  dispatchRule,
+  validateOverrides,
+  finishPreset,
+  presetConstructsNothingViolation,
+} from './shared.js'
 
 export interface StrictBoundariesOptions extends PresetBaseOptions {
   /** Glob pattern for boundary folders (e.g., 'src/features/*') */
@@ -160,6 +165,23 @@ export function strictBoundaries(
         'preset/boundaries/no-duplicate-bodies',
         'warn',
         overrides,
+      ),
+    )
+  }
+
+  // Every rule above except no-duplicate-bodies depends on `boundaryFolders`
+  // (no-cycles needs a non-empty `sliceDef`; cross-boundary, shared-isolation
+  // and test-isolation each loop over it directly) — so a `folders` glob that
+  // matches nothing constructs zero rules regardless of every other option,
+  // unless `noCopyPaste` (the one option with no discovery dependency) is
+  // also set. Found live by the vacuity matrix: `strictBoundaries(p, {
+  // folders: 'x' })` alone passes silently (plan 0088 Phase 4a
+  // `KNOWN_FAIL_OPEN`).
+  if (boundaryFolders.length === 0 && !options.noCopyPaste) {
+    violations.push(
+      presetConstructsNothingViolation(
+        'strictBoundaries',
+        'a `folders` glob that matches at least one directory, or noCopyPaste',
       ),
     )
   }

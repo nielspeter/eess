@@ -109,6 +109,35 @@ describe('maxMethods', () => {
   })
 })
 
+describe('metric findings carry a ratchet-able identity (plan 0147, bug-0012 class)', () => {
+  it('maxMethods sets identity (no count embedded) and measured (the count)', () => {
+    const condition = maxMethods(5)
+    const [violation] = condition.evaluate([findClass('LargeService')], context)
+    expect(violation?.measured).toBeGreaterThan(5)
+    expect(violation?.identity).toBeDefined()
+    // The count lives in `measured`, not in `identity` — an identity that
+    // embedded it would make the baseline key move every time the count
+    // does, in EITHER direction (the bug this field exists to prevent).
+    expect(violation?.identity).not.toContain(String(violation?.measured))
+    expect(violation?.identity).toContain('LargeService')
+    expect(violation?.identity).toContain('methods')
+  })
+
+  it('a class-level finding (maxMethods) and a class-level finding for a different metric (maxClassLines) never collide', () => {
+    // Both report against LargeService with the SAME node (the class itself)
+    // — different metrics on an identical subject must not accidentally
+    // share one identity, or a baseline entry for one would silently cover
+    // the other.
+    const methodsViolations = maxMethods(0).evaluate([findClass('LargeService')], context)
+    const linesViolations = maxClassLines(0).evaluate([findClass('LargeService')], context)
+    const methodsIdentity = methodsViolations[0]?.identity
+    const linesIdentity = linesViolations[0]?.identity
+    expect(methodsIdentity).toBeDefined()
+    expect(linesIdentity).toBeDefined()
+    expect(methodsIdentity).not.toBe(linesIdentity)
+  })
+})
+
 describe('maxParameters', () => {
   it('passes for few-param methods', () => {
     const condition = maxParameters(10)

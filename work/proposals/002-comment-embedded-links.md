@@ -75,7 +75,7 @@ an existing decision at `scripts/check-review-harness.mjs:23` and
 `scripts/nonvacuity/bad-review-harness.mjs:8`. `adr/` stops at 008 — plan 0088
 Phase 2 is what will create it. Both citations shipped in a PR merged the same
 day this review ran, under a full green `npm run validate`. Filed as bug
-[0103](../bugs/0103-adr-009-cited-but-does-not-exist.md).
+[0103](../bugs/fixed/0103-adr-009-cited-but-does-not-exist.md).
 
 The remaining 49 are ts-archunit ancestor numbers (plans 0001–0042, 0057,
 proposals 010/011). This repo's own sequence starts at 0051, so they are not rot

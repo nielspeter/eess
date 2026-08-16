@@ -1,6 +1,7 @@
 import type { ArchProject } from '../core/project.js'
 import { RuleBuilder } from '@nielspeter/eess'
 import type { ConditionContext } from '@nielspeter/eess'
+import { diagnoseDeadGlobs } from '../core/dead-glob.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
 import { collectCalls } from '../models/arch-call.js'
@@ -74,6 +75,16 @@ export class CallRuleBuilder extends RuleBuilder<ArchCall, ArchProject> {
 
   protected getElements(): ArchCall[] {
     return this.project.getSourceFiles().flatMap(collectCalls)
+  }
+
+  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
+  protected override sourceEmpty(): boolean {
+    return this.project.getSourceFiles().length === 0
+  }
+
+  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
+  protected override deadGlobDiagnosis(): string | undefined {
+    return diagnoseDeadGlobs(this.project, this.globs())
   }
 
   protected override buildConditionContext(): ConditionContext {
@@ -202,8 +213,12 @@ export class CallRuleBuilder extends RuleBuilder<ArchCall, ArchProject> {
    * @param index — zero-based argument index to fold into the identity.
    */
   identifiedByArg(index: number): this {
-    this._identifyByArgument = index
-    return this
+    // Copy, not mutate — bug-0016 class. A held selection (`const routes =
+    // calls(p).that()...`) forked into two branches must not have the second
+    // branch's `.identifiedByArg()` retroactively change the first's identity.
+    const next = this.copy()
+    next._identifyByArgument = index
+    return next
   }
 
   // --- Condition methods ---

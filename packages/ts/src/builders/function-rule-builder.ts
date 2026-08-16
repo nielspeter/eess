@@ -1,6 +1,7 @@
 import type { ArchProject } from '../core/project.js'
 import type { Condition } from '@nielspeter/eess'
 import { RuleBuilder } from '@nielspeter/eess'
+import { diagnoseDeadGlobs } from '../core/dead-glob.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import {
   functionContain,
@@ -83,6 +84,16 @@ import {
 export class FunctionRuleBuilder extends RuleBuilder<ArchFunction, ArchProject> {
   protected getElements(): ArchFunction[] {
     return this.project.getSourceFiles().flatMap((sf) => collectFunctions(sf))
+  }
+
+  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
+  protected override sourceEmpty(): boolean {
+    return this.project.getSourceFiles().length === 0
+  }
+
+  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
+  protected override deadGlobDiagnosis(): string | undefined {
+    return diagnoseDeadGlobs(this.project, this.globs())
   }
 
   // --- Identity predicates (delegated to plan 0003 generics) ---

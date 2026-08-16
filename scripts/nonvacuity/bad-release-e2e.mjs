@@ -152,6 +152,43 @@ const E2E = [
     ['consumed by this diff'],
   ],
   [
+    'a changeset consumed on the branch still counts when HEAD is a PR-merge-preview commit',
+    ({ dir, g, write, pkg }) => {
+      // GitHub Actions' default checkout for `pull_request` events checks out
+      // a synthetic 2-parent merge commit (base + the PR branch's tip), not
+      // the PR branch's own tip. The scenario above ("still counts") proves
+      // the lookup works when HEAD is the branch tip directly — this proves
+      // it survives the checkout shape CI actually uses.
+      //
+      // `git rev-list -1 <ref> -- <path>` — the fallback both scenarios
+      // depend on — applies default path-limited history simplification. For
+      // a path absent from BOTH of a merge commit's parents (created and
+      // deleted entirely on one side, present at neither endpoint), that
+      // simplification can silently follow only one parent and never surface
+      // the commit that touched it — even though it is a real ancestor.
+      // Verified directly against a real GitHub PR merge ref before writing
+      // this: `git rev-list -1 HEAD -- <path>` returned nothing on the merge
+      // commit; the identical call with `--full-history` found it.
+      branch({ g })
+      write('.changeset/a.md', "---\n'@fixture/alpha': minor\n---\n\nnote\n")
+      g('add', '-A')
+      g('commit', '-qm', 'changeset on the branch')
+      rmSync(join(dir, '.changeset/a.md'))
+      write('packages/alpha/package.json', pkg('@fixture/alpha', '1.1.0'))
+      g('add', '-A')
+      g('commit', '-qm', 'version packages')
+      // Build the merge-preview commit on a NEW ref, so `main` itself stays
+      // at its original tip — exactly like `origin/main` never advancing
+      // while GitHub computes `refs/pull/N/merge` separately. `--no-ff`:
+      // main and feature share history here, so a plain merge would
+      // fast-forward and never produce the 2-parent commit this reproduces.
+      g('checkout', '-q', '-b', 'merge-preview', 'main')
+      g('merge', '--no-ff', '-q', '-m', 'merge preview', 'feature')
+    },
+    0,
+    ['consumed by this diff'],
+  ],
+  [
     'a changed, undeclared package fails the build',
     ({ g, write }) => {
       branch({ g })

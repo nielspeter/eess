@@ -1,6 +1,13 @@
-import { type Node, type ClassDeclaration, type SourceFile, Node as NodeUtils } from 'ts-morph'
+import {
+  type Node,
+  type ClassDeclaration,
+  type SourceFile,
+  Node as NodeUtils,
+  SyntaxKind,
+} from 'ts-morph'
 import type { ExpressionMatcher } from './matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
+import { allDescendants, descendantsOfKind } from '../core/descendant-cache.js'
 
 /**
  * Options for module body analysis.
@@ -23,21 +30,63 @@ export interface MatchResult {
   found: boolean
   /** The matching nodes (for violation reporting: file, line, text) */
   matchingNodes: Node[]
+  /**
+   * Parallel to {@link matchingNodes}: which comment each match is about, for
+   * trivia matchers. `undefined` entries mean the node itself is the match.
+   *
+   * One node can carry several matching comments, so the node alone cannot
+   * identify a finding — four stacked `// TODO` lines lead one statement and
+   * are four findings, not one.
+   */
+  triviaPositions: (number | undefined)[]
+}
+
+/** One match: the node to report on, and which comment it is about. */
+// eess-exclude eess/no-unused-exports: return type of the exported findMatchesInNode API (must stay exported for declaration emit)
+export interface Match {
+  readonly node: Node
+  readonly triviaPos?: number
+}
+
+/** Split matches into the parallel arrays `MatchResult` carries. */
+function toResult(matches: readonly Match[]): MatchResult {
+  return {
+    found: matches.length > 0,
+    matchingNodes: matches.map((m) => m.node),
+    triviaPositions: matches.map((m) => m.triviaPos),
+  }
 }
 
 /**
  * Targeted traversal: only check nodes of the specified syntax kinds.
  */
-function findMatchesByKind(node: Node, matcher: ExpressionMatcher): Node[] {
-  const matches: Node[] = []
+function findMatchesByKind(node: Node, matcher: ExpressionMatcher): Match[] {
+  const matches: Match[] = []
   for (const kind of matcher.syntaxKinds ?? []) {
-    for (const descendant of node.getDescendantsOfKind(kind)) {
+    // Cached: the walk is a function of (node, kind) and only the matcher's
+    // filter differs, so N matchers over one body did N identical traversals.
+    // `agentGuardrails` emits one rule per banned API and paid exactly that.
+    for (const descendant of descendantsOfKind(node, kind)) {
       if (matcher.matches(descendant)) {
-        matches.push(descendant)
+        matches.push({ node: descendant })
       }
     }
   }
   return matches
+}
+
+/**
+ * The line a finding about `node` should name.
+ *
+ * For a trivia matcher that is the **comment's** line, not the node's — the
+ * position comes from `MatchResult.triviaPositions`, alongside the node. One
+ * accessor rather than open-coded `node.getStartLineNumber()` calls, because
+ * the `notContain` family computes the line twice per finding (the `line`
+ * field and the message text) and the two must not disagree.
+ */
+export function reportedLine(node: Node, triviaPos: number | undefined): number {
+  if (triviaPos === undefined) return node.getStartLineNumber()
+  return node.getSourceFile().getLineAndColumnAtPos(triviaPos).line
 }
 
 /**
@@ -47,19 +96,25 @@ function findMatchesByKind(node: Node, matcher: ExpressionMatcher): Node[] {
  * matchers (expression()) match at multiple ancestor levels.
  * Keep only the deepest (most specific) matching nodes.
  */
-function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Node[] {
+function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Match[] {
   const matches: Node[] = []
-  for (const descendant of node.getDescendants()) {
+  // Cached: the walk is kind-independent and identical across matchers, and
+  // is the majority of a broad matcher's cost. Only the filter below is
+  // per-matcher.
+  for (const descendant of allDescendants(node)) {
     if (matcher.matches(descendant)) {
       matches.push(descendant)
     }
   }
-  return matches.filter(
-    (m) =>
-      !matches.some(
-        (other) => other !== m && other.getStart() >= m.getStart() && other.getEnd() <= m.getEnd(),
-      ),
-  )
+  return matches
+    .filter(
+      (m) =>
+        !matches.some(
+          (other) =>
+            other !== m && other.getStart() >= m.getStart() && other.getEnd() <= m.getEnd(),
+        ),
+    )
+    .map((n) => ({ node: n }))
 }
 
 /**
@@ -69,11 +124,49 @@ function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Node[] {
  * (efficient — only walks nodes of that kind). Falls back to
  * getDescendants() for matchers without syntaxKinds (expression()).
  */
-export function findMatchesInNode(node: Node, matcher: ExpressionMatcher): Node[] {
+export function findMatchesInNode(node: Node, matcher: ExpressionMatcher): Match[] {
+  // TRIVIA first, and at the dispatcher rather than inside the broad walk. A
+  // trivia matcher may also narrow by `syntaxKinds` for speed, and with the
+  // branch one level down it took the by-kind path and got no expansion at
+  // all.
+  if (matcher.matchedTriviaPositions !== undefined) {
+    return triviaMatches(node, matcher)
+  }
   if (matcher.syntaxKinds && matcher.syntaxKinds.length > 0) {
     return findMatchesByKind(node, matcher)
   }
   return findMatchesBroad(node, matcher)
+}
+
+/**
+ * One match per distinct COMMENT, not per node.
+ *
+ * The deepest-node filter is skipped deliberately: it exists because
+ * `expression()` matches at every ancestor level, and a comment's node is where
+ * it is **attached** rather than something containing it. Applying it made two
+ * nodes with identical spans each remove the other — zero findings for three
+ * comments.
+ *
+ * The same comment is trivia of several nested nodes, so positions are
+ * deduplicated globally and the first node to name one wins.
+ */
+function triviaMatches(node: Node, matcher: ExpressionMatcher): Match[] {
+  const seen = new Set<number>()
+  const out: Match[] = []
+  const candidates =
+    matcher.syntaxKinds && matcher.syntaxKinds.length > 0
+      ? matcher.syntaxKinds.flatMap((kind) => [...descendantsOfKind(node, kind)])
+      : allDescendants(node)
+  for (const descendant of [node, ...candidates]) {
+    for (const pos of matcher.matchedTriviaPositions?.(descendant) ?? []) {
+      if (seen.has(pos)) continue
+      seen.add(pos)
+      out.push({ node: descendant, triviaPos: pos })
+    }
+  }
+  // Source order. Pre-order visits an enclosing node's TRAILING range before
+  // the statements it spans, so raw order is not the reader's.
+  return out.sort((a, b) => (a.triviaPos ?? 0) - (b.triviaPos ?? 0))
 }
 
 /**
@@ -83,7 +176,7 @@ export function findMatchesInNode(node: Node, matcher: ExpressionMatcher): Node[
  * and tests each body against the matcher. Returns aggregated results.
  */
 export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatcher): MatchResult {
-  const matchingNodes: Node[] = []
+  const matchingNodes: Match[] = []
 
   for (const method of cls.getMethods()) {
     const body = method.getBody()
@@ -115,10 +208,26 @@ export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatche
     }
   }
 
-  return {
-    found: matchingNodes.length > 0,
-    matchingNodes,
-  }
+  return toResult(matchingNodes)
+}
+
+/**
+ * The node a function's own docstring is attached to.
+ *
+ * For a `function` declaration that is the declaration itself. For an arrow or
+ * function expression assigned to a `const`, `ArchFunction.getNode()` returns the
+ * **VariableDeclaration**, and the comment attaches two levels up on the
+ * `VariableStatement` — so a naive fix repairs `function f()` and leaves
+ * `const f = () => …` broken, which is half the codebases that would use the
+ * rule.
+ *
+ * `getFirstAncestorByKind` finds the NEAREST enclosing statement, so a nested
+ * arrow inside a function does not reach out to the outer function's
+ * docstring — that over-reach is the obvious way to fix this wrongly.
+ */
+function triviaRoot(node: Node): Node {
+  if (!NodeUtils.isVariableDeclaration(node)) return node
+  return node.getFirstAncestorByKind(SyntaxKind.VariableStatement) ?? node
 }
 
 /**
@@ -129,16 +238,38 @@ export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatche
  * still works — it walks the expression subtree.
  */
 export function searchFunctionBody(fn: ArchFunction, matcher: ExpressionMatcher): MatchResult {
+  // A TRIVIA matcher searches from the DECLARATION; everything else from the body.
+  //
+  // A function's own leading comment attaches to the declaration, not to
+  // anything inside the body — so `noStubComments()` would see a `TODO`
+  // inside a body and trailing a function, and miss both `// TODO` and
+  // `/** TODO */` **above** it, which are the two placements anyone
+  // actually writes. `comment()` reads leading ranges perfectly well; the
+  // traversal never offered it the declaration.
+  //
+  // Searching from the declaration rather than *also* searching it:
+  // `triviaMatches` visits `[node, ...allDescendants(node)]` and
+  // deduplicates by comment position, so the body is still covered and no
+  // comment can be reported twice. Testing the declaration separately would
+  // have needed its own dedup against the body's.
+  //
+  // Only for trivia matchers, and that discrimination is the point rather
+  // than a shortcut: `functionNotContain` is general-purpose, and handing
+  // the declaration node to `expression(/…/)` would match the function's
+  // entire source text — turning every body-analysis rule into a
+  // whole-declaration one. A matcher that reads trivia is exactly the set
+  // that needs the attachment point.
+  if (matcher.matchedTriviaPositions !== undefined) {
+    return toResult(findMatchesInNode(triviaRoot(fn.getNode()), matcher))
+  }
+
   const body = fn.getBody()
   if (!body) {
-    return { found: false, matchingNodes: [] }
+    return toResult([])
   }
 
   const matchingNodes = findMatchesInNode(body, matcher)
-  return {
-    found: matchingNodes.length > 0,
-    matchingNodes,
-  }
+  return toResult(matchingNodes)
 }
 
 /**
@@ -176,9 +307,9 @@ export function getFunctionBody(node: Node): Node | undefined {
  * Collect matches from top-level variable statement initializers,
  * skipping arrow/function expressions (covered by function rules).
  */
-function collectVariableStatementMatches(statement: Node, matcher: ExpressionMatcher): Node[] {
+function collectVariableStatementMatches(statement: Node, matcher: ExpressionMatcher): Match[] {
   if (!NodeUtils.isVariableStatement(statement)) return []
-  const matches: Node[] = []
+  const matches: Match[] = []
   for (const decl of statement.getDeclarationList().getDeclarations()) {
     const initializer = decl.getInitializer()
     if (!initializer) continue
@@ -199,11 +330,11 @@ export function searchModuleBody(
   if (!options?.scopeToModule) {
     // Full file traversal — walk all descendants
     const matchingNodes = findMatchesInNode(sourceFile, matcher)
-    return { found: matchingNodes.length > 0, matchingNodes }
+    return toResult(matchingNodes)
   }
 
   // Module-scope only — walk each top-level statement but skip class/function internals
-  const matchingNodes: Node[] = []
+  const matchingNodes: Match[] = []
   for (const statement of sourceFile.getStatements()) {
     // Skip class declarations entirely (their bodies are covered by class rules)
     if (NodeUtils.isClassDeclaration(statement)) continue
@@ -222,5 +353,5 @@ export function searchModuleBody(
     matchingNodes.push(...findMatchesInNode(statement, matcher))
   }
 
-  return { found: matchingNodes.length > 0, matchingNodes }
+  return toResult(matchingNodes)
 }

@@ -65,13 +65,26 @@ describe('ScopedFunctionRuleBuilder', () => {
     }).not.toThrow()
   })
 
-  it('getElements returns empty when call selection matches no calls', () => {
+  it('getElements returns empty when call selection matches no calls — a dead selector, not a silent pass', () => {
     const noMatchSelection = calls(p).that().onObject('nonexistent')
     const scoped = new ScopedFunctionRuleBuilder(noMatchSelection)
 
-    // Empty call selection -> empty elements -> no violations
-    expect(() => {
+    try {
       scoped.should().contain(call('anything')).check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+    }
+  })
+
+  it('an empty call selection passes when declared with .expectEmpty()', () => {
+    const noMatchSelection = calls(p).that().onObject('nonexistent')
+    const scoped = new ScopedFunctionRuleBuilder(noMatchSelection)
+
+    expect(() => {
+      scoped.should().contain(call('anything')).expectEmpty().check()
     }).not.toThrow()
   })
 

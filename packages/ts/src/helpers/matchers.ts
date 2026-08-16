@@ -1,4 +1,5 @@
 import { Node, SyntaxKind, type CommentRange } from 'ts-morph'
+import { writeStderr } from '@nielspeter/eess'
 
 /**
  * A matcher that tests whether a ts-morph AST node matches a specific pattern.
@@ -24,6 +25,29 @@ export interface ExpressionMatcher {
    * The condition layer enforces this — matchers can assume the kind is correct.
    */
   matches(node: Node): boolean
+
+  /**
+   * Every position at which this matcher's pattern matches a comment attached
+   * to `node`. Absent for an ordinary matcher, where the node *is* the match.
+   *
+   * **Presence of this method is what makes a matcher a trivia matcher.** It
+   * was two members — a `matchesTrivia: true` flag beside a single-position
+   * accessor — and that admitted four states of which two were silently
+   * wrong: the flag without the accessor reported every node at its own
+   * line, and the accessor without the flag reproduced the original bug.
+   * One member cannot disagree with itself.
+   *
+   * **Every** position, not the first. A node routinely carries several
+   * matching comments — four stacked `// TODO` lines lead one statement —
+   * and the unit of a comment finding is the **comment**. Returning one
+   * collapses them into a single finding for four stubs — a ratchet hole
+   * exactly where agent-written stubs accumulate.
+   *
+   * Must be **pure and stable for a node**: the traversal calls it to
+   * enumerate and deduplicate matches, and the conditions layer calls it
+   * again to name the line, across a layer boundary, and the two must agree.
+   */
+  matchedTriviaPositions?(node: Node): readonly number[]
 }
 
 /**
@@ -150,8 +174,8 @@ export function newExpr(nameOrRegex: string | RegExp): ExpressionMatcher {
  * Escape hatch: match any node whose getText() contains or matches the given pattern.
  *
  * This is intentionally broad and should be used sparingly. It walks ALL
- * descendant nodes and checks getText() against the pattern. A runtime
- * console.warn is emitted the first time expression() is used, encouraging
+ * descendant nodes and checks getText() against the pattern. A stderr
+ * warning is emitted the first time expression() is used, encouraging
  * users to prefer call/access/newExpr where possible.
  *
  * @param textOrRegex - Substring to search for (string) or regex pattern.
@@ -168,7 +192,7 @@ export function expression(textOrRegex: string | RegExp): ExpressionMatcher {
       // No syntaxKinds — walks all descendants
       matches(node: Node): boolean {
         if (!warned) {
-          console.warn(
+          writeStderr(
             `[eess] expression('${textOrRegex}') is a broad matcher. ` +
               `Prefer call(), access(), or newExpr() for precise matching.`,
           )
@@ -183,7 +207,7 @@ export function expression(textOrRegex: string | RegExp): ExpressionMatcher {
     // No syntaxKinds — walks all descendants
     matches(node: Node): boolean {
       if (!warned) {
-        console.warn(
+        writeStderr(
           `[eess] expression(${String(textOrRegex)}) is a broad matcher. ` +
             `Prefer call(), access(), or newExpr() for precise matching.`,
         )
@@ -275,8 +299,93 @@ export function property(
  * Exported as a constant for use with `comment()`. Users can pass
  * their own RegExp to `comment()` for narrower matching.
  */
-export const STUB_PATTERNS =
-  /\b(TODO|FIXME|HACK|XXX|STUB|DEFERRED|PLACEHOLDER)\b|\bnot\s+implemented\b|\bcoming\s+soon\b/i
+const MARKER = 'TODO|FIXME|HACK|XXX|STUB|DEFERRED|PLACEHOLDER'
+
+/** Start of a comment, or of a line inside one, past any `//`, `/*` or `*`. */
+const COMMENT_LINE_START = String.raw`(?:^|\n)[ \t]*(?:\/\/+|\/\*+|\*+)?[ \t]*`
+
+/**
+ * A stub marker: an **UPPERCASE** marker word opening a comment line, or either
+ * of two phrases.
+ *
+ * Both halves of that are load-bearing, and each was found by a prose false
+ * positive in a real codebase: unanchored, the marker branch matches every
+ * sentence that mentions a marker, and the phrase branch matches
+ * `noStubComments()`'s own docstring, which lists them — documentation of a
+ * syntax read as the syntax.
+ *
+ * **Anchored to a line start.** **Case-sensitive for the markers**, because
+ * anchoring alone is not enough: a wrapped JSDoc sentence can put the
+ * lowercase word "stub," at the start of a continuation line. Uppercase is
+ * the convention (`// TODO:`, `// FIXME`) and the casing is what separates a
+ * marker from the English word. Known limit, stated rather than discovered:
+ * a lowercase `// todo: x` is not matched. That is the price of not matching
+ * "the todo list below", and it is the right trade for a rule whose findings
+ * must fail a build.
+ *
+ * **The phrase forms ARE case-insensitive** — the `i` flag cannot apply to
+ * the whole expression, because the MARKERS must stay case-sensitive (that
+ * is what rejects a wrapped JSDoc line beginning `stub,`). So the phrase
+ * branch alternates its own letters via `anyCase`, DERIVED rather than
+ * hand-written, so the class of bug where only some letters get alternated
+ * (`[Nn]ot\s+[Ii]mplemented` alternates the first letter of each word and
+ * nothing else) cannot come back.
+ */
+/**
+ * A word matched case-INSENSITIVELY, letter by letter.
+ *
+ * JavaScript has no inline `(?i:…)` group and the `i` flag applies to the whole expression,
+ * which cannot be used here — the MARKER branch must stay case-sensitive. So the phrase
+ * branch alternates its own letters, and it is DERIVED rather than hand-written, because
+ * hand-writing it is the shape of bug that alternates only the first letter of each word.
+ */
+// eess-exclude eess/no-unused-exports: exported for tests/helpers/pattern-change-moves-baselines.test.ts only — deliberately absent from src/index.ts, not public API
+export function anyCase(word: string): string {
+  const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return [...word]
+    .map((ch) => {
+      const lower = ch.toLowerCase()
+      const upper = ch.toUpperCase()
+      // A character CLASS while both mappings are single characters, and an ALTERNATION
+      // when either is not.
+      //
+      // The alternation is the correctness half: a case mapping is not one-to-one.
+      // Measured, `'ß'.toUpperCase()` is `'SS'` — two characters — so `[SSß]` is a class of
+      // three single characters matching `S` or `ß` and **not** `SS`, and
+      // `anyCase('straße')` produced a pattern that did not match its own uppercase form
+      // without throwing. Same silent-wrongness as an unescaped metacharacter; the first
+      // version of this function fixed only that half.
+      //
+      // Keeping the class for the single-character case is the *cost* half, and it is not
+      // cosmetic. `[Nn]` and `(?:N|n)` match identically, so switching every letter to an
+      // alternation would move `STUB_PATTERNS`' text — and therefore every baselined
+      // finding's identity — while changing no behaviour at all. That is a migration
+      // charged to every adopter for nothing.
+      if (lower !== upper) {
+        return upper.length === 1 && lower.length === 1
+          ? `[${escape(upper)}${escape(lower)}]`
+          : `(?:${escape(upper)}|${escape(lower)})`
+      }
+      // A character with no case is passed through ESCAPED. Measured before adding this:
+      // `anyCase('todo(x)')` produced `[Tt][Oo][Dd][Oo]([Xx])` — a capture group; `'wip.'`
+      // produced a `.` meaning any character; `'a+b'` produced "one or more a". None of
+      // them throw, so the pattern silently means something other than the phrase.
+      //
+      // No live defect — today's phrases are letters and spaces — but this function exists
+      // to be called with a new phrase, and that is when it would bite.
+      return escape(ch)
+    })
+    .join('')
+}
+
+/** `not implemented` / `coming soon`, any casing, any run of whitespace between words. */
+const PHRASES = ['not implemented', 'coming soon']
+  .map((phrase) => phrase.split(' ').map(anyCase).join('\\s+'))
+  .join('|')
+
+export const STUB_PATTERNS = new RegExp(
+  [`${COMMENT_LINE_START}(?:${MARKER})\\b`, `${COMMENT_LINE_START}(?:${PHRASES})\\b`].join('|'),
+)
 
 /**
  * Match comments attached to AST nodes.
@@ -286,8 +395,15 @@ export const STUB_PATTERNS =
  * `syntaxKinds: undefined` so the broad traversal path visits every node,
  * and `matches(node)` checks that node's comment ranges.
  *
- * A Set tracks matched comment positions to avoid duplicates (the same
- * comment may be visited as leading trivia of multiple nested nodes).
+ * The same comment is visible as trivia of several nested nodes, so the
+ * traversal deduplicates by the comment's own position — this matcher holds
+ * no state of its own. A prior version held a `Set<string>` of matched
+ * positions closed over inside `comment()` that was never reset, so the
+ * SAME rule object returned violations once and then nothing on its second
+ * evaluation — a stale-state bug that bites watch mode, a preset array
+ * checked twice, and any test reusing a rule constant. Dedup now happens in
+ * the traversal, keyed by attachment point, via `matchedTriviaPositions`
+ * below. A matcher that holds no state cannot go stale.
  *
  * @param pattern - String substring or RegExp to test against comment text.
  *
@@ -297,11 +413,6 @@ export const STUB_PATTERNS =
  * comment('HACK')                     // matches hack comments
  */
 export function comment(pattern: string | RegExp): ExpressionMatcher {
-  // Dedup by (filePath, pos) — prevents the same comment from matching
-  // multiple times when visited as leading trivia of nested nodes.
-  // Using a composite string key avoids cross-file collisions.
-  const matchedComments = new Set<string>()
-
   function testComment(range: CommentRange): boolean {
     const text = range.getText()
     if (typeof pattern === 'string') {
@@ -319,17 +430,15 @@ export function comment(pattern: string | RegExp): ExpressionMatcher {
         : `comment matching ${String(pattern)}`,
     // No syntaxKinds — broad traversal to visit all nodes and their comments
     matches(node: Node): boolean {
-      const filePath = node.getSourceFile().getFilePath()
       const ranges = [...node.getLeadingCommentRanges(), ...node.getTrailingCommentRanges()]
-      for (const range of ranges) {
-        const key = `${filePath}:${String(range.getPos())}`
-        if (matchedComments.has(key)) continue
-        if (testComment(range)) {
-          matchedComments.add(key)
-          return true
-        }
-      }
-      return false
+      return ranges.some((range) => testComment(range))
+    },
+    matchedTriviaPositions(node: Node): readonly number[] {
+      // `getPos()`, never `getEnd()`: a multi-line block comment or JSDoc would
+      // otherwise be reported at its CLOSING line. Invisible to an all-`//`
+      // fixture, where the two share a line.
+      const ranges = [...node.getLeadingCommentRanges(), ...node.getTrailingCommentRanges()]
+      return ranges.filter((range) => testComment(range)).map((range) => range.getPos())
     },
   }
 }

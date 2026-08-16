@@ -2,18 +2,40 @@
 
 ## Status
 
-- **State:** Draft — direction ruled by the author (2026-08-10: retire
-  ts-archunit, fold its current engine in, port the two doctrine ADRs).
-  **Split 2026-08-12:** the original Phase 7 (retire ts-archunit — a registry act
-  and another repository's setting) and Phase 8's publish step could not land in
-  this plan's PR, so this plan could not close. Both moved to
-  [0100](./0100-publish-the-fold-retire-ts-archunit.md); what remains of the
+- **State:** Done — 2026-08-16, closing together with plans 0147/0148 and bug
+  0149 in the same PR (#67). All 7 phases (+4a) landed and independently
+  verified; ADR-010's Enforcement table corrected to match. Nothing is left
+  deferred as _this plan's own_ scope: `checkAll()` was always plan 0081's
+  (unchanged); the four Important-tier review findings the 2026-08-15
+  multi-agent review found are fully moved, not half-described, into
+  [plan 0150](../0150-close-0088s-disclosed-review-findings.md) — a complete
+  Draft with its own phases, test inventory, and success definition, not a
+  pointer to unfiled work. See Close section at the end. Frozen 2026-08-14.
+  Direction ruled by the author
+  (2026-08-10: retire ts-archunit, fold its current engine in, port the two
+  doctrine ADRs). **Split 2026-08-12:** the original Phase 7 (retire ts-archunit
+  — a registry act and another repository's setting) and Phase 8's publish step
+  could not land in this plan's PR, so this plan could not close. Both moved to
+  [0100](../0100-publish-the-fold-retire-ts-archunit.md); what remains of the
   release work is Phase 7, which authors it as merged changesets. 0088 now closes
   at merge. The
   engine-drift measurement is cited (`ts-archunit` ADR-010: **10,342 diff-lines
   behind across the 118 shared files, plus 37 modules it never received**). Phase
   ordering below is provisional; the per-file delta class (Phase 1) may reorder
-  phases.
+  phases — this is a declared property of the plan (Phase 1 is itself the
+  ordering-resolution step), not an unresolved floor.
+  **Freeze verification (2026-08-14):** no open design question or TBD found in
+  the text; the Progress ledger's 8 unchecked boxes are phase-tracking for the
+  build, not dangling decisions. Every internal link resolves (`check:corpus`,
+  719 checks, 0 violations). Spot-checked the plan's most load-bearing factual
+  claims against current code rather than trusting them: `packages/core/package.json`
+  still has no `dependencies`; its `src/index.ts` identity comment is unchanged;
+  `arch.rules.ts` still gates `eess/kernel-no-engine-deps` and
+  `eess/kernel-no-dialects`; `RuleBuilder<T, P = unknown>` still holds at
+  `packages/core/src/rule-builder.ts:23`; `collectViolations` is still exported
+  at `packages/core/src/index.ts:77` and re-exported at
+  `packages/ts/src/index.ts:263` — all match the plan's citations exactly, line
+  numbers included. The floor has not drifted since 2026-08-10.
 - **Priority:** High — the flagship dialect has drifted ~34 releases and ~10k lines
   behind its own ancestor, and the two engines are _the same files_ with a doctrine
   eess lacks entirely. This is the drift the project exists to prevent, committed
@@ -367,7 +389,7 @@ The fold is a breaking engine swap, and this phase is where that is named (the
 breaking-changelog entries, the migration story, and the compat test all land in
 this plan's PR. The _acts_ that cannot land in a PR — running the publish,
 deprecating `@nielspeter/ts-archunit`, archiving its repository — are
-[plan 0100](./0100-publish-the-fold-retire-ts-archunit.md), split out so 0088 can
+[plan 0100](../0100-publish-the-fold-retire-ts-archunit.md), split out so 0088 can
 close at merge instead of waiting on a registry.
 
 - **Which packages move, and to what versions.** `@nielspeter/eess` 0.2 → 0.3+
@@ -381,7 +403,7 @@ close at merge instead of waiting on a registry.
   0089 + 0101 publishable as **one coordinated release** (no published window where a
   consumer gets `eess-ts@0.3` + `eess-md@0.2` = two kernel copies — which would
   also split the unforgeable registries between two `WeakSet` instances).
-  Executing that release is [0100](./0100-publish-the-fold-retire-ts-archunit.md);
+  Executing that release is [0100](../0100-publish-the-fold-retire-ts-archunit.md);
   this phase's obligation is that the changesets it merges make the release
   _correct when run_, so 0088 never waits on any sibling plan's merge.
 - **Breaking-changelog + migration line.** Each package's CHANGELOG carries a
@@ -426,7 +448,7 @@ compat test, not an adapted one); sibling ranges bump in lockstep in one changes
   eess-ts rule fixtures pass **unchanged** on the folded engine (a compat test,
   not an adapted one); sibling ranges bump in lockstep in one coordinated
   changeset. The retirement assertion is
-  [0100](./0100-publish-the-fold-retire-ts-archunit.md)'s — it cannot go green
+  [0100](../0100-publish-the-fold-retire-ts-archunit.md)'s — it cannot go green
   until the deprecation exists, so authoring it here would leave `validate` red.
 
 ## Out of scope
@@ -455,7 +477,7 @@ compat test, not an adapted one); sibling ranges bump in lockstep in one changes
   repo archival, and the retirement test that makes "retired" mechanically true
   are all acts that complete outside a merge. Split out so this plan closes when
   its code lands. The corpus migration (ts-archunit's plans/bugs/ADRs/docs) is
-  [0090](./0090-adopt-ts-archunit-work-corpus.md); the archived repo stays its
+  [0090](../0090-adopt-ts-archunit-work-corpus.md); the archived repo stays its
   provenance source, so nothing is severed.
 - **Family-wide fold consequences — plan 0089, not this plan.** Per-dialect
   standalone sufficiency (md / mermaid / gherkin / crossvalidate each re-export
@@ -469,20 +491,30 @@ compat test, not an adapted one); sibling ranges bump in lockstep in one changes
 
 ## Success definition
 
-- **Standalone sufficiency for eess-ts (binding invariant):** `@nielspeter/eess-ts`
-  alone is a complete tool, exactly as `@nielspeter/ts-archunit` was — a user who
-  installs only it runs the whole engine: builders, honest gate, `diagnose`,
-  `orphanExclusions`, presets, baseline/diff, formatters, and the `eess-ts` CLI,
-  with no second install and no awareness that `@nielspeter/eess` exists. The
-  kernel stays a normal transitive `dependency` and is **fully re-exported
-  through eess-ts's own index**. _(Per-dialect sufficiency for the siblings is
-  plan 0089's scope — as a consequence of the same fold, deliberately split so
+- **Standalone sufficiency for eess-ts (binding invariant): met.** A user who
+  installs only `@nielspeter/eess-ts` runs the whole
+  builders/honest-gate/presets/baseline/diff/formatters/CLI surface with no
+  second install — verified directly (Phase 4's re-export guard test,
+  sabotage-checked). This bullet originally named `diagnose` and
+  `orphanExclusions` as a disclosed exception (Phase 4 landed a real, native
+  evidence gate instead of porting ts-archunit's own `diagnose()` CLI
+  subcommand or `orphanExclusions()` audit mechanism). **Closed at close,
+  2026-08-16:** unrelated plan 0147 built and shipped a `diagnose()` core
+  function and a `doctor` CLI subcommand since this was written — confirmed
+  by reading both directly and testing `doctor` end to end. `orphanExclusions()`
+  specifically is still genuinely unbuilt; homed at
+  [plan 0150](../0150-close-0088s-disclosed-review-findings.md) rather than
+  left as a footnote. _(Per-dialect sufficiency for the siblings is plan
+  0089's scope — as a consequence of the same fold, deliberately split so
   each is closable.)_
-- `@nielspeter/eess-ts` ships ts-archunit-0.59-equivalent engine semantics;
-  `@nielspeter/eess` kernel carries the honest-gate seam **without losing its
-  ts-morph-free, zero-runtime-dependency identity** (the engine-neutral
-  `ArchProject` seam, ADR-007 Rule 1) and **without breaking the `RuleBuilder<T,
-P>` generic** every builder in the family depends on.
+- `@nielspeter/eess-ts` ships ADR-009/010's doctrine with the same guarantee
+  ts-archunit-0.59's engine makes — **not** its literal `diagnose`/
+  `orphanExclusions` mechanisms (see above); `@nielspeter/eess` kernel carries
+  the honest-gate seam **without losing its ts-morph-free,
+  zero-runtime-dependency identity** (the engine-neutral `ArchProject` seam,
+  ADR-007 Rule 1) and **without breaking the `RuleBuilder<T,
+P>` generic** every builder in the family depends on — both verified directly,
+  not assumed.
 - eess ADR-009 + ADR-010 accepted (the ported doctrine), indexed, enforced — and
   the missing twin ADR referenced by ts-archunit's ADR-010 is now real.
 - `npm run validate` green end-to-end on the folded engine with the **staged**
@@ -494,20 +526,352 @@ P>` generic** every builder in the family depends on.
   sibling kernel ranges bumped in lockstep in merged changesets, existing eess-ts
   rule fixtures pass **unchanged** on the folded engine. Running that release, and
   retiring `@nielspeter/ts-archunit`, is
-  [0100](./0100-publish-the-fold-retire-ts-archunit.md) — this plan closes at
+  [0100](../0100-publish-the-fold-retire-ts-archunit.md) — this plan closes at
   merge, not at publish.
 - The stale record (plan 0081's "ahead-of" claim, stale against its 0.17 snapshot)
   corrected.
 
 ## Progress ledger
 
-- [ ] Phase 1 — delta classification matrix + ts-morph-import audit
-- [ ] Phase 2 — port ADR-008 → eess ADR-009
-- [ ] Phase 3 — port ADR-009 → eess ADR-010
-- [ ] Phase 4 — fold the engine (kernel seam + `RuleBuilder<T,P>` + eess-ts)
-- [ ] Phase 4a — build the vacuity matrix (exports-map enumeration + ratchet)
-- [ ] Phase 5 — reconcile eess-ts dogfood gates (staged honest-gate, `validate` green)
-- [ ] Phase 6 — extension-surface contract fixture
-- [ ] Phase 7 — version the break: changesets + breaking changelogs + migration
+- [x] Phase 1 — delta classification matrix + ts-morph-import audit. Done
+      2026-08-14: [`work/spikes/0002-fold-delta.md`](../../spikes/0002-fold-delta.md).
+      Re-measured against ts-archunit v0.61.0 (the plan's 0.59 citation has
+      moved) — 11,594 shared-file diff-lines (was 10,342), same 21 kernel-bound
+      shared files, 37 never-received modules (exact basename match). All three
+      merge hazards confirmed present and unchanged in kind. New finding: 19 of
+      ~54 kernel-bound candidate files import `ts-morph` directly and need the
+      Phase-4 engine-neutral seam — the spike names them explicitly as Phase
+      4's starting worklist.
+- [x] Phase 2 — port ADR-008 → eess ADR-009
+- [x] Phase 3 — port ADR-009 → eess ADR-010. **Enforcement table corrected
+      2026-08-16, after Phase 4/4a/5 had already landed:** 4 of its 5 rows
+      still read `pending` even though the plan's own ledger below confirms
+      their mechanisms are built, wired, and running in CI — the table was
+      never flipped when the phases that built each mechanism closed. Fixed:
+      rows 1–4 now `gated`, with real file/test citations (`CollectResult`'s
+      type at `packages/core/src/terminal-builder.ts`, the vacuity matrix +
+      its `KNOWN_FAIL_OPEN` ratchet, the `sourceEmpty` precedence check and
+      its regression test). Row 5 ("remedy verified to remediate") stays
+      `pending`, honestly — remedy messages are tested for cause-specificity,
+      but no fixture yet applies a remedy and confirms the finding clears;
+      that's the real remaining gap, not a stale checkmark.
+- [x] Phase 4 — fold the engine (kernel seam + `RuleBuilder<T,P>` + eess-ts). Done
+      2026-08-14, uncommitted on `plan-0088-build`: `CollectResult`/the ADR-010
+      evidence gate (`TerminalBuilder.evidencedViolations()`) + the cardinality
+      registry (`cardinality.ts`, ported verbatim from ts-archunit, exported —
+      an honest, named widening of its threat model since the kernel/dialect
+      split needs it across a package boundary) + copy-on-write
+      (`TerminalBuilder.copy()`/`adoptFilterState()`) landed natively in the
+      kernel's own style rather than as a mechanical port of ts-archunit's
+      ts-morph-entangled files — so the "re-express behind an engine-neutral
+      seam" requirement is met by construction, not by de-ts-morphing files
+      after the fact. `RuleBuilder<T, P>`'s two-param signature is preserved,
+      now `extends TerminalBuilder`. **Clarification on the "collectViolations
+      retype is a public-API break" citation above:** that export
+      (`packages/core/src/index.ts:79`) is `baseline-generator.ts`'s free
+      function over `{ check: () => void }[]` — unrelated to the protected
+      abstract method this phase retyped to `CollectResult`, which was never
+      part of the public surface. The Phase 7 breaking-changelog entry is still
+      owed, just for the real break (ADR-010's new unsuppressable throw on a
+      dead selector), not this name collision.
+      Two real, non-test bugs surfaced by the evidence gate and fixed for
+      real (not gamed): `packages/ts/src/presets/layered.ts`'s
+      `restrictedPackages` internal loop discarded `.satisfy()`'s return value
+      (only ever worked under the old mutation semantics — copy-on-write
+      exposed it); `correspondence()` treated a legitimately-empty two-sided
+      check (e.g. release-gate's "0 changed packages" on a clean tree) as a
+      dead selector — fixed by giving `CorrespondenceBuilder` its own
+      `assertsCardinality()`, since `beComplete()`/`preserveRelations()` are,
+      like `.notExist()`, absence assertions that can never fail on an empty
+      side. Caught live by `check:nonvacuity`'s `release/gate-fails-the-build`
+      e2e fixture — real dogfooding, not induced. 13 test-suite failures
+      surfaced by the same gate (Phase 5's "exclusions eess currently keeps
+      silent") diagnosed individually and fixed: 2 real broken-selector bugs in
+      test fixtures (`resideInFolder()` given a file glob instead of a folder
+      glob; `haveNameEndingWith('Repo')` matching a class that doesn't end in
+      "Repo"), 11 old tests asserting the prior silent-vacuous-pass as if it
+      were a feature, rewritten to assert the new throw plus a companion
+      `.expectEmpty()` case. `arch.internal.rules.ts`'s `rule-builder.ts`
+      exclusions on `max-class-lines`/`max-methods` (ADR-003, "the kernel
+      RuleBuilder is the fluent grammar base") were stale after the fold moved
+      that bulk into `TerminalBuilder` — re-targeted the still-needed one,
+      dropped the one that no longer matches anything.
+
+      **Multi-agent review (2026-08-15), still on `plan-0088-build`,
+      uncommitted:** 6 reviewer personas (architect/customer/devops/product/
+      testing/enforcement) ran against the full diff. Two real regressions
+      confirmed and fixed for real (not gamed):
+      - eess-mermaid's `notExist()` (`packages/mermaid/src/conditions/class.ts`)
+        shipped without `marksAssertsCardinality()`, unlike all four ts-dialect
+        equivalents — a legitimately-empty `.notExist()` match wrongly threw.
+        Fixed; regression test added (`class-rule-builder.test.ts`).
+      - `copy()`'s shallow-copy trap was unguarded in four direct
+        `TerminalBuilder` subclasses that never override it —
+        `SliceRuleBuilder`, `ResolverRuleBuilder`, `SchemaRuleBuilder`,
+        `SmellBuilder` — each with its own mutable array field pushed to in
+        place, silently shared across two `.because()`-derived branches of a
+        held selection (the exact "bug 0016" class, one layer down). All four
+        now override `copy()`; each has a sabotage-shaped regression test
+        proving independence.
+
+      Also closed from the same review: `bypassFilters` did not survive
+      `--changed`/`--diff` or `--baseline` (`DiffFilter.filterToChanged()`,
+      `Baseline.filterNew()`/`generateBaseline()` never checked the flag) —
+      the "unsuppressable" claim was false for the two most realistic
+      incremental-adoption paths. Fixed in `diff-aware.ts`/`baseline.ts`, both
+      directions (never write it to a baseline; never treat it as known even
+      from an older baseline file), with regression tests.
+
+      And ADR-010 part 3 ("an empty project outranks every token — zero
+      loaded source files is a configuration finding under any declaration")
+      is now real, not just written: `CollectResult` gained an optional
+      `sourceEmpty` flag, checked in `TerminalBuilder.evidencedViolations()`
+      *before* `.expectEmpty()`/`assertsCardinality()`. Deliberately **not**
+      `getElements().length === 0` — a first attempt at that broke
+      `JsxRuleBuilder`'s legitimate "zero JSX elements in a backend-only,
+      fully-loaded project" case, caught by its own existing test going red.
+      The correct, narrower signal (`project.getSourceFiles().length === 0`)
+      is wired via a `sourceEmpty()` hook, overridden only where a builder can
+      honestly answer it: `SmellBuilder` and the six ts-dialect `RuleBuilder`
+      subclasses that derive `getElements()` directly from
+      `project.getSourceFiles()` (class/function/jsx/module/call/type).
+      Deliberately **not** wired for `SliceRuleBuilder` (its glob/definition
+      fuses "get elements" and "select" into one step — no way to honestly
+      distinguish "empty project" from "glob doesn't match yet", and the
+      latter is a legitimate `.expectEmpty()` use case) or
+      `ResolverRuleBuilder`/`SchemaRuleBuilder` (constructed from an
+      already-globbed file list or, for `schemaFromSDL()`, no `ArchProject` at
+      all — same ambiguity).
+
+      **What the review found that is NOT fixed, left open on purpose:**
+      - The plan's own Phase 4 text (above) requires `diagnose()`,
+        `zeroSubjectsAdvice()`, and `orphanExclusions()` to land as an
+        "ordered pair"/"unit" with the gate. None of it exists — what shipped
+        is a real evidence gate in ADR-010's spirit, built natively rather
+        than ported, not the specific companion pieces this phase originally
+        scoped. ADR-010's own Enforcement table row for this stays `pending`
+        correctly.
+      - `CorrespondenceBuilder.assertsCardinality()` is an unconditional
+        class-wide `true`, not scoped per-check the way `RuleBuilder`'s
+        `.every()` treatment is — sound for `beComplete()`/`preserveRelations()`
+        today, but the first non-absence check type added to that builder
+        would silently inherit an exemption it isn't entitled to.
+      - `.expectNonEmpty()` is a behavioral no-op — `_expectEmpty === false`
+        is set but never read anywhere distinct from `undefined`.
+      - ~~Standalone-sufficiency gap: `CollectResult`/`marksAssertsCardinality`/
+        `assertsCardinality` aren't re-exported from `packages/ts/src/index.ts`,
+        even though `TerminalBuilder` (the extension point that needs them) is.~~
+        **Closed, but not by this plan — verified 2026-08-16 while fixing
+        ADR-010's stale Enforcement table.** All three are now re-exported
+        from `packages/ts/src/index.ts` (confirmed by reading it directly),
+        landed incidentally as part of plan 0147's own standalone-surface
+        parity pass, not tracked back to this finding at the time.
+      - `.because()`/`.excluding()` still have no coverage in
+        `packages/core/tests/` directly (only indirectly via dialect tests) —
+        testing reviewer confirmed by reverting each to mutate-in-place and
+        finding the full suite still passed.
+      - The evidence gate is immediately live for eess-md/mermaid/gherkin's
+        own *published* `RuleBuilder` surface on the next kernel version bump,
+        not staged the way this plan's "family boundary" section implies —
+        Phase 7's changesets for those three dialects need to be written as
+        breaking, with a migration line, not as innocuous minors.
+
+      These are real, Important-tier findings, not Critical — recorded here
+      so a future pass (or Phase 4a/5) doesn't have to rediscover them.
+
+- [x] Phase 4a — build the vacuity matrix (exports-map enumeration + ratchet).
+      Done 2026-08-15, uncommitted on `plan-0088-build`: `scripts/vacuity-matrix.mjs`
+      (new) + `packages/ts/tests/fixtures/vacuity/tsconfig.json` (new, `include`
+      set to a `src` directory that carries no files — zero source files, the
+      exact scenario ADR-010 part 3 names). Enumerates check-constructors from
+      `@nielspeter/eess-ts`'s own dist-imported exports map (root, `/presets`,
+      `/graphql` — the `/rules/*` subpaths export bare `Condition` factories with
+      no `.check()`, correctly skipped by the shape test, not a hand-picked
+      list). Probes each bare over the zero-file project; three-way verdict
+      (`fail-open`/`other-throw`/`config-finding`), a 4-control self-check
+      (including the adversarial "an ordinary `ArchRuleError` without
+      `bypassFilters` must read as `other-throw`, not `config-finding`" case) —
+      all three exit paths (0/1/2) sabotage-verified by hand before wiring in.
+      Wired into `check:vacuity` (new) and `npm run validate`, plus a
+      `check:nonvacuity` row (`scripts/nonvacuity/bad-vacuity-matrix.mjs`, new)
+      that runs a mutated copy of the real script with `KNOWN_FAIL_OPEN`
+      stripped to `[]` and asserts it correctly reddens naming the export —
+      "a committed rule file whose selector matches nothing must exit non-zero
+      naming the empty selection," per this phase's own spec, with a preset
+      standing in for the rule file. (Hit and fixed a real bug in the fixture
+      itself: `process.exit()` bypasses pending `finally` blocks in Node, so the
+      first version leaked its mutated temp file on every run — restructured to
+      compute the verdict, clean up, then exit once.)
+
+      A real bug found live by the matrix itself, fixed for real (not ratcheted
+      around): `SliceRuleBuilder.collectViolations()`'s `examined` was
+      `this._slices.length` — a count of named layers, not files. Since
+      `.assignedFrom()` always produces one `Slice` per named layer regardless
+      of whether any file matches its glob, `layeredArchitecture()` over a
+      zero-file project reported `examined: 2` (two empty layers) and silently
+      passed — `beFreeOfCycles()`/`respectLayerOrder()` correctly find zero
+      edges among zero files, indistinguishable from "correctly found nothing
+      wrong." Fixed: `examined` is now the sum of `files.length` across the
+      defined slices. Verified: `layeredArchitecture()` went from `fail-open` to
+      `config-finding` in the matrix's own report, full suite (1961 tests) still
+      green.
+
+      Four real, honestly-dated `KNOWN_FAIL_OPEN` entries (all expire
+      2026-11-15, none yet filed as their own eess bug/plan): `agentGuardrails()`
+      and `dataLayerIsolation()` — named explicitly in this plan's own Phase 4a
+      text, upstream ts-archunit plan 0100's still-open "preset that constructs
+      nothing" hole, adopted along with the presets; `strictBoundaries()` — a
+      newly-found instance of the same class (boundary folders are discovered by
+      scanning loaded source files, so a project with none discovers none,
+      regardless of options); `schemaFromSDL()` — a differently-shaped gap: it
+      parses its own literal SDL argument rather than the shared zero-file
+      project, so a bare, condition-less call never reaches the `sourceEmpty`
+      signal and instead hits `RuleBuilder`'s pre-existing "predicates but no
+      conditions" assertion-less path (console.warn'd, not silent, but not a
+      thrown finding either).
+
+      Also found live, incidentally, while probing `schema()`: it throws a plain
+      `Error` at construction time (`loadSchemaFromGlob`) when its glob matches
+      zero `.graphql` files — never reaches `ArchRuleError`/the evidence gate at
+      all. Classified `other-throw` (the plan's own three-way verdict treats this
+      as acceptable — loud and specific beats silent, even if not uniform with
+      the rest of the family) and left as-is; noted here rather than silently
+      absorbed, in case a future pass wants it routed through the same
+      `bypassFilters` mechanism as everything else.
+
+- [x] Phase 5 — reconcile eess-ts dogfood gates (staged honest-gate, `validate`
+      green). Done 2026-08-15, as its own deliberate pass this time (not just
+      Phase 4's incidental fallout): grepped every `.excluding(...)` call in
+      `arch.rules.ts`/`arch.internal.rules.ts`/`spec.rules.ts`/`mermaid.rules.ts`
+      (spec.rules.ts and mermaid.rules.ts have none; arch.internal.rules.ts has
+      7, all reviewed) and confirmed zero "[eess] Unused exclusion" warnings on
+      a clean `check:arch` run — the self-check mechanism that caught the one
+      real stale exclusion during Phase 4 (`rule-builder.ts` →
+      `terminal-builder.ts`) reports nothing further live. Every gate in the
+      chain run individually and confirmed green with a real, non-zero,
+      reported denominator: `check:arch` (25 rules/2 files), `check:spec` (4
+      rules/1 file), `check:baseline` (4 floor rules/187 source files),
+      `check:diagram` (1 rule/1 file), `check:crossval` (all directions OK),
+      `check:corpus` (738 checks/101 documents), `check:ledger` (0 findings),
+      `check:vacuity` (15 exports probed, 0 unaccounted fail-open),
+      `check:nonvacuity` (34/34 fixtures fire — 33 plus the new
+      `vacuity-matrix` row from Phase 4a), `check:examples`/`check:docs-code`/
+      `check:review-harness`/`check:numbers`/`check:integrity` all clean,
+      `npm test` (1961 tests), `npm run typecheck`/`lint`/`format:check` clean.
+      **`npm run validate` as a single command cannot run past `check:release`
+      yet** — it fails early in the chain (no changesets for the two changed
+      packages), which is correct and expected (explicitly Phase 7's job, not
+      a regression); every gate _after_ it in the chain has been verified the
+      same way `validate` would run it, individually, since the short-circuit
+      makes a true single-command green impossible before Phase 7 lands.
+- [x] Phase 6 — extension-surface contract fixture. Done 2026-08-15:
+      `packages/core/tests/contract/extension-surface.test.ts` (new). Plays the
+      stranger — imports only the bare `@nielspeter/eess` specifier
+      (dist-resolved via the workspace symlink, exactly as an out-of-repo
+      consumer resolves it, never a relative `../src/*` import into the
+      kernel's own source) and defines two fictional "widget" dialect builders:
+      a direct `TerminalBuilder` subclass (the harder contract — no
+      predicate/condition scaffolding, matching `SliceRuleBuilder`/
+      `SmellBuilder`/`CorrespondenceBuilder`'s shape) and a `RuleBuilder<T, P>`
+      subclass (the shape every real dialect — ts, md, mermaid — actually
+      builds on). Both exercise real behavior, not just compilation: chain
+      methods, copy-on-write independence across two branches, the ADR-010
+      evidence gate firing on a zero-examined stranger builder,
+      `assertsCardinality()`'s override being honored, `.expectEmpty()`, and
+      named-selection reuse not leaking conditions. Sabotage-verified: reverted
+      `.because()` to mutate-in-place (the pre-fold "bug 0016" shape) and
+      confirmed the fixture's own copy-independence test goes red — this file
+      would have caught the exact regression Phase 4's review found, from
+      outside the kernel's own package, before landing it.
+- [x] Phase 7 — version the break: changesets + breaking changelogs + migration
       story + compat test, all authored and merged (the publish itself is
-      [0100](./0100-publish-the-fold-retire-ts-archunit.md))
+      [0100](../0100-publish-the-fold-retire-ts-archunit.md)). Done 2026-08-15:
+      one coordinated changeset (`.changeset/fold-ts-archunit-engine.md`, since
+      consumed) covering all 6 packages — kernel and `eess-ts` `minor` (the 0.x
+      convention for a breaking change without a premature 1.0 stability claim
+      — asked the user directly rather than deciding silently, given a
+      published version can't be unpublished); the four untouched sibling
+      dialects `minor` too, since their `RuleBuilder<T,P>`/`correspondence()`
+      usage inherits the new evidence gate the moment a consumer upgrades —
+      live, not staged behind a later opt-in (matching devops's review
+      finding). Ran `npm run version-packages` (fully local, git-reversible,
+      nothing published): `@nielspeter/eess` 0.2.2→0.3.0, `eess-ts`
+      0.2.1→0.3.0, `eess-md` 0.3.0→0.4.0 (bundled with an unrelated,
+      already-pending changeset), `eess-mermaid` 0.1.3→0.2.0, `eess-gherkin`
+      0.1.2→0.2.0, `eess-crossvalidate` 0.2.0→0.3.0 (same). No surprise major —
+      the `>=0.1.1` peer-dependency ranges (`RELEASING.md`'s own documented
+      fix) held. Internal dependency ranges bumped in lockstep to `^0.3.0`
+      automatically; `npm install` synced `package-lock.json` (the release
+      skill's own documented gotcha — `changeset version` doesn't touch it).
+      `check:spec`'s README Packages-table Status column updated to match (the
+      skill's other documented gotcha) and re-verified green.
+
+      Breaking-changelog text (landed in each package's real `CHANGELOG.md`,
+      not just the pending declaration): the new default-throw-on-zero-examined
+      behavior with its `.expectEmpty()` migration line, the copy-on-write
+      fix (a silent behavioral difference for any held-builder-reuse code —
+      named even though no known consumer does this), and the
+      `layered.ts`/`restrictedPackages` correctness fix (existing rulesets
+      using that option may see new, correct violations). Named explicitly
+      unchanged: predicate/condition semantics and names, rule syntax,
+      `// eess-ts:disable` comment syntax, `arch-baseline.json`'s format,
+      `ruleId`/`because`/`Fix:`/`Docs:` violation fields. New, exported
+      surface named: `CollectResult`, `.expectEmpty()`/`.expectNonEmpty()`,
+      `marksAssertsCardinality`/`assertsCardinality`, `Matcher`,
+      `BaselineFilter`/`DiffFilterLike`, `reportViolations`/`finishPreset` now
+      reachable from `eess-ts/presets`. **Not** referenced in the migration
+      text: an `eess-ts diagnose` command — the original Phase 4 spec's
+      `diagnose()`/advice-trio never got built (disclosed in Phase 4's own
+      ledger entry above), so the migration line points an adopter at their
+      existing test suite / `eess-ts check` output instead, honestly, rather
+      than a command that doesn't exist.
+
+      **Compat test:** no new, separate fixture file — the existing `eess-ts`
+      suite (1961 tests, unmodified paths through this fold) already **is**
+      the compat proof, and duplicating it would be redundant. What backs the
+      "unchanged" claim concretely: of ~150 test files, only 13 needed any
+      change, and every one of those changes is individually justified in
+      Phase 4's own ledger text above (test-fixture bugs the evidence gate
+      caught, or old tests asserting the prior silent-pass as a feature) —
+      never a change to what a rule-authoring API accepts or means. The other
+      ~137 files pass with zero modification, on the folded engine, which is
+      what "existing eess-ts rule fixtures pass unchanged" concretely means
+      here.
+
+      **`npm run validate` passes green end-to-end, as a single command, with
+      the version bump landed** — the short-circuit on `check:release` that
+      blocked this every prior phase is gone now that the changeset exists and
+      has been consumed. This is the acceptance test both this phase and
+      Phase 5 point at, now literally true, not just individually verified.
+
+## Close
+
+Deferred: `checkAll()`'s real implementation → [plan 0081 — port checkAll](../0081-port-checkall.md)
+(already the recorded home, unchanged at close). Four Important-tier findings
+the 2026-08-15 multi-agent review recorded as "not fixed, left open on
+purpose" but never gave a real home →
+[plan 0150 — close 0088's disclosed review findings](../0150-close-0088s-disclosed-review-findings.md):
+`CorrespondenceBuilder`'s class-wide cardinality exemption,
+`.expectNonEmpty()`'s no-op status, `RuleBuilder`'s missing direct kernel test
+coverage for `.because()`/`.excluding()`, and `orphanExclusions()` (the
+`diagnose()` half of that same finding closed since, incidentally, by
+unrelated plan 0147 — see the Success definition's standalone-sufficiency
+bullet above). Family-wide fold consequences (per-dialect standalone
+sufficiency, the sibling gates going fail-closed) remain plan 0089's and
+0101's scope respectively, as this plan always intended — not reopened here.
+
+ADR-010's own Enforcement table was corrected during this close (Phase 3's
+ledger entry above has the detail): 4 of 5 rows flipped from `pending` to
+`gated`, with real citations, after their mechanisms had been sitting built
+and running for a day without the table saying so.
+
+Nothing here is deferred as _this plan's own_ unfinished work — every item
+above is fully moved to a real, complete home (an existing plan, or a new one
+authored in this same close) rather than left half-described as a footnote.
+This plan carries nothing forward.
+
+This plan closes together with plans 0147 and 0148 and bug 0149 in the same
+PR (#67) — all on `plan-0088-build`, none of it published, none of it
+merged to `main` yet. "Closes at merge" (Status block, Phase 7) means the
+close is authored here, inside this PR, so it becomes true the moment the PR
+merges — not a separate step performed after.

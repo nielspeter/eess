@@ -82,10 +82,15 @@ function applyRestrictedPackages(
 
   const violations: ArchViolation[] = []
   for (const [pkg, allowedLayers] of packageToAllowed) {
-    // Modules NOT in any allowed layer must not import this package
-    const builder = modules(p).that()
+    // Modules NOT in any allowed layer must not import this package.
+    // `.satisfy()` returns a copy (plan 0088 Phase 4 — a held builder is
+    // never mutated by a chain call), so the accumulator must be reassigned
+    // each iteration; discarding the return value silently dropped every
+    // exclusion here before this fix, and `notImportFrom` applied to every
+    // module instead of only the ones outside an allowed layer.
+    let builder = modules(p).that()
     for (const allowedGlob of allowedLayers) {
-      builder.satisfy(not(resideInFolderPredicate<SourceFile>(allowedGlob)))
+      builder = builder.satisfy(not(resideInFolderPredicate<SourceFile>(allowedGlob)))
     }
 
     violations.push(

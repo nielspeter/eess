@@ -106,5 +106,5 @@ guarantee.
 - [ ] `npm run validate` green, with the ledger summary reporting the same counts.
 
 Deferred: none — the floor that makes this consequential is
-[0088](../plans/0088-fold-ts-archunit-into-eess.md)'s, and this record closes on the
+[0088](../plans/completed/0088-fold-ts-archunit-into-eess.md)'s, and this record closes on the
 decision rather than on the floor.

@@ -8,6 +8,7 @@ import {
   nameMatches,
   alwaysPass,
   alwaysFail,
+  notExistShaped,
 } from '../support/test-rule-builder.js'
 
 // --- Helpers unique to this file ---
@@ -76,7 +77,7 @@ describe('RuleBuilder', () => {
 
   describe('.warn()', () => {
     it('logs violations to stderr but does not throw', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       const builder = new TestRuleBuilder(stubProject, elements)
       builder
         .that()
@@ -92,7 +93,7 @@ describe('RuleBuilder', () => {
     })
 
     it('does not log when there are no violations', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       const builder = new TestRuleBuilder(stubProject, elements)
       builder
         .that()
@@ -179,7 +180,32 @@ describe('RuleBuilder', () => {
   })
 
   describe('empty element set', () => {
-    it('.check() passes when no elements match predicates', () => {
+    // ADR-009/010 (plan 0088 Phase 4): a rule that examines zero elements is a
+    // configuration finding by default — a dead selector reads identically to
+    // "nothing to report" unless the author declares it. These two cases used
+    // to pass silently; that was the exact vacuous-pass hazard the honest-gate
+    // exists to close, not a property worth re-asserting.
+
+    it('.check() throws — a dead selector is a configuration finding, not a silent pass', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      try {
+        builder
+          .that()
+          .withPredicate(nameMatches(/^NothingMatchesThis$/))
+          .should()
+          .withCondition(alwaysFail('unreachable'))
+          .check()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ArchRuleError)
+        const archError = error as ArchRuleError
+        expect(archError.violations).toHaveLength(1)
+        expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+        expect(archError.violations[0]!.bypassFilters).toBe(true)
+      }
+    })
+
+    it('.check() passes when the empty selection is declared with .expectEmpty()', () => {
       const builder = new TestRuleBuilder(stubProject, elements)
       expect(() => {
         builder
@@ -187,14 +213,88 @@ describe('RuleBuilder', () => {
           .withPredicate(nameMatches(/^NothingMatchesThis$/))
           .should()
           .withCondition(alwaysFail('unreachable'))
+          .expectEmpty()
           .check()
       }).not.toThrow()
     })
 
-    it('.check() passes when element list is empty', () => {
+    it('.check() throws when the element list itself is empty and undeclared', () => {
       const builder = new TestRuleBuilder(stubProject, [])
-      expect(() => {
+      try {
         builder.should().withCondition(alwaysFail('unreachable')).check()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ArchRuleError)
+        const archError = error as ArchRuleError
+        expect(archError.violations).toHaveLength(1)
+        expect(archError.violations[0]!.message).toMatch(/source loaded zero units/)
+        expect(archError.violations[0]!.bypassFilters).toBe(true)
+      }
+    })
+
+    it('.check() still throws when an empty element list is declared with .expectEmpty() — ADR-010 part 3', () => {
+      // getElements() itself returned nothing here — a genuinely empty
+      // source, not a predicate narrowing a real corpus to zero. This
+      // outranks .expectEmpty(): there is no selection to widen, so the
+      // declaration cannot rescue it. Regression for a real gap found in
+      // review: this test used to assert the opposite (.not.toThrow()).
+      const builder = new TestRuleBuilder(stubProject, [])
+      try {
+        builder.should().withCondition(alwaysFail('unreachable')).expectEmpty().check()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ArchRuleError)
+        const archError = error as ArchRuleError
+        expect(archError.violations[0]!.message).toMatch(/source loaded zero units/)
+        expect(archError.violations[0]!.message).toMatch(/outranks any \.expectEmpty\(\)/)
+      }
+    })
+  })
+
+  describe('.expectNonEmpty() — overrides the cardinality exemption (plan 0088 review)', () => {
+    it('a cardinality-exempt condition normally passes silently on zero examined', () => {
+      // Baseline: without .expectNonEmpty(), notExistShaped()'s exemption
+      // means a dead selector over it is NOT a configuration finding.
+      const builder = new TestRuleBuilder(stubProject, elements)
+      expect(() => {
+        builder
+          .that()
+          .withPredicate(nameMatches(/^NothingMatchesThis$/))
+          .should()
+          .withCondition(notExistShaped())
+          .check()
+      }).not.toThrow()
+    })
+
+    it('.expectNonEmpty() makes that same case redden — the declaration overrides the exemption', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      try {
+        builder
+          .that()
+          .withPredicate(nameMatches(/^NothingMatchesThis$/))
+          .should()
+          .withCondition(notExistShaped())
+          .expectNonEmpty()
+          .check()
+        expect.unreachable('should have thrown')
+      } catch (error) {
+        expect(error).toBeInstanceOf(ArchRuleError)
+        const archError = error as ArchRuleError
+        expect(archError.violations[0]!.message).toMatch(/declared \.expectNonEmpty\(\)/)
+        expect(archError.violations[0]!.bypassFilters).toBe(true)
+      }
+    })
+
+    it('.expectNonEmpty() is a no-op once real subjects exist — nothing left to assert', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      expect(() => {
+        builder
+          .that()
+          .withPredicate(nameMatches(/Service$/))
+          .should()
+          .withCondition(alwaysPass())
+          .expectNonEmpty()
+          .check()
       }).not.toThrow()
     })
   })
@@ -208,7 +308,7 @@ describe('RuleBuilder', () => {
     })
 
     it('severity("warn") behaves like .warn()', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       const builder = new TestRuleBuilder(stubProject, elements)
       builder.should().withCondition(alwaysFail('bad')).severity('warn')
       expect(warnSpy).toHaveBeenCalledOnce()

@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { isRecord } from '@nielspeter/eess'
 
 /**
  * "Floor" presets — a universal rule set scoped to your source glob. eess only
@@ -463,8 +464,4 @@ function hasSource(cwd: string, sourceRoot: string): boolean {
     void err
     return false
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }

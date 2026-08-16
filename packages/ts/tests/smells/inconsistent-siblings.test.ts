@@ -57,13 +57,25 @@ describe('smells.inconsistentSiblings()', () => {
     expect(() => builder.check()).not.toThrow()
   })
 
-  it('returns no violations when no pattern is set', () => {
+  it('an unconfigured detector (no .forPattern()) is a dead selector, not a silent pass', () => {
     const builder = smells.inconsistentSiblings(p).minLines(2)
+    try {
+      builder.check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+    }
+  })
+
+  it('an unconfigured detector passes when declared with .expectEmpty()', () => {
+    const builder = smells.inconsistentSiblings(p).minLines(2).expectEmpty()
     expect(() => builder.check()).not.toThrow()
   })
 
   it('.warn() logs but does not throw', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     smells.inconsistentSiblings(p).forPattern(call('this.extractCount')).minLines(2).warn()
     expect(warnSpy).toHaveBeenCalled()
   })

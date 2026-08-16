@@ -3,7 +3,8 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
-import { searchFunctionBody } from '../helpers/body-traversal.js'
+import { searchFunctionBody, reportedLine } from '../helpers/body-traversal.js'
+import { identifyMatches } from './match-identity.js'
 
 /**
  * Create an ArchViolation from an ArchFunction (not a Node).
@@ -15,6 +16,7 @@ function createFunctionViolation(
   fn: ArchFunction,
   message: string,
   context: ConditionContext,
+  identity?: string,
 ): ArchViolation {
   return {
     rule: context.rule,
@@ -23,6 +25,7 @@ function createFunctionViolation(
     line: fn.getStartLineNumber(),
     message,
     because: context.because,
+    identity,
   }
 }
 
@@ -61,15 +64,22 @@ export function functionNotContain(matcher: ExpressionMatcher): Condition<ArchFu
       const violations: ArchViolation[] = []
       for (const fn of elements) {
         const result = searchFunctionBody(fn, matcher)
-        for (const node of result.matchingNodes) {
+        const identities = identifyMatches(
+          'function-body',
+          fn.getSourceFile().getFilePath(),
+          result.matchingNodes,
+          matcher.description,
+        )
+        result.matchingNodes.forEach((node, index) => {
           violations.push(
             createFunctionViolation(
               fn,
-              `${fn.getName() ?? '<anonymous>'} contains ${matcher.description} at line ${String(node.getStartLineNumber())}`,
+              `${fn.getName() ?? '<anonymous>'} contains ${matcher.description} at line ${String(reportedLine(node, result.triviaPositions[index]))}`,
               context,
+              identities[index],
             ),
           )
-        }
+        })
       }
       return violations
     },
@@ -91,15 +101,22 @@ export function functionUseInsteadOf(
         const badResult = searchFunctionBody(fn, bad)
         const goodResult = searchFunctionBody(fn, good)
 
-        for (const node of badResult.matchingNodes) {
+        const identities = identifyMatches(
+          'function-body',
+          fn.getSourceFile().getFilePath(),
+          badResult.matchingNodes,
+          bad.description,
+        )
+        badResult.matchingNodes.forEach((node, index) => {
           violations.push(
             createFunctionViolation(
               fn,
-              `${fn.getName() ?? '<anonymous>'} contains ${bad.description} at line ${String(node.getStartLineNumber())} — use ${good.description} instead`,
+              `${fn.getName() ?? '<anonymous>'} contains ${bad.description} at line ${String(reportedLine(node, badResult.triviaPositions[index]))} — use ${good.description} instead`,
               context,
+              identities[index],
             ),
           )
-        }
+        })
 
         if (!goodResult.found) {
           violations.push(
