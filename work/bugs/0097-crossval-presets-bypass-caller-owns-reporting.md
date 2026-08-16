@@ -181,6 +181,6 @@ Deferred:
   clause needs a Tier-1 rule over `packages/*/src/**` asserting no exported
   preset returns `void`, not just a kernel unit test. That is an ADR-enforcement
   change with its own authoring/validation loop (`.claude/workflows/adr-enforce.mjs`),
-  so it is re-homed to [0101](../plans/0101-sibling-gates-go-fail-closed.md), which
+  so it is re-homed to [0101](../plans/completed/0101-sibling-gates-go-fail-closed.md), which
   already owns making the family's gates honest. Filing this bug fixed
   without that row widened leaves the clause honest-but-narrow, not false.

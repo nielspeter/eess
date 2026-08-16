@@ -61,7 +61,6 @@ _buildable now_. Then `/plan-ready` to freeze its floor, and `/plan-build`.
 | [0150 — close 0088's disclosed review findings](./0150-close-0088s-disclosed-review-findings.md) | Medium   | Draft | `CorrespondenceBuilder`'s class-wide cardinality exemption scoped per-check; `.expectNonEmpty()` made real or removed; `RuleBuilder`'s copy-on-write chain gets direct kernel test coverage; `orphanExclusions()` ported or ruled on      | — buildable now                                                                        |
 | [0090 — adopt ts-archunit work corpus](./0090-adopt-ts-archunit-work-corpus.md)                  | Medium   | Draft | migrate ts-archunit's plans/bugs/ADRs/docs into eess — history frozen as heritage under `docs/heritage/`, open engine work re-numbered + re-homed onto the eess board                                                                     | 0088 (retirement context); per-item re-homing decision in Phase 1                      |
 | [0100 — publish the fold, retire ts-archunit](./0100-publish-the-fold-retire-ts-archunit.md)     | High     | Draft | the acts that cannot land in a PR — the coordinated six-package release, `npm deprecate @nielspeter/ts-archunit`, repo archival, and the retirement test that flips ADR-009's row to `gated`; split off 0088 so that plan closes at merge | 0088 + 0089 + 0101 merged                                                              |
-| [0101 — sibling gates go fail-closed](./0101-sibling-gates-go-fail-closed.md)                    | High     | Draft | opt the four sibling dogfood gates into the folded honest-gate seam — classify every silent-empty selection (`.expectEmpty()`, fix, or in-scope-with-reason), zero baselines; file what the honesty surfaces as its own bugs              | 0088 Phase 4 (the folded kernel seam)                                                  |
 
 **Read of the board (2026-08-14).** 0096, 0091, and 0146 shipped (below). Of the
 remaining six `High` rows, two can be started today: **0088** and **0089**,
@@ -69,15 +68,14 @@ neither of which waits on anything. 0101 needs 0088's folded kernel seam, 0100
 needs the three code plans merged, 0075 waits on adopter feedback, 0079 on a
 mechanism nobody has, and every `Low` row on a signal that does not exist yet.
 
-**Update, 2026-08-16: 0088 shipped** (below) — all 7 phases + 4a landed and
-verified, ADR-010's Enforcement table corrected to match. 0101's blocker
-("0088's folded kernel seam") is a real capability now, but 0101's own text
-still requires that seam to have _merged_ to `main`, not merely landed on
-`plan-0088-build` — the PR carrying it (#67) isn't merged yet, so 0101 stays
-blocked until it is. 0100's "three code plans merged" is the same bar. Four
-Important-tier findings 0088's own review disclosed and never gave a home are
-now [plan 0150](./0150-close-0088s-disclosed-review-findings.md), buildable
-now.
+**Update, 2026-08-16: 0088 and 0101 shipped** (below). 0088 — all 7 phases +
+4a landed and verified, ADR-010's Enforcement table corrected to match. PR #67
+merged to `main` the same day. 0101 — both phases built on PR #68 (unmerged),
+closing bug 0131 after three review rounds and filing bugs 0151/0152. 0100's
+"three code plans merged" is not yet met (0089 still Draft, 0101 built but its
+PR not yet merged). Four Important-tier findings 0088's own review disclosed
+and never gave a home are now
+[plan 0150](./0150-close-0088s-disclosed-review-findings.md), buildable now.
 
 **Why three cells changed on 2026-08-12.** The `Blocked on` column was carrying
 _relationships_ as if they were _dependencies_ — 0088's cell described its own
@@ -122,3 +120,4 @@ maintained by hand.
 | [0147 — copy the eess-ts-bound delta from ts-archunit](./completed/0147-copy-the-eess-ts-bound-delta-from-ts-archunit.md) | The predicate/condition/builder/smell/graphql/preset/CLI delta 0088's Phase 4 named but didn't deliver — 95 shared files reconciled + 4 genuinely-missing modules landed, the non-ts-morph kernel-bound modules ported to `packages/core`, dead-glob diagnosis + `doctor` CLI shipped                               | 2026-08-16 |
 | [0148 — workspace multi-root awareness](./completed/0148-workspace-multi-root-awareness.md)                               | `workspace()` no longer silently applies one package's compiler options to every package, and project-relative globs now resolve per-package (not only the tie-break winner) — spun off from 0147's own "Out of scope"; a post-build review found and this pass fixed a fail-closed gap and 3 untested wiring sites | 2026-08-16 |
 | [0088 — fold ts-archunit 0.59 into eess](./completed/0088-fold-ts-archunit-into-eess.md)                                  | Folded ts-archunit's fail-closed engine into kernel + eess-ts; eess ADR-009/010 (Agent-First Failure Surfaces; A Pass Is Constructed From Evidence); the vacuity matrix; the extension-surface contract fixture; the breaking release authored and versioned (0.3.0)                                                | 2026-08-16 |
+| [0101 — sibling gates go fail-closed](./completed/0101-sibling-gates-go-fail-closed.md)                                   | All four sibling dogfood gates fail-closed on the folded kernel, zero baselines; `honestyAtClose` rewritten through the builder DSL, closing bug 0131 after three review rounds each catching a real Critical the prior round's fix left open; two review-surfaced defects filed as bugs 0151/0152                  | 2026-08-16 |

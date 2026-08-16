@@ -278,3 +278,59 @@ describe('honestyAtClose — an empty vocabulary is a real config, not a caller 
     expect(stats.unreadableState).toBe(0)
   })
 })
+
+// Bug 0131 follow-up (six-persona review, fixed before merge). `headerViolations`
+// has no computed `.expectEmpty()` — nothing in the corpus can tell "no
+// non-board documents authored yet" apart from "the selector broke" — so a
+// freshly-bootstrapped lane (only a board file, e.g. `kit/`'s seeded
+// `ROADMAP.md`, no real item yet) must be able to opt in explicitly rather
+// than hitting a false "examined zero units" on its very first run.
+describe('honestyAtClose — headerViolations: a dead selector is reported, not silently passed', () => {
+  it('reports a configuration finding by default when boardFiles absorb every document', () => {
+    const f = honestyAtClose(corpusForText('# Board\n\nNothing here yet.\n'), {
+      boardFiles: ['doc.md'],
+      report: 'return',
+    })
+    expect(f.some((v) => v.message.includes('examined zero units'))).toBe(true)
+  })
+
+  it('expectEmptyHeaders suppresses it for a legitimately fresh corpus', () => {
+    const f = honestyAtClose(corpusForText('# Board\n\nNothing here yet.\n'), {
+      boardFiles: ['doc.md'],
+      expectEmptyHeaders: true,
+      report: 'return',
+    })
+    expect(f).toEqual([])
+  })
+
+  it('expectEmptyHeaders expires the day a real document appears', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ledger-'))
+    writeFileSync(join(dir, 'ROADMAP.md'), '# Board\n')
+    writeFileSync(join(dir, '0001-plan.md'), '# Plan\n\n**State:** Draft\n')
+    const f = honestyAtClose(corpus({ roots: ['*.md'], cwd: dir }), {
+      boardFiles: ['ROADMAP.md'],
+      expectEmptyHeaders: true,
+      report: 'return',
+    })
+    expect(f.some((v) => v.message.includes('declaration has expired'))).toBe(true)
+  })
+})
+
+// Bug 0131 follow-up. The done-item rules' emptiness peek must be scoped to
+// what each rule actually selects (open boxes / deferred boxes), not to "a
+// done item exists" — most done items legitimately carry neither, and that's
+// the common, healthy case, not a corner case. A coarser peek false-positived
+// on exactly this shape during review: a done item with nothing outstanding.
+describe('honestyAtClose — a done item with nothing outstanding is not a dead selector', () => {
+  it('a done item with no boxes at all produces no finding', () => {
+    const doc = '# Bug\n\n## Status\n\n- **State:** Fixed\n\nNothing else here.\n'
+    const f = honestyAtClose(corpusForText(doc), {
+      states: ['Draft', 'Fixed'],
+      terminalStates: ['Fixed'],
+      closeInPlace: true,
+      doneFolders: [],
+      report: 'return',
+    })
+    expect(f).toEqual([])
+  })
+})

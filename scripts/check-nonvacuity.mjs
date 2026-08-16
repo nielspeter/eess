@@ -679,12 +679,35 @@ const gates = [
   ['corpus/ledger/box', () => gateNode('bad-ledger.mjs', 'ledger/silent-open-box')],
   ['corpus/ledger/placement', () => gateNode('bad-ledger.mjs', 'ledger/state-folder-mismatch')],
   ['corpus/ledger/state', () => gateNode('bad-ledger.mjs', 'ledger/unknown-state')],
+  // Bug 0131 round-2 review: before this row, no fixture in the ledger corpus
+  // carried a `deferred→<home>` box at all, so `hasDeferredDisposedBox`
+  // sabotaged to `return false` still left `bad-ledger.mjs` exiting 1 — its
+  // only "protection" was this repo's own live corpus incidentally carrying a
+  // deferred box, which would silently vanish the day that box got resolved.
+  ['corpus/ledger/deferred-lie', () => gateNode('bad-ledger.mjs', 'ledger/deferred-none-lie')],
+  // Bug 0131 follow-up (six-persona review): the fold's zero-examined guard
+  // must actually reach `honestyAtClose`'s `headerViolations` lane, not just
+  // its detection logic — a regression back to hand-rolled iteration (or an
+  // unconditional `.expectEmpty()`) would leave the three rows above green
+  // while this one silently stopped meaning anything.
+  [
+    'corpus/ledger/dead-selector',
+    () => gateNode('bad-ledger-dead-selector.mjs', 'examined zero units'),
+  ],
   // The reverse check (bug 0121): a work/ subdirectory no LANES entry claims,
   // but which carries State:-shaped records, must fail loudly — not silently
   // widen the "not scanned" gap the way work/proposals/** did for two rounds.
   [
     'corpus/ledger/uncovered-lane',
     () => gateNode('bad-lane-coverage.mjs', 'ledger/uncovered-lane'),
+  ],
+  // Bug 0131 round 3: a corruption scoped to ONE lane (not the whole corpus)
+  // must still fail loudly — the first version of this check summed
+  // done-items across every lane before comparing to zero, so a single-lane
+  // corruption hid behind any other lane's nonzero count.
+  [
+    'corpus/ledger/lane-done-vacuous',
+    () => gateNode('bad-lane-done-vacuous.mjs', 'ledger/lane-done-vacuous'),
   ],
   // Bug 0127: converted from a rebuilt-rule fixture to driving the
   // production `scripts/check-corpus.mjs` directly. Two rows, one per
@@ -808,7 +831,10 @@ const GATE_FOR = {
     'corpus/ledger/box',
     'corpus/ledger/placement',
     'corpus/ledger/state',
+    'corpus/ledger/deferred-lie',
+    'corpus/ledger/dead-selector',
     'corpus/ledger/uncovered-lane',
+    'corpus/ledger/lane-done-vacuous',
   ],
   'check:release': [
     'release/needs-changeset',

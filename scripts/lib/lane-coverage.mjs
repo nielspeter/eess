@@ -79,3 +79,54 @@ export function findUncoveredLanes(workRoot, claimedTopSegments) {
   }
   return violations
 }
+
+export const LANE_DONE_VACUOUS_RULE = 'ledger/lane-done-vacuous'
+
+/**
+ * Bug 0131 round 3 — every peek and every real selection `honestyAtClose`
+ * runs for a lane shares that lane's own `isDoneItem` determination. A
+ * corruption scoped to one lane (a `doneFolders`/`terminalStates` config
+ * typo, a selector break) zeroes every finding that lane could ever produce,
+ * with no other trace — and the first version of this check summed
+ * done-items across ALL declared lanes before comparing to zero, so a lane
+ * this narrow stayed completely invisible as long as some OTHER lane still
+ * had a nonzero count. This checks each lane independently instead.
+ *
+ * A lane with `terminalStates: []` (e.g. `proposals`) is structurally exempt
+ * — `isDoneItem` reduces to `[].includes(x)`, always `false`, by design, not
+ * corruption. `expectEmptyDone: true` is the caller-declared, non-inferrable
+ * escape hatch for a lane that may legitimately have zero done-items right
+ * now — a freshly-bootstrapped `kit/`-seeded lane before its first item
+ * closes — mirroring `honestyAtClose`'s own `expectEmptyHeaders`. Neither of
+ * this repo's own real lanes needs it today; a lane copying this file into a
+ * new project should set it until its own history exists.
+ *
+ * @param {ReadonlyArray<{name: string, terminalStates: readonly string[], doneItems: number, expectEmptyDone?: boolean}>} lanes
+ * @returns {import('@nielspeter/eess').ArchViolation[]}
+ */
+export function findLaneDoneVacuity(lanes) {
+  const violations = []
+  for (const lane of lanes) {
+    if (lane.terminalStates.length === 0) continue
+    if (lane.doneItems > 0) continue
+    if (lane.expectEmptyDone === true) continue
+    violations.push({
+      rule: LANE_DONE_VACUOUS_RULE,
+      element: lane.name,
+      file: '',
+      line: 0,
+      message:
+        `lane "${lane.name}" scanned zero done-items, but declares a real terminalStates ` +
+        `vocabulary (${lane.terminalStates.join(', ')}) — every predicate and peek ` +
+        `honestyAtClose runs for this lane shares the same done/state determination, so this ` +
+        `is either a genuinely fresh lane (declare it with expectEmptyDone: true in its LANES ` +
+        `entry, and remove that once it has real content) or a corrupted selector/` +
+        `doneFolders/terminalStates config silently excluding every item in this lane.`,
+      because:
+        'a corruption of the shared done/state determination scoped to one lane produces zero ' +
+        'violations from every rule in that lane, with no other trace',
+      bypassFilters: true,
+    })
+  }
+  return violations
+}
