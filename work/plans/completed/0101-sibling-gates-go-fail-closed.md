@@ -2,8 +2,14 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-08-16. Precondition satisfied: plan 0088
-  merged to `main` 2026-08-16 (PR #67), so the folded kernel seam is genuinely
+- **State:** Done — 2026-08-16. Both phases complete: Phase 1 (all four
+  sibling gates fail-closed, bug 0131 closed after three review rounds) and
+  Phase 2 (two review-surfaced defects filed as bugs 0151/0152). Ledger
+  reconciled — no open box in the progress ledger below, nothing deferred out
+  of this plan itself. Closing in the same PR that carries the work (#68), per
+  house discipline. Frozen to Ready 2026-08-16 before the build, on the
+  precondition that plan 0088 merged to `main` 2026-08-16 (PR #67), so the
+  folded kernel seam was genuinely
   live, not just landed on a branch. Freeze verification: confirmed directly
   that `check:corpus`'s own rule constructors (`docs()`, `links()`,
   `pointers()`, `taskItems()`, `rows()`, `terms()`) all `extends
@@ -11,15 +17,15 @@ RuleBuilder<T, Corpus>` and inherit the fold by construction — no
   `.excluding()` calls, no baseline files, anywhere in the sibling dialects.
   One real floor-crack found and resolved by folding it into Phase 1 rather
   than leaving the plan's own success bar unachievable:
-  [bug 0131](../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)
+  [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)
   (`check:ledger`'s `honestyAtClose` structurally cannot inherit the fold —
   confirmed by reading `packages/md/src/rules/ledger.ts` directly) is now
   explicitly this phase's own scope, not a silent gap. No other open
   question or TBD found in the text. Created 2026-08-12 by splitting
-  [plan 0089](./0089-family-standalone-sufficiency.md). 0089 carried four phases
+  [plan 0089](../0089-family-standalone-sufficiency.md). 0089 carried four phases
   of which two (the re-export shake-out, the standalone fixtures) are independent
   of the fold and two (this plan's) cannot begin until
-  [0088](./completed/0088-fold-ts-archunit-into-eess.md) Phase 4 lands the folded kernel
+  [0088](./0088-fold-ts-archunit-into-eess.md) Phase 4 lands the folded kernel
   seam. 0089 named that itself — _"the dependency is Phase-3-scoped, not
   plan-wide"_ — but naming it is not the same as being closable: as one plan,
   Phases 1–2 would merge and Phases 3–4 would sit open behind another plan's
@@ -35,7 +41,7 @@ RuleBuilder<T, Corpus>` and inherit the fold by construction — no
 
 ## Problem
 
-Once [0088](./completed/0088-fold-ts-archunit-into-eess.md) Phase 4 lands
+Once [0088](./0088-fold-ts-archunit-into-eess.md) Phase 4 lands
 `collectWithAssertionGuard` in `@nielspeter/eess`, the rule "a check that
 examined nothing cannot read as green" reaches every sibling dialect **by
 inheritance, not by porting** — verified 2026-08-10: none of eess-md,
@@ -88,7 +94,7 @@ only `finishPreset` from the kernel and hand-iterates the corpus with raw
 gates' rule constructors (`docs()`, `links()`, `pointers()`, `taskItems()`,
 `rows()`, `terms()`) all genuinely `extends RuleBuilder<T, Corpus>` and
 inherit the fold by construction — confirmed the same way. This is exactly
-[bug 0131](../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s
+[bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s
 finding, filed 2026-08-12. Without resolving it, "all four sibling gates
 fail-closed" would not be an achievable bar — `check:ledger` was structurally
 exempt, not passing. Bug 0131 named the two honest resolutions (express
@@ -135,7 +141,7 @@ via a different traversal rather than via `hasDeferredDisposedBox`) — narrow
 enough to still avoid false-positiving on a done item with nothing
 outstanding (the common, healthy case an intermediate, coarser attempt broke),
 while genuinely independent of the predicate each rule protects. Full detail
-in [bug 0131](../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s
+in [bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s
 own Fix/Verification sections.
 
 Regression-tested against `ledger.test.ts` (40 tests — 36 original + 4 added by
@@ -185,7 +191,7 @@ carried done-items in every terminal-states lane for its entire history and
 that state is never legitimate here. Re-sabotaging `isDoneItem` after the fix
 confirmed `check:ledger` now exits 1. Both fixes, and the corrected docstring,
 are detailed in
-[bug 0131](../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s
+[bug 0131](../../bugs/fixed/0131-honesty-at-close-bypasses-the-builder-dsl.md)'s
 own Fix/Verification sections.
 
 Backed by committed regression, not just hand-verification: `ledger.test.ts`
@@ -226,14 +232,14 @@ genuine defects: a sibling rule that examined nothing for months and passed, an
 exclusion that silently matched nothing. File each as a bug in the house shape
 (`work/bugs/`, next free number), **separately** from the reconciliation. Fixing
 them is not this plan's work — each bug closes with its own PR, per
-[`BUGS.md`](../bugs/BUGS.md#when-is-a-bug-fixed).
+[`BUGS.md`](../../bugs/BUGS.md#when-is-a-bug-fixed).
 
 This phase closes when every surfaced defect has a record, not when the defects
 are fixed. The distinction is what keeps this plan closable: an unknown number of
 unknown bugs cannot ride inside one plan's ledger.
 
 **Definition of done:** every surfaced defect carries a bug number and a row on
-[`BUGS.md`](../bugs/BUGS.md); none is tidied away silently.
+[`BUGS.md`](../../bugs/BUGS.md); none is tidied away silently.
 
 **Done, 2026-08-16 — two defects surfaced, both filed.** Turning on the fold's
 fail-closed seam for all four sibling gates found no pre-existing
@@ -253,10 +259,10 @@ partial.
 What the honesty _did_ surface came from reviewing the reconciliation's own
 fix, not from the corpus: a second six-persona `/review` round found the
 round-1 `check:ledger` fix left a discoverability gap
-([0151](../bugs/0151-honesty-at-close-options-undiscoverable-past-source.md) —
+([0151](../../bugs/0151-honesty-at-close-options-undiscoverable-past-source.md) —
 `expectEmptyHeaders` and `honestyAtClose`'s calling convention are
 undocumented past source) and a recurrence gap
-([0152](../bugs/0152-no-guardrail-against-hand-rolled-presets-recurring.md) —
+([0152](../../bugs/0152-no-guardrail-against-hand-rolled-presets-recurring.md) —
 nothing stops a future dialect preset from repeating bug 0131's exact
 pattern). Neither is a corpus finding this phase's charter asks for, but both
 are genuine, separately-closable defects the honesty-at-close work itself
@@ -284,15 +290,15 @@ names.
 
 ## Out of scope
 
-- **The fold itself** — [0088](./completed/0088-fold-ts-archunit-into-eess.md).
+- **The fold itself** — [0088](./0088-fold-ts-archunit-into-eess.md).
 - **Per-dialect standalone sufficiency and `check:family`** —
-  [0089](./0089-family-standalone-sufficiency.md), the other half of this split.
+  [0089](../0089-family-standalone-sufficiency.md), the other half of this split.
   It is independent of the fold and can land first.
 - **Fixing the defects this plan surfaces.** Filing them is the deliverable;
   fixing each is that bug's own PR.
 - **Sibling engine features beyond reconciliation** — e.g. md adopting
   `terms()`/`vocabulary()`
-  ([proposal 001](../proposals/001-md-corpus-rule-coverage.md)), or any dialect
+  ([proposal 001](../../proposals/001-md-corpus-rule-coverage.md)), or any dialect
   gaining new capability from the ported engine. Honest-gate _adoption_ is this
   plan; new _surface_ is a proposal.
 

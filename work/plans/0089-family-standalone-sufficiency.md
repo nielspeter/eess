@@ -8,7 +8,7 @@
   is Phase-3-scoped, not plan-wide") but naming it does not make it closable —
   Phases 1–2 would merge while Phases 3–4 sat open behind another plan's phase.
   The fold-dependent half is now
-  [0101](./0101-sibling-gates-go-fail-closed.md). What remains here is
+  [0101](./completed/0101-sibling-gates-go-fail-closed.md). What remains here is
   **independent of 0088 and buildable now**: the per-dialect re-export surface and
   the rules that guard it. _(The same rewrite removed a duplicated tail — this
   file carried two divergent copies of Out of scope / Success definition /
@@ -169,7 +169,7 @@ crossvalidate) installed.
   [0088](./completed/0088-fold-ts-archunit-into-eess.md). This plan does **not** depend on
   it; both can proceed in either order.
 - **Reconciling the sibling dogfood gates to fail-closed** —
-  [0101](./0101-sibling-gates-go-fail-closed.md), the other half of this split.
+  [0101](./completed/0101-sibling-gates-go-fail-closed.md), the other half of this split.
   That work cannot start until the folded kernel seam exists; this can.
 - **Sibling engine features beyond the re-export surface** — e.g. md adopting
   `terms()`/`vocabulary()`

@@ -47,7 +47,7 @@
     `reportViolations([])`'s "emit nothing on empty" correctly-but-silently
     applied). All three fixed — see Fix.
     Closed as
-    [plan 0101](../../plans/0101-sibling-gates-go-fail-closed.md) Phase 1's own
+    [plan 0101](../../plans/completed/0101-sibling-gates-go-fail-closed.md) Phase 1's own
     scope, per that plan's freeze.
 - **Severity:** Medium — nothing was wrong in its output before this fix;
   `check:ledger` found real violations and had caught them
@@ -295,5 +295,5 @@ repeating this bug's pattern) were outside this record's own scope (each
 review round's job was verifying the prior round's fix, not opening new
 surface) and are real, separately-closable work — given their own numbers
 rather than a footnote here.
-[Plan 0101](../../plans/0101-sibling-gates-go-fail-closed.md) Phase 1 names
+[Plan 0101](../../plans/completed/0101-sibling-gates-go-fail-closed.md) Phase 1 names
 this bug's closure as in-scope and closes alongside it.

@@ -110,7 +110,7 @@ without access to anything external.
 
 **The corruption.** Two live plans fence off this proposal by name as out of
 scope — [`0089`](../plans/0089-family-standalone-sufficiency.md) and
-[`0101`](../plans/0101-sibling-gates-go-fail-closed.md) both read "_md adopting
+[`0101`](../plans/completed/0101-sibling-gates-go-fail-closed.md) both read "_md adopting
 `terms()`/`vocabulary()` (proposal 001) … new surface is a proposal_". Both are
 **correct today**, because 001 is unbuilt. The day 001 is ruled `Ship as-is` and
 becomes a plan, both clauses are false, and nothing notices:
