@@ -22,14 +22,29 @@ import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
 
 const ROOT = 'scripts/nonvacuity/bad-ledger'
-// All THREE rules, not one. The first version of this fixture asserted only
+// All FOUR rules, not three. The first version of this fixture asserted only
 // `silent-open-box`, and both its documents sat in `/completed/` — so they were
 // classified done by FOLDER and `findState` was never called. Review measured the
 // consequence: reverting bug 0119 exactly, or bug 0118 exactly, or making
 // `findState` return null outright, all left this fixture exiting 1 and the
 // harness reporting the gate proven. A gate that cannot see the code path it
 // guards is the defect it exists to catch, one level up.
-const RULES = ['ledger/silent-open-box', 'ledger/state-folder-mismatch', 'ledger/unknown-state']
+//
+// `deferred-none-lie` joined this list during bug 0131's own review (round 2):
+// before, no fixture in this corpus carried a `deferred→<home>` box at all, so
+// `hasDeferredDisposedBox` sabotaged to `return false` still left this fixture
+// exiting 1 — the gate's only "protection" was that this REPO'S OWN live corpus
+// happened to carry an incidental deferred box, which would silently vanish the
+// day that box got resolved. `completed/0005-deferred-none-lie.md` (the box, a
+// summary that lies about it) and `completed/0006-deferred-honest.md` (the same
+// box, a summary that tells the truth) give this rule a permanent, evergreen
+// ground truth independent of anything else in the corpus.
+const RULES = [
+  'ledger/silent-open-box',
+  'ledger/state-folder-mismatch',
+  'ledger/unknown-state',
+  'ledger/deferred-none-lie',
+]
 
 let c
 try {
@@ -43,9 +58,9 @@ try {
 // "no violation" would be trivially true and this gate would sit green forever
 // on a drifted root (bug 0110's class).
 const docs = c.documents().length
-if (docs !== 4) {
+if (docs !== 6) {
   console.error(
-    `bad-ledger: the corpus loaded ${docs} document(s), expected 4 — this fixture proves ` +
+    `bad-ledger: the corpus loaded ${docs} document(s), expected 6 — this fixture proves ` +
       `nothing against an empty corpus; check ${ROOT}`,
   )
   process.exit(2)
@@ -60,12 +75,15 @@ try {
 }
 
 // The clean direction, so a permanently-red gate cannot pass for a working one:
-// 0002 is closed and reconciled, and must contribute nothing.
-const fromReconciled = violations.filter((v) => v.file.includes('0002-reconciled'))
+// 0002 is closed and reconciled, and 0006 carries a real deferred box with an
+// honest summary — neither must contribute anything.
+const fromReconciled = violations.filter(
+  (v) => v.file.includes('0002-reconciled') || v.file.includes('0006-deferred-honest'),
+)
 if (fromReconciled.length > 0) {
   console.error(
-    `bad-ledger: the reconciled fixture produced ${fromReconciled.length} violation(s) — the ` +
-      `fixture's premise is broken, not the gate proven: ${fromReconciled.map((v) => v.rule).join(', ')}`,
+    `bad-ledger: a clean fixture produced ${fromReconciled.length} violation(s) — the ` +
+      `fixture's premise is broken, not the gate proven: ${fromReconciled.map((v) => `${v.file}:${v.rule}`).join(', ')}`,
   )
   process.exit(2)
 }

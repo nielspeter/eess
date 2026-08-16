@@ -17,7 +17,7 @@ import { readdirSync } from 'node:fs'
 import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 import { reportViolations } from '@nielspeter/eess'
-import { findUncoveredLanes } from './lib/lane-coverage.mjs'
+import { findUncoveredLanes, findLaneDoneVacuity } from './lib/lane-coverage.mjs'
 
 // Two closing lanes, two vocabularies. A plan closes on `Done`/`Won't-do`; a bug
 // closes on `Fixed`/`Rejected` (work/bugs/BUGS.md). They are scanned separately
@@ -106,7 +106,34 @@ const workDirCount = readdirSync('work', { withFileTypes: true }).filter((e) =>
   e.isDirectory(),
 ).length
 
-const violations = [...scans.flatMap((s) => s.violations), ...uncoveredLaneViolations]
+// This repo's own corpus has carried done-items in every lane with a real
+// terminalStates vocabulary for its entire history — a lane reporting 0 is
+// never a legitimate Day 0 here (unlike a fresh `kit/`-bootstrapped project,
+// which is why `expectEmptyDone` exists per-lane rather than this being a
+// blanket assumption, and why this check lives here, in this repo's own
+// wiring, not inside `honestyAtClose` itself). Checked **per lane**, not
+// summed across all of them: bug 0131's round-2 review sabotaged `isDoneItem`
+// globally and found the sum the only signal that would have caught it, but
+// round 3's review found the sum itself has a hole — a corruption scoped to
+// ONE lane (a `doneFolders`/`terminalStates` typo, a selector break) stays
+// completely invisible as long as some OTHER lane still has a nonzero count.
+// `findLaneDoneVacuity` produces real `ArchViolation`s (not a side boolean),
+// so it flows through `reportViolations` the same as every other finding —
+// silence is not "nothing deferred," and it is not "nothing done" either.
+const laneDoneVacuousViolations = findLaneDoneVacuity(
+  scans.map((s) => ({
+    name: s.lane.name,
+    terminalStates: s.lane.terminalStates,
+    doneItems: s.stats.doneItems,
+    expectEmptyDone: s.lane.expectEmptyDone,
+  })),
+)
+
+const violations = [
+  ...scans.flatMap((s) => s.violations),
+  ...uncoveredLaneViolations,
+  ...laneDoneVacuousViolations,
+]
 const scanned = scans.reduce((n, s) => n + s.stats.scanned, 0)
 const doneCount = scans.reduce((n, s) => n + s.stats.doneItems, 0)
 const readable = scans.reduce((n, s) => n + s.stats.withReadableState, 0)
@@ -172,10 +199,5 @@ if (violations.length === 0) {
   )
 }
 console.error('')
-
-if (doneCount === 0)
-  console.error(
-    '  ⚠ 0 done-items scanned — vacuous. Adopt the terminal State: token / completed/ folder.\n',
-  )
 
 if (violations.length > 0) process.exit(1)

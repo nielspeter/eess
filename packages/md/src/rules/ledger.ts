@@ -1,8 +1,11 @@
 import { finishPreset, type PresetReportOptions } from '@nielspeter/eess'
+import type { Condition, ConditionContext, Predicate } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
 import type { ArchViolation } from '../model/violation.js'
 import { collectTaskItems } from '../model/task-items.js'
+import { docs } from '../builders/docs.js'
+import { taskItems, type MdTaskItem } from '../builders/task-items.js'
 
 /**
  * `honestyAtClose` — the ledger-reconciliation gate for an engineering corpus.
@@ -22,6 +25,17 @@ import { collectTaskItems } from '../model/task-items.js'
  * `collectTaskItems`), so a `- [ ]` in fenced code or a blockquote is excluded
  * for free — no hand-rolled stripping. `deferred: none` summaries and the
  * `State:` header token are unambiguous prose lines, scanned from the source.
+ *
+ * **Expressed through the builder DSL** (bug 0131, closed by plan 0101 Phase 1):
+ * previously this preset hand-iterated `corpus.documents()` directly, calling
+ * no `RuleBuilder`/`TerminalBuilder` at all — invisible to every kernel-level
+ * guarantee, including the ADR-010 evidence gate the fold (plan 0088) landed.
+ * `docs(corpus)` and `taskItems(corpus)` already existed and already
+ * `extends RuleBuilder<T, Corpus>` — the detection logic below is unchanged
+ * from the pre-fold version (same regexes, same `findState`/`isDoneItem`
+ * helpers, same messages), only its *iteration* now goes through the DSL, so
+ * this preset inherits the fold's fail-closed floor like every sibling
+ * builder-based rule already does.
  */
 export interface HonestyAtCloseOptions extends PresetReportOptions {
   /**
@@ -50,6 +64,21 @@ export interface HonestyAtCloseOptions extends PresetReportOptions {
    * whether or not they also appear in {@link states}.
    */
   readonly terminalStates?: readonly string[]
+  /**
+   * Declare that this corpus may legitimately hold zero non-board documents
+   * right now — a freshly-bootstrapped lane before its first real item is
+   * authored (e.g. a `kit/`-seeded `work/plans/` containing only
+   * `ROADMAP.md`). Default `false`: an empty non-board selection is treated
+   * as a dead selector (wrong glob, broken `boardFiles`) and reported.
+   *
+   * This is a genuine, caller-declared claim, not something `honestyAtClose`
+   * can infer — nothing else in the corpus distinguishes "nothing authored
+   * yet" from "the selector broke." Per ADR-010 it **expires**: the day a
+   * real document appears, `examined > 0` while this is still declared `true`
+   * is itself reported ("the declaration has expired"), so remove it once
+   * the lane has real content.
+   */
+  readonly expectEmptyHeaders?: boolean
 }
 
 const DEFAULT_DONE_FOLDERS = ['/completed/', '/fixed/', '/wont-do/', '/delivered/', '/archived/']
@@ -244,56 +273,237 @@ function headerStateViolation(
   return null
 }
 
-/** Ledger reconciliation of one done-item: unchecked boxes + the `none`-summary lie. */
-function ledgerViolations(doc: MdDocument): ArchViolation[] {
-  const out: ArchViolation[] = []
-  let anyDeferredDisposedBox = false
+/** A box's disposition is disclosed, or it is a silent open box. */
+function isDisposed(boxText: string): boolean {
+  return DISPOSITION_RE.test(boxText)
+}
 
-  for (const box of collectTaskItems(doc.root)) {
-    if (box.checked) continue // only open boxes are live ledger entries
-    if (DEFERRED_DISPOSITION_RE.test(box.text)) anyDeferredDisposedBox = true
-    if (!DISPOSITION_RE.test(box.text)) {
-      out.push(
-        v(
-          'ledger/silent-open-box',
-          doc,
-          box.line,
-          'unchecked box with no disposition (done-otherwise / deferred→<home> / dropped-on-purpose / validation-owed)',
-          "silence is not 'nothing deferred' — a done-item with a silently-open box has lost scope",
-        ),
+/**
+ * Does this document carry at least one open box disposed as `deferred→<home>`?
+ *
+ * A corruption here (always `false`) is caught by
+ * `scripts/nonvacuity/bad-ledger.mjs`'s `completed/0005-deferred-none-lie.md`
+ * fixture (bug 0131 round-2 review) — before it existed, no fixture in that
+ * corpus carried a `deferred→<home>` box at all, so this function's only
+ * "protection" was this repo's own live corpus incidentally carrying one,
+ * which would have silently vanished the day that box got resolved.
+ */
+function hasDeferredDisposedBox(doc: MdDocument): boolean {
+  return collectTaskItems(doc.root).some(
+    (box) => !box.checked && DEFERRED_DISPOSITION_RE.test(box.text),
+  )
+}
+
+/**
+ * A `none` deferral-summary while the document carries a box disposed as
+ * `deferred→<home>` — the summary contradicts the boxes. Absence of a summary
+ * is deliberately NOT gated; only a *contradicting* one is.
+ */
+function deferredNoneLieViolation(doc: MdDocument): ArchViolation | null {
+  const lines = stripFencedCode(doc.text).split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i] ?? ''
+    if (/^\s*>/.test(raw)) continue
+    const sm = raw.match(DEFERRED_SUMMARY_RE)
+    if (sm && /^none\b/i.test((sm[1] ?? '').trim())) {
+      return v(
+        'ledger/deferred-none-lie',
+        doc,
+        i + 1,
+        "'deferred: none' contradicts a box disposed as deferred→<home>",
+        'the out-loud summary must reconcile with the box states, not override them',
       )
     }
   }
+  return null
+}
 
-  // A `none` deferral-summary while a box carries a defer disposition — the
-  // summary contradicts the boxes. (Absence of a summary is deliberately NOT gated.)
-  if (anyDeferredDisposedBox) {
-    const lines = stripFencedCode(doc.text).split('\n')
-    for (let i = 0; i < lines.length; i++) {
-      const raw = lines[i] ?? ''
-      if (/^\s*>/.test(raw)) continue
-      const sm = raw.match(DEFERRED_SUMMARY_RE)
-      if (sm && /^none\b/i.test((sm[1] ?? '').trim())) {
-        out.push(
+/** Predicate: not a board/index file (never scanned as an item). */
+function notBoardFile(boardFiles: ReadonlySet<string>): Predicate<MdDocument> {
+  return {
+    description: 'is not a board file',
+    test: (doc) => !boardFiles.has(doc.relPath.split('/').pop() ?? doc.relPath),
+  }
+}
+
+/** Predicate: this document is a done-item under the caller's own vocabulary. */
+function isDoneItemPredicate(
+  doneFolders: readonly string[],
+  terminalStates: readonly string[],
+): Predicate<MdDocument> {
+  return {
+    description: 'is a done item',
+    test: (doc) => isDoneItem(doc, doneFolders, terminalStates),
+  }
+}
+
+/**
+ * Predicate: this task item's own document is a done-item.
+ *
+ * A corruption here (always `false`) is caught not by a purpose-built
+ * fixture but as a side effect of `ledger.test.ts`'s pre-existing
+ * `flags a silent open box in a done-item (red)` /
+ * `passes a done-item whose every open box is disposed (green)` pair, and of
+ * `scripts/nonvacuity/bad-ledger.mjs`'s `completed/0001-silent-open-box.md`
+ * fixture — both keep a real open box on a real done-item in the corpus, the
+ * exact shape `honestyAtClose`'s independent `anyOpenBoxOnADoneItem` peek
+ * (see its docstring) needs to diverge from a corrupted `belongsToADoneItem`.
+ * Simplifying either fixture to drop that box, even for reasons unrelated to
+ * this concern, would silently regress the coverage.
+ */
+function belongsToADoneItem(
+  doneFolders: readonly string[],
+  terminalStates: readonly string[],
+): Predicate<MdTaskItem> {
+  return {
+    description: 'belongs to a done item',
+    test: (t) => isDoneItem(t.doc, doneFolders, terminalStates),
+  }
+}
+
+/** Condition: the header `State:` line is readable and matches its folder. */
+function headerStateCondition(
+  doneFolders: readonly string[],
+  closeInPlace: boolean,
+  states: readonly string[],
+  terminalStates: readonly string[],
+): Condition<MdDocument> {
+  return {
+    description: 'have a readable State: line that matches its folder',
+    evaluate(elements: MdDocument[], _ctx: ConditionContext): ArchViolation[] {
+      const out: ArchViolation[] = []
+      for (const doc of elements) {
+        const inDoneFolder = doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))
+        const found = headerStateViolation(doc, inDoneFolder, closeInPlace, states, terminalStates)
+        if (found) out.push(found)
+      }
+      return out
+    },
+  }
+}
+
+/** Condition: an open box on a done-item carries a disposition token. */
+function dispositionCondition(): Condition<MdTaskItem> {
+  return {
+    description:
+      'carry a disposition token (done-otherwise / deferred→<home> / dropped-on-purpose / validation-owed)',
+    evaluate(elements: MdTaskItem[], _ctx: ConditionContext): ArchViolation[] {
+      return elements
+        .filter((t) => !isDisposed(t.text))
+        .map((t) =>
           v(
-            'ledger/deferred-none-lie',
-            doc,
-            i + 1,
-            "'deferred: none' contradicts a box disposed as deferred→<home>",
-            'the out-loud summary must reconcile with the box states, not override them',
+            'ledger/silent-open-box',
+            t.doc,
+            t.line,
+            'unchecked box with no disposition (done-otherwise / deferred→<home> / dropped-on-purpose / validation-owed)',
+            "silence is not 'nothing deferred' — a done-item with a silently-open box has lost scope",
           ),
         )
-        break
-      }
-    }
+    },
   }
-  return out
+}
+
+/** Condition: a document with a deferred-disposed box does not lie in its summary. */
+function deferredNoneLieCondition(): Condition<MdDocument> {
+  return {
+    description: "not summarize deferrals as 'none' while a box is deferred→<home>",
+    evaluate(elements: MdDocument[], _ctx: ConditionContext): ArchViolation[] {
+      const out: ArchViolation[] = []
+      for (const doc of elements) {
+        const found = deferredNoneLieViolation(doc)
+        if (found) out.push(found)
+      }
+      return out
+    },
+  }
 }
 
 /**
  * Run the honesty-at-close gate over a corpus. Throws `ArchRuleError` on any
  * finding. Placement is checked on every item; ledger reconciliation only on
  * done-items (the inverse of the frozen-folder exemption).
+ *
+ * Three builder-based rules, merged: header state↔folder (`docs()`), silent
+ * open boxes (`taskItems()`, filtered to done-items), and the deferred-none
+ * lie (`docs()`, filtered to done-items carrying a deferred-disposed box).
+ *
+ * **Emptiness declarations, and why each is shaped the way it is** (bug 0131
+ * follow-up, six-persona review before this landed): `.expectEmpty()` is only
+ * a sound fail-closed gate when the thing that decides *whether* to declare
+ * it is independent of the predicate the declaration would otherwise let
+ * pass silently. Two designs were tried and rejected for this reason:
+ *
+ * 1. Peeking the exact same selection each rule gates (`.select()` on
+ *    `openBoxesOnDoneItems`/`doneItemsWithDeferredBox` themselves) before
+ *    conditionally declaring `.expectEmpty()`. This *reads* as a live check
+ *    but is circular: the peek and the real run filter the identical
+ *    elements through the identical predicates with nothing in between, so
+ *    the declaration is always self-consistent and can never expire — it
+ *    provides zero protection against exactly the corruption class ADR-010
+ *    exists to catch, for either rule.
+ * 2. Gating on `terminalStates.length === 0` alone. Correct for the
+ *    always-structurally-empty `proposals` lane, but too narrow: it doesn't
+ *    cover a plan/bug lane's own test fixtures that legitimately have zero
+ *    done-items in a given run (e.g. a single-document fixture testing an
+ *    unrelated placement rule).
+ * 3. Gating both rules on one coarse "any done item exists in this corpus"
+ *    signal. Independent of the right predicate, but the wrong *scope*: most
+ *    done items carry zero open boxes and zero deferred boxes — that's the
+ *    normal, healthy, permanent state for a reconciled item, not a corner
+ *    case — so "a done item exists" routinely holds while the real selection
+ *    (open boxes on it, or a deferred box on it) is legitimately empty. That
+ *    false-positived on the project's own `fixed/green-bug-closed.md` fixture
+ *    (a done item with one already-checked box, no open boxes at all).
+ *
+ * The fix: peek `openTaskItems` once (`taskItems(corpus).that().areOpen()`,
+ * a purely structural filter, no done-item check), then derive each rule's
+ * own emptiness signal from *that*, narrowed to what the rule actually
+ * selects, while staying independent of the specific predicate/function
+ * being protected:
+ *
+ * - `silentOpenBoxViolations` is gated by `belongsToADoneItem`. Its peek
+ *   (`anyOpenBoxOnADoneItem`) calls `isDoneItem` on `openTaskItems` directly
+ *   — not through `belongsToADoneItem` — so a corruption of that predicate
+ *   specifically doesn't also blind the peek.
+ * - `deferredLieViolations`'s selection adds `hasDeferredDisposedBox` (which
+ *   walks each done document's own mdast via a separate
+ *   `collectTaskItems(doc.root)` call) on top of `isDoneItemPredicate`. Its
+ *   peek (`anyDeferredDisposedBoxOnADoneItem`) instead re-tests
+ *   `openTaskItems` (a different traversal) against the same
+ *   `DEFERRED_DISPOSITION_RE` constant `hasDeferredDisposedBox` uses — so a
+ *   corruption of `hasDeferredDisposedBox`'s own body doesn't blind this
+ *   peek either.
+ *
+ * Both peeks share `isDoneItem` and the underlying `collectTaskItems` box
+ * collection with the very selections they protect — a corruption isolated to
+ * either would defeat both peek and real selection identically, uniformly,
+ * for every lane. This is a real residual gap, not a narrow one: verified by
+ * sabotaging `isDoneItem` against this repo's own real corpus during bug
+ * 0131's round-2 review, which produced **zero violations, exit 0** — not a
+ * partial miss. `headerStateCondition` does **not** independently backstop
+ * this (an earlier draft of this comment claimed it "would likely also
+ * surface through `headerViolations`" — false: `headerStateCondition` never
+ * calls `isDoneItem`, it recomputes the folder half of the same determination
+ * inline, so it only catches a corruption if a live state/folder mismatch
+ * already exists in the scanned corpus, which it usually doesn't).
+ *
+ * `honestyAtClose` itself can't close this gap generically — a corpus with
+ * zero done-items is legitimate on a freshly-bootstrapped lane's first day,
+ * so a library-level "zero done-items across the whole call is always wrong"
+ * assertion would be exactly the false-positive class `expectEmptyHeaders`
+ * exists to avoid. What closes it is caller knowledge: **a corpus with an
+ * established history should assert its own "zero done-items is never
+ * legitimate here" claim on top.** `scripts/check-ledger.mjs` (this repo's
+ * own wiring) does exactly that — 0 done-items summed across every lane fails
+ * the build, because this repo has carried done-items in every
+ * terminal-states lane for its entire history. A `kit/`-seeded caller with no
+ * history yet should not copy that assertion verbatim; it becomes true, and
+ * worth adding, once the corpus has one.
+ *
+ * `headerViolations` gets no computed declaration — nothing in the corpus
+ * can tell "no non-board documents authored yet" apart from "the selector
+ * broke." Callers who know the former is legitimate (a freshly-bootstrapped
+ * lane) opt in explicitly via {@link HonestyAtCloseOptions.expectEmptyHeaders}.
  */
 export function honestyAtClose(
   corpus: Corpus,
@@ -304,20 +514,73 @@ export function honestyAtClose(
   const closeInPlace = options.closeInPlace ?? false
   const states = options.states ?? DEFAULT_STATES
   const terminalStates = options.terminalStates ?? DEFAULT_TERMINAL_STATES
+  const expectEmptyHeaders = options.expectEmptyHeaders ?? false
 
-  const violations: ArchViolation[] = []
-  for (const doc of corpus.documents()) {
-    const base = doc.relPath.split('/').pop() ?? doc.relPath
-    if (boardFiles.has(base)) continue
+  let headerRule = docs(corpus)
+    .that()
+    .satisfy(notBoardFile(boardFiles))
+    .should()
+    .satisfy(headerStateCondition(doneFolders, closeInPlace, states, terminalStates))
+  if (expectEmptyHeaders) headerRule = headerRule.expectEmpty()
+  const headerViolations = headerRule.violations()
 
-    const inDoneFolder = doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))
-    const header = headerStateViolation(doc, inDoneFolder, closeInPlace, states, terminalStates)
-    if (header) violations.push(header)
+  // Open task items, collected once and reused for both peeks below. "Any
+  // done item exists" is too coarse a signal on its own — most done items
+  // legitimately carry zero open boxes and zero deferred boxes, so gating on
+  // it alone false-positives on the common, healthy case (a done item with
+  // nothing outstanding). Each peek below narrows to what its own rule
+  // actually selects, while staying independent of the predicate/function
+  // that rule uses to select it.
+  const openTaskItems = taskItems(corpus)
+    .that()
+    .areOpen()
+    .select({
+      label: 'open task items',
+      identify: (t: MdTaskItem) => ({ name: t.doc.relPath, file: t.doc.file, line: t.line }),
+    }).elements
 
-    if (isDoneItem(doc, doneFolders, terminalStates)) violations.push(...ledgerViolations(doc))
-  }
+  // Independent of `belongsToADoneItem`: calls `isDoneItem` directly rather
+  // than through that predicate object, so a corruption of
+  // `belongsToADoneItem` itself doesn't also blind this peek.
+  const anyOpenBoxOnADoneItem = openTaskItems.some((t) =>
+    isDoneItem(t.doc, doneFolders, terminalStates),
+  )
+  let silentBoxRule = taskItems(corpus)
+    .that()
+    .areOpen()
+    .satisfy(belongsToADoneItem(doneFolders, terminalStates))
+    .should()
+    .satisfy(dispositionCondition())
+  if (!anyOpenBoxOnADoneItem) silentBoxRule = silentBoxRule.expectEmpty()
+  const silentOpenBoxViolations = silentBoxRule.violations()
 
-  return finishPreset(violations, options)
+  // Independent of `hasDeferredDisposedBox`: that function walks each done
+  // document's own mdast via a separate `collectTaskItems(doc.root)` call:
+  // this peek instead reuses the flat, already-collected `openTaskItems` list
+  // (from the `taskItems()` builder's own traversal) and the same
+  // `DEFERRED_DISPOSITION_RE` constant `hasDeferredDisposedBox` tests against
+  // — two different collection paths converging on the one shared pattern,
+  // so a corruption of `hasDeferredDisposedBox`'s own body doesn't blind this
+  // peek too.
+  const anyDeferredDisposedBoxOnADoneItem = openTaskItems.some(
+    (t) => isDoneItem(t.doc, doneFolders, terminalStates) && DEFERRED_DISPOSITION_RE.test(t.text),
+  )
+  let deferredLieRule = docs(corpus)
+    .that()
+    .satisfy(isDoneItemPredicate(doneFolders, terminalStates))
+    .satisfy({
+      description: 'carries a box disposed as deferred→<home>',
+      test: (doc: MdDocument) => hasDeferredDisposedBox(doc),
+    })
+    .should()
+    .satisfy(deferredNoneLieCondition())
+  if (!anyDeferredDisposedBoxOnADoneItem) deferredLieRule = deferredLieRule.expectEmpty()
+  const deferredLieViolations = deferredLieRule.violations()
+
+  return finishPreset(
+    [...headerViolations, ...silentOpenBoxViolations, ...deferredLieViolations],
+    options,
+  )
 }
 
 /** What a {@link honestyAtClose} run actually examined. */
@@ -344,6 +607,8 @@ export interface LedgerStats {
  * Callers must not re-derive it. `check-ledger.mjs` did, with a copy of the very
  * expression 0119 removed, and its copy disagreed with the preset on 56 of 56
  * records while heading a section captioned "so a green is provably non-vacuous".
+ *
+ * Pure read-only counting, not a rule — no evidence gate applies here.
  */
 export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {}): LedgerStats {
   const doneFolders = options.doneFolders ?? DEFAULT_DONE_FOLDERS
