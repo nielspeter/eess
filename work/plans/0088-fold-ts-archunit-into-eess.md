@@ -534,7 +534,18 @@ P>` generic** every builder in the family depends on — both verified directly,
       Phase-4 engine-neutral seam — the spike names them explicitly as Phase
       4's starting worklist.
 - [x] Phase 2 — port ADR-008 → eess ADR-009
-- [x] Phase 3 — port ADR-009 → eess ADR-010
+- [x] Phase 3 — port ADR-009 → eess ADR-010. **Enforcement table corrected
+      2026-08-16, after Phase 4/4a/5 had already landed:** 4 of its 5 rows
+      still read `pending` even though the plan's own ledger below confirms
+      their mechanisms are built, wired, and running in CI — the table was
+      never flipped when the phases that built each mechanism closed. Fixed:
+      rows 1–4 now `gated`, with real file/test citations (`CollectResult`'s
+      type at `packages/core/src/terminal-builder.ts`, the vacuity matrix +
+      its `KNOWN_FAIL_OPEN` ratchet, the `sourceEmpty` precedence check and
+      its regression test). Row 5 ("remedy verified to remediate") stays
+      `pending`, honestly — remedy messages are tested for cause-specificity,
+      but no fixture yet applies a remedy and confirms the finding clears;
+      that's the real remaining gap, not a stale checkmark.
 - [x] Phase 4 — fold the engine (kernel seam + `RuleBuilder<T,P>` + eess-ts). Done
       2026-08-14, uncommitted on `plan-0088-build`: `CollectResult`/the ADR-010
       evidence gate (`TerminalBuilder.evidencedViolations()`) + the cardinality
@@ -638,9 +649,14 @@ P>` generic** every builder in the family depends on — both verified directly,
         would silently inherit an exemption it isn't entitled to.
       - `.expectNonEmpty()` is a behavioral no-op — `_expectEmpty === false`
         is set but never read anywhere distinct from `undefined`.
-      - Standalone-sufficiency gap: `CollectResult`/`marksAssertsCardinality`/
+      - ~~Standalone-sufficiency gap: `CollectResult`/`marksAssertsCardinality`/
         `assertsCardinality` aren't re-exported from `packages/ts/src/index.ts`,
-        even though `TerminalBuilder` (the extension point that needs them) is.
+        even though `TerminalBuilder` (the extension point that needs them) is.~~
+        **Closed, but not by this plan — verified 2026-08-16 while fixing
+        ADR-010's stale Enforcement table.** All three are now re-exported
+        from `packages/ts/src/index.ts` (confirmed by reading it directly),
+        landed incidentally as part of plan 0147's own standalone-surface
+        parity pass, not tracked back to this finding at the time.
       - `.because()`/`.excluding()` still have no coverage in
         `packages/core/tests/` directly (only indirectly via dialect tests) —
         testing reviewer confirmed by reverting each to mutate-in-place and
