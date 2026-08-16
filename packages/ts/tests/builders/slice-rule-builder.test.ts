@@ -146,6 +146,37 @@ describe('SliceRuleBuilder chain methods', () => {
     }).not.toThrow()
   })
 
+  it('.matching() copies, not mutates — a held builder is unaffected by a later .matching() call on it', () => {
+    // Bug-0016 class, found live during plan 0147's reconciliation against
+    // ts-archunit (which already fixes this — `const next = this.copy(); ...`
+    // — while eess's `.matching()` still mutated `this` in place). The
+    // existing `copy()` override (added earlier this session) only protects
+    // `.because()`/`.excluding()`; nothing called it from `.matching()`
+    // itself.
+    const heldA = slices(p).matching('src/feature-c') // acyclic alone
+    const ruleFromA = heldA.beFreeOfCycles()
+
+    // Re-scope the SAME reference to a slice set that DOES have a cycle.
+    heldA.matching('src/feature-') // mutates only if the bug is back
+
+    // ruleFromA must still be scoped to feature-c alone.
+    expect(() => ruleFromA.check()).not.toThrow()
+  })
+
+  it('condition methods copy, not mutate — a held selection is unaffected by a condition added for a different branch', () => {
+    // Same bug-0016 class as above, for `.beFreeOfCycles()`/`.respectLayerOrder()`/
+    // `.notDependOn()`. Sabotage-verified: reverting the fix under test turns
+    // this red.
+    const held = slices(p).matching('src/feature-') // a/b/c; a<->b cycle exists
+    held.beFreeOfCycles() // mutates `held` itself only if the bug is back
+    const ruleB = held.notDependOn('nonexistent-slice-xyz')
+
+    // ruleB only ever asked notDependOn(), which this selection satisfies. If
+    // beFreeOfCycles() had mutated `held` in place, ruleB would silently also
+    // carry it and throw on the real a<->b cycle above.
+    expect(() => ruleB.check()).not.toThrow()
+  })
+
   it('.severity("error") throws on violations', () => {
     expect(() => {
       slices(p).matching('src/feature-').should().beFreeOfCycles().severity('error')

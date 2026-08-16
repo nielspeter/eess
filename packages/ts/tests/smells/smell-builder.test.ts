@@ -100,9 +100,13 @@ describe('SmellBuilder.ignorePaths()', () => {
     // it never asked to ignore.
     const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
     const base = smells.duplicateBodies(p).minLines(3).withMinSimilarity(0.8)
-    const a = base.because('branch A')
-    a.ignorePaths('**/file-b.ts')
+    const a = base.because('branch A').ignorePaths('**/file-b.ts')
     const b = base.because('branch B')
+    // Branch A's own exclusion took effect (plan 0147: ignorePaths() itself
+    // must copy, not mutate `this`, or this assertion is meaningless — the
+    // chain call above returning a discarded value would leave `a` and `b`
+    // both pointed at the SAME underlying builder).
+    expect(() => a.check()).not.toThrow()
     expect(() => b.check()).toThrow(ArchRuleError)
   })
 
@@ -152,7 +156,7 @@ describe('SmellBuilder.inFolder()', () => {
 describe('SmellBuilder.warn() output formats', () => {
   it('warn with json format outputs JSON', () => {
     const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     smells.duplicateBodies(p).minLines(3).withMinSimilarity(0.8).warn({ format: 'json' })
     expect(warnSpy).toHaveBeenCalled()
     // JSON output should start with [ or { or be valid JSON
@@ -171,14 +175,14 @@ describe('SmellBuilder.warn() output formats', () => {
 
   it('warn with terminal format outputs to console.warn', () => {
     const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     smells.duplicateBodies(p).minLines(3).withMinSimilarity(0.8).warn({ format: 'terminal' })
     expect(warnSpy).toHaveBeenCalled()
   })
 
   it('warn does nothing when no violations', () => {
     const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     // minLines(1000) excludes every function — declare the empty result
     // intentional so the zero-examined finding doesn't itself warn.
     smells.duplicateBodies(p).minLines(1000).withMinSimilarity(0.5).expectEmpty().warn()

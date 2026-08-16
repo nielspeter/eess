@@ -1,6 +1,7 @@
 import { ScriptTarget, ModuleKind, ModuleResolutionKind } from 'ts-morph'
 import type { CompilerOptions } from 'ts-morph'
 import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
+import { isRecord } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { ArchViolation } from '../core/violation.js'
 import { isStrictFamily, resolveFlag } from './strict-family.js'
@@ -27,10 +28,18 @@ export class TsconfigBuilder extends TerminalBuilder {
    * Each present key must equal the project's resolved value (strict-family
    * flags are resolved through `strict: true` the way tsc resolves them).
    * Multiple `.requires()` calls merge additively; later keys win on conflict.
+   *
+   * Copy-on-write (bug 0016): without routing through `this.copy()`, two
+   * branches held off the same `tsconfig(p)` are literally the same object —
+   * `.requires()` reassigns `this._requirements` in place and returns `this`,
+   * so a second branch's requirements accumulate into the first's. No `copy()`
+   * override is needed on top of the base class's default: the merge builds a
+   * fresh object via spread rather than mutating the inherited one.
    */
   requires(spec: Partial<CompilerOptions>): this {
-    this._requirements = { ...this._requirements, ...spec }
-    return this
+    const next = this.copy()
+    next._requirements = { ...this._requirements, ...spec }
+    return next
   }
 
   protected collectViolations(): CollectResult {
@@ -158,8 +167,4 @@ function deepEqual(a: unknown, b: unknown): boolean {
     return ak.length === bk.length && ak.every((k) => deepEqual(a[k], b[k]))
   }
   return false
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }

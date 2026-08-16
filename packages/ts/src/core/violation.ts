@@ -83,7 +83,27 @@ function isTopLevelDeclaration(node: Node): boolean {
 export function getElementName(node: Node): string {
   const directName = getNodeName(node)
   if (directName !== undefined) return directName
+  return enclosingScopeName(node) ?? node.getKindName()
+}
 
+/**
+ * The structural name of the nearest ENCLOSING declaration — always an
+ * ancestor walk, never the node's own name.
+ *
+ * Split out of `getElementName`, which returns the node's own name when it
+ * has one and only walks ancestors otherwise. That difference is invisible
+ * until something needs "what encloses this?" rather than "what is this
+ * called?" — a metric identity built on `getElementName` as if it were a
+ * scope leaves method-shorthand object-literal functions (`{ build() {} }`)
+ * unqualified, because a `MethodDeclaration` has its own name, so two
+ * factories each returning `{ build() {} }` would share one identity while
+ * the arrow spelling of the same code would not.
+ *
+ * Returns `undefined` when no named declaration encloses the node, which is
+ * a real answer — a literal passed as a call argument at module level has no
+ * scope — and not a value to substitute a kind name for.
+ */
+export function enclosingScopeName(node: Node): string | undefined {
   // Walk up ancestors collecting structural names: method/constructor/accessor
   // at the member level, class/function at the top level. Skips variables,
   // properties, and expressions — those are implementation detail.
@@ -104,7 +124,7 @@ export function getElementName(node: Node): string {
     current = current.getParent()
   }
 
-  return parts.length > 0 ? parts.join('.') : node.getKindName()
+  return parts.length > 0 ? parts.join('.') : undefined
 }
 
 /**

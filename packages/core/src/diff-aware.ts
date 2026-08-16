@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 import type { ArchViolation } from './violation.js'
+import { writeStderr } from './stderr.js'
 
 /**
  * A diff filter that restricts violation reporting to files
@@ -69,7 +70,7 @@ export function diffAware(baseBranch: string = 'main'): DiffFilter {
   } catch (err) {
     // Not a git repo, or base branch doesn't exist — skip filtering (report all violations)
     const detail = err instanceof Error ? ` (${err.message.split('\n')[0] ?? ''})` : ''
-    console.warn(
+    writeStderr(
       `[eess] Could not run git diff against '${baseBranch}'${detail}. All violations will be reported.`,
     )
     return new DiffFilter(null)

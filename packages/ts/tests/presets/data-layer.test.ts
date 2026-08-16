@@ -51,13 +51,17 @@ describe('dataLayerIsolation preset', () => {
     }).not.toThrow()
   })
 
-  it('skips base class check when baseClass not specified', () => {
-    // bad-repo doesn't extend BaseRepository, but baseClass is not set
+  it('fails loudly when neither baseClass nor requireTypedErrors is set, instead of silently checking nothing', () => {
+    // Bug-0100-class (plan 0147, this session's own fix): both rules sit
+    // behind an independent optional flag, so a call with neither used to
+    // construct zero rules and pass silently — the vacuity matrix's own
+    // KNOWN_FAIL_OPEN entry for this preset. It now throws a configuration
+    // finding naming the cause.
     expect(() => {
       dataLayerIsolation(p, {
         repositories: '**/repositories/bad/**',
       })
-    }).not.toThrow()
+    }).toThrow(ArchRuleError)
   })
 
   it('override to off suppresses extend-base', () => {

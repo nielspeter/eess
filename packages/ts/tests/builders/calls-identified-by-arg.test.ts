@@ -165,14 +165,14 @@ app.post(ROUTES.AUTH, handler)
   })
 
   it('test #17 — _identifyByArgument is copied at fork (not aliased to upstream)', () => {
-    // RuleBuilder.fork() runs at .should() (rule-builder.ts:276 — Object.assign).
-    // CallRuleBuilder follows the standard fluent pattern: predicate methods
-    // including .identifiedByArg() MUTATE the builder and return `this`. So
-    // the fork's job is to snapshot the field value AT the moment .should()
-    // is called, then leave the forked rule untouched by later upstream
-    // mutations.
+    // `.identifiedByArg()` itself copies (`this.copy()`, bug-0016 class fix,
+    // plan 0147) rather than mutating `this` — so `upstream` here is never
+    // touched by either call below, and RuleBuilder's own fork at `.should()`
+    // (rule-builder.ts — Object.assign) is a second, independent layer of the
+    // same guarantee.
     //
-    // This test pins that property: fork copies by value, not by reference.
+    // This test pins the end-to-end property: neither layer lets a later
+    // change reach an already-built rule.
     const p = inMemoryProject(SAMPLE_ROUTES)
 
     // Set identifiedByArg(0), then fork via .should() — fork must snapshot 0.
@@ -397,6 +397,34 @@ flags.define(handler, "new-checkout")
 
     expect(violations).toHaveLength(1)
     expect(violations[0]!.element).toBe('flags.define("new-checkout")')
+  })
+
+  it('a held selection is unaffected by .identifiedByArg() called on it for a different branch', () => {
+    // Bug-0016 class, found live during plan 0147's reconciliation against
+    // ts-archunit (which already fixed this — `const next = this.copy(); ...`
+    // — while eess's `identifiedByArg()` still mutated `this` in place, the
+    // same hazard `SliceRuleBuilder`/`ResolverRuleBuilder`/`SchemaRuleBuilder`/
+    // `SmellBuilder` were each already fixed for). `.identifiedByArg()` must
+    // copy, not mutate `this`, or a SECOND rule built from the same held
+    // reference silently inherits the first rule's identity setting —
+    // sabotage-verified: reverting the fix under test turns this red.
+    const p = inMemoryProject(SAMPLE_ROUTES)
+    const held = calls(p)
+      .that()
+      .onObject('app')
+      .and()
+      .withMethod(/^(get|post)$/)
+
+    const ruleA = held.identifiedByArg(0).should().notExist()
+    // Built from the SAME `held` reference, after branch A's call above.
+    const ruleB = held.should().notExist()
+
+    expect(ruleA.violations().length).toBeGreaterThan(0) // sanity: branch A did get enriched
+    const bViolations = ruleB.violations()
+    expect(bViolations.length).toBeGreaterThan(0)
+    // Branch B never called .identifiedByArg() — its elements must stay bare
+    // callee names, not the enriched "app.post(...)" form branch A asked for.
+    expect(bViolations.every((v) => v.element === 'app.post' || v.element === 'app.get')).toBe(true)
   })
 
   it('element verbatim at the 81-char crossover (just past the message-elision threshold)', () => {

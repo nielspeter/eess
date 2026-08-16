@@ -192,36 +192,6 @@ const PRESET_PROBES = {
  */
 const KNOWN_FAIL_OPEN = [
   {
-    name: 'agentGuardrails()',
-    reason:
-      'The minimal type-correct call — only the required `src` option — enables zero of the ' +
-      'optional guardrails (noInlineLogic/noGenericErrors/noStubs/noEmptyBodies/noCopyPaste all ' +
-      'default off), so it constructs and dispatches zero rules. Named explicitly in plan 0088 ' +
-      '("the fold inherits ADR-009\'s own unresolved edge") — ts-archunit\'s own upstream plan 0100, ' +
-      'still open there. Not yet filed as its own eess bug/plan.',
-    expires: '2026-11-15',
-  },
-  {
-    name: 'dataLayerIsolation()',
-    reason:
-      'The minimal type-correct call — only the required `repositories` option — enables neither ' +
-      '`baseClass` nor `requireTypedErrors`, so neither dispatchRule() call in the preset ever runs. ' +
-      'Named explicitly in plan 0088, same upstream hole as agentGuardrails(). Not yet filed as its ' +
-      'own eess bug/plan.',
-    expires: '2026-11-15',
-  },
-  {
-    name: 'strictBoundaries()',
-    reason:
-      'A different flavor of the same class, found live by this matrix (not previously named in ' +
-      "plan 0088): boundary folders are discovered by scanning the loaded project's own source " +
-      'files against `folders`, not declared up front — a project with zero (or zero matching) ' +
-      'source files discovers zero boundaries and every dispatchRule() call in the preset is ' +
-      'skipped, regardless of what options were passed. Same "preset constructs nothing" class as ' +
-      'the two entries above; not yet filed as its own eess bug/plan.',
-    expires: '2026-11-15',
-  },
-  {
     name: 'schemaFromSDL()',
     reason:
       'A narrower, different-shaped gap than the presets above: schemaFromSDL() parses its own ' +

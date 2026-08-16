@@ -11,10 +11,12 @@
  * "real script, different real state" pattern bad-release-e2e.mjs uses with
  * a throwaway git repo, just with the mutation on the script's own ratchet
  * instead of on external state. Stripping the ratchet turns
- * `agentGuardrails()`'s already-known, already-real fail-open (constructs
- * zero rules for its minimal options) into an UNRATCHETED one — exactly
- * "a committed rule file whose selector matches nothing must exit non-zero
- * naming the empty selection", with the preset standing in for the rule file.
+ * `schemaFromSDL()`'s already-known, already-real fail-open (parses its own
+ * literal SDL argument rather than the shared zero-file project, so it never
+ * reaches the sourceEmpty signal and passes bare) into an UNRATCHETED one —
+ * exactly "a committed rule file whose selector matches nothing must exit
+ * non-zero naming the empty selection", with the builder standing in for the
+ * rule file.
  *
  * The mutated copy lives inside scripts/nonvacuity/ (not /tmp) so Node's
  * ancestor-walk module resolution still finds this repo's node_modules;
@@ -93,10 +95,10 @@ try {
     console.error(`bad-vacuity-matrix: mutated matrix exited ${String(r.status)}, expected 1 (a fail-open with no ratchet entry must fail the build)`)
     exitCode = 0
     // Naming the specific export, not just "something failed" (bug 0110's own
-    // lesson) — agentGuardrails() is a real, currently-ratcheted fail-open, so
+    // lesson) — schemaFromSDL() is a real, currently-ratcheted fail-open, so
     // stripping the ratchet must name exactly it.
-  } else if (!out.includes('agentGuardrails() (preset) is fail-open with no KNOWN_FAIL_OPEN entry')) {
-    console.error('bad-vacuity-matrix: matrix exited 1 but never named agentGuardrails() as the unratcheted fail-open')
+  } else if (!out.includes('schemaFromSDL() (builder) is fail-open with no KNOWN_FAIL_OPEN entry')) {
+    console.error('bad-vacuity-matrix: matrix exited 1 but never named schemaFromSDL() as the unratcheted fail-open')
     console.error(out.trim().split('\n').slice(-10).join('\n'))
     exitCode = 0
   } else {
@@ -105,7 +107,7 @@ try {
     // summary, or the outer gate can never confirm which export it named.
     const namedLine = out
       .split('\n')
-      .find((l) => l.includes('agentGuardrails() (preset) is fail-open with no KNOWN_FAIL_OPEN entry'))
+      .find((l) => l.includes('schemaFromSDL() (builder) is fail-open with no KNOWN_FAIL_OPEN entry'))
     console.error('bad-vacuity-matrix: OK — stripping KNOWN_FAIL_OPEN correctly turned a known-debt export into a build-failing finding, naming it')
     console.error(namedLine)
     exitCode = 1

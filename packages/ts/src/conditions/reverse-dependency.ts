@@ -1,8 +1,10 @@
 import picomatch from 'picomatch'
-import nodePath from 'node:path'
-import { type SourceFile, type Project, Node, SyntaxKind } from 'ts-morph'
+import { type SourceFile, type Project, Node } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
+import { recordEdgeCoverage } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
+import { moduleEdges } from '../core/module-edges.js'
+import { relativeToRoot } from '../core/project-relative.js'
 
 // ─── Reverse import graph (cached per ts-morph Project) ──────────
 
@@ -11,106 +13,23 @@ type ReverseImportGraph = Map<string, SourceFile[]>
 const graphCache = new WeakMap<Project, ReverseImportGraph>()
 
 /**
- * Build or retrieve the reverse import graph for a project.
+ * Add an edge to the reverse import graph: `targetPath` is referenced by `sf`.
  *
- * Maps each file path to the list of files that import it.
- * Cached per ts-morph Project instance — multiple rules in the same
- * test suite share the same graph. Cache is cleared automatically
- * when resetProjectCache() creates new ArchProject instances (WeakMap GC).
+ * **Always deduplicated, on `(importer, target)`.** A hand-rolled version of
+ * this graph used to take a flag, with static imports passing `false`: one
+ * target, one importer, two static imports of it produced **two
+ * byte-identical violations at the same `file:line`** — and therefore two
+ * identical baseline hashes for one fact. The flag existed because
+ * different edge kinds were indexed in separate passes that could re-add the
+ * same pair; now that every kind comes from one `moduleEdges` pass, one file
+ * referencing one target N ways is one reverse edge.
  */
-/**
- * Add an edge to the reverse import graph: targetPath is imported by sf.
- * Deduplicates entries when `deduplicate` is true (used for re-exports
- * where the same file may appear via both import and export declarations).
- */
-function addToGraph(
-  graph: ReverseImportGraph,
-  targetPath: string,
-  sf: SourceFile,
-  deduplicate: boolean,
-): void {
+function addToGraph(graph: ReverseImportGraph, targetPath: string, sf: SourceFile): void {
   const existing = graph.get(targetPath)
   if (existing) {
-    if (!deduplicate || !existing.includes(sf)) {
-      existing.push(sf)
-    }
+    if (!existing.includes(sf)) existing.push(sf)
   } else {
     graph.set(targetPath, [sf])
-  }
-}
-
-/**
- * Resolve a dynamic import specifier to a project source file.
- *
- * Handles relative specifiers with ESM extension mappings (.js→.ts, .jsx→.tsx,
- * .mjs→.mts) and directory index imports. Non-relative specifiers (bare packages)
- * are skipped — they resolve to node_modules, which are outside the project.
- */
-function resolveDynamicImport(fromFile: SourceFile, specifier: string): SourceFile | undefined {
-  if (!specifier.startsWith('.')) return undefined
-
-  const dirPath = fromFile.getDirectory().getPath()
-  const project = fromFile.getProject()
-
-  // Try the specifier as-is, with ESM extension mappings, and as a directory index
-  const candidates = [
-    specifier,
-    specifier.replace(/\.js$/, '.ts'),
-    specifier.replace(/\.jsx$/, '.tsx'),
-    specifier.replace(/\.mjs$/, '.mts'),
-    specifier + '.ts',
-    specifier + '.tsx',
-    specifier + '/index.ts',
-    specifier + '/index.tsx',
-  ]
-
-  for (const candidate of candidates) {
-    const absolutePath = nodePath.resolve(dirPath, candidate)
-    const resolved = project.getSourceFile(absolutePath)
-    if (resolved) return resolved
-  }
-
-  return undefined
-}
-
-/** Index static import declarations from a source file into the reverse graph. */
-function indexStaticImports(graph: ReverseImportGraph, sf: SourceFile): void {
-  for (const decl of sf.getImportDeclarations()) {
-    const resolved = decl.getModuleSpecifierSourceFile()
-    if (!resolved) continue
-    addToGraph(graph, resolved.getFilePath(), sf, false)
-  }
-}
-
-/** Index re-export declarations from a source file into the reverse graph. */
-function indexReExports(graph: ReverseImportGraph, sf: SourceFile): void {
-  for (const decl of sf.getExportDeclarations()) {
-    const resolved = decl.getModuleSpecifierSourceFile()
-    if (!resolved) continue
-    addToGraph(graph, resolved.getFilePath(), sf, true)
-  }
-}
-
-/** Index dynamic import() expressions from a source file into the reverse graph. */
-function indexDynamicImports(graph: ReverseImportGraph, sf: SourceFile): void {
-  for (const callExpr of sf.getDescendantsOfKind(SyntaxKind.CallExpression)) {
-    if (callExpr.getExpression().getKind() !== SyntaxKind.ImportKeyword) continue
-    const args = callExpr.getArguments()
-    if (args.length === 0) continue
-
-    const arg = args[0]
-    if (!arg) continue
-    let specifier: string | undefined
-    if (Node.isStringLiteral(arg) || Node.isNoSubstitutionTemplateLiteral(arg)) {
-      specifier = arg.getLiteralValue()
-    }
-
-    if (specifier === undefined) continue
-
-    const resolved = resolveDynamicImport(sf, specifier)
-    if (resolved) {
-      addToGraph(graph, resolved.getFilePath(), sf, true)
-    }
   }
 }
 
@@ -125,10 +44,29 @@ function getReverseImportGraph(sourceFiles: SourceFile[]): ReverseImportGraph {
 
   const graph: ReverseImportGraph = new Map()
 
-  for (const sf of sourceFiles) {
-    indexStaticImports(graph, sf)
-    indexReExports(graph, sf)
-    indexDynamicImports(graph, sf)
+  // **Every kind counts here, `require` and `type-expression` included** —
+  // the opposite of the forward conditions, and deliberately so. The two
+  // directions ask different questions:
+  //
+  // | direction | question                                    | a `require` edge means          |
+  // | --------- | -------------------------------------------- | -------------------------------- |
+  // | forward   | does this file depend on something banned?   | a finding with no usable remedy |
+  // | reverse   | is anything referencing this file?           | **yes** — it is not dead        |
+  //
+  // Excluding `require` here would report a module that CJS code requires as
+  // an orphan, and excluding `type-expression` would report one that only a
+  // type position references — both false positives, and deleting either
+  // module breaks the build. The forward exclusion avoids an unactionable
+  // finding; the same exclusion here would manufacture a wrong one.
+  //
+  // The one caller that genuinely has a file SET, so it is the one that uses
+  // the bulk `moduleEdges` entry point rather than the per-file `edgesOf`.
+  const byFile = moduleEdges(sourceFiles)
+  for (const importer of sourceFiles) {
+    for (const edge of byFile.get(importer.getFilePath()) ?? []) {
+      if (edge.resolvedPath === undefined) continue
+      addToGraph(graph, edge.resolvedPath, importer)
+    }
   }
 
   graphCache.set(project, graph)
@@ -146,8 +84,16 @@ function getReverseImportGraph(sourceFiles: SourceFile[]): ReverseImportGraph {
  * Modules with zero importers pass vacuously. Chain `.andShould().beImported()`
  * if you also want to catch orphaned files.
  *
- * Both static `import` declarations and dynamic `import()` expressions with
- * string-literal specifiers are resolved. `require()` calls are not resolved.
+ * **Every kind of reference counts here**: `import`, `export … from`,
+ * `import()`, `type X = import('…').Y`, and **`require()`** — both
+ * `require('s')` in a `.js` file and `import x = require('s')`. Only a
+ * computed specifier (`import('./' + name)`) is invisible, because there is
+ * no specifier to resolve, along with a `declare module './rel.js'`
+ * augmentation.
+ *
+ * That is wider than the *forward* dependency conditions, which exclude
+ * `require` — deliberately, and see `getReverseImportGraph` for why the same
+ * exclusion would be wrong here.
  */
 export function onlyBeImportedVia(...globs: string[]): Condition<SourceFile> {
   const matchers = globs.map((g) => picomatch(g))
@@ -161,23 +107,58 @@ export function onlyBeImportedVia(...globs: string[]): Condition<SourceFile> {
       const graph = getReverseImportGraph(allFiles)
       const violations: ArchViolation[] = []
 
+      // The mirror case of bug-0015: a module with no importers passes
+      // however broken the allowlist. This condition already documents the
+      // behaviour ("Modules with zero importers pass vacuously") without
+      // treating it as a gap; the tally is what turns that note into
+      // something a reader sees.
+      let tested = 0
       for (const sf of elements) {
         const importers = graph.get(sf.getFilePath()) ?? []
         for (const importer of importers) {
+          tested++
           const importerPath = importer.getFilePath()
-          if (!matchers.some((m) => m(importerPath))) {
+          // Also the importer's path named from the project root (plan
+          // 0148, same shape as bug 0037 one layer over) — this glob is
+          // matched against an ABSOLUTE path, so a project-relative one
+          // could never match and every importer was reported:
+          // `onlyBeImportedVia('src/**')` produced false violations that
+          // `onlyBeImportedVia('**/src/**')` did not.
+          const fromRoot = relativeToRoot(importer, importerPath)
+          const matched =
+            matchers.some((m) => m(importerPath)) ||
+            (fromRoot !== undefined && matchers.some((m) => m(fromRoot)))
+          if (!matched) {
             violations.push({
               rule: context.rule,
               element: sf.getBaseName(),
               file: sf.getFilePath(),
               line: 1,
-              message: `${sf.getBaseName()} is imported by ${importer.getBaseName()} which does not match [${globs.join(', ')}]`,
+              // The importer by PATH, not by basename — and the message is
+              // the only place it can appear, because `element`, `file` and
+              // `line` all describe the TARGET.
+              //
+              // Two importers sharing a filename produce findings that are
+              // byte-identical on screen: same element, same file, same
+              // line, same message. That is survivable while the two share
+              // a baseline entry and only one is ever reported — but once
+              // findings get their own identities the hidden sibling
+              // surfaces, and an adopter is handed a red identical to one
+              // they already accepted, pointing at the victim rather than
+              // the offender, with no way to tell which importer is new.
+              //
+              // `element` is deliberately left as the basename:
+              // `.excluding()` matches on `element`/`file`/`message`, so
+              // promoting it to a path would silently break every
+              // `.excluding('index.ts')` in the wild.
+              message: `${sf.getBaseName()} is imported by ${importerPath} which does not match [${globs.join(', ')}]`,
               because: context.because,
             })
           }
         }
       }
 
+      recordEdgeCoverage(context.rule, elements.length, tested)
       return violations
     },
   }
@@ -189,9 +170,13 @@ export function onlyBeImportedVia(...globs: string[]): Condition<SourceFile> {
  * Detects dead/orphaned modules that nobody references.
  * Use `.excluding('index.ts', 'main.ts')` to skip entry points.
  *
- * Both static `import` declarations and dynamic `import()` expressions with
- * string-literal specifiers are resolved. Modules loaded via `require()` or
- * dynamic imports with computed specifiers will still be falsely reported.
+ * **A module referenced by any kind of edge is not dead**, including
+ * `export … from`, `import()`, a type-only reference, and `require()` in
+ * either spelling.
+ *
+ * Two shapes are still invisible and will be falsely reported: a computed
+ * specifier (`import('./' + name)`), and a module referenced only from a
+ * `declare module './rel.js'` augmentation.
  */
 export function beImported(): Condition<SourceFile> {
   return {

@@ -2,6 +2,7 @@ import type { ArchViolation } from '../core/violation.js'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
+import { writeStderr } from '@nielspeter/eess'
 import type { LoadedSchema, GraphQLObjectTypeLike, GraphQLTypeLike } from './schema-loader.js'
 import type { SchemaElement } from './schema-predicates.js'
 import {
@@ -72,32 +73,36 @@ export class SchemaRuleBuilder extends TerminalBuilder {
    * Filter to only Query root type fields.
    */
   queries(): this {
-    this._predicates.push(queriesPredicate())
-    return this
+    const next = this.copy()
+    next._predicates.push(queriesPredicate())
+    return next
   }
 
   /**
    * Filter to only Mutation root type fields.
    */
   mutations(): this {
-    this._predicates.push(mutationsPredicate())
-    return this
+    const next = this.copy()
+    next._predicates.push(mutationsPredicate())
+    return next
   }
 
   /**
    * Filter to object types matching the given name pattern.
    */
   typesNamed(pattern: RegExp | string): this {
-    this._predicates.push(typesNamedPredicate(pattern))
-    return this
+    const next = this.copy()
+    next._predicates.push(typesNamedPredicate(pattern))
+    return next
   }
 
   /**
    * Filter to fields returning a list of the given type.
    */
   returnListOf(typeName: string | RegExp): this {
-    this._predicates.push(returnListOfPredicate(typeName))
-    return this
+    const next = this.copy()
+    next._predicates.push(returnListOfPredicate(typeName))
+    return next
   }
 
   // --- Chain methods ---
@@ -136,16 +141,18 @@ export class SchemaRuleBuilder extends TerminalBuilder {
    * Assert that types have all listed fields.
    */
   haveFields(...names: string[]): this {
-    this._conditions.push(haveFieldsCondition(...names))
-    return this
+    const next = this.copy()
+    next._conditions.push(haveFieldsCondition(...names))
+    return next
   }
 
   /**
    * Assert that fields accept all listed arguments.
    */
   acceptArgs(...names: string[]): this {
-    this._conditions.push(acceptArgsCondition(...names))
-    return this
+    const next = this.copy()
+    next._conditions.push(acceptArgsCondition(...names))
+    return next
   }
 
   /**
@@ -154,8 +161,9 @@ export class SchemaRuleBuilder extends TerminalBuilder {
    * @param resolverFileTexts - Map of file paths to source text
    */
   haveMatchingResolver(resolverFileTexts: ReadonlyMap<string, string>): this {
-    this._conditions.push(haveMatchingResolverCondition(resolverFileTexts))
-    return this
+    const next = this.copy()
+    next._conditions.push(haveMatchingResolverCondition(resolverFileTexts))
+    return next
   }
 
   // --- Evaluation ---
@@ -178,7 +186,7 @@ export class SchemaRuleBuilder extends TerminalBuilder {
 
     if (this._conditions.length === 0) {
       const ruleId = this._metadata?.id ?? 'unnamed'
-      console.warn(
+      writeStderr(
         `[eess] Schema rule '${ruleId}' has predicates but no conditions. ` +
           `Did you forget to add a condition after .should()?`,
       )

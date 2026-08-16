@@ -167,8 +167,11 @@ describe('extractCallbacks', () => {
         })
       `)
       const callbacks = extractCallbacks(callExpr)
-      // handler + hooks.onRequest
-      expect(callbacks).toHaveLength(2)
+      // The DOTTED path, which is what `fromObjectLiteralFunction` produces for the
+      // same node at the other call site. Match it rather than pin a bare
+      // `onRequest`: two surfaces disagreeing about one node's identity would make
+      // `.excluding()` patterns depend on which surface reported.
+      expect(callbacks.map((c) => c.fn.getName()).sort()).toEqual(['handler', 'hooks.onRequest'])
     })
 
     it('ignores non-function properties', () => {
@@ -179,11 +182,11 @@ describe('extractCallbacks', () => {
         })
       `)
       const callbacks = extractCallbacks(callExpr)
-      // Only handler, not schema
-      expect(callbacks).toHaveLength(1)
+      // Not `schema` — which a length-1 assertion could not tell apart.
+      expect(callbacks.map((c) => c.fn.getName())).toEqual(['handler'])
     })
 
-    it('respects depth limit (MAX_OBJECT_DEPTH = 3)', () => {
+    it('respects depth limit (MAX_OBJECT_LITERAL_DEPTH = 3)', () => {
       const callExpr = getFirstCallExpression(`
         app.post('/deep', {
           schema: {
@@ -197,8 +200,9 @@ describe('extractCallbacks', () => {
         })
       `)
       const callbacks = extractCallbacks(callExpr)
-      // handler is extracted (depth 0), default at depth 3 is NOT extracted
-      expect(callbacks).toHaveLength(1)
+      // `handler` at depth 0, NOT `default` at depth 3 — and a count alone could
+      // not tell those apart, since extracting the wrong one is also one callback.
+      expect(callbacks.map((c) => c.fn.getName())).toEqual(['handler'])
       expect(callbacks[0]!.fn.isAsync()).toBe(true)
     })
 
@@ -210,7 +214,7 @@ describe('extractCallbacks', () => {
         })
       `)
       const callbacks = extractCallbacks(callExpr)
-      expect(callbacks).toHaveLength(2)
+      expect(callbacks.map((c) => c.fn.getName()).sort()).toEqual(['handler', 'preHandler'])
     })
 
     it('direct inline callbacks still work alongside object extraction', () => {
@@ -218,8 +222,11 @@ describe('extractCallbacks', () => {
         app.get('/mixed', {}, (req: unknown) => { return 'ok' })
       `)
       const callbacks = extractCallbacks(callExpr)
-      // Direct callback at index 2
-      expect(callbacks).toHaveLength(1)
+      // The slot matters: `{}` sits at index 1 and must not be extracted.
+      // A POSITIONAL callback has no name, and that is the honest answer rather
+      // than a defect — `argIndex` is its identity.
+      expect(callbacks.map((c) => c.fn.getName())).toEqual([undefined])
+      expect(callbacks.map((c) => c.argIndex)).toEqual([2])
     })
   })
 
@@ -471,5 +478,28 @@ describe('extractCallbacks', () => {
       const callbacks = extractCallbacks(callExpr)
       expect(callbacks).toHaveLength(0)
     })
+  })
+})
+
+describe('a NAMED function expression: the property key wins', () => {
+  // `{ handler: function legacyName(req) {} }` reports **handler**, not
+  // **legacyName** — the property key is how a reader and a rule refer to the
+  // callback, and it matches what `fromObjectLiteralFunction` produces at the
+  // other call site.
+  it("reports the property name, not the function expression's own identifier", () => {
+    const callExpr = getFirstCallExpression(`
+      app.post('/named', {
+        handler: function legacyName(req: unknown) { validateInput(req) },
+      })
+    `)
+    expect(extractCallbacks(callExpr).map((c) => c.fn.getName())).toEqual(['handler'])
+  })
+
+  it('CONTROL: a named function expression NOT on a property keeps its own name', () => {
+    // So the row above is about the property winning, not about names being lost.
+    const callExpr = getFirstCallExpression(`
+      app.get('/positional', function ownName(req: unknown) { validateInput(req) })
+    `)
+    expect(extractCallbacks(callExpr).map((c) => c.fn.getName())).toEqual(['ownName'])
   })
 })

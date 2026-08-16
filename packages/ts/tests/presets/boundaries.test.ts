@@ -43,11 +43,26 @@ describe('strictBoundaries preset', () => {
     }).not.toThrow()
   })
 
-  it('passes when no boundary folders match the glob', () => {
-    // A glob that matches nothing means no boundary rules are applied
+  it('fails loudly when no boundary folders match the glob, instead of silently applying nothing', () => {
+    // Bug-0100-class (plan 0147, this session's own fix): a `folders` glob
+    // matching nothing used to construct zero rules and pass silently — the
+    // vacuity matrix's own KNOWN_FAIL_OPEN entry for this preset. It now
+    // throws a configuration finding naming the cause.
     expect(() => {
       strictBoundaries(p, {
         folders: '**/src/nonexistent-*',
+      })
+    }).toThrow(ArchRuleError)
+  })
+
+  it('passes when the discovery glob matches nothing but noCopyPaste is enabled', () => {
+    // noCopyPaste is the one capability with no dependency on discovered
+    // boundary folders — it alone is enough to make the call construct
+    // something real.
+    expect(() => {
+      strictBoundaries(p, {
+        folders: '**/src/nonexistent-*',
+        noCopyPaste: true,
       })
     }).not.toThrow()
   })
@@ -91,7 +106,7 @@ describe('strictBoundaries preset', () => {
     it('warns on duplicate function bodies across boundaries', () => {
       // feature-a/helper.ts and feature-b/helper.ts have identical bodies.
       // noCopyPaste triggers smells.duplicateBodies which is dispatched as 'warn'.
-      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       expect(() => {
         strictBoundaries(p, {
           folders: '**/src/feature-*',

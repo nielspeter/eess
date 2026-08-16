@@ -39,32 +39,37 @@ export abstract class SmellBuilder extends TerminalBuilder {
 
   /** Scope detection to files matching the glob pattern. */
   inFolder(glob: string): this {
-    this._folders.push(glob)
-    return this
+    const next = this.copy()
+    next._folders.push(glob)
+    return next
   }
 
   /** Ignore functions/files shorter than N lines. Default: 5. */
   minLines(n: number): this {
-    this._minLines = n
-    return this
+    const next = this.copy()
+    next._minLines = n
+    return next
   }
 
   /** Exclude test files (*.test.ts, *.spec.ts, __tests__/**). */
   ignoreTests(): this {
-    this._ignoreTests = true
-    return this
+    const next = this.copy()
+    next._ignoreTests = true
+    return next
   }
 
   /** Exclude files matching the given glob patterns. */
   ignorePaths(...globs: string[]): this {
-    this._ignorePaths.push(...globs)
-    return this
+    const next = this.copy()
+    next._ignorePaths.push(...globs)
+    return next
   }
 
   /** Group violation output by directory. */
   groupByFolder(): this {
-    this._groupByFolder = true
-    return this
+    const next = this.copy()
+    next._groupByFolder = true
+    return next
   }
 
   /**

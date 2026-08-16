@@ -20,21 +20,21 @@ function loadTestProject(): ArchProject {
 
 describe('validateOverrides', () => {
   it('does nothing when overrides is undefined', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     validateOverrides(undefined, ['a', 'b'])
     expect(spy).not.toHaveBeenCalled()
     spy.mockRestore()
   })
 
   it('does nothing when all override keys are known', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     validateOverrides({ 'rule/a': 'off' }, ['rule/a', 'rule/b'])
     expect(spy).not.toHaveBeenCalled()
     spy.mockRestore()
   })
 
   it('warns for unrecognized override keys', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     validateOverrides({ 'rule/typo': 'off' }, ['rule/a', 'rule/b'])
     expect(spy).toHaveBeenCalledTimes(1)
     expect(spy).toHaveBeenCalledWith(
@@ -73,7 +73,7 @@ describe('dispatchRule', () => {
   })
 
   it('logs warnings and returns empty array when severity is warn', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
 
     const builder = modules(p)
       .that()
@@ -88,7 +88,7 @@ describe('dispatchRule', () => {
   })
 
   it('does not log when warn severity has no violations', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
 
     const builder = modules(p)
       .that()
@@ -103,7 +103,7 @@ describe('dispatchRule', () => {
   })
 
   it('uses override severity instead of default', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
 
     const builder = modules(p)
       .that()

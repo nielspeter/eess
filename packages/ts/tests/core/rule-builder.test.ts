@@ -77,7 +77,7 @@ describe('RuleBuilder', () => {
 
   describe('.warn()', () => {
     it('logs violations to stderr but does not throw', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       const builder = new TestRuleBuilder(stubProject, elements)
       builder
         .that()
@@ -93,7 +93,7 @@ describe('RuleBuilder', () => {
     })
 
     it('does not log when there are no violations', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       const builder = new TestRuleBuilder(stubProject, elements)
       builder
         .that()
@@ -308,7 +308,7 @@ describe('RuleBuilder', () => {
     })
 
     it('severity("warn") behaves like .warn()', () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       const builder = new TestRuleBuilder(stubProject, elements)
       builder.should().withCondition(alwaysFail('bad')).severity('warn')
       expect(warnSpy).toHaveBeenCalledOnce()

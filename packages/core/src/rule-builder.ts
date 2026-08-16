@@ -3,8 +3,53 @@ import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
 import type { RuleDescription } from './rule-description.js'
 import type { Selection, ElementInfo } from './correspondence.js'
+import type { DeclaredGlob, GlobNode } from './glob-site.js'
+import { countDeclaredGlobs, stampGlobs } from './glob-site.js'
 import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
 import { assertsCardinality as conditionAssertsCardinality } from './cardinality.js'
+import { writeStderr } from './stderr.js'
+
+/**
+ * A declared glob's own label in a dead-glob finding — the predicate/
+ * condition's description, disambiguated with the literal glob only when
+ * more than one site shares the description (a variadic predicate like
+ * `importFrom(...globs)` already spells every glob into its own
+ * description, so a substring test would collapse the one case this exists
+ * to separate — keyed on the site COUNT instead).
+ */
+function describeOrigin(description: string, glob: DeclaredGlob, siteCount: number): string {
+  return siteCount > 1 ? `${description} ("${glob.glob}")` : description
+}
+
+/**
+ * The actual walk `RuleBuilder.globs()` delegates to — a free function
+ * rather than a method body, to keep the class itself under this repo's own
+ * 300-line class-length gate (`arch.internal.rules.ts`).
+ */
+function declaredGlobsOf<T>(predicates: Predicate<T>[], conditions: Condition<T>[]): GlobNode[] {
+  const trees: GlobNode[] = []
+  for (const predicate of predicates) {
+    if (predicate.globs) {
+      const count = countDeclaredGlobs(predicate.globs)
+      trees.push(
+        stampGlobs(predicate.globs, 'selector', (g) =>
+          describeOrigin(predicate.description, g, count),
+        ),
+      )
+    }
+  }
+  for (const condition of conditions) {
+    if (condition.globs) {
+      const count = countDeclaredGlobs(condition.globs)
+      trees.push(
+        stampGlobs(condition.globs, 'condition', (g) =>
+          describeOrigin(condition.description, g, count),
+        ),
+      )
+    }
+  }
+  return trees
+}
 
 /**
  * Abstract base class for all rule builders.
@@ -141,8 +186,8 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * cardinality condition would silence the other. An empty condition list is
    * NOT exempt: `[].every()` is vacuously `true`, and a rule with zero
    * conditions is the assertion-less case `collectViolations()`'s own
-   * `console.warn` already names — this override must not paper over that by
-   * also declaring it cardinality-satisfied.
+   * stderr warning already names — this override must not paper over that
+   * by also declaring it cardinality-satisfied.
    */
   protected override assertsCardinality(): boolean {
     if (this._conditions.length === 0) return false
@@ -162,6 +207,21 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    */
   protected sourceEmpty(): boolean {
     return false
+  }
+
+  /** Declared globs, position derived from `_phase`. Pure — no `P` needed. */
+  globs(): readonly GlobNode[] {
+    return declaredGlobsOf(this._predicates, this._conditions)
+  }
+
+  /** This rule's own project, for `diagnose()`/`doctor` outside `.check()`. */
+  getProject(): P {
+    return this.project
+  }
+
+  /** A `globs()` tree diagnosably dead, when zero examined — same shape as `sourceEmpty()`. */
+  protected deadGlobDiagnosis(): string | undefined {
+    return undefined
   }
 
   // --- Protected: for subclasses ---
@@ -258,15 +318,21 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
     const examined = filtered.length
 
     if (filtered.length === 0) {
-      return { violations: [], examined, sourceEmpty: this.sourceEmpty() }
+      const sourceEmpty = this.sourceEmpty()
+      // Skip the diagnosis (a real filesystem walk, in a dialect's
+      // override) when the project itself is already known empty — nothing
+      // useful to say about one glob's fate against zero loaded files, and
+      // `sourceEmpty` outranks it in `evidencedViolations()` regardless.
+      const deadGlob = sourceEmpty ? undefined : this.deadGlobDiagnosis()
+      return { violations: [], examined, sourceEmpty, deadGlob }
     }
 
     // An assertion-less rule (subjects found, nothing asserted about them) is
-    // distinct from the zero-examined case above and stays a console.warn,
+    // distinct from the zero-examined case above and stays a stderr warning,
     // not the unsuppressable ADR-010 finding — examined is non-zero either way.
     if (this._conditions.length === 0 && this._phase === 'predicate') {
       const ruleId = this._metadata?.id ?? (this.buildRuleDescription() || 'unnamed')
-      console.warn(
+      writeStderr(
         `[eess] Rule '${ruleId}' has predicates but no conditions. ` +
           `Did you use a predicate-only method after .should()? ` +
           `Predicate-only methods (e.g. areExported, areAsync) filter elements; ` +

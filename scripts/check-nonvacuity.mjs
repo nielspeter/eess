@@ -95,7 +95,7 @@
  *   vacuity-matrix (plan 0088 Phase 4a)
  *                 scripts/nonvacuity/bad-vacuity-matrix.mjs runs a mutated COPY
  *                 of the real scripts/vacuity-matrix.mjs with its KNOWN_FAIL_OPEN
- *                 ratchet stripped to `[]`, turning agentGuardrails()'s already-
+ *                 ratchet stripped to `[]`, turning schemaFromSDL()'s already-
  *                 real, already-ratcheted fail-open into an unratcheted one →
  *                 the mutated matrix must exit 1 naming exactly that export.
  *
@@ -749,7 +749,7 @@ const gates = [
     () =>
       gateNode(
         'bad-vacuity-matrix.mjs',
-        'agentGuardrails() (preset) is fail-open with no KNOWN_FAIL_OPEN entry',
+        'schemaFromSDL() (builder) is fail-open with no KNOWN_FAIL_OPEN entry',
       ),
   ],
 ]

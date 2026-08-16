@@ -116,7 +116,7 @@ describe('layeredArchitecture preset', () => {
       // user-route.ts has a value import from services (getUser).
       // typeImportsAllowed says routes should only type-import from other layers.
       // Default severity for type-imports-only is 'warn', so it logs but does not throw.
-      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       expect(() => {
         layeredArchitecture(p, {
           layers: {
@@ -133,7 +133,7 @@ describe('layeredArchitecture preset', () => {
 
     it('does not warn when typeImportsAllowed layer has no value imports from others', () => {
       // The shared layer has no imports at all, so no violations expected
-      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       expect(() => {
         layeredArchitecture(p, {
           layers: {
@@ -166,7 +166,7 @@ describe('layeredArchitecture preset', () => {
     })
 
     it('skips type-imports-only when typeImportsAllowed is empty', () => {
-      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       expect(() => {
         layeredArchitecture(p, {
           layers: {
@@ -183,7 +183,7 @@ describe('layeredArchitecture preset', () => {
 
     it('skips type-imports-only rule when layer has no other layers to compare', () => {
       // With a single layer, otherLayerGlobs is empty — the guard skips the rule
-      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
       expect(() => {
         layeredArchitecture(p, {
           layers: {

@@ -1,5 +1,6 @@
 import picomatch from 'picomatch'
 import path from 'node:path'
+import { selectionMemo } from '@nielspeter/eess'
 import { SmellBuilder } from './smell-builder.js'
 import { collectFunctions } from '../models/arch-function.js'
 import { buildFingerprint, computeSimilarity } from './fingerprint.js'
@@ -17,9 +18,21 @@ interface FingerprintedFunction {
 /** Test file patterns for ignoreTests(). */
 const TEST_PATTERNS = ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**']
 
+const selectionOf = selectionMemo<ArchFunction>()
+
 export class DuplicateBodiesBuilder extends SmellBuilder {
   private _minSimilarity = 0.85
-  private _examined = 0
+  /**
+   * Minimum count of distinct identifier/literal text either body must carry
+   * before a pair is even compared — not raw line count, and not
+   * similarity. Two bodies can share a syntactic shape for no reason other
+   * than the shape being mandated (a wither, a getter, a boilerplate
+   * skeleton); below this threshold a "match" carries no information about
+   * what the code actually does. Default: 8. Tune down for a codebase with
+   * terser naming than this default assumes; tune up if short,
+   * low-vocabulary bodies keep surfacing as noise.
+   */
+  private _minDistinctVocabulary = 8
 
   constructor(project: ArchProject) {
     super(project)
@@ -27,26 +40,51 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
 
   /** Set the AST similarity threshold. Default: 0.85. */
   withMinSimilarity(threshold: number): this {
-    this._minSimilarity = threshold
-    return this
+    const next = this.copy()
+    next._minSimilarity = threshold
+    return next
   }
 
-  /** ADR-010: functions entering pairwise comparison, set by `detect()`. */
+  /** See `_minDistinctVocabulary`'s own doc comment. */
+  minDistinctVocabulary(n: number): this {
+    const next = this.copy()
+    next._minDistinctVocabulary = n
+    return next
+  }
+
+  /** ADR-010: functions entering pairwise comparison — memoized, see `selected()`. */
   protected examinedCount(): number {
-    return this._examined
+    return this.selected().length
   }
 
   protected detect(): ArchViolation[] {
-    const functions = this.collectFilteredFunctions()
-    this._examined = functions.length
+    const functions = this.selected()
     const fingerprinted = this.fingerprintAll(functions)
     const pairs = this.findSimilarPairs(fingerprinted)
     return this.buildViolations(pairs)
   }
 
+  /**
+   * Memoized on the builder instance — `collectViolations()` calls both
+   * `detect()` and `examinedCount()`, and without this the whole
+   * source-file/function walk ran twice per rule.
+   */
+  private selected(): ArchFunction[] {
+    return selectionOf(this, () => this.collectFilteredFunctions())
+  }
+
   protected describe(): string {
     const scope = this._folders.length > 0 ? this._folders.join(', ') : 'all files'
-    return `No duplicate function bodies in ${scope} (similarity >= ${String(this._minSimilarity)})`
+    const filters = [
+      `minLines >= ${String(this._minLines)}`,
+      `minDistinctVocabulary >= ${String(this._minDistinctVocabulary)}`,
+    ]
+    if (this._ignorePaths.length > 0) filters.push(`ignoring ${this._ignorePaths.join(', ')}`)
+    if (this._ignoreTests) filters.push('ignoring tests')
+    return (
+      `No duplicate function bodies in ${scope} ` +
+      `(similarity >= ${String(this._minSimilarity)}, ${filters.join(', ')})`
+    )
   }
 
   /** Check if a file path passes all glob-based filters. */
@@ -116,10 +154,21 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
         const a = items[i]
         const b = items[j]
         if (!a || !b) continue
-        // Fast rejection: if node counts differ too much, similarity cannot reach threshold
+        // Fast rejection 1: if node counts differ too much, similarity cannot reach threshold
         const maxCount = Math.max(a.fingerprint.nodeCount, b.fingerprint.nodeCount)
         const minCount = Math.min(a.fingerprint.nodeCount, b.fingerprint.nodeCount)
         if (maxCount > 0 && minCount / maxCount < this._minSimilarity) {
+          continue
+        }
+        // Fast rejection 2: neither body has enough distinct vocabulary for a
+        // match to be evidence of anything. `Math.min`, not sum or average —
+        // ONE small-vocabulary side is enough to make the pair uninformative
+        // regardless of the other side's size.
+        const minDistinct = Math.min(
+          a.fingerprint.distinctVocabulary,
+          b.fingerprint.distinctVocabulary,
+        )
+        if (minDistinct < this._minDistinctVocabulary) {
           continue
         }
         const similarity = computeSimilarity(a.fingerprint, b.fingerprint)
@@ -165,6 +214,14 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
         file: fileA,
         line: lineA,
         message: `${nameA} (${fileA}:${String(lineA)}) is ${String(pct)}% similar to ${nameB} (${fileB}:${String(lineB)})`,
+        // Which endpoint is "a" comes from the source-file walk order, which
+        // is a property of the filesystem: the same pair reports A→B on one
+        // machine and B→A on another, and the reported message alone would
+        // give them different identities. Sort the endpoints so the pair
+        // reads the same either way. Qualified by path — a bare function
+        // name is not unique across files — and without the similarity
+        // percentage, which drifts as either body is edited.
+        identity: `duplicate-pair::${[`${fileA}#${nameA}`, `${fileB}#${nameB}`].sort().join('::')}`,
         because: this._reason,
       })
     }

@@ -1,6 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import path from 'node:path'
 import { ArchRuleError } from '@nielspeter/eess'
+import {
+  resetCommentSuppression,
+  commentSuppressions,
+  commentSuppressionNotice,
+} from '@nielspeter/eess'
 import { project, functions, call } from '../../src/index.js'
 import { functionNotContain } from '../../src/conditions/body-analysis-function.js'
 
@@ -115,6 +120,25 @@ describe('inline exclusion comments — end-to-end (condition → applyFilters �
       }
       expect(caught).toBeInstanceOf(ArchRuleError)
       expect(caught!.violations).toHaveLength(2)
+    })
+  })
+
+  describe('comment-suppression disclosure (plan 0147 Phase 4)', () => {
+    beforeEach(() => {
+      resetCommentSuppression()
+    })
+
+    it('records a real suppression when applyFilters drops a comment-excluded violation', () => {
+      expect(() => forbiddenCallRule('excluded-single.ts', RULE_ID).check()).not.toThrow()
+      const suppressions = commentSuppressions()
+      expect(suppressions.some((s) => s.ruleId === RULE_ID)).toBe(true)
+      expect(commentSuppressionNotice()).toContain(RULE_ID)
+    })
+
+    it('does not record anything when the exclusion comment does not match (id-scoped miss)', () => {
+      resetCommentSuppression()
+      expect(() => forbiddenCallRule('excluded-single.ts', OTHER_ID).check()).toThrow(ArchRuleError)
+      expect(commentSuppressions()).toEqual([])
     })
   })
 })

@@ -3,7 +3,12 @@ import type { ArchViolation } from '../core/violation.js'
 import { classes } from '../builders/class-rule-builder.js'
 import { newExpr } from '../helpers/matchers.js'
 import type { PresetBaseOptions } from './shared.js'
-import { dispatchRule, validateOverrides, finishPreset } from './shared.js'
+import {
+  dispatchRule,
+  validateOverrides,
+  finishPreset,
+  presetConstructsNothingViolation,
+} from './shared.js'
 
 export interface DataLayerIsolationOptions extends PresetBaseOptions {
   /** Glob pattern for repository files */
@@ -57,6 +62,18 @@ export function dataLayerIsolation(
         'error',
         overrides,
       ),
+    )
+  }
+
+  // Both rules sit behind an independent optional flag, so — unlike
+  // `strictBoundaries`/`layeredArchitecture`, which always construct at
+  // least one rule once discovery succeeds — this can legitimately construct
+  // zero. Found live by the vacuity matrix: `dataLayerIsolation(p, {
+  // repositories })` alone passes silently (plan 0088 Phase 4a
+  // `KNOWN_FAIL_OPEN`).
+  if (!options.baseClass && !options.requireTypedErrors) {
+    violations.push(
+      presetConstructsNothingViolation('dataLayerIsolation', 'baseClass, requireTypedErrors'),
     )
   }
 

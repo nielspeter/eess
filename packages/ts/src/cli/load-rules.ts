@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { createJiti } from 'jiti'
 import type { CheckOptions, ArchViolation } from '@nielspeter/eess'
+import { isNullaryCallable } from '@nielspeter/eess'
 
 /** Minimal interface for rule builders — needs .check(); .violations() enables --fix. */
 // eess-exclude eess/no-unused-exports: return-element type of the exported loadRuleFiles API (must stay exported for declaration emit)
@@ -80,10 +81,9 @@ function resolveExported(exported: unknown, file: string): unknown[] {
   if (Array.isArray(exported)) {
     return exported
   }
-  if (typeof exported === 'function') {
+  if (isNullaryCallable(exported)) {
     // Runtime validated: exported is a function, call it and check result
-    // eess-exclude eess/adr005-no-type-assertions: exported is runtime-verified as callable (typeof check); the static `Function` type is not callable with a typed signature
-    const result: unknown = (exported as () => unknown)()
+    const result: unknown = exported()
     if (Array.isArray(result)) {
       return result
     }

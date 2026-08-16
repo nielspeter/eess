@@ -5,6 +5,7 @@ import type { RuleDescription } from './rule-description.js'
 import type { SilentExclusion } from './silent-exclusion.js'
 import { isSilent } from './silent-exclusion.js'
 import { executeCheck, executeWarn, applyFilters } from './execute-rule.js'
+import { shallowClone } from './shallow-clone.js'
 
 /**
  * A rule's verdict, carrying evidence of examination alongside the findings —
@@ -28,6 +29,15 @@ export interface CollectResult {
   readonly violations: ArchViolation[]
   readonly examined: number
   readonly sourceEmpty?: boolean
+  /**
+   * A specific dead-glob explanation for a zero-examined rule, pre-formatted
+   * by the dialect that computed it (`RuleBuilder.deadGlobDiagnosis()`) —
+   * the kernel never touches picomatch or a project type to build this
+   * itself. `undefined` means no diagnosis is available (no glob declared,
+   * or the declared glob isn't actually dead), which falls through to the
+   * generic zero-examined finding the same as before this field existed.
+   */
+  readonly deadGlob?: string
 }
 
 /**
@@ -237,12 +247,17 @@ export abstract class TerminalBuilder {
    *   exist): the rule's own violations stand as computed.
    */
   private evidencedViolations(): ArchViolation[] {
-    const { violations, examined, sourceEmpty } = this.collectViolations()
+    const { violations, examined, sourceEmpty, deadGlob } = this.collectViolations()
     if (examined === 0) {
       if (sourceEmpty === true) return [...violations, this.zeroLoadedSourceViolation()]
       if (this._expectEmpty === true) return violations
       if (this._expectEmpty === false) return [...violations, this.unmetExpectNonEmptyViolation()]
       if (this.assertsCardinality()) return violations
+      // A specific dead-glob explanation, when the dialect could compute
+      // one, outranks the generic zero-examined message — both name the
+      // same underlying fact, and the specific one is strictly more
+      // actionable (it names the actual glob and why it can never match).
+      if (deadGlob !== undefined) return [...violations, this.deadGlobViolation(deadGlob)]
       return [...violations, this.zeroExaminedViolation()]
     }
     if (this._expectEmpty === true) {
@@ -265,6 +280,32 @@ export abstract class TerminalBuilder {
       `empty right now), declare it explicitly with .expectEmpty() — otherwise this is a ` +
       `dead selector, an empty project, or a rule that never reaches its own examining ` +
       `seam, and the fix is to widen the selection, not to suppress this finding.`
+    return {
+      rule: described.rule ?? name,
+      ruleId: described.id,
+      element: name,
+      file: '',
+      line: 0,
+      message,
+      suggestion: message,
+      because: this._reason,
+      bypassFilters: true,
+    }
+  }
+
+  /**
+   * The configuration finding for a rule that examined zero units BECAUSE one
+   * of its declared globs is diagnosably dead — `deadGlob` is the pre-formed
+   * reason a dialect's `RuleBuilder.deadGlobDiagnosis()` computed (a typo, an
+   * unanchored pattern, a directory glob pointed at a file — whatever the
+   * dialect's own glob-evaluation determined). Strictly more actionable than
+   * `zeroExaminedViolation()`'s generic message, which this replaces when a
+   * diagnosis is available; see `evidencedViolations()`.
+   */
+  private deadGlobViolation(deadGlob: string): ArchViolation {
+    const described = this.describeRule()
+    const name = described.id ?? described.rule ?? this.constructor.name
+    const message = `this rule examined zero units — ${deadGlob}`
     return {
       rule: described.rule ?? name,
       ruleId: described.id,
@@ -395,12 +436,7 @@ export abstract class TerminalBuilder {
    * override this (see `RuleBuilder.copy()`) and call `super.copy()` first.
    */
   protected copy(): this {
-    // Object.create/getPrototypeOf return untyped — casts unavoidable at JS interop boundary
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const proto: object = Object.getPrototypeOf(this)
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const clone: this = Object.create(proto)
-    Object.assign(clone, this)
+    const clone = shallowClone(this)
     clone.adoptFilterState(this)
     clone._metadata = this._metadata ? { ...this._metadata } : undefined
     return clone

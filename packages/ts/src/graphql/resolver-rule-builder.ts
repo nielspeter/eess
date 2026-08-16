@@ -2,6 +2,7 @@ import type { SourceFile } from 'ts-morph'
 import type { ArchViolation } from '../core/violation.js'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
+import { writeStderr } from '@nielspeter/eess'
 import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
@@ -80,8 +81,9 @@ export class ResolverRuleBuilder extends TerminalBuilder {
    * Filter to resolver functions for fields returning types matching the pattern.
    */
   resolveFieldReturning(pattern: RegExp | string): this {
-    this._predicates.push(resolveFieldReturning(pattern))
-    return this
+    const next = this.copy()
+    next._predicates.push(resolveFieldReturning(pattern))
+    return next
   }
 
   // --- Chain methods ---
@@ -120,24 +122,27 @@ export class ResolverRuleBuilder extends TerminalBuilder {
    * Assert that the resolver body contains at least one match.
    */
   contain(matcher: ExpressionMatcher): this {
-    this._conditions.push(functionContain(matcher))
-    return this
+    const next = this.copy()
+    next._conditions.push(functionContain(matcher))
+    return next
   }
 
   /**
    * Assert that the resolver body does NOT contain any match.
    */
   notContain(matcher: ExpressionMatcher): this {
-    this._conditions.push(functionNotContain(matcher))
-    return this
+    const next = this.copy()
+    next._conditions.push(functionNotContain(matcher))
+    return next
   }
 
   /**
    * Assert: must NOT contain 'bad' AND must contain 'good'.
    */
   useInsteadOf(bad: ExpressionMatcher, good: ExpressionMatcher): this {
-    this._conditions.push(functionUseInsteadOf(bad, good))
-    return this
+    const next = this.copy()
+    next._conditions.push(functionUseInsteadOf(bad, good))
+    return next
   }
 
   // --- Evaluation ---
@@ -161,7 +166,7 @@ export class ResolverRuleBuilder extends TerminalBuilder {
 
     if (this._conditions.length === 0) {
       const ruleId = this._metadata?.id ?? 'unnamed'
-      console.warn(
+      writeStderr(
         `[eess] Resolver rule '${ruleId}' has predicates but no conditions. ` +
           `Did you forget to add a condition after .should()?`,
       )
@@ -184,7 +189,17 @@ export class ResolverRuleBuilder extends TerminalBuilder {
   }
 
   private getElements(): ArchFunction[] {
-    return this.sourceFiles.flatMap((sf) => collectFunctions(sf))
+    // Object-literal collection is opt-in for `functions()`, where turning it
+    // on by default would flood every rule with inline callbacks. Here it is
+    // the opposite: a GraphQL resolver map IS an object literal
+    // (`{ Query: { assetCollection: async () => {} } }`), so without this the
+    // builder named `resolvers()` selects the helper functions that happen to
+    // sit beside the resolvers and none of the resolvers themselves — a real
+    // schema shaped this way yields 0 resolvers found, and every rule written
+    // against it then passes on the wrong subjects (ADR-008).
+    return this.sourceFiles.flatMap((sf) =>
+      collectFunctions(sf, { includeObjectLiteralFunctions: true }),
+    )
   }
 
   private buildRuleDescription(): string {

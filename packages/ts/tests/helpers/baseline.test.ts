@@ -160,4 +160,62 @@ describe('Baseline', () => {
     const result = baseline.filterNew([configFinding])
     expect(result).toHaveLength(1)
   })
+
+  describe('metric ratchet (measured)', () => {
+    // A metric finding's `identity` deliberately excludes the count (e.g.
+    // "file::OrderService::methods", not "...10"), so its hash is identical
+    // whether the count improves or regresses. Hash membership alone can't
+    // tell those apart — `isKnown` must compare `measured` against what the
+    // baseline accepted.
+    function metricViolation(measured: number) {
+      return mv({
+        element: 'OrderService',
+        message: `OrderService has ${String(measured)} methods, max allowed is 5`,
+        identity: '/project/src/order-service.ts::OrderService::methods',
+        measured,
+      })
+    }
+
+    it('an improved measurement stays known (still <= accepted)', () => {
+      const dir = createTmpDir()
+      const outputPath = path.join(dir, 'baseline.json')
+      generateBaseline([metricViolation(10)], outputPath)
+
+      const baseline = withBaseline(outputPath)
+      expect(baseline.isKnown(metricViolation(8))).toBe(true)
+    })
+
+    it('a regressed measurement is NOT known, even though the hash is unchanged', () => {
+      const dir = createTmpDir()
+      const outputPath = path.join(dir, 'baseline.json')
+      generateBaseline([metricViolation(10)], outputPath)
+
+      const baseline = withBaseline(outputPath)
+      expect(baseline.isKnown(metricViolation(12))).toBe(false)
+    })
+
+    it('an unchanged measurement stays known', () => {
+      const dir = createTmpDir()
+      const outputPath = path.join(dir, 'baseline.json')
+      generateBaseline([metricViolation(10)], outputPath)
+
+      const baseline = withBaseline(outputPath)
+      expect(baseline.isKnown(metricViolation(10))).toBe(true)
+    })
+
+    it('writes measured into the baseline file only for metric findings', () => {
+      const dir = createTmpDir()
+      const outputPath = path.join(dir, 'baseline.json')
+      generateBaseline([metricViolation(10), mv({ element: 'Ordinary' })], outputPath)
+
+      const written = JSON.parse(fs.readFileSync(outputPath, 'utf-8')) as BaselineFile
+      expect(written.violations.some((e) => e.measured === 10)).toBe(true)
+      expect(written.violations.some((e) => e.measured === undefined)).toBe(true)
+    })
+
+    it('a metric finding with no baseline entry at all is not known', () => {
+      const baseline = new Baseline(new Set(), '/tmp')
+      expect(baseline.isKnown(metricViolation(10))).toBe(false)
+    })
+  })
 })

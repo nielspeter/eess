@@ -9,6 +9,7 @@ import { runCheck } from './commands/check.js'
 import { runBaseline } from './commands/baseline.js'
 import { runExplain } from './commands/explain.js'
 import { runInit } from './commands/init.js'
+import { runDoctor } from './commands/doctor.js'
 import { watchAndRerun } from './watch.js'
 
 function getVersion(): string {
@@ -28,6 +29,7 @@ Usage:
   eess-ts check [files...]              Run architecture rules
   eess-ts baseline [files...]           Generate baseline file
   eess-ts explain [files...]            Dump all active rules as JSON
+  eess-ts doctor [files...]             Report dead globs, without evaluating any condition
 
 Options:
   --preset <name>       init: recommended (default) | agent-guardrails
@@ -161,7 +163,10 @@ async function handleCheck(
 /** Handle the `baseline` subcommand. */
 async function handleBaseline(ruleFiles: string[], output: string): Promise<void> {
   if (!requireRuleFiles(ruleFiles)) return
-  await runBaseline({ ruleFiles, output })
+  const code = await runBaseline({ ruleFiles, output })
+  if (code !== 0) {
+    process.exitCode = code
+  }
 }
 
 /** Handle the `explain` subcommand. */
@@ -172,6 +177,15 @@ async function handleExplain(
 ): Promise<void> {
   if (!requireRuleFiles(ruleFiles)) return
   await runExplain({ ruleFiles, markdown, format })
+}
+
+/** Handle the `doctor` subcommand. */
+async function handleDoctor(ruleFiles: string[], format: string | undefined): Promise<void> {
+  if (!requireRuleFiles(ruleFiles)) return
+  const code = await runDoctor({ ruleFiles, format: format === 'json' ? 'json' : 'terminal' })
+  if (code !== 0) {
+    process.exitCode = code
+  }
 }
 
 export async function run(args: string[]): Promise<void> {
@@ -234,6 +248,8 @@ export async function run(args: string[]): Promise<void> {
     await handleBaseline(ruleFiles, values.output ?? 'arch-baseline.json')
   } else if (command === 'explain') {
     await handleExplain(ruleFiles, values.markdown, values.format)
+  } else if (command === 'doctor') {
+    await handleDoctor(ruleFiles, values.format)
   } else {
     console.error(`Error: Unknown command "${command}". Use --help for usage.`)
     process.exitCode = 1

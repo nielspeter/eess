@@ -47,7 +47,7 @@ describe('agentGuardrails preset (plan 0071)', () => {
   })
 
   it('copy-paste is a warn — reported, not aggregated by default', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     const violations = agentGuardrails(p, { src, report: 'return', noCopyPaste: true })
     expect(violations.map((v) => v.ruleId)).not.toContain('preset/agent/no-copy-paste')
     expect(warnSpy).toHaveBeenCalled()

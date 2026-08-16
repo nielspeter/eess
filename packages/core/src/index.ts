@@ -13,14 +13,18 @@ export type { Matcher } from './combinators.js'
 
 // Violation model
 export type { ArchViolation, ArchFix } from './violation.js'
+export { byCodepoint, severityFor, remedyRepeatsMessage } from './violation.js'
 export { applyFixes } from './apply-fixes.js'
 export type { ApplyResult } from './apply-fixes.js'
+export { UNSUPPRESSABLE } from './unsuppressable.js'
 
 // Rule builder, terminal builder, error
 export { RuleBuilder } from './rule-builder.js'
 export { TerminalBuilder } from './terminal-builder.js'
 export type { CollectResult } from './terminal-builder.js'
 export { marksAssertsCardinality, assertsCardinality } from './cardinality.js'
+export { registerCacheReset, clearRegisteredCaches } from './cache-registry.js'
+export { selectionMemo } from './selection-memo.js'
 export { ArchRuleError } from './errors.js'
 export type { RuleMetadata } from './rule-metadata.js'
 export type { RuleDescription } from './rule-description.js'
@@ -41,7 +45,12 @@ export { detectFormat, isCI } from './environment.js'
 export { definePredicate, defineCondition } from './define.js'
 
 // Preset dispatch — generic per-rule severity/override infrastructure for presets
-export { dispatchRule, validateOverrides, throwIfViolations } from './preset-dispatch.js'
+export {
+  dispatchRule,
+  validateOverrides,
+  throwIfViolations,
+  presetConstructsNothingViolation,
+} from './preset-dispatch.js'
 export { reportViolations, finishPreset } from './report.js'
 export type { ReportMode, ReportOptions, PresetReportOptions } from './report.js'
 export type { RuleSeverity, PresetBaseOptions } from './preset-dispatch.js'
@@ -65,6 +74,8 @@ export type {
 export { applyFilters } from './execute-rule.js'
 export { escapeGitHub } from './format-github.js'
 export { hashViolation } from './baseline.js'
+export { discoverIdentityRoot, normalizeIdentityText } from './identity-root.js'
+export { writeStderr } from './stderr.js'
 export { bold, red, dim, yellow, cyan, gray } from './ansi.js'
 
 // Exclusions
@@ -78,3 +89,54 @@ export { withBaseline, generateBaseline, Baseline } from './baseline.js'
 export type { BaselineEntry, BaselineFile } from './baseline.js'
 export { collectViolations } from './baseline-generator.js'
 export { diffAware, DiffFilter } from './diff-aware.js'
+
+// Edge coverage — allowlist conditions disclose when they tested nothing
+export {
+  recordEdgeCoverage,
+  untestedRules,
+  edgeCoverageNotice,
+  resetEdgeCoverage,
+} from './edge-coverage.js'
+export type { UntestedReason, EdgeCoverage } from './edge-coverage.js'
+
+// Dead-glob diagnosis — declare a glob, and get a specific reason (not just
+// "examined zero units") when it can never match. The pure declaration +
+// evaluation algebra lives here; the ArchProject-typed materializers
+// (pathUniverse()/diskSet()) live in each dialect that has a project type.
+export type {
+  GlobKind,
+  GlobPosition,
+  GlobBase,
+  DeclaredGlob,
+  GlobSite,
+  OpaqueGlob,
+  GlobLeaf,
+  GlobTree,
+  DeclaredGlobs,
+  GlobNode,
+} from './glob-site.js'
+export {
+  isFaultPosition,
+  countDeclaredGlobs,
+  isGlobNode,
+  isOpaqueGlob,
+  globAnyOf,
+  globNode,
+  stampGlobs,
+  negateGlobs,
+  combineGlobs,
+} from './glob-site.js'
+export type { PathUniverse } from './path-universe.js'
+export { viewsFor } from './path-universe.js'
+export type { OnDisk, DiskSet } from './disk-set.js'
+export { isAnchored, isProjectRelative } from './project-relative.js'
+export { isRecord, isNullaryCallable } from './type-guards.js'
+export { shallowClone } from './shallow-clone.js'
+export { suppressionNotice, activeNotice, resetDiffDisclosureForTests } from './diff-disclosure.js'
+export {
+  resetCommentSuppression,
+  recordCommentSuppression,
+  commentSuppressions,
+  commentSuppressionNotice,
+} from './comment-suppression.js'
+export { dedupeConfigFindings } from './dedupe-config-findings.js'

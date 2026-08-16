@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import type { ArchViolation } from './violation.js'
+import { severityFor } from './violation.js'
 import type { CheckOptions } from './check-options.js'
 import type { RuleMetadata } from './rule-metadata.js'
 import { ArchRuleError } from './errors.js'
@@ -8,6 +9,9 @@ import { formatViolationsJson } from './format-json.js'
 import { formatViolationsGitHub } from './format-github.js'
 import { reportViolations } from './report.js'
 import { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
+import { writeStderr } from './stderr.js'
+import { activeNotice } from './diff-disclosure.js'
+import { recordCommentSuppression } from './comment-suppression.js'
 
 /**
  * Context for executing a rule's terminal methods.
@@ -69,7 +73,7 @@ export function applyFilters(
     const silentIndices = ctx.silentIndices ?? new Set()
     exclusions.forEach((pattern, index) => {
       if (!matchedPatterns.has(index) && !silentIndices.has(index)) {
-        console.warn(
+        writeStderr(
           `[eess] Unused exclusion '${String(pattern)}' in rule '${ruleId}'. ` +
             `It matched zero violations — it may be stale after a rename.`,
         )
@@ -123,7 +127,7 @@ export function applyFilters(
         const sourceText = fs.readFileSync(filePath, 'utf-8')
         const parseResult = parseExclusionComments(sourceText, filePath)
         for (const warning of parseResult.warnings) {
-          console.warn(`[eess] ${warning.message}`)
+          writeStderr(`[eess] ${warning.message}`)
         }
         return parseResult.exclusions
       } catch (err) {
@@ -136,9 +140,13 @@ export function applyFilters(
     })
 
     if (allComments.length > 0) {
-      result = result.filter(
-        (v) => v.bypassFilters === true || !isExcludedByComment(v, allComments),
-      )
+      const ruleId = ctx.metadata.id
+      result = result.filter((v) => {
+        if (v.bypassFilters === true) return true
+        const excluded = isExcludedByComment(v, allComments)
+        if (excluded) recordCommentSuppression(ruleId, v.file)
+        return !excluded
+      })
     }
   }
 
@@ -159,7 +167,10 @@ export function executeCheck(
     filtered = options.baseline.filterNew(filtered)
   }
   if (options?.diff) {
+    const before = filtered.length
     filtered = options.diff.filterToChanged(filtered)
+    const notice = activeNotice(before - filtered.length)
+    if (notice !== undefined) writeStderr(`${notice}\n`)
   }
 
   if (filtered.length > 0) {
@@ -183,16 +194,27 @@ export function executeWarn(
     filtered = options.baseline.filterNew(filtered)
   }
   if (options?.diff) {
+    const before = filtered.length
     filtered = options.diff.filterToChanged(filtered)
+    const notice = activeNotice(before - filtered.length)
+    if (notice !== undefined) writeStderr(`${notice}\n`)
   }
 
   if (filtered.length > 0) {
     if (options?.format === 'json') {
-      console.warn(formatViolationsJson(filtered, ctx.reason))
+      writeStderr(formatViolationsJson(filtered, ctx.reason))
     } else if (options?.format === 'github') {
       process.stdout.write(formatViolationsGitHub(filtered, 'warning') + '\n')
     } else {
-      console.warn(formatViolations(filtered, ctx.reason))
+      writeStderr(formatViolations(filtered, ctx.reason))
     }
+  }
+
+  // `bypassFilters` outranks `.warn()` (see `severityFor`) — a config finding
+  // whose own text promises "not by .warn()" must still fail the build even
+  // though the rest of this rule's findings are legitimately warn-only.
+  const escalated = filtered.filter((v) => severityFor(v, 'warn') === 'error')
+  if (escalated.length > 0) {
+    throw new ArchRuleError(escalated, ctx.reason)
   }
 }

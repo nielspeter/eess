@@ -2,7 +2,12 @@ import type { SourceFile } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
-import { searchModuleBody, type ModuleBodyOptions } from '../helpers/body-traversal.js'
+import {
+  searchModuleBody,
+  type ModuleBodyOptions,
+  reportedLine,
+} from '../helpers/body-traversal.js'
+import { identifyMatches } from './match-identity.js'
 
 // ─── Module body conditions ────────────────────────────────────────
 
@@ -55,16 +60,23 @@ export function moduleNotContain(
       const violations: ArchViolation[] = []
       for (const sf of elements) {
         const result = searchModuleBody(sf, matcher, options)
-        for (const node of result.matchingNodes) {
+        const identities = identifyMatches(
+          'module-body',
+          sf.getFilePath(),
+          result.matchingNodes,
+          matcher.description,
+        )
+        result.matchingNodes.forEach((node, index) => {
           violations.push({
             rule: context.rule,
             element: sf.getBaseName(),
             file: sf.getFilePath(),
-            line: node.getStartLineNumber(),
-            message: `${sf.getBaseName()} contains ${matcher.description} at line ${String(node.getStartLineNumber())}`,
+            line: reportedLine(node, result.triviaPositions[index]),
+            message: `${sf.getBaseName()} contains ${matcher.description} at line ${String(reportedLine(node, result.triviaPositions[index]))}`,
             because: context.because,
+            identity: identities[index],
           })
-        }
+        })
       }
       return violations
     },
@@ -90,16 +102,23 @@ export function moduleUseInsteadOf(
         const badResult = searchModuleBody(sf, bad, options)
         const goodResult = searchModuleBody(sf, good, options)
 
-        for (const node of badResult.matchingNodes) {
+        const identities = identifyMatches(
+          'module-body',
+          sf.getFilePath(),
+          badResult.matchingNodes,
+          bad.description,
+        )
+        badResult.matchingNodes.forEach((node, index) => {
           violations.push({
             rule: context.rule,
             element: sf.getBaseName(),
             file: sf.getFilePath(),
-            line: node.getStartLineNumber(),
-            message: `${sf.getBaseName()} contains ${bad.description} at line ${String(node.getStartLineNumber())} — use ${good.description} instead`,
+            line: reportedLine(node, badResult.triviaPositions[index]),
+            message: `${sf.getBaseName()} contains ${bad.description} at line ${String(reportedLine(node, badResult.triviaPositions[index]))} — use ${good.description} instead`,
             because: context.because,
+            identity: identities[index],
           })
-        }
+        })
 
         if (!goodResult.found) {
           violations.push({

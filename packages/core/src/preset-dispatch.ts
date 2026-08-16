@@ -1,7 +1,10 @@
 import type { ArchViolation } from './violation.js'
+import { severityFor } from './violation.js'
 import type { RuleMetadata } from './rule-metadata.js'
 import { formatViolations } from './format.js'
 import { finishPreset, type PresetReportOptions } from './report.js'
+import { writeStderr } from './stderr.js'
+import { UNSUPPRESSABLE } from './unsuppressable.js'
 
 /** Per-rule severity within a preset. */
 export type RuleSeverity = 'error' | 'warn' | 'off'
@@ -49,9 +52,14 @@ export function dispatchRule(
 
   if (effective === 'warn') {
     if (violations.length > 0) {
-      console.warn(formatViolations(violations))
+      writeStderr(formatViolations(violations))
     }
-    return []
+    // `bypassFilters` outranks a per-rule `overrides: { id: 'warn' }` — see
+    // `severityFor`. A config finding like `presetConstructsNothingViolation`
+    // is `UNSUPPRESSABLE` by its own text; silently dropping it here just
+    // because its OWN rule was downgraded is exactly the suppression path
+    // that text promises does not exist.
+    return violations.filter((v) => severityFor(v, 'warn') === 'error')
   }
 
   return violations
@@ -69,11 +77,48 @@ export function validateOverrides(
   const knownSet = new Set(knownIds)
   for (const key of Object.keys(overrides)) {
     if (!knownSet.has(key)) {
-      console.warn(
+      writeStderr(
         `[eess] Override key '${key}' does not match any rule in this preset. ` +
           `Available rules: ${knownIds.join(', ')}`,
       )
     }
+  }
+}
+
+/**
+ * A configuration finding for a preset call that constructed **zero** rules —
+ * every optional capability was left off, or a required discovery pattern
+ * (a folder glob, a repositories glob) matched nothing, so the call checked
+ * nothing and would otherwise pass silently. The vacuity matrix
+ * (`scripts/vacuity-matrix.mjs`) is what proves a preset needs this: it
+ * probes every published preset at its minimal type-correct call, and a
+ * preset reaching `fail-open` there is exactly this shape.
+ *
+ * Unsuppressable (ADR-010) for the same reason a zero-examined rule is: the
+ * caller's mistake is in how the preset was configured, not in the code the
+ * preset would have checked, and `.excluding()`/a baseline/`--changed` all
+ * aim at the latter.
+ *
+ * @param presetName - The preset's own name, e.g. `'agentGuardrails'`.
+ * @param optionsHint - The option names that would enable a rule, for the
+ *   remedy — e.g. `'noGenericErrors, noStubs, noEmptyBodies'`.
+ */
+export function presetConstructsNothingViolation(
+  presetName: string,
+  optionsHint: string,
+): ArchViolation {
+  const message =
+    `${presetName}(...) constructed zero rules at this call — no capability of this ` +
+    `preset was enabled, or a discovery pattern matched nothing, so it checks nothing ` +
+    `and passes silently. Enable at least one option (${optionsHint}), or remove the call.`
+  return {
+    rule: presetName,
+    element: presetName,
+    file: '',
+    line: 0,
+    message,
+    suggestion: `${message} ${UNSUPPRESSABLE}`,
+    bypassFilters: true,
   }
 }
 

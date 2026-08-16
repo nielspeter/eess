@@ -33,15 +33,16 @@ smells
 
 Each detection run can be scoped, tuned, and filtered using these chainable methods. Start broad and tighten thresholds as you reduce duplicates.
 
-| Method                  | Default   | Description                                                               |
-| ----------------------- | --------- | ------------------------------------------------------------------------- |
-| `inFolder(glob)`        | all files | Scope detection to files matching the glob. Can be called multiple times. |
-| `minLines(n)`           | `5`       | Ignore functions shorter than N lines.                                    |
-| `ignoreTests()`         | `false`   | Exclude test files (`*.test.ts`, `*.spec.ts`, `__tests__/**`).            |
-| `ignorePaths(...globs)` | `[]`      | Exclude files matching the given glob patterns.                           |
-| `withMinSimilarity(n)`  | `0.85`    | AST similarity threshold (0--1). Lower values catch more pairs.           |
-| `groupByFolder()`       | `false`   | Group violation output by directory.                                      |
-| `because(reason)`       | --        | Explain why this smell check exists.                                      |
+| Method                     | Default   | Description                                                                                                                                                                               |
+| -------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inFolder(glob)`           | all files | Scope detection to files matching the glob. Can be called multiple times.                                                                                                                 |
+| `minLines(n)`              | `5`       | Ignore functions shorter than N lines.                                                                                                                                                    |
+| `ignoreTests()`            | `false`   | Exclude test files (`*.test.ts`, `*.spec.ts`, `__tests__/**`).                                                                                                                            |
+| `ignorePaths(...globs)`    | `[]`      | Exclude files matching the given glob patterns.                                                                                                                                           |
+| `withMinSimilarity(n)`     | `0.85`    | AST similarity threshold (0--1). Lower values catch more pairs.                                                                                                                           |
+| `minDistinctVocabulary(n)` | `8`       | Ignore a pair when either body has fewer than N distinct identifier/literal texts -- a shared AST shape alone (a wither, a getter, a boilerplate skeleton) is not evidence of copy-paste. |
+| `groupByFolder()`          | `false`   | Group violation output by directory.                                                                                                                                                      |
+| `because(reason)`          | --        | Explain why this smell check exists.                                                                                                                                                      |
 
 ### Terminal Methods
 
@@ -65,6 +66,7 @@ A fingerprint captures:
 - **Node kinds** -- the ordered sequence of `SyntaxKind` values in the body (e.g., `IfStatement`, `CallExpression`, `ReturnStatement`)
 - **Call targets** -- normalized call expression targets (e.g., `parseInt`, `this.extractCount`)
 - **Node count** -- total AST nodes, used for filtering
+- **Distinct vocabulary** -- the count of distinct identifier/literal texts, used by `minDistinctVocabulary()` to reject a pair whose shared shape carries no real information (a wither, a getter, a boilerplate skeleton all look "100% similar" by shape alone)
 
 Similarity is computed using the longest common subsequence (LCS) of the kinds arrays, normalized to `[0, 1]`:
 

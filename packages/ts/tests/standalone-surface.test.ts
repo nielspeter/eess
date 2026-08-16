@@ -30,7 +30,15 @@ const FAMILY_ONLY = new Set([
 // Kernel-internal plumbing the kernel's own index.ts comments name as
 // "used by dialects and covered by kernel tests" — implementation detail,
 // not part of the surface a standalone ts consumer builds against.
-const KERNEL_INTERNAL = new Set(['applyFilters', 'escapeGitHub', 'hashViolation'])
+const KERNEL_INTERNAL = new Set([
+  'applyFilters',
+  'escapeGitHub',
+  'hashViolation',
+  'writeStderr',
+  'registerCacheReset',
+  'clearRegisteredCaches',
+  'selectionMemo',
+])
 
 // ANSI color helpers — terminal-formatting internals, not part of the
 // programmatic surface.

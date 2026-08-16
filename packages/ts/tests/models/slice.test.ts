@@ -39,6 +39,31 @@ describe('resolveByMatching', () => {
     const result = resolveByMatching(p, 'src/nonexistent-*/')
     expect(result).toHaveLength(0)
   })
+
+  // Plan 0147 (bug-0009 class, reconciled against ts-archunit): a glob whose
+  // final segment already carries a wildcard AND a trailing slash used to
+  // compute a `baseDir` containing a literal `*` — a string no real file path
+  // can ever contain — so `resolveByMatching` silently returned ZERO slices
+  // for this spelling, always. Sabotage-verified: reverting the fix under
+  // test turns this red (`result` becomes `[]`).
+  it('resolves slices from a trailing wildcard + trailing slash glob, and includes files sitting directly in the matched directory', () => {
+    const result = resolveByMatching(p, 'src/feature-*/')
+    const names = result.map((s) => s.name).sort()
+    expect(names).toEqual(['feature-a', 'feature-b', 'feature-c'])
+
+    const featureA = result.find((s) => s.name === 'feature-a')
+    expect(featureA!.files.some((f) => f.getBaseName() === 'index.ts')).toBe(true)
+  })
+
+  it('agrees with the no-trailing-slash spelling of the same intent', () => {
+    const withSlash = resolveByMatching(p, 'src/feature-*/')
+      .map((s) => s.name)
+      .sort()
+    const withoutSlash = resolveByMatching(p, 'src/feature-*')
+      .map((s) => s.name)
+      .sort()
+    expect(withSlash).toEqual(withoutSlash)
+  })
 })
 
 describe('resolveByDefinition', () => {

@@ -68,29 +68,90 @@ interface GraphQLPackage {
   buildSchema: (sdl: string) => GraphQLSchemaLike
 }
 
-// Cached reference to the graphql package
+// Cached reference to the graphql package. Module-level state, swappable via
+// setGraphQLLoaderForTests() below — safe only because Vitest's default
+// isolation gives each test FILE its own instance of this module. A worker
+// that reused this module across files would let one file's swapped loader
+// leak into another's.
 let cachedGraphQL: GraphQLPackage | undefined
 
 /**
- * Load the graphql package synchronously. Throws a clear error if not installed.
- *
- * Uses createRequire for synchronous loading since schema loading is synchronous.
+ * The actual loading step, indirected through a swappable reference (see
+ * {@link setGraphQLLoaderForTests}). Uses createRequire for synchronous
+ * loading since schema loading is synchronous.
+ */
+function defaultLoadGraphQL(): GraphQLPackage {
+  const esmRequire = createRequire(import.meta.url)
+  // eess-exclude eess/adr005-no-type-assertions: runtime require() of the optional 'graphql' peer dependency; its module shape is not statically known at this JS-interop boundary
+  return esmRequire('graphql') as GraphQLPackage
+}
+
+let loadGraphQL: () => GraphQLPackage = defaultLoadGraphQL
+
+/**
+ * Load the graphql package synchronously. Throws a clear error describing why
+ * the package could not be used.
  */
 function requireGraphQL(): GraphQLPackage {
   if (cachedGraphQL) return cachedGraphQL
 
   try {
-    const esmRequire = createRequire(import.meta.url)
-    // eess-exclude eess/adr005-no-type-assertions: runtime require() of the optional 'graphql' peer dependency; its module shape is not statically known at this JS-interop boundary
-    cachedGraphQL = esmRequire('graphql') as GraphQLPackage
+    cachedGraphQL = loadGraphQL()
     return cachedGraphQL
-  } catch (err) {
+  } catch (cause) {
+    // The install instruction only answers "the `graphql` package itself is
+    // missing". Node's own MODULE_NOT_FOUND names the specifier it failed to
+    // resolve: requiring the missing top-level package throws
+    // "Cannot find module 'graphql'", while requiring an installed-but-corrupt
+    // package (one of ITS internal files missing) throws naming that internal
+    // file instead — same code, different specifier. Checking the message for
+    // the exact top-level specifier is what keeps a corrupt install from
+    // being told to run an install that cannot fix it. Every other cause —
+    // that corrupt-internal-file case, a version mismatch, a throw from
+    // `graphql`'s own module initialisation — used to be reported as "not
+    // installed" too, discarding the one line that would have told the
+    // reader what actually happened.
+    const notInstalled =
+      cause instanceof Error &&
+      'code' in cause &&
+      cause.code === 'MODULE_NOT_FOUND' &&
+      /Cannot find module 'graphql'/.test(cause.message)
+    if (notInstalled) {
+      throw new Error(
+        '[eess/graphql] The "graphql" package is required but not installed.\n' +
+          'Install it with: npm install graphql',
+        { cause },
+      )
+    }
     throw new Error(
-      '[eess/graphql] The "graphql" package is required but not installed.\n' +
-        'Install it with: npm install graphql',
-      { cause: err },
+      `[eess/graphql] The "graphql" package is installed but could not be loaded: ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+      { cause },
     )
   }
+}
+
+/**
+ * Replace how `graphql` is loaded. **Tests only** — a `vi.doMock('node:module', ...)`
+ * mock of the Node builtin `createRequire` is not reliably isolated per-file
+ * under Vitest's worker-reuse defaults, and fails intermittently under
+ * full-suite load. This seam replaces only this module's own loading step —
+ * nothing shared with any other file to race on.
+ */
+// eess-exclude eess/no-unused-exports: test-only seam, consumed by tests/graphql/schema-loader-require-errors.test.ts
+export function setGraphQLLoaderForTests(loader: () => GraphQLPackage): void {
+  loadGraphQL = loader
+}
+
+/**
+ * Restore the real loader and clear the cached package. **Tests only** — see
+ * {@link setGraphQLLoaderForTests}.
+ */
+// eess-exclude eess/no-unused-exports: test-only seam, consumed by tests/graphql/schema-loader-require-errors.test.ts
+export function resetGraphQLLoaderForTests(): void {
+  loadGraphQL = defaultLoadGraphQL
+  cachedGraphQL = undefined
 }
 
 /**

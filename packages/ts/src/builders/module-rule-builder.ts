@@ -1,6 +1,7 @@
 import type { SourceFile } from 'ts-morph'
 import { RuleBuilder } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
+import { diagnoseDeadGlobs } from '../core/dead-glob.js'
 import {
   resideInFile as resideInFilePredicate,
   resideInFolder as resideInFolderPredicate,
@@ -62,6 +63,11 @@ export class ModuleRuleBuilder extends RuleBuilder<SourceFile, ArchProject> {
   /** ADR-010 part 3: the project itself, not this domain's own extraction. */
   protected override sourceEmpty(): boolean {
     return this.project.getSourceFiles().length === 0
+  }
+
+  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
+  protected override deadGlobDiagnosis(): string | undefined {
+    return diagnoseDeadGlobs(this.project, this.globs())
   }
 
   // --- Identity predicates (from predicates/identity.ts) ---

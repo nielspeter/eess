@@ -1,6 +1,8 @@
 export function helperA(): number {
-  const x = 1
-  const y = 2
-  const z = x + y
-  return z * 2
+  const baseAmount = 1
+  const bonusAmount = 2
+  const combinedTotal = baseAmount + bonusAmount
+  const multiplier = 3
+  const adjustedTotal = combinedTotal * multiplier
+  return adjustedTotal
 }

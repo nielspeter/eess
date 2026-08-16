@@ -35,20 +35,28 @@ export function stubbed(): string {
 }
 
 // no-copy-paste: two near-identical bodies
-export function sumA(xs: number[]): number {
-  let total = 0
-  for (const x of xs) {
-    total = total + x
+export function sumA(orderAmounts: number[]): number {
+  let runningTotal = 0
+  const taxRate = 0.08
+  const discountFactor = 1
+  runningTotal = runningTotal * discountFactor
+  for (const orderAmount of orderAmounts) {
+    const adjustedAmount = orderAmount * taxRate
+    runningTotal = runningTotal + orderAmount + adjustedAmount
   }
-  return total
+  return runningTotal
 }
 
-export function sumB(ys: number[]): number {
-  let total = 0
-  for (const y of ys) {
-    total = total + y
+export function sumB(invoiceAmounts: number[]): number {
+  let runningTotal = 0
+  const taxRate = 0.08
+  const discountFactor = 1
+  runningTotal = runningTotal * discountFactor
+  for (const invoiceAmount of invoiceAmounts) {
+    const adjustedAmount = invoiceAmount * taxRate
+    runningTotal = runningTotal + invoiceAmount + adjustedAmount
   }
-  return total
+  return runningTotal
 }
 
 function risky(): number {

@@ -1,8 +1,7 @@
 import picomatch from 'picomatch'
 import type { SourceFile } from 'ts-morph'
 import type { ArchProject } from '../core/project.js'
-import type { PairCondition } from '../core/pair-condition.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { PairCondition, PairConditionContext } from '../core/pair-condition.js'
 import type { Layer, LayerPair } from '../models/cross-layer.js'
 import { TerminalBuilder, matchSelections, type CollectResult } from '@nielspeter/eess'
 
@@ -65,9 +64,25 @@ export class CrossLayerBuilder {
    * Define a layer by name and glob pattern.
    * At least two layers must be defined before calling `.mapping()`.
    */
-  layer(name: string, pattern: string): this {
-    this._layerDefs.push({ name, pattern })
-    return this
+  layer(name: string, pattern: string): CrossLayerBuilder {
+    const next = this.copy()
+    next._layerDefs.push({ name, pattern })
+    return next
+  }
+
+  /**
+   * An independent copy, carrying the layer definitions so far (bug-0016
+   * class — found live during plan 0147's reconciliation against
+   * ts-archunit, which already fixes this). This class does not extend
+   * `TerminalBuilder` — it produces a rule rather than being one — so there
+   * is no inherited `copy()` to reuse. Still needs copy-on-write for the same
+   * reason: a held `crossLayer(p)` used to derive more than one rule must not
+   * have a later `.layer()` call accumulate into an earlier rule's pairs.
+   */
+  private copy(): CrossLayerBuilder {
+    const clone = new CrossLayerBuilder(this.project)
+    clone._layerDefs.push(...this._layerDefs)
+    return clone
   }
 
   /**
@@ -148,12 +163,13 @@ export class PairFinalBuilder extends TerminalBuilder {
 
   protected collectViolations(): CollectResult {
     const layerNames = this.layers.map((l) => l.name)
-    const context: ConditionContext = {
+    const context: PairConditionContext = {
       rule: `cross-layer [${layerNames.join(', ')}] should ${this.condition.description}`,
       because: this._reason,
       ruleId: this._metadata?.id,
       suggestion: this._metadata?.suggestion,
       docs: this._metadata?.docs,
+      layers: this.layers,
     }
 
     return { violations: this.condition.evaluate(this.pairs, context), examined: this.pairs.length }

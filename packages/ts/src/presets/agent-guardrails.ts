@@ -7,7 +7,12 @@ import { functionNoGenericErrors } from '../rules/errors.js'
 import { noStubComments, noEmptyBodies } from '../rules/hygiene.js'
 import { smells } from '../smells/index.js'
 import type { PresetBaseOptions, RuleSeverity } from './shared.js'
-import { dispatchRule, validateOverrides, finishPreset } from './shared.js'
+import {
+  dispatchRule,
+  validateOverrides,
+  finishPreset,
+  presetConstructsNothingViolation,
+} from './shared.js'
 
 export interface AgentGuardrailsOptions extends PresetBaseOptions {
   /** Glob for the source files the rules apply to. */
@@ -117,6 +122,21 @@ export function agentGuardrails(p: ArchProject, options: AgentGuardrailsOptions)
         imperative: 'Do NOT duplicate a function body — extract the shared logic',
       },
       'warn',
+    )
+  }
+
+  // Every capability sits behind its own optional flag, so this can
+  // legitimately construct zero rules. Found live by the vacuity matrix:
+  // `agentGuardrails(p, { src })` alone passes silently (plan 0088 Phase 4a
+  // `KNOWN_FAIL_OPEN`). Checked against `collectRuleIds` (attempted, before
+  // override) rather than `violations` (after) — a capability enabled and
+  // then overridden to `'off'` is a deliberate choice, not this mistake.
+  if (collectRuleIds(options).length === 0) {
+    violations.push(
+      presetConstructsNothingViolation(
+        'agentGuardrails',
+        'noInlineLogic, noGenericErrors, noStubs, noEmptyBodies, noCopyPaste',
+      ),
     )
   }
 

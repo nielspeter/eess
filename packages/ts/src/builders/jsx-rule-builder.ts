@@ -1,6 +1,7 @@
 import type { ArchProject } from '../core/project.js'
 import { RuleBuilder } from '@nielspeter/eess'
 import type { ArchJsxElement } from '../models/arch-jsx-element.js'
+import { diagnoseDeadGlobs } from '../core/dead-glob.js'
 import { collectJsxElements } from '../models/arch-jsx-element.js'
 import {
   haveNameMatching as identityHaveNameMatching,
@@ -65,6 +66,11 @@ export class JsxRuleBuilder extends RuleBuilder<ArchJsxElement, ArchProject> {
   /** ADR-010 part 3: the project itself, not this domain's own extraction. */
   protected override sourceEmpty(): boolean {
     return this.project.getSourceFiles().length === 0
+  }
+
+  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
+  protected override deadGlobDiagnosis(): string | undefined {
+    return diagnoseDeadGlobs(this.project, this.globs())
   }
 
   // --- Identity predicates (predicate-only, following CallRuleBuilder pattern) ---

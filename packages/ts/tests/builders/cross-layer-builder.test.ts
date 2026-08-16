@@ -31,6 +31,28 @@ describe('crossLayer() entry point', () => {
   })
 })
 
+describe('CrossLayerBuilder.layer() copy-on-write (plan 0147)', () => {
+  const p = loadTestProject()
+
+  it('.layer() returns a new builder, not the same reference — a held builder must not accumulate a later call meant for a different branch', () => {
+    // Bug-0016 class, found live during plan 0147's reconciliation against
+    // ts-archunit (which already fixes this — `const next = this.copy(); ...`
+    // — while eess's `.layer()` still mutated `this` in place, AND
+    // `CrossLayerBuilder` had no `copy()` at all to call). Sabotage-verified:
+    // reverting the fix under test turns this red (`withSchemas` becomes the
+    // exact same object as `held`).
+    const held = crossLayer(p).layer('routes', '**/routes/**')
+    const withSchemas = held.layer('schemas', '**/schemas/**')
+    expect(withSchemas).not.toBe(held)
+
+    // The held reference itself must still be usable for an independent
+    // branch afterward, unaffected by withSchemas's own later calls.
+    const withOther = held.layer('other', '**/other/**')
+    expect(withOther).not.toBe(held)
+    expect(withOther).not.toBe(withSchemas)
+  })
+})
+
 describe('layer resolution', () => {
   const p = loadTestProject()
 
@@ -383,6 +405,42 @@ describe('empty layer', () => {
         .expectEmpty()
         .check()
     }).not.toThrow()
+  })
+
+  // Plan 0147 (bug-0040 class, reconciled against ts-archunit): a 4-layer
+  // chain where a MIDDLE layer is dead but the other segments still form
+  // pairs (`pairs.length > 0` overall) is a genuinely different scenario
+  // from the two tests above — the kernel's own `examined: 0` non-vacuity
+  // guard stays quiet (real work happened elsewhere in the chain), so
+  // without a dedicated check the dead layer's own problem either goes
+  // fully silent (as the leftLayer of its own iteration, contributing zero
+  // per-file violations) or surfaces as confusing per-file noise blamed on
+  // its neighbour's files. `haveMatchingCounterpart` must name the dead
+  // layer directly instead.
+  it('names a dead middle layer directly in a 4-layer chain, instead of confusing per-file noise or silence', () => {
+    try {
+      crossLayer(p)
+        .layer('routes', '**/routes/**')
+        .layer('nonexistent', '**/does-not-exist/**')
+        .layer('schemas', '**/schemas/**')
+        .layer('sdk', '**/sdk/**')
+        .mapping(
+          (a, b) =>
+            a.getBaseName().replace(/-\w+\.ts$/, '') === b.getBaseName().replace(/-\w+\.ts$/, ''),
+        )
+        .forEachPair()
+        .should(haveMatchingCounterpart())
+        .check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      // Exactly one finding, naming the dead layer — not two "routes file X
+      // has no counterpart in nonexistent" findings, and not silence.
+      expect(archError.violations).toHaveLength(1)
+      expect(archError.violations[0]!.message).toContain('Layer "nonexistent" matched 0 files')
+      expect(archError.violations[0]!.bypassFilters).toBe(true)
+    }
   })
 })
 
