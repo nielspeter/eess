@@ -9,6 +9,13 @@
   is waived by text nobody wrote as a waiver, and nothing reports it. This is
   the failure class the product exists to prevent, in the kernel's own
   suppression machinery.
+- **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) and
+  `@nielspeter/eess-ts` (`0.2.1`). **The defect predates plan 0088's fold** —
+  `git show 810808b:packages/core/src/exclusion-comments.ts` (the `v0.2.3`
+  release commit) carries the identical `SINGLE_LINE_RE` and
+  `sourceText.split('\n')`. The fold did not introduce it; the fold's failure
+  was **not bringing ts-archunit's 0043 fix across with the engine it copied**.
+  That distinction matters for scope — see "A wider question" below.
 - **Origin:** self-found · `/review` of plan 0150 Phase 4 (`orphanExclusions()`)
 - **Reported:** 2026-08-18
 
@@ -134,6 +141,22 @@ mechanical port, and is the reason this bug is filed rather than fixed inline.
 - [ ] eess-md's HTML-comment form is covered in the same pass, or its exclusion
       from scope is stated.
 - [ ] `npm run validate` green.
+
+## A wider question this raises
+
+ts-archunit fixed this as **its own bug 0043**, and the fix did not come across
+in plan 0088's fold. That is not necessarily a one-off. ts-archunit has **72
+fixed bugs**; **52 of them name a file `packages/core/src` also has**. Each is
+a fix that either came across with the engine or did not, and nothing in the
+fold's own record distinguishes the two — 0043 was found only because plan
+0150 happened to build the one consumer that reads the parse.
+
+This does **not** claim the other 51 are missing; it claims nobody has
+checked, and that the one sample taken came back negative. The audit is
+mechanical and bounded (for each, does eess's copy carry the fix?), and the
+honest time to run it is **before [plan 0100](../plans/0100-publish-the-fold-retire-ts-archunit.md)
+publishes the fold** — today `npm` still serves the pre-fold `0.2.2`/`0.2.1`,
+so nothing folded has reached a user yet.
 
 ## Impact on plan 0150
 
