@@ -2,6 +2,13 @@ import { correspondence, type Direction } from '@nielspeter/eess'
 import { classes as mmdClasses, type ArchProject as MermaidDiagram } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
 
+// Kernel re-exports (plan 0089 — standalone sufficiency): crossvalidate is
+// the family's binding tool, so unlike the other dialects it MUST re-export
+// what its own body imports — a caller composing a custom cross-dialect
+// binding needs these same primitives.
+export { correspondence } from '@nielspeter/eess'
+export type { Direction } from '@nielspeter/eess'
+
 export interface DiagramMatchesCodeOptions {
   /** Glob (matched against a class's directory) restricting which TS classes
    * participate. Defaults to a `src` folder anywhere in the tree. */

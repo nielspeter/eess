@@ -4,6 +4,10 @@ import type { Corpus } from '@nielspeter/eess-md'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import { citedItTitles, itTitleOf } from './it-title.js'
 
+// Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
+export { correspondence } from '@nielspeter/eess'
+export type { Selection } from '@nielspeter/eess'
+
 export interface AdrCitationsResolveOptions {
   /** Glob selecting ADR files. Default `docs/adr/**`. */
   readonly dir?: string

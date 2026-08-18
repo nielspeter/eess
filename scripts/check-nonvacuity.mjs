@@ -140,6 +140,39 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const EESS_TS = join(repoRoot, 'node_modules', '.bin', 'eess-ts')
 const EESS_MERMAID = join(repoRoot, 'node_modules', '.bin', 'eess-mermaid')
 
+// Plan 0089 — family.rules.ts's one rule, `family/re-export-complete`.
+// Dialect isolation is `arch.rules.ts`'s own job (its non-vacuity coverage
+// lives there, untouched) — family.rules.ts no longer duplicates it (review
+// found the duplication after the first build; removed). Re-export
+// completeness mutates real entry points instead of a throwaway probe — see
+// `withMutatedFile`'s own docstring for why.
+const FAMILY_REEXPORT_INDEX_TARGET = join(repoRoot, 'packages', 'md', 'src', 'index.ts')
+const FAMILY_REEXPORT_CROSSVALIDATE_TARGET = join(
+  repoRoot,
+  'packages',
+  'crossvalidate',
+  'src',
+  'files.ts',
+)
+// A NON-entry file in md's own package — proves the index.ts-shape check
+// really aggregates the whole package's imports (packageSourceFiles in
+// family-re-exports.mjs), not just the entry file's own. Found in review
+// (enforcement, live sabotage): the first two probes above both mutate the
+// entry file itself, so neither depends on that aggregation at all — the
+// entry's own re-export set and its own import set are the same file, so a
+// probe restricted to it can't tell a genuine whole-package scan from one
+// silently collapsed to `[entry]` only. Corrupting that one line left both
+// existing probes green AND made a REAL regression (deleting a re-export
+// for a symbol only used elsewhere in the package) go fully undetected.
+const FAMILY_REEXPORT_AGGREGATION_TARGET = join(
+  repoRoot,
+  'packages',
+  'md',
+  'src',
+  'model',
+  'document.ts',
+)
+
 const PROBE_ARCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe__.ts')
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
 const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
@@ -274,6 +307,50 @@ function withProbe(path, contents, fn) {
   }
 }
 
+/**
+ * Sabotage a REAL, existing file — prepend `injectedLine`, run `fn`, and
+ * always restore the file's exact original content afterward.
+ *
+ * `withProbe` writes a brand-new throwaway file; that shape doesn't fit
+ * `family/re-export-complete` (bug 0089's own rule 2), whose subject must be
+ * a real entry point (each dialect's own `src/index.ts`, or a crossvalidate
+ * flat file) already declared in the real package — there is nowhere to add a
+ * NEW file that would count as a second entry point. Mutating a real one
+ * and restoring it, matching this whole session's own established
+ * sabotage-then-restore discipline, is the correct shape here instead.
+ *
+ * Unlike `withProbe`'s throwaway file (inert if a crash skips the `finally`
+ * — it's a `.gitignore`-matched, non-existent-until-written path), this
+ * mutates a real, tracked source file in place. A SIGINT/SIGTERM/crash
+ * mid-mutation would skip the `finally` and leave that file corrupted on
+ * disk with no equivalent startup sweep to repair it (review found this —
+ * architect + testing, independently). `pendingRestores` + the signal
+ * handlers below close that: every in-flight mutation is restorable from a
+ * signal, not just from a normal return/throw.
+ */
+const pendingRestores = new Map()
+function restoreAllPending() {
+  for (const [path, original] of pendingRestores) writeFileSync(path, original)
+  pendingRestores.clear()
+}
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => {
+    restoreAllPending()
+    process.exit(130)
+  })
+}
+function withMutatedFile(path, injectedLine, fn) {
+  const original = readFileSync(path, 'utf8')
+  pendingRestores.set(path, original)
+  try {
+    writeFileSync(path, `${injectedLine}\n${original}`)
+    return fn()
+  } finally {
+    writeFileSync(path, original)
+    pendingRestores.delete(path)
+  }
+}
+
 // Sweep any leftover probes before doing anything — they must never survive.
 rmSync(PROBE_ARCH, { force: true })
 rmSync(PROBE_CATCH, { force: true })
@@ -323,6 +400,69 @@ function gateInternalArch() {
       ? 'clean → green (both directions proven)'
       : 'clean → in-flight (other agents still fixing violations)'
   return { ok, detail: `bad → exit ${bad.code} (eess/no-silent-catch on probe) · ${cleanNote}` }
+}
+
+// --- Gate: family (plan 0089 — standalone-sufficiency rules) ---
+function gateFamilyReExportIndex() {
+  // UNSUPPRESSABLE: a real kernel export md's own sources don't otherwise
+  // touch — importing it (without re-exporting it) is a genuine, isolated
+  // re-export-completeness gap, not a pre-existing one this probe rides on.
+  const bad = withMutatedFile(
+    FAMILY_REEXPORT_INDEX_TARGET,
+    "import { UNSUPPRESSABLE } from '@nielspeter/eess'",
+    () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
+  )
+  const ok = bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts')
+  const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
+  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
+  return {
+    ok,
+    detail: `bad → exit ${bad.code} (family/re-export-complete on md/src/index.ts) · ${cleanNote}`,
+  }
+}
+
+function gateFamilyReExportCrossvalidate() {
+  // byCodepoint: a different real kernel export than the index.ts probe
+  // uses, so the two probes are provably independent of each other.
+  const bad = withMutatedFile(
+    FAMILY_REEXPORT_CROSSVALIDATE_TARGET,
+    "import { byCodepoint } from '@nielspeter/eess'",
+    () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
+  )
+  const ok =
+    bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'crossvalidate/src/files.ts')
+  const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
+  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
+  return {
+    ok,
+    detail: `bad → exit ${bad.code} (family/re-export-complete on crossvalidate/src/files.ts) · ${cleanNote}`,
+  }
+}
+
+function gateFamilyReExportAggregation() {
+  // Injects into a NON-entry file (model/document.ts), not index.ts itself —
+  // the two probes above both mutate the entry file, so neither can tell a
+  // genuine whole-package scan (packageSourceFiles in family-re-exports.mjs)
+  // from one silently collapsed to the entry file alone (found in review:
+  // corrupting that one line left both existing probes green). The
+  // violation must still name md/src/index.ts (the entry, per this rule's
+  // own `file: entry.getFilePath()`) even though the missing import lives
+  // in a sibling file — proof the aggregation actually reads the whole
+  // package, not just the file under direct suspicion.
+  const bad = withMutatedFile(
+    FAMILY_REEXPORT_AGGREGATION_TARGET,
+    "import { remedyRepeatsMessage } from '@nielspeter/eess'",
+    () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
+  )
+  const ok = bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts')
+  const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
+  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
+  return {
+    ok,
+    detail:
+      `bad → exit ${bad.code} (family/re-export-complete named on md/src/index.ts, ` +
+      `injected in model/document.ts) · ${cleanNote}`,
+  }
 }
 
 // --- Gate: baseline (the shipped `recommended` preset via check:baseline) ---
@@ -644,6 +784,9 @@ const gates = [
   ['gate coverage', () => gateCoverage()],
   ['arch (root rules)', gateArch],
   ['internal arch', gateInternalArch],
+  ['family re-export (index)', gateFamilyReExportIndex],
+  ['family re-export (crossvalidate)', gateFamilyReExportCrossvalidate],
+  ['family re-export (aggregation)', gateFamilyReExportAggregation],
   ['baseline', gateBaseline],
   ['diagram', gateDiagram],
   ['spec', gateSpec],
@@ -799,6 +942,11 @@ const NO_GATE_NEEDED = {
 const GATE_FOR = {
   // `eess-ts check arch.rules.ts arch.internal.rules.ts` — two rule files, two rows.
   'check:arch': ['arch (root rules)', 'internal arch'],
+  'check:family': [
+    'family re-export (index)',
+    'family re-export (crossvalidate)',
+    'family re-export (aggregation)',
+  ],
   'check:baseline': ['baseline'],
   'check:diagram': ['diagram'],
   'check:spec': ['spec'],

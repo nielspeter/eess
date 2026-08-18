@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * Dogfood: type-check + no-deprecated-lint the TypeScript code fences in docs/ (plan 0082).
+ * Dogfood: type-check + no-deprecated-lint the TypeScript code fences in docs/
+ * and every packages/<name>/README.md (plan 0082; README scope added plan 0089
+ * round 3 — a dialect's own README teaching code with the same rot risk had no
+ * coverage at all, confirmed by a stale `packages/md/README.md` example that
+ * silently didn't compile standalone).
  *
  * The docs teach code, but nothing compiled it — so a stale example (a moved import,
  * a removed/renamed method, a changed signature, a deprecated call) rots uncaught.
- * This extracts every import-bearing ```ts / ```typescript fence under docs/ and
- * checks each with TWO passes, because no single tool catches both classes:
+ * This extracts every import-bearing ```ts / ```typescript fence and checks each
+ * with TWO passes, because no single tool catches both classes:
  *   - `tsc --noEmit`                    — imports resolve, methods/signatures exist;
  *   - ESLint `@typescript-eslint/no-deprecated` — a @deprecated-but-valid call (tsc
  *                                          exits 0 on those).
@@ -13,8 +17,10 @@
  * neither pass (a "don't do this" block, or one leaning on prior context).
  *
  * Type-check only — no fixtures, no execution: `project('tsconfig.json')` type-checks
- * fine even though the path is fake at runtime. Fragments (fences with no `import`) are
- * skipped — they aren't compilable units. Run: `npm run check:docs-code`.
+ * fine even though the path is fake at runtime. Fragments (fences with no `import`, or
+ * with an `import` but no self-contained root-selection call — `project`/`workspace`
+ * for eess-ts, `corpus` for eess-md, `features` for eess-gherkin) are skipped — they
+ * aren't compilable units. Run: `npm run check:docs-code`.
  */
 import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync } from 'node:fs'
 import { join, basename } from 'node:path'
@@ -24,6 +30,20 @@ import { ESLint } from 'eslint'
 import tseslint from 'typescript-eslint'
 
 const DOCS = 'docs'
+// Each package's own README teaches code too — same rot risk, same fix. Only
+// the direct packages/<name>/README.md, not nested docs (tests/fixtures/**
+// READMEs would drag in fixture-only, deliberately-non-compiling examples).
+const PACKAGE_READMES = readdirSync('packages', { withFileTypes: true })
+  .filter((e) => e.isDirectory())
+  .map((e) => join('packages', e.name, 'README.md'))
+  .filter((p) => {
+    try {
+      readFileSync(p)
+      return true
+    } catch {
+      return false
+    }
+  })
 const TMP = '.docs-code-check'
 const SKIP_RE = /eess-docs-code-skip/
 const t0 = Date.now()
@@ -47,7 +67,7 @@ function mdFiles(dir, acc = []) {
 const fences = [] // { file, fence, code, tmp }
 let fragments = 0
 let skipped = 0
-for (const file of mdFiles(DOCS)) {
+for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES]) {
   const kids = fromMarkdown(readFileSync(file, 'utf8')).children
   let fence = 0
   for (let i = 0; i < kids.length; i++) {
@@ -56,11 +76,21 @@ for (const file of mdFiles(DOCS)) {
     const lang = (node.lang ?? '').toLowerCase()
     if (lang !== 'ts' && lang !== 'typescript') continue
     fence++
-    // Self-contained = imports AND sets up its own project (`project(...)` / `workspace(...)`).
-    // A fence that only imports but assumes an ambient `p`/DSL fn from narrative is a
-    // fragment, not a compilable unit (plan 0082 review finding 2 — the dominant case).
-    const selfContained =
-      /^\s*import\s/m.test(node.value) && /\b(?:project|workspace)\s*\(/.test(node.value)
+    // Self-contained = imports its own root-selection entry point AND calls it
+    // (`project(...)` / `workspace(...)` for eess-ts, `corpus(...)` for eess-md,
+    // `features(...)` for eess-gherkin) — not merely "some import exists and the
+    // entry function is called somewhere." A fence that calls `project(...)`
+    // without importing `project` itself (assuming it from an earlier fence's
+    // import, a real shape found in packages/crossvalidate/README.md's narrative
+    // sequence) is exactly the fragment case this guards against — the entry
+    // import name must appear in THIS fence's own import list, not just anywhere.
+    const ENTRY_FN = /(?:project|workspace|corpus|features)/
+    const importsEntryFn = new RegExp(
+      `^\\s*import\\s+(?:type\\s+)?\\{[^}]*\\b${ENTRY_FN.source}\\b[^}]*\\}`,
+      'm',
+    ).test(node.value)
+    const callsEntryFn = new RegExp(`\\b${ENTRY_FN.source}\\s*\\(`).test(node.value)
+    const selfContained = importsEntryFn && callsEntryFn
     if (!selfContained) {
       fragments++
       continue

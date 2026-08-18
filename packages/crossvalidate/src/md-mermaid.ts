@@ -9,6 +9,10 @@ import type { Corpus } from '@nielspeter/eess-md'
 import { diagram, classes as mmdClasses } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
 
+// Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
+export { correspondence, finishPreset } from '@nielspeter/eess'
+export type { ArchViolation, Direction, PresetReportOptions } from '@nielspeter/eess'
+
 export interface EmbeddedDiagramsMatchCodeOptions extends PresetReportOptions {
   /** Glob (matched against a class's directory) restricting which TS classes participate. */
   readonly scope?: string

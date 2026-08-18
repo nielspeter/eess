@@ -3,6 +3,9 @@ import { join, relative, sep } from 'node:path'
 import picomatch from 'picomatch'
 import type { Selection, ElementInfo } from '@nielspeter/eess'
 
+// Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
+export type { Selection, ElementInfo } from '@nielspeter/eess'
+
 /**
  * A file matched by [[files]]. Its content is **not** read — this is a
  * path-selection brick. Callers that need the file's content (e.g. parse a

@@ -101,6 +101,7 @@ eess/
 ├── .claude/workflows/      # adr-enforce.mjs — enforced author→validate→fix loop, separate agents (plan 0077)
 ├── kit/                    # the portable working-method kit (plan 0068): skills + templates + bootstrap
 ├── arch.rules.ts           # dogfood: architecture rules over this repo
+├── family.rules.ts         # dogfood: sibling dialects re-export what they need (plan 0089)
 ├── spec.rules.ts           # dogfood: bind README/ADR-index specs to code
 ├── mermaid.rules.ts        # dogfood: diagram ↔ code correspondence
 ├── docs/architecture.mmd   # the kernel diagram (cross-validated)
@@ -142,6 +143,10 @@ or diagrams, run the relevant gate and fix what it reports:
   `eess-md` `honestyAtClose` preset that the portable kit under `kit/` ships.
 - `npm run check:arch` / `check:diagram` / `check:crossval` — architecture,
   the kernel diagram, and their agreement.
+- `npm run check:family` — each sibling dialect (`eess-md`, `-mermaid`,
+  `-gherkin`, `-crossvalidate`) re-exports every kernel symbol its own
+  source imports, so installing one dialect never requires a second, direct
+  `@nielspeter/eess` install (plan 0089).
 - `npm run check:release` — every package you changed declares a release. Touch
   anything under `packages/<name>/` and that package needs a changeset naming it
   (`npx changeset`), or an explicit `'@nielspeter/eess-<x>': none` if the change

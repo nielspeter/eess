@@ -121,3 +121,60 @@ drift in either direction fails the build. Two bindings, both dogfooded:
 - **Closed loop verified:** a fresh agent given only the gate's `--format json`
   repaired an introduced drift with no human interpretation. `check:spec`
   wall-clock ≈ 0.4s. Full account: [plan 0061 as-built](./plans/completed/0061-spec-code-hard-feedback-poc.md).
+
+## Family standalone sufficiency — re-export shake-out (plan 0089 Phase 1, 2026-08-16)
+
+Two audits, not one — plan 0089's own Phase 1 methodology names both:
+"enumerate the kernel exports its own sources actually import, **plus what
+its own documented public API promises its users**. The re-export set is
+the union." A first pass only mechanized the code half (below,
+`family.rules.ts`'s AST check); review found the doc-promise half was never
+actually run despite the box reading `[x]` done — `packages/md/README.md`'s
+own headline `rows()` + `correspondence()` example imported `correspondence`
+from `@nielspeter/eess` directly, and still would even after the code-half
+fixes below, since md's own source never imports `correspondence` (it's
+user-facing example code, invisible to a scan of `src/**`). Fixed
+(`correspondence`/`CorrespondenceBuilder` added to `packages/md/src/index.ts`
+directly, with the doc examples in `packages/md/README.md` and
+`docs/markdown.md` corrected to import from `@nielspeter/eess-md` and to
+drop a pre-existing, unrelated type error the fix exposed — `keyBy: (e) =>
+e.name` never type-checked against `MdRow`, which has no `.name`; the
+example now omits `keyBy` and uses the documented `identify().name`
+default). The other three dialects' READMEs and every `docs/*.md` page were
+re-audited the same way this round — none import from `@nielspeter/eess`
+directly (mermaid/gherkin's examples only import their own package;
+crossvalidate's correctly import each bound peer dialect, its own intended
+shape) — so this is the one gap that class of audit found.
+
+Code-half matrix: what each dialect's own `src/**` genuinely imports from
+`@nielspeter/eess` (both `import { X }` and forwarding `export { X } from
+'@nielspeter/eess'` — the AST check `family.rules.ts` runs, not a manual
+survey) versus what its entry point(s) re-exported before this pass. Every
+gap below is real, found by running the rule against this repo and reading
+what it reported — not hypothesized. `KERNEL_INTERNAL` (7 symbols: kernel
+plumbing like `writeStderr`/`selectionMemo`) is exempt on every package,
+inherited from `packages/ts/tests/standalone-surface.test.ts`'s own 0088-era
+ratified list. `family/re-export-complete`'s own per-dialect allowlist
+(`scripts/lib/family-re-exports.mjs`) covers ts's own documented exception
+(`correspondence`/`CorrespondenceBuilder`/`matchSelections`/`applyFixes`).
+
+| Package              | Gap found                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Fix                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `eess-md`            | `Predicate`, `Condition`, `ConditionContext`, `ArchFix`, `PresetReportOptions`, `PresetBaseOptions`, `RuleBuilder`, `finishPreset`, `generateCodeFrame`, `not`, `dispatchRule`, `validateOverrides` — zero kernel re-exports existed before this pass, despite `rules/ledger.ts`/`rules/adr.ts` using all of these internally. Plus, **doc-promise gap** (not code-detected): `correspondence`/`CorrespondenceBuilder` — required by `packages/md/README.md`'s and `docs/markdown.md`'s own headline example, never imported by md's own `src/**` | added to `packages/md/src/index.ts`                                              |
+| `eess-mermaid`       | `marksAssertsCardinality` — the one symbol `conditions/class.ts` used that `core/index.ts`'s barrel didn't carry (everything else already flowed through `export * from './core/index.js'`)                                                                                                                                                                                                                                                                                                                                                       | added to `packages/mermaid/src/core/index.ts`                                    |
+| `eess-gherkin`       | `RuleBuilder`, `Condition`, `Predicate`, `ArchViolation` — zero kernel re-exports existed; `builder.ts` imports all four directly                                                                                                                                                                                                                                                                                                                                                                                                                 | added to `packages/gherkin/src/index.ts`                                         |
+| `eess-ts`            | `reportViolations`, `dispatchRule`, `validateOverrides`, `throwIfViolations`, `finishPreset`, `presetConstructsNothingViolation`, `RuleSeverity`, `PresetBaseOptions`, `PresetReportOptions`, `ReportMode`, `ReportOptions` — the whole preset-authoring toolkit `presets/shared.ts` forwards from the kernel, reachable before this pass only via the `/presets` subpath (0088's own root-OR-presets precedent), not the root                                                                                                                    | added to `packages/ts/src/index.ts` (root) — `/presets` subpath already had them |
+| `eess-crossvalidate` | Every one of its 7 flat entry files (`mermaid-ts.ts`, `md-ts.ts`, `md-mermaid.ts`, `files.ts`, `md-gherkin.ts`, `gherkin-ts.ts`, `md-mermaid-er.ts`) imported kernel symbols (`correspondence`, `finishPreset`, `ArchViolation`, `Direction`, `Selection`, `ElementInfo`, `PresetReportOptions`) without re-exporting any of them — the family's one dialect with NO allowlist exception, per plan 0089's own Problem section                                                                                                                     | added a re-export block to each of the 7 files                                   |
+
+**A structural discovery, not just missing exports:** `eess-crossvalidate` has
+**no `src/index.ts` at all** — it ships one flat file per `package.json`
+`exports` subpath instead (`it-title.ts` is the one file not in that map, an
+internal helper). `family.rules.ts`'s own re-export rule has to select BOTH
+shapes (`or(...)` over each dialect's `index.ts` and crossvalidate's flat
+files) — a rule written against `index.ts` alone would have silently
+examined zero crossvalidate files forever. Caught and fixed at plan 0089's
+own freeze, before any code was written.
+
+`family.rules.ts` (`check:family`) is now green against the real repo with
+these fixes applied — zero baselines, zero silenced rules, matching the
+no-shortcuts standard every other dogfood gate in this repo holds.

@@ -14,6 +14,7 @@ export {
   formatViolationsPlain,
   definePredicate,
   defineCondition,
+  marksAssertsCardinality,
 } from '@nielspeter/eess'
 
 // Mermaid dialect — violation adapter

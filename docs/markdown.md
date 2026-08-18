@@ -38,8 +38,7 @@ pointers(c).that().areLive().should().resolve().check()
 A markdown table is a spec — a package list, an ADR index. `rows()` turns its body rows into first-class elements, and `.select()` (inherited from the kernel on every eess builder) makes any selection one side of a [`correspondence()`](/crossvalidate). Bind the table to what it describes, and drift either way fails the build:
 
 ```typescript
-import { corpus, rows } from '@nielspeter/eess-md'
-import { correspondence } from '@nielspeter/eess'
+import { corpus, rows, correspondence } from '@nielspeter/eess-md'
 
 const c = corpus({ roots: ['README.md'] })
 
@@ -51,7 +50,15 @@ const packageRows = rows(c, {
   identify: (r) => ({ name: r.get('pkg'), file: r.doc.relPath, line: r.line }),
 })
 
-correspondence({ left: packageRows, right: workspacePackages, keyBy: (e) => e.name })
+// workspacePackages is a plain Selection you build from the filesystem —
+// keyBy omitted: it defaults to each side's own identify().name
+const workspacePackages = {
+  elements: [] as { name: string }[],
+  label: 'workspace package',
+  identify: (p: { name: string }) => ({ name: p.name }),
+}
+
+correspondence({ left: packageRows, right: workspacePackages })
   .should()
   .beComplete({ direction: 'both' })
   .check()

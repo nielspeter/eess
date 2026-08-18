@@ -3,6 +3,10 @@ import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nie
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
 
+// Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
+export { finishPreset } from '@nielspeter/eess'
+export type { ArchViolation, PresetReportOptions } from '@nielspeter/eess'
+
 export interface ScenarioCitationsResolveOptions extends PresetReportOptions {
   /** Glob selecting the markdown documents to scan. Default `**` (whole corpus). */
   readonly dir?: string
