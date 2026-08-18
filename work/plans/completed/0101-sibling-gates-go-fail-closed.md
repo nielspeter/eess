@@ -22,7 +22,7 @@ RuleBuilder<T, Corpus>` and inherit the fold by construction — no
   confirmed by reading `packages/md/src/rules/ledger.ts` directly) is now
   explicitly this phase's own scope, not a silent gap. No other open
   question or TBD found in the text. Created 2026-08-12 by splitting
-  [plan 0089](../0089-family-standalone-sufficiency.md). 0089 carried four phases
+  [plan 0089](./0089-family-standalone-sufficiency.md). 0089 carried four phases
   of which two (the re-export shake-out, the standalone fixtures) are independent
   of the fold and two (this plan's) cannot begin until
   [0088](./0088-fold-ts-archunit-into-eess.md) Phase 4 lands the folded kernel
@@ -292,7 +292,7 @@ names.
 
 - **The fold itself** — [0088](./0088-fold-ts-archunit-into-eess.md).
 - **Per-dialect standalone sufficiency and `check:family`** —
-  [0089](../0089-family-standalone-sufficiency.md), the other half of this split.
+  [0089](./0089-family-standalone-sufficiency.md), the other half of this split.
   It is independent of the fold and can land first.
 - **Fixing the defects this plan surfaces.** Filing them is the deliverable;
   fixing each is that bug's own PR.

@@ -22,7 +22,7 @@
 ## Problem
 
 The fold ([0088](./completed/0088-fold-ts-archunit-into-eess.md)) and its family
-consequences ([0089](./0089-family-standalone-sufficiency.md) +
+consequences ([0089](./completed/0089-family-standalone-sufficiency.md) +
 [0101](./completed/0101-sibling-gates-go-fail-closed.md)) are code changes:
 they merge. Three things in the same story are **not** code changes, and mixing
 them into either plan makes that plan unclosable:
@@ -135,7 +135,7 @@ ADR-009's row `gated`.
 ## Out of scope
 
 - **The fold itself** — [0088](./completed/0088-fold-ts-archunit-into-eess.md).
-- **Family reconciliation** — [0089](./0089-family-standalone-sufficiency.md)
+- **Family reconciliation** — [0089](./completed/0089-family-standalone-sufficiency.md)
   (standalone sufficiency) and [0101](./completed/0101-sibling-gates-go-fail-closed.md)
   (the sibling gates going fail-closed).
 - **The work-corpus migration** — [0090](./0090-adopt-ts-archunit-work-corpus.md).

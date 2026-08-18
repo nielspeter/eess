@@ -168,7 +168,7 @@ any widening of `RuleDescription` to carry element inventories.
 not a bullet under a subcommand proposal — with the shared-skeleton question
 answered in it, under the constraint that `@nielspeter/eess` has zero runtime
 dependencies and a shared rule-file loader needs `jiti`. Sequence it after plan
-[0089](../plans/0089-family-standalone-sufficiency.md), whose Phase 2 wording
+[0089](../plans/completed/0089-family-standalone-sufficiency.md), whose Phase 2 wording
 ("the dialect's CLI/gate works with nothing but the single package installed")
 currently reads _gate_ for md and gherkin.
 

@@ -2,7 +2,21 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-08-16. Freeze verification found and fixed two
+- **State:** Done — 2026-08-16. **Split again, narrowed to what actually
+  shipped:** this plan carried two phases — Phase 1 (re-export completeness,
+  `family.rules.ts`/`check:family`) and Phase 2 (four standalone-consumption
+  fixtures). Phase 1 alone needed five rounds before it was genuinely done: a
+  build, a full six-persona review that found 3 Critical + 7 Important
+  issues, a fix pass, an independent re-verification round, and two final
+  closes. Building Phase 2 in the same pass, with less rigor than Phase 1
+  just proved necessary, was the wrong tradeoff — this repo does not ship
+  half-built phases in one PR. Phase 2 is now
+  [plan 0153](../0153-standalone-consumption-fixtures.md), its own real home
+  with its own PR. This plan closes covering only Phase 1 — see the "Done,
+  2026-08-16" narrative under Phase 1 below for the full build-review-fix
+  history, and the Progress ledger for the disposition of both boxes.
+
+  Frozen to Ready 2026-08-16, before the build. Freeze verification found and fixed two
   real floor-cracks rather than papering over them: (1) Phase 1's rule 2 code
   sample globbed `packages/*/src/index.ts` only — `packages/crossvalidate`
   has no `index.ts` at all (confirmed: 8 flat files, 7 matching its
@@ -28,13 +42,14 @@
   is Phase-3-scoped, not plan-wide") but naming it does not make it closable —
   Phases 1–2 would merge while Phases 3–4 sat open behind another plan's phase.
   The fold-dependent half is now
-  [0101](./completed/0101-sibling-gates-go-fail-closed.md). What remains here is
+  [0101](./0101-sibling-gates-go-fail-closed.md). What remains here is
   **independent of 0088 and buildable now**: the per-dialect re-export surface and
   the rules that guard it. _(The same rewrite removed a duplicated tail — this
   file carried two divergent copies of Out of scope / Success definition /
   Progress ledger, disagreeing on whether crossvalidate is an exception and on
   whether 0088's exception list is honoured or superseded. The refined copy is
   kept.)_
+
 - **Priority:** High — standalone sufficiency is a claim each published dialect
   makes on npm today, and nothing checks it. That is a claim-versus-check gap
   independent of the fold; the fold only makes it more expensive to leave open.
@@ -398,51 +413,22 @@ case without them.
 change in count, not a net addition), `check:family` runs its own 8-case
 unit suite as part of every invocation.
 
-### Phase 2 — Standalone-consumption test per dialect
+### Phase 2 — split to plan 0153, not built here
 
-A fixture that installs **only** the dialect package (dist, as a foreign consumer
-would) and runs its primary path — md: `check` over a live corpus; mermaid:
-diagram check; gherkin: scenario check. No `@nielspeter/eess` import in sight.
-
-**Corrected at freeze (2026-08-16): no such fixture exists anywhere in this
-repo today, for any package — 0088's own Test Inventory claimed it delivered
-one for eess-ts ("standalone-consumption test — a black-box fixture that
-installs only `@nielspeter/eess-ts` (dist)... runs the full path
-`init → check → diagnose`"), but what actually shipped is
-`packages/ts/tests/standalone-surface.test.ts`, a source-level
-`import * as ns` re-export-completeness check — a real and useful test, but
-not a dist-only black-box consumption fixture; confirmed by exhaustive search
-(`find . -iname "*standalone*"`, `grep` for `dist`/`npm pack`/`black-box`
-across `packages/ts/tests/`) turning up nothing else.** Phase 2 is not
-following an existing pattern for a fourth dialect; it is building this
-repo's first genuine dist-only consumption fixture, for four dialects at
-once. (0088's own overclaim is a separate, disclosable finding — not fixed
-here, since 0088 is already closed; noted for whoever next touches that
-plan's record.) The shape is still small and the promise is already live —
-this phase does not need eess-ts's fixture to exist first, only its own four
-fixtures to get built.
-
-**`crossvalidate` is the deliberate exception — per its nature, not an
-oversight.** `eess-crossvalidate` is a _binding_ tool: its function is to join
-two dialects, it declares them as `peerDependencies`, and "run a two-dialect
-correspondence with crossvalidate installed alone" is not satisfiable. Its
-standalone-consumption fixture installs **crossvalidate + the two dialects it
-binds** (honoring its peer deps) and asserts the correspondence works with no
-`@nielspeter/eess` import in sight. This is the same deliberate-exception shape
-0088 carves for `correspondence`/`matchSelections`. The per-dialect sufficiency
-invariant stands for md/mermaid/gherkin; crossvalidate's guarantee is "one
-package + its peers, no kernel."
-
-**Files changed:** a `tests/standalone/` per package (or a shared script if the
-shape generalizes). **Tests:** the four fixtures, each asserting the dialect's
-CLI/gate works with nothing but the single package (plus peers, for
-crossvalidate) installed.
-
-**Not built in this pass.** Phase 1 consumed the full session; Phase 2 (four
-new dist-only black-box fixtures — a genuinely new mechanism, confirmed at
-freeze that nothing in this repo does this today) is real, separately-sized
-work, not a quick follow-on to Phase 1's shake-out. Left for a follow-on
-build rather than rushed — see Progress ledger.
+Was: a fixture that installs **only** the dialect package (dist, as a
+foreign consumer would) and runs its primary path, per dialect — the full
+design, including the crossvalidate peer-deps exception and the freeze-time
+finding that no such fixture exists anywhere in this repo today (0088's own
+Test Inventory claimed one for eess-ts; what actually shipped
+(`packages/ts/tests/standalone-surface.test.ts`) is a source-level
+re-export-completeness check, not a dist-only black-box install), is
+preserved in [plan 0153](../0153-standalone-consumption-fixtures.md), which
+carries this phase's content forward verbatim as its own Problem/
+Implementation. **Not built here**: Phase 1 alone needed five rounds before
+it was genuinely done (see its own "Done, 2026-08-16" narrative above) —
+building Phase 2 in the same pass, with less rigor than that just proved
+necessary, was the wrong tradeoff. Split rather than shipped half-built; see
+Progress ledger.
 
 ## Test inventory
 
@@ -453,31 +439,35 @@ build rather than rushed — see Progress ledger.
   and — for rule 2's two subject shapes — a temp dropped-re-export probe on an
   `index.ts`-shaped package _and_ one on a crossvalidate-shaped flat-file
   package, each independently reddening `check:family`).
-- Phase 2: **four** standalone-consumption fixtures — md/mermaid/gherkin install
-  the single dialect alone; **crossvalidate installs the dialect + its two peer
-  dialects** (its binding nature is the deliberate exception), each with no
-  `@nielspeter/eess` import in sight.
+- Phase 2: split to [plan 0153](../0153-standalone-consumption-fixtures.md) —
+  not this plan's test inventory anymore.
 
 ## Out of scope
 
 - **The fold itself** (engine rejoining, ADR-008/009 port) — plan
-  [0088](./completed/0088-fold-ts-archunit-into-eess.md). This plan does **not** depend on
+  [0088](./0088-fold-ts-archunit-into-eess.md). This plan does **not** depend on
   it; both can proceed in either order.
 - **Reconciling the sibling dogfood gates to fail-closed** —
-  [0101](./completed/0101-sibling-gates-go-fail-closed.md), the other half of this split.
+  [0101](./0101-sibling-gates-go-fail-closed.md), the other half of this split.
   That work cannot start until the folded kernel seam exists; this can.
+- **Standalone-consumption fixtures (the original Phase 2)** — split to
+  [plan 0153](../0153-standalone-consumption-fixtures.md); real,
+  separately-sized work that needs its own build-review-fix cycle, not a
+  quick follow-on this plan's own PR could absorb.
 - **Sibling engine features beyond the re-export surface** — e.g. md adopting
   `terms()`/`vocabulary()`
-  ([proposal 001](../proposals/001-md-corpus-rule-coverage.md)), or any dialect
+  ([proposal 001](../../proposals/001-md-corpus-rule-coverage.md)), or any dialect
   gaining new capability from the ported engine. New _surface_ is a
   proposal/plan.
 - **Standalone sufficiency for `eess-ts` itself** — 0088's binding invariant.
 
 ## Success definition
 
-- **Md/mermaid/gherkin** usable alone: correct re-export surface + a passing
-  standalone-consumption fixture. **Crossvalidate** usable as "one package + its
-  two peer dialects, no kernel" — its binding nature is the deliberate exception.
+- **Re-export completeness**, not full standalone consumption (the original,
+  broader Success definition — a passing standalone-consumption fixture per
+  dialect — moved to [plan 0153](../0153-standalone-consumption-fixtures.md)
+  along with Phase 2; this plan's own bar narrowed to match what it actually
+  delivered):
 - `family.rules.ts` enforces the family's boundaries (with the crossvalidate
   bridge carve-out carried from `arch.rules.ts`) and per-dialect re-export
   completeness (with the explicit per-dialect allowlist) via `check:family` in
@@ -491,6 +481,6 @@ build rather than rushed — see Progress ledger.
 
 - [x] Phase 1 — per-dialect re-export shake-out + `family.rules.ts` (with
       crossvalidate bridge carve-out + allowlist) + `check:family` + non-vacuity row
-- [ ] Phase 2 — standalone-consumption fixtures (md/mermaid/gherkin alone;
-      crossvalidate with its peers) — not built this pass, see Phase 2's own
-      "Not built in this pass" note
+- [x] Phase 2 — deferred→[plan 0153](../0153-standalone-consumption-fixtures.md);
+      real, separately-sized work needing its own build-review-fix cycle, not
+      silently absorbed into this plan's close
