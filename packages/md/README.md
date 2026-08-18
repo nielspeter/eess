@@ -47,8 +47,7 @@ selection into one side of a `correspondence()`. Bind a table to what it
 describes and drift in either direction fails the build:
 
 ```typescript
-import { corpus, rows } from '@nielspeter/eess-md'
-import { correspondence } from '@nielspeter/eess'
+import { corpus, rows, correspondence } from '@nielspeter/eess-md'
 
 const c = corpus({ roots: ['README.md'] })
 
@@ -61,8 +60,15 @@ const packageRows = rows(c, {
   identify: (r) => ({ name: r.get('pkg'), file: r.doc.relPath, line: r.line }),
 })
 
-// `workspacePackages` is a plain Selection you build from the filesystem
-correspondence({ left: packageRows, right: workspacePackages, keyBy: (e) => e.name })
+// `workspacePackages` is a plain Selection you build from the filesystem —
+// keyBy omitted: it defaults to each side's own identify().name
+const workspacePackages = {
+  elements: [] as { name: string }[],
+  label: 'workspace package',
+  identify: (p: { name: string }) => ({ name: p.name }),
+}
+
+correspondence({ left: packageRows, right: workspacePackages })
   .should()
   .beComplete({ direction: 'both' }) // every row has a package AND vice versa
   .because('the README package table must not drift from the workspace')

@@ -101,6 +101,27 @@ export type { RuleDescription } from '@nielspeter/eess'
 // emptiness" exemption .notExist() has, without a second @nielspeter/eess install.
 export { marksAssertsCardinality, assertsCardinality } from '@nielspeter/eess'
 
+// Core — preset-authoring toolkit (plan 0089): `presets/index.ts` already
+// re-exports part of this subpath-scoped (0088's own precedent, confirmed
+// via standalone-surface.test.ts's root-OR-presets check); re-exported from
+// the ROOT here too, so a standalone consumer building their own preset
+// (the same way presets/shared.ts does internally) finds it without also
+// needing the /presets subpath.
+export {
+  dispatchRule,
+  validateOverrides,
+  throwIfViolations,
+  finishPreset,
+  presetConstructsNothingViolation,
+} from '@nielspeter/eess'
+export type {
+  RuleSeverity,
+  PresetBaseOptions,
+  PresetReportOptions,
+  ReportMode,
+  ReportOptions,
+} from '@nielspeter/eess'
+
 // Core — code frame & formatting
 export { generateCodeFrame } from '@nielspeter/eess'
 export type { CodeFrameOptions } from '@nielspeter/eess'
@@ -327,6 +348,7 @@ export type { CheckOptions, OutputFormat, BaselineFilter, DiffFilterLike } from 
 // Output formats
 export { formatViolationsJson } from '@nielspeter/eess'
 export { formatViolationsGitHub } from '@nielspeter/eess'
+export { reportViolations } from '@nielspeter/eess'
 export { detectFormat, isCI } from '@nielspeter/eess'
 
 // Baseline mode

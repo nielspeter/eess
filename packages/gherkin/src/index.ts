@@ -12,3 +12,10 @@ export type { GherkinFeature, GherkinScenario } from './model.js'
 export { features, parseFeature } from './load.js'
 export type { FeatureSet, FeaturesOptions } from './load.js'
 export { scenarios, ScenarioRuleBuilder } from './builder.js'
+
+// Kernel re-exports (plan 0089 — standalone sufficiency): every kernel
+// symbol builder.ts itself imports, so a caller writing a custom predicate
+// or condition over scenarios() never needs a second, direct
+// @nielspeter/eess install.
+export { RuleBuilder } from '@nielspeter/eess'
+export type { Condition, Predicate, ArchViolation } from '@nielspeter/eess'

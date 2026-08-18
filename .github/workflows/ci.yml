@@ -47,6 +47,8 @@ jobs:
       - run: npm run check:integrity
       # Dogfood: eess-ts validates the family's own architecture (kernel purity, dialect isolation).
       - run: npm run check:arch
+      # Dogfood: eess-ts validates each sibling dialect's standalone re-export completeness (plan 0089).
+      - run: npm run check:family
       # Dogfood: the shipped `recommended` preset over this repo, against its baseline.
       - run: npm run check:baseline
       # Dogfood: eess-mermaid validates the kernel architecture diagram (plan 0060 charter).

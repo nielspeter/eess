@@ -9,6 +9,37 @@
 export { corpus } from './corpus.js'
 export type { CorpusOptions, Corpus } from './corpus.js'
 
+// Kernel re-exports (plan 0089 — standalone sufficiency): every kernel
+// symbol this package's own sources import, so a caller writing a custom
+// rule/preset against @nielspeter/eess-md (the same way rules/ledger.ts and
+// rules/adr.ts do internally) never needs a second, direct
+// @nielspeter/eess install.
+export type {
+  Predicate,
+  Condition,
+  ConditionContext,
+  ArchFix,
+  PresetReportOptions,
+  PresetBaseOptions,
+} from '@nielspeter/eess'
+export {
+  RuleBuilder,
+  finishPreset,
+  generateCodeFrame,
+  not,
+  dispatchRule,
+  validateOverrides,
+} from '@nielspeter/eess'
+// `correspondence`/`CorrespondenceBuilder`: not touched by this package's
+// OWN source (so the family.rules.ts code-import scan can't see this gap —
+// review found it manually), but this README's own "Binding a spec table to
+// code" example, and docs/markdown.md's equivalent, both teach
+// `rows()` + `correspondence()` as the flagship way to bind a markdown table
+// to code — without this re-export, that documented example does not
+// compile against @nielspeter/eess-md alone, the exact second-install this
+// plan exists to close.
+export { correspondence, CorrespondenceBuilder } from '@nielspeter/eess'
+
 // Document model
 export type { MdDocument, MdSection, MdTable, MdCodeBlock } from './model/document.js'
 export type { MdRow, ColumnSpec, RowMatchOptions, RowMatchMode } from './model/rows.js'

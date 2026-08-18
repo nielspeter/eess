@@ -4,6 +4,10 @@ import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
 import path from 'node:path'
 import { itOrTestTitleOf } from './it-title.js'
 
+// Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
+export { finishPreset } from '@nielspeter/eess'
+export type { ArchViolation, PresetReportOptions } from '@nielspeter/eess'
+
 /**
  * Custom citation extractor — receives one `it('…')` title and returns the
  * scenario it cites, or `undefined` if the title is not a citation. Shared by

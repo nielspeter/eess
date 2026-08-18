@@ -2,7 +2,7 @@
 
 The `crossLayer()` entry point checks consistency between layers of your application. Use it to verify that every route has a matching schema, every schema has a matching SDK method, or any other pairwise relationship between file groups.
 
-> **Deprecated:** `crossLayer()` still works, but is superseded by the kernel `correspondence()` primitive (`@nielspeter/eess`), which binds two `Selection`s from any loaders (not just globs within one project). Prefer `correspondence()` for new rules; this page documents `crossLayer()` for existing users.
+> **Deprecated:** `crossLayer()` still works, but is superseded by the kernel `correspondence()` primitive, which binds two `Selection`s from any loaders (not just globs within one project). Prefer `correspondence()` for new rules — but note it's a **kernel-level** primitive, so it's a direct `import { correspondence } from '@nielspeter/eess'`, not a re-export from `@nielspeter/eess-ts` (`correspondence`/`matchSelections` are deliberately excluded from eess-ts's own re-export surface — plan 0089 — since `crossLayer()` above already wraps the common single-project case without it). This page documents `crossLayer()` for existing users.
 
 ## What It Solves
 

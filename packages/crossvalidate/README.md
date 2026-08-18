@@ -11,8 +11,8 @@ import { diagramMatchesCode } from '@nielspeter/eess-crossvalidate/mermaid-ts'
 import { project } from '@nielspeter/eess-ts'
 import { diagram } from '@nielspeter/eess-mermaid'
 
-// every class in the diagram exists in code, and vice versa
-diagramMatchesCode(diagram('docs/architecture.mmd'), project('tsconfig.json')).check?.()
+// every class in the diagram exists in code, and vice versa — throws on drift
+diagramMatchesCode(diagram('docs/architecture.mmd'), project('tsconfig.json'))
 ```
 
 If the code gains a `ModuloOperation` class the diagram doesn't have (or vice

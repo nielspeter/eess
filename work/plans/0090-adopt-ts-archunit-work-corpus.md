@@ -4,7 +4,7 @@
 
 - **State:** Draft — created 2026-08-10. Part of the ts-archunit retirement
   family: [0088](./completed/0088-fold-ts-archunit-into-eess.md) is the fold (engine +
-  ADR-008/009), [0089](./0089-family-standalone-sufficiency.md) is per-dialect
+  ADR-008/009), [0089](./completed/0089-family-standalone-sufficiency.md) is per-dialect
   standalone sufficiency, [0101](./completed/0101-sibling-gates-go-fail-closed.md) takes the
   sibling gates fail-closed, [0100](./0100-publish-the-fold-retire-ts-archunit.md)
   publishes and retires — and this is the **work-corpus migration**: the plans,

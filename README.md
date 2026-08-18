@@ -76,6 +76,7 @@ enforces on the repo that builds it, in CI, with no baselines and no silenced
 rules —
 
 - `check:arch` — eess-ts validates the monorepo's own architecture: kernel purity, dialect isolation, and an internal policy (layering, cycles, security, hygiene, metrics, the ADR-005 `as`/`!` bans) over every package ([arch.rules.ts](./arch.rules.ts), [arch.internal.rules.ts](./arch.internal.rules.ts))
+- `check:family` — eess-ts validates that each sibling dialect re-exports every kernel symbol its own source imports, so installing one dialect never requires a second, direct `@nielspeter/eess` install ([family.rules.ts](./family.rules.ts))
 - `check:diagram` — eess-mermaid validates [docs/architecture.mmd](./docs/architecture.mmd), the kernel's class diagram
 - `check:crossval` — eess-crossvalidate keeps that diagram and the kernel's code in agreement (both directions), resolves every test an ADR cites against the real AST, and binds each Gherkin scenario to the test that proves it (both directions) — a renamed or uncited scenario fails the build
 - `check:corpus` — eess-md validates 100 markdown docs: cross-links, live `path:line` code pointers, and the tiered `## Enforcement` table in every [ADR](./adr)

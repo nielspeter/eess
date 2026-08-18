@@ -57,8 +57,8 @@ _buildable now_. Then `/plan-ready` to freeze its floor, and `/plan-build`.
 | [0078 — workflow dialect](./0078-workflow-dialect.md)                                            | Low      | Draft | `@nielspeter/eess-workflow` — CI workflows validated against `package.json` scripts and the packages table                                                                                                                                | demand; the dogfood case may not justify a sixth package                               |
 | [0079 — Tier 2/3 mechanization](./0079-tier-2-3-mechanization.md)                                | High     | Draft | bind a clause to a _behaviour_, not just to a test's name — the frontier eess has never crossed                                                                                                                                           | a mechanism; none exists, and an 83-talk sweep found none                              |
 | [0081 — port checkAll](./0081-port-checkall.md)                                                  | Low      | Draft | test-file terminal for an array of rules — run all, aggregate, throw one `ArchRuleError`; the one ts-archunit 0.17.0 export eess-ts still lacks                                                                                           | demand — a test-file adopter (eess's CLI already aggregates)                           |
-| [0089 — family standalone sufficiency](./0089-family-standalone-sufficiency.md)                  | High     | Draft | each dialect usable alone — per-dialect re-export surface shaken out and guarded by `family.rules.ts` + a new `check:family` gate (crossvalidate's guarantee is "one package + its two peers")                                            | — buildable now                                                                        |
 | [0150 — close 0088's disclosed review findings](./0150-close-0088s-disclosed-review-findings.md) | Medium   | Draft | `CorrespondenceBuilder`'s class-wide cardinality exemption scoped per-check; `.expectNonEmpty()` made real or removed; `RuleBuilder`'s copy-on-write chain gets direct kernel test coverage; `orphanExclusions()` ported or ruled on      | — buildable now                                                                        |
+| [0153 — standalone-consumption fixtures](./0153-standalone-consumption-fixtures.md)              | Medium   | Draft | four dist-only black-box install fixtures (md/mermaid/gherkin alone; crossvalidate + its two peers) — split from 0089's own Phase 2, this repo's first genuine dist-only consumption fixture                                              | — buildable now                                                                        |
 | [0090 — adopt ts-archunit work corpus](./0090-adopt-ts-archunit-work-corpus.md)                  | Medium   | Draft | migrate ts-archunit's plans/bugs/ADRs/docs into eess — history frozen as heritage under `docs/heritage/`, open engine work re-numbered + re-homed onto the eess board                                                                     | 0088 (retirement context); per-item re-homing decision in Phase 1                      |
 | [0100 — publish the fold, retire ts-archunit](./0100-publish-the-fold-retire-ts-archunit.md)     | High     | Draft | the acts that cannot land in a PR — the coordinated six-package release, `npm deprecate @nielspeter/ts-archunit`, repo archival, and the retirement test that flips ADR-009's row to `gated`; split off 0088 so that plan closes at merge | 0088 + 0089 + 0101 merged                                                              |
 
@@ -70,12 +70,23 @@ mechanism nobody has, and every `Low` row on a signal that does not exist yet.
 
 **Update, 2026-08-16: 0088 and 0101 shipped** (below). 0088 — all 7 phases +
 4a landed and verified, ADR-010's Enforcement table corrected to match. PR #67
-merged to `main` the same day. 0101 — both phases built on PR #68 (unmerged),
-closing bug 0131 after three review rounds and filing bugs 0151/0152. 0100's
-"three code plans merged" is not yet met (0089 still Draft, 0101 built but its
-PR not yet merged). Four Important-tier findings 0088's own review disclosed
-and never gave a home are now
-[plan 0150](./0150-close-0088s-disclosed-review-findings.md), buildable now.
+merged to `main` the same day. 0101 — both phases built and merged, PR #68,
+closing bug 0131 after three review rounds and filing bugs 0151/0152. Four
+Important-tier findings 0088's own review disclosed and never gave a home are
+now [plan 0150](./0150-close-0088s-disclosed-review-findings.md), buildable
+now.
+
+**Update, 2026-08-16 (later the same day): 0089 shipped** (below), narrowed to
+what it actually delivered — Phase 1 (re-export completeness +
+`family.rules.ts`/`check:family`), built and reviewed across five rounds (a
+build, a full six-persona review finding 3 Critical + 7 Important issues, a
+fix pass, an independent re-verification round, and two final closes) before
+it was genuinely done. Phase 2 (four standalone-consumption fixtures) was
+never attempted — building it with less rigor than Phase 1 just required
+would have been the wrong tradeoff, and this repo doesn't ship half-built
+phases in one PR. Split to [plan 0153](./0153-standalone-consumption-fixtures.md),
+buildable now. PR #69, unmerged. 0100's "three code plans merged" is now down
+to one: 0088 and 0101 are merged; 0089's PR is open.
 
 **Why three cells changed on 2026-08-12.** The `Blocked on` column was carrying
 _relationships_ as if they were _dependencies_ — 0088's cell described its own
@@ -121,3 +132,4 @@ maintained by hand.
 | [0148 — workspace multi-root awareness](./completed/0148-workspace-multi-root-awareness.md)                               | `workspace()` no longer silently applies one package's compiler options to every package, and project-relative globs now resolve per-package (not only the tie-break winner) — spun off from 0147's own "Out of scope"; a post-build review found and this pass fixed a fail-closed gap and 3 untested wiring sites | 2026-08-16 |
 | [0088 — fold ts-archunit 0.59 into eess](./completed/0088-fold-ts-archunit-into-eess.md)                                  | Folded ts-archunit's fail-closed engine into kernel + eess-ts; eess ADR-009/010 (Agent-First Failure Surfaces; A Pass Is Constructed From Evidence); the vacuity matrix; the extension-surface contract fixture; the breaking release authored and versioned (0.3.0)                                                | 2026-08-16 |
 | [0101 — sibling gates go fail-closed](./completed/0101-sibling-gates-go-fail-closed.md)                                   | All four sibling dogfood gates fail-closed on the folded kernel, zero baselines; `honestyAtClose` rewritten through the builder DSL, closing bug 0131 after three review rounds each catching a real Critical the prior round's fix left open; two review-surfaced defects filed as bugs 0151/0152                  | 2026-08-16 |
+| [0089 — family standalone sufficiency](./completed/0089-family-standalone-sufficiency.md)                                 | Per-dialect kernel re-export completeness (`family.rules.ts` + `check:family`, in `validate`/`check:fast`/CI) for md/mermaid/gherkin/crossvalidate; real gaps found and fixed in every published package; Phase 2 (standalone-consumption fixtures) split to plan 0153 rather than rushed                           | 2026-08-16 |
