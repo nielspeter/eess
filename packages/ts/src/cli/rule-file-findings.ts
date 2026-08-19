@@ -1,5 +1,5 @@
 import type { ArchViolation } from '../core/violation.js'
-import { ArchRuleError } from '../core/errors.js'
+import { isArchRuleError } from '../core/errors.js'
 import { basename } from 'node:path'
 
 /**
@@ -71,7 +71,7 @@ export function ruleFileFailure(file: string, error: unknown, ruleFiles: number)
     // location line, and in the remedy — and the location line renders it
     // through `path.relative(cwd, …)`, so a rule file outside the cwd printed as
     // `../../../../../../private/tmp/…`. Measured on the real CLI.
-    rule: 'ts-archunit: rule file',
+    rule: 'eess-ts: rule file',
     element: basename(file),
     file,
     line: 1,
@@ -104,9 +104,7 @@ export function failureOrViolations(
   error: unknown,
   ruleFiles: number,
 ): ArchViolation[] {
-  return error instanceof ArchRuleError
-    ? error.violations
-    : [ruleFileFailure(file, error, ruleFiles)]
+  return isArchRuleError(error) ? error.violations : [ruleFileFailure(file, error, ruleFiles)]
 }
 
 /**
@@ -145,7 +143,7 @@ export function failureOrViolations(
 export function ruleFileTruncated(file: string, ruleFiles: number): ArchViolation {
   const others = ruleFiles > 1 ? ' The other rule files in this run were still checked.' : ''
   return {
-    rule: 'ts-archunit: rule file',
+    rule: 'eess-ts: rule file',
     element: basename(file),
     file,
     line: 1,

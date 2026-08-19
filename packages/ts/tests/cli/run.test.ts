@@ -23,7 +23,7 @@ describe('run', () => {
     })
     await run(['--help'])
     const output = chunks.join('')
-    expect(output).toContain('ts-archunit')
+    expect(output).toContain('eess-ts')
     expect(output).toContain('Usage')
     writeSpy.mockRestore()
   })
@@ -72,7 +72,7 @@ describe('run', () => {
     })
     await run(['--help'])
     const output = chunks.join('')
-    expect(output).toContain('ts-archunit init')
+    expect(output).toContain('eess-ts init')
     expect(output).toContain('--preset')
   })
 
@@ -197,7 +197,7 @@ describe('doctor (supported since plan 0077)', () => {
       writeSpy.mockRestore()
     }
     const help = written.join('')
-    expect(help).toContain('ts-archunit doctor')
+    expect(help).toContain('eess-ts doctor')
     // Named alongside its siblings, not tucked in an options line — the point of
     // promotion is that a reader scanning the command list finds it.
     expect(help).toContain('Report rules that cannot enforce anything')

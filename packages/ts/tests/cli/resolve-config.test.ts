@@ -5,7 +5,7 @@ import os from 'node:os'
 import { resolveConfig } from '../../src/cli/resolve-config.js'
 
 function makeTmpDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'ts-archunit-resolve-config-'))
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'eess-ts-resolve-config-'))
 }
 
 describe('resolveConfig', () => {
@@ -123,7 +123,7 @@ describe('resolveConfig', () => {
     // Create a config file in a temp dir and mock process.cwd()
     const cwdDir = path.join(tmpDir, 'cwd-test')
     fs.mkdirSync(cwdDir, { recursive: true })
-    const configFile = path.join(cwdDir, 'ts-archunit.config.js')
+    const configFile = path.join(cwdDir, 'eess-ts.config.js')
     fs.writeFileSync(configFile, `export default { project: 'found-it.json' };\n`)
 
     vi.spyOn(process, 'cwd').mockReturnValue(cwdDir)

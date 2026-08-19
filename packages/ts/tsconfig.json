@@ -16,5 +16,20 @@
     "isolatedModules": true
   },
   "include": ["src", "tests"],
-  "exclude": ["node_modules", "dist", "poc"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/dist",
+    "poc",
+    // Bug 0045: `warn-survives-the-test-runner.test.ts` writes probe files here at
+    // runtime. `include: ["src", "tests"]` made them members of the ROOT ts-morph
+    // program, so a concurrent `new Project({ tsConfigFilePath })` mid-load when
+    // `afterAll` deleted the directory threw `File not found`. Pinned by that
+    // file's `the generated directory is invisible to the root project`.
+    "tests/__generated__",
+    // Bug 0051: this fixture is deliberately `.tsx` and carries its OWN tsconfig
+    // with `"jsx": "preserve"`. The root program sets no `jsx`, so compiling it
+    // here fails with TS17004 — in `npm run typecheck`, before any test runs.
+    "tests/fixtures/jsx-on-disk"
+  ]
 }

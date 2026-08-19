@@ -48,9 +48,7 @@ describe('parseExclusionComments', () => {
   })
 
   it('parses multiple rule IDs on one line (comma-separated)', () => {
-    const source = ['// eess-exclude rule-a, rule-b: shared reason', 'doSomething()'].join(
-      '\n',
-    )
+    const source = ['// eess-exclude rule-a, rule-b: shared reason', 'doSomething()'].join('\n')
 
     const result = parseExclusionComments(source, 'src/bar.ts')
     expect(result.exclusions).toHaveLength(2)

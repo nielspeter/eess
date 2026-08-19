@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import path from 'node:path'
-import { within } from '../../src/helpers/within.js'
+import { within } from '../../src/builders/within.js'
 import { calls } from '../../src/builders/call-rule-builder.js'
 import { call } from '../../src/helpers/matchers.js'
-import { ArchRuleError } from '@nielspeter/eess'
+// The source under test, not the kernel: during plan 0165's baseline the two
+// carry SEPARATE copies of this class, so a kernel import makes
+// `toThrow(ArchRuleError)` compare against a class nothing ever throws.
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/calls')
@@ -91,7 +94,7 @@ describe('within()', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(ArchRuleError)
       const archError = error as ArchRuleError
-      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+      expect(archError.violations[0]!.message).toMatch(/examined 0 subjects/)
     }
   })
 
@@ -125,7 +128,7 @@ describe('within()', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(ArchRuleError)
       const archError = error as ArchRuleError
-      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
+      expect(archError.violations[0]!.message).toMatch(/examined 0 subjects/)
     }
   })
 

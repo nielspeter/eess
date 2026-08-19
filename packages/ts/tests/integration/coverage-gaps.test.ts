@@ -1211,11 +1211,9 @@ describe('exclusion comments — parseExclusionComments and isExcludedByComment'
     })
 
     it('block start without reason produces undocumented warning', () => {
-      const source = [
-        '// eess-exclude-start no-any',
-        'const x = 1;',
-        '// eess-exclude-end',
-      ].join('\n')
+      const source = ['// eess-exclude-start no-any', 'const x = 1;', '// eess-exclude-end'].join(
+        '\n',
+      )
       const result = parseExclusionComments(source, '/test/file.ts')
       const undocWarning = result.warnings.find((w) => w.message.includes('Undocumented'))
       expect(undocWarning).toBeDefined()

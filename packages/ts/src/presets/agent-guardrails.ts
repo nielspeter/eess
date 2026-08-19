@@ -49,7 +49,7 @@ export interface AgentGuardrailsOptions extends PresetBaseOptions<AgentGuardrail
  *
  * Returns severity-carrying builders (the returning form, plan 0060), so an
  * agent's rules file does `export default [...agentGuardrails(p, { ... })]` and
- * `ts-archunit check --format json` surfaces every violation, including the
+ * `eess-ts check --format json` surfaces every violation, including the
  * copy-paste **warn**. Each rule carries agent-facing `because` / `suggestion` /
  * `imperative` metadata so `explain --format agent` and the check JSON give the
  * agent an actionable fix.

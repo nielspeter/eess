@@ -186,11 +186,28 @@ export function rootOf(sourceFile: SourceFile, fallbackTsConfigPath?: string): s
   // resolves against the outer root and the inner one never applies.
   const registered = rootsByProject.get(sourceFile.getProject())
   if (registered !== undefined) {
+    // Roots WERE registered for this project (a real `workspace()`) — fail
+    // CLOSED here (ADR-009) rather than falling through to the generic fallback
+    // below. That fallback resolves to the tie-break-winner's own tsconfig for a
+    // `workspace()`-built project, which is a specific, plausible-looking, WRONG
+    // answer for a file outside every registered package (a shared root-level
+    // `.d.ts`, a broad `include`/`references` reaching outside a package's own
+    // directory) — exactly the silent mis-scoping this module exists to
+    // eliminate, just relocated to the edges. `fallbackTsConfigPath` doesn't
+    // rescue it either: for a `workspace()` caller it is typically the primary
+    // config's own path (see `resolveByDefinition`'s `project.tsConfigPath`), so
+    // honoring it here would reintroduce the same bug through the back door.
+    //
+    // eess's own fix (plan 0148 Phase 1). The wholesale engine copy of plan 0165
+    // reverted it to `if (best !== undefined) return best`, which reads as a
+    // harmless guard and is in fact the fall-through. Pinned by
+    // `tests/core/project-relative.test.ts` · `a file outside every registered
+    // root of a real workspace() is unresolved, not silently the tie-break
+    // winner`.
     const containing = registered
       .filter((root) => filePath.startsWith(prefixOf(root)))
       .sort((a, b) => b.length - a.length)
-    const best = containing[0]
-    if (best !== undefined) return best
+    return containing[0]
   }
 
   // A project built without going through `project()`/`workspace()` — a test

@@ -3,7 +3,7 @@ import { withBaseline } from '../../helpers/baseline.js'
 import { diffAware } from '../../helpers/diff-aware.js'
 import type { OutputFormat } from '../../core/check-options.js'
 import type { ArchViolation } from '../../core/violation.js'
-import { ArchRuleError } from '../../core/errors.js'
+import { isArchRuleError } from '../../core/errors.js'
 import { setCallerAggregatesReports, writeReport } from '../../core/execute-rule.js'
 import { suppressionNotice } from '../../core/diff-disclosure.js'
 import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '../../core/edge-coverage.js'
@@ -87,7 +87,7 @@ export async function runCheck(args: CheckArgs): Promise<number> {
       // happens after the module finished, so nothing was truncated, and the
       // `export default [rule1, rule2]` shape never reaches here at all — an array
       // export builds every rule before any of them runs.
-      if (error instanceof ArchRuleError) collected.push(ruleFileTruncated(file, total))
+      if (isArchRuleError(error)) collected.push(ruleFileTruncated(file, total))
       continue
     }
     for (const builder of builders) {

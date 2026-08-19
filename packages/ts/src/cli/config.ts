@@ -18,7 +18,7 @@ export interface CliConfig {
  *
  * @example
  * ```ts
- * // ts-archunit.config.ts
+ * // eess-ts.config.ts
  * import { defineConfig } from '@nielspeter/eess-ts'
  *
  * export default defineConfig({

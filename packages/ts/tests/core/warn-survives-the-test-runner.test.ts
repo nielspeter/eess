@@ -21,11 +21,27 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
 import { project } from '../../src/core/project.js'
 
 const repoRoot = path.resolve(import.meta.dirname, '../..')
+
+/**
+ * Resolved, never joined onto `repoRoot`.
+ *
+ * Upstream is a single-package repo where `<repoRoot>/node_modules/vitest` always
+ * exists. eess is a workspace and npm hoists vitest to the WORKSPACE root, so the
+ * joined path names nothing and the child died with `Cannot find module …
+ * /packages/ts/node_modules/vitest/vitest.mjs` — an environment failure that reads
+ * exactly like the assertion failing (bug 0045's shape). Node's own resolver finds
+ * it wherever the installer put it.
+ */
+const vitestCli = path.join(
+  path.dirname(createRequire(import.meta.url).resolve('vitest/package.json')),
+  'vitest.mjs',
+)
 
 /**
  * Generated INSIDE the tests tree, not in a temp directory.
@@ -105,16 +121,12 @@ function writeProbe(name: string, body: string): string {
  * the one that drops intercepted console output from passing tests.
  */
 function runVitest(file: string): { output: string; status: number } {
-  const result = spawnSync(
-    process.execPath,
-    [path.join(repoRoot, 'node_modules/vitest/vitest.mjs'), 'run', file, '--root', repoRoot],
-    {
-      cwd: repoRoot,
-      encoding: 'utf-8',
-      env: { ...process.env, CI: 'true', NO_COLOR: '1' },
-      timeout: 120_000,
-    },
-  )
+  const result = spawnSync(process.execPath, [vitestCli, 'run', file, '--root', repoRoot], {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    env: { ...process.env, CI: 'true', NO_COLOR: '1' },
+    timeout: 120_000,
+  })
   return { output: `${result.stdout ?? ''}${result.stderr ?? ''}`, status: result.status ?? -1 }
 }
 

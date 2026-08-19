@@ -331,12 +331,27 @@ describe('rule scope (bug 0011)', () => {
     expect(dead).toEqual([])
   })
 
+  /**
+   * The path SEGMENTS of every single-quoted glob on a line.
+   *
+   * A bare `text.includes(checkoutName)` was the original shape and it is
+   * unsound for a short directory name: eess checks out this package at
+   * `packages/ts`, so `checkoutName` is `ts`, which occurs inside `presets`,
+   * `tests` and `startsWith` — seven false positives, none of them a glob
+   * encoding anything. The defect being banned always writes the folder name as
+   * a whole path SEGMENT, so compare segments rather than substrings.
+   */
+  const globSegments = (line: string): string[] =>
+    [...line.matchAll(/'([^']*\*[^']*)'/g)].flatMap((m) => (m[1] ?? '').split('/'))
+
+  const checkoutDirName = (): string => path.basename(path.dirname(path.resolve('tsconfig.json')))
+
   it('no rule scopes by the name of the checkout directory', () => {
     // The original defect was not "a wrong glob" but "a glob that encodes the
     // folder name", which is a property of the machine, not the repository.
     // Renaming the checkout is enough to silence any rule written that way, so
     // ban the shape rather than the one string that happened to be used.
-    const checkoutName = path.basename(path.dirname(path.resolve('tsconfig.json')))
+    const checkoutName = checkoutDirName()
     const source = fs.readFileSync(import.meta.filename, 'utf-8')
     const offending = source
       .split('\n')
@@ -347,9 +362,26 @@ describe('rule scope (bug 0011)', () => {
       // this file's style, and a false negative here only means the ban misses
       // a glob someone hid inside a trailing comment, which no rule executes.
       .filter(({ text }) => !text.startsWith('*') && !text.startsWith('//'))
-      .filter(({ text }) => /'[^']*\*[^']*'/.test(text) && text.includes(checkoutName))
+      .filter(({ text }) => globSegments(text).includes(checkoutName))
 
     expect(offending.map((o) => `${String(o.number)}: ${o.text}`)).toEqual([])
+  })
+
+  it('CONTROL: the checkout-name ban still fires on a glob that encodes it', () => {
+    // Without this the ban is unfalsifiable: `segmentsOf` returning nothing
+    // would make the assertion above pass over any file at all, and a guard
+    // that cannot fail is worth less than no guard (ADR-009 rule 1).
+    //
+    // Both inputs are ASSEMBLED, never written as glob literals. The sibling
+    // scan `no glob written in this file can ever match` reads this file's own
+    // source, so a literal probe glob here is a dead glob it correctly reports —
+    // measured, the first version of this control failed that test rather than
+    // this one.
+    const star = '*'.repeat(2)
+    const encodes = ["'", star, '/', checkoutDirName(), '/src/', star, "'"].join('')
+    const innocent = ["'", star, '/src/presets/', star, "'"].join('')
+    expect(globSegments(encodes)).toContain(checkoutDirName())
+    expect(globSegments(innocent)).not.toContain(checkoutDirName())
   })
 })
 
@@ -778,6 +810,12 @@ describe('Hygiene', () => {
           // GraphQL schema loader — requires graphql peer dep
           'requireGraphQL',
           'loadSchemaFromGlob',
+          // Rule-file loader — a malformed rule file must fail LOUDLY at load
+          // (plan 0061 Phase 0), before any rule runs, so there is no violation
+          // list to wrap in an ArchRuleError. The message names the file, the
+          // entry index and the fix, which is what the rule is protecting.
+          'loadRuleFiles',
+          'resolveExported',
         )
         .rule({
           id: 'quality/typed-errors-fn',
@@ -1132,7 +1170,22 @@ afterAll(() => {
   // `BUILT` is every rule this file gated, so the declared-id set is derived
   // rather than listed — `orphanExclusions` wants the union across all rule
   // files, and this is that union.
-  const orphans = orphanExclusions(BUILT)
+  //
+  // **`tests/fixtures/` is excluded, and the exclusion is narrow on purpose.**
+  // A directive under `tests/fixtures/` is a test's INPUT — planted so a test can
+  // assert what the scanner does with it — and the rule id it names is declared
+  // by that test at runtime, never by this file. eess's own
+  // `tests/fixtures/exclusion-e2e/` names `test/no-forbidden-call`, which
+  // `tests/integration/exclusion-comments-e2e.test.ts` declares. Reporting it
+  // here would be a false positive whose remedy ("delete the comment") deletes
+  // the fixture the test reads. Only fixtures: a directive anywhere else in
+  // `tests/` is a real waiver and stays in scope.
+  const isFixture = (file: string): boolean => file.includes('/tests/fixtures/')
+  const allOrphans = orphanExclusions(BUILT)
+  const orphans = allOrphans.filter((o) => !isFixture(o.file))
+  // The carve-out must not be able to grow silently into "no orphans anywhere":
+  // everything it drops has to be a fixture path, and this says so.
+  expect(allOrphans.filter((o) => !orphans.includes(o)).every((o) => isFixture(o.file))).toBe(true)
   const named = orphans.map(
     (o) => `${o.file}:${String(o.line)} names "${o.ruleId}", which no rule declares`,
   )

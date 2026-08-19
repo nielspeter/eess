@@ -61,12 +61,10 @@ describe('explain --format agent', () => {
 
   it('wraps output in sentinel markers and includes the check-in-loop preamble', async () => {
     const out = await runAgent([{ rule: 'r', id: 'a/one', imperative: 'Do NOT do X' }])
-    expect(out).toContain('<!-- ts-archunit:start -->')
-    expect(out).toContain('<!-- ts-archunit:end -->')
-    expect(out).toContain('npx ts-archunit check --format json')
-    expect(out.indexOf('<!-- ts-archunit:start -->')).toBeLessThan(
-      out.indexOf('<!-- ts-archunit:end -->'),
-    )
+    expect(out).toContain('<!-- eess-ts:start -->')
+    expect(out).toContain('<!-- eess-ts:end -->')
+    expect(out).toContain('npx eess-ts check --format json')
+    expect(out.indexOf('<!-- eess-ts:start -->')).toBeLessThan(out.indexOf('<!-- eess-ts:end -->'))
   })
 
   it('renders the imperative as a bullet without the because (because lives in the check json)', async () => {
@@ -95,9 +93,9 @@ describe('explain --format agent', () => {
 
   it('emits the block with "No rules found." when there are none', async () => {
     const out = await runAgent([])
-    expect(out).toContain('<!-- ts-archunit:start -->')
+    expect(out).toContain('<!-- eess-ts:start -->')
     expect(out).toContain('No rules found')
-    expect(out).toContain('<!-- ts-archunit:end -->')
+    expect(out).toContain('<!-- eess-ts:end -->')
   })
 
   it('falls back to the rule description when no imperative is set', async () => {

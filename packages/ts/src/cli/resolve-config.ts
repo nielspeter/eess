@@ -1,16 +1,17 @@
 import path from 'node:path'
+import { importRuleModule } from './import-rule-module.js'
 import { isRecord } from '../core/type-guards.js'
 import fs from 'node:fs'
 import type { CliConfig } from './config.js'
 
-const CONFIG_FILENAMES = ['ts-archunit.config.ts', 'ts-archunit.config.js']
+const CONFIG_FILENAMES = ['eess-ts.config.ts', 'eess-ts.config.js']
 
 /**
  * Resolve CLI configuration from an explicit path or by searching for a config file.
  *
  * Config resolution order:
  * 1. CLI flags (highest priority) — handled by caller
- * 2. ts-archunit.config.ts in project root
+ * 2. eess-ts.config.ts in project root
  * 3. Defaults (project: 'tsconfig.json', format: 'auto')
  */
 export async function resolveConfig(explicitPath?: string): Promise<CliConfig> {
@@ -18,7 +19,10 @@ export async function resolveConfig(explicitPath?: string): Promise<CliConfig> {
 
   if (configPath === undefined) return {}
 
-  const mod: unknown = await import(path.resolve(configPath))
+  // Native `import()` first, jiti only if Node refuses the file's module format
+  // — see `import-rule-module.ts`. A config in a `"type": "commonjs"` project is
+  // bug 0074; a config in an ESM project must share the CLI's module registry.
+  const mod: unknown = await importRuleModule(path.resolve(configPath), false)
   return extractDefault(mod)
 }
 

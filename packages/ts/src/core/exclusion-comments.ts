@@ -235,7 +235,7 @@ function handleSingleLine(
 }
 
 /**
- * Scan a source file for ts-archunit exclusion comments.
+ * Scan a source file for eess-ts exclusion comments.
  *
  * Supported formats:
  *   // eess-exclude <rule-id>: <reason>

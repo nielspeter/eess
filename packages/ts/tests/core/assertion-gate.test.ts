@@ -310,7 +310,7 @@ describe('assertionAdvice: one remedy per state, and only its own', () => {
     const anchor = ASSERTION_DOCS.split('#')[1]
     expect(anchor).toBeTruthy()
     const page = fs.readFileSync(
-      path.resolve(import.meta.dirname, '../../docs/violation-reporting.md'),
+      path.resolve(import.meta.dirname, '../../../../docs/violation-reporting.md'),
       'utf-8',
     )
     const slugs = [...page.matchAll(/^#{2,4} (.+)$/gm)].map((m) =>

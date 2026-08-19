@@ -1,7 +1,7 @@
 import { watch, type FileChangeInfo } from 'node:fs/promises'
 import { isNullaryCallable } from '../core/type-guards.js'
 import path from 'node:path'
-import { ArchRuleError } from '../core/errors.js'
+import { isArchRuleError } from '../core/errors.js'
 
 export interface WatchOptions {
   /** Directories to watch for changes */
@@ -63,7 +63,7 @@ export class RunScheduler {
     this.onRun(trigger)
       .catch((err: unknown) => {
         // Rule failures are expected — swallow ArchRuleError, print others
-        if (!(err instanceof ArchRuleError)) {
+        if (!isArchRuleError(err)) {
           if (err instanceof Error) {
             console.error(err.message)
           }

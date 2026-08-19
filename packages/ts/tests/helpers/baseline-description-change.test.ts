@@ -106,7 +106,7 @@ describe('a baseline entry that stops matching because the RULE was edited', () 
     // can see WHAT changed rather than being told how many did.
     expect(finding?.message).toContain(RULE_BEFORE)
     expect(finding?.message).toContain(RULE_AFTER)
-    expect(finding?.suggestion).toContain('ts-archunit baseline')
+    expect(finding?.suggestion).toContain('eess-ts baseline')
     expect(finding?.suggestion).toContain('<your-rule-files>')
     // Unsuppressable, like every configuration finding.
     expect(finding?.bypassFilters).toBe(true)

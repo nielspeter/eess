@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Project, ScriptTarget, ModuleKind } from 'ts-morph'
 import type { CompilerOptions } from 'ts-morph'
 import type { ArchProject } from '../../src/core/project.js'
-import { tsconfig } from '../../src/tsconfig/tsconfig-builder.js'
+import { tsconfig } from '../../src/tsconfig/index.js'
 import { STRICT_FAMILY_SIZE } from '../../src/tsconfig/strict-family.js'
 
 /** In-memory ArchProject with the given compiler options. */

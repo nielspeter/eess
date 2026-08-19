@@ -75,17 +75,44 @@ The 66, split:
 whole baseline, and recording only the green half is the failure this plan exists
 to correct:
 
-| gate             | at `9489684`                    | root cause                                                                                            |
-| ---------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `check:arch`     | ✗ **221** violations            | upstream's src under eess's `arch.internal.rules.ts`: 97 missing-JSDoc, 61 unused-export, 14 non-null |
-| `check:corpus`   | ✗ 1 pointer + 3 ADR citations   | `within.ts` moved to `builders/`; three cited `it()` titles no longer exist under those paths         |
-| `check:crossval` | ✗ 1                             | the same ADR-010 citation — one root cause, two gates                                                 |
-| `format:check`   | ✗ **5** copied test files       | upstream formats to its own prettier config, not eess's                                               |
-| `check:spec`     | ✓                               |                                                                                                       |
-| `check:diagram`  | ✓                               |                                                                                                       |
-| `check:ledger`   | ✓                               |                                                                                                       |
-| `check:release`  | ✓                               |                                                                                                       |
-| `check:family`   | ✓ — **and that is the finding** | see below                                                                                             |
+| gate             | at `9489684`                     | root cause                                                                                            |
+| ---------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `check:arch`     | ✗ **223** violations             | upstream's src under eess's `arch.internal.rules.ts`: 97 missing-JSDoc, 61 unused-export, 14 non-null |
+| `check:corpus`   | ✗ 1 pointer + 3 ADR citations    | `within.ts` moved to `builders/`; three cited `it()` titles no longer exist under those paths         |
+| `check:crossval` | ✗ 1 — **understated, see below** | the same ADR-010 citation — one root cause, two gates                                                 |
+| `check:baseline` | ✓ — **also understated**         | see below                                                                                             |
+| `format:check`   | ✗ **8** copied files             | upstream formats to its own prettier config, not eess's                                               |
+| `check:spec`     | ✓                                |                                                                                                       |
+| `check:diagram`  | ✓                                |                                                                                                       |
+| `check:ledger`   | ✓                                |                                                                                                       |
+| `check:release`  | ✓                                |                                                                                                       |
+| `check:family`   | ✓ — **and that is the finding**  | see below                                                                                             |
+
+### Correction: two of those readings were taken against a stale `dist`
+
+`check:crossval` and `check:baseline` import the **built** `@nielspeter/eess-ts`,
+and at the time of the first reading `packages/ts/dist` still held the PRE-copy
+build. Both were measuring eess's old engine while the table claimed they
+measured the new one. Rebuilt, the real baseline is worse:
+
+- `check:crossval` — **6** failing checks, not 1. Five of them are one cause:
+  `.select()` does not exist on the copied builders. It is a kernel
+  `RuleBuilder` method (`packages/core/src/rule-builder.ts:167`) that upstream
+  never had, and `eess-crossvalidate` is built on it — so four of its five source
+  files fail `tsc` too. **Phase 2**, by inheritance, when eess-ts sits on the
+  kernel again.
+- `check:baseline` — **crashes**, it does not pass. It calls
+  `recommended(p, { report: 'return' })`; ADR-008's `report` option is one of the
+  three things the copy dropped, so the preset returns builders where the script
+  expects violations and the kernel's `reportViolations` dies inside
+  `path.relative` on `file: undefined`. **Phase 3.**
+
+Two lessons, both recorded rather than filed away: a gate that reads `dist` is
+measuring whatever was last built, so a baseline must state when it was built;
+and `reportViolations` crashing on a malformed violation is its own small
+ADR-009 rule-1 defect — a gate that dies emits no findings at all, and
+`ERR_INVALID_ARG_TYPE` names nothing the operator can act on. Not fixed here
+(out of Phase 1's scope); worth a bug when Phase 3 lands.
 
 ### `check:family` is green because the thing it guards was deleted
 
@@ -124,43 +151,103 @@ gets split.
 
 ## Implementation phases
 
-### Phase 1 — the 38 engine failures → 0
+### Phase 1 — the engine failures → 0 · **DONE**
 
-Fix, or explicitly rule on, every engine failure in the baseline. Largest
-clusters first:
+Every engine failure fixed or ruled; none deleted. Measured at the close:
+**3537 tests · 3504 passing · 30 failing + 3 load failures**, and every one of
+the 33 is either upstream's own corpus (27 + 3, out of scope per below) or a
+later phase of this plan (3). **Engine failures: 0.**
 
-- `tests/tsconfig/tsconfig.test.ts` — 9
-- `tests/integration/exclusion-comments-e2e.test.ts` — 7
-- `tests/core/warn-survives-the-test-runner.test.ts` — 4
-- the remainder 1–2 each across conditions, `project-relative`, workspace
-  roots, `diagnose`, `held-builder-is-immutable`, `preset-fanout`,
-  `assertion-gate`, `vacuity-matrix`, `standalone-surface`.
+The real count was **29**, not the 38 the baseline table states. That table was
+itself measured wrong twice over: it counted `packages/ts` under a run that also
+swept sibling packages, and it counted only failing _assertions_ — a test file
+that fails to LOAD reports zero of those, so four files were invisible to the
+instrument that produced the 38. Both are recorded rather than quietly
+corrected, because mis-measuring the thing you are measuring is the failure this
+plan exists to correct.
 
-Each failure gets one of two dispositions, recorded: **fixed**, or **ruled a
-legitimate divergence** with the reason. A test deleted because it was
-inconvenient is the failure mode this whole plan exists to correct, so no
-third option.
+#### Dispositions
 
-`tests/standalone-surface.test.ts` is deliberately left to Phase 2 — it is the
-kernel-boundary test, and it should fail until the boundary is back.
+| what                                                                   |   n | disposition                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------- | --: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tests/tsconfig/tsconfig.test.ts`                                      |   9 | **fixed** — one import line. eess's file is a stale duplicate of the copied `tests/config/tsconfig.test.ts` (37 cases vs 10) and imported `tsconfig` from the builder module, which never exported it. Kept, not deleted: it passes and costs nothing. |
+| `tests/integration/exclusion-comments-e2e.test.ts`                     |   7 | **fixed** — bound to `src/` instead of `@nielspeter/eess`. The kernel and `packages/ts/src` carry separate copies, so `instanceof` compared a class nothing throws and `commentSuppressions()` read a registry nothing writes.                         |
+| `tests/core/warn-survives-the-test-runner.test.ts`                     |   4 | **fixed** — vitest resolved through Node instead of joined onto the package root (npm hoists it in a workspace), plus the two `tsconfig.json` excludes and the `.gitignore` entry bug 0045's fix needs.                                                |
+| `tests/core/project-relative.test.ts`                                  |   1 | **fixed** — eess's plan-0148 fail-CLOSED `rootOf()` restored. The copy reverted it to a fall-through that resolves a file outside every registered root to the tie-break winner: a specific, plausible, wrong answer.                                  |
+| `tests/matrix/vacuity-matrix.test.ts`                                  |   1 | **fixed** — upstream's `vitest.config.ts` adopted (it excludes `tests/matrix/**`, which reads `dist`), plus `vitest.matrix.config.ts` and the `test:matrix` script. Verified green against a fresh build: 48/48, not merely removed from the run.      |
+| `tests/archunit/arch-rules.test.ts` — checkout-name ban                |   1 | **fixed** — matched as a path SEGMENT. eess checks this package out at `packages/ts`, so the name is `ts`, which occurs inside `presets`, `tests` and `startsWith`: seven false positives. A CONTROL was added so the ban stays falsifiable.           |
+| `tests/archunit/arch-rules.test.ts` — orphan directives                |   1 | **fixed** — `tests/fixtures/**` scoped out, narrowly, with an assertion that everything dropped is a fixture path. A directive there is a test's INPUT; the remedy offered ("delete the comment") deletes the fixture the test reads.                  |
+| `tests/archunit/arch-rules.test.ts` — aliased import                   |   1 | **fixed** — `notImportFrom` exists as both a condition and a predicate, so the name genuinely conflicts. A namespace import, which is what the rule's own remedy asks for.                                                                             |
+| `tests/archunit/dogfood.test.ts` + `held-builder-is-immutable`         |   2 | **fixed** — two eess-added files inside `tests/fixtures/slices` formed a second cycle under an upstream test that counts them. Moved to their own fixture project **and given the test they never had**; orphaned fixture data is not coverage.        |
+| `tests/helpers/within.test.ts`                                         |   3 | **fixed** — a LOAD failure (`within.ts` moved to `builders/`, bug 0160's own fix) hiding two wording assertions. eess's file is a superset of the copied `tests/builders/within.test.ts` — it adds the `.expectEmpty()` cases — so it stays.           |
+| `tests/conditions/reverse-dependency-workspace-roots.test.ts`          |   1 | **fixed** — same cross-copy `ArchRuleError` identity as the e2e file.                                                                                                                                                                                  |
+| `tests/core/assertion-gate.test.ts`                                    |   1 | **fixed** — the shipped `docs:` URL pointed at upstream's site at an anchor eess's docs did not carry. The section was ported into `docs/violation-reporting.md` and the URL repointed: a violation whose docs link 404s is a lying remedy.            |
+| `tests/cli/*` (init · run · explain-agent · resolve-config) + baseline |  13 | **fixed** — caused BY Phase 1: see the identity finding below. The tests pinned upstream's brand strings; they now pin eess's.                                                                                                                         |
+| `tests/cli/config-cjs-project.test.ts` + `rule-file-truncation`        |   6 | **fixed** — see the loader finding below.                                                                                                                                                                                                              |
+| `tests/predicates/module-workspace-roots.test.ts`                      |   2 | **deferred→Phase 3** — `havePathMatching`, one of the three eess additions the copy dropped. Left failing on purpose, which is how it stays visible.                                                                                                   |
+| `tests/standalone-surface.test.ts`                                     |   1 | **deferred→Phase 2** — the kernel-boundary test. It should fail until the boundary is back.                                                                                                                                                            |
 
-Phase 1 also clears the corpus-side breakage the copy caused, which is the same
-work in a different lane: [bug 0160](../bugs/0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)'s
+#### Three findings Phase 1 turned up that the plan did not predict
+
+**1 — the copy shipped upstream's identity to users.** `packages/ts/src` carried
+48 occurrences of `ts-archunit` across 15 files, and they were not comments: the
+CLI help said `ts-archunit check`, `init` scaffolded `ts-archunit.config.ts`,
+`resolve-config` looked for that filename, `explain --format agent` wrote
+`<!-- ts-archunit:start -->` sentinels into the consumer's AGENTS.md, violations
+carried `rule: 'ts-archunit: baseline'`, and three `docs:` URLs pointed at
+upstream's documentation site. Now zero. The 13 CLI test failures above are the
+consequence — upstream's tests correctly pinned upstream's names.
+
+**2 — the rule loader was reverted from fail-closed to fail-open, tests and
+all.** eess's `loadRuleFiles` throws when a rule file's default export is
+malformed or contains a non-builder (plan 0061 Phase 0): a silently-dropped rule
+is a green-but-empty gate. Upstream's skips it and returns `[]`. The copy
+replaced the source AND the four tests that pinned the behaviour **in one
+motion**, so the fail-open landed with a green suite asserting it was correct.
+Nothing went red. This is the exact shape ADR-009 and ADR-010 exist to make
+impossible, and it is the strongest argument in this record for why the copy
+needed a phase and not a merge. Restored, with the divergence from upstream
+stated in both the source and the test file.
+
+**3 — `instanceof` across a module loader is not an identity anyone can rely
+on.** Restoring eess's jiti loader (bug 0074: a `.ts` rule file must load inside
+a `"type": "commonjs"` consumer project) broke two upstream behaviours at once,
+because jiti keeps its own module registry:
+
+- `instanceof ArchRuleError` was false for an error that is one, so `check.ts`
+  skipped `ruleFileTruncated()` — bug 0029 reopened, silently, in a run that was
+  already red for another reason. Fixed structurally with `isArchRuleError()`,
+  which matches on `name` + `violations` rather than on class identity. Worth
+  keeping regardless of the loader: a consumer with two copies of eess-ts on
+  disk hits the same thing.
+- `execute-rule.ts`'s module-level `callerAggregatesReports` flag was set on the
+  CLI's copy and read on the rule file's, so every configuration finding printed
+  twice. Module state has no cross-registry identity, so there is no structural
+  fix.
+
+Resolved by inverting the loader: **native `import()` first, jiti only when Node
+refuses the file's module format** (`src/cli/import-rule-module.ts`). The normal
+path keeps one registry and upstream's semantics; bug 0074's CJS project still
+loads. The fallback is narrow — an `ArchRuleError` from a self-executing rule
+file must never be retried — and it is **proved live by sabotage**: making it
+throw reds `config-cjs-project.test.ts`, so it is not dead code.
+
+#### The formatting decision, made
+
+`prettier --write` on the 8 files. Byte-identity with upstream was already gone
+— Phase 1 changed 20+ source files — so what it would have bought is now bought
+by git, while a permanently-red `format:check` would keep `npm run validate` from
+ever passing. Recorded here because the plan asked for a decision, not a chore.
+
+Phase 1 also cleared the corpus-side breakage the copy caused:
+[bug 0160](../bugs/0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)'s
 code pointer into the old `helpers/` location of `within.ts` (the file moved to
-[`packages/ts/src/builders/within.ts`](../../packages/ts/src/builders/within.ts) —
-the move the bug asked for, so the pointer is stale by success), and the
-three ADR citations in
+[`packages/ts/src/builders/within.ts`](../../packages/ts/src/builders/within.ts))
+and the three ADR citations in
 [ADR-006](../../adr/006-framework-rules-architecture.md) and
-[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) naming `it()`
-titles that upstream's test files do not carry. An ADR citation is repaired by
-matching it to the test that now exists, or by retiring the clause — never by
-deleting the row, for the same reason no test gets deleted here.
-
-`format:check`'s five files are the one finding with a real choice in it:
-`prettier --write` fixes them in a second, but it ends the copy's
-byte-identity with upstream and so ends the ability to re-run the diff that
-produced this baseline. Phase 1 decides that deliberately and records which
-way — it is not a formatting chore.
+[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) — **still open**,
+carried into Phase 2 rather than closed here, because two of the three cited
+tests moved into files the kernel re-split will move again.
 
 ### Phase 2 — re-split the kernel
 
@@ -222,7 +309,9 @@ from memory.
 
 The suite is the specification, which is the point of the whole exercise.
 
-- **Phase 1:** 38 → 0 engine failures, every one disposed as fixed or ruled.
+- **Phase 1:** engine failures → 0, every one disposed as fixed or deferred to a
+  named phase. **Done:** 3537 tests · 3504 passing; the 33 that remain are 30
+  upstream-corpus (out of scope) + 3 later-phase.
 - **Phase 2:** `check:arch`, `check:family` green; `standalone-surface.test.ts`
   passes; `packages/core` imports ts-morph in zero files.
 - **Phase 3:** the 16 eess-only test files pass.
@@ -245,7 +334,8 @@ The suite is the specification, which is the point of the whole exercise.
 
 ## Progress ledger
 
-- [ ] Phase 1 — the 38 engine failures.
+- [x] Phase 1 — the engine failures (29 measured, not 38): 0 remaining; every one
+      fixed, or deferred to a named later phase of this plan. No test deleted.
 - [ ] Phase 2 — re-split the kernel.
 - [ ] Phase 3 — restore `report`, `--fix`, `havePathMatching`.
 

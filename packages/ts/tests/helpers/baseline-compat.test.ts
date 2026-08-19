@@ -185,7 +185,7 @@ describe('a v1 baseline that still matches must not be failed (review C1)', () =
     const meta = withBaseline(file)
       .filterNew([pathFree])
       .filter((v) => v.bypassFilters === true)
-    expect(meta[0]?.suggestion).toContain('Upgrade ts-archunit')
+    expect(meta[0]?.suggestion).toContain('Upgrade eess-ts')
     expect(meta[0]?.suggestion).not.toContain('Regenerate')
   })
 })

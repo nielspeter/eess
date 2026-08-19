@@ -70,7 +70,7 @@ describe('runInit', () => {
     const code = runInit({ cwd: dir })
     out.restore()
     expect(code).toBe(0)
-    expect(fs.existsSync(path.join(dir, 'ts-archunit.config.ts'))).toBe(true)
+    expect(fs.existsSync(path.join(dir, 'eess-ts.config.ts'))).toBe(true)
     expect(fs.existsSync(path.join(dir, 'arch.rules.ts'))).toBe(true)
     expect(fs.existsSync(path.join(dir, 'arch-baseline.json'))).toBe(true)
   })
@@ -193,7 +193,7 @@ describe('runInit', () => {
     const out = captureStdout()
     runInit({ cwd: dir })
     out.restore()
-    const config = read(dir, 'ts-archunit.config.ts')
+    const config = read(dir, 'eess-ts.config.ts')
     expect(config).toContain("rules: ['arch.rules.ts']")
     expect(config).toContain("baseline: 'arch-baseline.json'")
     expect(config).toContain("format: 'auto'")
@@ -226,7 +226,7 @@ describe('runInit', () => {
     expect(msg).toContain('--force')
     expect(msg).toContain('--dry-run')
     // nothing else written
-    expect(fs.existsSync(path.join(dir, 'ts-archunit.config.ts'))).toBe(false)
+    expect(fs.existsSync(path.join(dir, 'eess-ts.config.ts'))).toBe(false)
     // the existing file is untouched
     expect(read(dir, 'arch.rules.ts')).toBe('pre-existing\n')
   })
@@ -259,7 +259,7 @@ describe('runInit', () => {
     runInit({ cwd: dir, noBaseline: true })
     out.restore()
     expect(fs.existsSync(path.join(dir, 'arch-baseline.json'))).toBe(false)
-    expect(read(dir, 'ts-archunit.config.ts')).not.toContain('baseline:')
+    expect(read(dir, 'eess-ts.config.ts')).not.toContain('baseline:')
   })
 
   it('brownfield message states warnings never fail CI and the baseline-before-CI step', () => {
@@ -300,7 +300,7 @@ describe('runInit', () => {
     out.restore()
     expect(code).toBe(0)
     expect(fs.existsSync(path.join(dir, 'arch.rules.ts'))).toBe(true)
-    expect(text).toContain('npx ts-archunit check')
+    expect(text).toContain('npx eess-ts check')
     expect(text).not.toContain('npm run arch')
   })
 
@@ -324,7 +324,7 @@ describe('runInit', () => {
     out.restore()
     const merged = read(dir, 'package.json')
     expect(merged).toContain('    "scripts": {')
-    expect(merged).toContain('        "arch": "ts-archunit check"')
+    expect(merged).toContain('        "arch": "eess-ts check"')
     expect(merged.endsWith('}')).toBe(true) // no trailing newline added
     // original fields + order intact
     expect(merged.indexOf('"name"')).toBeLessThan(merged.indexOf('"version"'))
@@ -367,7 +367,7 @@ describe('runInit', () => {
     out.restore()
     expect(code).toBe(0)
     expect(read(dir, 'arch.rules.ts')).toContain("project('config/tsconfig.build.json')")
-    expect(read(dir, 'ts-archunit.config.ts')).toContain('config/tsconfig.build.json')
+    expect(read(dir, 'eess-ts.config.ts')).toContain('config/tsconfig.build.json')
   })
 
   it('reports a write failure (target path is a directory) and returns 1', () => {

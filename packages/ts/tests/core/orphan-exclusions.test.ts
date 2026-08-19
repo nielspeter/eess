@@ -216,10 +216,7 @@ describe('orphan exclusion comments are reported (bug 0044)', () => {
     // an in-memory project reported nothing. `getFullText()` has no such failure
     // mode, and `orphanExclusions` is a published export.
     const mem = new Project({ useInMemoryFileSystem: true })
-    mem.createSourceFile(
-      '/src/a.ts',
-      '// eess-exclude arch/gone: stale\nexport const a = 1\n',
-    )
+    mem.createSourceFile('/src/a.ts', '// eess-exclude arch/gone: stale\nexport const a = 1\n')
     const memProj: ArchProject = {
       tsConfigPath: 'in-memory',
       _project: mem,

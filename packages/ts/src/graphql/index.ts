@@ -1,5 +1,5 @@
 /**
- * GraphQL extension for ts-archunit.
+ * GraphQL extension for eess-ts.
  *
  * Sub-path export: `import { schema, resolvers } from '@nielspeter/eess-ts/graphql'`
  *

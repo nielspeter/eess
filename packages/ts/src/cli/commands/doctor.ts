@@ -1,6 +1,6 @@
 import type { DiagnosableRule, DiagnosticFinding } from '../../core/diagnose.js'
 import { diagnose } from '../../core/diagnose.js'
-import { ArchRuleError } from '../../core/errors.js'
+import { isArchRuleError } from '../../core/errors.js'
 import { loadRuleFiles } from '../load-rules.js'
 import { writeStderr } from '../../core/stderr.js'
 import { orphanExclusions } from '../../core/orphan-exclusions.js'
@@ -69,7 +69,7 @@ export async function runDoctor(args: DoctorArgs): Promise<number> {
       // self-executes a failing rule at import; anything else — measured, a
       // raw TypeError from importing a vitest test file — used to crash the
       // whole command and abandon every remaining file.
-      if (error instanceof ArchRuleError) {
+      if (isArchRuleError(error)) {
         writeStderr(
           `Error: ${file} executes its rules at import and threw, so none of it could be ` +
             `diagnosed. Leave builders un-terminated in a rule file (see docs/running-in-tests).\n`,

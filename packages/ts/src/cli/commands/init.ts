@@ -42,7 +42,7 @@ interface StagedFile {
 }
 
 /**
- * Scaffold a working ts-archunit setup in `cwd`. Returns the process exit code
+ * Scaffold a working eess-ts setup in `cwd`. Returns the process exit code
  * (0 success, 1 on a recoverable error — bad `--preset`, missing tsconfig, a
  * file conflict without `--force`, or a write failure). All reads, parses, and
  * conflict checks run before any file is written, so a validation failure never
@@ -64,7 +64,7 @@ export function runInit(args: InitArgs): number {
   // tsconfig must exist — the generated project() call points at it.
   if (!fs.existsSync(path.join(cwd, tsconfig))) {
     console.error(
-      `Error: ts-archunit needs a ${tsconfig} — run \`tsc --init\` first or pass --tsconfig <path>.`,
+      `Error: eess-ts needs a ${tsconfig} — run \`tsc --init\` first or pass --tsconfig <path>.`,
     )
     return 1
   }
@@ -74,7 +74,7 @@ export function runInit(args: InitArgs): number {
 
   // Stage the generated files in memory (no writes yet).
   const staged: StagedFile[] = [
-    stage(cwd, 'ts-archunit.config.ts', configTemplate(tsconfig, writeBaseline)),
+    stage(cwd, 'eess-ts.config.ts', configTemplate(tsconfig, writeBaseline)),
     stage(cwd, 'arch.rules.ts', rulesTemplate(preset, tsconfig, sourceRoot)),
   ]
   if (writeBaseline) {
@@ -187,9 +187,9 @@ function floorRulesTemplate(preset: FloorPreset, tsconfig: string, sourceRoot: s
     preset === 'recommended'
       ? `  // Using an AI coding agent? Add agentGuardrails — it targets the mistakes
   // agents make most (inline logic, generic errors, stubs, empty bodies,
-  // copy-paste), and \`npx ts-archunit explain --format agent\` emits an
+  // copy-paste), and \`npx eess-ts explain --format agent\` emits an
   // imperative rules block for the agent's system prompt.
-  // See https://nielspeter.github.io/ts-archunit/ai-agents. Then, with
+  // See https://nielspeter.github.io/eess/agent-integration. Then, with
   // { agentGuardrails } imported from '@nielspeter/eess-ts/presets':
   //   ...agentGuardrails(p, { src: '**/${sourceRoot}/**', noGenericErrors: true })`
       : `  // Thin universal safety floor (eval, Function constructor, silent catches,
@@ -203,7 +203,7 @@ import { ${presetImport} } from '@nielspeter/eess-ts/presets'
 
 const p = project('${tsconfig}')
 
-// Rules are collected into the default export; \`ts-archunit check\` runs them.
+// Rules are collected into the default export; \`eess-ts check\` runs them.
 export default [
 ${leadBlock}
 
@@ -279,7 +279,7 @@ import { recommended, ${importName} } from '@nielspeter/eess-ts/presets'
 
 const p = project('${tsconfig}')
 
-// Rules are collected into the default export; \`ts-archunit check\` runs them.
+// Rules are collected into the default export; \`eess-ts check\` runs them.
 export default [
   // The recommended safety floor ships alongside the shape rules below.
   ...${recommendedCall},
@@ -300,7 +300,7 @@ export default [
 
 function baselineTemplate(): string {
   // Inert seed — an empty baseline filters nothing. Timestamp is fixed so the
-  // seed is deterministic; `ts-archunit baseline` restamps it when populated.
+  // seed is deterministic; `eess-ts baseline` restamps it when populated.
   return JSON.stringify({ generatedAt: null, count: 0, violations: [] }, null, 2) + '\n'
 }
 
@@ -372,7 +372,7 @@ type PackageJsonPlan =
 function planPackageJson(cwd: string): PackageJsonPlan {
   const pkgPath = path.join(cwd, 'package.json')
   if (!fs.existsSync(pkgPath)) {
-    return { action: 'skip', reason: 'no package.json (run `npx ts-archunit check` directly)' }
+    return { action: 'skip', reason: 'no package.json (run `npx eess-ts check` directly)' }
   }
 
   const raw = fs.readFileSync(pkgPath, 'utf-8')
@@ -392,8 +392,8 @@ function planPackageJson(cwd: string): PackageJsonPlan {
     return { action: 'skip', reason: 'an `arch` or `arch:baseline` script already exists' }
   }
 
-  scripts['arch'] = 'ts-archunit check'
-  scripts['arch:baseline'] = 'ts-archunit baseline'
+  scripts['arch'] = 'eess-ts check'
+  scripts['arch:baseline'] = 'eess-ts baseline'
   parsed['scripts'] = scripts
 
   const indent = detectIndent(raw)
@@ -433,7 +433,7 @@ function printDryRun(
   if (hasSource(cwd, sourceRoot)) {
     process.stdout.write(
       `\nNote: this codebase already has source under ${sourceRoot}/ — errors fail the ` +
-        `build, warnings don't. Run \`ts-archunit baseline\` before gating CI on \`arch\`.\n`,
+        `build, warnings don't. Run \`eess-ts baseline\` before gating CI on \`arch\`.\n`,
     )
   }
 }
@@ -446,8 +446,8 @@ function printClosing(
   preset: InitPreset,
 ): void {
   const scriptsAdded = pkg.action === 'write'
-  const runCmd = scriptsAdded ? 'npm run arch' : 'npx ts-archunit check'
-  const baselineCmd = scriptsAdded ? 'npm run arch:baseline' : 'npx ts-archunit baseline'
+  const runCmd = scriptsAdded ? 'npm run arch' : 'npx eess-ts check'
+  const baselineCmd = scriptsAdded ? 'npm run arch:baseline' : 'npx eess-ts baseline'
 
   process.stdout.write(`Created ${String(staged.length)} file(s).\n`)
   if (!scriptsAdded && pkg.action === 'skip') {

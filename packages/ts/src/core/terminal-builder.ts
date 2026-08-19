@@ -40,7 +40,7 @@ import { DECLARE_INSTEAD, UNSUPPRESSABLE } from './unsuppressable.js'
  * not at the builder's own page, which is about writing rules that work.
  */
 export const ASSERTION_DOCS =
-  'https://nielspeter.github.io/ts-archunit/violation-reporting#a-rule-must-assert-something'
+  'https://nielspeter.github.io/eess/violation-reporting#a-rule-must-assert-something'
 
 /**
  * Declaring both emptiness assertions is a contradiction, and 0069's appendix

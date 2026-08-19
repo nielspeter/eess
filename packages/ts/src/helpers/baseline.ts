@@ -674,7 +674,7 @@ export class Baseline {
       .join('')
     const plural = changed.size === 1 ? 'rule' : 'rules'
     return {
-      rule: 'ts-archunit: baseline',
+      rule: 'eess-ts: baseline',
       element: 'baseline',
       file: '',
       line: 0,
@@ -685,7 +685,7 @@ export class Baseline {
         `or its conditions accumulated (v0.23.0):${pairs}`,
       because:
         "A violation's identity includes the rule description, so editing a rule re-reports every violation it had already accepted — indistinguishable from a regression unless it is named.",
-      suggestion: `Regenerate the baseline: \`npx ts-archunit baseline <your-rule-files> --output ${where}\`. Review the diff: the entries that vanish are the ones listed above, and their replacements should be the same violations under the new description.`,
+      suggestion: `Regenerate the baseline: \`npx eess-ts baseline <your-rule-files> --output ${where}\`. Review the diff: the entries that vanish are the ones listed above, and their replacements should be the same violations under the new description.`,
       bypassFilters: true,
     }
   }
@@ -719,7 +719,7 @@ export class Baseline {
       this.hashVersion < HASH_VERSION
         ? `It was written in identity format v${String(this.hashVersion)} and this version reads v${String(HASH_VERSION)}, which is the likely cause.`
         : this.hashVersion > HASH_VERSION
-          ? `It was written in identity format v${String(this.hashVersion)}, which is newer than this version reads (v${String(HASH_VERSION)}) — upgrade ts-archunit rather than regenerating.`
+          ? `It was written in identity format v${String(this.hashVersion)}, which is newer than this version reads (v${String(HASH_VERSION)}) — upgrade eess-ts rather than regenerating.`
           : // **Do not assert a cause that has not been distinguished from its alternatives.**
             //
             // This branch used to say "Same identity format, so the likely cause is that it
@@ -743,7 +743,7 @@ export class Baseline {
             '       `root` option on withBaseline()/generateBaseline().\n' +
             '    3. the rules themselves were edited.'
     return {
-      rule: 'ts-archunit: baseline',
+      rule: 'eess-ts: baseline',
       element: 'baseline',
       file: '',
       line: 0,
@@ -754,7 +754,7 @@ export class Baseline {
         'A baseline that matches nothing is indistinguishable from a mass regression, and silently reporting the whole set as new hides which of the two happened (bug 0010).',
       suggestion:
         this.hashVersion > HASH_VERSION
-          ? 'Upgrade ts-archunit to a version that reads this format.'
+          ? 'Upgrade eess-ts to a version that reads this format.'
           : // `<your-rule-files>` stands in for the caller's own paths on
             // purpose: the command needs rule files unless a config supplies
             // them, and printed without them it fails with "No rule files
@@ -762,7 +762,7 @@ export class Baseline {
             // cannot remediate (ADR-008 rule 2). Measured. The path is left as
             // recorded rather than absolutized, so the line is copyable on a
             // machine other than the one that wrote the baseline.
-            `Regenerate it: \`npx ts-archunit baseline <your-rule-files> --output ${where}\` (rule files are implied if a ts-archunit config lists them). Review the diff first — entries that vanish were never matching here.`,
+            `Regenerate it: \`npx eess-ts baseline <your-rule-files> --output ${where}\` (rule files are implied if an eess-ts config lists them). Review the diff first — entries that vanish were never matching here.`,
       bypassFilters: true,
     }
   }

@@ -31,11 +31,7 @@ const CASES: readonly (readonly [string, string, number])[] = [
   ['a line comment', '// eess-exclude probe/x: real\nconst a = 1\n', 1],
   ['a trailing comment', 'const a = 1 // eess-exclude probe/x: real\nconst b = 2\n', 1],
   ['indented', '  // eess-exclude probe/x: real\nconst a = 1\n', 1],
-  [
-    'the block form',
-    '// eess-exclude-start probe/x: real\nconst a = 1\n// eess-exclude-end\n',
-    1,
-  ],
+  ['the block form', '// eess-exclude-start probe/x: real\nconst a = 1\n// eess-exclude-end\n', 1],
   ['after a string on the same line', 'const s = "x" // eess-exclude probe/x: real\n', 1],
 
   // Does not count — not a directive, whatever the characters say.

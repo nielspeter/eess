@@ -25,14 +25,14 @@ function getVersion(): string {
 }
 
 const HELP_TEXT = `
-ts-archunit — Architecture testing for TypeScript
+eess-ts — Architecture testing for TypeScript
 
 Usage:
-  ts-archunit init                      Scaffold config + rules for a new project
-  ts-archunit check [files...]          Run architecture rules
-  ts-archunit baseline [files...]       Generate baseline file
-  ts-archunit explain [files...]        Dump all active rules as JSON
-  ts-archunit doctor [files...]         Report rules that cannot enforce anything
+  eess-ts init                      Scaffold config + rules for a new project
+  eess-ts check [files...]          Run architecture rules
+  eess-ts baseline [files...]       Generate baseline file
+  eess-ts explain [files...]        Dump all active rules as JSON
+  eess-ts doctor [files...]         Report rules that cannot enforce anything
 
 Options:
   --preset <name>       init: starter preset — recommended (default) | agent-guardrails
@@ -127,7 +127,7 @@ async function handleCheck(
     const watchDirs = config.watchDirs ?? ['src']
     const checkArgs = { ruleFiles, baseline, changed, base, format, fresh: true }
 
-    process.stdout.write('ts-archunit — watching for changes\n\n')
+    process.stdout.write('eess-ts — watching for changes\n\n')
     resetProjectCache()
     await runCheck(checkArgs).catch(() => {
       // Initial violations are printed by runCheck — don't exit

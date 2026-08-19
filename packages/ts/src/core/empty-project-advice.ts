@@ -39,7 +39,7 @@ import type { ArchProject } from './project.js'
  * The obvious repair was to read the tsconfig and state it only when true. That
  * was **written, and then removed by this project's own architecture rules**:
  * it put `JSON.parse` in `src/core/`, which `hygiene/no-json-parse` bans with
- * the reason "ts-archunit analyzes AST, not JSON", and `references` is not in
+ * the reason "eess-ts analyzes AST, not JSON", and `references` is not in
  * `getCompilerOptions()` so ts-morph cannot supply it (ADR-002 rules out the
  * raw TypeScript API). Exempting the rule to accommodate this file would be
  * the wrong direction — the rule is right.

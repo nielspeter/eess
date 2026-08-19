@@ -40,41 +40,42 @@ describe('loadRuleFiles', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('skips items that are not rule-builder-like', async () => {
+  // **eess diverges from ts-archunit here, deliberately.** Upstream skips a
+  // non-builder and returns `[]` for a malformed default export; eess throws.
+  // A silently-dropped rule is a green-but-empty gate (plan 0061 Phase 0), and a
+  // rule file that contributes nothing while the CLI reports clean is the exact
+  // lie ADR-009 and ADR-010 exist to make impossible. Plan 0165's engine copy
+  // reverted source AND these tests in one motion, so the fail-open landed green
+  // — which is why the divergence is stated here rather than assumed.
+  it('throws on a non-rule-builder value in the default-export array', async () => {
     const file = path.join(tmpDir, 'rules-mixed.mjs')
-    fs.writeFileSync(
-      file,
-      `export default [{ violations: () => [] }, 'not-a-builder', 42, null];\n`,
-    )
-    const result = await loadRuleFiles([file])
-    // WHICH item survived, not how many. Keeping `42` or `'not-a-builder'`
-    // instead of the builder-like object also had length 1, and the claim of this
-    // test is precisely that the three non-builders are the ones dropped.
-    const kinds = result.map((r) =>
-      typeof r === 'object' && r !== null && 'violations' in r ? 'builder-like' : typeof r,
-    )
-    expect(kinds).toEqual(['builder-like'])
+    fs.writeFileSync(file, `export default [{ violations: () => [] }, 'not-a-builder'];\n`)
+    await expect(loadRuleFiles([file])).rejects.toThrow(/entry \[1\] is not a rule builder/)
   })
 
-  it('returns empty array when default export is not an array or function', async () => {
+  it('names the file and index of the offending entry', async () => {
+    const file = path.join(tmpDir, 'rules-void-preset.mjs')
+    // `undefined` in the array simulates a void preset call, e.g. `somePreset(p)`
+    fs.writeFileSync(file, `export default [{ violations: () => [] }, undefined];\n`)
+    await expect(loadRuleFiles([file])).rejects.toThrow(/rules-void-preset\.mjs.*entry \[1\]/s)
+  })
+
+  it('throws when the default export is not an array or function', async () => {
     const file = path.join(tmpDir, 'rules-string.mjs')
     fs.writeFileSync(file, `export default "hello";\n`)
-    const result = await loadRuleFiles([file])
-    expect(result).toEqual([])
+    await expect(loadRuleFiles([file])).rejects.toThrow(/must be an array of rule builders/)
   })
 
-  it('returns empty array when module has no default export', async () => {
+  it('throws when the module has no default export', async () => {
     const file = path.join(tmpDir, 'rules-no-default.mjs')
     fs.writeFileSync(file, `export const foo = 'bar';\n`)
-    const result = await loadRuleFiles([file])
-    expect(result).toEqual([])
+    await expect(loadRuleFiles([file])).rejects.toThrow(/must be an array of rule builders/)
   })
 
-  it('returns empty array when factory function returns non-array', async () => {
+  it('throws when a factory function returns a non-array', async () => {
     const file = path.join(tmpDir, 'rules-factory-string.mjs')
     fs.writeFileSync(file, `export default function() { return "not-an-array"; };\n`)
-    const result = await loadRuleFiles([file])
-    expect(result).toEqual([])
+    await expect(loadRuleFiles([file])).rejects.toThrow(/must return an array of rule builders/)
   })
 
   it('loads multiple files and merges rule builders', async () => {

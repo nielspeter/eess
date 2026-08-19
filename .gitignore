@@ -25,3 +25,8 @@ reports/
 # skips the finally, and since bug 0127 some probes live in tracked corpus
 # roots (docs/, work/bugs/) instead of only packages/*/src.
 **/__nonvacuity_probe*
+
+# Bug 0045: runtime probe files written by
+# packages/ts/tests/core/warn-survives-the-test-runner.test.ts. A crashed run
+# leaves untracked .test.ts files that the next typecheck compiles.
+packages/*/tests/__generated__/

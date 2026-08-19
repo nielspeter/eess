@@ -126,13 +126,13 @@ function requireGraphQL(): GraphQLPackage {
       /Cannot find module 'graphql'/.test(cause.message)
     if (notInstalled) {
       throw new Error(
-        '[ts-archunit/graphql] The "graphql" package is required but not installed.\n' +
+        '[eess-ts/graphql] The "graphql" package is required but not installed.\n' +
           'Install it with: npm install graphql',
         { cause },
       )
     }
     throw new Error(
-      `[ts-archunit/graphql] The "graphql" package is installed but could not be loaded: ${
+      `[eess-ts/graphql] The "graphql" package is installed but could not be loaded: ${
         cause instanceof Error ? cause.message : String(cause)
       }`,
       { cause },
@@ -157,7 +157,7 @@ export function loadSchemaFromGlob(rootDir: string, glob: string): LoadedSchema 
 
   if (graphqlFiles.length === 0) {
     throw new Error(
-      `[ts-archunit/graphql] No .graphql files found matching "${glob}" in ${resolvedRoot}`,
+      `[eess-ts/graphql] No .graphql files found matching "${glob}" in ${resolvedRoot}`,
     )
   }
 

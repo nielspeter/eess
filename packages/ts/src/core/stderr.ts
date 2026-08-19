@@ -18,7 +18,7 @@
  * **The EPIPE guard is not optional, and it is why this is a function rather
  * than a bare write.** Node's `Console` is constructed with `ignoreErrors: true`
  * and swallows write errors; `process.stderr.write` does not. With a closed
- * downstream pipe — `ts-archunit check 2>&1 | head` — the error arrives
+ * downstream pipe — `eess-ts check 2>&1 | head` — the error arrives
  * **asynchronously**, so neither `try`/`catch` nor the write callback can see
  * it, and the process dies with an uncaught EPIPE. Measured over 20 000 lines:
  *

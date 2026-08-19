@@ -1,11 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import path from 'node:path'
-import { ArchRuleError } from '@nielspeter/eess'
+// Bound to the source under test, not to `@nielspeter/eess`. During plan 0165's
+// baseline the kernel and `packages/ts/src` carry SEPARATE copies of these, so a
+// kernel import gives `instanceof` a different class and `commentSuppressions()`
+// a different registry than the code writes to — green or red for the wrong
+// reason. Phase 2 re-unifies them; until then the package's own source is the
+// only honest target.
+import { ArchRuleError } from '../../src/core/errors.js'
 import {
   resetCommentSuppression,
   commentSuppressions,
   commentSuppressionNotice,
-} from '@nielspeter/eess'
+} from '../../src/core/comment-suppression.js'
 import { project, functions, call } from '../../src/index.js'
 import { functionNotContain } from '../../src/conditions/body-analysis-function.js'
 
