@@ -138,9 +138,13 @@ const rules = [
     id: 'eess/jsdoc-on-public-methods',
     because: 'the fluent surface is what users hover in IDEs',
   }),
-  srcClasses().excluding(GENERATED).should().satisfy(noPublicFields()).rule({
+  // No `GENERATED` exclusion: it went vacuous when `noPublicFields` stopped
+  // reporting `readonly` and `#private` fields (plan 0165 — both were false
+  // positives), and this repo's own unused-exclusion detector said so. A stale
+  // carve-out reads as "generated code violates this" when it no longer does.
+  srcClasses().should().satisfy(noPublicFields()).rule({
     id: 'eess/no-public-fields',
-    because: 'generated Langium classes expose public fields by design',
+    because: "a public mutable field is someone else's invariant to break",
   }),
   srcClasses().should().satisfy(noMagicNumbers()).rule({ id: 'eess/no-magic-numbers' }),
 

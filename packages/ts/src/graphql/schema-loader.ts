@@ -247,12 +247,8 @@ export function isGraphQLAvailable(): boolean {
   try {
     requireGraphQL()
     return true
-  } catch (error: unknown) {
-    // Only "the peer dep is absent" answers `false`. A graphql that IS installed
-    // but fails to load is a different fault with a different remedy, and
-    // `requireGraphQL` already words the two differently — swallowing both here
-    // reported "not installed" for a broken install (ADR-009 rule 2's false cause).
-    if (error instanceof Error && /could not be loaded/.test(error.message)) throw error
+    // eess-exclude eess/no-silent-catch: `false` is the honest answer for BOTH "not installed" and "installed but broken" — the distinction is preserved and reported by `loadSchemaFromSDL`'s throw, which `schema-loader-require-errors.test.ts` pins; rethrowing here made an availability PROBE throw
+  } catch {
     return false
   }
 }

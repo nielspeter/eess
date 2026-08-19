@@ -1270,9 +1270,13 @@ it('VACUITY: the orphan check really reads our directives', () => {
   ].sort()
   expect(waivedRuleIds).toEqual([
     'adr005/no-as-cast-module',
+    'eess/adr005-no-type-assertions',
+    'eess/max-parameters',
     'eess/no-silent-catch',
     'eess/no-unused-exports',
   ])
+
+  expect(waiverFiles('eess/max-parameters')).toEqual(['helpers/baseline.ts'])
 
   expect(waiverFiles('eess/no-silent-catch')).toEqual([
     'cli/commands/init.ts',
