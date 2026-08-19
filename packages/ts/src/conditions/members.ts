@@ -5,11 +5,11 @@ import {
   type ClassDeclaration,
   type Symbol as TsSymbol,
 } from 'ts-morph'
-import type { Condition, ConditionContext } from '@nielspeter/eess'
+import type { Condition, ConditionContext } from '../core/condition.js'
 import type { ArchViolation } from '../core/violation.js'
 import { createViolation, getElementName } from '../core/violation.js'
-import { metricViolation } from '../core/metric-violation.js'
 import { elementCondition } from './helpers.js'
+import { metricViolation } from '../core/metric-violation.js'
 
 // Inline the union to avoid conditions → predicates import cycle
 // (same pattern as type-level.ts)
@@ -58,14 +58,18 @@ function isPropertyReadonly(prop: TsSymbol): boolean {
   //   Readonly<{a: string}>.a → decl.isReadonly() = false, but
   //   compilerSymbol.links.checkFlags & 8 = 8 (readonly)
   //
-  // eess-exclude eess/adr005-no-type-assertions: reaches TS compiler-internal Symbol.links (not on the public ts.Symbol type) to read CheckFlags for mapped-type readonly detection
+  // eess-exclude-start adr005/no-as-cast-module: reads ts-morph's private
+  // `compilerSymbol.links.checkFlags`, which has no public typed path — the
+  // unavoidable JS-interop boundary ADR-005 allows. Waived in place rather than by
+  // narrowing the rule's scope, which is how this went unseen for so long (bug 0049).
   const links = (prop.compilerSymbol as unknown as Record<string, unknown>).links
-  if (typeof links === 'object' && links !== null && 'checkFlags' in links) {
-    const flags = links.checkFlags
+  if (typeof links === 'object' && links !== null) {
+    const flags = (links as Record<string, unknown>)['checkFlags']
     if (typeof flags === 'number' && (flags & 8) !== 0) {
       return true
     }
   }
+  // eess-exclude-end adr005/no-as-cast-module
 
   // Conservative: treat as mutable if neither strategy detected readonly.
   return false

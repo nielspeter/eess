@@ -3,7 +3,7 @@ import { Project } from 'ts-morph'
 import path from 'node:path'
 import { slices, SliceRuleBuilder } from '../../src/builders/slice-rule-builder.js'
 import { resolveByDefinition } from '../../src/models/slice.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/slices')

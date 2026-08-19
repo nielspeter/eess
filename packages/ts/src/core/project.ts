@@ -1,7 +1,7 @@
-import { Project, type SourceFile } from 'ts-morph'
+import { Project, type SourceFile, type CompilerOptions } from 'ts-morph'
 import path from 'node:path'
+import { clearRegisteredCaches } from './cache-registry.js'
 import fs from 'node:fs'
-import { clearRegisteredCaches } from '@nielspeter/eess'
 import { registerProjectRoots } from './project-relative.js'
 import { registerRootCompilerOptions } from './per-root-compiler-options.js'
 
@@ -17,6 +17,13 @@ export interface ArchProject {
 
   /** Returns all source files included by the tsconfig. */
   getSourceFiles(): SourceFile[]
+
+  /**
+   * Resolved TypeScript compiler options (after `extends`), as `tsc` computes
+   * them. Optional so bare `ArchProject` literals (test doubles) stay valid;
+   * `project()` and `workspace()` always implement it. Used by `tsconfig()`.
+   */
+  getCompilerOptions?(): CompilerOptions
 
   /**
    * The underlying ts-morph Project.
@@ -56,11 +63,16 @@ export function project(tsConfigPath: string): ArchProject {
     tsConfigFilePath: resolved,
   })
 
+  registerProjectRoots(tsMorphProject, [resolved])
+
   const archProject: ArchProject = {
     tsConfigPath: resolved,
     _project: tsMorphProject,
     getSourceFiles() {
       return tsMorphProject.getSourceFiles()
+    },
+    getCompilerOptions() {
+      return tsMorphProject.getCompilerOptions()
     },
   }
 
@@ -80,15 +92,10 @@ const workspaceCache = new Map<string, ArchProject>()
  * imports visible to `beImported()`, `haveNoUnusedExports()`, and all other
  * conditions that traverse the import graph.
  *
- * Paths are sorted alphabetically before loading. The underlying ts-morph
- * `Project`'s type-checker is still built from the alphabetically first
- * tsconfig — this makes behavior deterministic regardless of the order paths
- * are passed. But every resolved tsconfig, not only the primary, is also
- * registered so each file's OWN package answers correctly for the compiler
- * facts and glob resolution this library tracks per-root: `verbatimModuleSyntax`
- * (read by cycle/erasure detection) and project-relative glob matching
- * (`resideInFolder('src/domain/**')` and friends) both resolve against the
- * file's own package, not the tie-break winner's.
+ * Paths are sorted alphabetically before loading. The alphabetically first
+ * tsconfig's compiler options are used for type checking — this makes
+ * behavior deterministic regardless of the order paths are passed.
+ * Subsequent tsconfigs only contribute their source files.
  *
  * @param tsConfigPaths - Paths to tsconfig.json files (relative or absolute)
  * @throws {Error} If any tsconfig file does not exist or if no paths are provided
@@ -150,10 +157,15 @@ export function workspace(tsConfigPaths: string[]): ArchProject {
     if (configPath) tsMorphProject.addSourceFilesFromTsConfig(configPath)
   }
 
-  // Every resolved path, not just the non-primary ones — `addSourceFilesFromTsConfig`
-  // above only adds FILES, so without this every package but the tie-break
-  // winner answers `getCompilerOptions()` with the wrong config (plan 0148).
+  // EVERY config, not just the primary: a relative glob resolves against the
+  // package that contains the file, so `'src/api/**'` means each package's
+  // `src/api` rather than the alphabetically-first one's (bug 0035).
   registerProjectRoots(tsMorphProject, resolvedPaths)
+
+  // Same argument, one field over: compiler options are per package too, and
+  // `addSourceFilesFromTsConfig` above adds files WITHOUT adding options — so
+  // `getCompilerOptions()` answers for the primary config whatever package a file is in.
+  // Bug 0058, measured wrong in both directions before this line existed.
   registerRootCompilerOptions(tsMorphProject, resolvedPaths)
 
   const archProject: ArchProject = {
@@ -161,6 +173,9 @@ export function workspace(tsConfigPaths: string[]): ArchProject {
     _project: tsMorphProject,
     getSourceFiles() {
       return tsMorphProject.getSourceFiles()
+    },
+    getCompilerOptions() {
+      return tsMorphProject.getCompilerOptions()
     },
   }
 
@@ -174,16 +189,14 @@ export function workspace(tsConfigPaths: string[]): ArchProject {
  * Used by watch mode to force fresh ts-morph Project creation on re-runs,
  * and by tests for isolation between test cases.
  *
- * Clears both the `project()` and `workspace()` caches, and every
- * kernel-level memoized selection (`selectionMemo`) registered against a
- * project object: those are keyed on the objects this function replaces,
- * so a `project()`/`workspace()` caller is already covered by identity
- * alone once this returns a fresh object. A consumer holding their OWN
- * `ArchProject` (built outside `project()`/`workspace()`) is not — this is
- * their documented way to invalidate after mutating the ts-morph project.
+ * Clears both the `project()` and `workspace()` caches.
  */
 export function resetProjectCache(): void {
   cache.clear()
   workspaceCache.clear()
+  // Plan 0075/0076: the memoized element collections and module edges are keyed
+  // on objects this function replaces, so `project()` callers are covered by
+  // identity alone. A consumer holding their OWN `ArchProject` is not, and this
+  // is their documented way to invalidate after mutating the ts-morph project.
   clearRegisteredCaches()
 }

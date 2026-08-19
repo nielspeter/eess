@@ -1,7 +1,6 @@
 import type { SourceFile } from 'ts-morph'
-import { RuleBuilder } from '@nielspeter/eess'
+import { RuleBuilder } from '../core/rule-builder.js'
 import type { ArchProject } from '../core/project.js'
-import { diagnoseDeadGlobs } from '../core/dead-glob.js'
 import {
   resideInFile as resideInFilePredicate,
   resideInFolder as resideInFolderPredicate,
@@ -10,8 +9,8 @@ import {
   importFrom as importFromPredicate,
   notImportFrom as notImportFromPredicate,
   exportSymbolNamed as exportSymbolNamedPredicate,
-  havePathMatching as havePathMatchingPredicate,
 } from '../predicates/module.js'
+import { havePathMatching as havePathMatchingPredicate } from '../predicates/identity.js'
 import {
   onlyImportFrom as onlyImportFromCondition,
   notImportFrom as notImportFromCondition,
@@ -26,6 +25,10 @@ import {
 } from '../conditions/structural.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ModuleBodyOptions } from '../helpers/body-traversal.js'
+import { createElementCache, SOLE_POPULATION } from '../core/element-cache.js'
+
+/** One collection per project, shared by every rule built from it (plan 0075). */
+const cache = createElementCache<SourceFile>()
 import {
   moduleContain,
   moduleNotContain,
@@ -55,19 +58,14 @@ import {
  *   .because('domain must not depend on infrastructure')
  *   .check()
  */
-export class ModuleRuleBuilder extends RuleBuilder<SourceFile, ArchProject> {
+export class ModuleRuleBuilder extends RuleBuilder<SourceFile> {
   protected getElements(): SourceFile[] {
-    return this.project.getSourceFiles()
-  }
-
-  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
-  protected override sourceEmpty(): boolean {
-    return this.project.getSourceFiles().length === 0
-  }
-
-  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
-  protected override deadGlobDiagnosis(): string | undefined {
-    return diagnoseDeadGlobs(this.project, this.globs())
+    // Cached for uniformity rather than for speed: measured, 5 × `modules()`
+    // issues zero descendant queries and costs ~1ms, because this is a direct
+    // read of ts-morph's own accessor. Included so the population rule is
+    // "every RuleBuilder subclass that derives elements from the project",
+    // which a test can check, rather than a judgement call per builder.
+    return cache.get(this.project, SOLE_POPULATION, () => this.project.getSourceFiles())
   }
 
   // --- Identity predicates (from predicates/identity.ts) ---

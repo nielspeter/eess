@@ -20,10 +20,10 @@
  * The two changes are one change.
  */
 import { describe, expect, it } from 'vitest'
-import { formatViolations, formatViolationsPlain } from '@nielspeter/eess'
-import { formatViolationsJson } from '@nielspeter/eess'
+import { formatViolations, formatViolationsPlain } from '../../src/core/format.js'
+import { formatViolationsJson } from '../../src/core/format-json.js'
 import type { ArchViolation } from '../../src/core/violation.js'
-import type { ArchJsonReport } from '@nielspeter/eess'
+import type { ArchJsonReport } from '../../src/core/format-json.js'
 
 const CONFIG: ArchViolation = {
   rule: 'arch/example',

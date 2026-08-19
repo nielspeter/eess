@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { Project } from 'ts-morph'
 import path from 'node:path'
 import type { ArchProject } from '../../src/core/project.js'
-import type { RuleBuilderLike } from '@nielspeter/eess'
+import type { RuleBuilderLike } from '../../src/core/rule-builder-like.js'
 import type { StrictBoundariesOptions } from '../../src/presets/boundaries.js'
 import { strictBoundaries } from '../../src/presets/boundaries.js'
 

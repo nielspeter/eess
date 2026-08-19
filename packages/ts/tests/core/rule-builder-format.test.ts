@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import { TestRuleBuilder, stubProject, alwaysFail } from '../support/test-rule-builder.js'
 
 const elements = [

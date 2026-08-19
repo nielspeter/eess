@@ -1,7 +1,6 @@
 import type { ClassDeclaration } from 'ts-morph'
-import { RuleBuilder } from '@nielspeter/eess'
+import { RuleBuilder } from '../core/rule-builder.js'
 import type { ArchProject } from '../core/project.js'
-import { diagnoseDeadGlobs } from '../core/dead-glob.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import {
   classContain,
@@ -41,6 +40,7 @@ import {
   beExported as conditionBeExported,
   notExist as conditionNotExist,
 } from '../conditions/structural.js'
+import { createElementCache, SOLE_POPULATION } from '../core/element-cache.js'
 
 // Class-specific conditions (this plan)
 import {
@@ -64,6 +64,9 @@ import {
   maxProperties as memberMaxProperties,
 } from '../conditions/members.js'
 
+/** One collection per project, shared by every rule built from it (plan 0075). */
+const cache = createElementCache<ClassDeclaration>()
+
 /**
  * Rule builder for ClassDeclaration elements.
  *
@@ -71,27 +74,19 @@ import {
  * predicates and conditions alongside the identity predicates and
  * structural conditions from the foundation plans.
  */
-export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration, ArchProject> {
+export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
   constructor(project: ArchProject) {
     super(project)
   }
 
   protected getElements(): ClassDeclaration[] {
-    const classes: ClassDeclaration[] = []
-    for (const sourceFile of this.project.getSourceFiles()) {
-      classes.push(...sourceFile.getClasses())
-    }
-    return classes
-  }
-
-  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
-  protected override sourceEmpty(): boolean {
-    return this.project.getSourceFiles().length === 0
-  }
-
-  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
-  protected override deadGlobDiagnosis(): string | undefined {
-    return diagnoseDeadGlobs(this.project, this.globs())
+    return cache.get(this.project, SOLE_POPULATION, () => {
+      const classes: ClassDeclaration[] = []
+      for (const sourceFile of this.project.getSourceFiles()) {
+        classes.push(...sourceFile.getClasses())
+      }
+      return classes
+    })
   }
 
   // --- Identity predicate methods (plan 0003) ---
@@ -108,12 +103,10 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration, ArchProject>
     return this.addPredicate(identityHaveNameMatching(pattern))
   }
 
-  /** Filter to classes whose name starts with the given prefix. */
   haveNameStartingWith(prefix: string): this {
     return this.addPredicate(identityHaveNameStartingWith(prefix))
   }
 
-  /** Filter to classes whose name ends with the given suffix. */
   haveNameEndingWith(suffix: string): this {
     return this.addPredicate(identityHaveNameEndingWith(suffix))
   }
@@ -140,12 +133,10 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration, ArchProject>
     return this.addPredicate(predicateResideInFolder(glob))
   }
 
-  /** Filter to classes that are exported from their module. */
   areExported(): this {
     return this.addPredicate(identityAreExported())
   }
 
-  /** Filter to classes that are NOT exported from their module. */
   areNotExported(): this {
     return this.addPredicate(identityAreNotExported())
   }
@@ -174,17 +165,14 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration, ArchProject>
     return this.addPredicate(predicateImplement(interfaceName))
   }
 
-  /** Filter to classes decorated with `@name` (e.g. `haveDecorator('Controller')`). */
   haveDecorator(name: string): this {
     return this.addPredicate(predicateHaveDecorator(name))
   }
 
-  /** Filter to classes that have a decorator whose name matches the regex. */
   haveDecoratorMatching(regex: RegExp): this {
     return this.addPredicate(predicateHaveDecoratorMatching(regex))
   }
 
-  /** Filter to classes declared `abstract`. */
   areAbstract(): this {
     return this.addPredicate(predicateAreAbstract())
   }
@@ -200,12 +188,10 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration, ArchProject>
     return this.addPredicate(predicateHaveMethodNamed(name))
   }
 
-  /** Filter to classes that declare at least one method whose name matches the regex. */
   haveMethodMatching(regex: RegExp): this {
     return this.addPredicate(predicateHaveMethodMatching(regex))
   }
 
-  /** Filter to classes that declare a property with the given name. */
   havePropertyNamed(name: string): this {
     return this.addPredicate(predicateHavePropertyNamed(name))
   }
@@ -222,12 +208,10 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration, ArchProject>
     return this.addCondition(conditionResideInFolder(glob))
   }
 
-  /** Assert that matched classes are exported from their module. */
   beExported(): this {
     return this.addCondition(conditionBeExported())
   }
 
-  /** Assert that the filtered class set is empty (no matched class may exist). */
   notExist(): this {
     return this.addCondition(conditionNotExist())
   }
@@ -254,7 +238,6 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration, ArchProject>
     return this.addCondition(conditionHaveMethodNamed(name))
   }
 
-  /** Assert that no matched class declares a method whose name matches the regex. */
   shouldNotHaveMethodMatching(regex: RegExp): this {
     return this.addCondition(conditionNotHaveMethodMatching(regex))
   }
@@ -262,53 +245,37 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration, ArchProject>
   // --- Member property condition methods (plan 0030) ---
 
   // "should" prefix: predicate havePropertyNamed(name) exists on this builder
-  /** Assert that every matched class has all of the named properties (one violation per missing name). */
   shouldHavePropertyNamed(...names: string[]): this {
     return this.addCondition(memberHavePropertyNamed(...names))
   }
 
-  /** Assert that no matched class has any of the named properties (one violation per forbidden name found). */
   shouldNotHavePropertyNamed(...names: string[]): this {
     return this.addCondition(memberNotHavePropertyNamed(...names))
   }
 
   // No "should" prefix: no predicate collision (matches beExported, notExist, contain pattern)
-  /** Assert that every matched class has at least one property whose name matches the regex. */
   havePropertyMatching(pattern: RegExp): this {
     return this.addCondition(memberHavePropertyMatching(pattern))
   }
 
-  /** Assert that no matched class has a property whose name matches the regex (one violation per match). */
   notHavePropertyMatching(pattern: RegExp): this {
     return this.addCondition(memberNotHavePropertyMatching(pattern))
   }
 
-  /** Assert that every property of each matched class is `readonly` (resolves `Readonly<T>` too). */
   haveOnlyReadonlyProperties(): this {
     return this.addCondition(memberHaveOnlyReadonlyProperties())
   }
 
-  /** Assert that no matched class has more than `max` properties (guards against god objects). */
   maxProperties(max: number): this {
     return this.addCondition(memberMaxProperties(max))
   }
 
   // --- Parameter type condition methods (plan 0031) ---
 
-  /**
-   * Assert that each matched class has at least one parameter whose type
-   * satisfies the matcher, scanning constructor, method, and set-accessor
-   * parameters.
-   */
   acceptParameterOfType(matcher: TypeMatcher): this {
     return this.addCondition(conditionAcceptParameterOfType(matcher))
   }
 
-  /**
-   * Assert that no constructor, method, or set-accessor parameter of any
-   * matched class has a type satisfying the matcher (one violation per
-   * offending parameter).
-   */
   notAcceptParameterOfType(matcher: TypeMatcher): this {
     return this.addCondition(conditionNotAcceptParameterOfType(matcher))
   }

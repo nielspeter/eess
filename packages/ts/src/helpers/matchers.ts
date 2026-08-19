@@ -1,5 +1,5 @@
 import { Node, SyntaxKind, type CommentRange } from 'ts-morph'
-import { writeStderr } from '@nielspeter/eess'
+import { writeStderr } from '../core/stderr.js'
 
 /**
  * A matcher that tests whether a ts-morph AST node matches a specific pattern.
@@ -32,20 +32,21 @@ export interface ExpressionMatcher {
    *
    * **Presence of this method is what makes a matcher a trivia matcher.** It
    * was two members — a `matchesTrivia: true` flag beside a single-position
-   * accessor — and that admitted four states of which two were silently
-   * wrong: the flag without the accessor reported every node at its own
-   * line, and the accessor without the flag reproduced the original bug.
+   * accessor — and that admitted four states of which two were silently wrong:
+   * the flag without the accessor reported every node at its own line, and the
+   * accessor without the flag reproduced the original bug. Both were measured.
    * One member cannot disagree with itself.
    *
    * **Every** position, not the first. A node routinely carries several
-   * matching comments — four stacked `// TODO` lines lead one statement —
-   * and the unit of a comment finding is the **comment**. Returning one
-   * collapses them into a single finding for four stubs — a ratchet hole
-   * exactly where agent-written stubs accumulate.
+   * matching comments — four stacked `// TODO` lines lead one statement — and
+   * the unit of a comment finding is the **comment**. Returning one collapsed
+   * them, which left `noStubComments()` reporting a single finding for four
+   * stubs: a ratchet hole exactly where agent-written stubs accumulate, in the
+   * rule `agentGuardrails` ships to catch them.
    *
    * Must be **pure and stable for a node**: the traversal calls it to
-   * enumerate and deduplicate matches, and the conditions layer calls it
-   * again to name the line, across a layer boundary, and the two must agree.
+   * enumerate and deduplicate matches, and the conditions layer calls it again
+   * to name the line, across a layer boundary, and the two must agree.
    */
   matchedTriviaPositions?(node: Node): readonly number[]
 }
@@ -174,8 +175,8 @@ export function newExpr(nameOrRegex: string | RegExp): ExpressionMatcher {
  * Escape hatch: match any node whose getText() contains or matches the given pattern.
  *
  * This is intentionally broad and should be used sparingly. It walks ALL
- * descendant nodes and checks getText() against the pattern. A stderr
- * warning is emitted the first time expression() is used, encouraging
+ * descendant nodes and checks getText() against the pattern. A runtime
+ * console.warn is emitted the first time expression() is used, encouraging
  * users to prefer call/access/newExpr where possible.
  *
  * @param textOrRegex - Substring to search for (string) or regex pattern.
@@ -309,27 +310,35 @@ const COMMENT_LINE_START = String.raw`(?:^|\n)[ \t]*(?:\/\/+|\/\*+|\*+)?[ \t]*`
  * of two phrases.
  *
  * Both halves of that are load-bearing, and each was found by a prose false
- * positive in a real codebase: unanchored, the marker branch matches every
- * sentence that mentions a marker, and the phrase branch matches
- * `noStubComments()`'s own docstring, which lists them — documentation of a
- * syntax read as the syntax.
+ * positive in this repo's own source
+ * ([bug 0053](../../bugs/fixed/0053-the-stub-rule-matched-prose-about-stubs.md)).
  *
- * **Anchored to a line start.** **Case-sensitive for the markers**, because
- * anchoring alone is not enough: a wrapped JSDoc sentence can put the
- * lowercase word "stub," at the start of a continuation line. Uppercase is
- * the convention (`// TODO:`, `// FIXME`) and the casing is what separates a
- * marker from the English word. Known limit, stated rather than discovered:
- * a lowercase `// todo: x` is not matched. That is the price of not matching
- * "the todo list below", and it is the right trade for a rule whose findings
- * must fail a build.
+ * **Anchored to a line start**, because unanchored it matched every sentence that
+ * mentions a marker — including the docstring of the fix for bug 0052, which says
+ * the word TODO three times.
  *
- * **The phrase forms ARE case-insensitive** — the `i` flag cannot apply to
- * the whole expression, because the MARKERS must stay case-sensitive (that
- * is what rejects a wrapped JSDoc line beginning `stub,`). So the phrase
- * branch alternates its own letters via `anyCase`, DERIVED rather than
- * hand-written, so the class of bug where only some letters get alternated
- * (`[Nn]ot\s+[Ii]mplemented` alternates the first letter of each word and
- * nothing else) cannot come back.
+ * **Case-sensitive for the markers**, because anchoring alone was not enough: a
+ * wrapped JSDoc sentence put the lowercase word "stub," at the start of a
+ * continuation line. Uppercase is the convention (`// TODO:`, `// FIXME`) and the
+ * casing is what separates a marker from the English word. Known limit, stated
+ * rather than discovered: a lowercase `// todo: x` is not matched. That is the
+ * price of not matching "the todo list below", and it is the right trade for a
+ * rule whose findings must fail a build.
+ *
+ * The phrase forms are anchored too, because unanchored they matched
+ * `noStubComments()`'s own docstring, which lists them. That is bug 0043's shape:
+ * documentation of a syntax read as the syntax.
+ *
+ * **The phrase forms ARE case-insensitive, since v0.55.0** — and were not between v0.47.0
+ * and then, though this text claimed otherwise for part of that window. The `i` flag was
+ * dropped for the whole expression, correctly, because the MARKERS must stay
+ * case-sensitive: that is what rejects a wrapped JSDoc line beginning `stub,`. But only
+ * the phrases' INITIAL letters were alternated, so `// NOT IMPLEMENTED` and
+ * `// COMING SOON` silently stopped matching. The reasoning offered at the time was
+ * "nobody writes NOT IMPLEMENTED", which is precisely the casing the marker branch would
+ * otherwise have caught. `anyCase` below DERIVES the alternation, so the class cannot come
+ * back one letter at a time
+ * ([bug 0061](../../bugs/fixed/0061-an-all-caps-stub-marker-no-longer-matches.md)).
  */
 /**
  * A word matched case-INSENSITIVELY, letter by letter.
@@ -337,9 +346,9 @@ const COMMENT_LINE_START = String.raw`(?:^|\n)[ \t]*(?:\/\/+|\/\*+|\*+)?[ \t]*`
  * JavaScript has no inline `(?i:…)` group and the `i` flag applies to the whole expression,
  * which cannot be used here — the MARKER branch must stay case-sensitive. So the phrase
  * branch alternates its own letters, and it is DERIVED rather than hand-written, because
- * hand-writing it is the shape of bug that alternates only the first letter of each word.
+ * hand-writing it is what produced bug 0061: `[Nn]ot\\s+[Ii]mplemented` alternates the
+ * first letter of each word and nothing else.
  */
-// eess-exclude eess/no-unused-exports: exported for tests/helpers/pattern-change-moves-baselines.test.ts only — deliberately absent from src/index.ts, not public API
 export function anyCase(word: string): string {
   const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return [...word]
@@ -360,7 +369,7 @@ export function anyCase(word: string): string {
       // cosmetic. `[Nn]` and `(?:N|n)` match identically, so switching every letter to an
       // alternation would move `STUB_PATTERNS`' text — and therefore every baselined
       // finding's identity — while changing no behaviour at all. That is a migration
-      // charged to every adopter for nothing.
+      // charged to every adopter for nothing. Found by the change detector firing on it.
       if (lower !== upper) {
         return upper.length === 1 && lower.length === 1
           ? `[${escape(upper)}${escape(lower)}]`
@@ -396,14 +405,8 @@ export const STUB_PATTERNS = new RegExp(
  * and `matches(node)` checks that node's comment ranges.
  *
  * The same comment is visible as trivia of several nested nodes, so the
- * traversal deduplicates by the comment's own position — this matcher holds
- * no state of its own. A prior version held a `Set<string>` of matched
- * positions closed over inside `comment()` that was never reset, so the
- * SAME rule object returned violations once and then nothing on its second
- * evaluation — a stale-state bug that bites watch mode, a preset array
- * checked twice, and any test reusing a rule constant. Dedup now happens in
- * the traversal, keyed by attachment point, via `matchedTriviaPositions`
- * below. A matcher that holds no state cannot go stale.
+ * traversal deduplicates by the comment's own position — this matcher holds no
+ * state of its own (bug 0034).
  *
  * @param pattern - String substring or RegExp to test against comment text.
  *
@@ -413,6 +416,16 @@ export const STUB_PATTERNS = new RegExp(
  * comment('HACK')                     // matches hack comments
  */
 export function comment(pattern: string | RegExp): ExpressionMatcher {
+  // NO dedup state here, deliberately — bug 0034. This used to hold a
+  // `Set<string>` of matched `filePath:pos` keys that was never reset, so the
+  // SAME rule object returned 2 violations and then 0 on its second
+  // evaluation: measured, and the purest form of the green that means nothing
+  // this project exists to remove. It bit watch mode, a preset array checked
+  // twice, and any test reusing a rule constant.
+  //
+  // Dedup now happens in the traversal, keyed by attachment point, via
+  // `matchedTriviaPositions` below. A matcher that holds no state cannot go
+  // stale.
   function testComment(range: CommentRange): boolean {
     const text = range.getText()
     if (typeof pattern === 'string') {
@@ -436,7 +449,7 @@ export function comment(pattern: string | RegExp): ExpressionMatcher {
     matchedTriviaPositions(node: Node): readonly number[] {
       // `getPos()`, never `getEnd()`: a multi-line block comment or JSDoc would
       // otherwise be reported at its CLOSING line. Invisible to an all-`//`
-      // fixture, where the two share a line.
+      // fixture, where the two share a line — found by sabotage.
       const ranges = [...node.getLeadingCommentRanges(), ...node.getTrailingCommentRanges()]
       return ranges.filter((range) => testComment(range)).map((range) => range.getPos())
     },

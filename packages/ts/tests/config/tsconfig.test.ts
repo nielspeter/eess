@@ -5,10 +5,10 @@ import path from 'node:path'
 import { Project, ScriptTarget, ModuleKind, ModuleResolutionKind, ts } from 'ts-morph'
 import type { CompilerOptions } from 'ts-morph'
 import type { ArchProject } from '../../src/core/project.js'
-import { tsconfig } from '@nielspeter/eess'
+import { tsconfig } from '../../src/tsconfig/index.js'
 import { workspace, resetProjectCache } from '../../src/core/project.js'
 import { STRICT_FAMILY_SIZE } from '../../src/tsconfig/strict-family.js'
-import { generateBaseline, withBaseline } from '@nielspeter/eess'
+import { generateBaseline, withBaseline } from '../../src/helpers/baseline.js'
 
 const tmpDirs: string[] = []
 

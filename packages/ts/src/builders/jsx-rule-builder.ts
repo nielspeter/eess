@@ -1,7 +1,7 @@
 import type { ArchProject } from '../core/project.js'
-import { RuleBuilder } from '@nielspeter/eess'
+import { RuleBuilder } from '../core/rule-builder.js'
 import type { ArchJsxElement } from '../models/arch-jsx-element.js'
-import { diagnoseDeadGlobs } from '../core/dead-glob.js'
+import { createElementCache, SOLE_POPULATION } from '../core/element-cache.js'
 import { collectJsxElements } from '../models/arch-jsx-element.js'
 import {
   haveNameMatching as identityHaveNameMatching,
@@ -23,6 +23,9 @@ import {
   haveAttributeMatching as conditionHaveAttributeMatching,
   notHaveAttributeMatching as conditionNotHaveAttributeMatching,
 } from '../conditions/jsx.js'
+
+/** One collection per project, shared by every rule built from it (plan 0075). */
+const cache = createElementCache<ArchJsxElement>()
 
 /**
  * Rule builder for JSX element architecture rules.
@@ -58,73 +61,49 @@ import {
  *   .check()
  * ```
  */
-export class JsxRuleBuilder extends RuleBuilder<ArchJsxElement, ArchProject> {
+export class JsxRuleBuilder extends RuleBuilder<ArchJsxElement> {
   protected getElements(): ArchJsxElement[] {
-    return this.project.getSourceFiles().flatMap(collectJsxElements)
-  }
-
-  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
-  protected override sourceEmpty(): boolean {
-    return this.project.getSourceFiles().length === 0
-  }
-
-  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
-  protected override deadGlobDiagnosis(): string | undefined {
-    return diagnoseDeadGlobs(this.project, this.globs())
+    return cache.get(this.project, SOLE_POPULATION, () =>
+      this.project.getSourceFiles().flatMap(collectJsxElements),
+    )
   }
 
   // --- Identity predicates (predicate-only, following CallRuleBuilder pattern) ---
 
-  /** Filter to JSX elements whose tag/component name matches the pattern. */
   haveNameMatching(pattern: RegExp | string): this {
     return this.addPredicate(identityHaveNameMatching<ArchJsxElement>(pattern))
   }
 
-  /** Filter to JSX elements whose tag/component name starts with the prefix. */
   haveNameStartingWith(prefix: string): this {
     return this.addPredicate(identityHaveNameStartingWith<ArchJsxElement>(prefix))
   }
 
-  /** Filter to JSX elements whose tag/component name ends with the suffix. */
   haveNameEndingWith(suffix: string): this {
     return this.addPredicate(identityHaveNameEndingWith<ArchJsxElement>(suffix))
   }
 
-  /** Filter to JSX elements in a file whose absolute path matches the glob. */
   resideInFile(glob: string): this {
     return this.addPredicate(identityResideInFile<ArchJsxElement>(glob))
   }
 
-  /** Filter to JSX elements in a folder whose path matches the glob. */
   resideInFolder(glob: string): this {
     return this.addPredicate(identityResideInFolder<ArchJsxElement>(glob))
   }
 
   // --- JSX-specific predicates ---
 
-  /**
-   * Filter to intrinsic HTML elements with any of the given lowercase tags
-   * (e.g. `areHtmlElements('button', 'input')`). Requires at least one tag.
-   */
   areHtmlElements(...tags: string[]): this {
     return this.addPredicate(jsxAreHtmlElements(...tags))
   }
 
-  /**
-   * Filter to component elements (uppercase or dotted names). With no
-   * arguments matches all components; with names, only those (use the full
-   * dotted name for namespaced components, e.g. `'Icons.Check'`).
-   */
   areComponents(...names: string[]): this {
     return this.addPredicate(jsxAreComponents(...names))
   }
 
-  /** Filter to elements that have the named attribute, regardless of value. */
   withAttribute(name: string): this {
     return this.addPredicate(jsxWithAttribute(name))
   }
 
-  /** Filter to elements whose named attribute value equals the string or matches the regex. */
   withAttributeMatching(name: string, value: string | RegExp): this {
     return this.addPredicate(jsxWithAttributeMatching(name, value))
   }

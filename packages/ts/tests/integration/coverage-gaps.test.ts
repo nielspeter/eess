@@ -8,7 +8,7 @@ import { classes } from '../../src/builders/class-rule-builder.js'
 import { calls } from '../../src/builders/call-rule-builder.js'
 import { crossLayer } from '../../src/builders/cross-layer-builder.js'
 import { smells } from '../../src/smells/index.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import { call, access, newExpr, expression } from '../../src/helpers/matchers.js'
 import {
   isString,
@@ -22,7 +22,7 @@ import {
   not,
 } from '../../src/index.js'
 import { haveConsistentExports } from '../../src/conditions/cross-layer.js'
-import { parseExclusionComments, isExcludedByComment } from '@nielspeter/eess'
+import { parseExclusionComments, isExcludedByComment } from '../../src/core/exclusion-comments.js'
 import { extractCallbacks } from '../../src/helpers/callback-extractor.js'
 import { collectCalls } from '../../src/models/arch-call.js'
 import type { ArchProject } from '../../src/core/project.js'

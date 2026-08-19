@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import path from 'node:path'
-import { DiffFilter } from '@nielspeter/eess'
+import { DiffFilter } from '../../src/helpers/diff-aware.js'
 import { makeViolation } from '../support/test-rule-builder.js'
 
 /**

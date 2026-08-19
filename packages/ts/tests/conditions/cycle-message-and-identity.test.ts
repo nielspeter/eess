@@ -33,7 +33,7 @@ import { Project, ts } from 'ts-morph'
 import type { ArchProject } from '../../src/core/project.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
-import { hashViolation } from '@nielspeter/eess'
+import { hashViolation } from '../../src/helpers/baseline.js'
 
 /** A ring: each slice imports the next, the last imports the first. */
 function ring(names: readonly string[], leading = ''): ArchProject {

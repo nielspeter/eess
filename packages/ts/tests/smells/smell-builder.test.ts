@@ -3,7 +3,7 @@ import path from 'node:path'
 import { project } from '../../src/core/project.js'
 import { smells } from '../../src/smells/index.js'
 import { call } from '../../src/helpers/matchers.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 
 const dupFixturesDir = path.resolve(import.meta.dirname, '../fixtures/smells/duplicate-bodies')
 const sibFixturesDir = path.resolve(import.meta.dirname, '../fixtures/smells/inconsistent-siblings')

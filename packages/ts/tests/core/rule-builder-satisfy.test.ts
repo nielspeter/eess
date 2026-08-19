@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { ArchRuleError } from '@nielspeter/eess'
-import { definePredicate, defineCondition } from '@nielspeter/eess'
-import type { Predicate } from '@nielspeter/eess'
-import type { Condition } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
+import { definePredicate, defineCondition } from '../../src/core/define.js'
+import type { Predicate } from '../../src/core/predicate.js'
+import type { Condition } from '../../src/core/condition.js'
 import { type TestElement, TestRuleBuilder, stubProject } from '../support/test-rule-builder.js'
 
 const elements: TestElement[] = [

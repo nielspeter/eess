@@ -35,15 +35,15 @@ import {
 } from '../helpers/builder-mutation-scan.js'
 import { project } from '../../src/core/project.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
-import { byName, correspondence } from '@nielspeter/eess'
+import { byName, correspondence } from '../../src/builders/correspondence-builder.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { calls } from '../../src/builders/call-rule-builder.js'
 import { call } from '../../src/helpers/matchers.js'
-import { tsconfig } from '@nielspeter/eess'
+import { tsconfig } from '../../src/tsconfig/index.js'
 import { crossLayer } from '../../src/builders/cross-layer-builder.js'
 import { smells } from '../../src/smells/index.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixtures = (name: string): string =>

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ArchRuleError } from '@nielspeter/eess'
-import { Baseline, hashViolation } from '@nielspeter/eess'
-import { DiffFilter } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
+import { Baseline, hashViolation } from '../../src/helpers/baseline.js'
+import { DiffFilter } from '../../src/helpers/diff-aware.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 import { TestRuleBuilder, stubProject, alwaysFail } from '../support/test-rule-builder.js'
 

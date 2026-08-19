@@ -4,7 +4,7 @@ import { runExplain } from '../../src/cli/commands/explain.js'
 vi.mock('../../src/cli/load-rules.js', () => ({ loadRuleFiles: vi.fn() }))
 
 import { loadRuleFiles } from '../../src/cli/load-rules.js'
-import type { RuleDescription } from '@nielspeter/eess'
+import type { RuleDescription } from '../../src/core/rule-description.js'
 
 const mockLoad = vi.mocked(loadRuleFiles)
 

@@ -26,9 +26,9 @@ import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
-import { byName, correspondence } from '@nielspeter/eess'
+import { byName, correspondence } from '../../src/builders/correspondence-builder.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { RuleMetadata } from '@nielspeter/eess'
+import type { RuleMetadata } from '../../src/core/rule-metadata.js'
 
 const fixtures = (name: string): string =>
   path.resolve(import.meta.dirname, `../fixtures/${name}/tsconfig.json`)

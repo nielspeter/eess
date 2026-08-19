@@ -3,7 +3,6 @@ import { Node, SyntaxKind } from 'ts-morph'
 /**
  * Result of scanning a single catch clause.
  */
-// eess-exclude eess/no-unused-exports: return-element type of the exported findSilentCatches API (must stay exported for declaration emit)
 export interface SilentCatchResult {
   /** The CatchClause node — used for violation line and code frame */
   node: Node

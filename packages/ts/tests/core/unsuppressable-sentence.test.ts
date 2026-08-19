@@ -26,15 +26,15 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { applyFilters } from '@nielspeter/eess'
+import { applyFilters } from '../../src/core/execute-rule.js'
 import { severityFor } from '../../src/core/violation.js'
-import { DiffFilter } from '@nielspeter/eess'
+import { DiffFilter } from '../../src/helpers/diff-aware.js'
 import {
   DECLARE_INSTEAD,
   UNSUPPRESSABLE,
   UNSUPPRESSABLE_MECHANISMS,
-} from '@nielspeter/eess'
-import { Baseline } from '@nielspeter/eess'
+} from '../../src/core/unsuppressable.js'
+import { Baseline } from '../../src/helpers/baseline.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 
 const CONFIG: ArchViolation = {

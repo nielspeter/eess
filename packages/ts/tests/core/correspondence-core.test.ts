@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { setCorrespondence } from '@nielspeter/eess'
+import { setCorrespondence } from '../../src/core/correspondence-core.js'
 
 describe('setCorrespondence (F2 — shared set-difference + non-vacuity core)', () => {
   it('reports missing = A \\ B (coverage gaps) by identity', () => {

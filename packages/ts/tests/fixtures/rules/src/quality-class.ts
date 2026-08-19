@@ -15,13 +15,9 @@ export class BadQualityService {
   // Protected field — should NOT be a public-field violation
   protected status = 'active'
 
-  // ES #private field — private by name, should NOT be a public-field violation
-  #internalCount = 0
-
   constructor(name: string) {
     this.name = name
     this.counter = 99 // magic number in constructor (not scanned by noMagicNumbers)
-    this.#internalCount = this.counter
   }
 
   // Public method without JSDoc — violation

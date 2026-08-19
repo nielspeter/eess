@@ -18,7 +18,7 @@ import {
   commentSuppressions,
   recordCommentSuppression,
   resetCommentSuppression,
-} from '@nielspeter/eess'
+} from '../../src/core/comment-suppression.js'
 
 afterEach(() => {
   resetCommentSuppression()

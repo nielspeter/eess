@@ -4,7 +4,7 @@ import path from 'node:path'
 import { definePattern } from '../../src/helpers/pattern.js'
 import { followPattern } from '../../src/conditions/pattern.js'
 import { functions } from '../../src/builders/function-rule-builder.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 import { isNumber } from '../../src/helpers/type-matchers.js'
 

@@ -13,7 +13,6 @@ import {
  * `${object}.${method}` form (e.g. `app.post`) — the predicate-visible
  * identity.
  */
-// eess-exclude eess/no-unused-exports: parameter type of the exported ArchCall.getName API (must stay exported for declaration emit)
 export interface GetNameOptions {
   /**
    * Index of an argument whose source text should be folded into the

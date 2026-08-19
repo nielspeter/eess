@@ -1,7 +1,6 @@
 import type { ArchProject } from '../core/project.js'
-import type { Condition } from '@nielspeter/eess'
-import { RuleBuilder } from '@nielspeter/eess'
-import { diagnoseDeadGlobs } from '../core/dead-glob.js'
+import type { Condition } from '../core/condition.js'
+import { RuleBuilder } from '../core/rule-builder.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import {
   functionContain,
@@ -10,7 +9,8 @@ import {
   functionNotHaveEmptyBody,
 } from '../conditions/body-analysis-function.js'
 import type { ArchFunction } from '../models/arch-function.js'
-import { collectFunctions } from '../models/arch-function.js'
+import { createElementCache, SOLE_POPULATION } from '../core/element-cache.js'
+import { collectFunctions, type FunctionCollectionOptions } from '../models/arch-function.js'
 import { followPattern as followPatternCondition } from '../conditions/pattern.js'
 import type { ArchPattern } from '../helpers/pattern.js'
 import {
@@ -51,6 +51,25 @@ import {
   haveParameterNameMatching as fnHaveParameterNameMatching,
 } from '../predicates/function.js'
 
+/** One collection per (project, collection options), shared by every rule (plan 0075). */
+const cache = createElementCache<ArchFunction>()
+
+/**
+ * A canonical key for a collection-options object.
+ *
+ * Derived from the object's own entries, sorted — **not** `JSON.stringify`,
+ * which is key-order dependent, and not a hand-written list of the two fields,
+ * which would silently drop a third field added later and serve the wrong
+ * population under a colliding key.
+ */
+function optionsKey(options?: FunctionCollectionOptions): string {
+  if (options === undefined) return SOLE_POPULATION
+  return Object.entries(options)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, value]) => `${name}=${String(value)}`)
+    .join('|')
+}
+
 /**
  * Rule builder for function-level architecture rules.
  *
@@ -81,19 +100,25 @@ import {
  *   .check()
  * ```
  */
-export class FunctionRuleBuilder extends RuleBuilder<ArchFunction, ArchProject> {
+export class FunctionRuleBuilder extends RuleBuilder<ArchFunction> {
+  constructor(
+    project: ArchProject,
+    private readonly _collectionOptions?: FunctionCollectionOptions,
+  ) {
+    super(project)
+  }
+
   protected getElements(): ArchFunction[] {
-    return this.project.getSourceFiles().flatMap((sf) => collectFunctions(sf))
-  }
-
-  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
-  protected override sourceEmpty(): boolean {
-    return this.project.getSourceFiles().length === 0
-  }
-
-  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
-  protected override deadGlobDiagnosis(): string | undefined {
-    return diagnoseDeadGlobs(this.project, this.globs())
+    // _collectionOptions survives `.should()` forks via RuleBuilder.fork()'s
+    // shallowClone in TerminalBuilder.copy — verified by the named-selection test.
+    //
+    // The options are part of the cache key, not just the collection call:
+    // `functions(p)` and `functions(p, COLLECT_ALL)` are DIFFERENT populations
+    // of the same project, so a project-only key would serve one the other's
+    // elements (plan 0075).
+    return cache.get(this.project, optionsKey(this._collectionOptions), () =>
+      this.project.getSourceFiles().flatMap((sf) => collectFunctions(sf, this._collectionOptions)),
+    )
   }
 
   // --- Identity predicates (delegated to plan 0003 generics) ---
@@ -110,12 +135,10 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction, ArchProject> 
     return this.addPredicate(identityHaveNameMatching<ArchFunction>(pattern))
   }
 
-  /** Filter to functions whose name starts with the given prefix. */
   haveNameStartingWith(prefix: string): this {
     return this.addPredicate(identityHaveNameStartingWith<ArchFunction>(prefix))
   }
 
-  /** Filter to functions whose name ends with the given suffix. */
   haveNameEndingWith(suffix: string): this {
     return this.addPredicate(identityHaveNameEndingWith<ArchFunction>(suffix))
   }
@@ -142,96 +165,70 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction, ArchProject> 
     return this.addPredicate(identityResideInFolder<ArchFunction>(glob))
   }
 
-  /** Filter to functions that are exported from their module. */
   areExported(): this {
     return this.addPredicate(identityAreExported<ArchFunction>())
   }
 
-  /** Filter to functions that are NOT exported from their module. */
   areNotExported(): this {
     return this.addPredicate(identityAreNotExported<ArchFunction>())
   }
 
   // --- Visibility predicates (plan 0032) ---
 
-  /**
-   * Filter to public functions. Class methods match when `public` or
-   * unmarked; standalone and arrow functions are always public.
-   */
   arePublic(): this {
     return this.addPredicate(fnArePublic())
   }
 
-  /** Filter to `protected` class methods (standalone functions never match). */
   areProtected(): this {
     return this.addPredicate(fnAreProtected())
   }
 
-  /** Filter to `private` class methods (standalone functions never match). */
   arePrivate(): this {
     return this.addPredicate(fnArePrivate())
   }
 
   // --- Function-specific predicates ---
 
-  /** Filter to functions declared with the `async` keyword. */
   areAsync(): this {
     return this.addPredicate(fnAreAsync())
   }
 
-  /** Filter to functions NOT declared `async`. */
   areNotAsync(): this {
     return this.addPredicate(fnAreNotAsync())
   }
 
-  /** Filter to functions that declare exactly `n` parameters. */
   haveParameterCount(n: number): this {
     return this.addPredicate(fnHaveParameterCount(n))
   }
 
-  /** Filter to functions that declare more than `n` parameters. */
   haveParameterCountGreaterThan(n: number): this {
     return this.addPredicate(fnHaveParameterCountGreaterThan(n))
   }
 
-  /** Filter to functions that declare fewer than `n` parameters. */
   haveParameterCountLessThan(n: number): this {
     return this.addPredicate(fnHaveParameterCountLessThan(n))
   }
 
-  /** Filter to functions that declare a parameter with the given exact name. */
   haveParameterNamed(name: string): this {
     return this.addPredicate(fnHaveParameterNamed(name))
   }
 
-  /**
-   * Filter to functions whose return type text matches the pattern
-   * (e.g. `/Promise</`, `'void'`). A string is compiled to a RegExp.
-   */
   haveReturnType(pattern: RegExp | string): this {
     return this.addPredicate(fnHaveReturnType(pattern))
   }
 
-  /** Filter to functions that declare a rest parameter (`...args`). */
   haveRestParameter(): this {
     return this.addPredicate(fnHaveRestParameter())
   }
 
-  /** Filter to functions with at least one optional (`x?`) or default-valued parameter. */
   haveOptionalParameter(): this {
     return this.addPredicate(fnHaveOptionalParameter())
   }
 
-  /**
-   * Filter to functions whose parameter at `index` has a type satisfying
-   * the matcher. Out-of-bounds indices never match; for a rest parameter
-   * the type is the array type (e.g. `string[]`).
-   */
   haveParameterOfType(index: number, matcher: TypeMatcher): this {
     return this.addPredicate(fnHaveParameterOfType(index, matcher))
   }
 
-  /** Filter to functions with at least one parameter whose name matches the regex. */
   haveParameterNameMatching(pattern: RegExp): this {
     return this.addPredicate(fnHaveParameterNameMatching(pattern))
   }
@@ -379,6 +376,9 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction, ArchProject> 
  *   .check()
  * ```
  */
-export function functions(p: ArchProject): FunctionRuleBuilder {
-  return new FunctionRuleBuilder(p)
+export function functions(
+  p: ArchProject,
+  options?: FunctionCollectionOptions,
+): FunctionRuleBuilder {
+  return new FunctionRuleBuilder(p, options)
 }

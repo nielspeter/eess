@@ -35,7 +35,7 @@
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
-import { isRecord } from '@nielspeter/eess'
+import { isRecord } from '../../src/core/type-guards.js'
 import { scanEnforceablePrimitives } from './scan-enforceable-primitives.js'
 
 const REPO = path.resolve(import.meta.dirname, '../..')

@@ -27,7 +27,7 @@ import type { ArchProject } from '../../src/core/project.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 import { disambiguateIdentities } from '../../src/core/violation.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
-import { hashViolation } from '@nielspeter/eess'
+import { hashViolation } from '../../src/helpers/baseline.js'
 
 const real = (vs: ArchViolation[]): ArchViolation[] => vs.filter((v) => v.bypassFilters !== true)
 const hashes = (vs: ArchViolation[]): number => new Set(vs.map((v) => hashViolation(v))).size

@@ -3,7 +3,7 @@ import { Project, type ClassDeclaration } from 'ts-morph'
 import path from 'node:path'
 import { acceptParameterOfType, notAcceptParameterOfType } from '../../src/conditions/class.js'
 import { matching } from '../../src/helpers/type-matchers.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

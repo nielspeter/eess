@@ -2,13 +2,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import {
   correspondence,
   byName,
   byArg,
   byPropertyNames,
-} from '@nielspeter/eess'
+} from '../../src/builders/correspondence-builder.js'
 import { classes } from '../../src/builders/class-rule-builder.js'
 import { calls } from '../../src/builders/call-rule-builder.js'
 import type { ArchProject } from '../../src/core/project.js'

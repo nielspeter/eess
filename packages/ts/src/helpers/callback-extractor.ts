@@ -49,36 +49,42 @@ export function extractCallbacks(callExpr: CallExpression): ExtractedCallback[] 
 
 /**
  * Extract function-valued properties from an object-literal argument as
- * callbacks, using the shared object-literal traversal. Handles arrows,
+ * callbacks, using the shared object-literal traversal (F3). Handles arrows,
  * function expressions, method shorthand, and nested object literals
- * (depth-limited). The shared traversal supplies the walk AND the naming:
- * `keyPath` reaches `fromObjectLiteralFunction`, so a property callback
- * carries its property name. **Positional** callbacks are still anonymous
- * and identified by `argIndex`.
+ * (depth-limited). F3 supplies the traversal AND, since plan 0082, the naming:
+ * `keyPath` reaches `fromObjectLiteralFunction`, so a property callback carries its
+ * property name. (This said "names stay context-derived, arrows anonymous, exactly
+ * as before" for one release after that stopped being true — directly contradicted
+ * by the code six lines below it.) **Positional** callbacks are still anonymous and
+ * identified by `argIndex`.
  */
 function extractFromObjectLiteral(
   arg: Node,
   callSite: CallExpression,
   argIndex: number,
 ): ExtractedCallback[] {
-  // `fromObjectLiteralFunction` routes an arrow to `fromArrowExpression`-equivalent
-  // naming, which is context-derived — without it, two callbacks on
-  // `{ preHandler, handler }` would come back anonymous AND share an `argIndex`
-  // (the object's). Nothing in the shape would tell them apart, so a rule about
-  // the `handler` callback would be writable and select nothing —
-  // expressible, plausible, and empty.
+  // `olf.keyPath` used to be dropped here, one line from where it is produced —
+  // [plan 0082](../../plans/completed/0082-an-object-literal-callback-keeps-its-name.md).
+  // `callbackArchFunction` routes an arrow to `fromArrowExpression`, which hardcodes
+  // `getName: () => undefined`, so both callbacks on `{ preHandler, handler }` came
+  // back anonymous AND shared an `argIndex` (the object's). Nothing in the shape
+  // told them apart, so a rule about the `handler` callback was writable and
+  // selected nothing — expressible, plausible, and empty.
+  //
+  // `fromObjectLiteralFunction` already existed, already exported, already
+  // computing the name from exactly this `keyPath`. The gap was one call.
   return collectObjectLiteralFunctions(arg).map((olf) => ({
     // Falls back rather than dropping: `fromObjectLiteralFunction` returns
     // `undefined` for a node shape it does not recognise, and filtering those out
     // would turn an unnamed callback into a MISSING one — a silent under-report,
     // which is worse than the anonymity this change removes.
     //
-    // Unreachable today, and recorded rather than claimed load-bearing:
+    // **Unreachable today, and recorded rather than claimed load-bearing.**
     // `collectObjectLiteralFunctions` emits only arrows, function expressions and
     // method declarations — exactly the three kinds `fromObjectLiteralFunction`
-    // accepts — so no runtime test covers this branch. What guards it is the
-    // type: removing the `??` is a compile error, and CI runs `typecheck` before
-    // `test`.
+    // accepts — so no runtime test covers this branch and none can while the
+    // collector stays closed over those kinds. What guards it is the type: removing
+    // the `??` is a compile error (TS2322), and CI runs `typecheck` before `test`.
     fn: fromObjectLiteralFunction(olf.node, olf.keyPath) ?? callbackArchFunction(olf.node),
     callSite,
     argIndex,

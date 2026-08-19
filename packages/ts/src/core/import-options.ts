@@ -54,11 +54,11 @@ export function isTypeOnlyImport(decl: ImportDeclaration): boolean {
  * different places:
  *
  * | form                            | `decl.isTypeOnly()` | specifiers |
- * | -------------------------------- | -------------------- | ---------- |
- * | `export type { X } from 's'`    | **true**             | false      |
- * | `export { type X } from 's'`    | false                | **true**   |
- * | `export type * from 's'`        | **true**             | (none)     |
- * | `export { X } from 's'`         | false                | false      |
+ * | ------------------------------- | ------------------- | ---------- |
+ * | `export type { X } from 's'`    | **true**            | false      |
+ * | `export { type X } from 's'`    | false               | **true**   |
+ * | `export type * from 's'`        | **true**            | (none)     |
+ * | `export { X } from 's'`         | false               | false      |
  *
  * No default or namespace analogue exists, verified: there is no way to write a
  * re-export that binds a runtime value while every named specifier is
@@ -75,16 +75,26 @@ export function isTypeOnlyReExport(decl: ExportDeclaration): boolean {
 /**
  * Split a variadic glob API's arguments, without a type assertion.
  *
- * A handful of entry points take `...args: [string[], ImportOptions] | string[]`
- * so a caller can write either `f('a', 'b')` or `f(['a', 'b'], { … })`.
- * TypeScript cannot narrow a tuple-union rest parameter from
- * `Array.isArray(args[0])` alone in a way that eliminates the need for a
- * cast at the read site — ADR-005 prescribes a type guard instead: a
- * `.filter((a): a is string => …)` predicate produces `string[]` with no
- * assertion, and `typeof second === 'object'` narrows the options.
+ * Five entry points take `...args: [string[], ImportOptions] | string[]` —
+ * `onlyImportFrom`, `notImportFrom`, `dependOn`, `importFrom`, `importFromAny` —
+ * so a caller can write either `f('a', 'b')` or `f(['a', 'b'], { … })`. TypeScript
+ * cannot narrow a tuple-union rest parameter from `Array.isArray(args[0])`, which
+ * is true and was the stated reason for **ten** `as` casts across three files:
  *
- * One owner rather than one copy per entry point — a duplicated predicate
- * drifting silently is a real risk in this codebase's own history.
+ * ```ts
+ * const globs: string[] = Array.isArray(args[0]) ? args[0] : (args as string[])
+ * const options = Array.isArray(args[0]) && args.length > 1 ? (args[1] as ImportOptions) : undefined
+ * ```
+ *
+ * [ADR-005](../../adr/005-no-any-no-type-assertions.md) prescribes a type guard,
+ * and a guard does narrow it: `.filter((a): a is string => …)` produces `string[]`
+ * with no assertion, and `typeof second === 'object'` narrows the options. The
+ * casts were avoidable; only the direct narrowing was not.
+ *
+ * One owner rather than five copies, which is the other half. The dispatch was
+ * duplicated five times, and a duplicated predicate in this repo has already
+ * caused a measurement error once —
+ * [bug 0044](../../bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
  */
 export function splitGlobArgs(args: readonly (string[] | ImportOptions | string)[]): {
   globs: string[]
@@ -100,8 +110,7 @@ export function splitGlobArgs(args: readonly (string[] | ImportOptions | string)
           : undefined,
     }
   }
-  // The variadic form: every argument is a glob string. The predicate is
-  // what makes this cast-free — `filter` alone would leave the union in
-  // place.
+  // The variadic form: every argument is a glob string. The predicate is what
+  // makes this cast-free — `filter` alone would leave the union in place.
   return { globs: args.filter((a): a is string => typeof a === 'string'), options: undefined }
 }

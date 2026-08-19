@@ -1,29 +1,9 @@
-import type { ArchViolation } from '@nielspeter/eess'
-import { generateBaseline, ArchRuleError } from '@nielspeter/eess'
-import { loadRuleFiles, type RuleBuilderLike } from '../load-rules.js'
-import {
-  attributeToRuleFile,
-  failureOrViolations,
-  ruleFileTruncated,
-} from '../rule-file-findings.js'
+import { collectViolations } from '../../helpers/baseline-generator.js'
+import { formatBaselineDelta, generateBaseline } from '../../helpers/baseline.js'
+import type { ArchViolation } from '../../core/violation.js'
+import { loadRuleFiles } from '../load-rules.js'
+import { attributeToRuleFile, failureOrViolations } from '../rule-file-findings.js'
 
-/**
- * Collect one builder's violations without throwing. Prefers `.violations()`
- * (no print side effect); falls back to `.check()` + catch for a minimal
- * `RuleBuilderLike` that only implements `.check()` — same fallback
- * `cli/commands/check.ts`'s `--fix` path uses, for the same reason.
- */
-function collectFromBuilder(builder: RuleBuilderLike): ArchViolation[] {
-  if (typeof builder.violations === 'function') return builder.violations()
-  try {
-    builder.check()
-    return []
-  } catch (error: unknown) {
-    return error instanceof ArchRuleError ? error.violations : []
-  }
-}
-
-// eess-exclude eess/no-unused-exports: parameter type of the exported runBaseline API (must stay exported for declaration emit)
 export interface BaselineArgs {
   ruleFiles: string[]
   output: string
@@ -32,46 +12,54 @@ export interface BaselineArgs {
 /**
  * Generate a baseline file from current rule violations.
  *
- * Per rule file, not bulk-loaded — same reasoning as `runCheck` (plan 0147):
- * a rule file that cannot even be loaded must not discard every other file's
- * already-collected violations, and a `file: ''` configuration finding
- * (ADR-010's evidence gate) needs the rule file that produced it, or a
- * baseline holding two identical vacuous-rule findings across two files is
- * indistinguishable.
+ * Wraps existing APIs: collectViolations + generateBaseline.
  */
 export async function runBaseline(args: BaselineArgs): Promise<number> {
+  // Per-file parity with runCheck: a user rule file that self-executes a
+  // throwing `.check()` at import surfaces its own violations without discarding
+  // the other files' rules. (Presets no longer throw at import — returning form.)
   const violations: ArchViolation[] = []
   const total = args.ruleFiles.length
   for (const file of args.ruleFiles) {
+    // Same two boundaries as `runCheck`, for the same reason (bug 0025). Here it
+    // matters twice over: a rethrow left NO baseline file at all, so one
+    // malformed rule made the whole command unusable rather than producing a
+    // partial baseline the user could finish.
     let builders
     try {
       builders = await loadRuleFiles([file])
     } catch (error: unknown) {
-      violations.push(
-        ...(error instanceof ArchRuleError
-          ? [ruleFileTruncated(file, total)]
-          : failureOrViolations(file, error, total)),
-      )
+      violations.push(...failureOrViolations(file, error, total))
       continue
     }
     for (const builder of builders) {
-      violations.push(...attributeToRuleFile(collectFromBuilder(builder), file))
+      try {
+        // Same attribution as `runCheck` (bug 0026): the findings this command
+        // REFUSES to baseline are printed for the user to fix, and "which rule
+        // file" is the first thing they need.
+        violations.push(...attributeToRuleFile(collectViolations(builder), file))
+      } catch (error: unknown) {
+        violations.push(...failureOrViolations(file, error, total))
+      }
     }
   }
 
-  generateBaseline(violations, args.output)
+  const delta = generateBaseline(violations, args.output)
 
-  // Report what was actually WRITTEN, not what was collected.
-  // `generateBaseline()` itself drops `bypassFilters` config findings (ADR-010
-  // — a rule whose own instrument is broken right now can never legitimately
-  // become "known, pre-existing debt"), so the written count is always
-  // `violations.length - refused.length`. Printing the pre-filter count would
-  // tell the user they had accepted findings that CI would still fail on,
-  // with no hint why.
+  // Report what was actually WRITTEN, not what was collected. Config-level findings
+  // are deliberately not baselineable (they report that a rule enforces nothing), so
+  // printing the pre-filter count told users they had accepted findings that CI would
+  // still fail on, with no hint why.
   const refused = violations.filter((v) => v.bypassFilters === true)
-  const written = violations.length - refused.length
 
-  process.stdout.write(`Baseline generated: ${String(written)} violations recorded\n`)
+  // The delta first: it is the number the 0.28.0 upgrade recipe depends on, and a
+  // reader who stops after one line should have read the one that matters (plan
+  // 0071). The count comes from `delta`, not recomputed here: this used to be
+  // `violations.length - refused.length`, which is the same number derived a
+  // second way, and two derivations of one fact in two files drift. The
+  // cross-check lives in the test instead, against the entry count of the file
+  // that was actually written.
+  process.stdout.write(`${formatBaselineDelta(delta)}\n`)
   process.stdout.write(`Written to: ${args.output}\n`)
 
   if (refused.length > 0) {
@@ -80,17 +68,22 @@ export async function runBaseline(args: BaselineArgs): Promise<number> {
         `that currently enforces nothing, so accepting it would hide the gap. Fix these:\n`,
     )
     for (const violation of refused) {
+      // The rule file first when there is one. Attributing the finding
+      // (bug 0026) is pointless if the command that prints it drops the field:
+      // "which rule file" is the first thing the reader needs, and with two
+      // files holding the same vacuous rule the description alone is the same
+      // sentence twice.
       const where = violation.file === '' ? '' : `${violation.file}: `
       process.stdout.write(`  - ${where}${violation.rule}: ${violation.message}\n`)
     }
   }
 
-  // Non-zero when something could not be baselined: an agent reads `exit 0`
-  // as "nothing to do", and this command sits on the documented upgrade
-  // path. Exiting 0 here would mean `npm run arch:baseline` reported the
-  // blocker, "succeeded", got committed, and the next `arch` job failed on
-  // findings the baseline was supposed to have covered. The file is still
-  // written — the findings that COULD be baselined are recorded, so
-  // re-running after the fix is cheap.
+  // Non-zero when something could not be baselined, for the same reason
+  // `doctor` exits non-zero: an agent reads `exit 0` as "nothing to do", and
+  // this command sits on the documented 0.23.0 upgrade path. Exiting 0 here
+  // meant `npm run arch:baseline` reported the blocker, succeeded, got
+  // committed, and the next `arch` job failed on findings the baseline was
+  // supposed to have covered. The file is still written — the findings that
+  // COULD be baselined are recorded, so re-running after the fix is cheap.
   return refused.length > 0 ? 1 : 0
 }

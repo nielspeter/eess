@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { Project, ts } from 'ts-morph'
 import { jsxElements } from '../../src/builders/jsx-rule-builder.js'
-import { not } from '@nielspeter/eess'
+import { not } from '../../src/core/combinators.js'
 import { areComponents } from '../../src/predicates/jsx.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 function createProject(files: Record<string, string>): ArchProject {

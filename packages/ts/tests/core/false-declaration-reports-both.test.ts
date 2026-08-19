@@ -23,8 +23,8 @@ import { layeredArchitecture } from '../../src/presets/layered.js'
 import { recommended } from '../../src/presets/recommended.js'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { functionNoEval } from '../../src/rules/security.js'
-import { correspondence } from '@nielspeter/eess'
-import { dedupeConfigFindings } from '@nielspeter/eess'
+import { correspondence } from '../../src/builders/correspondence-builder.js'
+import { dedupeConfigFindings } from '../../src/core/dedupe-config-findings.js'
 
 function inMemory(files: Record<string, string>): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })

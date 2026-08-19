@@ -25,7 +25,7 @@ import type { ArchProject } from '../../src/core/project.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { dependOn, notHaveAliasedImports } from '../../src/conditions/dependency.js'
-import { hashViolation } from '@nielspeter/eess'
+import { hashViolation } from '../../src/helpers/baseline.js'
 
 /** Two sibling folders, each with an `index.ts`, plus a target they may or may not use. */
 function siblings(alpha: string, beta: string, target = 'export const x = 1\n'): ArchProject {

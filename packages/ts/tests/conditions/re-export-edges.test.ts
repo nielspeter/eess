@@ -24,7 +24,7 @@ import type { ImportOptions } from '../../src/core/import-options.js'
 import fs from 'node:fs'
 import { slices } from '../../src/builders/slice-rule-builder.js'
 import { project } from '../../src/core/project.js'
-import { hashViolation } from '@nielspeter/eess'
+import { hashViolation } from '../../src/helpers/baseline.js'
 
 /** Two slices, `a/` and `b/`, carrying the edge spellings under test. */
 function twoSlices(aToB: string, bToA: string): ArchProject {

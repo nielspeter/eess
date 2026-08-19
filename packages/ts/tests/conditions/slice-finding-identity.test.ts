@@ -27,7 +27,7 @@ import { Project, ts } from 'ts-morph'
 import type { ArchProject } from '../../src/core/project.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
-import { hashViolation } from '@nielspeter/eess'
+import { hashViolation } from '../../src/helpers/baseline.js'
 
 function barrelProject(): ArchProject {
   const tsm = new Project({

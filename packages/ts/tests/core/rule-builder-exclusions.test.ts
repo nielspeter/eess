@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ArchRuleError } from '@nielspeter/eess'
-import { Baseline, hashViolation } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
+import { Baseline, hashViolation } from '../../src/helpers/baseline.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 import {
   TestRuleBuilder,
@@ -8,7 +8,7 @@ import {
   nameMatches,
   alwaysFail,
 } from '../support/test-rule-builder.js'
-import { silent } from '@nielspeter/eess'
+import { silent } from '../../src/core/silent-exclusion.js'
 
 const elements = [
   { name: 'UserService', file: '/project/src/services/user.ts', line: 5, exported: true },

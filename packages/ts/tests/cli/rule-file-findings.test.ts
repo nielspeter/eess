@@ -11,8 +11,8 @@
 import { describe, it, expect } from 'vitest'
 import path from 'node:path'
 import { attributeToRuleFile, ruleFileFailure } from '../../src/cli/rule-file-findings.js'
-import { formatViolationsGitHub } from '@nielspeter/eess'
-import { formatViolations } from '@nielspeter/eess'
+import { formatViolationsGitHub } from '../../src/core/format-github.js'
+import { formatViolations } from '../../src/core/format.js'
 import { severityFor } from '../../src/core/violation.js'
 
 describe('ruleFileFailure', () => {

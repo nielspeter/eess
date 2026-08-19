@@ -1,8 +1,11 @@
+import type { RuleDescription } from '../core/rule-description.js'
+import type { CollectResult } from '../core/terminal-builder.js'
 import type { ArchViolation } from '../core/violation.js'
-import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { TerminalBuilder, type CollectResult, assertionLessViolation } from '@nielspeter/eess'
-import type { Predicate } from '@nielspeter/eess'
+import type { Condition, ConditionContext } from '../core/condition.js'
+import { TerminalBuilder } from '../core/terminal-builder.js'
+import type { Predicate } from '../core/predicate.js'
 import type { LoadedSchema, GraphQLObjectTypeLike, GraphQLTypeLike } from './schema-loader.js'
+import { selectionMemo } from '../core/selection-memo.js'
 import type { SchemaElement } from './schema-predicates.js'
 import {
   queries as queriesPredicate,
@@ -44,26 +47,14 @@ function isObjectType(type: GraphQLTypeLike): type is GraphQLObjectTypeLike {
  *   .check()
  * ```
  */
+const selectionOf = selectionMemo<SchemaElement>()
+
 export class SchemaRuleBuilder extends TerminalBuilder {
   private _predicates: Predicate<SchemaElement>[] = []
   private _conditions: Condition<SchemaElement>[] = []
 
   constructor(private readonly loaded: LoadedSchema) {
     super()
-  }
-
-  /**
-   * Independent copy of `_predicates`/`_conditions` — see
-   * `SliceRuleBuilder.copy()` for why this override is required: without it,
-   * two branches derived from the same held selection via the inherited
-   * `.because()`/`.excluding()`/`.rule()`/`.expectEmpty()` would share one
-   * mutable array by reference.
-   */
-  protected override copy(): this {
-    const clone = super.copy()
-    clone._predicates = [...this._predicates]
-    clone._conditions = [...this._conditions]
-    return clone
   }
 
   // --- Predicate methods ---
@@ -167,32 +158,78 @@ export class SchemaRuleBuilder extends TerminalBuilder {
 
   // --- Evaluation ---
 
-  protected collectViolations(): CollectResult {
-    const allElements = this.getElements()
+  /**
+   * An independent copy, carrying both lists.
+   *
+   * This builder does not extend `RuleBuilder`, so it does not inherit that
+   * class's override — and neither `that()` nor `should()` forked here at all,
+   * which made the bug 0016 leak worse on this hierarchy than on the main one:
+   * a held `schema()` selection accumulated every predicate and condition of
+   * every rule derived from it. `docs/graphql.md` teaches exactly that shape.
+   */
+  protected override copy(): this {
+    const clone = super.copy()
+    clone._predicates = [...this._predicates]
+    clone._conditions = [...this._conditions]
+    return clone
+  }
 
-    const filtered = allElements.filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
+  override assertsSomething(): boolean {
+    return this._conditions.length > 0
+  }
+
+  override assertionAdvice(): string {
+    return (
+      'this rule has no condition, so it asserts nothing and can never fail. Add a ' +
+      'condition after .should(), e.g. haveFields(...) or acceptArgs(...).'
     )
+  }
+
+  /** Named by id or description, not 'unnamed' (plan 0070 §4). */
+  override describeRule(): RuleDescription {
+    return {
+      ...super.describeRule(),
+      rule: this._metadata?.id ?? this.buildRuleDescription(),
+    }
+  }
+
+  /**
+   * The set the conditions receive — plan 0096, and the ONE method both readers
+   * call. See `ResolverRuleBuilder.selected()` for why sharing it is the point.
+   */
+  private selected(): SchemaElement[] {
+    return selectionOf(this, () =>
+      this.getElements().filter((element) =>
+        this._predicates.every((predicate) => predicate.test(element)),
+      ),
+    )
+  }
+
+  /** Units this rule examined — plan 0096. */
+
+  /**
+   * This family counts schema types — the SDL types it selected.
+   *
+   * Plan 0099: `CollectResult.examined` is unit-typed per family (ADR-009 part
+   * 1), and the zero-examined message prints the noun. Inheriting the base
+   * `'subjects'` is a category error in a sentence whose whole job is naming what
+   * was and was not looked at.
+   */
+  protected override examinedUnitNoun(): string {
+    return 'schema types'
+  }
+
+  examinedUnits(): number {
+    return this.selected().length
+  }
+
+  protected collectViolations(): CollectResult {
+    const filtered = this.selected()
 
     if (filtered.length === 0) {
-      // Deliberately not claiming sourceEmpty: SchemaRuleBuilder can be built
-      // from a raw SDL string (schemaFromSDL()) with no ArchProject at all,
-      // and even the project-backed path (schema()) narrows by glob before
-      // construction — the same ambiguity that broke JsxRuleBuilder's
-      // .notExist() case when this was tried against getElements().length.
+      // Plan 0098: the early exit IS the zero-evidence case, stated rather than
+      // implied by an empty violation list.
       return { violations: [], examined: 0 }
-    }
-
-    if (this._conditions.length === 0) {
-      // Bug 0155 — a finding, not a warning. See the kernel's
-      // `assertionLessViolation`.
-      const ruleId = this._metadata?.id ?? this.buildRuleDescription()
-      return {
-        violations: [
-          assertionLessViolation(ruleId, 'Add a condition after .should(), or delete the rule.'),
-        ],
-        examined: filtered.length,
-      }
     }
 
     const context: ConditionContext = {

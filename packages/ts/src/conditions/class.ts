@@ -1,5 +1,5 @@
 import type { ClassDeclaration, ParameterDeclaration } from 'ts-morph'
-import type { Condition, ConditionContext } from '@nielspeter/eess'
+import type { Condition, ConditionContext } from '../core/condition.js'
 import type { ArchViolation } from '../core/violation.js'
 import { elementCondition } from './helpers.js'
 import { createViolation, getElementName } from '../core/violation.js'

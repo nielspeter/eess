@@ -3,7 +3,7 @@ import { Project } from 'ts-morph'
 import path from 'node:path'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { classes } from '../../src/builders/class-rule-builder.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 import { mustCall, classMustCall } from '../../src/rules/architecture.js'
 

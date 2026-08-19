@@ -14,7 +14,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { functions, project } from '../../src/index.js'
-import { not, and, or } from '@nielspeter/eess'
+import { not, and, or } from '../../src/core/combinators.js'
 import { areAsync } from '../../src/predicates/function.js'
 import { areExported } from '../../src/predicates/identity.js'
 

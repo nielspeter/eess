@@ -3,7 +3,7 @@ import path from 'node:path'
 import { Project } from 'ts-morph'
 import { project } from '../../src/core/project.js'
 import { smells } from '../../src/smells/index.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 import * as fingerprintModule from '../../src/smells/fingerprint.js'
 

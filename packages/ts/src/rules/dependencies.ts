@@ -1,5 +1,5 @@
 import type { SourceFile } from 'ts-morph'
-import type { Condition } from '@nielspeter/eess'
+import type { Condition } from '../core/condition.js'
 import { onlyImportFrom, notImportFrom, onlyHaveTypeImportsFrom } from '../conditions/dependency.js'
 
 /**

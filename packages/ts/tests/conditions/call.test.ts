@@ -8,7 +8,7 @@ import {
   notHaveCallbackContaining,
 } from '../../src/conditions/call.js'
 import { call, access, newExpr } from '../../src/helpers/matchers.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 
 function makeArchCalls(code: string): ArchCall[] {
   const project = new Project({ useInMemoryFileSystem: true })

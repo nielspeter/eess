@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import path from 'node:path'
 import { beImported } from '../../src/conditions/reverse-dependency.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/dynamic-imports')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

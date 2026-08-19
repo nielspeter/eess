@@ -3,7 +3,7 @@ import { SyntaxKind, type Node, Node as NodeClass } from 'ts-morph'
 // Deliberately not exhaustive over every text-bearing kind — `TemplateHead`/
 // `TemplateMiddle`/`TemplateTail` (interpolated templates), `BigIntLiteral` and
 // `RegularExpressionLiteral` are omitted. Every omission UNDERcounts vocabulary,
-// which only makes `distinctVocabulary` more conservative — fewer pairs
+// which only makes the floor (plan 0103) more conservative — fewer pairs
 // compared, never a false positive from a body that reads as emptier than it
 // is. Widen this set if a real interpolated-template-heavy corpus needs it.
 const TEXT_KINDS = new Set<SyntaxKind>([
@@ -29,11 +29,8 @@ export interface Fingerprint {
   /**
    * Count of DISTINCT identifier/literal texts in the body — the vocabulary
    * a body actually carries, as opposed to its punctuation/keyword shape.
-   * Two bodies can share a syntactic shape for no reason other than the
-   * shape being mandated (a wither, a getter, a boilerplate skeleton); a
-   * "match" between two low-vocabulary bodies carries no information about
-   * what the code actually does. `DuplicateBodiesBuilder.minDistinctVocabulary()`
-   * is the floor that reads this — `computeSimilarity()` does not.
+   * Plan 0103's floor reads this; `computeSimilarity()` does not — see that
+   * function's own docs for why.
    */
   readonly distinctVocabulary: number
 }

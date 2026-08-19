@@ -45,7 +45,7 @@ import type { ArchViolation } from '../../src/core/violation.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { edgesOf } from '../../src/core/module-edges.js'
-import { hashViolation } from '@nielspeter/eess'
+import { hashViolation } from '../../src/helpers/baseline.js'
 
 /**
  * `legacy/` exports a default, a named value, a type and two more names, so every spelling

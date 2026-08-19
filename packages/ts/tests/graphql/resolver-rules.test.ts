@@ -4,7 +4,7 @@ import path from 'node:path'
 import { resolvers } from '../../src/graphql/index.js'
 import { ResolverRuleBuilder } from '../../src/graphql/resolver-rule-builder.js'
 import { call } from '../../src/helpers/matchers.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/graphql')

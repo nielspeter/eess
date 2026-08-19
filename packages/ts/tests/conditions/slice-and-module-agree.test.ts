@@ -36,7 +36,7 @@ import type { ArchViolation } from '../../src/core/violation.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { edgesOf, FORWARD_EDGE_KINDS } from '../../src/core/module-edges.js'
-import { hashViolation } from '@nielspeter/eess'
+import { hashViolation } from '../../src/helpers/baseline.js'
 
 /**
  * Two slices. `feature/` reaches `legacy/` by whichever spelling is under test, and

@@ -24,7 +24,6 @@ export interface ModuleBodyOptions {
 /**
  * Result of searching a body for matcher hits.
  */
-// eess-exclude eess/no-unused-exports: return type of the exported searchClassBody/searchFunctionBody APIs (must stay exported for declaration emit)
 export interface MatchResult {
   /** Whether at least one match was found */
   found: boolean
@@ -34,15 +33,14 @@ export interface MatchResult {
    * Parallel to {@link matchingNodes}: which comment each match is about, for
    * trivia matchers. `undefined` entries mean the node itself is the match.
    *
-   * One node can carry several matching comments, so the node alone cannot
-   * identify a finding — four stacked `// TODO` lines lead one statement and
-   * are four findings, not one.
+   * Bug 0034. One node can carry several matching comments, so the node alone
+   * cannot identify a finding — four stacked `// TODO` lines lead one
+   * statement and are four findings, not one.
    */
   triviaPositions: (number | undefined)[]
 }
 
 /** One match: the node to report on, and which comment it is about. */
-// eess-exclude eess/no-unused-exports: return type of the exported findMatchesInNode API (must stay exported for declaration emit)
 export interface Match {
   readonly node: Node
   readonly triviaPos?: number
@@ -80,9 +78,9 @@ function findMatchesByKind(node: Node, matcher: ExpressionMatcher): Match[] {
  *
  * For a trivia matcher that is the **comment's** line, not the node's — the
  * position comes from `MatchResult.triviaPositions`, alongside the node. One
- * accessor rather than open-coded `node.getStartLineNumber()` calls, because
- * the `notContain` family computes the line twice per finding (the `line`
- * field and the message text) and the two must not disagree.
+ * accessor rather than ten open-coded `node.getStartLineNumber()` calls,
+ * because the `notContain` family computes the line twice per finding (the
+ * `line` field and the message text) and the two must not disagree.
  */
 export function reportedLine(node: Node, triviaPos: number | undefined): number {
   if (triviaPos === undefined) return node.getStartLineNumber()
@@ -99,8 +97,8 @@ export function reportedLine(node: Node, triviaPos: number | undefined): number 
 function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Match[] {
   const matches: Node[] = []
   // Cached: the walk is kind-independent and identical across matchers, and
-  // is the majority of a broad matcher's cost. Only the filter below is
-  // per-matcher.
+  // measured it is ~three quarters of a broad matcher's cost. Only the filter
+  // below is per-matcher.
   for (const descendant of allDescendants(node)) {
     if (matcher.matches(descendant)) {
       matches.push(descendant)
@@ -125,10 +123,10 @@ function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Match[] {
  * getDescendants() for matchers without syntaxKinds (expression()).
  */
 export function findMatchesInNode(node: Node, matcher: ExpressionMatcher): Match[] {
-  // TRIVIA first, and at the dispatcher rather than inside the broad walk. A
-  // trivia matcher may also narrow by `syntaxKinds` for speed, and with the
-  // branch one level down it took the by-kind path and got no expansion at
-  // all.
+  // TRIVIA first, and at the dispatcher rather than inside the broad walk.
+  // A trivia matcher may also narrow by `syntaxKinds` for speed — plan 0047's
+  // `tsDirective()` wants exactly that — and with the branch one level down it
+  // took the by-kind path and got no expansion at all.
   if (matcher.matchedTriviaPositions !== undefined) {
     return triviaMatches(node, matcher)
   }
@@ -144,8 +142,8 @@ export function findMatchesInNode(node: Node, matcher: ExpressionMatcher): Match
  * The deepest-node filter is skipped deliberately: it exists because
  * `expression()` matches at every ancestor level, and a comment's node is where
  * it is **attached** rather than something containing it. Applying it made two
- * nodes with identical spans each remove the other — zero findings for three
- * comments.
+ * nodes with identical spans each remove the other — measured at zero findings
+ * for three comments.
  *
  * The same comment is trivia of several nested nodes, so positions are
  * deduplicated globally and the first node to name one wins.
@@ -217,13 +215,15 @@ export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatche
  * For a `function` declaration that is the declaration itself. For an arrow or
  * function expression assigned to a `const`, `ArchFunction.getNode()` returns the
  * **VariableDeclaration**, and the comment attaches two levels up on the
- * `VariableStatement` — so a naive fix repairs `function f()` and leaves
- * `const f = () => …` broken, which is half the codebases that would use the
- * rule.
+ * `VariableStatement` — measured: `nodeLeading: 0`, `parentLeading: 0`,
+ * `grandparentLeading: 1`. So the first version of bug 0052's fix repaired
+ * `function f()` and left `const f = () => …` broken, which is half the codebases
+ * that would use the rule.
  *
  * `getFirstAncestorByKind` finds the NEAREST enclosing statement, so a nested
- * arrow inside a function does not reach out to the outer function's
- * docstring — that over-reach is the obvious way to fix this wrongly.
+ * arrow inside a function does not reach out to the outer function's docstring —
+ * pinned by a control, because that over-reach is the obvious way to fix this
+ * wrongly.
  */
 function triviaRoot(node: Node): Node {
   if (!NodeUtils.isVariableDeclaration(node)) return node
@@ -240,25 +240,24 @@ function triviaRoot(node: Node): Node {
 export function searchFunctionBody(fn: ArchFunction, matcher: ExpressionMatcher): MatchResult {
   // A TRIVIA matcher searches from the DECLARATION; everything else from the body.
   //
-  // A function's own leading comment attaches to the declaration, not to
-  // anything inside the body — so `noStubComments()` would see a `TODO`
-  // inside a body and trailing a function, and miss both `// TODO` and
-  // `/** TODO */` **above** it, which are the two placements anyone
-  // actually writes. `comment()` reads leading ranges perfectly well; the
-  // traversal never offered it the declaration.
+  // [Bug 0052](../../bugs/fixed/0052-nostubcomments-cannot-see-a-functions-own-docstring.md):
+  // a function's own leading comment attaches to the declaration, not to anything
+  // inside the body — so `noStubComments()` saw a `TODO` inside a body and trailing
+  // a function, and missed both `// TODO` and `/** TODO */` **above** it, which are
+  // the two placements anyone actually writes. Measured 1/1/0/0 across those four.
+  // `comment()` reads leading ranges perfectly well; the traversal never offered it
+  // the declaration.
   //
-  // Searching from the declaration rather than *also* searching it:
-  // `triviaMatches` visits `[node, ...allDescendants(node)]` and
-  // deduplicates by comment position, so the body is still covered and no
-  // comment can be reported twice. Testing the declaration separately would
-  // have needed its own dedup against the body's.
+  // Searching from the declaration rather than *also* searching it: `triviaMatches`
+  // visits `[node, ...allDescendants(node)]` and deduplicates by comment position,
+  // so the body is still covered and no comment can be reported twice. Testing the
+  // declaration separately would have needed its own dedup against the body's.
   //
-  // Only for trivia matchers, and that discrimination is the point rather
-  // than a shortcut: `functionNotContain` is general-purpose, and handing
-  // the declaration node to `expression(/…/)` would match the function's
-  // entire source text — turning every body-analysis rule into a
-  // whole-declaration one. A matcher that reads trivia is exactly the set
-  // that needs the attachment point.
+  // Only for trivia matchers, and that discrimination is the point rather than a
+  // shortcut: `functionNotContain` is general-purpose, and handing the declaration
+  // node to `expression(/…/)` would match the function's entire source text —
+  // turning every body-analysis rule into a whole-declaration one. A matcher that
+  // reads trivia is exactly the set that needs the attachment point.
   if (matcher.matchedTriviaPositions !== undefined) {
     return toResult(findMatchesInNode(triviaRoot(fn.getNode()), matcher))
   }

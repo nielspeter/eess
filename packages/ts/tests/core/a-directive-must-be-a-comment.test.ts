@@ -23,7 +23,7 @@
  * fix as well as after.
  */
 import { describe, expect, it } from 'vitest'
-import { parseExclusionComments } from '@nielspeter/eess'
+import { parseExclusionComments } from '../../src/core/exclusion-comments.js'
 
 /** `[name, source, expected exclusions]` */
 const CASES: readonly (readonly [string, string, number])[] = [

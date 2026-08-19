@@ -35,31 +35,27 @@ export function tarjanSCC(nodeCount: number, edges: AdjacencyList): number[][] {
 
     const neighbors = edges.get(v) ?? []
     for (const w of neighbors) {
-      // lv/lw/iw are always defined here (v and w are bounded indices into
-      // pre-filled arrays); the guards satisfy noUncheckedIndexedAccess.
-      const lv = lowlink[v]
       if (index[w] === -1) {
         // w has not been visited
         strongConnect(w)
-        const lw = lowlink[w]
-        if (lv !== undefined && lw !== undefined) lowlink[v] = Math.min(lv, lw)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        lowlink[v] = Math.min(lowlink[v]!, lowlink[w]!)
       } else if (onStack[w]) {
         // w is on the stack, so it's in the current SCC
-        const iw = index[w]
-        if (lv !== undefined && iw !== undefined) lowlink[v] = Math.min(lv, iw)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        lowlink[v] = Math.min(lowlink[v]!, index[w]!)
       }
     }
 
     // If v is a root node, pop the SCC
     if (lowlink[v] === index[v]) {
       const scc: number[] = []
-      let popped = stack.pop()
-      while (popped !== undefined) {
-        onStack[popped] = false
-        scc.push(popped)
-        if (popped === v) break
-        popped = stack.pop()
-      }
+      let w: number
+      do {
+        w = stack.pop()!
+        onStack[w] = false
+        scc.push(w)
+      } while (w !== v)
 
       // Only report cycles (size > 1)
       if (scc.length > 1) {

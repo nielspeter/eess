@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { DiffFilter } from '@nielspeter/eess'
+import { DiffFilter } from '../../src/helpers/diff-aware.js'
 import { makeViolation } from '../support/test-rule-builder.js'
 
 /** Shorthand with diff-aware-test defaults. */

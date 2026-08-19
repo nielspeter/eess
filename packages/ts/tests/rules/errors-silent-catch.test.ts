@@ -5,7 +5,7 @@ import type { ArchProject } from '../../src/core/project.js'
 import { classes } from '../../src/builders/class-rule-builder.js'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../../src/core/errors.js'
 import {
   noSilentCatch,
   functionNoSilentCatch,

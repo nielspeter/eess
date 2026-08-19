@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateCodeFrame } from '@nielspeter/eess'
+import { generateCodeFrame } from '../../src/core/code-frame.js'
 
 const sampleSource = [
   'import { foo } from "bar"',

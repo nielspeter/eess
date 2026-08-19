@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import path from 'node:path'
 import { workspace, resetProjectCache } from '../../src/core/project.js'
 import { beImported } from '../../src/conditions/reverse-dependency.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/workspace')
 const sharedTsconfig = path.join(fixturesDir, 'packages/shared/tsconfig.json')

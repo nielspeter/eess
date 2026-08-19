@@ -17,7 +17,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Project } from 'ts-morph'
 import { modules } from '../../src/builders/module-rule-builder.js'
-import { orphanExclusions } from '@nielspeter/eess'
+import { orphanExclusions } from '../../src/core/orphan-exclusions.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 let dir: string

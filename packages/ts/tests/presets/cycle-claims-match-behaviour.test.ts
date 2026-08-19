@@ -31,7 +31,7 @@ import type { ArchProject } from '../../src/core/project.js'
 import { layeredArchitecture } from '../../src/presets/layered.js'
 import { strictBoundaries } from '../../src/presets/boundaries.js'
 import type { ArchViolation } from '../../src/core/violation.js'
-import type { RuleBuilderLike } from '@nielspeter/eess'
+import type { RuleBuilderLike } from '../../src/core/rule-builder-like.js'
 
 /**
  * Three features and a barrel that re-exports all three. The barrel is a hub, so every

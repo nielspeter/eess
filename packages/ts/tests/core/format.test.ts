@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { formatViolations, formatViolationsPlain } from '@nielspeter/eess'
-import { formatViolationsGitHub } from '@nielspeter/eess'
+import { formatViolations, formatViolationsPlain } from '../../src/core/format.js'
+import { formatViolationsGitHub } from '../../src/core/format-github.js'
 import { makeViolation } from '../support/test-rule-builder.js'
 
 /** Shorthand with format-test defaults (avoids repeating them everywhere). */

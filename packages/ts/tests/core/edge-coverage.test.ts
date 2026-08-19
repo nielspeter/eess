@@ -32,8 +32,8 @@ import {
   untestedRules,
   edgeCoverageNotice,
   resetEdgeCoverage,
-} from '@nielspeter/eess'
-import { formatViolationsJson } from '@nielspeter/eess'
+} from '../../src/core/edge-coverage.js'
+import { formatViolationsJson } from '../../src/core/format-json.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 /** A domain module with no imports, and an app module that imports it. */

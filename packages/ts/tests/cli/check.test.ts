@@ -12,8 +12,8 @@ vi.mock('../../src/helpers/baseline.js', () => ({
 }))
 
 import { loadRuleFiles } from '../../src/cli/load-rules.js'
-import { withBaseline } from '@nielspeter/eess'
-import { ArchRuleError } from '@nielspeter/eess'
+import { withBaseline } from '../../src/helpers/baseline.js'
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 
 const mockLoadRuleFiles = vi.mocked(loadRuleFiles)

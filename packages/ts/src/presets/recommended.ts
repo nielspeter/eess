@@ -1,21 +1,31 @@
-import type { Condition, RuleMetadata } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { RuleMetadata } from '../core/rule-metadata.js'
+import type { Condition } from '../core/condition.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { functions } from '../builders/function-rule-builder.js'
 import { functionNoEval, functionNoFunctionConstructor } from '../rules/security.js'
 import { functionNoSilentCatch } from '../rules/errors.js'
 import { noEmptyBodies } from '../rules/hygiene.js'
+import type { RuleBuilderLike } from '../core/rule-builder-like.js'
 import type { PresetBaseOptions } from './shared.js'
-import { dispatchRule, validateOverrides, finishPreset } from './shared.js'
+import {
+  overrideFindings,
+  validateOverrides,
+  declareEmptyIfListed,
+  presetDeclarationSpelling,
+  declaredEmptyFindings,
+} from './shared.js'
 
-export interface RecommendedOptions extends PresetBaseOptions {
+export interface RecommendedOptions extends PresetBaseOptions<RecommendedRuleId> {
   /**
    * Source-file glob the rules apply to. Defaults to `'**\/src/**'`, matched
    * against each file's absolute path (picomatch). This scopes the rules to your
    * source tree by convention — it does NOT itself exclude `node_modules` or
    * generated files (any `src/` segment anywhere in the path matches). Projects
    * whose source lives outside a `src/` folder (e.g. `lib/`) should override.
+   * Note: because the match is on the absolute path, an ancestor directory named
+   * `src` (e.g. a clone under `~/src/`) widens scope — anchor with a project-root
+   * glob if that matters.
    */
   include?: string
 }
@@ -28,10 +38,10 @@ interface RuleSpec {
 
 /**
  * Single source of truth for the floor. `RULE_IDS` (for override validation) and
- * the dispatch loop both derive from this — add a rule here and nothing else
+ * the builder loop both derive from this — add a rule here and nothing else
  * needs updating.
  */
-const SPECS: readonly RuleSpec[] = [
+const SPECS = [
   {
     condition: functionNoEval(),
     meta: {
@@ -72,9 +82,17 @@ const SPECS: readonly RuleSpec[] = [
     },
     default: 'warn',
   },
-]
+] as const satisfies readonly RuleSpec[]
 
-const RULE_IDS = SPECS.map((s) => s.meta.id)
+/**
+ * Derived from `SPECS`, never restated. A hand-written union is a second list
+ * that drifts the moment a rule is added — which is the whole shape of
+ * [bug 0038](../../bugs/fixed/0038-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)
+ * and of the census in plan 0078.
+ */
+export type RecommendedRuleId = (typeof SPECS)[number]['meta']['id']
+
+const RULE_IDS: readonly string[] = SPECS.map((s) => s.meta.id)
 
 /**
  * A deliberately **thin, universal safety floor** for any TypeScript project —
@@ -82,33 +100,54 @@ const RULE_IDS = SPECS.map((s) => s.meta.id)
  * on healthy code. Not a full architecture: shape-specific rules (layer order,
  * cycles, delegation) are yours to add.
  *
- * Returns `ArchViolation[]` (the eager ADR-008 form) and ends in `finishPreset`,
- * so a caller can `recommended(p, { report: 'return' })` to own emission, or by
- * default let it throw on any error-severity violation. The two `warn` rules
- * (silent-catch, empty-bodies) are reported to stderr but never fail and are NOT
- * aggregated into the returned array — they have known, suppressible false
- * positives; override to `'error'` to include them. Severity is tunable via
- * `overrides`.
+ * Returns severity-carrying builders (the returning form), so spread it into a
+ * rule file: `export default [...recommended(p)]`. The two `error` rules fail
+ * the run; the two `warn` rules (silent-catch, empty-bodies) are reported but
+ * never fail **when the rule works** — they have known, suppressible false
+ * positives. A configuration finding (a rule that examined zero units, or whose
+ * glob is dead) is `error` regardless of severity and fails the build: `'warn'`
+ * grades violations, not a rule that cannot enforce anything.
  *
  * Overlaps `agentGuardrails` on empty bodies and `eval`. For agent-focused
  * projects prefer `agentGuardrails` alone, or override the duplicated ids to
  * `'off'` in one preset.
  */
-export function recommended(p: ArchProject, options: RecommendedOptions = {}): ArchViolation[] {
+export function recommended(p: ArchProject, options: RecommendedOptions = {}): RuleBuilderLike[] {
   const include = options.include ?? '**/src/**'
   validateOverrides(options.overrides, RULE_IDS)
+  const overrideProblems = overrideFindings(options.overrides, RULE_IDS)
 
-  const violations: ArchViolation[] = []
+  const builders: RuleBuilderLike[] = []
+  const constructed: string[] = []
   for (const { condition, meta, default: def } of SPECS) {
-    violations.push(
-      ...dispatchRule(
-        functions(p).that().resideInFile(include).should().satisfy(condition),
-        meta,
-        def,
-        options.overrides,
+    const sev = options.overrides?.[meta.id] ?? def
+    if (sev === 'off') continue
+    constructed.push(meta.id)
+    builders.push(
+      // Plan 0089's carrier. Applied at construction so it reaches every rule
+      // this preset builds, not only the ones routed through `collectRule`.
+      declareEmptyIfListed(
+        functions(p, { includeObjectLiteralFunctions: true })
+          .that()
+          .resideInFile(include)
+          .should()
+          .satisfy(condition)
+          .rule({ ...meta, declarationSpelling: presetDeclarationSpelling(meta.id) })
+          .asSeverity(sev),
+        meta.id,
+        options,
       ),
     )
   }
 
-  return finishPreset(violations, options)
+  // Unknown override keys FIRST: they say the configuration is wrong, which
+  // the reader needs before any finding produced under it (bug 0038).
+  // Unbound declarations sit with the unknown-override findings: both say the
+  // configuration is wrong, which the reader needs before any finding produced
+  // under it (bug 0038).
+  return [
+    ...overrideProblems,
+    ...declaredEmptyFindings(options.expectEmpty, constructed),
+    ...builders,
+  ]
 }

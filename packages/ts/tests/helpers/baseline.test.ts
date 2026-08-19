@@ -8,8 +8,8 @@ import {
   generateBaseline,
   withBaseline,
   Baseline,
-} from '@nielspeter/eess'
-import type { BaselineFile } from '@nielspeter/eess'
+} from '../../src/helpers/baseline.js'
+import type { BaselineFile } from '../../src/helpers/baseline.js'
 import { makeViolation } from '../support/test-rule-builder.js'
 
 // --- Helpers ---

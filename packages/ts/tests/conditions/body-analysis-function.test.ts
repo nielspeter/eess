@@ -8,7 +8,7 @@ import {
 } from '../../src/conditions/body-analysis-function.js'
 import { call, newExpr } from '../../src/helpers/matchers.js'
 import { collectFunctions } from '../../src/models/arch-function.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 import type { ArchFunction } from '../../src/models/arch-function.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')

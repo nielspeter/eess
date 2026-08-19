@@ -24,7 +24,7 @@ import type { ArchProject } from '../../src/core/project.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
 import type { ImportOptions } from '../../src/core/import-options.js'
 import type { ArchViolation } from '../../src/core/violation.js'
-import { hashViolation } from '@nielspeter/eess'
+import { hashViolation } from '../../src/helpers/baseline.js'
 
 /** Two slices, `a/` and `b/`, with the import spellings under test. */
 function twoSlices(aImportsB: string, bImportsA: string): ArchProject {

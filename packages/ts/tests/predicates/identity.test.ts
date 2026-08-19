@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import path from 'node:path'
 import { Project, type ClassDeclaration } from 'ts-morph'
-import { and, or, not } from '@nielspeter/eess'
-import type { Predicate } from '@nielspeter/eess'
+import { and, or, not } from '../../src/core/combinators.js'
+import type { Predicate } from '../../src/core/predicate.js'
 import {
   haveNameMatching,
   haveNameStartingWith,

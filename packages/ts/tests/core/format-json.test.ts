@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatViolationsJson } from '@nielspeter/eess'
+import { formatViolationsJson } from '../../src/core/format-json.js'
 import { makeViolation } from '../support/test-rule-builder.js'
 
 /** Shorthand with format-test defaults. */

@@ -8,7 +8,7 @@ import {
   notHaveAliasedImports,
   dependOn,
 } from '../../src/conditions/dependency.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/modules')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

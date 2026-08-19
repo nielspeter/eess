@@ -6,7 +6,7 @@ import {
   noPublicFields,
   noMagicNumbers,
 } from '../../src/rules/code-quality.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/rules')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { Project, type SourceFile } from 'ts-morph'
 import path from 'node:path'
-import { RuleBuilder } from '@nielspeter/eess'
-import { ArchRuleError } from '@nielspeter/eess'
+import { RuleBuilder } from '../../src/core/rule-builder.js'
+import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 
 // Minimal SourceFile-based builder for integration testing

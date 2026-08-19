@@ -1,5 +1,5 @@
 import type { ClassDeclaration } from 'ts-morph'
-import type { Predicate } from '@nielspeter/eess'
+import type { Predicate } from '../core/predicate.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { cyclomaticComplexity, linesOfCode, methodCount } from '../helpers/complexity.js'
 

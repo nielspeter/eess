@@ -1,4 +1,4 @@
-import type { Condition, ConditionContext } from '@nielspeter/eess'
+import type { Condition, ConditionContext } from '../core/condition.js'
 import type { ArchViolation } from '../core/violation.js'
 import type { SchemaElement } from './schema-predicates.js'
 

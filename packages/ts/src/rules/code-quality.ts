@@ -1,6 +1,6 @@
 import { SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration } from 'ts-morph'
-import type { Condition, ConditionContext } from '@nielspeter/eess'
+import type { Condition, ConditionContext } from '../core/condition.js'
 import type { ArchViolation } from '../core/violation.js'
 import { createViolation } from '../core/violation.js'
 
@@ -66,9 +66,6 @@ export function noPublicFields(): Condition<ClassDeclaration> {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
         for (const prop of cls.getProperties()) {
-          // ES #private fields are private by name — they carry no scope
-          // modifier, so getScope() reports public (dogfood finding, plan 0060)
-          if (prop.getName().startsWith('#')) continue
           const scope = prop.getScope()
           if (scope !== undefined && String(scope) !== 'public') continue
           // Allow static readonly (constants)

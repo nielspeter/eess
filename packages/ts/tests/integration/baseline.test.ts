@@ -5,9 +5,9 @@ import os from 'node:os'
 import { Project } from 'ts-morph'
 import { classes } from '../../src/builders/class-rule-builder.js'
 import { call } from '../../src/helpers/matchers.js'
-import { collectViolations } from '@nielspeter/eess'
-import { generateBaseline, withBaseline } from '@nielspeter/eess'
-import type { BaselineFile } from '@nielspeter/eess'
+import { collectViolations } from '../../src/helpers/baseline-generator.js'
+import { generateBaseline, withBaseline } from '../../src/helpers/baseline.js'
+import type { BaselineFile } from '../../src/helpers/baseline.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')

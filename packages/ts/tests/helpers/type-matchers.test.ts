@@ -11,7 +11,7 @@ import {
   matching,
   exactly,
 } from '../../src/helpers/type-matchers.js'
-import { not } from '@nielspeter/eess'
+import { not } from '../../src/core/combinators.js'
 
 /**
  * Tests use the PoC options.ts fixture which has:

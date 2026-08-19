@@ -20,16 +20,16 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import path from 'node:path'
 import { project, functions } from '../../src/index.js'
 import { runCheck } from '../../src/cli/commands/check.js'
-import { checkAll } from '@nielspeter/eess'
+import { checkAll } from '../../src/core/check-all.js'
 import {
   activeNotice,
   suppressionNotice,
   resetDiffDisclosureForTests,
-} from '@nielspeter/eess'
+} from '../../src/core/diff-disclosure.js'
 import type { ArchViolation } from '../../src/core/violation.js'
-import type { DiffFilterLike } from '@nielspeter/eess'
-import type * as DiffAwareModule from '@nielspeter/eess'
-import { ArchRuleError } from '@nielspeter/eess'
+import type { DiffFilterLike } from '../../src/core/check-options.js'
+import type * as DiffAwareModule from '../../src/helpers/diff-aware.js'
+import { ArchRuleError } from '../../src/core/errors.js'
 
 vi.mock('../../src/cli/load-rules.js', () => ({ loadRuleFiles: vi.fn() }))
 vi.mock('../../src/helpers/diff-aware.js', async (importOriginal) => ({
@@ -40,8 +40,8 @@ vi.mock('../../src/helpers/diff-aware.js', async (importOriginal) => ({
 }))
 
 import { loadRuleFiles } from '../../src/cli/load-rules.js'
-import { diffAware } from '@nielspeter/eess'
-import { DiffFilter } from '@nielspeter/eess'
+import { diffAware } from '../../src/helpers/diff-aware.js'
+import { DiffFilter } from '../../src/helpers/diff-aware.js'
 
 const mockLoadRuleFiles = vi.mocked(loadRuleFiles)
 const mockDiffAware = vi.mocked(diffAware)

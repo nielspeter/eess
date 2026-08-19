@@ -1,8 +1,8 @@
 import { watch, type FileChangeInfo } from 'node:fs/promises'
+import { isNullaryCallable } from '../core/type-guards.js'
 import path from 'node:path'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError } from '../core/errors.js'
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported watchAndRerun API (must stay exported for declaration emit)
 export interface WatchOptions {
   /** Directories to watch for changes */
   watchDirs: string[]
@@ -14,7 +14,6 @@ export interface WatchOptions {
   debounceMs?: number
 }
 
-// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
 export const TS_FILE_RE = /\.[cm]?tsx?$/
 
 /**
@@ -23,22 +22,17 @@ export const TS_FILE_RE = /\.[cm]?tsx?$/
  * Debounces rapid triggers. If a trigger arrives while the callback
  * is running, it queues a re-run after the current run completes.
  */
-// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
 export class RunScheduler {
   private debounceTimer: ReturnType<typeof setTimeout> | undefined
   private running = false
   private _pendingRerun = false
   private readonly debounceMs: number
   private readonly onRun: (trigger: string) => Promise<void>
-  #runCount = 0
+  public runCount = 0
 
   constructor(onRun: (trigger: string) => Promise<void>, debounceMs = 250) {
     this.onRun = onRun
     this.debounceMs = debounceMs
-  }
-
-  get runCount(): number {
-    return this.#runCount
   }
 
   get pendingRerun(): boolean {
@@ -49,10 +43,6 @@ export class RunScheduler {
     return this.running
   }
 
-  /**
-   * Queue a run for the given trigger, resetting the debounce window.
-   * If a run is already in progress, marks a pending re-run instead.
-   */
   schedule(trigger: string): void {
     if (this.debounceTimer) clearTimeout(this.debounceTimer)
     this.debounceTimer = setTimeout(() => {
@@ -67,7 +57,7 @@ export class RunScheduler {
   private executeRun(trigger: string): void {
     this.running = true
     this._pendingRerun = false
-    this.#runCount++
+    this.runCount++
     process.stdout.write('\x1B[2J\x1B[H') // clear screen, preserve scrollback
     process.stdout.write(`Change detected: ${trigger}\n\n`)
     this.onRun(trigger)
@@ -98,9 +88,9 @@ export class RunScheduler {
  * a run is in progress, it is queued and executed after the
  * current run completes.
  *
- * Known limitation: each re-run loads rule files with a fresh (cache-busting)
- * jiti instance. Over long sessions, memory grows — restart the watcher
- * periodically for long sessions.
+ * Known limitation: each re-run uses `importFresh` which creates
+ * a new ESM module cache entry. Over long sessions, memory grows.
+ * Restart the watcher periodically for long sessions.
  */
 export function watchAndRerun(options: WatchOptions): void {
   const { watchDirs, watchFiles, onChangeDetected, debounceMs = 250 } = options
@@ -150,9 +140,23 @@ export function watchAndRerun(options: WatchOptions): void {
   // Graceful shutdown — close all watchers on SIGINT
   process.on('SIGINT', () => {
     for (const w of watchers) {
-      // Ask each async iterator to release its underlying fs.watch handle.
-      void w[Symbol.asyncIterator]().return?.()
+      if ('return' in w && isNullaryCallable(w.return)) {
+        void w.return()
+      }
     }
     process.exit(0)
   })
+}
+
+/**
+ * Import a module with cache-busting for watch mode.
+ *
+ * Node ESM has no cache eviction API. Each call creates a new
+ * module entry via a unique query string. Over long sessions
+ * this leaks memory — see watchAndRerun JSDoc.
+ */
+export async function importFresh(filePath: string): Promise<unknown> {
+  const resolved = path.resolve(filePath)
+  const url = `file://${resolved}?t=${Date.now()}`
+  return import(url)
 }

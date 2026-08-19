@@ -14,7 +14,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { Project, ts } from 'ts-morph'
 import { modules, project } from '../../src/index.js'
-import { generateBaseline, withBaseline } from '@nielspeter/eess'
+import { generateBaseline, withBaseline } from '../../src/helpers/baseline.js'
 import { edgesOf } from '../../src/core/module-edges.js'
 
 const fixtureRoot = path.join(import.meta.dirname, '../fixtures/module-edge-conditions')

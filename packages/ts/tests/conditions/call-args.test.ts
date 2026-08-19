@@ -9,7 +9,7 @@ import {
   notHaveArgumentContaining,
 } from '../../src/conditions/call.js'
 import { property, call } from '../../src/helpers/matchers.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 
 function makeTopLevelArchCall(code: string): ArchCall {
   const project = new Project({ useInMemoryFileSystem: true })

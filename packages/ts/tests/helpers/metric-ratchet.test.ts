@@ -37,7 +37,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { Project } from 'ts-morph'
 import { classes, functions, modules } from '../../src/index.js'
-import { generateBaseline, withBaseline } from '@nielspeter/eess'
+import { generateBaseline, withBaseline } from '../../src/helpers/baseline.js'
 import {
   maxMethods,
   maxClassLines,

@@ -7,7 +7,7 @@ import {
   shouldHaveMethodNamed,
   shouldNotHaveMethodMatching,
 } from '../../src/conditions/class.js'
-import type { ConditionContext } from '@nielspeter/eess'
+import type { ConditionContext } from '../../src/core/condition.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

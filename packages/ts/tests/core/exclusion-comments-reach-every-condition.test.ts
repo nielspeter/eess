@@ -33,14 +33,14 @@ import { Project } from 'ts-morph'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { classes } from '../../src/builders/class-rule-builder.js'
 import { call } from '../../src/helpers/matchers.js'
-import { isExcludedByComment } from '@nielspeter/eess'
+import { isExcludedByComment } from '../../src/core/exclusion-comments.js'
 import { notHaveDefaultExport } from '../../src/conditions/exports.js'
 import { moduleNotContain } from '../../src/conditions/body-analysis-module.js'
 import {
   commentSuppressionNotice,
   commentSuppressions,
   resetCommentSuppression,
-} from '@nielspeter/eess'
+} from '../../src/core/comment-suppression.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 const RULE_ID = 'probe/no-forbidden'
