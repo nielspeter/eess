@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-19 · **Open:** 41 (39 Draft · 2 Parked) · **Fixed:** 21 · **Rejected:** 0
+**Updated:** 2026-08-19 · **Open:** 43 (41 Draft · 2 Parked) · **Fixed:** 21 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -171,6 +171,8 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0156](./0156-should-twice-silently-drops-the-first-assertion.md)                 | a second `.should()` discards every condition before it — two assertions written, one enforced, four findings lost, exit 0                                                    | High     | 🔴 Draft            | self-found · fold audit vs ts-archunit bug 0020                              | —         |
 | [0157](./0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)         | a misspelled preset `overrides` key is ignored with only a stderr line — the escalation silently does not apply, at runtime and at the type level                             | High     | 🔴 Draft            | self-found · fold audit vs ts-archunit bug 0038                              | —         |
 | [0158](./0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md)   | a reason-free `// eess-exclude` suppresses a real violation and only warns; nested block directives mangle — shipped in 0.2.x                                                 | High     | 🔴 Draft            | self-found · fold audit vs ts-archunit bug 0039                              | —         |
+| [0159](./0159-violation-identities-collide-across-distinct-findings.md)           | distinct findings share one identity — baselining one silently baselines the others; three producers collide (module spellings, same-named functions, reverse-dependency)     | High     | 🔴 Draft            | self-found · fold audit vs ts-archunit 0064/0067/0065                        | —         |
+| [0160](./0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)   | `within()` makes helpers depend on builders — a real cycle in eess-ts's own source, and no dogfood rule checks for cycles at all                                              | Medium   | 🔴 Draft            | self-found · fold audit vs ts-archunit 0054                                  | —         |
 | [0132](./0132-the-chain-and-the-workflow-need-a-derivation.md)                    | nothing binds the `validate` chain to the workflow that runs it — the derivation 0129 twice failed to build, with what review established about how                           | Medium   | 🔴 Draft            | self-found · re-homed from 0129 after two failed attempts                    | —         |
 | [0133](./0133-nothing-requires-a-check-to-join-the-chain.md)                      | a `check:*` need never join the `validate` chain — three authored lists of the same gates, two joins asserted                                                                 | Medium   | 🔴 Draft            | self-found · architect + product review of 0129's fix                        | —         |
 | [0134](./0134-explain-empty-green-wipes-the-agents-block.md)                      | `explain --format agent` renders "no rules" as a valid sentinel block and exits 0 — the documented `-s` guard cannot see it, and the AGENTS.md block is overwritten           | Medium   | 🔴 Draft            | self-found · enforcement review of proposal 004                              | —         |
