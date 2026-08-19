@@ -427,38 +427,10 @@ export abstract class TerminalBuilder {
       // this is where discarding stops.
       const { violations, examined } = this.collectViolations()
 
-      // A family that produced ANY finding passes through untouched. The floor
-      // fires only where a family produced *nothing* from *nothing* — bug 0066's
-      // shape. Each family's own empty-selection block stays as the
-      // better-attributed implementation; this is a floor beneath them, not a
-      // replacement for them.
-      if (violations.length === 0 && examined === 0) {
-        // The instrument outranks the selection. A declaration asserts a fact
-        // about a LOADED corpus; over zero loaded files it asserts nothing, and
-        // the expiry that justifies `.expectEmpty()` can never engage — so on a
-        // solution-style tsconfig a one-line declaration would restore bug 0066's
-        // 401-findings-reported-clean permanently, through the sanctioned door.
-        // This supersedes the precedence bug 0066's root-cause note endorsed:
-        // that ordering is right at SELECTION level and wrong at INSTRUMENT level.
-        //
-        // `getProject()` may be undefined and that is honest, not a gap:
-        // `correspondence` discards its project by documented design, and an
-        // ADR-010 dialect over a non-TypeScript element type has none. The
-        // instrument check is skipped; the zero-subjects floor below still holds.
-        const project = this.getProject()
-        if (project !== undefined && loadedNothing(project)) {
-          return [this.emptyProjectViolation(project)]
-        }
-        // `.notExist()` and friends examine zero BECAUSE that is what they
-        // assert. Exempt since 0.34.0, and `diagnose()` exempts it too — the two
-        // must agree or `doctor` and `check` disagree about a working rule.
-        if (this.assertsCardinality()) return violations
-        // The author said empty is the point. `declaresEmpty()` — not
-        // `_expectEmpty` — because `CorrespondenceBuilder` declares per side and
-        // overrides this; asking a fully-declared correspondence to declare would
-        // be ADR-008 rule 2's loop, and the base implementation cannot express it.
-        if (!this.declaresEmpty()) return [this.zeroSubjectsViolation(project)]
-      }
+      // ADR-010's floor: four branches that all answer one question — is a pass
+      // here CONSTRUCTED from evidence, or defaulted? See `evidenceFloor`.
+      const floor = this.evidenceFloor(violations, examined)
+      if (floor !== undefined) return floor
 
       // The expiry half, and it is the ROOT's alone — `rule-builder.ts` used to
       // carry its own, so keeping both double-reported one fault.
@@ -473,6 +445,62 @@ export abstract class TerminalBuilder {
       return violations
     }
 
+    return this.assertionLessFinding()
+  }
+
+  /**
+   * ADR-010's floor: what to report when a family produced NOTHING from NOTHING.
+   *
+   * `undefined` means "no floor finding — carry on", which is not the same as
+   * an empty array (that is a deliberate pass, and `assertsCardinality()`
+   * returns one).
+   *
+   * A family that produced ANY finding passes through untouched. The floor
+   * fires only where a family produced nothing from nothing — bug 0066's shape.
+   * Each family's own empty-selection block stays as the better-attributed
+   * implementation; this is a floor beneath them, not a replacement.
+   */
+  private evidenceFloor(
+    violations: ArchViolation[],
+    examined: number,
+  ): ArchViolation[] | undefined {
+    if (violations.length !== 0 || examined !== 0) return undefined
+    // The instrument outranks the selection. A declaration asserts a fact
+    // about a LOADED corpus; over zero loaded files it asserts nothing, and
+    // the expiry that justifies `.expectEmpty()` can never engage — so on a
+    // solution-style tsconfig a one-line declaration would restore bug 0066's
+    // 401-findings-reported-clean permanently, through the sanctioned door.
+    // This supersedes the precedence bug 0066's root-cause note endorsed:
+    // that ordering is right at SELECTION level and wrong at INSTRUMENT level.
+    //
+    // `getProject()` may be undefined and that is honest, not a gap:
+    // `correspondence` discards its project by documented design, and an
+    // ADR-010 dialect over a non-TypeScript element type has none. The
+    // instrument check is skipped; the zero-subjects floor below still holds.
+    const project = this.getProject()
+    if (project !== undefined && loadedNothing(project)) {
+      return [this.emptyProjectViolation(project)]
+    }
+    // `.notExist()` and friends examine zero BECAUSE that is what they
+    // assert. Exempt since 0.34.0, and `diagnose()` exempts it too — the two
+    // must agree or `doctor` and `check` disagree about a working rule.
+    if (this.assertsCardinality()) return violations
+    // The author said empty is the point. `declaresEmpty()` — not
+    // `_expectEmpty` — because `CorrespondenceBuilder` declares per side and
+    // overrides this; asking a fully-declared correspondence to declare would
+    // be ADR-008 rule 2's loop, and the base implementation cannot express it.
+    if (!this.declaresEmpty()) return [this.zeroSubjectsViolation(project)]
+    return undefined
+  }
+
+  /**
+   * The finding for a rule that states no assertion at all.
+   *
+   * Extracted from `collectWithAssertionGuard`, which was the assertion gate,
+   * the dead-selector gate, the evidence floor AND this constructor in one
+   * method — most of its branching was the reader having to hold all four.
+   */
+  private assertionLessFinding(): ArchViolation[] {
     const described = this.describeRule()
     const name = described.id || described.rule || this.constructor.name
     // ADR-008 rule 3: where there is deliberately no escape hatch, say so, and
