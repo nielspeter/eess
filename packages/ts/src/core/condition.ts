@@ -1,4 +1,4 @@
-import type { ArchViolation } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { DeclaredGlobs } from '@nielspeter/eess'
 
 /**

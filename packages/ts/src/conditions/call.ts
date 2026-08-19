@@ -1,6 +1,6 @@
 import { Node } from 'ts-morph'
 import type { Condition, ConditionContext } from '../core/condition.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
 import { getFunctionBody, findMatchesInNode, reportedLine } from '../helpers/body-traversal.js'

@@ -41,7 +41,7 @@ import {
   satisfyPairCondition,
 } from '../../src/conditions/cross-layer.js'
 import type { PairCondition } from '../../src/core/pair-condition.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 const loadCrossLayer = (): ReturnType<typeof project> =>
   project(path.resolve(import.meta.dirname, '../fixtures/cross-layer/tsconfig.json'))

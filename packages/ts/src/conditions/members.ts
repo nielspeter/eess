@@ -6,7 +6,7 @@ import {
   type Symbol as TsSymbol,
 } from 'ts-morph'
 import type { Condition, ConditionContext } from '../core/condition.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation, getElementName } from '../core/violation.js'
 import { elementCondition } from './helpers.js'
 import { metricViolation } from '../core/metric-violation.js'

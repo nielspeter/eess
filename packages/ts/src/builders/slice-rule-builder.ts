@@ -1,7 +1,7 @@
 import type { RuleDescription } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
 import type { ArchProject } from '../core/project.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '../core/condition.js'
 import type { GlobNode } from '@nielspeter/eess'
 import { globAnyOf, stampGlobs } from '@nielspeter/eess'

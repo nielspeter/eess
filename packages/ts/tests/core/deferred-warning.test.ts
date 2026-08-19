@@ -19,7 +19,7 @@ import { describe, expect, it } from 'vitest'
 import { Project } from 'ts-morph'
 import { classes, functions, checkAll, ArchRuleError } from '../../src/index.js'
 import { diagnose } from '../../src/core/diagnose.js'
-import { subjectOf } from '../../src/core/violation.js'
+import { subjectOf } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 import type { ClassRuleBuilder } from '../../src/builders/class-rule-builder.js'
 

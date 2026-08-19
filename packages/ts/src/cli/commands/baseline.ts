@@ -1,6 +1,6 @@
 import { collectViolations } from '../../helpers/baseline-generator.js'
 import { formatBaselineDelta, generateBaseline } from '../../helpers/baseline.js'
-import type { ArchViolation } from '../../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 import { attributeToRuleFile, failureOrViolations } from '../rule-file-findings.js'
 

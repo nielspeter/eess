@@ -1,4 +1,4 @@
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { UNSUPPRESSABLE } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
 import type { Located } from '../predicates/identity.js'

@@ -23,7 +23,7 @@ import { describe, it, expect } from 'vitest'
 import path from 'node:path'
 import { project } from '../../src/core/project.js'
 import { strictBoundaries } from '../../src/presets/boundaries.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { isDescribable } from '@nielspeter/eess'
 
 const p = project(

@@ -25,7 +25,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import path from 'node:path'
 import { runCheck } from '../../src/cli/commands/check.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 const fixture = (name: string): string =>
   path.join(import.meta.dirname, '../fixtures/rule-files', name)

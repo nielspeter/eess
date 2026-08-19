@@ -46,7 +46,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { project } from '../../src/core/project.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 const fixtures = (name: string): string =>
   path.resolve(import.meta.dirname, `../fixtures/${name}/tsconfig.json`)

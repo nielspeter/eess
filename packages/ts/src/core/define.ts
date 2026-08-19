@@ -1,7 +1,7 @@
 import type { Predicate } from '@nielspeter/eess'
 import type { DeclaredGlobs } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from './condition.js'
-import type { ArchViolation } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 /**
  * Create a custom predicate for use in `.that().satisfy()` chains.

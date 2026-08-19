@@ -26,7 +26,7 @@ import { parseExclusionComments, isExcludedByComment } from '../../src/core/excl
 import { extractCallbacks } from '../../src/helpers/callback-extractor.js'
 import { collectCalls } from '../../src/models/arch-call.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 // ─── Fixture project loaders ────────────────────────────────────────
 

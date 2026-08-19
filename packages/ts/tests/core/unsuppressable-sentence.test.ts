@@ -27,7 +27,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { applyFilters } from '../../src/core/execute-rule.js'
-import { severityFor } from '../../src/core/violation.js'
+import { severityFor } from '@nielspeter/eess'
 import { DiffFilter } from '../../src/helpers/diff-aware.js'
 import {
   DECLARE_INSTEAD,
@@ -35,7 +35,7 @@ import {
   UNSUPPRESSABLE_MECHANISMS,
 } from '@nielspeter/eess'
 import { Baseline } from '../../src/helpers/baseline.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 const CONFIG: ArchViolation = {
   rule: 'r',

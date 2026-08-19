@@ -31,7 +31,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { Project, ts } from 'ts-morph'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { slices } from '../../src/builders/slice-rule-builder.js'
 import { hashViolation } from '../../src/helpers/baseline.js'
 

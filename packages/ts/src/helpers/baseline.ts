@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
-import type { ArchViolation } from '../core/violation.js'
-import { subjectOf } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
+import { subjectOf } from '@nielspeter/eess'
 import {
   discoverIdentityRoot,
   normalizeIdentityText,

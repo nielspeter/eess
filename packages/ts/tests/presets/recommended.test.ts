@@ -3,7 +3,7 @@ import { Project } from 'ts-morph'
 import path from 'node:path'
 import type { ArchProject } from '../../src/core/project.js'
 import { recommended } from '../../src/presets/recommended.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/presets/recommended')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

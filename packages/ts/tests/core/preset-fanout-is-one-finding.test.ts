@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { dedupeConfigFindings } from '../../src/core/dedupe-config-findings.js'
 import { project, checkAll } from '../../src/index.js'
 import { ArchRuleError } from '../../src/core/errors.js'

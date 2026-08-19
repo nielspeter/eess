@@ -25,8 +25,8 @@ import { classes } from '../../src/builders/class-rule-builder.js'
 import { calls } from '../../src/builders/call-rule-builder.js'
 import { generateBaseline, withBaseline, hashViolation } from '../../src/helpers/baseline.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ArchViolation } from '../../src/core/violation.js'
-import { identityCollisions, resetIdentityCollisions } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
+import { identityCollisions, resetIdentityCollisions } from '@nielspeter/eess'
 
 const duplicateFixture = path.resolve(import.meta.dirname, '../fixtures/smells/duplicate-bodies')
 const siblingFixture = path.resolve(import.meta.dirname, '../fixtures/smells/inconsistent-siblings')

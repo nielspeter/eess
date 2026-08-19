@@ -1,4 +1,4 @@
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { isArchRuleError } from '../core/errors.js'
 import { basename } from 'node:path'
 

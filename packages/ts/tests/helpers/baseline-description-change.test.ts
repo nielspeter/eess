@@ -22,7 +22,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { generateBaseline, withBaseline } from '../../src/helpers/baseline.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 const created: string[] = []
 afterEach(() => {

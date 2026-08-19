@@ -1,5 +1,5 @@
 import type { Condition, ConditionContext } from '../core/condition.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchPattern, PropertyConstraint } from '../helpers/pattern.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import type { Type } from 'ts-morph'

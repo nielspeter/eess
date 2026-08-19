@@ -4,7 +4,7 @@ import { formatViolations } from '../../src/core/format.js'
 import { formatViolationsGitHub } from '../../src/core/format-github.js'
 import { formatViolationsJson } from '../../src/core/format-json.js'
 import type { Condition, ConditionContext } from '../../src/core/condition.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { SliceRuleBuilder } from '../../src/builders/slice-rule-builder.js'
 import {
   type TestElement,

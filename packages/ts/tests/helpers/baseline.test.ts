@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'

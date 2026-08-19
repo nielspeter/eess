@@ -4,7 +4,7 @@ import { isRecord } from '@nielspeter/eess'
 import { ScriptTarget, ModuleKind, ModuleResolutionKind } from 'ts-morph'
 import type { CompilerOptions } from 'ts-morph'
 import type { ArchProject } from '../core/project.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import { isStrictFamily, resolveFlag } from './strict-family.js'
 

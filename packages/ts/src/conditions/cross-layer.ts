@@ -6,7 +6,7 @@ import type { PairConditionContext } from '../core/pair-condition.js'
 // siblings keep `ConditionContext` is still true and still matters for external
 // implementers — it is asserted in `tests/presets`-adjacent type probes rather
 // than relied on here.
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { LayerPair, Layer } from '../models/cross-layer.js'
 import { setCorrespondence } from '../core/correspondence-core.js'
 import { UNSUPPRESSABLE } from '@nielspeter/eess'

@@ -17,7 +17,7 @@ import { describe, it, expect, vi, onTestFinished } from 'vitest'
 import { Project } from 'ts-morph'
 import { modules } from '../../src/index.js'
 import { applyFilters } from '../../src/core/execute-rule.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 

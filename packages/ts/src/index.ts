@@ -9,21 +9,24 @@ export { not, and, or } from './core/combinators.js'
 
 // Core — condition interface & violation model
 export type { Condition, ConditionContext } from './core/condition.js'
-export type { ArchViolation } from './core/violation.js'
+export type { ArchViolation } from '@nielspeter/eess'
+export { severityFor } from '@nielspeter/eess'
 export {
   createViolation,
   getElementName,
   getElementFile,
   getElementLine,
-  // Violation semantics an external renderer or aggregator cannot re-derive
-  // from the `ArchViolation` type alone. `formatViolationsPlain`'s docstring
-  // invites callers that aggregate violations themselves, and without these two
-  // such a caller reprints a remedy that is already in the message (the defect
-  // 0.23.0 fixed in our own three renderers) and grades a configuration finding
-  // by the rule's requested severity (which `severityFor` exists to refuse).
-  remedyRepeatsMessage,
-  severityFor,
 } from './core/violation.js'
+// Violation semantics an external renderer or aggregator cannot re-derive from
+// the `ArchViolation` type alone. `formatViolationsPlain`'s docstring invites
+// callers that aggregate violations themselves, and without these two such a
+// caller reprints a remedy that is already in the message (the defect 0.23.0
+// fixed in our own three renderers) and grades a configuration finding by the
+// rule's requested severity (which `severityFor` exists to refuse).
+// Re-exported from the kernel since plan 0165 Phase 2 — they are pure, so they
+// live in `@nielspeter/eess`, and eess-ts forwards them so a standalone
+// installation still sees them (`tests/standalone-surface.test.ts`).
+export { remedyRepeatsMessage } from '@nielspeter/eess'
 
 // Core — rule builder, error & metadata
 export { RuleBuilder } from './core/rule-builder.js'

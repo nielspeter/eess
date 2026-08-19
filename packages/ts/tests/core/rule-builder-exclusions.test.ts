@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { ArchRuleError } from '../../src/core/errors.js'
 import { Baseline, hashViolation } from '../../src/helpers/baseline.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import {
   TestRuleBuilder,
   stubProject,

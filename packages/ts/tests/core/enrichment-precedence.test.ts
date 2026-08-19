@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { applyFilters } from '../../src/core/execute-rule.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 function violation(over: Partial<ArchViolation> = {}): ArchViolation {
   return { rule: 'r', element: 'e', file: 'src/a.ts', line: 1, message: 'm', ...over }

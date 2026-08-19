@@ -32,7 +32,7 @@
 import { describe, it, expect } from 'vitest'
 import { Project, ts } from 'ts-morph'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { slices } from '../../src/builders/slice-rule-builder.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { edgesOf, FORWARD_EDGE_KINDS } from '../../src/core/module-edges.js'

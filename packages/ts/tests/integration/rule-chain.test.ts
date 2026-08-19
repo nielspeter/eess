@@ -5,7 +5,7 @@ import { RuleBuilder } from '../../src/core/rule-builder.js'
 import { ArchRuleError } from '../../src/core/errors.js'
 import type { ArchProject } from '../../src/core/project.js'
 import type { ConditionContext } from '../../src/core/condition.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 // Minimal SourceFile-based builder for integration testing
 class SourceFileRuleBuilder extends RuleBuilder<SourceFile> {

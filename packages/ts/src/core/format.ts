@@ -1,5 +1,5 @@
-import type { ArchViolation } from './violation.js'
-import { remedyRepeatsMessage } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
+import { remedyRepeatsMessage } from '@nielspeter/eess'
 import { bold, red, cyan, dim } from '@nielspeter/eess'
 import path from 'node:path'
 

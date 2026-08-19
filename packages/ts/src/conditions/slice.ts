@@ -1,5 +1,5 @@
 import type { Condition, ConditionContext } from '../core/condition.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { Slice } from '../models/slice.js'
 import type { ImportOptions } from '../core/import-options.js'
 import { splitGlobArgs } from '../core/import-options.js'
@@ -7,7 +7,7 @@ import type { SliceDependencySite } from '../helpers/slice-graph.js'
 import { edgeDiscriminator, edgeVerb } from '../core/module-edges.js'
 import { sliceGraph, buildFileToSliceMap } from '../helpers/slice-graph.js'
 import { tarjanSCC, type AdjacencyList } from '../helpers/tarjan.js'
-import { byCodepoint } from '../core/violation.js'
+import { byCodepoint } from '@nielspeter/eess'
 
 /**
  * Assert that no circular dependencies exist between slices.

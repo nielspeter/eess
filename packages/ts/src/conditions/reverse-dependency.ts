@@ -1,7 +1,7 @@
 import picomatch from 'picomatch'
 import { type SourceFile, type Project, Node } from 'ts-morph'
 import type { Condition, ConditionContext } from '../core/condition.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { moduleEdges } from '../core/module-edges.js'
 import { recordEdgeCoverage } from '@nielspeter/eess'
 import { globAnyOf } from '@nielspeter/eess'

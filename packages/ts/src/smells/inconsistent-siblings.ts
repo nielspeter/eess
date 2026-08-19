@@ -7,7 +7,7 @@ import { SmellBuilder } from './smell-builder.js'
 import { collectFunctions } from '../models/arch-function.js'
 import { searchFunctionBody } from '../helpers/body-traversal.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 
 /** Majority threshold — flag when >= 60% of siblings match but a file doesn't. */

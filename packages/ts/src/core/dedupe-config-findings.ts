@@ -45,7 +45,7 @@
  * single authored mistake, and `bypassFilters` is exactly the flag that marks
  * one.
  */
-import type { ArchViolation } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 /** How the surviving finding states the fan-out it stands for. */
 function affectedNote(count: number): string {

@@ -1,5 +1,5 @@
-import type { ArchViolation } from './violation.js'
-import { severityFor, subjectOf } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
+import { severityFor, subjectOf } from '@nielspeter/eess'
 import type { GlobNode } from '@nielspeter/eess'
 import type { GlobSite } from '@nielspeter/eess'
 import type { ArchProject } from './project.js'

@@ -1,7 +1,7 @@
 import picomatch from 'picomatch'
 import type { SourceFile, ImportDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '../core/condition.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { candidatesFor, matchedCandidate } from '../core/import-candidates.js'
 import { recordEdgeCoverage } from '@nielspeter/eess'
 import { globAnyOf } from '@nielspeter/eess'
@@ -22,7 +22,7 @@ export type { ImportOptions } from '../core/import-options.js'
 import type { ImportOptions } from '../core/import-options.js'
 import { splitGlobArgs } from '../core/import-options.js'
 import { rootOf } from '../core/project-relative.js'
-import { byCodepoint } from '../core/violation.js'
+import { byCodepoint } from '@nielspeter/eess'
 
 /**
  * Which edge kinds a forward dependency condition reports on.

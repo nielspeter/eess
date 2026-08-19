@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { writeStderr } from '@nielspeter/eess'
 
 /**

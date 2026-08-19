@@ -1,6 +1,6 @@
 import type { SourceFile } from 'ts-morph'
 import type { Condition, ConditionContext } from '../core/condition.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { identifyMatches } from './match-identity.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import {

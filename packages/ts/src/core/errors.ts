@@ -1,4 +1,4 @@
-import type { ArchViolation } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 /**
  * Thrown by `.check()` when architecture violations are found.

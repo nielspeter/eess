@@ -52,7 +52,7 @@ import {
 } from '../../src/rules/metrics-function.js'
 import { haveMaxExports } from '../../src/conditions/exports.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 const scratchDirs: string[] = []
 

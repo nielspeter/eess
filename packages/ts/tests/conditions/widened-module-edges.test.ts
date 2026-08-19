@@ -13,7 +13,7 @@ import path from 'node:path'
 import { modules, project } from '../../src/index.js'
 import { dependOn } from '../../src/conditions/dependency.js'
 import { hashViolation } from '../../src/helpers/baseline.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { Project } from 'ts-morph'
 import { edgesOf, type ModuleEdge } from '../../src/core/module-edges.js'
 

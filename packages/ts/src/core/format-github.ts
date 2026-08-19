@@ -1,6 +1,6 @@
 import path from 'node:path'
-import type { ArchViolation } from './violation.js'
-import { remedyRepeatsMessage } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
+import { remedyRepeatsMessage } from '@nielspeter/eess'
 
 /**
  * Format violations as GitHub Actions annotation commands.

@@ -31,7 +31,7 @@ import {
   maxFunctionLines,
   maxFunctionParameters,
 } from '../../src/rules/metrics-function.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { functions } from '../../src/builders/function-rule-builder.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/metrics')

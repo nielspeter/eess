@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { applyFilters } from '../../src/core/execute-rule.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { silent } from '@nielspeter/eess'
 
 afterEach(() => {

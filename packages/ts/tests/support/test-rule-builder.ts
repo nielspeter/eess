@@ -3,7 +3,7 @@ import { RuleBuilder } from '../../src/core/rule-builder.js'
 import type { ArchProject } from '../../src/core/project.js'
 import type { Predicate } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '../../src/core/condition.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 // --- Shared test element type (superset of all test files) ---
 

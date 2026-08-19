@@ -19,7 +19,7 @@
 import { describe, it, expect } from 'vitest'
 import { Project, ts } from 'ts-morph'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { ImportOptions } from '../../src/core/import-options.js'
 import fs from 'node:fs'
 import { slices } from '../../src/builders/slice-rule-builder.js'

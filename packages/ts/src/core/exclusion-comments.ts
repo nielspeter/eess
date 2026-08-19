@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { Project, SyntaxKind } from 'ts-morph'
-import type { ArchViolation } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 /**
  * Exclusion comment parsed from source code.

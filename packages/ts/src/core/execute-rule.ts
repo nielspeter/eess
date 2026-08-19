@@ -1,6 +1,6 @@
 import fs from 'node:fs'
-import type { ArchViolation } from './violation.js'
-import { severityFor, disambiguateIdentities, byCodepoint } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
+import { severityFor, disambiguateIdentities, byCodepoint } from '@nielspeter/eess'
 import type { CheckOptions, OutputFormat } from './check-options.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import { ArchRuleError } from './errors.js'

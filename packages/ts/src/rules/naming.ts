@@ -1,6 +1,6 @@
 import type { ClassDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '../core/condition.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation } from '../core/violation.js'
 
 /**

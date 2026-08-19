@@ -1,5 +1,5 @@
 import type { Node } from 'ts-morph'
-import type { ArchViolation } from './violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation, enclosingScopeName, getElementName } from './violation.js'
 
 /**
