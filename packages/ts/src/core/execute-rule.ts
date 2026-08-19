@@ -257,7 +257,7 @@ export function applyFilters(
           writeStderr(`[eess] ${warning.message}`)
         }
         return parseResult.exclusions
-        // eess-exclude eess/no-silent-catch: an unparseable source contributes no exclusions; the parse failure is the file's own problem and surfaces through the rules that read it
+        // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: an unparseable source contributes no exclusions; the parse failure is the file's own problem and surfaces through the rules that read it
       } catch {
         return []
       }

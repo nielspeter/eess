@@ -1171,7 +1171,14 @@ afterAll(() => {
  * `BUILT` already supplies the project.
  */
 function internalRuleIds(): DiagnosableRule[] {
-  const src = fs.readFileSync(path.resolve('../../arch.internal.rules.ts'), 'utf-8')
+  // THREE sources now, not two. `check:baseline` runs the `recommended` preset
+  // over this repo's own src, so a waiver may legitimately name a
+  // `preset/recommended/*` id that neither rules file declares — and did, for the
+  // seven catches waived under both `eess/no-silent-catch` and the preset's own id.
+  const src = [
+    fs.readFileSync(path.resolve('../../arch.internal.rules.ts'), 'utf-8'),
+    fs.readFileSync(path.resolve('src/presets/recommended.ts'), 'utf-8'),
+  ].join('\n')
   const ids = [...src.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1] ?? '')
   // A floor, so a broken read cannot quietly re-create the false positive it fixes.
   expect(ids.length).toBeGreaterThan(10)
@@ -1246,8 +1253,16 @@ it('VACUITY: the orphan check really reads our directives', () => {
     readdirRecursive(path.resolve('src'))
       .filter((f) => f.endsWith('.ts'))
       .filter((f) =>
-        new RegExp(`^\\s*// eess-exclude(-start)? ${ruleId}:`, 'm').test(
-          fs.readFileSync(f, 'utf-8'),
+        // The id may sit anywhere in a comma-separated list — one directive can
+        // name several rules (`rule-a, rule-b: reason`), which is how a site
+        // waived by two rule files carries both without stacking directives.
+        [
+          ...fs.readFileSync(f, 'utf-8').matchAll(/^\s*\/\/ eess-exclude(?:-start)? ([^:]+):/gm),
+        ].some((m) =>
+          (m[1] ?? '')
+            .split(',')
+            .map((x) => x.trim())
+            .includes(ruleId),
         ),
       )
       .map((f) => path.relative(path.resolve('src'), f).replaceAll('\\', '/'))
@@ -1262,9 +1277,12 @@ it('VACUITY: the orphan check really reads our directives', () => {
       readdirRecursive(path.resolve('src'))
         .filter((f) => f.endsWith('.ts'))
         .flatMap((f) =>
+          // Split on commas: one directive may name several rules
+          // (`rule-a, rule-b: reason`), which is the only shape that covers the
+          // same line for two rule files.
           [
-            ...fs.readFileSync(f, 'utf-8').matchAll(/^\s*\/\/ eess-exclude(?:-start)? (\S+):/gm),
-          ].map((m) => m[1] ?? ''),
+            ...fs.readFileSync(f, 'utf-8').matchAll(/^\s*\/\/ eess-exclude(?:-start)? ([^:]+):/gm),
+          ].flatMap((m) => (m[1] ?? '').split(',').map((x) => x.trim())),
         ),
     ),
   ].sort()
@@ -1274,6 +1292,7 @@ it('VACUITY: the orphan check really reads our directives', () => {
     'eess/max-parameters',
     'eess/no-silent-catch',
     'eess/no-unused-exports',
+    'preset/recommended/no-silent-catch',
   ])
 
   expect(waiverFiles('eess/max-parameters')).toEqual(['helpers/baseline.ts'])

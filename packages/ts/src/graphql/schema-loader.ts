@@ -87,15 +87,12 @@ function defaultLoadGraphQL(): GraphQLPackage {
   // allows. The `catch` below is the real guard: a missing or malformed
   // `graphql` throws with an install instruction rather than failing later on a
   // property access (bug 0049).
-  // Both ids: the two rule files declare this check under different names, and a
-  // waiver names one rule (see `conditions/members.ts` for the full note). One of
-  // them has to be the BLOCK form — a single-line directive covers exactly the
-  // next line, so stacking two left the first one waiving the second's comment
-  // rather than the cast (measured: the finding survived both directives).
-  // eess-exclude-start eess/adr005-no-type-assertions: optional peer dep, no typed path
-  // eess-exclude adr005/no-as-cast-module: optional peer dep, no typed path
+  // Both ids on ONE directive: the two rule files declare this check under
+  // different names, and the grammar takes a comma-separated list. Stacking two
+  // single-line directives does not work — each covers exactly the next line, so
+  // the first would waive the second's comment rather than the cast.
+  // eess-exclude eess/adr005-no-type-assertions, adr005/no-as-cast-module: optional peer dep, no typed path
   return esmRequire('graphql') as GraphQLPackage
-  // eess-exclude-end eess/adr005-no-type-assertions
 }
 
 let loadGraphQL: () => GraphQLPackage = defaultLoadGraphQL
@@ -219,7 +216,7 @@ function findGraphqlFiles(
   let entries: fs.Dirent[]
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true })
-    // eess-exclude eess/no-silent-catch: an unreadable directory during a glob walk yields no schema files; the walk is best-effort
+    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: an unreadable directory during a glob walk yields no schema files; the walk is best-effort
   } catch {
     return results
   }
@@ -247,7 +244,7 @@ export function isGraphQLAvailable(): boolean {
   try {
     requireGraphQL()
     return true
-    // eess-exclude eess/no-silent-catch: `false` is the honest answer for BOTH "not installed" and "installed but broken" — the distinction is preserved and reported by `loadSchemaFromSDL`'s throw, which `schema-loader-require-errors.test.ts` pins; rethrowing here made an availability PROBE throw
+    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: `false` is the honest answer for BOTH "not installed" and "installed but broken" — the distinction is preserved and reported by `loadSchemaFromSDL`'s throw, which `schema-loader-require-errors.test.ts` pins; rethrowing here made an availability PROBE throw
   } catch {
     return false
   }

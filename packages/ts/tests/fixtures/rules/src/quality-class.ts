@@ -71,7 +71,6 @@ export class HardPrivateFields {
   }
 }
 
-
 /** A public `readonly` INSTANCE field — immutable, so not this rule's subject. */
 export class ReadonlyInstanceField {
   readonly label: string = 'x'

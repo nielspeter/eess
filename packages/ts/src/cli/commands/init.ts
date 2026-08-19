@@ -353,7 +353,7 @@ function readJsonc(filePath: string): unknown {
     .replace(/,(\s*[}\]])/g, '$1')
   try {
     return JSON.parse(stripped)
-    // eess-exclude eess/no-silent-catch: a tsconfig this loose parser cannot read yields undefined, and every caller already handles that as "unknown"
+    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: a tsconfig this loose parser cannot read yields undefined, and every caller already handles that as "unknown"
   } catch {
     return undefined
   }
@@ -487,7 +487,7 @@ function hasSource(cwd: string, sourceRoot: string): boolean {
   const dir = path.join(cwd, sourceRoot)
   try {
     return fs.statSync(dir).isDirectory() && fs.readdirSync(dir).length > 0
-    // eess-exclude eess/no-silent-catch: a directory that cannot be stat-ed is not a non-empty directory — the failure IS the answer
+    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: a directory that cannot be stat-ed is not a non-empty directory — the failure IS the answer
   } catch {
     return false
   }

@@ -106,7 +106,7 @@ function declaresWorkspaces(manifestPath: string): boolean {
   try {
     const parsed: unknown = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
     return parsed !== null && typeof parsed === 'object' && 'workspaces' in parsed
-    // eess-exclude eess/no-silent-catch: a manifest that cannot be read or parsed is not a workspace root — the failure IS the answer, and there is no caller to report it to
+    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: a manifest that cannot be read or parsed is not a workspace root — the failure IS the answer, and there is no caller to report it to
   } catch {
     return false
   }

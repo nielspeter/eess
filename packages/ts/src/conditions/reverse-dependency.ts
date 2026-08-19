@@ -299,7 +299,7 @@ function hasExternalReference(declaration: Node, sourceFile: SourceFile): boolea
         return true // short-circuit
       }
     }
-    // eess-exclude eess/no-silent-catch: fails OPEN deliberately — an unanalysable node is treated as referenced so the condition cannot invent a violation it cannot prove
+    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: fails OPEN deliberately — an unanalysable node is treated as referenced so the condition cannot invent a violation it cannot prove
   } catch {
     // Some nodes (e.g., shorthand property assignments in re-exports) may fail
     // Treat as "referenced" to avoid false positives
