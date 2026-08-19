@@ -64,6 +64,15 @@ describe('requireJsDocOnPublicMethods', () => {
 })
 
 describe('noPublicFields', () => {
+  it('does NOT flag a public readonly INSTANCE field', () => {
+    // The rule is "no public MUTABLE fields" and already accepted `static
+    // readonly`. A readonly instance field is equally immutable, and the remedy
+    // it was given — "use private + getter/setter" — removes nothing. Measured on
+    // `DiffFilter.baseBranch` (plan 0165).
+    const cls = getClass('ReadonlyInstanceField')
+    expect(noPublicFields().evaluate([cls], ctx)).toEqual([])
+  })
+
   it('does NOT flag an ECMAScript #private field, mutable or not', () => {
     // `#name` has no TypeScript accessibility modifier, so `getScope()` answers
     // `'public'` for it. Reporting it is a false positive of the worst shape: the

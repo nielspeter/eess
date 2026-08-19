@@ -26,6 +26,14 @@ import {
 import { isProjectRelative } from '../core/project-relative.js'
 
 /**
+ * How many causes one group names before it truncates to "and N more".
+ *
+ * Per GROUP, never across groups, so no cause is hidden entirely — see the call
+ * site. Four is a readability budget, not a semantic limit.
+ */
+const MAX_NAMED_CAUSES_PER_GROUP = 4
+
+/**
  * How slices were sourced. Recorded so an empty-discovery failure can state the
  * remedy that actually works: `matching()` takes one glob whose literal prefix
  * locates the slices, `assignedFrom()` takes globs matched against the whole
@@ -566,7 +574,7 @@ export class SliceRuleBuilder extends TerminalBuilder {
       // always keep an entry whose key the docs single out as error-prone.
       const notable = group.list.filter((entry) => /shared/i.test(entry.name))
       const ordered = [...notable, ...group.list.filter((entry) => !notable.includes(entry))]
-      const head = ordered.slice(0, 4)
+      const head = ordered.slice(0, MAX_NAMED_CAUSES_PER_GROUP)
       const rest = ordered.length - head.length
       const named =
         head.map((entry) => `${entry.name}: ${JSON.stringify(entry.glob)}`).join(', ') +

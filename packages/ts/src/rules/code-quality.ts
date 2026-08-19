@@ -75,8 +75,13 @@ export function noPublicFields(): Condition<ClassDeclaration> {
           if (Node.isPrivateIdentifier(prop.getNameNode())) continue
           const scope = prop.getScope()
           if (scope !== undefined && String(scope) !== 'public') continue
-          // Allow static readonly (constants)
-          if (prop.isStatic() && prop.isReadonly()) continue
+          // `readonly` is not mutable — which is what this rule is named for.
+          // It previously accepted only `static readonly`, so a public
+          // `readonly` INSTANCE field was reported with the remedy "use private
+          // + getter/setter": advice that removes nothing (the field already
+          // cannot be reassigned) and that the rule's own description does not
+          // support. Measured on `DiffFilter.baseBranch` (plan 0165).
+          if (prop.isReadonly()) continue
 
           violations.push(
             createViolation(

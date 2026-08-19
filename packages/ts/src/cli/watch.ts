@@ -31,7 +31,19 @@ export class RunScheduler {
   private _pendingRerun = false
   private readonly debounceMs: number
   private readonly onRun: (trigger: string) => Promise<void>
-  public runCount = 0
+  /**
+   * How many runs have completed — read by the watch loop's own tests.
+   *
+   * Hard-private with a getter, matching `eess-mermaid`'s `RunScheduler`: the
+   * counter is this class's bookkeeping and a caller that could reassign it
+   * would make the number mean nothing.
+   */
+  #runCount = 0
+
+  /** Completed runs. */
+  get runCount(): number {
+    return this.#runCount
+  }
 
   constructor(onRun: (trigger: string) => Promise<void>, debounceMs = 250) {
     this.onRun = onRun
@@ -67,7 +79,7 @@ export class RunScheduler {
   private executeRun(trigger: string): void {
     this.running = true
     this._pendingRerun = false
-    this.runCount++
+    this.#runCount++
     process.stdout.write('\x1B[2J\x1B[H') // clear screen, preserve scrollback
     process.stdout.write(`Change detected: ${trigger}\n\n`)
     this.onRun(trigger)

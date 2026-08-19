@@ -70,3 +70,14 @@ export class HardPrivateFields {
     return this.#frozen + String(this.#mutable)
   }
 }
+
+
+/** A public `readonly` INSTANCE field — immutable, so not this rule's subject. */
+export class ReadonlyInstanceField {
+  readonly label: string = 'x'
+
+  /** Reads it, so it is not dead. */
+  read(): string {
+    return this.label
+  }
+}
