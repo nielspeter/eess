@@ -219,7 +219,7 @@ const rules = [
   //
   // The five excluded here are all UNDER the threshold on code. The last two are
   // genuinely over and are NOT excluded — they stay red until they are split,
-  // which is [bug 0166](./work/bugs/0166-six-engine-methods-exceed-the-size-and-complexity-rules.md).
+  // which is [bug 0166](./work/bugs/0166-three-engine-methods-exceed-the-size-and-complexity-rules.md).
   //
   // Excluding by CLASS is coarser than this deserves: `.excluding()` filters the
   // subject, and the subject of a method-size rule is the class, so a future
