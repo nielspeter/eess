@@ -234,10 +234,19 @@ throw reds `config-cjs-project.test.ts`, so it is not dead code.
 
 #### The formatting decision, made
 
-`prettier --write` on the 8 files. Byte-identity with upstream was already gone
-— Phase 1 changed 20+ source files — so what it would have bought is now bought
-by git, while a permanently-red `format:check` would keep `npm run validate` from
-ever passing. Recorded here because the plan asked for a decision, not a chore.
+`prettier --write` on 7 of the 8 files. Byte-identity with upstream was already
+gone — Phase 1 changed 20+ source files — so what it would have bought is now
+bought by git, while a permanently-red `format:check` would keep
+`npm run validate` from ever passing.
+
+The eighth is the finding: `tests/fixtures/module-edge-forms/src/forms.ts` is
+fixture data whose **layout is the property under test** —
+`tests/core/module-edges-forms.test.ts` asserts the line number of every
+import/export form in it, including that a statement's line differs from its
+literal's line. Prettier collapsed a multi-line form, moved the lines, and
+reddened three tests that had been green. Reverted and added to
+`.prettierignore` with that reason. A fixture is data, not code, and a
+formatter is exactly the tool that cannot tell the difference.
 
 Phase 1 also cleared the corpus-side breakage the copy caused:
 [bug 0160](../bugs/0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)'s

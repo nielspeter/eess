@@ -25,10 +25,18 @@ type FromType = import('./target.js').Erased
 const computed = import('./tar' + 'get.js')
 export { RUNTIME as NoSpecifier }
 // A multi-line form of each kind, so a line taken from the literal fails.
-import { OTHER as MULTILINE_IMPORT } from './target.js'
-export { OTHER as MULTILINE_REEXPORT } from './target.js'
-const multilineDynamic = import('./target.js')
-type MultilineType = import('./target.js').Second
+import {
+  OTHER as MULTILINE_IMPORT,
+} from './target.js'
+export {
+  OTHER as MULTILINE_REEXPORT,
+} from './target.js'
+const multilineDynamic = import(
+  './target.js'
+)
+type MultilineType = import(
+  './target.js'
+).Second
 export const used = [
   RUNTIME,
   NS,

@@ -6,3 +6,10 @@ poc/fixtures/
 packages/md/tests/fixtures/
 scripts/nonvacuity/
 reports/
+
+# Fixture data whose LAYOUT is the property under test.
+# `packages/ts/tests/core/module-edges-forms.test.ts` asserts the line number of
+# every import/export form in this file, including that a statement's line differs
+# from its literal's line. Prettier collapsing a multi-line form moves those lines
+# and reds three tests — measured in plan 0165 Phase 1. A fixture is data, not code.
+packages/ts/tests/fixtures/module-edge-forms/src/forms.ts
