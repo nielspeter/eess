@@ -90,6 +90,72 @@ describe('Fingerprint', () => {
       expect(computeSimilarity(empty, empty)).toBe(1.0)
     })
 
+    // [Bug 0169](../../../../work/bugs/0169-computesimilarity-ignores-call-targets-so-opposite-functions-read-as-duplicates.md):
+    // the score read `kinds` and nothing else, so it measured punctuation shape.
+    // Measured on this repo's own source at the documented defaults, that made
+    // `TerminalBuilder.check` and `TerminalBuilder.warn` — one throws, one does
+    // not — score 100%, and scored a condition against its own negation at 97%.
+    //
+    // The pair below is the reduced form of that: same skeleton exactly, and not
+    // one call in common.
+    it('scores two isomorphic bodies low when they call nothing in common', () => {
+      const tsm = new Project({ useInMemoryFileSystem: true })
+      const bodyOf = (name: string, src: string): Node =>
+        tsm.createSourceFile(`/src/${name}.ts`, src).getFunctions()[0]!.getBody() as Node
+
+      const onboard = bodyOf(
+        'onboard',
+        'export function onboard(user: string) {\n' +
+          '  const record = lookupUser(user)\n' +
+          '  const greeting = buildWelcome(record)\n' +
+          '  return sendEmail(record, greeting)\n}\n',
+      )
+      const cancel = bodyOf(
+        'cancel',
+        'export function cancel(sub: string) {\n' +
+          '  const account = findBilling(sub)\n' +
+          '  const notice = buildRefund(account)\n' +
+          '  return issueCredit(account, notice)\n}\n',
+      )
+
+      // Structurally identical — that part is not in dispute, and is why the
+      // old score returned 1.0 here.
+      const fpA = buildFingerprint(onboard)
+      const fpB = buildFingerprint(cancel)
+      expect(fpA.kinds).toEqual(fpB.kinds)
+
+      // Below the detector's default threshold, so `duplicateBodies()` at its
+      // documented settings does not report them.
+      expect(computeSimilarity(fpA, fpB)).toBeLessThan(0.85)
+    })
+
+    // The guard against over-correcting bug 0169 into a false-negative problem.
+    // A type-2 clone — copy-pasted, variables renamed — is the case the detector
+    // exists for, and call targets are what survives the rename. If this drops
+    // below the threshold the fix has traded one defect for a worse one.
+    it('still scores a renamed-variable clone as a duplicate', () => {
+      const tsm = new Project({ useInMemoryFileSystem: true })
+      const bodyOf = (name: string, src: string): Node =>
+        tsm.createSourceFile(`/src/${name}.ts`, src).getFunctions()[0]!.getBody() as Node
+
+      const original = bodyOf(
+        'original',
+        'export function onboard(user: string) {\n' +
+          '  const record = lookupUser(user)\n' +
+          '  const greeting = buildWelcome(record)\n' +
+          '  return sendEmail(record, greeting)\n}\n',
+      )
+      const renamed = bodyOf(
+        'renamed',
+        'export function onboardAgain(person: string) {\n' +
+          '  const entry = lookupUser(person)\n' +
+          '  const message = buildWelcome(entry)\n' +
+          '  return sendEmail(entry, message)\n}\n',
+      )
+
+      expect(computeSimilarity(buildFingerprint(original), buildFingerprint(renamed))).toBe(1.0)
+    })
+
     it('produces 0.0 when one fingerprint is empty and the other is not', () => {
       const empty = { kinds: [], calls: [], nodeCount: 0, distinctVocabulary: 0 }
       const fpA = buildFingerprint(getBody('parseWebhookOrder'))
