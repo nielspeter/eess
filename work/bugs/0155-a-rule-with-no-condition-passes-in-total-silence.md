@@ -108,18 +108,79 @@ What the two genuinely share is only this test's **comment**, which
 misdescribes why its final branch passes. Correcting that comment belongs to
 whichever of the two is picked up first; neither blocks the other.
 
+## Ruling — unsuppressable configuration finding, not a warning (2026-08-19)
+
+The open question this record carried. Decided against ADR-009's own
+discriminator, with the blast radius measured rather than estimated.
+
+**ADR-009 rule 1 states the test:** _"The discriminator is whether the remedy
+is optional, not whose check it is… A finding the reader is expected to judge
+has an optional remedy and should warn. A finding with one correct answer must
+fail."_
+
+An assertion-less rule has **no optional remedy**. There is no state in which
+"it keeps asserting nothing" is correct — the answer is add a condition or
+delete the rule, and either way something must change. Contrast the two rules
+ADR-009 itself names as deliberately `warn`: `no-silent-catch` and
+`no-empty-bodies` warn _because_ they have known suppressible false positives
+the user must judge one by one. This has none.
+
+**The counter-argument in the code answers a different question.**
+`rule-builder.ts:330-332` reads: _"distinct from the zero-examined case above
+and stays a stderr warning, not the unsuppressable ADR-010 finding — examined
+is non-zero either way."_ That is **true, and it settles a different point**:
+it correctly rules out reusing `zeroExaminedViolation()`'s message, because
+this is not the zero-examined case. It does not establish that the answer is a
+_warning_. The choice was always "which finding", not "finding or warning" —
+and the argument only eliminates one candidate finding.
+
+**Upstream reached the same conclusion**, for a reason eess shares: _"A rule
+that asserts nothing about what it selects cannot fail, so it is reported as a
+configuration finding."_
+
+**Blast radius, measured** (guard made reachable in an isolated worktree, then
+promoted to a finding, suites and gates run both ways):
+
+|                                                                                     |            |
+| ----------------------------------------------------------------------------------- | ---------- |
+| assertion-less rules in `arch`/`arch.internal`/`spec`/`family`/`mermaid` rule files | **0**      |
+| tests broken                                                                        | **1**      |
+| everything else                                                                     | unaffected |
+
+The single test is
+`packages/core/tests/contract/extension-surface.test.ts:207` — the one this
+record already establishes is **green for the wrong reason**: its final branch
+asserts `not.toThrow()` and its comment claims that branch "hits the
+'predicates but no conditions' assertion-less path", which it provably does
+not. Rewriting it is owed regardless of this ruling.
+
 ## Fix
 
-Two independent parts, in order:
+Three parts. Parts 1 and 2 are this bug; part 3 is the consequence.
 
-1. **Make the existing guard reachable** — drop the `_phase === 'predicate'`
-   term, or test the condition list alone. This alone converts total silence
-   into a warning for the `.should()` shape.
-2. **Decide whether it should be a finding rather than a warning.** ADR-009
-   rule 1 ("a warning is something you hope is read") argues for a finding;
-   the comment at `:330-332` argues for a warning on the grounds that
-   `examined` is non-zero. That tension is a real design call and should be
-   recorded here, not settled silently in code.
+1. **Make the guard reachable** — drop the `_phase === 'predicate'` term at
+   `packages/core/src/rule-builder.ts:333`. `should()` sets the phase to
+   `'condition'`, so today the guard cannot fire for any rule the DSL
+   documents. Without this, part 2 changes nothing.
+2. **Emit a configuration finding**, not a stderr line: `bypassFilters: true`
+   so `.excluding()` cannot suppress it and `.asSeverity('warn')` cannot
+   downgrade it — it reports that the rule's own instrument is broken, not a
+   fault in what was examined. Message names the rule and both remedies (add a
+   condition, or delete it).
+3. **Rewrite `extension-surface.test.ts:207-220` and its comment.** Give
+   branch B its own passing condition so the test proves "no leak" directly,
+   instead of leaning on the assertion-less path to keep it quiet.
+
+**Gate-first, ahead of `collectViolations()`** — an assertion-less rule cannot
+produce a legitimate finding, so evaluating it buys nothing but a full AST
+walk. The accepted consequence: a rule with a dead glob _and_ no condition
+reports the missing assertion only. That is the right root cause — no selector
+makes an assertion-less rule capable of failing — and the selector fault
+resurfaces once there is something to assert.
+
+**Do not extend `RuleBuilder` inline.** A crude inline version pushed the class
+to 313 lines and tripped this repo's own 300-line rule; the finding constructor
+belongs in a helper.
 
 ## Verification
 
@@ -134,7 +195,11 @@ Two independent parts, in order:
 - [ ] Control: a rule _with_ a condition is unaffected.
 - [ ] Vacuity control: the fixture really selects a non-zero number of
       subjects, asserted by identity.
-- [ ] The warning-vs-finding decision is recorded in this file.
+- [x] The warning-vs-finding decision is recorded in this file — see Ruling:
+      an unsuppressable configuration finding, per ADR-009 rule 1's
+      optional-remedy discriminator.
+- [ ] `extension-surface.test.ts:207-220` and its comment rewritten so branch B
+      proves "no leak" with its own passing condition, not via silence.
 - [ ] `npm run validate` green.
 
 Deferred: none.
