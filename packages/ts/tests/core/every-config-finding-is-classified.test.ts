@@ -120,7 +120,7 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'behavioural: the-floor.test.ts — removing the declaration clears it (the stated remedy applied), exactly one finding rather than one per implementation, and the Fix is distinct from the message so format.ts does not drop it',
   },
-  'src/core/terminal-builder.ts::collectWithAssertionGuard': {
+  'src/core/terminal-builder.ts::assertionLessFinding': {
     remedy: 'own',
     verified:
       'behavioural: assertion-gate.test.ts — adding a condition clears it, plus a control that no remedy names a non-remediating mechanism',
