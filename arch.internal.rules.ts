@@ -201,7 +201,38 @@ const rules = [
         'ADR-003: fluent builder surfaces are the design, and this file also requires a JSDoc ' +
         'block on each of their methods — five of the seven are under 300 lines of actual code',
     }),
-  srcClasses().should().satisfy(maxMethodLines(50)).rule({ id: 'eess/max-method-lines' }),
+  // Same span-vs-code interaction as `maxClassLines` above — `linesOfCode()` counts
+  // comments, and this codebase's explanatory density is deliberate. Measured, of
+  // the seven methods this flagged (code lines vs span):
+  //
+  //   TerminalBuilder.collectWithAssertionGuard     36 code / 122 span
+  //   TerminalBuilder.deadSelectorFindings          27 code /  58 span
+  //   Baseline.unmatchedBaselineFinding             37 code /  56 span
+  //   DuplicateBodiesBuilder.buildViolations        32 code /  54 span
+  //   InconsistentSiblingsBuilder.detect            27 code /  61 span
+  //   SliceRuleBuilder.emptyDiscoveryMessage        72 code / 113 span
+  //   CorrespondenceBuilder.collectViolations       88 code / 168 span
+  //
+  // The five excluded here are all UNDER the threshold on code. The last two are
+  // genuinely over and are NOT excluded — they stay red until they are split,
+  // which is [bug 0166](./work/bugs/0166-six-engine-methods-exceed-the-size-and-complexity-rules.md).
+  //
+  // Excluding by CLASS is coarser than this deserves: `.excluding()` filters the
+  // subject, and the subject of a method-size rule is the class, so a future
+  // oversized method in one of these five classes would not fire. That coarseness
+  // is part of what 0166 owes.
+  srcClasses()
+    .excluding(/TerminalBuilder/)
+    .excluding(/\/helpers\/baseline\.ts$/)
+    .excluding(/\/smells\/(duplicate-bodies|inconsistent-siblings)\.ts$/)
+    .should()
+    .satisfy(maxMethodLines(50))
+    .rule({
+      id: 'eess/max-method-lines',
+      because:
+        'the metric counts comment lines; these five are under 50 lines of actual code, and ' +
+        'the two that are genuinely over are left failing (bug 0166)',
+    }),
   srcClasses()
     .excluding(/\/src\/builders\//)
     .excluding(/\/src\/(core\/)?(terminal-builder|rule-builder)\.ts$/)

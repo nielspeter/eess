@@ -673,6 +673,26 @@ export class Baseline {
    * Silent for a baseline written before 0.24.0: those entries have no subject,
    * so the question cannot be asked and no cause is guessed.
    */
+  /**
+   * The rule description the baseline recorded for this violation's subject, when
+   * the violation looks like the SAME finding under a renamed rule.
+   *
+   * Extracted from `descriptionChangeFinding` so the four disqualifying cases
+   * read as one question with one answer instead of four `continue`s inside the
+   * accumulating loop (they were most of that method's branching).
+   */
+  private renamedRuleFor(violation: ArchViolation): string | undefined {
+    if (violation.bypassFilters === true) return undefined
+    if (this.isKnown(violation)) return undefined
+    // A regressed metric is not a renamed rule (bug 0012). Its hash is in the
+    // baseline — the description is demonstrably unchanged — and only the
+    // measurement moved, so `isKnown` is false while `hasEntry` is true. Without
+    // this the ratchet's own working case reported "1 rule whose description
+    // changed", which is a false cause under ADR-008 rule 2.
+    if (this.hasEntry(violation)) return undefined
+    return this.knownSubjects.get(hashSubject(violation, this.root))
+  }
+
   private descriptionChangeFinding(violations: ArchViolation[]): ArchViolation | undefined {
     if (this.knownSubjects.size === 0) return undefined
     // Rule descriptions the baseline recorded for subjects this run re-reported
@@ -680,17 +700,8 @@ export class Baseline {
     // same edited rule is named once however many violations it has.
     const changed = new Map<string, string>()
     for (const violation of violations) {
-      if (violation.bypassFilters === true) continue
-      if (this.isKnown(violation)) continue
-      // A regressed metric is not a renamed rule (bug 0012). Its hash is in the
-      // baseline — the description is demonstrably unchanged — and only the
-      // measurement moved, so `isKnown` is false while `hasEntry` is true.
-      // Without this the ratchet's own working case reported "1 rule whose
-      // description changed", which is a false cause under ADR-008 rule 2.
-      if (this.hasEntry(violation)) continue
-      const recordedRule = this.knownSubjects.get(hashSubject(violation, this.root))
-      if (recordedRule === undefined) continue
-      changed.set(recordedRule, violation.rule)
+      const recordedRule = this.renamedRuleFor(violation)
+      if (recordedRule !== undefined) changed.set(recordedRule, violation.rule)
     }
     if (changed.size === 0) return undefined
 

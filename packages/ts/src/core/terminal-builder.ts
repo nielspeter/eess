@@ -913,6 +913,20 @@ export abstract class TerminalBuilder {
     if (loadedNothing(project))
       return { selector: [this.emptyProjectViolation(project)], discovery: [] }
 
+    return this.deadSitesIn(trees, project)
+  }
+
+  /**
+   * Walk the glob trees and split the dead sites by position.
+   *
+   * Extracted from `deadSelectorFindings`, which is otherwise five guard clauses
+   * and this loop — the guards are the interesting part and the nesting was most
+   * of the branching.
+   */
+  private deadSitesIn(
+    trees: readonly GlobNode[],
+    project: ArchProject,
+  ): { selector: ArchViolation[]; discovery: ArchViolation[] } {
     const universe = pathUniverse(project)
     const selector: ArchViolation[] = []
     const discovery: ArchViolation[] = []
