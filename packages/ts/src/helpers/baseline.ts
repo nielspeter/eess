@@ -102,6 +102,16 @@ export interface BaselineEntry {
    */
   measured?: number
   /**
+   * What {@link measured} counts — `code-lines`, `methods`, `complexity`.
+   *
+   * Written since bug 0171 and optional. Absent means the entry predates unit
+   * stamping, which {@link Baseline.isKnown} treats as "unknown unit": still
+   * comparable for the metrics whose meaning has never changed, and NOT
+   * comparable for `code-lines`, because such an entry necessarily recorded a
+   * span. That distinction is the whole point — see {@link MEANING_NEVER_CHANGED}.
+   */
+  measuredUnit?: string
+  /**
    * Subject hash: sha256(element + message), i.e. identity WITHOUT the rule
    * description. Written since 0.24.0 and optional, so a baseline from an
    * earlier version still loads — it simply cannot be diagnosed when an entry
@@ -109,6 +119,53 @@ export interface BaselineEntry {
    * See \{@link hashSubject\} for what it is for.
    */
   subject?: string
+}
+
+/** A measurement an entry accepted, and what that number counts (bugs 0012, 0171). */
+interface AcceptedMeasurement {
+  value: number
+  /** `undefined` on any entry written before unit stamping — see {@link measurementComparable}. */
+  unit?: string
+}
+
+/**
+ * Units whose meaning has never changed, so an entry that predates unit
+ * stamping is still safely comparable against one.
+ *
+ * `code-lines` is deliberately absent, and that absence is the entire fix for
+ * [bug 0171](../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md).
+ * An unstamped `lines` entry was written when `linesOfCode` returned a SPAN, so
+ * its number is denominated in something the tool no longer produces —
+ * measured, roughly three times the current value on this repo's own source.
+ * Comparing across that does not report a regression; it silently raises the
+ * ceiling and keeps the build green while a class triples.
+ *
+ * A metric added here later is asserting "this counts what it always counted".
+ */
+const MEANING_NEVER_CHANGED: ReadonlySet<string> = new Set([
+  'methods',
+  'parameters',
+  'properties',
+  'named-exports',
+  'complexity',
+])
+
+/**
+ * Whether a stored measurement may be compared against a current one.
+ *
+ * Fails CLOSED: anything other than a demonstrable match is incomparable, and
+ * an incomparable entry stops suppressing. The alternative — assume they agree —
+ * is how a ratchet loosens without anyone being told (ADR-010: a pass is
+ * constructed from evidence, and "probably the same unit" is not evidence).
+ */
+function measurementComparable(stored: string | undefined, current: string | undefined): boolean {
+  // Both stamped and equal, or neither stamped (a producer that predates units
+  // on both sides — the honest pre-0171 reading).
+  if (stored === current) return true
+  // Stored predates stamping. Comparable only where the meaning cannot have moved.
+  if (stored === undefined) return current !== undefined && MEANING_NEVER_CHANGED.has(current)
+  // Stored says one thing and this run says another. Never comparable.
+  return false
 }
 
 /**
@@ -290,8 +347,8 @@ export function withBaseline(baselinePath: string, options: BaselineOptions = {}
   // second copy of every entry. Entries written before 0.24.0 have no subject
   // and simply do not appear here.
   const subjects = new Map<string, string>()
-  /** hash -> accepted measurement, for metric findings (bug 0012). */
-  const accepted = new Map<string, number>()
+  /** hash -> accepted measurement and its unit, for metric findings (bugs 0012, 0171). */
+  const accepted = new Map<string, AcceptedMeasurement>()
   // Annotated as `readonly unknown[]`, not iterated directly: `parsed.violations`
   // is `any[]` after the `Array.isArray` check, and ADR-005 bars both `any` and
   // the `as` that would otherwise be needed to re-narrow it. Assigning to this
@@ -317,7 +374,16 @@ export function withBaseline(baselinePath: string, options: BaselineOptions = {}
       'measured' in entry &&
       typeof entry.measured === 'number'
     ) {
-      accepted.set(entry.hash, entry.measured)
+      accepted.set(entry.hash, {
+        value: entry.measured,
+        // Absent on any entry written before bug 0171 — deliberately left
+        // `undefined` rather than defaulted, because a guess here is exactly
+        // the silent re-denomination this field exists to prevent.
+        unit:
+          'measuredUnit' in entry && typeof entry.measuredUnit === 'string'
+            ? entry.measuredUnit
+            : undefined,
+      })
     }
   }
 
@@ -360,6 +426,9 @@ export function generateBaseline(
       // Bug 0012. Written only for metric findings, so a baseline of ordinary
       // findings is byte-identical to one from before this shipped.
       ...(v.measured === undefined ? {} : { measured: v.measured }),
+      // Bug 0171: what that number counts, so a later change to the metric
+      // cannot silently re-denominate an accepted ceiling.
+      ...(v.measuredUnit === undefined ? {} : { measuredUnit: v.measuredUnit }),
     }))
 
   // Read before writing — this is the only moment both sets exist (plan 0071).
@@ -562,7 +631,7 @@ export class Baseline {
      * Absent for every non-metric entry and for baselines written before this
      * shipped, where equality of identity remains the right test.
      */
-    private readonly acceptedMeasurements: ReadonlyMap<string, number> = new Map(),
+    private readonly acceptedMeasurements: ReadonlyMap<string, AcceptedMeasurement> = new Map(),
   ) {}
 
   /**
@@ -605,7 +674,15 @@ export class Baseline {
     const accepted = this.acceptedMeasurements.get(hash)
     if (violation.measured === undefined || accepted === undefined) return true
 
-    return violation.measured <= accepted
+    // Bug 0171: the entry's number and this run's number must count the same
+    // thing before `<=` means anything. When they do not, the finding is NOT
+    // known — reporting it is the only honest answer, because the accepted
+    // ceiling is denominated in a unit the tool no longer produces.
+    // `staleMeasurementFinding` supplies the cause and the remedy so this does
+    // not read as fresh rot in the code (ADR-009 rule 2).
+    if (!measurementComparable(accepted.unit, violation.measuredUnit)) return false
+
+    return violation.measured <= accepted.value
   }
 
   /**
@@ -649,7 +726,15 @@ export class Baseline {
     // withdrawn HASH_VERSION bump already committed once in this area.
     const descriptionChange = this.descriptionChangeFinding(violations)
     const finding = descriptionChange ?? this.unmatchedBaselineFinding(matched, matchable)
-    return finding === undefined ? kept : [finding, ...kept]
+    // Additive, not exclusive: a stale unit and a renamed rule are independent
+    // causes that can both be true in one upgrade, and each carries its own
+    // remedy. The `??` above is a different situation — there, one diagnosis
+    // DISPROVES the other.
+    const stale = this.staleMeasurementFinding(violations)
+    const meta: ArchViolation[] = []
+    if (stale !== undefined) meta.push(stale)
+    if (finding !== undefined) meta.push(finding)
+    return meta.length === 0 ? kept : [...meta, ...kept]
   }
 
   /**
@@ -690,6 +775,85 @@ export class Baseline {
     // changed", which is a false cause under ADR-008 rule 2.
     if (this.hasEntry(violation)) return undefined
     return this.knownSubjects.get(hashSubject(violation, this.root))
+  }
+
+  /**
+   * The stale-unit measurements in this run, grouped by the unit pair that
+   * changed — so one upgrade is described once however many elements it
+   * touched, with the identities carried inside.
+   *
+   * Extracted from {@link staleMeasurementFinding} because the four
+   * disqualifying cases are most of that method's branching, the same reason
+   * {@link renamedRuleFor} sits beside {@link descriptionChangeFinding}.
+   */
+  private staleMeasurementsByUnit(violations: ArchViolation[]): Map<string, string[]> {
+    const stale = new Map<string, string[]>()
+    for (const violation of violations) {
+      const accepted = this.incomparableAcceptedFor(violation)
+      if (accepted === undefined) continue
+      const key = `${accepted.unit ?? '(unrecorded)'} -> ${violation.measuredUnit ?? '(none)'}`
+      const named = stale.get(key) ?? []
+      named.push(
+        `${violation.element} (accepted ${String(accepted.value)}, now ${String(violation.measured ?? 0)})`,
+      )
+      stale.set(key, named)
+    }
+    return stale
+  }
+
+  /**
+   * The accepted measurement this violation matches but CANNOT be compared
+   * against, or `undefined` when there is no such conflict — which covers the
+   * ordinary cases too: not a metric finding, no matching entry, or a unit that
+   * still means what it meant.
+   */
+  private incomparableAcceptedFor(violation: ArchViolation): AcceptedMeasurement | undefined {
+    if (violation.bypassFilters === true || violation.measured === undefined) return undefined
+    const accepted = this.acceptedMeasurements.get(hashViolation(violation, this.root))
+    if (accepted === undefined) return undefined
+    if (measurementComparable(accepted.unit, violation.measuredUnit)) return undefined
+    return accepted
+  }
+
+  /**
+   * A meta-finding for baselined metric entries whose accepted measurement is
+   * denominated in a unit this version no longer produces — bug 0171.
+   *
+   * Without it, the upgrade that changed a metric reports the affected classes
+   * as ordinary new violations. The author sees findings against code they did
+   * not touch, on a rule they had already baselined, with nothing connecting
+   * that to the release note — the "eess started reporting something new"
+   * failure ADR-009 rule 2 exists to prevent.
+   *
+   * This fires where `unmatchedBaselineFinding` structurally cannot: those
+   * entries MATCH. Identity is intact and only the unit moved, so `matched` is
+   * non-zero and that check stays silent by design.
+   */
+  private staleMeasurementFinding(violations: ArchViolation[]): ArchViolation | undefined {
+    const stale = this.staleMeasurementsByUnit(violations)
+    if (stale.size === 0) return undefined
+
+    const where = this.sourcePath ?? 'the baseline file'
+    const total = [...stale.values()].reduce((n, xs) => n + xs.length, 0)
+    // Identities, never a bare total (ADR-008 rule 4).
+    const detail = [...stale.entries()]
+      .map(([units, names]) => `\n  ${units}:${names.map((n) => `\n    ${n}`).join('')}`)
+      .join('')
+    return {
+      rule: 'eess-ts: baseline',
+      element: 'baseline',
+      file: '',
+      line: 0,
+      message:
+        `Baseline at ${where} accepted ${String(total)} metric ${total === 1 ? 'finding' : 'findings'} ` +
+        `under a measurement this version no longer produces, so ${total === 1 ? 'it is' : 'they are'} ` +
+        `being reported rather than silently re-accepted. This is not new rot in your code — the ` +
+        `metric changed what it counts:${detail}`,
+      because:
+        'An accepted ceiling is a number in a unit. Comparing this run against a ceiling recorded in a different unit does not measure a regression — it moves the bar, and the build stays green while the code gets worse.',
+      suggestion: `Check that each element above is genuinely acceptable at its NEW number, then regenerate: \`npx eess-ts baseline <your-rule-files> --output ${where}\`. Re-accepting without reading it re-baselines whatever drift the old unit was hiding.`,
+      bypassFilters: true,
+    }
   }
 
   private descriptionChangeFinding(violations: ArchViolation[]): ArchViolation | undefined {

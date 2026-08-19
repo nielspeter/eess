@@ -147,6 +147,15 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     remedy: 'own',
     verified: 'behavioural: baseline-description-change.test.ts — regenerating clears it',
   },
+  'src/helpers/baseline.ts::staleMeasurementFinding': {
+    remedy: 'own',
+    verified:
+      'behavioural: baseline.test.ts — `is cleared by the remedy it names — regenerating stamps ' +
+      'the unit` writes an unstamped baseline, proves the finding fires, then runs the remedy the ' +
+      'message actually gives (generateBaseline), asserts the unit reached disk, and watches the ' +
+      'finding clear. The two guards beside it keep that from passing vacuously: an unchanged ' +
+      'metric still compares, and a stamped baseline still ratchets in both directions',
+  },
   'src/helpers/baseline.ts::unmatchedBaselineFinding': {
     remedy: 'own',
     verified: 'behavioural: baseline.test.ts — a matching baseline produces none',

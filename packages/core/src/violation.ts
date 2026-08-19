@@ -72,6 +72,22 @@ export interface ArchViolation {
    * on every non-metric finding, where equality of identity is the right test.
    */
   measured?: number
+  /**
+   * What {@link measured} counts — `code-lines`, `methods`, `complexity`.
+   *
+   * The baseline persists it and refuses to compare a stored measurement
+   * against a current one carrying a different unit
+   * ([bug 0171](../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md)).
+   * Without it, changing what a metric COUNTS silently moved every baselined
+   * ceiling: `linesOfCode` went from span lines to code lines, entries kept
+   * matching on identity, and a class could then grow to roughly three times
+   * its accepted size while the build stayed green.
+   *
+   * Absent on findings from a producer that predates this, which the baseline
+   * treats as "unit unknown" — comparable only for the metrics whose meaning
+   * has never changed.
+   */
+  measuredUnit?: string
   /** Optional rationale provided via .because() */
   because?: string
   /** Source code snippet around the violation line */

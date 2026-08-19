@@ -60,6 +60,17 @@ export function metricViolation(
     metric: string
     /** The measurement now. Compared against the baselined value, not equated. */
     measured: number
+    /**
+     * What `measured` COUNTS, when that is not simply the metric's name.
+     *
+     * The baseline persists this and refuses to compare across a change of unit
+     * ([bug 0171](../../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md)).
+     * `lines` is why it exists: the metric kept its name while `linesOfCode`
+     * changed from counting a span to counting code, so identity still matched
+     * and every baselined ceiling silently tripled. A metric whose name already
+     * says what it counts — `methods`, `parameters` — needs nothing here.
+     */
+    unit?: string
     message: string
     /**
      * The element's qualified name, when `getElementName` would under-qualify it.
@@ -106,6 +117,10 @@ export function metricViolation(
     // `normalizeIdentityText(text, root)`, which is what that scrub is for.
     identity: `${node.getSourceFile().getFilePath()}::${identityName(node, options.qualifiedName)}::${options.metric}`,
     measured: options.measured,
+    // Defaults to the metric's own name: for `methods` or `parameters` the name
+    // IS the unit, and only a metric that can change what it counts under a
+    // stable name needs to say so explicitly.
+    measuredUnit: options.unit ?? options.metric,
   }
 }
 

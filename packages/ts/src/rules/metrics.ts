@@ -98,6 +98,9 @@ export function maxClassLines(threshold: number): Condition<ClassDeclaration> {
               cls,
               {
                 metric: 'lines',
+                // `code-lines` since bug 0170 — the metric kept its name when it stopped
+                // counting comments, and the baseline must not compare across that.
+                unit: 'code-lines',
                 measured: loc,
                 message: `${cls.getName() ?? '<anonymous>'} has ${String(loc)} lines (max: ${String(threshold)}) — consider splitting into focused classes`,
               },
@@ -135,6 +138,9 @@ export function maxMethodLines(threshold: number): Condition<ClassDeclaration> {
                 member,
                 {
                   metric: 'lines',
+                  // `code-lines` since bug 0170 — the metric kept its name when it stopped
+                  // counting comments, and the baseline must not compare across that.
+                  unit: 'code-lines',
                   measured: loc,
                   qualifiedName: getMemberName(cls, member),
                   message: `${getMemberName(cls, member)} has ${String(loc)} lines (max: ${String(threshold)})`,

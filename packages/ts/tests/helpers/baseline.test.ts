@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import type { ArchViolation } from '@nielspeter/eess'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -207,5 +207,157 @@ describe('which violations plan 0082 actually moved in the baseline', () => {
     const b = after({})
     const diff = (Object.keys(a) as (keyof ArchViolation)[]).filter((k) => a[k] !== b[k])
     expect(diff).toEqual(['element'])
+  })
+})
+
+/**
+ * [Bug 0171](../../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md):
+ * an accepted ceiling is a number IN A UNIT, and the baseline used to compare
+ * across a change of unit without noticing.
+ *
+ * Bug 0170 changed `linesOfCode` from counting a span to counting code — on this
+ * repo's own source `TerminalBuilder` went 1218 to 372. The identity hash is
+ * `file::element::metric` and none of that moved, so every baselined entry kept
+ * matching and kept suppressing, now against a ceiling denominated in something
+ * the tool no longer produces. The class could grow to 1218 CODE lines — about
+ * three times its real size — with the build green the whole way.
+ */
+describe('a metric whose unit changed cannot be compared against an old ceiling', () => {
+  let dir: string
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-baseline-unit-'))
+  })
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  function metricViolationAt(
+    measured: number,
+    measuredUnit: string,
+    metric: string,
+  ): ArchViolation {
+    return {
+      rule: 'have no more than 300 lines',
+      element: 'TerminalBuilder',
+      file: path.join(dir, 'src/terminal-builder.ts'),
+      line: 1,
+      message: `TerminalBuilder has ${String(measured)} lines (max: 300)`,
+      identity: `${path.join(dir, 'src/terminal-builder.ts')}::TerminalBuilder::${metric}`,
+      measured,
+      measuredUnit,
+    }
+  }
+
+  /** A baseline file as written BEFORE units were stamped — no `measuredUnit`. */
+  function writeUnstampedBaseline(violation: ArchViolation, accepted: number): string {
+    const file = path.join(dir, 'arch-baseline.json')
+    const baseline: BaselineFile = {
+      generatedAt: new Date().toISOString(),
+      hashVersion: 5,
+      root: '.',
+      count: 1,
+      violations: [
+        {
+          rule: violation.rule,
+          file: 'src/terminal-builder.ts',
+          line: violation.line,
+          hash: hashViolation(violation, dir),
+          measured: accepted,
+        },
+      ],
+    }
+    fs.writeFileSync(file, JSON.stringify(baseline, null, 2))
+    return file
+  }
+
+  it('stops suppressing when the stored measurement predates unit stamping', () => {
+    // Accepted 1218 span lines; this run measures 372 CODE lines. `372 <= 1218`
+    // is true and meaningless — that arithmetic is the bug.
+    const violation = metricViolationAt(372, 'code-lines', 'lines')
+    const file = writeUnstampedBaseline(violation, 1218)
+
+    const kept = withBaseline(file, { root: dir }).filterNew([violation])
+
+    expect(kept).toContainEqual(expect.objectContaining({ element: 'TerminalBuilder' }))
+  })
+
+  it('says WHY, so it does not read as fresh rot in the code', () => {
+    const violation = metricViolationAt(372, 'code-lines', 'lines')
+    const file = writeUnstampedBaseline(violation, 1218)
+
+    const kept = withBaseline(file, { root: dir }).filterNew([violation])
+    const meta = kept.find((v) => v.element === 'baseline')
+
+    // The cause, the affected identity with both numbers, and a remedy — the
+    // author is looking at a finding on code they did not touch.
+    expect(meta?.message).toContain('no longer produces')
+    expect(meta?.message).toContain('TerminalBuilder (accepted 1218, now 372)')
+    expect(meta?.suggestion).toContain('eess-ts baseline')
+    // Unsuppressable: a baseline must not be able to hide the finding that says
+    // the baseline cannot be trusted.
+    expect(meta?.bypassFilters).toBe(true)
+  })
+
+  it('is cleared by the remedy it names — regenerating stamps the unit', () => {
+    // The finding says "regenerate". This proves that actually works, rather
+    // than asserting a remedy nobody ran (ADR-008 rule 2 — a remedy that does
+    // not remediate is the failure this repo exists to catch).
+    const violation = metricViolationAt(372, 'code-lines', 'lines')
+    const stale = writeUnstampedBaseline(violation, 1218)
+    expect(withBaseline(stale, { root: dir }).filterNew([violation])).not.toEqual([])
+
+    const regenerated = path.join(dir, 'regenerated.json')
+    generateBaseline([violation], regenerated, { root: dir })
+
+    // The unit is now on disk...
+    const written: BaselineFile = JSON.parse(fs.readFileSync(regenerated, 'utf-8')) as BaselineFile
+    expect(written.violations[0]?.measuredUnit).toBe('code-lines')
+    // ...and the finding is gone.
+    expect(withBaseline(regenerated, { root: dir }).filterNew([violation])).toEqual([])
+  })
+
+  it('still compares a metric whose meaning never changed', () => {
+    // The other half, and the reason this is not a blanket invalidation: an old
+    // entry for `complexity` counts what it always counted, so failing it would
+    // be a false regression on every upgraded baseline.
+    const violation = metricViolationAt(5, 'complexity', 'complexity')
+    const file = writeUnstampedBaseline(violation, 10)
+
+    const kept = withBaseline(file, { root: dir }).filterNew([violation])
+
+    expect(kept.filter((v) => v.element === 'TerminalBuilder')).toEqual([])
+  })
+
+  it('ratchets normally once both sides carry the same unit', () => {
+    const violation = metricViolationAt(372, 'code-lines', 'lines')
+    const file = path.join(dir, 'stamped.json')
+    const baseline: BaselineFile = {
+      generatedAt: new Date().toISOString(),
+      hashVersion: 5,
+      root: '.',
+      count: 1,
+      violations: [
+        {
+          rule: violation.rule,
+          file: 'src/terminal-builder.ts',
+          line: violation.line,
+          hash: hashViolation(violation, dir),
+          measured: 400,
+          measuredUnit: 'code-lines',
+        },
+      ],
+    }
+    fs.writeFileSync(file, JSON.stringify(baseline, null, 2))
+
+    // 372 <= 400 in the SAME unit — a real improvement, correctly stays green.
+    expect(withBaseline(file, { root: dir }).filterNew([violation])).toEqual([])
+
+    // And a genuine regression past it still fails.
+    const worse = metricViolationAt(420, 'code-lines', 'lines')
+    expect(
+      withBaseline(file, { root: dir })
+        .filterNew([worse])
+        .filter((v) => v.element === 'TerminalBuilder'),
+    ).toHaveLength(1)
   })
 })

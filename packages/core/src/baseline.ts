@@ -29,6 +29,54 @@ export interface BaselineEntry {
    * field at all.
    */
   measured?: number
+  /**
+   * What {@link measured} counts — `code-lines`, `methods`, `complexity`.
+   *
+   * Written since [bug 0171](../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md).
+   * An accepted ceiling is a number IN A UNIT, and comparing across a change of
+   * unit does not measure a regression — it moves the bar. Absent on entries
+   * written before stamping, which {@link Baseline.isKnown} treats as "unknown
+   * unit": comparable only for metrics whose meaning has never changed.
+   *
+   * No dialect on the kernel emits `measured` today; this is here so the hole
+   * cannot open silently in the one that does, and so the two copies of this
+   * file do not disagree about what a baseline entry means.
+   */
+  measuredUnit?: string
+}
+
+/** A measurement an entry accepted, and what that number counts (bug 0171). */
+interface AcceptedMeasurement {
+  value: number
+  /** `undefined` on entries written before unit stamping. */
+  unit?: string
+}
+
+/**
+ * Units whose meaning has never changed, so an entry predating unit stamping is
+ * still safely comparable against one.
+ *
+ * `code-lines` is deliberately absent: an unstamped `lines` entry was written
+ * when the metric counted a SPAN, so its number is denominated in something no
+ * longer produced. Comparing across that raises the ceiling silently.
+ */
+const MEANING_NEVER_CHANGED: ReadonlySet<string> = new Set([
+  'methods',
+  'parameters',
+  'properties',
+  'named-exports',
+  'complexity',
+])
+
+/**
+ * Whether a stored measurement may be compared against a current one. Fails
+ * CLOSED — anything but a demonstrable match is incomparable, because assuming
+ * agreement is how a ratchet loosens without anyone being told (ADR-010).
+ */
+function measurementComparable(stored: string | undefined, current: string | undefined): boolean {
+  if (stored === current) return true
+  if (stored === undefined) return current !== undefined && MEANING_NEVER_CHANGED.has(current)
+  return false
 }
 
 /**
@@ -123,12 +171,18 @@ export function withBaseline(baselinePath: string): Baseline {
   }
   const violations: unknown[] = parsed.violations
   const hashes = new Set<string>()
-  const accepted = new Map<string, number>()
+  const accepted = new Map<string, AcceptedMeasurement>()
   for (const entry of violations) {
     if (entry && typeof entry === 'object' && 'hash' in entry && typeof entry.hash === 'string') {
       hashes.add(entry.hash)
       if ('measured' in entry && typeof entry.measured === 'number') {
-        accepted.set(entry.hash, entry.measured)
+        accepted.set(entry.hash, {
+          value: entry.measured,
+          unit:
+            'measuredUnit' in entry && typeof entry.measuredUnit === 'string'
+              ? entry.measuredUnit
+              : undefined,
+        })
       }
     }
   }
@@ -164,6 +218,9 @@ export function generateBaseline(violations: ArchViolation[], outputPath: string
       // Written only for metric findings, so a baseline with none is
       // byte-identical to one from before this field existed.
       ...(v.measured === undefined ? {} : { measured: v.measured }),
+      // Bug 0171: what that number counts, so a later change to the metric
+      // cannot silently re-denominate an accepted ceiling.
+      ...(v.measuredUnit === undefined ? {} : { measuredUnit: v.measuredUnit }),
     }))
 
   const baseline: BaselineFile = {
@@ -186,7 +243,7 @@ export class Baseline {
     /** Computed once at load time — must match `generateBaseline()`'s root for entries to line up. */
     private readonly root?: string,
     /** hash -> accepted measurement, for metric findings. */
-    private readonly accepted: Map<string, number> = new Map(),
+    private readonly accepted: Map<string, AcceptedMeasurement> = new Map(),
   ) {}
 
   /**
@@ -208,7 +265,9 @@ export class Baseline {
     if (violation.measured === undefined) return this.knownHashes.has(hash)
     const acceptedMeasurement = this.accepted.get(hash)
     if (acceptedMeasurement === undefined) return false
-    return violation.measured <= acceptedMeasurement
+    // Bug 0171: `<=` means nothing until both numbers count the same thing.
+    if (!measurementComparable(acceptedMeasurement.unit, violation.measuredUnit)) return false
+    return violation.measured <= acceptedMeasurement.value
   }
 
   /**

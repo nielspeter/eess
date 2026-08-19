@@ -76,6 +76,9 @@ export function maxFunctionLines(threshold: number): Condition<ArchFunction> {
               fn.getNode(),
               {
                 metric: 'lines',
+                // `code-lines` since bug 0170 — the metric kept its name when it stopped
+                // counting comments, and the baseline must not compare across that.
+                unit: 'code-lines',
                 measured: loc,
                 message: `${name} has ${String(loc)} lines (max: ${String(threshold)})`,
                 qualifiedName: name,
