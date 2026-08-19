@@ -8,6 +8,7 @@ import { getElementName, getElementFile, getElementLine } from '../core/violatio
 import { RuleBuilder } from '../core/rule-builder.js'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import { setCorrespondence } from '@nielspeter/eess'
+import type { CorrespondenceResult } from '@nielspeter/eess'
 
 /**
  * Map a selection subject to one or more comparison keys.
@@ -21,6 +22,24 @@ export type KeyFn<T> = (subject: T) => string | readonly string[]
 
 /** A plain, already-derived key set. Normalize keys before passing them. */
 export type KeysSource = readonly string[] | ReadonlySet<string>
+
+/**
+ * The materialized state of one correspondence check, threaded to the phase
+ * helpers as ONE object.
+ *
+ * Six values travel together — two sides, their keyed maps, the set result and
+ * the violation metadata — and passing them positionally would put every helper
+ * over the four-parameter cap while inviting the transposition that cap exists
+ * to prevent (`aKeyed`/`bKeyed` are the same type).
+ */
+interface Pairing {
+  readonly sideA: Side
+  readonly sideB: Side
+  readonly aKeyed: Map<string, unknown[]>
+  readonly bKeyed: Map<string, unknown[]>
+  readonly result: CorrespondenceResult
+  readonly meta: ViolationMeta
+}
 
 interface ViolationMeta {
   readonly rule: string
@@ -387,28 +406,35 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     }
   }
 
+  /**
+   * Run the correspondence and collect its findings, in four phases:
+   * unbound declarations, emptiness, the match itself, then duplicate keys.
+   *
+   * ## The arity throw is an invariant, not an error path
+   *
+   * Unreachable through `.check()` / `.warn()` / `.violations()` as of the
+   * bug-0025 fix: `assertsSomething()` is false for wrong arity, so the gate
+   * reports it as a configuration finding before this method is called. Kept as
+   * the invariant it always was — this method indexes `_sides[0]` and
+   * `_sides[1]` below, and a direct subclass caller deserves the named error
+   * rather than an undefined read. Do not treat it as the answer to "what
+   * happens with the wrong number of sides": the loud answer is the gate, and if
+   * this ever throws again through a terminal, the gate is gone.
+   *
+   * There is deliberately NO missing-assertion throw: the gate reports that as a
+   * configuration finding before this runs (bug 0019), which is why the gate sits
+   * ahead of this method — a `RangeError` from here escaped the CLI's
+   * `ArchRuleError`-only catch and dropped every remaining rule file. The
+   * sides-count check stays, because wrong arity is a different fault from a
+   * missing assertion and its remedy is another `.side(...)`.
+   */
   protected collectViolations(): CollectResult {
-    // Unreachable through `.check()` / `.warn()` / `.violations()` as of the
-    // bug-0025 fix: `assertsSomething()` above is false for wrong arity, so the
-    // gate reports it as a configuration finding before this method is called.
-    // Kept as the invariant it always was — this method indexes `_sides[0]` and
-    // `_sides[1]` non-null below, and a direct subclass caller deserves the
-    // named error rather than an undefined read. Do not treat it as the answer
-    // to "what happens with the wrong number of sides": the loud answer is the
-    // gate, and if this ever throws again through a terminal, the gate is gone.
     const [sideA, sideB] = this._sides
     if (this._sides.length !== 2 || sideA === undefined || sideB === undefined) {
       throw new RangeError(
         `correspondence() requires exactly two .side(...) calls; got ${String(this._sides.length)}.`,
       )
     }
-    // No missing-assertion throw here: the assertion gate reports it as a
-    // configuration finding before `collectViolations()` runs (bug 0019), which
-    // is why the gate is placed ahead of this method — a `RangeError` from here
-    // escaped the CLI's `ArchRuleError`-only catch and dropped every remaining
-    // rule file. The sides-count check below stays: wrong arity is a different
-    // fault from a missing assertion, and its remedy is another `.side(...)`.
-
     const meta: ViolationMeta = {
       rule: `correspondence [${sideA.name} <-> ${sideB.name}]`,
       because: this._reason,
@@ -417,56 +443,78 @@ export class CorrespondenceBuilder extends TerminalBuilder {
       docs: this._metadata?.docs,
     }
 
-    // A declaration that binds to no side is a configuration finding, not a
-    // no-op — plan 0097, correcting the same defect the shipped version had.
-    // `.expectEmpty('servcies')` was accepted silently and asserted nothing
-    // forever: the exact hazard this method's own docstring rejects the
-    // permanent form for ("one word, silent forever, TYPO OR NOT, and nothing
-    // revisits it"), inherited whole by the replacement.
-    //
-    // ADR-009 part 3 already ruled the structurally identical preset case — a
-    // declaration binding to no constructed rule is a FAILING finding, never a
-    // warning — so this follows settled precedent rather than deciding anew.
-    //
-    // Here rather than in the setter: `.expectEmpty(name)` may legally precede
-    // `.side(name, …)`, so the setter cannot know yet.
-    // A Set, not a concatenation: a name in BOTH sets produced two findings with
-    // identical element, message, file and line — the identity shape bugs 0064,
-    // 0065 and 0067 were filed for. And membership by the side LIST rather than
-    // two name comparisons, so it cannot rot if arity ever changes.
-    const declaredNames = new Set([...this._expectEmptySides, ...this._distinctKeys])
-    const unbound = [...declaredNames].filter((n) => !this._sides.some((side) => side.name === n))
-    if (unbound.length > 0) {
-      // A configuration fault: the sides were never materialized, so nothing was
-      // examined. Plan 0098 — 0 here is the honest number, not a placeholder.
+    const unbound = this.unboundDeclarationFindings(sideA, sideB, meta)
+    // A configuration fault: the sides were never materialized, so nothing was
+    // examined. Plan 0098 — 0 here is the honest number, not a placeholder.
+    if (unbound.length > 0) return { violations: unbound, examined: 0 }
+
+    const [aKeyed, bKeyed] = this.materializedSides(sideA, sideB)
+    const result = setCorrespondence(aKeyed.keys(), bKeyed.keys())
+    const pairing: Pairing = { sideA, sideB, aKeyed, bKeyed, result, meta }
+
+    // Emptiness first: a side that resolved nothing makes every later question
+    // vacuous, so its finding replaces them rather than joining them.
+    const { emptyFindings, falseDeclarations } = this.emptinessFindings(pairing)
+    if (emptyFindings.length > 0) {
       return {
-        violations: unbound.map((name) =>
-          this.unboundSideViolation(name, meta, [sideA.name, sideB.name]),
-        ),
-        examined: 0,
+        violations: [...emptyFindings, ...falseDeclarations],
+        examined: this.examinedUnits(),
       }
     }
 
-    const [aKeyed, bKeyed] = this.materializedSides(sideA, sideB)
+    return {
+      violations: [
+        ...falseDeclarations,
+        ...this.matchFindings(pairing),
+        ...this.duplicateKeyFindings(pairing),
+      ],
+      examined: this.examinedUnits(),
+    }
+  }
 
-    const result = setCorrespondence(aKeyed.keys(), bKeyed.keys())
+  /**
+   * Declarations — `.expectEmpty(name)` / `.withDistinctKeys(name)` — that name a
+   * side this correspondence does not have.
+   *
+   * A declaration that binds to no side is a configuration finding, not a no-op
+   * (plan 0097, correcting the same defect the shipped version had).
+   * `.expectEmpty('servcies')` was accepted silently and asserted nothing
+   * forever: the exact hazard this class's own docstring rejects the permanent
+   * form for ("one word, silent forever, TYPO OR NOT, and nothing revisits it"),
+   * inherited whole by the replacement.
+   *
+   * ADR-009 part 3 already ruled the structurally identical preset case — a
+   * declaration binding to no constructed rule is a FAILING finding, never a
+   * warning — so this follows settled precedent rather than deciding anew.
+   *
+   * Here rather than in the setter: `.expectEmpty(name)` may legally precede
+   * `.side(name, …)`, so the setter cannot know yet.
+   *
+   * A Set, not a concatenation: a name in BOTH sets produced two findings with
+   * identical element, message, file and line — the identity shape bugs 0064,
+   * 0065 and 0067 were filed for. And membership is tested against the side LIST
+   * rather than two name comparisons, so it cannot rot if arity ever changes.
+   */
+  private unboundDeclarationFindings(
+    sideA: Side,
+    sideB: Side,
+    meta: ViolationMeta,
+  ): ArchViolation[] {
+    const declaredNames = new Set([...this._expectEmptySides, ...this._distinctKeys])
+    return [...declaredNames]
+      .filter((n) => !this._sides.some((side) => side.name === n))
+      .map((name) => this.unboundSideViolation(name, meta, [sideA.name, sideB.name]))
+  }
 
-    // Non-vacuity (ADR-008 / proposal 014): an empty side certifies nothing, so
-    // it is the root cause — report it and skip the derived coverage flood.
-    // TWO lists, because only one of them makes the comparison meaningless.
-    //
-    // An empty side genuinely certifies nothing, so it is the root cause and the
-    // derived coverage flood is noise — that short-circuit stays.
-    //
-    // A side DECLARED empty that turned out full is the opposite: both sides have
-    // content, so the correspondence is perfectly computable and its findings are
-    // the ones the reader must act on. Returning here discarded them. Measured on
-    // a two-key side A against a one-key side B: 2 real
-    // `has no matching b` violations became 0 the moment side B was declared
-    // empty, leaving only the config finding. Same defect as
-    // `RuleBuilder.evaluate` (fixed alongside this) — and fixing that family
-    // alone would have been the "covers the families someone remembered" shape
-    // ADR-009 exists to name.
+  /**
+   * Findings about each side being empty, and about a declaration that says so
+   * while the side is not.
+   */
+  private emptinessFindings(p: Pairing): {
+    emptyFindings: ArchViolation[]
+    falseDeclarations: ArchViolation[]
+  } {
+    const { sideA, sideB, result, meta } = p
     const emptyFindings: ArchViolation[] = []
     const falseDeclarations: ArchViolation[] = []
     for (const [side, isEmpty] of [
@@ -491,13 +539,15 @@ export class CorrespondenceBuilder extends TerminalBuilder {
         falseDeclarations.push(this.unexpectedlyNonEmptyViolation(side.name, meta))
       }
     }
-    // Only a genuinely empty side stops the comparison.
-    if (emptyFindings.length > 0)
-      return {
-        violations: [...emptyFindings, ...falseDeclarations],
-        examined: this.examinedUnits(),
-      }
+    return { emptyFindings, falseDeclarations }
+  }
 
+  /**
+   * Findings from the correspondence itself — keys on one side with no partner
+   * on the other, in whichever directions the rule asked about.
+   */
+  private matchFindings(p: Pairing): ArchViolation[] {
+    const { sideA, sideB, aKeyed, bKeyed, result, meta } = p
     const violations: ArchViolation[] = []
 
     if (this._checkComplete) {
@@ -527,6 +577,16 @@ export class CorrespondenceBuilder extends TerminalBuilder {
 
     // Over-normalization guard (opt-in): one key from many subjects can mask a
     // real "two subjects, one counterpart" mismatch.
+    return violations
+  }
+
+  /**
+   * Findings for a side whose key function maps several distinct subjects onto
+   * one key — over-normalization can mask a real mismatch.
+   */
+  private duplicateKeyFindings(p: Pairing): ArchViolation[] {
+    const { sideA, sideB, aKeyed, bKeyed, meta } = p
+    const violations: ArchViolation[] = []
     for (const side of [sideA, sideB] as const) {
       if (!this._distinctKeys.has(side.name)) continue
       const keyed = side === sideA ? aKeyed : bKeyed
@@ -553,7 +613,7 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     // The false declaration FIRST — it says the configuration is wrong, which the
     // reader needs before the findings produced under it, matching the ordering
     // `RuleBuilder.evaluate` and the preset config findings already use.
-    return { violations: [...falseDeclarations, ...violations], examined: this.examinedUnits() }
+    return violations
   }
 
   private keyViolations(
