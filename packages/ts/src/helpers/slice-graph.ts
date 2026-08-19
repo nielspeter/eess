@@ -8,6 +8,7 @@ import { edgesOf, FORWARD_EDGE_KINDS } from '../core/module-edges.js'
  * An edge in the slice dependency graph.
  * Represents: a file in `from` depends on a file in `to`.
  */
+// eess-exclude eess/no-unused-exports: parameter/return type of the exported slice-graph APIs (must stay exported for declaration emit)
 export interface SliceEdge {
   from: string
   to: string
@@ -86,6 +87,7 @@ const EAGER_STATIC_KINDS: ReadonlySet<ModuleEdgeKind> = new Set<ModuleEdgeKind>(
  * Getting this backwards is a false positive on one side and a false negative on the
  * other, in the same release.
  */
+// eess-exclude eess/no-unused-exports: parameter type of the exported sliceGraph API (must stay exported for declaration emit)
 export type ErasureQuestion = 'module-request' | 'type-bindings'
 
 /**
@@ -222,6 +224,7 @@ function collectEdgesFromFile(
  * with. This also retires the older `options`-mismatch hazard the docstrings managed with
  * prose.
  */
+// eess-exclude eess/no-unused-exports: return type of the exported sliceGraph API (must stay exported for declaration emit)
 export interface SliceGraph {
   readonly edges: SliceEdge[]
   detailsFor(fromSliceName: string, toSliceName: string): SliceDependencySite[]

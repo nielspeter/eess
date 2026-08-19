@@ -6,6 +6,7 @@ import type { ImportDeclaration } from 'ts-morph'
  *
  * Non-empty by construction, and `[0]` is the primary — see `importCandidates`.
  */
+// eess-exclude eess/no-unused-exports: return type of the exported candidatesFor API (must stay exported for declaration emit)
 export type ImportCandidates = readonly [primary: string, ...alternates: string[]]
 
 /**

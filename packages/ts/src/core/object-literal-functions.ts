@@ -25,6 +25,7 @@ import type { PropertyAssignment, MethodDeclaration } from 'ts-morph'
  * A function found as a value in an object literal, with the property-key path
  * that reached it.
  */
+// eess-exclude eess/no-unused-exports: return-element type of the exported collectObjectLiteralFunctions API (must stay exported for declaration emit)
 export interface ObjectLiteralFunction {
   /** The function node: `ArrowFunction | FunctionExpression | MethodDeclaration`. */
   readonly node: Node

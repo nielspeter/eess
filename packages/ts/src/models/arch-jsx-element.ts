@@ -237,6 +237,7 @@ function buildAttributeAccessors(getAttrs: () => JsxAttributeLike[]) {
 /**
  * Create an ArchJsxElement from a JsxElement (has opening + closing tags).
  */
+// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
 export function fromJsxElement(el: JsxElement): ArchJsxElement {
   const opening = el.getOpeningElement()
   const tagName = opening.getTagNameNode().getText()
@@ -258,6 +259,7 @@ export function fromJsxElement(el: JsxElement): ArchJsxElement {
 /**
  * Create an ArchJsxElement from a JsxSelfClosingElement (no children).
  */
+// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
 export function fromJsxSelfClosingElement(el: JsxSelfClosingElement): ArchJsxElement {
   const tagName = el.getTagNameNode().getText()
   const htmlTag = isHtmlTag(tagName)

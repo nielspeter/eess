@@ -153,6 +153,7 @@ export function fromMethodDeclaration(method: MethodDeclaration): ArchFunction {
 /**
  * Options for {@link collectFunctions} / the `functions()` entry point.
  */
+// eess-exclude eess/no-unused-exports: options-parameter type of the exported collectFunctions API (must stay exported for declaration emit)
 export interface FunctionCollectionOptions {
   /** Include class methods (pattern 3). Default: `true`. */
   includeMethods?: boolean

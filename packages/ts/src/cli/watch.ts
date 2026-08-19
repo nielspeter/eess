@@ -3,6 +3,7 @@ import { isNullaryCallable } from '@nielspeter/eess'
 import path from 'node:path'
 import { isArchRuleError } from '@nielspeter/eess'
 
+// eess-exclude eess/no-unused-exports: parameter type of the exported watchAndRerun API (must stay exported for declaration emit)
 export interface WatchOptions {
   /** Directories to watch for changes */
   watchDirs: string[]
@@ -14,6 +15,7 @@ export interface WatchOptions {
   debounceMs?: number
 }
 
+// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
 export const TS_FILE_RE = /\.[cm]?tsx?$/
 
 /**
@@ -22,6 +24,7 @@ export const TS_FILE_RE = /\.[cm]?tsx?$/
  * Debounces rapid triggers. If a trigger arrives while the callback
  * is running, it queues a re-run after the current run completes.
  */
+// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
 export class RunScheduler {
   private debounceTimer: ReturnType<typeof setTimeout> | undefined
   private running = false

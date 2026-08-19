@@ -2,6 +2,7 @@ import { isDescribable } from '@nielspeter/eess'
 import type { RuleDescription } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 
+// eess-exclude eess/no-unused-exports: parameter type of the exported runExplain API (must stay exported for declaration emit)
 export interface ExplainArgs {
   ruleFiles: string[]
   markdown?: boolean

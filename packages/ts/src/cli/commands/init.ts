@@ -14,6 +14,7 @@ type InitPreset = (typeof VALID_PRESETS)[number]
 
 const VALID_PRESET_SET: ReadonlySet<string> = new Set(VALID_PRESETS)
 
+// eess-exclude eess/no-unused-exports: parameter type of the exported runInit API (must stay exported for declaration emit)
 export interface InitArgs {
   /** Directory to scaffold into. Defaults to `process.cwd()`. */
   cwd?: string

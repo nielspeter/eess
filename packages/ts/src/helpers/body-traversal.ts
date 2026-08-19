@@ -24,6 +24,7 @@ export interface ModuleBodyOptions {
 /**
  * Result of searching a body for matcher hits.
  */
+// eess-exclude eess/no-unused-exports: return type of the exported searchClassBody/searchFunctionBody APIs (must stay exported for declaration emit)
 export interface MatchResult {
   /** Whether at least one match was found */
   found: boolean
@@ -41,6 +42,7 @@ export interface MatchResult {
 }
 
 /** One match: the node to report on, and which comment it is about. */
+// eess-exclude eess/no-unused-exports: return type of the exported findMatchesInNode API (must stay exported for declaration emit)
 export interface Match {
   readonly node: Node
   readonly triviaPos?: number

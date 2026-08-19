@@ -80,6 +80,7 @@ interface ParsedArgs {
   positionals: string[]
 }
 
+// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
 export function parseCliArgs(args: string[]): ParsedArgs {
   return parseArgs({
     args,

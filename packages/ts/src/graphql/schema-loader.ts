@@ -252,6 +252,7 @@ export function isGraphQLAvailable(): boolean {
  * intermittently under full-suite load. This seam replaces only this
  * module's own loading step — nothing shared with any other file to race on.
  */
+// eess-exclude eess/no-unused-exports: test-only seam, consumed by tests/graphql/schema-loader-require-errors.test.ts
 export function setGraphQLLoaderForTests(loader: () => GraphQLPackage): void {
   loadGraphQL = loader
 }
@@ -260,6 +261,7 @@ export function setGraphQLLoaderForTests(loader: () => GraphQLPackage): void {
  * Restore the real loader and clear the cached package. **Tests only** — see
  * {@link setGraphQLLoaderForTests}.
  */
+// eess-exclude eess/no-unused-exports: test-only seam, consumed by tests/graphql/schema-loader-require-errors.test.ts
 export function resetGraphQLLoaderForTests(): void {
   loadGraphQL = defaultLoadGraphQL
   cachedGraphQL = undefined

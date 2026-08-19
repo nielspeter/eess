@@ -132,6 +132,7 @@ export class CrossLayerBuilder {
  * Intermediate builder after `.mapping()` has been called.
  * The layers are resolved and pairs computed.
  */
+// eess-exclude eess/no-unused-exports: return type of the exported CrossLayerBuilder.mapping() fluent-chain method (must stay exported for declaration emit)
 export class MappedCrossLayerBuilder {
   constructor(
     private readonly layers: Layer[],
@@ -150,6 +151,7 @@ export class MappedCrossLayerBuilder {
 /**
  * Builder after `.forEachPair()` — attach a pair condition via `.should()`.
  */
+// eess-exclude eess/no-unused-exports: return type of the exported MappedCrossLayerBuilder.forEachPair() fluent-chain method (must stay exported for declaration emit)
 export class PairConditionBuilder {
   constructor(
     private readonly layers: Layer[],
@@ -168,6 +170,7 @@ export class PairConditionBuilder {
 /**
  * Terminal builder — call `.check()`, `.warn()`, or `.because()`.
  */
+// eess-exclude eess/no-unused-exports: return type of the exported PairConditionBuilder.should() fluent-chain method (must stay exported for declaration emit)
 export class PairFinalBuilder extends TerminalBuilder {
   /**
    * @param project - Optional so the constructor stays source-compatible; the
