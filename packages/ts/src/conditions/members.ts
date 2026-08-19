@@ -58,6 +58,14 @@ function isPropertyReadonly(prop: TsSymbol): boolean {
   //   Readonly<{a: string}>.a → decl.isReadonly() = false, but
   //   compilerSymbol.links.checkFlags & 8 = 8 (readonly)
   //
+  // Two directives, because two rule FILES declare this check under different
+  // ids: `arch-rules.test.ts` calls it `adr005/no-as-cast-module` and
+  // `arch.internal.rules.ts` calls it `eess/adr005-no-type-assertions` — the id
+  // ADR-005's own Enforcement table cites as gated. A waiver names one rule, so
+  // covering both takes both (the convention plan 0147 recorded).
+  // eess-exclude-start eess/adr005-no-type-assertions: reads ts-morph's private
+  // `compilerSymbol.links.checkFlags`, which has no public typed path — the
+  // unavoidable JS-interop boundary ADR-005 allows.
   // eess-exclude-start adr005/no-as-cast-module: reads ts-morph's private
   // `compilerSymbol.links.checkFlags`, which has no public typed path — the
   // unavoidable JS-interop boundary ADR-005 allows. Waived in place rather than by
@@ -70,6 +78,7 @@ function isPropertyReadonly(prop: TsSymbol): boolean {
     }
   }
   // eess-exclude-end adr005/no-as-cast-module
+  // eess-exclude-end eess/adr005-no-type-assertions
 
   // Conservative: treat as mutable if neither strategy detected readonly.
   return false

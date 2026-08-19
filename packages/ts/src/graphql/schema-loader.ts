@@ -87,8 +87,15 @@ function defaultLoadGraphQL(): GraphQLPackage {
   // allows. The `catch` below is the real guard: a missing or malformed
   // `graphql` throws with an install instruction rather than failing later on a
   // property access (bug 0049).
+  // Both ids: the two rule files declare this check under different names, and a
+  // waiver names one rule (see `conditions/members.ts` for the full note). One of
+  // them has to be the BLOCK form — a single-line directive covers exactly the
+  // next line, so stacking two left the first one waiving the second's comment
+  // rather than the cast (measured: the finding survived both directives).
+  // eess-exclude-start eess/adr005-no-type-assertions: optional peer dep, no typed path
   // eess-exclude adr005/no-as-cast-module: optional peer dep, no typed path
   return esmRequire('graphql') as GraphQLPackage
+  // eess-exclude-end eess/adr005-no-type-assertions
 }
 
 let loadGraphQL: () => GraphQLPackage = defaultLoadGraphQL
