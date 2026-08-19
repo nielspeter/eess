@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — fix built and measured; ready to close with this PR.
+- **State:** Draft — **the symptom below is confirmed; the fix prescribed below was
+  built, reviewed, measured wrong, and reverted.** See the correction at the end.
 - **Found:** 2026-08-19, auditing the code-quality rules eess ships.
 
 ## Symptom
@@ -82,35 +83,19 @@ detector, not a gate, and that is the right weight for it.
 
 ## Verification
 
-- [x] Red first: two structurally isomorphic bodies with disjoint call targets
-      score below the default threshold — failing before the fix. Confirmed red
-      (scored 1.000), then green — `fingerprint.test.ts` ·
-      `it('scores two isomorphic bodies low when they call nothing in common')`.
-- [x] A renamed-variable clone (same calls, different identifiers) still scores
-      above the threshold, so the fix does not disarm type-2 clone detection —
-      `it('still scores a renamed-variable clone as a duplicate')`, scores 1.0.
-- [x] The existing `fingerprint.test.ts` pins still hold: near-clone > 0.75,
-      unrelated < 0.5, self-comparison exactly 1.0, empty-pair cases unchanged.
-      All 11 pass; the near-clone fixture pair has identical call sets, so the
-      second axis does not move it (0.927).
-- [x] `npm run validate` — no new failures (39 before, 39 after — all
-      pre-existing), every `check:*` gate, typecheck, lint and format green, and
-      `check:nonvacuity` still reds when the detector is emptied.
-
-## Outcome, measured
-
-218 findings on this repo's own source become **70**, and every pair in the
-symptom table above is gone. What remains is dominated by the genuine
-kernel/dialect duplication plan 0165 created — `assertHomogeneous`,
-`parseRuleIdsAndReason`, `isExcludedByComment`, `viewsFor`, `validateOverrides`,
-`RuleBuilder.select` — the same function present in both `packages/core/src`
-and `packages/ts/src`.
-
-`min` was chosen over a product and a geometric mean by measurement, not taste:
-a product loses `and`~`and` across the kernel/dialect split (0.775, under the
-default), and a geometric mean keeps `haveStereotype`~`notHaveStereotype` at
-0.855, over it. Normalising call targets to their trailing member name was also
-measured and rejected — it returns that same negation pair to 0.974.
+- [ ] Red first: two structurally isomorphic bodies with disjoint call targets
+      score below the default threshold.
+- [ ] `classContain` ~ `functionContain` — the pair `dogfood.test.ts:225` pins as
+      the motivating genuine duplicate — is still reported.
+- [ ] `watchAndRerun` (`packages/ts/src/cli/watch.ts` ~ `packages/mermaid/src/cli/watch.ts`),
+      a literal copy-paste differing in two tokens, is still reported.
+- [ ] A renamed-variable clone whose renamed variable IS a call receiver is still
+      reported. The first attempt's guard used only bare-function calls, which
+      made it a tautology (see the correction).
+- [ ] Fixtures pin the rejected alternatives — product, arithmetic mean,
+      last-segment normalisation — so a later refactor to any of them goes red.
+- [ ] `npm run validate` — no new failures, measured with an instrument that can
+      see file-level collection failures (see the correction).
 
 ## Out of scope
 
@@ -118,3 +103,60 @@ Whether `duplicateBodies` should ship at all, and the wider question of which of
 eess's ported code-quality heuristics earn their place. Related but separate:
 [bug 0167](./0167-method-size-rules-can-only-be-excluded-by-class.md) and
 [bug 0168](./0168-no-unused-exports-misses-barrel-re-exports-and-inline-type-imports.md).
+
+## Correction, 2026-08-19 — the first fix was wrong and is reverted
+
+Commit `09cab55` weighted the structural score by call-target overlap
+(`Math.min(structural, callOverlap)`). Six reviewers ran against it and three
+findings killed it. Reverted in full; the symptom above stands unfixed.
+
+**It broke this repo's own guard for the opposite direction.**
+`packages/ts/tests/archunit/dogfood.test.ts:225` pins `classContain` ~
+`functionContain` as "the motivating genuine duplicate — must survive". Measured
+under the reverted fix:
+
+```
+structural  = 0.962
+callsA = ["searchClassBody","violations.push","createViolation","getElementName"]
+callsB = ["searchFunctionBody","violations.push","createFunctionViolation","fn.getName"]
+callOverlap = 0.250   ->  min() = 0.250, below the 0.85 default: NOT REPORTED
+```
+
+Review measured 128 pairs lost in total, eleven of them cross-package — including
+`watchAndRerun` (`ts` ~ `mermaid`) at 98% structural, which differs in two tokens
+and is precisely the kernel-extraction target plan 0165 is chasing.
+
+**The root cause is in `buildFingerprint`, not in the scoring.**
+`Fingerprint.calls` is documented as "**Normalized** call targets" and nothing
+normalises: `fingerprint.ts` pushes `node.getExpression().getText()`, the raw
+source text of the callee. For an IIFE — `(async () => { … })()` — the callee IS
+the arrow, so an entire multi-line function body is stored as one "call target".
+Comparing those texts gave the second axis veto power over a score whose whole
+purpose is text-immunity, so one identifier rename could cost two matches.
+
+**The guard test could not fail.** `it('still scores a renamed-variable clone as
+a duplicate')` renamed only variables that are never call receivers, so both
+bodies called `lookupUser`/`buildWelcome`/`sendEmail` byte-for-byte,
+`callOverlap` was 1.0 by construction, and `min` could never bite. It stayed
+green under a full revert — a test written to catch an over-correction that was
+structurally incapable of catching it.
+
+**And the verification that cleared it was blind.** "No new test failures" was
+measured by diffing failing-test _names_ out of vitest's `assertionResults`.
+`dogfood.test.ts` and `arch-rules.test.ts` fail at COLLECTION in this tree —
+they call `project('tsconfig.json')` and no root `tsconfig.json` exists — so they
+emit zero assertion results and were invisible to that instrument in both runs.
+A same-named test failing for a new reason was invisible to it too.
+
+### What a real fix has to do
+
+- Resolve callees to something stable before comparing — a symbol, or at minimum
+  the callee's own identifier rather than the full expression text — so an IIFE
+  body never becomes a "target".
+- Not let the second axis veto a strong structural match outright. A floor, or
+  normalising the overlap by the smaller call set, keeps `classContain` ~
+  `functionContain` while still rejecting `check` ~ `warn` (0.5 overlap at 1.0
+  structural). Both must be measured against the named pairs, not argued.
+- Carry fixtures for every rejected alternative. The reverted version argued for
+  `min` over product and mean in its docstring, citing exact numbers, with no
+  test pinning any of them — all three sabotages stayed green.

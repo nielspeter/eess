@@ -1271,7 +1271,9 @@ it('VACUITY: the orphan check really reads our directives', () => {
   // Every rule id that carries a waiver anywhere in src/, asserted exactly — so a
   // FOURTH rule gaining waivers cannot slip in unasserted the way
   // `eess/no-silent-catch` briefly did (plan 0165: seven directives added, and
-  // this row stayed green because it only knew two ids).
+  // this row stayed green because it only knew two ids). Those waivers are gone
+  // again — bug 0169's branch handled the catches instead — and this row went
+  // red on their removal, which is the guard working in the other direction.
   const waivedRuleIds = [
     ...new Set(
       readdirRecursive(path.resolve('src'))
@@ -1290,20 +1292,10 @@ it('VACUITY: the orphan check really reads our directives', () => {
     'adr005/no-as-cast-module',
     'eess/adr005-no-type-assertions',
     'eess/max-parameters',
-    'eess/no-silent-catch',
     'eess/no-unused-exports',
-    'preset/recommended/no-silent-catch',
   ])
 
   expect(waiverFiles('eess/max-parameters')).toEqual(['helpers/baseline.ts'])
-
-  expect(waiverFiles('eess/no-silent-catch')).toEqual([
-    'cli/commands/init.ts',
-    'conditions/reverse-dependency.ts',
-    'core/disk-set.ts',
-    'core/execute-rule.ts',
-    'graphql/schema-loader.ts',
-  ])
 
   expect(waiverFiles('adr005/no-as-cast-module')).toEqual([
     'conditions/members.ts',
@@ -1311,39 +1303,18 @@ it('VACUITY: the orphan check really reads our directives', () => {
   ])
   expect(waiverFiles('eess/no-unused-exports')).toEqual([
     'builders/cross-layer-builder.ts',
-    'cli/commands/baseline.ts',
-    'cli/commands/check.ts',
-    'cli/commands/doctor.ts',
-    'cli/commands/explain.ts',
-    'cli/commands/init.ts',
     'cli/index.ts',
-    'cli/load-rules.ts',
     'cli/rule-file-findings.ts',
     'cli/watch.ts',
-    'conditions/catch-analysis.ts',
-    'conditions/match-identity.ts',
     'core/disk-set.ts',
-    'core/element-cache.ts',
-    'core/execute-rule.ts',
-    'core/glob-diagnosis.ts',
     'core/import-candidates.ts',
     'core/object-literal-functions.ts',
-    'core/orphan-exclusions.ts',
     'core/terminal-builder.ts',
     'graphql/schema-loader.ts',
     'helpers/baseline.ts',
-    'helpers/body-traversal.ts',
     'helpers/matchers.ts',
-    'helpers/slice-graph.ts',
-    'models/arch-call.ts',
     'models/arch-function.ts',
     'models/arch-jsx-element.ts',
-    'presets/agent-guardrails.ts',
-    'presets/boundaries.ts',
-    'presets/data-layer.ts',
-    'presets/layered.ts',
-    'presets/recommended.ts',
-    'tsconfig/strict-family.ts',
   ])
 })
 

@@ -132,7 +132,14 @@ export class CrossLayerBuilder {
  * Intermediate builder after `.mapping()` has been called.
  * The layers are resolved and pairs computed.
  */
-class MappedCrossLayerBuilder {
+// A fluent-chain intermediate: nothing imports it by name, but it is the declared
+// return type of an exported method, and `arch-rules.test.ts` ·
+// `it('builders must be exported')` requires every class under `src/builders/` to be
+// exported — "unexported builders are unreachable". The two rules genuinely disagree
+// here; this resolves toward the explicit, reasoned one. The directive sits LAST because
+// a single-line waiver covers exactly the next line.
+// eess-exclude eess/no-unused-exports: fluent-chain intermediate, exported per the rule above
+export class MappedCrossLayerBuilder {
   constructor(
     private readonly layers: Layer[],
     private readonly pairs: LayerPair[],
@@ -150,7 +157,14 @@ class MappedCrossLayerBuilder {
 /**
  * Builder after `.forEachPair()` — attach a pair condition via `.should()`.
  */
-class PairConditionBuilder {
+// A fluent-chain intermediate: nothing imports it by name, but it is the declared
+// return type of an exported method, and `arch-rules.test.ts` ·
+// `it('builders must be exported')` requires every class under `src/builders/` to be
+// exported — "unexported builders are unreachable". The two rules genuinely disagree
+// here; this resolves toward the explicit, reasoned one. The directive sits LAST because
+// a single-line waiver covers exactly the next line.
+// eess-exclude eess/no-unused-exports: fluent-chain intermediate, exported per the rule above
+export class PairConditionBuilder {
   constructor(
     private readonly layers: Layer[],
     private readonly pairs: LayerPair[],
@@ -168,7 +182,14 @@ class PairConditionBuilder {
 /**
  * Terminal builder — call `.check()`, `.warn()`, or `.because()`.
  */
-class PairFinalBuilder extends TerminalBuilder {
+// A fluent-chain intermediate: nothing imports it by name, but it is the declared
+// return type of an exported method, and `arch-rules.test.ts` ·
+// `it('builders must be exported')` requires every class under `src/builders/` to be
+// exported — "unexported builders are unreachable". The two rules genuinely disagree
+// here; this resolves toward the explicit, reasoned one. The directive sits LAST because
+// a single-line waiver covers exactly the next line.
+// eess-exclude eess/no-unused-exports: fluent-chain intermediate, exported per the rule above
+export class PairFinalBuilder extends TerminalBuilder {
   /**
    * @param project - Optional so the constructor stays source-compatible; the
    *   chain always supplies it. Without it `doctor` cannot check this rule's
