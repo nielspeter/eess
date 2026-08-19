@@ -250,9 +250,8 @@ function findUnusedExportsInFile(sf: SourceFile, context: ConditionContext): Arc
 
   for (const [name, declarations] of exportMap) {
     if (name === 'default') continue
-    if (declarations.length === 0) continue
-
-    const firstDecl = declarations[0]!
+    const [firstDecl] = declarations
+    if (firstDecl === undefined) continue
     if (!hasExternalReference(firstDecl, sf)) {
       const line = Node.isNode(firstDecl) ? firstDecl.getStartLineNumber() : 1
       violations.push({

@@ -18,6 +18,28 @@ export type AdjacencyList = Map<number, number[]>
  * @param edges - Adjacency list: node index -> list of neighbor indices
  * @returns Array of strongly connected components (size > 1)
  */
+/**
+ * Read an index that the algorithm guarantees is in range.
+ *
+ * `noUncheckedIndexedAccess` types every element access as `T | undefined`, and
+ * the original code answered that with `!` — which ADR-005 bars, and which turns
+ * a genuinely impossible state into silence if it ever stops being impossible.
+ * A named accessor narrows for real and fails LOUDLY instead: every index here
+ * comes from `edges`, so an out-of-range one means the caller's adjacency list
+ * disagrees with `nodeCount`, which is worth an error rather than a `-1` that
+ * reads as "unvisited" and quietly changes the result.
+ */
+function at(values: readonly number[], i: number, what: string): number {
+  const value = values[i]
+  if (value === undefined) {
+    throw new RangeError(
+      `tarjanSCC: ${what}[${String(i)}] is outside the graph (${String(values.length)} nodes) — ` +
+        'the adjacency list names a node that nodeCount does not cover.',
+    )
+  }
+  return value
+}
+
 export function tarjanSCC(nodeCount: number, edges: AdjacencyList): number[][] {
   const index = new Array<number>(nodeCount).fill(-1)
   const lowlink = new Array<number>(nodeCount).fill(-1)
@@ -38,12 +60,10 @@ export function tarjanSCC(nodeCount: number, edges: AdjacencyList): number[][] {
       if (index[w] === -1) {
         // w has not been visited
         strongConnect(w)
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        lowlink[v] = Math.min(lowlink[v]!, lowlink[w]!)
+        lowlink[v] = Math.min(at(lowlink, v, 'lowlink'), at(lowlink, w, 'lowlink'))
       } else if (onStack[w]) {
         // w is on the stack, so it's in the current SCC
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-        lowlink[v] = Math.min(lowlink[v]!, index[w]!)
+        lowlink[v] = Math.min(at(lowlink, v, 'lowlink'), at(index, w, 'index'))
       }
     }
 
@@ -52,7 +72,9 @@ export function tarjanSCC(nodeCount: number, edges: AdjacencyList): number[][] {
       const scc: number[] = []
       let w: number
       do {
-        w = stack.pop()!
+        const popped = stack.pop()
+        if (popped === undefined) break
+        w = popped
         onStack[w] = false
         scc.push(w)
       } while (w !== v)

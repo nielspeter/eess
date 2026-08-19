@@ -248,11 +248,19 @@ export class CorrespondenceBuilder extends TerminalBuilder {
    * whole thing twice.
    */
   private materializedSides(a: Side, b: Side): [Map<string, unknown[]>, Map<string, unknown[]>] {
-    // `!` rather than a `?? new Map()` fallback: the compute always returns two
-    // entries, so the fallback could never fire — and a branch that cannot fire
-    // is the shape this whole programme is about, even when it is only types.
+    // Narrowed, not asserted (ADR-005). A `?? new Map()` fallback would be worse
+    // than the `!` this replaced — the compute always returns two entries, so the
+    // fallback could never fire, and a branch that cannot fire is the shape this
+    // whole programme is about even when it is only types. Throwing says the same
+    // thing without lying about it.
     const pair = sidesOf(this, () => [a.materialize(), b.materialize()])
-    return [pair[0]!, pair[1]!]
+    const [first, second] = pair
+    if (first === undefined || second === undefined) {
+      throw new RangeError(
+        `correspondence(): the memoized side pair held ${String(pair.length)} entries, not 2.`,
+      )
+    }
+    return [first, second]
   }
 
   /**
@@ -282,8 +290,11 @@ export class CorrespondenceBuilder extends TerminalBuilder {
    * Both materialized sides, summed — zero until two sides are declared, which is itself the evidence that nothing was compared.
    */
   examinedUnits(): number {
-    if (this._sides.length < 2) return 0
-    const [a, b] = this.materializedSides(this._sides[0]!, this._sides[1]!)
+    const [first, second] = this._sides
+    // Zero is the honest answer for an under-declared correspondence: nothing was
+    // compared, and ADR-010 wants that visible rather than defaulted away.
+    if (first === undefined || second === undefined) return 0
+    const [a, b] = this.materializedSides(first, second)
     return a.size + b.size
   }
 
@@ -385,7 +396,8 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     // named error rather than an undefined read. Do not treat it as the answer
     // to "what happens with the wrong number of sides": the loud answer is the
     // gate, and if this ever throws again through a terminal, the gate is gone.
-    if (this._sides.length !== 2) {
+    const [sideA, sideB] = this._sides
+    if (this._sides.length !== 2 || sideA === undefined || sideB === undefined) {
       throw new RangeError(
         `correspondence() requires exactly two .side(...) calls; got ${String(this._sides.length)}.`,
       )
@@ -396,9 +408,6 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     // escaped the CLI's `ArchRuleError`-only catch and dropped every remaining
     // rule file. The sides-count check below stays: wrong arity is a different
     // fault from a missing assertion, and its remedy is another `.side(...)`.
-
-    const sideA = this._sides[0]!
-    const sideB = this._sides[1]!
 
     const meta: ViolationMeta = {
       rule: `correspondence [${sideA.name} <-> ${sideB.name}]`,

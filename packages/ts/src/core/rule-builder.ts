@@ -451,10 +451,11 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
     // For zero or multiple (`and`-joined) conditions, negating the joined string
     // would mis-handle mixed polarity ("not X and not Y"), so fall back to the
     // plain, always-correct rule description.
-    if (this._conditions.length !== 1) {
+    const [only] = this._conditions
+    if (this._conditions.length !== 1 || only === undefined) {
       return this.buildRuleDescription() || 'Follow the architecture rule.'
     }
-    const cond = this._conditions[0]!.description
+    const cond = only.description
     const isNegative = /^(not|no)\b/i.test(cond)
     const body = cond.replace(/^(not|no)\s+/i, '')
     const scope = this._predicates.map((p) => p.description).join(' and ')

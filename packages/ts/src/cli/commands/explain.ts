@@ -97,7 +97,8 @@ function outputAgent(descriptions: RuleDescription[]): void {
 }
 
 function titleCase(s: string): string {
-  return s.length === 0 ? s : s[0]!.toUpperCase() + s.slice(1)
+  const [first] = s
+  return first === undefined ? s : first.toUpperCase() + s.slice(1)
 }
 
 function outputJson(descriptions: RuleDescription[]): void {

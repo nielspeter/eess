@@ -1170,12 +1170,16 @@ afterAll(() => {
  * Only the id matters; `orphanExclusions` reads `getProject()` separately and
  * `BUILT` already supplies the project.
  */
-function internalRuleIds(): { describeRule: () => { id: string } }[] {
+function internalRuleIds(): DiagnosableRule[] {
   const src = fs.readFileSync(path.resolve('../../arch.internal.rules.ts'), 'utf-8')
   const ids = [...src.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1] ?? '')
   // A floor, so a broken read cannot quietly re-create the false positive it fixes.
   expect(ids.length).toBeGreaterThan(10)
-  return ids.map((id) => ({ describeRule: () => ({ id }) }))
+  // `violations` is part of `DiagnosableRule` but `orphanExclusions` never calls
+  // it on these — it reads `describeRule()` for the id and `getProject()` for the
+  // scan, and `BUILT` supplies the project. An empty stub keeps the stand-in
+  // honest about contributing no findings of its own.
+  return ids.map((id) => ({ describeRule: () => ({ rule: id, id }), violations: () => [] }))
 }
 
 afterAll(() => {
