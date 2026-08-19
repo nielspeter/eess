@@ -1,4 +1,4 @@
-import { SyntaxKind } from 'ts-morph'
+import { Node, SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
@@ -66,6 +66,13 @@ export function noPublicFields(): Condition<ClassDeclaration> {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
         for (const prop of cls.getProperties()) {
+          // An ECMAScript `#private` field FIRST, because `getScope()` cannot see
+          // it: `#name` carries no TypeScript accessibility modifier, so the scope
+          // reads `'public'` and the field was reported. That is a false positive
+          // whose remedy — "use private + getter/setter" — is strictly backwards:
+          // `#` is private at RUNTIME, while `private` is erased at compile time.
+          // Measured on `ArchRuleError.#violations` (plan 0165).
+          if (Node.isPrivateIdentifier(prop.getNameNode())) continue
           const scope = prop.getScope()
           if (scope !== undefined && String(scope) !== 'public') continue
           // Allow static readonly (constants)

@@ -64,6 +64,16 @@ describe('requireJsDocOnPublicMethods', () => {
 })
 
 describe('noPublicFields', () => {
+  it('does NOT flag an ECMAScript #private field, mutable or not', () => {
+    // `#name` has no TypeScript accessibility modifier, so `getScope()` answers
+    // `'public'` for it. Reporting it is a false positive of the worst shape: the
+    // remedy says "use private" about a field that is hard-private at RUNTIME,
+    // where `private` is only erased type information. Measured on
+    // `ArchRuleError.#violations` and `RunScheduler.#runCount` (plan 0165).
+    const cls = getClass('HardPrivateFields')
+    expect(noPublicFields().evaluate([cls], ctx)).toEqual([])
+  })
+
   it('flags public mutable fields', () => {
     const cls = getClass('BadQualityService')
     const condition = noPublicFields()

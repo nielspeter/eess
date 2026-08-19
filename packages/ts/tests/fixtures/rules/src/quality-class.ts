@@ -52,3 +52,21 @@ export class WellDocumentedService {
     return this.data
   }
 }
+
+/**
+ * ECMAScript hard-private fields — `#name`, not the erasable `private` modifier.
+ *
+ * `getScope()` reports these as `'public'` because they carry no TypeScript
+ * accessibility modifier at all, which made `noPublicFields` tell an author to
+ * "use private" about a field that is already more private than the modifier
+ * version (plan 0165).
+ */
+export class HardPrivateFields {
+  readonly #frozen: string = 'x'
+  #mutable = 1
+
+  /** Reads both, so neither is dead. */
+  read(): string {
+    return this.#frozen + String(this.#mutable)
+  }
+}
