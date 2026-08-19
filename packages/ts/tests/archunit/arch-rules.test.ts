@@ -1253,6 +1253,35 @@ it('VACUITY: the orphan check really reads our directives', () => {
       .map((f) => path.relative(path.resolve('src'), f).replaceAll('\\', '/'))
       .sort()
 
+  // Every rule id that carries a waiver anywhere in src/, asserted exactly — so a
+  // FOURTH rule gaining waivers cannot slip in unasserted the way
+  // `eess/no-silent-catch` briefly did (plan 0165: seven directives added, and
+  // this row stayed green because it only knew two ids).
+  const waivedRuleIds = [
+    ...new Set(
+      readdirRecursive(path.resolve('src'))
+        .filter((f) => f.endsWith('.ts'))
+        .flatMap((f) =>
+          [
+            ...fs.readFileSync(f, 'utf-8').matchAll(/^\s*\/\/ eess-exclude(?:-start)? (\S+):/gm),
+          ].map((m) => m[1] ?? ''),
+        ),
+    ),
+  ].sort()
+  expect(waivedRuleIds).toEqual([
+    'adr005/no-as-cast-module',
+    'eess/no-silent-catch',
+    'eess/no-unused-exports',
+  ])
+
+  expect(waiverFiles('eess/no-silent-catch')).toEqual([
+    'cli/commands/init.ts',
+    'conditions/reverse-dependency.ts',
+    'core/disk-set.ts',
+    'core/execute-rule.ts',
+    'graphql/schema-loader.ts',
+  ])
+
   expect(waiverFiles('adr005/no-as-cast-module')).toEqual([
     'conditions/members.ts',
     'graphql/schema-loader.ts',
