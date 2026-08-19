@@ -537,22 +537,32 @@ export function assertionLessViolation(ruleId: string, advice?: string): ArchVio
     advice ??
     'Add a condition after .should() (a predicate-only method such as ' +
       'areExported/areAsync filters elements, it does not assert), or delete the rule.'
+  // `message` is the diagnosis; `suggestion` is the remedy. Keeping them
+  // DISTINCT matters: `remedyRepeatsMessage()` suppresses a `Fix:` line only
+  // when it is byte-identical to `What:`, so folding the remedy into both
+  // printed the whole thing twice — plan 0147's double-print, which an earlier
+  // draft of this function reintroduced by appending UNSUPPRESSABLE to a
+  // suggestion that already repeated the message.
   const message =
     `Rule '${ruleId}' selects subjects but asserts nothing about them, so it ` +
-    `cannot fail and certifies nothing. ${remedy}`
+    `cannot fail and certifies nothing.`
   return {
     rule: ruleId,
     element: ruleId,
     file: '',
     line: 0,
     message,
-    // `UNSUPPRESSABLE` on the remedy: this is the finding a reader is most
-    // likely to disagree with — the message says their rule is broken and
-    // their belief is that it is not — so it is the one where they will reach
-    // for `.asSeverity('warn')`, `.excluding()`, the baseline and `--changed`
-    // in turn, several CI cycles, because nothing said those were refused.
-    suggestion: `${message} ${UNSUPPRESSABLE}`,
-    identity: `assertion-less::${ruleId}`,
+    // The `.expectNonEmpty()` carve-out is named ON PURPOSE. It satisfies this
+    // gate (a declared emptiness expectation IS an assertion), so an agent
+    // told "add a condition, or delete the rule" and liking neither will find
+    // that one token clears the finding — and on a non-empty corpus
+    // `.expectNonEmpty()` asserts nothing further. ADR-009 rule 3: a marker an
+    // agent can stamp to go green is worse than no marker unless the cost is
+    // stated, so state it here rather than let it be discovered.
+    suggestion:
+      `${remedy} (\`.expectNonEmpty()\` also satisfies this gate, but asserts ` +
+      `only that the corpus is non-empty — it is not a substitute for the ` +
+      `condition you meant.) ${UNSUPPRESSABLE}`,
     bypassFilters: true,
   }
 }

@@ -39,6 +39,13 @@ const realTsconfig = join(
   repoRoot,
   'packages/ts/tests/fixtures/vacuity/tsconfig.json',
 )
+// The non-empty corpus the assertion-less probe needs (bug 0155). Same reason
+// as above: the mutated copy runs from scripts/nonvacuity/, so its own
+// repoRoot-relative default would resolve to the wrong path.
+const realNonEmptyTsconfig = join(
+  repoRoot,
+  'packages/ts/tests/fixtures/vacuity-nonempty/tsconfig.json',
+)
 
 const source = readFileSync(realScript, 'utf8')
 const marker = 'const KNOWN_FAIL_OPEN = ['
@@ -100,7 +107,11 @@ try {
   const r = spawnSync(process.execPath, [mutatedScript], {
     cwd: repoRoot,
     encoding: 'utf8',
-    env: { ...process.env, VACUITY_TSCONFIG_OVERRIDE: realTsconfig },
+    env: {
+      ...process.env,
+      VACUITY_TSCONFIG_OVERRIDE: realTsconfig,
+      VACUITY_NONEMPTY_TSCONFIG_OVERRIDE: realNonEmptyTsconfig,
+    },
   })
   const out = `${r.stdout ?? ''}${r.stderr ?? ''}`
 

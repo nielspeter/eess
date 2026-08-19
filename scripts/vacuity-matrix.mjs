@@ -156,6 +156,19 @@ console.error(
 
 const zeroFileProject = project(VACUITY_TSCONFIG)
 
+/**
+ * A NON-EMPTY project — bug 0155's second derivation.
+ *
+ * Every probe above runs bare over `zeroFileProject`, so each short-circuits
+ * at `sourceEmpty` and never reaches the assertion-less gate, which fires only
+ * when subjects were actually selected. Probing it needs a corpus with
+ * something in it; otherwise that gate's only guard is its own unit-test file.
+ */
+const nonEmptyProject = project(
+  process.env.VACUITY_NONEMPTY_TSCONFIG_OVERRIDE ??
+    path.join(repoRoot, 'packages/ts/tests/fixtures/vacuity-nonempty/tsconfig.json'),
+)
+
 /** Builder factories: call → get a TerminalBuilder-shaped value → `.check()` bare. */
 const BUILDER_PROBES = {
   'classes()': () => tsRoot.classes(zeroFileProject),
@@ -168,6 +181,11 @@ const BUILDER_PROBES = {
   'resolvers()': () => tsGraphql.resolvers(zeroFileProject, 'src/**/*.resolver.ts'),
   'schema()': () => tsGraphql.schema(zeroFileProject, 'src/**/*.graphql'),
   'schemaFromSDL()': () => tsGraphql.schemaFromSDL('type Query { x: String }'),
+  // Bug 0155 — reaches the assertion-less gate, which every zero-file probe
+  // above short-circuits past. Bare `.should()` over a corpus that HAS
+  // subjects: the rule selects something and asserts nothing.
+  'classes() bare .should() over a non-empty corpus': () =>
+    tsRoot.classes(nonEmptyProject).that().haveNameEndingWith('Subject').should(),
 }
 
 /** Presets: call bare with the minimal required options → they run+report internally. */

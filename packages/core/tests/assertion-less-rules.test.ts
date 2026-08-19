@@ -149,6 +149,63 @@ describe('an assertion-less rule fails (bug 0155)', () => {
     expect(violations[0]?.message).toContain('expectEmpty')
   })
 
+  it('the remedy is DISTINCT from the message, so it is not printed twice', () => {
+    // Plan 0147's double-print. `remedyRepeatsMessage()` suppresses the `Fix:`
+    // line only when it is byte-identical to `What:`; a suggestion that
+    // *contains* the message renders the whole thing twice. An earlier draft
+    // of this fix did exactly that by appending UNSUPPRESSABLE to a suggestion
+    // that already repeated the message.
+    const [v] = new WidgetRules(project).that().named('alpha').should().violations()
+    expect(v?.suggestion).toBeDefined()
+    expect(v?.suggestion).not.toContain(v?.message ?? '__never__')
+  })
+
+  it('the remedy names the .expectNonEmpty() carve-out and what it costs', () => {
+    // ADR-009 rule 3: a marker an agent can stamp to go green is worse than no
+    // marker. `.expectNonEmpty()` satisfies this gate and, on a non-empty
+    // corpus, asserts nothing further — so the cost is stated in the remedy
+    // rather than left to be discovered as a one-token escape.
+    const [v] = new WidgetRules(project).that().named('alpha').should().violations()
+    expect(v?.suggestion).toContain('expectNonEmpty')
+    expect(v?.suggestion).toContain('not a substitute')
+  })
+
+  it('a rule with NO predicates and no condition also produces a finding', () => {
+    // Sabotage S5, PR #71's testing review: every other row selects with
+    // `.named('alpha')`, so narrowing the gate to `_predicates.length > 0`
+    // left `entry(p).should().check()` — a rule selecting the WHOLE corpus and
+    // asserting nothing — silent again, with nothing in the repo noticing.
+    const violations = new WidgetRules(project).should().violations()
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain('asserts nothing')
+  })
+
+  it('an assertion-less rule with a DEAD selector still reports (not silence)', () => {
+    // Sabotage S12. The gate sits after the zero-examined branch, so for a
+    // dead selector the only thing standing between this and a silent pass is
+    // `assertsCardinality()`'s `if (this._conditions.length === 0) return false`
+    // (rule-builder.ts:193). Deleting that one line restored bug 0155 and was
+    // caught by nothing across the monorepo. This row pins it.
+    const violations = new WidgetRules(project).that().named('nope').should().violations()
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain('examined zero units')
+  })
+
+  it('the finding names the rule and carries a remedy — identity, not just a count', () => {
+    // Sabotages S7/S9/S10: blanking `element`, hardcoding the id to 'unnamed',
+    // or dropping `suggestion` each ships a report naming no rule or printing
+    // no Fix: line, and all three stayed green on counts alone.
+    const [v] = new WidgetRules(project)
+      .that()
+      .named('alpha')
+      .should()
+      .rule({ id: 'widgets/must-assert' })
+      .violations()
+    expect(v?.rule).toBe('widgets/must-assert')
+    expect(v?.element).toBe('widgets/must-assert')
+    expect(v?.suggestion).toBeTruthy()
+  })
+
   it('CONTROL: a rule that asserts something is unaffected', () => {
     const failing = new WidgetRules(project)
       .that()

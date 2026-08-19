@@ -185,9 +185,14 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * about subjects that exist, and exempting it on the strength of the one
    * cardinality condition would silence the other. An empty condition list is
    * NOT exempt: `[].every()` is vacuously `true`, and a rule with zero
-   * conditions is the assertion-less case `collectViolations()`'s own
-   * stderr warning already names — this override must not paper over that
-   * by also declaring it cardinality-satisfied.
+   * conditions is the assertion-less case `collectViolations()` now reports as
+   * a configuration finding (bug 0155; it used to be an unreachable stderr
+   * warning, which this comment named until that fix landed) — this override
+   * must not paper over it by also declaring it cardinality-satisfied.
+   *
+   * **Load-bearing:** for a DEAD selector this early return is the only thing
+   * between an assertion-less rule and a silent pass (the gate runs after the
+   * zero-examined branch). Pinned in `assertion-less-rules.test.ts`.
    */
   protected override assertsCardinality(): boolean {
     if (this._conditions.length === 0) return false
