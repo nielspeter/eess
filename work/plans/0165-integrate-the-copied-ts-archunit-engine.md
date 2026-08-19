@@ -376,18 +376,77 @@ The duplication that Phase 1 measured actually breaking — module-level state i
 those 27. `src/cli/import-rule-module.ts` keeps it from firing by loading rule
 files natively wherever it can; that is a containment, not a fix.
 
-### Phase 3 — restore eess's own additions
+### Phase 3 — restore eess's own additions · **DONE**
 
-Re-apply what the wholesale replacement dropped, using the 16 eess-only test
-files as the specification:
+| gate                      | at the Phase 2 close  | now                                      |
+| ------------------------- | --------------------- | ---------------------------------------- |
+| `check:vacuity`           | ✗ 5 presets fail-open | **green** — all five `config-finding`    |
+| `check:baseline`          | ✗ crashed             | **runs**; 11 real findings (below)       |
+| `check:nonvacuity`        | ✗ 4 probes            | **green — 0 failing** (was 8 at Phase 1) |
+| `check:family`            | green                 | green                                    |
+| typecheck · lint · format | clean                 | clean                                    |
 
-- ADR-008's `report` option on the presets;
-- `--fix` (plan 0066) and its `ArchFix` model;
-- `havePathMatching`.
+**`report` (ADR-008).** Restored on all five presets, additively and by overload:
+naming a mode returns `ArchViolation[]`, omitting it returns the un-executed
+`RuleBuilderLike[]`. That keeps all 26 preset test files working — a bare union
+made every `.violations()` call site an error, measured. Two ordering facts are
+load-bearing and stated in the code: the reporting overload is declared FIRST
+(because `Parameters<typeof preset>[1]` reads the LAST signature, and several
+tests type their options helper that way), and the builder overload takes the
+options type PLAIN — an `& { report?: undefined }` intersection made a _variable_
+of the options type match neither overload.
 
-Done when those 16 files pass and no eess capability present before `9489684`
-is missing after it — asserted against the pre-baseline export surface, not
-from memory.
+**`--fix` (plan 0066).** CLI flags, `CheckArgs`, and the apply path restored;
+proved end to end on a real edit — dry run leaves the file untouched, `--apply`
+writes it. Worth recording: **no eess-ts rule has ever produced an `ArchFix`.**
+The only producer is `eess-md`'s link autofix, run through this CLI, so the CLI
+plumbing _is_ the whole capability.
+
+**`havePathMatching` — the premise was wrong.** It was never dropped. Upstream
+has it, byte-identical including eess's plan-0148 workspace-root behaviour, in
+`predicates/identity.ts` rather than `predicates/module.ts`. The only real defect
+was eess's test importing the old path. I restored a duplicate into `module.ts`
+first; three separate guards caught it — `api/no-single-glob-predicates` (whose
+rule text names this predicate as legitimately single-glob and scopes itself
+around `identity.ts` for exactly that reason), the path-glob census, and the
+primitive scan. Duplicate removed, test repointed.
+
+#### The correction Phase 3 owes Phase 2
+
+Phase 2 excluded 47 kernel exports from `standalone-surface.test.ts` on the
+stated ground that _"none of these was reachable from eess-ts before the move"_,
+verified against `119ba6d`. **`119ba6d` is the Phase 1 close — after the copy had
+already dropped them.** The damaged state was used as the definition of normal,
+which is circular, and it is the same error this plan exists to correct, made
+inside the plan.
+
+Re-measured against `3b851d2`, the last commit before the copy: **34 of the 47
+were public.** All 34 are now re-exported, along with 12 more the copy dropped
+that no list had noticed — 46 in total. The exclusion set is down to **13**
+names eess-ts genuinely never published.
+
+The rule that survives: _removing a published export is a breaking change, so
+the burden of justification sits on the removal._ And the reference point for
+"what was normal" is the last commit **before** the damage, never after it.
+
+#### The one thing Phase 3 did NOT decide
+
+ADR-008's Decision text says a preset **returns violations** and defaults to
+**emit-then-throw**. The adopted engine returns un-executed builders and runs
+nothing until asked — arguably a stronger form of caller-owns-reporting, and
+what all 26 preset test files assert. Phase 3 restored the `report` option so
+the ADR's mechanism exists again, but **did not change the default**, because
+changing a documented default is an ADR amendment and not a plan's call to make
+quietly. ADR-008 currently describes a default that no longer holds. Recommended
+next step: amend ADR-008 to record the builder-returning default, or rule that
+the default must change back — either way, in `adr/`, not here.
+
+#### What `check:baseline` now says
+
+It no longer crashes; it reports **11 real violations**, all one rule:
+`no-silent-catch` in the copied source. Those are genuine findings against eess's
+own `recommended` preset and they belong to the same unowned bucket as
+`check:arch`'s 204 — see below.
 
 ## Out of scope
 
@@ -417,7 +476,10 @@ The suite is the specification, which is the point of the whole exercise.
   a dialect's kernel imports are emptied (standing `check:nonvacuity` probe);
   `standalone-surface.test.ts` passes; `packages/core` imports ts-morph in zero
   files; `kernel-no-engine-deps` green.
-- **Phase 3:** the 16 eess-only test files pass.
+- **Phase 3:** **Done.** `check:vacuity` green (5/5 presets `config-finding`),
+  `check:baseline` runs, `check:nonvacuity` at 0 failing probes (was 8),
+  typecheck/lint/format clean, and the pre-copy public export surface is restored
+  in full — measured against `3b851d2`, not against the post-copy baseline.
 - **Throughout:** `npm run validate` green at each phase's close, and the
   non-vacuity harness still reports every fixture firing — a copied engine
   must not arrive with a quietly disarmed gate.
@@ -445,8 +507,26 @@ The suite is the specification, which is the point of the whole exercise.
       27 ts-morph-tainted modules stay duplicated — `deferred→ADR` (a kernel
       project abstraction + a pluggable exclusion-comment tokenizer), named in
       Phase 2's own section.
-- [ ] Phase 3 — restore `report`, `--fix`, `havePathMatching`.
+- [x] Phase 3 — `report` restored on all five presets (additive, by overload),
+      `--fix` restored and proved end to end, `havePathMatching` found to have
+      never been dropped (only relocated). 46 published exports the copy dropped
+      are back; the Phase 2 exclusion list is corrected from 47 to 13 and its
+      circular justification is recorded. `check:vacuity`, `check:baseline` and
+      `check:nonvacuity` all fixed — nonvacuity is at **0** failing probes.
+      `deferred→ADR` — ADR-008's stated preset DEFAULT (emit+throw) no longer
+      matches the engine (return builders); restoring the option did not, and
+      should not, silently change a documented default.
 
-Deferred: an ADR for the kernel's project abstraction and a pluggable
-exclusion-comment tokenizer — the two decisions the remaining 27 duplicated
-modules wait on (Phase 2's section says why each is a decision, not a move).
+Deferred: **three ADR-shaped decisions**, none of them a plan's to make —
+(1) a project abstraction for the kernel and (2) a pluggable exclusion-comment
+tokenizer, which the 27 still-duplicated modules wait on (Phase 2 says why each
+is a decision rather than a move); and (3) ADR-008's preset default, which the
+adopted engine no longer matches (Phase 3).
+
+Also unowned by any phase, and stated plainly rather than left implied: **204
+`check:arch` violations and 11 `check:baseline` findings** — the copied source
+under eess's own conventions (missing JSDoc, unused exports, non-null
+assertions, silent catches). Measured identical before and after Phases 2 and 3,
+so no phase caused them and no phase claims them. This plan's Success definition
+requires them fixed or ruled; that work needs either a fourth phase or an
+explicit deferral, and it is the user's call which.
