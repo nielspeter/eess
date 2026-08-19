@@ -1,3 +1,4 @@
+import type { ReportMode, ArchViolation } from '@nielspeter/eess'
 import type { SourceFile } from 'ts-morph'
 import type { ImportOptions } from '../core/import-options.js'
 import picomatch from 'picomatch'
@@ -14,6 +15,7 @@ import {
   validateOverrides,
   assertDiscovered,
   declaredEmptyFindings,
+  deliver,
 } from './shared.js'
 
 /** This preset's rule ids, derived from `RULE_IDS` so the two cannot drift. */
@@ -146,10 +148,30 @@ function applyTestIsolation(
  * Enforce strict module boundaries: no cycles, no cross-boundary imports,
  * shared isolation, and optional copy-paste detection.
  */
+/**
+ * `report` names a delivery mode; omitting it returns the un-executed builders.
+ *
+ * Overloaded so the common call keeps its exact type — a bare union would make
+ * every existing `.violations()` call site an error (26 test files, measured).
+ *
+ * **The reporting overload is declared FIRST, and that ordering is load-bearing.**
+ * `Parameters<typeof preset>[1]` resolves to the LAST overload, and several tests
+ * type their options helper that way; with the builder overload last, that helper
+ * keeps the shape callers actually use. Overload resolution still picks the
+ * reporting one for a call that names `report`, because it is the first match.
+ */
+export function strictBoundaries(
+  p: ArchProject,
+  options: StrictBoundariesOptions & { report: ReportMode },
+): ArchViolation[]
 export function strictBoundaries(
   p: ArchProject,
   options: StrictBoundariesOptions,
-): RuleBuilderLike[] {
+): RuleBuilderLike[]
+export function strictBoundaries(
+  p: ArchProject,
+  options: StrictBoundariesOptions,
+): RuleBuilderLike[] | ArchViolation[] {
   const config = options
   const constructed: string[] = []
   validateOverrides(config.overrides, [...RULE_IDS])
@@ -337,9 +359,8 @@ export function strictBoundaries(
   // the reader needs before any finding produced under it (bug 0038).
   // Constructed, not merely known: a rule whose option was never enabled, or that
   // was overridden `off`, is not built — so a declaration naming it is dead.
-  return [
-    ...overrideProblems,
-    ...declaredEmptyFindings(config.expectEmpty, constructed),
-    ...builders,
-  ]
+  return deliver(
+    [...overrideProblems, ...declaredEmptyFindings(config.expectEmpty, constructed), ...builders],
+    options,
+  )
 }

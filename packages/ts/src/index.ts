@@ -463,4 +463,6 @@ export type {
   RuleBuilderLike,
   EdgeCoverage,
   GlobLeaf,
+  // `report` on every preset's options (ADR-008, restored in plan 0165 Phase 3).
+  ReportMode,
 } from '@nielspeter/eess'

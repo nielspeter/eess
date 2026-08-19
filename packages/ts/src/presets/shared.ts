@@ -1,4 +1,5 @@
-import type { ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation, ReportMode, OutputFormat } from '@nielspeter/eess'
+import { finishPreset } from '@nielspeter/eess'
 import { UNSUPPRESSABLE } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
 import type { Located } from '../predicates/identity.js'
@@ -314,6 +315,32 @@ export interface PresetBaseOptions<TRuleId extends string = string> {
   overrides?: Partial<Record<TRuleId, RuleSeverity>>
 
   /**
+   * Delivery mode — [ADR-008](../../../../adr/008-caller-owns-reporting.md).
+   *
+   * **Additive, and the default is deliberately NOT `'throw'`.** ADR-008's
+   * Decision text says a preset returns violations and defaults to
+   * emit-then-throw; the engine adopted in plan 0165 returns UN-EXECUTED
+   * builders and runs nothing until the caller asks — a stronger form of the
+   * same principle, and what all 26 of this package's preset test files assert.
+   * Naming a mode opts into the ADR's shape without changing what an existing
+   * caller gets:
+   *
+   * - omitted → the builders, unexecuted (engine default, unchanged);
+   * - `'return'` → run every rule and return the violations, emitting nothing;
+   * - `'throw'` → run, emit once, then throw if anything failed;
+   * - `'print'` → run and emit, without throwing.
+   *
+   * The mismatch between ADR-008's stated DEFAULT and the engine's is real and
+   * is **not** resolved here — see plan 0165 Phase 3. Changing a documented
+   * default is an ADR amendment, not a plan's call to make quietly.
+   */
+  report?: ReportMode
+  /** Output format for the emitting modes. Ignored when `report` is omitted. */
+  format?: OutputFormat
+  /** Rationale threaded into emitted output. Ignored when `report` is omitted. */
+  reason?: string
+
+  /**
    * Rules of this preset whose empty state is **declared** — plan 0089.
    *
    * A preset user holds no builder, so they cannot reach `.expectEmpty()`. Once
@@ -390,4 +417,23 @@ export function atPath<T extends Located>(glob: string, option?: string): Predic
   // The option name, when the caller knows it, so a configuration finding names
   // `shared: "…"` rather than the two calls `or()` expanded into (plan 0074).
   return option === undefined ? combined : { ...combined, originLabel: `${option}: "${glob}"` }
+}
+
+/**
+ * A preset's return value, honouring `report` when the caller named one.
+ *
+ * One definition, called by all five presets — the pre-copy code had this logic
+ * inline in each and they had already drifted over what `'print'` did.
+ */
+export function deliver(
+  builders: RuleBuilderLike[],
+  options: { report?: ReportMode; format?: OutputFormat; reason?: string } | undefined,
+): RuleBuilderLike[] | ArchViolation[] {
+  if (options?.report === undefined) return builders
+  const violations = builders.flatMap((b) => b.violations())
+  return finishPreset(violations, {
+    report: options.report,
+    format: options.format,
+    reason: options.reason,
+  })
 }

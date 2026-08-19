@@ -1,3 +1,4 @@
+import type { ReportMode, ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import { functions } from '../builders/function-rule-builder.js'
@@ -16,6 +17,7 @@ import {
   presetDeclarationSpelling,
   declaredEmptyFindings,
   assertEnabled,
+  deliver,
 } from './shared.js'
 import type { RuleSeverity } from './shared.js'
 
@@ -65,10 +67,27 @@ export interface AgentGuardrailsOptions extends PresetBaseOptions<AgentGuardrail
 // three, so `{ POST: () => {} }` slipped every guardrail (bug 0013).
 const COLLECT_ALL = { includeObjectLiteralFunctions: true } as const
 
+/**
+ * `report` names a delivery mode; omitting it returns the un-executed builders.
+ *
+ * Overloaded so the common call keeps its exact type — a bare union would make
+ * every existing `.violations()` call site an error (26 test files, measured).
+ *
+ * **The reporting overload is declared FIRST, and that ordering is load-bearing.**
+ * `Parameters<typeof preset>[1]` resolves to the LAST overload, and several tests
+ * type their options helper that way; with the builder overload last, that helper
+ * keeps the shape callers actually use. Overload resolution still picks the
+ * reporting one for a call that names `report`, because it is the first match.
+ */
+export function agentGuardrails(
+  p: ArchProject,
+  options: AgentGuardrailsOptions & { report: ReportMode },
+): ArchViolation[]
+export function agentGuardrails(p: ArchProject, options: AgentGuardrailsOptions): RuleBuilderLike[]
 export function agentGuardrails(
   p: ArchProject,
   options: AgentGuardrailsOptions,
-): RuleBuilderLike[] {
+): RuleBuilderLike[] | ArchViolation[] {
   // Plan 0100's `attempted`: the ids the caller's OPTIONS ask for, before any
   // override is consulted — every rule this preset can build sits behind an
   // optional flag, so this can legitimately be `[]` (nothing was ever enabled).
@@ -185,18 +204,21 @@ export function agentGuardrails(
     ...overrideProblems,
     ...declaredEmptyFindings(options.expectEmpty, constructed),
   ]
-  return [
-    ...otherFindings,
-    // Plan 0100, LAST of the config-findings: only when nothing else above
-    // already explains the empty result (an unknown override key, an unbound
-    // `expectEmpty`) does "no rule was ever enabled" get to be the diagnosis.
-    ...assertEnabled(attempted, otherFindings, {
-      id: 'preset/agent/constructs-nothing',
-      presetName: 'agentGuardrails',
-      optionsHint: 'noInlineLogic, noGenericErrors, noStubs, noEmptyBodies, noCopyPaste',
-    }),
-    ...builders,
-  ]
+  return deliver(
+    [
+      ...otherFindings,
+      // Plan 0100, LAST of the config-findings: only when nothing else above
+      // already explains the empty result (an unknown override key, an unbound
+      // `expectEmpty`) does "no rule was ever enabled" get to be the diagnosis.
+      ...assertEnabled(attempted, otherFindings, {
+        id: 'preset/agent/constructs-nothing',
+        presetName: 'agentGuardrails',
+        optionsHint: 'noInlineLogic, noGenericErrors, noStubs, noEmptyBodies, noCopyPaste',
+      }),
+      ...builders,
+    ],
+    options,
+  )
 }
 
 /**

@@ -195,7 +195,38 @@ const META_PRIMITIVES: readonly string[] = [
  * members with every row still green. The scan now unions the signatures; this row makes the set of
  * names it has to reason about an enumerated decision.
  */
-const HETEROGENEOUS_OVERLOADS: readonly string[] = ['and', 'not', 'or']
+const HETEROGENEOUS_OVERLOADS: readonly string[] = [
+  // Alphabetical, because the assertion compares sorted.
+  //
+  // `and`/`not`/`or` overload as [Predicate, TypeMatcher, Predicate|TypeMatcher].
+  //
+  // The five presets joined in plan 0165 Phase 3, when ADR-008's `report` came
+  // back: naming a mode returns `ArchViolation[]`, omitting it returns the
+  // un-executed `RuleBuilderLike[]`.
+  'agentGuardrails',
+  'and',
+  'dataLayerIsolation',
+  'layeredArchitecture',
+  'not',
+  'or',
+  'recommended',
+  'strictBoundaries',
+]
+
+/**
+ * Of those, the ones that are also in the enforceable-primitive population.
+ *
+ * The union decision only matters for a name the scan actually classifies. A
+ * preset is heterogeneous but is NOT a primitive — it is not a thing you point
+ * at code, and it was excluded long before it was overloaded (measured at the
+ * Phase 2 close: 181 primitives, `recommended` not among them).
+ *
+ * These were one list until plan 0165 Phase 3, and the coupling held only
+ * because the three combinators happened to be both. Adding the presets made a
+ * comment claiming "each preset stays in the population" — which this row
+ * promptly proved false. Two facts, two lists.
+ */
+const HETEROGENEOUS_AND_PRIMITIVE: readonly string[] = ['and', 'not', 'or']
 
 describe('the enforceable-primitive population is derived, not remembered (plan 0083 Phase 0)', () => {
   const { primitives, publicFunctions, entryPoints, returnKinds, heterogeneous } =
@@ -327,8 +358,18 @@ describe('the enforceable-primitive population is derived, not remembered (plan 
         'unless the scan unions them. If this list grew, check that the new name is classified the way\n' +
         'you intend rather than the way its signatures happen to be written.',
     ).toEqual([...HETEROGENEOUS_OVERLOADS])
-    // And they really are in the population, which is the decision the union makes.
-    for (const name of HETEROGENEOUS_OVERLOADS) expect(names).toContain(name)
+    // The ones that ARE primitives really are in the population — the decision
+    // the union makes. The rest are heterogeneous and excluded, which is its own
+    // stated fact rather than an oversight.
+    for (const name of HETEROGENEOUS_AND_PRIMITIVE) expect(names).toContain(name)
+    for (const name of HETEROGENEOUS_OVERLOADS) {
+      if (HETEROGENEOUS_AND_PRIMITIVE.includes(name)) continue
+      expect(
+        names,
+        `${name} is listed as heterogeneous-but-excluded; if it entered the population, ` +
+          'move it to HETEROGENEOUS_AND_PRIMITIVE rather than leaving the claim stale',
+      ).not.toContain(name)
+    }
   })
 
   it('the meta-primitives are exactly the recorded five', () => {

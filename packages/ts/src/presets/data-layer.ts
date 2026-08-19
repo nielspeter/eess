@@ -1,3 +1,4 @@
+import type { ReportMode, ArchViolation } from '@nielspeter/eess'
 import type { ClassDeclaration } from 'ts-morph'
 import type { ArchProject } from '../core/project.js'
 import type { RuleBuilderLike } from '@nielspeter/eess'
@@ -11,6 +12,7 @@ import {
   validateOverrides,
   declaredEmptyFindings,
   assertEnabled,
+  deliver,
 } from './shared.js'
 
 /** This preset's rule ids, derived from `RULE_IDS` so the two cannot drift. */
@@ -34,10 +36,30 @@ const RULE_IDS = ['preset/data/extend-base', 'preset/data/typed-errors'] as cons
  * Does NOT duplicate layer ordering or import direction — those
  * are `layeredArchitecture`'s job.
  */
+/**
+ * `report` names a delivery mode; omitting it returns the un-executed builders.
+ *
+ * Overloaded so the common call keeps its exact type — a bare union would make
+ * every existing `.violations()` call site an error (26 test files, measured).
+ *
+ * **The reporting overload is declared FIRST, and that ordering is load-bearing.**
+ * `Parameters<typeof preset>[1]` resolves to the LAST overload, and several tests
+ * type their options helper that way; with the builder overload last, that helper
+ * keeps the shape callers actually use. Overload resolution still picks the
+ * reporting one for a call that names `report`, because it is the first match.
+ */
+export function dataLayerIsolation(
+  p: ArchProject,
+  options: DataLayerIsolationOptions & { report: ReportMode },
+): ArchViolation[]
 export function dataLayerIsolation(
   p: ArchProject,
   options: DataLayerIsolationOptions,
-): RuleBuilderLike[] {
+): RuleBuilderLike[]
+export function dataLayerIsolation(
+  p: ArchProject,
+  options: DataLayerIsolationOptions,
+): RuleBuilderLike[] | ArchViolation[] {
   const config = options
   const constructed: string[] = []
   validateOverrides(config.overrides, [...RULE_IDS])
@@ -115,15 +137,18 @@ export function dataLayerIsolation(
     ...overrideProblems,
     ...declaredEmptyFindings(config.expectEmpty, constructed),
   ]
-  return [
-    ...otherFindings,
-    // Plan 0100, LAST: only when nothing above already explains the empty
-    // result does "neither flag was ever set" get to be the diagnosis.
-    ...assertEnabled(attempted, otherFindings, {
-      id: 'preset/data/constructs-nothing',
-      presetName: 'dataLayerIsolation',
-      optionsHint: 'baseClass, requireTypedErrors',
-    }),
-    ...builders,
-  ]
+  return deliver(
+    [
+      ...otherFindings,
+      // Plan 0100, LAST: only when nothing above already explains the empty
+      // result does "neither flag was ever set" get to be the diagnosis.
+      ...assertEnabled(attempted, otherFindings, {
+        id: 'preset/data/constructs-nothing',
+        presetName: 'dataLayerIsolation',
+        optionsHint: 'baseClass, requireTypedErrors',
+      }),
+      ...builders,
+    ],
+    options,
+  )
 }

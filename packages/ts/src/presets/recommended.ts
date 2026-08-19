@@ -1,3 +1,4 @@
+import type { ReportMode, ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import type { Condition } from '@nielspeter/eess'
@@ -14,6 +15,7 @@ import {
   declareEmptyIfListed,
   presetDeclarationSpelling,
   declaredEmptyFindings,
+  deliver,
 } from './shared.js'
 
 export interface RecommendedOptions extends PresetBaseOptions<RecommendedRuleId> {
@@ -112,7 +114,27 @@ const RULE_IDS: readonly string[] = SPECS.map((s) => s.meta.id)
  * projects prefer `agentGuardrails` alone, or override the duplicated ids to
  * `'off'` in one preset.
  */
-export function recommended(p: ArchProject, options: RecommendedOptions = {}): RuleBuilderLike[] {
+/**
+ * `report` names a delivery mode; omitting it returns the un-executed builders.
+ *
+ * Overloaded so the common call keeps its exact type — a bare union would make
+ * every existing `.violations()` call site an error (26 test files, measured).
+ *
+ * **The reporting overload is declared FIRST, and that ordering is load-bearing.**
+ * `Parameters<typeof preset>[1]` resolves to the LAST overload, and several tests
+ * type their options helper that way; with the builder overload last, that helper
+ * keeps the shape callers actually use. Overload resolution still picks the
+ * reporting one for a call that names `report`, because it is the first match.
+ */
+export function recommended(
+  p: ArchProject,
+  options: RecommendedOptions & { report: ReportMode },
+): ArchViolation[]
+export function recommended(p: ArchProject, options?: RecommendedOptions): RuleBuilderLike[]
+export function recommended(
+  p: ArchProject,
+  options: RecommendedOptions = {},
+): RuleBuilderLike[] | ArchViolation[] {
   const include = options.include ?? '**/src/**'
   validateOverrides(options.overrides, RULE_IDS)
   const overrideProblems = overrideFindings(options.overrides, RULE_IDS)
@@ -145,9 +167,8 @@ export function recommended(p: ArchProject, options: RecommendedOptions = {}): R
   // Unbound declarations sit with the unknown-override findings: both say the
   // configuration is wrong, which the reader needs before any finding produced
   // under it (bug 0038).
-  return [
-    ...overrideProblems,
-    ...declaredEmptyFindings(options.expectEmpty, constructed),
-    ...builders,
-  ]
+  return deliver(
+    [...overrideProblems, ...declaredEmptyFindings(options.expectEmpty, constructed), ...builders],
+    options,
+  )
 }

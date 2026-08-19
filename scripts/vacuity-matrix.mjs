@@ -189,16 +189,36 @@ const BUILDER_PROBES = {
 }
 
 /** Presets: call bare with the minimal required options → they run+report internally. */
+/**
+ * Probed with `report: 'throw'` — ADR-008's mode, restored in plan 0165 Phase 3.
+ *
+ * The engine adopted in plan 0165 returns UN-EXECUTED builders by default, so a
+ * bare call constructs rules and runs none: it cannot throw, and `classify()`
+ * scored all five presets `fail-open` for a reason that was about delivery
+ * rather than vacuity. Naming the mode makes the probe ask the question it is
+ * for — *does this preset's rule set fail over a zero-file project?* — instead
+ * of *does calling it throw?*
+ *
+ * A preset that constructs NOTHING still scores `fail-open` here, correctly:
+ * `finishPreset([], { report: 'throw' })` has nothing to throw about. That is
+ * `presetConstructsNothingViolation`'s case and it must stay detectable.
+ */
 const PRESET_PROBES = {
-  'recommended()': () => tsPresets.recommended(zeroFileProject, {}),
-  'agentGuardrails()': () => tsPresets.agentGuardrails(zeroFileProject, { src: 'src/**' }),
+  'recommended()': () => tsPresets.recommended(zeroFileProject, { report: 'throw' }),
+  'agentGuardrails()': () =>
+    tsPresets.agentGuardrails(zeroFileProject, { src: 'src/**', report: 'throw' }),
   'layeredArchitecture()': () =>
     tsPresets.layeredArchitecture(zeroFileProject, {
       layers: { outer: 'src/outer/**', inner: 'src/inner/**' },
+      report: 'throw',
     }),
   'dataLayerIsolation()': () =>
-    tsPresets.dataLayerIsolation(zeroFileProject, { repositories: 'src/repositories/**' }),
-  'strictBoundaries()': () => tsPresets.strictBoundaries(zeroFileProject, { folders: 'src/*' }),
+    tsPresets.dataLayerIsolation(zeroFileProject, {
+      repositories: 'src/repositories/**',
+      report: 'throw',
+    }),
+  'strictBoundaries()': () =>
+    tsPresets.strictBoundaries(zeroFileProject, { folders: 'src/*', report: 'throw' }),
 }
 
 /**
