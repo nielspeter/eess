@@ -135,10 +135,26 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction> {
     return this.addPredicate(identityHaveNameMatching<ArchFunction>(pattern))
   }
 
+  /**
+   * Narrows the selection to functions that have a name starting with `prefix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameStartingWith(prefix: string): this {
     return this.addPredicate(identityHaveNameStartingWith<ArchFunction>(prefix))
   }
 
+  /**
+   * Narrows the selection to functions that have a name ending with `suffix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameEndingWith(suffix: string): this {
     return this.addPredicate(identityHaveNameEndingWith<ArchFunction>(suffix))
   }
@@ -165,70 +181,198 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction> {
     return this.addPredicate(identityResideInFolder<ArchFunction>(glob))
   }
 
+  /**
+   * Narrows the selection to functions that are exported.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areExported(): this {
     return this.addPredicate(identityAreExported<ArchFunction>())
   }
 
+  /**
+   * Narrows the selection to functions that are not exported.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areNotExported(): this {
     return this.addPredicate(identityAreNotExported<ArchFunction>())
   }
 
   // --- Visibility predicates (plan 0032) ---
 
+  /**
+   * Narrows the selection to functions that are public.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   arePublic(): this {
     return this.addPredicate(fnArePublic())
   }
 
+  /**
+   * Narrows the selection to functions that are protected.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areProtected(): this {
     return this.addPredicate(fnAreProtected())
   }
 
+  /**
+   * Narrows the selection to functions that are private.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   arePrivate(): this {
     return this.addPredicate(fnArePrivate())
   }
 
   // --- Function-specific predicates ---
 
+  /**
+   * Narrows the selection to functions that are async.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areAsync(): this {
     return this.addPredicate(fnAreAsync())
   }
 
+  /**
+   * Narrows the selection to functions that are not async.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areNotAsync(): this {
     return this.addPredicate(fnAreNotAsync())
   }
 
+  /**
+   * Narrows the selection to functions that have exactly `n` parameters.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveParameterCount(n: number): this {
     return this.addPredicate(fnHaveParameterCount(n))
   }
 
+  /**
+   * Narrows the selection to functions that have more than `n` parameters.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveParameterCountGreaterThan(n: number): this {
     return this.addPredicate(fnHaveParameterCountGreaterThan(n))
   }
 
+  /**
+   * Narrows the selection to functions that have fewer than `n` parameters.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveParameterCountLessThan(n: number): this {
     return this.addPredicate(fnHaveParameterCountLessThan(n))
   }
 
+  /**
+   * Narrows the selection to functions that have a parameter named `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveParameterNamed(name: string): this {
     return this.addPredicate(fnHaveParameterNamed(name))
   }
 
+  /**
+   * Narrows the selection to functions that have a return type matching `pattern`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveReturnType(pattern: RegExp | string): this {
     return this.addPredicate(fnHaveReturnType(pattern))
   }
 
+  /**
+   * Narrows the selection to functions that have a rest parameter.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveRestParameter(): this {
     return this.addPredicate(fnHaveRestParameter())
   }
 
+  /**
+   * Narrows the selection to functions that have an optional parameter.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveOptionalParameter(): this {
     return this.addPredicate(fnHaveOptionalParameter())
   }
 
+  /**
+   * Narrows the selection to functions that have parameter `index` of a type matching `matcher`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveParameterOfType(index: number, matcher: TypeMatcher): this {
     return this.addPredicate(fnHaveParameterOfType(index, matcher))
   }
 
+  /**
+   * Narrows the selection to functions that have a parameter name matching `pattern`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveParameterNameMatching(pattern: RegExp): this {
     return this.addPredicate(fnHaveParameterNameMatching(pattern))
   }

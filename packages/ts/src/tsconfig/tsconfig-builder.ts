@@ -41,10 +41,25 @@ export class TsconfigBuilder extends TerminalBuilder {
     return next
   }
 
+  /**
+   * Whether this rule states an assertion at all — the assertion gate's question.
+   *
+   * True once a requirement has been declared; `tsconfig()` with none asserts nothing.
+   *
+   * Overrides the `TerminalBuilder` default (`true`), whose JSDoc carries the
+   * contract and the reason this is public rather than protected.
+   */
   override assertsSomething(): boolean {
     return Object.keys(this._requirements).length > 0
   }
 
+  /**
+   * The remedy for this builder's assertion-less state, as one string.
+   *
+   * One channel, so `diagnose()`'s advice and the finding's own message cannot
+   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
+   * what this builder is missing.
+   */
   override assertionAdvice(): string {
     return (
       'this rule has no requirements, so it asserts nothing and can never fail. Add ' +

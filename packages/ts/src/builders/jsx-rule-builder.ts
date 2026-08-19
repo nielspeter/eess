@@ -70,40 +70,112 @@ export class JsxRuleBuilder extends RuleBuilder<ArchJsxElement> {
 
   // --- Identity predicates (predicate-only, following CallRuleBuilder pattern) ---
 
+  /**
+   * Narrows the selection to JSX elements that have a name matching `pattern`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameMatching(pattern: RegExp | string): this {
     return this.addPredicate(identityHaveNameMatching<ArchJsxElement>(pattern))
   }
 
+  /**
+   * Narrows the selection to JSX elements that have a name starting with `prefix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameStartingWith(prefix: string): this {
     return this.addPredicate(identityHaveNameStartingWith<ArchJsxElement>(prefix))
   }
 
+  /**
+   * Narrows the selection to JSX elements that have a name ending with `suffix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameEndingWith(suffix: string): this {
     return this.addPredicate(identityHaveNameEndingWith<ArchJsxElement>(suffix))
   }
 
+  /**
+   * Narrows the selection to JSX elements that reside in a file matching `glob`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   resideInFile(glob: string): this {
     return this.addPredicate(identityResideInFile<ArchJsxElement>(glob))
   }
 
+  /**
+   * Narrows the selection to JSX elements that reside in a folder matching `glob`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   resideInFolder(glob: string): this {
     return this.addPredicate(identityResideInFolder<ArchJsxElement>(glob))
   }
 
   // --- JSX-specific predicates ---
 
+  /**
+   * Narrows the selection to JSX elements that are the HTML elements named in `tags`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areHtmlElements(...tags: string[]): this {
     return this.addPredicate(jsxAreHtmlElements(...tags))
   }
 
+  /**
+   * Narrows the selection to JSX elements that are the components named in `names`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areComponents(...names: string[]): this {
     return this.addPredicate(jsxAreComponents(...names))
   }
 
+  /**
+   * Narrows the selection to JSX elements that have the attribute `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   withAttribute(name: string): this {
     return this.addPredicate(jsxWithAttribute(name))
   }
 
+  /**
+   * Narrows the selection to JSX elements that have attribute `name` with a value matching `value`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   withAttributeMatching(name: string, value: string | RegExp): this {
     return this.addPredicate(jsxWithAttributeMatching(name, value))
   }

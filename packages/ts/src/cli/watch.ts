@@ -43,6 +43,13 @@ export class RunScheduler {
     return this.running
   }
 
+  /**
+   * Queue a re-run, debounced.
+   *
+   * A run already in flight is not interrupted: the request is remembered and
+   * replayed when it finishes, so a save during a run is never dropped and
+   * never starts a second concurrent run.
+   */
   schedule(trigger: string): void {
     if (this.debounceTimer) clearTimeout(this.debounceTimer)
     this.debounceTimer = setTimeout(() => {

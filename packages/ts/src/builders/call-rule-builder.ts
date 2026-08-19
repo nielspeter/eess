@@ -91,43 +91,115 @@ export class CallRuleBuilder extends RuleBuilder<ArchCall> {
 
   // --- Identity predicates (subset: no areExported/areNotExported) ---
 
+  /**
+   * Narrows the selection to call expressions that have a name matching `pattern`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameMatching(pattern: RegExp | string): this {
     return this.addPredicate(identityHaveNameMatching<ArchCall>(pattern))
   }
 
+  /**
+   * Narrows the selection to call expressions that have a name starting with `prefix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameStartingWith(prefix: string): this {
     return this.addPredicate(identityHaveNameStartingWith<ArchCall>(prefix))
   }
 
+  /**
+   * Narrows the selection to call expressions that have a name ending with `suffix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameEndingWith(suffix: string): this {
     return this.addPredicate(identityHaveNameEndingWith<ArchCall>(suffix))
   }
 
+  /**
+   * Narrows the selection to call expressions that reside in a file matching `glob`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   resideInFile(glob: string): this {
     return this.addPredicate(identityResideInFile<ArchCall>(glob))
   }
 
+  /**
+   * Narrows the selection to call expressions that reside in a folder matching `glob`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   resideInFolder(glob: string): this {
     return this.addPredicate(identityResideInFolder<ArchCall>(glob))
   }
 
   // Note: areExported() and areNotExported() are intentionally omitted.
-  // Call expressions cannot be exported. See spec section 5.1.
+  // Call expressions cannot are exported. See spec section 5.1.
 
   // --- Call-specific predicates ---
 
+  /**
+   * Narrows the selection to call expressions that are called on the object `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   onObject(name: string): this {
     return this.addPredicate(callOnObject(name))
   }
 
+  /**
+   * Narrows the selection to call expressions that call a method matching `nameOrRegex`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   withMethod(nameOrRegex: string | RegExp): this {
     return this.addPredicate(callWithMethod(nameOrRegex))
   }
 
+  /**
+   * Narrows the selection to call expressions that have argument `index` matching `pattern`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   withArgMatching(index: number, pattern: string | RegExp): this {
     return this.addPredicate(callWithArgMatching(index, pattern))
   }
 
+  /**
+   * Narrows the selection to call expressions that have string argument `index` matching `glob`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   withStringArg(index: number, glob: string): this {
     return this.addPredicate(callWithStringArg(index, glob))
   }

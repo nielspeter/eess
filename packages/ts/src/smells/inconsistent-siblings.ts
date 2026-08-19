@@ -199,6 +199,14 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
     return violations
   }
 
+  /**
+   * Whether this rule states an assertion at all — the assertion gate's question.
+   *
+   * True once a condition has been added.
+   *
+   * Overrides the `TerminalBuilder` default (`true`), whose JSDoc carries the
+   * contract and the reason this is public rather than protected.
+   */
   override assertsSomething(): boolean {
     return this._pattern !== undefined
   }
@@ -220,6 +228,10 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
     return 'sibling files'
   }
 
+  /**
+   * A structural description of this rule without executing it — what `explain`
+   * prints and what the ADR/citation gates read.
+   */
   override describeRule(): RuleDescription {
     return {
       ...super.describeRule(),
@@ -227,6 +239,13 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
     }
   }
 
+  /**
+   * The remedy for this builder's assertion-less state, as one string.
+   *
+   * One channel, so `diagnose()`'s advice and the finding's own message cannot
+   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
+   * what this builder is missing.
+   */
   override assertionAdvice(): string {
     return (
       'this detector has no pattern, so it detects nothing and can never fail. Add ' +

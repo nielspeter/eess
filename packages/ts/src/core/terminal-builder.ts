@@ -608,6 +608,18 @@ export abstract class TerminalBuilder {
   asSeverity(level: 'error'): this
   asSeverity(level: 'warn', options?: { accepted?: readonly string[] }): this
   asSeverity(level: 'error' | 'warn'): this
+  /**
+   * Set this rule's severity, returning a COPY — the held builder is never
+   * mutated.
+   *
+   * `options.accepted` applies only to `'warn'` and names the violations already
+   * accepted at that level; it is cleared when the level is `'error'`, so a rule
+   * escalated back to error cannot carry a stale allowlist that would silently
+   * excuse the very findings the escalation was for.
+   *
+   * A configuration finding ignores this entirely (`severityFor`): its severity
+   * is not the author's to lower.
+   */
   asSeverity(level: 'error' | 'warn', options?: { accepted?: readonly string[] }): this {
     const next = this.copy()
     next._severity = level

@@ -72,36 +72,91 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration> {
 
   // --- Type-specific predicates ---
 
+  /**
+   * Narrows the selection to types that are interfaces.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areInterfaces(): this {
     return this.addPredicate(areInterfaces())
   }
 
+  /**
+   * Narrows the selection to types that are type aliases.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areTypeAliases(): this {
     return this.addPredicate(areTypeAliases())
   }
 
+  /**
+   * Narrows the selection to types that have a property named `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveProperty(name: string): this {
     return this.addPredicate(haveProperty(name))
   }
 
+  /**
+   * Narrows the selection to types that have property `name` of a type matching `matcher`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   havePropertyOfType(name: string, matcher: TypeMatcher): this {
     return this.addPredicate(havePropertyOfType(name, matcher))
   }
 
+  /**
+   * Narrows the selection to types that extend the type `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   extendType(name: string): this {
     return this.addPredicate(extendType(name))
   }
 
   // --- Type-specific conditions ---
 
+  /**
+   * Asserts that the selected types have property `name` of a type matching `matcher`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   havePropertyType(name: string, matcher: TypeMatcher): this {
     return this.addCondition(havePropertyType(name, matcher))
   }
 
+  /**
+   * Asserts that the selected types are exported.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   beExported(): this {
     return this.addCondition(conditionBeExported())
   }
 
+  /**
+   * Asserts that the selected types do not exist.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   notExist(): this {
     return this.addCondition(conditionNotExist())
   }
@@ -113,26 +168,56 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration> {
 
   // --- Member property conditions (plan 0030) ---
 
+  /**
+   * Asserts that the selected types have a property named by each of `names`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   havePropertyNamed(...names: string[]): this {
     return this.addCondition(memberHavePropertyNamed(...names))
   }
 
+  /**
+   * Asserts that the selected types do not have a property named by any of `names`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   notHavePropertyNamed(...names: string[]): this {
     return this.addCondition(memberNotHavePropertyNamed(...names))
   }
 
+  /**
+   * Asserts that the selected types have a property matching `pattern`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   havePropertyMatching(pattern: RegExp): this {
     return this.addCondition(memberHavePropertyMatching(pattern))
   }
 
+  /**
+   * Asserts that the selected types do not have a property matching `pattern`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   notHavePropertyMatching(pattern: RegExp): this {
     return this.addCondition(memberNotHavePropertyMatching(pattern))
   }
 
+  /**
+   * Asserts that the selected types have only readonly properties.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   haveOnlyReadonlyProperties(): this {
     return this.addCondition(memberHaveOnlyReadonlyProperties())
   }
 
+  /**
+   * Asserts that the selected types have at most `max` properties.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   maxProperties(max: number): this {
     return this.addCondition(memberMaxProperties(max))
   }
@@ -151,10 +236,26 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration> {
     return this.addPredicate(identityHaveNameMatching(pattern))
   }
 
+  /**
+   * Narrows the selection to types that are exported.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areExported(): this {
     return this.addPredicate(identityAreExported())
   }
 
+  /**
+   * Narrows the selection to types that are not exported.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areNotExported(): this {
     return this.addPredicate(identityAreNotExported())
   }

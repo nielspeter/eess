@@ -241,6 +241,12 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
     return this._conditions.every((condition) => assertsCardinality(condition))
   }
 
+  /**
+   * The project this rule was built against.
+   *
+   * Public because the empty-project and dead-glob findings are constructed by
+   * `TerminalBuilder`, which has no project of its own to consult.
+   */
   getProject(): ArchProject {
     return this.project
   }

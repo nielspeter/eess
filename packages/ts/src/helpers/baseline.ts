@@ -557,6 +557,14 @@ export class Baseline {
     return this.knownHashes.has(hashViolation(violation, this.root))
   }
 
+  /**
+   * Whether this violation is already accepted by the baseline.
+   *
+   * Identity answers "is this the same finding?"; for a metric finding that is
+   * not enough, so a known hash is additionally required to be **no worse** than
+   * the accepted measurement — improving a metric stays green, regressing past
+   * the accepted value fails (bug 0012).
+   */
   isKnown(violation: ArchViolation): boolean {
     const hash = hashViolation(violation, this.root)
     if (!this.knownHashes.has(hash)) return false

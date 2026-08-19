@@ -257,6 +257,12 @@ export class PairFinalBuilder extends TerminalBuilder {
     return 'layer pairs'
   }
 
+  /**
+   * How many units this rule actually examined — ADR-010's evidence that a pass
+   * was constructed rather than defaulted.
+   *
+   * The materialized elements of the layer selection.
+   */
   examinedUnits(): number {
     return this.pairs.length
   }

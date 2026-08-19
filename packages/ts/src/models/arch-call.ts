@@ -43,7 +43,7 @@ export interface GetNameOptions {
  * efficient predicate evaluation.
  *
  * Satisfies Named and Located interfaces from identity predicates.
- * Does NOT satisfy Exportable --- call expressions cannot be exported.
+ * Does NOT satisfy Exportable --- call expressions cannot are exported.
  */
 export interface ArchCall {
   /**

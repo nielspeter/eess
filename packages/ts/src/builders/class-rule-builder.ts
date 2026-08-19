@@ -103,10 +103,26 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
     return this.addPredicate(identityHaveNameMatching(pattern))
   }
 
+  /**
+   * Narrows the selection to classes that have a name starting with `prefix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameStartingWith(prefix: string): this {
     return this.addPredicate(identityHaveNameStartingWith(prefix))
   }
 
+  /**
+   * Narrows the selection to classes that have a name ending with `suffix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameEndingWith(suffix: string): this {
     return this.addPredicate(identityHaveNameEndingWith(suffix))
   }
@@ -133,10 +149,26 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
     return this.addPredicate(predicateResideInFolder(glob))
   }
 
+  /**
+   * Narrows the selection to classes that are exported.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areExported(): this {
     return this.addPredicate(identityAreExported())
   }
 
+  /**
+   * Narrows the selection to classes that are not exported.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areNotExported(): this {
     return this.addPredicate(identityAreNotExported())
   }
@@ -165,14 +197,38 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
     return this.addPredicate(predicateImplement(interfaceName))
   }
 
+  /**
+   * Narrows the selection to classes that have a decorator `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveDecorator(name: string): this {
     return this.addPredicate(predicateHaveDecorator(name))
   }
 
+  /**
+   * Narrows the selection to classes that have a decorator matching `regex`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveDecoratorMatching(regex: RegExp): this {
     return this.addPredicate(predicateHaveDecoratorMatching(regex))
   }
 
+  /**
+   * Narrows the selection to classes that are abstract.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areAbstract(): this {
     return this.addPredicate(predicateAreAbstract())
   }
@@ -188,10 +244,26 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
     return this.addPredicate(predicateHaveMethodNamed(name))
   }
 
+  /**
+   * Narrows the selection to classes that have a method matching `regex`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveMethodMatching(regex: RegExp): this {
     return this.addPredicate(predicateHaveMethodMatching(regex))
   }
 
+  /**
+   * Narrows the selection to classes that have a property named `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   havePropertyNamed(name: string): this {
     return this.addPredicate(predicateHavePropertyNamed(name))
   }
@@ -208,10 +280,20 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
     return this.addCondition(conditionResideInFolder(glob))
   }
 
+  /**
+   * Asserts that the selected classes are exported.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   beExported(): this {
     return this.addCondition(conditionBeExported())
   }
 
+  /**
+   * Asserts that the selected classes do not exist.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   notExist(): this {
     return this.addCondition(conditionNotExist())
   }
@@ -238,6 +320,11 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
     return this.addCondition(conditionHaveMethodNamed(name))
   }
 
+  /**
+   * Asserts that the selected classes do not have a method matching `regex`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   shouldNotHaveMethodMatching(regex: RegExp): this {
     return this.addCondition(conditionNotHaveMethodMatching(regex))
   }
@@ -245,37 +332,77 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
   // --- Member property condition methods (plan 0030) ---
 
   // "should" prefix: predicate havePropertyNamed(name) exists on this builder
+  /**
+   * Asserts that the selected classes have a property named by each of `names`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   shouldHavePropertyNamed(...names: string[]): this {
     return this.addCondition(memberHavePropertyNamed(...names))
   }
 
+  /**
+   * Asserts that the selected classes do not have a property named by any of `names`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   shouldNotHavePropertyNamed(...names: string[]): this {
     return this.addCondition(memberNotHavePropertyNamed(...names))
   }
 
   // No "should" prefix: no predicate collision (matches beExported, notExist, contain pattern)
+  /**
+   * Asserts that the selected classes have a property matching `pattern`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   havePropertyMatching(pattern: RegExp): this {
     return this.addCondition(memberHavePropertyMatching(pattern))
   }
 
+  /**
+   * Asserts that the selected classes do not have a property matching `pattern`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   notHavePropertyMatching(pattern: RegExp): this {
     return this.addCondition(memberNotHavePropertyMatching(pattern))
   }
 
+  /**
+   * Asserts that the selected classes have only readonly properties.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   haveOnlyReadonlyProperties(): this {
     return this.addCondition(memberHaveOnlyReadonlyProperties())
   }
 
+  /**
+   * Asserts that the selected classes have at most `max` properties.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   maxProperties(max: number): this {
     return this.addCondition(memberMaxProperties(max))
   }
 
   // --- Parameter type condition methods (plan 0031) ---
 
+  /**
+   * Asserts that the selected classes accept a parameter of a type matching `matcher`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   acceptParameterOfType(matcher: TypeMatcher): this {
     return this.addCondition(conditionAcceptParameterOfType(matcher))
   }
 
+  /**
+   * Asserts that the selected classes do not accept a parameter of a type matching `matcher`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   notAcceptParameterOfType(matcher: TypeMatcher): this {
     return this.addCondition(conditionNotAcceptParameterOfType(matcher))
   }

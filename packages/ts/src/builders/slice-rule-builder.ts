@@ -218,6 +218,12 @@ export class SliceRuleBuilder extends TerminalBuilder {
    */
   respectLayerOrder(layers: string[], options: ImportOptions): this
   respectLayerOrder(...layers: string[]): this
+  /**
+   * Asserts that imports between the named slices flow in the declared order —
+   * outermost first — so no inner layer depends on an outer one.
+   *
+   * Variadic, with an optional trailing `ImportOptions`.
+   */
   respectLayerOrder(...args: [string[], ImportOptions] | string[]): this {
     // Split and re-dispatch rather than spreading `args` straight through: TypeScript
     // cannot match a tuple-union spread to an overload, and ADR-005 bars the `as` that
@@ -253,6 +259,11 @@ export class SliceRuleBuilder extends TerminalBuilder {
    */
   notDependOn(sliceNames: string[], options: ImportOptions): this
   notDependOn(...sliceNames: string[]): this
+  /**
+   * Asserts that the selected slices import nothing from the named slices.
+   *
+   * Variadic, with an optional trailing `ImportOptions`.
+   */
   notDependOn(...args: [string[], ImportOptions] | string[]): this {
     const { globs: sliceNames, options } = splitGlobArgs(args)
     const next = this.copy()
@@ -264,10 +275,25 @@ export class SliceRuleBuilder extends TerminalBuilder {
     return next
   }
 
+  /**
+   * Whether this rule states an assertion at all — the assertion gate's question.
+   *
+   * True once a condition has been added; a slice selection with none can never fail.
+   *
+   * Overrides the `TerminalBuilder` default (`true`), whose JSDoc carries the
+   * contract and the reason this is public rather than protected.
+   */
   override assertsSomething(): boolean {
     return this._conditions.length > 0
   }
 
+  /**
+   * The remedy for this builder's assertion-less state, as one string.
+   *
+   * One channel, so `diagnose()`'s advice and the finding's own message cannot
+   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
+   * what this builder is missing.
+   */
   override assertionAdvice(): string {
     return (
       'this rule has no condition, so it asserts nothing and can never fail. Add a ' +

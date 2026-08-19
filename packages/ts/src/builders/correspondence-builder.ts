@@ -121,6 +121,16 @@ export class CorrespondenceBuilder extends TerminalBuilder {
   side<T>(name: string, source: RuleBuilder<T>, keyFn: KeyFn<T>): this
   /** Add a side from an already-derived key set (pre-normalized). */
   side(name: string, keys: KeysSource): this
+  /**
+   * Declare one side of the correspondence.
+   *
+   * `source` is either a `RuleBuilder` selection — in which case `keyFn` is
+   * REQUIRED, because a subject has no inherent key and guessing one silently
+   * mis-joins the two sides — or a ready-made key source.
+   *
+   * Call it twice; a builder with fewer than two sides has compared nothing,
+   * which `examinedUnits()` reports as zero rather than passing vacuously.
+   */
   side<T>(name: string, source: RuleBuilder<T> | KeysSource, keyFn?: KeyFn<T>): this {
     const next = this.copy()
     if (source instanceof RuleBuilder) {
@@ -156,6 +166,10 @@ export class CorrespondenceBuilder extends TerminalBuilder {
   should(): this {
     return this
   }
+  /**
+   * Reads as English between two conditions (`.beComplete().andShould()…`) and
+   * changes nothing — the builder is already in its condition phase.
+   */
   andShould(): this {
     return this
   }
@@ -261,6 +275,12 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     return 'keys'
   }
 
+  /**
+   * How many units this rule actually examined — ADR-010's evidence that a pass
+   * was constructed rather than defaulted.
+   *
+   * Both materialized sides, summed — zero until two sides are declared, which is itself the evidence that nothing was compared.
+   */
   examinedUnits(): number {
     if (this._sides.length < 2) return 0
     const [a, b] = this.materializedSides(this._sides[0]!, this._sides[1]!)
@@ -290,6 +310,12 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     return '.expectEmpty(sideName) for each side'
   }
 
+  /**
+   * Whether the author declared this rule's empty result intentional.
+   *
+   * Overrides `TerminalBuilder`'s `.expectEmpty()` reading, because this builder
+   * has more than one side and each can be declared empty independently.
+   */
   override declaresEmpty(): boolean {
     return this._sides.length > 0 && this._sides.every((s) => this._expectEmptySides.has(s.name))
   }
@@ -320,6 +346,13 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     return this._sides.length === 2 && (this._checkComplete || this._checkNoOrphans)
   }
 
+  /**
+   * The remedy for this builder's assertion-less state, as one string.
+   *
+   * One channel, so `diagnose()`'s advice and the finding's own message cannot
+   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
+   * what this builder is missing.
+   */
   override assertionAdvice(): string {
     // Two distinct faults reach here, and naming the wrong one is the ADR-008
     // rule 2 defect this plan is partly about: with fewer than two sides the

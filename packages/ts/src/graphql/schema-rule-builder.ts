@@ -174,10 +174,25 @@ export class SchemaRuleBuilder extends TerminalBuilder {
     return clone
   }
 
+  /**
+   * Whether this rule states an assertion at all — the assertion gate's question.
+   *
+   * True once a condition has been added.
+   *
+   * Overrides the `TerminalBuilder` default (`true`), whose JSDoc carries the
+   * contract and the reason this is public rather than protected.
+   */
   override assertsSomething(): boolean {
     return this._conditions.length > 0
   }
 
+  /**
+   * The remedy for this builder's assertion-less state, as one string.
+   *
+   * One channel, so `diagnose()`'s advice and the finding's own message cannot
+   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
+   * what this builder is missing.
+   */
   override assertionAdvice(): string {
     return (
       'this rule has no condition, so it asserts nothing and can never fail. Add a ' +
@@ -219,6 +234,12 @@ export class SchemaRuleBuilder extends TerminalBuilder {
     return 'schema types'
   }
 
+  /**
+   * How many units this rule actually examined — ADR-010's evidence that a pass
+   * was constructed rather than defaulted.
+   *
+   * The schema types this rule selected.
+   */
   examinedUnits(): number {
     return this.selected().length
   }
