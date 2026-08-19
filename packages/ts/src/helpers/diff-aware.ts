@@ -70,10 +70,15 @@ export function diffAware(baseBranch: string = 'main'): DiffFilter {
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
     }).trim()
-  } catch {
-    // Not a git repo, or base branch doesn't exist — skip filtering (report all violations)
+  } catch (error: unknown) {
+    // Not a git repo, or the base branch doesn't exist — skip filtering (report
+    // all violations). The cause is named: "could not run git diff" alone sends
+    // a reader looking for a missing branch when the real answer may be that git
+    // is not installed, or that the cwd is not a repository at all.
     writeStderr(
-      `[eess] Could not run git diff against '${baseBranch}'. All violations will be reported.`,
+      `[eess] Could not run git diff against '${baseBranch}' ` +
+        `(${error instanceof Error ? error.message.split('\n')[0] : String(error)}). ` +
+        'All violations will be reported.',
     )
     return new DiffFilter(null, baseBranch)
   }

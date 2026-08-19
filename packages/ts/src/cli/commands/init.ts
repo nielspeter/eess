@@ -353,6 +353,7 @@ function readJsonc(filePath: string): unknown {
     .replace(/,(\s*[}\]])/g, '$1')
   try {
     return JSON.parse(stripped)
+    // eess-exclude eess/no-silent-catch: a tsconfig this loose parser cannot read yields undefined, and every caller already handles that as "unknown"
   } catch {
     return undefined
   }
@@ -380,8 +381,13 @@ function planPackageJson(cwd: string): PackageJsonPlan {
   let parsed: unknown
   try {
     parsed = JSON.parse(raw)
-  } catch {
-    return { action: 'skip', reason: 'package.json is not valid JSON — skipped script entry' }
+  } catch (error: unknown) {
+    return {
+      action: 'skip',
+      reason:
+        'package.json is not valid JSON — skipped script entry ' +
+        `(${error instanceof Error ? error.message : String(error)})`,
+    }
   }
   if (!isRecord(parsed)) {
     return { action: 'skip', reason: 'package.json is not an object — skipped script entry' }
@@ -481,6 +487,7 @@ function hasSource(cwd: string, sourceRoot: string): boolean {
   const dir = path.join(cwd, sourceRoot)
   try {
     return fs.statSync(dir).isDirectory() && fs.readdirSync(dir).length > 0
+    // eess-exclude eess/no-silent-catch: a directory that cannot be stat-ed is not a non-empty directory — the failure IS the answer
   } catch {
     return false
   }

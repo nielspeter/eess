@@ -212,6 +212,7 @@ function findGraphqlFiles(
   let entries: fs.Dirent[]
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true })
+    // eess-exclude eess/no-silent-catch: an unreadable directory during a glob walk yields no schema files; the walk is best-effort
   } catch {
     return results
   }
@@ -239,7 +240,12 @@ export function isGraphQLAvailable(): boolean {
   try {
     requireGraphQL()
     return true
-  } catch {
+  } catch (error: unknown) {
+    // Only "the peer dep is absent" answers `false`. A graphql that IS installed
+    // but fails to load is a different fault with a different remedy, and
+    // `requireGraphQL` already words the two differently — swallowing both here
+    // reported "not installed" for a broken install (ADR-009 rule 2's false cause).
+    if (error instanceof Error && /could not be loaded/.test(error.message)) throw error
     return false
   }
 }

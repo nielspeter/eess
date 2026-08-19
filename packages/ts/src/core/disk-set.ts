@@ -148,6 +148,7 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
     let entries: fs.Dirent[]
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true })
+      // eess-exclude eess/no-silent-catch: an unreadable directory during a walk is skipped by design; the walk is a best-effort probe, not a report
     } catch {
       return // unreadable or gone: not a finding, just not walkable
     }

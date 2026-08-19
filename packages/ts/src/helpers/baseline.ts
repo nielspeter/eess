@@ -404,18 +404,31 @@ export function generateBaseline(
  * print `(+78, −0)` and hide that 41 accepted findings just stopped being
  * accepted.
  */
-function readPriorHashes(
-  resolved: string,
-):
-  | { hashes: Set<string>; count: number; hashVersion: number | undefined; unreadable: boolean }
+function readPriorHashes(resolved: string):
+  | {
+      hashes: Set<string>
+      count: number
+      hashVersion: number | undefined
+      unreadable: boolean
+      /** Why it was unreadable, when it was — malformed vs absent are different remedies. */
+      unreadableReason?: string
+    }
   | undefined {
   if (!fs.existsSync(resolved)) return undefined
 
   let parsed: unknown
   try {
     parsed = JSON.parse(fs.readFileSync(resolved, 'utf-8'))
-  } catch {
-    return { hashes: new Set(), count: 0, hashVersion: undefined, unreadable: true }
+  } catch (error: unknown) {
+    // `unreadable` carries the cause, so the finding can say whether the file is
+    // malformed or simply absent — two different remedies (regenerate vs create).
+    return {
+      hashes: new Set(),
+      count: 0,
+      hashVersion: undefined,
+      unreadable: true,
+      unreadableReason: error instanceof Error ? error.message : String(error),
+    }
   }
   if (
     !parsed ||
