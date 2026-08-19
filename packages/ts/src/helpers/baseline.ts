@@ -170,6 +170,7 @@ export interface BaselineFile {
  *   machine matches nothing on another (bug 0010). Omitting it preserves the
  *   pre-0.19 hash and is only correct when no field contains a path.
  */
+// eess-exclude eess/no-unused-exports: exercised by tests; the build tsconfig this gate reads excludes tests, so src is the only usage it can see
 export function hashViolation(violation: ArchViolation, root?: string): string {
   const scrub = (text: string): string =>
     root === undefined ? text : normalizeIdentityText(text, root)
@@ -204,6 +205,7 @@ export function hashViolation(violation: ArchViolation, root?: string): string {
  * a different hash", and it cannot work: the rule string is precisely what
  * changed. Measured before this was built.
  */
+// eess-exclude eess/no-unused-exports: exercised by tests; the build tsconfig this gate reads excludes tests, so src is the only usage it can see
 export function hashSubject(violation: ArchViolation, root?: string): string {
   const scrub = (text: string): string =>
     root === undefined ? text : normalizeIdentityText(text, root)

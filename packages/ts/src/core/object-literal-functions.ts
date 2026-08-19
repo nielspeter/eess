@@ -34,6 +34,7 @@ export interface ObjectLiteralFunction {
 }
 
 /** Default recursion depth into nested object literals (matches the callback path). */
+// eess-exclude eess/no-unused-exports: declaration emit — it appears in the signature of an exported API in this file
 export const MAX_OBJECT_LITERAL_DEPTH = 3
 
 /**

@@ -36,6 +36,7 @@ export type ImportCandidates = readonly [primary: string, ...alternates: string[
  * Keeping the primary stable means only genuinely *new* findings get new text.
  * A test asserts the equivalence across the whole fixture corpus.
  */
+// eess-exclude eess/no-unused-exports: exercised by tests; the build tsconfig this gate reads excludes tests, so src is the only usage it can see
 export function importCandidates(decl: ImportDeclaration): ImportCandidates {
   return candidatesFor(
     decl.getModuleSpecifierValue(),

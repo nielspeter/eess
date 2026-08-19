@@ -249,7 +249,7 @@ export function sliceGraph(
   }
 }
 
-export function buildSliceDependencyGraph(
+function buildSliceDependencyGraph(
   slices: Slice[],
   fileToSlice: Map<string, string> | undefined,
   options: ImportOptions | undefined,
@@ -309,6 +309,7 @@ export interface SliceDependencySite {
   readonly edge: ModuleEdge
 }
 
+// eess-exclude eess/no-unused-exports: exercised by tests; the build tsconfig this gate reads excludes tests, so src is the only usage it can see
 export function findSliceDependencyDetails(
   slices: Slice[],
   fromSliceName: string,

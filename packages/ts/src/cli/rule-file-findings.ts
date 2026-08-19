@@ -58,6 +58,7 @@ export function attributeToRuleFile(
  * misplaced (the v0.22.0 defect), and only a `file` of `''` takes the run-level
  * branch that avoids it.
  */
+// eess-exclude eess/no-unused-exports: exercised by tests; the build tsconfig this gate reads excludes tests, so src is the only usage it can see
 export function ruleFileFailure(file: string, error: unknown, ruleFiles: number): ArchViolation {
   const raw = error instanceof Error ? error.message : String(error)
   // An error message may or may not end in punctuation, and the sentence after

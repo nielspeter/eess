@@ -25,6 +25,7 @@ const STRICT_FAMILY = [
   'useUnknownInCatchVariables',
 ] as const satisfies ReadonlyArray<keyof CompilerOptions>
 
+// eess-exclude eess/no-unused-exports: declaration emit — it appears in the signature of an exported API in this file
 export type StrictFamilyFlag = (typeof STRICT_FAMILY)[number]
 
 const STRICT_FAMILY_SET: ReadonlySet<string> = new Set(STRICT_FAMILY)

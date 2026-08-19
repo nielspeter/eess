@@ -20,6 +20,7 @@ import type { EdgeCoverage } from '@nielspeter/eess'
  * Shared across all builder types (RuleBuilder, SliceRuleBuilder,
  * SchemaRuleBuilder, ResolverRuleBuilder, PairFinalBuilder, SmellBuilder).
  */
+// eess-exclude eess/no-unused-exports: declaration emit — it appears in the signature of an exported API in this file
 export interface ExecuteRuleContext {
   reason?: string
   metadata?: RuleMetadata
