@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — three distinct collisions reproduced against the built
-  dist; no red test yet.
+- **State:** Draft — fix **built and measured** in an isolated worktree, all
+  three collisions plus content, stability and denominator rows (see Fix); no
+  red test committed yet.
 - **Severity:** High — false green. Baselining is the documented way to adopt
   eess on an existing codebase. When two distinct findings share one identity,
   accepting one silently accepts the other, and the second never reappears.
@@ -96,38 +97,72 @@ identity means:
 None of this is visible from a passing run, which is what makes it a false
 green rather than a nuisance.
 
-## Fix
+## Fix — measured 2026-08-19
 
-Establish one rule — an identity must be distinct for any two findings a reader
-would consider different — and apply it at all three producers rather than
-patching each formula:
+Built and measured in an isolated worktree against a green baseline
+(kernel 145/145, md 113/113 before any patch).
 
-**Placement, ruled up front** (PR #70's review raised this, and plan 0150 took
-a hit of exactly this shape): the three fixes do not live in one package.
-Fix (1) and the collision check are **kernel** work — every dialect emits
-`ArchViolation`s that feed `packages/core/src/baseline.ts`, so building them in
-`packages/ts` guarantees md/mermaid/gherkin/crossvalidate reinvent them. Fixes
-(2) and (3) are dialect-local, in `packages/ts`'s smells and conditions layers.
+| check                                                      | before    | after      |
+| ---------------------------------------------------------- | --------- | ---------- |
+| (1) two spellings of one module — distinct hashes          | **1**     | **2** ✓    |
+| (2) three same-named functions — distinct identities       | **1**     | **3** ✓    |
+| (2) three same-named functions — distinct hashes           | **1**     | **3** ✓    |
+| (3) reverse-dep — every finding carries an identity        | **false** | **true** ✓ |
+| (3) reverse-dep — distinct hashes                          | **1**     | **2** ✓    |
+| CONTENT: an identity names `alpha`, not just "is distinct" | false     | **true** ✓ |
+| STABILITY: two runs over one corpus → same identity set    | true      | **true** ✓ |
+| DENOMINATOR: findings produced (3 and 2)                   | 3 / 2     | 3 / 2      |
+| `check:arch` · `check:family` · `check:spec`               | green     | green      |
+| kernel / md suites                                         | 145 / 113 | 145 / 113  |
 
-1. Add the disambiguation pass **in `packages/core`** so post-resolution
-   collisions are separated for every dialect.
-2. Discriminate the duplicate-pair identity so same-named subjects in one file
-   differ — **but not with a run-ordinal.** An ordinal suffix yields distinct
-   identities within a run and _unstable_ identities across runs: every re-run
-   mints new hashes and no baseline ever matches again. That is upstream's own
-   bug 0056 ("a cycle identity changes when imports are reordered")
-   re-committed, and neither a "distinct identities" assertion nor a
-   single-run control can see it. Use something derived from the subject —
-   declaration order within the file is stable; a source position is stable
-   under edits elsewhere in the repo but not within the file. Record the
-   choice and its stability argument here.
-3. Set `identity` on reverse-dependency findings.
+> **Correction — this record's own prescription was wrong.** It said to
+> discriminate the duplicate-pair identity _"but not with a run-ordinal"_,
+> arguing an ordinal would recreate upstream bug 0056 (identities unstable
+> across runs). Checked against what upstream actually shipped: **its answer
+> _is_ a run-ordinal.** For identical bodies with identical names there is no
+> content left to discriminate on — that is what makes them duplicates. What
+> makes the ordinal safe is _where_ it is applied and what surrounds it, not
+> avoiding it.
 
-Also decide whether a **collision is itself detectable** — kernel-side, next to
-`hashViolation`, where it can see every dialect's output — a check that two
-findings in one run never share an identity would have caught all three, and
-would catch the next one. That is likely cheaper than auditing each producer
-forever, and belongs in this record as a ruling either way.
+**The design, which is a central repair pass and not a per-producer fix.**
+
+`disambiguateIdentities(violations)` runs in `applyFilters`, **ahead of
+enrichment and of every filter** — so a finding's identity is a property of
+what the _rule found_, not of what a `--changed` or `.excluding()` run happened
+to keep. Suffixing after filtering would give one finding different identities
+in CI and on a laptop, which is the defect `identity` exists to prevent.
+
+Three properties that are easy to lose, each measured:
+
+- the **first** occurrence keeps its subject verbatim, so existing baselines do
+  not churn — the migration is empty;
+- generated suffixes are **reserved** against keys a producer already emits, so
+  closing one collision cannot open another (`[X, X, X, X#1]`);
+- nothing collides in the common case, and the input is returned untouched.
+
+Stability rests on producers emitting in a **deterministic order** — asserted
+by the cross-run row above, not assumed.
+
+**`identityCollisions()` is the part that matters most.** A repair pass hides
+the thing it repairs: after it runs there is nothing left for a guard to see,
+so a colliding producer looks fixed. Collisions are therefore recorded _before_
+the repair and exposed (with `resetIdentityCollisions()` for `beforeEach`).
+Measured: it names the exact rule and subject that collided. This is what keeps
+the net from becoming a blindfold, and it is re-exported from `eess-ts` because
+the guards that use it live in a dialect's own suite.
+
+**Only one producer actually needed fixing.** Reverse-dependency findings set
+no `identity` at all, so the baseline subject fell back to
+`element::message` — and `element` is the **basename**, so two orphan
+`index.ts` files in different folders produced byte-identical subjects. They
+now carry `reverse-dep::<full path>::not-imported`. The duplicate-pair
+producer is left alone: its identity string is **byte-identical to upstream's**,
+which never fixed it either — the repair pass is the answer there, and the
+disclosure keeps it honest.
+
+**A gate caught the fix, again.** The three new kernel exports were not
+reachable from `eess-ts`, which plan 0089's standalone-sufficiency contract
+(`check:family`) reports. Re-exported.
 
 ## Verification
 
@@ -145,7 +180,9 @@ forever, and belongs in this record as a ruling either way.
       findings (ADR-010).
 - [ ] Control: identical findings that genuinely _are_ the same still share an
       identity, so baselining does not become per-run noise.
-- [ ] The "detect collisions generically" ruling is recorded here.
+- [x] The "detect collisions generically" ruling is recorded — `identityCollisions()`
+      does exactly this, recording before the repair so a producer defect stays
+      visible. See Fix.
 - [ ] Existing baselines: state whether this changes identities for already-
       baselined findings, and if so how adopters migrate (upstream shipped a
       `hashVersion` for exactly this; eess has none — see
