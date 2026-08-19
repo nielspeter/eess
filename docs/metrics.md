@@ -114,16 +114,18 @@ Available predicates:
 | Predicate                                      | Entry Point    | Description                            |
 | ---------------------------------------------- | -------------- | -------------------------------------- |
 | `haveCyclomaticComplexity({ greaterThan: n })` | `classes(p)`   | Class has a method with complexity > n |
-| `haveMoreLinesThan(n)`                         | `classes(p)`   | Class spans more than n lines          |
+| `haveMoreLinesThan(n)`                         | `classes(p)`   | Class has more than n code lines       |
 | `haveMoreMethodsThan(n)`                       | `classes(p)`   | Class has more than n methods          |
 | `haveComplexity({ greaterThan: n })`           | `functions(p)` | Function has complexity > n            |
-| `haveMoreFunctionLinesThan(n)`                 | `functions(p)` | Function spans more than n lines       |
+| `haveMoreFunctionLinesThan(n)`                 | `functions(p)` | Function has more than n code lines    |
 
 ## How Lines Are Counted
 
-eess-ts counts **span lines** — from the element's first line to its last line, inclusive. This includes blank lines and comments within the element's range. This is consistent with how editors report function/class length.
+eess-ts counts **code lines** — the distinct lines within the element that carry at least one token. Comments (including JSDoc) and blank lines are not counted. A line holding only `}` is: this is a physical-source-lines count, not a statement count.
 
-If you need SonarQube-style NCLOC (non-comment lines of code), write a custom condition using ts-morph's `getLeadingCommentRanges()` API.
+Comments are excluded structurally rather than by matching comment syntax in text — they are trivia, so they are never tokens.
+
+> **Changed in 0.3.** This used to count **span lines** (`end - start + 1`), which counted comments and blank lines. That made a well-documented element read as a large one, and it collided head-on with a JSDoc-coverage rule: requiring a doc block on every public method drove the same class over its line budget. If you tuned a threshold against the old behaviour, expect the new numbers to be substantially lower — on eess's own source, seven of nine oversized classes turned out to be over on documentation alone.
 
 ## Custom Metric Rules
 

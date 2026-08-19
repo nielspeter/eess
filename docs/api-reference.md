@@ -418,7 +418,7 @@ See [Cross-Layer Validation](/cross-layer) for usage examples.
 | Export                      | Signature                                                     | Description                                                 |
 | --------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
 | `cyclomaticComplexity`      | `cyclomaticComplexity(body: Node \| undefined): number`       | Calculate McCabe cyclomatic complexity for a function body. |
-| `linesOfCode`               | `linesOfCode(node: Node): number`                             | Count span lines (start to end, inclusive).                 |
+| `linesOfCode`               | `linesOfCode(node: Node): number`                             | Count code lines (comments and blanks excluded).            |
 | `haveCyclomaticComplexity`  | `haveCyclomaticComplexity(opts): Predicate<ClassDeclaration>` | Predicate: class has a method with complexity > threshold.  |
 | `haveComplexity`            | `haveComplexity(opts): Predicate<ArchFunction>`               | Predicate: function has complexity > threshold.             |
 | `haveMoreLinesThan`         | `haveMoreLinesThan(n): Predicate<ClassDeclaration>`           | Predicate: class spans more than n lines.                   |

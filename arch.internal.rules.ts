@@ -165,83 +165,63 @@ const rules = [
   // Raising 300/20 globally was rejected — that lowers the bar for every class to
   // accommodate one.
   srcClasses().should().satisfy(maxCyclomaticComplexity(10)).rule({ id: 'eess/max-complexity' }),
-  // **`maxClassLines` measures the SPAN, comments included** — `linesOfCode()` is
-  // `end - start + 1`, and `tests/helpers/complexity.test.ts` pins that
-  // deliberately ("counts span lines"). In this file that makes two rules pull
-  // against each other: `eess/jsdoc-on-public-methods` above REQUIRES a doc
-  // block on every public method, and a fluent builder has twenty of them.
+  // `linesOfCode` counts CODE lines — comments and blanks excluded — as of
+  // [bug 0170](./work/bugs/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md).
+  // Before that it was `end - start + 1`, which put this rule in direct conflict
+  // with `eess/jsdoc-on-public-methods` above: that rule REQUIRES a doc block on
+  // every public method, and this one then counted those blocks as size. Seven
+  // of the nine classes below were over the threshold on their documentation
+  // alone, and the carve-outs that fact justified are gone with it.
   //
-  // Measured after documenting them (plan 0165), code lines vs span:
+  // Two are genuinely over on code and stay excluded, measured:
   //
-  //   class-rule-builder      141 code / 366 span
-  //   function-rule-builder   125 code / 399 span
-  //   slice-rule-builder      226 code / 521 span
-  //   inconsistent-siblings   201 code / 441 span
-  //   rule-builder            216 code / 550 span
-  //   correspondence-builder  300 code / 576 span
-  //   terminal-builder        356 code / 1176 span
+  //   CorrespondenceBuilder   329 code / 628 span
+  //   TerminalBuilder (ts)    372 code / 1218 span
   //
-  // Five of the seven are UNDER the threshold on code and over it only because
-  // this file's own JSDoc rule was satisfied. Excluding the fluent-builder
-  // surfaces is therefore a scoped statement of that interaction, not a lowered
-  // bar — raising 300 globally was rejected before and stays rejected, because
-  // it stops catching genuine bloat everywhere else to accommodate this one shape.
-  //
-  // The two that are genuinely over on code — `correspondence-builder` (300, at
-  // the line) and `terminal-builder` (356) — are covered by the same exclusion
-  // and by [bug 0164](./work/bugs/0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md);
-  // `terminal-builder` in particular is the file plan 0165 Phase 2 named as
-  // waiting on the kernel project-abstraction ADR, so splitting it now would be
-  // work done twice.
+  // Named one file at a time, deliberately. The list was a folder
+  // (`/src/builders/`), which exempted every builder written from then on for
+  // the sake of one that was over. Both remaining entries are owed a split by
+  // [bug 0164](./work/bugs/0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md);
+  // `terminal-builder` is the file plan 0165 Phase 2 named as waiting on the
+  // kernel project-abstraction ADR, so splitting it now would be work done twice.
+  // The kernel's own `terminal-builder.ts` (215) and `rule-builder.ts` (139) are
+  // NOT excluded — they pass.
   srcClasses()
-    .excluding(/\/src\/(core\/)?(terminal-builder|rule-builder)\.ts$/)
-    .excluding(/\/src\/builders\//)
-    .excluding(/\/src\/smells\/inconsistent-siblings\.ts$/)
+    .excluding(/\/ts\/src\/core\/terminal-builder\.ts$/)
+    .excluding(/\/src\/builders\/correspondence-builder\.ts$/)
     .should()
     .satisfy(maxClassLines(300))
     .rule({
       id: 'eess/max-class-lines',
-      because:
-        'ADR-003: fluent builder surfaces are the design, and this file also requires a JSDoc ' +
-        'block on each of their methods — five of the seven are under 300 lines of actual code',
+      because: 'ADR-003: fluent builder surfaces are the design; these two are over on real code',
     }),
-  // Same span-vs-code interaction as `maxClassLines` above — `linesOfCode()` counts
-  // comments, and this codebase's explanatory density is deliberate. Re-measured
-  // after bug 0166 split the three methods that were genuinely oversized:
+  // No exclusions. Every one of the four methods this rule used to report —
+  // `TerminalBuilder.collectWithAssertionGuard` (15 code / 61 span),
+  // `Baseline.unmatchedBaselineFinding` (37/56),
+  // `DuplicateBodiesBuilder.buildViolations` (32/54) and
+  // `InconsistentSiblingsBuilder.detect` (27/61) — was under the threshold on
+  // code and over it only on comment lines. Bug 0170 removed the cause, so the
+  // whole carve-out list went with it.
   //
-  //   TerminalBuilder.collectWithAssertionGuard     15 code /  61 span
-  //   Baseline.unmatchedBaselineFinding             37 code /  56 span
-  //   InconsistentSiblingsBuilder.detect            27 code /  61 span
-  //   DuplicateBodiesBuilder.buildViolations        32 code /  54 span
+  // That also retires the live instance of
+  // [bug 0167](./work/bugs/0167-method-size-rules-can-only-be-excluded-by-class.md):
+  // a method-size exclusion can still only be spelled per CLASS, but this rule no
+  // longer has one, so no class is unwatched on its account today.
+  srcClasses().should().satisfy(maxMethodLines(50)).rule({
+    id: 'eess/max-method-lines',
+    because: 'a method past 50 lines of code is doing more than one thing',
+  }),
+  // Method COUNT, which bug 0170 does not touch — a fluent builder really does
+  // carry 20+ methods, and ADR-003 makes that surface the design.
   //
-  // Every one is UNDER the threshold on code and over it only on comment lines.
-  // Bug 0166's two length findings — `CorrespondenceBuilder.collectViolations`
-  // (was 88 code / 168 span) and `SliceRuleBuilder.emptyDiscoveryMessage` (was 72
-  // code / 113 span) — were fixed by splitting, not by joining this list.
-  //
-  // Excluding by CLASS is coarser than this deserves: `.excluding()` filters the
-  // subject, and the subject of a method-size rule is the class, so a future
-  // oversized method in one of these four classes would not fire. That coarseness
-  // is the part of 0166 that remains owed, and it is why the exclusions name
-  // specific files rather than a folder.
+  // Named by CLASS, not by folder. `/src/builders/` exempted the directory, so a
+  // non-builder class added there inherited the exemption silently; these are the
+  // nine fluent builders that actually exceed 20, and anything else in those
+  // files is still watched.
   srcClasses()
-    .excluding(/TerminalBuilder/)
-    .excluding(/\/helpers\/baseline\.ts$/)
-    .excluding(/\/smells\/(duplicate-bodies|inconsistent-siblings)\.ts$/)
-    .should()
-    .satisfy(maxMethodLines(50))
-    .rule({
-      id: 'eess/max-method-lines',
-      because:
-        'the metric counts comment lines; these five are under 50 lines of actual code, and ' +
-        'the two that are genuinely over are left failing (bug 0166)',
-    }),
-  srcClasses()
-    .excluding(/\/src\/builders\//)
-    .excluding(/\/src\/(core\/)?(terminal-builder|rule-builder)\.ts$/)
-    // `graphql/schema-rule-builder.ts` is a fluent builder that does not live
-    // under `builders/`; the folder was never the reason, the shape is.
-    .excluding(/\/src\/graphql\/schema-rule-builder\.ts$/)
+    .excluding(
+      /^(ClassRuleBuilder|FunctionRuleBuilder|ModuleRuleBuilder|SliceRuleBuilder|TypeRuleBuilder|SchemaRuleBuilder|CorrespondenceBuilder|RuleBuilder|TerminalBuilder)$/,
+    )
     .should()
     .satisfy(maxMethods(20))
     .rule({

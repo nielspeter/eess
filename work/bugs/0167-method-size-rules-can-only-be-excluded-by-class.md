@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — the limitation is live in `arch.internal.rules.ts` today.
+- **State:** Draft — the limitation is real but **no longer live**: see the
+  update below.
 - **Found:** 2026-08-19, closing [bug 0166](./fixed/0166-three-engine-methods-exceed-the-size-and-complexity-rules.md).
 
 ## Symptom
@@ -72,3 +73,22 @@ Not decided. Three candidates, in rough order of preference:
 - [Bug 0166](./fixed/0166-three-engine-methods-exceed-the-size-and-complexity-rules.md) — deferred this.
 - [Bug 0164](./0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md)
   — the same span-vs-code interaction at class level.
+
+## Update, 2026-08-19 — no longer live, and one premise was wrong
+
+[Bug 0170](./0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)
+fixed `linesOfCode` to count code rather than span. All four methods this bug was
+written about were under the threshold on code, so `maxMethodLines` now carries
+**no exclusions at all** and no class is unwatched on its account.
+
+The limitation itself stands — `.excluding()` still filters the subject, and the
+subject of a method-size rule is still the class — so this stays open against the
+next time a genuine per-method waiver is needed.
+
+**Correction.** This bug asserted that `tests/helpers/complexity.test.ts` "pins
+that deliberately ("counts span lines")". It did not. The three cases carrying
+that title asserted `toBeGreaterThan(10)`, `toBeGreaterThanOrEqual(3)` and
+`toBeGreaterThan(5)` — bounds a code-line implementation satisfies just as well.
+The title claimed a contract the assertion could not distinguish, and this bug
+(and [0166](./fixed/0166-three-engine-methods-exceed-the-size-and-complexity-rules.md))
+cited it as settled fact. The titles are corrected as part of 0170.

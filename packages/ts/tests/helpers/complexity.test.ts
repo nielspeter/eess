@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
+import type { FunctionDeclaration } from 'ts-morph'
 import path from 'node:path'
 import { cyclomaticComplexity, linesOfCode, methodCount } from '../../src/helpers/complexity.js'
 
@@ -101,23 +102,86 @@ describe('cyclomaticComplexity', () => {
 })
 
 describe('linesOfCode', () => {
-  it('counts span lines for a class', () => {
+  it('counts code lines for a class', () => {
     const cls = findClass('ComplexService')
-    const loc = linesOfCode(cls)
-    // ComplexService spans multiple lines
-    expect(loc).toBeGreaterThan(10)
+    expect(linesOfCode(cls)).toBeGreaterThan(10)
   })
 
-  it('counts span lines for a method', () => {
+  it('counts code lines for a method', () => {
     const method = findMethod('ComplexService', 'simple')
-    const loc = linesOfCode(method)
-    expect(loc).toBeGreaterThanOrEqual(3) // at least: signature + body + closing
+    expect(linesOfCode(method)).toBeGreaterThanOrEqual(3) // signature + body + closing
   })
 
-  it('counts span lines for a function', () => {
+  it('counts code lines for a function', () => {
     const fn = findFunction('processItems')
-    const loc = linesOfCode(fn)
-    expect(loc).toBeGreaterThan(5)
+    expect(linesOfCode(fn)).toBeGreaterThan(5)
+  })
+
+  // [Bug 0170](../../../../work/bugs/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md):
+  // this returned `end - start + 1`, so a documented class failed
+  // `maxClassLines` on the JSDoc that `eess/jsdoc-on-public-methods` requires of
+  // it — one rule breaking another. Measured on this repo, six of nine class
+  // findings and two of four method findings were comment lines alone.
+  //
+  // Pinned to EXACT numbers. The three cases above are the reason: they were
+  // titled "counts span lines" and asserted `toBeGreaterThan(10)`, which a code
+  // -line implementation satisfies just as well — so the contract they claimed
+  // to hold was never actually held, and two bugs cited them as if it were.
+  describe('excludes what is not code (bug 0170)', () => {
+    const tsm = new Project({ useInMemoryFileSystem: true })
+    const fnIn = (name: string, src: string): FunctionDeclaration => {
+      const sf = tsm.createSourceFile(`/src/${name}.ts`, src)
+      const [fn] = sf.getFunctions()
+      if (!fn) throw new Error(`no function in ${name}`)
+      return fn
+    }
+
+    it('counts neither comment lines nor blank lines', () => {
+      // 8 lines of span; 4 of them carry code:
+      //   1 `export function documented() {`
+      //   3 `const x = 1`
+      //   7 `return x` (a trailing comment does not make the line stop counting)
+      //   8 `}`
+      const fn = fnIn(
+        'documented',
+        'export function documented() {\n' + // 1
+          '  // a leading comment\n' + //        2
+          '  const x = 1\n' + //                 3
+          '\n' + //                              4
+          '  /* a block\n' + //                  5
+          '     comment */\n' + //               6
+          '  return x // trailing\n' + //        7
+          '}\n', //                              8
+      )
+      expect(fn.getEndLineNumber() - fn.getStartLineNumber() + 1).toBe(8)
+      expect(linesOfCode(fn)).toBe(4)
+    })
+
+    it('does not count a JSDoc block above the declaration', () => {
+      const fn = fnIn(
+        'jsdoc',
+        '/**\n * Documented.\n * @returns nothing useful\n */\n' +
+          'export function jsdoc() {\n  return 1\n}\n',
+      )
+      // Signature, body, closing brace — the four JSDoc lines are not code.
+      expect(linesOfCode(fn)).toBe(3)
+    })
+
+    it('never reports more lines than the node spans, across the real corpus', () => {
+      // The invariant that caught the first attempt at this fix: `getChildren()`
+      // returns the JSDoc node while `getStartLineNumber()` excludes it, so
+      // counting it made an element measure LARGER than itself.
+      let checked = 0
+      for (const cls of project.getSourceFiles().flatMap((sf) => sf.getClasses())) {
+        for (const member of [...cls.getMethods(), cls, ...cls.getGetAccessors()]) {
+          const span = member.getEndLineNumber() - member.getStartLineNumber() + 1
+          expect(linesOfCode(member)).toBeLessThanOrEqual(span)
+          checked++
+        }
+      }
+      // Non-vacuity: the loop must actually have examined something.
+      expect(checked).toBeGreaterThan(0)
+    })
   })
 })
 
