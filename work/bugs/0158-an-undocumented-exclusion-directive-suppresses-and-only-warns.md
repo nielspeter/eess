@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — reproduced directly against the built dist with controls;
-  no red test yet.
+- **State:** Draft — fix **built and measured** in an isolated worktree (see
+  Fix); no red test committed yet.
 - **Severity:** High — false green, and in published code. A reason-free
   `// eess-exclude <rule-id>` is a working kill switch for any rule, on any
   line, and the only feedback is a stderr line that does not fail the build.
@@ -77,13 +77,45 @@ family to all of them. It does not carry 0039. So the fail-open now spans every
 condition family — including the dependency and module-body conditions an
 adopting team reaches for first.
 
-## Fix
+## Fix — measured 2026-08-19
 
-1. Add `kind: 'undocumented' | 'malformed'` to `ExclusionWarning`, and make an
-   undocumented directive **fail closed**: it does not suppress, and it
-   produces an unsuppressable finding rather than a stderr line.
-2. Replace the `Map` of open blocks with a stack of frames so one `-end`
-   closes one `-start`.
+Built and measured alongside [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+(same file, same pass), in an isolated worktree against a green baseline.
+
+| check                                                     | before                           | after                      |
+| --------------------------------------------------------- | -------------------------------- | -------------------------- |
+| reason-free `// eess-exclude a/b`                         | suppresses                       | **no exclusion** ✓         |
+| colon-only `// eess-exclude a/b:`                         | suppresses                       | **no exclusion** ✓         |
+| documented directive (control)                            | applies                          | applies                    |
+| nested blocks, same id                                    | outer ends at inner `-end` (1–5) | **inner 3–5, outer 1–7** ✓ |
+| nested blocks, different ids                              | inner dropped entirely           | **both resolve** ✓         |
+| unclosed `-start` at EOF (control)                        | no exclusion                     | no exclusion               |
+| `-end` with no start (control)                            | no exclusion                     | no exclusion               |
+| **e2e: reason-free directive vs a real `eval` violation** | **0 findings**                   | **1 finding** ✓            |
+
+1. **`kind: 'undocumented' \| 'malformed'`** added to `ExclusionWarning`, and an
+   undocumented directive now **fails closed** — it suppresses nothing. The
+   structural warnings (unmatched/`-end`-without-start) carry `'malformed'`, so
+   a caller can turn the inert-waiver case into a finding without also
+   promoting file-shape complaints. Making it an _unsuppressable finding_
+   rather than a warning is left to the caller and is **not** done here — that
+   is ADR-009 rule 1 territory and belongs with bug 0155's warning-vs-finding
+   decision, which is still open.
+2. **Block frames form a stack**; one `-end` closes one `-start`. Nesting is now
+   legal and emits no warning.
+
+**Five tests encoded the old behaviour** and were updated as part of the fix,
+across two files — `packages/ts/tests/helpers/exclusion-comments.test.ts` (3)
+and `packages/ts/tests/integration/coverage-gaps.test.ts` (2). Each asserted
+the defect: that a reason-free directive _produces_ an exclusion, and that
+nesting _warns_. They now assert by identity and span. One control was added
+(a documented HTML exclusion still applies).
+
+Full suite after: **2216/2217**, the single failure pre-existing and
+environmental (a substring assertion that trips on a temp path containing a
+digit — baselined on unpatched code before crediting it).
+
+The original prescription, kept for reference:
 
 Landing (1) will surface violations in any corpus that currently relies on a
 reason-free directive — that is the fix working. This repo's own directives

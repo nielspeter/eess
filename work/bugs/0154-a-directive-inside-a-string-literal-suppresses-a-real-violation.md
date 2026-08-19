@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — surfaced by plan 0150 Phase 4's three-persona review
+- **State:** Draft — fix **built and measured** in an isolated worktree (see
+  Fix); no red test committed yet. Surfaced by plan 0150 Phase 4's three-persona review
   (enforcement, architect, testing all converged on it independently), then
   reproduced end-to-end against the built dist. No red test yet.
 - **Severity:** High — a silent hole in the enforcement path. A live violation
@@ -113,9 +114,61 @@ being read correctly it declared a live exclusion"_). Plan 0088 folded
 ts-archunit's engine into eess but this hardening did not come across with it —
 the eess kernel's parser is the pre-0043 shape.
 
-## Fix
+## Fix — measured 2026-08-19
 
-Port bug 0043's hardening into `packages/core/src/exclusion-comments.ts`:
+Built and measured in an isolated worktree against a green baseline (kernel
+145/145, ts exclusion tests 22/22 before any patch). **The `//`-prose question
+this record said must be answered before the fix lands is answered below.**
+
+| check                                                        | before            | after              |
+| ------------------------------------------------------------ | ----------------- | ------------------ |
+| directive inside a double-quoted string                      | suppresses        | **no exclusion** ✓ |
+| directive inside a template literal                          | suppresses        | **no exclusion** ✓ |
+| directive inside a block comment / JSDoc                     | parsed            | **no exclusion** ✓ |
+| `exclusion-comments.ts` over itself                          | **12** exclusions | **0** ✓            |
+| `comment-suppression.ts`                                     | **2**             | **0** ✓            |
+| real `// eess-exclude a/b: why` (control)                    | applies           | applies            |
+| trailing `const x = 1 // eess-exclude a/b: why` (control)    | applies           | applies            |
+| **e2e: string-literal directive vs a real `eval` violation** | **0 findings**    | **1 finding** ✓    |
+| e2e: documented directive (control)                          | 0                 | 0                  |
+| e2e: no directive (vacuity control)                          | 1                 | 1                  |
+| `check:arch` over this repo (33 live waivers)                | 0 failing         | **0 failing** ✓    |
+| kernel suite                                                 | 145/145           | 145/145            |
+
+**Two mechanisms, because masking alone is not enough.**
+
+1. **Lexical masking, hand-rolled.** A single-pass scanner blanks every string,
+   template, and regex literal and every block comment — length- and
+   line-preserving, so reported lines are unchanged — before the directive
+   regexes run. Line comments are deliberately _not_ blanked; they are the
+   target. **This resolves the ADR-002 question:** the kernel cannot import
+   ts-morph, so the scanner is text-only rather than AST-based. The failure
+   direction is safe — a mis-lex can only _hide_ a directive (a waiver stops
+   working, loudly), never invent one.
+2. **The directive must open its comment.** Masking took the file's own count
+   from 12 to 7; the remaining 7 are genuine line comments that merely
+   _describe_ the grammar (`// Single-line: // eess-exclude <rule-id>: …`), so
+   no lexical rule can exclude them. Anchoring the directive to the start of
+   the comment body separates all 7 from every real directive, including the
+   trailing form. **Rejected alternative:** validating the rule-id's shape — it
+   rejects `<rule-id>` but still accepts `// see eess-exclude a/b: why` in
+   prose, and couples the parser to an id grammar nothing else enforces.
+
+Plus a third, smaller ruling: **the HTML forms apply only to non-code-like
+files.** They exist for text dialects; in a `.ts` file `// <!-- eess-exclude … -->`
+is prose, and it accounted for the last 2 of this file's own hits.
+
+**eess-md's fenced-code-block case is NOT covered** and stays open — a markdown
+file is not masked (masking prose would treat an apostrophe as an open string),
+so a directive inside a fenced code block in a `.md` file is still read as
+live. Stated rather than left to be discovered.
+
+**The repo's own gate caught the fix.** The first version of the scanner used
+`as string` / `as number` for `noUncheckedIndexedAccess` narrowing — four
+ADR-005 violations, reported by `check:arch` against this repo. Rewritten with
+explicit `undefined` checks; `check:arch` green.
+
+The original prescription, kept for reference:
 
 1. Blank every string, template, and regex literal before scanning, so a
    directive inside one cannot be read. A template literal is blanked whole,
@@ -151,7 +204,8 @@ mechanical port, and is the reason this bug is filed rather than fixed inline.
       `packages/core/src/exclusion-comments.ts` itself yields zero exclusions —
       the file that documents the grammar must not declare waivers. Asserted by
       identity, not by count.
-- [ ] The `// ` prose case is decided and its ruling recorded here.
+- [x] The `// ` prose case is decided and its ruling recorded here — the
+      directive must open its comment; id-shape validation rejected. See Fix.
 - [ ] **Deliberately not a box:** "`doctor …` reports zero orphan-exclusion
       findings." It is satisfied **today, before any fix**, by a capability
       that does not exist — a false floor. Checkbox 3 above (the parser over
