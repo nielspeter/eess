@@ -100,9 +100,13 @@ Two consequences:
   is weaker than the citation implies: the test does exercise the copy-on-write
   contract, but its final assertion currently proves nothing.
 
-See [bug 0156](./0156-should-twice-silently-drops-the-first-assertion.md) —
-the same `fork()`/`should()` coupling constrains that fix too, and the two
-should be picked up together.
+See [bug 0156](./0156-should-twice-silently-drops-the-first-assertion.md).
+An intermediate draft claimed the two fixes were _entangled_ — that 0156 could
+not be fixed without first settling `fork()` semantics. **That is not so:**
+0156's fix is measured, one line, and leaves this contract test passing 9/9.
+What the two genuinely share is only this test's **comment**, which
+misdescribes why its final branch passes. Correcting that comment belongs to
+whichever of the two is picked up first; neither blocks the other.
 
 ## Fix
 

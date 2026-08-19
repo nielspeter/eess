@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — reproduced directly against the built dist; no red test yet.
+- **State:** Draft — reproduced against the built dist, and the fix
+  **measured** in an isolated worktree against a green baseline (see Fix). No
+  red test committed yet.
 - **Severity:** High — false green. Two assertions are written, one is
   enforced, real findings are discarded, and the build passes with no output.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
@@ -69,48 +71,63 @@ upstream was in between its bugs 0016 and 0020.
 
 ## Fix
 
-> **Do not simply delete the line.** An earlier draft of this record
-> prescribed _"remove `fork._conditions = []` from `fork()`"_. That is wrong,
-> and PR #70's review caught it. **`should()` calls `fork()`**
-> (`packages/core/src/rule-builder.ts:110-114`), so that clearing **is** the
-> bug-0016 no-leak mechanism, pinned by name at
-> `packages/core/tests/contract/extension-surface.test.ts:207` —
-> `it('named-selection reuse across two branches does not leak conditions
-(bug 0016, RuleBuilder side)')`. Deleting the line makes a fresh `.should()`
-> off a held selection inherit the previous branch's condition, and that
-> contract test goes red.
+**Delete `fork._conditions = []` from `fork()`** (`packages/core/src/rule-builder.ts:278`).
+Measured, in an isolated worktree against a green baseline:
 
-The two spellings travel the **same code path**:
+| check                                                  | before    | after                                                              |
+| ------------------------------------------------------ | --------- | ------------------------------------------------------------------ |
+| `should().notExist().should().beAsync()`               | 4         | **8** ✓                                                            |
+| `should().notExist().that().<pred>.should().beAsync()` | 4         | **8** ✓                                                            |
+| `should().notExist().andShould().beAsync()` (control)  | 8         | 8                                                                  |
+| bug-0016 contract test                                 | 9/9       | **9/9** ✓                                                          |
+| kernel suite                                           | 145/145   | **145/145** ✓                                                      |
+| eess-ts suite                                          | 2215/2216 | **2215/2216** (same pre-existing environmental failure both sides) |
 
-- `sel.should().notExist().should().beExported()` — one chain, both
-  assertions intended to hold (this bug); and
-- `sel.should()…` then `sel.should()…` — two independent branches off one held
-  selection, which must **not** share conditions (bug 0016).
+**Why the clear was never load-bearing.** It looks like bug 0016's no-leak
+mechanism — `should()` calls `fork()`, and the contract test at
+`packages/core/tests/contract/extension-surface.test.ts:207` reuses a held
+selection across two branches. But that selection is `.that().named('a')`:
+its `_conditions` is **already empty**, so the clear is a no-op there.
+Isolation is delivered by `copy()` (`rule-builder.ts:265`), which rebuilds
+`_predicates` and `_conditions` as fresh arrays on every derivation.
 
-`fork()` cannot tell them apart today, so no change to `fork()` alone can be
-right. The fix must first **distinguish the two**, and that is a kernel design
-decision, not a one-line edit. Sketches, none ruled:
+So the clear is a no-op in the one case that needs isolation, and destructive
+in every case that doesn't. It only ever discarded assertions an author wrote.
 
-1. Clear on a fork taken from a **held** selection, accumulate on a fork taken
-   from a builder already in the condition phase (`_phase === 'condition'`
-   distinguishes them — a second `.should()` on a chain is the only way to
-   reach `fork()` already in that phase).
-2. Make the second `.should()` on one chain an **error** rather than an
-   accumulation, converging on `andShould()` as the sole spelling for "and
-   also". This is the smaller change and arguably the clearer API; it makes
-   the bug loud instead of correct.
-3. Separate the copy from the clear so `should()` and a held-selection fork
-   call different things.
+> **Correction, recorded rather than quietly fixed.** An intermediate draft of
+> this record — written after PR #70's architect review raised it as a
+> Critical — said _"do not simply delete the line"_, claimed the deletion
+> would turn the 0016 contract test red, and offered three design sketches
+> under the heading "a kernel design decision, not a one-line edit."
+> **That was wrong.** The reasoning about the mechanism was correct
+> (`should()` → `fork()` → clear; the contract test does rely on branch
+> isolation) and the conclusion did not follow, because nobody checked whether
+> the held selection has any conditions to clear. It does not. The claim was
+> accepted and propagated into this record without being run. Measured above.
 
-**Whichever is chosen, `extension-surface.test.ts:207-220` and its comment must
-be rewritten as part of this fix** — see the note in
-[bug 0155](./0155-a-rule-with-no-condition-passes-in-total-silence.md), because
-that test's stated mechanism is also wrong today.
+**A second defect this closes, not in the original report.** `that()` resets
+`_phase` to `'predicate'` (`rule-builder.ts:93`), so
+`.should().notExist().that().<pred>.should().beAsync()` also silently dropped
+`notExist()` — row 2 above. Any fix keyed on `_phase` would have fixed the
+reported shape and left this one open. The deletion closes both, because it
+removes the discard rather than trying to decide when the discard is correct.
 
-Expect fallout either way: a rule that silently enforced only its last
-assertion starts enforcing all of them, which may surface real violations
-previously hidden. That is the fix working, but it should be expected rather
-than discovered in CI.
+**Consequences worth stating.** `should()` and `andShould()` become
+behaviourally identical — both accumulate — leaving `andShould()` a pure
+readability alias. That is acceptable (it already is one: its body is
+`return this`), but if one spelling per meaning is preferred, making a second
+`.should()` an _error_ is the alternative, and it is a separate decision from
+this fix.
+
+And expect fallout: a rule that silently enforced only its last assertion
+starts enforcing all of them, which may surface real violations previously
+hidden. That is the fix working, but it should be expected rather than
+discovered in CI.
+
+`extension-surface.test.ts:207-220`'s **comment** still needs correcting — see
+[bug 0155](./0155-a-rule-with-no-condition-passes-in-total-silence.md); its
+stated mechanism is wrong independently of this fix. The test itself passes
+either way.
 
 ## Verification
 
@@ -131,6 +148,13 @@ than discovered in CI.
       **message identity**, not count.
 
 - [ ] Red test: `satisfy(cond).should().beExported()` retains `cond`.
+- [ ] Red test: the `that()`-reset path
+      `.should().notExist().that().<pred>.should().beAsync()` also reports 8.
+      Keyed-on-`_phase` fixes pass the first red test and fail this one.
+- [ ] Control: the bug-0016 contract test
+      (`packages/core/tests/contract/extension-surface.test.ts:207`) still
+      passes — measured 9/9 with the fix applied, so this is a regression
+      guard, not an open question.
 - [ ] Control: `andShould()` behaviour is unchanged.
 - [ ] Vacuity control: case A really reports 4, so the comparison is real.
 - [ ] Re-run `npm run validate` and account for any newly-surfaced violations
