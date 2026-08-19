@@ -493,49 +493,75 @@ export class SliceRuleBuilder extends TerminalBuilder {
     }
 
     if (this._discovery.mode === 'matching') {
-      const { glob } = this._discovery
-      const prefix = matchingGlobPrefix(glob)
+      return this.matchingDiscoveryMessage(this._discovery.glob, tail)
+    }
 
-      // No literal directory prefix at all ('src', '*', '{a,b}/x/*'). Telling the
-      // caller to "check the prefix" would send them to inspect something that does
-      // not exist — the false-remedy shape this guard keeps relapsing into.
-      if (prefix === '') {
-        return (
-          `matching(${JSON.stringify(glob)}) has no literal directory prefix, so there is ` +
-          'nothing to locate in your file paths. It needs at least one plain directory ' +
-          `segment before the wildcard, e.g. "src/features/*". ${tail}`
-        )
-      }
+    return this.assignedFromDiscoveryMessage(this._discovery.entries, tail)
+  }
 
-      // Check the claim before making it. The prefix is located with a literal
-      // `indexOf` while the pattern goes through picomatch, and the two disagree
-      // for prefixes containing `(`, `{` or `!` — so "the prefix was not found"
-      // was a verifiable falsehood on exactly the route-group directory names this
-      // parser is careful to treat as literal elsewhere.
-      const prefixExists = this.project
-        .getSourceFiles()
-        .some((file) => file.getFilePath().includes(prefix))
+  /**
+   * Why a `matching(glob)` discovery resolved no slices.
+   *
+   * Its own method because the two discovery modes are two independent fault
+   * ladders that share only the closing sentence — `emptyDiscoveryMessage` was
+   * both of them plus the guards, and read as one method only by adjacency.
+   *
+   * Takes the glob rather than re-reading `this._discovery`: the caller has
+   * already narrowed the mode, and narrowing twice is how the two copies drift.
+   */
+  private matchingDiscoveryMessage(glob: string, tail: string): string {
+    const prefix = matchingGlobPrefix(glob)
 
-      if (prefixExists) {
-        return (
-          `matching(${JSON.stringify(glob)}) resolved no slices even though the prefix ` +
-          `${JSON.stringify(prefix)} does occur in this project's files, so the rest of the ` +
-          'glob matched nothing. If a path segment contains "(", ")", "{", "}" or "!", those ' +
-          'are pattern syntax rather than literal characters here — match that level with ' +
-          `"*" instead. ${tail}`
-        )
-      }
-
+    // No literal directory prefix at all ('src', '*', '{a,b}/x/*'). Telling the
+    // caller to "check the prefix" would send them to inspect something that does
+    // not exist — the false-remedy shape this guard keeps relapsing into.
+    if (prefix === '') {
       return (
-        `matching(${JSON.stringify(glob)}) resolved no slices: the prefix ` +
-        `${JSON.stringify(prefix)} was not found in any of this project's ` +
-        `${String(this.project.getSourceFiles().length)} file paths. Compare it against a ` +
-        'real path — the segment after the prefix names each slice (a directory when files ' +
-        `are nested under it, otherwise each matching file name). ${tail}`
+        `matching(${JSON.stringify(glob)}) has no literal directory prefix, so there is ` +
+        'nothing to locate in your file paths. It needs at least one plain directory ' +
+        `segment before the wildcard, e.g. "src/features/*". ${tail}`
       )
     }
 
-    const { entries } = this._discovery
+    // Check the claim before making it. The prefix is located with a literal
+    // `indexOf` while the pattern goes through picomatch, and the two disagree
+    // for prefixes containing `(`, `{` or `!` — so "the prefix was not found"
+    // was a verifiable falsehood on exactly the route-group directory names this
+    // parser is careful to treat as literal elsewhere.
+    const prefixExists = this.project
+      .getSourceFiles()
+      .some((file) => file.getFilePath().includes(prefix))
+
+    if (prefixExists) {
+      return (
+        `matching(${JSON.stringify(glob)}) resolved no slices even though the prefix ` +
+        `${JSON.stringify(prefix)} does occur in this project's files, so the rest of the ` +
+        'glob matched nothing. If a path segment contains "(", ")", "{", "}" or "!", those ' +
+        'are pattern syntax rather than literal characters here — match that level with ' +
+        `"*" instead. ${tail}`
+      )
+    }
+
+    return (
+      `matching(${JSON.stringify(glob)}) resolved no slices: the prefix ` +
+      `${JSON.stringify(prefix)} was not found in any of this project's ` +
+      `${String(this.project.getSourceFiles().length)} file paths. Compare it against a ` +
+      'real path — the segment after the prefix names each slice (a directory when files ' +
+      `are nested under it, otherwise each matching file name). ${tail}`
+    )
+  }
+
+  /**
+   * Why an `assignedFrom(...)` discovery resolved no slices.
+   *
+   * Reports EVERY entry, grouped by its own cause — reporting one group and
+   * stopping, or applying one group's advice to all of them, is what made each
+   * earlier version of this message false for somebody.
+   */
+  private assignedFromDiscoveryMessage(
+    entries: readonly { readonly name: string; readonly glob: string }[],
+    tail: string,
+  ): string {
     if (entries.length === 0) {
       return (
         'assignedFrom() was given no entries, so there are no slices to check. Pass at ' +
@@ -547,29 +573,7 @@ export class SliceRuleBuilder extends TerminalBuilder {
     // grouped by its own cause. Reporting one group and stopping — or applying one
     // group's advice to all of them — is what made each earlier version of this
     // message false for somebody.
-    const FAULT_ORDER: readonly GlobFault[] = ['dot-segment', 'unanchored', 'no-match']
-    const groups = FAULT_ORDER.map((fault) => ({
-      fault,
-      // Syntactic only: this message is built while explaining why EVERY
-      // slice is empty, so "matched no file" is already established and the
-      // useful split is between the two causes with a verifiable fix.
-      list: entries.filter(
-        (entry) =>
-          // The SAME base the declaration uses (bug 0033). With the default
-          // `'absolute'`, a project-relative glob is classified `unanchored`
-          // and the message tells the author to prefix `"**/"` — advice that
-          // stopped being true when this entry point started resolving one
-          // against the project root. It would now send them to change a glob
-          // whose spelling is fine and whose folder is simply missing.
-          (syntacticFault(
-            entry.glob,
-            'file-path',
-            isProjectRelative(entry.glob) ? 'normalized' : 'absolute',
-          ) ?? 'no-match') === fault,
-      ),
-    })).filter((group) => group.list.length > 0)
-
-    const clauses = groups.map((group) => {
+    const clauses = this.faultGroups(entries).map((group) => {
       // Cap per group, never across groups, so no cause is hidden entirely — and
       // always keep an entry whose key the docs single out as error-prone.
       const notable = group.list.filter((entry) => /shared/i.test(entry.name))
@@ -583,6 +587,36 @@ export class SliceRuleBuilder extends TerminalBuilder {
     })
 
     return `Every slice in assignedFrom(...) is empty. ${clauses.join('. Separately, ')}. ${tail}`
+  }
+
+  /**
+   * The entries, grouped by the fault that explains them, in reporting order.
+   *
+   * Syntactic only: this runs while explaining why EVERY slice is empty, so
+   * "matched no file" is already established and the useful split is between the
+   * two causes with a verifiable fix.
+   */
+  private faultGroups(
+    entries: readonly { readonly name: string; readonly glob: string }[],
+  ): { fault: GlobFault; list: readonly { readonly name: string; readonly glob: string }[] }[] {
+    const FAULT_ORDER: readonly GlobFault[] = ['dot-segment', 'unanchored', 'no-match']
+    return FAULT_ORDER.map((fault) => ({
+      fault,
+      list: entries.filter(
+        (entry) =>
+          // The SAME base the declaration uses (bug 0033). With the default
+          // `'absolute'`, a project-relative glob is classified `unanchored` and
+          // the message tells the author to prefix `"**/"` — advice that stopped
+          // being true when this entry point started resolving one against the
+          // project root. It would now send them to change a glob whose spelling
+          // is fine and whose folder is simply missing.
+          (syntacticFault(
+            entry.glob,
+            'file-path',
+            isProjectRelative(entry.glob) ? 'normalized' : 'absolute',
+          ) ?? 'no-match') === fault,
+      ),
+    })).filter((group) => group.list.length > 0)
   }
 }
 
