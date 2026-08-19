@@ -9,6 +9,9 @@
   catch, and does not, because the rule was never written.
 - **Origin:** self-found · [fold audit](../fold-audit-2026-08-19.md)
   (upstream bug 0054)
+- **Shipped in:** the published `@nielspeter/eess-ts` (`0.2.1`) —
+  `within.ts:2`'s value-import is unchanged in `810808b`. The cycle ships to
+  adopters, though nothing about it is user-visible.
 - **Reported:** 2026-08-19
 
 ## Symptom

@@ -8,6 +8,9 @@
   exists to prevent, in the library's own engine.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
   (upstream bug 0019), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+- **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
+  (`0.2.1`). The guard is at `rule-builder.ts:337` in `810808b` (the `v0.2.3`
+  release commit), so this is live for adopters today — not gated behind plan 0100.
 - **Reported:** 2026-08-19
 
 ## Symptom
@@ -30,6 +33,19 @@ functions(p)
 ```
 
 Four subjects are selected. Nothing is asserted. The build is green.
+
+Three shapes measured, because they differ and the title's claim ("total
+silence") belongs to the last two, not the first:
+
+| shape                                                | violations | stderr        |
+| ---------------------------------------------------- | ---------- | ------------- |
+| `.that().<pred>.check()`                             | 0          | warning fires |
+| `.that().<pred>.should().violations()`               | 0          | **nothing**   |
+| `.that().<pred>.should().areExported().violations()` | 0          | **nothing**   |
+
+Row 3 is the sharpest red test available: the guard's own message asks _"Did
+you use a predicate-only method after `.should()`?"_ — and provably cannot fire
+for exactly that case.
 
 ## Root cause
 
@@ -58,6 +74,36 @@ assertion-less rule "stays a stderr warning, not the unsuppressable ADR-010
 finding." That decision is defensible; what is not is that the warning it
 routes to cannot fire for the documented rule shape.
 
+## A kernel contract test is green because of this defect
+
+Found in PR #70's review, and it constrains the fix.
+
+`packages/core/tests/contract/extension-surface.test.ts:207` —
+`it('named-selection reuse across two branches does not leak conditions (bug
+0016, RuleBuilder side)')` — ends with a branch that calls `.should()` and
+adds no condition, asserting `not.toThrow()`. Its comment claims that branch
+_"hits the 'predicates but no conditions' assertion-less path and passes."_
+
+**It does not.** Measured: that shape emits **zero** stderr lines. `should()`
+sets `_phase = 'condition'`, so the guard at `rule-builder.ts:333` cannot
+fire — which is precisely this bug. The test passes in total silence, and its
+stated mechanism is fiction.
+
+Two consequences:
+
+- **Fixing part 1 below changes what that test asserts** (the branch starts
+  warning); **fixing part 2 breaks it** (the branch starts throwing). The test
+  and its comment must be rewritten as part of this fix, not after.
+- **Plan 0150 cites this test title** as its evidence that plan 0088's
+  review-finding 4 is closed
+  (`work/plans/0150-close-0088s-disclosed-review-findings.md`). That evidence
+  is weaker than the citation implies: the test does exercise the copy-on-write
+  contract, but its final assertion currently proves nothing.
+
+See [bug 0156](./0156-should-twice-silently-drops-the-first-assertion.md) —
+the same `fork()`/`should()` coupling constrains that fix too, and the two
+should be picked up together.
+
 ## Fix
 
 Two independent parts, in order:
@@ -73,8 +119,14 @@ Two independent parts, in order:
 
 ## Verification
 
-- [ ] Red test first: `functions(p).that().<pred>.check()` with no condition
-      throws (or emits a finding), and the test fails on today's code.
+- [ ] Red test first, on the **`.should()` shape** — not the predicate-only
+      one. `functions(p).that().<pred>.should().check()` and
+      `…​.should().areExported().check()` must throw (or emit a finding).
+      **Why the shape matters:** changing `writeStderr` → `throw` at
+      `rule-builder.ts:335` while leaving the `_phase === 'predicate'` term
+      intact satisfies a predicate-only test, satisfies the control, satisfies
+      the vacuity control — and leaves every documented rule shape silent. A
+      checklist that tests only `.that().<pred>.check()` is a false floor.
 - [ ] Control: a rule _with_ a condition is unaffected.
 - [ ] Vacuity control: the fixture really selects a non-zero number of
       subjects, asserted by identity.

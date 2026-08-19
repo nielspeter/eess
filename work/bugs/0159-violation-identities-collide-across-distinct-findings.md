@@ -9,6 +9,10 @@
   accepting one silently accepts the other, and the second never reappears.
 - **Origin:** self-found · [fold audit](../fold-audit-2026-08-19.md)
   (upstream bugs 0064, 0067, 0065)
+- **Shipped in:** partly. Collision (3) — reverse-dependency findings with no
+  `identity` — is in the published `0.2.x` (`reverse-dependency.ts` in
+  `810808b` has zero `identity` mentions). Collision (2), the `duplicate-pair::`
+  formula, is fold-era and therefore only in the unpublished `0.3.0`.
 - **Reported:** 2026-08-19
 
 ## Symptom
@@ -40,7 +44,15 @@ notImportFrom  → 2 findings, identities …::dynamic::/…/legacy/index.ts::  
 ```
 
 **(2)** Three identical `function errorResponseBuilder` in one file,
-`minLines(3).withMinSimilarity(0.9)`:
+`minLines(3).withMinSimilarity(0.9)`. **Two caveats a reader will otherwise
+trip on:** three top-level functions of one name is a `tsc` error ("Duplicate
+function implementation") — ts-morph tolerates it, `tsc` does not, and the
+fixture must be built that way to reproduce (nested functions and class
+methods are collected as `wrapperOne`/`Alpha.errorResponseBuilder` and are
+already distinct). And the bodies must be rich enough to clear
+`DuplicateBodiesBuilder`'s undisclosed `minDistinctVocabulary = 8` default
+(`packages/ts/src/smells/duplicate-bodies.ts:35`), which silently rejects
+short identical bodies. With both, it reproduces exactly:
 
 ```
 3 findings, all identity duplicate-pair::/…/dup.ts#errorResponseBuilder::/…/dup.ts#errorResponseBuilder
@@ -90,12 +102,29 @@ Establish one rule — an identity must be distinct for any two findings a reade
 would consider different — and apply it at all three producers rather than
 patching each formula:
 
-1. Add the disambiguation pass so post-resolution collisions are separated.
-2. Include a positional or ordinal discriminator in the duplicate-pair
-   identity, so same-named subjects in one file differ.
+**Placement, ruled up front** (PR #70's review raised this, and plan 0150 took
+a hit of exactly this shape): the three fixes do not live in one package.
+Fix (1) and the collision check are **kernel** work — every dialect emits
+`ArchViolation`s that feed `packages/core/src/baseline.ts`, so building them in
+`packages/ts` guarantees md/mermaid/gherkin/crossvalidate reinvent them. Fixes
+(2) and (3) are dialect-local, in `packages/ts`'s smells and conditions layers.
+
+1. Add the disambiguation pass **in `packages/core`** so post-resolution
+   collisions are separated for every dialect.
+2. Discriminate the duplicate-pair identity so same-named subjects in one file
+   differ — **but not with a run-ordinal.** An ordinal suffix yields distinct
+   identities within a run and _unstable_ identities across runs: every re-run
+   mints new hashes and no baseline ever matches again. That is upstream's own
+   bug 0056 ("a cycle identity changes when imports are reordered")
+   re-committed, and neither a "distinct identities" assertion nor a
+   single-run control can see it. Use something derived from the subject —
+   declaration order within the file is stable; a source position is stable
+   under edits elsewhere in the repo but not within the file. Record the
+   choice and its stability argument here.
 3. Set `identity` on reverse-dependency findings.
 
-Also decide whether a **collision is itself detectable** — a check that two
+Also decide whether a **collision is itself detectable** — kernel-side, next to
+`hashViolation`, where it can see every dialect's output — a check that two
 findings in one run never share an identity would have caught all three, and
 would catch the next one. That is likely cheaper than auditing each producer
 forever, and belongs in this record as a ruling either way.
@@ -104,8 +133,16 @@ forever, and belongs in this record as a ruling either way.
 
 - [ ] Red test first, one per collision, asserting **distinct identities** (or
       distinct `hashViolation` values) — not finding counts, which pass today.
-- [ ] A cross-cutting test: for a corpus producing many findings, no two share
-      an identity.
+- [ ] **Identity content, not just distinctness.** "Distinct identities" is
+      `new Set(ids).size === n` — a count one level up, blind to _what_ each
+      identity says. Assert that the alpha finding's identity names alpha.
+- [ ] **Cross-run stability.** Two runs over the same unchanged corpus produce
+      the **same** identity set. Without this, an ordinal discriminator (see
+      Fix 2) passes every other box while destroying baselining.
+- [ ] The cross-cutting test carries its own **denominator**: assert the
+      finding count is the expected non-zero number _and_ that identities are
+      pairwise distinct. "No two share an identity" passes vacuously on 0 or 1
+      findings (ADR-010).
 - [ ] Control: identical findings that genuinely _are_ the same still share an
       identity, so baselining does not become per-run noise.
 - [ ] The "detect collisions generically" ruling is recorded here.

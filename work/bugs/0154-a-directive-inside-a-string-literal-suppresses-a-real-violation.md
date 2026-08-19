@@ -70,12 +70,28 @@ modules(project('./tsconfig.json'))
 Delete the `const doc = …` line and the same rule reports 1 violation. No
 waiver was authored; a sentence describing how to write one waived it.
 
-Noisy form, against this repo:
+Noisy form, against this repo — **run the parser directly**, which works today:
 
-```bash
-npx eess-ts doctor arch.rules.ts arch.internal.rules.ts
-# 14 orphan-exclusion findings, 0 of them real
+```js
+import { parseExclusionComments } from '@nielspeter/eess'
+import fs from 'node:fs'
+const f = 'packages/core/src/exclusion-comments.ts'
+parseExclusionComments(fs.readFileSync(f, 'utf8'), f).exclusions.length
+// → 12   (ids '<rule-id>', '<rule-id>[', '<rule-id>]', '<rule-a>', '<rule-b>'
+//         at lines 43, 44, 47, 55, 196-200 — the file's own grammar docs)
 ```
+
+plus **2** more from `packages/core/src/comment-suppression.ts:82`
+(`'comments. They are exemptions'`, `'not passes'`) — a template literal.
+**12 + 2 = the 14.** Twelve come from `//` prose, two from a string literal;
+that split is why the Fix below treats prose as an open sub-question.
+
+> An earlier draft gave this as `npx eess-ts doctor arch.rules.ts
+arch.internal.rules.ts`. **That does not reproduce on `main`** — it prints
+> "No rules that cannot enforce anything", because `orphanExclusions()` was
+> reverted with plan 0150 Phase 4 and exists in no `src/`. A reader running it
+> would conclude this record is stale. The parser call above is the
+> reproduction; the `doctor` framing returns once Phase 4 lands.
 
 ## Root cause
 
@@ -136,8 +152,12 @@ mechanical port, and is the reason this bug is filed rather than fixed inline.
       the file that documents the grammar must not declare waivers. Asserted by
       identity, not by count.
 - [ ] The `// ` prose case is decided and its ruling recorded here.
-- [ ] `npx eess-ts doctor arch.rules.ts arch.internal.rules.ts` reports zero
-      orphan-exclusion findings against this repo.
+- [ ] **Deliberately not a box:** "`doctor …` reports zero orphan-exclusion
+      findings." It is satisfied **today, before any fix**, by a capability
+      that does not exist — a false floor. Checkbox 3 above (the parser over
+      its own source, by identity, red today at 12) is the load-bearing one.
+      Re-add a `doctor` box only once plan 0150 Phase 4 has landed, paired with
+      a fixture carrying a genuine stale directive that must still report one.
 - [ ] eess-md's HTML-comment form is covered in the same pass, or its exclusion
       from scope is stated.
 - [ ] `npm run validate` green.
@@ -166,3 +186,5 @@ only ever removes directives when blanking literals"_ — into a kernel that doe
 no blanking, so the claim is false here and the capability is unusable against
 any real corpus. 0150 has been returned to Ready with Phase 4 unbuilt rather
 than shipped with a 100% false-positive rate.
+
+Deferred: none.

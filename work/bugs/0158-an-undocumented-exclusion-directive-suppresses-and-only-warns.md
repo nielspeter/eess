@@ -63,10 +63,11 @@ Nested blocks: `handleBlockStart` early-returns when `openBlocks.size > 0`
 open block at once (`:103-107`). Upstream replaced this with a stack of frames.
 
 **Same file, same freeze as [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md).**
-`exclusion-comments.ts` has only two commits in its history — the initial
-monorepo commit and the fold — and is in its pre-fix shape for both upstream
-0039 and 0043. The fold carried the `execute-rule.ts` ordering change
-(upstream 0041) but froze this file.
+`exclusion-comments.ts` has **one** commit in its history — the initial
+monorepo commit (`9ec8f06`). `git show --stat 6dbc6f4 -- packages/core/src/exclusion-comments.ts`
+is **empty**: the fold never touched this file at all. It is in its pre-fix
+shape for both upstream 0039 and 0043. The fold carried the `execute-rule.ts`
+ordering change (upstream 0041) but left this file untouched.
 
 ## Why it matters
 

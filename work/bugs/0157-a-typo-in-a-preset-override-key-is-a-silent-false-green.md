@@ -8,6 +8,9 @@
   passing build.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
   (upstream bug 0038), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+- **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
+  (`0.2.1`). `validateOverrides(…): void` is unchanged in `810808b` (the
+  `v0.2.3` release commit), so this is live for adopters today.
 - **Reported:** 2026-08-19
 
 ## Symptom
@@ -29,6 +32,14 @@ TYPO    no-silent-cach : 'error'    threw=null            rule-fired=true    ←
 TYPO    no-silent-cach : 'off'      threw=null            rule-fired=true
 CORRECT no-silent-catch: 'off'      threw=null            rule-fired=false
 ```
+
+> **Use fully-qualified ids when reproducing.** The real id is
+> `preset/recommended/no-silent-catch` (`packages/ts/src/presets/recommended.ts:57`),
+> validated against the fully-qualified `RULE_IDS`. Written bare as
+> `no-silent-catch`, the CORRECT row emits the same "does not match any rule"
+> stderr as the TYPO row and the control stops discriminating — which is what
+> makes the typo row non-vacuous. With qualified ids the matrix reproduces
+> exactly as printed.
 
 In `report: 'return'` mode the typo'd rows return `n=0` — no configuration
 finding is produced at all, only a stderr line.
@@ -68,7 +79,7 @@ Upstream's fix had two halves, neither present:
    preset supplying its own derived id union, so a typo fails `tsc`. eess's
    `preset-dispatch.ts:17-19` still declares
    `overrides?: Record<string, RuleSeverity>`, and
-   `packages/ts/src/presets/recommended.ts:33` declares
+   `packages/ts/src/presets/recommended.ts:34` declares
    `const SPECS: readonly RuleSpec[]` rather than `as const satisfies`, so no
    preset could derive a union even if the type parameter were added.
 

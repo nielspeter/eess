@@ -7,12 +7,16 @@
   enforced, real findings are discarded, and the build passes with no output.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
   (upstream bug 0020), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+- **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
+  (`0.2.1`). `fork._conditions = []` is at `rule-builder.ts:294` in `810808b`
+  (the `v0.2.3` release commit), so this is live for adopters today.
 - **Reported:** 2026-08-19
 
 ## Symptom
 
-Calling `.should()` a second time in a chain silently discards every condition
-accumulated before it. The rule still runs, still reports, still passes or
+Calling `.should()` a second time in a chain silently **substitutes** for every
+condition accumulated before it — the last assertion wins and the earlier ones
+are discarded. The rule still runs, still reports, still passes or
 fails — it just enforces less than it says.
 
 ## Reproduction
@@ -65,20 +69,67 @@ upstream was in between its bugs 0016 and 0020.
 
 ## Fix
 
-Remove `fork._conditions = []` from `fork()` so a second `.should()`
-accumulates rather than replaces.
+> **Do not simply delete the line.** An earlier draft of this record
+> prescribed _"remove `fork._conditions = []` from `fork()`"_. That is wrong,
+> and PR #70's review caught it. **`should()` calls `fork()`**
+> (`packages/core/src/rule-builder.ts:110-114`), so that clearing **is** the
+> bug-0016 no-leak mechanism, pinned by name at
+> `packages/core/tests/contract/extension-surface.test.ts:207` —
+> `it('named-selection reuse across two branches does not leak conditions
+(bug 0016, RuleBuilder side)')`. Deleting the line makes a fresh `.should()`
+> off a held selection inherit the previous branch's condition, and that
+> contract test goes red.
 
-`andShould()` already behaves correctly (row D), so the two spellings converge
-rather than one changing meaning. Check whether any existing rule in this repo
-or the presets relies on the current clearing behaviour before landing — a
-rule that silently enforced only its last assertion will start enforcing all
-of them, which may surface real violations that were previously hidden. That
-is the fix working, but it should be expected rather than discovered in CI.
+The two spellings travel the **same code path**:
+
+- `sel.should().notExist().should().beExported()` — one chain, both
+  assertions intended to hold (this bug); and
+- `sel.should()…` then `sel.should()…` — two independent branches off one held
+  selection, which must **not** share conditions (bug 0016).
+
+`fork()` cannot tell them apart today, so no change to `fork()` alone can be
+right. The fix must first **distinguish the two**, and that is a kernel design
+decision, not a one-line edit. Sketches, none ruled:
+
+1. Clear on a fork taken from a **held** selection, accumulate on a fork taken
+   from a builder already in the condition phase (`_phase === 'condition'`
+   distinguishes them — a second `.should()` on a chain is the only way to
+   reach `fork()` already in that phase).
+2. Make the second `.should()` on one chain an **error** rather than an
+   accumulation, converging on `andShould()` as the sole spelling for "and
+   also". This is the smaller change and arguably the clearer API; it makes
+   the bug loud instead of correct.
+3. Separate the copy from the clear so `should()` and a held-selection fork
+   call different things.
+
+**Whichever is chosen, `extension-surface.test.ts:207-220` and its comment must
+be rewritten as part of this fix** — see the note in
+[bug 0155](./0155-a-rule-with-no-condition-passes-in-total-silence.md), because
+that test's stated mechanism is also wrong today.
+
+Expect fallout either way: a rule that silently enforced only its last
+assertion starts enforcing all of them, which may surface real violations
+previously hidden. That is the fix working, but it should be expected rather
+than discovered in CI.
 
 ## Verification
 
-- [ ] Red test first: case C above reports the same violations as case A+B
-      combined, asserted by **message identity**, not count. Fails today.
+- [ ] Red test first, using a condition pair where **both sides fire** — the
+      table above uses `beExported()`, which reports 0, so "A+B combined" is
+      just A and three different fixes satisfy it (accumulate; keep-first-
+      drop-second; second `.should()` a no-op). Measured discriminating pair on
+      the same fixture:
+
+      ```
+      A should().notExist()                        → 4
+      B should().beAsync()                         → 4
+      C should().notExist().should().beAsync()     → 4   ← today: keeps the LAST
+      D should().notExist().andShould().beAsync()  → 8
+      ```
+
+      Under a correct fix **C = 8**; every wrong variant gives 4. Assert by
+      **message identity**, not count.
+
 - [ ] Red test: `satisfy(cond).should().beExported()` retains `cond`.
 - [ ] Control: `andShould()` behaviour is unchanged.
 - [ ] Vacuity control: case A really reports 4, so the comparison is real.
