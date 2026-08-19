@@ -32,10 +32,13 @@ unrepresentable.
 - **`bypassFilters`**: `error` regardless of `.asSeverity('warn')`, refused by
   `.excluding()`, skipped by diff and baseline. It reports that the rule's own
   instrument is broken, not a fault in what was examined.
-- **Gate-first**, before conditions run. Accepted consequence: a rule with a
-  dead glob _and_ no condition reports the missing assertion only — the right
-  root cause, since no selector makes an assertion-less rule capable of
-  failing. The selector fault resurfaces once there is something to assert.
+- **A dead selector still reports as a dead selector.** This finding fires only
+  when subjects were actually selected; a rule with a dead glob and no
+  condition reports the dead glob, the more useful root cause.
+- **Every builder gives the same answer.** `slices()`, `schema()`,
+  `schemaFromSDL()` and `resolvers()` carried the identical branch as a stderr
+  warning and now fail too, each with its own remedy. Fixing only the kernel
+  would have left one DSL with four different answers to the same mistake.
 
 **Every dialect is named deliberately.** The behaviour change is in the kernel,
 but an adopter installs `eess-ts` (or `-md`, `-mermaid`, …) and reads _that_

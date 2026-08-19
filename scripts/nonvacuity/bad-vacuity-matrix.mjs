@@ -3,20 +3,19 @@
  * NON-VACUITY FIXTURE — the vacuity matrix itself (plan 0088 Phase 4a) must
  * fail the build on a genuinely fail-open, unratcheted export.
  *
- * Every real export the matrix currently probes is either provably
- * non-vacuous or has a KNOWN_FAIL_OPEN entry — so there is no committed
- * violating input sitting in the real export surface to point at. Instead,
- * this runs a mutated COPY of the real script (KNOWN_FAIL_OPEN stripped to
- * `[]`) against the real, unmodified @nielspeter/eess-ts build — the same
- * "real script, different real state" pattern bad-release-e2e.mjs uses with
- * a throwaway git repo, just with the mutation on the script's own ratchet
- * instead of on external state. Stripping the ratchet turns
- * `schemaFromSDL()`'s already-known, already-real fail-open (parses its own
- * literal SDL argument rather than the shared zero-file project, so it never
- * reaches the sourceEmpty signal and passes bare) into an UNRATCHETED one —
- * exactly "a committed rule file whose selector matches nothing must exit
- * non-zero naming the empty selection", with the builder standing in for the
- * rule file.
+ * Every real export the matrix probes is provably non-vacuous, so there is no
+ * committed violating input in the real export surface to point at. This runs
+ * a mutated COPY of the real script against the real, unmodified
+ * @nielspeter/eess-ts build — the same "real script, different real state"
+ * pattern bad-release-e2e.mjs uses with a throwaway git repo.
+ *
+ * **The mutation INJECTS a synthetic fail-open probe** rather than stripping
+ * the ratchet. It used to do the latter, relying on `schemaFromSDL()` being a
+ * genuinely fail-open export with a KNOWN_FAIL_OPEN entry — and bug 0155
+ * fixed that export, so the ratchet emptied and stripping it stopped producing
+ * any violating input at all. The harness caught its own fixture going
+ * vacuous, which is exactly what it is for. An injected probe cannot rot the
+ * same way: it does not depend on any real export staying broken.
  *
  * The mutated copy lives inside scripts/nonvacuity/ (not /tmp) so Node's
  * ancestor-walk module resolution still finds this repo's node_modules;
@@ -66,8 +65,30 @@ if (endIdx === -1) {
   process.exit(2)
 }
 
-const mutated =
+const ratchetEmptied =
   source.slice(0, startIdx) + 'const KNOWN_FAIL_OPEN = []' + source.slice(endIdx + 1)
+
+// A builder that reports nothing and carries no ratchet entry — the shape the
+// matrix exists to catch. Injected into BUILDER_PROBES, which is declared
+// BEFORE KnownFailOpen in the real script, so this must run over the whole
+// text rather than the tail.
+const probeMarker = 'const BUILDER_PROBES = {'
+const mutated = ratchetEmptied.replace(
+  probeMarker,
+  probeMarker + "\n  '__synthetic_fail_open__()': () => ({ check: () => {} }),",
+)
+
+// ASSERT THE PATCH APPLIED. A mutation that silently no-ops turns this fixture
+// into a green that proves nothing — the exact failure it exists to detect,
+// one level up. (Measured: an earlier version replaced over the wrong half of
+// the file and injected nothing, and reported only "exited 0, expected 1".)
+if (!mutated.includes('__synthetic_fail_open__')) {
+  console.error(
+    'bad-vacuity-matrix: the synthetic fail-open probe was NOT injected — ' +
+      `marker ${JSON.stringify(probeMarker)} not found. Refusing to report a verdict.`,
+  )
+  process.exit(2)
+}
 
 // process.exit() bypasses pending `finally` blocks in Node — compute the
 // verdict first, clean up the mutated file, THEN exit exactly once.
@@ -97,7 +118,7 @@ try {
     // Naming the specific export, not just "something failed" (bug 0110's own
     // lesson) — schemaFromSDL() is a real, currently-ratcheted fail-open, so
     // stripping the ratchet must name exactly it.
-  } else if (!out.includes('schemaFromSDL() (builder) is fail-open with no KNOWN_FAIL_OPEN entry')) {
+  } else if (!out.includes('__synthetic_fail_open__() (builder) is fail-open with no KNOWN_FAIL_OPEN entry')) {
     console.error('bad-vacuity-matrix: matrix exited 1 but never named schemaFromSDL() as the unratcheted fail-open')
     console.error(out.trim().split('\n').slice(-10).join('\n'))
     exitCode = 0
@@ -107,7 +128,7 @@ try {
     // summary, or the outer gate can never confirm which export it named.
     const namedLine = out
       .split('\n')
-      .find((l) => l.includes('schemaFromSDL() (builder) is fail-open with no KNOWN_FAIL_OPEN entry'))
+      .find((l) => l.includes('__synthetic_fail_open__() (builder) is fail-open with no KNOWN_FAIL_OPEN entry'))
     console.error('bad-vacuity-matrix: OK — stripping KNOWN_FAIL_OPEN correctly turned a known-debt export into a build-failing finding, naming it')
     console.error(namedLine)
     exitCode = 1

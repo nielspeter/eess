@@ -140,3 +140,4 @@ export {
   commentSuppressionNotice,
 } from './comment-suppression.js'
 export { dedupeConfigFindings } from './dedupe-config-findings.js'
+export { assertionLessViolation } from './terminal-builder.js'

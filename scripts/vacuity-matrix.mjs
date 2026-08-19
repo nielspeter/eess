@@ -191,18 +191,13 @@ const PRESET_PROBES = {
  * fresh reason if it's still real and still accepted.
  */
 const KNOWN_FAIL_OPEN = [
-  {
-    name: 'schemaFromSDL()',
-    reason:
-      'A narrower, different-shaped gap than the presets above: schemaFromSDL() parses its own ' +
-      'literal SDL argument rather than the shared zero-file project, so it never reaches the ' +
-      'sourceEmpty signal every other builder in this matrix relies on. Called bare (no `.should()` ' +
-      'chained), it hits RuleBuilder\'s own "predicates but no conditions" assertion-less path ' +
-      "(console.warn'd, not silent, but not a thrown finding either) and passes. Real content with " +
-      'a real .should() chain behaves normally — this is specific to the bare, condition-less probe ' +
-      'shape. Not yet filed as its own eess bug/plan.',
-    expires: '2026-11-15',
-  },
+  // Empty — and it should stay that way. The single entry that lived here,
+  // `schemaFromSDL()`, described bug 0155 verbatim: called bare it "hits
+  // RuleBuilder's own 'predicates but no conditions' assertion-less path
+  // (console.warn'd, not silent, but not a thrown finding either) and passes",
+  // filed as no bug and dated to expire 2026-11-15. Bug 0155 filed it and
+  // fixed it — an assertion-less rule is now a configuration finding in every
+  // builder — so the exemption is retired rather than renewed.
 ]
 
 function checkExpiry(entry, today) {

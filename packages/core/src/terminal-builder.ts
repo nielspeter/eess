@@ -1,3 +1,4 @@
+import { UNSUPPRESSABLE } from './unsuppressable.js'
 import type { ArchViolation } from './violation.js'
 import type { CheckOptions } from './check-options.js'
 import type { RuleMetadata } from './rule-metadata.js'
@@ -475,5 +476,83 @@ export abstract class TerminalBuilder {
    */
   protected assertsCardinality(): boolean {
     return false
+  }
+}
+
+/**
+ * The configuration finding for a rule that asserts nothing — bug 0155.
+ *
+ * An assertion-less rule — subjects found, nothing asserted about them —
+ * cannot fail, so it certifies nothing while reading as coverage.
+ *
+ * **The guard was unreachable, not merely quiet.** It used to read
+ * `_conditions.length === 0 && _phase === 'predicate'`, and `should()` sets
+ * the phase to `'condition'`, so for every rule shape the DSL documents it
+ * could never fire — the defect passed in total silence, never even reaching
+ * the stderr warning it was routed to. Hence no `_phase` term at the call
+ * site.
+ *
+ * **A finding, not a warning**, per ADR-009 rule 1's discriminator: the remedy
+ * is not optional. There is no state in which "keeps asserting nothing" is
+ * correct — add a condition, or delete the rule. The two rules ADR-009 names
+ * as deliberately `warn` (`no-silent-catch`, `no-empty-bodies`) warn *because*
+ * they carry suppressible false positives a reader must judge case by case.
+ * This carries none.
+ *
+ * **A declared emptiness expectation is an assertion**, so `_expectEmpty`
+ * exempts a rule from this gate. `.expectNonEmpty()` reddens when the corpus
+ * it says must never be empty becomes empty; `.expectEmpty()` reddens the day
+ * the set it says must stay empty gains a member. Neither lives in
+ * `_conditions`. Without that term the gate called a working corpus guard
+ * assertion-less and told its author to "add a condition or delete the rule" —
+ * both of which destroy the guard — and for `.expectEmpty()` reported two
+ * findings for one fault. Found in PR #71's review.
+ *
+ * **Placed AFTER the zero-examined branch**, so a dead selector still reports
+ * as a dead selector. Measured: `resideInFolder('srcc/**')` with no condition
+ * reports the dead glob, not this finding. An earlier draft of this docstring
+ * (and of the changeset and bug record) claimed the opposite — "reports the
+ * missing assertion only" — and justified it as gate-first. Both were wrong:
+ * `getElements()` and the predicate filter already ran, so the ordering saves
+ * no work, and the behaviour is the reverse. The real precedence is the better
+ * one, and is now stated as what it is: this finding fires only when subjects
+ * were actually selected.
+ *
+ * **Exported, and living beside its five siblings** (`zeroExaminedViolation`,
+ * `deadGlobViolation`, `unmetExpectNonEmptyViolation`,
+ * `expiredExpectEmptyViolation`, `zeroLoadedSourceViolation`) rather than
+ * private to `RuleBuilder`. The *detection* has to stay per-builder —
+ * `TerminalBuilder` has no `_conditions` — but a private constructor meant
+ * `eess-ts`'s slice/schema/resolver builders could not reuse it and were left
+ * warning while the kernel's rules failed: the same defect, one DSL, four
+ * different answers.
+ *
+ * `bypassFilters` makes it a **configuration** finding — `error` regardless of
+ * `.asSeverity('warn')`, refused by `.excluding()`, skipped by diff and
+ * baseline. It reports that the rule's own instrument is broken, not a fault
+ * in what was examined, so a filter aimed at the latter must not suppress it.
+ */
+export function assertionLessViolation(ruleId: string, advice?: string): ArchViolation {
+  const remedy =
+    advice ??
+    'Add a condition after .should() (a predicate-only method such as ' +
+      'areExported/areAsync filters elements, it does not assert), or delete the rule.'
+  const message =
+    `Rule '${ruleId}' selects subjects but asserts nothing about them, so it ` +
+    `cannot fail and certifies nothing. ${remedy}`
+  return {
+    rule: ruleId,
+    element: ruleId,
+    file: '',
+    line: 0,
+    message,
+    // `UNSUPPRESSABLE` on the remedy: this is the finding a reader is most
+    // likely to disagree with — the message says their rule is broken and
+    // their belief is that it is not — so it is the one where they will reach
+    // for `.asSeverity('warn')`, `.excluding()`, the baseline and `--changed`
+    // in turn, several CI cycles, because nothing said those were refused.
+    suggestion: `${message} ${UNSUPPRESSABLE}`,
+    identity: `assertion-less::${ruleId}`,
+    bypassFilters: true,
   }
 }

@@ -175,12 +175,21 @@ Three parts. Parts 1 and 2 are this bug; part 3 is the consequence.
    branch B its own passing condition so the test proves "no leak" directly,
    instead of leaning on the assertion-less path to keep it quiet.
 
-**Gate-first, ahead of `collectViolations()`** — an assertion-less rule cannot
-produce a legitimate finding, so evaluating it buys nothing but a full AST
-walk. The accepted consequence: a rule with a dead glob _and_ no condition
-reports the missing assertion only. That is the right root cause — no selector
-makes an assertion-less rule capable of failing — and the selector fault
-resurfaces once there is something to assert.
+**Ordering, corrected after review (PR #71, architect).** An earlier draft said
+"gate-first, ahead of `collectViolations()`", with the accepted consequence
+that a dead glob plus no condition reports the missing assertion only.
+**Measured, both halves were wrong:** the gate sits _inside_
+`collectViolations()` and _after_ the zero-examined branch, so a dead selector
+reports as a dead selector — and the "saves a full walk" rationale is empty,
+since `getElements()` and the predicate filter have already run. The real
+behaviour is the better one; it is now stated as what it is.
+
+**All four builders, not just the kernel.** `slices()`, `schema()`,
+`schemaFromSDL()` and `resolvers()` carried the identical branch as a stderr
+warning. Fixing only `RuleBuilder` would have left one DSL with four different
+answers to the same mistake — and the changeset's headline would have been an
+overclaim. The finding constructor therefore lives on `TerminalBuilder` beside
+its five siblings and is exported, so each builder passes its own remedy.
 
 **Do not extend `RuleBuilder` inline.** A crude inline version pushed the class
 to 313 lines and tripped this repo's own 300-line rule; the finding constructor

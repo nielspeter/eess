@@ -915,7 +915,7 @@ const gates = [
     () =>
       gateNode(
         'bad-vacuity-matrix.mjs',
-        'schemaFromSDL() (builder) is fail-open with no KNOWN_FAIL_OPEN entry',
+        '__synthetic_fail_open__() (builder) is fail-open with no KNOWN_FAIL_OPEN entry',
       ),
   ],
 ]

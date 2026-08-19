@@ -1,4 +1,3 @@
-import { UNSUPPRESSABLE } from './unsuppressable.js'
 import type { Predicate } from './predicate.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
@@ -6,7 +5,7 @@ import type { RuleDescription } from './rule-description.js'
 import type { Selection, ElementInfo } from './correspondence.js'
 import type { DeclaredGlob, GlobNode } from './glob-site.js'
 import { countDeclaredGlobs, stampGlobs } from './glob-site.js'
-import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
+import { TerminalBuilder, type CollectResult, assertionLessViolation } from './terminal-builder.js'
 import { assertsCardinality as conditionAssertsCardinality } from './cardinality.js'
 
 /**
@@ -71,73 +70,6 @@ function declaredGlobsOf<T>(predicates: Predicate<T>[], conditions: Condition<T>
  * depends on this exact two-param signature, so it is not replaced by the
  * fold, only extended.
  */
-/**
- * The configuration finding for a rule that asserts nothing — bug 0155.
- *
- * An assertion-less rule — subjects found, nothing asserted about them —
- * cannot fail, so it certifies nothing while reading as coverage.
- *
- * **The guard was unreachable, not merely quiet.** It used to read
- * `_conditions.length === 0 && _phase === 'predicate'`, and `should()` sets
- * the phase to `'condition'`, so for every rule shape the DSL documents it
- * could never fire — the defect passed in total silence, never even reaching
- * the stderr warning it was routed to. Hence no `_phase` term at the call
- * site.
- *
- * **A finding, not a warning**, per ADR-009 rule 1's discriminator: the remedy
- * is not optional. There is no state in which "keeps asserting nothing" is
- * correct — add a condition, or delete the rule. The two rules ADR-009 names
- * as deliberately `warn` (`no-silent-catch`, `no-empty-bodies`) warn *because*
- * they carry suppressible false positives a reader must judge case by case.
- * This carries none.
- *
- * **A declared emptiness expectation is an assertion**, so `_expectEmpty`
- * exempts a rule from this gate. `.expectNonEmpty()` reddens when the corpus
- * it says must never be empty becomes empty; `.expectEmpty()` reddens the day
- * the set it says must stay empty gains a member. Neither lives in
- * `_conditions`. Without that term the gate called a working corpus guard
- * assertion-less and told its author to "add a condition or delete the rule" —
- * both of which destroy the guard — and for `.expectEmpty()` reported two
- * findings for one fault. Found in PR #71's review.
- *
- * **Gate-first**, ahead of the conditions: an assertion-less rule cannot
- * produce a legitimate finding, so evaluating it buys nothing but a full walk.
- * Accepted consequence — a rule with a dead glob AND no condition reports the
- * missing assertion only, which is the right root cause: no selector makes an
- * assertion-less rule capable of failing, and the selector fault resurfaces
- * once there is something to assert.
- *
- * Module-level rather than a private method on purpose: `RuleBuilder` is gated
- * at 300 lines by this repo's own `arch.rules.ts`, and an inline version
- * pushed it over.
- *
- * `bypassFilters` makes it a **configuration** finding — `error` regardless of
- * `.asSeverity('warn')`, refused by `.excluding()`, skipped by diff and
- * baseline. It reports that the rule's own instrument is broken, not a fault
- * in what was examined, so a filter aimed at the latter must not suppress it.
- */
-function assertionLessViolation(ruleId: string): ArchViolation {
-  const message =
-    `Rule '${ruleId}' selects subjects but asserts nothing about them, so it ` +
-    `cannot fail and certifies nothing. Add a condition after .should() ` +
-    `(a predicate-only method such as areExported/areAsync filters elements, ` +
-    `it does not assert), or delete the rule.`
-  return {
-    rule: ruleId,
-    element: ruleId,
-    file: '',
-    line: 0,
-    message,
-    // `UNSUPPRESSABLE` on the remedy: this is the finding a reader is most
-    // likely to disagree with — the message says their rule is broken and
-    // their belief is that it is not — so it is the one where they will reach
-    // for `.asSeverity('warn')`, `.excluding()`, the baseline and `--changed`
-    // in turn, several CI cycles, because nothing said those were refused.
-    suggestion: `${message} ${UNSUPPRESSABLE}`,
-    identity: `assertion-less::${ruleId}`,
-    bypassFilters: true,
-  }
-}
 
 export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   protected _predicates: Predicate<T>[] = []

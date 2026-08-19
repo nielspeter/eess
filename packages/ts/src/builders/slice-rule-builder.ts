@@ -1,7 +1,7 @@
 import type { ArchProject } from '../core/project.js'
 import type { ArchViolation } from '../core/violation.js'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { TerminalBuilder, type CollectResult, writeStderr } from '@nielspeter/eess'
+import { TerminalBuilder, type CollectResult, assertionLessViolation } from '@nielspeter/eess'
 import type { Slice, SliceDefinition } from '../models/slice.js'
 import { resolveByMatching, resolveByDefinition } from '../models/slice.js'
 import type { ImportOptions } from '../core/import-options.js'
@@ -224,12 +224,20 @@ export class SliceRuleBuilder extends TerminalBuilder {
    * finding, plan 0088 Phase 4 review; fixed here, plan 0147).
    */
   private noConditionsResult(filesExamined: number): CollectResult {
-    const ruleId = this._metadata?.id ?? 'unnamed'
-    writeStderr(
-      `[eess] Slice rule '${ruleId}' has no conditions. ` +
-        `Did you forget to add a condition like beFreeOfCycles()?`,
-    )
-    return { violations: [], examined: filesExamined }
+    // Bug 0155: a finding, not a warning — the same answer the kernel's
+    // `RuleBuilder` gives. This branch used to `writeStderr` and pass, so
+    // `slices()` stayed a silent false green after the kernel was fixed:
+    // one DSL, four different answers.
+    const ruleId = this._metadata?.id ?? this.buildRuleDescription()
+    return {
+      violations: [
+        assertionLessViolation(
+          ruleId,
+          'Add a condition after .should() — for example beFreeOfCycles() or notDependOn() — or delete the rule.',
+        ),
+      ],
+      examined: filesExamined,
+    }
   }
 
   private buildRuleDescription(): string {

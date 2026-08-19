@@ -1,8 +1,7 @@
 import type { ArchViolation } from '../core/violation.js'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
+import { TerminalBuilder, type CollectResult, assertionLessViolation } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
-import { writeStderr } from '@nielspeter/eess'
 import type { LoadedSchema, GraphQLObjectTypeLike, GraphQLTypeLike } from './schema-loader.js'
 import type { SchemaElement } from './schema-predicates.js'
 import {
@@ -185,12 +184,15 @@ export class SchemaRuleBuilder extends TerminalBuilder {
     }
 
     if (this._conditions.length === 0) {
-      const ruleId = this._metadata?.id ?? 'unnamed'
-      writeStderr(
-        `[eess] Schema rule '${ruleId}' has predicates but no conditions. ` +
-          `Did you forget to add a condition after .should()?`,
-      )
-      return { violations: [], examined: filtered.length }
+      // Bug 0155 — a finding, not a warning. See the kernel's
+      // `assertionLessViolation`.
+      const ruleId = this._metadata?.id ?? this.buildRuleDescription()
+      return {
+        violations: [
+          assertionLessViolation(ruleId, 'Add a condition after .should(), or delete the rule.'),
+        ],
+        examined: filtered.length,
+      }
     }
 
     const context: ConditionContext = {

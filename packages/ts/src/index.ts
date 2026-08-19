@@ -127,7 +127,12 @@ export { generateCodeFrame } from '@nielspeter/eess'
 export type { CodeFrameOptions } from '@nielspeter/eess'
 export { formatViolations, formatViolationsPlain } from '@nielspeter/eess'
 export type { FormatOptions } from '@nielspeter/eess'
-export { byCodepoint, severityFor, remedyRepeatsMessage } from '@nielspeter/eess'
+export {
+  byCodepoint,
+  severityFor,
+  remedyRepeatsMessage,
+  assertionLessViolation,
+} from '@nielspeter/eess'
 export { UNSUPPRESSABLE } from '@nielspeter/eess'
 
 // Core — custom predicate/condition factories
