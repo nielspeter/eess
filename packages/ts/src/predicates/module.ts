@@ -1,12 +1,12 @@
 import picomatch from 'picomatch'
 import type { SourceFile } from 'ts-morph'
 import type { Predicate } from '@nielspeter/eess'
-import { globAnyOf } from '@nielspeter/eess'
+import { globAnyOf, globNode } from '@nielspeter/eess'
 import type { ImportOptions } from '../core/import-options.js'
 import { splitGlobArgs } from '../core/import-options.js'
 import { candidatesFor } from '../core/import-candidates.js'
 import { edgesOf, FORWARD_EDGE_KINDS } from '../core/module-edges.js'
-import { rootOf } from '../core/project-relative.js'
+import { rootOf, relativeToRoot, isProjectRelative } from '../core/project-relative.js'
 
 /**
  * Which edge kinds these predicates see.
@@ -120,5 +120,41 @@ export function exportSymbolNamed(name: string): Predicate<SourceFile> {
   return {
     description: `export symbol named "${name}"`,
     test: (sourceFile) => sourceFile.getExportedDeclarations().has(name),
+  }
+}
+
+/**
+ * Matches modules whose file path matches the given glob.
+ *
+ * Similar to `resideInFile` but semantically clearer for modules — "modules that
+ * have path matching" vs "elements that reside in file".
+ *
+ * An unanchored, project-relative glob (e.g. `'src/services/*.ts'`, no leading
+ * `**\/`) also matches against the path named from the file's own project
+ * root — in a `workspace()`, that is each package's own root, not only the
+ * primary tsconfig's. That second attempt is the whole point of the predicate
+ * in a monorepo, and it is what `tests/predicates/module-workspace-roots.test.ts`
+ * pins: without it, a glob resolves against the tie-break-winning package and
+ * silently matches nothing in every other one.
+ *
+ * eess's own addition (plan 0148) — upstream has no equivalent, and plan 0165's
+ * wholesale engine copy dropped it. Restored in Phase 3.
+ *
+ * @example
+ * modules(p).that().havePathMatching('**\/services/*.ts')
+ */
+export function havePathMatching(glob: string): Predicate<SourceFile> {
+  const isMatch = picomatch(glob)
+  const relative = isProjectRelative(glob)
+  return {
+    globs: globNode({ glob, kind: 'file-path', base: relative ? 'normalized' : 'absolute' }),
+    description: `have path matching "${glob}"`,
+    test: (sourceFile) => {
+      const filePath = sourceFile.getFilePath()
+      if (isMatch(filePath)) return true
+      if (!relative) return false
+      const fromRoot = relativeToRoot(sourceFile, filePath)
+      return fromRoot !== undefined && isMatch(fromRoot)
+    },
   }
 }

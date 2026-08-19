@@ -1,8 +1,8 @@
-import { detectFormat } from '@nielspeter/eess'
+import { applyFixes, detectFormat } from '@nielspeter/eess'
 import { withBaseline } from '../../helpers/baseline.js'
 import { diffAware } from '../../helpers/diff-aware.js'
 import type { OutputFormat } from '@nielspeter/eess'
-import type { ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation, CheckOptions, RuleBuilderLike } from '@nielspeter/eess'
 import { isArchRuleError } from '@nielspeter/eess'
 import { setCallerAggregatesReports, writeReport } from '../../core/execute-rule.js'
 import { suppressionNotice } from '@nielspeter/eess'
@@ -25,6 +25,10 @@ export interface CheckArgs {
   format: OutputFormat | 'auto'
   /** Use cache-busting imports for watch mode re-runs. */
   fresh?: boolean
+  /** Apply deterministic fixes instead of only reporting (plan 0066). */
+  fix?: boolean
+  /** With `fix`, write to disk; otherwise dry-run (preview). */
+  apply?: boolean
 }
 
 /**
@@ -43,6 +47,16 @@ export async function runCheck(args: CheckArgs): Promise<number> {
   resetEdgeCoverage()
   resetCommentSuppression()
   const format: OutputFormat = args.format === 'auto' ? detectFormat() : args.format
+
+  // `--fix` short-circuits the reporting pipeline: it renders what it changed
+  // (or would change) instead of the findings, and its exit code is the count
+  // of violations that have NO automatic fix — the real remaining failures.
+  // eess's own capability (plan 0066); upstream has no equivalent and plan
+  // 0165's engine copy dropped it. Restored in Phase 3.
+  if (args.fix === true) {
+    const builders = await loadRuleFiles(args.ruleFiles, { fresh: args.fresh })
+    return runFix(builders, { format }, args.apply === true)
+  }
   const baseline = args.baseline !== undefined ? withBaseline(args.baseline) : undefined
   const diff = args.changed ? diffAware(args.base) : undefined
 
@@ -153,4 +167,40 @@ export async function runCheck(args: CheckArgs): Promise<number> {
 
   // Exit code = error-severity count; warns are reported but never fail.
   return filtered.filter((v) => (v.severity ?? 'error') === 'error').length
+}
+
+/**
+ * Apply deterministic fixes (plan 0066). Dry-run unless `write`. Returns the
+ * count of violations that have no automatic fix.
+ *
+ * The remaining-count IS the exit code, deliberately: a run that fixed
+ * everything it could and still leaves real findings must not exit 0 just
+ * because it did some work. `applyFixes` skips overlapping edits rather than
+ * guessing, and says how many it skipped — a silently-dropped edit would leave
+ * the file half-repaired with a green run to match.
+ */
+function runFix(builders: RuleBuilderLike[], options: CheckOptions, write: boolean): number {
+  const all = builders.flatMap((b) => b.violations())
+  const fixable = all.filter((v) => v.fix !== undefined)
+  const result = applyFixes(fixable, { write })
+
+  const header = write
+    ? 'eess-ts --fix (applied)'
+    : 'eess-ts --fix (dry run — pass --apply to write)'
+  process.stdout.write(`${header}\n`)
+  for (const d of result.descriptions)
+    process.stdout.write(`  ${write ? 'fixed' : 'would fix'}: ${d}\n`)
+  if (result.skipped > 0) {
+    process.stdout.write(`  ${result.skipped} fix(es) skipped (overlapping — resolve manually)\n`)
+  }
+  const verb = write ? 'applied' : 'would apply'
+  process.stdout.write(`${result.applied} fix(es) ${verb} across ${result.files.length} file(s)\n`)
+
+  const remaining = all.filter((v) => v.fix === undefined)
+  if (remaining.length > 0) {
+    process.stdout.write(`${remaining.length} violation(s) with no automatic fix remain:\n`)
+    for (const v of remaining)
+      process.stdout.write(`  ${v.file}:${v.line}  ${v.message.split('\n')[0]}\n`)
+  }
+  return remaining.length
 }

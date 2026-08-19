@@ -39,6 +39,8 @@ Options:
                         | layered | strict-boundaries | data-layer
   --tsconfig <path>     init: tsconfig path to wire in (default: tsconfig.json)
   --no-baseline         init: skip arch-baseline.json
+  --fix                 Apply deterministic fixes; dry-run (preview) unless --apply
+  --apply               With --fix, write the fixes to disk
   --force               init: overwrite existing files
   --dry-run             init: print what would be created; write nothing
   --baseline <path>     Baseline file for filtering known violations
@@ -72,6 +74,8 @@ interface ParsedArgs {
     force?: boolean
     'dry-run'?: boolean
     'no-baseline'?: boolean
+    fix?: boolean
+    apply?: boolean
   }
   positionals: string[]
 }
@@ -95,6 +99,8 @@ export function parseCliArgs(args: string[]): ParsedArgs {
       force: { type: 'boolean', default: false },
       'dry-run': { type: 'boolean', default: false },
       'no-baseline': { type: 'boolean', default: false },
+      fix: { type: 'boolean', default: false },
+      apply: { type: 'boolean', default: false },
     },
     allowPositionals: true,
     strict: true,
@@ -143,7 +149,15 @@ async function handleCheck(
       },
     })
   } else {
-    const failures = await runCheck({ ruleFiles, baseline, changed, base, format })
+    const failures = await runCheck({
+      ruleFiles,
+      baseline,
+      changed,
+      base,
+      format,
+      fix: values.fix === true,
+      apply: values.apply === true,
+    })
     if (failures > 0) {
       process.exitCode = 1
     }
