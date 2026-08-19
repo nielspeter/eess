@@ -12,7 +12,7 @@ const p = project(tsconfigPath)
 
 describe('types() integration', () => {
   it('enforces no bare string on sortBy property', () => {
-    // Motivating use case: catch bare `string` on a sort/order property
+    // This is THE motivating use case from the originating project's plan 0212
     expect(() => {
       types(p)
         .that()
@@ -131,7 +131,7 @@ describe('types() integration', () => {
 
 describe('types() member property conditions integration', () => {
   it('enforces no forbidden pagination property names', () => {
-    // Pagination rule: forbid ad-hoc pagination property names
+    // The pagination rule from bug 0002
     expect(() => {
       types(p)
         .that()

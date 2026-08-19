@@ -215,17 +215,26 @@ describe('notHaveEmptyBody — classes', () => {
   })
 })
 
-describe('WHERE a stub marker may be, and what is merely prose', () => {
-  // These two behaviours shipped together and this block guards both, because
-  // they are one behaviour from a caller's side: "does `noStubComments()`
-  // report this?"
+describe('WHERE a stub marker may be, and what is merely prose (bugs 0052, 0053)', () => {
+  // These two bugs shipped together and this block guards both, because they are
+  // one behaviour from a caller's side: "does `noStubComments()` report this?"
+  //
+  // Both were CAUGHT BY NOTHING when first fixed. The fix was measured with
+  // throwaway probes, the numbers went into the bug write-ups, and nothing
+  // permanent held them — so reverting either half left the suite green. That is
+  // ADR-008 rule 5 exactly, and bug 0052's own write-up had already asked "what
+  // would the suite do if the fix were wrong?" before the answer became "nothing".
   /**
    * `element@line` per finding, plus the marker text — an IDENTITY, not a count.
    *
-   * A count cannot tell two findings that share `element` AND `line` apart from
-   * one finding reported twice — measured, that is exactly the shape a
-   * regression that reports the same comment twice produces: it also gives `2`
-   * and collapses to one baseline entry.
+   * These rows asserted integers until v0.49.2, and one of them was ambiguous in a way
+   * that mattered: `CONTROL two distinct markers on one function` asserted `2` and its
+   * own comment claimed *"the dedup must be per comment, not per function, and must not
+   * collapse or duplicate"* — a property `2` cannot establish. Measured, the two findings
+   * share `element` AND `line` and differ only in the message tail, so a regression
+   * reporting the SAME comment twice also gives `2`, passes, and then collapses to one
+   * baseline entry. That is bug 0016's count coincidence, in a row whose comment says it
+   * is guarding against exactly that.
    */
   const found = (code: string): string[] => {
     const p = new Project({ useInMemoryFileSystem: true })
@@ -239,7 +248,7 @@ describe('WHERE a stub marker may be, and what is merely prose', () => {
   }
 
   it.each([
-    // --- placements a real marker occupies ---
+    // --- bug 0052: placements a real marker occupies ---
     ['inside the body', 'export function a(): number {\n  // TODO: x\n  return 1\n}', ['a@1:c2']],
     [
       'trailing the function',
@@ -271,9 +280,12 @@ describe('WHERE a stub marker may be, and what is merely prose', () => {
       ['g@4:c1'],
     ],
 
-    // --- prose that mentions a marker is not a marker ---
+    // --- bug 0053: prose that mentions a marker is not a marker ---
     // An UPPERCASE marker mid-sentence. This row is what tests the line-start
-    // anchor.
+    // anchor, and the first version of it did not: it embedded `/** TODO */` inside
+    // a JSDoc, so the inner `*/` closed the comment early and the fixture was
+    // malformed — it passed because nothing parsed, not because the anchor worked.
+    // Found by sabotage: dropping the anchor was caught by nothing.
     [
       'PROSE: an uppercase marker mid-sentence',
       '/** Never write a TODO marker in prose like this. */\nexport function h(): number {\n  return 1\n}',
@@ -284,9 +296,11 @@ describe('WHERE a stub marker may be, and what is merely prose', () => {
       '/**\n * Some text and then TODO appears mid-line.\n */\nexport function h2(): number {\n  return 1\n}',
       [],
     ],
-    // `STUB_PATTERNS` is a published export documented for direct use with
-    // `comment()`, so a marker word with a suffix is exactly the shape that
-    // must not fire.
+    // I4 from the testing review: dropping `\\b` from the marker arm was caught by
+    // NOTHING across the whole suite, while dropping either ANCHOR is caught in both
+    // arms. `STUB_PATTERNS` is a published export documented for direct use with
+    // `comment()`, and bug 0053's entire subject is prose false positives — so a marker
+    // word with a suffix is exactly the shape that must not fire.
     [
       'PROSE: a marker word with a suffix (STUBBORN)',
       '// STUBBORN flag here\nexport function s1(): number {\n  return 1\n}',
@@ -345,10 +359,14 @@ describe('WHERE a stub marker may be, and what is merely prose', () => {
       'p@2:c1',
     ])
 
-    // The phrase arm is case-insensitive, derived per letter rather than
-    // hand-alternated, so the class cannot return one casing at a time — which
-    // is how it would arrive: `[Nn]ot\s+[Ii]mplemented` alternates only the
-    // first letter of each word.
+    // **The phrase arm IS case-insensitive again, since v0.55.0** — and this row is the
+    // inversion it was written to expect. It previously pinned the defect as *current*
+    // behaviour with a pointer to bug 0061 and the note "when that lands this row inverts,
+    // which is the point of writing it down". That is what happened.
+    //
+    // Derived per letter now, not hand-alternated, so the class cannot return one casing at
+    // a time — which is how it arrived: `[Nn]ot\s+[Ii]mplemented` alternates the first
+    // letter of each word and nothing else.
     expect(found('// NOT IMPLEMENTED\nexport function q(): number {\n  return 1\n}')).toEqual([
       'q@2:c1',
     ])

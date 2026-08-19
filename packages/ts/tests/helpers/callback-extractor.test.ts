@@ -168,9 +168,9 @@ describe('extractCallbacks', () => {
       `)
       const callbacks = extractCallbacks(callExpr)
       // The DOTTED path, which is what `fromObjectLiteralFunction` produces for the
-      // same node at the other call site. Match it rather than pin a bare
-      // `onRequest`: two surfaces disagreeing about one node's identity would make
-      // `.excluding()` patterns depend on which surface reported.
+      // same node at the other call site. Plan 0082 chose to match it rather than
+      // pin a bare `onRequest`: two surfaces disagreeing about one node's identity
+      // would make `.excluding()` patterns depend on which surface reported.
       expect(callbacks.map((c) => c.fn.getName()).sort()).toEqual(['handler', 'hooks.onRequest'])
     })
 
@@ -186,7 +186,7 @@ describe('extractCallbacks', () => {
       expect(callbacks.map((c) => c.fn.getName())).toEqual(['handler'])
     })
 
-    it('respects depth limit (MAX_OBJECT_LITERAL_DEPTH = 3)', () => {
+    it('respects depth limit (MAX_OBJECT_DEPTH = 3)', () => {
       const callExpr = getFirstCallExpression(`
         app.post('/deep', {
           schema: {
@@ -200,8 +200,11 @@ describe('extractCallbacks', () => {
         })
       `)
       const callbacks = extractCallbacks(callExpr)
-      // `handler` at depth 0, NOT `default` at depth 3 — and a count alone could
-      // not tell those apart, since extracting the wrong one is also one callback.
+      // `handler` at depth 0, NOT `default` at depth 3 — and the count could not
+      // tell those apart, since extracting the wrong one is also one callback.
+      // This block was hidden from plan 0079's scan by an over-broad
+      // element-boolean signal, and surfaced by the false-negative check a review
+      // asked for. It is the only class C the correction found.
       expect(callbacks.map((c) => c.fn.getName())).toEqual(['handler'])
       expect(callbacks[0]!.fn.isAsync()).toBe(true)
     })
@@ -224,7 +227,8 @@ describe('extractCallbacks', () => {
       const callbacks = extractCallbacks(callExpr)
       // The slot matters: `{}` sits at index 1 and must not be extracted.
       // A POSITIONAL callback has no name, and that is the honest answer rather
-      // than a defect — `argIndex` is its identity.
+      // than a defect — `argIndex` is its identity. Asserted so the absent case is
+      // pinned, not assumed (plan 0082, test inventory row 2).
       expect(callbacks.map((c) => c.fn.getName())).toEqual([undefined])
       expect(callbacks.map((c) => c.argIndex)).toEqual([2])
     })
@@ -481,11 +485,17 @@ describe('extractCallbacks', () => {
   })
 })
 
-describe('a NAMED function expression: the property key wins', () => {
-  // `{ handler: function legacyName(req) {} }` reports **handler**, not
-  // **legacyName** — the property key is how a reader and a rule refer to the
-  // callback, and it matches what `fromObjectLiteralFunction` produces at the
-  // other call site.
+describe('a NAMED function expression: the property key wins (plan 0082, second arm)', () => {
+  // The arm nobody declared. Plan 0082, the CHANGELOG and `docs/upgrading.md` all
+  // described the change as `<anonymous>` → name. There is a second direction:
+  // `{ handler: function legacyName(req) {} }` reported **legacyName** before
+  // v0.46.0 and reports **handler** after. Found by review; the sabotage that
+  // restores the old behaviour for function expressions only was MISSED by the
+  // whole suite, because neither side was pinned.
+  //
+  // The new behaviour is right — the property key is how a reader and a rule refer
+  // to the callback, and it matches what `fromObjectLiteralFunction` produces at
+  // the other call site. Being right is not the same as being declared.
   it("reports the property name, not the function expression's own identifier", () => {
     const callExpr = getFirstCallExpression(`
       app.post('/named', {

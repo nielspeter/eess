@@ -89,30 +89,18 @@ describe('SchemaRuleBuilder — predicates', () => {
     }).toThrow(ArchRuleError)
   })
 
-  it('typesNamed() with regex that matches nothing is a dead selector, not a silent pass', () => {
-    try {
-      schemaFromSDL(fullSDL)
-        .typesNamed(/Nonexistent$/)
-        .should()
-        .haveFields('whatever')
-        .check()
-      expect.unreachable('should have thrown')
-    } catch (error) {
-      expect(error).toBeInstanceOf(ArchRuleError)
-      const archError = error as ArchRuleError
-      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
-    }
-  })
-
-  it('typesNamed() with regex that matches nothing passes when declared with .expectEmpty()', () => {
-    expect(() => {
-      schemaFromSDL(fullSDL)
-        .typesNamed(/Nonexistent$/)
-        .should()
-        .haveFields('whatever')
-        .expectEmpty()
-        .check()
-    }).not.toThrow()
+  it('typesNamed() matching nothing now FAILS at the floor — plan 0099', () => {
+    // Behaviour flip, same shape as the resolver row: the throw alone would also
+    // pass if `haveFields` began emitting over an empty set, so assert identity.
+    const rule = schemaFromSDL(fullSDL)
+      .typesNamed(/Nonexistent$/)
+      .should()
+      .haveFields('whatever')
+    expect(() => rule.check()).toThrow()
+    const vs = rule.violations()
+    expect(vs.filter((v) => v.bypassFilters === true)).toHaveLength(1)
+    expect(vs[0]?.message).toContain('examined 0')
+    expect(vs.filter((v) => v.bypassFilters !== true)).toEqual([])
   })
 
   it('returnListOf() filters to fields returning lists', () => {
@@ -242,29 +230,13 @@ describe('SchemaRuleBuilder — chain methods', () => {
         .severity('warn')
     }).not.toThrow()
   })
+})
 
-  it('branches from a held selection via .because() do not leak conditions into each other', () => {
-    // Regression for the copy() shallow-copy trap (plan 0088 Phase 4 review):
-    // without its own copy() override, SchemaRuleBuilder's _conditions array
-    // is shared by reference across two .because()-derived branches. Branch
-    // A's haveFields('total','skip','limit','items') genuinely fails
-    // (BadCollection has only 'items' — see the test above) — if it leaked
-    // into branch B, branch B's own, otherwise-passing haveFields('items')
-    // would wrongly throw too.
-    const base = schemaFromSDL(fullSDL).typesNamed(/Collection$/)
-    const a = base.because('branch A')
-    a.should().haveFields('total', 'skip', 'limit', 'items')
-    const b = base.because('branch B')
-    expect(() => {
-      b.should().haveFields('items').check()
-    }).not.toThrow()
-  })
-
+describe('SchemaRuleBuilder — a held selection is immutable (bug 0016)', () => {
   // docs/graphql.md teaches holding a `schemaFromSDL()` result and deriving
-  // several rules from it. Without its own copy() override reached from every
-  // chain method, this hierarchy forked in NEITHER `that()` nor `should()`, so
-  // rule 2 inherited rule 1's predicate: two name patterns that cannot both
-  // match, an empty selection, and a pass however broken the schema.
+  // several rules from it. This hierarchy forked in NEITHER `that()` nor
+  // `should()`, so rule 2 inherited rule 1's predicate: two name patterns that
+  // cannot both match, an empty selection, and a pass however broken the schema.
   //
   // Every assertion below is on a rule that MUST fail. A guard whose rules
   // pass is satisfied by the bug it guards against.

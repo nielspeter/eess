@@ -124,7 +124,7 @@ describe('RunScheduler', () => {
   })
 
   it('swallows ArchRuleError from callback', async () => {
-    const { ArchRuleError } = await import('@nielspeter/eess')
+    const { ArchRuleError } = await import('../../src/core/errors.js')
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     const callback = vi.fn(() =>

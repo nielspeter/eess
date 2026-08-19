@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import { calls } from '../../src/builders/call-rule-builder.js'
+import type { CallRuleBuilder } from '../../src/builders/call-rule-builder.js'
 import { ArchRuleError } from '@nielspeter/eess'
 import { call } from '../../src/helpers/matchers.js'
 import type { ArchProject } from '../../src/core/project.js'
@@ -164,36 +165,50 @@ app.post(ROUTES.AUTH, handler)
     expect(violations[0]!.message.startsWith('app.post ')).toBe(true)
   })
 
-  it('test #17 — _identifyByArgument is copied at fork (not aliased to upstream)', () => {
-    // `.identifiedByArg()` itself copies (`this.copy()`, bug-0016 class fix,
-    // plan 0147) rather than mutating `this` — so `upstream` here is never
-    // touched by either call below, and RuleBuilder's own fork at `.should()`
-    // (rule-builder.ts — Object.assign) is a second, independent layer of the
-    // same guarantee.
+  it('test #17 — a held selection does not carry a later identifiedByArg (bug 0016)', () => {
+    // This test used to pin the opposite contract: that `.identifiedByArg()`
+    // MUTATES the builder and returns `this`, and that `fork()` snapshots the
+    // field at `.should()`. Bug 0016 replaced mutation with copy-on-write, so
+    // the mutating call it relied on —
     //
-    // This test pins the end-to-end property: neither layer lets a later
-    // change reach an already-built rule.
+    //   upstream.identifiedByArg(1)     // return value discarded
+    //
+    // — became a no-op statement. Deleting that line entirely left the test
+    // passing, so it asserted nothing about the property in its own name.
+    //
+    // Rewritten as the guard it wanted to be: two rules off one held selection,
+    // each with its own identity scope, asserted by element rather than by
+    // "contains a paren".
     const p = inMemoryProject(SAMPLE_ROUTES)
-
-    // Set identifiedByArg(0), then fork via .should() — fork must snapshot 0.
     const upstream = calls(p)
       .that()
       .onObject('app')
       .and()
       .withMethod(/^(get|post)$/)
-    const ruleA = upstream.identifiedByArg(0).should().notExist()
 
-    // Mutate the upstream builder AFTER the fork.
-    // Index 1 in our sample is `handler` (an identifier — non-literal),
-    // which would degrade `getName({withArgument: 1})` back to bare `app.post`.
-    // If fork aliased the field, ruleA.violations() would NOW emit bare names.
-    upstream.identifiedByArg(1)
+    const elements = (b: CallRuleBuilder): string[] =>
+      b
+        .should()
+        .notExist()
+        .violations()
+        .map((v) => v.element)
 
-    // If fork COPIED the primitive: ruleA still uses index=0 → enriched paths.
-    // If fork ALIASED: ruleA now sees index=1 → degrades to bare "app.post".
-    const ruleAViolations = ruleA.violations()
-    expect(ruleAViolations.length).toBeGreaterThan(0)
-    expect(ruleAViolations.every((v) => v.element.includes('('))).toBe(true)
+    // The held selection's own elements, BEFORE any identity scope is set.
+    // This is the discriminator, and getting it wrong is instructive: an
+    // earlier version of this rewrite asserted enriched-vs-bare using indexes
+    // 0 and 1, and passed under the mutating implementation too — each call
+    // mutated `upstream` and returned it, so every assertion still held. Only
+    // a value captured before the first call can tell the two apart.
+    const before = elements(upstream)
+    expect(before.every((e) => !e.includes('('))).toBe(true)
+
+    // Index 0 is the route literal, so identity is enriched.
+    const enriched = elements(upstream.identifiedByArg(0))
+    expect(enriched.every((e) => e.includes('("/'))).toBe(true)
+    expect(enriched).not.toEqual(before)
+
+    // The held selection was never given an identity scope, and still has none.
+    expect(elements(upstream)).toEqual(before)
   })
 
   it('test #18 — long literal: message elides > 80 chars, element verbatim', () => {
@@ -397,34 +412,6 @@ flags.define(handler, "new-checkout")
 
     expect(violations).toHaveLength(1)
     expect(violations[0]!.element).toBe('flags.define("new-checkout")')
-  })
-
-  it('a held selection is unaffected by .identifiedByArg() called on it for a different branch', () => {
-    // Bug-0016 class, found live during plan 0147's reconciliation against
-    // ts-archunit (which already fixed this — `const next = this.copy(); ...`
-    // — while eess's `identifiedByArg()` still mutated `this` in place, the
-    // same hazard `SliceRuleBuilder`/`ResolverRuleBuilder`/`SchemaRuleBuilder`/
-    // `SmellBuilder` were each already fixed for). `.identifiedByArg()` must
-    // copy, not mutate `this`, or a SECOND rule built from the same held
-    // reference silently inherits the first rule's identity setting —
-    // sabotage-verified: reverting the fix under test turns this red.
-    const p = inMemoryProject(SAMPLE_ROUTES)
-    const held = calls(p)
-      .that()
-      .onObject('app')
-      .and()
-      .withMethod(/^(get|post)$/)
-
-    const ruleA = held.identifiedByArg(0).should().notExist()
-    // Built from the SAME `held` reference, after branch A's call above.
-    const ruleB = held.should().notExist()
-
-    expect(ruleA.violations().length).toBeGreaterThan(0) // sanity: branch A did get enriched
-    const bViolations = ruleB.violations()
-    expect(bViolations.length).toBeGreaterThan(0)
-    // Branch B never called .identifiedByArg() — its elements must stay bare
-    // callee names, not the enriched "app.post(...)" form branch A asked for.
-    expect(bViolations.every((v) => v.element === 'app.post' || v.element === 'app.get')).toBe(true)
   })
 
   it('element verbatim at the 81-char crossover (just past the message-elision threshold)', () => {

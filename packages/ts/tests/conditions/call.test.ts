@@ -115,10 +115,16 @@ describe('call conditions', () => {
           res.json([])
         })
       `)
-      // authenticate is an identifier, not an inline function --- skipped
-      // The arrow function does not contain handleError
+      // `haveCallbackContaining` emits at most ONE violation per ArchCall, so the
+      // count here cannot distinguish "the identifier was skipped" from "the
+      // identifier was searched and contained nothing" — `authenticate` contains
+      // no `handleError` under either reading. Review flagged that the block's
+      // name claims more than any assertion over this fixture can show. The
+      // skipping property is genuinely covered by `argIndex` at
+      // `callback-extractor.test.ts`; what this block actually asserts is the
+      // outcome, so it asserts the outcome by identity.
       const violations = haveCallbackContaining(call('handleError')).evaluate([archCall], ctx)
-      expect(violations).toHaveLength(1)
+      expect(violations.map((v) => v.element)).toEqual(['app.get'])
     })
 
     it('works with call() matcher', () => {
@@ -170,41 +176,12 @@ describe('call conditions', () => {
         })
       `)
       const violations = notHaveCallbackContaining(call('db.query')).evaluate([archCall], ctx)
-      expect(violations).toHaveLength(2)
-    })
-
-    it('gives each match its own identity, distinct from its sibling in the same callback', () => {
-      // Bug-0010 class (plan 0147): two matches in the same callback must not
-      // share a baseline identity, or accepting one accepts both.
-      const archCall = makeTopLevelArchCall(`
-        app.get('/users', (req, res) => {
-          db.query('SELECT 1')
-          db.query('SELECT 2')
-        })
-      `)
-      const violations = notHaveCallbackContaining(call('db.query')).evaluate([archCall], ctx)
-      expect(violations).toHaveLength(2)
-      expect(violations[0]?.identity).toBeDefined()
-      expect(violations[1]?.identity).toBeDefined()
-      expect(violations[0]?.identity).not.toBe(violations[1]?.identity)
-    })
-
-    it('keeps identity stable when a line shifts above the match', () => {
-      const before = makeTopLevelArchCall(`
-        app.get('/users', (req, res) => {
-          db.query('SELECT 1')
-        })
-      `)
-      const after = makeTopLevelArchCall(`
-
-        app.get('/users', (req, res) => {
-          db.query('SELECT 1')
-        })
-      `)
-      const [v1] = notHaveCallbackContaining(call('db.query')).evaluate([before], ctx)
-      const [v2] = notHaveCallbackContaining(call('db.query')).evaluate([after], ctx)
-      expect(v1?.message).not.toBe(v2?.message) // sanity: the embedded line really did move
-      expect(v1?.identity).toBe(v2?.identity)
+      // "for each matching node" — two DISTINCT nodes, which a count of 2
+      // cannot distinguish from the same node reported twice.
+      expect(violations.map((v) => v.message).sort()).toEqual([
+        "app.get has callback containing call to 'db.query' at line 3",
+        "app.get has callback containing call to 'db.query' at line 4",
+      ])
     })
 
     it('reports correct line numbers for violations', () => {

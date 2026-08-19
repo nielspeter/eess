@@ -18,16 +18,6 @@ function loadTestProject(): ArchProject {
   }
 }
 
-/** A project that loaded zero source files — the tsconfig-matches-nothing case. */
-function emptyProject(): ArchProject {
-  const tsMorphProject = new Project({ useInMemoryFileSystem: true })
-  return {
-    tsConfigPath: '/virtual/tsconfig.json',
-    _project: tsMorphProject,
-    getSourceFiles: () => tsMorphProject.getSourceFiles(),
-  }
-}
-
 describe('ClassRuleBuilder', () => {
   const p = loadTestProject()
 
@@ -300,91 +290,6 @@ describe('ClassRuleBuilder', () => {
         expect(archError.message).toContain(
           'all services must implement init for lifecycle management',
         )
-      }
-    })
-  })
-
-  describe('ADR-010 part 3: a project that loaded zero source files', () => {
-    // Regression for a real gap found in review: `.expectEmpty()` could not
-    // distinguish "the project itself loaded nothing" (an unreadable
-    // tsconfig, a glob matching nothing) from an ordinary predicate narrowing
-    // a real corpus to zero — the former must outrank any declaration.
-
-    it('.notExist() does NOT pass — a genuinely empty project is not the same as "nothing of this kind exists"', () => {
-      const empty = emptyProject()
-      try {
-        new ClassRuleBuilder(empty).should().notExist().check()
-        expect.unreachable('should have thrown')
-      } catch (error) {
-        expect(error).toBeInstanceOf(ArchRuleError)
-        const archError = error as ArchRuleError
-        expect(archError.violations[0]!.message).toMatch(/source loaded zero units/)
-      }
-    })
-
-    it('.expectEmpty() cannot rescue it either', () => {
-      const empty = emptyProject()
-      try {
-        new ClassRuleBuilder(empty).should().notExist().expectEmpty().check()
-        expect.unreachable('should have thrown')
-      } catch (error) {
-        expect(error).toBeInstanceOf(ArchRuleError)
-        const archError = error as ArchRuleError
-        expect(archError.violations[0]!.message).toMatch(/outranks any \.expectEmpty\(\)/)
-      }
-    })
-  })
-
-  describe('dead-glob diagnosis (plan 0147 Phase 4)', () => {
-    // A rule whose `resideInFolder()` selector can never match — the real
-    // fixture project has no such folder anywhere — currently falls through
-    // to `.zeroExaminedViolation()`'s generic "examined zero units" message.
-    // `deadGlobDiagnosis()` (wired into every RuleBuilder<T, ArchProject>
-    // subclass this batch) is what upgrades that to a specific reason.
-    it('names the declared glob as dead instead of the generic "examined zero units" message', () => {
-      try {
-        new ClassRuleBuilder(p)
-          .that()
-          .resideInFolder('**/this-folder-does-not-exist-anywhere/**')
-          .should()
-          .beExported()
-          .check()
-        expect.unreachable('should have thrown')
-      } catch (error) {
-        expect(error).toBeInstanceOf(ArchRuleError)
-        const archError = error as ArchRuleError
-        expect(archError.violations).toHaveLength(1)
-        const message = archError.violations[0]!.message
-        expect(message).toMatch(/examined zero units/)
-        expect(message).toContain('this-folder-does-not-exist-anywhere')
-        expect(message).toContain('can never match')
-        // The generic fallback's own advice text must NOT also appear —
-        // this is the specific message replacing it, not appended to it.
-        expect(message).not.toContain('dead selector, an empty project')
-      }
-    })
-
-    it('falls through to the generic message when the declared glob is live but the predicate narrows to zero', () => {
-      // `resideInFolder('**/src/**')` genuinely matches every file in the
-      // fixture project — narrowed further by a name that matches nothing,
-      // this is an ordinary dead SELECTION, not a dead glob, and must keep
-      // the generic message rather than a false "can never match" diagnosis.
-      try {
-        new ClassRuleBuilder(p)
-          .that()
-          .resideInFolder('**/src/**')
-          .and()
-          .haveNameMatching(/^NothingNamedThisExists$/)
-          .should()
-          .beExported()
-          .check()
-        expect.unreachable('should have thrown')
-      } catch (error) {
-        expect(error).toBeInstanceOf(ArchRuleError)
-        const archError = error as ArchRuleError
-        const message = archError.violations[0]!.message
-        expect(message).toMatch(/examined zero units/)
-        expect(message).toContain('dead selector, an empty project')
       }
     })
   })

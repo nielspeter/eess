@@ -74,7 +74,21 @@ describe('dependency rules', () => {
       const condition = typeOnlyFrom('**/domain/**')
       const violations = condition.evaluate([sf], ctx)
       // Only the domain import is checked, not the shared import
-      expect(violations).toHaveLength(1)
+      // WHICH import: `non-type-import.ts` also imports from `shared`, and
+      // flagging that one instead also had length 1.
+      const imported = violations.map((v) =>
+        v.message
+          .match(/from "([^"]+)"/)?.[1]
+          ?.split('/')
+          .at(-1),
+      )
+      // Basename, not the absolute path, so the fixture root stays out of the
+      // assertion. Safe because the discriminator is `entity.ts` against the
+      // `shared/` imports, and `tests/fixtures/modules/src/shared/` holds only
+      // `logger.ts`, `utils.ts` and `validation.ts` — no collision. A future
+      // `shared/entity.ts` would silently defeat it; switch to the relative path
+      // that day.
+      expect(imported).toEqual(['entity.ts'])
     })
 
     it('passes for module with no imports', () => {

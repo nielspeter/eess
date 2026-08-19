@@ -27,7 +27,7 @@ describe('resolveConfig', () => {
 
   it('returns empty config when called with no arguments and no config file found', async () => {
     const config = await resolveConfig()
-    // In the test environment, there's no eess-ts.config.ts in cwd
+    // In the test environment, there's no ts-archunit.config.ts in cwd
     expect(config).toEqual({})
   })
 })

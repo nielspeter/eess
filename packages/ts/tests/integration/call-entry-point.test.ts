@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
+import type { SourceFile } from 'ts-morph'
 import path from 'node:path'
 import { calls } from '../../src/builders/call-rule-builder.js'
+import { within } from '../../src/index.js'
 import { ArchRuleError } from '@nielspeter/eess'
 import { call, property } from '../../src/helpers/matchers.js'
 import type { ArchProject } from '../../src/core/project.js'
@@ -237,7 +239,9 @@ describe('calls() entry point — end-to-end', () => {
       } catch (error) {
         const archError = error as ArchRuleError
         // /users has nested additionalProperties: true, /items has top-level
-        expect(archError.violations.length).toBe(2)
+        // The two distinct call sites, by line — reporting one of them twice
+        // also had length 2.
+        expect(archError.violations.map((v) => v.line).sort((a, b) => a - b)).toEqual([8, 58])
       }
     })
 
@@ -257,7 +261,9 @@ describe('calls() entry point — end-to-end', () => {
       } catch (error) {
         const archError = error as ArchRuleError
         // /users and /items are both POST
-        expect(archError.violations.length).toBe(2)
+        // The two distinct call sites, by line — reporting one of them twice
+        // also had length 2.
+        expect(archError.violations.map((v) => v.line).sort((a, b) => a - b)).toEqual([8, 58])
       }
     })
 
@@ -320,5 +326,85 @@ describe('calls() entry point — end-to-end', () => {
         calls(p).that().satisfy(hasGetMethod).should().notExist().check()
       }).toThrow(ArchRuleError)
     })
+  })
+})
+
+describe('an object-literal callback keeps its name (plan 0082)', () => {
+  const p = loadTestProject()
+
+  /** `basename:line`, so the assertions name elements rather than count them. */
+  const identify = (fn: {
+    getSourceFile: () => SourceFile
+    getStartLineNumber: () => number
+  }): string =>
+    `${path.basename(fn.getSourceFile().getFilePath())}:${String(fn.getStartLineNumber())}`
+
+  it('VACUITY: the fixture really has callbacks, measured WITHOUT using names', () => {
+    // Name-independent on purpose. The first version of this row asserted that
+    // `getName()` returned 'handler' — which is the thing under test, so it was a
+    // second copy of the feature assertion wearing a vacuity label, and it reddened
+    // under revert exactly like the rows it was supposed to be guarding.
+    expect(within(calls(p)).functions().subjects().length).toBeGreaterThan(20)
+  })
+
+  it('the motivating rule selects the handler, and NOT its sibling', () => {
+    // **This row passed with the feature completely reverted**, in the release that
+    // introduced it saying "without this the plan proves a field is populated and
+    // not that the gap is closed". Two reasons, both found by review:
+    //
+    //  1. `expect(handlers.length).toBeGreaterThan(0)` held either way, because the
+    //     fixture already contained functions genuinely named `handler` — a method
+    //     shorthand and a positional `function handler(...)`, both named long
+    //     before this change. Reverting lost 4 of 6 selections, invisible to `> 0`.
+    //  2. `expect([...new Set(names)]).toEqual(['handler'])` was a TAUTOLOGY: the
+    //     set was already filtered by `/^handler$/`, so it could only be
+    //     `['handler']` unless `haveNameMatching` itself broke. It guarded the
+    //     predicate, not the naming.
+    //
+    // Fixed by asserting WHICH functions are selected. Reverting the one-line
+    // change drops this from seven to two.
+    const handlers = within(calls(p))
+      .functions()
+      .that()
+      .haveNameMatching(/^handler$/)
+      .subjects()
+      .map(identify)
+      .sort()
+
+    expect(handlers).toEqual([
+      'nested-callbacks.ts:23',
+      'object-callbacks.ts:12',
+      'object-callbacks.ts:19',
+      'object-callbacks.ts:26',
+      'object-callbacks.ts:38',
+      'object-callbacks.ts:57',
+      'object-callbacks.ts:71',
+      // The named function expression added for 0.46.1: the property key wins, so
+      // this is a `handler` too. Reverting the naming change drops it.
+      'object-callbacks.ts:80',
+    ])
+  })
+
+  it('ONLY the handler: its sibling on the same object literal is excluded', () => {
+    // "ONLY" was in the old row's title and asserted nowhere — and could not be,
+    // because no fixture had two differently-named function callbacks on one
+    // object. `object-callbacks.ts:69` now does, so exclusion is demonstrable
+    // rather than assumed.
+    const onePair = within(calls(p))
+      .functions()
+      .subjects()
+      // The `/pair` call site: `preHandler` at :68, `handler` at :71.
+      .filter((fn) => /^object-callbacks\.ts:(68|71)$/.test(identify(fn)))
+      .map((fn) => fn.getName())
+      .sort()
+    expect(onePair).toEqual(['handler', 'preHandler'])
+
+    const selected = within(calls(p))
+      .functions()
+      .that()
+      .haveNameMatching(/^handler$/)
+      .subjects()
+      .map((fn) => fn.getName())
+    expect(selected).not.toContain('preHandler')
   })
 })

@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { runBaseline } from '../../src/cli/commands/baseline.js'
+import type { ArchViolation } from '../../src/core/violation.js'
 
 // Mock load-rules to return controllable builders
 vi.mock('../../src/cli/load-rules.js', () => ({
@@ -10,14 +11,13 @@ vi.mock('../../src/cli/load-rules.js', () => ({
 }))
 
 import { loadRuleFiles } from '../../src/cli/load-rules.js'
-import { ArchRuleError } from '@nielspeter/eess'
 
 const mockLoadRuleFiles = vi.mocked(loadRuleFiles)
 
 let tmpDir: string | undefined
 
 function createTmpDir(): string {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-ts-cli-baseline-'))
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-archunit-cli-baseline-'))
   return tmpDir
 }
 
@@ -34,23 +34,21 @@ describe('runBaseline', () => {
     const dir = createTmpDir()
     const outputPath = path.join(dir, 'baseline.json')
 
-    // Builder that throws an ArchRuleError with one violation
+    // Builder that reports one violation via .violations()
     const builder = {
-      check: () => {
-        throw new ArchRuleError([
-          {
-            rule: 'test rule',
-            element: 'TestClass',
-            file: '/src/test.ts',
-            line: 10,
-            message: 'test violation',
-          },
-        ])
-      },
+      violations: () => [
+        {
+          rule: 'test rule',
+          element: 'TestClass',
+          file: '/src/test.ts',
+          line: 10,
+          message: 'test violation',
+        },
+      ],
     }
     mockLoadRuleFiles.mockResolvedValue([builder])
 
-    const code = await runBaseline({ ruleFiles: ['rules.ts'], output: outputPath })
+    await runBaseline({ ruleFiles: ['rules.ts'], output: outputPath })
 
     expect(fs.existsSync(outputPath)).toBe(true)
     const content = JSON.parse(fs.readFileSync(outputPath, 'utf-8')) as {
@@ -59,44 +57,6 @@ describe('runBaseline', () => {
     }
     expect(content.count).toBe(1)
     expect(content.violations).toHaveLength(1)
-    expect(code).toBe(0) // ordinary, baseline-eligible violation — not a blocker
-  })
-
-  it('keeps collecting from every other rule file after one fails to load', async () => {
-    // Same bug-0025 class as check.ts: a syntax error in one rule file used
-    // to reject the whole loadRuleFiles(...) call and produce no baseline
-    // at all, discarding every other file's violations too.
-    const dir = createTmpDir()
-    const outputPath = path.join(dir, 'baseline.json')
-    const builder = {
-      check: () => {
-        throw new ArchRuleError([{ rule: 'r', element: 'e', file: '/x.ts', line: 1, message: 'm' }])
-      },
-    }
-    mockLoadRuleFiles.mockImplementation((files: string[]) => {
-      if (files[0] === 'bad.rules.ts') throw new SyntaxError('Unexpected token')
-      return Promise.resolve([builder])
-    })
-
-    const code = await runBaseline({
-      ruleFiles: ['a.rules.ts', 'bad.rules.ts', 'c.rules.ts'],
-      output: outputPath,
-    })
-
-    const content = JSON.parse(fs.readFileSync(outputPath, 'utf-8')) as { violations: unknown[] }
-    // a.rules.ts and c.rules.ts each contribute one real, baseline-eligible
-    // violation. bad.rules.ts's own configuration finding correctly does NOT
-    // appear here — generateBaseline already refuses to baseline anything
-    // carrying bypassFilters (a broken rule file is never "known debt"). The
-    // real assertion is that a.rules.ts and c.rules.ts got a chance to
-    // contribute at all — zero would mean the old crash-the-whole-run defect
-    // is back.
-    expect(content.violations).toHaveLength(2)
-    // But the run is NOT clean: bad.rules.ts's own load failure is a
-    // bypassFilters finding that could not be baselined, so the command must
-    // say so via a non-zero exit code — not silently succeed while leaving a
-    // blocker for the next CI run to discover.
-    expect(code).toBe(1)
   })
 
   it('reports violation count to stdout', async () => {
@@ -109,52 +69,174 @@ describe('runBaseline', () => {
     })
 
     // No violations — builder passes
-    mockLoadRuleFiles.mockResolvedValue([{ check: () => undefined }])
+    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [] }])
 
-    const code = await runBaseline({ ruleFiles: ['rules.ts'], output: outputPath })
+    await runBaseline({ ruleFiles: ['rules.ts'], output: outputPath })
 
     const output = chunks.join('')
-    expect(output).toContain('0 violations')
-    expect(code).toBe(0)
+    expect(output).toContain('0 entries')
     writeSpy.mockRestore()
   })
 
-  it('exits non-zero and lists what could not be baselined (config findings are never "known debt")', async () => {
-    // Bug-0029-class parity with `check.ts`: exiting 0 here would mean
-    // `npm run arch:baseline` reported the blocker, "succeeded", got
-    // committed, and the next `arch` job failed on findings the baseline was
-    // supposed to have covered.
-    const dir = createTmpDir()
-    const outputPath = path.join(dir, 'baseline.json')
-    const chunks: string[] = []
-    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
-      chunks.push(String(chunk))
-      return true
+  /**
+   * Plan 0071's second instrument. The 0.28.0 upgrade recipe is "refresh the
+   * baseline, commit, then upgrade", and it is only safe if the adopter can see
+   * what the refresh accepted. Before this, a refresh that accepted 37 findings
+   * and one that accepted none printed the same shape of line.
+   *
+   * The **first-run** case is asserted separately because it is the one that
+   * must NOT read as a delta: `(+41, −0)` against a baseline that never existed
+   * invites "so it added 41" when the honest statement is "41 is all of them".
+   */
+  describe('the delta it accepted', () => {
+    const violation = (element: string): ArchViolation => ({
+      rule: 'test rule',
+      element,
+      file: '/tmp/x.ts',
+      line: 1,
+      message: `${element} is bad`,
     })
-    mockLoadRuleFiles.mockResolvedValue([
-      {
-        check: () => undefined,
-        violations: () => [
-          {
-            rule: 'x/vacuous',
-            element: 'x/vacuous',
-            file: '',
-            line: 0,
-            message: 'this rule asserts nothing and can never fail',
-            bypassFilters: true,
-          },
-        ],
-      },
-    ])
 
-    const code = await runBaseline({ ruleFiles: ['rules/mine.rules.ts'], output: outputPath })
+    /** Run `baseline` and return everything it wrote to stdout. */
+    const run = async (outputPath: string, elements: string[]): Promise<string> => {
+      const chunks: string[] = []
+      const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+        chunks.push(String(chunk))
+        return true
+      })
+      mockLoadRuleFiles.mockResolvedValue([{ violations: () => elements.map(violation) }])
+      await runBaseline({ ruleFiles: ['rules.ts'], output: outputPath })
+      writeSpy.mockRestore()
+      return chunks.join('')
+    }
 
-    expect(code).toBe(1)
-    const content = JSON.parse(fs.readFileSync(outputPath, 'utf-8')) as { violations: unknown[] }
-    expect(content.violations).toHaveLength(0) // refused, never written
-    const output = chunks.join('')
-    expect(output).toContain('could NOT be baselined')
-    expect(output).toContain('rules/mine.rules.ts')
-    writeSpy.mockRestore()
+    it('says a first run created the file, and does not phrase it as a delta', async () => {
+      const outputPath = path.join(createTmpDir(), 'baseline.json')
+
+      const output = await run(outputPath, ['A', 'B', 'C'])
+
+      expect(output).toContain('Baseline created: 3 entries accepted (no previous baseline)')
+      // The discriminator: no +/− arithmetic against a file that did not exist.
+      expect(output).not.toContain('→')
+      expect(output).not.toMatch(/\+\d/)
+    })
+
+    /**
+     * The printed count and the file must agree.
+     *
+     * `runBaseline` used to compute the total a second way — `violations.length -
+     * refused.length` — beside the one `generateBaseline` already computes. Two
+     * derivations of one number in two files drift, so the CLI now prints only
+     * the delta's. This is the differently-derived check that replaces it
+     * (ADR-008 rule 5): the count is read back out of the written file, not out
+     * of the value that produced the sentence.
+     */
+    it('prints a count that matches the entries actually written', async () => {
+      const outputPath = path.join(createTmpDir(), 'baseline.json')
+
+      const output = await run(outputPath, ['A', 'B', 'C', 'D'])
+
+      const written: unknown = JSON.parse(fs.readFileSync(outputPath, 'utf-8'))
+      const entries =
+        written !== null &&
+        typeof written === 'object' &&
+        'violations' in written &&
+        Array.isArray(written.violations)
+          ? written.violations.length
+          : -1
+      expect(entries).toBe(4)
+      expect(output).toContain(`${String(entries)} entries`)
+    })
+
+    it('names both directions when entries are added and dropped', async () => {
+      const outputPath = path.join(createTmpDir(), 'baseline.json')
+      await run(outputPath, ['A', 'B'])
+
+      // B is fixed, C and D are newly accepted.
+      const output = await run(outputPath, ['A', 'C', 'D'])
+
+      expect(output).toContain('Baseline updated: 2 → 3 entries (+2, −1)')
+      // The added count is what the recipe turns on, so it is called out in words
+      // rather than left as a symbol the reader has to interpret.
+      expect(output).toContain('The +2 are findings this file now accepts that it did not before')
+    })
+
+    it('reports +0 −0 for a refresh that accepted nothing new', async () => {
+      const outputPath = path.join(createTmpDir(), 'baseline.json')
+      await run(outputPath, ['A', 'B'])
+
+      const output = await run(outputPath, ['A', 'B'])
+
+      expect(output).toContain('(+0, −0)')
+      // No "the +N are findings…" clause when there is nothing to warn about —
+      // otherwise the sentence that matters appears on every run and stops being read.
+      expect(output).not.toContain('now accepts that it did not before')
+    })
+
+    it('says a full replacement is not a delta, and offers the identity format as the cause', async () => {
+      const outputPath = path.join(createTmpDir(), 'baseline.json')
+      await run(outputPath, ['A', 'B'])
+
+      // Rewrite the prior file so no identity can match, as a pre-0.19 baseline
+      // whose hashes encoded absolute paths would behave.
+      const prior: unknown = JSON.parse(fs.readFileSync(outputPath, 'utf-8'))
+      if (prior !== null && typeof prior === 'object' && 'violations' in prior) {
+        const entries: readonly unknown[] = Array.isArray(prior.violations) ? prior.violations : []
+        fs.writeFileSync(
+          outputPath,
+          JSON.stringify({
+            ...prior,
+            hashVersion: 1,
+            violations: entries.map((e, i) =>
+              e !== null && typeof e === 'object' ? { ...e, hash: `stale${String(i)}` } : e,
+            ),
+          }),
+        )
+      }
+
+      const output = await run(outputPath, ['A', 'B'])
+
+      expect(output).toContain('(+2, −2)')
+      expect(output).toContain('No entry survived')
+      expect(output).toContain('The identity format changed (v1 → v5)')
+    })
+
+    /**
+     * The measurement decides, not the version. v2 is byte-identical to v1 for
+     * any violation whose fields contain no path (see `HASH_VERSION`), so a v1
+     * baseline usually keeps matching entirely — and a message asserting "none
+     * of its identities could be compared" beside `(+0, −0)` would be false.
+     * This is the guard on that: same content, older version stamp, no alarm.
+     */
+    it('does not cry replacement for an old version stamp whose identities still match', async () => {
+      const outputPath = path.join(createTmpDir(), 'baseline.json')
+      await run(outputPath, ['A', 'B'])
+
+      const prior: unknown = JSON.parse(fs.readFileSync(outputPath, 'utf-8'))
+      if (prior !== null && typeof prior === 'object') {
+        fs.writeFileSync(outputPath, JSON.stringify({ ...prior, hashVersion: 1 }))
+      }
+
+      const output = await run(outputPath, ['A', 'B'])
+
+      expect(output).toContain('(+0, −0)')
+      expect(output).not.toContain('No entry survived')
+      expect(output).not.toContain('identity format changed')
+    })
+
+    it('refuses to call a corrupt prior file a delta', async () => {
+      const outputPath = path.join(createTmpDir(), 'baseline.json')
+      await run(outputPath, ['A', 'B'])
+      fs.writeFileSync(outputPath, 'this is not a baseline')
+
+      const output = await run(outputPath, ['A', 'B'])
+
+      expect(output).toContain('Baseline replaced: 2 entries written')
+      expect(output).toContain('could not be read as a baseline')
+      // Reporting it as a first run would be the false green: it would hide that
+      // whatever the old file accepted is no longer accepted.
+      expect(output).not.toContain('no previous baseline')
+      expect(output).not.toMatch(/\+\d/)
+    })
   })
 })

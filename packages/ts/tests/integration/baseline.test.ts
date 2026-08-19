@@ -25,7 +25,7 @@ function loadTestProject(): ArchProject {
 let tmpDir: string | undefined
 
 function createTmpDir(): string {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-ts-integration-'))
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-archunit-integration-'))
   return tmpDir
 }
 

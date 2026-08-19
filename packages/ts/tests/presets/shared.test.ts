@@ -2,9 +2,12 @@ import { describe, it, expect, vi } from 'vitest'
 import { Project } from 'ts-morph'
 import path from 'node:path'
 import type { ArchProject } from '../../src/core/project.js'
-import { ArchRuleError } from '@nielspeter/eess'
-import { dispatchRule, validateOverrides, throwIfViolations } from '../../src/presets/shared.js'
+import { collectRule, validateOverrides } from '../../src/presets/shared.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
+import { strictBoundaries } from '../../src/presets/boundaries.js'
+import { layeredArchitecture } from '../../src/presets/layered.js'
+import { dataLayerIsolation } from '../../src/presets/data-layer.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/presets/layered')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')
@@ -45,100 +48,124 @@ describe('validateOverrides', () => {
   })
 })
 
-describe('dispatchRule', () => {
+describe('collectRule', () => {
   const p = loadTestProject()
 
-  it('returns empty array when severity is off', () => {
-    const builder = modules(p)
-      .that()
-      .resideInFolder('**/routes/**')
-      .should()
-      .notImportFrom('**/services/**')
+  function violatingBuilder() {
+    return modules(p).that().resideInFolder('**/routes/**').should().notImportFrom('**/services/**')
+  }
 
-    const result = dispatchRule(builder, 'test/rule', 'error', {
-      'test/rule': 'off',
+  it('returns an empty array when severity is off', () => {
+    const result = collectRule(violatingBuilder(), { id: 'test/rule' }, 'error', {
+      overrides: { 'test/rule': 'off' },
     })
     expect(result).toEqual([])
   })
 
-  it('returns violations when severity is error', () => {
-    const builder = modules(p)
-      .that()
-      .resideInFolder('**/routes/**')
-      .should()
-      .notImportFrom('**/services/**')
-
-    const result = dispatchRule(builder, 'test/rule', 'error', undefined)
-    expect(result.length).toBeGreaterThan(0)
+  it('returns one un-executed builder stamped error by default', () => {
+    const result = collectRule(violatingBuilder(), { id: 'test/rule' }, 'error', undefined)
+    expect(result).toHaveLength(1)
+    const violations = result[0]!.violations()
+    expect(violations.length).toBeGreaterThan(0)
+    expect(violations.every((v) => v.severity === 'error')).toBe(true)
   })
 
-  it('logs warnings and returns empty array when severity is warn', () => {
+  it('stamps severity:warn (NOT console.warn) when severity is warn', () => {
     const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
-
-    const builder = modules(p)
-      .that()
-      .resideInFolder('**/routes/**')
-      .should()
-      .notImportFrom('**/services/**')
-
-    const result = dispatchRule(builder, 'test/rule', 'warn', undefined)
-    expect(result).toEqual([])
-    expect(spy).toHaveBeenCalled()
+    const result = collectRule(violatingBuilder(), { id: 'test/rule' }, 'warn', undefined)
+    const violations = result[0]!.violations()
+    expect(violations.length).toBeGreaterThan(0)
+    expect(violations.every((v) => v.severity === 'warn')).toBe(true)
+    // The returning form does NOT log — severity flows through the pipeline.
+    expect(spy).not.toHaveBeenCalled()
     spy.mockRestore()
   })
 
-  it('does not log when warn severity has no violations', () => {
-    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
-
+  it('still returns a builder for a warn rule with no violations (0 violations, not skipped)', () => {
     const builder = modules(p)
       .that()
       .resideInFolder('**/routes/**')
       .should()
       .notImportFrom('**/nonexistent/**')
-
-    const result = dispatchRule(builder, 'test/rule', 'warn', undefined)
-    expect(result).toEqual([])
-    expect(spy).not.toHaveBeenCalled()
-    spy.mockRestore()
+    const result = collectRule(builder, { id: 'test/rule' }, 'warn', undefined)
+    expect(result).toHaveLength(1)
+    expect(result[0]!.violations()).toEqual([])
   })
 
-  it('uses override severity instead of default', () => {
-    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
-
-    const builder = modules(p)
-      .that()
-      .resideInFolder('**/routes/**')
-      .should()
-      .notImportFrom('**/services/**')
-
-    // Default is error, but override to warn
-    const result = dispatchRule(builder, 'test/rule', 'error', {
-      'test/rule': 'warn',
+  it('uses the override severity instead of the default', () => {
+    // Default error, overridden to warn → violations carry severity:warn.
+    const result = collectRule(violatingBuilder(), { id: 'test/rule' }, 'error', {
+      overrides: { 'test/rule': 'warn' },
     })
-    expect(result).toEqual([])
-    expect(spy).toHaveBeenCalled()
-    spy.mockRestore()
+    const violations = result[0]!.violations()
+    expect(violations.length).toBeGreaterThan(0)
+    expect(violations.every((v) => v.severity === 'warn')).toBe(true)
   })
 })
 
-describe('throwIfViolations', () => {
-  it('does not throw when no violations', () => {
-    expect(() => throwIfViolations([])).not.toThrow()
-  })
+/**
+ * ADR-008 rule 2: every failure carries its sanctioned fix.
+ *
+ * A preset is the one place a user cannot supply that themselves — they did not
+ * write the rule. `collectRule` used to attach `{ id }` and nothing else, so
+ * every rule in `strictBoundaries`, `layeredArchitecture` and
+ * `dataLayerIsolation` failed with a bare message: 37 of 37 in
+ * `strictBoundaries` alone.
+ *
+ * The compiler now requires metadata to be *passed*, but cannot require it to
+ * be *filled in* — `{ id }` still satisfies the type. This asserts the content.
+ */
+describe('every preset rule carries a remedy', () => {
+  // Each preset gets the fixture built for it — a shared one produced zero
+  // findings for dataLayerIsolation, and the vacuity guard below caught it.
+  const load = (name: string): ArchProject => {
+    const tsconfig = path.join(
+      path.resolve(import.meta.dirname, `../fixtures/presets/${name}`),
+      'tsconfig.json',
+    )
+    const tsProject = new Project({ tsConfigFilePath: tsconfig })
+    return {
+      tsConfigPath: tsconfig,
+      _project: tsProject,
+      getSourceFiles: () => tsProject.getSourceFiles(),
+    }
+  }
 
-  it('throws ArchRuleError when violations exist', () => {
-    const violations = [
-      {
-        rule: 'test rule',
-        message: 'violation',
-        file: '/test.ts',
-        line: 1,
-        element: 'test',
-      },
-    ]
-    // Suppress stderr output during test
-    const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
-    expect(() => throwIfViolations(violations)).toThrow(ArchRuleError)
-    spy.mockRestore()
-  })
+  const presets: Array<[string, RuleBuilderLike[]]> = [
+    [
+      'strictBoundaries',
+      strictBoundaries(load('boundaries'), { folders: '**/boundaries/*', noCopyPaste: true }),
+    ],
+    [
+      'layeredArchitecture',
+      layeredArchitecture(load('layered'), {
+        layers: { domain: '**/domain/**', app: '**/app/**', infra: '**/infra/**' },
+      }),
+    ],
+    [
+      'dataLayerIsolation',
+      dataLayerIsolation(load('data-layer'), {
+        repositories: '**/repositories/**',
+        baseClass: 'BaseRepository',
+        requireTypedErrors: true,
+      }),
+    ],
+  ]
+
+  for (const [name, rules] of presets) {
+    it(`${name}: no violation reaches the user without a remedy`, () => {
+      expect(rules.length, `${name} must emit rules`).toBeGreaterThan(0)
+      const violations = rules.flatMap((r) => r.violations())
+
+      // Vacuity guard: a fixture that triggers nothing would pass trivially,
+      // which is precisely how the gap survived — every preset test asserted
+      // on counts and messages, never on whether a remedy was attached.
+      expect(violations.length, `${name} must actually produce findings`).toBeGreaterThan(0)
+
+      const bare = violations
+        .filter((v) => !v.because || !v.suggestion)
+        .map((v) => v.ruleId ?? v.rule)
+      expect([...new Set(bare)], `${name} findings with no remedy`).toEqual([])
+    })
+  }
 })

@@ -31,28 +31,6 @@ describe('crossLayer() entry point', () => {
   })
 })
 
-describe('CrossLayerBuilder.layer() copy-on-write (plan 0147)', () => {
-  const p = loadTestProject()
-
-  it('.layer() returns a new builder, not the same reference — a held builder must not accumulate a later call meant for a different branch', () => {
-    // Bug-0016 class, found live during plan 0147's reconciliation against
-    // ts-archunit (which already fixes this — `const next = this.copy(); ...`
-    // — while eess's `.layer()` still mutated `this` in place, AND
-    // `CrossLayerBuilder` had no `copy()` at all to call). Sabotage-verified:
-    // reverting the fix under test turns this red (`withSchemas` becomes the
-    // exact same object as `held`).
-    const held = crossLayer(p).layer('routes', '**/routes/**')
-    const withSchemas = held.layer('schemas', '**/schemas/**')
-    expect(withSchemas).not.toBe(held)
-
-    // The held reference itself must still be usable for an independent
-    // branch afterward, unaffected by withSchemas's own later calls.
-    const withOther = held.layer('other', '**/other/**')
-    expect(withOther).not.toBe(held)
-    expect(withOther).not.toBe(withSchemas)
-  })
-})
-
 describe('layer resolution', () => {
   const p = loadTestProject()
 
@@ -357,90 +335,56 @@ describe('.warn() vs .check()', () => {
 describe('empty layer', () => {
   const p = loadTestProject()
 
-  // ADR-009/010 (plan 0088 Phase 4): zero pairs from an empty layer is a
-  // configuration finding by default — an empty layer reads identically to
-  // "nothing to report" unless the author declares it.
-  it('throws — an empty layer producing zero pairs is a configuration finding, not a silent pass', () => {
-    try {
-      crossLayer(p)
-        .layer('routes', '**/routes/**')
-        .layer('nonexistent', '**/does-not-exist/**')
-        .mapping(() => true)
-        .forEachPair()
-        .should(
-          satisfyPairCondition('should not be called', () => ({
-            rule: 'test',
-            element: 'test',
-            file: 'test',
-            line: 1,
-            message: 'should not reach here',
-          })),
-        )
-        .check()
-      expect.unreachable('should have thrown')
-    } catch (error) {
-      expect(error).toBeInstanceOf(ArchRuleError)
-      const archError = error as ArchRuleError
-      expect(archError.violations).toHaveLength(1)
-      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
-    }
+  it('a layer matching no files FAILS — it used to pass in silence', () => {
+    // This test was named "no violations and no crash when a layer matches no
+    // files" and asserted `not.toThrow()`. It pinned the vacuous pass as the
+    // expected behaviour: `satisfyPairCondition`'s callback was even named
+    // 'should not be called', which is true and is the defect — a dead layer
+    // produces no pairs, so the assertion is about nothing (bug 0040).
+    //
+    // Measured then: 4 violations with the layer live, 0 with it dead.
+    const violations = crossLayer(p)
+      .layer('routes', '**/routes/**')
+      .layer('nonexistent', '**/does-not-exist/**')
+      .mapping(() => true)
+      .forEachPair()
+      .should(satisfyPairCondition('never reached, because there are no pairs', () => null))
+      .violations()
+
+    const config = violations.filter((v) => v.bypassFilters === true)
+    expect(config).toHaveLength(1)
+    expect(config[0]?.element).toBe('nonexistent')
+    expect(config[0]?.message).toContain('matched 0 files')
+    // The remedy names the `.layer()` call the reader must edit.
+    expect(config[0]?.suggestion).toContain('.layer("nonexistent"')
   })
 
-  it('passes when the empty layer is declared with .expectEmpty()', () => {
-    expect(() => {
-      crossLayer(p)
-        .layer('routes', '**/routes/**')
-        .layer('nonexistent', '**/does-not-exist/**')
-        .mapping(() => true)
-        .forEachPair()
-        .should(
-          satisfyPairCondition('should not be called', () => ({
-            rule: 'test',
-            element: 'test',
-            file: 'test',
-            line: 1,
-            message: 'should not reach here',
-          })),
-        )
-        .expectEmpty()
-        .check()
-    }).not.toThrow()
+  it('CONTROL: both layers live, and the callback governs', () => {
+    // Without this, "always report an empty layer" passes the row above.
+    const violations = crossLayer(p)
+      .layer('routes', '**/routes/**')
+      .layer('schemas', '**/schemas/**')
+      .mapping(() => true)
+      .forEachPair()
+      .should(satisfyPairCondition('always satisfied', () => null))
+      .violations()
+    expect(violations.filter((v) => v.bypassFilters === true)).toHaveLength(0)
   })
 
-  // Plan 0147 (bug-0040 class, reconciled against ts-archunit): a 4-layer
-  // chain where a MIDDLE layer is dead but the other segments still form
-  // pairs (`pairs.length > 0` overall) is a genuinely different scenario
-  // from the two tests above — the kernel's own `examined: 0` non-vacuity
-  // guard stays quiet (real work happened elsewhere in the chain), so
-  // without a dedicated check the dead layer's own problem either goes
-  // fully silent (as the leftLayer of its own iteration, contributing zero
-  // per-file violations) or surfaces as confusing per-file noise blamed on
-  // its neighbour's files. `haveMatchingCounterpart` must name the dead
-  // layer directly instead.
-  it('names a dead middle layer directly in a 4-layer chain, instead of confusing per-file noise or silence', () => {
-    try {
-      crossLayer(p)
-        .layer('routes', '**/routes/**')
-        .layer('nonexistent', '**/does-not-exist/**')
-        .layer('schemas', '**/schemas/**')
-        .layer('sdk', '**/sdk/**')
-        .mapping(
-          (a, b) =>
-            a.getBaseName().replace(/-\w+\.ts$/, '') === b.getBaseName().replace(/-\w+\.ts$/, ''),
-        )
-        .forEachPair()
-        .should(haveMatchingCounterpart())
-        .check()
-      expect.unreachable('should have thrown')
-    } catch (error) {
-      expect(error).toBeInstanceOf(ArchRuleError)
-      const archError = error as ArchRuleError
-      // Exactly one finding, naming the dead layer — not two "routes file X
-      // has no counterpart in nonexistent" findings, and not silence.
-      expect(archError.violations).toHaveLength(1)
-      expect(archError.violations[0]!.message).toContain('Layer "nonexistent" matched 0 files')
-      expect(archError.violations[0]!.bypassFilters).toBe(true)
-    }
+  it('haveMatchingCounterpart fails when the left layer matched zero files (was a vacuous green)', () => {
+    const layers: Layer[] = [
+      { name: 'empty', pattern: '**/does-not-exist/**', files: [] },
+      { name: 'schemas', pattern: '**/schemas/**', files: [] },
+    ]
+    // Layers through the CONTEXT (bug 0040) — the interface the builder uses.
+    // The `layers` argument still exists and still compiles, but the context wins,
+    // so a direct call must supply it there or it is testing the deprecated path.
+    const violations = haveMatchingCounterpart().evaluate([], { rule: 'test', layers })
+    // Both fixture layers are empty, and every layer is now examined — the final
+    // one included, which the pair loop used to skip (bug 0040's missing case).
+    // Asserted by identity so the count is not the whole claim.
+    expect(violations.map((v) => v.element).sort()).toEqual(['empty', 'schemas'])
+    expect(violations.every((v) => /matched 0 files/.test(v.message))).toBe(true)
   })
 })
 

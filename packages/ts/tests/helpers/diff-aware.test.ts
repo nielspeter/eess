@@ -38,23 +38,16 @@ describe('DiffFilter', () => {
     expect(filter.size).toBe(2)
   })
 
-  it('never filters out a bypassFilters finding, even though its file is always empty', () => {
-    // A bypassFilters configuration finding (ADR-010) sets file: '', which
-    // can never be a member of the changed-files set — without this, the
-    // "unsuppressable" guarantee was false under --changed, the most
-    // realistic incremental-adoption path.
-    const filter = new DiffFilter(new Set(['/project/src/a.ts']))
-    const configFinding = makeViolation({
-      element: 'unnamed',
+  it('keeps bypassFilters meta-findings even when their file did not change', () => {
+    const filter = new DiffFilter(new Set(['/project/src/changed.ts']))
+    const meta = makeViolation({
+      element: 'selector',
       file: '',
-      line: 0,
-      message: 'this rule examined zero units',
+      message: 'empty selector',
       bypassFilters: true,
     })
-    const ordinary = mv('/project/src/unrelated.ts')
-
-    const result = filter.filterToChanged([configFinding, ordinary])
-    expect(result).toHaveLength(1)
-    expect(result[0]?.bypassFilters).toBe(true)
+    const normalUnchanged = mv('/project/src/other.ts', 'Other')
+    const result = filter.filterToChanged([meta, normalUnchanged])
+    expect(result).toEqual([meta]) // meta kept; normal violation in an unchanged file dropped
   })
 })

@@ -141,7 +141,9 @@ describe('RuleMetadata', () => {
       }),
     ]
     const output = formatViolationsGitHub(violations)
-    expect(output).toContain('title=Architecture Violation: repo/typed-errors')
+    // ':' is escaped in property values as of 0.22.0 (workflow-command spec);
+    // the rendered title still reads "Architecture Violation: repo/typed-errors".
+    expect(output).toContain('title=Architecture Violation%3A repo/typed-errors')
   })
 
   it('JSON format includes all metadata fields', () => {
@@ -218,22 +220,22 @@ describe('RuleMetadata', () => {
 
   it('SliceRuleBuilder supports .rule() method', () => {
     const builder = new SliceRuleBuilder(stubProject)
-    // .rule() returns a COPY carrying the metadata (plan 0088 Phase 4's
-    // copy-on-write fix — a held builder is never mutated by a chain call),
-    // not the same object: verify the metadata landed, not reference identity.
     const result = builder.rule({
       id: 'slice/test',
       because: 'slice reason',
       suggestion: 'slice suggestion',
       docs: 'https://example.com/slice',
     })
-    expect(result.describeRule()).toMatchObject({
-      id: 'slice/test',
-      because: 'slice reason',
-      suggestion: 'slice suggestion',
-      docs: 'https://example.com/slice',
-    })
-    // The original, held builder is untouched.
+
+    // A COPY, not `this` — a held builder is immutable since bug 0016. A
+    // leaked id matters because inline exclusion comments are matched against
+    // it (`execute-rule.ts` gates the comment scan on `metadata.id`) and a
+    // preset's severity `overrides` are keyed on it, so a later rule inherited
+    // a suppression channel it never opted into. NOT baselines: those hash the
+    // rule description. An earlier version of this comment said baselines and
+    // a `--rule` filter were keyed on the id; there is no `--rule` flag.
+    expect(result).not.toBe(builder)
+    expect(result.describeRule().id).toBe('slice/test')
     expect(builder.describeRule().id).toBeUndefined()
   })
 })

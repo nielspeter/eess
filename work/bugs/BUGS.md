@@ -107,7 +107,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 
 ## Board — every bug, whatever its state
 
-**Updated:** 2026-08-19 · **Open:** 45 (43 Draft · 2 Parked) · **Fixed:** 22 · **Rejected:** 0
+**Updated:** 2026-08-19 · **Open:** 46 (44 Draft · 2 Parked) · **Fixed:** 22 · **Rejected:** 0
 
 > The counts are **counted** in `work/bugs/` and `fixed/`, not projected forward.
 >
@@ -176,6 +176,7 @@ Deferred: none | <each deferral re-homed to a named owner>
 | [0161](./0161-smell-detectors-silently-miss-object-literal-functions.md)                    | `duplicateBodies`/`inconsistentSiblings` never collect object-literal functions — duplicates reported as nothing, and the zero-examined guard is defeated by any adjacent ordinary function | High     | 🔴 Draft            | self-found · fold audit vs ts-archunit 0013                                  | —         |
 | [0162](./0162-a-folder-glob-in-strictboundaries-shared-falsely-flags-with-no-diagnostic.md) | a folder-shaped `shared` glob makes `strictBoundaries` falsely flag a legitimate import, with zero config findings                                                                          | Medium   | 🔴 Draft            | self-found · fold audit vs ts-archunit 0023                                  | —         |
 | [0163](./0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)             | a config finding prints twice and `--format json` inflates the total — ADR-008's `gated` one-emitter row is green over its own motivating defect                                            | Medium   | 🔴 Draft            | self-found · fold audit vs ts-archunit 0029                                  | —         |
+| [0164](./0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md)     | `RuleBuilder` exceeds this repo's own 300-line / 20-method rules after bug 0155's assertion gate — waived by name, split owed                                                               | Low      | 🔴 Draft            | self-found · adopting ts-archunit's test corpus                              | —         |
 | [0132](./0132-the-chain-and-the-workflow-need-a-derivation.md)                              | nothing binds the `validate` chain to the workflow that runs it — the derivation 0129 twice failed to build, with what review established about how                                         | Medium   | 🔴 Draft            | self-found · re-homed from 0129 after two failed attempts                    | —         |
 | [0133](./0133-nothing-requires-a-check-to-join-the-chain.md)                                | a `check:*` need never join the `validate` chain — three authored lists of the same gates, two joins asserted                                                                               | Medium   | 🔴 Draft            | self-found · architect + product review of 0129's fix                        | —         |
 | [0134](./0134-explain-empty-green-wipes-the-agents-block.md)                                | `explain --format agent` renders "no rules" as a valid sentinel block and exits 0 — the documented `-s` guard cannot see it, and the AGENTS.md block is overwritten                         | Medium   | 🔴 Draft            | self-found · enforcement review of proposal 004                              | —         |

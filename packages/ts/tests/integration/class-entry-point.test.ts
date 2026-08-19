@@ -74,8 +74,28 @@ describe('classes() entry point integration', () => {
 
   describe('acceptParameterOfType (plan 0031)', () => {
     it('repos must accept DatabaseClient', () => {
-      // Fixture's repo-shaped class is `RepoAcceptingDb` — starts with "Repo",
-      // not ends with it. `haveNameEndingWith('Repo')` matched nothing here.
+      // `haveNameEndingWith('Repo')` matched nothing: the fixture class is
+      // `RepoAcceptingDb`, which ends in `Db`. So a POSITIVE requirement —
+      // "repos must accept DatabaseClient" — was asserted with `.not.toThrow()`
+      // over an empty set and checked no repo at all.
+      const repos = classes(p)
+        .that()
+        .haveNameStartingWith('Repo')
+        .and()
+        .resideInFile('**/members.ts')
+      expect(repos.subjects().map((c) => c.getName())).toContain('RepoAcceptingDb')
+
+      expect(() => {
+        repos
+          .should()
+          .acceptParameterOfType(matching(/DatabaseClient/))
+          .check()
+      }).not.toThrow()
+
+      // A failure mode, not just a subject. Sabotaging the condition to never
+      // report anything leaves the assertion above green, so it proves the rule
+      // ran but not that the condition discriminates. Same subjects, a type
+      // none of them accepts.
       expect(() => {
         classes(p)
           .that()
@@ -83,9 +103,9 @@ describe('classes() entry point integration', () => {
           .and()
           .resideInFile('**/members.ts')
           .should()
-          .acceptParameterOfType(matching(/DatabaseClient/))
+          .acceptParameterOfType(matching(/NoSuchTypeAnywhere/))
           .check()
-      }).not.toThrow()
+      }).toThrow(ArchRuleError)
     })
   })
 

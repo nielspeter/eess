@@ -175,30 +175,89 @@ describe('FunctionRuleBuilder', () => {
       }
     })
 
-    it('named selection reuse works', () => {
+    it('named selection reuse works — the documented form', () => {
+      // The form docs/core-concepts.md and docs/classes.md actually show:
+      // repeated `.should()`, which forks. This works, and now says so on a
+      // non-empty set rather than by not throwing over nothing.
       const parsers = functions(p)
         .that()
         .haveNameMatching(/^parse/)
+      expect(parsers.subjects().map((f) => f.getName())).toContain('parseConfig')
 
-      // Rule 1: parseXxxOrder should not exist
+      // Throwing rule FIRST. The reverse order cannot detect a leak: carrying a
+      // passing condition into the second rule changes nothing either way.
+      // (`.should() forks the builder for named selections` below is the
+      // dedicated guard; this ordering just stops THIS test from being a
+      // weaker duplicate of it.)
       expect(() => {
-        parsers
-          .that()
-          .haveNameMatching(/Order$/)
-          .should()
-          .notExist()
-          .check()
+        parsers.should().notExist().check()
       }).toThrow(ArchRuleError)
 
-      // Rule 2: parseConfig should exist and be exported
+      // Second rule off the same selection, unaffected by the first.
       expect(() => {
+        parsers.should().beExported().check()
+      }).not.toThrow()
+    })
+
+    it('narrowing a named selection does NOT mutate it (bug 0016)', () => {
+      // This test was a PIN on the defect: `should()` forked but `that()` did
+      // not, so narrowing a held selection edited it in place and the next rule
+      // off it silently lost subjects. It is now the regression guard.
+      const parsers = functions(p)
+        .that()
+        .haveNameMatching(/^parse/)
+      expect(parsers.subjects()).toHaveLength(4)
+
+      const orders = parsers.that().haveNameMatching(/Order$/)
+
+      // Guard 1 — the discriminator. Two narrowings of one selection are two
+      // different sets, each correct. Under the bug the second was the
+      // intersection of both and came back empty.
+      expect(
+        orders
+          .subjects()
+          .map((f) => f.getName())
+          .sort(),
+      ).toEqual(['parseBarOrder', 'parseBazOrder', 'parseFooOrder'])
+      expect(
         parsers
           .that()
           .haveNameMatching(/^parseConfig$/)
+          .subjects()
+          .map((f) => f.getName()),
+      ).toEqual(['parseConfig'])
+
+      // Guard 3 — the original is untouched after a derived rule has run.
+      orders.should().notExist().violations()
+      expect(parsers.subjects()).toHaveLength(4)
+    })
+
+    it('an exclusion does not leak onto the selection it came from (bug 0016)', () => {
+      // Worse than lost subjects: this one silently SUPPRESSES violations in
+      // every later rule off the same selection.
+      const parsers = functions(p)
+        .that()
+        .haveNameMatching(/^parse/)
+      const withoutOrders = parsers.excluding(/Order$/)
+
+      // WHICH parser survives the exclusion. `parseConfig` is the only one not
+      // ending in Order, and a count of 1 could not tell it from any other.
+      expect(
+        withoutOrders
           .should()
-          .beExported()
-          .check()
-      }).not.toThrow()
+          .notExist()
+          .violations()
+          .map((x) => x.element),
+      ).toEqual(['parseConfig'])
+      expect(parsers.should().notExist().violations()).toHaveLength(4)
+    })
+
+    it('the documented repeated-.should() form is unaffected (no regression)', () => {
+      const parsers = functions(p)
+        .that()
+        .haveNameMatching(/^parse/)
+      expect(parsers.should().notExist().violations()).toHaveLength(4)
+      expect(parsers.should().notExist().violations()).toHaveLength(4)
     })
   })
 

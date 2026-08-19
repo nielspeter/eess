@@ -1,3 +1,4 @@
+import { assertionAdviceFor } from './assertion-advice.js'
 import type { Predicate } from './predicate.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
@@ -75,6 +76,15 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   protected _predicates: Predicate<T>[] = []
   protected _conditions: Condition<T>[] = []
   protected _phase: 'predicate' | 'condition' = 'predicate'
+  /** Whether `.should()` was ever reached — bug 0155 state 3/4 vs state 1. */
+  protected _reachedShould = false
+  /**
+   * Descriptions of predicate-only methods used AFTER `.should()` — bug 0155
+   * state 2. A dual-use method dispatches to a condition in that phase and
+   * never lands here, so anything recorded is genuinely a filter written where
+   * an assertion was meant.
+   */
+  protected _misplaced: string[] = []
 
   constructor(protected readonly project: P) {
     super()
@@ -110,6 +120,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   should(): this {
     const fork = this.fork()
     fork._phase = 'condition'
+    fork._reachedShould = true
     return fork
   }
 
@@ -194,6 +205,26 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * between an assertion-less rule and a silent pass (the gate runs after the
    * zero-examined branch). Pinned in `assertion-less-rules.test.ts`.
    */
+  /**
+   * Does this rule assert anything at all? — bug 0155.
+   *
+   * Conditions alone are not enough: a predicate-only method written *after*
+   * `.should()` silently shrank the set the conditions run over, possibly to
+   * empty, in which case they hold vacuously. That rule asserts nothing
+   * meaningful even though `_conditions` is non-empty.
+   */
+  protected assertsSomething(): boolean {
+    return this._conditions.length > 0 && this._misplaced.length === 0
+  }
+
+  protected assertionAdvice(): string {
+    return assertionAdviceFor({
+      reachedShould: this._reachedShould,
+      misplaced: this._misplaced,
+      conditionCount: this._conditions.length,
+    })
+  }
+
   protected override assertsCardinality(): boolean {
     if (this._conditions.length === 0) return false
     return this._conditions.every((condition) => conditionAssertsCardinality(condition))
@@ -238,6 +269,11 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   protected addPredicate(predicate: Predicate<T>): this {
     const next = this.copy()
     next._predicates.push(predicate)
+    // Bug 0155 state 2: a predicate-only method used after `.should()`. Dual-use
+    // methods dispatch to conditions in that phase and never reach here, so this
+    // is a filter written where an assertion was meant — the one state whose fix
+    // is "move it before .should()", not "add a condition".
+    if (next._phase === 'condition') next._misplaced.push(predicate.description)
     return next
   }
 
@@ -271,6 +307,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
     const clone = super.copy()
     clone._predicates = [...this._predicates]
     clone._conditions = [...this._conditions]
+    clone._misplaced = [...this._misplaced]
     return clone
   }
 
@@ -337,9 +374,9 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
     // and why there is no `_phase` term.
     // `_expectEmpty === undefined`: a declared emptiness expectation is an
     // assertion too — see `assertionLessViolation`.
-    if (this._conditions.length === 0 && this._expectEmpty === undefined) {
+    if (!this.assertsSomething() && this._expectEmpty === undefined) {
       const ruleId = this._metadata?.id ?? (this.buildRuleDescription() || 'unnamed')
-      return { violations: [assertionLessViolation(ruleId)], examined }
+      return { violations: [assertionLessViolation(ruleId, this.assertionAdvice())], examined }
     }
 
     // Step 4: Build context for conditions

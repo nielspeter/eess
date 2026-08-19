@@ -57,7 +57,7 @@ describe('diffAware() function', () => {
   let diffAware: (baseBranch?: string) => DiffFilter
 
   beforeEach(async () => {
-    const mod = await import('@nielspeter/eess')
+    const mod = await import('../../src/helpers/diff-aware.js')
     diffAware = mod.diffAware
   })
 

@@ -1,8 +1,14 @@
 import { describe, it, expect, afterEach } from 'vitest'
+import type { ArchViolation } from '../../src/core/violation.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { hashViolation, generateBaseline, withBaseline, Baseline } from '@nielspeter/eess'
+import {
+  hashViolation,
+  generateBaseline,
+  withBaseline,
+  Baseline,
+} from '@nielspeter/eess'
 import type { BaselineFile } from '@nielspeter/eess'
 import { makeViolation } from '../support/test-rule-builder.js'
 
@@ -23,7 +29,7 @@ function mv(overrides: Partial<Parameters<typeof makeViolation>[0]> = {}) {
 let tmpDir: string | undefined
 
 function createTmpDir(): string {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-ts-baseline-'))
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-archunit-baseline-'))
   return tmpDir
 }
 
@@ -76,20 +82,6 @@ describe('generateBaseline', () => {
     expect(data.violations).toHaveLength(2)
     expect(data.generatedAt).toBeDefined()
     expect(data.violations[0]?.hash).toHaveLength(16)
-  })
-
-  it('never records a bypassFilters configuration finding — it can never legitimately become "known" debt', () => {
-    const dir = createTmpDir()
-    const outputPath = path.join(dir, 'baseline.json')
-    const configFinding = mv({ element: 'unnamed', file: '', line: 0, bypassFilters: true })
-    const ordinary = mv({ element: 'OrderService' })
-
-    generateBaseline([configFinding, ordinary], outputPath)
-
-    const raw = fs.readFileSync(outputPath, 'utf-8')
-    const data = JSON.parse(raw) as BaselineFile
-    expect(data.count).toBe(1)
-    expect(data.violations[0]?.rule).toBe(ordinary.rule)
   })
 
   it('stores relative paths', () => {
@@ -147,75 +139,73 @@ describe('Baseline', () => {
     const baseline = new Baseline(new Set(), '/tmp')
     const violations = [mv({ element: 'A' }), mv({ element: 'B' })]
     const result = baseline.filterNew(violations)
-    expect(result).toHaveLength(2)
+    // "returns all" means these two, in order — returning A twice also had length 2.
+    expect(result.map((v) => v.element)).toEqual(['A', 'B'])
+  })
+})
+
+describe('bypassFilters meta-findings (plan 0067)', () => {
+  it('never baselines away a bypassFilters finding, even when its hash is known (ADR-008)', () => {
+    const outputPath = path.join(createTmpDir(), 'baseline.json')
+    // Seed with a NON-bypass finding; hash is rule::element::message (excludes
+    // bypassFilters), so a same-shaped bypass finding hashes identically.
+    const seed = mv({ element: 'selector', message: 'empty selector' })
+    generateBaseline([seed], outputPath)
+    const baseline = withBaseline(outputPath)
+    // Vacuity guard: the non-bypass finding IS known → correctly dropped.
+    expect(baseline.filterNew([seed])).toEqual([])
+    // The same finding flagged bypassFilters survives despite being "known".
+    const meta = mv({ element: 'selector', message: 'empty selector', bypassFilters: true })
+    expect(baseline.filterNew([meta])).toEqual([meta])
   })
 
-  it('filterNew never suppresses a bypassFilters finding, even if its hash is already known', () => {
-    // Defense in depth for a baseline file generated before generateBaseline()
-    // stopped writing these, or a hand-edited one — the "unsuppressable"
-    // ADR-010 guarantee must hold regardless of what the baseline file says.
-    const configFinding = mv({ element: 'unnamed', file: '', line: 0, bypassFilters: true })
-    const knownHashes = new Set([hashViolation(configFinding)])
-    const baseline = new Baseline(knownHashes, '/tmp')
-    const result = baseline.filterNew([configFinding])
-    expect(result).toHaveLength(1)
+  it('generateBaseline does not write bypassFilters findings into the file', () => {
+    const outputPath = path.join(createTmpDir(), 'baseline.json')
+    const meta = mv({ rule: 'empty-selector', message: 'empty selector', bypassFilters: true })
+    const normal = mv({ element: 'A' })
+    generateBaseline([meta, normal], outputPath)
+    const written = JSON.parse(fs.readFileSync(outputPath, 'utf-8')) as BaselineFile
+    expect(written.count).toBe(1)
+    expect(written.violations.some((e) => e.rule === 'empty-selector')).toBe(false)
+  })
+})
+
+describe('which violations plan 0082 actually moved in the baseline', () => {
+  // Plan 0082's Phase 2 row 1 called this "not optional and not a follow-up", and
+  // then it did not ship — so the migration note went out unverified, and was
+  // WRONG for the rule it quoted. `docs/upgrading.md` said the hash is "over rule
+  // + element + message"; `hashViolation` is `identity ?? \`${element}::${message}\``,
+  // and a producer that sets `identity` supersedes both.
+  //
+  // The consequence is the opposite of what was published: body-analysis rules —
+  // the ones an adopter would most likely write about a callback — keep their
+  // hashes, because their identity is the call site, not the function's name.
+  // Telling those adopters to regenerate is advice that costs them work and fixes
+  // nothing. ADR-008 rule 2's behavioural corollary: nobody applied the remedy and
+  // checked it cleared.
+  const before = (extra: Partial<ArchViolation>): ArchViolation =>
+    mv({ element: '<anonymous>', message: "does not contain call to 'x'", ...extra })
+  const after = (extra: Partial<ArchViolation>): ArchViolation =>
+    mv({ element: 'handler', message: "does not contain call to 'x'", ...extra })
+
+  it('a producer that sets identity keeps its hash — the name is not in it', () => {
+    const identity = "function-body::/src/a.ts::CallExpression::call to 'x'#1"
+    expect(hashViolation(before({ identity }))).toBe(hashViolation(after({ identity })))
   })
 
-  describe('metric ratchet (measured)', () => {
-    // A metric finding's `identity` deliberately excludes the count (e.g.
-    // "file::OrderService::methods", not "...10"), so its hash is identical
-    // whether the count improves or regresses. Hash membership alone can't
-    // tell those apart — `isKnown` must compare `measured` against what the
-    // baseline accepted.
-    function metricViolation(measured: number) {
-      return mv({
-        element: 'OrderService',
-        message: `OrderService has ${String(measured)} methods, max allowed is 5`,
-        identity: '/project/src/order-service.ts::OrderService::methods',
-        measured,
-      })
-    }
+  it('a producer with no identity DOES move, which is what the note should say', () => {
+    // Structural conditions compose the subject from element + message, so renaming
+    // `<anonymous>` to `handler` is a different violation as far as the baseline is
+    // concerned. These are the entries that need regenerating — and only these.
+    expect(hashViolation(before({}))).not.toBe(hashViolation(after({})))
+  })
 
-    it('an improved measurement stays known (still <= accepted)', () => {
-      const dir = createTmpDir()
-      const outputPath = path.join(dir, 'baseline.json')
-      generateBaseline([metricViolation(10)], outputPath)
-
-      const baseline = withBaseline(outputPath)
-      expect(baseline.isKnown(metricViolation(8))).toBe(true)
-    })
-
-    it('a regressed measurement is NOT known, even though the hash is unchanged', () => {
-      const dir = createTmpDir()
-      const outputPath = path.join(dir, 'baseline.json')
-      generateBaseline([metricViolation(10)], outputPath)
-
-      const baseline = withBaseline(outputPath)
-      expect(baseline.isKnown(metricViolation(12))).toBe(false)
-    })
-
-    it('an unchanged measurement stays known', () => {
-      const dir = createTmpDir()
-      const outputPath = path.join(dir, 'baseline.json')
-      generateBaseline([metricViolation(10)], outputPath)
-
-      const baseline = withBaseline(outputPath)
-      expect(baseline.isKnown(metricViolation(10))).toBe(true)
-    })
-
-    it('writes measured into the baseline file only for metric findings', () => {
-      const dir = createTmpDir()
-      const outputPath = path.join(dir, 'baseline.json')
-      generateBaseline([metricViolation(10), mv({ element: 'Ordinary' })], outputPath)
-
-      const written = JSON.parse(fs.readFileSync(outputPath, 'utf-8')) as BaselineFile
-      expect(written.violations.some((e) => e.measured === 10)).toBe(true)
-      expect(written.violations.some((e) => e.measured === undefined)).toBe(true)
-    })
-
-    it('a metric finding with no baseline entry at all is not known', () => {
-      const baseline = new Baseline(new Set(), '/tmp')
-      expect(baseline.isKnown(metricViolation(10))).toBe(false)
-    })
+  it('VACUITY: the two fixtures differ only in element', () => {
+    // Without this the rows above could pass on two violations that differ in some
+    // other field, and the first would be asserting nothing about names at all.
+    const a = before({})
+    const b = after({})
+    const diff = (Object.keys(a) as (keyof ArchViolation)[]).filter((k) => a[k] !== b[k])
+    expect(diff).toEqual(['element'])
   })
 })

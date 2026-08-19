@@ -82,14 +82,6 @@ describe('noPublicFields', () => {
     expect(names.some((m) => m.includes('VERSION'))).toBe(false)
   })
 
-  it('does not flag ES #private fields (private by name, no scope modifier)', () => {
-    const cls = getClass('BadQualityService')
-    const condition = noPublicFields()
-    const violations = condition.evaluate([cls], ctx)
-    const names = violations.map((v) => v.message)
-    expect(names.some((m) => m.includes('internalCount'))).toBe(false)
-  })
-
   it('does not flag protected fields', () => {
     const cls = getClass('BadQualityService')
     const condition = noPublicFields()

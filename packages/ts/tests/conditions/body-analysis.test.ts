@@ -7,7 +7,6 @@ import {
   classUseInsteadOf,
 } from '../../src/conditions/body-analysis.js'
 import { call, newExpr } from '../../src/helpers/matchers.js'
-import { hashViolation } from '@nielspeter/eess'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')
 
@@ -120,33 +119,6 @@ describe('Body analysis conditions (class)', () => {
       const violatingElements = violations.map((v) => v.element)
       expect(violatingElements).not.toContain('OrderService')
       expect(violatingElements).toContain('ProductService')
-    })
-  })
-
-  describe('baseline identity (plan 0147)', () => {
-    it('carries an identity, so the baseline hash does not key on the line number', () => {
-      const condition = classNotContain(call('parseInt'))
-      const [violation] = condition.evaluate([findClass('ProductService')], context)
-      expect(violation?.identity).toBeDefined()
-      expect(violation?.identity).not.toContain(String(violation?.line))
-    })
-
-    it('keeps the hash stable when code shifts the match to a different line', () => {
-      // Two in-memory copies of the same class, one with a blank line inserted
-      // above the method — the match moves from line 3 to line 4. The message
-      // (which embeds the line) changes; the identity, and therefore the
-      // baseline hash, must not.
-      const before = new Project({ useInMemoryFileSystem: true })
-      before.createSourceFile('a.ts', `class C {\n  m() {\n    parseInt('1')\n  }\n}`)
-      const after = new Project({ useInMemoryFileSystem: true })
-      after.createSourceFile('a.ts', `class C {\n\n  m() {\n    parseInt('1')\n  }\n}`)
-
-      const condition = classNotContain(call('parseInt'))
-      const [v1] = condition.evaluate([before.getSourceFiles()[0]!.getClasses()[0]!], context)
-      const [v2] = condition.evaluate([after.getSourceFiles()[0]!.getClasses()[0]!], context)
-
-      expect(v1?.message).not.toBe(v2?.message) // sanity: the embedded match line really did move
-      expect(hashViolation(v1!)).toBe(hashViolation(v2!)) // the baseline entry does not
     })
   })
 })

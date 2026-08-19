@@ -8,7 +8,7 @@ import type { ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '../../src/core/violation.js'
 
 // Minimal SourceFile-based builder for integration testing
-class SourceFileRuleBuilder extends RuleBuilder<SourceFile, ArchProject> {
+class SourceFileRuleBuilder extends RuleBuilder<SourceFile> {
   protected getElements(): SourceFile[] {
     return this.project.getSourceFiles()
   }

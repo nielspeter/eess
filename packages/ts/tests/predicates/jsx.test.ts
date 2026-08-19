@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Project } from 'ts-morph'
+import { Project, ts } from 'ts-morph'
 import { collectJsxElements } from '../../src/models/arch-jsx-element.js'
 import {
   areHtmlElements,
@@ -19,7 +19,7 @@ import type { ArchJsxElement } from '../../src/models/arch-jsx-element.js'
 function createElements(code: string, fileName = 'test.tsx'): ArchJsxElement[] {
   const project = new Project({
     useInMemoryFileSystem: true,
-    compilerOptions: { jsx: 2, strict: true },
+    compilerOptions: { jsx: ts.JsxEmit.React, strict: true },
   })
   const sf = project.createSourceFile(fileName, code)
   return collectJsxElements(sf)
@@ -128,7 +128,8 @@ describe('JSX predicates', () => {
       `)
       const pred = withAttributeMatching('type', 'submit')
       const matched = elements.filter((e) => pred.test(e))
-      expect(matched).toHaveLength(1)
+      // WHICH input, not how many: matching `text` instead also produced one.
+      expect(matched.map((e) => e.getAttribute('type'))).toEqual(['submit'])
     })
 
     it('filters by regex value match', () => {
@@ -140,7 +141,7 @@ describe('JSX predicates', () => {
       `)
       const pred = withAttributeMatching('className', /error/)
       const matched = elements.filter((e) => pred.test(e))
-      expect(matched).toHaveLength(1)
+      expect(matched.map((e) => e.getAttribute('className'))).toEqual(['error-box'])
     })
   })
 
@@ -158,13 +159,13 @@ describe('JSX predicates', () => {
     it('haveNameStartingWith works', () => {
       const elements = createElements(`const x = <div><Button>a</Button></div>`)
       const pred = haveNameStartingWith<ArchJsxElement>('But')
-      expect(elements.filter((e) => pred.test(e))).toHaveLength(1)
+      expect(elements.filter((e) => pred.test(e)).map((e) => e.getName())).toEqual(['Button'])
     })
 
     it('haveNameEndingWith works', () => {
       const elements = createElements(`const x = <div><MyButton>a</MyButton></div>`)
       const pred = haveNameEndingWith<ArchJsxElement>('Button')
-      expect(elements.filter((e) => pred.test(e))).toHaveLength(1)
+      expect(elements.filter((e) => pred.test(e)).map((e) => e.getName())).toEqual(['MyButton'])
     })
 
     it('resideInFile works with glob', () => {

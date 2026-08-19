@@ -32,82 +32,58 @@ describe('SmellBuilder.ignoreTests()', () => {
 })
 
 describe('SmellBuilder.ignorePaths()', () => {
-  it('ignorePaths excludes matching files from duplicateBodies — ignoring everything is a dead selector', () => {
+  it('ignorePaths excludes matching files from duplicateBodies', () => {
     const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
-    // Ignoring all .ts files should result in no functions to compare
+    // Ignore a SUBSET, not `**/*.ts`. Plan 0099 makes an emptied corpus fail, so
+    // the old shape (`ignorePaths('**/*.ts')` then `.not.toThrow()`) would now
+    // pass whether `ignorePaths` works or is a no-op — the floor fires either
+    // way. Ignoring one file of the duplicate pair is what still proves the
+    // filter does something: the duplicate disappears while subjects remain.
+    const withoutFilter = smells.duplicateBodies(p).minLines(3).withMinSimilarity(0.8)
+    expect(withoutFilter.violations().length).toBeGreaterThan(0)
+
+    const builder = smells
+      .duplicateBodies(p)
+      .minLines(3)
+      .withMinSimilarity(0.8)
+      .ignorePaths('**/file-b.ts')
+    // The duplicate is gone...
+    expect(builder.violations().filter((v) => v.bypassFilters !== true)).toEqual([])
+    // ...and the rule still examined something, so this is the filter working
+    // rather than the corpus being emptied.
+    expect(builder.examinedUnits()).toBeGreaterThan(0)
+    expect(builder.violations().filter((v) => v.bypassFilters === true)).toEqual([])
+  })
+
+  it('ignorePaths that empties the corpus FAILS — plan 0099', () => {
+    // The old shape, kept as its own row so the behaviour is stated rather than
+    // lost. This is bug 0066: a filter that removes everything used to pass.
+    const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
     const builder = smells
       .duplicateBodies(p)
       .minLines(3)
       .withMinSimilarity(0.8)
       .ignorePaths('**/*.ts')
-    try {
-      builder.check()
-      expect.unreachable('should have thrown')
-    } catch (error) {
-      expect(error).toBeInstanceOf(ArchRuleError)
-      const archError = error as ArchRuleError
-      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
-    }
+    expect(() => builder.check()).toThrow(ArchRuleError)
+    expect(builder.violations()[0]?.message).toContain('examined 0 function bodies')
   })
 
-  it('ignorePaths excludes matching files from duplicateBodies — passes when declared with .expectEmpty()', () => {
-    const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
-    const builder = smells
-      .duplicateBodies(p)
-      .minLines(3)
-      .withMinSimilarity(0.8)
-      .ignorePaths('**/*.ts')
-      .expectEmpty()
-    expect(() => builder.check()).not.toThrow()
-  })
-
-  it('ignorePaths excludes matching files from inconsistentSiblings — ignoring everything is a dead selector', () => {
+  it('ignorePaths excludes matching files from inconsistentSiblings', () => {
     const p = project(path.join(sibFixturesDir, 'tsconfig.json'))
     const builder = smells
       .inconsistentSiblings(p)
       .forPattern(call('this.extractCount'))
       .minLines(2)
-      .ignorePaths('**/*.ts')
-    try {
-      builder.check()
-      expect.unreachable('should have thrown')
-    } catch (error) {
-      expect(error).toBeInstanceOf(ArchRuleError)
-      const archError = error as ArchRuleError
-      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
-    }
-  })
-
-  it('ignorePaths excludes matching files from inconsistentSiblings — passes when declared with .expectEmpty()', () => {
-    const p = project(path.join(sibFixturesDir, 'tsconfig.json'))
-    const builder = smells
-      .inconsistentSiblings(p)
-      .forPattern(call('this.extractCount'))
-      .minLines(2)
-      .ignorePaths('**/*.ts')
-      .expectEmpty()
-    expect(() => builder.check()).not.toThrow()
-  })
-
-  it('branches from a held selection via .because() do not leak scoping into each other', () => {
-    // Regression for the copy() shallow-copy trap (plan 0088 Phase 4 review):
-    // without its own copy() override, SmellBuilder's _ignorePaths array is
-    // shared by reference across two .because()-derived branches. file-a.ts
-    // and file-b.ts are a genuine near-duplicate pair (see "flags
-    // near-identical function bodies above threshold"); branch A legitimately
-    // excludes file-b.ts to make ITS OWN check pass — if that exclusion
-    // leaked into branch B, branch B would silently miss the same duplicate
-    // it never asked to ignore.
-    const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
-    const base = smells.duplicateBodies(p).minLines(3).withMinSimilarity(0.8)
-    const a = base.because('branch A').ignorePaths('**/file-b.ts')
-    const b = base.because('branch B')
-    // Branch A's own exclusion took effect (plan 0147: ignorePaths() itself
-    // must copy, not mutate `this`, or this assertion is meaningless — the
-    // chain call above returning a discarded value would leave `a` and `b`
-    // both pointed at the SAME underlying builder).
-    expect(() => a.check()).not.toThrow()
-    expect(() => b.check()).toThrow(ArchRuleError)
+      // Both files that don't call extractCount — plan 0102 added
+      // archive-repo.ts alongside legacy-repo.ts (a second parseInt caller, so
+      // that pattern is 2-of-5 rather than 1-of-4). Ignoring only legacy-repo.ts
+      // would leave archive-repo.ts as a new odd-one-out.
+      .ignorePaths('**/legacy-repo.ts', '**/archive-repo.ts')
+    // A SUBSET again: the inconsistent siblings are the ignored files, so the
+    // finding disappears while the other repositories are still examined.
+    expect(builder.violations().filter((v) => v.bypassFilters !== true)).toEqual([])
+    expect(builder.examinedUnits()).toBeGreaterThan(0)
+    expect(builder.violations().filter((v) => v.bypassFilters === true)).toEqual([])
   })
 
   it('ignorePaths can be called multiple times', () => {
@@ -124,32 +100,45 @@ describe('SmellBuilder.ignorePaths()', () => {
 })
 
 describe('SmellBuilder.inFolder()', () => {
-  it('inFolder restricts scope to matching files — a folder with no matches is a dead selector', () => {
+  it('a LIVE inFolder glob scopes without complaint', () => {
+    // Rewritten against a REAL but narrower folder. This asserted
+    // `inFolder('**/nonexistent/**')` did `not.toThrow()`, with the comment "No
+    // files in nonexistent folder, so no violations" — which is the ∀-over-∅
+    // pass stated as the expectation. A detector scoped to nothing detects
+    // nothing, and the test called that success.
+    //
+    // A dead folder glob is now a configuration finding (plan 0080), so the
+    // scoping property needs a live folder to be about anything.
     const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
-    const builder = smells
+    const all = smells.duplicateBodies(p).minLines(3).withMinSimilarity(0.8).violations()
+    expect(all.length).toBeGreaterThan(0)
+
+    // A LIVE folder glob: no configuration finding, and the duplicates still
+    // found. `**/duplicate-bodies/**` is the fixture's own directory — it has no
+    // subfolders, so a genuinely *narrower* live glob is not available here, and
+    // the scoping-to-a-subset property is asserted in `inconsistent-siblings`
+    // where the fixture has one. Said rather than faked with a dead glob, which
+    // is what this test used to do.
+    const scoped = smells
       .duplicateBodies(p)
       .minLines(3)
       .withMinSimilarity(0.8)
-      .inFolder('**/nonexistent/**')
-    try {
-      builder.check()
-      expect.unreachable('should have thrown')
-    } catch (error) {
-      expect(error).toBeInstanceOf(ArchRuleError)
-      const archError = error as ArchRuleError
-      expect(archError.violations[0]!.message).toMatch(/examined zero units/)
-    }
+      .inFolder('**/duplicate-bodies/**')
+      .violations()
+    expect(scoped.every((v) => v.bypassFilters !== true)).toBe(true)
+    expect(scoped.length).toBe(all.length)
   })
 
-  it('inFolder restricts scope to matching files — passes when declared with .expectEmpty()', () => {
+  it('a folder glob matching NOTHING is a finding, not a quiet pass', () => {
+    // The other half of the rewrite above, and the actual fix.
     const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
-    const builder = smells
+    const violations = smells
       .duplicateBodies(p)
       .minLines(3)
       .withMinSimilarity(0.8)
       .inFolder('**/nonexistent/**')
-      .expectEmpty()
-    expect(() => builder.check()).not.toThrow()
+      .violations()
+    expect(violations.filter((v) => v.bypassFilters === true).length).toBeGreaterThan(0)
   })
 })
 
@@ -180,13 +169,25 @@ describe('SmellBuilder.warn() output formats', () => {
     expect(warnSpy).toHaveBeenCalled()
   })
 
-  it('warn does nothing when no violations', () => {
+  it('warn does nothing when there is genuinely nothing to report', () => {
+    // The corpus here used to be `minLines(1000)` — which is not CLEAN, it is
+    // VACUOUS, and plan 0099 makes that fail. Flipping this row to expect a throw
+    // would have deleted the only assertion that `.warn()` is ever silent, so the
+    // silence property keeps its row and gets a genuinely clean corpus:
+    // similarity 1.0 finds no exact duplicates while still examining bodies.
     const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
+    const builder = smells.duplicateBodies(p).minLines(3).withMinSimilarity(1.0)
+    expect(builder.examinedUnits()).toBeGreaterThan(0)
     const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
-    // minLines(1000) excludes every function — declare the empty result
-    // intentional so the zero-examined finding doesn't itself warn.
-    smells.duplicateBodies(p).minLines(1000).withMinSimilarity(0.5).expectEmpty().warn()
+    builder.warn()
     expect(warnSpy).not.toHaveBeenCalled()
+  })
+
+  it('warn on a VACUOUS corpus is loud — it is not a clean run', () => {
+    const p = project(path.join(dupFixturesDir, 'tsconfig.json'))
+    expect(() => smells.duplicateBodies(p).minLines(1000).withMinSimilarity(0.5).warn()).toThrow(
+      ArchRuleError,
+    )
   })
 })
 
