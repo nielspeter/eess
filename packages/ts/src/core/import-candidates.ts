@@ -6,8 +6,7 @@ import type { ImportDeclaration } from 'ts-morph'
  *
  * Non-empty by construction, and `[0]` is the primary — see `importCandidates`.
  */
-// eess-exclude eess/no-unused-exports: return type of the exported candidatesFor API (must stay exported for declaration emit)
-export type ImportCandidates = readonly [primary: string, ...alternates: string[]]
+type ImportCandidates = readonly [primary: string, ...alternates: string[]]
 
 /**
  * Every string a glob may legitimately be matched against for one import.
@@ -36,7 +35,7 @@ export type ImportCandidates = readonly [primary: string, ...alternates: string[
  * Keeping the primary stable means only genuinely *new* findings get new text.
  * A test asserts the equivalence across the whole fixture corpus.
  */
-// eess-exclude eess/no-unused-exports: exercised by tests; the build tsconfig this gate reads excludes tests, so src is the only usage it can see
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function importCandidates(decl: ImportDeclaration): ImportCandidates {
   return candidatesFor(
     decl.getModuleSpecifierValue(),

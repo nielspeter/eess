@@ -27,8 +27,7 @@ import type { RuleSeverity } from './shared.js'
  * the set is not closed. A typo in the API name is therefore still accepted by
  * the type — the runtime finding is what covers that arm.
  */
-// eess-exclude eess/no-unused-exports: type parameter of the exported preset options type (must stay exported for declaration emit)
-export type AgentGuardrailsRuleId =
+type AgentGuardrailsRuleId =
   | `preset/agent/no-inline-logic/${string}`
   | 'preset/agent/no-generic-errors'
   | 'preset/agent/no-stubs'

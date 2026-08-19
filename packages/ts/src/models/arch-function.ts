@@ -153,7 +153,7 @@ export function fromMethodDeclaration(method: MethodDeclaration): ArchFunction {
 /**
  * Options for {@link collectFunctions} / the `functions()` entry point.
  */
-// eess-exclude eess/no-unused-exports: options-parameter type of the exported collectFunctions API (must stay exported for declaration emit)
+// eess-exclude eess/no-unused-exports: re-exported from `src/index.ts`; this gate does not count a barrel `export … from` re-export as usage — see work/bugs/0168
 export interface FunctionCollectionOptions {
   /** Include class methods (pattern 3). Default: `true`. */
   includeMethods?: boolean

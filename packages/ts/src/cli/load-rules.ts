@@ -7,8 +7,7 @@ import type { RuleBuilderLike } from '@nielspeter/eess'
 // return RuleBuilderLike[] without depending on CLI infrastructure.
 export type { RuleBuilderLike } from '@nielspeter/eess'
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported loadRuleFiles API (must stay exported for declaration emit)
-export interface LoadOptions {
+interface LoadOptions {
   /** Use cache-busting imports for watch mode. Default: false */
   fresh?: boolean
 }

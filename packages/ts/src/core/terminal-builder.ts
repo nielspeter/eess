@@ -39,7 +39,7 @@ import { DECLARE_INSTEAD, UNSUPPRESSABLE } from '@nielspeter/eess'
  * and it points at the section that states the grammar and the no-opt-out rule —
  * not at the builder's own page, which is about writing rules that work.
  */
-// eess-exclude eess/no-unused-exports: exercised by tests; the build tsconfig this gate reads excludes tests, so src is the only usage it can see
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export const ASSERTION_DOCS =
   'https://nielspeter.github.io/eess/violation-reporting#a-rule-must-assert-something'
 

@@ -51,8 +51,7 @@ import type { DiagnosableRule } from './diagnose.js'
  * rule declared elsewhere looks orphaned — so a caller that knows it saw only
  * part of the project says so, and the advice carries the caveat.
  */
-// eess-exclude eess/no-unused-exports: declaration emit — it appears in the signature of an exported API in this file
-export interface OrphanExclusionOptions {
+interface OrphanExclusionOptions {
   /** Rule files inspected, when the caller counted them. */
   readonly ruleFilesChecked?: number
   /** Rule files the caller believes exist, when it knows. */

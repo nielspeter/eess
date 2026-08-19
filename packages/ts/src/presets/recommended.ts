@@ -92,8 +92,7 @@ const SPECS = [
  * [bug 0038](../../bugs/fixed/0038-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)
  * and of the census in plan 0078.
  */
-// eess-exclude eess/no-unused-exports: type parameter of the exported preset options type (must stay exported for declaration emit)
-export type RecommendedRuleId = (typeof SPECS)[number]['meta']['id']
+type RecommendedRuleId = (typeof SPECS)[number]['meta']['id']
 
 const RULE_IDS: readonly string[] = SPECS.map((s) => s.meta.id)
 

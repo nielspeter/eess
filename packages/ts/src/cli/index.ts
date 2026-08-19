@@ -80,7 +80,7 @@ interface ParsedArgs {
   positionals: string[]
 }
 
-// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function parseCliArgs(args: string[]): ParsedArgs {
   return parseArgs({
     args,

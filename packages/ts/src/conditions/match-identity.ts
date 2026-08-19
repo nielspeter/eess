@@ -7,13 +7,7 @@ import { getElementName } from '../core/violation.js'
  * Part of the identity so that a class-level and a module-level rule reporting
  * the same node stay distinct findings.
  */
-// eess-exclude eess/no-unused-exports: declaration emit — it appears in the signature of an exported API in this file
-export type MatchKind =
-  | 'module-body'
-  | 'class-body'
-  | 'function-body'
-  | 'call-callback'
-  | 'call-argument'
+type MatchKind = 'module-body' | 'class-body' | 'function-body' | 'call-callback' | 'call-argument'
 
 /**
  * Assign each matched node a baseline identity that is not a coordinate.

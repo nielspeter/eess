@@ -25,7 +25,7 @@ import type { PropertyAssignment, MethodDeclaration } from 'ts-morph'
  * A function found as a value in an object literal, with the property-key path
  * that reached it.
  */
-// eess-exclude eess/no-unused-exports: return-element type of the exported collectObjectLiteralFunctions API (must stay exported for declaration emit)
+// eess-exclude eess/no-unused-exports: re-exported from `src/index.ts`; this gate does not count a barrel `export … from` re-export as usage — see work/bugs/0168
 export interface ObjectLiteralFunction {
   /** The function node: `ArrowFunction | FunctionExpression | MethodDeclaration`. */
   readonly node: Node
@@ -34,8 +34,7 @@ export interface ObjectLiteralFunction {
 }
 
 /** Default recursion depth into nested object literals (matches the callback path). */
-// eess-exclude eess/no-unused-exports: declaration emit — it appears in the signature of an exported API in this file
-export const MAX_OBJECT_LITERAL_DEPTH = 3
+const MAX_OBJECT_LITERAL_DEPTH = 3
 
 /**
  * Walk an object literal and collect every function-valued property — arrow,

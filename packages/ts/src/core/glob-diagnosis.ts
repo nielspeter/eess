@@ -1,7 +1,6 @@
 import picomatch from 'picomatch'
 import type { GlobSite } from '@nielspeter/eess'
 import type { PathUniverse } from './path-universe.js'
-import { viewsFor } from './path-universe.js'
 import type { DiskSet, OnDisk } from './disk-set.js'
 
 /**
@@ -22,8 +21,7 @@ import type { DiskSet, OnDisk } from './disk-set.js'
  */
 export type GlobFault = 'dot-segment' | 'unanchored' | 'file-not-folder' | 'no-match'
 
-// eess-exclude eess/no-unused-exports: declaration emit — it appears in the signature of an exported API in this file
-export interface GlobDiagnosis {
+interface GlobDiagnosis {
   readonly fault: GlobFault
   readonly onDisk?: OnDisk
 }
@@ -180,10 +178,4 @@ function matchesAny(glob: string, candidates: readonly string[]): boolean {
   // Never `candidates.some(isMatch)` — picomatch reads the array index as its
   // second argument and returns a truthy object from index 1 onwards.
   return candidates.some((candidate) => isMatch(candidate))
-}
-
-/** The union of views a glob of this kind is checked against. */
-// eess-exclude eess/no-unused-exports: exercised by tests; the build tsconfig this gate reads excludes tests, so src is the only usage it can see
-export function candidatesFor(site: GlobSite, universe: PathUniverse): readonly string[] {
-  return viewsFor(universe, site.kind).flat()
 }

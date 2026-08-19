@@ -67,7 +67,7 @@ export function writeStderr(message: string): void {
  * the attachment needs to observe it happening rather than inherit it from
  * whichever earlier test wrote first.
  */
-// eess-exclude eess/no-unused-exports: test-only reset hook, consumed by tests/stderr.test.ts (the gate does not count test-file imports as usage)
+// eess-exclude eess/no-unused-exports: re-exported from `src/index.ts`; this gate does not count a barrel `export … from` re-export as usage — see work/bugs/0168
 export function resetStderrGuardForTests(): void {
   process.stderr.removeAllListeners('error')
   listenerAttached = false

@@ -13,8 +13,7 @@
  * `.should()`, and any phase-derived message would tell that author a
  * verifiable falsehood.
  */
-// eess-exclude eess/no-unused-exports: parameter type of the exported assertionAdviceFor() API (must stay exported for declaration emit)
-export interface AssertionState {
+interface AssertionState {
   /** Whether `.should()` was ever reached. */
   readonly reachedShould: boolean
   /** Descriptions of predicate-only methods written after `.should()`. */

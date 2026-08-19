@@ -349,7 +349,7 @@ const COMMENT_LINE_START = String.raw`(?:^|\n)[ \t]*(?:\/\/+|\/\*+|\*+)?[ \t]*`
  * hand-writing it is what produced bug 0061: `[Nn]ot\\s+[Ii]mplemented` alternates the
  * first letter of each word and nothing else.
  */
-// eess-exclude eess/no-unused-exports: exported for tests/helpers/pattern-change-moves-baselines.test.ts only — deliberately absent from src/index.ts, not public API
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function anyCase(word: string): string {
   const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return [...word]

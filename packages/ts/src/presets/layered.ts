@@ -17,8 +17,7 @@ import {
 } from './shared.js'
 
 /** This preset's rule ids, derived from `RULE_IDS` so the two cannot drift. */
-// eess-exclude eess/no-unused-exports: type parameter of the exported preset options type (must stay exported for declaration emit)
-export type LayeredArchitectureRuleId = (typeof RULE_IDS)[number]
+type LayeredArchitectureRuleId = (typeof RULE_IDS)[number]
 
 export interface LayeredArchitectureOptions extends PresetBaseOptions<LayeredArchitectureRuleId> {
   /** Layer name → glob pattern mapping. Order = dependency direction (first depends on second, etc.) */

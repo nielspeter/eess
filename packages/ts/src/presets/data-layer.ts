@@ -16,8 +16,7 @@ import {
 } from './shared.js'
 
 /** This preset's rule ids, derived from `RULE_IDS` so the two cannot drift. */
-// eess-exclude eess/no-unused-exports: type parameter of the exported preset options type (must stay exported for declaration emit)
-export type DataLayerIsolationRuleId = (typeof RULE_IDS)[number]
+type DataLayerIsolationRuleId = (typeof RULE_IDS)[number]
 
 export interface DataLayerIsolationOptions extends PresetBaseOptions<DataLayerIsolationRuleId> {
   /** Glob pattern for repository files */

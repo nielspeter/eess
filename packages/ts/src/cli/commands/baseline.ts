@@ -4,8 +4,7 @@ import type { ArchViolation } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 import { attributeToRuleFile, failureOrViolations } from '../rule-file-findings.js'
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported runBaseline API (must stay exported for declaration emit)
-export interface BaselineArgs {
+interface BaselineArgs {
   ruleFiles: string[]
   output: string
 }

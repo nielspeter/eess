@@ -17,8 +17,7 @@ import {
   ruleFileTruncated,
 } from '../rule-file-findings.js'
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported runCheck API (must stay exported for declaration emit)
-export interface CheckArgs {
+interface CheckArgs {
   ruleFiles: string[]
   baseline?: string
   changed: boolean

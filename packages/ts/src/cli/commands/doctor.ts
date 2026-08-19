@@ -5,8 +5,7 @@ import { loadRuleFiles } from '../load-rules.js'
 import { writeStderr } from '@nielspeter/eess'
 import { orphanExclusions } from '../../core/orphan-exclusions.js'
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported runDoctor API (must stay exported for declaration emit)
-export interface DoctorArgs {
+interface DoctorArgs {
   ruleFiles: string[]
   format: 'terminal' | 'json'
 }

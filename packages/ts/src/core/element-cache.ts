@@ -61,8 +61,7 @@ import { registerCacheReset } from '@nielspeter/eess'
  * `within(sel).functions()` the plain `functions()` population and let
  * `.should().notExist()` pass vacuously.
  */
-// eess-exclude eess/no-unused-exports: declaration emit — it appears in the signature of an exported API in this file
-export interface ElementCache<T> {
+interface ElementCache<T> {
   /**
    * The cached collection for `project` under `key`, collecting it on first
    * ask. `key` distinguishes populations that differ for the same project —
