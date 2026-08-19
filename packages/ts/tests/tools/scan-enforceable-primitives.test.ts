@@ -138,7 +138,10 @@ const CONTRIBUTING_FILES: readonly string[] = [
   'src/conditions/structural.ts',
   'src/conditions/type-level.ts',
   'src/core/combinators.ts',
-  'src/core/define.ts',
+  // Plan 0165 Phase 2 moved `define.ts` into the kernel. The file did not leave
+  // the population — it changed address — and it is listed by the path the scan
+  // reports (it reads the published `.d.ts` through the exports map).
+  '../core/dist/define.d.ts',
   'src/graphql/resolver-rule-builder.ts',
   'src/graphql/schema-conditions.ts',
   'src/graphql/schema-predicates.ts',
@@ -261,7 +264,19 @@ describe('the enforceable-primitive population is derived, not remembered (plan 
       'A folder ARRIVING here is fine — add it. A folder LEAVING is a re-export that vanished, and\n' +
         'editing this array to match is how that gets accepted silently. The two read identically in\n' +
         'the diff, so check which direction it moved before touching the expectation.',
-    ).toEqual(['src/conditions', 'src/core', 'src/graphql', 'src/predicates', 'src/rules'])
+    ).toEqual([
+      // `../core` ARRIVED in plan 0165 Phase 2: `define.ts` moved into the kernel,
+      // so two of the five meta-primitives are now published from
+      // `@nielspeter/eess` and re-exported here. Checked in the direction this
+      // message demands — nothing left; `src/core` is still present because
+      // `combinators.ts` is ts-morph-tainted and stayed.
+      '../core',
+      'src/conditions',
+      'src/core',
+      'src/graphql',
+      'src/predicates',
+      'src/rules',
+    ])
   })
 
   it('excludes the helpers, entry points and matchers — each name still present to be excluded', () => {
@@ -319,7 +334,13 @@ describe('the enforceable-primitive population is derived, not remembered (plan 
   it('the meta-primitives are exactly the recorded five', () => {
     // Rule 3: the escape hatch is stated and cannot widen silently. Any future ratio subtracts this
     // list; a sixth arrival must red rather than be absorbed into it.
-    const core = primitives.filter((p) => p.file.startsWith('src/core/')).map((p) => p.name)
+    // Two homes since plan 0165 Phase 2, not one: `and`/`not`/`or` are still
+    // ts-morph-tainted and live in `src/core/combinators.ts`, while
+    // `defineCondition`/`definePredicate` moved to the kernel with `define.ts`.
+    // The SET is still asserted exactly — a sixth arrival in either home reds.
+    const core = primitives
+      .filter((p) => p.file.startsWith('src/core/') || p.file.startsWith('../core/'))
+      .map((p) => p.name)
     expect(
       core.sort(),
       'the population gained or lost a member that composes primitives rather than applying to code',

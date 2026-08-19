@@ -43,7 +43,7 @@ import { call } from '../../src/helpers/matchers.js'
 import { tsconfig } from '../../src/tsconfig/index.js'
 import { crossLayer } from '../../src/builders/cross-layer-builder.js'
 import { smells } from '../../src/smells/index.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixtures = (name: string): string =>

@@ -5,7 +5,7 @@ import type {
   GetAccessorDeclaration,
   SetAccessorDeclaration,
 } from 'ts-morph'
-import type { Condition, ConditionContext } from '../core/condition.js'
+import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { cyclomaticComplexity, linesOfCode } from '../helpers/complexity.js'
 import { metricViolation } from '../core/metric-violation.js'

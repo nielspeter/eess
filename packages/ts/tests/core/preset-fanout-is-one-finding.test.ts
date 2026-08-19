@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import type { ArchViolation } from '@nielspeter/eess'
-import { dedupeConfigFindings } from '../../src/core/dedupe-config-findings.js'
+import { dedupeConfigFindings } from '@nielspeter/eess'
 import { project, checkAll } from '../../src/index.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import { strictBoundaries } from '../../src/presets/boundaries.js'
 
 /** A configuration finding, with only the fields the dedupe key reads. */

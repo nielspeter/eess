@@ -30,7 +30,7 @@ import * as modulePredicates from '../../src/predicates/module.js'
 import { importCandidates, matchedCandidate } from '../../src/core/import-candidates.js'
 import { layeredArchitecture } from '../../src/presets/layered.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ConditionContext } from '../../src/core/condition.js'
+import type { ConditionContext } from '@nielspeter/eess'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/bare-imports')
 const tsMorphProject = new Project({

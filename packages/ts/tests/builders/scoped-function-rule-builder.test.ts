@@ -4,7 +4,7 @@ import path from 'node:path'
 import { ScopedFunctionRuleBuilder } from '../../src/builders/scoped-function-rule-builder.js'
 import { calls } from '../../src/builders/call-rule-builder.js'
 import { call } from '../../src/helpers/matchers.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/calls')

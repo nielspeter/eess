@@ -8,7 +8,7 @@ import { classes } from '../../src/builders/class-rule-builder.js'
 import { calls } from '../../src/builders/call-rule-builder.js'
 import { crossLayer } from '../../src/builders/cross-layer-builder.js'
 import { smells } from '../../src/smells/index.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import { call, access, newExpr, expression } from '../../src/helpers/matchers.js'
 import {
   isString,

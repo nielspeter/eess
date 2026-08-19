@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { schemaFromSDL } from '../../src/graphql/index.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 
 // Full schema SDL for testing (combines types, queries, mutations)
 const fullSDL = `

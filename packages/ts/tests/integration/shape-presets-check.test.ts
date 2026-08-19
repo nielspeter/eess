@@ -19,8 +19,8 @@ import { layeredArchitecture } from '../../src/presets/layered.js'
 import { dataLayerIsolation } from '../../src/presets/data-layer.js'
 import { withBaseline } from '../../src/helpers/baseline.js'
 import { checkAll } from '../../src/core/check-all.js'
-import { ArchRuleError } from '../../src/core/errors.js'
-import type { RuleBuilderLike } from '../../src/core/rule-builder-like.js'
+import { ArchRuleError } from '@nielspeter/eess'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 
 function projectFor(fixture: string): ArchProject {
   const tsconfig = path.resolve(import.meta.dirname, `../fixtures/presets/${fixture}/tsconfig.json`)

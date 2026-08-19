@@ -1,11 +1,11 @@
 import path from 'node:path'
 import { importRuleModule } from './import-rule-module.js'
 import { isNullaryCallable } from '@nielspeter/eess'
-import type { RuleBuilderLike } from '../core/rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 
 // Re-exported for existing importers; the type lives in core so presets can
 // return RuleBuilderLike[] without depending on CLI infrastructure.
-export type { RuleBuilderLike } from '../core/rule-builder-like.js'
+export type { RuleBuilderLike } from '@nielspeter/eess'
 
 export interface LoadOptions {
   /** Use cache-busting imports for watch mode. Default: false */

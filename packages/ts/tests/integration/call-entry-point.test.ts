@@ -4,10 +4,10 @@ import type { SourceFile } from 'ts-morph'
 import path from 'node:path'
 import { calls } from '../../src/builders/call-rule-builder.js'
 import { within } from '../../src/index.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import { call, property } from '../../src/helpers/matchers.js'
 import type { ArchProject } from '../../src/core/project.js'
-import { definePredicate } from '../../src/core/define.js'
+import { definePredicate } from '@nielspeter/eess'
 import type { ArchCall } from '../../src/models/arch-call.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/calls')

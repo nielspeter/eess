@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import path from 'node:path'
 import { project } from '../../src/core/project.js'
 import { types } from '../../src/builders/type-rule-builder.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import { isString, isUnionOfLiterals } from '../../src/helpers/type-matchers.js'
 import { not } from '../../src/core/combinators.js'
 

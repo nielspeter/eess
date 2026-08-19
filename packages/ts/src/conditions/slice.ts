@@ -1,4 +1,4 @@
-import type { Condition, ConditionContext } from '../core/condition.js'
+import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { Slice } from '../models/slice.js'
 import type { ImportOptions } from '../core/import-options.js'

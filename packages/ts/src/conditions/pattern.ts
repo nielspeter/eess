@@ -1,4 +1,4 @@
-import type { Condition, ConditionContext } from '../core/condition.js'
+import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchPattern, PropertyConstraint } from '../helpers/pattern.js'
 import type { ArchFunction } from '../models/arch-function.js'

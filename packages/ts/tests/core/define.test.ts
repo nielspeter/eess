@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { definePredicate, defineCondition } from '../../src/core/define.js'
+import { definePredicate, defineCondition } from '@nielspeter/eess'
 import { and, not } from '../../src/core/combinators.js'
-import type { ConditionContext } from '../../src/core/condition.js'
+import type { ConditionContext } from '@nielspeter/eess'
 
 describe('definePredicate', () => {
   it('creates a Predicate with the given description and test', () => {

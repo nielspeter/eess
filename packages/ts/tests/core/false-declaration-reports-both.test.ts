@@ -24,7 +24,7 @@ import { recommended } from '../../src/presets/recommended.js'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { functionNoEval } from '../../src/rules/security.js'
 import { correspondence } from '../../src/builders/correspondence-builder.js'
-import { dedupeConfigFindings } from '../../src/core/dedupe-config-findings.js'
+import { dedupeConfigFindings } from '@nielspeter/eess'
 
 function inMemory(files: Record<string, string>): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })

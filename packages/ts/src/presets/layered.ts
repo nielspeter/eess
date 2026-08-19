@@ -1,7 +1,7 @@
 import type { SourceFile } from 'ts-morph'
 import type { ImportOptions } from '../core/import-options.js'
 import type { ArchProject } from '../core/project.js'
-import type { RuleBuilderLike } from '../core/rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 import { not } from '../core/combinators.js'
 import { resideInFolder as resideInFolderPredicate } from '../predicates/identity.js'
 import { slices } from '../builders/slice-rule-builder.js'

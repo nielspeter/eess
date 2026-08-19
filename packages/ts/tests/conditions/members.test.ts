@@ -9,7 +9,7 @@ import {
   haveOnlyReadonlyProperties,
   maxProperties,
 } from '../../src/conditions/members.js'
-import type { ConditionContext } from '../../src/core/condition.js'
+import type { ConditionContext } from '@nielspeter/eess'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

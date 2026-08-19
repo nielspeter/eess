@@ -27,9 +27,9 @@ import { call } from '../../src/helpers/matchers.js'
 import { agentGuardrails } from '../../src/presets/agent-guardrails.js'
 import { dataLayerIsolation } from '../../src/presets/data-layer.js'
 import { schemaFromSDL } from '../../src/graphql/index.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import { diagnose } from '../../src/core/diagnose.js'
-import { dedupeConfigFindings } from '../../src/core/dedupe-config-findings.js'
+import { dedupeConfigFindings } from '@nielspeter/eess'
 
 function inMemory(files: Record<string, string>): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })

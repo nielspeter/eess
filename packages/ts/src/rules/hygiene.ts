@@ -1,5 +1,5 @@
 import type { SourceFile } from 'ts-morph'
-import type { Condition } from '../core/condition.js'
+import type { Condition } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
 import { comment, STUB_PATTERNS } from '../helpers/matchers.js'
 import { beImported, haveNoUnusedExports } from '../conditions/reverse-dependency.js'

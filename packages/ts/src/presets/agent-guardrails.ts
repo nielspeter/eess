@@ -7,7 +7,7 @@ import { functionNoGenericErrors } from '../rules/errors.js'
 import { noStubComments, noEmptyBodies } from '../rules/hygiene.js'
 import { smells } from '../smells/index.js'
 import type { DuplicateBodiesBuilder } from '../smells/duplicate-bodies.js'
-import type { RuleBuilderLike } from '../core/rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 import type { PresetBaseOptions } from './shared.js'
 import {
   overrideFindings,

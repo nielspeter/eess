@@ -8,9 +8,9 @@ import type { PairConditionContext } from '../core/pair-condition.js'
 // than relied on here.
 import type { ArchViolation } from '@nielspeter/eess'
 import type { LayerPair, Layer } from '../models/cross-layer.js'
-import { setCorrespondence } from '../core/correspondence-core.js'
+import { setCorrespondence } from '@nielspeter/eess'
 import { UNSUPPRESSABLE } from '@nielspeter/eess'
-import { marksOwnEmptyDiscovery } from '../core/owns-empty-discovery.js'
+import { marksOwnEmptyDiscovery } from '@nielspeter/eess'
 
 /**
  * Every element in the left layer must have at least one match in the right layer.

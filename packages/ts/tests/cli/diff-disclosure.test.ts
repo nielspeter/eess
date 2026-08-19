@@ -27,9 +27,9 @@ import {
   resetDiffDisclosureForTests,
 } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
-import type { DiffFilterLike } from '../../src/core/check-options.js'
+import type { DiffFilterLike } from '@nielspeter/eess'
 import type * as DiffAwareModule from '../../src/helpers/diff-aware.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 
 vi.mock('../../src/cli/load-rules.js', () => ({ loadRuleFiles: vi.fn() }))
 vi.mock('../../src/helpers/diff-aware.js', async (importOriginal) => ({

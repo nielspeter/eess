@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Project, type SourceFile } from 'ts-morph'
 import path from 'node:path'
 import { crossLayer, CrossLayerBuilder } from '../../src/builders/cross-layer-builder.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 import {
   haveMatchingCounterpart,

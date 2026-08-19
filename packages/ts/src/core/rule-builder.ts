@@ -1,7 +1,7 @@
 import type { ArchProject } from './project.js'
 import type { CollectResult } from './terminal-builder.js'
 import type { Predicate } from '@nielspeter/eess'
-import type { Condition, ConditionContext } from './condition.js'
+import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { RuleDescription } from '@nielspeter/eess'
 import type { DeclaredGlob, GlobNode } from '@nielspeter/eess'

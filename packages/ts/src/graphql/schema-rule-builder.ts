@@ -1,7 +1,7 @@
 import type { RuleDescription } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
 import type { ArchViolation } from '@nielspeter/eess'
-import type { Condition, ConditionContext } from '../core/condition.js'
+import type { Condition, ConditionContext } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { Predicate } from '@nielspeter/eess'
 import type { LoadedSchema, GraphQLObjectTypeLike, GraphQLTypeLike } from './schema-loader.js'

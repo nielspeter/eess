@@ -1,5 +1,5 @@
 import type { ArchFunction } from '../models/arch-function.js'
-import type { Condition, ConditionContext } from '../core/condition.js'
+import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { cyclomaticComplexity, linesOfCode } from '../helpers/complexity.js'
 import { metricViolation } from '../core/metric-violation.js'

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import path from 'node:path'
 import { functions } from '../../src/builders/function-rule-builder.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 import { functionNoGenericErrors, functionNoTypeErrors } from '../../src/rules/errors.js'
 

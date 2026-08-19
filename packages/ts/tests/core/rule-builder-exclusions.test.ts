@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import { Baseline, hashViolation } from '../../src/helpers/baseline.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import {

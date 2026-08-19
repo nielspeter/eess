@@ -5,7 +5,7 @@ import { modules } from '../../src/builders/module-rule-builder.js'
 // The source under test, not the kernel: during plan 0165's baseline the two
 // carry SEPARATE copies of this class, so a kernel import makes
 // `toThrow(ArchRuleError)` compare against a class nothing ever throws.
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 
 const fixture = path.resolve(import.meta.dirname, '../fixtures/workspace-roots')
 

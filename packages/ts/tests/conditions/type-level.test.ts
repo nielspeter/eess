@@ -4,7 +4,7 @@ import path from 'node:path'
 import { havePropertyType } from '../../src/conditions/type-level.js'
 import { isString, isUnionOfLiterals } from '../../src/helpers/type-matchers.js'
 import { not } from '../../src/core/combinators.js'
-import type { ConditionContext } from '../../src/core/condition.js'
+import type { ConditionContext } from '@nielspeter/eess'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

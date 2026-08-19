@@ -8,7 +8,7 @@ import {
   haveAttributeMatching,
   notHaveAttributeMatching,
 } from '../../src/conditions/jsx.js'
-import type { ConditionContext } from '../../src/core/condition.js'
+import type { ConditionContext } from '@nielspeter/eess'
 
 function createElements(code: string) {
   const project = new Project({

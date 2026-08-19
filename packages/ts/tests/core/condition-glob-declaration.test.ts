@@ -69,7 +69,7 @@ import { diagnose } from '../../src/core/diagnose.js'
 import { isGlobNode, isOpaqueGlob } from '@nielspeter/eess'
 import { globSitesOf } from '../../src/core/glob-evaluator.js'
 import type { DeclaredGlob, DeclaredGlobs, GlobKind } from '@nielspeter/eess'
-import type { Condition } from '../../src/core/condition.js'
+import type { Condition } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/modules')

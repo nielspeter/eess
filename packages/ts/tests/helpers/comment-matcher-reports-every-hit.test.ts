@@ -7,7 +7,7 @@ import { moduleNotContain, moduleUseInsteadOf } from '../../src/conditions/body-
 import { functionNotContain } from '../../src/conditions/body-analysis-function.js'
 import { functions, calls } from '../../src/index.js'
 import { notHaveCallbackContaining } from '../../src/conditions/call.js'
-import type { ConditionContext } from '../../src/core/condition.js'
+import type { ConditionContext } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixtureDir = path.resolve(import.meta.dirname, '../fixtures/comments')

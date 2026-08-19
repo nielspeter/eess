@@ -1,5 +1,5 @@
 import type { SourceFile } from 'ts-morph'
-import type { Condition, ConditionContext } from '../core/condition.js'
+import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 
 /**

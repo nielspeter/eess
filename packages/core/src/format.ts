@@ -24,28 +24,37 @@ function formatSingleViolation(
 ): string {
   const counter = bold(red(`Architecture Violation [${String(index + 1)} of ${String(total)}]`))
   const ruleLine = `  ${dim('Rule:')} ${v.rule}`
-  const relativePath = path.relative(cwd, v.file)
-  const locationRef = cyan(relativePath + ':' + String(v.line))
-  const location = `  ${locationRef} ${dim('—')} ${v.element}`
+  // `message` is printed for BOTH shapes, and it used to be printed for neither
+  // — a located violation rendered only `file:line — element`, so the one
+  // sentence saying what is actually wrong was dropped from the default surface
+  // for every ordinary violation. Nothing failed when this was fixed, because
+  // nothing pinned it either way; `formatViolationsPlain` had always printed it,
+  // so the two formatters disagreed about what a violation IS.
+  //
+  // A config-level finding has no source location: `path.relative(cwd, '')`
+  // renders as the cwd and ':0' is noise, so it gets the message alone.
+  const location = v.file
+    ? `  ${v.message}\n  ${cyan(path.relative(cwd, v.file) + ':' + String(v.line))} ${dim('—')} ${v.element}`
+    : `  ${v.message}`
   const codeLine = showCodeFrames && v.codeFrame ? `\n${v.codeFrame}` : ''
 
   const whyText = v.because ?? reason
   const whyLine = whyText ? `  ${dim('Why:')} ${whyText}` : ''
-  // Suppressed when the suggestion IS the message — see `remedyRepeatsMessage`.
+  // Suppressed whenever the `location` slot above already printed this exact
+  // text, which is now BOTH shapes — see the note there. It used to be
+  // `!v.file && remedyRepeatsMessage(v)`, and that asymmetry was load-bearing
+  // and pinned, because a located violation did not render `message` at all: its
+  // `Fix:` line was the remedy's only appearance. Rendering `message` for both
+  // shapes removed the premise, and the `!v.file` half became a defect —
+  // measured, two occurrences of the remedy for a located finding whose
+  // suggestion is its message.
+  //
+  // So do not "restore" the asymmetry from the old comment: check whether this
+  // formatter still prints `message` for a located violation first.
   const fixLine = v.suggestion && !remedyRepeatsMessage(v) ? `  ${dim('Fix:')} ${v.suggestion}` : ''
   const docsLine = v.docs ? `  ${dim('Docs:')} ${v.docs}` : ''
 
-  // The message is the finding itself. It was omitted here for years, which is
-  // survivable for a one-sided rule — `element` plus the rule description plus a
-  // code frame usually carry the meaning — and not survivable for a two-sided
-  // one, where `message` is the ONLY place the correspondence states which side
-  // drifted. Measured before adding: `check:spec` rendered a ghost ADR row as
-  // `Rule: correspondence / CLAUDE.md:24 — 099 / Why: …` and never said what was
-  // wrong. Rendered in full, not just the first line: `correspondence()` folds
-  // its per-side `suggest` remedy onto a continuation line, so truncating here
-  // is what made that remedy invisible.
-  const messageLine = `  ${dim('What:')} ${v.message.split('\n').join('\n  ')}`
-  const parts = [counter, '', ruleLine, '', location, messageLine]
+  const parts = [counter, '', ruleLine, '', location]
   if (codeLine) parts.push(codeLine)
   if (whyLine) parts.push(whyLine)
   if (fixLine) parts.push(fixLine)
@@ -81,8 +90,10 @@ export function formatViolations(
 /**
  * Format violations into a plain-text string (no ANSI codes).
  *
- * Used by ArchRuleError.message — error messages should be plain text
- * since they may be captured by test runners, serialized, or logged to files.
+ * Public export, for callers that aggregate violations themselves and need
+ * output free of ANSI codes — serialized, logged to a file, or embedded in
+ * another tool's report. `ArchRuleError.message` is a one-line summary and does
+ * not use this; the run's detail is written by `writeReport`.
  */
 export function formatViolationsPlain(violations: ArchViolation[], reason?: string): string {
   if (violations.length === 0) return ''
@@ -92,11 +103,19 @@ export function formatViolationsPlain(violations: ArchViolation[], reason?: stri
 
   const details = violations
     .map((v, i) => {
+      // A configuration finding has no source location — it reports that a RULE
+      // enforces nothing, not that a line is wrong — so it carries `file: ''`
+      // and a `line` that means nothing. Rendering it produced a bare `(:1)`
+      // (bug 0047). The rich formatter and the GitHub formatter
+      // (`format-github.ts:58`) both already special-case this; plain and JSON
+      // were the two that did not.
+      const where = v.file === '' ? '' : ` (${v.file}:${String(v.line)})`
       const parts = [
-        `  [${String(i + 1)}/${String(violations.length)}] ${v.element}: ${v.message} (${v.file}:${String(v.line)})`,
+        `  [${String(i + 1)}/${String(violations.length)}] ${v.element}: ${v.message}${where}`,
       ]
       if (v.codeFrame) parts.push(v.codeFrame)
-      // Suppressed when the suggestion IS the message — see `remedyRepeatsMessage`.
+      // This format always renders `message`, so a remedy identical to it is
+      // already shown — see `remedyRepeatsMessage`.
       if (v.suggestion && !remedyRepeatsMessage(v)) parts.push(`  Fix: ${v.suggestion}`)
       return parts.join('\n')
     })

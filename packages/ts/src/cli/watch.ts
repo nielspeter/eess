@@ -1,7 +1,7 @@
 import { watch, type FileChangeInfo } from 'node:fs/promises'
 import { isNullaryCallable } from '@nielspeter/eess'
 import path from 'node:path'
-import { isArchRuleError } from '../core/errors.js'
+import { isArchRuleError } from '@nielspeter/eess'
 
 export interface WatchOptions {
   /** Directories to watch for changes */

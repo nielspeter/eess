@@ -6,7 +6,7 @@ import path from 'node:path'
 // a different registry than the code writes to — green or red for the wrong
 // reason. Phase 2 re-unifies them; until then the package's own source is the
 // only honest target.
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import {
   resetCommentSuppression,
   commentSuppressions,

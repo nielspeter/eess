@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import path from 'node:path'
 import type { ArchProject } from '../../src/core/project.js'
-import type { RuleBuilderLike } from '../../src/core/rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 import { dataLayerIsolation } from '../../src/presets/data-layer.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/presets/data-layer')

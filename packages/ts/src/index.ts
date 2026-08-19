@@ -8,7 +8,7 @@ export type { Predicate } from '@nielspeter/eess'
 export { not, and, or } from './core/combinators.js'
 
 // Core — condition interface & violation model
-export type { Condition, ConditionContext } from './core/condition.js'
+export type { Condition, ConditionContext } from '@nielspeter/eess'
 export type { ArchViolation } from '@nielspeter/eess'
 export { severityFor } from '@nielspeter/eess'
 export {
@@ -31,18 +31,18 @@ export { remedyRepeatsMessage } from '@nielspeter/eess'
 // Core — rule builder, error & metadata
 export { RuleBuilder } from './core/rule-builder.js'
 export { TerminalBuilder } from './core/terminal-builder.js'
-export { ArchRuleError } from './core/errors.js'
+export { ArchRuleError } from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'
 
 // Core — code frame & formatting
 export { generateCodeFrame } from '@nielspeter/eess'
 export type { CodeFrameOptions } from '@nielspeter/eess'
-export { formatViolations, formatViolationsPlain } from './core/format.js'
-export type { FormatOptions } from './core/format.js'
+export { formatViolations, formatViolationsPlain } from '@nielspeter/eess'
+export type { FormatOptions } from '@nielspeter/eess'
 
 // Core — custom predicate/condition factories
-export { definePredicate, defineCondition } from './core/define.js'
+export { definePredicate, defineCondition } from '@nielspeter/eess'
 
 // Glob declaration model (plan 0069). Exported because a user-written
 // predicate must be able to declare its globs — otherwise it is permanently
@@ -276,17 +276,17 @@ export { beFreeOfCycles, respectLayerOrder, notDependOn } from './conditions/sli
 export { slices, SliceRuleBuilder } from './builders/slice-rule-builder.js'
 
 // Check options
-export type { CheckOptions, OutputFormat } from './core/check-options.js'
+export type { CheckOptions, OutputFormat } from '@nielspeter/eess'
 
 // Output formats
-export { formatViolationsJson } from './core/format-json.js'
+export { formatViolationsJson } from '@nielspeter/eess'
 export type {
   ArchJsonReport,
   ArchJsonViolation,
   ArchJsonSuppression,
   ArchJsonUntestedAllowlist,
-} from './core/format-json.js'
-export { formatViolationsGitHub } from './core/format-github.js'
+} from '@nielspeter/eess'
+export { formatViolationsGitHub } from '@nielspeter/eess'
 export { detectFormat, isCI } from '@nielspeter/eess'
 
 // Baseline mode
@@ -372,8 +372,8 @@ export {
   byPropertyNames,
 } from './builders/correspondence-builder.js'
 export type { KeyFn, KeysSource } from './builders/correspondence-builder.js'
-export { setCorrespondence } from './core/correspondence-core.js'
-export type { CorrespondenceResult } from './core/correspondence-core.js'
+export { setCorrespondence } from '@nielspeter/eess'
+export type { CorrespondenceResult } from '@nielspeter/eess'
 
 // Metric predicates (plan 0028)
 export {
@@ -407,15 +407,7 @@ export {
 } from './rules/security.js'
 
 // Standard rules — error function variants (plan 0042)
-export {
-  noGenericErrors,
-  noTypeErrors,
-  functionNoGenericErrors,
-  functionNoTypeErrors,
-  noSilentCatch,
-  functionNoSilentCatch,
-  moduleNoSilentCatch,
-} from './rules/errors.js'
+export { noGenericErrors, noTypeErrors, functionNoGenericErrors, functionNoTypeErrors, noSilentCatch, functionNoSilentCatch, moduleNoSilentCatch } from './rules/errors.js'
 
 // Standard rules — architecture (plan 0042)
 export { mustCall, classMustCall } from './rules/architecture.js'

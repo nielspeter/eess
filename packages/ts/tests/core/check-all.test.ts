@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { checkAll } from '../../src/core/check-all.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
-import type { RuleBuilderLike } from '../../src/core/rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 
 const rule = (violations: ArchViolation[]): RuleBuilderLike => ({ violations: () => violations })
 const v = (ruleId: string, severity?: 'error' | 'warn'): ArchViolation => ({

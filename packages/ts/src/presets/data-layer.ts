@@ -1,6 +1,6 @@
 import type { ClassDeclaration } from 'ts-morph'
 import type { ArchProject } from '../core/project.js'
-import type { RuleBuilderLike } from '../core/rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 import { classes } from '../builders/class-rule-builder.js'
 import { newExpr } from '../helpers/matchers.js'
 import type { PresetBaseOptions } from './shared.js'

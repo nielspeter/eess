@@ -7,7 +7,7 @@ import { modules } from '../../src/builders/module-rule-builder.js'
 import { strictBoundaries } from '../../src/presets/boundaries.js'
 import { layeredArchitecture } from '../../src/presets/layered.js'
 import { dataLayerIsolation } from '../../src/presets/data-layer.js'
-import type { RuleBuilderLike } from '../../src/core/rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/presets/layered')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

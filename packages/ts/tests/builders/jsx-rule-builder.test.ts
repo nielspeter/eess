@@ -3,7 +3,7 @@ import { Project, ts } from 'ts-morph'
 import { jsxElements } from '../../src/builders/jsx-rule-builder.js'
 import { not } from '../../src/core/combinators.js'
 import { areComponents } from '../../src/predicates/jsx.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 function createProject(files: Record<string, string>): ArchProject {

@@ -1,6 +1,6 @@
 import picomatch from 'picomatch'
 import type { SourceFile, ImportDeclaration } from 'ts-morph'
-import type { Condition, ConditionContext } from '../core/condition.js'
+import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { candidatesFor, matchedCandidate } from '../core/import-candidates.js'
 import { recordEdgeCoverage } from '@nielspeter/eess'

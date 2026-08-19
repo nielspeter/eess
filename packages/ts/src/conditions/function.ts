@@ -1,5 +1,5 @@
 import picomatch from 'picomatch'
-import type { Condition, ConditionContext } from '../core/condition.js'
+import type { Condition, ConditionContext } from '@nielspeter/eess'
 import { globNode } from '@nielspeter/eess'
 import type { DeclaredGlobs } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'

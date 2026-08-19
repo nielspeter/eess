@@ -9,7 +9,7 @@ import { pathUniverse } from './path-universe.js'
 import { diskSet } from './disk-set.js'
 import { isDeadGlobTree } from './glob-evaluator.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
-import type { RuleBuilderLike } from './rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 import type { GlobNode } from '@nielspeter/eess'
 import { isFaultPosition } from '@nielspeter/eess'
 

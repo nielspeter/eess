@@ -1,4 +1,4 @@
-import type { ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation } from './violation.js'
 
 /**
  * Minimal shape the CLI runner and presets collect violations from: anything

@@ -1,4 +1,4 @@
-import type { OutputFormat } from '../core/check-options.js'
+import type { OutputFormat } from '@nielspeter/eess'
 
 export interface CliConfig {
   /** Path to tsconfig.json. Default: 'tsconfig.json' */

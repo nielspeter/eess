@@ -1,5 +1,5 @@
 import type { ClassDeclaration, SourceFile } from 'ts-morph'
-import type { Condition } from '../core/condition.js'
+import type { Condition } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
 import { call, newExpr, access } from '../helpers/matchers.js'
 import { classNotContain } from '../conditions/body-analysis.js'

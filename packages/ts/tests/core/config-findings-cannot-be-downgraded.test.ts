@@ -18,7 +18,7 @@ import { Project } from 'ts-morph'
 import { modules } from '../../src/index.js'
 import { applyFilters } from '../../src/core/execute-rule.js'
 import type { ArchViolation } from '@nielspeter/eess'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/modules')

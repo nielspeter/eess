@@ -7,7 +7,7 @@ import { classes } from '../../src/builders/class-rule-builder.js'
 import { comment, STUB_PATTERNS } from '../../src/helpers/matchers.js'
 import { noStubComments } from '../../src/rules/hygiene.js'
 import { collectFunctions } from '../../src/models/arch-function.js'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/stubs')

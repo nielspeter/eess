@@ -7,7 +7,7 @@ import { call } from '../../src/helpers/matchers.js'
 // The source under test, not the kernel: during plan 0165's baseline the two
 // carry SEPARATE copies of this class, so a kernel import makes
 // `toThrow(ArchRuleError)` compare against a class nothing ever throws.
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/calls')

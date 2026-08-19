@@ -1,6 +1,6 @@
 import type { SourceFile } from 'ts-morph'
 import type { ArchViolation } from '@nielspeter/eess'
-import type { ConditionContext } from './condition.js'
+import type { ConditionContext } from '@nielspeter/eess'
 import type { LayerPair, Layer } from '../models/cross-layer.js'
 
 /**

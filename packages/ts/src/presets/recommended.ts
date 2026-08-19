@@ -1,12 +1,12 @@
 import type { ArchProject } from '../core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
-import type { Condition } from '../core/condition.js'
+import type { Condition } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
 import { functions } from '../builders/function-rule-builder.js'
 import { functionNoEval, functionNoFunctionConstructor } from '../rules/security.js'
 import { functionNoSilentCatch } from '../rules/errors.js'
 import { noEmptyBodies } from '../rules/hygiene.js'
-import type { RuleBuilderLike } from '../core/rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 import type { PresetBaseOptions } from './shared.js'
 import {
   overrideFindings,

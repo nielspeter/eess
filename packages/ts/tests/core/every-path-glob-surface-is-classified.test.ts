@@ -3,6 +3,13 @@ import path from 'node:path'
 import { describe, it, expect } from 'vitest'
 
 const srcDir = path.resolve(import.meta.dirname, '../../src')
+const kernelSrcDir = path.resolve(import.meta.dirname, '../../../core/src')
+
+/** A scanned file's census key: dialect paths bare, kernel paths prefixed. */
+const rel = (full: string): string =>
+  full.startsWith(kernelSrcDir)
+    ? 'core:' + path.relative(kernelSrcDir, full)
+    : path.relative(srcDir, full)
 
 /**
  * Every place in `src/` that declares a path glob, read off the source.
@@ -36,14 +43,20 @@ function pathGlobSurfaces(): string[] {
         // `glob-site.ts` DEFINES `globAnyOf`/`globNode`; it is the mechanism,
         // not a surface. Excluded by name so the exclusion is visible rather
         // than encoded in a cleverer pattern.
-        if (path.relative(srcDir, full) === 'core/glob-site.ts') continue
+        if (rel(full) === 'core/glob-site.ts' || rel(full) === 'core:glob-site.ts') continue
         const declares = text.includes('globAnyOf(') || text.includes('globNode(')
         const pathKind = text.includes("'file-path'") || text.includes("'parent-dir'")
-        if (declares && pathKind) found.push(path.relative(srcDir, full))
+        if (declares && pathKind) found.push(rel(full))
       }
     }
   }
   walk(srcDir)
+  // The KERNEL too, since plan 0165 Phase 2. `define.ts` moved into
+  // `@nielspeter/eess` and the census stopped seeing it — reported by this
+  // file's own "nothing is classified that no longer declares a path glob",
+  // which is the direction that matters: a surface eess-ts still ships must not
+  // drop out of the census by changing package.
+  walk(kernelSrcDir)
   return found.sort()
 }
 
@@ -66,7 +79,7 @@ const CLASSIFIED: Readonly<Record<string, 'normalized' | 'rewritten' | 'fixed'>>
   'smells/smell-builder.ts': 'normalized',
   'builders/slice-rule-builder.ts': 'rewritten',
   'graphql/resolver-rule-builder.ts': 'rewritten',
-  'core/define.ts': 'fixed',
+  'core:define.ts': 'fixed',
 }
 
 describe('every path-glob surface is classified (bug 0036)', () => {

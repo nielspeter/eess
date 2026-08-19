@@ -5,12 +5,8 @@ import type { ArchProject } from '../../src/core/project.js'
 import { classes } from '../../src/builders/class-rule-builder.js'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
-import { ArchRuleError } from '../../src/core/errors.js'
-import {
-  noSilentCatch,
-  functionNoSilentCatch,
-  moduleNoSilentCatch,
-} from '../../src/rules/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
+import { noSilentCatch, functionNoSilentCatch, moduleNoSilentCatch } from '../../src/rules/errors.js'
 import { findSilentCatches } from '../../src/conditions/catch-analysis.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/rules')

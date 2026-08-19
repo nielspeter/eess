@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ArchRuleError } from '../../src/core/errors.js'
+import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 
 describe('ArchRuleError', () => {

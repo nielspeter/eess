@@ -1,5 +1,5 @@
 import type { ArchProject } from '../core/project.js'
-import type { Condition } from '../core/condition.js'
+import type { Condition } from '@nielspeter/eess'
 import { RuleBuilder } from '../core/rule-builder.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import {

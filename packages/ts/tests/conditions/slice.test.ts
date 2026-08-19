@@ -4,7 +4,7 @@ import path from 'node:path'
 import { beFreeOfCycles, respectLayerOrder, notDependOn } from '../../src/conditions/slice.js'
 import { resolveByMatching, resolveByDefinition } from '../../src/models/slice.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ConditionContext } from '../../src/core/condition.js'
+import type { ConditionContext } from '@nielspeter/eess'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/slices')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')

@@ -5,7 +5,7 @@ import type { Located } from '../predicates/identity.js'
 import { resideInFile, resideInFolder } from '../predicates/identity.js'
 import { or } from '../core/combinators.js'
 import type { RuleMetadata } from '@nielspeter/eess'
-import type { RuleBuilderLike } from '../core/rule-builder-like.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 import { writeStderr } from '@nielspeter/eess'
 
 export type RuleSeverity = 'error' | 'warn' | 'off'

@@ -7,7 +7,7 @@ import type { ArchViolation } from '@nielspeter/eess'
 import { getElementName, getElementFile, getElementLine } from '../core/violation.js'
 import { RuleBuilder } from '../core/rule-builder.js'
 import { TerminalBuilder } from '../core/terminal-builder.js'
-import { setCorrespondence } from '../core/correspondence-core.js'
+import { setCorrespondence } from '@nielspeter/eess'
 
 /**
  * Map a selection subject to one or more comparison keys.
