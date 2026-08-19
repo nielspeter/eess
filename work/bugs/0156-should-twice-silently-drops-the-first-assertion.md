@@ -125,7 +125,7 @@ hidden. That is the fix working, but it should be expected rather than
 discovered in CI.
 
 `extension-surface.test.ts:207-220`'s **comment** still needs correcting — see
-[bug 0155](./0155-a-rule-with-no-condition-passes-in-total-silence.md); its
+[bug 0155](./fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md); its
 stated mechanism is wrong independently of this fix. The test itself passes
 either way.
 

@@ -2,12 +2,16 @@
 
 ## Status
 
-- **State:** Draft — reproduced directly against the built dist; no red test yet.
+- **State:** Fixed — closed in this PR. Red test first
+  (`packages/core/tests/assertion-less-rules.test.ts`: 4 of 6 rows failing
+  before the change, both controls green), then the three-part fix, then the
+  kernel contract test rewritten to prove its own contract directly.
+  Deferred: none.
 - **Severity:** High — false green. Subjects are selected, nothing is asserted
   about them, and `.check()` returns normally. This is the defect the product
   exists to prevent, in the library's own engine.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0019), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (upstream bug 0019), prompted by [bug 0154](../0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
   (`0.2.1`). The guard is at `rule-builder.ts:337` in `810808b` (the `v0.2.3`
   release commit), so this is live for adopters today — not gated behind plan 0100.
@@ -100,7 +104,7 @@ Two consequences:
   is weaker than the citation implies: the test does exercise the copy-on-write
   contract, but its final assertion currently proves nothing.
 
-See [bug 0156](./0156-should-twice-silently-drops-the-first-assertion.md).
+See [bug 0156](../0156-should-twice-silently-drops-the-first-assertion.md).
 An intermediate draft claimed the two fixes were _entangled_ — that 0156 could
 not be fixed without first settling `fork()` semantics. **That is not so:**
 0156's fix is measured, one line, and leaves this contract test passing 9/9.
@@ -184,7 +188,7 @@ belongs in a helper.
 
 ## Verification
 
-- [ ] Red test first, on the **`.should()` shape** — not the predicate-only
+- [x] Red test first, on the **`.should()` shape** — not the predicate-only
       one. `functions(p).that().<pred>.should().check()` and
       `…​.should().areExported().check()` must throw (or emit a finding).
       **Why the shape matters:** changing `writeStderr` → `throw` at
@@ -192,14 +196,17 @@ belongs in a helper.
       intact satisfies a predicate-only test, satisfies the control, satisfies
       the vacuity control — and leaves every documented rule shape silent. A
       checklist that tests only `.that().<pred>.check()` is a false floor.
-- [ ] Control: a rule _with_ a condition is unaffected.
-- [ ] Vacuity control: the fixture really selects a non-zero number of
-      subjects, asserted by identity.
+- [x] Control: a rule _with_ a condition is unaffected — both the failing and
+      the passing case pinned.
+- [x] Vacuity control: the fixture really selects a non-zero number of
+      subjects, asserted by identity — via a condition reporting one violation
+      per selected element, since running the assertion-less rule itself now
+      returns the finding under test.
 - [x] The warning-vs-finding decision is recorded in this file — see Ruling:
       an unsuppressable configuration finding, per ADR-009 rule 1's
       optional-remedy discriminator.
-- [ ] `extension-surface.test.ts:207-220` and its comment rewritten so branch B
-      proves "no leak" with its own passing condition, not via silence.
-- [ ] `npm run validate` green.
+- [x] `extension-surface.test.ts` and its comment rewritten so branch B proves
+      "no leak" with its own passing condition, not via silence.
+- [x] `npm run validate` green.
 
 Deferred: none.

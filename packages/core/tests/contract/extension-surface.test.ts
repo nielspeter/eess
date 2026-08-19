@@ -152,6 +152,11 @@ class WidgetElementRuleBuilder extends RuleBuilder<Widget, WidgetProject> {
     })
   }
 
+  /** A condition that never fires — lets a branch assert something and still pass. */
+  static alwaysPasses(): Condition<Widget> {
+    return { description: 'always passes', evaluate: (): ArchViolation[] => [] }
+  }
+
   /** A stranger's own .notExist()-shaped condition, using the exported registry. */
   static notExist(): Condition<Widget> {
     return marksAssertsCardinality({
@@ -210,12 +215,22 @@ describe('extension surface contract — a RuleBuilder<T, P> subclass (stranger 
     expect(() => {
       selection.should().satisfy(WidgetElementRuleBuilder.notExist()).check()
     }).toThrow(ArchRuleError)
-    // Branch B: a FRESH .should() fork from the same held selection, no
-    // condition added. If branch A's condition had leaked, this would also
-    // throw (still asserting notExist() against 'a'); instead it hits the
-    // "predicates but no conditions" assertion-less path and passes.
+    // Branch B: a FRESH .should() fork from the same held selection, given its
+    // OWN passing condition. If branch A's condition had leaked, this would
+    // also throw (still asserting notExist() against 'a').
+    //
+    // It used to be spelled `selection.should().check()` — no condition at
+    // all — with a comment claiming it "hits the 'predicates but no
+    // conditions' assertion-less path and passes". It did not: `should()`
+    // sets the phase to 'condition', so that guard could never fire, and the
+    // branch passed in total *silence*. The assertion therefore proved
+    // nothing about leaking, and the test was green because of
+    // [bug 0155](../../../../work/bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md),
+    // which now makes an assertion-less rule a finding. Giving branch B a real
+    // condition tests the no-leak contract directly instead of leaning on a
+    // defect to stay quiet.
     expect(() => {
-      selection.should().check()
+      selection.should().satisfy(WidgetElementRuleBuilder.alwaysPasses()).check()
     }).not.toThrow()
   })
 })

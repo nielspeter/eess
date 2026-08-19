@@ -136,7 +136,7 @@ touched.)
 | upstream         | eess bug                                                                                         | what                                                            |
 | ---------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
 | 0043             | [0154](./bugs/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)           | a directive inside a string literal suppresses a real violation |
-| 0019             | [0155](./bugs/0155-a-rule-with-no-condition-passes-in-total-silence.md)                          | a rule with subjects and no condition passes silently           |
+| 0019             | [0155](./bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md)                    | a rule with subjects and no condition passes silently           |
 | 0020             | [0156](./bugs/0156-should-twice-silently-drops-the-first-assertion.md)                           | a second `.should()` discards the first assertion               |
 | 0038             | [0157](./bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)                   | a typo'd preset override key is silently ignored                |
 | 0039             | [0158](./bugs/0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md)             | a reason-free directive suppresses and only warns               |

@@ -7,7 +7,6 @@ import type { DeclaredGlob, GlobNode } from './glob-site.js'
 import { countDeclaredGlobs, stampGlobs } from './glob-site.js'
 import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
 import { assertsCardinality as conditionAssertsCardinality } from './cardinality.js'
-import { writeStderr } from './stderr.js'
 
 /**
  * A declared glob's own label in a dead-glob finding — the predicate/
@@ -71,6 +70,60 @@ function declaredGlobsOf<T>(predicates: Predicate<T>[], conditions: Condition<T>
  * depends on this exact two-param signature, so it is not replaced by the
  * fold, only extended.
  */
+/**
+ * The configuration finding for a rule that asserts nothing — bug 0155.
+ *
+ * An assertion-less rule — subjects found, nothing asserted about them —
+ * cannot fail, so it certifies nothing while reading as coverage.
+ *
+ * **The guard was unreachable, not merely quiet.** It used to read
+ * `_conditions.length === 0 && _phase === 'predicate'`, and `should()` sets
+ * the phase to `'condition'`, so for every rule shape the DSL documents it
+ * could never fire — the defect passed in total silence, never even reaching
+ * the stderr warning it was routed to. Hence no `_phase` term at the call
+ * site.
+ *
+ * **A finding, not a warning**, per ADR-009 rule 1's discriminator: the remedy
+ * is not optional. There is no state in which "keeps asserting nothing" is
+ * correct — add a condition, or delete the rule. The two rules ADR-009 names
+ * as deliberately `warn` (`no-silent-catch`, `no-empty-bodies`) warn *because*
+ * they carry suppressible false positives a reader must judge case by case.
+ * This carries none.
+ *
+ * **Gate-first**, ahead of the conditions: an assertion-less rule cannot
+ * produce a legitimate finding, so evaluating it buys nothing but a full walk.
+ * Accepted consequence — a rule with a dead glob AND no condition reports the
+ * missing assertion only, which is the right root cause: no selector makes an
+ * assertion-less rule capable of failing, and the selector fault resurfaces
+ * once there is something to assert.
+ *
+ * Module-level rather than a private method on purpose: `RuleBuilder` is gated
+ * at 300 lines by this repo's own `arch.rules.ts`, and an inline version
+ * pushed it over.
+ *
+ * `bypassFilters` makes it a **configuration** finding — `error` regardless of
+ * `.asSeverity('warn')`, refused by `.excluding()`, skipped by diff and
+ * baseline. It reports that the rule's own instrument is broken, not a fault
+ * in what was examined, so a filter aimed at the latter must not suppress it.
+ */
+function assertionLessViolation(ruleId: string): ArchViolation {
+  const message =
+    `Rule '${ruleId}' selects subjects but asserts nothing about them, so it ` +
+    `cannot fail and certifies nothing. Add a condition after .should() ` +
+    `(a predicate-only method such as areExported/areAsync filters elements, ` +
+    `it does not assert), or delete the rule.`
+  return {
+    rule: ruleId,
+    element: ruleId,
+    file: '',
+    line: 0,
+    message,
+    suggestion: message,
+    identity: `assertion-less::${ruleId}`,
+    bypassFilters: true,
+  }
+}
+
 export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   protected _predicates: Predicate<T>[] = []
   protected _conditions: Condition<T>[] = []
@@ -327,18 +380,12 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
       return { violations: [], examined, sourceEmpty, deadGlob }
     }
 
-    // An assertion-less rule (subjects found, nothing asserted about them) is
-    // distinct from the zero-examined case above and stays a stderr warning,
-    // not the unsuppressable ADR-010 finding — examined is non-zero either way.
-    if (this._conditions.length === 0 && this._phase === 'predicate') {
+    // Bug 0155 — gate-first, before the conditions run. See
+    // `assertionLessViolation` for why this is a finding and not a warning,
+    // and why there is no `_phase` term.
+    if (this._conditions.length === 0) {
       const ruleId = this._metadata?.id ?? (this.buildRuleDescription() || 'unnamed')
-      writeStderr(
-        `[eess] Rule '${ruleId}' has predicates but no conditions. ` +
-          `Did you use a predicate-only method after .should()? ` +
-          `Predicate-only methods (e.g. areExported, areAsync) filter elements; ` +
-          `use a condition method or .satisfy() after .should().`,
-      )
-      return { violations: [], examined }
+      return { violations: [assertionLessViolation(ruleId)], examined }
     }
 
     // Step 4: Build context for conditions
