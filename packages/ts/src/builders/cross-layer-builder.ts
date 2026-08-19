@@ -5,10 +5,10 @@ import type { ArchProject } from '../core/project.js'
 import { ownsEmptyDiscovery } from '../core/owns-empty-discovery.js'
 import type { PairCondition, PairConditionContext } from '../core/pair-condition.js'
 import type { Layer, LayerPair } from '../models/cross-layer.js'
-import type { GlobNode } from '../core/glob-site.js'
-import { globAnyOf, stampGlobs } from '../core/glob-site.js'
+import type { GlobNode } from '@nielspeter/eess'
+import { globAnyOf, stampGlobs } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
-import { shallowClone } from '../core/shallow-clone.js'
+import { shallowClone } from '@nielspeter/eess'
 import { isProjectRelative, relativeToRoot } from '../core/project-relative.js'
 
 /**

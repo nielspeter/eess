@@ -1,5 +1,5 @@
 import type { Node, SourceFile, SyntaxKind } from 'ts-morph'
-import { registerCacheReset } from './cache-registry.js'
+import { registerCacheReset } from '@nielspeter/eess'
 
 /**
  * One descendant walk per (node, kind), shared across matchers.

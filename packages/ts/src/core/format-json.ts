@@ -1,6 +1,6 @@
 import type { ArchViolation } from './violation.js'
-import type { EdgeCoverage } from './edge-coverage.js'
-import { commentSuppressions } from './comment-suppression.js'
+import type { EdgeCoverage } from '@nielspeter/eess'
+import { commentSuppressions } from '@nielspeter/eess'
 
 /**
  * Format violations as a JSON string.

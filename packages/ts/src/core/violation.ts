@@ -1,6 +1,6 @@
 import { Node } from 'ts-morph'
-import { generateCodeFrame } from './code-frame.js'
-import { registerCacheReset } from './cache-registry.js'
+import { generateCodeFrame } from '@nielspeter/eess'
+import { registerCacheReset } from '@nielspeter/eess'
 
 /**
  * A single architecture rule violation.

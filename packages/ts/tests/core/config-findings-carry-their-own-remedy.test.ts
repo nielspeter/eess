@@ -28,7 +28,7 @@ import { functions } from '../../src/builders/function-rule-builder.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
 import { byName, correspondence } from '../../src/builders/correspondence-builder.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { RuleMetadata } from '../../src/core/rule-metadata.js'
+import type { RuleMetadata } from '@nielspeter/eess'
 
 const fixtures = (name: string): string =>
   path.resolve(import.meta.dirname, `../fixtures/${name}/tsconfig.json`)

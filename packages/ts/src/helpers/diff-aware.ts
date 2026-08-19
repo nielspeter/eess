@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 import type { ArchViolation } from '../core/violation.js'
-import { writeStderr } from '../core/stderr.js'
+import { writeStderr } from '@nielspeter/eess'
 
 /**
  * A diff filter that restricts violation reporting to files

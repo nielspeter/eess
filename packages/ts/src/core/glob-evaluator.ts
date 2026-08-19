@@ -1,6 +1,6 @@
 import picomatch from 'picomatch'
-import type { GlobLeaf, GlobNode, GlobSite } from './glob-site.js'
-import { isGlobNode, isOpaqueGlob } from './glob-site.js'
+import type { GlobLeaf, GlobNode, GlobSite } from '@nielspeter/eess'
+import { isGlobNode, isOpaqueGlob } from '@nielspeter/eess'
 import type { PathUniverse } from './path-universe.js'
 import { viewsFor } from './path-universe.js'
 import { syntacticFault } from './glob-diagnosis.js'

@@ -33,7 +33,7 @@ import {
   DECLARE_INSTEAD,
   UNSUPPRESSABLE,
   UNSUPPRESSABLE_MECHANISMS,
-} from '../../src/core/unsuppressable.js'
+} from '@nielspeter/eess'
 import { Baseline } from '../../src/helpers/baseline.js'
 import type { ArchViolation } from '../../src/core/violation.js'
 

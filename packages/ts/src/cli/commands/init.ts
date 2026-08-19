@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { isRecord } from '../../core/type-guards.js'
+import { isRecord } from '@nielspeter/eess'
 import path from 'node:path'
 
 /** "Floor" presets — a universal rule set scoped to your source glob. */

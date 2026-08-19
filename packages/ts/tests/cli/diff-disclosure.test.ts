@@ -25,7 +25,7 @@ import {
   activeNotice,
   suppressionNotice,
   resetDiffDisclosureForTests,
-} from '../../src/core/diff-disclosure.js'
+} from '@nielspeter/eess'
 import type { ArchViolation } from '../../src/core/violation.js'
 import type { DiffFilterLike } from '../../src/core/check-options.js'
 import type * as DiffAwareModule from '../../src/helpers/diff-aware.js'

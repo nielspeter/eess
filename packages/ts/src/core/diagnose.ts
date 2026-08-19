@@ -1,6 +1,6 @@
 import { TerminalBuilder } from './terminal-builder.js'
 import type { ArchProject } from './project.js'
-import type { GlobPosition, GlobSite } from './glob-site.js'
+import type { GlobPosition, GlobSite } from '@nielspeter/eess'
 import type { GlobFault } from './glob-diagnosis.js'
 import type { OnDisk } from './disk-set.js'
 import { diagnoseGlob, syntacticFault, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
@@ -10,8 +10,8 @@ import { diskSet } from './disk-set.js'
 import { isDeadGlobTree } from './glob-evaluator.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
 import type { RuleBuilderLike } from './rule-builder-like.js'
-import type { GlobNode } from './glob-site.js'
-import { isFaultPosition } from './glob-site.js'
+import type { GlobNode } from '@nielspeter/eess'
+import { isFaultPosition } from '@nielspeter/eess'
 
 /**
  * Anything `diagnose()` can inspect: a rule that can describe its globs.

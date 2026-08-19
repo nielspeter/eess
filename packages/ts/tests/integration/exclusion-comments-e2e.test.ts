@@ -11,7 +11,7 @@ import {
   resetCommentSuppression,
   commentSuppressions,
   commentSuppressionNotice,
-} from '../../src/core/comment-suppression.js'
+} from '@nielspeter/eess'
 import { project, functions, call } from '../../src/index.js'
 import { functionNotContain } from '../../src/conditions/body-analysis-function.js'
 

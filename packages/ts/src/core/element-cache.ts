@@ -1,5 +1,5 @@
 import type { ArchProject } from './project.js'
-import { registerCacheReset } from './cache-registry.js'
+import { registerCacheReset } from '@nielspeter/eess'
 
 /**
  * Collect a builder's elements once per project instead of once per rule.

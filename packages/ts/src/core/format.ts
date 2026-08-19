@@ -1,6 +1,6 @@
 import type { ArchViolation } from './violation.js'
 import { remedyRepeatsMessage } from './violation.js'
-import { bold, red, cyan, dim } from './ansi.js'
+import { bold, red, cyan, dim } from '@nielspeter/eess'
 import path from 'node:path'
 
 /**

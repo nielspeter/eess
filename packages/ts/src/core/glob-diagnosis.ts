@@ -1,5 +1,5 @@
 import picomatch from 'picomatch'
-import type { GlobSite } from './glob-site.js'
+import type { GlobSite } from '@nielspeter/eess'
 import type { PathUniverse } from './path-universe.js'
 import { viewsFor } from './path-universe.js'
 import type { DiskSet, OnDisk } from './disk-set.js'

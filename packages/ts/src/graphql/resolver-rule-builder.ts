@@ -1,17 +1,17 @@
-import type { RuleDescription } from '../core/rule-description.js'
+import type { RuleDescription } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
 import type { SourceFile } from 'ts-morph'
 import type { ArchViolation } from '../core/violation.js'
 import type { Condition, ConditionContext } from '../core/condition.js'
-import type { Predicate } from '../core/predicate.js'
+import type { Predicate } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
-import type { GlobNode } from '../core/glob-site.js'
-import { globAnyOf, stampGlobs } from '../core/glob-site.js'
+import type { GlobNode } from '@nielspeter/eess'
+import { globAnyOf, stampGlobs } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { collectFunctions } from '../models/arch-function.js'
-import { selectionMemo } from '../core/selection-memo.js'
+import { selectionMemo } from '@nielspeter/eess'
 import {
   functionContain,
   functionNotContain,

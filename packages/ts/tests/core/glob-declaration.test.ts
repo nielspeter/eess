@@ -22,7 +22,7 @@ import { globSitesOf } from '../../src/core/glob-evaluator.js'
 import { and, not, or } from '../../src/core/combinators.js'
 import { resideInFolder } from '../../src/predicates/identity.js'
 import type { Located } from '../../src/predicates/identity.js'
-import type { Predicate } from '../../src/core/predicate.js'
+import type { Predicate } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 /** Stands in for any predicate that matches on something other than a path. */

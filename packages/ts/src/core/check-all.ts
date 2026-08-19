@@ -3,10 +3,10 @@ import type { CheckOptions } from './check-options.js'
 import { ArchRuleError } from './errors.js'
 import { writeReport } from './execute-rule.js'
 import { dedupeConfigFindings } from './dedupe-config-findings.js'
-import { suppressionNotice } from './diff-disclosure.js'
-import { writeStderr } from './stderr.js'
-import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from './edge-coverage.js'
-import { commentSuppressionNotice, resetCommentSuppression } from './comment-suppression.js'
+import { suppressionNotice } from '@nielspeter/eess'
+import { writeStderr } from '@nielspeter/eess'
+import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess'
+import { commentSuppressionNotice, resetCommentSuppression } from '@nielspeter/eess'
 
 /**
  * Run an array of rules (e.g. a spread preset) and throw one aggregated

@@ -22,6 +22,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 import fs from 'node:fs'
 import path from 'node:path'
 import { project } from '../../src/core/project.js'
@@ -38,6 +39,19 @@ const repoRoot = path.resolve(import.meta.dirname, '../..')
  * exactly like the assertion failing (bug 0045's shape). Node's own resolver finds
  * it wherever the installer put it.
  */
+/**
+ * The kernel's `stderr.ts`, by resolution rather than by a path join.
+ *
+ * The probe files below are written to disk and executed by a fresh Node, so
+ * they need a real filesystem path to import. That used to be
+ * `<packages/ts>/src/core/stderr.ts`; plan 0165 Phase 2 moved the module into
+ * `@nielspeter/eess`, and a stale join fails the child with ERR_MODULE_NOT_FOUND
+ * — which reads exactly like the channel assertion failing.
+ */
+const kernelStderr = fileURLToPath(
+  new URL('../../../core/src/stderr.ts', import.meta.url),
+)
+
 const vitestCli = path.join(
   path.dirname(createRequire(import.meta.url).resolve('vitest/package.json')),
   'vitest.mjs',
@@ -331,7 +345,7 @@ describe('the channel itself', () => {
     // rather than for findings — indistinguishable from the exit code.
     const { status } = runNode(
       [
-        `import { writeStderr } from ${JSON.stringify(path.join(repoRoot, 'src/core/stderr.ts'))}`,
+        `import { writeStderr } from ${JSON.stringify(kernelStderr)}`,
         `const line = 'x'.repeat(200)`,
         `for (let i = 0; i < 20000; i++) writeStderr(line)`,
       ].join('\n'),
@@ -382,7 +396,7 @@ describe('the channel itself', () => {
     // findings run onto one line is the defect this channel exists to avoid.
     const { out } = runNode(
       [
-        `import { writeStderr } from ${JSON.stringify(path.join(repoRoot, 'src/core/stderr.ts'))}`,
+        `import { writeStderr } from ${JSON.stringify(kernelStderr)}`,
         `writeStderr('FIRST-MESSAGE')`,
         `writeStderr('SECOND-MESSAGE')`,
         `writeStderr('THIRD-ALREADY-ENDS\\n')`,

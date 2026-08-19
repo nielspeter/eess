@@ -9,7 +9,7 @@ import type { PairConditionContext } from '../core/pair-condition.js'
 import type { ArchViolation } from '../core/violation.js'
 import type { LayerPair, Layer } from '../models/cross-layer.js'
 import { setCorrespondence } from '../core/correspondence-core.js'
-import { UNSUPPRESSABLE } from '../core/unsuppressable.js'
+import { UNSUPPRESSABLE } from '@nielspeter/eess'
 import { marksOwnEmptyDiscovery } from '../core/owns-empty-discovery.js'
 
 /**

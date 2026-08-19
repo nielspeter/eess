@@ -16,7 +16,7 @@ vi.mock('../../src/cli/load-rules.js', () => ({
 import { runExplain } from '../../src/cli/commands/explain.js'
 import { loadRuleFiles } from '../../src/cli/load-rules.js'
 import type { RuleBuilderLike } from '../../src/cli/load-rules.js'
-import type { RuleDescription } from '../../src/core/rule-description.js'
+import type { RuleDescription } from '@nielspeter/eess'
 
 const mockedLoadRuleFiles = vi.mocked(loadRuleFiles)
 

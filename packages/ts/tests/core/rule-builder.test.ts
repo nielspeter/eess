@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { ArchRuleError } from '../../src/core/errors.js'
-import type { Predicate } from '../../src/core/predicate.js'
+import type { Predicate } from '@nielspeter/eess'
 import {
   type TestElement,
   TestRuleBuilder,

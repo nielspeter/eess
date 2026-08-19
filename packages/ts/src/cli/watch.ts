@@ -1,5 +1,5 @@
 import { watch, type FileChangeInfo } from 'node:fs/promises'
-import { isNullaryCallable } from '../core/type-guards.js'
+import { isNullaryCallable } from '@nielspeter/eess'
 import path from 'node:path'
 import { isArchRuleError } from '../core/errors.js'
 

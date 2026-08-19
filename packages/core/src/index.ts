@@ -81,7 +81,7 @@ export { bold, red, dim, yellow, cyan, gray } from './ansi.js'
 // Exclusions
 export { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
 export type { ExclusionComment, ExclusionWarning, ParseResult } from './exclusion-comments.js'
-export { silent } from './silent-exclusion.js'
+export { silent, isSilent } from './silent-exclusion.js'
 export type { SilentExclusion } from './silent-exclusion.js'
 
 // Baseline & diff-aware
@@ -141,3 +141,9 @@ export {
 } from './comment-suppression.js'
 export { dedupeConfigFindings } from './dedupe-config-findings.js'
 export { assertionLessViolation } from './terminal-builder.js'
+export { toPortablePath } from './identity-root.js'
+export type { Describable } from './rule-description.js'
+export { isDescribable } from './rule-description.js'
+export { resetStderrGuardForTests } from './stderr.js'
+export { DECLARE_INSTEAD } from './unsuppressable.js'
+export { UNSUPPRESSABLE_MECHANISMS } from './unsuppressable.js'

@@ -1,17 +1,17 @@
-import { detectFormat } from '../../core/environment.js'
+import { detectFormat } from '@nielspeter/eess'
 import { withBaseline } from '../../helpers/baseline.js'
 import { diffAware } from '../../helpers/diff-aware.js'
 import type { OutputFormat } from '../../core/check-options.js'
 import type { ArchViolation } from '../../core/violation.js'
 import { isArchRuleError } from '../../core/errors.js'
 import { setCallerAggregatesReports, writeReport } from '../../core/execute-rule.js'
-import { suppressionNotice } from '../../core/diff-disclosure.js'
-import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '../../core/edge-coverage.js'
+import { suppressionNotice } from '@nielspeter/eess'
+import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess'
 import {
   commentSuppressionNotice,
   resetCommentSuppression,
-} from '../../core/comment-suppression.js'
-import { writeStderr } from '../../core/stderr.js'
+} from '@nielspeter/eess'
+import { writeStderr } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 import { dedupeConfigFindings } from '../../core/dedupe-config-findings.js'
 import {

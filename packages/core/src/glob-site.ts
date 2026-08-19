@@ -1,33 +1,31 @@
 /**
- * The declaration side of the dead-glob-diagnosis subsystem: what a glob is,
- * and how a set of globs combines, so that "this rule can never match
- * anything" is answerable without running the rule.
+ * The declaration side of plan 0069: what a glob is, and how a set of globs
+ * combines, so that "this rule can never match anything" is answerable without
+ * running the rule.
  *
- * Nothing here evaluates. Evaluation lives in `glob-diagnosis.ts`/
- * `glob-evaluator.ts`, against the path universe; this module only describes.
- *
- * Pure and engine-neutral — no `ArchProject`, no ts-morph — so it lives in the
- * kernel, usable by every dialect that wants to declare "here is a glob I
- * depend on" and get a specific diagnosis when it can never match.
+ * Nothing here evaluates. Evaluation lives in `glob-diagnosis.ts`, against the
+ * path universe; this module only describes.
  */
 
 /**
  * Which string a glob is matched against.
  *
- * This names **the target**, never the API. A predicate named `inFolder()`
- * might match the full file path despite its name, and a predicate named
- * `resideInFile()` might match a directory. Reading the method name instead
- * of the actual target is how a vacuous rule gets reported satisfiable.
+ * This names **the target**, never the API. `SmellBuilder.inFolder()` matches
+ * the full file path despite its name (`src/smells/duplicate-bodies.ts`), and
+ * exactly one selector in `src/` — `resideInFolder` — matches a directory.
+ * Two revisions of the plan's own census got this wrong by reading the method
+ * name, and each time reported a vacuous rule as satisfiable.
  *
- * - `file-path`     — the whole absolute path of the file
- * - `parent-dir`     — the immediate parent directory of the file, and only
- *                      the immediate parent
+ * - `file-path`   — the whole absolute path of the file
+ * - `parent-dir`  — the immediate parent directory of the file, and only the
+ *                   immediate parent: `resideInFolder` tests
+ *                   `filePath.substring(0, filePath.lastIndexOf('/'))`
  * - `import-target` — a resolved module path or a bare specifier. Never
- *                      checked against the path universe: `node_modules` is
- *                      outside the project by construction, so checking it
- *                      would fail every correct dependency rule in existence
- * - `specifier`     — a raw module specifier
- * - `literal`       — matched against source text, not a path
+ *                   checked against the path universe: `node_modules` is
+ *                   outside the project by construction, so checking it would
+ *                   fail every correct dependency rule in existence
+ * - `specifier`   — a raw module specifier
+ * - `literal`     — matched against source text, not a path
  */
 export type GlobKind = 'file-path' | 'parent-dir' | 'import-target' | 'specifier' | 'literal'
 
@@ -42,29 +40,48 @@ export type GlobKind = 'file-path' | 'parent-dir' | 'import-target' | 'specifier
  * - `condition` — asserts something about subjects. Unsatisfiable is
  *                 indistinguishable from an armed tripwire that has not fired
  * - `exclusion` — subtracts. An exclusion matching zero is remedy-optional
- *                 and never a fault
+ *                 (proposal 006) and never a fault
  */
 export type GlobPosition = 'selector' | 'discovery' | 'condition' | 'exclusion'
 
 /**
  * Is a dead glob at this position a **fault**?
  *
- * One owner for this decision, consulted everywhere it is needed, so a
- * doctor-style diagnostic tool and the gate that fails the build cannot
- * silently disagree about the same input — two hand-maintained inverse lists
- * that must agree is exactly the shape this function replaces.
+ * One owner for a decision that was written twice, inversely, and disagreed —
+ * [plan 0080](../../plans/completed/0080-admit-discovery-globs-to-the-dead-glob-gate.md).
  *
- * **`selector` and `discovery` are faults.** Both name what a rule will
- * judge, so a dead one means the rule judges nothing.
+ * | site | said | i.e. |
+ * | --- | --- | --- |
+ * | `diagnose.ts` | skip `exclusion` and `condition` | selector **and discovery** are faults |
+ * | `terminal-builder.ts` | skip anything but `selector` | only selector is |
+ *
+ * So `doctor` reported a dead `discovery` glob and the check that gates the build
+ * did not — the divergence bug 0040's silence half is made of. Two hand-maintained
+ * inverse lists that must agree is the shape ADR-008 rule 5 keeps charging this
+ * project for; a shared predicate is the whole fix.
+ *
+ * **`selector` and `discovery` are faults.** Both name what a rule will judge, so
+ * a dead one means the rule judges nothing.
  *
  * **`condition` and `exclusion` are not.** A condition glob is an assertion
- * *about* the subjects — an allowlist matching nothing is a satisfied rule,
- * not a broken one — and an exclusion glob matching nothing is an unused
- * exemption, reported on its own terms elsewhere.
+ * *about* the subjects — `onlyImportFrom('**\/domain/**')` matching nothing is a
+ * satisfied rule, not a broken one (bug 0014) — and an exclusion glob matching
+ * nothing is an unused exemption, which `.excluding()` reports on its own terms.
  *
- * A `switch`, not an `||`: a fifth `GlobPosition` added to the union above
- * must fail to compile here rather than silently becoming a non-fault in
- * every consumer — the exact shape a hand-maintained allow-list cannot catch.
+ * ## A `switch`, not an `||`, and that is the point
+ *
+ * It shipped as `position === 'selector' || position === 'discovery'` — an
+ * allow-list with no exhaustiveness check. Review measured the consequence: a
+ * **fifth** `GlobPosition` added to the union above compiles clean and leaves the
+ * whole suite green, silently a non-fault in all three consumers. A dead glob
+ * written at it would be invisible in `doctor` *and* in the build — which is the
+ * original divergence's failure direction, one level up, in the predicate that
+ * exists to remove it.
+ *
+ * The predicate's own test enumerates the four known values, which is a
+ * restatement of the implementation and structurally cannot cover a fifth. The
+ * `never` assignment below can, and it fails at compile time rather than at
+ * review time.
  */
 export function isFaultPosition(position: GlobPosition): boolean {
   switch (position) {
@@ -75,8 +92,8 @@ export function isFaultPosition(position: GlobPosition): boolean {
     case 'exclusion':
       return false
     default: {
-      // A new position must say which it is. Deciding by default is how two
-      // inverse lists come to disagree in the first place.
+      // A new position must say which it is. Deciding by default is how the two
+      // inverse lists came to disagree in the first place.
       const exhaustive: never = position
       return exhaustive
     }
@@ -86,12 +103,24 @@ export function isFaultPosition(position: GlobPosition): boolean {
 /**
  * Which set of paths the glob is written against.
  *
- * Satisfiability is taken against the union of the views for the glob's
- * `kind`, but the ANCHOR check consults `base`: an unanchored glob can never
- * match an absolute path, so for `base: 'absolute'` it is dead however the
- * project is shaped — while for a base whose entry point rewrites or
- * relativises the glob, an unanchored spelling is correct and telling the
- * author to anchor it would break a working rule.
+ * **This affects the verdict**, and the earlier claim here that it was
+ * message-only is withdrawn. Satisfiability is still taken against the union
+ * of the views for the glob's `kind`, but the ANCHOR check consults `base`:
+ * an unanchored glob can never match an absolute path, so for
+ * `base: 'absolute'` it is dead however the project is shaped — while for a
+ * base whose entry point rewrites or relativises the glob, an unanchored
+ * spelling is correct and telling the author to anchor it would break a
+ * working rule.
+ *
+ * The union alone was tried and was a false green on the commonest real
+ * mistake: the tsconfig-relative view accepts `'src/domain/**'`, which
+ * `resideInFolder` can never match. Unanchored globs are the entire subject of
+ * the 0.18.1 release, so a design that quietly calls them satisfiable defeats
+ * its own purpose.
+ *
+ * So a mis-declared `base` CAN cause a red build. It is set beside `kind` by
+ * the same code, from what the entry point does rather than from intent, and
+ * `tests/core/glob-declaration.test.ts` asserts the equivalent spellings agree.
  */
 export type GlobBase = 'absolute' | 'tsconfig-relative' | 'normalized'
 
@@ -99,8 +128,9 @@ export type GlobBase = 'absolute' | 'tsconfig-relative' | 'normalized'
  * A glob as a predicate, condition or builder declares it.
  *
  * This is the author-facing half. `position` and `origin` are deliberately
- * absent: the code that mints a site cannot know either, and the builder
- * stamps them on. Exposing them here would also let a rule author write
+ * absent: the code that mints a site — inside `resideInFolder()`, several
+ * frames below any builder — cannot know either, and the builder stamps them
+ * on. Exposing them here would also let a rule author write
  * `position: 'exclusion'` and permanently exempt their own predicate from the
  * check, with no signal that they had.
  */
@@ -131,13 +161,15 @@ export type GlobSite = DeclaredGlob & {
  * under `all` — `some(dead)` is monotone — but `not()` turns an `all` into an
  * `any`, and under `any` dropping an opaque child is what makes
  * `or(deadGlob, exportSymbolNamed('Foo'))` red a working rule. Since most
- * predicates declare no globs, that would be the commonest failure of the
- * whole mechanism.
+ * predicates declare no globs, that would have been the commonest failure of
+ * the whole mechanism.
  *
  * Retaining it costs no detection, removes the need for a separate `or()`
  * propagation rule, and makes an empty node unreachable — which matters
  * because `[].every()` is `true` and would otherwise fault a rule containing
- * no globs at all.
+ * no globs at all. Verified exhaustively by
+ * `spikes/0069-tree-model-check.mjs`: 0 false reds and 0 missed emptiness
+ * across every expression of at most three combinator nodes.
  */
 export interface OpaqueGlob {
   readonly opaque: true
@@ -152,13 +184,14 @@ export type GlobLeaf<L> = L | OpaqueGlob
  * - `all` — every child must match for the whole to match, so the whole is
  *   dead if **any** child is dead. `and()`.
  * - `any` — one child matching is enough, so the whole is dead only if
- *   **every** child is dead. `or()`, a variadic predicate, repeated calls to
- *   the same discovery method.
+ *   **every** child is dead. `or()`, a variadic predicate
+ *   (`importFrom(...globs)` is `matchers.some`), repeated `.inFolder()` calls.
  *
- * A preset's option list is **not** an `any` node: if a preset fans out one
- * rule per glob, one dead layer glob is one vacuous rule, and `any` would say
- * "no fault unless every layer is dead" — a false green inside a preset. Each
- * generated builder must declare its own root instead.
+ * A preset's option list is **not** an `any` node: both shipped presets fan
+ * out one rule per glob (`src/presets/layered.ts`, `src/presets/boundaries.ts`),
+ * so one dead layer glob is one vacuous rule, and `any` would say "no fault
+ * unless every layer is dead" — a false green inside a preset. Each generated
+ * builder declares its own root instead.
  */
 export interface GlobTree<L> {
   readonly op: 'any' | 'all'
@@ -205,10 +238,9 @@ export function isOpaqueGlob<L extends object>(
 /**
  * A variadic declaration: any one of these globs matching is enough.
  *
- * A variadic predicate over `...globs` is `matchers.some`, so the set is dead
- * only when every glob in it is — which is exactly `any`. Getting this wrong
- * in the other direction (declaring it `all`) reports a working rule dead the
- * moment any one of several acceptable globs fails to match.
+ * `importFrom(...globs)` is `matchers.some`, so the set is dead only when
+ * every glob in it is — which is exactly `any`. Getting this wrong in the
+ * other direction is what the 0.18.1 withdrawal was.
  */
 export function globAnyOf(
   globs: readonly string[],
@@ -249,12 +281,13 @@ export function stampGlobs(
  * Negate a glob tree: invert `op` at every node **and** flip `polarity` at
  * every site.
  *
- * A polarity flip alone is not enough: `not(and(live, not(dead)))` selects a
- * non-empty set and would be reported dead; `not(or(live, not(dead)))`
- * selects nothing and would be missed. Inverting `op` as well is the
- * standard negation-normal-form push-down and fixes both directions, leaving
- * every simpler case unchanged: `not(not(dead))` still faults, `not(and(a,
- * b))` still does not.
+ * A polarity flip alone is not enough, and the shortfall is not exotic — it is
+ * reachable through public exports, since `and()` returns a `Predicate<T>` and
+ * `not()` takes one. `not(and(live, not(dead)))` selects a non-empty set and
+ * would be reported dead; `not(or(live, not(dead)))` selects nothing and would
+ * be missed. Inverting `op` as well is the standard negation-normal-form
+ * push-down and fixes both directions, leaving every simpler case unchanged:
+ * `not(not(dead))` still faults, `not(and(a, b))` still does not.
  */
 export function negateGlobs<L extends DeclaredGlob>(tree: GlobTree<L>): GlobTree<L> {
   return {

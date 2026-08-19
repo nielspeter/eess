@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { detectFormat, isCI } from '../../src/core/environment.js'
+import { detectFormat, isCI } from '@nielspeter/eess'
 
 describe('detectFormat', () => {
   const originalEnv = { ...process.env }

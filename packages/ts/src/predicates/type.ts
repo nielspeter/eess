@@ -1,5 +1,5 @@
 import { Node, type InterfaceDeclaration, type TypeAliasDeclaration } from 'ts-morph'
-import type { Predicate } from '../core/predicate.js'
+import type { Predicate } from '@nielspeter/eess'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
 
 /**

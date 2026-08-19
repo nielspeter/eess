@@ -1,5 +1,5 @@
-import type { Predicate } from './predicate.js'
-import type { DeclaredGlobs } from './glob-site.js'
+import type { Predicate } from '@nielspeter/eess'
+import type { DeclaredGlobs } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
 

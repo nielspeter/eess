@@ -1,7 +1,7 @@
 import { FunctionRuleBuilder } from './function-rule-builder.js'
 import type { CallRuleBuilder } from './call-rule-builder.js'
 import type { ArchFunction } from '../models/arch-function.js'
-import type { GlobNode } from '../core/glob-site.js'
+import type { GlobNode } from '@nielspeter/eess'
 import { extractCallbacks } from '../helpers/callback-extractor.js'
 
 /**

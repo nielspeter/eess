@@ -1,12 +1,12 @@
 import type { ArchViolation } from '../core/violation.js'
-import { UNSUPPRESSABLE } from '../core/unsuppressable.js'
-import type { Predicate } from '../core/predicate.js'
+import { UNSUPPRESSABLE } from '@nielspeter/eess'
+import type { Predicate } from '@nielspeter/eess'
 import type { Located } from '../predicates/identity.js'
 import { resideInFile, resideInFolder } from '../predicates/identity.js'
 import { or } from '../core/combinators.js'
-import type { RuleMetadata } from '../core/rule-metadata.js'
+import type { RuleMetadata } from '@nielspeter/eess'
 import type { RuleBuilderLike } from '../core/rule-builder-like.js'
-import { writeStderr } from '../core/stderr.js'
+import { writeStderr } from '@nielspeter/eess'
 
 export type RuleSeverity = 'error' | 'warn' | 'off'
 

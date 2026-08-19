@@ -4,8 +4,8 @@ import type { Condition, ConditionContext } from '../core/condition.js'
 import type { ArchViolation } from '../core/violation.js'
 import { createViolation, getElementFile, getElementName } from '../core/violation.js'
 import { elementCondition } from './helpers.js'
-import { globNode } from '../core/glob-site.js'
-import { marksAssertsCardinality } from '../core/cardinality.js'
+import { globNode } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 
 /**
  * Elements must reside in a file matching the glob pattern.

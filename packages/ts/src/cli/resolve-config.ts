@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { importRuleModule } from './import-rule-module.js'
-import { isRecord } from '../core/type-guards.js'
+import { isRecord } from '@nielspeter/eess'
 import fs from 'node:fs'
 import type { CliConfig } from './config.js'
 

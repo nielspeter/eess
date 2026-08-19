@@ -1,5 +1,5 @@
-import { isDescribable } from '../../core/rule-description.js'
-import type { RuleDescription } from '../../core/rule-description.js'
+import { isDescribable } from '@nielspeter/eess'
+import type { RuleDescription } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 
 export interface ExplainArgs {

@@ -1,11 +1,11 @@
 import picomatch from 'picomatch'
 import type { Condition, ConditionContext } from '../core/condition.js'
-import { globNode } from '../core/glob-site.js'
-import type { DeclaredGlobs } from '../core/glob-site.js'
+import { globNode } from '@nielspeter/eess'
+import type { DeclaredGlobs } from '@nielspeter/eess'
 import type { ArchViolation } from '../core/violation.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
-import { marksAssertsCardinality } from '../core/cardinality.js'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 
 /**
  * Helper to create a per-element condition for ArchFunction.

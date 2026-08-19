@@ -6,7 +6,7 @@ describe('ANSI color helpers', () => {
     // Since the module caches `enabled` at load time, we test the raw SGR codes.
     // The bold function should wrap with SGR 1/22 when enabled.
     // In test environments (non-TTY), colors are disabled, so helpers are identity.
-    const { bold, red, dim, yellow, cyan, gray } = await import('../../src/core/ansi.js')
+    const { bold, red, dim, yellow, cyan, gray } = await import('@nielspeter/eess')
 
     // In non-TTY test environments, all helpers should be identity functions
     expect(bold('x')).toContain('x')
@@ -18,7 +18,7 @@ describe('ANSI color helpers', () => {
   })
 
   it('helpers are no-ops when NO_COLOR is set (non-TTY environment)', async () => {
-    const { bold, red, dim, yellow, cyan, gray } = await import('../../src/core/ansi.js')
+    const { bold, red, dim, yellow, cyan, gray } = await import('@nielspeter/eess')
 
     // In test (non-TTY), all should return plain text
     expect(bold('hello')).toBe('hello')

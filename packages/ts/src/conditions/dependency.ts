@@ -3,8 +3,8 @@ import type { SourceFile, ImportDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '../core/condition.js'
 import type { ArchViolation } from '../core/violation.js'
 import { candidatesFor, matchedCandidate } from '../core/import-candidates.js'
-import { recordEdgeCoverage } from '../core/edge-coverage.js'
-import { globAnyOf } from '../core/glob-site.js'
+import { recordEdgeCoverage } from '@nielspeter/eess'
+import { globAnyOf } from '@nielspeter/eess'
 import {
   edgeTypeOnlyRemedy,
   edgeDiscriminator,

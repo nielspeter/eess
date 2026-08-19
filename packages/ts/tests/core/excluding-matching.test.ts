@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { applyFilters } from '../../src/core/execute-rule.js'
 import type { ArchViolation } from '../../src/core/violation.js'
-import { silent } from '../../src/core/silent-exclusion.js'
+import { silent } from '@nielspeter/eess'
 
 afterEach(() => {
   vi.restoreAllMocks()

@@ -7,8 +7,8 @@ import {
   discoverIdentityRoot,
   normalizeIdentityText,
   toPortablePath,
-} from '../core/identity-root.js'
-import { writeStderr } from '../core/stderr.js'
+} from '@nielspeter/eess'
+import { writeStderr } from '@nielspeter/eess'
 
 /**
  * Identity-hash format version.

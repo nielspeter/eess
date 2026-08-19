@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util'
-import { isRecord } from '../core/type-guards.js'
+import { isRecord } from '@nielspeter/eess'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'

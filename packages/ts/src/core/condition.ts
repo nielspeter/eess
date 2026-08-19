@@ -1,5 +1,5 @@
 import type { ArchViolation } from './violation.js'
-import type { DeclaredGlobs } from './glob-site.js'
+import type { DeclaredGlobs } from '@nielspeter/eess'
 
 /**
  * Context passed to conditions during evaluation.

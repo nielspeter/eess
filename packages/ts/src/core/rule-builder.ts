@@ -1,13 +1,13 @@
 import type { ArchProject } from './project.js'
 import type { CollectResult } from './terminal-builder.js'
-import type { Predicate } from './predicate.js'
+import type { Predicate } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
-import type { RuleDescription } from './rule-description.js'
-import type { DeclaredGlob, GlobNode } from './glob-site.js'
-import { countDeclaredGlobs, stampGlobs } from './glob-site.js'
+import type { RuleDescription } from '@nielspeter/eess'
+import type { DeclaredGlob, GlobNode } from '@nielspeter/eess'
+import { countDeclaredGlobs, stampGlobs } from '@nielspeter/eess'
 import { TerminalBuilder } from './terminal-builder.js'
-import { assertsCardinality } from './cardinality.js'
+import { assertsCardinality } from '@nielspeter/eess'
 
 /**
  * Abstract base class for the predicate/condition rule builders.

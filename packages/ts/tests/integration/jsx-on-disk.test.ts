@@ -30,7 +30,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { project, jsxElements, areComponents } from '../../src/index.js'
 import type { ArchProject } from '../../src/core/project.js'
-import { isRecord } from '../../src/core/type-guards.js'
+import { isRecord } from '@nielspeter/eess'
 
 const fixtureRoot = path.resolve(import.meta.dirname, '../fixtures/jsx-on-disk')
 

@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { importRuleModule } from './import-rule-module.js'
-import { isNullaryCallable } from '../core/type-guards.js'
+import { isNullaryCallable } from '@nielspeter/eess'
 import type { RuleBuilderLike } from '../core/rule-builder-like.js'
 
 // Re-exported for existing importers; the type lives in core so presets can

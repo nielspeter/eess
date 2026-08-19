@@ -1,5 +1,5 @@
 import type { ArchProject } from '../core/project.js'
-import type { RuleMetadata } from '../core/rule-metadata.js'
+import type { RuleMetadata } from '@nielspeter/eess'
 import { functions } from '../builders/function-rule-builder.js'
 import type { FunctionRuleBuilder } from '../builders/function-rule-builder.js'
 import { call } from '../helpers/matchers.js'

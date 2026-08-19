@@ -1,5 +1,5 @@
 import { Node, SyntaxKind, type CommentRange } from 'ts-morph'
-import { writeStderr } from '../core/stderr.js'
+import { writeStderr } from '@nielspeter/eess'
 
 /**
  * A matcher that tests whether a ts-morph AST node matches a specific pattern.

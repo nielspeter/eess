@@ -23,8 +23,8 @@
  * space — recorded in the plan as a known non-detection.
  */
 import { describe, it, expect } from 'vitest'
-import type { GlobNode, GlobSite } from '../../src/core/glob-site.js'
-import { combineGlobs, globNode, negateGlobs } from '../../src/core/glob-site.js'
+import type { GlobNode, GlobSite } from '@nielspeter/eess'
+import { combineGlobs, globNode, negateGlobs } from '@nielspeter/eess'
 import { isDeadGlobTree } from '../../src/core/glob-evaluator.js'
 import type { PathUniverse } from '../../src/core/path-universe.js'
 

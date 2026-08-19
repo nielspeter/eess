@@ -36,7 +36,7 @@ import type { Layer, LayerPair } from '../../src/models/cross-layer.js'
 import type { PairConditionContext } from '../../src/core/pair-condition.js'
 import type { ArchProject } from '../../src/core/project.js'
 import type { ArchViolation } from '../../src/core/violation.js'
-import type { RuleMetadata } from '../../src/core/rule-metadata.js'
+import type { RuleMetadata } from '@nielspeter/eess'
 
 const tsConfigPath = path.resolve(import.meta.dirname, '../fixtures/cross-layer/tsconfig.json')
 

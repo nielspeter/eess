@@ -3,8 +3,8 @@ import { type SourceFile, type Project, Node } from 'ts-morph'
 import type { Condition, ConditionContext } from '../core/condition.js'
 import type { ArchViolation } from '../core/violation.js'
 import { moduleEdges } from '../core/module-edges.js'
-import { recordEdgeCoverage } from '../core/edge-coverage.js'
-import { globAnyOf } from '../core/glob-site.js'
+import { recordEdgeCoverage } from '@nielspeter/eess'
+import { globAnyOf } from '@nielspeter/eess'
 import { relativeToRoot } from '../core/project-relative.js'
 
 // ─── Reverse import graph (cached per ts-morph Project) ──────────

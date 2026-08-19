@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import picomatch from 'picomatch'
 import type { ArchProject } from './project.js'
-import { discoverIdentityRoot } from './identity-root.js'
+import { discoverIdentityRoot } from '@nielspeter/eess'
 
 /**
  * Directories never worth walking.

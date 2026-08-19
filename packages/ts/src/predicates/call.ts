@@ -1,7 +1,7 @@
 import { Node } from 'ts-morph'
 import picomatch from 'picomatch'
-import type { Predicate } from '../core/predicate.js'
-import { globNode } from '../core/glob-site.js'
+import type { Predicate } from '@nielspeter/eess'
+import { globNode } from '@nielspeter/eess'
 import type { ArchCall } from '../models/arch-call.js'
 
 /**

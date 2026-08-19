@@ -20,7 +20,7 @@ import {
 } from '../../src/core/glob-diagnosis.js'
 import { pathUniverse } from '../../src/core/path-universe.js'
 import { buildDiskSet, diskSet } from '../../src/core/disk-set.js'
-import type { GlobSite } from '../../src/core/glob-site.js'
+import type { GlobSite } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/modules')

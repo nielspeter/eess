@@ -8,7 +8,7 @@ import {
   nameMatches,
   alwaysFail,
 } from '../support/test-rule-builder.js'
-import { silent } from '../../src/core/silent-exclusion.js'
+import { silent } from '@nielspeter/eess'
 
 const elements = [
   { name: 'UserService', file: '/project/src/services/user.ts', line: 5, exported: true },

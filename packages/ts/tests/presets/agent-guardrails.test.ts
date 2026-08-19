@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isDescribable } from '../../src/core/rule-description.js'
+import { isDescribable } from '@nielspeter/eess'
 import { Project } from 'ts-morph'
 import path from 'node:path'
 import type { ArchProject } from '../../src/core/project.js'

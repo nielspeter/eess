@@ -1,5 +1,5 @@
 import type { ClassDeclaration } from 'ts-morph'
-import type { Predicate } from '../core/predicate.js'
+import type { Predicate } from '@nielspeter/eess'
 
 /**
  * Matches classes that extend the named base class.

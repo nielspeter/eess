@@ -4,7 +4,7 @@ export { checkAll } from './core/check-all.js'
 export type { ArchProject } from './core/project.js'
 
 // Core — predicate interface & combinators
-export type { Predicate } from './core/predicate.js'
+export type { Predicate } from '@nielspeter/eess'
 export { not, and, or } from './core/combinators.js'
 
 // Core — condition interface & violation model
@@ -29,12 +29,12 @@ export {
 export { RuleBuilder } from './core/rule-builder.js'
 export { TerminalBuilder } from './core/terminal-builder.js'
 export { ArchRuleError } from './core/errors.js'
-export type { RuleMetadata } from './core/rule-metadata.js'
-export type { RuleDescription } from './core/rule-description.js'
+export type { RuleMetadata } from '@nielspeter/eess'
+export type { RuleDescription } from '@nielspeter/eess'
 
 // Core — code frame & formatting
-export { generateCodeFrame } from './core/code-frame.js'
-export type { CodeFrameOptions } from './core/code-frame.js'
+export { generateCodeFrame } from '@nielspeter/eess'
+export type { CodeFrameOptions } from '@nielspeter/eess'
 export { formatViolations, formatViolationsPlain } from './core/format.js'
 export type { FormatOptions } from './core/format.js'
 
@@ -54,8 +54,8 @@ export type {
   GlobSite,
   GlobTree,
   OpaqueGlob,
-} from './core/glob-site.js'
-export { combineGlobs, globAnyOf, globNode, negateGlobs, stampGlobs } from './core/glob-site.js'
+} from '@nielspeter/eess'
+export { combineGlobs, globAnyOf, globNode, negateGlobs, stampGlobs } from '@nielspeter/eess'
 
 // In-process diagnostics (plan 0069 R2a). The vitest-facing half of `doctor`:
 // rules written inside tests are a co-equal documented path, and a CLI-only
@@ -284,7 +284,7 @@ export type {
   ArchJsonUntestedAllowlist,
 } from './core/format-json.js'
 export { formatViolationsGitHub } from './core/format-github.js'
-export { detectFormat, isCI } from './core/environment.js'
+export { detectFormat, isCI } from '@nielspeter/eess'
 
 // Baseline mode
 export { withBaseline, generateBaseline, Baseline } from './helpers/baseline.js'
@@ -301,8 +301,8 @@ export { parseExclusionComments, isExcludedByComment } from './core/exclusion-co
 export type { ExclusionComment, ExclusionWarning, ParseResult } from './core/exclusion-comments.js'
 
 // Silent exclusion wrapper
-export { silent } from './core/silent-exclusion.js'
-export type { SilentExclusion } from './core/silent-exclusion.js'
+export { silent } from '@nielspeter/eess'
+export type { SilentExclusion } from '@nielspeter/eess'
 
 // Baseline generation helper
 export { collectViolations } from './helpers/baseline-generator.js'

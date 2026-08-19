@@ -1,6 +1,6 @@
 import { Project, type SourceFile, type CompilerOptions } from 'ts-morph'
 import path from 'node:path'
-import { clearRegisteredCaches } from './cache-registry.js'
+import { clearRegisteredCaches } from '@nielspeter/eess'
 import fs from 'node:fs'
 import { registerProjectRoots } from './project-relative.js'
 import { registerRootCompilerOptions } from './per-root-compiler-options.js'

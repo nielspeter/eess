@@ -1,6 +1,6 @@
-import type { Predicate } from './predicate.js'
+import type { Predicate } from '@nielspeter/eess'
 import type { TypeMatcher } from './type-matcher.js'
-import { combineGlobs, negateGlobs } from './glob-site.js'
+import { combineGlobs, negateGlobs } from '@nielspeter/eess'
 
 /**
  * Negates a predicate or type matcher.

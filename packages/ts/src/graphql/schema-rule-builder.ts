@@ -1,11 +1,11 @@
-import type { RuleDescription } from '../core/rule-description.js'
+import type { RuleDescription } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
 import type { ArchViolation } from '../core/violation.js'
 import type { Condition, ConditionContext } from '../core/condition.js'
 import { TerminalBuilder } from '../core/terminal-builder.js'
-import type { Predicate } from '../core/predicate.js'
+import type { Predicate } from '@nielspeter/eess'
 import type { LoadedSchema, GraphQLObjectTypeLike, GraphQLTypeLike } from './schema-loader.js'
-import { selectionMemo } from '../core/selection-memo.js'
+import { selectionMemo } from '@nielspeter/eess'
 import type { SchemaElement } from './schema-predicates.js'
 import {
   queries as queriesPredicate,

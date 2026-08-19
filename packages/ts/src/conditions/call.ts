@@ -5,7 +5,7 @@ import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
 import { getFunctionBody, findMatchesInNode, reportedLine } from '../helpers/body-traversal.js'
 import { identifyMatches } from './match-identity.js'
-import { marksAssertsCardinality } from '../core/cardinality.js'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 
 /**
  * Helper to create a violation from an ArchCall.

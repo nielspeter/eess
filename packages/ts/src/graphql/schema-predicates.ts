@@ -1,4 +1,4 @@
-import type { Predicate } from '../core/predicate.js'
+import type { Predicate } from '@nielspeter/eess'
 import type { GraphQLFieldLike, GraphQLObjectTypeLike } from './schema-loader.js'
 
 /**
