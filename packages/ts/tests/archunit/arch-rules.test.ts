@@ -1152,6 +1152,32 @@ afterAll(() => {
   expect(stale, `PLANTED names rules that no longer exist:\n  ${stale.join('\n  ')}`).toEqual([])
 })
 
+/**
+ * The rule ids declared in `arch.internal.rules.ts`, read from its SOURCE TEXT.
+ *
+ * `orphanExclusions` needs the union of ids across every rule file, and this repo
+ * has two: the rules built in this file, and the internal ones. Passing only
+ * `BUILT` reported all 33 restored `eess/no-unused-exports` waivers as orphans
+ * (plan 0165, measured) — the exact false positive that function's own docstring
+ * says a per-file check produces.
+ *
+ * By source text rather than by `import`, because importing that module executes
+ * its `workspace([...])` against paths relative to the repo root and vitest runs
+ * from `packages/ts` — measured, it throws `tsconfig not found`. Reading the
+ * declarations also keeps this a genuinely SECOND derivation: a rule that stops
+ * being declared there stops appearing here, without this file ever running it.
+ *
+ * Only the id matters; `orphanExclusions` reads `getProject()` separately and
+ * `BUILT` already supplies the project.
+ */
+function internalRuleIds(): { describeRule: () => { id: string } }[] {
+  const src = fs.readFileSync(path.resolve('../../arch.internal.rules.ts'), 'utf-8')
+  const ids = [...src.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1] ?? '')
+  // A floor, so a broken read cannot quietly re-create the false positive it fixes.
+  expect(ids.length).toBeGreaterThan(10)
+  return ids.map((id) => ({ describeRule: () => ({ id }) }))
+}
+
 afterAll(() => {
   // **Dogfooding the fix for our own bug.**
   // [Bug 0044](../../bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md):
@@ -1181,7 +1207,15 @@ afterAll(() => {
   // the fixture the test reads. Only fixtures: a directive anywhere else in
   // `tests/` is a real waiver and stays in scope.
   const isFixture = (file: string): boolean => file.includes('/tests/fixtures/')
-  const allOrphans = orphanExclusions(BUILT)
+  // **Both rule sources, unioned.** `orphanExclusions` wants the union across
+  // every rule FILE — its own docstring says a per-file check reports a directive
+  // naming a sibling file's rule as an orphan, which is a false positive on the
+  // commonest layout. This repo has two sources: the rules built in this file,
+  // and `arch.internal.rules.ts`. Passing only `BUILT` reported all 33 restored
+  // `eess/no-unused-exports` waivers as orphans (plan 0165, measured) — the exact
+  // false positive the function was written to avoid, produced by calling it with
+  // half the population.
+  const allOrphans = orphanExclusions([...BUILT, ...internalRuleIds()])
   const orphans = allOrphans.filter((o) => !isFixture(o.file))
   // The carve-out must not be able to grow silently into "no orphans anywhere":
   // everything it drops has to be a fixture path, and this says so.
@@ -1197,12 +1231,64 @@ it('VACUITY: the orphan check really reads our directives', () => {
   // and it would have, silently, for as long as nobody looked. The two waivers
   // are asserted BY IDENTITY, so deleting one is visible here rather than
   // shrinking a count nobody reads.
-  const files = readdirRecursive(path.resolve('src'))
-    .filter((f) => f.endsWith('.ts'))
-    .filter((f) => /^\s*\/\/ eess-exclude(-start)? /m.test(fs.readFileSync(f, 'utf-8')))
-    .map((f) => path.relative(path.resolve('src'), f).replaceAll('\\', '/'))
-    .sort()
-  expect(files).toEqual(['conditions/members.ts', 'graphql/schema-loader.ts'])
+  // Grouped BY RULE, not one flat list. The two ADR-005 waivers are the ones this
+  // row was written for and they stay asserted by identity; plan 0165 restored 34
+  // `eess/no-unused-exports` waivers the engine copy had dropped, and folding
+  // those into the same list would have turned an identity assertion into a
+  // 36-element blob nobody reads — the count-not-identity failure the comment
+  // above rejects. Both sets are still exact, so deleting any one directive is
+  // visible here.
+  const waiverFiles = (ruleId: string): string[] =>
+    readdirRecursive(path.resolve('src'))
+      .filter((f) => f.endsWith('.ts'))
+      .filter((f) =>
+        new RegExp(`^\\s*// eess-exclude(-start)? ${ruleId}:`, 'm').test(
+          fs.readFileSync(f, 'utf-8'),
+        ),
+      )
+      .map((f) => path.relative(path.resolve('src'), f).replaceAll('\\', '/'))
+      .sort()
+
+  expect(waiverFiles('adr005/no-as-cast-module')).toEqual([
+    'conditions/members.ts',
+    'graphql/schema-loader.ts',
+  ])
+  expect(waiverFiles('eess/no-unused-exports')).toEqual([
+    'builders/cross-layer-builder.ts',
+    'cli/commands/baseline.ts',
+    'cli/commands/check.ts',
+    'cli/commands/doctor.ts',
+    'cli/commands/explain.ts',
+    'cli/commands/init.ts',
+    'cli/index.ts',
+    'cli/load-rules.ts',
+    'cli/rule-file-findings.ts',
+    'cli/watch.ts',
+    'conditions/catch-analysis.ts',
+    'conditions/match-identity.ts',
+    'core/disk-set.ts',
+    'core/element-cache.ts',
+    'core/execute-rule.ts',
+    'core/glob-diagnosis.ts',
+    'core/import-candidates.ts',
+    'core/object-literal-functions.ts',
+    'core/orphan-exclusions.ts',
+    'core/terminal-builder.ts',
+    'graphql/schema-loader.ts',
+    'helpers/baseline.ts',
+    'helpers/body-traversal.ts',
+    'helpers/matchers.ts',
+    'helpers/slice-graph.ts',
+    'models/arch-call.ts',
+    'models/arch-function.ts',
+    'models/arch-jsx-element.ts',
+    'presets/agent-guardrails.ts',
+    'presets/boundaries.ts',
+    'presets/data-layer.ts',
+    'presets/layered.ts',
+    'presets/recommended.ts',
+    'tsconfig/strict-family.ts',
+  ])
 })
 
 it('every waiver in src/ actually suppresses something', () => {
