@@ -190,7 +190,7 @@ const rules = [
   // waiting on the kernel project-abstraction ADR, so splitting it now would be
   // work done twice.
   srcClasses()
-    .excluding(/\/(core|ts)\/src\/core\/(terminal-builder|rule-builder)\.ts$/)
+    .excluding(/\/src\/(core\/)?(terminal-builder|rule-builder)\.ts$/)
     .excluding(/\/src\/builders\//)
     .excluding(/\/src\/smells\/inconsistent-siblings\.ts$/)
     .should()
@@ -203,7 +203,11 @@ const rules = [
     }),
   srcClasses().should().satisfy(maxMethodLines(50)).rule({ id: 'eess/max-method-lines' }),
   srcClasses()
-    .excluding(/\/builders\/|\/core\/src\/rule-builder\.ts$/)
+    .excluding(/\/src\/builders\//)
+    .excluding(/\/src\/(core\/)?(terminal-builder|rule-builder)\.ts$/)
+    // `graphql/schema-rule-builder.ts` is a fluent builder that does not live
+    // under `builders/`; the folder was never the reason, the shape is.
+    .excluding(/\/src\/graphql\/schema-rule-builder\.ts$/)
     .should()
     .satisfy(maxMethods(20))
     .rule({

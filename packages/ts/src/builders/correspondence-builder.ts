@@ -565,20 +565,22 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     const subjects = keyed.get(key) ?? []
     if (subjects.length === 0) {
       // Plain-key side — no source location available.
-      return [this.baseViolation(key, '', 0, message, meta)]
+      return [this.baseViolation({ element: key, file: '', line: 0 }, message, meta)]
     }
     return subjects.map((subject) => {
       const node = toNode(subject)
       if (node) {
         return this.baseViolation(
-          getElementName(node),
-          getElementFile(node),
-          getElementLine(node),
+          {
+            element: getElementName(node),
+            file: getElementFile(node),
+            line: getElementLine(node),
+          },
           message,
           meta,
         )
       }
-      return this.baseViolation(key, '', 0, message, meta)
+      return this.baseViolation({ element: key, file: '', line: 0 }, message, meta)
     })
   }
 
@@ -598,9 +600,7 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     const known = actual.map((s) => `'${s}'`).join(' and ')
     return {
       ...this.baseViolation(
-        name,
-        '',
-        0,
+        { element: name, file: '', line: 0 },
         `this rule declares something about a side named '${name}', but its sides are ${known} — ` +
           `so the declaration binds to nothing and asserts nothing.`,
         {
@@ -629,9 +629,7 @@ export class CorrespondenceBuilder extends TerminalBuilder {
   private unexpectedlyNonEmptyViolation(sideName: string, meta: ViolationMeta): ArchViolation {
     return {
       ...this.baseViolation(
-        sideName,
-        '',
-        0,
+        { element: sideName, file: '', line: 0 },
         `correspondence side '${sideName}' was declared empty with .expectEmpty('${sideName}'), ` +
           `and now matches subjects — so the declaration no longer describes this rule.`,
         meta,
@@ -647,9 +645,7 @@ export class CorrespondenceBuilder extends TerminalBuilder {
   private emptyViolation(sideName: string, meta: ViolationMeta): ArchViolation {
     return {
       ...this.baseViolation(
-        sideName,
-        '',
-        0,
+        { element: sideName, file: '', line: 0 },
         `correspondence side '${sideName}' matched 0 subjects — a correspondence over an ` +
           `empty side certifies nothing. Fix the selector, or call .expectEmpty('${sideName}') ` +
           `if an empty side is valid here.`,
@@ -669,13 +665,19 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     }
   }
 
+  /**
+   * The common shape of every correspondence finding.
+   *
+   * `element`/`file`/`line` travel together as one `at` — they are a location,
+   * and passing three positional strings-and-a-number invited exactly the
+   * transposition the parameter cap exists to prevent.
+   */
   private baseViolation(
-    element: string,
-    file: string,
-    line: number,
+    at: { element: string; file: string; line: number },
     message: string,
     meta: ViolationMeta,
   ): ArchViolation {
+    const { element, file, line } = at
     return {
       rule: meta.rule,
       ruleId: meta.ruleId,

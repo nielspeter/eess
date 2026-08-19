@@ -169,13 +169,18 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
   }
 
   /** Build violations for non-matching files in a folder where the majority matches. */
+  /**
+   * The two description strings travel together as one `describe` — adjacent
+   * positional strings are the transposition the parameter cap guards against,
+   * and these two read alike.
+   */
   private buildFolderViolations(
     folder: string,
     matching: SourceFile[],
     nonMatching: SourceFile[],
-    ruleDescription: string,
-    patternDesc: string,
+    describe: { rule: string; pattern: string },
   ): ArchViolation[] {
+    const { rule: ruleDescription, pattern: patternDesc } = describe
     const total = matching.length + nonMatching.length
     const violations: ArchViolation[] = []
     for (const sf of nonMatching) {
@@ -294,7 +299,10 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
       if (nonMatching.length === 0) continue
 
       violations.push(
-        ...this.buildFolderViolations(folder, matching, nonMatching, ruleDescription, patternDesc),
+        ...this.buildFolderViolations(folder, matching, nonMatching, {
+          rule: ruleDescription,
+          pattern: patternDesc,
+        }),
       )
     }
 

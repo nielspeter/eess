@@ -538,6 +538,15 @@ export function formatBaselineDelta(delta: BaselineDelta): string {
  * A loaded baseline. Passed to check(\{ baseline \}) to filter known violations.
  */
 export class Baseline {
+  // `Baseline` is an exported type and `new Baseline(hashes, root)` is a
+  // documented call, so folding these into an options object is a breaking
+  // change and not this plan's to make. Every parameter after the second is
+  // optional and defaulted, so the call sites that matter take two.
+  //
+  // The directive is the LAST line before the declaration on purpose: a
+  // single-line waiver covers exactly the next line, so prose placed under it
+  // consumes the waiver instead of the code (measured, right here).
+  // eess-exclude eess/max-parameters: published constructor; an options object would break it
   constructor(
     private readonly knownHashes: Set<string>,
     private readonly root: string,

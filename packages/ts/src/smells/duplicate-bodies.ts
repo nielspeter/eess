@@ -102,13 +102,21 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
   }
 
   /** Check if a file path passes all glob-based filters. */
+  /**
+   * The three matcher sets travel together as one `filters` — they are one
+   * configuration, and four positional `picomatch.Matcher[]` arguments in a row
+   * are exactly the transposition risk the parameter cap exists to prevent.
+   */
   private passesFileFilters(
     filePath: string,
-    folderMatchers: picomatch.Matcher[],
-    ignoreMatchers: picomatch.Matcher[],
-    testMatchers: picomatch.Matcher[],
+    filters: {
+      folderMatchers: picomatch.Matcher[]
+      ignoreMatchers: picomatch.Matcher[]
+      testMatchers: picomatch.Matcher[]
+    },
     fromRoot?: string,
   ): boolean {
+    const { folderMatchers, ignoreMatchers, testMatchers } = filters
     // Both forms, for every set — bug 0036. A project-relative `inFolder()` or
     // `ignorePaths()` glob could never match an absolute path.
     const hits = (ms: picomatch.Matcher[]): boolean =>
@@ -163,9 +171,7 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
       if (
         !this.passesFileFilters(
           sf.getFilePath(),
-          folderMatchers,
-          ignoreMatchers,
-          testMatchers,
+          { folderMatchers, ignoreMatchers, testMatchers },
           relativeToRoot(sf, sf.getFilePath(), this.project.tsConfigPath),
         )
       ) {
