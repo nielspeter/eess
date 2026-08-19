@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — reproduced at runtime and at the type level; no red test yet.
+- **State:** Draft — fix **built and measured** in an isolated worktree, both
+  halves (see Fix); no red test committed yet.
 - **Severity:** High — false green. A caller who escalates a rule to `'error'`
   and misspells the key gets the unescalated default, a stderr line, and a
   passing build.
@@ -93,9 +94,56 @@ All six call sites pass it as a void side-effect: `recommended.ts:99`,
 The blast radius is one surface **wider** in eess than it was upstream: the md
 dialect calls `validateOverrides` too, a surface ts-archunit never had.
 
-## Fix
+## Fix — measured 2026-08-19
 
-Port both halves. The type half is the one that actually prevents the defect
+Built and measured in an isolated worktree against a green baseline
+(presets+smells 105/105 before any patch).
+
+| check                                       | before        | after                 |
+| ------------------------------------------- | ------------- | --------------------- |
+| typo'd key produces a configuration finding | **0**         | **1** ✓               |
+| typo'd key in `throw` mode fails the build  | did not throw | **`ArchRuleError`** ✓ |
+| CONTROL: correct key produces no finding    | 0             | 0                     |
+| CONTROL: no overrides produces no finding   | 0             | 0                     |
+| typo'd keys rejected by `tsc` (4 presets)   | **0 of 4**    | **4 of 4** ✓          |
+| CONTROL: a correct key still compiles       | compiles      | compiles              |
+| presets + smells suites                     | 105/105       | 105/105               |
+| md suite                                    | 113/113       | 113/113               |
+| `check:arch` / `check:spec`                 | green         | green                 |
+
+**Runtime half.** `validateOverrides` now **returns** `ArchViolation[]` instead
+of only writing stderr; each unmatched key becomes a finding with
+`bypassFilters` and a stable `identity`, spread into the preset's own
+violations. The stderr line is kept, so a caller ignoring the return (the old
+`void` contract) still sees something and every existing call site compiles
+unchanged. Wired at all six sites — the five ts presets **and**
+`packages/md/src/rules/adr.ts`, the surface upstream never had.
+
+**Type half.** `PresetBaseOptions<TRuleId extends string = string>` with
+`overrides?: Partial<Record<TRuleId, RuleSeverity>>`, defaulting to `string`
+so an undeclared preset compiles unchanged. `recommended`'s `SPECS` became
+`as const satisfies readonly RuleSpec[]` (the annotation `: readonly RuleSpec[]`
+widens `meta.id` to `string` and silently collapses the union — that reversion
+is a caught sabotage row upstream, and a comment now says so at the line). The
+other three ts presets and md's `adrEnforcement` already had `as const` id
+arrays, so their unions are `(typeof RULE_IDS)[number]`.
+
+**`agentGuardrails` is the documented exception — it stays `string`-typed.**
+Its ids are computed from options at call time (`collectRuleIds`), including
+a template-interpolated `preset/agent/no-inline-logic/${api}` whose value
+depends on the caller's own array. A static union is not derivable without a
+template-literal type over that option; the runtime half is its only guard.
+Recorded rather than left as an apparent oversight.
+
+**Two ripples worth knowing.** The internal `dispatchRule`/`validateOverrides`
+signatures had to widen from `Record<string, RuleSeverity>` to
+`Partial<Record<…>>` for a typed overrides object to flow through — two lines.
+And the four new `…RuleId` unions are genuine public API (a consumer needs them
+to type their own overrides object), so they are re-exported from
+`packages/ts/src/presets/index.ts`; `check:arch`'s no-unused-exports rule
+caught them before that and is what prompted it.
+
+The original prescription, kept for reference: The type half is the one that actually prevents the defect
 (it fails before the code runs); the runtime half covers dynamically-built
 options objects the type system cannot see. Landing only the runtime half
 leaves a stderr-shaped remedy for a mistake `tsc` could have caught.

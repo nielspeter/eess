@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — reproduced against the built dist, including the case that
-  defeats the ADR-010 floor; no red test yet.
+- **State:** Draft — fix **built and measured** in an isolated worktree with a
+  discriminating control (see Fix); no red test committed yet.
 - **Severity:** High — false green. Two byte-identical functions are reported
   as no duplication at all, with no finding of any kind, in the realistic case.
 - **Origin:** self-found · [fold audit](../fold-audit-2026-08-19.md)
@@ -55,10 +55,25 @@ That is a distinct failure shape from a dead selector, and worth noting in its
 own right: **`examined > 0` is not evidence that the intended subjects were
 examined.**
 
-## Fix
+## Fix — measured 2026-08-19
 
-Pass `{ includeObjectLiteralFunctions: true }` at both call sites, matching
-`resolver-rule-builder.ts:201`.
+`{ includeObjectLiteralFunctions: true }` at both call sites, matching
+`resolver-rule-builder.ts:201`. Measured in an isolated worktree against a
+green baseline (smells 49/49 before the patch):
+
+| check                                                                | before | after   |
+| -------------------------------------------------------------------- | ------ | ------- |
+| two identical object-literal arrows, **with an ordinary fn present** | **0**  | **1** ✓ |
+| CONTROL: the same bodies as top-level declarations                   | 1      | 1       |
+| smells suite                                                         | 49/49  | 49/49   |
+
+The control is what makes the row mean something: identical bodies found as
+top-level declarations and missed as object-literal properties isolates the
+**collector** as the difference, not the similarity threshold or the
+`minDistinctVocabulary` floor. A first attempt at that control was malformed
+(a `sed` transform dropped the closing braces) and reported 0 — a broken
+control would have made both rows meaningless, so it was rebuilt by hand
+before either verdict was credited.
 
 Then decide the wider question this exposes, and record the ruling here: should
 a collector's _population_ be assertable, so a rule can state which kinds of
