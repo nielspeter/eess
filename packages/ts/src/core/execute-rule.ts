@@ -20,8 +20,7 @@ import type { EdgeCoverage } from '@nielspeter/eess'
  * Shared across all builder types (RuleBuilder, SliceRuleBuilder,
  * SchemaRuleBuilder, ResolverRuleBuilder, PairFinalBuilder, SmellBuilder).
  */
-// eess-exclude eess/no-unused-exports: declaration emit — it appears in the signature of an exported API in this file
-export interface ExecuteRuleContext {
+interface ExecuteRuleContext {
   reason?: string
   metadata?: RuleMetadata
   exclusions?: (string | RegExp)[]
@@ -240,6 +239,22 @@ export function applyFilters(
     const undocumented: ExclusionWarning[] = []
     const filePaths = new Set(result.map((v) => v.file))
     const allComments = [...filePaths].flatMap((filePath) => {
+      // Two EXPECTED shapes never reach the read, so that the catch below is
+      // left holding only the surprising one.
+      //
+      // `file: ''` is a configuration finding — there is no source and no
+      // comment to find. This used to be expressed by letting `readFileSync('')`
+      // throw into the catch: control flow by exception, on a NORMAL path.
+      //
+      // A path not on disk is an in-memory ts-morph project or a test fixture's
+      // synthetic file. Same story — no file, so no exclusion comments. Measured:
+      // without this clause a warning fires once per file for every in-memory
+      // project (it broke two cases in `excluding-matching.test.ts`).
+      //
+      // Together these are what made the catch unreportable — it could not tell
+      // either expected case from a file we genuinely failed to read, so it had
+      // to stay silent about all three.
+      if (filePath === '' || !fs.existsSync(filePath)) return []
       try {
         const sourceText = fs.readFileSync(filePath, 'utf-8')
         const parseResult = parseExclusionComments(sourceText, filePath)
@@ -257,16 +272,26 @@ export function applyFilters(
           writeStderr(`[eess] ${warning.message}`)
         }
         return parseResult.exclusions
-        // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: an unparseable source contributes no exclusions; the parse failure is the file's own problem and surfaces through the rules that read it
-      } catch {
+      } catch (err) {
+        // On disk, and still unreadable — a permission or I/O failure, not a
+        // shape eess expects. That is NOT silent: every `// eess-exclude` in
+        // this file stops applying, so a violation the author believes is
+        // waived fires again with no stated cause. Naming the file and the
+        // reason is the difference between "your waiver broke" and "eess
+        // started reporting something new" (ADR-009 rule 2).
+        writeStderr(
+          `[eess] could not read ${filePath} to apply its exclusion comments ` +
+            `(${err instanceof Error ? err.message : String(err)}) — any ` +
+            `\`// eess-exclude\` directives in it were NOT applied.\n`,
+        )
         return []
       }
     })
 
     if (allComments.length > 0) {
       // `v.bypassFilters` explicitly, not by accident. These findings are
-      // immune today only because they carry `file: ''`, so `readFileSync('')`
-      // throws into the catch above and `comment.file === ''` can never hold.
+      // immune today only because they carry `file: ''`, which the guard above
+      // returns no exclusions for, so `comment.file === ''` can never hold.
       // The moment one carries a real path this clause becomes the only
       // protection — and bug 0026 is that moment: configuration findings now
       // carry the rule file they came from, so this file IS read and its

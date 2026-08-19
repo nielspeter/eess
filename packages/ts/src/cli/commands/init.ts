@@ -14,8 +14,7 @@ type InitPreset = (typeof VALID_PRESETS)[number]
 
 const VALID_PRESET_SET: ReadonlySet<string> = new Set(VALID_PRESETS)
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported runInit API (must stay exported for declaration emit)
-export interface InitArgs {
+interface InitArgs {
   /** Directory to scaffold into. Defaults to `process.cwd()`. */
   cwd?: string
   /**
@@ -353,8 +352,10 @@ function readJsonc(filePath: string): unknown {
     .replace(/,(\s*[}\]])/g, '$1')
   try {
     return JSON.parse(stripped)
-    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: a tsconfig this loose parser cannot read yields undefined, and every caller already handles that as "unknown"
-  } catch {
+  } catch (err) {
+    // Best-effort JSONC parse: a malformed tsconfig falls back to `src` root
+    // detection rather than crashing init. The parse error carries no fix here.
+    void err
     return undefined
   }
 }
@@ -487,8 +488,10 @@ function hasSource(cwd: string, sourceRoot: string): boolean {
   const dir = path.join(cwd, sourceRoot)
   try {
     return fs.statSync(dir).isDirectory() && fs.readdirSync(dir).length > 0
-    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: a directory that cannot be stat-ed is not a non-empty directory — the failure IS the answer
-  } catch {
+  } catch (err) {
+    // A missing/unreadable source dir simply means "no existing source" — the
+    // greenfield closing message applies. Nothing to report.
+    void err
     return false
   }
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import path from 'node:path'
 // Bound to the source under test, not to `@nielspeter/eess`. During plan 0165's
 // baseline the kernel and `packages/ts/src` carry SEPARATE copies of these, so a
@@ -14,6 +14,8 @@ import {
 } from '@nielspeter/eess'
 import { project, functions, call } from '../../src/index.js'
 import { functionNotContain } from '../../src/conditions/body-analysis-function.js'
+import { applyFilters } from '../../src/core/execute-rule.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 /**
  * End-to-end coverage for inline exclusion comments
@@ -146,5 +148,56 @@ describe('inline exclusion comments — end-to-end (condition → applyFilters �
       expect(() => forbiddenCallRule('excluded-single.ts', OTHER_ID).check()).toThrow(ArchRuleError)
       expect(commentSuppressions()).toEqual([])
     })
+  })
+})
+
+/**
+ * The exclusion scan re-reads every file that produced a violation, to find the
+ * `// eess-exclude` directives in it. THREE different failures can stop that
+ * read, and they do not deserve the same treatment — which is why the code
+ * splits them instead of wrapping all three in one silent catch.
+ *
+ * The split is the point: two of the three are expected shapes that carry no
+ * information, and the third is a waiver silently ceasing to apply. Collapsing
+ * them makes the third invisible; reporting all three makes the first two into
+ * a warning storm on every in-memory project.
+ */
+describe('a file whose exclusion comments could not be read', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  function violationIn(file: string): ArchViolation {
+    return { rule: 'r', element: 'E', file, line: 1, message: 'm' }
+  }
+
+  it('stays silent for a path that is not on disk', () => {
+    // An in-memory ts-morph project, or a test fixture's synthetic path. There
+    // is no file, so there are no exclusion comments to miss. Measured: without
+    // the guard this warns once per file for every in-memory project.
+    const warn = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    applyFilters([violationIn('/src/does/not/exist.ts')], { metadata: { id: 'test-rule' } })
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('stays silent for a configuration finding, which carries no file at all', () => {
+    const warn = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    applyFilters([violationIn('')], { metadata: { id: 'test-rule' } })
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('reports a path that IS on disk and still could not be read', () => {
+    // A directory reads as EISDIR — the same shape as a permission or I/O
+    // failure, and unlike `chmod 000` it behaves identically as root, in a
+    // container, and on every CI runner.
+    //
+    // This case is deliberately NOT silent: every `// eess-exclude` in that
+    // file has just stopped applying, so a violation the author believes is
+    // waived fires again. Without this line they are told only that eess
+    // reported something new — a cause they cannot act on (ADR-009 rule 2).
+    const warn = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    applyFilters([violationIn(process.cwd())], { metadata: { id: 'test-rule' } })
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('could not read'))
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining(process.cwd()))
   })
 })

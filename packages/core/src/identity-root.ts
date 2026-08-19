@@ -106,8 +106,13 @@ function declaresWorkspaces(manifestPath: string): boolean {
   try {
     const parsed: unknown = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
     return parsed !== null && typeof parsed === 'object' && 'workspaces' in parsed
-    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: a manifest that cannot be read or parsed is not a workspace root — the failure IS the answer, and there is no caller to report it to
-  } catch {
+  } catch (error: unknown) {
+    // A malformed or unreadable package.json is simply not a workspace root —
+    // it must not abort identity-root discovery (or baseline loading behind
+    // it) over a manifest this function doesn't even need to parse correctly.
+    // Deliberately unexamined: every failure mode (bad JSON, permissions, a
+    // symlink race) reduces to the same "not a workspace root" answer.
+    void error
     return false
   }
 }

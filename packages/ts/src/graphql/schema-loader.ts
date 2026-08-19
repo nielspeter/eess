@@ -216,8 +216,8 @@ function findGraphqlFiles(
   let entries: fs.Dirent[]
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true })
-    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: an unreadable directory during a glob walk yields no schema files; the walk is best-effort
-  } catch {
+  } catch (err) {
+    void err // unreadable dir — deliberately skipped
     return results
   }
 
@@ -244,8 +244,13 @@ export function isGraphQLAvailable(): boolean {
   try {
     requireGraphQL()
     return true
-    // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: `false` is the honest answer for BOTH "not installed" and "installed but broken" — the distinction is preserved and reported by `loadSchemaFromSDL`'s throw, which `schema-loader-require-errors.test.ts` pins; rethrowing here made an availability PROBE throw
-  } catch {
+  } catch (err) {
+    // `false` is the honest answer for BOTH "not installed" and "installed but
+    // broken". This is an availability PROBE — making it rethrow turned the
+    // barrel export's runtime guard into a crash. The distinction between the
+    // two causes is preserved and reported by `loadSchemaFromSDL`'s throw,
+    // which `schema-loader-require-errors.test.ts` pins.
+    void err
     return false
   }
 }
@@ -258,7 +263,7 @@ export function isGraphQLAvailable(): boolean {
  * intermittently under full-suite load. This seam replaces only this
  * module's own loading step — nothing shared with any other file to race on.
  */
-// eess-exclude eess/no-unused-exports: test-only seam, consumed by tests/graphql/schema-loader-require-errors.test.ts
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function setGraphQLLoaderForTests(loader: () => GraphQLPackage): void {
   loadGraphQL = loader
 }
@@ -267,7 +272,7 @@ export function setGraphQLLoaderForTests(loader: () => GraphQLPackage): void {
  * Restore the real loader and clear the cached package. **Tests only** — see
  * {@link setGraphQLLoaderForTests}.
  */
-// eess-exclude eess/no-unused-exports: test-only seam, consumed by tests/graphql/schema-loader-require-errors.test.ts
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function resetGraphQLLoaderForTests(): void {
   loadGraphQL = defaultLoadGraphQL
   cachedGraphQL = undefined

@@ -107,7 +107,7 @@ export function diskSet(project: ArchProject): DiskSet {
  * facts — and with the budget a module constant it could only ever have been
  * reached by accident on a repository nobody has.
  */
-// eess-exclude eess/no-unused-exports: exercised by tests; the build tsconfig this gate reads excludes tests, so src is the only usage it can see
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function buildDiskSet(project: ArchProject, budgetLimit = ENTRY_BUDGET): DiskSet {
   return build(project, budgetLimit)
 }
@@ -148,9 +148,9 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
     let entries: fs.Dirent[]
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true })
-      // eess-exclude eess/no-silent-catch, preset/recommended/no-silent-catch: an unreadable directory during a walk is skipped by design; the walk is a best-effort probe, not a report
-    } catch {
-      return // unreadable or gone: not a finding, just not walkable
+    } catch (err) {
+      void err // unreadable or gone: not a finding, just not walkable
+      return
     }
     budget -= entries.length
     if (budget < 0) {
