@@ -122,6 +122,33 @@ describe('an assertion-less rule fails (bug 0155)', () => {
     expect(violations[0]?.bypassFilters).toBe(true)
   })
 
+  it('a declared .expectNonEmpty() IS an assertion — no finding', () => {
+    // Found in PR #71's customer review. `.expectNonEmpty()` says "this corpus
+    // must never legitimately be empty" — a real, failing assertion that lives
+    // on TerminalBuilder rather than in `_conditions`. Calling it
+    // assertion-less told the author to add a condition or delete the rule,
+    // both of which destroy a working corpus guard.
+    const violations = new WidgetRules(project).that().named('alpha').expectNonEmpty().violations()
+    expect(violations).toEqual([])
+  })
+
+  it('…and it still reddens when the corpus it guards IS empty', () => {
+    // The other half: without this the row above could pass by the assertion
+    // having been disabled rather than recognised.
+    const empty: WidgetProject = { widgets: [] }
+    const violations = new WidgetRules(empty).that().named('alpha').expectNonEmpty().violations()
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain('expectNonEmpty')
+  })
+
+  it('a declared .expectEmpty() reports ONE finding when it expires, not two', () => {
+    // `.expectEmpty()` is likewise an assertion. Before the fix this emitted
+    // the assertion-less finding AND the expiry finding for one fault.
+    const violations = new WidgetRules(project).that().named('alpha').expectEmpty().violations()
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain('expectEmpty')
+  })
+
   it('CONTROL: a rule that asserts something is unaffected', () => {
     const failing = new WidgetRules(project)
       .that()

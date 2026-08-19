@@ -1,3 +1,4 @@
+import { UNSUPPRESSABLE } from './unsuppressable.js'
 import type { Predicate } from './predicate.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
@@ -90,6 +91,15 @@ function declaredGlobsOf<T>(predicates: Predicate<T>[], conditions: Condition<T>
  * they carry suppressible false positives a reader must judge case by case.
  * This carries none.
  *
+ * **A declared emptiness expectation is an assertion**, so `_expectEmpty`
+ * exempts a rule from this gate. `.expectNonEmpty()` reddens when the corpus
+ * it says must never be empty becomes empty; `.expectEmpty()` reddens the day
+ * the set it says must stay empty gains a member. Neither lives in
+ * `_conditions`. Without that term the gate called a working corpus guard
+ * assertion-less and told its author to "add a condition or delete the rule" —
+ * both of which destroy the guard — and for `.expectEmpty()` reported two
+ * findings for one fault. Found in PR #71's review.
+ *
  * **Gate-first**, ahead of the conditions: an assertion-less rule cannot
  * produce a legitimate finding, so evaluating it buys nothing but a full walk.
  * Accepted consequence — a rule with a dead glob AND no condition reports the
@@ -118,7 +128,12 @@ function assertionLessViolation(ruleId: string): ArchViolation {
     file: '',
     line: 0,
     message,
-    suggestion: message,
+    // `UNSUPPRESSABLE` on the remedy: this is the finding a reader is most
+    // likely to disagree with — the message says their rule is broken and
+    // their belief is that it is not — so it is the one where they will reach
+    // for `.asSeverity('warn')`, `.excluding()`, the baseline and `--changed`
+    // in turn, several CI cycles, because nothing said those were refused.
+    suggestion: `${message} ${UNSUPPRESSABLE}`,
     identity: `assertion-less::${ruleId}`,
     bypassFilters: true,
   }
@@ -383,7 +398,9 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
     // Bug 0155 — gate-first, before the conditions run. See
     // `assertionLessViolation` for why this is a finding and not a warning,
     // and why there is no `_phase` term.
-    if (this._conditions.length === 0) {
+    // `_expectEmpty === undefined`: a declared emptiness expectation is an
+    // assertion too — see `assertionLessViolation`.
+    if (this._conditions.length === 0 && this._expectEmpty === undefined) {
       const ruleId = this._metadata?.id ?? (this.buildRuleDescription() || 'unnamed')
       return { violations: [assertionLessViolation(ruleId)], examined }
     }

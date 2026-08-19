@@ -1,5 +1,10 @@
 ---
 '@nielspeter/eess': minor
+'@nielspeter/eess-ts': patch
+'@nielspeter/eess-md': patch
+'@nielspeter/eess-mermaid': patch
+'@nielspeter/eess-gherkin': patch
+'@nielspeter/eess-crossvalidate': patch
 ---
 
 A rule that selects subjects and asserts nothing about them now fails — bug 0155.
@@ -31,6 +36,13 @@ unrepresentable.
   dead glob _and_ no condition reports the missing assertion only — the right
   root cause, since no selector makes an assertion-less rule capable of
   failing. The selector fault resurfaces once there is something to assert.
+
+**Every dialect is named deliberately.** The behaviour change is in the kernel,
+but an adopter installs `eess-ts` (or `-md`, `-mermaid`, …) and reads _that_
+package's changelog. Declaring only the kernel would route this text to a
+package they may not know exists, while their own changelog said "Updated
+dependencies" — the standalone-sufficiency failure `check:family` exists to
+prevent, in documentation rather than code.
 
 **Migration:** each finding names the rule and both remedies. Add the condition
 you meant to assert, or delete the rule. If a rule was deliberately held as a
