@@ -44,68 +44,38 @@ export const FAMILY_ONLY = new Set([
 export const ANSI_INTERNAL = new Set(['bold', 'red', 'dim', 'yellow', 'cyan', 'gray'])
 
 /**
- * Kernel exports that were **eess-ts-private before the split** (plan 0165 Phase 2).
+ * Kernel exports that eess-ts has never published.
  *
- * The rule: *moving a module's home must not change eess-ts's public API.* Every
- * name here lived in `packages/ts/src/core/` — never exported from
- * `src/index.ts`, so no consumer could reach it — and Phase 2 moved its file into
- * `@nielspeter/eess`. Publishing them now, because a file changed package, would
- * add 47 internals to a public surface that deliberately excluded them.
+ * The rule: *moving a module's home must not change eess-ts's public API.*
  *
- * Verified mechanically against `packages/ts/src/index.ts` at 119ba6d (the Phase 1
- * close): none of these was reachable from eess-ts before the move.
+ * **This list was wrong when Phase 2 wrote it, and the correction is the point.**
+ * It held 47 names, justified as "none was reachable from eess-ts before the
+ * move" — measured against `119ba6d`, which is the Phase 1 close, i.e. AFTER the
+ * engine copy had already dropped them. Circular: the damaged state was used as
+ * the definition of normal. Re-measured against `3b851d2` — the last commit
+ * before the copy — **34 of those 47 were public**, and Phase 3 re-exported all
+ * 34 from `packages/ts/src/index.ts`. Removing a published export is a breaking
+ * change; the burden sits on the removal.
  *
- * A name that later becomes part of the standalone surface gets re-exported and
- * REMOVED from here, never left in both. `reportViolations` is the near-term
- * candidate: ADR-008's caller-owns-reporting API arrives on eess-ts's presets in
- * Phase 3.
+ * These 13 are what survives that correction: kernel internals eess-ts did not
+ * export before the copy either.
+ *
+ * The ratchet still bites — a kernel export that is NOT here and NOT re-exported
+ * reds `standalone-surface.test.ts` — and the second test there keeps the list
+ * from going stale by requiring every name to still exist in the kernel.
  */
 export const KERNEL_PRIVATE_BEFORE_THE_SPLIT = new Set([
   'DECLARE_INSTEAD',
-  'UNSUPPRESSABLE',
   'UNSUPPRESSABLE_MECHANISMS',
-  'activeNotice',
-  'assertionLessViolation',
-  'assertsCardinality',
-  'byCodepoint',
-  'commentSuppressionNotice',
-  'commentSuppressions',
-  'countDeclaredGlobs',
-  'dedupeConfigFindings',
   'disambiguateIdentities',
-  'discoverIdentityRoot',
-  'dispatchRule',
-  'edgeCoverageNotice',
-  'finishPreset',
   'identityCollisions',
-  'isAnchored',
   'isArchRuleError',
   'isDescribable',
-  'isFaultPosition',
-  'isGlobNode',
-  'isNullaryCallable',
-  'isOpaqueGlob',
-  'isProjectRelative',
-  'isRecord',
   'isSilent',
-  'marksAssertsCardinality',
   'marksOwnEmptyDiscovery',
-  'normalizeIdentityText',
   'ownsEmptyDiscovery',
-  'presetConstructsNothingViolation',
-  'recordCommentSuppression',
-  'recordEdgeCoverage',
-  'reportViolations',
-  'resetCommentSuppression',
-  'resetDiffDisclosureForTests',
-  'resetEdgeCoverage',
   'resetIdentityCollisions',
   'resetStderrGuardForTests',
-  'shallowClone',
   'subjectOf',
-  'suppressionNotice',
-  'throwIfViolations',
   'toPortablePath',
-  'untestedRules',
-  'viewsFor',
 ])

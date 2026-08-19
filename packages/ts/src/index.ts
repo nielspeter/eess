@@ -466,3 +466,77 @@ export type {
   // `report` on every preset's options (ADR-008, restored in plan 0165 Phase 3).
   ReportMode,
 } from '@nielspeter/eess'
+
+// ─── Restored published surface — plan 0165 Phase 3 ──────────────────────────
+//
+// Every name below was exported by `@nielspeter/eess-ts` before the engine copy
+// and stopped being exported by it. Removing a published export is a BREAKING
+// change; re-exporting is additive, so the burden of justification sits on the
+// removal, not on keeping them. Verified against `packages/ts/src/index.ts` at
+// 3b851d2 — the last commit before the copy — rather than against the baseline
+// the copy had already damaged. (Phase 2's exclusion list made exactly that
+// mistake, and its record says so.)
+export {
+  registerProjectRoots,
+  rootFromTsConfigPath,
+  rootOf,
+  relativeToRoot,
+} from './core/project-relative.js'
+export {
+  registerRootCompilerOptions,
+  verbatimModuleSyntaxFor,
+} from './core/per-root-compiler-options.js'
+export {
+  syntacticFault,
+  diagnoseGlob,
+  FAULT_ADVICE,
+  ON_DISK_ADVICE,
+} from './core/glob-diagnosis.js'
+export { isStrictFamily, resolveFlag, STRICT_FAMILY_SIZE } from './tsconfig/strict-family.js'
+export {
+  isFaultPosition,
+  countDeclaredGlobs,
+  isGlobNode,
+  isOpaqueGlob,
+  resetCommentSuppression,
+  recordCommentSuppression,
+  commentSuppressions,
+  commentSuppressionNotice,
+  dispatchRule,
+  throwIfViolations,
+  presetConstructsNothingViolation,
+  finishPreset,
+  byCodepoint,
+  assertionLessViolation,
+  recordEdgeCoverage,
+  untestedRules,
+  edgeCoverageNotice,
+  resetEdgeCoverage,
+} from '@nielspeter/eess'
+export type {
+  RuleSeverity,
+  PresetBaseOptions,
+  PresetReportOptions,
+  ReportOptions,
+} from '@nielspeter/eess'
+// The remainder of the pre-copy surface (same rule as the block above): these
+// were public in eess-ts before the engine copy, so their absence is a break,
+// not a cleanup.
+export {
+  UNSUPPRESSABLE,
+  activeNotice,
+  assertsCardinality,
+  dedupeConfigFindings,
+  discoverIdentityRoot,
+  isAnchored,
+  isNullaryCallable,
+  isProjectRelative,
+  isRecord,
+  marksAssertsCardinality,
+  normalizeIdentityText,
+  reportViolations,
+  resetDiffDisclosureForTests,
+  shallowClone,
+  suppressionNotice,
+  viewsFor,
+} from '@nielspeter/eess'
