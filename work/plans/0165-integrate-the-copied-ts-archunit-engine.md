@@ -95,6 +95,13 @@ and at the time of the first reading `packages/ts/dist` still held the PRE-copy
 build. Both were measuring eess's old engine while the table claimed they
 measured the new one. Rebuilt, the real baseline is worse:
 
+- `check:vacuity` — **red**, not green. Read against the stale build it reported
+  every preset as `config-finding`; against a fresh one all five are
+  **fail-open**, because upstream's presets RETURN builders where eess's threw.
+  Same root cause as `check:baseline` below — ADR-008's `report`. **Phase 3.**
+  (This one was misread twice: the Phase 1 close repeated the stale reading.
+  Three stale-`dist` misreadings in one plan is the lesson, not the individual
+  slip — see the rule at the end of this section.)
 - `check:crossval` — **6** failing checks, not 1. Five of them are one cause:
   `.select()` does not exist on the copied builders. It is a kernel
   `RuleBuilder` method (`packages/core/src/rule-builder.ts:167`) that upstream
@@ -107,7 +114,14 @@ measured the new one. Rebuilt, the real baseline is worse:
   expects violations and the kernel's `reportViolations` dies inside
   `path.relative` on `file: undefined`. **Phase 3.**
 
-Two lessons, both recorded rather than filed away: a gate that reads `dist` is
+**The rule, since this cost three misreadings:** `check:crossval`,
+`check:baseline` and `check:vacuity` import the BUILT `@nielspeter/eess-ts`.
+Never read one without `npm run build` immediately before it, and state the build
+in the record. A stale `dist` does not fail — it answers confidently about code
+that is no longer there, which is the failure mode this whole plan is about,
+committed by the instrument instead of the subject.
+
+Two further lessons: a gate that reads `dist` is
 measuring whatever was last built, so a baseline must state when it was built;
 and `reportViolations` crashing on a malformed violation is its own small
 ADR-009 rule-1 defect — a gate that dies emits no findings at all, and
@@ -258,31 +272,109 @@ and the three ADR citations in
 carried into Phase 2 rather than closed here, because two of the three cited
 tests moved into files the kernel re-split will move again.
 
-### Phase 2 — re-split the kernel
+### Phase 2 — re-split the kernel · **DONE (with a named remainder)**
 
-`eess-ts` imports `@nielspeter/eess` again; `packages/core` stays
-ts-morph-free. This is the work
-[plan 0051](./completed/0051-consolidation-eess-monorepo.md) did once, redone
-against a newer engine — its per-file classification is the precedent to
-follow, not to reinvent.
+`eess-ts` imports `@nielspeter/eess` again. **30 modules moved into the kernel**;
+`packages/ts/src/core` went from 57 files to 27, `packages/core/src` from 46 to
+49, and **89 of eess-ts's 127 source files** now import the kernel — against
+**zero** at the baseline.
 
-The measured constraint from the earlier throwaway experiment: **37 of
-upstream's 57 `src/core` files are transitively ts-morph-tainted**, so the
-split is not a file move. The 20 transitively-clean ones are the floor, and
-the rest need the same pure-part extraction `packages/core`'s own
-`project-relative.ts` / `path-universe.ts` / `glob-site.ts` docstrings already
-record doing.
+| criterion (as written before the work)                            | result                                                                      |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `eess-ts` imports the kernel in a stated non-zero number of files | **89 of 127**                                                               |
+| `check:family` green on a non-zero count                          | green — and it found **37 real violations** on the way, having been vacuous |
+| `check:family` reds when a dialect's kernel imports are emptied   | sabotage-proven, and wired into `check:nonvacuity` as a standing probe      |
+| `check:arch`'s `kernel-no-engine-deps` green                      | green                                                                       |
+| `packages/core` imports ts-morph in zero files                    | zero                                                                        |
+| `standalone-surface.test.ts` passes                               | passes                                                                      |
 
-Done when:
+`.select()` came back with it — a kernel `RuleBuilder` method upstream never had,
+which `@nielspeter/eess-crossvalidate` is built entirely on. Restoring it took
+crossvalidate from **33 failing tests and 4 files that would not typecheck** to
+**77/77 green**, and fixed four of the eight non-vacuity probes that were failing
+at the Phase 1 close.
 
-- `eess-ts` imports `@nielspeter/eess` in a **non-zero, stated** number of files,
-  and `check:family` is green **on a non-zero re-export count** — the gate must
-  print what it checked, not merely exit 0 (see the fail-open above);
-- `check:arch`'s `kernel-no-engine-deps` is green with `packages/core` importing
-  ts-morph in zero files;
-- `standalone-surface.test.ts` passes;
-- `family.rules.ts` itself fails when a dialect's kernel imports are emptied —
-  proved by the non-vacuity harness, not by inspection.
+#### How the split was done
+
+`violation.ts` was the unlock. It is the taint root — 25 of the 37 tainted files
+depended on ts-morph only through it — and it splits cleanly: the `ArchViolation`
+shape, `severityFor`, `remedyRepeatsMessage`, `byCodepoint`, `subjectOf` and the
+identity-collision machinery are pure; `getElementName`, `enclosingScopeName`,
+`getElementFile`, `getElementLine` and `createViolation` take a `Node`. Pure half
+to the kernel (plus eess's own `ArchFix`), ts-morph half kept in the dialect,
+and the tainted count fell 37 → 26 in one move.
+
+The rest was mechanical, in three waves — 19 files, then `violation.ts`, then 11
+more — each wave measured, built and run before the next.
+
+#### Four findings
+
+**1 — a basename is not a module.** The rewriter matched imports by last path
+segment, so moving `core/errors.ts` also rewrote every import of
+`rules/errors.ts` — a completely different module — and broke seven files. The
+tool now matches by RESOLVED PATH. Recorded because the mistake is invisible in
+review: both lines read `from './errors.js'`.
+
+**2 — the family gate was vacuous, and is now not.** It went green at the
+baseline **because** `packages/ts/src` imported nothing from the kernel: zero
+imports, zero required re-exports, `0 === 0`. With the imports back it reported
+37 genuine gaps. It now carries its own vacuity guard — an unsuppressable
+finding when a package's kernel-import set is empty, whose message says so — and
+`check:nonvacuity` gained a probe that empties a dialect's whole `src/` and
+requires the gate to red. The three probes that existed all injected a _missing
+re-export_, so every one of them assumed the imports were still there; none
+could have caught the state this plan itself created.
+
+**3 — two exclusion lists synced by a comment.** `scripts/lib/family-re-exports.mjs`
+and `standalone-surface.test.ts` held the same list twice, kept in step by a
+comment saying so and a guard that scraped the sibling's source text. Phase 2
+grew one of them by 47 names — exactly when such a pair drifts. They are now one
+module (`scripts/lib/kernel-surface.mjs`), and the old sync guard was replaced,
+not deleted, by one that asserts the single-source property in both directions.
+
+**4 — my own exclusion list disarmed two live probes.** Adding `UNSUPPRESSABLE`
+and `byCodepoint` to the kernel-private list made the family rule skip them —
+and those were the exact symbols two `check:nonvacuity` probes inject. Both went
+`bad → exit 0`. The harness caught it, which is the entire reason it exists; the
+probes now inject `collectViolations` and `diffAware`, which no list excludes.
+
+#### The rule Phase 2 settled
+
+**Moving a module's home must not change eess-ts's public API.** All 47 names
+`standalone-surface.test.ts` newly reported were `packages/ts/src/core/`
+internals — never exported from `src/index.ts`, unreachable by any consumer.
+Publishing them because a file changed package would be a worse outcome than the
+gap the test looks for. Verified mechanically against `packages/ts/src/index.ts`
+at `119ba6d`. The five names that DID need re-exporting (`Selection`,
+`ElementInfo`, `RuleBuilderLike`, `EdgeCoverage`, `GlobLeaf`) are types in
+eess-ts's own public signatures — which is the gate working exactly as intended.
+
+#### What Phase 2 did NOT do, and why it stops here
+
+**27 ts-morph-tainted modules remain duplicated** between `packages/core/src`
+and `packages/ts/src/core` — including the whole builder stack (`rule-builder`,
+`terminal-builder`, `execute-rule`) and `exclusion-comments`, `project-relative`,
+`path-universe`, `disk-set`, `combinators`. Unifying them is not a move; it needs
+two design decisions this plan has no mandate to make on its own:
+
+- **a project abstraction for the kernel.** The copied `terminal-builder` is 1298
+  lines and touches `ArchProject` in only 5 places, so the coupling is thin — but
+  the kernel currently has _no_ project concept at all (`PathUniverse` is its
+  pure stand-in), and giving it one constrains all five dialects forever.
+- **a pluggable tokenizer for `exclusion-comments`.** The copied version blanks
+  string literals with a real ts-morph tokenizer (bug 0154's fix); the kernel's
+  does a regex scan. The other four dialects have no TS AST, so the kernel needs
+  an injection point rather than a choice between the two.
+
+Both are ADR-shaped, not plan-shaped, per this repo's own rule that a binding
+design decision belongs in `adr/` and not buried in a plan. That is the next
+step and it is **not** Phase 3's — Phase 3 restores dropped capabilities and can
+proceed independently.
+
+The duplication that Phase 1 measured actually breaking — module-level state in
+`execute-rule.ts`, read by one copy and written by the other — is still live in
+those 27. `src/cli/import-rule-module.ts` keeps it from firing by loading rule
+files natively wherever it can; that is a containment, not a fix.
 
 ### Phase 3 — restore eess's own additions
 
@@ -321,8 +413,10 @@ The suite is the specification, which is the point of the whole exercise.
 - **Phase 1:** engine failures → 0, every one disposed as fixed or deferred to a
   named phase. **Done:** 3537 tests · 3504 passing; the 33 that remain are 30
   upstream-corpus (out of scope) + 3 later-phase.
-- **Phase 2:** `check:arch`, `check:family` green; `standalone-surface.test.ts`
-  passes; `packages/core` imports ts-morph in zero files.
+- **Phase 2:** **Done.** `check:family` green on 89 importing files and red when
+  a dialect's kernel imports are emptied (standing `check:nonvacuity` probe);
+  `standalone-surface.test.ts` passes; `packages/core` imports ts-morph in zero
+  files; `kernel-no-engine-deps` green.
 - **Phase 3:** the 16 eess-only test files pass.
 - **Throughout:** `npm run validate` green at each phase's close, and the
   non-vacuity harness still reports every fixture firing — a copied engine
@@ -345,7 +439,14 @@ The suite is the specification, which is the point of the whole exercise.
 
 - [x] Phase 1 — the engine failures (29 measured, not 38): 0 remaining; every one
       fixed, or deferred to a named later phase of this plan. No test deleted.
-- [ ] Phase 2 — re-split the kernel.
+- [x] Phase 2 — re-split the kernel: 30 modules moved, 89 of 127 eess-ts source
+      files import the kernel (was 0), `check:family` green **and** non-vacuous,
+      `standalone-surface` passes, `.select()` restored (crossvalidate 77/77).
+      27 ts-morph-tainted modules stay duplicated — `deferred→ADR` (a kernel
+      project abstraction + a pluggable exclusion-comment tokenizer), named in
+      Phase 2's own section.
 - [ ] Phase 3 — restore `report`, `--fix`, `havePathMatching`.
 
-Deferred: none.
+Deferred: an ADR for the kernel's project abstraction and a pluggable
+exclusion-comment tokenizer — the two decisions the remaining 27 duplicated
+modules wait on (Phase 2's section says why each is a decision, not a move).

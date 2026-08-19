@@ -149,6 +149,14 @@ describe('item 22 — a relative specifier resolves to where the path says', () 
           joined.replace(/\.js$/, '.d.ts'),
           // A directory specifier resolves to its index file.
           path.join(joined, 'index.ts'),
+          // A `.mjs` specifier resolves to its `.d.mts` declaration sibling —
+          // TypeScript's own rule for a plain-JS ESM module with hand-written
+          // types. `standalone-surface.test.ts` imports
+          // `scripts/lib/kernel-surface.mjs` (the single source shared with
+          // `check:family`, plan 0165 Phase 2), which is the first such edge in
+          // the corpus and the reason this row exists.
+          joined.replace(/\.mjs$/, '.d.mts'),
+          joined.replace(/\.mjs$/, '.mts'),
         ]
         if (!candidates.includes(edge.resolvedPath)) {
           mismatches.push(

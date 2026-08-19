@@ -132,7 +132,7 @@
  * the `validate` chain). Exits 0 iff every fixture fired on its violating input.
  */
 import { spawnSync } from 'node:child_process'
-import { writeFileSync, rmSync, readFileSync } from 'node:fs'
+import { writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -404,12 +404,18 @@ function gateInternalArch() {
 
 // --- Gate: family (plan 0089 — standalone-sufficiency rules) ---
 function gateFamilyReExportIndex() {
-  // UNSUPPRESSABLE: a real kernel export md's own sources don't otherwise
+  // `collectViolations`: a real kernel export md's own sources don't otherwise
   // touch — importing it (without re-exporting it) is a genuine, isolated
   // re-export-completeness gap, not a pre-existing one this probe rides on.
+  //
+  // It was `UNSUPPRESSABLE` until plan 0165 Phase 2, which put that name on
+  // `KERNEL_PRIVATE_BEFORE_THE_SPLIT` — so the rule started skipping it and this
+  // probe injected something the gate is designed to ignore. The harness caught
+  // it (bad → exit 0), which is the whole point of the harness; a probe must
+  // inject a symbol the rule actually checks, so pick one off no exclusion list.
   const bad = withMutatedFile(
     FAMILY_REEXPORT_INDEX_TARGET,
-    "import { UNSUPPRESSABLE } from '@nielspeter/eess'",
+    "import { collectViolations } from '@nielspeter/eess'",
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
   const ok = bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts')
@@ -422,11 +428,13 @@ function gateFamilyReExportIndex() {
 }
 
 function gateFamilyReExportCrossvalidate() {
-  // byCodepoint: a different real kernel export than the index.ts probe
-  // uses, so the two probes are provably independent of each other.
+  // `diffAware`: a different real kernel export than the index.ts probe uses, so
+  // the two probes are provably independent of each other. (Was `byCodepoint`,
+  // which plan 0165 Phase 2 moved onto `KERNEL_PRIVATE_BEFORE_THE_SPLIT` — same
+  // disarming as above, same fix.)
   const bad = withMutatedFile(
     FAMILY_REEXPORT_CROSSVALIDATE_TARGET,
-    "import { byCodepoint } from '@nielspeter/eess'",
+    "import { diffAware } from '@nielspeter/eess'",
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
   const ok =
@@ -436,6 +444,61 @@ function gateFamilyReExportCrossvalidate() {
   return {
     ok,
     detail: `bad → exit ${bad.code} (family/re-export-complete on crossvalidate/src/files.ts) · ${cleanNote}`,
+  }
+}
+
+/**
+ * The family rule's OWN vacuity guard — plan 0165 Phase 2.
+ *
+ * The three probes above all inject a MISSING re-export, so every one of them
+ * assumes the package still imports the kernel at all. None can catch the state
+ * plan 0165's engine copy actually produced: `packages/ts/src` importing
+ * `@nielspeter/eess` in ZERO files, where the rule has nothing to examine and
+ * exits 0. Measured — `check:family` was green through that entire baseline,
+ * green *because* the boundary it guards had been deleted.
+ *
+ * So this probe empties a dialect's kernel imports instead of breaking one, and
+ * requires the gate to red. Gherkin, because it is the smallest such package
+ * (one file) and because using a different dialect than the other three probes
+ * keeps them independent.
+ */
+function gateFamilyKernelImportsEmptied() {
+  // EVERY source file in the package, not just its entry. `builder.ts` imports
+  // the kernel across four lines and `index.ts` re-exports the same four names;
+  // stripping only the entry left `needed` non-empty (measured) and the probe
+  // tested the ordinary missing-re-export path instead of the vacuity path.
+  const dir = join(repoRoot, 'packages', 'gherkin', 'src')
+  const targets = readdirSync(dir)
+    .filter((f) => f.endsWith('.ts'))
+    .map((f) => join(dir, f))
+  const originals = new Map(targets.map((t) => [t, readFileSync(t, 'utf8')]))
+  for (const [t, o] of originals) pendingRestores.set(t, o)
+  // Matches a whole import/export declaration, however many lines it spans,
+  // without running past the next `from '` — so it can never swallow the
+  // statement after it.
+  const KERNEL_DECL = /(?:^|\n)(?:import|export)(?:(?!from ')[\s\S])*?from '@nielspeter\/eess'/g
+  let bad
+  try {
+    for (const [t, o] of originals) writeFileSync(t, o.replace(KERNEL_DECL, ''))
+    bad = sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json'])
+  } finally {
+    for (const [t, o] of originals) {
+      writeFileSync(t, o)
+      pendingRestores.delete(t)
+    }
+  }
+  // The finding must name the RULE and the emptied package, and say what is
+  // wrong — an exit code alone cannot tell this apart from the ordinary
+  // missing-re-export failure the three probes above already cover.
+  const ok =
+    bad.code === 1 &&
+    firedOn(bad, 'family/re-export-complete', 'gherkin/src/index.ts') &&
+    /imports NOTHING from @nielspeter\/eess/.test(bad.stdout + bad.stderr)
+  const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
+  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
+  return {
+    ok,
+    detail: `bad → exit ${bad.code} (gherkin's whole src emptied of kernel imports) · ${cleanNote}`,
   }
 }
 
@@ -787,6 +850,7 @@ const gates = [
   ['family re-export (index)', gateFamilyReExportIndex],
   ['family re-export (crossvalidate)', gateFamilyReExportCrossvalidate],
   ['family re-export (aggregation)', gateFamilyReExportAggregation],
+  ['family kernel-imports emptied', gateFamilyKernelImportsEmptied],
   ['baseline', gateBaseline],
   ['diagram', gateDiagram],
   ['spec', gateSpec],
@@ -946,6 +1010,7 @@ const GATE_FOR = {
     'family re-export (index)',
     'family re-export (crossvalidate)',
     'family re-export (aggregation)',
+    'family kernel-imports emptied',
   ],
   'check:baseline': ['baseline'],
   'check:diagram': ['diagram'],

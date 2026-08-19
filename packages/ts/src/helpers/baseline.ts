@@ -3,11 +3,7 @@ import path from 'node:path'
 import { createHash } from 'node:crypto'
 import type { ArchViolation } from '@nielspeter/eess'
 import { subjectOf } from '@nielspeter/eess'
-import {
-  discoverIdentityRoot,
-  normalizeIdentityText,
-  toPortablePath,
-} from '@nielspeter/eess'
+import { discoverIdentityRoot, normalizeIdentityText, toPortablePath } from '@nielspeter/eess'
 import { writeStderr } from '@nielspeter/eess'
 
 /**

@@ -407,7 +407,15 @@ export {
 } from './rules/security.js'
 
 // Standard rules — error function variants (plan 0042)
-export { noGenericErrors, noTypeErrors, functionNoGenericErrors, functionNoTypeErrors, noSilentCatch, functionNoSilentCatch, moduleNoSilentCatch } from './rules/errors.js'
+export {
+  noGenericErrors,
+  noTypeErrors,
+  functionNoGenericErrors,
+  functionNoTypeErrors,
+  noSilentCatch,
+  functionNoSilentCatch,
+  moduleNoSilentCatch,
+} from './rules/errors.js'
 
 // Standard rules — architecture (plan 0042)
 export { mustCall, classMustCall } from './rules/architecture.js'
@@ -443,3 +451,16 @@ export type { CliConfig } from './cli/config.js'
 
 export { orphanExclusions } from './core/orphan-exclusions.js'
 export type { OrphanExclusion } from './core/orphan-exclusions.js'
+
+// Kernel types that appear in eess-ts's OWN public signatures, re-exported so a
+// standalone install can name them (plan 0165 Phase 2, `check:family`):
+// `Selection`/`ElementInfo` are `RuleBuilder.select()`'s param and return types,
+// `RuleBuilderLike` is what `loadRuleFiles` and every preset returns, and
+// `EdgeCoverage`/`GlobLeaf` surface through the diagnostic types below.
+export type {
+  Selection,
+  ElementInfo,
+  RuleBuilderLike,
+  EdgeCoverage,
+  GlobLeaf,
+} from '@nielspeter/eess'

@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest'
 import * as kernel from '@nielspeter/eess'
 import * as tsRoot from '../src/index.js'
 import * as tsPresets from '../src/presets/index.js'
+import {
+  KERNEL_INTERNAL,
+  FAMILY_ONLY,
+  ANSI_INTERNAL,
+  KERNEL_PRIVATE_BEFORE_THE_SPLIT,
+} from '../../../scripts/lib/kernel-surface.mjs'
 
 /**
  * Plan 0088's Success Definition (binding invariant): `@nielspeter/eess-ts`
@@ -16,35 +22,23 @@ import * as tsPresets from '../src/presets/index.js'
  * still a real standalone-sufficiency gap, just one this guard can't see.
  */
 
-// The dialect-family-only surface (plan 0088 Phase 4's own named exception):
-// serves crossvalidate/md's two-sided binding, not a standalone ts user.
-// correspondence()/matchSelections()/applyFixes() and their direct
-// companions stay kernel-only on purpose.
-const FAMILY_ONLY = new Set([
-  'correspondence',
-  'CorrespondenceBuilder',
-  'matchSelections',
-  'applyFixes',
+/**
+ * The exclusion sets are IMPORTED, not restated.
+ *
+ * `npm run check:family` enforces the same invariant from the other side and
+ * needs the same lists. They used to be two copies kept in step by a comment
+ * that said so; plan 0165 Phase 2 moved 30 modules into the kernel and grew one
+ * of them by 47 names, which is exactly when a hand-synced pair drifts. See
+ * `scripts/lib/kernel-surface.mjs` for what each set means and why a name is on
+ * it.
+ */
+
+const EXCLUDED = new Set([
+  ...FAMILY_ONLY,
+  ...KERNEL_INTERNAL,
+  ...ANSI_INTERNAL,
+  ...KERNEL_PRIVATE_BEFORE_THE_SPLIT,
 ])
-
-// Kernel-internal plumbing the kernel's own index.ts comments name as
-// "used by dialects and covered by kernel tests" — implementation detail,
-// not part of the surface a standalone ts consumer builds against.
-const KERNEL_INTERNAL = new Set([
-  'applyFilters',
-  'escapeGitHub',
-  'hashViolation',
-  'writeStderr',
-  'registerCacheReset',
-  'clearRegisteredCaches',
-  'selectionMemo',
-])
-
-// ANSI color helpers — terminal-formatting internals, not part of the
-// programmatic surface.
-const ANSI_INTERNAL = new Set(['bold', 'red', 'dim', 'yellow', 'cyan', 'gray'])
-
-const EXCLUDED = new Set([...FAMILY_ONLY, ...KERNEL_INTERNAL, ...ANSI_INTERNAL])
 
 describe('standalone sufficiency: eess-ts re-exports the kernel surface it owns (plan 0088)', () => {
   it('every non-excluded kernel value export is reachable from eess-ts (root or presets subpath)', () => {

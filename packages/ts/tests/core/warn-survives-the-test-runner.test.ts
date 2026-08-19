@@ -48,9 +48,7 @@ const repoRoot = path.resolve(import.meta.dirname, '../..')
  * `@nielspeter/eess`, and a stale join fails the child with ERR_MODULE_NOT_FOUND
  * — which reads exactly like the channel assertion failing.
  */
-const kernelStderr = fileURLToPath(
-  new URL('../../../core/src/stderr.ts', import.meta.url),
-)
+const kernelStderr = fileURLToPath(new URL('../../../core/src/stderr.ts', import.meta.url))
 
 const vitestCli = path.join(
   path.dirname(createRequire(import.meta.url).resolve('vitest/package.json')),

@@ -260,24 +260,35 @@ test('wildcard chain still catches a genuinely missing symbol (not blanket-satis
   )
 })
 
-test('KERNEL_INTERNAL stays in sync with standalone-surface.test.ts (0088-era) — no silent drift', () => {
-  // The two lists are hand-kept in sync by comment, not by import — this
-  // file (a plain .mjs, no build step) and standalone-surface.test.ts (a
-  // vitest .ts test inside packages/ts) don't share a module graph a normal
-  // `import` could bridge. Extract the sibling list from its own source
-  // text instead — cheaper than restructuring either file's module shape,
-  // and it fails loudly (not silently) the moment either list moves without
-  // the other, which is the actual risk this guards against.
+test('the exclusion lists have ONE source — standalone-surface.test.ts restates nothing', () => {
+  // Supersedes the old sync guard, which compared two hand-kept copies by
+  // scraping the sibling's source text. Plan 0165 Phase 2 removed the second
+  // copy instead: both consumers now import `scripts/lib/kernel-surface.mjs`.
+  //
+  // So the thing to guard changed. There is no drift to detect any more; what
+  // can regress is someone re-introducing a local list, and then the gate and
+  // the test would disagree again with nothing watching. This asserts the
+  // single-source property directly, in both directions.
   const siblingSrc = readFileSync('packages/ts/tests/standalone-surface.test.ts', 'utf8')
-  const match = siblingSrc.match(/const KERNEL_INTERNAL = new Set\(\[([^\]]+)\]\)/)
   assert.ok(
-    match,
-    'KERNEL_INTERNAL not found in standalone-surface.test.ts — sync guard itself is stale',
+    /from '\.\.\/\.\.\/\.\.\/scripts\/lib\/kernel-surface\.mjs'/.test(siblingSrc),
+    'standalone-surface.test.ts no longer imports scripts/lib/kernel-surface.mjs — the two ' +
+      'exclusion lists are free to drift again',
   )
-  const siblingNames = new Set([...match[1].matchAll(/'([^']+)'/g)].map((m) => m[1]))
-  assert.deepEqual(
-    [...KERNEL_INTERNAL].sort(),
-    [...siblingNames].sort(),
-    'family-re-exports.mjs and standalone-surface.test.ts KERNEL_INTERNAL lists have drifted apart',
+  for (const name of [
+    'KERNEL_INTERNAL',
+    'FAMILY_ONLY',
+    'ANSI_INTERNAL',
+    'KERNEL_PRIVATE_BEFORE_THE_SPLIT',
+  ]) {
+    assert.ok(
+      !new RegExp(`const ${name} = new Set\\(`).test(siblingSrc),
+      `standalone-surface.test.ts declares its own ${name} again — import it instead`,
+    )
+  }
+  // And this file reads the shared module rather than a copy of its own.
+  assert.ok(
+    KERNEL_INTERNAL.size > 0,
+    'KERNEL_INTERNAL is empty — the shared import resolved to nothing',
   )
 })

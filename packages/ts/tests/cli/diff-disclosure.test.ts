@@ -21,11 +21,7 @@ import path from 'node:path'
 import { project, functions } from '../../src/index.js'
 import { runCheck } from '../../src/cli/commands/check.js'
 import { checkAll } from '../../src/core/check-all.js'
-import {
-  activeNotice,
-  suppressionNotice,
-  resetDiffDisclosureForTests,
-} from '@nielspeter/eess'
+import { activeNotice, suppressionNotice, resetDiffDisclosureForTests } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { DiffFilterLike } from '@nielspeter/eess'
 import type * as DiffAwareModule from '../../src/helpers/diff-aware.js'

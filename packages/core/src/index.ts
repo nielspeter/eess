@@ -152,7 +152,12 @@ export { identityCollisions } from './violation.js'
 export { resetIdentityCollisions } from './violation.js'
 export { disambiguateIdentities } from './violation.js'
 export { isArchRuleError } from './errors.js'
-export type { ArchJsonViolation, ArchJsonSuppression, ArchJsonUntestedAllowlist, ArchJsonReport } from './format-json.js'
+export type {
+  ArchJsonViolation,
+  ArchJsonSuppression,
+  ArchJsonUntestedAllowlist,
+  ArchJsonReport,
+} from './format-json.js'
 export type { CorrespondenceResult } from './correspondence-core.js'
 export { setCorrespondence } from './correspondence-core.js'
 export { marksOwnEmptyDiscovery, ownsEmptyDiscovery } from './owns-empty-discovery.js'

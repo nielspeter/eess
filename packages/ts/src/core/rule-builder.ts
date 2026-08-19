@@ -6,6 +6,7 @@ import type { ArchViolation } from '@nielspeter/eess'
 import type { RuleDescription } from '@nielspeter/eess'
 import type { DeclaredGlob, GlobNode } from '@nielspeter/eess'
 import { countDeclaredGlobs, stampGlobs } from '@nielspeter/eess'
+import type { Selection, ElementInfo } from '@nielspeter/eess'
 import { TerminalBuilder } from './terminal-builder.js'
 import { assertsCardinality } from '@nielspeter/eess'
 
@@ -112,6 +113,32 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
   }
 
   // --- Terminal methods ---
+
+  /**
+   * Return the predicate-filtered elements as a labelled `Selection<T>` for
+   * cross-validation (`correspondence()`). The set is exactly the elements this
+   * rule would evaluate — the same filtering `.check()` applies.
+   *
+   * **Restored in plan 0165 Phase 2.** `select()` is eess's, not upstream's: it
+   * is the side of the kernel's two-sided join, and `@nielspeter/eess-crossvalidate`
+   * is built entirely on it — four of its five source files failed `tsc` and 33 of
+   * its tests failed without it. The wholesale engine copy of plan 0165 dropped it
+   * along with the rest of eess's `RuleBuilder`.
+   *
+   * Stateless by construction, which is why it can live here while the kernel keeps
+   * its own copy: it reads `getElements()` and `_predicates` and returns a plain
+   * object. The duplication that matters — and that Phase 1 measured breaking — is
+   * module-level STATE, not a pure method.
+   *
+   * @param opts.label - human-readable name of this side ("diagram class")
+   * @param opts.identify - map an element to its message metadata (name/file/line)
+   */
+  select(opts: { label: string; identify: (element: T) => ElementInfo }): Selection<T> {
+    const filtered = this.getElements().filter((element) =>
+      this._predicates.every((predicate) => predicate.test(element)),
+    )
+    return { elements: filtered, label: opts.label, identify: opts.identify }
+  }
 
   /**
    * Return a structured description of this rule without executing it.
