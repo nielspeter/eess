@@ -97,8 +97,8 @@ A preset runs a curated set of rules. Users override individual rule severity vi
 
 <!-- eess enforcement-table v1 (plan 0060) -->
 
-| Clause                                                 | Tier | Mechanism                                                                                                    | Status |
-| ------------------------------------------------------ | ---- | ------------------------------------------------------------------------------------------------------------ | ------ |
-| Presets are functions with per-rule severity overrides | 2    | vitest · `packages/ts/tests/presets/boundaries.test.ts` · it('override to off suppresses no-cross-boundary') | gated  |
-| Framework rules ship as separate npm packages          | 5    | governance — this ADR; monorepo layout enforced by `scripts/check-workspace-integrity.mjs`                   | manual |
-| Rules are code, not config files                       | 5    | governance — this ADR records the model                                                                      | manual |
+| Clause                                                 | Tier | Mechanism                                                                                                       | Status |
+| ------------------------------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------- | ------ |
+| Presets are functions with per-rule severity overrides | 2    | vitest · `packages/ts/tests/presets/boundaries.test.ts` · it('override to off suppresses the structural rules') | gated  |
+| Framework rules ship as separate npm packages          | 5    | governance — this ADR; monorepo layout enforced by `scripts/check-workspace-integrity.mjs`                      | manual |
+| Rules are code, not config files                       | 5    | governance — this ADR records the model                                                                         | manual |
