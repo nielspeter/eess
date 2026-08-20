@@ -1311,6 +1311,7 @@ it('VACUITY: the orphan check really reads our directives', () => {
     'core/import-candidates.ts',
     'core/object-literal-functions.ts',
     'core/terminal-builder.ts',
+    'core/vacuity-diagnosis.ts',
     'graphql/schema-loader.ts',
     'helpers/baseline.ts',
     'helpers/matchers.ts',

@@ -34,6 +34,7 @@ export { TerminalBuilder } from './core/terminal-builder.js'
 export { ArchRuleError } from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'
+export type { PathUniverse } from '@nielspeter/eess'
 
 // Core — code frame & formatting
 export { generateCodeFrame } from '@nielspeter/eess'

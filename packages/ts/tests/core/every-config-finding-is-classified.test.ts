@@ -110,27 +110,27 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'behavioural: dead-selector-fails.test.ts and the-floor.test.ts — it delegates its text to zeroSubjectsViolation (one text for one state) while keeping its own attribution, and the shared remedy is proven to remediate there',
   },
-  'src/core/terminal-builder.ts::zeroSubjectsViolation': {
+  'src/core/vacuity-diagnosis.ts::zeroSubjectsViolationOf': {
     remedy: 'own',
     verified:
       'behavioural: the-floor.test.ts — a rule examining zero units fails through violations(), check() and warn(); the empty-project branch never offers a declaration, and a rule that produced a finding passes through untouched',
   },
-  'src/core/terminal-builder.ts::expiredDeclarationViolation': {
+  'src/core/vacuity-diagnosis.ts::expiredDeclarationViolation': {
     remedy: 'own',
     verified:
       'behavioural: the-floor.test.ts — removing the declaration clears it (the stated remedy applied), exactly one finding rather than one per implementation, and the Fix is distinct from the message so format.ts does not drop it',
   },
-  'src/core/terminal-builder.ts::assertionLessFinding': {
+  'src/core/vacuity-diagnosis.ts::assertionLessFinding': {
     remedy: 'own',
     verified:
       'behavioural: assertion-gate.test.ts — adding a condition clears it, plus a control that no remedy names a non-remediating mechanism',
   },
-  'src/core/terminal-builder.ts::emptyProjectViolation': {
+  'src/core/vacuity-diagnosis.ts::emptyProjectViolation': {
     remedy: 'own',
     verified:
       'behavioural: assertion-gate.test.ts — the text equals doctor\u2019s, and a loaded project still blames the glob',
   },
-  'src/core/terminal-builder.ts::deadSelectorViolation': {
+  'src/core/vacuity-diagnosis.ts::deadSelectorViolation': {
     remedy: 'own',
     verified: 'behavioural: a-dead-discovery-glob-fails.test.ts — a live glob produces no finding',
   },
