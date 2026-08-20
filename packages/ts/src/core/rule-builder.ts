@@ -1,11 +1,17 @@
+import type { GlobNode } from '@nielspeter/eess'
+import {
+  assertionAdviceOf,
+  buildRuleDescription,
+  describeRuleOf,
+  globsOf,
+} from './rule-declaration.js'
+import type { DeclaredRule } from './rule-declaration.js'
 import type { ArchProject } from './project.js'
 import type { CollectResult } from './terminal-builder.js'
 import type { Predicate } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { RuleDescription } from '@nielspeter/eess'
-import type { DeclaredGlob, GlobNode } from '@nielspeter/eess'
-import { countDeclaredGlobs, stampGlobs } from '@nielspeter/eess'
 import type { Selection, ElementInfo } from '@nielspeter/eess'
 import { TerminalBuilder } from './terminal-builder.js'
 import { assertsCardinality } from '@nielspeter/eess'
@@ -140,19 +146,24 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
     return { elements: filtered, label: opts.label, identify: opts.identify }
   }
 
+  /** This rule as declared — the input every description and advice reads. */
+  private asDeclared(): DeclaredRule {
+    return {
+      predicates: this._predicates,
+      conditions: this._conditions,
+      misplaced: this._misplaced,
+      reachedShould: this._reachedShould,
+      metadata: this._metadata,
+      reason: this._reason,
+    }
+  }
+
   /**
    * Return a structured description of this rule without executing it.
    * Used by the `explain` CLI subcommand.
    */
   describeRule(): RuleDescription {
-    return {
-      rule: this.buildRuleDescription(),
-      id: this._metadata?.id,
-      because: this._reason,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-      imperative: this._metadata?.imperative ?? this.buildImperative(),
-    }
+    return describeRuleOf(this.asDeclared())
   }
 
   /**
@@ -184,37 +195,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    * is why it is not on `DeclaredGlob` for an author to get wrong.
    */
   override globs(): readonly GlobNode[] {
-    const trees: GlobNode[] = []
-    for (const predicate of this._predicates) {
-      if (predicate.globs) {
-        const count = countDeclaredGlobs(predicate.globs)
-        trees.push(
-          stampGlobs(
-            predicate.globs,
-            'selector',
-            (g) =>
-              // A preset's `originLabel` names the option the user wrote rather
-              // than the calls it expanded into. Used VERBATIM, skipping
-              // `describeOrigin`: that appends `("glob")` to disambiguate a
-              // predicate holding several sites, and a label already names
-              // exactly one option and one glob — left in, the finding read
-              // `shared: "**/x/**" ("**/x/**")`.
-              predicate.originLabel ?? describeOrigin(predicate.description, g, count),
-          ),
-        )
-      }
-    }
-    for (const condition of this._conditions) {
-      if (condition.globs) {
-        const count = countDeclaredGlobs(condition.globs)
-        trees.push(
-          stampGlobs(condition.globs, 'condition', (g) =>
-            describeOrigin(condition.description, g, count),
-          ),
-        )
-      }
-    }
-    return trees
+    return globsOf(this.asDeclared())
   }
 
   /**
@@ -284,51 +265,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    * verifiable falsehood by any phase-derived message.
    */
   override assertionAdvice(): string {
-    if (!this._reachedShould) {
-      return (
-        'this rule never reached .should(), so it asserts nothing and can never fail. ' +
-        'Add .should() and a condition, or delete the rule.'
-      )
-    }
-    if (this._misplaced.length > 0) return this.misplacedPredicateAdvice()
-    return (
-      'this rule reached .should() but no condition follows, so it asserts nothing and can ' +
-      'never fail. Add a condition after .should() — or, if this rule is generated from ' +
-      'configuration, skip generating it when there is nothing to assert; if it comes from ' +
-      'a preset (ruleId "preset/..."), report it to the preset\'s author.'
-    )
-  }
-
-  /**
-   * Advice for predicates that landed after `.should()`.
-   *
-   * Extracted from {@link assertionAdvice} so that method reads as its three
-   * outcomes rather than as one of them. Two remedies live here, and the
-   * distinction is the point: with conditions present the rule is not
-   * "asserting nothing" — it asserts something over a set the misplaced
-   * predicate silently shrank, which is a different fault and a different fix
-   * (move it; do NOT add another condition). Telling that author to "add a
-   * condition" names a fix that leaves the rule exactly as broken (ADR-008
-   * rule 2).
-   */
-  private misplacedPredicateAdvice(): string {
-    const names = this._misplaced.map((d) => `"${d}"`).join(', ')
-    const one = this._misplaced.length === 1
-    const verb = one ? 'is a predicate, which filters' : 'are predicates, which filter'
-    const it = one ? 'it' : 'them'
-    if (this._conditions.length > 0) {
-      return (
-        `this rule's ${names} ${verb} subjects rather than asserting anything about them, ` +
-        `and ${one ? 'it comes' : 'they come'} after .should() — so ${it} narrowed the ` +
-        "selection this rule's conditions are evaluated over, and if that narrowed it to " +
-        `nothing the conditions hold vacuously. Move ${it} before .should(), where the ` +
-        'filtering is explicit.'
-      )
-    }
-    return (
-      `this rule asserts nothing: ${names} ${verb} subjects rather than asserting ` +
-      `anything about them. Move ${it} before .should(), then add a condition.`
-    )
+    return assertionAdviceOf(this.asDeclared())
   }
 
   /**
@@ -438,40 +375,6 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
   // --- Private: execution engine ---
 
   /**
-   * Build the rule description from predicates and conditions.
-   */
-  private buildRuleDescription(): string {
-    const predicateDesc = this._predicates.map((p) => p.description).join(' and ')
-    const conditionDesc = this._conditions.map((c) => c.description).join(' and ')
-    const parts: string[] = []
-    if (predicateDesc) parts.push(`that ${predicateDesc}`)
-    if (conditionDesc) parts.push(`should ${conditionDesc}`)
-    return parts.join(' ')
-  }
-
-  /**
-   * Build an imperative "Do NOT … / MUST …" sentence for AI-agent system
-   * prompts (`explain --format agent`). Heuristic FALLBACK — a rule author's
-   * `.rule({ imperative })` overrides it.
-   */
-  private buildImperative(): string {
-    // The Do-NOT/MUST transform only reads the polarity of a single condition.
-    // For zero or multiple (`and`-joined) conditions, negating the joined string
-    // would mis-handle mixed polarity ("not X and not Y"), so fall back to the
-    // plain, always-correct rule description.
-    const [only] = this._conditions
-    if (this._conditions.length !== 1 || only === undefined) {
-      return this.buildRuleDescription() || 'Follow the architecture rule.'
-    }
-    const cond = only.description
-    const isNegative = /^(not|no)\b/i.test(cond)
-    const body = cond.replace(/^(not|no)\s+/i, '')
-    const scope = this._predicates.map((p) => p.description).join(' and ')
-    const scopeSuffix = scope ? ` (in code that ${scope})` : ''
-    return `${isNegative ? 'Do NOT' : 'MUST'} ${body}${scopeSuffix}`
-  }
-
-  /**
    * Materialize the subject set: all elements narrowed by the predicate chain
    * (the post-`.that()` set), before any condition runs. Shared by the
    * `RuleBuilder` execution pipeline (`evaluate`) and the public `subjects()`
@@ -493,7 +396,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    */
 
   private emptySelectionViolation(): ArchViolation {
-    const description = this.buildRuleDescription() || 'selector'
+    const description = buildRuleDescription(this.asDeclared()) || 'selector'
     // The TEXT comes from the shared producer; the ATTRIBUTION stays here.
     //
     // Plan 0099 keeps this family's block because it is the better-attributed
@@ -587,27 +490,11 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    */
   protected buildConditionContext(): ConditionContext {
     return {
-      rule: this.buildRuleDescription(),
+      rule: buildRuleDescription(this.asDeclared()),
       because: this._reason,
       ruleId: this._metadata?.id,
       suggestion: this._metadata?.suggestion,
       docs: this._metadata?.docs,
     }
   }
-}
-
-/**
- * Where a glob was written, for the message.
- *
- * The predicate's own description already names the API and the glob
- * (`reside in folder matching "**\/src/x/**"`), so the origin is that
- * description unless one predicate declared several globs — in which case the
- * glob is appended to tell them apart.
- */
-function describeOrigin(description: string, glob: DeclaredGlob, siteCount: number): string {
-  // Keyed on the COUNT, not on whether the description happens to contain the
-  // glob. A variadic predicate's description contains every one of its globs
-  // (`import from "**/a/**", "**/b/**"`), so a substring test collapsed the
-  // one case this exists to separate.
-  return siteCount > 1 ? `${description} ("${glob.glob}")` : description
 }
