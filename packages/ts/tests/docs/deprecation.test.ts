@@ -2,12 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import { globSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { readDeprecatedSymbols } from './deprecated-symbols.js'
 import { scanMarkdown, format } from './scan-markdown.js'
 import type { DocFile } from './scan-markdown.js'
-
-const repoRoot = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))))
+import { packageRoot, repoRoot } from '../roots.js'
 
 /**
  * Living docs = what a reader is taught from. Scope is `docs/**` + `README.md`.
@@ -35,7 +33,11 @@ const IMPERATIVE =
   'stop and ask a human. The migration narrative belongs in CHANGELOG.md.'
 
 describe('docs do not teach deprecated API (plan 0063)', () => {
-  const project = new Project({ tsConfigFilePath: path.join(repoRoot, 'tsconfig.json') })
+  // The PACKAGE root: the deprecated vocabulary is read from this package's own
+  // `src/`, while the corpus scanned for it is the monorepo's published docs.
+  // Two different roots in one test, which is why they are named rather than
+  // counted in `..` segments (bug 0179).
+  const project = new Project({ tsConfigFilePath: path.join(packageRoot, 'tsconfig.json') })
 
   it('no living doc teaches deprecated API', () => {
     const files = readLivingDocs()

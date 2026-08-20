@@ -8,7 +8,7 @@
  * (agent-guardrails), and through an inline loop (recommended). A carrier wired
  * into one of them and asserted through one preset would look complete and cover
  * a third of the surface — which is
- * [ADR-009](../../adr/009-a-pass-is-constructed-from-evidence.md)'s Context
+ * [ADR-009](../../../../adr/010-a-pass-is-constructed-from-evidence.md)'s Context
  * table exactly: a mechanism that covers the families someone remembered.
  *
  * So the rows below are organised by **construction path**, not by preset, and

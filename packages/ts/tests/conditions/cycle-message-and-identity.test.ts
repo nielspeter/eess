@@ -1,8 +1,8 @@
 /**
  * A cycle finding says only what it can substantiate —
- * [bug 0055](../../bugs/fixed/0055-a-cycle-finding-names-edges-that-do-not-exist.md),
- * [bug 0056](../../bugs/fixed/0056-a-cycle-identity-changes-when-imports-are-reordered.md), and
- * [plan 0104](../../plans/completed/0104-a-cycle-waiver-names-the-edge-it-waives.md).
+ * [bug 0055](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0055-a-cycle-finding-names-edges-that-do-not-exist.md),
+ * [bug 0056](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0056-a-cycle-identity-changes-when-imports-are-reordered.md), and
+ * [plan 0104](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0104-a-cycle-waiver-names-the-edge-it-waives.md).
  *
  * `beFreeOfCycles` printed a strongly-connected **component** as if it were a **path**:
  * `[...members, members[0]].join(' -> ')`. An SCC is a set, and `tarjanSCC` pops in
@@ -17,7 +17,7 @@
  * perfectly **legal** import.
  *
  * Both are fixed here, and both fixes were only possible because
- * [plan 0088](../../plans/0088-a-slice-finding-identifies-itself.md) gave these findings an
+ * [plan 0088](https://github.com/nielspeter/ts-archunit/blob/main/plans/0088-a-slice-finding-identifies-itself.md) gave these findings an
  * `identity` — until then the message text *was* the baseline hash, so improving the
  * sentence invalidated every entry.
  *

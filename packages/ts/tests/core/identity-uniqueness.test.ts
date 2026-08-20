@@ -8,10 +8,10 @@
  * four separate defects were filed against it, each fixed only in the family that happened to
  * get reviewed:
  *
- * - [0028](../../bugs/fixed/0028-two-findings-in-one-file-can-share-a-baseline-identity.md) — two findings in one file
- * - [0063](../../bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md) — the dependency family, across files sharing a basename
- * - [0064](../../bugs/fixed/0064-a-dependency-identity-collides-across-two-spellings-of-one-module.md) — two spellings resolving to one module
- * - [0065](../../bugs/fixed/0065-reverse-dependency-findings-carry-no-identity.md) — the reverse family, which set no identity at all
+ * - [0028](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0028-two-findings-in-one-file-can-share-a-baseline-identity.md) — two findings in one file
+ * - [0063](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md) — the dependency family, across files sharing a basename
+ * - [0064](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0064-a-dependency-identity-collides-across-two-spellings-of-one-module.md) — two spellings resolving to one module
+ * - [0065](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0065-reverse-dependency-findings-carry-no-identity.md) — the reverse family, which set no identity at all
  *
  * `disambiguateIdentities` runs in `applyFilters`, which every terminal shares, so a producer
  * cannot reintroduce this by forgetting — including a producer nobody has written yet. These

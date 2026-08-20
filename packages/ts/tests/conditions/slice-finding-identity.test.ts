@@ -1,6 +1,6 @@
 /**
  * A slice finding identifies itself —
- * [plan 0088](../../plans/0088-a-slice-finding-identifies-itself.md).
+ * [plan 0088](https://github.com/nielspeter/ts-archunit/blob/main/plans/0088-a-slice-finding-identifies-itself.md).
  *
  * No slice condition set `ArchViolation.identity`, so `hashViolation` fell back to
  * `` `${element}::${message}` ``. That one fact caused three separate defects:
@@ -14,9 +14,9 @@
  *     hash. `edgeVerb()` had returned `'re-exports'` since v0.28.0 and no slice condition
  *     could use it without invalidating every baseline.
  *  3. The cycle identity carried traversal order —
- *     [bug 0056](../../bugs/fixed/0056-a-cycle-identity-changes-when-imports-are-reordered.md).
+ *     [bug 0056](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0056-a-cycle-identity-changes-when-imports-are-reordered.md).
  *
- * This is [bug 0028](../../bugs/fixed/0028-two-findings-in-one-file-can-share-a-baseline-identity.md)'s
+ * This is [bug 0028](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0028-two-findings-in-one-file-can-share-a-baseline-identity.md)'s
  * shape in the family that never got the fix. `docs/upgrading.md`'s own 0.28.0 row says it
  * for the dependency conditions — *"**Do not baseline a barrel**: 46.5% of its findings
  * share an identity with a sibling"* — and v0.48.0 is the release that made barrels
@@ -105,7 +105,7 @@ describe('a barrel’s dependency sites are distinct findings (plan 0088)', () =
     //
     // That is plan 0088's own defect in a different shape, in the release that fixed it,
     // and the layout is the commonest there is. The dependency family still has it —
-    // [bug 0063](../../bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md).
+    // [bug 0063](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md).
     const tsm = new Project({
       useInMemoryFileSystem: true,
       compilerOptions: { module: ts.ModuleKind.ESNext },

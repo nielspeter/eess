@@ -1,6 +1,6 @@
 /**
  * An exclusion comment naming a rule nobody declares is reported —
- * [bug 0044](../../bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
+ * [bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
  *
  * `.excluding()` warns when a pattern matches nothing. An inline comment cannot
  * get that on the enforcement path: comments are read only in files that already

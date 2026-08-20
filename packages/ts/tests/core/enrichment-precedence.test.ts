@@ -2,7 +2,7 @@
  * What `applyFilters`' enrichment step promises, asserted directly.
  *
  * Both cases here were found by a sabotage run over
- * [bug 0041](../../bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)'s
+ * [bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)'s
  * diff, and both came back **green** — the suite could not see either mutation.
  * They are unrelated to that bug; the reorder simply put a spotlight on the
  * block. Recorded here rather than in either bug's guard, because neither is

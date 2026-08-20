@@ -18,9 +18,9 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
+import { packageRoot, repoRoot } from '../roots.js'
 
-const root = path.resolve(import.meta.dirname, '../..')
-const presetsDir = path.join(root, 'src/presets')
+const presetsDir = path.join(packageRoot, 'src/presets')
 
 /** Every `preset/…` id literal any preset source constructs. */
 function constructedIds(): Set<string> {
@@ -40,8 +40,8 @@ function constructedIds(): Set<string> {
  * ['preset/...']` example is exactly the text a reader copies, so examples must
  * name real ids too. Only inline-code spans and fences are unwrapped, not skipped.
  */
-function idsMentionedIn(file: string, unreleasedOnly = false): Map<string, number> {
-  const all = readFileSync(path.join(root, file), 'utf8').split('\n')
+function idsMentionedIn(base: string, file: string, unreleasedOnly = false): Map<string, number> {
+  const all = readFileSync(path.join(base, file), 'utf8').split('\n')
   // Released CHANGELOG sections are immutable history, and some deliberately
   // quote a MISSPELLED id: bug 0038's entry reads "'…/no-silent-cach': 'error'
   // left the rule at warn", which is the whole point of that entry. Correcting it
@@ -90,12 +90,16 @@ describe('preset ids printed in the docs exist', () => {
     expect(built.has('preset/boundaries/no-copy-paste')).toBe(false)
   })
 
-  for (const [file, unreleasedOnly] of [
-    ['docs/presets.md', false],
-    ['CHANGELOG.md', true],
+  // Each row carries its own root, because the two live in different places:
+  // `docs/` is the monorepo's published corpus and `CHANGELOG.md` is this
+  // package's own release history. Bug 0179 — one `..` count could not be right
+  // for both, and the pair being explicit is what keeps that visible.
+  for (const [base, file, unreleasedOnly] of [
+    [repoRoot, 'docs/presets.md', false],
+    [packageRoot, 'CHANGELOG.md', true],
   ] as const) {
     it(`${file}${unreleasedOnly ? ' [Unreleased]' : ''} names only ids some preset constructs`, () => {
-      const mentioned = idsMentionedIn(file, unreleasedOnly)
+      const mentioned = idsMentionedIn(base, file, unreleasedOnly)
       const unknown = [...mentioned.entries()]
         // `preset/expect-empty/…` and `preset/override/…` are the CONFIG finding
         // namespaces, not rule ids — they are built by wrapping a rule id.

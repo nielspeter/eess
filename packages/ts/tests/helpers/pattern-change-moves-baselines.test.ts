@@ -1,7 +1,7 @@
 /**
  * A shipped default pattern is part of a baseline identity, so changing it is a migration.
  *
- * [Bug 0060](../../bugs/fixed/0060-a-pattern-change-silently-invalidates-every-baselined-finding.md).
+ * [Bug 0060](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0060-a-pattern-change-silently-invalidates-every-baselined-finding.md).
  * v0.47.0 rebuilt `STUB_PATTERNS` from a ~90-character case-insensitive regex to a
  * ~200-character anchored one, and **every baselined `noStubComments` finding stopped
  * matching**. Measured following the documented upgrade recipe: 0 of 4 entries matched.

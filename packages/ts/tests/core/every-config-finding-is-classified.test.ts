@@ -1,12 +1,12 @@
 /**
  * Every configuration-finding producer is accounted for, derived from source —
- * [plan 0078](../../plans/completed/0078-derive-the-configuration-finding-census.md).
+ * [plan 0078](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0078-derive-the-configuration-finding-census.md).
  *
  * A finding carrying `bypassFilters: true` reports that a **rule enforces
  * nothing**, and it is unsuppressable by construction. Two invariants are meant
  * to hold across all of them: each carries its own remedy, and each says it
  * cannot be suppressed. Neither was enforced, and both were false somewhere —
- * [bug 0042](../../bugs/fixed/0042-cross-layers-empty-layer-finding-inherits-the-authors-remedy.md)
+ * [bug 0042](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0042-cross-layers-empty-layer-finding-inherits-the-authors-remedy.md)
  * shipped a producer printing the rule author's unrelated `Fix:` on a finding
  * about a mis-globbed layer.
  *

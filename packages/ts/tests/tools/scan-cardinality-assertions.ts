@@ -2,14 +2,14 @@
  * Plan 0079's scan: `it()` blocks that assert a non-zero cardinality and never
  * say WHICH elements they expect.
  *
- * [ADR-008](../../adr/008-agent-first-failure-surfaces.md) rule 5's third
+ * [ADR-008](../../../../adr/009-agent-first-failure-surfaces.md) rule 5's third
  * corollary — _counting is the shortcut; compare identities, not integers._ A
  * block asserting `toHaveLength(3)` passes when a change loses one element and
  * gains another.
  *
  * ## Why this is committed rather than run once and quoted
  *
- * [Plan 0079](../../plans/completed/0079-triage-the-cardinality-only-assertions.md)
+ * [Plan 0079](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0079-triage-the-cardinality-only-assertions.md)
  * was filed with a population of **215** and no script, so the number could not
  * be reproduced or audited — and its successor made the same mistake one level
  * up: the plan's write-up cited a script in a scratch directory that was never
@@ -139,7 +139,7 @@ export function scanCardinalityAssertions(repo: string): {
     // This module's test holds `it(...)` snippets as template literals — probe
     // inputs for the two signals — and the scan read them as real blocks and
     // reported its own fixtures as members. Same shape as
-    // [bug 0036](../../bugs/fixed/0036-the-relative-glob-audit-is-incomplete.md),
+    // [bug 0036](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0036-the-relative-glob-audit-is-incomplete.md),
     // where a census counted the file that defined the thing it was counting.
     if (path.basename(file) === 'scan-cardinality-assertions.test.ts') continue
     const text = fs.readFileSync(file, 'utf-8')

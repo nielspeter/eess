@@ -92,7 +92,7 @@ describe('functionNoTypeAssertions()', () => {
     `)
     const fns = collectFunctions(sf)
     const violations = functionNoTypeAssertions().evaluate(fns, context)
-    // Class A under [plan 0079](../../plans/completed/0079-triage-the-cardinality-only-assertions.md),
+    // Class A under [plan 0079](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0079-triage-the-cardinality-only-assertions.md),
     // and recorded rather than left as an unexplained count. Measured: both
     // violations are byte-identical — `loadUser|line 3|contains type assertion at
     // line 4` twice — because `as unknown as User` puts both casts on one line and

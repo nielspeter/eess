@@ -6,7 +6,7 @@
  *
  * v0.56.0 gave names-less edges a source-order `ordinal` so that two lazy imports of one
  * module from one file stop sharing a baseline entry (bug 0028's shape, reached through
- * [bug 0059](../../bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)).
+ * [bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)).
  * The first form of that fix emitted `#${ordinal}` whenever `names` was empty, and shipped
  * with a promise — in the CHANGELOG, in `docs/upgrading.md`, and in two source comments —
  * that `import` and `reexport` entries did not move.

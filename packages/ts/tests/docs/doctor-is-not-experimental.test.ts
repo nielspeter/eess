@@ -2,28 +2,31 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, it, expect } from 'vitest'
 
-const DOCS_DIR = path.resolve(import.meta.dirname, '../../docs')
-const REPO_ROOT = path.resolve(import.meta.dirname, '../..')
+import { docsDir, repoRoot } from '../roots.js'
 
 /**
- * `upgrading.md` is a historical record, not a teaching page: its per-release
- * table describes what each version *changed*, so the 0.32.0 row correctly says
- * the command is "documented as supported rather than experimental". Scanning it
- * reddens a correct page, and a scan that reddens correct pages gets suppressed
- * — the outcome ADR-008 rule 3 warns about, and the reason `scan-markdown.ts`
- * distinguishes colliding from solo names. Its anchor check still applies: a
- * dead link is wrong in a historical page too.
+ * **The `upgrading.md` exemption is gone, because eess has no such page.**
+ *
+ * Inherited from `ts-archunit`, where that page is a historical record whose
+ * per-release table correctly quotes the word this scan bans, so scanning it
+ * reddened a correct page. eess publishes no upgrade page, so the carve-out
+ * exempted nothing — and the row below asserted it exempted exactly one file,
+ * which is how the emptiness was caught rather than inherited silently.
+ *
+ * A carve-out for a file that does not exist is the stale-exclusion shape this
+ * repo deletes everywhere else (`arch.internal.rules.ts` records the same call
+ * for `GENERATED`). If an upgrade page is ever added, restore the exemption AND
+ * the assertion that it names a real file — not one without the other.
  */
-const NARRATES_ITS_OWN_HISTORY = 'upgrading.md'
 
 /** Every living doc page, plus the README. `.vitepress/` is build output. */
 function livingDocs(): { path: string; text: string }[] {
   const pages = fs
-    .readdirSync(DOCS_DIR)
+    .readdirSync(docsDir)
     .filter((name) => name.endsWith('.md'))
-    .map((name) => path.join(DOCS_DIR, name))
-  return [...pages, path.join(REPO_ROOT, 'README.md')].map((file) => ({
-    path: path.relative(REPO_ROOT, file),
+    .map((name) => path.join(docsDir, name))
+  return [...pages, path.join(repoRoot, 'README.md')].map((file) => ({
+    path: path.relative(repoRoot, file),
     text: fs.readFileSync(file, 'utf8'),
   }))
 }
@@ -41,10 +44,11 @@ function livingDocs(): { path: string; text: string }[] {
 describe('docs do not call doctor experimental (plan 0077)', () => {
   it('has no page pairing the command with the word', () => {
     const offenders: string[] = []
-    const pages = livingDocs().filter((f) => !f.path.endsWith(NARRATES_ITS_OWN_HISTORY))
-    // The exemption is one named file, so a page that quietly stops being scanned
-    // cannot happen by a glob drifting.
-    expect(livingDocs().length - pages.length).toBe(1)
+    const pages = livingDocs()
+    // Nothing is exempt, so the guard is that the scan READ something. Without
+    // this the row passes on an empty corpus — which is exactly how the adopted
+    // doc gates failed while looking like they had found nothing wrong.
+    expect(pages.length).toBeGreaterThan(20)
     for (const file of pages) {
       file.text.split('\n').forEach((line, index) => {
         if (!/\bdoctor\b/.test(line)) return

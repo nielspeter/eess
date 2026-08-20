@@ -19,7 +19,7 @@ const beta = path.join(fixture, 'packages/beta/tsconfig.json')
  * `packages/beta`, and renaming a package — or adding one called `aaa` —
  * silently changed which one it meant.
  *
- * That is the machine-dependent shape [bug 0011](../../bugs/fixed/0011-dogfood-rules-select-nothing.md)
+ * That is the machine-dependent shape [bug 0011](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0011-dogfood-rules-select-nothing.md)
  * already cost this project once: a rule scoped by a name nobody chose
  * deliberately. Each file now resolves against **the root that contains it**.
  */

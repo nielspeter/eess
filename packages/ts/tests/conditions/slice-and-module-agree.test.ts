@@ -1,6 +1,6 @@
 /**
  * Slice conditions and module conditions answer the same question the same way —
- * [bug 0059](../../bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md).
+ * [bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md).
  *
  * `src/helpers/slice-graph.ts` shared **one** edge-kind set across all three slice
  * conditions, justified with a cycle argument: *"a slice graph answers what this slice

@@ -6,7 +6,7 @@ import { scanCardinalityAssertions } from './scan-cardinality-assertions.js'
 const REPO = path.resolve(import.meta.dirname, '../..')
 
 /**
- * The population that survived [plan 0079](../../plans/completed/0079-triage-the-cardinality-only-assertions.md),
+ * The population that survived [plan 0079](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0079-triage-the-cardinality-only-assertions.md),
  * measured on the branch that closed it.
  *
  * **A ratchet, not a snapshot.** It fails when the number goes UP, which is the
@@ -27,8 +27,22 @@ const REPO = path.resolve(import.meta.dirname, '../..')
  * when the fixture went missing), two in `matchers.test.ts`, one in
  * `graphql/schema-rules.test.ts` — plus two neighbours converted for consistency:
  * **98**.
+ *
+ * **Re-baselined on adoption into eess (bug 0179).** The 98 above described
+ * `ts-archunit`'s suite, and the arithmetic in the paragraph above is that
+ * project's history: plan 0079 was ITS triage, and it never saw eess's own
+ * blocks. Measured here at adoption: **104**, across five files that project's
+ * list does not contain — `conditions/dependency-workspace-roots`,
+ * `conditions/match-identity`, `conditions/reexport-dependency`,
+ * `conditions/reexport-slice-cycle`, `integration/exclusion-comments-e2e`.
+ *
+ * Those six extra blocks are **untriaged, not blessed**. Re-baselining is what
+ * makes the ratchet start working here at all — it was red on arrival, so it
+ * could not catch the 105th — but it is not a verdict that the six are fine.
+ * Whoever converts them lowers this number and says why, which the paragraph
+ * above already licenses: going down needs no permission.
  */
-const CEILING = 98
+const CEILING = 104
 
 /**
  * A floor beneath the real number, so a broken walk cannot pass.
@@ -54,10 +68,14 @@ const CONTRIBUTING_FILES: readonly string[] = [
   'tests/conditions/bare-package-imports.test.ts',
   'tests/conditions/call-args.test.ts',
   'tests/conditions/call.test.ts',
+  'tests/conditions/dependency-workspace-roots.test.ts',
   'tests/conditions/dependency.test.ts',
   'tests/conditions/dynamic-imports.test.ts',
   'tests/conditions/jsx.test.ts',
+  'tests/conditions/match-identity.test.ts',
   'tests/conditions/members.test.ts',
+  'tests/conditions/reexport-dependency.test.ts',
+  'tests/conditions/reexport-slice-cycle.test.ts',
   'tests/conditions/reverse-graph-widened.test.ts',
   'tests/conditions/structural.test.ts',
   'tests/conditions/type-level.test.ts',
@@ -85,6 +103,7 @@ const CONTRIBUTING_FILES: readonly string[] = [
   'tests/helpers/matchers-typescript.test.ts',
   'tests/helpers/matchers.test.ts',
   'tests/helpers/metric-ratchet.test.ts',
+  'tests/integration/exclusion-comments-e2e.test.ts',
   'tests/models/arch-call.test.ts',
   'tests/predicates/jsx.test.ts',
   'tests/presets/override-keys-are-typed.test.ts',

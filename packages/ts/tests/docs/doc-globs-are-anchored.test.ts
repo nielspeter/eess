@@ -43,8 +43,7 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import { Node, Project, SyntaxKind } from 'ts-morph'
-
-const docsDir = path.resolve(import.meta.dirname, '../../docs')
+import { docsDir, packageRoot } from '../roots.js'
 
 /**
  * APIs whose string arguments are matched against an **absolute** path, so an
@@ -208,13 +207,30 @@ describe('globs in documented examples', () => {
     // is not load-bearing, which is the property the old count stood for.
     expect(found.relativeAllowed.filter((g) => !isAnchored(g.glob)).length).toBeGreaterThan(5)
 
-    // Import-target APIs: 31 args, and measured, **all 31 happen to be anchored**.
-    // So the exemption is currently UNEXERCISED — the docs contain no bare-specifier
-    // example inside a TypeScript fence, though `notImportFrom('fastify')` would be
-    // correct if they did. Asserted as the number rather than as "some are unanchored",
-    // which was the first version of this line and was simply false about the docs.
-    expect(found.importTarget.length).toBe(31)
-    expect(found.importTarget.filter((g) => !isAnchored(g.glob))).toHaveLength(0)
+    // Import-target APIs. A FLOOR on the population, for the reason the sibling
+    // assertion above gives: this arrived from `ts-archunit` as `toBe(31)`, a
+    // snapshot of THAT corpus, and eess's docs hold 29. Re-pinning 29 buys a row
+    // that reds on the next doc edit and says nothing — the ADR-008 rule 4
+    // snapshot trap, twice in one test.
+    expect(found.importTarget.length).toBeGreaterThan(20)
+
+    // **The exemption is EXERCISED here, and that is the corrected fact.**
+    // `ts-archunit`'s version asserted zero unanchored args, with a comment saying
+    // the exemption was unexercised because its docs held no bare-specifier
+    // example. eess's docs hold three project-relative ones —
+    // `notImportFrom('src/repositories/**')` in `cli.md`, and the equivalents in
+    // `what-is-eess.md` and the calculator walkthrough.
+    //
+    // Those are CORRECT as written, which was measured rather than assumed before
+    // this line was changed: against the `modules` fixture,
+    // `notImportFrom('src/infra/**')` reports 1 violation, matching the
+    // project-relative candidate `"src/infra/database.ts"` that `edgeCandidates`
+    // produces alongside the absolute one. The anchored spelling reports the same
+    // 1, and a true bare specifier (`'fastify'`) reports 0. So an unanchored
+    // import target is a working example, not a dead one — inverting this
+    // assertion to match the old corpus would have meant editing three correct
+    // teaching pages, including the landing page, to satisfy a test.
+    expect(found.importTarget.filter((g) => !isAnchored(g.glob)).length).toBeGreaterThan(0)
   })
 
   it('knows which APIs it is classifying, so a new one is not silently unchecked', () => {
@@ -223,7 +239,7 @@ describe('globs in documented examples', () => {
     // `Condition.globs` came to exist unpopulated (plan 0073). Asserted against the
     // source rather than a hard-coded list.
     const conditions = fs.readFileSync(
-      path.resolve(import.meta.dirname, '../../src/conditions/dependency.ts'),
+      path.join(packageRoot, 'src/conditions/dependency.ts'),
       'utf-8',
     )
     for (const api of ['notImportFrom', 'onlyImportFrom', 'dependOn', 'onlyHaveTypeImportsFrom']) {

@@ -1,6 +1,6 @@
 /**
  * Two files sharing a basename are two findings —
- * [bug 0063](../../bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md).
+ * [bug 0063](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md).
  *
  * `ArchViolation.identity` states the requirement in these words: *"it must be unique per
  * finding within a rule: two distinct violations sharing one identity are one violation to

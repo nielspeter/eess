@@ -195,7 +195,7 @@ describe('linesOfCode', () => {
       expect(linesOfCode(cls)).toBe(5)
     })
 
-    // [Bug 0173](../../../../work/bugs/0173-the-line-index-cache-serves-a-stale-measurement.md):
+    // [Bug 0173](../../../../work/bugs/fixed/0173-the-line-index-cache-serves-a-stale-measurement.md):
     // `linesOfCode` caches per source file, and a `SourceFile`'s object identity
     // SURVIVES an edit — `module-edges.ts` and `descendant-cache.ts` both record
     // that, measured, and the first cut of the cache asserted the opposite.

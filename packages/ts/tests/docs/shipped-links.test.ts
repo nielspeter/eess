@@ -23,13 +23,23 @@ import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const repoRoot = path.resolve(import.meta.dirname, '../..')
-const BLOB = 'https://github.com/nielspeter/ts-archunit/blob/main/'
+import { packageRoot, repoRoot } from '../roots.js'
 
-/** Files listed in package.json `files` that can contain links. */
-const SHIPPED = ['CHANGELOG.md', 'README.md']
+const BLOB = 'https://github.com/nielspeter/eess/blob/main/'
 
-const read = (name: string): string => fs.readFileSync(path.join(repoRoot, name), 'utf-8')
+/**
+ * Files listed in package.json `files` that can contain links.
+ *
+ * **Only `README.md` in eess**, where the `ts-archunit` original also listed
+ * `CHANGELOG.md`. Changesets generates this package's changelog and it carries no
+ * links at all, so it is not in `files` and there is nothing in it to check. The
+ * first row below derives the list from `package.json` and would fail if that
+ * changed, which is how the difference was found rather than assumed.
+ */
+const SHIPPED = ['README.md']
+
+/** The PACKAGE root: these are the files THIS package publishes to npm. */
+const read = (name: string): string => fs.readFileSync(path.join(packageRoot, name), 'utf-8')
 
 describe('files that ship inside the package', () => {
   it('are the ones this test knows about', () => {
@@ -63,7 +73,11 @@ describe('absolute links into this repository', () => {
   // this repo move on purpose (`bugs/X` → `bugs/fixed/X`, `plans/X` →
   // `plans/completed/X`). Validated against the working tree, which is a
   // different derivation from the URL itself.
-  const sources = [...SHIPPED, 'plans/ROADMAP.md']
+  // Shipped files only. The `ts-archunit` original also scanned `plans/ROADMAP.md`
+  // — in eess that corpus lives under `work/` and its relative links are already
+  // validated by `check:corpus` (930 checks), so adding it here would be a second
+  // mechanism for a fact one already covers.
+  const sources = [...SHIPPED]
 
   it('name paths that exist', () => {
     const broken: string[] = []
@@ -74,14 +88,26 @@ describe('absolute links into this repository', () => {
       )) {
         total += 1
         const target = match[1]
+        // The MONOREPO root: a `…/eess/blob/main/<path>` URL is repo-relative, so
+        // `docs/agent-integration.md` is resolved from the repository and not from
+        // this package — the same URL would 404 on GitHub if it were not.
         if (target !== undefined && !fs.existsSync(path.join(repoRoot, target))) {
           broken.push(`${name} -> ${target}`)
         }
       }
     }
     // Non-vacuity: if the regex stops matching, this test silently certifies
-    // nothing. The changelog alone carries about twenty.
-    expect(total).toBeGreaterThan(15)
+    // nothing.
+    //
+    // The floor is 1, not the `ts-archunit` original's 15, and the difference is
+    // a fact about eess rather than a lowered bar: there the changelog ships and
+    // carries ~20 such links; here changesets writes a link-free changelog that is
+    // not in `files`, so the entire population is `README.md`'s. It holds two, both
+    // of which THIS commit created — they were `../../README.md` and
+    // `../../docs/agent-integration.md`, relative links to paths outside the
+    // tarball, which is the exact defect the row above exists to catch and which it
+    // caught the moment this test could see the real files.
+    expect(total).toBeGreaterThan(0)
     expect(broken).toEqual([])
   })
 })

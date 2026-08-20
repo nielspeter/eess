@@ -85,7 +85,7 @@ const vitestCli = path.join(
  */
 /**
  * Per-process, and that is load-bearing —
- * [bug 0045](../../bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md).
+ * [bug 0045](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md).
  *
  * This used to be `tests/__generated__` flat, with `beforeAll` deleting the whole
  * directory. One checkout running two suites at once — two agents, or a watch

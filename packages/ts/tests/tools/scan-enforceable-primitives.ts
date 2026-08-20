@@ -3,7 +3,7 @@
  *
  * ## Why this file exists at all
  *
- * [Plan 0083](../../plans/0083-eat-our-own-dogfood.md) was filed claiming **166** enforceable
+ * [Plan 0083](https://github.com/nielspeter/ts-archunit/blob/main/plans/0083-eat-our-own-dogfood.md) was filed claiming **166** enforceable
  * primitives, "derived from source". A product review re-ran the stated method and got **185**.
  * A third run got **187**. A fourth reader — me, on 2026-08-04 — got **231** and quoted a coverage
  * figure of 13.0% from it. Four numbers, one sentence of method, **no committed script**. So it was

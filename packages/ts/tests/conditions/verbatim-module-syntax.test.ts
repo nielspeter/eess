@@ -1,6 +1,6 @@
 /**
  * `import { type X }` under `verbatimModuleSyntax` —
- * [plan 0087](../../plans/completed/0087-an-inline-type-import-still-requests-the-module.md).
+ * [plan 0087](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0087-an-inline-type-import-still-requests-the-module.md).
  *
  * `ModuleEdge.typeOnly` used to answer two questions at once, and they are different:
  *

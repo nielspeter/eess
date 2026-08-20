@@ -1,6 +1,6 @@
 /**
  * Every relative link between our Markdown documents points at something that
- * exists — [bug 0046](../../bugs/fixed/0046-cross-document-links-rot-silently.md).
+ * exists — [bug 0046](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0046-cross-document-links-rot-silently.md).
  *
  * The `adr/`, `bugs/` and `plans/` corpus is how this project carries decisions
  * forward: almost every code comment of consequence cites one, and the bug
@@ -29,9 +29,22 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-const REPO = path.resolve(import.meta.dirname, '../..')
-/** Filesystem-path corpora. */
-const DOC_DIRS = ['adr', 'bugs', 'plans', 'proposals']
+import { packageRoot, repoRoot } from '../roots.js'
+
+/**
+ * Filesystem-path corpora, at the MONOREPO root.
+ *
+ * `bugs/`, `plans/` and `proposals/` live under `work/` in eess; only `adr/` sits
+ * at the top. Adopted from `ts-archunit`, where all four were top-level — bug 0179.
+ *
+ * **`check:corpus` also checks these**, over a larger denominator (673 internal
+ * links across 120 documents). That overlap is deliberate rather than sloppy: the
+ * two derive the link set differently, and ADR-008 review rule 5 is the reason a
+ * second, independent derivation of the same fact is worth keeping. What this file
+ * has that `check:corpus` does not is the `src/`-comment direction below, which no
+ * gate covers.
+ */
+const DOC_DIRS = ['adr', 'work/bugs', 'work/plans', 'work/proposals']
 
 /**
  * Root-level prose, which this check did not cover for four releases.
@@ -51,7 +64,7 @@ const DOC_DIRS = ['adr', 'bugs', 'plans', 'proposals']
  * `node_modules/` and every fixture, and the list of root documents changes about
  * once a year.
  */
-const ROOT_DOCS = ['CHANGELOG.md', 'README.md', 'CLAUDE.md', 'ts-archunit-spec.md']
+const ROOT_DOCS = ['README.md', 'CLAUDE.md', 'RELEASING.md']
 /** VitePress-routed corpus. */
 const SITE_DIR = 'docs'
 
@@ -61,7 +74,7 @@ const FENCE = /^```[\s\S]*?^```/gm
 const INLINE_CODE = /`[^`\n]*`/g
 
 function markdownFiles(dir: string): string[] {
-  const root = path.join(REPO, dir)
+  const root = path.join(repoRoot, dir)
   if (!fs.existsSync(root)) return []
   const out: string[] = []
   const walk = (d: string): void => {
@@ -107,7 +120,7 @@ function linksIn(file: string): Link[] {
     if (raw === undefined || raw === '') continue
     // External, in-page anchors and mail links are not ours to resolve.
     if (/^(https?:|mailto:|#)/.test(raw)) continue
-    found.push({ from: path.relative(REPO, file), target: raw })
+    found.push({ from: path.relative(repoRoot, file), target: raw })
   }
   return found
 }
@@ -132,7 +145,7 @@ function resolvesAsRoute(file: string, target: string): boolean {
   const withoutAnchor = (target.split('#')[0] ?? '').replace(/\/$/, '')
   if (withoutAnchor === '') return true
   const base = withoutAnchor.startsWith('/')
-    ? path.join(REPO, SITE_DIR, withoutAnchor.slice(1))
+    ? path.join(repoRoot, SITE_DIR, withoutAnchor.slice(1))
     : path.resolve(path.dirname(file), withoutAnchor)
   return (
     fs.existsSync(base) || fs.existsSync(`${base}.md`) || fs.existsSync(path.join(base, 'index.md'))
@@ -158,8 +171,11 @@ function sourceFiles(): string[] {
       }
     }
   }
+  // The PACKAGE root: this is `eess-ts`'s suite, so it reads `eess-ts`'s source.
+  // The documents those comments cite live at the monorepo root, which is why the
+  // link TARGETS resolve against `repoRoot` while the files come from here.
   for (const dir of ['src', 'tests']) {
-    const root = path.join(REPO, dir)
+    const root = path.join(packageRoot, dir)
     if (fs.existsSync(root)) walk(root)
   }
   return out
@@ -172,7 +188,7 @@ function documentLinksIn(file: string): Link[] {
     const raw = match[1]?.trim()
     if (raw === undefined || !raw.endsWith('.md')) continue
     if (/^(https?:|mailto:)/.test(raw)) continue
-    found.push({ from: path.relative(REPO, file), target: raw })
+    found.push({ from: path.relative(repoRoot, file), target: raw })
   }
   return found
 }
@@ -180,7 +196,7 @@ function documentLinksIn(file: string): Link[] {
 describe('cross-document links resolve (bug 0046)', () => {
   const docFiles = [
     ...DOC_DIRS.flatMap(markdownFiles),
-    ...ROOT_DOCS.map((f) => path.join(REPO, f)).filter((f) => fs.existsSync(f)),
+    ...ROOT_DOCS.map((f) => path.join(repoRoot, f)).filter((f) => fs.existsSync(f)),
   ]
   const siteFiles = markdownFiles(SITE_DIR)
 
@@ -194,7 +210,7 @@ describe('cross-document links resolve (bug 0046)', () => {
     // typo in `ROOT_DOCS` drops a file silently, and the count floor is far too
     // coarse to notice four documents going missing.
     for (const name of ROOT_DOCS) {
-      expect(docFiles.map((f) => path.relative(REPO, f))).toContain(name)
+      expect(docFiles.map((f) => path.relative(repoRoot, f))).toContain(name)
     }
     expect(siteFiles.length).toBeGreaterThan(10)
     expect(docFiles.flatMap(linksIn).length).toBeGreaterThan(100)

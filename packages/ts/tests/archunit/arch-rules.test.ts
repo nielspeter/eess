@@ -400,7 +400,7 @@ describe('ADR-005: Type Safety', () => {
   })
 
   it('NO source file may use a type assertion, whatever shape it is written in', () => {
-    // The scope fix from [bug 0049](../../bugs/fixed/0049-the-type-assertion-self-check-selected-classes.md).
+    // The scope fix from [bug 0049](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0049-the-type-assertion-self-check-selected-classes.md).
     //
     // The rule below this one selects **classes**. This codebase has 19 files with
     // a class and 128 with a function, so the guard covered the shape we barely
@@ -1191,7 +1191,7 @@ function internalRuleIds(): DiagnosableRule[] {
 
 afterAll(() => {
   // **Dogfooding the fix for our own bug.**
-  // [Bug 0044](../../bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md):
+  // [Bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md):
   // a `// eess-exclude` naming a renamed rule id suppresses nothing and
   // says nothing — inert forever, because a comment is only read in a file that
   // already produced a finding for that rule. We shipped `orphanExclusions` to
@@ -1341,7 +1341,7 @@ it('every waiver in src/ actually suppresses something', () => {
   // about the code. Only the suppression list can see it.
   //
   // This also dogfoods the disclosure shipped for
-  // [bug 0041](../../bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md):
+  // [bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md):
   // we built a channel to report what comments silenced, then never pointed it at
   // ourselves.
   resetCommentSuppression()

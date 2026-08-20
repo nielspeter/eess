@@ -1,6 +1,6 @@
 /**
  * A `eess-exclude` directive counts only where it really is a directive —
- * [bug 0043](../../bugs/fixed/0043-an-exclusion-directive-inside-a-string-literal-suppresses.md).
+ * [bug 0043](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0043-an-exclusion-directive-inside-a-string-literal-suppresses.md).
  *
  * The parser split the source on newlines and regexed each line, with no idea
  * what was code, what was a string, and what was a comment. So the characters

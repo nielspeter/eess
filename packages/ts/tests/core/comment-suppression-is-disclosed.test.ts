@@ -4,7 +4,7 @@
  * Every other filter in the pipeline discloses itself — `.excluding()` warns on
  * an unused pattern, diff-aware has `suppressionNotice`, the baseline has
  * `unmatchedBaselineFinding`. The comment filter dropped violations and returned
- * nothing, and [bug 0041](../../bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
+ * nothing, and [bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
  * made it the widest filter we ship. `diff-disclosure.ts` names the principle:
  * *a run with every finding suppressed is indistinguishable from a clean run.*
  *
