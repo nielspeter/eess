@@ -290,36 +290,44 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
         'Add .should() and a condition, or delete the rule.'
       )
     }
-    if (this._misplaced.length > 0) {
-      const names = this._misplaced.map((d) => `"${d}"`).join(', ')
-      const one = this._misplaced.length === 1
-      const verb = one ? 'is a predicate, which filters' : 'are predicates, which filter'
-      const it = one ? 'it' : 'them'
-      // Two faults, two remedies. With conditions present the rule is not
-      // "asserting nothing" in the reader's sense — it asserts something over a
-      // set the misplaced predicate silently shrank, possibly to empty, which is
-      // a different sentence and a different fix (move it; do NOT add another
-      // condition). Telling this author to "add a condition" would name a fix
-      // that leaves the rule exactly as broken — ADR-008 rule 2.
-      if (this._conditions.length > 0) {
-        return (
-          `this rule's ${names} ${verb} subjects rather than asserting anything about them, ` +
-          `and ${one ? 'it comes' : 'they come'} after .should() — so ${it} narrowed the ` +
-          "selection this rule's conditions are evaluated over, and if that narrowed it to " +
-          `nothing the conditions hold vacuously. Move ${it} before .should(), where the ` +
-          'filtering is explicit.'
-        )
-      }
-      return (
-        `this rule asserts nothing: ${names} ${verb} subjects rather than asserting ` +
-        `anything about them. Move ${it} before .should(), then add a condition.`
-      )
-    }
+    if (this._misplaced.length > 0) return this.misplacedPredicateAdvice()
     return (
       'this rule reached .should() but no condition follows, so it asserts nothing and can ' +
       'never fail. Add a condition after .should() — or, if this rule is generated from ' +
       'configuration, skip generating it when there is nothing to assert; if it comes from ' +
       'a preset (ruleId "preset/..."), report it to the preset\'s author.'
+    )
+  }
+
+  /**
+   * Advice for predicates that landed after `.should()`.
+   *
+   * Extracted from {@link assertionAdvice} so that method reads as its three
+   * outcomes rather than as one of them. Two remedies live here, and the
+   * distinction is the point: with conditions present the rule is not
+   * "asserting nothing" — it asserts something over a set the misplaced
+   * predicate silently shrank, which is a different fault and a different fix
+   * (move it; do NOT add another condition). Telling that author to "add a
+   * condition" names a fix that leaves the rule exactly as broken (ADR-008
+   * rule 2).
+   */
+  private misplacedPredicateAdvice(): string {
+    const names = this._misplaced.map((d) => `"${d}"`).join(', ')
+    const one = this._misplaced.length === 1
+    const verb = one ? 'is a predicate, which filters' : 'are predicates, which filter'
+    const it = one ? 'it' : 'them'
+    if (this._conditions.length > 0) {
+      return (
+        `this rule's ${names} ${verb} subjects rather than asserting anything about them, ` +
+        `and ${one ? 'it comes' : 'they come'} after .should() — so ${it} narrowed the ` +
+        "selection this rule's conditions are evaluated over, and if that narrowed it to " +
+        `nothing the conditions hold vacuously. Move ${it} before .should(), where the ` +
+        'filtering is explicit.'
+      )
+    }
+    return (
+      `this rule asserts nothing: ${names} ${verb} subjects rather than asserting ` +
+      `anything about them. Move ${it} before .should(), then add a condition.`
     )
   }
 

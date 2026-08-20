@@ -428,20 +428,36 @@ export class CorrespondenceBuilder extends TerminalBuilder {
    * sides-count check stays, because wrong arity is a different fault from a
    * missing assertion and its remedy is another `.side(...)`.
    */
-  protected collectViolations(): CollectResult {
+  /**
+   * The two sides and the metadata every finding from them carries.
+   *
+   * Extracted so `collectViolations` reads as the decision sequence it is —
+   * unbound, then emptiness, then matching — rather than opening with a guard
+   * and a literal. The arity check lives here because it is the precondition
+   * for the metadata: the rule name is built from both side names.
+   */
+  private resolvedSides(): { sideA: Side; sideB: Side; meta: ViolationMeta } {
     const [sideA, sideB] = this._sides
     if (this._sides.length !== 2 || sideA === undefined || sideB === undefined) {
       throw new RangeError(
         `correspondence() requires exactly two .side(...) calls; got ${String(this._sides.length)}.`,
       )
     }
-    const meta: ViolationMeta = {
-      rule: `correspondence [${sideA.name} <-> ${sideB.name}]`,
-      because: this._reason,
-      ruleId: this._metadata?.id,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
+    return {
+      sideA,
+      sideB,
+      meta: {
+        rule: `correspondence [${sideA.name} <-> ${sideB.name}]`,
+        because: this._reason,
+        ruleId: this._metadata?.id,
+        suggestion: this._metadata?.suggestion,
+        docs: this._metadata?.docs,
+      },
     }
+  }
+
+  protected collectViolations(): CollectResult {
+    const { sideA, sideB, meta } = this.resolvedSides()
 
     const unbound = this.unboundDeclarationFindings(sideA, sideB, meta)
     // A configuration fault: the sides were never materialized, so nothing was

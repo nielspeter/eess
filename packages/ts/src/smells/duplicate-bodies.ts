@@ -244,22 +244,31 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
   }
 
   /** Build violations from similar pairs. */
+  /**
+   * Report order: by folder when `.groupByFolder()` asked for it, otherwise the
+   * order the pairs were found in.
+   *
+   * Extracted from {@link buildViolations} so that method is the violation
+   * shape and nothing else — presentation order is a separate decision.
+   */
+  private orderedPairs(
+    pairs: Array<{ a: ArchFunction; b: ArchFunction; similarity: number }>,
+  ): Array<{ a: ArchFunction; b: ArchFunction; similarity: number }> {
+    if (!this._groupByFolder) return pairs
+    return [...pairs].sort((x, y) => {
+      const folderA = path.dirname(x.a.getSourceFile().getFilePath())
+      const folderB = path.dirname(y.a.getSourceFile().getFilePath())
+      return folderA.localeCompare(folderB)
+    })
+  }
+
   private buildViolations(
     pairs: Array<{ a: ArchFunction; b: ArchFunction; similarity: number }>,
   ): ArchViolation[] {
     const ruleDescription = this.describe()
     const violations: ArchViolation[] = []
 
-    // Optionally sort pairs by folder for grouped output
-    const sortedPairs = this._groupByFolder
-      ? [...pairs].sort((x, y) => {
-          const folderA = path.dirname(x.a.getSourceFile().getFilePath())
-          const folderB = path.dirname(y.a.getSourceFile().getFilePath())
-          return folderA.localeCompare(folderB)
-        })
-      : pairs
-
-    for (const pair of sortedPairs) {
+    for (const pair of this.orderedPairs(pairs)) {
       const nameA = pair.a.getName() ?? '<anonymous>'
       const fileA = pair.a.getSourceFile().getFilePath()
       const lineA = pair.a.getStartLineNumber()
