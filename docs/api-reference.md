@@ -170,21 +170,21 @@ Available on all entry points via `.that()`.
 
 ## Structural Conditions
 
-| Export                      | Signature                      | Description                                     |
-| --------------------------- | ------------------------------ | ----------------------------------------------- |
-| `notExist`                  | `notExist()`                   | No elements should match the predicates.        |
-| `beExported`                | `beExported()`                 | All matched elements should be exported.        |
-| `conditionResideInFile`     | `resideInFile(glob: string)`   | All elements should reside in matching files.   |
-| `conditionResideInFolder`   | `resideInFolder(glob: string)` | All elements should reside in matching folders. |
-| `conditionHaveNameMatching` | `haveNameMatching(re: RegExp)` | All elements should have names matching regex.  |
+| Export                    | Signature                      | Description                                     |
+| ------------------------- | ------------------------------ | ----------------------------------------------- |
+| `notExist`                | `notExist()`                   | No elements should match the predicates.        |
+| `beExported`              | `beExported()`                 | All matched elements should be exported.        |
+| `conditionResideInFile`   | `resideInFile(glob: string)`   | All elements should reside in matching files.   |
+| `conditionResideInFolder` | `resideInFolder(glob: string)` | All elements should reside in matching folders. |
+| `haveNameMatching`        | `haveNameMatching(re: RegExp)` | All elements should have names matching regex.  |
 
 ## Class Conditions
 
 | Export                          | Signature                                        | Description                                           |
 | ------------------------------- | ------------------------------------------------ | ----------------------------------------------------- |
-| `shouldExtend`                  | `shouldExtend(name: string)`                     | Class must extend the named base class.               |
-| `shouldImplement`               | `shouldImplement(name: string)`                  | Class must implement the named interface.             |
-| `shouldHaveMethodNamed`         | `shouldHaveMethodNamed(name: string)`            | Class must have a method with the name.               |
+| `extend`                        | `extend(name: string)`                           | Class must extend the named base class.               |
+| `implement`                     | `implement(name: string)`                        | Class must implement the named interface.             |
+| `haveMethodNamed`               | `haveMethodNamed(name: string)`                  | Class must have a method with the name.               |
 | `shouldNotHaveMethodMatching`   | `shouldNotHaveMethodMatching(re: RegExp)`        | Class must not have methods matching regex.           |
 | `classAcceptParameterOfType`    | `acceptParameterOfType(matcher: TypeMatcher)`    | At least one param (ctor/method/setter) matches type. |
 | `classNotAcceptParameterOfType` | `notAcceptParameterOfType(matcher: TypeMatcher)` | No param (ctor/method/setter) matches type.           |
