@@ -80,9 +80,25 @@ physical-source-lines metric, not a statement count.
       as larger than themselves.
 - [x] The three misleading `"counts span lines"` titles are corrected, since
       after the fix they would name a contract the code no longer has.
-- [x] `docs/api-reference.md` no longer documents it as "Count span lines", and
-      `docs/metrics.md`'s "How Lines Are Counted" section is rewritten with a
-      migration note.
+- [x] Every description of the metric matches the metric. The first pass fixed
+      the prose section and the `linesOfCode` row and missed the tables an
+      adopter actually reads to pick a threshold; review caught it. Swept:
+      four JSDoc blocks in `predicates/metrics.ts`, `rules/metrics.ts` and
+      `rules/metrics-function.ts` — which ship into the `.d.ts` and are what a
+      consumer sees on hover — and eight rows across `docs/api-reference.md`,
+      `docs/metrics.md` and `docs/standard-rules.md`. The only surviving
+      mention of span lines is the migration note, which is describing the old
+      behaviour on purpose.
+- [x] The version marker names the release it actually ships in. It said
+      "Changed in 0.3" — the version currently on the shelf with the OLD
+      behaviour — so a reader on 0.3.0 would have concluded the warning did not
+      apply to them. Confirmed by running `changeset version` in a scratch
+      worktree: this lands in **0.4.0**.
+- [x] The violation message says what it measured. "`TerminalBuilder` has 372
+      lines" named a number the author cannot find in a 1218-line file; it now
+      reads "372 code lines" (ADR-008: attribution, not colour). Safe for
+      existing baselines — a metric finding sets `identity` explicitly, and
+      `hashViolation` hashes `rule::identity`, so the message is not in the hash.
 - [x] The carve-outs this justified in `arch.internal.rules.ts` are re-measured
       and cut: `maxMethodLines` now has **none**, and `maxClassLines` keeps two
       named files instead of a folder. `maxMethods` (a count, untouched by this

@@ -24,6 +24,13 @@ reason for preferring the span. Blank lines carry no token either. A line
 holding only `}` still counts — this stays a physical-source-lines metric, not
 a statement count.
 
+**Message text changed.** A line finding now reads `Big has 120 code lines
+(max: 100)` rather than `Big has 120 lines (max: 100)` — the old wording named a
+number you could not find by looking at the file. This does not move any
+baseline: metric findings carry an explicit `identity`, and the hash is taken
+over that, not over the message. If you grep build logs for the old phrasing,
+update the pattern.
+
 **Cost:** the metric reads the AST rather than doing arithmetic on two line
 numbers, so it is not free — measured at roughly 0.3ms per class or method, and
 no measurable change to a full gate run on a ~680-file repo. If you call

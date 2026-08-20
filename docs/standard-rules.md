@@ -441,12 +441,12 @@ import {
 | Rule                         | Target    | What it checks                         |
 | ---------------------------- | --------- | -------------------------------------- |
 | `maxCyclomaticComplexity(n)` | classes   | No method exceeds complexity N         |
-| `maxClassLines(n)`           | classes   | Class spans no more than N lines       |
-| `maxMethodLines(n)`          | classes   | No method exceeds N lines              |
+| `maxClassLines(n)`           | classes   | Class has no more than N code lines    |
+| `maxMethodLines(n)`          | classes   | No method exceeds N code lines         |
 | `maxMethods(n)`              | classes   | Class has no more than N methods       |
 | `maxParameters(n)`           | classes   | No method has more than N parameters   |
 | `maxFunctionComplexity(n)`   | functions | Function complexity does not exceed N  |
-| `maxFunctionLines(n)`        | functions | Function spans no more than N lines    |
+| `maxFunctionLines(n)`        | functions | Function has no more than N code lines |
 | `maxFunctionParameters(n)`   | functions | Function has no more than N parameters |
 
 Start with generous limits and tighten over time. Common starting points: complexity 15, method lines 40, class lines 300, parameters 4. Use `.warn()` for soft limits and `.check()` for hard limits:
