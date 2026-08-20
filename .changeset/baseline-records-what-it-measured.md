@@ -5,6 +5,19 @@
 
 The baseline records what a measurement COUNTS, and refuses to compare across a change of unit — bug 0171.
 
+**Breaking (@nielspeter/eess-ts)** — 0.x, so a minor signals it, not a 1.0
+stability claim. A baseline that previously suppressed silently can now report on
+upgrade with no code change of its own, which is the same class as the other
+breaks in this release.
+
+**Why `eess-ts` is named as the owner and the other dialects are not.** The
+mechanism lives in the kernel's baseline, but only `eess-ts` produces findings
+carrying a `measured` value — `eess-md`, `-mermaid`, `-gherkin` and
+`-crossvalidate` produce none, so their adopters have no baselined measurement
+that could stop comparing. Declaring them would announce a change their users
+cannot observe. If a dialect ever gains a metric finding, this reasoning expires
+and it belongs in the list.
+
 **Read this if you hold a baseline with metric findings.** An accepted ceiling is
 a number in a unit, and until now the baseline compared across a change of unit
 without noticing. `linesOfCode` changing from span lines to code lines (same

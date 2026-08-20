@@ -210,3 +210,23 @@ That is this bug's mechanism, live, green, in the same directory as its fix.
 Keying on the marker is still right — inferring a break from prose is the
 unfalsifiable alternative. But "reddens nothing today" is a fact about what is
 marked, not evidence that nothing is breaking.
+
+**That instance is now marked**, and marking it exercised the owner form on the
+real repo for the first time. It reads
+`**Breaking (@nielspeter/eess-ts)**` rather than a bare lead, because the
+mechanism lives in the kernel's baseline while only `eess-ts` produces findings
+carrying a `measured` value — verified: `eess-md`, `-mermaid`, `-gherkin` and
+`-crossvalidate` produce none, so their adopters hold no baselined measurement
+that could stop comparing. Naming them would announce a change their users cannot
+observe, which is the padding `.claude/skills/release/SKILL.md` warns against.
+
+The owner is load-bearing, not decorative: flipping `eess-ts` to `patch` fires
+`release/breaking-needs-minor` **even though the kernel is still `minor`**.
+Without the owner, "at least one past patch" would have been satisfied by the
+kernel and the rule would have stayed silent — the multi-package hole this record
+describes, closed on a real changeset rather than only in a fixture.
+
+The reasoning has a stated expiry: if a dialect ever gains a metric finding, that
+changeset's owner list is wrong. Nothing checks it — the metric census scans
+`packages/ts` only, which is the gap already filed as
+[bug 0175](../0175-kernel-configuration-findings-sit-outside-every-census.md).
