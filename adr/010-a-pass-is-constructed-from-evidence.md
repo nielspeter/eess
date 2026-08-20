@@ -37,6 +37,52 @@ measured cost of re-deriving it (a class recurring on unrelated code, closed
 only when it stopped being reviewed and started being unrepresentable) is the
 reason to adopt the destination, not the path.
 
+### The four waves, carried across rather than summarised
+
+**These are `ts-archunit`'s records, not eess's** — the numbering is that
+project's. They are reproduced because "four completed waves, each followed by a
+family the enumeration could not see" is a conclusion, and the conclusion is not
+what makes the next family findable. The pattern is: **each wave was complete over
+the families in view, and each was followed by the discovery of a family outside
+the view.**
+
+| Wave                                         | What it closed                                                                                     | What was found outside it                                                                                                                                                       |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.18.0** — discovery level                | Empty slice / crossLayer / boundary discovery fails; `.expectNonEmpty()` ships as opt-in           | Selection-level vacuity: 17 of its own dogfood rules selected nothing (ts-archunit bug 0011)                                                                                    |
+| **v0.34.0** — selection level                | An unsatisfiable selector glob and an empty selection become unsuppressable configuration findings | An empty **project** was mis-blamed as a dead glob (ts-archunit bug 0048)                                                                                                       |
+| **ts-archunit bug 0048's fix** — attribution | The empty-project diagnosis, correctly attributed, naming the project-references case              | The diagnosis was sited inside the dead-glob gate, so it silently inherited that gate's precondition: _the rule declares a glob_                                                |
+| **ts-archunit bug 0066** — the smell family  | Nothing yet                                                                                        | Bare `smells.duplicateBodies().check()` over zero source files passes. Measured on one corpus: **401 findings reported as clean** across two apps with solution-style tsconfigs |
+
+**`0066` is a real collision, which is the point of the prefix.** eess's own
+`0066` is `work/plans/completed/0066-eess-deterministic-autofix.md` — an unrelated
+document. A reader grepping the bare number lands on the wrong one, which is the
+defect this branch spent a review round repairing across 177 source comments.
+
+Two facts from that last one decide the shape of this ADR, and both are the
+reason it is a type and not a check:
+
+1. **Sharing the seam's code is not sharing its guarantee.** `SmellBuilder`
+   extended `TerminalBuilder` the whole time. The family that failed open was
+   _inside_ the shared base class, and failed open anyway — because the guard was
+   written as a conditional fault-check (_"which of these declared globs is
+   dead?"_), and every precondition of a conditional check is an early return that
+   reads as green. **A guard that asks "is anything wrong?" has exits. An invariant
+   that demands "prove something was examined" has none.**
+2. **No enumeration derived from the work will contain the next family.**
+   ADR-009 rule 5's omission corollary — _code never written has no line to
+   revert_ — is the mechanism of all four waves, not merely a review hazard. Every
+   wave's scope was enumerated from the diffs and bug reports of the surface where
+   the defect appeared. The next family, by construction, appears in none of them.
+
+There is a third lesson in the source worth carrying, because it is about
+ADR-drafting itself: the first draft of that ADR asserted a family was
+"scheduled" when it had **already shipped**, because the spec's prose said so. A
+binding ADR misstating which families exist is itself the argument for deriving
+the enumeration from the shipped artifact rather than from anything hand-written.
+
+Source:
+[ts-archunit ADR-009](https://github.com/nielspeter/ts-archunit/blob/main/adr/009-a-pass-is-constructed-from-evidence.md).
+
 **Why this lands now.** `@nielspeter/eess`'s kernel today has no `examined`
 count anywhere in its return shape — `ArchViolation[]` is the terminal type
 throughout `packages/core`. A rule whose selector matches nothing and a rule
