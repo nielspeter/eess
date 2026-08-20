@@ -113,7 +113,7 @@ function hasIdentityCollision(violations: readonly ArchViolation[]): boolean {
   return false
 }
 
-export abstract class TerminalBuilder {
+abstract class RuleDeclaration {
   protected _reason?: string
   protected _metadata?: RuleMetadata
   protected _severity?: 'error' | 'warn'
@@ -343,139 +343,6 @@ export abstract class TerminalBuilder {
     }
   }
 
-  /** This rule's own account of itself, for `vacuity-diagnosis.ts`. */
-  private facts(): RuleFacts {
-    return {
-      ruleClass: { name: this.constructor.name },
-      describeRule: () => this.describeRule(),
-      assertionAdvice: () => this.assertionAdvice(),
-      emptyDeclarationAdvice: () => this.emptyDeclarationAdvice(),
-      examinedUnitNoun: () => this.examinedUnitNoun(),
-      narrowingHint: () => this.narrowingHint(),
-      getProject: () => this.getProject(),
-      globs: () => this.globs(),
-      assertsCardinality: () => this.assertsCardinality(),
-      declaresEmpty: () => this.declaresEmpty(),
-      zeroSubjectsAdvice: () => this.zeroSubjectsAdvice(),
-      zeroSubjectsViolation: (project) => this.zeroSubjectsViolation(project),
-    }
-  }
-
-  /**
-   * A rule that asserts nothing about what it selects cannot fail, so it is
-   * reported as a configuration finding (bug 0019, plan 0070).
-   *
-   * **Gate-first**, ahead of `collectViolations()`, for three measured reasons:
-   * an assertion-less rule cannot produce a legitimate finding, so running it
-   * buys nothing but a full AST walk; `CorrespondenceBuilder.collectViolations`
-   * throws before returning, so a gate placed after it would never run for that
-   * builder and its `RangeError` would escape the CLI's `ArchRuleError`-only
-   * catch, dropping every remaining rule file; and the alternative ordering —
-   * let an existing `bypassFilters` finding win — only functions for rules that
-   * opted into `.expectNonEmpty()`, which is the opt-in this whole plan exists
-   * because nobody uses.
-   *
-   * The consequence, accepted: a rule with a dead glob AND no condition reports
-   * the missing assertion only. That is the right root cause — no selector
-   * makes an assertion-less rule capable of failing — and the selector fault
-   * resurfaces on the next run, once there is something to assert.
-   *
-   * `bypassFilters` makes it a configuration finding: `error` severity
-   * regardless of `.asSeverity('warn')`, refused by `.excluding()`, and skipped
-   * by diff and baseline. See `severityFor` and ADR-008 rule 1.
-   */
-  private collectWithAssertionGuard(): ArchViolation[] {
-    return runWithGuard(this.asRun())
-  }
-
-  /** This rule, reduced to what `terminal-execution.ts` needs to run it. */
-  private asRun(): RuleRun {
-    return {
-      facts: this.facts(),
-      expectsEmpty: this._expectEmpty,
-      assertsSomething: () => this.assertsSomething(),
-      ownsDiscoveryDiagnosis: () => this.ownsDiscoveryDiagnosis(),
-      collectViolations: () => this.collectViolations(),
-    }
-  }
-
-  /**
-   * What `applyFilters` needs, in one place.
-   *
-   * `violations()`, `check()` and `warn()` each rebuilt this object literally —
-   * three copies of the same four fields, which is three places to forget one.
-   */
-  private filterContext(): {
-    reason?: string
-    metadata?: RuleMetadata
-    exclusions: (string | RegExp)[]
-    silentIndices: Set<number>
-  } {
-    return {
-      reason: this._reason,
-      metadata: this._metadata,
-      exclusions: this._exclusions,
-      silentIndices: this._silentIndices,
-    }
-  }
-
-  /**
-   * Execute the rule and return violations after exclusion filtering.
-   * Does not throw — use for programmatic access (presets, aggregation).
-   */
-  violations(): ArchViolation[] {
-    const raw = this.collectWithAssertionGuard()
-    const filtered = applyFilters(raw, this.filterContext())
-    const sev: 'error' | 'warn' = this._severity ?? 'error'
-    // Computed from `raw`, not `filtered`: `applyFilters()` already ran
-    // `disambiguateIdentities()` by this point, which REPAIRS a colliding
-    // subject with a positional `#1`/`#2` suffix — see `hasIdentityCollision`'s
-    // own doc comment for why checking post-repair identities would miss
-    // exactly the case this exists to catch. Only computed when it can matter.
-    const unsafe =
-      sev === 'warn' && this._acceptedWarnings !== undefined && hasIdentityCollision(raw)
-    return filtered.map((v) => ({
-      ...v,
-      severity: severityFor(v, unsafe ? 'error' : this.fallbackSeverityFor(v, sev)),
-    }))
-  }
-
-  /**
-   * Plan 0090's escalation, per violation. A DEFERRED warning (`_acceptedWarnings`
-   * set) stays `warn` only for a violation whose `subjectOf()` is in the accepted
-   * list; anything else — a genuinely new finding — escalates to `error`, which is
-   * the whole point: an accepted list that never fails on something new is
-   * indistinguishable from an advisory warning, and bug 0084 is what that costs.
-   * An ADVISORY warning (`_acceptedWarnings` `undefined`) is unaffected — `sev`
-   * passes through unchanged, exactly today's behaviour.
-   */
-  private fallbackSeverityFor(v: ArchViolation, sev: 'error' | 'warn'): 'error' | 'warn' {
-    if (sev !== 'warn' || this._acceptedWarnings === undefined) return sev
-    return this._acceptedWarnings.includes(subjectOf(v)) ? 'warn' : 'error'
-  }
-
-  /**
-   * Execute the rule and throw `ArchRuleError` if any violations are found.
-   * This is the primary terminal method — use in test assertions.
-   *
-   * @param options - Optional baseline, diff filtering, and output format
-   */
-  check(options?: CheckOptions): void {
-    const violations = this.collectWithAssertionGuard()
-    executeCheck(violations, this.filterContext(), options)
-  }
-
-  /**
-   * Execute the rule and log violations to stderr. Does not throw.
-   * Use for rules that should warn but not fail CI.
-   *
-   * @param options - Optional baseline, diff filtering, and output format
-   */
-  warn(options?: CheckOptions): void {
-    const violations = this.collectWithAssertionGuard()
-    executeWarn(violations, this.filterContext(), options)
-  }
-
   /**
    * Set the severity this rule reports at WITHOUT executing it (non-terminal).
    * Returns `this` so the builder can be collected into a rule array and run by
@@ -513,70 +380,6 @@ export abstract class TerminalBuilder {
     next._severity = level
     next._acceptedWarnings = level === 'warn' ? options?.accepted : undefined
     return next
-  }
-
-  /**
-   * Execute the rule with the given severity.
-   * `.severity('error')` is equivalent to `.check()`.
-   * `.severity('warn')` is equivalent to `.warn()`.
-   */
-  severity(level: 'error' | 'warn'): void {
-    if (level === 'error') {
-      this.check()
-    } else {
-      this.warn()
-    }
-  }
-
-  /**
-   * The advice for a DEFERRED warning whose accepted list no longer covers
-   * everything it currently finds — plan 0090.
-   *
-   * PUBLIC and zero-arg, following `inertAdvice()`/`zeroSubjectsAdvice()`'s
-   * precedent exactly: read structurally by `diagnose()`, so `doctor`'s preview
-   * and `checkAll()`/CLI `check`'s eventual failure carry the same evidence by
-   * construction. Returns `''` for an advisory warning (`_acceptedWarnings`
-   * `undefined`), for a rule at `'error'` severity, and for a deferred warning
-   * whose current findings are all still within `accepted` — a working, healthy
-   * deferral is not a problem `doctor` should report, only a breached one is.
-   *
-   * Calls `this.violations()` rather than re-deriving "is this accepted" a
-   * second time: that already applies the exact escalation this reports on, so
-   * the two can never disagree about which violations breached the list.
-   *
-   * Also checks `hasIdentityCollision()` separately, on its own
-   * `collectWithAssertionGuard()` pass — not to decide WHETHER to report (that
-   * is already folded into `.violations()`'s own escalation, which forces the
-   * whole batch to `error` when unsafe), but to choose the RIGHT message: a
-   * collision means `accepted` cannot be trusted at all here, which is a
-   * different, more urgent fact than "this specific finding is new".
-   */
-  deferredWarningAdvice(): string {
-    if (this._severity !== 'warn' || this._acceptedWarnings === undefined) return ''
-    const breaching = this.violations().filter((v) => v.severity === 'error')
-    if (breaching.length === 0) return ''
-    const described = this.describeRule()
-    const name = described.id || described.rule || this.constructor.name
-    if (hasIdentityCollision(this.collectWithAssertionGuard())) {
-      return (
-        `"${name}" is a deferred warning, but its findings are not reliably identifiable: two or ` +
-        `more share one subject (rule + element + message, with no producer-set \`identity\`), so ` +
-        `the repair that keeps them distinct assigns a POSITIONAL "#1"/"#2" suffix — not stable ` +
-        `across runs, so a fixed finding and a genuinely new one can land on the same suffix and ` +
-        `\`accepted\` would silently treat the new one as already-known debt. Every finding here is ` +
-        `escalated to error until this is fixed: qualify the condition's message, or set ` +
-        `ArchViolation.identity explicitly, so each finding's subject is unique on its own.`
-      )
-    }
-    const subjects = breaching.map((v) => subjectOf(v))
-    return (
-      `"${name}" is a deferred warning (accepted: ${String(this._acceptedWarnings.length)} finding` +
-      `${this._acceptedWarnings.length === 1 ? '' : 's'}), and ${String(breaching.length)} current ` +
-      `finding${breaching.length === 1 ? '' : 's'} ${breaching.length === 1 ? 'is' : 'are'} not in ` +
-      `that list — a new finding this deferral did not accept, which will fail at check() time: ` +
-      `${subjects.join(', ')}. Either fix it, or extend \`accepted\` if it is genuinely more debt of ` +
-      `the same kind you already deferred.`
-    )
   }
 
   /**
@@ -817,24 +620,6 @@ export abstract class TerminalBuilder {
   }
 
   /**
-   * The advice for a rule that examined zero units — plan 0099.
-   *
-   * PUBLIC and zero-arg, following `assertionAdvice()`'s precedent exactly: it is
-   * read structurally by `diagnose()` so `doctor` and the gate carry the same
-   * string **by construction**. Plan 0070 added that seam after the two were
-   * measured diverging; review measured this pair diverging the same way, with
-   * `diagnose()` still closing "A later release makes this state fail at check
-   * time" in the release that makes it fail.
-   */
-  zeroSubjectsAdvice(): string {
-    return zeroSubjectsAdviceOf(this.facts())
-  }
-
-  protected zeroSubjectsViolation(project: ArchProject | undefined): ArchViolation {
-    return zeroSubjectsViolationOf(this.facts(), project)
-  }
-
-  /**
    * An independent copy of this builder.
    *
    * **A held selection is immutable** (bug 0016). Every method that adds to a
@@ -881,7 +666,7 @@ export abstract class TerminalBuilder {
    * fields — the same reason every other state-holding class overrides
    * `copy()` instead of `copy()` knowing about their fields.
    */
-  protected adoptFilterState(source: TerminalBuilder): void {
+  protected adoptFilterState(source: RuleDeclaration): void {
     this._exclusions = [...source._exclusions]
     this._silentIndices = new Set(source._silentIndices)
   }
@@ -932,4 +717,233 @@ export abstract class TerminalBuilder {
    * sabotage row for the wiring belongs in 0099's matrix on day one.
    */
   protected abstract collectViolations(): CollectResult
+}
+
+/**
+ * The terminals — `check()`, `warn()`, `violations()` — and the execution behind
+ * them.
+ *
+ * Split from {@link RuleDeclaration} because a builder does two jobs: it collects
+ * a declaration, and it runs it. Both halves were one class of 372 code lines,
+ * and the gate that measures class size was right about it.
+ *
+ * A subclass still extends `TerminalBuilder` and inherits both halves, so the ten
+ * builders that do are untouched — the split is in this file, not in their
+ * contracts.
+ */
+export abstract class TerminalBuilder extends RuleDeclaration {
+  /**
+   * Execute the rule with the given severity.
+   * `.severity('error')` is equivalent to `.check()`.
+   * `.severity('warn')` is equivalent to `.warn()`.
+   */
+  severity(level: 'error' | 'warn'): void {
+    if (level === 'error') {
+      this.check()
+    } else {
+      this.warn()
+    }
+  }
+
+  /**
+   * A rule that asserts nothing about what it selects cannot fail, so it is
+   * reported as a configuration finding (bug 0019, plan 0070).
+   *
+   * **Gate-first**, ahead of `collectViolations()`, for three measured reasons:
+   * an assertion-less rule cannot produce a legitimate finding, so running it
+   * buys nothing but a full AST walk; `CorrespondenceBuilder.collectViolations`
+   * throws before returning, so a gate placed after it would never run for that
+   * builder and its `RangeError` would escape the CLI's `ArchRuleError`-only
+   * catch, dropping every remaining rule file; and the alternative ordering —
+   * let an existing `bypassFilters` finding win — only functions for rules that
+   * opted into `.expectNonEmpty()`, which is the opt-in this whole plan exists
+   * because nobody uses.
+   *
+   * The consequence, accepted: a rule with a dead glob AND no condition reports
+   * the missing assertion only. That is the right root cause — no selector
+   * makes an assertion-less rule capable of failing — and the selector fault
+   * resurfaces on the next run, once there is something to assert.
+   *
+   * `bypassFilters` makes it a configuration finding: `error` severity
+   * regardless of `.asSeverity('warn')`, refused by `.excluding()`, and skipped
+   * by diff and baseline. See `severityFor` and ADR-008 rule 1.
+   */
+  private collectWithAssertionGuard(): ArchViolation[] {
+    return runWithGuard(this.asRun())
+  }
+
+  /** This rule, reduced to what `terminal-execution.ts` needs to run it. */
+  private asRun(): RuleRun {
+    return {
+      facts: this.facts(),
+      expectsEmpty: this._expectEmpty,
+      assertsSomething: () => this.assertsSomething(),
+      ownsDiscoveryDiagnosis: () => this.ownsDiscoveryDiagnosis(),
+      collectViolations: () => this.collectViolations(),
+    }
+  }
+
+  /**
+   * What `applyFilters` needs, in one place.
+   *
+   * `violations()`, `check()` and `warn()` each rebuilt this object literally —
+   * three copies of the same four fields, which is three places to forget one.
+   */
+  private filterContext(): {
+    reason?: string
+    metadata?: RuleMetadata
+    exclusions: (string | RegExp)[]
+    silentIndices: Set<number>
+  } {
+    return {
+      reason: this._reason,
+      metadata: this._metadata,
+      exclusions: this._exclusions,
+      silentIndices: this._silentIndices,
+    }
+  }
+
+  /** This rule's own account of itself, for `vacuity-diagnosis.ts`. */
+  private facts(): RuleFacts {
+    return {
+      ruleClass: { name: this.constructor.name },
+      describeRule: () => this.describeRule(),
+      assertionAdvice: () => this.assertionAdvice(),
+      emptyDeclarationAdvice: () => this.emptyDeclarationAdvice(),
+      examinedUnitNoun: () => this.examinedUnitNoun(),
+      narrowingHint: () => this.narrowingHint(),
+      getProject: () => this.getProject(),
+      globs: () => this.globs(),
+      assertsCardinality: () => this.assertsCardinality(),
+      declaresEmpty: () => this.declaresEmpty(),
+      zeroSubjectsAdvice: () => this.zeroSubjectsAdvice(),
+      zeroSubjectsViolation: (project) => this.zeroSubjectsViolation(project),
+    }
+  }
+
+  /**
+   * Execute the rule and return violations after exclusion filtering.
+   * Does not throw — use for programmatic access (presets, aggregation).
+   */
+  violations(): ArchViolation[] {
+    const raw = this.collectWithAssertionGuard()
+    const filtered = applyFilters(raw, this.filterContext())
+    const sev: 'error' | 'warn' = this._severity ?? 'error'
+    // Computed from `raw`, not `filtered`: `applyFilters()` already ran
+    // `disambiguateIdentities()` by this point, which REPAIRS a colliding
+    // subject with a positional `#1`/`#2` suffix — see `hasIdentityCollision`'s
+    // own doc comment for why checking post-repair identities would miss
+    // exactly the case this exists to catch. Only computed when it can matter.
+    const unsafe =
+      sev === 'warn' && this._acceptedWarnings !== undefined && hasIdentityCollision(raw)
+    return filtered.map((v) => ({
+      ...v,
+      severity: severityFor(v, unsafe ? 'error' : this.fallbackSeverityFor(v, sev)),
+    }))
+  }
+
+  /**
+   * Plan 0090's escalation, per violation. A DEFERRED warning (`_acceptedWarnings`
+   * set) stays `warn` only for a violation whose `subjectOf()` is in the accepted
+   * list; anything else — a genuinely new finding — escalates to `error`, which is
+   * the whole point: an accepted list that never fails on something new is
+   * indistinguishable from an advisory warning, and bug 0084 is what that costs.
+   * An ADVISORY warning (`_acceptedWarnings` `undefined`) is unaffected — `sev`
+   * passes through unchanged, exactly today's behaviour.
+   */
+  private fallbackSeverityFor(v: ArchViolation, sev: 'error' | 'warn'): 'error' | 'warn' {
+    if (sev !== 'warn' || this._acceptedWarnings === undefined) return sev
+    return this._acceptedWarnings.includes(subjectOf(v)) ? 'warn' : 'error'
+  }
+
+  /**
+   * Execute the rule and throw `ArchRuleError` if any violations are found.
+   * This is the primary terminal method — use in test assertions.
+   *
+   * @param options - Optional baseline, diff filtering, and output format
+   */
+  check(options?: CheckOptions): void {
+    const violations = this.collectWithAssertionGuard()
+    executeCheck(violations, this.filterContext(), options)
+  }
+
+  /**
+   * Execute the rule and log violations to stderr. Does not throw.
+   * Use for rules that should warn but not fail CI.
+   *
+   * @param options - Optional baseline, diff filtering, and output format
+   */
+  warn(options?: CheckOptions): void {
+    const violations = this.collectWithAssertionGuard()
+    executeWarn(violations, this.filterContext(), options)
+  }
+
+  /**
+   * The advice for a DEFERRED warning whose accepted list no longer covers
+   * everything it currently finds — plan 0090.
+   *
+   * PUBLIC and zero-arg, following `inertAdvice()`/`zeroSubjectsAdvice()`'s
+   * precedent exactly: read structurally by `diagnose()`, so `doctor`'s preview
+   * and `checkAll()`/CLI `check`'s eventual failure carry the same evidence by
+   * construction. Returns `''` for an advisory warning (`_acceptedWarnings`
+   * `undefined`), for a rule at `'error'` severity, and for a deferred warning
+   * whose current findings are all still within `accepted` — a working, healthy
+   * deferral is not a problem `doctor` should report, only a breached one is.
+   *
+   * Calls `this.violations()` rather than re-deriving "is this accepted" a
+   * second time: that already applies the exact escalation this reports on, so
+   * the two can never disagree about which violations breached the list.
+   *
+   * Also checks `hasIdentityCollision()` separately, on its own
+   * `collectWithAssertionGuard()` pass — not to decide WHETHER to report (that
+   * is already folded into `.violations()`'s own escalation, which forces the
+   * whole batch to `error` when unsafe), but to choose the RIGHT message: a
+   * collision means `accepted` cannot be trusted at all here, which is a
+   * different, more urgent fact than "this specific finding is new".
+   */
+  deferredWarningAdvice(): string {
+    if (this._severity !== 'warn' || this._acceptedWarnings === undefined) return ''
+    const breaching = this.violations().filter((v) => v.severity === 'error')
+    if (breaching.length === 0) return ''
+    const described = this.describeRule()
+    const name = described.id || described.rule || this.constructor.name
+    if (hasIdentityCollision(this.collectWithAssertionGuard())) {
+      return (
+        `"${name}" is a deferred warning, but its findings are not reliably identifiable: two or ` +
+        `more share one subject (rule + element + message, with no producer-set \`identity\`), so ` +
+        `the repair that keeps them distinct assigns a POSITIONAL "#1"/"#2" suffix — not stable ` +
+        `across runs, so a fixed finding and a genuinely new one can land on the same suffix and ` +
+        `\`accepted\` would silently treat the new one as already-known debt. Every finding here is ` +
+        `escalated to error until this is fixed: qualify the condition's message, or set ` +
+        `ArchViolation.identity explicitly, so each finding's subject is unique on its own.`
+      )
+    }
+    const subjects = breaching.map((v) => subjectOf(v))
+    return (
+      `"${name}" is a deferred warning (accepted: ${String(this._acceptedWarnings.length)} finding` +
+      `${this._acceptedWarnings.length === 1 ? '' : 's'}), and ${String(breaching.length)} current ` +
+      `finding${breaching.length === 1 ? '' : 's'} ${breaching.length === 1 ? 'is' : 'are'} not in ` +
+      `that list — a new finding this deferral did not accept, which will fail at check() time: ` +
+      `${subjects.join(', ')}. Either fix it, or extend \`accepted\` if it is genuinely more debt of ` +
+      `the same kind you already deferred.`
+    )
+  }
+
+  /**
+   * The advice for a rule that examined zero units — plan 0099.
+   *
+   * PUBLIC and zero-arg, following `assertionAdvice()`'s precedent exactly: it is
+   * read structurally by `diagnose()` so `doctor` and the gate carry the same
+   * string **by construction**. Plan 0070 added that seam after the two were
+   * measured diverging; review measured this pair diverging the same way, with
+   * `diagnose()` still closing "A later release makes this state fail at check
+   * time" in the release that makes it fail.
+   */
+  zeroSubjectsAdvice(): string {
+    return zeroSubjectsAdviceOf(this.facts())
+  }
+
+  protected zeroSubjectsViolation(project: ArchProject | undefined): ArchViolation {
+    return zeroSubjectsViolationOf(this.facts(), project)
+  }
 }

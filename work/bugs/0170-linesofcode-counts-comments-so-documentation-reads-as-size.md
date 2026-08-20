@@ -193,21 +193,22 @@ classes split by concern rather than sliced to fit a number:
 | `SliceRuleBuilder`            | 237    | 137   | deciding vs explaining                 |
 | `RuleBuilder`                 | 218    | 148   | the rule as declared vs the builder    |
 
-**Two remain, and `check:arch` is red because of them.** Both `TerminalBuilder`s
-— 372 in the dialect, 215 in the kernel — cannot reach 150 by extraction, and
-that is measured rather than assumed: the non-diagnosis methods alone (the DSL
-and the terminals — `check`, `warn`, `violations`, `severity`, `excluding`) sum
-to **189 code lines**. Lifting out every piece of vacuity machinery still leaves
-the class over. It needs the terminals split from the declaration surface, which
-is the architectural change
-[bug 0164](./0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md)
-owns and which plan 0165 records as waiting on the kernel project-abstraction
-ADR.
+**All thirteen were fixed.** The dialect's `TerminalBuilder` — the last and
+largest at 372 — is now two classes rather than one: `RuleDeclaration` collects
+the declaration, `TerminalBuilder extends` it and runs it. That is what the
+rule's own message asks for ("consider splitting into focused classes"), and it
+costs the ten subclasses nothing: they still extend `TerminalBuilder` and
+inherit both halves, so the split is in one file rather than in their contracts.
 
-They are **not** carved out. A threshold the rules file can only satisfy by
-exempting its own base class has stopped measuring anything, and the exemption
-would outlive the memory of why it was added. A red gate naming two real classes
-is recoverable; a green one hiding them is not.
+Getting there took one wrong turn worth recording. Extraction alone stalled at
+211: the three context accessors that decomposition needs — `facts()`,
+`asRun()`, `filterContext()` — were 46 of the remaining lines, so each further
+move cost about what it saved. The stated reason for stopping was that the
+alternative "changes field access across ten subclasses"; that was asserted, not
+measured. Measuring it found 82 such sites — so the claim was true, and
+irrelevant, because splitting the class needs none of them.
+
+**No carve-out survives.** `check:arch` is green on its own terms.
 
 ## Out of scope
 

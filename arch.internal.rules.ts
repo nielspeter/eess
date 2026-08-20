@@ -165,38 +165,32 @@ const rules = [
   // Raising 300/20 globally was rejected — that lowers the bar for every class to
   // accommodate one.
   srcClasses().should().satisfy(maxCyclomaticComplexity(10)).rule({ id: 'eess/max-complexity' }),
-  // **The thresholds are the honest unit conversion, and the gate is RED because
-  // of it.** `linesOfCode` counting code rather than span made 300 and 50 about
-  // twice as lax as they read: measured, the median class here carries 0.50 code
-  // lines per span line, so `maxClassLines(300)` had quietly become "600 span
-  // lines". Converting the unit preserves the bar that was intended; CHANGING
-  // the strictness is a separate decision nobody made.
+  // **The thresholds are the honest unit conversion.** `linesOfCode` counting
+  // code rather than span made 300 and 50 about twice as lax as they read:
+  // measured, the median class here carries 0.50 code lines per span line, so
+  // `maxClassLines(300)` had quietly become "600 span lines". Converting the
+  // unit preserves the bar that was intended; CHANGING the strictness is a
+  // separate decision nobody made.
   //
-  // A previous pass set 250/35 and called that "re-derived". It was not — 250
-  // was chosen because it fired on nothing new, which is fitting the bar to the
+  // A first pass set 250/35 and called that "re-derived". It was not — 250 was
+  // chosen because it fired on nothing new, which is fitting the bar to the
   // code. 150/30 is what the conversion actually gives.
   //
-  // Eleven of the thirteen findings that produced were FIXED, not waived: three
-  // oversized methods split, and six classes split by concern — `Baseline`
-  // 171->103, `DuplicateBodiesBuilder` 168->130, `InconsistentSiblingsBuilder`
-  // 204->142, `CorrespondenceBuilder` 336->145, `SliceRuleBuilder` 237->137,
-  // `RuleBuilder` 218->148.
+  // All thirteen findings were FIXED rather than waived. Three oversized methods
+  // split, and seven classes split by concern: `Baseline` 171->103,
+  // `DuplicateBodiesBuilder` 168->130, `InconsistentSiblingsBuilder` 204->142,
+  // `CorrespondenceBuilder` 336->145, `SliceRuleBuilder` 237->137, `RuleBuilder`
+  // 218->148, and the kernel's `TerminalBuilder` 215->120.
   //
-  // **The two that remain are real and are left red on purpose.** Both
-  // `TerminalBuilder`s (372 in the dialect, 215 in the kernel) cannot reach 150
-  // by extraction, and that is measured rather than assumed: the non-diagnosis
-  // methods alone — the DSL and the terminals, check/warn/violations/severity/
-  // excluding — sum to 189 code lines. Lifting out every piece of vacuity
-  // machinery still leaves the class over. It needs the terminals split from the
-  // declaration surface, which is the architectural change bug 0164 owns and
-  // which plan 0165 records as waiting on the kernel project-abstraction ADR.
+  // The dialect's `TerminalBuilder` was 372 and is now two classes: a
+  // `RuleDeclaration` half that collects the declaration, and a `TerminalBuilder`
+  // half that runs it. That is what the rule's own message asks for — "consider
+  // splitting into focused classes" — and it costs the ten subclasses nothing,
+  // because they still extend `TerminalBuilder` and inherit both halves.
   //
-  // No carve-out for them. A threshold this file can only satisfy by exempting
-  // its own base class has stopped measuring anything, and the exemption would
-  // outlive the memory of why it was added.
-  //
-  // `GENERATED` stays on the class rule: `MermaidUnitAstReflection` is langium
-  // output, already excluded from `eess/no-unused-exports` for the same reason.
+  // No class carve-out survives. `GENERATED` stays: `MermaidUnitAstReflection` is
+  // langium output, already excluded from `eess/no-unused-exports` for the same
+  // reason, and no threshold usefully describes a generated table.
   srcClasses().excluding(GENERATED).should().satisfy(maxClassLines(150)).rule({
     id: 'eess/max-class-lines',
     because: 'a class past 150 lines of code is carrying more than one job',
