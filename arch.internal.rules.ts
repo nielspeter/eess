@@ -165,6 +165,32 @@ const rules = [
   // Raising 300/20 globally was rejected — that lowers the bar for every class to
   // accommodate one.
   srcClasses().should().satisfy(maxCyclomaticComplexity(10)).rule({ id: 'eess/max-complexity' }),
+  // **The thresholds are re-derived for the new metric, and they are not the old
+  // numbers.** `linesOfCode` counting code rather than span made 300 and 50 far
+  // laxer than they read: measured over this source, the median class carries
+  // 0.50 code lines per span line, so `maxClassLines(300)` had quietly become
+  // "600 span lines" — roughly double the bar anyone agreed to.
+  //
+  // Measured distribution (41 classes, 482 methods, generated code excluded):
+  //
+  //   classes   p50 54   p75 140   p90 217   p95 329   max 372
+  //   methods   p50  3   p75   7   p90  16   p95  22   max  37
+  //
+  // 250 and 35 are chosen to tighten without manufacturing work: 250 fires on
+  // exactly the two classes 300 did — both already owed a split by bug 0164 —
+  // and 35 caught one method, `Baseline.unmatchedBaselineFinding` at 37, which
+  // was split rather than excluded.
+  //
+  // **Equal strictness would be tighter still, and is NOT claimed here.** Holding
+  // the old bar in the new unit is ~150 for classes and ~30 for methods; that
+  // fires on 8 classes and 4 methods, which is a refactor programme rather than a
+  // threshold change. Recorded as owed in bug 0170 rather than done silently or
+  // waived into a carve-out list.
+  //
+  // `GENERATED` joins the class rule for the first time: `MermaidUnitAstReflection`
+  // (270 code lines) is langium output, it is excluded from `eess/no-unused-exports`
+  // for the same reason, and no threshold anyone would choose describes a table.
+  //
   // `linesOfCode` counts CODE lines — comments and blanks excluded — as of
   // [bug 0170](./work/bugs/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md).
   // Before that it was `end - start + 1`, which put this rule in direct conflict
@@ -187,10 +213,11 @@ const rules = [
   // The kernel's own `terminal-builder.ts` (215) and `rule-builder.ts` (139) are
   // NOT excluded — they pass.
   srcClasses()
+    .excluding(GENERATED)
     .excluding(/\/ts\/src\/core\/terminal-builder\.ts$/)
     .excluding(/\/src\/builders\/correspondence-builder\.ts$/)
     .should()
-    .satisfy(maxClassLines(300))
+    .satisfy(maxClassLines(250))
     .rule({
       id: 'eess/max-class-lines',
       because: 'ADR-003: fluent builder surfaces are the design; these two are over on real code',
@@ -207,9 +234,9 @@ const rules = [
   // [bug 0167](./work/bugs/0167-method-size-rules-can-only-be-excluded-by-class.md):
   // a method-size exclusion can still only be spelled per CLASS, but this rule no
   // longer has one, so no class is unwatched on its account today.
-  srcClasses().should().satisfy(maxMethodLines(50)).rule({
+  srcClasses().should().satisfy(maxMethodLines(35)).rule({
     id: 'eess/max-method-lines',
-    because: 'a method past 50 lines of code is doing more than one thing',
+    because: 'a method past 35 lines of code is doing more than one thing',
   }),
   // Method COUNT, which bug 0170 does not touch — a fluent builder really does
   // carry 20+ methods, and ADR-003 makes that surface the design.

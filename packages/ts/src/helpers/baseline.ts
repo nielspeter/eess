@@ -917,33 +917,7 @@ export class Baseline {
     const where = this.sourcePath ?? 'the baseline file'
     const entries = this.knownHashes.size
     const plural = entries === 1 ? 'entry' : 'entries'
-    const cause =
-      this.hashVersion < HASH_VERSION
-        ? `It was written in identity format v${String(this.hashVersion)} and this version reads v${String(HASH_VERSION)}, which is the likely cause.`
-        : this.hashVersion > HASH_VERSION
-          ? `It was written in identity format v${String(this.hashVersion)}, which is newer than this version reads (v${String(HASH_VERSION)}) — upgrade eess-ts rather than regenerating.`
-          : // **Do not assert a cause that has not been distinguished from its alternatives.**
-            //
-            // This branch used to say "Same identity format, so the likely cause is that it
-            // was generated against a different repository root". That is one cause among
-            // several and the code has checked none of them —
-            // [bug 0060](../../bugs/fixed/0060-a-pattern-change-silently-invalidates-every-baselined-finding.md),
-            // where a shipped default pattern changed and a reader spent an hour on `root`
-            // before regenerating, which is the outcome `docs/upgrading.md` exists to prevent.
-            //
-            // The rename detector above cannot cover it either: when a pattern changes, the
-            // rule description AND the subject move together, so `hashSubject` misses and
-            // that diagnostic stays silent. Nothing here can tell these apart, so the honest
-            // output is the candidate list, ordered, with the version-specific one first
-            // because upgrading is when this happens.
-            'The identity format is unchanged, so one of its INPUTS moved.\n' +
-            '  This code cannot tell which. In order of likelihood:\n' +
-            '    1. you upgraded, and a shipped rule description or default pattern changed —\n' +
-            '       check the CHANGELOG entry for the version you moved to, which says so when\n' +
-            '       it happens. If this is it, regenerating is correct and expected.\n' +
-            '    2. the baseline was generated against a different repository root — see the\n' +
-            '       `root` option on withBaseline()/generateBaseline().\n' +
-            '    3. the rules themselves were edited.'
+    const cause = this.unmatchedCause()
     return {
       rule: 'eess-ts: baseline',
       element: 'baseline',
@@ -967,6 +941,50 @@ export class Baseline {
             `Regenerate it: \`npx eess-ts baseline <your-rule-files> --output ${where}\` (rule files are implied if an eess-ts config lists them). Review the diff first — entries that vanish were never matching here.`,
       bypassFilters: true,
     }
+  }
+
+  /**
+   * Why a baseline matched nothing — or, where nothing can be told apart, the
+   * candidates in order.
+   *
+   * Extracted from {@link unmatchedBaselineFinding} so that method stays inside
+   * `eess/max-method-lines`, which bug 0170 re-derived from span lines to code
+   * lines. Most of what was there was this decision.
+   */
+  private unmatchedCause(): string {
+    if (this.hashVersion < HASH_VERSION) {
+      return `It was written in identity format v${String(this.hashVersion)} and this version reads v${String(HASH_VERSION)}, which is the likely cause.`
+    }
+    if (this.hashVersion > HASH_VERSION) {
+      return `It was written in identity format v${String(this.hashVersion)}, which is newer than this version reads (v${String(HASH_VERSION)}) — upgrade eess-ts rather than regenerating.`
+    }
+    // **Do not assert a cause that has not been distinguished from its alternatives.**
+    //
+    // This branch used to say "Same identity format, so the likely cause is that it
+    // was generated against a different repository root". That is one cause among
+    // several and the code has checked none of them —
+    // [bug 0060](../../bugs/fixed/0060-a-pattern-change-silently-invalidates-every-baselined-finding.md),
+    // where a shipped default pattern changed and a reader spent an hour on `root`
+    // before regenerating, which is the outcome `docs/upgrading.md` exists to prevent.
+    //
+    // The rename detector above cannot cover it either: when a pattern changes, the
+    // rule description AND the subject move together, so `hashSubject` misses and
+    // that diagnostic stays silent. Nothing here can tell these apart, so the honest
+    // output is the candidate list, ordered, with the version-specific one first
+    // because upgrading is when this happens.
+    return (
+      'The identity format is unchanged, so one of its INPUTS moved.\n' +
+      '  This code cannot tell which. In order of likelihood:\n' +
+      '    1. you upgraded, and a shipped rule description or default pattern changed —\n' +
+      '       check the CHANGELOG entry for the version you moved to, which says so when\n' +
+      '       it happens. If this is it, regenerating is correct and expected.\n' +
+      '    2. you upgraded, and a metric changed WHAT IT COUNTS (bug 0171). Those entries\n' +
+      '       normally still match and report themselves — but a rule edited in the same\n' +
+      '       release moves the identity too, and then they land here instead.\n' +
+      '    3. the baseline was generated against a different repository root — see the\n' +
+      '       `root` option on withBaseline()/generateBaseline().\n' +
+      '    4. the rules themselves were edited.'
+    )
   }
 
   /** Number of known violations in the baseline */
