@@ -167,6 +167,34 @@ describe('linesOfCode', () => {
       expect(linesOfCode(fn)).toBe(3)
     })
 
+    it('does not count a JSDoc block INSIDE the element', () => {
+      // The case that actually exercises the JSDoc skip. A doc block ABOVE a
+      // declaration sits outside `[getStart(), getEnd()]` and is excluded by
+      // the range alone, so a test using one cannot tell whether the skip
+      // works — measured: removing the skip leaves such a test green. A doc
+      // block on a METHOD sits inside its class's range, which is exactly the
+      // shape `eess/jsdoc-on-public-methods` requires of every public method
+      // and the collision bug 0170 is about.
+      const tsm = new Project({ useInMemoryFileSystem: true })
+      const sf = tsm.createSourceFile(
+        '/src/documented-class.ts',
+        'export class Documented {\n' + //  1  code
+          '  /**\n' + //                     2  JSDoc
+          '   * Does a thing.\n' + //        3  JSDoc
+          '   * @returns nothing\n' + //     4  JSDoc
+          '   */\n' + //                     5  JSDoc
+          '  act(): void {\n' + //           6  code
+          '    return\n' + //                7  code
+          '  }\n' + //                       8  code
+          '}\n', //                          9  code
+      )
+      const [cls] = sf.getClasses()
+      if (!cls) throw new Error('no class')
+
+      expect(cls.getEndLineNumber() - cls.getStartLineNumber() + 1).toBe(9)
+      expect(linesOfCode(cls)).toBe(5)
+    })
+
     it('never reports more lines than the node spans, across the real corpus', () => {
       // The invariant that caught the first attempt at this fix: `getChildren()`
       // returns the JSDoc node while `getStartLineNumber()` excludes it, so

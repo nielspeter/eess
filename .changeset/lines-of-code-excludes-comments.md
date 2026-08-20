@@ -24,6 +24,12 @@ reason for preferring the span. Blank lines carry no token either. A line
 holding only `}` still counts — this stays a physical-source-lines metric, not
 a statement count.
 
+**Cost:** the metric reads the AST rather than doing arithmetic on two line
+numbers, so it is not free — measured at roughly 0.3ms per class or method, and
+no measurable change to a full gate run on a ~680-file repo. If you call
+`linesOfCode` yourself in a tight loop over a very large corpus, it is now worth
+hoisting out of the loop.
+
 **Migration:** re-tune your thresholds downward. As a rough guide, on a densely
 commented codebase the new number lands near a third of the old one — eess's own
 `TerminalBuilder` measures 372 where it used to measure 1218. If you want the
