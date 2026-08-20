@@ -178,8 +178,20 @@ describe('class metrics report a qualified element (bug 0068)', () => {
  * 0171 hand-built its violations with the unit written in by the test, so all of
  * them proved the consumer and none proved a producer.
  *
- * Written over the real conditions rather than per-rule, so a metric added later
- * is covered on the day it is added rather than the day someone remembers.
+ * **This half is behavioural and its enumeration is by hand.** It RUNS five
+ * conditions and reads what they produced, which is the only way to prove a
+ * stamp actually reaches a violation. What it cannot do is prove the list is
+ * complete — and it was not: `haveMaxExports` is a real metric condition and is
+ * absent below, which is exactly the producer that hand-writes its unit. An
+ * earlier version of this docstring claimed the list was "written over the real
+ * conditions … so a metric added later is covered on the day it is added". It
+ * was five literals.
+ *
+ * Completeness is proved mechanically instead, in
+ * `tests/core/every-metric-finding-carries-its-unit.test.ts`, which derives the
+ * producer set from source and fails on one that stamps nothing. The two are
+ * complementary: that census cannot tell whether a stamp survives to the
+ * violation, and this cannot tell whether a producer is missing.
  */
 describe('every metric finding carries the unit its ratchet is denominated in', () => {
   const cls = findClass('ComplexService')
