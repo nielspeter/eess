@@ -166,6 +166,49 @@ documented method inside a class, which is the shape
 JSDoc skip, dropping the comment-trivia skip, reverting to the span, and an
 off-by-one in the new range clip are all caught.
 
+## The thresholds, converted honestly
+
+Changing what a metric counts without moving its thresholds is a silent
+loosening. The median class here carries **0.50** code lines per span line, so
+`maxClassLines(300)` had quietly become "600 span lines" — about double the bar
+anyone agreed to.
+
+**A first pass set 250/35 and called it re-derived. It was not.** 250 was chosen
+because it fired on nothing new, which is fitting the bar to the code — the
+failure this corpus exists to catch, committed while fixing an instance of it.
+The honest number is the unit conversion: converting preserves the bar that was
+intended, and _changing_ the strictness is a separate decision nobody made.
+
+`maxClassLines(150)` and `maxMethodLines(30)` produced 13 findings.
+
+**Eleven were fixed, not waived** — three oversized methods split, and six
+classes split by concern rather than sliced to fit a number:
+
+| class                         | before | after | the seam                               |
+| ----------------------------- | ------ | ----- | -------------------------------------- |
+| `Baseline`                    | 171    | 103   | matching vs diagnosing why nothing did |
+| `DuplicateBodiesBuilder`      | 168    | 130   | the DSL vs the comparison algorithm    |
+| `InconsistentSiblingsBuilder` | 204    | 142   | detecting vs selecting the files       |
+| `CorrespondenceBuilder`       | 336    | 145   | the DSL vs constructing findings       |
+| `SliceRuleBuilder`            | 237    | 137   | deciding vs explaining                 |
+| `RuleBuilder`                 | 218    | 148   | the rule as declared vs the builder    |
+
+**Two remain, and `check:arch` is red because of them.** Both `TerminalBuilder`s
+— 372 in the dialect, 215 in the kernel — cannot reach 150 by extraction, and
+that is measured rather than assumed: the non-diagnosis methods alone (the DSL
+and the terminals — `check`, `warn`, `violations`, `severity`, `excluding`) sum
+to **189 code lines**. Lifting out every piece of vacuity machinery still leaves
+the class over. It needs the terminals split from the declaration surface, which
+is the architectural change
+[bug 0164](./0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md)
+owns and which plan 0165 records as waiting on the kernel project-abstraction
+ADR.
+
+They are **not** carved out. A threshold the rules file can only satisfy by
+exempting its own base class has stopped measuring anything, and the exemption
+would outlive the memory of why it was added. A red gate naming two real classes
+is recoverable; a green one hiding them is not.
+
 ## Out of scope
 
 That a method-size carve-out can only be expressed per class — that is

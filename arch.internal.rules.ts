@@ -165,62 +165,42 @@ const rules = [
   // Raising 300/20 globally was rejected — that lowers the bar for every class to
   // accommodate one.
   srcClasses().should().satisfy(maxCyclomaticComplexity(10)).rule({ id: 'eess/max-complexity' }),
-  // **The thresholds are re-derived for the new metric, and they are not the old
-  // numbers.** `linesOfCode` counting code rather than span made 300 and 50 far
-  // laxer than they read: measured over this source, the median class carries
-  // 0.50 code lines per span line, so `maxClassLines(300)` had quietly become
-  // "600 span lines" — roughly double the bar anyone agreed to.
+  // **The thresholds are the honest unit conversion, and the gate is RED because
+  // of it.** `linesOfCode` counting code rather than span made 300 and 50 about
+  // twice as lax as they read: measured, the median class here carries 0.50 code
+  // lines per span line, so `maxClassLines(300)` had quietly become "600 span
+  // lines". Converting the unit preserves the bar that was intended; CHANGING
+  // the strictness is a separate decision nobody made.
   //
-  // Measured distribution (41 classes, 482 methods, generated code excluded):
+  // A previous pass set 250/35 and called that "re-derived". It was not — 250
+  // was chosen because it fired on nothing new, which is fitting the bar to the
+  // code. 150/30 is what the conversion actually gives.
   //
-  //   classes   p50 54   p75 140   p90 217   p95 329   max 372
-  //   methods   p50  3   p75   7   p90  16   p95  22   max  37
+  // Eleven of the thirteen findings that produced were FIXED, not waived: three
+  // oversized methods split, and six classes split by concern — `Baseline`
+  // 171->103, `DuplicateBodiesBuilder` 168->130, `InconsistentSiblingsBuilder`
+  // 204->142, `CorrespondenceBuilder` 336->145, `SliceRuleBuilder` 237->137,
+  // `RuleBuilder` 218->148.
   //
-  // 250 and 35 are chosen to tighten without manufacturing work: 250 fires on
-  // exactly the two classes 300 did — both already owed a split by bug 0164 —
-  // and 35 caught one method, `Baseline.unmatchedBaselineFinding` at 37, which
-  // was split rather than excluded.
+  // **The two that remain are real and are left red on purpose.** Both
+  // `TerminalBuilder`s (372 in the dialect, 215 in the kernel) cannot reach 150
+  // by extraction, and that is measured rather than assumed: the non-diagnosis
+  // methods alone — the DSL and the terminals, check/warn/violations/severity/
+  // excluding — sum to 189 code lines. Lifting out every piece of vacuity
+  // machinery still leaves the class over. It needs the terminals split from the
+  // declaration surface, which is the architectural change bug 0164 owns and
+  // which plan 0165 records as waiting on the kernel project-abstraction ADR.
   //
-  // **Equal strictness would be tighter still, and is NOT claimed here.** Holding
-  // the old bar in the new unit is ~150 for classes and ~30 for methods; that
-  // fires on 8 classes and 4 methods, which is a refactor programme rather than a
-  // threshold change. Recorded as owed in bug 0170 rather than done silently or
-  // waived into a carve-out list.
+  // No carve-out for them. A threshold this file can only satisfy by exempting
+  // its own base class has stopped measuring anything, and the exemption would
+  // outlive the memory of why it was added.
   //
-  // `GENERATED` joins the class rule for the first time: `MermaidUnitAstReflection`
-  // (270 code lines) is langium output, it is excluded from `eess/no-unused-exports`
-  // for the same reason, and no threshold anyone would choose describes a table.
-  //
-  // `linesOfCode` counts CODE lines — comments and blanks excluded — as of
-  // [bug 0170](./work/bugs/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md).
-  // Before that it was `end - start + 1`, which put this rule in direct conflict
-  // with `eess/jsdoc-on-public-methods` above: that rule REQUIRES a doc block on
-  // every public method, and this one then counted those blocks as size. Seven
-  // of the nine classes below were over the threshold on their documentation
-  // alone, and the carve-outs that fact justified are gone with it.
-  //
-  // Two are genuinely over on code and stay excluded, measured:
-  //
-  //   CorrespondenceBuilder   329 code / 628 span
-  //   TerminalBuilder (ts)    372 code / 1218 span
-  //
-  // Named one file at a time, deliberately. The list was a folder
-  // (`/src/builders/`), which exempted every builder written from then on for
-  // the sake of one that was over. Both remaining entries are owed a split by
-  // [bug 0164](./work/bugs/0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md);
-  // `terminal-builder` is the file plan 0165 Phase 2 named as waiting on the
-  // kernel project-abstraction ADR, so splitting it now would be work done twice.
-  // The kernel's own `terminal-builder.ts` (215) and `rule-builder.ts` (139) are
-  // NOT excluded — they pass.
-  srcClasses()
-    .excluding(GENERATED)
-    .excluding(/\/ts\/src\/core\/terminal-builder\.ts$/)
-    .should()
-    .satisfy(maxClassLines(250))
-    .rule({
-      id: 'eess/max-class-lines',
-      because: 'ADR-003: fluent builder surfaces are the design; these two are over on real code',
-    }),
+  // `GENERATED` stays on the class rule: `MermaidUnitAstReflection` is langium
+  // output, already excluded from `eess/no-unused-exports` for the same reason.
+  srcClasses().excluding(GENERATED).should().satisfy(maxClassLines(150)).rule({
+    id: 'eess/max-class-lines',
+    because: 'a class past 150 lines of code is carrying more than one job',
+  }),
   // No exclusions. Every one of the four methods this rule used to report —
   // `TerminalBuilder.collectWithAssertionGuard` (15 code / 61 span),
   // `Baseline.unmatchedBaselineFinding` (37/56),
@@ -233,9 +213,9 @@ const rules = [
   // [bug 0167](./work/bugs/0167-method-size-rules-can-only-be-excluded-by-class.md):
   // a method-size exclusion can still only be spelled per CLASS, but this rule no
   // longer has one, so no class is unwatched on its account today.
-  srcClasses().should().satisfy(maxMethodLines(35)).rule({
+  srcClasses().should().satisfy(maxMethodLines(30)).rule({
     id: 'eess/max-method-lines',
-    because: 'a method past 35 lines of code is doing more than one thing',
+    because: 'a method past 30 lines of code is doing more than one thing',
   }),
   // Method COUNT, which bug 0170 does not touch — a fluent builder really does
   // carry 20+ methods, and ADR-003 makes that surface the design.
