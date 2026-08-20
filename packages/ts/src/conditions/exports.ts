@@ -101,6 +101,11 @@ export function haveMaxExports(max: number): Condition<SourceFile> {
             // against the file. Same two fields, same contract (bug 0012).
             identity: `${sf.getFilePath()}::${sf.getBaseName()}::named-exports`,
             measured: count,
+            // Stamped by hand because this is the one metric finding that does not
+            // go through `metricViolation` (there is no `Node` to derive from), and
+            // the unit must not depend on which constructor a producer happened to
+            // use — bug 0171.
+            measuredUnit: 'named-exports',
           })
         }
       }

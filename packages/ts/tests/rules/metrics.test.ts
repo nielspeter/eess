@@ -167,3 +167,48 @@ describe('class metrics report a qualified element (bug 0068)', () => {
     expect(names).toEqual(['ComplexService.complex', 'ComplexService.simple'])
   })
 })
+
+/**
+ * The PRODUCER half of [bug 0171](../../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md).
+ *
+ * The baseline refuses to compare measurements whose units disagree — but that
+ * mechanism is inert unless the rules actually stamp a unit. Measured: deleting
+ * `measuredUnit: options.unit ?? options.metric` from `metric-violation.ts` left
+ * the entire suite green at 27 pre-existing failures, unchanged. Every guard for
+ * 0171 hand-built its violations with the unit written in by the test, so all of
+ * them proved the consumer and none proved a producer.
+ *
+ * Written over the real conditions rather than per-rule, so a metric added later
+ * is covered on the day it is added rather than the day someone remembers.
+ */
+describe('every metric finding carries the unit its ratchet is denominated in', () => {
+  const cls = findClass('ComplexService')
+
+  // Thresholds low enough that each condition certainly fires.
+  const producers = [
+    { name: 'maxClassLines', violations: maxClassLines(1).evaluate([cls], context) },
+    { name: 'maxMethodLines', violations: maxMethodLines(1).evaluate([cls], context) },
+    { name: 'maxMethods', violations: maxMethods(0).evaluate([cls], context) },
+    { name: 'maxParameters', violations: maxParameters(0).evaluate([cls], context) },
+    {
+      name: 'maxCyclomaticComplexity',
+      violations: maxCyclomaticComplexity(0).evaluate([cls], context),
+    },
+  ]
+
+  it.each(producers)('$name stamps a unit on everything it measures', ({ violations }) => {
+    // Non-vacuity: a condition that produced nothing would pass the loop below.
+    expect(violations.length).toBeGreaterThan(0)
+    for (const violation of violations) {
+      expect(violation.measured).toBeDefined()
+      expect(violation.measuredUnit).toBeDefined()
+    }
+  })
+
+  it('names code-lines specifically, since that is the unit that changed', () => {
+    // `lines` kept its name when it stopped counting comments, which is the whole
+    // reason a unit exists. Pinned by value, not merely "defined".
+    const [violation] = maxClassLines(1).evaluate([cls], context)
+    expect(violation?.measuredUnit).toBe('code-lines')
+  })
+})
