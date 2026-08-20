@@ -404,10 +404,11 @@ export abstract class TerminalBuilder {
  * one, and is now stated as what it is: this finding fires only when subjects
  * were actually selected.
  *
- * **Exported, and living beside its five siblings** (`zeroExaminedViolation`,
- * `deadGlobViolation`, `unmetExpectNonEmptyViolation`,
- * `expiredExpectEmptyViolation`, `zeroLoadedSourceViolation`) rather than
- * private to `RuleBuilder`. The *detection* has to stay per-builder —
+ * **Exported** rather than private to `RuleBuilder`. Its five siblings
+ * (`zeroExaminedViolation`, `deadGlobViolation`, `unmetExpectNonEmptyViolation`,
+ * `expiredExpectEmptyViolation`, `zeroLoadedSourceViolation`) have since moved to
+ * `vacuity-findings.ts`; this one stayed, because unlike them it is constructed
+ * from a builder's own condition list rather than from `RuleFacts` alone. The *detection* has to stay per-builder —
  * `TerminalBuilder` has no `_conditions` — but a private constructor meant
  * `eess-ts`'s slice/schema/resolver builders could not reuse it and were left
  * warning while the kernel's rules failed: the same defect, one DSL, four

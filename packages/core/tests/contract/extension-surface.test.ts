@@ -53,6 +53,7 @@ interface WidgetProject {
 class WidgetRuleBuilder extends TerminalBuilder {
   private _widgets: Widget[]
   private _mustBeEmpty = false
+  private _sourceEmpty = false
 
   constructor(project: WidgetProject) {
     super()
@@ -66,9 +67,21 @@ class WidgetRuleBuilder extends TerminalBuilder {
     return next
   }
 
+  /**
+   * The stranger's way of saying "my upstream source loaded nothing at all" —
+   * an unreadable config, a root resolving to no files. Distinct from "the
+   * selection matched nothing", which is what an empty `_widgets` alone means.
+   */
+  loadedNothing(): this {
+    const next = this.copy()
+    next._sourceEmpty = true
+    return next
+  }
+
   protected override copy(): this {
     const clone = super.copy()
     clone._widgets = [...this._widgets]
+    clone._sourceEmpty = this._sourceEmpty
     return clone
   }
 
@@ -89,7 +102,11 @@ class WidgetRuleBuilder extends TerminalBuilder {
         examined: this._widgets.length,
       }
     }
-    return { violations: [], examined: this._widgets.length }
+    return {
+      violations: [],
+      examined: this._widgets.length,
+      ...(this._sourceEmpty ? { sourceEmpty: true } : {}),
+    }
   }
 }
 
@@ -129,6 +146,42 @@ describe('extension surface contract — a direct TerminalBuilder subclass (stra
   it('assertsCardinality() override is honored — a dead selector for a mustNotExist()-shaped rule passes', () => {
     const empty = new WidgetRuleBuilder({ widgets: [] }).mustNotExist()
     expect(() => empty.check()).not.toThrow()
+  })
+
+  it('an empty SOURCE outranks .expectEmpty() — ADR-010 part 3, for a stranger dialect', () => {
+    // The clause the whole doctrine rests on: `.expectEmpty()` is the sanctioned
+    // way to say "nothing here is correct", and it must NOT rescue a rule whose
+    // source loaded nothing, because such a rule asserts nothing about anything.
+    //
+    // **This row exists because the branch had no break class.** Measured: making
+    // `zeroLoadedSourceViolation` unreachable in `terminal-builder.ts` left
+    // packages/core at 159/159, and md, mermaid and gherkin green too. `eess-ts`
+    // was unaffected only because it re-implements the same precedence on its own
+    // path — so the KERNEL's copy, the one every other dialect reaches, was
+    // unfalsifiable while its docstring restated the guarantee.
+    //
+    // The break class is confirmed, and confirmed by accident, which is the
+    // strongest form: this row was first run against a `dist` still holding that
+    // sabotage and FAILED at `expect.unreachable`, then passed once the kernel was
+    // rebuilt from restored source. The mutation and the guard were established
+    // independently before they were pointed at each other.
+    //
+    // Compare with the row directly below: same builder, same empty selection,
+    // and `.expectEmpty()` correctly passes there. The only difference is
+    // `loadedNothing()`, so this pins the precedence and not merely "it throws".
+    const noSource = new WidgetRuleBuilder({ widgets: [] }).loadedNothing().expectEmpty()
+    try {
+      noSource.check()
+      expect.unreachable('an empty source must outrank .expectEmpty()')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations[0]?.message).toMatch(/loaded zero units before any selection/)
+      // It says so in the text, so the text must be the thing asserted: a
+      // reader told "this outranks .expectEmpty()" has to see that be true.
+      expect(archError.violations[0]?.message).toMatch(/outranks any\s+\.expectEmpty\(\)/)
+      expect(archError.violations[0]?.bypassFilters).toBe(true)
+    }
   })
 
   it('.expectEmpty() still works for a stranger subclass', () => {
