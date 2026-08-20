@@ -1,11 +1,14 @@
+import {
+  groupFilesByFolder,
+  inertElement,
+  inertMessage,
+  partitionByPattern,
+} from './sibling-files.js'
+import type { SiblingScope } from './sibling-files.js'
 import type { RuleDescription } from '@nielspeter/eess'
-import picomatch from 'picomatch'
-import path from 'node:path'
 import type { SourceFile } from 'ts-morph'
 import { selectionMemo } from '@nielspeter/eess'
 import { SmellBuilder } from './smell-builder.js'
-import { collectFunctions } from '../models/arch-function.js'
-import { searchFunctionBody } from '../helpers/body-traversal.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
@@ -14,7 +17,6 @@ import type { ArchProject } from '../core/project.js'
 const MAJORITY_THRESHOLD = 0.6
 
 /** Test file patterns for ignoreTests(). */
-const TEST_PATTERNS = ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**']
 
 const selectionOf = selectionMemo<[string, SourceFile[]]>()
 
@@ -48,26 +50,6 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
     return next
   }
 
-  /** Check if a source file contains any function matching the pattern. */
-  private fileMatchesPattern(sf: SourceFile, pattern: ExpressionMatcher): boolean {
-    // Detectors scan for a property of the code, not a user-declared subject
-    // set, so they always include object-literal functions. `functions()`
-    // keeps that opt-in because widening a selector silently changes every
-    // existing rule; a detector has no such contract to break, and a
-    // duplicated arrow under an object key — a resolver, a route handler, a
-    // reducer case — is exactly the copy-paste rot this exists to find.
-    for (const fn of collectFunctions(sf, { includeObjectLiteralFunctions: true })) {
-      const body = fn.getBody()
-      if (!body) continue
-
-      const lineCount = body.getText().split('\n').length
-      if (lineCount < this._minLines) continue
-
-      if (searchFunctionBody(fn, pattern).found) return true
-    }
-    return false
-  }
-
   /**
    * Sibling files in folders large enough to be compared — plan 0096, and the
    * ONE method both readers call.
@@ -80,7 +62,7 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
    */
   private selected(): [string, SourceFile[]][] {
     return selectionOf(this, () =>
-      [...this.groupFilesByFolder().entries()].filter(([, files]) => files.length >= 2),
+      [...groupFilesByFolder(this.scope()).entries()].filter(([, files]) => files.length >= 2),
     )
   }
 
@@ -94,23 +76,6 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
    */
   examinedUnits(): number {
     return this.selected().reduce((total, [, files]) => total + files.length, 0)
-  }
-
-  /** Partition files into matching and non-matching based on the pattern. */
-  private partitionByPattern(
-    files: SourceFile[],
-    pattern: ExpressionMatcher,
-  ): { matching: SourceFile[]; nonMatching: SourceFile[] } {
-    const matching: SourceFile[] = []
-    const nonMatching: SourceFile[] = []
-    for (const sf of files) {
-      if (this.fileMatchesPattern(sf, pattern)) {
-        matching.push(sf)
-      } else {
-        nonMatching.push(sf)
-      }
-    }
-    return { matching, nonMatching }
   }
 
   /**
@@ -135,7 +100,7 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
     let canFireSoon = false
     const folders: Assessment['folders'] = []
     for (const [folder, files] of this.selected()) {
-      const { matching: m, nonMatching } = this.partitionByPattern(files, pattern)
+      const { matching: m, nonMatching } = partitionByPattern(files, pattern, this._minLines)
       const t = m.length + nonMatching.length
       // Unreachable today: selected() already filters to files.length >= 2
       // and partitionByPattern drops nothing, so t always equals a folder's
@@ -258,6 +223,18 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
     )
   }
 
+  /** The file-selection facts `sibling-files.ts` needs, stated as a value. */
+  private scope(): SiblingScope {
+    return {
+      project: this.project,
+      folders: this._folders,
+      ignorePaths: this._ignorePaths,
+      ignoreTests: this._ignoreTests,
+      minLines: this._minLines,
+      pattern: this._pattern,
+    }
+  }
+
   protected detect(): ArchViolation[] {
     // Unreachable at runtime as of 0.23.0: the assertion gate reports a
     // patternless detector as a configuration finding before `detect()` is
@@ -351,28 +328,14 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
    */
   private inertAdviceFor(a: Assessment): string {
     if (a.matching === 0 || a.canFireSoon || this.declaresEmpty()) return '' // the GUARD lives here
-    return this.inertMessage(a, this._pattern?.description ?? 'unknown pattern')
-  }
-
-  /** Single source of the inert message. Pure — takes the assessment, returns text. */
-  private inertMessage(a: { matching: number; total: number }, patternDesc: string): string {
-    return (
-      `This detector examined ${String(a.total)} sibling files, but only ${String(a.matching)} of them ` +
-      `hold the pattern '${patternDesc}', and no folder is within an edit of a majority — so as written it ` +
-      `cannot produce a finding today. It reports a file that diverges from what its siblings do; with no ` +
-      `majority reachable by adopting files, there is no divergence to report. ` +
-      `If this rule asserts a convention the codebase is still adopting, replace it with ` +
-      `correspondence().side(...).beComplete(), which fails the day a file falls short — until adoption is ` +
-      `complete, so expect that red. If the intent is to police divergence rather than the convention itself, ` +
-      `widen the folder so a majority forms, or choose a pattern the sibling files already share.`
-    )
+    return inertMessage(a, this._pattern?.description ?? 'unknown pattern')
   }
 
   private inertViolation(advice: string): ArchViolation {
     return {
       rule: this.describe(),
       ruleId: this._metadata?.id,
-      element: this.inertElement(),
+      element: inertElement(this.scope()),
       file: '',
       line: 0,
       message: advice,
@@ -393,27 +356,6 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
       // this comment is the tripwire for that future change, not a promise
       // the coupling is already handled.
     }
-  }
-
-  /**
-   * Dedupe key for the inert finding. `dedupeConfigFindings` keys on
-   * `${file} ${ruleId ?? rule} ${element}`; `file` is always `''` here and
-   * `rule`/`ruleId` fall back to `describe()`, which is scope-blind (reads
-   * `_pattern` only). So without a scope-aware `element`, two same-pattern/
-   * different-scope inert detectors with no explicit `.rule({id})` would
-   * collapse into one finding under `checkAll`.
-   *
-   * Folds in every field `groupFilesByFolder()`/`fileMatchesPattern()` read to
-   * decide what's examined — `_folders`, `_ignorePaths`, `_ignoreTests`,
-   * `_minLines` — sorted so option order cannot split one semantic scope into
-   * two keys. Two rules with identical scope correctly collapse to one finding
-   * (one edit fixes both); two rules differing in ANY of these stay distinct.
-   */
-  private inertElement(): string {
-    const patternDesc = this._pattern?.description ?? 'unknown pattern'
-    const folders = [...this._folders].sort().join('|')
-    const ignorePaths = [...this._ignorePaths].sort().join('|')
-    return `inert:${patternDesc}:${folders}:${ignorePaths}:${String(this._ignoreTests)}:${String(this._minLines)}`
   }
 
   /**
@@ -442,44 +384,5 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
   protected describe(): string {
     const pattern = this._pattern?.description ?? 'unknown pattern'
     return `Sibling files should consistently use ${pattern}`
-  }
-
-  /** Group source files by parent folder, applying all filters. */
-  private groupFilesByFolder(): Map<string, SourceFile[]> {
-    const sourceFiles = this.project.getSourceFiles()
-    const folderMatchers = this._folders.map((g) => picomatch(g))
-    const ignoreMatchers = this._ignorePaths.map((g) => picomatch(g))
-    const testMatchers = this._ignoreTests ? TEST_PATTERNS.map((g) => picomatch(g)) : []
-
-    const groups = new Map<string, SourceFile[]>()
-
-    for (const sf of sourceFiles) {
-      const filePath = sf.getFilePath()
-
-      // Folder filter: if folders specified, file must match at least one
-      if (folderMatchers.length > 0 && !folderMatchers.some((m) => m(filePath))) {
-        continue
-      }
-
-      // Ignore paths filter
-      if (ignoreMatchers.some((m) => m(filePath))) {
-        continue
-      }
-
-      // Test file filter
-      if (testMatchers.some((m) => m(filePath))) {
-        continue
-      }
-
-      const folder = path.dirname(filePath)
-      const existing = groups.get(folder)
-      if (existing) {
-        existing.push(sf)
-      } else {
-        groups.set(folder, [sf])
-      }
-    }
-
-    return groups
   }
 }
