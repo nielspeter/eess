@@ -221,9 +221,10 @@ const WHY_BREAKING_PATCH =
   'provenance and npm refuses to re-publish a version, so the wrong bump is permanent within ' +
   'the hour it takes anyone to notice'
 const WHY_BREAK_HIDES_IN_A_DEPENDENT =
-  'an adopter installs a DIALECT and holds no version range on the kernel, so a kernel break ' +
-  'announced only on the kernel reaches them as a dialect patch whose changelog says "Updated ' +
-  'dependencies" — a version their range takes silently, carrying the break'
+  'an adopter installs a DIALECT and holds no version range on the kernel at all, so a break ' +
+  'announced only on the broken package reaches them through a dependent release whose changelog ' +
+  'says nothing but "Updated dependencies" — naming the dependent is what puts the real text in ' +
+  'the changelog they actually read'
 const WHY_UNPARSEABLE =
   'a changeset the release tool cannot read declares nothing, and a file that declares nothing ' +
   'must never be mistaken for one declaring "this ships nothing"'
@@ -410,6 +411,12 @@ export function releaseViolations({
         `delete the marker this rule matched` +
         (marker === undefined ? '' : `: \`${marker}\``) +
         `. Changing the bump alone will not clear this, and neither will \`none\`.` +
+        ((owners.length > 0 ? owners : decls.map((d) => d.pkg)).some(
+          (b) => (dependentsOf[b] ?? []).length > 0,
+        )
+          ? ` Once it is past patch you will also be asked to name the packages that depend on it, ` +
+            `so add them in the same edit.`
+          : '') +
         (owners.length > 0
           ? ` This changeset names its owner (${owners.join(', ')}), so THAT package is the one that must move.`
           : decls.length > 1
@@ -450,6 +457,23 @@ export function releaseViolations({
   //
   // `none` does not count as named: it produces no changelog entry, which is the
   // half that matters here.
+  //
+  // **What this delivers, stated precisely, because an earlier `because` claimed
+  // more.** Requiring "any bump except none" fixes the INFORMATION half — the
+  // dependent's changelog carries the changeset's real text instead of "Updated
+  // dependencies". It does NOT raise a version barrier: a dependent declared
+  // `patch` is still taken silently by `^0.3.0`, and the rendered entry lands
+  // under "### Patch Changes" while its body says "Breaking". Review measured
+  // exactly that on `assertion-less-rules-fail.md`, the changeset this rule was
+  // modelled on.
+  //
+  // Requiring dependents at `minor` would close the barrier half too, and is
+  // narrower than flipping `updateInternalDependencies` globally because it fires
+  // only on a MARKED break. It is not built here because it changes the family's
+  // versioning policy — it would redden the current pending changeset, which
+  // declares its five dialects at `patch` by deliberate hand — and that is a
+  // decision to take openly rather than as a side effect of a gate. Recorded in
+  // bug 0185.
   const breakHiddenInDependent = breakingAnnotated.flatMap(({ file, decls, owners }) => {
     const declared = new Set(decls.map((d) => d.pkg))
     const broken =

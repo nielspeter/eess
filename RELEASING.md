@@ -34,11 +34,24 @@ which packages it therefore left unchecked.
 A break must be **marked in the body** and bumped past `patch`. `check:release`
 reads the marker, not your prose.
 
-| what you write                        | what it means                                           |
-| ------------------------------------- | ------------------------------------------------------- |
-| a line starting `**Breaking …**`      | the house spelling — 4 of the pending changesets use it |
-| a `## Breaking` heading               | also read                                               |
-| `BREAKING CHANGE` / `BREAKING-CHANGE` | the conventional-commits spelling, also read            |
+| what you write                                        | also accepted                                                   |
+| ----------------------------------------------------- | --------------------------------------------------------------- |
+| a line starting `**Breaking …**` — the house spelling | `__Breaking …__`, and behind a list marker (`- **Breaking …**`) |
+| a `## Breaking` heading                               | any heading level, `#` to `######`                              |
+| `BREAKING CHANGE:` at the start of a line             | `BREAKING-CHANGE:`, and the plural `BREAKING CHANGES:`          |
+
+This table states no count on purpose. Its first version said "4 of the pending
+changesets use it" and was wrong one commit later; `check:release` prints the live
+number on every run, which is the copy that cannot drift.
+
+**Two spellings that DO fire and should not**, accepted deliberately:
+`**Breaking changes:** none` and `**Breaking change avoided**`. The gate reads the
+marker, not the sentence after it. Detecting those needs a negation test inside
+the bolded span, and `**Breaking:** none of the old exports remain` contains
+"none" while being a real break — so that would trade a loud false positive for a
+silent false negative on a path that cannot be undone. Write a bolded `**Breaking
+…**` lead only when something actually broke; if you hit this, the remedy the gate
+prints (delete the marker) is the right one.
 
 On a `0.x` package a break is a **`minor`**, never `major` — `major` takes the
 package to `1.0.0`, which is a permanent stability claim, and never `patch`,

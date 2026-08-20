@@ -118,6 +118,38 @@ Measured — it reddens nothing on the current tree.
 - [x] Documented where a contributor reads it — `RELEASING.md` and `CLAUDE.md`.
 - [x] `npm run validate` exits 0.
 
+## Corrected in review
+
+**The `because` over-claimed, and the record repeated it.** Both said naming the
+dependent "fixes both halves at once". It fixes the INFORMATION half: the
+dependent's changelog carries the changeset's real text instead of "Updated
+dependencies". It does not raise a version barrier. Requiring "any bump except
+`none`" is satisfied by `patch`, and `^0.3.0` still takes a patch silently —
+review measured the rendered result on the very changeset this rule was modelled
+on, where the **Breaking** paragraph lands under a `### Patch Changes` heading.
+The rationale now claims only what the rule delivers.
+
+**A third option nobody had considered.** The draft weighed gating against
+flipping `updateInternalDependencies` globally, and rejected the latter as version
+inflation. The targeted form — require dependents at `minor`, but **only on a
+marked break** — inflates nothing on ordinary kernel minors and would close the
+barrier half too.
+
+It is not built, and the reason is that it changes the family's versioning policy
+rather than enforcing an existing one. It would redden
+`.changeset/assertion-less-rules-fail.md`, which declares its five dialects at
+`patch` by deliberate hand and explains why in its own body. Taking that decision
+as a side effect of a gate is the wrong way round. It is a live option, recorded
+here so the weaker form does not calcify into "the convention" by default.
+
+**The gate contradicted a skill.** `.claude/skills/release/SKILL.md` — the
+document an agent loads when told to cut a release — says "Don't pad the changeset
+with untouched packages … That fakes a change that didn't happen." The new rule
+requires exactly that for a break. Two authorities in one repo giving opposite
+instructions on the same file is the drift this project exists to catch, committed
+by this project. The skill now carries the carve-out, and states why a propagating
+break is not padding.
+
 ## Not fixed, and why
 
 `updateInternalDependencies` stays `"patch"`. With the gate in place a kernel

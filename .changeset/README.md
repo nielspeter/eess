@@ -19,6 +19,11 @@ Two things `check:release` enforces beyond stock changesets:
    stability. The gate reads the marker, not your prose, so an unmarked break is
    not caught: if you are breaking something, write the marker.
 
+   **A bolded `**Breaking …**` lead fires the gate whatever the sentence says**,
+   including `**Breaking changes:** none`. That is deliberate — the alternative
+   misses real breaks — so write the marker only when something actually broke.
+   The remedy the gate prints (delete the marker) is the right one.
+
    If the changeset names several packages, name the owner too —
    `**Breaking (@nielspeter/eess-ts):**` — and the gate checks _that_ package
    rather than accepting any one of them.
