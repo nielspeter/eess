@@ -161,7 +161,10 @@ or diagrams, run the relevant gate and fix what it reports:
   bump at least one package past `patch`, because npm refuses to re-publish a
   version and `publish.yml` ships with provenance. On `0.x` a break is a `minor`;
   `major` claims 1.0 stability. An UNMARKED break is not caught — the gate reads
-  the marker, not your prose (bug 0184).
+  the marker, not your prose (bug 0184). A break in a package others depend on
+  must also NAME them in the same changeset — otherwise the dependent ships the
+  break to its own adopters under a changelog reading "Updated dependencies"
+  (bug 0185).
 
 Each gate prints a violation with a file, a line, a message, and (often) a fix.
 The output is written to be **agent-actionable** — every violation surfaces its

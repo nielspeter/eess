@@ -119,8 +119,8 @@ function packagesInTree() {
     .filter((e) => e.isDirectory() && existsSync(join('packages', e.name, 'package.json')))
     .map((e) => {
       const dir = `packages/${e.name}`
-      const { name } = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
-      return { name, dir }
+      const parsed = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+      return { name: parsed.name, dir, deps: Object.keys(parsed.dependencies ?? {}) }
     })
     .filter((p) => typeof p.name === 'string')
 }
@@ -136,8 +136,13 @@ function packagesAt(ref) {
   for (const path of listed) {
     if (!/^packages\/[^/]+\/package\.json$/.test(path)) continue
     try {
-      const { name } = JSON.parse(git('show', `${ref}:${path}`))
-      if (typeof name === 'string') out.push({ name, dir: path.replace(/\/package\.json$/, '') })
+      const parsed = JSON.parse(git('show', `${ref}:${path}`))
+      if (typeof parsed.name === 'string')
+        out.push({
+          name: parsed.name,
+          dir: path.replace(/\/package\.json$/, ''),
+          deps: Object.keys(parsed.dependencies ?? {}),
+        })
     } catch {
       continue // unreadable at the base — the head copy, if any, still counts
     }
@@ -324,6 +329,19 @@ const waivers = waiverCandidates.filter((f) => changedFiles.includes(f))
 
 const changedPackages = packagesTouchedBy(changedFiles, workspacePackages)
 
+// Who would inherit a break. Regular `dependencies` only — a peer is a range the
+// CONSUMER resolves, and `onlyUpdatePeerDependentsWhenOutOfRange` deliberately
+// leaves a peer dependent unbumped (it is the countermeasure for the 1.0.0
+// escalation). Forcing a peer dependent to be declared would fight that.
+const workspaceNames = new Set(workspacePackages.map((p) => p.name))
+const dependentsOf = {}
+for (const p of workspacePackages) {
+  for (const d of p.deps ?? []) {
+    if (!workspaceNames.has(d)) continue
+    ;(dependentsOf[d] ??= []).push(p.name)
+  }
+}
+
 const { violations, stats } = releaseViolations({
   declarations,
   changedPackages,
@@ -334,6 +352,7 @@ const { violations, stats } = releaseViolations({
   // earlier PR is still pending until `changeset version` runs, so it is still
   // about to ship on the wrong bump — the window this gate exists to close.
   breakingFiles,
+  dependentsOf,
 })
 
 // --- report -----------------------------------------------------------------

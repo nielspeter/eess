@@ -976,6 +976,12 @@ const gates = [
     'release/breaking-needs-minor',
     () => gateNode('bad-release.mjs', 'release/breaking-needs-minor'),
   ],
+  // Bug 0185. A break announced only on the package that broke reaches adopters
+  // of its dependents as a patch whose changelog says "Updated dependencies".
+  [
+    'release/break-names-dependents',
+    () => gateNode('bad-release.mjs', 'release/break-names-dependents'),
+  ],
   [
     'release/gate-fails-the-build',
     () => gateNode('bad-release-e2e.mjs', 'release/changed-package-needs-changeset'),
@@ -1062,6 +1068,7 @@ const GATE_FOR = {
     'release/names-real-package',
     'release/unparseable',
     'release/breaking-needs-minor',
+    'release/break-names-dependents',
     'release/gate-fails-the-build',
   ],
 }

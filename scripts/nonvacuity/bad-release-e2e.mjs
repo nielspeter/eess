@@ -57,7 +57,8 @@ function scenario(build) {
     mkdirSync(join(dir, dirname(p)), { recursive: true })
     writeFileSync(join(dir, p), s)
   }
-  const pkg = (name, version = '1.0.0') => JSON.stringify({ name, version })
+  const pkg = (name, version = '1.0.0', dependencies) =>
+    JSON.stringify(dependencies === undefined ? { name, version } : { name, version, dependencies })
   g('init', '-q', '-b', 'main')
   g('config', 'user.email', 'fixture@example.invalid')
   g('config', 'user.name', 'fixture')
@@ -161,6 +162,41 @@ const E2E = [
     },
     1,
     ['release/breaking-needs-minor', '.changeset/breaks.md'],
+  ],
+  [
+    // Bug 0185, SHELL half. The pure fixture passes `dependentsOf` in as a
+    // literal, so the code that READS `dependencies` out of each package.json and
+    // inverts it into that map is only reachable from here. Beta depends on
+    // alpha; a break declared on alpha alone leaves beta shipping it with a
+    // changelog reading "Updated dependencies".
+    'a break in a package others depend on must name them',
+    ({ write, pkg }) => {
+      write('packages/beta/package.json', pkg('@fixture/beta', '1.0.0', { '@fixture/alpha': '^1.0.0' }))
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write(
+        '.changeset/kernel.md',
+        "---\n'@fixture/alpha': minor\n---\n\n**Breaking:** `a` is gone.\n",
+      )
+    },
+    1,
+    ['release/break-names-dependents', '@fixture/beta'],
+  ],
+  [
+    // The quiet direction: naming the dependent satisfies it. Without this, a
+    // rule that fired on every breaking changeset would pass the row above.
+    'naming the dependent satisfies it',
+    ({ write, pkg }) => {
+      write('packages/beta/package.json', pkg('@fixture/beta', '1.0.0', { '@fixture/alpha': '^1.0.0' }))
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write('packages/beta/src/index.ts', 'export const b = 2\n')
+      write(
+        '.changeset/kernel.md',
+        "---\n'@fixture/alpha': minor\n'@fixture/beta': patch\n---\n\n**Breaking:** `a` is gone.\n",
+      )
+    },
+    0,
+    ['release readiness'],
+    ['release/break-names-dependents'],
   ],
   [
     'a clean tree with the base at HEAD says it had nothing to read',

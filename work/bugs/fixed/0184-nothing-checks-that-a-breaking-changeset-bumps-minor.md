@@ -178,7 +178,7 @@ were stale, in the paragraph headed "measured, not guessed".
 gains the house convention beside the files being edited, and `CLAUDE.md`'s
 `check:release` bullet now describes this rule.
 
-**Filed, not absorbed:** [bug 0185](../0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)
+**Filed, not absorbed:** [bug 0185](./0185-a-kernel-break-reaches-adopters-as-a-dialect-patch.md)
 — a correctly-declared kernel `minor` reaches adopters as a dialect `patch` saying
 "Updated dependencies", with every gate green along the way. That is the same
 silent path this bug is about, one level up, and fixing it is a release-practice

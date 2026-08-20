@@ -36,6 +36,7 @@ const RULES = [
   'release/changeset-names-real-package',
   'release/unparseable-changeset',
   'release/breaking-needs-minor',
+  'release/break-names-dependents',
 ]
 
 /** A behavioural expectation failed → the gate is vacuous (exit 0), never "premise broken". */
@@ -316,6 +317,9 @@ try {
       { pkg: '@fixture/quiet', bump: 'patch', file: '.changeset/breaks-owned.md', line: 3 },
       { pkg: '@fixture/untouched', bump: 'minor', file: '.changeset/breaks-owned-ok.md', line: 2 },
       { pkg: '@fixture/quiet', bump: 'patch', file: '.changeset/breaks-owned-ok.md', line: 3 },
+      { pkg: '@fixture/quiet', bump: 'minor', file: '.changeset/kernel-break.md', line: 2 },
+      { pkg: '@fixture/quiet', bump: 'minor', file: '.changeset/dep-none.md', line: 2 },
+      { pkg: '@fixture/untouched', bump: 'none', file: '.changeset/dep-none.md', line: 3 },
     ],
     breakingFiles: [
       { file: '.changeset/breaks-on-patch.md', marker: '**Breaking:**' },
@@ -331,7 +335,21 @@ try {
       // Owner named and the owner IS past patch: must stay quiet, or naming the
       // owner would be a worse deal than not naming one.
       { file: '.changeset/breaks-owned-ok.md', marker: '**Breaking (@fixture/untouched):**' },
+      // Bug 0185: a break in a package OTHERS depend on, announced only on
+      // itself. Correctly bumped `minor`, so `breaking-needs-minor` is quiet —
+      // and the dependent still ships the break to anyone who installs it, with
+      // a changelog reading "Updated dependencies".
+      { file: '.changeset/kernel-break.md', marker: '**Breaking:**' },
+      // `none` is not "named" for this rule. It is a real changesets bump type
+      // meaning "recorded, no release" — so it produces NO changelog entry, which
+      // is the half that matters here: the dependent still ships the break and its
+      // changelog still says nothing about it. Without this row the `!== 'none'`
+      // condition is unexercised and can be deleted silently.
+      { file: '.changeset/dep-none.md', marker: '**Breaking:**' },
     ],
+    // `@fixture/untouched` depends on `@fixture/quiet`. Regular dependencies
+    // only: a peer is a range the consumer resolves.
+    dependentsOf: { '@fixture/quiet': ['@fixture/untouched'] },
     changedPackages: [
       { name: '@fixture/core', dir: 'packages/core' },
       { name: '@fixture/quiet', dir: 'packages/quiet' },
@@ -358,6 +376,8 @@ const EXPECTED = [
   'release/breaking-needs-minor :: .changeset/breaks-on-patch.md',
   'release/breaking-needs-minor :: .changeset/breaks-on-none.md',
   'release/breaking-needs-minor :: .changeset/breaks-owned.md',
+  'release/break-names-dependents :: .changeset/kernel-break.md',
+  'release/break-names-dependents :: .changeset/dep-none.md',
 ]
 const actual = result.violations.map((v) => `${v.ruleId} :: ${v.element}`).sort()
 if (actual.join(' | ') !== [...EXPECTED].sort().join(' | ')) {
@@ -391,14 +411,14 @@ if (unexplained.length > 0)
 const EXPECTED_STATS = {
   changed: 2,
   changedDeclared: 1,
-  declarations: 11,
+  declarations: 14,
   workspace: 4,
   unparseable: 1,
   // The summary prints this. Sourced from the caller's own variable instead, it
   // once printed a ✓ over a rule that examined nothing — see release-gate.mjs.
-  breakingExamined: 5,
+  breakingExamined: 7,
   // Several packages, no owner named — only "at least one" could be asked.
-  breakingLoose: 1,
+  breakingLoose: 2,
 }
 for (const [k, want] of Object.entries(EXPECTED_STATS)) {
   if (result.stats[k] !== want)

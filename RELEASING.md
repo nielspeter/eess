@@ -58,6 +58,22 @@ hiding it: kernel `minor` with the break actually in a dialect on `patch` passes
 A green run prints how many changesets were checked loosely for exactly this
 reason. If your changeset names more than one package, name the owner.
 
+**A break in the kernel must name the dialects.** `@nielspeter/eess` is a regular
+dependency of all five dialects, and `updateInternalDependencies: "patch"` turns a
+kernel `minor` into a dialect `patch`. An adopter installs `eess-ts`, holds no
+range on the kernel at all, and their `^0.3.0` takes that patch silently — with a
+changelog reading only "Updated dependencies" (bug 0185).
+
+Naming each dialect in the same changeset fixes both halves: each gets its own
+bump, and each gets the changeset's TEXT in its own changelog.
+`release/break-names-dependents` enforces it. Any bump will do — but not `none`,
+which records no changelog entry, which is the half that matters.
+
+Peer dependents are deliberately NOT required. `eess-crossvalidate` peers on the
+four dialects with `>=0.1.1`, and `onlyUpdatePeerDependentsWhenOutOfRange` leaves
+it unbumped on purpose — that is the countermeasure for the `1.0.0` escalation.
+The cost is that crossvalidate's changelog cannot record a sibling break.
+
 **The limit, stated because it is load-bearing:** an unmarked break is not
 caught. This gate exists to stop a changeset that SAYS "Breaking" from shipping
 as a patch — it does not infer intent from prose, and no gate does. If you are

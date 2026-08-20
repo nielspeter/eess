@@ -220,6 +220,10 @@ const WHY_BREAKING_PATCH =
   'a contract break released as a patch cannot be taken back — `changeset publish` ships with ' +
   'provenance and npm refuses to re-publish a version, so the wrong bump is permanent within ' +
   'the hour it takes anyone to notice'
+const WHY_BREAK_HIDES_IN_A_DEPENDENT =
+  'an adopter installs a DIALECT and holds no version range on the kernel, so a kernel break ' +
+  'announced only on the kernel reaches them as a dialect patch whose changelog says "Updated ' +
+  'dependencies" — a version their range takes silently, carrying the break'
 const WHY_UNPARSEABLE =
   'a changeset the release tool cannot read declares nothing, and a file that declares nothing ' +
   'must never be mistaken for one declaring "this ships nothing"'
@@ -242,6 +246,7 @@ export function releaseViolations({
   waivers = [],
   unparseable = [],
   breakingFiles = [],
+  dependentsOf = {},
 }) {
   const declarationSelection = {
     elements: [...declarations],
@@ -429,11 +434,65 @@ export function releaseViolations({
       }
     })
 
+  // **A break must be announced on the packages that carry it downstream.**
+  //
+  // Measured with the real `changeset version` (bug 0185): a kernel break
+  // correctly declared `minor` produces `@nielspeter/eess-ts@0.3.1` whose entire
+  // changelog entry is "Updated dependencies", because
+  // `updateInternalDependencies: "patch"` converts a kernel minor into a dialect
+  // patch. On 0.x, `^0.3.0` blocks `0.4.0` but takes `0.3.1` — so the barrier the
+  // `minor` was supposed to raise never reaches the package anyone installs.
+  //
+  // Naming the dependent in the SAME changeset fixes both halves at once: it gets
+  // its own bump, and it gets the changeset's TEXT in its own changelog rather
+  // than "Updated dependencies". `assertion-less-rules-fail.md` already does this
+  // by hand and explains why; this makes the convention enforceable.
+  //
+  // `none` does not count as named: it produces no changelog entry, which is the
+  // half that matters here.
+  const breakHiddenInDependent = breakingAnnotated.flatMap(({ file, decls, owners }) => {
+    const declared = new Set(decls.map((d) => d.pkg))
+    const broken =
+      owners.length > 0
+        ? owners
+        : decls.filter((d) => d.bump === 'minor' || d.bump === 'major').map((d) => d.pkg)
+    const missing = [
+      ...new Set(
+        broken.flatMap((b) =>
+          (dependentsOf[b] ?? []).filter(
+            (dep) => !decls.some((d) => d.pkg === dep && d.bump !== 'none'),
+          ),
+        ),
+      ),
+    ].sort()
+    if (missing.length === 0) return []
+    const suggestion =
+      `add ${missing.join(', ')} to this changeset — any bump, but not \`none\`. They depend on ` +
+      `${broken.join(', ')}, so they ship this break to anyone who installs THEM, and their ` +
+      `changelog will otherwise read only "Updated dependencies".`
+    return [
+      {
+        rule: 'correspondence',
+        ruleId: 'release/break-names-dependents',
+        element: file,
+        file,
+        line: decls[0]?.line ?? 1,
+        message:
+          `\`${file}\` declares a break in ${broken.join(', ')} and does not name ` +
+          `${missing.length === 1 ? 'the package that depends on it' : 'the packages that depend on it'}: ` +
+          `${missing.join(', ')}\n  ${suggestion}`,
+        suggestion,
+        because: WHY_BREAK_HIDES_IN_A_DEPENDENT,
+      },
+    ]
+  })
+
   const violations = [
     ...(waived ? [] : needsChangeset.violations()),
     ...namesRealPackage.violations(),
     ...unreadable,
     ...brokenOnPatch,
+    ...breakHiddenInDependent,
   ]
 
   const declaredNames = new Set(declarations.map((d) => d.pkg))
