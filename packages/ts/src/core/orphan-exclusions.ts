@@ -1,6 +1,6 @@
 /**
  * Exclusion comments that name a rule nobody declares —
- * [bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
+ * [ts-archunit bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
  *
  * `.excluding()` warns when a pattern matches zero violations. An inline
  * `// eess-exclude` comment has no equivalent, and **cannot get one on the
@@ -15,7 +15,7 @@
  *
  * ## Why a diagnostic and not a finding
  *
- * [ADR-008](../../../../adr/009-agent-first-failure-surfaces.md) rule 1's migration
+ * [ADR-009](../../../../adr/009-agent-first-failure-surfaces.md) rule 1's migration
  * corollary: *"a warning is something you hope is read; a command is something
  * someone ran."* This cannot be a check-time finding without parsing every file
  * in scope on every run — the cost the `result.length > 0` gate exists to avoid —
@@ -157,7 +157,7 @@ export function orphanExclusions(
   // Nothing declares an id — so every inline exclusion in this project really IS
   // inert (`isExcludedByComment` returns false without a `ruleId`, and the scan
   // is gated on `ctx.metadata?.id`). Reporting nothing was the first behaviour
-  // and it was wrong in the ADR-008 rule 1 direction: those are all real
+  // and it was wrong in the ADR-009 rule 1 direction: those are all real
   // orphans, and the diagnostic was silent about every one of them.
   //
   // Reporting each of them is the other failure — a wall of findings for one
@@ -242,7 +242,7 @@ export function orphanExclusions(
           // `b.rules.ts` reported that working comment as an orphan — and then
           // told the reader to **delete it**, which un-waives a real violation.
           // A remedy that is wrong on the path that produced it is worse than
-          // none (ADR-008 rule 2), so the caller states its scope and the reader
+          // none (ADR-009 rule 2), so the caller states its scope and the reader
           // is told what it means.
           advice:
             `${scopeNote(options)}This exclusion names '${comment.ruleId}', which no rule ` +

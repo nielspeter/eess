@@ -5,7 +5,7 @@
  * a pattern that matched nothing (`execute-rule.ts`), diff-aware has
  * `suppressionNotice`, the baseline has `unmatchedBaselineFinding`. The inline
  * comment filter dropped violations and returned no count — and after
- * [bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
+ * [ts-archunit bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
  * made comments work for every condition family, it became the **widest** filter
  * in the pipeline and the only silent one.
  *
@@ -15,7 +15,7 @@
  * `--changed`, because a comment is written once and then read by nobody. The
  * flag at least appears in the CI invocation.
  *
- * ## Identities, not a total (ADR-008 rule 4)
+ * ## Identities, not a total (ADR-009 rule 4)
  *
  * The notice names **which rule in which file**, not just how many. A count is a
  * snapshot: it moves when anything moves and tells the reader nothing about what

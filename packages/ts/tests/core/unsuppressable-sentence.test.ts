@@ -1,12 +1,12 @@
 /**
  * The unsuppressability sentence names every mechanism that refuses the flag,
- * and no mechanism that does not — [ADR-008](../../../../adr/009-agent-first-failure-surfaces.md)
+ * and no mechanism that does not — [ADR-009](../../../../adr/009-agent-first-failure-surfaces.md)
  * rule 3, guarded by rule 5.
  *
  * The sentence is a **list**, and a list is the shape that goes stale. It was
  * written inline twice and both copies named five suppression surfaces while the
  * code refused six; the omitted one was the inline `// eess-exclude`
- * comment, which [bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
+ * comment, which [ts-archunit bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
  * made reachable from every condition family. An agent reading "not by A, B, C,
  * D, or E" infers exhaustiveness and reaches for the sixth.
  *
@@ -127,7 +127,7 @@ describe('the unsuppressability sentence is true and complete', () => {
     // assertion-gate finding and on a dead selector glob, adding .expectEmpty()
     // changes nothing, because both are decided before any declaration is
     // consulted. The reader declares, re-runs, gets the identical failure with
-    // the identical advice — ADR-008 rule 2's loop, introduced by the sentence
+    // the identical advice — ADR-009 rule 2's loop, introduced by the sentence
     // written to close one. On the dead-glob kind it is worse than a no-op:
     // there overrides:'off' IS the working exit and declaring is not.
     expect(UNSUPPRESSABLE).not.toContain('declare that instead')

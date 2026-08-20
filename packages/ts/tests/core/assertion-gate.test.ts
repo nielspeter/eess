@@ -80,7 +80,7 @@ describe('assertionAdvice: one remedy per state, and only its own', () => {
     expect(a).toContain('no condition follows')
     expect(a).toContain('Add a condition after .should()')
     // The state-2 remedy must NOT appear — three shapes sharing one message is
-    // the ADR-008 rule 2 failure this hook exists to prevent.
+    // the ADR-009 rule 2 failure this hook exists to prevent.
     expect(a).not.toContain('is a predicate')
   })
 
@@ -185,7 +185,7 @@ describe('assertionAdvice: one remedy per state, and only its own', () => {
     // bug 0017's shape (a remedy that reads perfectly and does not work) inside
     // the block written to close bug 0017's corollary.
     //
-    // An explicit list, not a count (ADR-008 rule 4): every mechanism a reader
+    // An explicit list, not a count (ADR-009 rule 4): every mechanism a reader
     // might reach for to make the finding go away without fixing the rule.
     const suppressors =
       /expectNonEmpty|allowEmpty|emptyIsPass|\.excluding\(|asSeverity|\.warn\(|--changed|baseline|silent\(/
@@ -251,7 +251,7 @@ describe('assertionAdvice: one remedy per state, and only its own', () => {
     expect(diagnose([bad])).toHaveLength(1)
 
     // Its remedy is "move it", NOT "add a condition" — it has one. Naming the
-    // wrong fix here would leave the rule exactly as broken (ADR-008 rule 2).
+    // wrong fix here would leave the rule exactly as broken (ADR-009 rule 2).
     const a = bad.assertionAdvice()
     expect(a).toContain('"are async"')
     expect(a).toContain('Move it before .should()')
@@ -363,7 +363,7 @@ describe('assertionAdvice: one remedy per state, and only its own', () => {
     expect(v).toHaveLength(1)
     expect(v[0]?.bypassFilters).toBe(true)
     // The per-shape remedy verbatim, plus the one sentence the finding adds:
-    // ADR-008 rule 3 requires it to say there is no escape hatch, and a reader
+    // ADR-009 rule 3 requires it to say there is no escape hatch, and a reader
     // given only the remedy tries four suppression channels first (measured).
     expect(v[0]?.message).toContain(rule.assertionAdvice())
     expect(v[0]?.message).toContain('cannot be suppressed')
@@ -452,7 +452,7 @@ class AdviceLessBuilder extends TerminalBuilder {
   }
 }
 
-describe('every remedy remediates (ADR-008 rule 2, behavioural corollary)', () => {
+describe('every remedy remediates (ADR-009 rule 2, behavioural corollary)', () => {
   const p = load('poc')
 
   // A remedy asserted only by its words is a same-derivation check: the test
@@ -535,7 +535,7 @@ describe('every remedy remediates (ADR-008 rule 2, behavioural corollary)', () =
   // the remedy that the whole state-machine above computes would reach nobody.
   //
   // Asserted through the three renderers rather than the field, so the check
-  // and the code are differently derived (ADR-008 rule 5).
+  // and the code are differently derived (ADR-009 rule 5).
   it('the remedy reaches every surface a consumer reads, exactly once', () => {
     const rule = functions(p)
       .that()
@@ -626,7 +626,7 @@ describe('empty-project parity — one string, one place', () => {
     const messages = rule.violations().map((v) => v.message)
 
     // ONE finding for the project, not one per glob: the identity of this fault
-    // is the tsconfig (ADR-008 rule 4), which is why `diagnose()` dedupes too.
+    // is the tsconfig (ADR-009 rule 4), which is why `diagnose()` dedupes too.
     expect(messages).toHaveLength(1)
 
     const shared = emptyProjectAdvice(target)
@@ -640,7 +640,7 @@ describe('empty-project parity — one string, one place', () => {
     // Found by sabotage: flipping `bypassFilters` to false left the subset green.
     // That is worse than an untested field — the message ends with "This finding
     // cannot be suppressed: not by .warn(), .asSeverity('warn'), .excluding(), …",
-    // so a suppressable finding makes its own sentence a lie. ADR-008 rule 3.
+    // so a suppressable finding makes its own sentence a lie. ADR-009 rule 3.
     const target = emptyProject()
     const rule = modules(target)
       .that()

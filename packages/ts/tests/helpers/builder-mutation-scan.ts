@@ -18,7 +18,7 @@
  *
  * Split out, they can be pointed at a fixture whose expected verdict is known
  * independently of `src/` — a differently-derived value that can disagree
- * (ADR-008 rule 5). `builder-mutation-scan.test.ts` is that fixture.
+ * (ADR-009 rule 5). `builder-mutation-scan.test.ts` is that fixture.
  */
 import { Node, SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration, Expression, MethodDeclaration } from 'ts-morph'

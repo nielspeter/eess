@@ -82,7 +82,7 @@ describe('the rule is folder-level, and treats an entry point exactly like an in
   })
 })
 
-describe('the remedy remediates (ADR-008 rule 2)', () => {
+describe('the remedy remediates (ADR-009 rule 2)', () => {
   it('the stated fix, applied, clears the finding', () => {
     // The generalizable guard for this defect class. The remedy says: move the
     // code both boundaries need into a shared folder, or remove the dependency.

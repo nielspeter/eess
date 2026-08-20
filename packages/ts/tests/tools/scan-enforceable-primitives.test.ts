@@ -389,7 +389,7 @@ describe('the enforceable-primitive population is derived, not remembered (plan 
   })
 
   it('the checker’s verdict is corroborated by each declaration’s own text', () => {
-    // A second, differently-derived opinion (ADR-008 rule 5): the population comes from the type
+    // A second, differently-derived opinion (ADR-009 rule 5): the population comes from the type
     // checker, this reads the source. Per DECLARATION — the first version matched the whole containing
     // file, and 28 of 39 files hold more than one primitive, so it certified "something in here
     // returns this kind" and a mislabelled member sailed through.

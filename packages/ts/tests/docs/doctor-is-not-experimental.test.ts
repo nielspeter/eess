@@ -56,7 +56,7 @@ describe('docs do not call doctor experimental (plan 0077)', () => {
         offenders.push(`${file.path}:${index + 1}: ${line.trim()}`)
       })
     }
-    // The list, not the count — ADR-008 rule 4. A count tells the next reader to
+    // The list, not the count — ADR-009 rule 4. A count tells the next reader to
     // go hunting; the line tells them what to edit.
     expect(offenders).toEqual([])
   })

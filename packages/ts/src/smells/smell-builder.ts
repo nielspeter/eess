@@ -25,7 +25,7 @@ export abstract class SmellBuilder extends TerminalBuilder {
   protected _groupByFolder = false
 
   /**
-   * This family's own narrowing, named — plan 0099 / ADR-009 part 4.
+   * This family's own narrowing, named — plan 0099 / ADR-010 part 4.
    *
    * `_minLines` defaults to 5 and neither `agentGuardrails` nor `strictBoundaries`
    * exposes a knob for it, so a user whose bodies are all shorter is told their
@@ -48,7 +48,7 @@ export abstract class SmellBuilder extends TerminalBuilder {
     // "minLines(500) — minLines defaults to 5, a default you did not write",
     // which is false on the path that produced it: an agent goes hunting for
     // where 5 comes from and never touches the 500 that is the actual fault.
-    // ADR-008 rule 2, on an unsuppressable hard failure.
+    // ADR-009 rule 2, on an unsuppressable hard failure.
     // States the filters as FACT, and does not claim they caused the emptiness.
     //
     // "Its own narrowing removed them" asserts removal. Measured on a types-only

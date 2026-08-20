@@ -200,7 +200,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
   })
 
   it('yields to a declaration — the advice must not tell you to do what you did', () => {
-    // ADR-008 rule 2, behaviourally: apply the stated remedy and assert the
+    // ADR-009 rule 2, behaviourally: apply the stated remedy and assert the
     // finding clears. The first pass asserted the advice's TEXT and never that
     // following it worked — and it did not, because nothing consulted
     // `declaresEmpty()`, the hook 0097 created for exactly this question.
@@ -314,7 +314,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
   })
 
   it('the remedy names a call the reader can actually make', () => {
-    // ADR-008 rule 2, at its strictest: take the advice string, call what it
+    // ADR-009 rule 2, at its strictest: take the advice string, call what it
     // names, and assert the finding clears. The generic `.expectEmpty()` is a
     // TypeError on correspondence, so an advice string shared across families
     // would send this reader into an exception — verified, not assumed.
@@ -329,7 +329,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
   })
 
   it('the remedy names the narrowing, and never claims the author wrote it', () => {
-    // ADR-008 rule 2. The commonest trigger is a DEFAULT — `minLines` is 5 — so
+    // ADR-009 rule 2. The commonest trigger is a DEFAULT — `minLines` is 5 — so
     // "fix your filters" sends a reader who wrote none looking for filters that do
     // not exist in their code. Precedence means only this one cause survives to be
     // reported, so the advice can name it without hedging.
@@ -362,7 +362,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
     // impossible, so "widening is the fix" was advice they could not take.
     expect(finding?.advice).not.toContain('not itself checked yet')
     expect(finding?.advice).not.toContain('proving anything')
-    // ADR-008 rule 3's corollary still holds, and this is what now enforces it:
+    // ADR-009 rule 3's corollary still holds, and this is what now enforces it:
     // the declaration is described by what it DOES, so it cannot read as a mute
     // button. `the-floor.test.ts` proves the behaviour behind this sentence.
     expect(finding?.advice).toContain('not a silencer')

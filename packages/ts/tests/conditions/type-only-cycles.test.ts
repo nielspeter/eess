@@ -1,6 +1,6 @@
 /**
  * `beFreeOfCycles()` and type-only imports —
- * [plan 0084](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0084-cycle-detection-that-ignores-type-only-imports.md).
+ * [ts-archunit plan 0084](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0084-cycle-detection-that-ignores-type-only-imports.md).
  *
  * A `import type { X }` is **erased at compile time** and creates no runtime
  * dependency, so counting it as a graph edge invents cycles that cannot exist at
@@ -132,7 +132,7 @@ describe('beFreeOfCycles() and type-only imports (plan 0084)', () => {
   it('ignoreTypeImports: false still reports the type-only cycle', () => {
     // The option proven in BOTH positions. Without this row the default could be
     // hard-wired and every test above would still pass — the flag would be
-    // decoration, which is the shape ADR-008 rule 5 is about.
+    // decoration, which is the shape ADR-009 rule 5 is about.
     expect(cycles(twoSlices(TYPE_B, TYPE_A), { ignoreTypeImports: false })).toEqual([
       'a -> b',
       'b -> a',
@@ -177,12 +177,12 @@ describe('beFreeOfCycles() and type-only imports (plan 0084)', () => {
     // and it is read by five conditions — so the fix ADDS a distinction to the shared
     // edge model rather than changing `isTypeOnlyImport`, whose current meaning is
     // right for the four coupling conditions. That is
-    // [plan 0087](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0087-an-inline-type-import-still-requests-the-module.md),
+    // [ts-archunit plan 0087](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0087-an-inline-type-import-still-requests-the-module.md),
     // which owns it and will update this row. This repo does not set the flag.
   })
 
   it('a re-export IS an edge now — the marker this row was left as', () => {
-    // Inverted by [plan 0085](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0085-the-slice-graph-cannot-see-a-re-export.md),
+    // Inverted by [ts-archunit plan 0085](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0085-the-slice-graph-cannot-see-a-re-export.md),
     // which is what it was for. Plan 0084 wrote this row asserting `[]` and said so:
     // "it is a real false negative, and when plan 0085 fixes it this row reds and tells
     // its successor what changed." It did exactly that — the only failure in the suite

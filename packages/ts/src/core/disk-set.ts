@@ -70,7 +70,7 @@ export type OnDisk = 'holds-typescript' | 'no-typescript' | 'absent' | 'not-dete
 /**
  * What the filesystem knows that the compiler's file set does not.
  *
- * The second derivation ADR-008 rule 5 asks for: filesystem contents versus
+ * The second derivation ADR-009 rule 5 asks for: filesystem contents versus
  * compiler membership. It is what distinguishes "your glob is misspelled" from
  * "your glob is fine and your tsconfig scope excludes it" — the cheapest wrong
  * action an agent can take, and the majority case in a real monorepo.
@@ -161,7 +161,7 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
       const full = path.join(dir, entry.name).replaceAll('\\', '/')
       // Prune by NAME, before asking whether it is a directory.
       //
-      // [Bug 0045](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md):
+      // [ts-archunit Bug 0045](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md):
       // `Dirent.isDirectory()` is false for a symlink, so a symlinked
       // `node_modules` — what pnpm produces, and what `git worktree add`
       // leaves behind — fell through to the `else` branch and was recorded as
@@ -219,7 +219,7 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   // about any path holding a `.md`, a `.json`, or anything under a pruned
   // name — and `absent` carries no advice, so the caller fell back to
   // `no-match`'s list, whose first cause is "a path segment is misspelled".
-  // Exactly the confidently-wrong cause ADR-008 rule 2 forbids.
+  // Exactly the confidently-wrong cause ADR-009 rule 2 forbids.
   const everything = [...everyFile, ...dirs]
   const typeScript = new Set(files)
   return {

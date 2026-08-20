@@ -81,7 +81,7 @@ describe('ruleFileFailure', () => {
     expect(failure.message).toContain('enforced nothing')
     // Conditional, because this fires for any error a rule file can raise — a
     // syntax error, a missing dependency, a misconfigured builder. Naming one
-    // cause for all of them is the ADR-008 rule 2 defect.
+    // cause for all of them is the ADR-009 rule 2 defect.
     expect(failure.suggestion).toContain('this rule file')
     expect(failure.suggestion).toContain('If it names a builder method')
     // It must not claim to know which of those happened.

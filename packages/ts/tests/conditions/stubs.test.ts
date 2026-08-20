@@ -222,7 +222,7 @@ describe('WHERE a stub marker may be, and what is merely prose (bugs 0052, 0053)
   // Both were CAUGHT BY NOTHING when first fixed. The fix was measured with
   // throwaway probes, the numbers went into the bug write-ups, and nothing
   // permanent held them — so reverting either half left the suite green. That is
-  // ADR-008 rule 5 exactly, and bug 0052's own write-up had already asked "what
+  // ADR-009 rule 5 exactly, and bug 0052's own write-up had already asked "what
   // would the suite do if the fix were wrong?" before the answer became "nothing".
   /**
    * `element@line` per finding, plus the marker text — an IDENTITY, not a count.

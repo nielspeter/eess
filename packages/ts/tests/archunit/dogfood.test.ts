@@ -41,7 +41,7 @@
  * And `examinedUnits() > 0` is necessary but **not sufficient**, which this
  * file learned the hard way — see the `inconsistentSiblings` row, where a rule
  * examined all 11 files in a folder and was still structurally incapable of
- * producing a finding. The question ADR-008 rule 5 actually asks is what the
+ * producing a finding. The question ADR-009 rule 5 actually asks is what the
  * rule would do if the thing it guards were broken, and the only answer that
  * counts is a measured one. Each rule here has been sabotaged and observed to
  * fail; three of them first fired on real defects in their own construction.
@@ -140,7 +140,7 @@ describe('tsconfig: the toolchain ADR-001 pins', () => {
     // Stated in prose in two places and enforced in none, until here.
     //
     // Asserted on `.violations()`, not `.check()` — this is a REAL assertion
-    // ADR-008 rule 5 demands (sabotage the tsconfig and this must red), not a
+    // ADR-009 rule 5 demands (sabotage the tsconfig and this must red), not a
     // vacuous `built()`-only call. `.violations()` never depended on severity
     // to begin with, so it is unaffected by whether `checkAll(BUILT)` at the
     // bottom of this file (`built()`'s own doc comment explains it) also
@@ -158,7 +158,7 @@ describe('smells: the detectors the floor lives by', () => {
   /**
    * RE-ENABLED — plan 0103 fixed the detector.
    *
-   * See [bug 0076](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0076-duplicate-body-similarity-erases-identifiers-so-every-wither-pairs.md).
+   * See [ts-archunit bug 0076](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0076-duplicate-body-similarity-erases-identifiers-so-every-wither-pairs.md).
    * `Fingerprint.kinds` was a sequence of `SyntaxKind` numbers and
    * `computeSimilarity` LCS over it, so identifiers never reached the
    * comparison — three bodies differing only in one assigned field's name
@@ -171,7 +171,7 @@ describe('smells: the detectors the floor lives by', () => {
    * This does NOT assert `.toEqual([])` — Phase 0's own triage measured that
    * a well-chosen floor does not drive false positives to zero (a second,
    * narrower false-positive class survives, filed separately once this
-   * shipped), and pinning a count ceiling is exactly ADR-008 rule 5's
+   * shipped), and pinning a count ceiling is exactly ADR-009 rule 5's
    * anti-pattern: a ceiling reads as coverage while a real regression can
    * still hide under it. Named, specific pairs instead — the motivating
    * false positive must be gone, the motivating genuine duplicate must
@@ -515,7 +515,7 @@ describe('presets: the surface an adopter actually installs', () => {
 
 describe('the rules in this file can all enforce something', () => {
   it('diagnoses every rule, and finds exactly the one poisoned row — plan 0102', () => {
-    // Identities, never a count — ADR-008 rule 4. Not `toEqual([])`: this file
+    // Identities, never a count — ADR-009 rule 4. Not `toEqual([])`: this file
     // deliberately gates one rule known to be inert (the `call('this.copy')`
     // row above, bug 0077(A)'s exact case) — a green `diagnose(BUILT)` here
     // would be the vacuous pass this plan exists to remove. `'inert'`, not
@@ -555,7 +555,7 @@ describe('checkAll(BUILT) — the aggregate that replaces gate() (plan 0090, Pha
   })
 
   it('would fail if one of them had a real violation — not vacuously green', () => {
-    // ADR-008 rule 5, asked of the aggregate itself: `checkAll(BUILT)` passing
+    // ADR-009 rule 5, asked of the aggregate itself: `checkAll(BUILT)` passing
     // above is meaningful only if a genuine violation on one of these rules
     // would make it fail. A fresh in-memory project with one deliberately
     // lowercase-named exported type reproduces the exact shape the

@@ -148,7 +148,7 @@ describe('no shipped string claims the cycle check cannot see a re-export', () =
     // the walk is broken, or `includes` is never reached. Prove the detector fires by
     // running the same predicate over text that does contain a forbidden phrase.
     //
-    // ADR-008 rule 5: a guard whose only outcome is "nothing found" is not yet a guard.
+    // ADR-009 rule 5: a guard whose only outcome is "nothing found" is not yet a guard.
     const stale =
       'Note the cycle check sees static `import` declarations only: a cycle formed by ' +
       '`export … from` (a barrel) is not detected.'

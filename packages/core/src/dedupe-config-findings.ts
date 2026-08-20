@@ -17,7 +17,7 @@
  *
  * So the fan-out collapses to the identity that matches the edit: the option
  * the user actually wrote. The count survives as *context on that finding*
- * rather than as 83 rows — which is not the snapshot ADR-008 rule 4 bars,
+ * rather than as 83 rows — which is not the snapshot ADR-009 rule 4 bars,
  * because it is attached to a named identity rather than standing in for one.
  *
  * ## What the key is, and why each part is in it

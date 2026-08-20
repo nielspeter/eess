@@ -48,7 +48,7 @@ export type GlobPosition = 'selector' | 'discovery' | 'condition' | 'exclusion'
  * Is a dead glob at this position a **fault**?
  *
  * One owner for a decision that was written twice, inversely, and disagreed —
- * [plan 0080](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0080-admit-discovery-globs-to-the-dead-glob-gate.md).
+ * [ts-archunit plan 0080](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0080-admit-discovery-globs-to-the-dead-glob-gate.md).
  *
  * | site | said | i.e. |
  * | --- | --- | --- |
@@ -57,7 +57,7 @@ export type GlobPosition = 'selector' | 'discovery' | 'condition' | 'exclusion'
  *
  * So `doctor` reported a dead `discovery` glob and the check that gates the build
  * did not — the divergence bug 0040's silence half is made of. Two hand-maintained
- * inverse lists that must agree is the shape ADR-008 rule 5 keeps charging this
+ * inverse lists that must agree is the shape ADR-009 rule 5 keeps charging this
  * project for; a shared predicate is the whole fix.
  *
  * **`selector` and `discovery` are faults.** Both name what a rule will judge, so

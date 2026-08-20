@@ -504,7 +504,7 @@ describe('what cannot be blamed on the glob (bugs 0031, 0032)', () => {
   })
 
   it('the stated remedy clears the finding — applied, not asserted', () => {
-    // ADR-008 rule 2: a remedy is verified by remediating. The message says to
+    // ADR-009 rule 2: a remedy is verified by remediating. The message says to
     // point the rules at the tsconfig that holds the sources; this is that
     // edit, and the result must be silence. Identities, not a count — a
     // failure here should name what survived.

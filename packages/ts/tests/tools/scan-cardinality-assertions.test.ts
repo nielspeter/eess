@@ -6,7 +6,7 @@ import { scanCardinalityAssertions } from './scan-cardinality-assertions.js'
 const REPO = path.resolve(import.meta.dirname, '../..')
 
 /**
- * The population that survived [plan 0079](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0079-triage-the-cardinality-only-assertions.md),
+ * The population that survived [ts-archunit plan 0079](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0079-triage-the-cardinality-only-assertions.md),
  * measured on the branch that closed it.
  *
  * **A ratchet, not a snapshot.** It fails when the number goes UP, which is the
@@ -36,13 +36,20 @@ const REPO = path.resolve(import.meta.dirname, '../..')
  * `conditions/match-identity`, `conditions/reexport-dependency`,
  * `conditions/reexport-slice-cycle`, `integration/exclusion-comments-e2e`.
  *
+ * **Corrected in review from 104 to 103.** 104 was measured before this same
+ * branch converted `doc-globs-are-anchored`'s `toBe(31)` into a floor, which
+ * removed that file's only cardinality block. Re-measuring after the change was
+ * skipped, and the result was one block of unearned headroom — a threshold set
+ * above the measured value, which is the shape ADR-009 rule 4 forbids for exactly
+ * this reason: the 104th block would have passed green.
+ *
  * Those six extra blocks are **untriaged, not blessed**. Re-baselining is what
  * makes the ratchet start working here at all — it was red on arrival, so it
  * could not catch the 105th — but it is not a verdict that the six are fine.
  * Whoever converts them lowers this number and says why, which the paragraph
  * above already licenses: going down needs no permission.
  */
-const CEILING = 104
+const CEILING = 103
 
 /**
  * A floor beneath the real number, so a broken walk cannot pass.
@@ -67,7 +74,6 @@ const CONTRIBUTING_FILES: readonly string[] = [
   'tests/cli/watch.test.ts',
   'tests/conditions/bare-package-imports.test.ts',
   'tests/conditions/call-args.test.ts',
-  'tests/conditions/call.test.ts',
   'tests/conditions/dependency-workspace-roots.test.ts',
   'tests/conditions/dependency.test.ts',
   'tests/conditions/dynamic-imports.test.ts',
@@ -92,7 +98,6 @@ const CONTRIBUTING_FILES: readonly string[] = [
   'tests/core/preset-fanout-is-one-finding.test.ts',
   'tests/core/rule-builder.test.ts',
   'tests/core/workspace-has-no-single-root.test.ts',
-  'tests/docs/doc-globs-are-anchored.test.ts',
   'tests/graphql/schema-loader.test.ts',
   'tests/helpers/baseline.test.ts',
   'tests/helpers/callback-extractor.test.ts',
@@ -138,7 +143,7 @@ describe('the cardinality-only population does not grow (plan 0079)', () => {
     // C block is added and an unrelated one is deleted in the same change — the
     // net is zero and nobody is told.
     //
-    // So the assertion is now over IDENTITIES (ADR-008 rule 4), at file
+    // So the assertion is now over IDENTITIES (ADR-009 rule 4), at file
     // granularity. Not `file:line`: line numbers shift on every edit above them,
     // which would red this on unrelated changes and teach the next author to
     // update the list without reading it. Paths move far less often, and a *new

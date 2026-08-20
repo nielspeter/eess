@@ -82,7 +82,7 @@ describe('a preset fan-out collapses to the option (plan 0074)', () => {
 
   it('never collapses ordinary violations, however alike', () => {
     // Each names a distinct element at a distinct position, and every one is a
-    // separate edit. Collapsing them is the snapshot ADR-008 rule 4 bars, and it
+    // separate edit. Collapsing them is the snapshot ADR-009 rule 4 bars, and it
     // would hide real work.
     const many = [ordinary(), ordinary(), ordinary()]
     // Class A after measurement (plan 0079): these three are IDENTICAL on

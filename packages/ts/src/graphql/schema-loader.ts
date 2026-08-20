@@ -257,7 +257,7 @@ export function isGraphQLAvailable(): boolean {
 
 /**
  * Replace how `graphql` is loaded. **Tests only** —
- * [bug 0080](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0080-a-node-module-mock-does-not-isolate-under-full-suite-concurrency.md):
+ * [ts-archunit bug 0080](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0080-a-node-module-mock-does-not-isolate-under-full-suite-concurrency.md):
  * `vi.doMock('node:module', ...)` intercepts a Node builtin, which is not
  * reliably isolated per-file under Vitest's worker-reuse defaults and failed
  * intermittently under full-suite load. This seam replaces only this

@@ -62,7 +62,7 @@ export async function runDoctor(args: DoctorArgs): Promise<number> {
       // after its own loop, so when the import throws NOTHING from that file
       // survives. Saying "diagnosing what loaded" would be false, and
       // swallowing it silently turned a visible crash into `exit 0` plus a
-      // clean bill of health — the ADR-008 rule 1 failure this command exists
+      // clean bill of health — the ADR-009 rule 1 failure this command exists
       // to surface, committed by the command.
       //
       // Two loud shapes (plan 0070 round 2): an ArchRuleError means the file
@@ -77,7 +77,7 @@ export async function runDoctor(args: DoctorArgs): Promise<number> {
       } else {
         // The remedy is CONDITIONAL: this branch fires for any load failure —
         // a syntax error, a missing dependency — and asserting "this imports a
-        // test runner" unconditionally would be a false cause (ADR-008 rule 2,
+        // test runner" unconditionally would be a false cause (ADR-009 rule 2,
         // caught in review). The error message is the evidence; the test-runner
         // sentence is offered as the common case, not stated as the cause.
         writeStderr(
@@ -238,7 +238,7 @@ function format(findings: readonly DiagnosticFinding[]): string {
     }
     lines.push('')
   }
-  // Deliberately no total. A count is the snapshot ADR-008 rule 4 bars, and it
+  // Deliberately no total. A count is the snapshot ADR-009 rule 4 bars, and it
   // is the number people ratchet against instead of fixing the findings.
   return lines.join('\n')
 }

@@ -15,7 +15,7 @@
  * consumer can pass any object with a `filterToChanged` method, and a filter
  * that under-reports its own suppression would produce exactly the silence
  * this module exists to break. Caller-side subtraction is a differently-derived
- * value (ADR-008 rule 5) and it works for filters we did not write.
+ * value (ADR-009 rule 5) and it works for filters we did not write.
  *
  * **Two surfaces, because only one of them can count.**
  *

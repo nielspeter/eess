@@ -6,7 +6,7 @@
  * whose filters excluded everything, or whose corpus never loaded still returned
  * green from `check()`, and the suite counted it as coverage — the statement
  * ADR-008 opens with, and the reason
- * [bug 0066](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0066-a-smell-detector-over-zero-files-passes.md) reported
+ * [ts-archunit bug 0066](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0066-a-smell-detector-over-zero-files-passes.md) reported
  * 401 findings as clean.
  *
  * The floor lives at the ROOT (`TerminalBuilder.collectWithAssertionGuard`), not
@@ -90,7 +90,7 @@ describe('a rule that examines zero units fails', () => {
     // different faults.
     expect(config[0]?.message).not.toContain('can never match')
     expect(config[0]?.message).not.toContain('loaded 0 source files')
-    // The cause is named, per ADR-009 part 4 — `minLines` is a default the author
+    // The cause is named, per ADR-010 part 4 — `minLines` is a default the author
     // never wrote, and neither preset exposes a knob for it.
     expect(config[0]?.message).toContain('minLines(500)')
   })
@@ -229,7 +229,7 @@ describe('precedence: an empty project outranks every declaration', () => {
     // the empty state" — both impossible on that input.
     //
     // The row above passes through `resideInFile()`, so it never exercised this
-    // path. Asked ADR-008 rule 5's question, it would pass with the instrument
+    // path. Asked ADR-009 rule 5's question, it would pass with the instrument
     // precedence removed from the root entirely.
     const vs = functions(emptyProject())
       .that()
@@ -265,7 +265,7 @@ describe('precedence: an empty project outranks every declaration', () => {
   })
 
   it('the empty-project remedy NEVER offers a declaration', () => {
-    // ADR-008 rule 2 / ADR-009 part 4: three causes, three remedies, and naming
+    // ADR-009 rule 2 / ADR-010 part 4: three causes, three remedies, and naming
     // the declaration here would be a remedy that cannot remediate.
     const vs = functions(emptyProject())
       .that()
@@ -311,7 +311,7 @@ describe('the expiry half is the root’s alone', () => {
   })
 
   it('the remedy REMEDIATES: removing the declaration clears the finding', () => {
-    // ADR-008 rule 2's behavioural corollary — apply the stated fix, assert it works.
+    // ADR-009 rule 2's behavioural corollary — apply the stated fix, assert it works.
     const p = inMemory({ '/src/a.ts': 'export function f() { eval("1") }\n' })
     const without = functions(p)
       .that()
@@ -331,7 +331,7 @@ describe('the expiry half is the root’s alone', () => {
 
 describe('diagnose() and check() agree — the row that keeps the preview honest', () => {
   // 0096 shipped the preview saying "a later release makes this state fail at
-  // check time". This is that release, and `docs/upgrading.md` tells people to
+  // check time". This is that release, and ts-archunit's `docs/upgrading.md` tells people to
   // run `doctor` first and fix what it reports. Measured before the seam: the
   // gate said "a declaration is an assertion, not a silencer" while the preview
   // still said "the declaration is not itself checked yet ... A later release
@@ -435,7 +435,7 @@ describe('distinct rules stay distinct through dedupe', () => {
 })
 
 describe('the message names the right unit, in the right number', () => {
-  // `CollectResult.examined` is unit-typed per family (ADR-009 part 1). A message
+  // `CollectResult.examined` is unit-typed per family (ADR-010 part 1). A message
   // that prints one family's noun for another is a category error in the sentence
   // whose whole job is naming what was and was not looked at — and the seam
   // existed with only ONE family implementing it, so graphql, cross-layer and

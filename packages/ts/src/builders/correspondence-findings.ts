@@ -112,7 +112,7 @@ function unboundSideViolation(
  * rule green that was certifying nothing about them. An assertion that expires
  * reports itself; a permission never does.
  *
- * Its remedy is mechanical and is the one ADR-008 rule 2 asks be verified:
+ * Its remedy is mechanical and is the one ADR-009 rule 2 asks be verified:
  * remove the declaration, and the finding clears.
  */
 function unexpectedlyNonEmptyViolation(sideName: string, meta: ViolationMeta): ArchViolation {
@@ -191,7 +191,7 @@ function baseViolation(
  * form for ("one word, silent forever, TYPO OR NOT, and nothing revisits it"),
  * inherited whole by the replacement.
  *
- * ADR-009 part 3 already ruled the structurally identical preset case — a
+ * ADR-010 part 3 already ruled the structurally identical preset case — a
  * declaration binding to no constructed rule is a FAILING finding, never a
  * warning — so this follows settled precedent rather than deciding anew.
  *

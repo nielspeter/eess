@@ -77,7 +77,7 @@ export function applyFilters(
 
   // Enrich FIRST, because a filter cannot match on a field that is not set yet.
   //
-  // [Bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md):
+  // [ts-archunit Bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md):
   // this block used to run LAST, after the inline-comment filter below. That
   // filter's first statement is `if (!violation.ruleId) return false`
   // (`exclusion-comments.ts:262`), so an exclusion comment matched only
@@ -106,7 +106,7 @@ export function applyFilters(
       // a real violation of the rule, and the formatter renders `suggestion` under
       // `Fix:` — the field an agent obeys. Pairing a configuration message with an
       // unrelated `Fix:` is a false remedy by juxtaposition (bug 0021), and it is
-      // ADR-008 rule 2: a failure may not assert a cause it cannot verify.
+      // ADR-009 rule 2: a failure may not assert a cause it cannot verify.
       //
       // `SliceRuleBuilder.metaViolation` argued exactly this in a comment and
       // omitted both fields — and was overridden here, one layer up, so the
@@ -313,7 +313,7 @@ export function applyFilters(
     // this finding clears while the exclusion keeps working. Refusing to apply
     // the exclusion instead would make the remedy "add a reason" produce a
     // DIFFERENT failure — the violation itself — which is a remedy that does
-    // not remediate (ADR-008 rule 2).
+    // not remediate (ADR-009 rule 2).
     //
     // Unsuppressable, because a suppression mechanism that can suppress the
     // complaint about itself is not a mechanism.

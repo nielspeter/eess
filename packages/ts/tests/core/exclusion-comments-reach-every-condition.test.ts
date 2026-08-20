@@ -1,6 +1,6 @@
 /**
  * An exclusion comment works for every condition, not only the ones that stamp
- * `ruleId` — [bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md).
+ * `ruleId` — [ts-archunit bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md).
  *
  * `isExcludedByComment` opens with `if (!violation.ruleId) return false`
  * (`exclusion-comments.ts:262`). `applyFilters` used to stamp `ruleId` from the
@@ -11,7 +11,7 @@
  *
  * ## Why this test is shaped as an asymmetry
  *
- * The independent derivation (ADR-008 rule 5) is **the same source under two
+ * The independent derivation (ADR-009 rule 5) is **the same source under two
  * builders**. `classes()` routes through `createViolation`, which stamps;
  * `modules().notImportFrom()` does not. Before the fix those two disagreed about
  * identical comment text; after it they agree. A test written against `classes()`

@@ -1,6 +1,6 @@
 /**
  * The one sentence that tells a reader a configuration finding has no escape
- * hatch — [ADR-008](../../../adr/009-agent-first-failure-surfaces.md) rule 3.
+ * hatch — [ADR-009](../../../adr/009-agent-first-failure-surfaces.md) rule 3.
  *
  * Stated on the finding rather than inside each remedy so the per-shape advice
  * stays one sentence each and this stays one sentence in one place. Measured
@@ -25,7 +25,7 @@
  *
  * The sixth surface is the inline `// eess-exclude` comment, refused in
  * `execute-rule.ts` by the `v.bypassFilters === true ||` clause. It was omitted
- * while it was hard to reach; [bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
+ * while it was hard to reach; [ts-archunit bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
  * made inline comments work for every condition family, so an agent reading a
  * five-item list and inferring exhaustiveness now reaches for the one mechanism
  * the sentence forgot to mention.
@@ -41,7 +41,7 @@ export const UNSUPPRESSABLE =
   //
   // Naming it here rather than leaving it discoverable by elimination: an agent
   // that hits six walls and then finds `'off'` documented in `docs/presets.md`
-  // will stamp it, which is ADR-008 rule 1's trained-suppression dynamic produced
+  // will stamp it, which is ADR-009 rule 1's trained-suppression dynamic produced
   // by our own gate. It is NOT added to `UNSUPPRESSABLE_MECHANISMS`, because that
   // list is the set the parity guard proves DO refuse — and this one does not.
   "A preset's overrides: { id: 'off' } does remove it, by deleting the rule " +
@@ -55,7 +55,7 @@ export const UNSUPPRESSABLE =
  * on the assertion-gate finding ("this detector has no pattern") and on a dead
  * selector glob, adding `.expectEmpty()` changes nothing, because both are
  * decided before any declaration is consulted. The reader declares, re-runs, and
- * gets the identical failure with the identical advice — ADR-008 rule 2's loop,
+ * gets the identical failure with the identical advice — ADR-009 rule 2's loop,
  * introduced by the sentence written to close one.
  *
  * On the dead-glob kind it was worse than a no-op: there `overrides: { id: 'off' }`

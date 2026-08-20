@@ -35,7 +35,7 @@ const CONTRADICTION =
 /**
  * What a family returns from `collectViolations()` — plan 0098.
  *
- * Part of the extension surface [ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)
+ * Part of the extension surface [ts-archunit ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)
  * rule 1 names as contract, so changing this shape is a breaking change.
  */
 export interface CollectResult {
@@ -126,13 +126,13 @@ abstract class RuleDeclaration {
   protected _exclusions: (string | RegExp)[] = []
   protected _silentIndices: Set<number> = new Set()
   /**
-   * The declared-empty grammar — plan 0097, and [ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)
+   * The declared-empty grammar — plan 0097, and [ts-archunit ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)
    * rule 3(a).
    *
    * These lived on `RuleBuilder<T>`, so the smell family — the one bug 0066 is
    * filed against — could not reach them: that bug listed "is `.expectEmpty()`
    * reachable on a smell builder at all?" under Not measured, and the answer was
-   * no. ADR-009 part 3 requires every family's grammar to expose a declaration
+   * no. ADR-010 part 3 requires every family's grammar to expose a declaration
    * path, so they belong on the root every family shares.
    *
    * Booleans rather than registry membership, deliberately. `shallowClone` in
@@ -344,7 +344,7 @@ abstract class RuleDeclaration {
    * Distinct from the terminal `.severity()` below, which executes immediately.
    *
    * `'warn'` alone is an ADVISORY warning — permanent, unchanged from every
-   * release before plan 0090, for a finding ADR-008 rule 1 says the reader must
+   * release before plan 0090, for a finding ADR-009 rule 1 says the reader must
    * judge. `'warn'` with `accepted` is a DEFERRED warning — debt, with a
    * ceiling: any violation whose `subjectOf()` is not in `accepted` escalates to
    * `error`. The overloads make `accepted` a compile error on a literal
@@ -511,7 +511,7 @@ abstract class RuleDeclaration {
   /**
    * The narrowing THIS family applied, when it can name it — plan 0099.
    *
-   * ADR-009 part 4 wants the zero-examined remedy to name the **actual excluder,
+   * ADR-010 part 4 wants the zero-examined remedy to name the **actual excluder,
    * including internal defaults**, because "fix your filters" to a user who wrote
    * none sends an agent looking for filters that do not exist.
    *
@@ -569,7 +569,7 @@ abstract class RuleDeclaration {
    * `metadata.id`. An earlier version of this docstring said baselines and a
    * `--rule` filter were keyed on the id. Neither is true, and `--rule` does
    * not exist — the only occurrences of it in the repo were three copies of
-   * this sentence. ADR-008 rule 2: a failure may not assert a cause it cannot
+   * this sentence. ADR-009 rule 2: a failure may not assert a cause it cannot
    * verify, and that includes naming a flag the CLI does not have.
    *
    * Cost is one object per chain link, against a ts-morph walk. Irrelevant.
@@ -621,14 +621,14 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * Plan 0096 gave five families an `examinedUnits()` accessor and `diagnose()`
    * reads it — but it is **optional**, and four waves of vacuity guards have each
    * closed their own enumeration only for the next family to land outside it
-   * ([ADR-009](../../../../adr/010-a-pass-is-constructed-from-evidence.md)'s Context
+   * ([ADR-010](../../../../adr/010-a-pass-is-constructed-from-evidence.md)'s Context
    * table). A guard is something you can forget to add. A required return type is
    * not: a new family cannot compile without stating its number.
    *
    * Nothing acts on `examined` in this release — plan 0099 adds the floor that
    * fails a rule which produced nothing from nothing. This plan ships the seam
    * alone so that the break to
-   * [ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)'s contract
+   * [ts-archunit ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)'s contract
    * lands in a commit whose only job is the break.
    *
    * ## What the compiler cannot force, and what does
@@ -646,7 +646,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    *   produced here and discarded by the one consumer, so nothing observes it:
    *   rewriting any family's `collectViolations()` to `examined: 0` while leaving
    *   `examinedUnits()` correct leaves the entire suite green — measured, for the
-   *   smell family and for `RuleBuilder`. An ADR-008 rule 5 equivalence, recorded
+   *   smell family and for `RuleBuilder`. An ADR-009 rule 5 equivalence, recorded
    *   rather than guarded by an instrument invented for it.
    *
    * **That equivalence expires in plan 0099**, which reads `examined` at the
@@ -661,7 +661,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * Does this builder diagnose its own empty discovery?
    *
    * `false` — the gate reports a dead `discovery` glob, which is the fix for
-   * [bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)'s
+   * [ts-archunit bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)'s
    * silence half: two of three cross-layer conditions reported **nothing** when a
    * layer resolved to no files.
    *
@@ -734,7 +734,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    *
    * `bypassFilters` makes it a configuration finding: `error` severity
    * regardless of `.asSeverity('warn')`, refused by `.excluding()`, and skipped
-   * by diff and baseline. See `severityFor` and ADR-008 rule 1.
+   * by diff and baseline. See `severityFor` and ADR-009 rule 1.
    */
   private collectWithAssertionGuard(): ArchViolation[] {
     return runWithGuard(this.asRun())

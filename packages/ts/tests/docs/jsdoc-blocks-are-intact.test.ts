@@ -84,7 +84,7 @@ describe('published JSDoc is not a fragment of a split comment', () => {
   })
 
   it('has no doc comment that opens with a stray quote or bracket', () => {
-    // Named, not counted (ADR-008 rule 4).
+    // Named, not counted (ADR-009 rule 4).
     expect(offences.map((o) => `${o.file}:${String(o.line)} — ${o.text}`)).toEqual([])
   })
 

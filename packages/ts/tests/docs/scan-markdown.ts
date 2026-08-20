@@ -24,7 +24,7 @@ export interface Hit {
  * - **Colliding** name → `\.name(?!\w)`. The bare name is legitimately documented
  *   (it is also a live export), so only the dotted call form is rot. Matching bare
  *   here produces false positives on correct reference tables — and a scan that
- *   reddens correct docs gets suppressed, which is the outcome ADR-008 rule 3 warns
+ *   reddens correct docs gets suppressed, which is the outcome ADR-009 rule 3 warns
  *   about.
  * - **Solo** name → `\bname(?!\w)`. Any mention is rot. This is what catches bare
  *   names in two-column tables, where no call form appears.
@@ -75,7 +75,7 @@ export function scanMarkdown(
 }
 
 /**
- * Render one hit as an agent-actionable finding (ADR-008 rule 2): where it is, what
+ * Render one hit as an agent-actionable finding (ADR-009 rule 2): where it is, what
  * to write instead, and — only where the name is ambiguous — which of the two things
  * sharing this name is the deprecated one.
  */

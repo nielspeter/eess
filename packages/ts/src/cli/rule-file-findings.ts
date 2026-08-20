@@ -6,7 +6,7 @@ import { basename } from 'node:path'
  * Attribute findings that have no source location of their own to the rule file
  * they came from.
  *
- * [Bug 0026](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0026-a-location-less-finding-does-not-say-which-rule-file-it-came-from.md):
+ * [ts-archunit Bug 0026](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0026-a-location-less-finding-does-not-say-which-rule-file-it-came-from.md):
  * a configuration finding carries `file: ''` because it reports a fault in the
  * rule rather than in the code, so two identical vacuous rules in two rule files
  * rendered as two identical paragraphs with nothing saying which to open. In a
@@ -38,7 +38,7 @@ export function attributeToRuleFile(
 /**
  * A rule file, or one rule in it, that could not be evaluated at all.
  *
- * [Bug 0025](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0025-a-non-archruleerror-from-one-rule-file-drops-every-other-finding.md):
+ * [ts-archunit Bug 0025](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0025-a-non-archruleerror-from-one-rule-file-drops-every-other-finding.md):
  * `runCheck` and `runBaseline` caught `ArchRuleError` and rethrew everything
  * else, so any other error escaped the per-file loop and terminated the process
  * — no report written, no exit code returned, and every finding already
@@ -79,7 +79,7 @@ export function ruleFileFailure(file: string, error: unknown, ruleFiles: number)
     message: `This rule file could not be evaluated, so its rules enforced nothing in this run: ${detail}${others}`,
     // Conditional, never asserted — this fires for any error a rule file or a
     // builder can raise (a syntax error, a missing dependency, a misconfigured
-    // builder), and naming one cause for all of them is the ADR-008 rule 2
+    // builder), and naming one cause for all of them is the ADR-009 rule 2
     // defect. The error message above is the evidence; the builder sentence is
     // offered as the common case that is fixable without touching source code.
     suggestion: `Fix the error named above in this rule file. If it names a builder method — for example a correspondence() with the wrong number of .side(...) calls — the rule is misconfigured rather than violated, so the fix is in the rule file and not in the code it checks.`,
@@ -111,8 +111,8 @@ export function failureOrViolations(
 /**
  * A rule file stopped evaluating partway, so the rules after that point never ran.
  *
- * [Bug 0029](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0029-a-throwing-warn-truncates-the-rest-of-the-rule-file.md),
- * and the half [plan 0069](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0069-no-rule-may-certify-nothing.md)'s R3a
+ * [ts-archunit Bug 0029](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0029-a-throwing-warn-truncates-the-rest-of-the-rule-file.md),
+ * and the half [ts-archunit plan 0069](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0069-no-rule-may-certify-nothing.md)'s R3a
  * specified and did not build: *"R3a states the semantics, and the CLI **reports the
  * truncation rather than absorbing it**."* The semantics shipped in v0.23.0; this is
  * the reporting.

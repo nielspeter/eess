@@ -486,7 +486,7 @@ describe('extractCallbacks', () => {
 })
 
 describe('a NAMED function expression: the property key wins (plan 0082, second arm)', () => {
-  // The arm nobody declared. Plan 0082, the CHANGELOG and `docs/upgrading.md` all
+  // The arm nobody declared. Plan 0082, the CHANGELOG and ts-archunit's `docs/upgrading.md` all
   // described the change as `<anonymous>` → name. There is a second direction:
   // `{ handler: function legacyName(req) {} }` reported **legacyName** before
   // v0.46.0 and reports **handler** after. Found by review; the sabotage that

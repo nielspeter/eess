@@ -233,7 +233,7 @@ export class CorrespondenceBuilder extends TerminalBuilder {
    * opt-out that stayed green the day the side filled up and the rule started
    * certifying nothing about it. This ASSERTS the side is empty, and fails the
    * day it stops being — an intent that expires and reports itself, which is
-   * the property ADR-009 part 3 requires of every declaration. Plan 0069's
+   * the property ADR-010 part 3 requires of every declaration. Plan 0069's
    * appendix rejected the permanent form for the rule family with receipts; a
    * sibling family had it shipped and documented.
    *

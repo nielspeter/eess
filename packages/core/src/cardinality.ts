@@ -8,7 +8,7 @@
  * > opt-out on any user condition — the hazard the Decisions section used to
  * > reject `.allowEmpty()`, relocated onto the condition object. A
  * > module-private `unique symbol`, with no `defineCondition` parameter, closes
- * > it by construction (ADR-008 rule 3's corollary).
+ * > it by construction (ADR-009 rule 3's corollary).
  *
  * A first cut of this shipped as a plain `assertsCardinality?: true` property,
  * which is exactly the rejected shape: `Condition` is exported from
@@ -45,7 +45,7 @@ const CARDINALITY_ASSERTERS = new WeakSet<object>()
  * prevent.
  *
  * Found by review, immediately after the identical hole was closed in
- * [plan 0081](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0081-a-condition-declares-discovery-ownership.md)'s
+ * [ts-archunit plan 0081](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0081-a-condition-declares-discovery-ownership.md)'s
  * symbol — while this one was being cited in that module's docstring as the safe
  * precedent. The lesson is worth more than the fix: **"module-private" describes
  * the binding, not the value.** A symbol keyed onto a public object is unlisted,

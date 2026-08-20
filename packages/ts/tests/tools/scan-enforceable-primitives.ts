@@ -3,7 +3,7 @@
  *
  * ## Why this file exists at all
  *
- * [Plan 0083](https://github.com/nielspeter/ts-archunit/blob/main/plans/0083-eat-our-own-dogfood.md) was filed claiming **166** enforceable
+ * [ts-archunit Plan 0083](https://github.com/nielspeter/ts-archunit/blob/main/plans/0083-eat-our-own-dogfood.md) was filed claiming **166** enforceable
  * primitives, "derived from source". A product review re-ran the stated method and got **185**.
  * A third run got **187**. A fourth reader — me, on 2026-08-04 — got **231** and quoted a coverage
  * figure of 13.0% from it. Four numbers, one sentence of method, **no committed script**. So it was
@@ -79,7 +79,7 @@
  * ## Reading the population
  *
  * `TSA_PRINT_PRIMITIVES=1 npx vitest run tests/tools/scan-enforceable-primitives.test.ts` prints the
- * list. A stated escape hatch (ADR-008 rule 3), not a silent one: it exists because Phase 2's input is
+ * list. A stated escape hatch (ADR-009 rule 3), not a silent one: it exists because Phase 2's input is
  * the list, and a list nobody can print is the same failure as a number nobody can reproduce.
  */
 import { Node, Project } from 'ts-morph'

@@ -173,7 +173,7 @@ describe('bypassFilters meta-findings (plan 0067)', () => {
 describe('which violations plan 0082 actually moved in the baseline', () => {
   // Plan 0082's Phase 2 row 1 called this "not optional and not a follow-up", and
   // then it did not ship — so the migration note went out unverified, and was
-  // WRONG for the rule it quoted. `docs/upgrading.md` said the hash is "over rule
+  // WRONG for the rule it quoted. ts-archunit's `docs/upgrading.md` said the hash is "over rule
   // + element + message"; `hashViolation` is `identity ?? \`${element}::${message}\``,
   // and a producer that sets `identity` supersedes both.
   //
@@ -181,7 +181,7 @@ describe('which violations plan 0082 actually moved in the baseline', () => {
   // the ones an adopter would most likely write about a callback — keep their
   // hashes, because their identity is the call site, not the function's name.
   // Telling those adopters to regenerate is advice that costs them work and fixes
-  // nothing. ADR-008 rule 2's behavioural corollary: nobody applied the remedy and
+  // nothing. ADR-009 rule 2's behavioural corollary: nobody applied the remedy and
   // checked it cleared.
   const before = (extra: Partial<ArchViolation>): ArchViolation =>
     mv({ element: '<anonymous>', message: "does not contain call to 'x'", ...extra })
@@ -300,7 +300,7 @@ describe('a metric whose unit changed cannot be compared against an old ceiling'
 
   it('is cleared by the remedy it names — regenerating stamps the unit', () => {
     // The finding says "regenerate". This proves that actually works, rather
-    // than asserting a remedy nobody ran (ADR-008 rule 2 — a remedy that does
+    // than asserting a remedy nobody ran (ADR-009 rule 2 — a remedy that does
     // not remediate is the failure this repo exists to catch).
     const violation = metricViolationAt(372, 'code-lines', 'lines')
     const stale = writeUnstampedBaseline(violation, 1218)

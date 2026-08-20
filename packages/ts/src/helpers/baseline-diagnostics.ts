@@ -58,7 +58,7 @@ function renamedRuleFor(ctx: BaselineFacts, violation: ArchViolation): string | 
   // baseline — the description is demonstrably unchanged — and only the
   // measurement moved, so `isKnown` is false while `hasEntry` is true. Without
   // this the ratchet's own working case reported "1 rule whose description
-  // changed", which is a false cause under ADR-008 rule 2.
+  // changed", which is a false cause under ADR-009 rule 2.
   if (ctx.hasEntry(violation)) return undefined
   return ctx.knownSubjects.get(hashSubject(violation, ctx.root))
 }
@@ -79,7 +79,7 @@ export function descriptionChangeFinding(
   if (changed.size === 0) return undefined
 
   const where = ctx.sourcePath ?? 'the baseline file'
-  // Identities, never a total (ADR-008 rule 4): name the rules, both spellings,
+  // Identities, never a total (ADR-009 rule 4): name the rules, both spellings,
   // so the reader can see WHAT changed rather than being told how many did.
   const pairs = [...changed.entries()]
     .map(([was, now]) => `\n  was: ${was}\n  now: ${now}`)
@@ -112,7 +112,7 @@ export function descriptionChangeFinding(
  * path, so the majority of existing baselines still match perfectly. Failing
  * those with "its entries match nothing" was both a false red and a false
  * statement — a derived value reported as a fact with nothing disagreeing
- * with it, which is the ADR-008 rule 5 mistake this bug was about.
+ * with it, which is the ADR-009 rule 5 mistake this bug was about.
  *
  * `matched === 0` is the independently-derived signal, and it covers every
  * cause at once: a v1 file, a root that resolved differently here than where
@@ -149,7 +149,7 @@ export function unmatchedBaselineFinding(
           // purpose: the command needs rule files unless a config supplies
           // them, and printed without them it fails with "No rule files
           // specified" — a remedy that
-          // cannot remediate (ADR-008 rule 2). Measured. The path is left as
+          // cannot remediate (ADR-009 rule 2). Measured. The path is left as
           // recorded rather than absolutized, so the line is copyable on a
           // machine other than the one that wrote the baseline.
           `Regenerate it: \`npx eess-ts baseline <your-rule-files> --output ${where}\` (rule files are implied if an eess-ts config lists them). Review the diff first — entries that vanish were never matching here.`,
@@ -177,9 +177,9 @@ function unmatchedCause(ctx: BaselineFacts): string {
   // This branch used to say "Same identity format, so the likely cause is that it
   // was generated against a different repository root". That is one cause among
   // several and the code has checked none of them —
-  // [bug 0060](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0060-a-pattern-change-silently-invalidates-every-baselined-finding.md),
+  // [ts-archunit bug 0060](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0060-a-pattern-change-silently-invalidates-every-baselined-finding.md),
   // where a shipped default pattern changed and a reader spent an hour on `root`
-  // before regenerating, which is the outcome `docs/upgrading.md` exists to prevent.
+  // before regenerating, which is the outcome ts-archunit's `docs/upgrading.md` exists to prevent.
   //
   // The rename detector above cannot cover it either: when a pattern changes, the
   // rule description AND the subject move together, so `hashSubject` misses and

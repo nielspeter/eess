@@ -104,7 +104,7 @@ describe('collectRule', () => {
 })
 
 /**
- * ADR-008 rule 2: every failure carries its sanctioned fix.
+ * ADR-009 rule 2: every failure carries its sanctioned fix.
  *
  * A preset is the one place a user cannot supply that themselves — they did not
  * write the rule. `collectRule` used to attach `{ id }` and nothing else, so

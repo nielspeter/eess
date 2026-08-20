@@ -50,7 +50,7 @@ export interface DiagnosableRule extends RuleBuilderLike {
    * PUBLIC because `DiagnosableRule` is structural: a protected member cannot
    * satisfy it, which is the recorded reason `assertsSomething()` is public.
    *
-   * The unit differs per family and each names its own (ADR-009 part 1), but
+   * The unit differs per family and each names its own (ADR-010 part 1), but
    * every family answers it from the SAME method its `collectViolations()` uses
    * — not a parallel derivation. A first attempt at this plan let the two
    * diverge and they disagreed within one commit.
@@ -80,7 +80,7 @@ export interface DiagnosableRule extends RuleBuilderLike {
    * Measured before this seam existed: `check()` said "a declaration is an
    * assertion, not a silencer" while `doctor` still said "the declaration is not
    * itself checked yet ... A later release makes this state fail at check time" —
-   * in the release that makes it fail, on the surface `docs/upgrading.md` tells
+   * in the release that makes it fail, on the surface ts-archunit's `docs/upgrading.md` tells
    * people to run first.
    */
   zeroSubjectsAdvice?: () => string
@@ -153,7 +153,7 @@ export interface DiagnosticFinding {
      * filters removing everything, including defaults the author never wrote.
      *
      * It lands in `diagnose()` rather than in `doctor` so that a rule file
-     * importing a test runner — which `doctor` cannot load, ADR-008 rule 1's
+     * importing a test runner — which `doctor` cannot load, ADR-009 rule 1's
      * corollary — still gets a preview: `expect(diagnose(rules)).toEqual([])`
      * runs inside the consumer's own suite.
      */
@@ -170,7 +170,7 @@ export interface DiagnosticFinding {
     | 'inert'
     /**
      * An inline `// eess-exclude` comment naming a rule id no rule
-     * declares, so it suppresses nothing — [bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
+     * declares, so it suppresses nothing — [ts-archunit bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
      *
      * Produced by `orphanExclusions()`, never by `diagnose()`: it needs every
      * rule at once, and `diagnose()` is called per rule file.
@@ -244,7 +244,7 @@ export interface DiagnosticFinding {
  * flips anything — which is the one job R2a has.
  *
  * Reports **identities, never totals**: which glob, in which rule, at which
- * position. A count is a snapshot, and under ADR-008 rule 4 a snapshot is the
+ * position. A count is a snapshot, and under ADR-009 rule 4 a snapshot is the
  * thing that rots. Callers who want a number can take `.length`.
  */
 export function diagnose(
@@ -372,7 +372,7 @@ export function diagnose(
     // wrong one.
     //
     // Once per PROJECT, not per rule and not per glob: the identity of this
-    // fault is the tsconfig, so that is what ADR-008 rule 4 asks be named.
+    // fault is the tsconfig, so that is what ADR-009 rule 4 asks be named.
     // Deduped by path rather than by object because the path is what the
     // message prints, and printing one sentence twice is the thing being
     // fixed.
@@ -473,7 +473,7 @@ function zeroSubjectsFinding(rule: DiagnosableRule, name: string): DiagnosticFin
   if (rule.examinedUnits === undefined) return undefined
   if (rule.examinedUnits() !== 0) return undefined
   // The author said empty is the point. Reporting anyway would make the advice
-  // below a remedy the reader has already applied — ADR-008 rule 2's loop — and
+  // below a remedy the reader has already applied — ADR-009 rule 2's loop — and
   // would over-report against 0098's floor, which honours the same mint. That
   // the mint exists at all is why 0097 shipped first; this is its first reader.
   if (rule.declaresEmpty?.() === true) return undefined
@@ -488,7 +488,7 @@ function zeroSubjectsFinding(rule: DiagnosableRule, name: string): DiagnosticFin
     // ONE cause, because precedence has already removed the others: this fires
     // only when no dead glob, missing assertion or empty project explained the
     // emptiness first. So the remedy can name that cause without the hedging
-    // ADR-008 rule 2 forbids — and it must not say "your filters", because the
+    // ADR-009 rule 2 forbids — and it must not say "your filters", because the
     // commonest trigger is a default the author never wrote (`minLines` is 5).
     // VERBATIM from the rule when it can speak, so this preview and the gate
     // cannot drift. The fallback is for a foreign dialect that predates the seam;

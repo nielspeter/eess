@@ -32,7 +32,7 @@ const p = loadProject()
  * `condition` and `exclusion` positions are never faults.
  *
  * **`discovery` did NOT already fail, and this docstring claimed it did.** That
- * was the false premise [plan 0080](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0080-admit-discovery-globs-to-the-dead-glob-gate.md)
+ * was the false premise [ts-archunit plan 0080](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0080-admit-discovery-globs-to-the-dead-glob-gate.md)
  * was filed to correct: `diagnose()` treated discovery as a fault and this gate
  * did not, so `doctor` reported a dead layer glob and the build stayed green. The
  * sentence survived the fix, in the one place a reader checks the premise. Both
@@ -58,7 +58,7 @@ describe('a dead selector fails at check time (plan 0074, R3b)', () => {
   })
 
   it('is a configuration finding, so no escape hatch downgrades it', () => {
-    // ADR-008 rule 1. `bypassFilters` is what makes severity, `.excluding()`,
+    // ADR-009 rule 1. `bypassFilters` is what makes severity, `.excluding()`,
     // the baseline and diff-aware mode all refuse it. Asserting the flag rather
     // than each mechanism, because the flag is what every mechanism reads.
     const rule = modules(p)

@@ -1,6 +1,6 @@
 /**
  * A pruned directory is pruned whether it is a real directory or a symlink —
- * [bug 0045](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md).
+ * [ts-archunit bug 0045](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md).
  *
  * `Dirent.isDirectory()` is **false** for a symlink under `withFileTypes`, which
  * `disk-set.ts` relies on to make symlink loops impossible. The cost was that a

@@ -7,7 +7,7 @@ import type { LayerPair, Layer } from '../models/cross-layer.js'
  * What a pair condition is given, beyond an ordinary condition's context.
  *
  * `layers` is the builder's **own resolved** layers —
- * [bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md).
+ * [ts-archunit bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md).
  * Before this, `haveMatchingCounterpart` took a `Layer[]` argument that **no
  * public API could produce**: `PairFinalBuilder.layers` is private at every
  * stage and `resolveLayer` is unexported, so every caller hand-built the array

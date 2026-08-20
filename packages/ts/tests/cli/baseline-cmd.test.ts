@@ -128,7 +128,7 @@ describe('runBaseline', () => {
      * refused.length` — beside the one `generateBaseline` already computes. Two
      * derivations of one number in two files drift, so the CLI now prints only
      * the delta's. This is the differently-derived check that replaces it
-     * (ADR-008 rule 5): the count is read back out of the written file, not out
+     * (ADR-009 rule 5): the count is read back out of the written file, not out
      * of the value that produced the sentence.
      */
     it('prints a count that matches the entries actually written', async () => {

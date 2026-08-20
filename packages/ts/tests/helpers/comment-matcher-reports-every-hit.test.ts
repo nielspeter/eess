@@ -79,7 +79,7 @@ describe('the comment matcher reports every hit, once, at the right line (bug 00
   })
 
   it('the remedy remediates — deleting every reported line clears the rule', () => {
-    // ADR-008 rule 2, asked of this fix's own output. An agent told "remove the
+    // ADR-009 rule 2, asked of this fix's own output. An agent told "remove the
     // directive at line N" removes it, re-runs, and must not find a new one
     // that was there all along. This is the assertion that catches an
     // under-report without knowing what the right count is.

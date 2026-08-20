@@ -1,6 +1,6 @@
 /**
  * A `workspace()` judges each package by **its own** tsconfig —
- * [bug 0058](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0058-workspace-applies-one-packages-compiler-flag-to-all.md).
+ * [ts-archunit bug 0058](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0058-workspace-applies-one-packages-compiler-flag-to-all.md).
  *
  * `workspace()` builds ONE ts-morph `Project` from the alphabetically-first tsconfig and
  * then only *adds files* from the rest. So before this fix,

@@ -64,7 +64,7 @@ describe('bug 0014 — bare package specifiers', () => {
       )
       expect(violations).toHaveLength(1)
       // The message names what the user wrote, not the @types path they have
-      // never seen. ADR-008 rule 2: the finding has to be actionable.
+      // never seen. ADR-009 rule 2: the finding has to be actionable.
       expect(violations[0]?.message).toContain('"picomatch"')
       expect(violations[0]?.message).not.toContain('node_modules')
     })

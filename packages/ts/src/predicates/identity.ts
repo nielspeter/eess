@@ -144,7 +144,7 @@ export function resideInFolder<T extends Located>(glob: string): Predicate<T> {
  * like `importFrom`/`notImportFrom` must be variadic, and it carved out
  * identity predicates by name in a comment. Moving the function makes that
  * carve-out the rule's own scope instead of a comment beside it — exclusion by
- * construction (ADR-008 rule 3). No public API change: `src/index.ts`
+ * construction (ADR-009 rule 3). No public API change: `src/index.ts`
  * re-exports it under the same name, and there is no `./predicates` subpath.
  *
  * @example

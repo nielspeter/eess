@@ -72,7 +72,7 @@ describe('pathUniverse', () => {
 
   it('every project file s parent is in the folder view', () => {
     // The property, rather than a pinned count: a pinned 430/81 is the
-    // snapshot ADR-008 rule 4 bars.
+    // snapshot ADR-009 rule 4 bars.
     const parents = new Set(universe.parentDirs)
     for (const file of universe.filePaths) {
       expect(parents.has(file.substring(0, file.lastIndexOf('/')))).toBe(true)

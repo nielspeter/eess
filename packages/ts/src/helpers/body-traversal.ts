@@ -240,7 +240,7 @@ function triviaRoot(node: Node): Node {
 export function searchFunctionBody(fn: ArchFunction, matcher: ExpressionMatcher): MatchResult {
   // A TRIVIA matcher searches from the DECLARATION; everything else from the body.
   //
-  // [Bug 0052](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0052-nostubcomments-cannot-see-a-functions-own-docstring.md):
+  // [ts-archunit Bug 0052](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0052-nostubcomments-cannot-see-a-functions-own-docstring.md):
   // a function's own leading comment attaches to the declaration, not to anything
   // inside the body — so `noStubComments()` saw a `TODO` inside a body and trailing
   // a function, and missed both `// TODO` and `/** TODO */` **above** it, which are

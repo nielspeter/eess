@@ -584,7 +584,7 @@ export function formatBaselineDelta(delta: BaselineDelta): string {
   // violation whose fields contain no path (see HASH_VERSION), so a v1 baseline
   // usually keeps matching entirely — and a message asserting "none of its
   // identities could be compared" beside `(+0, −0)` would be plainly false. The
-  // overlap is the differently-derived value (ADR-008 rule 5); the version is
+  // overlap is the differently-derived value (ADR-009 rule 5); the version is
   // offered as a likely cause only once the measurement has established there
   // is something to explain.
   if (delta.before > 0 && delta.added === delta.after && delta.removed === delta.before) {
@@ -743,7 +743,7 @@ export class Baseline {
     // change means a stored SUBJECT matched — and subjects are scrubbed with the
     // same root as hashes — so the root is demonstrably resolving consistently
     // and the root explanation is false. Reporting both would put two
-    // contradictory causes in one run, which is the ADR-008 rule 2 defect the
+    // contradictory causes in one run, which is the ADR-009 rule 2 defect the
     // withdrawn HASH_VERSION bump already committed once in this area.
     const facts = this.facts()
     const descriptionChange = descriptionChangeFinding(facts, violations)
@@ -817,7 +817,7 @@ export class Baseline {
 
     const where = this.sourcePath ?? 'the baseline file'
     const total = [...stale.values()].reduce((n, xs) => n + xs.length, 0)
-    // Identities, never a bare total (ADR-008 rule 4).
+    // Identities, never a bare total (ADR-009 rule 4).
     const detail = [...stale.entries()]
       .map(([units, names]) => `\n  ${units}:${names.map((n) => `\n    ${n}`).join('')}`)
       .join('')

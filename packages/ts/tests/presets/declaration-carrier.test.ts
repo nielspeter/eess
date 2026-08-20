@@ -8,7 +8,7 @@
  * (agent-guardrails), and through an inline loop (recommended). A carrier wired
  * into one of them and asserted through one preset would look complete and cover
  * a third of the surface — which is
- * [ADR-009](../../../../adr/010-a-pass-is-constructed-from-evidence.md)'s Context
+ * [ADR-010](../../../../adr/010-a-pass-is-constructed-from-evidence.md)'s Context
  * table exactly: a mechanism that covers the families someone remembered.
  *
  * So the rows below are organised by **construction path**, not by preset, and
@@ -64,7 +64,7 @@ const configFindings = (rules: RuleBuilderLike[]): ArchViolation[] =>
  * Counts cannot tell "the carrier reached the RIGHT rule" from "it reached *a*
  * rule". Measured: rotating the carrier's key by one, so declaring `no-eval`
  * declares the next rule instead, preserves every count in this file and passed
- * 871/871. ADR-008 rule 5 — compare identities, not integers.
+ * 871/871. ADR-009 rule 5 — compare identities, not integers.
  */
 const ids = (rules: RuleBuilderLike[]): string[] =>
   configFindings(rules)

@@ -159,7 +159,7 @@ describe('runDoctor reports orphan exclusion comments (bug 0044)', () => {
 describe('runDoctor', () => {
   it('exits non-zero when it reports anything', async () => {
     // Not a build gate — but an agent reads `exit 0` as "nothing to do"
-    // (ADR-008 rule 1), so a diagnostic that reports problems and exits 0 is
+    // (ADR-009 rule 1), so a diagnostic that reports problems and exits 0 is
     // one nobody acts on.
     const file = writeRuleFile(
       'dead.rules.ts',
@@ -204,7 +204,7 @@ describe('runDoctor', () => {
   })
 
   it('reports identities, never a total', async () => {
-    // A count is the snapshot ADR-008 rule 4 bars, and it is the number people
+    // A count is the snapshot ADR-009 rule 4 bars, and it is the number people
     // ratchet against instead of fixing the findings.
     const file = writeRuleFile(
       'two.rules.ts',
@@ -366,7 +366,7 @@ describe('files that cannot be loaded (plan 0070, 0.22.0)', () => {
      * failed to load — and `doctor.ts` says why that matters: swallowing it
      * "turned a visible crash into `exit 0` plus a clean bill of health". A rule
      * file that does not load is zero coverage reported as success, which is the
-     * ADR-008 rule 1 failure this whole command exists to surface.
+     * ADR-009 rule 1 failure this whole command exists to surface.
      *
      * Asserted as a CONTRAST, not as a claim about `doctor` alone: the same
      * broken file yields a finding from `doctor` and is unreachable for

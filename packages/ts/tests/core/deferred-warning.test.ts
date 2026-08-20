@@ -3,13 +3,13 @@
  *
  * Two kinds of warning, one method. `.asSeverity('warn')` alone is ADVISORY:
  * permanent, unchanged from every release before this plan, for a finding
- * ADR-008 rule 1 says the reader must judge. `.asSeverity('warn', { accepted })`
+ * ADR-009 rule 1 says the reader must judge. `.asSeverity('warn', { accepted })`
  * is DEFERRED: debt, with a ceiling — a violation whose `subjectOf()` is not in
  * `accepted` escalates to `error`.
  *
  * The mechanism is deliberately identity-based, not a bare count. A bare `≤ N`
  * ceiling is exactly the anti-pattern `tests/archunit/dogfood.test.ts` already
- * argues against for a different reason (ADR-008 rule 5: "a ceiling reads as
+ * argues against for a different reason (ADR-009 rule 5: "a ceiling reads as
  * coverage while a real regression can still hide under it") — a finding could
  * disappear while a different, genuinely new one appears, leaving the count
  * unchanged and the ceiling untripped. The swap test below is the point of the

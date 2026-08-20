@@ -15,7 +15,7 @@
  * equals `aardvark,zebra` passed **16/16 with `localeCompare` reinstated**. Running the whole
  * suite under `LC_ALL=da_DK.UTF-8` also passed — 3177/3177 — because the fixtures that would
  * separate the two do not exist. A guard written for this defect, that cannot detect this
- * defect, is exactly what ADR-008 rule 5 is about.
+ * defect, is exactly what ADR-009 rule 5 is about.
  *
  * The pair that separates them needs no unusual characters: Danish collates `aa` as `å`, after
  * `z`, so `['zebra','aardvark']` sorts to `zebra,aardvark` under `da-DK` and `aardvark,zebra`

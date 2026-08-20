@@ -6,9 +6,9 @@
  *
  * v0.56.0 gave names-less edges a source-order `ordinal` so that two lazy imports of one
  * module from one file stop sharing a baseline entry (bug 0028's shape, reached through
- * [bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)).
+ * [ts-archunit bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)).
  * The first form of that fix emitted `#${ordinal}` whenever `names` was empty, and shipped
- * with a promise — in the CHANGELOG, in `docs/upgrading.md`, and in two source comments —
+ * with a promise — in the CHANGELOG, in ts-archunit's `docs/upgrading.md`, and in two source comments —
  * that `import` and `reexport` entries did not move.
  *
  * **The promise was false, and the suite could not see it.** `names` is empty for the KIND
@@ -25,7 +25,7 @@
  *
  * The expected strings below are **captured from `main`**, i.e. from the pre-ordinal formula
  * `[...names].sort().join(',')`, not computed from `edgeDiscriminator` — the differently
- * derived value ADR-008 rule 5 asks for. A change to the discriminator's shape fails these
+ * derived value ADR-009 rule 5 asks for. A change to the discriminator's shape fails these
  * rows by disagreeing with what a v0.55.3 baseline actually contains, which is the only
  * question an adopter cares about. Asserting `edgeDiscriminator(edge)` against itself would
  * pass for any implementation, including the broken one.

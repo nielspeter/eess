@@ -37,7 +37,7 @@ export interface RuleMetadata {
    * for a third-party preset that never extended `PresetBaseOptions`, and for a
    * preset that forwards `overrides` but not `expectEmpty`. A prefix is a naming
    * convention, not a capability, and the remedy has to name a call the reader
-   * can actually make ([ADR-008](../../../adr/009-agent-first-failure-surfaces.md)
+   * can actually make ([ADR-009](../../../adr/009-agent-first-failure-surfaces.md)
    * rule 2).
    */
   declarationSpelling?: string

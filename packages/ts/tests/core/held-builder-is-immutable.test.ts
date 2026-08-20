@@ -123,7 +123,7 @@ describe('a held builder is immutable — behavioural', () => {
     // So the elements are the only thing that distinguishes them; a count
     // assertion is 1 === 1 either way. The earlier version of this test
     // compared `held.should().beFreeOfCycles()` to its own previous count,
-    // which is ADR-008 rule 5's anti-pattern: a derivation agreeing with
+    // which is ADR-009 rule 5's anti-pattern: a derivation agreeing with
     // itself. It also claimed the fixture was acyclic, which it is not.
     const cycles = ['feature-a -> feature-b', 'feature-b -> feature-a']
     const order = ['leaky-controller.ts']

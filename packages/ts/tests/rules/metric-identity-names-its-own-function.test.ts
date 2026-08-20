@@ -241,8 +241,8 @@ describe('a function metric identifies the function its message names (bug 0068)
 })
 
 /**
- * The claim `docs/upgrading.md` makes about this release, tested behaviourally
- * rather than by reading the message — ADR-008 rule 2's corollary: apply the
+ * The claim ts-archunit's `docs/upgrading.md` makes about this release, tested behaviourally
+ * rather than by reading the message — ADR-009 rule 2's corollary: apply the
  * stated remedy and assert the finding clears.
  *
  * Bug 0068's own "Not measured" section named this and it was still not measured

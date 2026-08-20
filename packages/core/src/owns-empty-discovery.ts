@@ -1,7 +1,7 @@
 /**
  * A condition that diagnoses its own empty discovery population.
  *
- * [Plan 0081](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0081-a-condition-declares-discovery-ownership.md). The
+ * [ts-archunit Plan 0081](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0081-a-condition-declares-discovery-ownership.md). The
  * dead-glob gate can see that a `.layer()` or `.inFolder()` glob matched nothing,
  * but it short-circuits **before** the condition runs, so where a condition
  * produces a better finding — one that names the dead layer, with a remedy
@@ -18,7 +18,7 @@
  * all. The coarse declaration suppressed the gate for exactly the case its
  * declared owner did not handle, and the result was silence where the truth was
  * one dead glob
- * ([bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)).
+ * ([ts-archunit bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)).
  *
  * v0.45.1 fixed the condition, so the blanket claim became true again. It would
  * have gone false again the moment a fourth condition reached that builder,

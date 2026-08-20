@@ -1,7 +1,7 @@
 /**
  * The library's single stderr channel.
  *
- * [Bug 0024](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0024-warn-terminal-is-invisible-inside-a-test-runner.md):
+ * [ts-archunit Bug 0024](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0024-warn-terminal-is-invisible-inside-a-test-runner.md):
  * every library-originated message went through `console.warn`, and vitest's
  * default reporter **intercepts** console output and replays it only for
  * **failing** tests. `.warn()` never fails a test, so its output was always
@@ -13,7 +13,7 @@
  * unused-exclusion warning, the exclusion-comment parse warnings, the
  * invalid-baseline warning, the diff-aware fallback warning and `expression()`'s
  * escape-hatch warning were all invisible in a passing test — five files' worth.
- * A finding nobody reads has not been reported (ADR-008 rule 1).
+ * A finding nobody reads has not been reported (ADR-009 rule 1).
  *
  * **The EPIPE guard is not optional, and it is why this is a function rather
  * than a bare write.** Node's `Console` is constructed with `ignoreErrors: true`

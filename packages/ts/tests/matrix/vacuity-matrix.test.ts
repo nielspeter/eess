@@ -154,7 +154,7 @@ function verdictOf(entryKey: string, ctx: Ctx, terminal: 'check' | 'warn'): Verd
  * which loaded nothing — the population plan 0098 exists to empty.
  *
  * The list may only SHRINK: `AUDIT_2026_08` is the dated measurement it is bounded by, so a new
- * fail-open cannot be admitted by editing one line. ADR-008 rule 3's corollary — a marker an
+ * fail-open cannot be admitted by editing one line. ADR-009 rule 3's corollary — a marker an
  * agent can stamp to go green is worse than no marker.
  */
 const AUDIT_2026_08: Readonly<Record<string, Verdict>> = {
@@ -174,7 +174,7 @@ const AUDIT_2026_08: Readonly<Record<string, Verdict>> = {
  * configuration finding at both `check()` and `.warn()`. That is bug 0066 closed,
  * measured by an instrument written before the fix and untouched by it.
  *
- * `dataLayerIsolation` is gone too — [plan 0100](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0100-a-preset-that-constructs-nothing.md)
+ * `dataLayerIsolation` is gone too — [ts-archunit plan 0100](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0100-a-preset-that-constructs-nothing.md)
  * manufactures a finding at construction time when neither `baseClass` nor
  * `requireTypedErrors` was ever set, so `dataLayerIsolation({ repositories })`
  * now reports `'config-finding'` here instead of `'no-checks'`. The vacuity
@@ -194,7 +194,7 @@ const EXPIRES_AT_VERSION = '0.62.0'
  * CONTROL call the SAME function.
  *
  * They did not: each declared its own copy with the same body, so reverting the
- * gate to the lexicographic form left the control passing. ADR-008 rule 5's
+ * gate to the lexicographic form left the control passing. ADR-009 rule 5's
  * question answered "pass", in the file whose purpose is finding checks that
  * cannot fail, in the commit repairing that file's expiry gate — the same shape
  * fixed one level up (counting only `'fail-open'`) and reintroduced one down.
@@ -364,7 +364,7 @@ describe('the vacuity matrix (plan 0095)', () => {
   })
 
   /**
-   * The matrix's own vacuity guards. Ask ADR-008 rule 5's question of the probe itself: if it
+   * The matrix's own vacuity guards. Ask ADR-009 rule 5's question of the probe itself: if it
    * classified everything as one verdict, what would fail? Without these, nothing — the cells
    * would agree with whatever the list said. Three, not two: two fakes covering `fail-open` and
    * `other-throw` are both satisfied by a probe that never returns `config-finding`, which is

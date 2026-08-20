@@ -1,6 +1,6 @@
 /**
  * The slice graph and `export … from` —
- * [plan 0085](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0085-the-slice-graph-cannot-see-a-re-export.md).
+ * [ts-archunit plan 0085](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0085-the-slice-graph-cannot-see-a-re-export.md).
  *
  * `collectEdgesFromFile` read `getImportDeclarations()` and nothing else, so a
  * **value** re-export — a real runtime dependency, emitted as an import — was not an
@@ -125,7 +125,7 @@ describe('which edge KINDS the slice graph counts (plan 0085)', () => {
   // Four kinds are decided in `EAGER_STATIC_KINDS`, and sabotage found each decision
   // was argued only in a docstring: adding `dynamic` or `type-expression` to that set
   // left all 3025 tests green. A decision nothing disagrees with is not guarded
-  // (ADR-008 rule 5), and "it says so in a comment" is not disagreement.
+  // (ADR-009 rule 5), and "it says so in a comment" is not disagreement.
 
   it('a DYNAMIC import is not an edge, even with ignoreTypeImports off', () => {
     // `import('./a.js')` is lazy: it cannot deadlock module initialization, and it is
@@ -535,7 +535,7 @@ describe('ON DISK: our own barrel, through a real tsconfig (plan 0085)', () => {
     // `notDependOn` reports one violation PER SITE, not per edge — pre-existing
     // behaviour, and each site is separately actionable, so it is the right shape.
     // The volume simply grows now that re-export sites count: this barrel produces
-    // dozens. So assert IDENTITIES (ADR-008 rule 4) and never the total, which would
+    // dozens. So assert IDENTITIES (ADR-009 rule 4) and never the total, which would
     // change every time someone adds an export to the barrel.
     // All three, including one that has nothing to do with re-exports: `notDependOn`
     // is a rule over EVERY slice, not only the interesting one, so `helpers → core`

@@ -15,7 +15,7 @@
  * `only*` family **zero edges is maximal compliance**: `tarjan.ts` is a
  * dependency-free algorithm and the ideal innermost-layer citizen, and every
  * available remedy — add an import, exclude the rule, narrow the selector,
- * delete the rule — makes something worse. ADR-008 rule 1 puts a finding the
+ * delete the rule — makes something worse. ADR-009 rule 1 puts a finding the
  * reader must judge on the reporting surface, not in the exit code.
  *
  * So the thing to guard is that the disclosure **discriminates**: it must name
@@ -285,7 +285,7 @@ describe('two runs of one rule description', () => {
 
 describe('the notice a reader actually sees', () => {
   it('names the rules rather than counting them', () => {
-    // ADR-008 rule 4. "3 rules tested nothing" sends the reader to grep, and
+    // ADR-009 rule 4. "3 rules tested nothing" sends the reader to grep, and
     // the point is that only they can judge whether it is correct here.
     const rule = modules(layered())
       .that()
@@ -326,7 +326,7 @@ describe('the notice a reader actually sees', () => {
       ? parsed.untestedAllowlists
       : []
     // Named, not counted — `toHaveLength(1)` passed with the rule field replaced
-    // by a constant, which is the identity an agent needs (ADR-008 rule 5).
+    // by a constant, which is the identity an agent needs (ADR-009 rule 5).
     // Fields read individually rather than through `expect.stringContaining`,
     // which is typed `any` and which ADR-005 bars from flowing into an
     // assertion.

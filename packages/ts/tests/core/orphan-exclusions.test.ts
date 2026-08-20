@@ -1,6 +1,6 @@
 /**
  * An exclusion comment naming a rule nobody declares is reported —
- * [bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
+ * [ts-archunit bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
  *
  * `.excluding()` warns when a pattern matches nothing. An inline comment cannot
  * get that on the enforcement path: comments are read only in files that already
@@ -83,7 +83,7 @@ describe('orphan exclusion comments are reported (bug 0044)', () => {
 
   it('when NO rule declares an id, reports ONE aggregate finding — not silence', () => {
     // This test asserted silence, and review was right that silence is the
-    // ADR-008 rule 1 failure: without any declared id, **every** inline exclusion
+    // ADR-009 rule 1 failure: without any declared id, **every** inline exclusion
     // in the project genuinely is inert (`isExcludedByComment` bails without a
     // `ruleId`, and the scan is gated on `ctx.metadata?.id`). So those are all
     // real orphans and the diagnostic said nothing about any of them.

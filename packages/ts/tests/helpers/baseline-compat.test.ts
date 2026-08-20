@@ -149,7 +149,7 @@ describe('a v1 baseline that still matches must not be failed (review C1)', () =
     expect(meta[0]?.message).not.toContain('identity format v2 and this version reads')
     // And the remedy it prints must be runnable. It named `baseline --output X`
     // with no rule files, which exits 1 with "No rule files specified" — a
-    // remedy that cannot remediate (ADR-008 rule 2), measured.
+    // remedy that cannot remediate (ADR-009 rule 2), measured.
     expect(meta[0]?.suggestion).toContain('Regenerate')
     expect(meta[0]?.suggestion).toContain('<your-rule-files>')
   })

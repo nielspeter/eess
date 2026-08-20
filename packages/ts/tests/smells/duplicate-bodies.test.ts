@@ -336,7 +336,7 @@ describe('smells.duplicateBodies()', () => {
     })
 
     it('fast rejection actually rejects computeSimilarity — verified, not assumed', () => {
-      // ADR-008 rule 5: spying on an internal, same-package collaborator is
+      // ADR-009 rule 5: spying on an internal, same-package collaborator is
       // unprecedented in this codebase, so the mechanism is specified exactly
       // (namespace import + vi.spyOn on the namespace property) rather than
       // hedged, and its correctness is asserted directly rather than inferred

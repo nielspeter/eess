@@ -90,7 +90,7 @@ const RELATIVE_ALLOWED = new Set([
  * APIs whose glob is matched against a resolved module path **or a bare specifier**.
  *
  * Exempt entirely: `notImportFrom('fastify')` is correct and unanchored, which is
- * what [bug 0014](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0014-bare-package-import-globs-match-nothing.md)
+ * what [ts-archunit bug 0014](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0014-bare-package-import-globs-match-nothing.md)
  * was fixed to support. 31 such args in the docs.
  */
 const IMPORT_TARGET = new Set([
@@ -184,11 +184,35 @@ describe('globs in documented examples', () => {
     expect(unanchored).toEqual([])
   })
 
-  it('uses no `./` segment in a glob matched against an absolute path', () => {
-    const dotted = found.anchoringRequired
+  it('uses no `./` segment in ANY documented glob', () => {
+    // **Over every bucket, not just `anchoringRequired`.** `ANCHORING_REQUIRED` is
+    // empty by construction, so filtering it made this row — and the anchoring row
+    // above — unable to fail on any input. Measured: appending
+    // `resideInFolder('./src/domain/**')` to a doc page left all five rows green,
+    // while that glob selects 0 modules against the `modules` fixture where the
+    // anchored spelling selects 4.
+    //
+    // A `./` segment is dead for EVERY base, which is not a guess — it is what
+    // `core/glob-diagnosis.ts` states and why `syntacticFault` returns
+    // `'dot-segment'` before it considers anchoring: "a './' anywhere — not just
+    // leading — makes the glob unmatchable ... True for every base." So the
+    // relative-by-design exemption does not extend to it, and neither does the
+    // bare-specifier one.
+    const dotted = [...found.anchoringRequired, ...found.relativeAllowed, ...found.importTarget]
       .filter((g) => hasDotSegment(g.glob))
       .map((g) => `${g.file}: ${g.api}('${g.glob}')`)
     expect(dotted).toEqual([])
+  })
+
+  it('DECLARED EMPTY: no API currently requires anchoring, and that is asserted', () => {
+    // The two rows above filter `anchoringRequired`. An empty registry is honest
+    // only when it is DECLARED — the `.expectEmpty()` shape from ADR-010 part 3 —
+    // otherwise "no findings" and "no possible findings" are indistinguishable.
+    //
+    // The day an absolute-path-matched API is added to the set, the anchoring row
+    // wakes up and this row fails, telling you to delete it. That is the expiry
+    // property: the declaration is only allowed to hold while it is true.
+    expect(ANCHORING_REQUIRED.size).toBe(0)
   })
 
   it('leaves the relative-by-design and bare-specifier APIs alone', () => {
@@ -200,7 +224,7 @@ describe('globs in documented examples', () => {
     // path predicates into this set, taking it past 130. Re-pinning the new
     // number would buy a test that reds on the next doc edit and says nothing;
     // what this assertion is for is that the exemption is **exercised**, so
-    // that is what it now asserts. The `toBe` was the snapshot ADR-008 rule 4
+    // that is what it now asserts. The `toBe` was the snapshot ADR-009 rule 4
     // warns about, and it took a behaviour change to notice.
     expect(found.relativeAllowed.length).toBeGreaterThan(20)
     // At least some are genuinely unanchored — an exemption nothing exercises
@@ -210,9 +234,12 @@ describe('globs in documented examples', () => {
     // Import-target APIs. A FLOOR on the population, for the reason the sibling
     // assertion above gives: this arrived from `ts-archunit` as `toBe(31)`, a
     // snapshot of THAT corpus, and eess's docs hold 29. Re-pinning 29 buys a row
-    // that reds on the next doc edit and says nothing — the ADR-008 rule 4
+    // that reds on the next doc edit and says nothing — the ADR-009 rule 4
     // snapshot trap, twice in one test.
-    expect(found.importTarget.length).toBeGreaterThan(20)
+    // 29 today. The floor sits just under it rather than 9 below: a 20 would let
+    // eight documented examples vanish unnoticed, which is the gap a floor is
+    // supposed to close. Re-pinning 29 exactly is the snapshot trap named above.
+    expect(found.importTarget.length).toBeGreaterThan(25)
 
     // **The exemption is EXERCISED here, and that is the corrected fact.**
     // `ts-archunit`'s version asserted zero unanchored args, with a comment saying

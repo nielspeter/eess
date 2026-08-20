@@ -343,14 +343,14 @@ export class InconsistentSiblingsBuilder extends SmellBuilder {
       suggestion: advice,
       because: this._reason,
       // Adequacy finding: the rule enforces nothing, which is not a severity the
-      // author grades (ADR-008 rule 1). Config-level: no file to attribute, so it
+      // author grades (ADR-009 rule 1). Config-level: no file to attribute, so it
       // must survive diff/baseline or the guard re-greens under standard CI.
       bypassFilters: true,
       // No `identity` set, deliberately, NOT an oversight (review: architect
       // flagged the gap; this is why it stays a gap): `bypassFilters: true`
       // means baseline/diff never read one today, so setting one buys nothing
       // yet — and `message` embeds the population count ("examined N... only
-      // M of them"), which ADR-008 rule 4 forbids putting in an identity (a
+      // M of them"), which ADR-009 rule 4 forbids putting in an identity (a
       // count rots). If `bypassFilters` is ever relaxed for this family, an
       // `identity` has to be added HERE, population-free, before that ships —
       // this comment is the tripwire for that future change, not a promise

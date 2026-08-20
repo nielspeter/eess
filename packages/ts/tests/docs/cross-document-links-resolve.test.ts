@@ -1,6 +1,6 @@
 /**
  * Every relative link between our Markdown documents points at something that
- * exists — [bug 0046](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0046-cross-document-links-rot-silently.md).
+ * exists — [ts-archunit bug 0046](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0046-cross-document-links-rot-silently.md).
  *
  * The `adr/`, `bugs/` and `plans/` corpus is how this project carries decisions
  * forward: almost every code comment of consequence cites one, and the bug
@@ -39,10 +39,18 @@ import { packageRoot, repoRoot } from '../roots.js'
  *
  * **`check:corpus` also checks these**, over a larger denominator (673 internal
  * links across 120 documents). That overlap is deliberate rather than sloppy: the
- * two derive the link set differently, and ADR-008 review rule 5 is the reason a
- * second, independent derivation of the same fact is worth keeping. What this file
- * has that `check:corpus` does not is the `src/`-comment direction below, which no
- * gate covers.
+ * two derive the link set differently, and ADR-009 rule 5 is the reason a second,
+ * independent derivation of the same fact is worth keeping.
+ *
+ * **The stronger argument, though, is unique coverage:** this is the only thing in
+ * the repo that reads `.md` links out of SOURCE comments. `check:corpus`'s roots are
+ * `work/**`, `adr/**` and `docs/**` — no gate reads `packages/*\/src`. It covers only
+ * `eess-ts`, which is a placement problem, not a reason to drop it.
+ *
+ * (That citation read `ADR-008 review rule 5` until this branch. eess's ADR-008 is
+ * `caller-owns-reporting` and has no numbered rules at all; the independence rule is
+ * ADR-009 rule 5. The comment defending independent derivation was itself an instance
+ * of the wrong-ADR-number defect it now guards against.)
  */
 const DOC_DIRS = ['adr', 'work/bugs', 'work/plans', 'work/proposals']
 
@@ -165,7 +173,18 @@ function sourceFiles(): string[] {
     for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
       const full = path.join(d, entry.name)
       if (entry.isDirectory()) {
-        if (entry.name !== 'node_modules' && entry.name !== 'dist') walk(full)
+        // Dot-directories are skipped, and that is a CORRECTNESS fix, not tidiness.
+        // `scan-cardinality-assertions.test.ts` writes real `.ts` files into
+        // `tests/tools/.scan-probe/` and deletes them in a `finally`; vitest runs the
+        // two files in parallel workers, so this walk could collect a probe file and
+        // then read it after it was gone — `ENOENT … .scan-probe/a.test.ts`. Observed
+        // in `npm run validate` while `npm test` passed, which is the worst shape: an
+        // intermittently red chain teaches re-running instead of reading.
+        //
+        // NOT a try/catch around the read. That would turn a race into a silently
+        // smaller denominator, which is this file's own failure mode.
+        const skip = entry.name === 'node_modules' || entry.name === 'dist'
+        if (!skip && !entry.name.startsWith('.')) walk(full)
       } else if (entry.name.endsWith('.ts')) {
         out.push(full)
       }
@@ -223,7 +242,7 @@ describe('cross-document links resolve (bug 0046)', () => {
       .filter((l) => !resolvesAsPath(l.file, l.target))
       .map((l) => `${l.from} -> ${l.target}`)
 
-    // Identities, not a count (ADR-008 rule 4): the message names every dead
+    // Identities, not a count (ADR-009 rule 4): the message names every dead
     // link, so the failure is the work list.
     expect(broken, `broken links:\n  ${broken.join('\n  ')}`).toEqual([])
   })

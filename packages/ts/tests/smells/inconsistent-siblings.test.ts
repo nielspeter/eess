@@ -249,7 +249,7 @@ describe('smells.inconsistentSiblings()', () => {
       expect(builder.violations().map((v) => v.element)).toContain('a5-odd.ts')
     })
 
-    it('ADR-008 rule 2: "choose a shared pattern" remediates — verified, not just stated', () => {
+    it('ADR-009 rule 2: "choose a shared pattern" remediates — verified, not just stated', () => {
       // mixed-beta/: forPattern(call('this.normalize')) is inert (1 of 5).
       // Every file has a read(): string method; b2-b5 call this.raw.trim()
       // directly (b1 calls this.normalize(this.raw) instead) — a pattern the
@@ -384,7 +384,7 @@ describe('smells.inconsistentSiblings()', () => {
         expect(spy.mock.calls.length).toBe(onePassCount)
       })
 
-      it('ADR-008 rule 2, on the ACTUAL violation object: remediation clears a real inertViolation()', () => {
+      it('ADR-009 rule 2, on the ACTUAL violation object: remediation clears a real inertViolation()', () => {
         // The census in tests/core/every-config-finding-is-classified.test.ts cites
         // this family's "choose a shared pattern" remediation as
         // `verified: 'behavioural'` for `inertViolation` specifically — but the

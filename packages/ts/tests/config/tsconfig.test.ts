@@ -349,7 +349,7 @@ describe('tsconfig() — value comparison and messages', () => {
   })
 
   it('the remedy remediates: adding .requires({...}) clears the finding', () => {
-    // ADR-008 rule 2's behavioural corollary — a remedy asserted only by its
+    // ADR-009 rule 2's behavioural corollary — a remedy asserted only by its
     // words is a same-derivation check.
     expect(
       tsconfig(mk({ strict: true }))

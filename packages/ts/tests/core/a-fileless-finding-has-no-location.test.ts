@@ -1,6 +1,6 @@
 /**
  * A finding with no source location does not invent one —
- * [bug 0047](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0047-a-fileless-finding-renders-a-meaningless-location.md).
+ * [ts-archunit bug 0047](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0047-a-fileless-finding-renders-a-meaningless-location.md).
  *
  * A configuration finding reports that a **rule** enforces nothing, not that a
  * line of code is wrong, so it carries `file: ''` and a `line` that means

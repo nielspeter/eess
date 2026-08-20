@@ -2,7 +2,7 @@
  * The walk, checked against differently-derived values over the whole
  * repository — plan 0071 test-inventory items 15 and 22.
  *
- * Both tests here answer ADR-008 rule 5: a derivation is unguarded until a
+ * Both tests here answer ADR-009 rule 5: a derivation is unguarded until a
  * *differently*-derived value disagrees with it. The fixture tests next door
  * assert what the walk produces on 24 hand-written forms; these assert that it
  * agrees with two independent computations across 1900+ real edges.

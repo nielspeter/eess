@@ -34,7 +34,7 @@ interface PresetRule {
  * attach `{ id }` alone, which meant every rule in `strictBoundaries`,
  * `layeredArchitecture` and `dataLayerIsolation` — 37 of them in
  * `strictBoundaries` alone — failed with no `because` and no `suggestion`.
- * ADR-008 rule 2 requires every failure to carry its sanctioned fix, and a
+ * ADR-009 rule 2 requires every failure to carry its sanctioned fix, and a
  * preset is the one place a user cannot supply it themselves: they did not
  * write the rule.
  */
@@ -122,7 +122,7 @@ export function assertDiscovered(
  *
  * `TRuleId` is that preset's own rule ids as a literal union, so a misspelled
  * override key is a **compile error** rather than a silent no-op
- * ([bug 0038](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)).
+ * ([bug 0157](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)).
  * Measured before this: `'…/no-silent-cach': 'error'` left the rule at `warn`
  * and the build green — the escalation the author asked for simply did not
  * happen, and the only trace was a line on stderr.
@@ -138,7 +138,7 @@ export function assertDiscovered(
  */
 /**
  * An unknown override key, as a failing configuration finding —
- * [bug 0038](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
+ * [bug 0157](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
  *
  * `validateOverrides` writes a line to stderr and returns `void`. That is not a
  * signal: measured, `'…/no-silent-cach': 'error'` left the rule at `warn`, the
@@ -197,7 +197,7 @@ export function overrideFindings(
  * not happen. An unknown `expectEmpty` id turns an **expiring assertion into
  * nothing** — the author declared a state, the declaration bound to no rule, and
  * once plan 0099's floor lands they are told to declare what they already
- * declared, misspelled. That is bug 0017's shape, and ADR-008 rule 1 forbids
+ * declared, misspelled. That is bug 0017's shape, and ADR-009 rule 1 forbids
  * answering it with a warning nobody reads.
  *
  * The unbound id is reported against the **constructed** set, not the declared
@@ -226,7 +226,7 @@ export function declaredEmptyFindings(
   // is usually right and the cause is upstream (a discovery glob that matched
   // no folders, or every rule overridden `off`). An agent that obeys it deletes
   // a correct declaration, and plan 0099's floor then demands the declaration
-  // back: bug 0017's loop, which ADR-008 rule 2 forbids us to reintroduce.
+  // back: bug 0017's loop, which ADR-009 rule 2 forbids us to reintroduce.
   const suggestion =
     uniqueConstructed.length === 0
       ? `This preset constructed NO rules, so the cause is upstream of this id — check the ` +
@@ -347,8 +347,8 @@ export interface PresetBaseOptions<TRuleId extends string = string> {
    * plan 0099's floor fails a check that examined nothing, their only other
    * remedy is `overrides: { id: 'off' }` — which is permanent, never expires,
    * and deletes the rule rather than declaring a fact about it. That is
-   * [ADR-008](../../../../adr/009-agent-first-failure-surfaces.md) rule 1's
-   * trained-suppression dynamic, produced by our own gate; ADR-009 part 3 makes
+   * [ADR-009](../../../../adr/009-agent-first-failure-surfaces.md) rule 1's
+   * trained-suppression dynamic, produced by our own gate; ADR-010 part 3 makes
    * a carrier binding for exactly this reason.
    *
    * Typed on the preset's own id union, like `overrides`, so a rename is a

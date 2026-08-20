@@ -1,6 +1,6 @@
 /**
  * A misspelled override key does not compile —
- * [bug 0038](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
+ * [bug 0157](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
  *
  * The runtime finding is guarded in `recommended.test.ts`. This guards the other
  * half, and it needs a different instrument: a type cannot be asserted at run
@@ -12,7 +12,7 @@
  * argument — the directive becomes unused and `tsc` errors on *that*. The guard
  * cannot silently stop guarding.
  *
- * This is genuine independence in ADR-008 rule 5's sense: the runtime test and
+ * This is genuine independence in ADR-009 rule 5's sense: the runtime test and
  * this one cannot fail the same way, because one is a value comparison and the
  * other is the type checker.
  */

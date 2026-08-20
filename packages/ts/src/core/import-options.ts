@@ -94,7 +94,7 @@ export function isTypeOnlyReExport(decl: ExportDeclaration): boolean {
  * One owner rather than five copies, which is the other half. The dispatch was
  * duplicated five times, and a duplicated predicate in this repo has already
  * caused a measurement error once —
- * [bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
+ * [ts-archunit bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
  */
 export function splitGlobArgs(args: readonly (string[] | ImportOptions | string)[]): {
   globs: string[]

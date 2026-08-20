@@ -1,7 +1,7 @@
 /**
  * The empty-layer finding carries its own remedy, never the author's —
- * [bug 0042](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0042-cross-layers-empty-layer-finding-inherits-the-authors-remedy.md),
- * a live recurrence of [bug 0021](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0021-a-config-finding-prints-the-rule-authors-unrelated-remedy.md).
+ * [ts-archunit bug 0042](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0042-cross-layers-empty-layer-finding-inherits-the-authors-remedy.md),
+ * a live recurrence of [ts-archunit bug 0021](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0021-a-config-finding-prints-the-rule-authors-unrelated-remedy.md).
  *
  * `conditions/cross-layer.ts` reported an empty left layer correctly and then
  * copied `context.suggestion` / `context.docs` onto the finding. Two faults from
@@ -55,7 +55,7 @@ const AUTHOR: RuleMetadata = {
 
 /**
  * The empty layer now comes from a **dead builder glob**, because there is no
- * caller-supplied array left to rig — [bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)
+ * caller-supplied array left to rig — [ts-archunit bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)
  * made the builder pass its own resolved layers.
  *
  * That is why this file was rewritten rather than adjusted: every fixture used to

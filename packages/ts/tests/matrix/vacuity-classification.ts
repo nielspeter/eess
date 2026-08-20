@@ -9,7 +9,7 @@
  * something you can call `.check()` on and the other 308 are conditions, predicates, matchers,
  * types and classes. A record with 308 `kind: 'helper'` entries would bury the twenty that matter.
  *
- * `CHECKS` carries a **recipe** and a **unit**. The unit is ADR-009 part 1's requirement that a
+ * `CHECKS` carries a **recipe** and a **unit**. The unit is ADR-010 part 1's requirement that a
  * family name what it counts as a written, reviewed claim rather than an implementer's private
  * interpretation.
  */
@@ -52,7 +52,7 @@ export interface Ctx {
 }
 
 export interface CheckEntry {
-  /** What this family counts as an examined unit (ADR-009 part 1). */
+  /** What this family counts as an examined unit (ADR-010 part 1). */
   unit: string
   /**
    * The NEAREST-BARE construction reaching a terminal.

@@ -261,7 +261,7 @@ describe('edgeStream keeps its early exit', () => {
      * ever coincided, someone should reconsider.
      *
      * They now coincide, deliberately.
-     * [Bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)
+     * [ts-archunit Bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)
      * gave `ModuleEdge` an `ordinal` — the nth edge of the same kind to the same
      * specifier — because `names` is empty for `dynamic`, `require` and
      * `type-expression`, so two lazy imports of one module shared one baseline hash.

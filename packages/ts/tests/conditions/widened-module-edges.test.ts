@@ -132,7 +132,7 @@ describe('item 19b — onlyHaveTypeImportsFrom excludes dynamic', () => {
    * `dynamic` to the kind filter left all 2508 tests green. The condition's remedy
    * is "make the dependency erased", and there is **no** way to do that for
    * `await import(…)` — a finding whose remedy cannot be followed is not a
-   * finding (ADR-008 rule 2).
+   * finding (ADR-009 rule 2).
    */
   it('reports the runtime import and re-export but never the dynamic import', () => {
     const found = identify(modules(p).should().onlyHaveTypeImportsFrom(BANNED).violations())
@@ -149,7 +149,7 @@ describe('item 19b — onlyHaveTypeImportsFrom excludes dynamic', () => {
   it('gives a re-export a remedy that names its consequence', () => {
     // For a re-export, `export type { X } from` erases the edge AND removes a
     // runtime export consumers may import as a value, so the reader has to be told
-    // before following it (ADR-008 rule 2).
+    // before following it (ADR-009 rule 2).
     const found = modules(p).should().onlyHaveTypeImportsFrom(BANNED).violations()
     const reexport = found.find((v) => v.file.endsWith('consumer-reexport.ts'))
 
@@ -358,7 +358,7 @@ describe('item 12 — each kind names itself, so no finding is absorbed', () => 
     // `ModuleEdge` does not carry.
     //
     // It does not need the local binding. `disambiguateIdentities` closes it without one
-    // ([bug 0064](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0064-a-dependency-identity-collides-across-two-spellings-of-one-module.md)):
+    // ([ts-archunit bug 0064](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0064-a-dependency-identity-collides-across-two-spellings-of-one-module.md)):
     // the second finding of any duplicated subject gains a `#n` suffix, so the pair
     // separates by position rather than by a field nobody had. The guard fired on the
     // change it was written to notice, which is why it is updated here rather than

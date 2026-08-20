@@ -85,7 +85,7 @@ const vitestCli = path.join(
  */
 /**
  * Per-process, and that is load-bearing —
- * [bug 0045](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md).
+ * [ts-archunit bug 0045](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md).
  *
  * This used to be `tests/__generated__` flat, with `beforeAll` deleting the whole
  * directory. One checkout running two suites at once — two agents, or a watch
@@ -153,7 +153,7 @@ beforeAll(() => {
   // ['tests/**/*.test.ts']` collects it; and the probe files are *designed* to
   // fail. A reviewer hit exactly that: an isolated worktree whose very first
   // baseline read exit 1 for a reason nothing in the working tree showed. That is
-  // the ADR-008 rule 5 verdict-mechanism hazard — a sabotage matrix reading exit
+  // the ADR-009 rule 5 verdict-mechanism hazard — a sabotage matrix reading exit
   // codes cannot tell that failure from a real one.
   //
   // Pruned by LIVENESS, not by age or by wildcard: `process.kill(pid, 0)` throws

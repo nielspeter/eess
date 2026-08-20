@@ -262,7 +262,7 @@ describe('SliceRuleBuilder empty-discovery remedies (bug 0009)', () => {
     // the root, one that matches nothing fails because the FOLDER is missing —
     // not because it lacks `"**/"`. Classifying it `unanchored` would print a
     // remedy that changes a spelling which is already correct, and leaves the
-    // rule just as empty: ADR-008 rule 2, a fix that does not fix.
+    // rule just as empty: ADR-009 rule 2, a fix that does not fix.
     const message = discoveryMessage((b) => b.assignedFrom({ ghost: 'src/no-such-folder/**' }))
     expect(message).toContain('ghost: "src/no-such-folder/**"')
     expect(message).toContain('anchored but matched no file')

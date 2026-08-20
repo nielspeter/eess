@@ -154,7 +154,7 @@ describe('correspondence()', () => {
     })
 
     it('a declaration naming no side is a failing finding, not a silent no-op', () => {
-      // The typo case. ADR-009 part 3 rules the identical preset case a FAILING
+      // The typo case. ADR-010 part 3 rules the identical preset case a FAILING
       // finding, never a warning — a declaration that binds to nothing asserts
       // nothing, and saying so is the whole difference from `allowEmpty`.
       const v = correspondence(stubProject)
@@ -263,7 +263,7 @@ describe('correspondence()', () => {
     })
 
     it('the expiry remedy remediates: removing the declaration clears it', () => {
-      // ADR-008 rule 2's behavioural corollary — apply the stated fix and assert
+      // ADR-009 rule 2's behavioural corollary — apply the stated fix and assert
       // the finding clears, rather than asserting the sentence reads well.
       const withoutDeclaration = correspondence(stubProject)
         .side('services', services(), byNameKey)

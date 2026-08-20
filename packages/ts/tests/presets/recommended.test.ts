@@ -157,7 +157,7 @@ describe('recommended preset', () => {
  * A preset user holds no builder, so `.expectEmpty()` is unreachable to them.
  * Once plan 0099's floor fails a check that examined nothing, their only other
  * remedy is `overrides: { id: 'off' }` — permanent, non-expiring, and it deletes
- * the rule rather than declaring a fact about it. ADR-009 part 3 makes the
+ * the rule rather than declaring a fact about it. ADR-010 part 3 makes the
  * carrier binding for that reason.
  */
 describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => {
@@ -195,7 +195,7 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
     // Asserted as a SET of surviving ids, because the count alone cannot tell
     // "reached the right rule" from "reached *a* rule". Measured: rotating the
     // carrier's key by one — declaring `no-eval` declares the next rule instead —
-    // preserves every count in this file and passed 871/871. ADR-008 rule 5:
+    // preserves every count in this file and passed 871/871. ADR-009 rule 5:
     // compare identities, not integers. Once 0099's floor lands, a mis-bound
     // carrier leaves the declared rule failing while a DIFFERENT rule is silently
     // declared empty and stays so — the mute button the carrier must never be.

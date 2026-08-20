@@ -29,7 +29,7 @@ describe('readDeprecatedSymbols', () => {
   })
 
   /**
-   * ADR-008 rule 5: `collides` drives the entire false-positive story, so it is
+   * ADR-009 rule 5: `collides` drives the entire false-positive story, so it is
    * checked against a value derived a DIFFERENT way — ts-morph static analysis vs.
    * the runtime ES module namespace object. Two mechanisms that cannot fail the
    * same way. A same-derivation test here would report pass while the flag was
@@ -48,7 +48,7 @@ describe('readDeprecatedSymbols', () => {
   })
 
   /**
-   * ADR-008 rule 2: the violation's FIX line is the tag's own prose, so assert the
+   * ADR-009 rule 2: the violation's FIX line is the tag's own prose, so assert the
    * prose exists. `/** @deprecated *\/` with no text is legal TypeScript and would
    * leave a finding whose remedy is an empty string.
    */

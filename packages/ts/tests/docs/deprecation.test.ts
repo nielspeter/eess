@@ -11,7 +11,7 @@ import { packageRoot, repoRoot } from '../roots.js'
  * Living docs = what a reader is taught from. Scope is `docs/**` + `README.md`.
  *
  * Everything else is out **by construction**, not by an exclusion list that could
- * rot (ADR-008 rule 3): `CHANGELOG.md` names deprecated symbols legitimately and
+ * rot (ADR-009 rule 3): `CHANGELOG.md` names deprecated symbols legitimately and
  * forever, and `plans/`, `proposals/`, `adr/` and the spec are historical records,
  * not instruction.
  */
@@ -45,7 +45,7 @@ describe('docs do not teach deprecated API (plan 0063)', () => {
 
     // Two vacuity guards. `toEqual([])` passes just as happily on an empty corpus
     // or an empty vocabulary, so both inputs are asserted non-empty first — this is
-    // the check that the check is still a check (ADR-008 rule 5).
+    // the check that the check is still a check (ADR-009 rule 5).
     expect(
       files.length,
       'living-docs glob matched nothing — this guard is vacuous. Fix the glob.',

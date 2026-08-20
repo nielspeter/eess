@@ -73,7 +73,7 @@ describe('a config finding carries its own remedy, not the author’s (bug 0021)
     // .expectNonEmpty() if matching nothing is valid here", which stopped being
     // true the moment empty became the default fault. Dropping the opt-in now
     // changes nothing, so an agent following that advice fails and then
-    // improvises — ADR-008 rule 2, a remedy impossible on the path that
+    // improvises — ADR-009 rule 2, a remedy impossible on the path that
     // produced it.
     expect(f?.suggestion).toContain('.expectEmpty()')
     expect(f?.suggestion).not.toContain('drop .expectNonEmpty()')
@@ -93,7 +93,7 @@ describe('a config finding carries its own remedy, not the author’s (bug 0021)
     // The sharp case. The test above calls `.expectNonEmpty()`, so a message
     // naming it there is merely useless; here the chain never calls it, and the
     // shipped text said "`.expectNonEmpty()` requires at least one … remove
-    // `.expectNonEmpty()`" — a remedy with nothing to remove. ADR-008 rule 2:
+    // `.expectNonEmpty()`" — a remedy with nothing to remove. ADR-009 rule 2:
     // an impossible fix is worse than none, because the agent tries it, fails,
     // and then improvises.
     const p = load('poc')
@@ -186,7 +186,7 @@ describe('a config finding carries its own remedy, not the author’s (bug 0021)
   })
 
   it('every config finding carries SOME remedy — no bare Fix: line', () => {
-    // ADR-008 rule 2 in the other direction: a finding with no remedy at all is
+    // ADR-009 rule 2 in the other direction: a finding with no remedy at all is
     // what the fix for this bug would produce if it only removed. This is the
     // invariant `tests/presets/shared.test.ts` asserts for presets, asserted here
     // for the producers a preset never reaches.

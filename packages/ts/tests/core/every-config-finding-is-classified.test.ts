@@ -1,12 +1,12 @@
 /**
  * Every configuration-finding producer is accounted for, derived from source —
- * [plan 0078](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0078-derive-the-configuration-finding-census.md).
+ * [ts-archunit plan 0078](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0078-derive-the-configuration-finding-census.md).
  *
  * A finding carrying `bypassFilters: true` reports that a **rule enforces
  * nothing**, and it is unsuppressable by construction. Two invariants are meant
  * to hold across all of them: each carries its own remedy, and each says it
  * cannot be suppressed. Neither was enforced, and both were false somewhere —
- * [bug 0042](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0042-cross-layers-empty-layer-finding-inherits-the-authors-remedy.md)
+ * [ts-archunit bug 0042](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0042-cross-layers-empty-layer-finding-inherits-the-authors-remedy.md)
  * shipped a producer printing the rule author's unrelated `Fix:` on a finding
  * about a mis-globbed layer.
  *
@@ -47,7 +47,7 @@ interface Classification {
   /** Where the remedy text is written. */
   readonly remedy: 'own' | 'from-caller'
   /**
-   * Whether the remedy is **proven to remediate**, per ADR-008 rule 2's
+   * Whether the remedy is **proven to remediate**, per ADR-009 rule 2's
    * behavioural corollary — apply the stated fix and assert the finding clears.
    *
    * `'behavioural'` names the test that does it. `'stated-only'` carries the
@@ -271,7 +271,7 @@ describe('every configuration-finding producer is classified (plan 0078)', () =>
   it('the scan cannot be bypassed: every bypassFilters mention is literal, typed, or read', () => {
     // The census greps for one literal shape. If a producer could set the flag by
     // a computed write or a spread, the census would report full coverage while
-    // missing it — the exact shape ADR-008 rule 5 forbids.
+    // missing it — the exact shape ADR-009 rule 5 forbids.
     const project = loadSource()
     const suspicious: string[] = []
     for (const sourceFile of project.getSourceFiles()) {
@@ -350,7 +350,7 @@ describe('every configuration-finding producer is classified (plan 0078)', () =>
   })
 
   it("every producer sets its OWN suggestion, never the rule author's", () => {
-    // ADR-008 rule 2 and bug 0021, across every producer at once. The guard this
+    // ADR-009 rule 2 and bug 0021, across every producer at once. The guard this
     // replaces asserted `toBeTruthy()` on three of fifteen — presence, not
     // correctness — so it could not have caught bug 0042, which printed the rule
     // author's fix for a real violation on a finding about a mis-globbed layer.
@@ -402,7 +402,7 @@ describe('every configuration-finding producer is classified (plan 0078)', () =>
     const derivesFrom = (expr: Node, params: Set<string>, depth = 0): boolean => {
       // **Residue, stated rather than deferred.** Two hops, so a remedy laundered
       // through three (`context` -> local -> helper -> helper) escapes. Bounded on
-      // purpose: ADR-008 rule 6 puts this row at "an internal check over a corpus
+      // purpose: ADR-009 rule 6 puts this row at "an internal check over a corpus
       // we control", where the standard is to prove each detector fires and stop.
       // Four shapes are proven to fire below — a direct read, an aliased
       // parameter, a destructured local, and a helper — which covers every
@@ -560,7 +560,7 @@ describe('every configuration-finding producer is classified (plan 0078)', () =>
     //
     // A false green inside the guard built to stop false greens, and the row's
     // own docstring names the case it could not see. It is also precisely
-    // ADR-008 rule 5's question asked and answered wrong: "what would this do if
+    // ADR-009 rule 5's question asked and answered wrong: "what would this do if
     // the thing it guards were completely broken?" — pass, because the assertion
     // read the shape of the call instead of the value of the remedy.
     //

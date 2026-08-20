@@ -55,7 +55,7 @@ const p = project('tsconfig.json')
  *
  * So this is a prefix test, not a glob: a path either starts with this
  * project's src directory or it does not, and no character in the checkout
- * path can change that. ADR-008 rule 5 — the derivation is the tsconfig's own
+ * path can change that. ADR-009 rule 5 — the derivation is the tsconfig's own
  * resolved location, which is independent of what anyone named the folder.
  */
 /**
@@ -103,7 +103,7 @@ interface Checkable {
  * `arch/no-cycles` sat at `.warn()` for months, could not fail, and let a new
  * cycle in overnight. Sabotage confirmed the obvious gap: reverting that one
  * `.check()` to `.warn()` was **caught by nothing**. The plan removed the
- * instance and left the mechanism, which is ADR-008 rule 5 — the fix is not
+ * instance and left the mechanism, which is ADR-009 rule 5 — the fix is not
  * guarded until something disagrees with it.
  *
  * Now `.warn()` on a gated rule fails twice: `npm run typecheck` (the property
@@ -111,7 +111,7 @@ interface Checkable {
  * derivations, because typecheck is a separate command and `vitest run` alone
  * would not have noticed.
  *
- * If a rule here ever *should* warn — ADR-008 rule 1 allows it for a finding the
+ * If a rule here ever *should* warn — ADR-009 rule 1 allows it for a finding the
  * reader must judge — add an explicit `gateAdvisory()` beside this that says so
  * in its name and carries the reason. Do not widen this one.
  */
@@ -400,7 +400,7 @@ describe('ADR-005: Type Safety', () => {
   })
 
   it('NO source file may use a type assertion, whatever shape it is written in', () => {
-    // The scope fix from [bug 0049](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0049-the-type-assertion-self-check-selected-classes.md).
+    // The scope fix from [ts-archunit bug 0049](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0049-the-type-assertion-self-check-selected-classes.md).
     //
     // The rule below this one selects **classes**. This codebase has 19 files with
     // a class and 128 with a function, so the guard covered the shape we barely
@@ -551,7 +551,7 @@ describe('Architecture', () => {
           because:
             'Helpers are lower-level primitives — builders depend on helpers, not the reverse',
           // NOT "move it to src/helpers/" — the violating file is already there, so
-          // that remedy is a no-op. ADR-008 rule 2: verified to remediate.
+          // that remedy is a no-op. ADR-009 rule 2: verified to remediate.
           suggestion:
             'Move the shared logic down to src/core/, or — if the helper starts a rule chain — move the file itself to src/builders/ (see bugs/0054)',
         }),
@@ -990,7 +990,7 @@ describe('the rules in this file can all enforce something', () => {
   // so this must see all of them. That ordering dependency is not left to
   // convention — the first assertion below catches it.
   it('diagnoses every rule in this file, and finds nothing wrong', () => {
-    // ADR-008 rule 5: the runtime population is checked against a DIFFERENTLY
+    // ADR-009 rule 5: the runtime population is checked against a DIFFERENTLY
     // DERIVED one — the `gate(` call sites in this file's own source text. A
     // guard that ran before the rules were built would see a short array and
     // report a clean bill of health for the rules it never saw; a rule added
@@ -1018,7 +1018,7 @@ describe('the rules in this file can all enforce something', () => {
     // OBJECTS, so a glob held in a `const`, assembled, or split across lines by
     // prettier is diagnosed here exactly as `doctor` would diagnose it.
     //
-    // Identities, never a count — ADR-008 rule 4. A count tells the next reader
+    // Identities, never a count — ADR-009 rule 4. A count tells the next reader
     // that something is wrong; this tells them which rule and which glob.
     const findings = diagnose(BUILT).map(
       (f) =>
@@ -1112,7 +1112,7 @@ const PLANTED: ReadonlySet<string> = new Set([
 /**
  * Gated rules deliberately NOT planted against, each with its reason.
  *
- * A deferral is an escape hatch, so under ADR-008 rule 3 it is stated here rather than
+ * A deferral is an escape hatch, so under ADR-009 rule 3 it is stated here rather than
  * being an absence. The ratchet below asserts the unplanted set equals this one **exactly**,
  * so a new rule cannot hide inside the deferral and this set cannot grow silently.
  */
@@ -1191,7 +1191,7 @@ function internalRuleIds(): DiagnosableRule[] {
 
 afterAll(() => {
   // **Dogfooding the fix for our own bug.**
-  // [Bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md):
+  // [ts-archunit Bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md):
   // a `// eess-exclude` naming a renamed rule id suppresses nothing and
   // says nothing — inert forever, because a comment is only read in a file that
   // already produced a finding for that rule. We shipped `orphanExclusions` to
@@ -1332,7 +1332,7 @@ it('VACUITY: the orphan check really reads our directives', () => {
 
 it('every waiver in src/ actually suppresses something', () => {
   // A DIFFERENT derivation from the vacuity row above, and that is the point
-  // (ADR-008 rule 5). That row scans source text and proves a directive is
+  // (ADR-009 rule 5). That row scans source text and proves a directive is
   // **present**; this one runs the rule and proves it is **load-bearing**.
   //
   // They disagree in the case that matters: remove the cast a waiver covers and
@@ -1341,7 +1341,7 @@ it('every waiver in src/ actually suppresses something', () => {
   // about the code. Only the suppression list can see it.
   //
   // This also dogfoods the disclosure shipped for
-  // [bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md):
+  // [ts-archunit bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md):
   // we built a channel to report what comments silenced, then never pointed it at
   // ourselves.
   resetCommentSuppression()

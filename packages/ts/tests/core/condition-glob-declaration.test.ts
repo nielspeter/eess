@@ -194,7 +194,7 @@ describe('conditions declare their globs', () => {
         wrongKind.push(`${entry.id}: expected ${entry.kind}, got ${String(leaves[0]?.kind)}`)
       }
     }
-    // Named, not counted — ADR-008 rule 4. Dropping any one declaration names
+    // Named, not counted — ADR-009 rule 4. Dropping any one declaration names
     // that condition here rather than moving a total from 12 to 11.
     expect(missing).toEqual([])
     expect(wrongKind).toEqual([])
@@ -356,7 +356,7 @@ describe('the population is derived, not restated', () => {
   })
 
   it('agrees with a differently-derived population', () => {
-    // ADR-008 rule 5: the table is unguarded until a value derived another way
+    // ADR-009 rule 5: the table is unguarded until a value derived another way
     // disagrees with it. This derivation is by PARAMETER NAME — the codebase's
     // own convention, `glob` / `globs` — and is independent of the hand-written
     // table and of the no-path list. If someone adds a path condition whose

@@ -68,7 +68,7 @@ export interface RuleFacts {
 export function assertionLessFinding(facts: RuleFacts): ArchViolation[] {
   const described = facts.describeRule()
   const name = described.id || described.rule || facts.ruleClass.name
-  // ADR-008 rule 3: where there is deliberately no escape hatch, say so, and
+  // ADR-009 rule 3: where there is deliberately no escape hatch, say so, and
   // say what to do instead. Stated on the finding rather than inside
   // `assertionAdvice()` so the seven per-shape remedies stay one sentence each
   // and this stays one sentence in one place. Measured before it was added: a
@@ -147,7 +147,7 @@ function deadSitesIn(
  *
  * `bypassFilters` makes it a configuration finding: `error` severity
  * regardless of `.asSeverity('warn')`, refused by `.excluding()`, and
- * skipped by diff and baseline (ADR-008 rule 1). A rule that can never have
+ * skipped by diff and baseline (ADR-009 rule 1). A rule that can never have
  * subjects is not a violation you triage; it is a rule that does not work.
  */
 function deadSelectorViolation(
@@ -208,7 +208,7 @@ function deadSelectorViolation(
  * Precedence has already removed the other causes by the time this is reached:
  * no dead selector glob, no missing assertion, no empty project, no cardinality
  * assertion, no declaration. So the remedy names ONE cause without the hedging
- * ADR-008 rule 2 forbids.
+ * ADR-009 rule 2 forbids.
  *
  * Three defects in 0098's preview wording are fixed here, from its
  * user-perspective review:
@@ -256,7 +256,7 @@ export function evidenceFloor(
   // The author said empty is the point. `declaresEmpty()` — not
   // `_expectEmpty` — because `CorrespondenceBuilder` declares per side and
   // overrides this; asking a fully-declared correspondence to declare would
-  // be ADR-008 rule 2's loop, and the base implementation cannot express it.
+  // be ADR-009 rule 2's loop, and the base implementation cannot express it.
   if (!facts.declaresEmpty()) return [facts.zeroSubjectsViolation(project)]
   return undefined
 }
@@ -377,7 +377,7 @@ export function deadSelectorFindings(facts: RuleFacts): {
   if (trees.length === 0) return empty
 
   // The project loaded nothing, so no glob can match and none of them is at
-  // fault — [bug 0048](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0048-the-dead-glob-gate-blames-the-glob-when-the-project-is-empty.md).
+  // fault — [ts-archunit bug 0048](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0048-the-dead-glob-gate-blames-the-glob-when-the-project-is-empty.md).
   //
   // Without this the gate reported every selector glob dead and told the
   // reader to *"Correct the glob, or remove the rule"*, which is a remedy for
@@ -388,7 +388,7 @@ export function deadSelectorFindings(facts: RuleFacts): {
   // `classes()`, `functions()` and `types()` rule takes.
   //
   // One finding for the project, not one per glob — the identity of this fault
-  // is the tsconfig, which is what ADR-008 rule 4 asks be named, and it is why
+  // is the tsconfig, which is what ADR-009 rule 4 asks be named, and it is why
   // `diagnose()` dedupes by project too.
   if (loadedNothing(project))
     return { selector: [emptyProjectViolation(facts, project)], discovery: [] }

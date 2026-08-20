@@ -14,7 +14,7 @@
  *     one fixed method — passed all 2340 tests.
  *
  * Every case below states its expected verdict from the fixture in front of it,
- * so a broken detector disagrees with something (ADR-008 rule 5). The fixtures
+ * so a broken detector disagrees with something (ADR-009 rule 5). The fixtures
  * are in-memory: no disk, no repo load, and no way for a change in `src/` to
  * quietly change what this file is testing.
  */

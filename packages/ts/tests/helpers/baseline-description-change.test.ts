@@ -102,7 +102,7 @@ describe('a baseline entry that stops matching because the RULE was edited', () 
     expect(finding).toBeDefined()
     // It must deny the reading a bare re-report invites.
     expect(finding?.message).toContain('not new rot in your code')
-    // Identities, never a total (ADR-008 rule 4): both spellings, so the reader
+    // Identities, never a total (ADR-009 rule 4): both spellings, so the reader
     // can see WHAT changed rather than being told how many did.
     expect(finding?.message).toContain(RULE_BEFORE)
     expect(finding?.message).toContain(RULE_AFTER)
@@ -152,7 +152,7 @@ describe('the diagnosis degrades honestly rather than guessing', () => {
   it('is silent for a baseline written before subjects were recorded', () => {
     // A pre-0.24.0 file has no `subject` on its entries, so the question cannot
     // be asked. Saying nothing is right; naming a cause we cannot verify is the
-    // ADR-008 rule 2 defect, and it is exactly what the withdrawn HASH_VERSION
+    // ADR-009 rule 2 defect, and it is exactly what the withdrawn HASH_VERSION
     // bump did.
     const { root, file } = scratch()
     fs.writeFileSync(

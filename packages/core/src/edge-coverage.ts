@@ -13,7 +13,7 @@
  *
  * ## Why this reports rather than fails
  *
- * [Bug 0015](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0015-allowlist-conditions-pass-vacuously-on-edgeless-subjects.md)
+ * [ts-archunit Bug 0015](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0015-allowlist-conditions-pass-vacuously-on-edgeless-subjects.md)
  * refuted failing, per-subject and per-rule, on measurement:
  *
  * - **Per-subject has no statable remedy.** 14 of this repo's `src/` files have
@@ -22,7 +22,7 @@
  *   fail at error severity. The remedies available are: add an import (harmful),
  *   exclude a working rule, narrow the selector, or delete the rule. None
  *   improves anything, because **for the `only*` family zero edges is maximal
- *   compliance**, not absent evidence. That fails ADR-008 rule 2.
+ *   compliance**, not absent evidence. That fails ADR-009 rule 2.
  * - **Per-rule multiplies.** Six boundaries and one dependency-free shared file
  *   make `strictBoundaries` emit 13 rules, **12** with subjects and zero edges.
  * - **`ignoreTypeImports` inverts it.** Counting edges after the filter means a
@@ -30,7 +30,7 @@
  *   best possible outcome — under the option the docs recommend for layers.
  *
  * So the remedy is genuinely optional and the reader must judge it, which under
- * ADR-008 rule 1 is a disclosure, not a failure. This module is the disclosure.
+ * ADR-009 rule 1 is a disclosure, not a failure. This module is the disclosure.
  *
  * ## Why module state rather than a field on `ConditionContext`
  *
@@ -43,7 +43,7 @@
 
 /**
  * Why a rule tested no edges. The three are not interchangeable, and saying the
- * wrong one is an ADR-008 rule 2 defect — a stated cause that is wrong for the
+ * wrong one is an ADR-009 rule 2 defect — a stated cause that is wrong for the
  * input.
  *
  * The first version of this module printed "correct for a genuinely
@@ -115,7 +115,7 @@ export function untestedRules(): readonly EdgeCoverage[] {
 /**
  * The disclosure, or `undefined` when every allowlist was exercised.
  *
- * Names the rules rather than counting them (ADR-008 rule 4): "3 rules tested
+ * Names the rules rather than counting them (ADR-009 rule 4): "3 rules tested
  * nothing" sends the reader to grep, and the whole point is that they must
  * judge whether an edge-free population is correct here.
  */

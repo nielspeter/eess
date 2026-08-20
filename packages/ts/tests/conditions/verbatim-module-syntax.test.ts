@@ -1,6 +1,6 @@
 /**
  * `import { type X }` under `verbatimModuleSyntax` —
- * [plan 0087](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0087-an-inline-type-import-still-requests-the-module.md).
+ * [ts-archunit plan 0087](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0087-an-inline-type-import-still-requests-the-module.md).
  *
  * `ModuleEdge.typeOnly` used to answer two questions at once, and they are different:
  *
@@ -315,7 +315,7 @@ describe('the erasure fields, per form (plan 0087)', () => {
     // "asserted over every form at both flag positions"; it was asserted only in the
     // direction that cannot fail.
     //
-    // So assert the set by identity (ADR-008 rule 4). A form silently changing sides
+    // So assert the set by identity (ADR-009 rule 4). A form silently changing sides
     // reds HERE, not only in the FORMS table two rows down — and an implementation that
     // erases nothing cannot satisfy a non-empty expectation.
     const erasing = FORMS.flatMap(([decl, label]) =>
