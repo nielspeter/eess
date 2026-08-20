@@ -2,9 +2,10 @@
 
 ## Status
 
-- **State:** Draft — fix built and measured; ready to close with this PR.
+- **State:** Fixed — fix built, measured and merged with this PR.
+- **Deferred:** [0176](../0176-no-census-requires-a-cache-to-be-resettable.md)
 - **Found:** 2026-08-20, review of the `linesOfCode` performance work
-  ([bug 0170](./0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)).
+  ([bug 0170](../0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)).
   Found independently by four reviewers.
 
 ## Symptom
@@ -80,10 +81,13 @@ left the suite green. At the entry point, removing it reddens the tests.
 
 ## Out of scope, and owed
 
-There is still **no census** requiring every module-level `WeakMap<SourceFile |
-ArchProject, …>` to be reachable from `clearRegisteredCaches()`. Three caches
-follow the convention by hand, this was the fourth and did not, and nothing
-fired. Ask the reviewer's question of the existing per-cache tests — what would
-they do if a new unregistered cache appeared? — and the answer is "pass". The
-model to copy is `every-config-finding-is-classified.test.ts`, which the repo
-already built for exactly this shape of registry.
+- [ ] `deferred→`[bug 0176](../0176-no-census-requires-a-cache-to-be-resettable.md)
+      — there is still **no census** requiring every module-level
+      `WeakMap<SourceFile | ArchProject, …>` to be reachable from
+      `clearRegisteredCaches()`. Three caches follow the convention by hand, this
+      was the fourth and did not, and nothing fired. Ask the reviewer's question
+      of the existing per-cache tests — what would they do if a new unregistered
+      cache appeared? — and the answer is "pass". The model to copy is
+      `every-config-finding-is-classified.test.ts`, which the repo already built
+      for exactly this shape of registry. Filed as its own record at close rather
+      than left here, so a finished bug does not carry live work.
