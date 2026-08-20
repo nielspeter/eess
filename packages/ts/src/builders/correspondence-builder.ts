@@ -1,10 +1,16 @@
+import type { ViolationMeta } from './correspondence-findings.js'
+import {
+  duplicateKeyFindings,
+  materializeSides,
+  resolveSides,
+  emptinessFindings,
+  matchFindings,
+  unboundDeclarationFindings,
+} from './correspondence-findings.js'
 import type { RuleDescription } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
-import { Node } from 'ts-morph'
 import { selectionMemo } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
-import type { ArchViolation } from '@nielspeter/eess'
-import { getElementName, getElementFile, getElementLine } from '../core/violation.js'
 import { RuleBuilder } from '../core/rule-builder.js'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import { setCorrespondence } from '@nielspeter/eess'
@@ -32,24 +38,29 @@ export type KeysSource = readonly string[] | ReadonlySet<string>
  * over the four-parameter cap while inviting the transposition that cap exists
  * to prevent (`aKeyed`/`bKeyed` are the same type).
  */
-interface Pairing {
+export interface Pairing {
   readonly sideA: Side
   readonly sideB: Side
   readonly aKeyed: Map<string, unknown[]>
   readonly bKeyed: Map<string, unknown[]>
   readonly result: CorrespondenceResult
   readonly meta: ViolationMeta
+  /** What the rule DECLARED — the fields the findings functions read. */
+  readonly declared: Declared
 }
 
-interface ViolationMeta {
-  readonly rule: string
-  readonly because?: string
-  readonly ruleId?: string
-  readonly suggestion?: string
-  readonly docs?: string
+/** The assertions a correspondence rule made about its two sides. */
+export interface Declared {
+  readonly sides: readonly Side[]
+  readonly distinctKeys: ReadonlySet<string>
+  readonly expectEmptySides: ReadonlySet<string>
+  readonly checkComplete: boolean
+  readonly checkNoOrphans: boolean
+  readonly metadata: { id?: string; suggestion?: string; docs?: string } | undefined
+  readonly reason: string | undefined
 }
 
-interface Side {
+export interface Side {
   readonly name: string
   /** Lazily build key → subjects (subjects is empty for a literal side). */
   readonly materialize: () => Map<string, unknown[]>
@@ -60,28 +71,6 @@ function toKeyArray(key: string | readonly string[]): readonly string[] {
 }
 
 /** Model wrappers (ArchCall, ArchFunction, …) expose getNode(): Node. */
-interface NodeBearer {
-  getNode(): Node
-}
-
-function isNodeBearer(value: unknown): value is NodeBearer {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'getNode' in value &&
-    typeof value.getNode === 'function'
-  )
-}
-
-/** Resolve a subject to a ts-morph node for file:line, or undefined if it carries none. */
-function toNode(subject: unknown): Node | undefined {
-  if (Node.isNode(subject)) return subject
-  if (isNodeBearer(subject)) {
-    const node = subject.getNode()
-    if (Node.isNode(node)) return node
-  }
-  return undefined
-}
 
 function keyedFromSelection<T>(source: RuleBuilder<T>, keyFn: KeyFn<T>): Map<string, unknown[]> {
   const map = new Map<string, unknown[]>()
@@ -121,7 +110,9 @@ function keyedFromKeys(keys: KeysSource): Map<string, unknown[]> {
  *   .rule({ id: 'auth/route-matrix', suggestion: 'Add the route to ROUTE_PERMISSIONS.' })
  *   .check()
  */
-const sidesOf = selectionMemo<Map<string, unknown[]>>()
+// eess-exclude eess/no-unused-exports: read by `correspondence-findings.ts`, split
+// out of this file — the memo must stay keyed on the builder instance.
+export const sidesOf = selectionMemo<Map<string, unknown[]>>()
 
 export class CorrespondenceBuilder extends TerminalBuilder {
   private _sides: Side[] = []
@@ -255,34 +246,6 @@ export class CorrespondenceBuilder extends TerminalBuilder {
   }
 
   /**
-   * Both sides, materialized once — plan 0096, and the ONE method both readers
-   * call.
-   *
-   * Correspondence has no corpus of its own: its sides ARE its input, so the
-   * examined unit is their keys and the "selection" is the materialization
-   * itself. Sharing it matters more here than anywhere else, because
-   * `Side.materialize` is a bare closure over a user-supplied `keyFn` and a full
-   * rule selection — so a second derivation would re-run arbitrary user code,
-   * and `diagnose()` calling the accessor before `check()` would pay for the
-   * whole thing twice.
-   */
-  private materializedSides(a: Side, b: Side): [Map<string, unknown[]>, Map<string, unknown[]>] {
-    // Narrowed, not asserted (ADR-005). A `?? new Map()` fallback would be worse
-    // than the `!` this replaced — the compute always returns two entries, so the
-    // fallback could never fire, and a branch that cannot fire is the shape this
-    // whole programme is about even when it is only types. Throwing says the same
-    // thing without lying about it.
-    const pair = sidesOf(this, () => [a.materialize(), b.materialize()])
-    const [first, second] = pair
-    if (first === undefined || second === undefined) {
-      throw new RangeError(
-        `correspondence(): the memoized side pair held ${String(pair.length)} entries, not 2.`,
-      )
-    }
-    return [first, second]
-  }
-
-  /**
    * Units this rule examined — plan 0096: the keys of both sides, summed.
    *
    * Zero means the comparison had nothing to compare, which for this family is
@@ -313,7 +276,7 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     // Zero is the honest answer for an under-declared correspondence: nothing was
     // compared, and ADR-010 wants that visible rather than defaulted away.
     if (first === undefined || second === undefined) return 0
-    const [a, b] = this.materializedSides(first, second)
+    const [a, b] = materializeSides(this, first, second)
     return a.size + b.size
   }
 
@@ -406,71 +369,46 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     }
   }
 
-  /**
-   * Run the correspondence and collect its findings, in four phases:
-   * unbound declarations, emptiness, the match itself, then duplicate keys.
-   *
-   * ## The arity throw is an invariant, not an error path
-   *
-   * Unreachable through `.check()` / `.warn()` / `.violations()` as of the
-   * bug-0025 fix: `assertsSomething()` is false for wrong arity, so the gate
-   * reports it as a configuration finding before this method is called. Kept as
-   * the invariant it always was — this method indexes `_sides[0]` and
-   * `_sides[1]` below, and a direct subclass caller deserves the named error
-   * rather than an undefined read. Do not treat it as the answer to "what
-   * happens with the wrong number of sides": the loud answer is the gate, and if
-   * this ever throws again through a terminal, the gate is gone.
-   *
-   * There is deliberately NO missing-assertion throw: the gate reports that as a
-   * configuration finding before this runs (bug 0019), which is why the gate sits
-   * ahead of this method — a `RangeError` from here escaped the CLI's
-   * `ArchRuleError`-only catch and dropped every remaining rule file. The
-   * sides-count check stays, because wrong arity is a different fault from a
-   * missing assertion and its remedy is another `.side(...)`.
-   */
-  /**
-   * The two sides and the metadata every finding from them carries.
-   *
-   * Extracted so `collectViolations` reads as the decision sequence it is —
-   * unbound, then emptiness, then matching — rather than opening with a guard
-   * and a literal. The arity check lives here because it is the precondition
-   * for the metadata: the rule name is built from both side names.
-   */
-  private resolvedSides(): { sideA: Side; sideB: Side; meta: ViolationMeta } {
-    const [sideA, sideB] = this._sides
-    if (this._sides.length !== 2 || sideA === undefined || sideB === undefined) {
-      throw new RangeError(
-        `correspondence() requires exactly two .side(...) calls; got ${String(this._sides.length)}.`,
-      )
+  /** What this rule declared, as a value the findings functions can read. */
+  private declared(): Declared {
+    return {
+      sides: this._sides,
+      distinctKeys: this._distinctKeys,
+      expectEmptySides: this._expectEmptySides,
+      checkComplete: this._checkComplete,
+      checkNoOrphans: this._checkNoOrphans,
+      metadata: this._metadata,
+      reason: this._reason,
     }
+  }
+
+  /** Materialize both sides and pair their keys — the input every finding reads. */
+  private pairingFor(sideA: Side, sideB: Side, meta: ViolationMeta): Pairing {
+    const [aKeyed, bKeyed] = materializeSides(this, sideA, sideB)
     return {
       sideA,
       sideB,
-      meta: {
-        rule: `correspondence [${sideA.name} <-> ${sideB.name}]`,
-        because: this._reason,
-        ruleId: this._metadata?.id,
-        suggestion: this._metadata?.suggestion,
-        docs: this._metadata?.docs,
-      },
+      aKeyed,
+      bKeyed,
+      result: setCorrespondence(aKeyed.keys(), bKeyed.keys()),
+      meta,
+      declared: this.declared(),
     }
   }
 
   protected collectViolations(): CollectResult {
-    const { sideA, sideB, meta } = this.resolvedSides()
+    const { sideA, sideB, meta } = resolveSides(this._sides, this._reason, this._metadata)
 
-    const unbound = this.unboundDeclarationFindings(sideA, sideB, meta)
+    const unbound = unboundDeclarationFindings(this.declared(), sideA, sideB)
     // A configuration fault: the sides were never materialized, so nothing was
     // examined. Plan 0098 — 0 here is the honest number, not a placeholder.
     if (unbound.length > 0) return { violations: unbound, examined: 0 }
 
-    const [aKeyed, bKeyed] = this.materializedSides(sideA, sideB)
-    const result = setCorrespondence(aKeyed.keys(), bKeyed.keys())
-    const pairing: Pairing = { sideA, sideB, aKeyed, bKeyed, result, meta }
+    const pairing = this.pairingFor(sideA, sideB, meta)
 
     // Emptiness first: a side that resolved nothing makes every later question
     // vacuous, so its finding replaces them rather than joining them.
-    const { emptyFindings, falseDeclarations } = this.emptinessFindings(pairing)
+    const { emptyFindings, falseDeclarations } = emptinessFindings(pairing)
     if (emptyFindings.length > 0) {
       return {
         violations: [...emptyFindings, ...falseDeclarations],
@@ -481,289 +419,10 @@ export class CorrespondenceBuilder extends TerminalBuilder {
     return {
       violations: [
         ...falseDeclarations,
-        ...this.matchFindings(pairing),
-        ...this.duplicateKeyFindings(pairing),
+        ...matchFindings(pairing),
+        ...duplicateKeyFindings(pairing),
       ],
       examined: this.examinedUnits(),
-    }
-  }
-
-  /**
-   * Declarations — `.expectEmpty(name)` / `.withDistinctKeys(name)` — that name a
-   * side this correspondence does not have.
-   *
-   * A declaration that binds to no side is a configuration finding, not a no-op
-   * (plan 0097, correcting the same defect the shipped version had).
-   * `.expectEmpty('servcies')` was accepted silently and asserted nothing
-   * forever: the exact hazard this class's own docstring rejects the permanent
-   * form for ("one word, silent forever, TYPO OR NOT, and nothing revisits it"),
-   * inherited whole by the replacement.
-   *
-   * ADR-009 part 3 already ruled the structurally identical preset case — a
-   * declaration binding to no constructed rule is a FAILING finding, never a
-   * warning — so this follows settled precedent rather than deciding anew.
-   *
-   * Here rather than in the setter: `.expectEmpty(name)` may legally precede
-   * `.side(name, …)`, so the setter cannot know yet.
-   *
-   * A Set, not a concatenation: a name in BOTH sets produced two findings with
-   * identical element, message, file and line — the identity shape bugs 0064,
-   * 0065 and 0067 were filed for. And membership is tested against the side LIST
-   * rather than two name comparisons, so it cannot rot if arity ever changes.
-   */
-  private unboundDeclarationFindings(
-    sideA: Side,
-    sideB: Side,
-    meta: ViolationMeta,
-  ): ArchViolation[] {
-    const declaredNames = new Set([...this._expectEmptySides, ...this._distinctKeys])
-    return [...declaredNames]
-      .filter((n) => !this._sides.some((side) => side.name === n))
-      .map((name) => this.unboundSideViolation(name, meta, [sideA.name, sideB.name]))
-  }
-
-  /**
-   * Findings about each side being empty, and about a declaration that says so
-   * while the side is not.
-   */
-  private emptinessFindings(p: Pairing): {
-    emptyFindings: ArchViolation[]
-    falseDeclarations: ArchViolation[]
-  } {
-    const { sideA, sideB, result, meta } = p
-    const emptyFindings: ArchViolation[] = []
-    const falseDeclarations: ArchViolation[] = []
-    for (const [side, isEmpty] of [
-      [sideA, result.aEmpty],
-      [sideB, result.bEmpty],
-    ] as const) {
-      // Per-side only. A `declaresEmpty()` helper stood here with an
-      // `_expectEmpty || every(side => declared)` body; the `every` half was
-      // unreachable — if every side is in the set then `has(side.name)` is
-      // already true for the side under test — and three reviewers deleted it
-      // against the full suite with nothing failing. Its stated rationale
-      // ("without the OR a user who declared both sides still redded") was a
-      // property the code never had.
-      const sideDeclared = this._expectEmptySides.has(side.name)
-      if (isEmpty && !sideDeclared) {
-        emptyFindings.push(this.emptyViolation(side.name, meta))
-      }
-      // The expiry half, and the reason this is an assertion rather than a
-      // permission: a declared-empty side that filled up is the intent
-      // reporting itself, where `allowEmpty()` stayed silent forever.
-      if (!isEmpty && this._expectEmptySides.has(side.name)) {
-        falseDeclarations.push(this.unexpectedlyNonEmptyViolation(side.name, meta))
-      }
-    }
-    return { emptyFindings, falseDeclarations }
-  }
-
-  /**
-   * Findings from the correspondence itself — keys on one side with no partner
-   * on the other, in whichever directions the rule asked about.
-   */
-  private matchFindings(p: Pairing): ArchViolation[] {
-    const { sideA, sideB, aKeyed, bKeyed, result, meta } = p
-    const violations: ArchViolation[] = []
-
-    if (this._checkComplete) {
-      for (const key of result.missing) {
-        violations.push(
-          ...this.keyViolations(
-            aKeyed,
-            key,
-            `${sideA.name} "${key}" has no matching ${sideB.name}`,
-            meta,
-          ),
-        )
-      }
-    }
-    if (this._checkNoOrphans) {
-      for (const key of result.orphans) {
-        violations.push(
-          ...this.keyViolations(
-            bKeyed,
-            key,
-            `${sideB.name} "${key}" has no matching ${sideA.name}`,
-            meta,
-          ),
-        )
-      }
-    }
-
-    // Over-normalization guard (opt-in): one key from many subjects can mask a
-    // real "two subjects, one counterpart" mismatch.
-    return violations
-  }
-
-  /**
-   * Findings for a side whose key function maps several distinct subjects onto
-   * one key — over-normalization can mask a real mismatch.
-   */
-  private duplicateKeyFindings(p: Pairing): ArchViolation[] {
-    const { sideA, sideB, aKeyed, bKeyed, meta } = p
-    const violations: ArchViolation[] = []
-    for (const side of [sideA, sideB] as const) {
-      if (!this._distinctKeys.has(side.name)) continue
-      const keyed = side === sideA ? aKeyed : bKeyed
-      for (const [key, subjects] of keyed) {
-        if (subjects.length > 1) {
-          violations.push(
-            ...this.keyViolations(
-              keyed,
-              key,
-              `${side.name} maps ${String(subjects.length)} distinct subjects to the key "${key}" — over-normalization can mask a real mismatch`,
-              meta,
-            ),
-          )
-        }
-      }
-    }
-
-    // NOTE: independence of the two sides is a *requirement* stated in the docs,
-    // not something the builder can mechanically enforce — two literal lists can
-    // be legitimately independent (e.g. Object.keys of two different runtime
-    // objects), so a "both sides literal" heuristic would false-positive, and a
-    // console.warn is invisible to the agent consumer (ADR-008). Left to review.
-
-    // The false declaration FIRST — it says the configuration is wrong, which the
-    // reader needs before the findings produced under it, matching the ordering
-    // `RuleBuilder.evaluate` and the preset config findings already use.
-    return violations
-  }
-
-  private keyViolations(
-    keyed: Map<string, unknown[]>,
-    key: string,
-    message: string,
-    meta: ViolationMeta,
-  ): ArchViolation[] {
-    const subjects = keyed.get(key) ?? []
-    if (subjects.length === 0) {
-      // Plain-key side — no source location available.
-      return [this.baseViolation({ element: key, file: '', line: 0 }, message, meta)]
-    }
-    return subjects.map((subject) => {
-      const node = toNode(subject)
-      if (node) {
-        return this.baseViolation(
-          {
-            element: getElementName(node),
-            file: getElementFile(node),
-            line: getElementLine(node),
-          },
-          message,
-          meta,
-        )
-      }
-      return this.baseViolation({ element: key, file: '', line: 0 }, message, meta)
-    })
-  }
-
-  /**
-   * A declaration names a side this rule does not have — plan 0097.
-   *
-   * Covers `.expectEmpty(name)` and `.distinctKeysOn(name)` alike, because both
-   * are membership tests against side names and both were silent on a typo. The
-   * remedy is mechanical and names the sides that DO exist, so the reader does
-   * not have to go and look.
-   */
-  private unboundSideViolation(
-    name: string,
-    meta: ViolationMeta,
-    actual: readonly string[],
-  ): ArchViolation {
-    const known = actual.map((s) => `'${s}'`).join(' and ')
-    return {
-      ...this.baseViolation(
-        { element: name, file: '', line: 0 },
-        `this rule declares something about a side named '${name}', but its sides are ${known} — ` +
-          `so the declaration binds to nothing and asserts nothing.`,
-        {
-          rule: `correspondence [${actual.join(' <-> ')}]`,
-          because: this._reason,
-          ruleId: this._metadata?.id,
-        },
-      ),
-      suggestion: `Correct the side name to one of ${known}, or remove the declaration.`,
-      docs: undefined,
-      bypassFilters: true,
-    }
-  }
-
-  /**
-   * The declared side filled up — plan 0097.
-   *
-   * This finding is why `.expectEmpty(side)` replaced `allowEmpty(side)`: the
-   * permission had no failing state, so a side that gained keys silently kept a
-   * rule green that was certifying nothing about them. An assertion that expires
-   * reports itself; a permission never does.
-   *
-   * Its remedy is mechanical and is the one ADR-008 rule 2 asks be verified:
-   * remove the declaration, and the finding clears.
-   */
-  private unexpectedlyNonEmptyViolation(sideName: string, meta: ViolationMeta): ArchViolation {
-    return {
-      ...this.baseViolation(
-        { element: sideName, file: '', line: 0 },
-        `correspondence side '${sideName}' was declared empty with .expectEmpty('${sideName}'), ` +
-          `and now matches subjects — so the declaration no longer describes this rule.`,
-        meta,
-      ),
-      suggestion:
-        `Remove .expectEmpty('${sideName}') so the side is compared like any other, or narrow ` +
-        `the '${sideName}' selector if it was meant to stay empty.`,
-      docs: undefined,
-      bypassFilters: true,
-    }
-  }
-
-  private emptyViolation(sideName: string, meta: ViolationMeta): ArchViolation {
-    return {
-      ...this.baseViolation(
-        { element: sideName, file: '', line: 0 },
-        `correspondence side '${sideName}' matched 0 subjects — a correspondence over an ` +
-          `empty side certifies nothing. Fix the selector, or call .expectEmpty('${sideName}') ` +
-          `if an empty side is valid here.`,
-        meta,
-      ),
-      // Its own remedy, overriding what `baseViolation` copied from the rule's
-      // metadata (bug 0021). `baseViolation` is shared with real violations, where
-      // inheriting the author's `suggestion` is correct — so the override has to be
-      // here, and the guard in `execute-rule.ts` cannot reach it.
-      suggestion:
-        `Fix the '${sideName}' selector so it matches at least one subject, or call ` +
-        `.expectEmpty('${sideName}') if an empty side is the point — that asserts it, and fails the day the side fills up.`,
-      docs: undefined,
-      // Config-level meta-finding: no source file to attribute to, so it must
-      // survive diff-aware/baseline or the guard re-greens under standard CI.
-      bypassFilters: true,
-    }
-  }
-
-  /**
-   * The common shape of every correspondence finding.
-   *
-   * `element`/`file`/`line` travel together as one `at` — they are a location,
-   * and passing three positional strings-and-a-number invited exactly the
-   * transposition the parameter cap exists to prevent.
-   */
-  private baseViolation(
-    at: { element: string; file: string; line: number },
-    message: string,
-    meta: ViolationMeta,
-  ): ArchViolation {
-    const { element, file, line } = at
-    return {
-      rule: meta.rule,
-      ruleId: meta.ruleId,
-      element,
-      file,
-      line,
-      message,
-      because: meta.because,
-      suggestion: meta.suggestion,
-      docs: meta.docs,
     }
   }
 }

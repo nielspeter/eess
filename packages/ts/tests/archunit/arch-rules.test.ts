@@ -1302,6 +1302,7 @@ it('VACUITY: the orphan check really reads our directives', () => {
     'graphql/schema-loader.ts',
   ])
   expect(waiverFiles('eess/no-unused-exports')).toEqual([
+    'builders/correspondence-builder.ts',
     'builders/cross-layer-builder.ts',
     'cli/index.ts',
     'cli/rule-file-findings.ts',

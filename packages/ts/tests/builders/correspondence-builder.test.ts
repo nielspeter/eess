@@ -389,15 +389,19 @@ describe('correspondence()', () => {
       expect(() => rule.check()).not.toThrow(RangeError)
     })
 
-    it('the arity invariant survives on collectViolations for a direct caller', () => {
-      // The throw is now unreachable through every terminal, so this asserts it
-      // is still THERE rather than that it fires: the method indexes _sides[0]
-      // and _sides[1] non-null, and a subclass calling it directly should get
-      // the named error rather than an undefined read. Reading the source is the
+    it('the arity invariant survives for a direct caller', () => {
+      // The throw is unreachable through every terminal, so this asserts it is
+      // still THERE rather than that it fires: the code indexes sides[0] and
+      // sides[1] non-null, and a subclass reaching past the gate should get the
+      // named error rather than an undefined read. Reading the source is the
       // only way to check a branch the terminals cannot reach — a test that
       // called a terminal here would be measuring the gate instead.
+      //
+      // Now in `resolveSides`, which `collectViolations` calls: the guard moved
+      // with the code that needs it, because the arity check is the
+      // precondition for building the rule metadata from both side names.
       const source = fs.readFileSync(
-        path.resolve(import.meta.dirname, '../../src/builders/correspondence-builder.ts'),
+        path.resolve(import.meta.dirname, '../../src/builders/correspondence-findings.ts'),
         'utf-8',
       )
       expect(source).toContain('requires exactly two .side(...) calls')

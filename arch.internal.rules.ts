@@ -215,7 +215,6 @@ const rules = [
   srcClasses()
     .excluding(GENERATED)
     .excluding(/\/ts\/src\/core\/terminal-builder\.ts$/)
-    .excluding(/\/src\/builders\/correspondence-builder\.ts$/)
     .should()
     .satisfy(maxClassLines(250))
     .rule({

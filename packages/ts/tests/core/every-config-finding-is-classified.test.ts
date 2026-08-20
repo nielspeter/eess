@@ -62,16 +62,16 @@ interface Classification {
 }
 
 const CLASSIFIED: Readonly<Record<string, Classification>> = {
-  'src/builders/correspondence-builder.ts::emptyViolation': {
+  'src/builders/correspondence-findings.ts::emptyViolation': {
     remedy: 'own',
     verified: 'behavioural: correspondence-builder.test.ts — adding .beComplete() clears it',
   },
-  'src/builders/correspondence-builder.ts::unboundSideViolation': {
+  'src/builders/correspondence-findings.ts::unboundSideViolation': {
     remedy: 'own',
     verified:
       'behavioural: correspondence-builder.test.ts — correcting the side name clears it (plan 0097)',
   },
-  'src/builders/correspondence-builder.ts::unexpectedlyNonEmptyViolation': {
+  'src/builders/correspondence-findings.ts::unexpectedlyNonEmptyViolation': {
     remedy: 'own',
     verified:
       'behavioural: correspondence-builder.test.ts — removing .expectEmpty(side) clears it (plan 0097)',

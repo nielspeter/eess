@@ -380,14 +380,19 @@ describe('inconsistentSiblings: the second detector the floor gates', () => {
     // Bug 0077(A) and this plan's Problem section both measured this exact
     // rule with a bare `call('copy')`, which never matches `this.copy()` — see
     // the corrected numbers in both documents. `call('this.copy')` is what
-    // actually reaches the AST match: 11 files examined, 4 hold the pattern,
+    // actually reaches the AST match: 12 files examined, 4 hold the pattern,
     // no folder within one edit of a 60% majority (3 > 1) — genuinely inert,
     // not a dead-pattern false negative.
+    //
+    // The denominator moved from 11 when `correspondence-findings.ts` was split
+    // out of `correspondence-builder.ts`. Verified rather than bumped: the new
+    // file holds no `this.copy`, so the numerator is unchanged at 4 and the rule
+    // is inert for exactly the reason stated above.
     const rule = smells
       .inconsistentSiblings(p)
       .inFolder('**/src/builders/**')
       .forPattern(call('this.copy'))
-    expect(rule.examinedUnits()).toBe(11)
+    expect(rule.examinedUnits()).toBe(12)
     expect(rule.violations()).toEqual([])
     built(rule)
     // N-phase: INERT_FINDING_EMIT is false, so check() still passes today —
@@ -399,7 +404,7 @@ describe('inconsistentSiblings: the second detector the floor gates', () => {
     // The diagnose-first preview carries the real numbers regardless of the
     // gate — this is the liquidation: a showcase rule this repo ships, pinned
     // as inert rather than reported as coverage.
-    expect(rule.inertAdvice()).toContain('examined 11 sibling files')
+    expect(rule.inertAdvice()).toContain('examined 12 sibling files')
     expect(rule.inertAdvice()).toContain('only 4 of them')
   })
 })
