@@ -1,10 +1,10 @@
 ---
 '@nielspeter/eess': minor
-'@nielspeter/eess-ts': patch
-'@nielspeter/eess-md': patch
-'@nielspeter/eess-mermaid': patch
-'@nielspeter/eess-gherkin': patch
-'@nielspeter/eess-crossvalidate': patch
+'@nielspeter/eess-ts': minor
+'@nielspeter/eess-md': minor
+'@nielspeter/eess-mermaid': minor
+'@nielspeter/eess-gherkin': minor
+'@nielspeter/eess-crossvalidate': minor
 ---
 
 A rule that selects subjects and asserts nothing about them now fails — bug 0155.

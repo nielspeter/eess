@@ -71,16 +71,28 @@ hiding it: kernel `minor` with the break actually in a dialect on `patch` passes
 A green run prints how many changesets were checked loosely for exactly this
 reason. If your changeset names more than one package, name the owner.
 
-**A break in the kernel must name the dialects.** `@nielspeter/eess` is a regular
-dependency of all five dialects, and `updateInternalDependencies: "patch"` turns a
-kernel `minor` into a dialect `patch`. An adopter installs `eess-ts`, holds no
-range on the kernel at all, and their `^0.3.0` takes that patch silently — with a
+**A break in the kernel must name the dialects, at `minor`.** `@nielspeter/eess`
+is a regular dependency of all five dialects. An adopter installs `eess-ts`, holds
+no range on the kernel at all, and an undeclared dialect inherits the kernel's
+release as a **patch** — a version their `^0.3.0` takes without asking, under a
 changelog reading only "Updated dependencies" (bug 0185).
 
-Naming each dialect in the same changeset fixes both halves: each gets its own
-bump, and each gets the changeset's TEXT in its own changelog.
-`release/break-names-dependents` enforces it. Any bump will do — but not `none`,
-which records no changelog entry, which is the half that matters.
+**There is no configuration that changes this.** `updateInternalDependencies` is
+not it: changesets hard-codes the inherited type to `patch` in
+`assemble-release-plan`, and reads that setting only in `apply-release-plan`, as
+the threshold for rewriting the dependency RANGE string. Declaring the dialect is
+the only lever.
+
+Declaring each dialect at `minor` in the same changeset does both things: the
+dialect ships on a version an adopter will not silently take, and the changeset's
+TEXT lands in that dialect's own changelog instead of "Updated dependencies".
+`release/break-names-dependents` enforces it.
+
+`patch` is not enough and the gate says so. Measured on this repo's own model
+changeset: with the dialects at `patch`, `eess-ts` releases as `0.3.1` and the
+rendered entry reads `**Breaking:** …` under a heading that says
+`### Patch Changes`. At `minor` it releases as `0.4.0` with the text under
+`### Minor Changes`.
 
 Peer dependents are deliberately NOT required. `eess-crossvalidate` peers on the
 four dialects with `>=0.1.1`, and `onlyUpdatePeerDependentsWhenOutOfRange` leaves
@@ -193,5 +205,7 @@ After that, the package releases tokenlessly through the workflow like the rest.
 
 Packages version independently via changesets (`.changeset/config.json`), but in
 practice we bump the family together so the six stay in lockstep at a common
-version. Internal dependency ranges are bumped automatically
-(`updateInternalDependencies: patch`).
+version. Internal dependency RANGES are rewritten automatically
+(`updateInternalDependencies: patch` is the threshold for that rewrite — it does
+**not** control how strongly a dependent's version is bumped, which changesets
+hard-codes to `patch`; see "Signalling a breaking change").

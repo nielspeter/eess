@@ -340,11 +340,11 @@ try {
       // and the dependent still ships the break to anyone who installs it, with
       // a changelog reading "Updated dependencies".
       { file: '.changeset/kernel-break.md', marker: '**Breaking:**' },
-      // `none` is not "named" for this rule. It is a real changesets bump type
-      // meaning "recorded, no release" — so it produces NO changelog entry, which
-      // is the half that matters here: the dependent still ships the break and its
-      // changelog still says nothing about it. Without this row the `!== 'none'`
-      // condition is unexercised and can be deleted silently.
+      // A dependent declared `none` or `patch` is not enough. `none` produces no
+      // changelog entry at all; `patch` produces one on a version an adopter's
+      // caret range takes without asking — and changesets propagates a dependency
+      // bump as a patch regardless of config, so `patch` is exactly the state the
+      // bug is about. Without this row the bump condition is unexercised.
       { file: '.changeset/dep-none.md', marker: '**Breaking:**' },
     ],
     // `@fixture/untouched` depends on `@fixture/quiet`. Regular dependencies

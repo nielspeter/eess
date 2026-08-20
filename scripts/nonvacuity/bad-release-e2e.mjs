@@ -182,9 +182,29 @@ const E2E = [
     ['release/break-names-dependents', '@fixture/beta'],
   ],
   [
-    // The quiet direction: naming the dependent satisfies it. Without this, a
-    // rule that fired on every breaking changeset would pass the row above.
-    'naming the dependent satisfies it',
+    // The quiet direction: naming the dependent AT MINOR satisfies it. Without
+    // this, a rule that fired on every breaking changeset would pass the row above.
+    'naming the dependent at minor satisfies it',
+    ({ write, pkg }) => {
+      write('packages/beta/package.json', pkg('@fixture/beta', '1.0.0', { '@fixture/alpha': '^1.0.0' }))
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write('packages/beta/src/index.ts', 'export const b = 2\n')
+      write(
+        '.changeset/kernel.md',
+        "---\n'@fixture/alpha': minor\n'@fixture/beta': minor\n---\n\n**Breaking:** `a` is gone.\n",
+      )
+    },
+    0,
+    ['release readiness'],
+    ['release/break-names-dependents'],
+  ],
+  [
+    // `patch` is NOT enough, and this is the row that pins it. changesets
+    // propagates a dependency bump as a patch whatever `updateInternalDependencies`
+    // says — measured in its source — so a dependent declared `patch` ships the
+    // break on a version an adopter's caret range takes without asking. Naming it
+    // was never the point; naming it at a version they will not silently take is.
+    'naming the dependent at patch is NOT enough',
     ({ write, pkg }) => {
       write('packages/beta/package.json', pkg('@fixture/beta', '1.0.0', { '@fixture/alpha': '^1.0.0' }))
       write('packages/alpha/src/index.ts', 'export const a = 2\n')
@@ -194,9 +214,8 @@ const E2E = [
         "---\n'@fixture/alpha': minor\n'@fixture/beta': patch\n---\n\n**Breaking:** `a` is gone.\n",
       )
     },
-    0,
-    ['release readiness'],
-    ['release/break-names-dependents'],
+    1,
+    ['release/break-names-dependents', '@fixture/beta'],
   ],
   [
     'a clean tree with the base at HEAD says it had nothing to read',

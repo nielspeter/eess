@@ -221,10 +221,11 @@ const WHY_BREAKING_PATCH =
   'provenance and npm refuses to re-publish a version, so the wrong bump is permanent within ' +
   'the hour it takes anyone to notice'
 const WHY_BREAK_HIDES_IN_A_DEPENDENT =
-  'an adopter installs a DIALECT and holds no version range on the kernel at all, so a break ' +
-  'announced only on the broken package reaches them through a dependent release whose changelog ' +
-  'says nothing but "Updated dependencies" — naming the dependent is what puts the real text in ' +
-  'the changelog they actually read'
+  'an adopter installs a DEPENDENT and may hold no version range on the broken package at all, ' +
+  'so a break announced only where it happened reaches them as an inherited PATCH — a version ' +
+  'their caret range takes without asking, under a changelog that never mentions the break. ' +
+  'Declaring the dependent at minor is the only lever: changesets propagates an inherited bump ' +
+  'as a patch regardless of configuration'
 const WHY_UNPARSEABLE =
   'a changeset the release tool cannot read declares nothing, and a file that declares nothing ' +
   'must never be mistaken for one declaring "this ships nothing"'
@@ -445,10 +446,19 @@ export function releaseViolations({
   //
   // Measured with the real `changeset version` (bug 0185): a kernel break
   // correctly declared `minor` produces `@nielspeter/eess-ts@0.3.1` whose entire
-  // changelog entry is "Updated dependencies", because
-  // `updateInternalDependencies: "patch"` converts a kernel minor into a dialect
-  // patch. On 0.x, `^0.3.0` blocks `0.4.0` but takes `0.3.1` — so the barrier the
-  // `minor` was supposed to raise never reaches the package anyone installs.
+  // changelog entry is "Updated dependencies". On 0.x, `^0.3.0` blocks `0.4.0` but
+  // takes `0.3.1` — so the barrier the `minor` was supposed to raise never reaches
+  // the package anyone installs.
+  //
+  // **The cause is NOT `updateInternalDependencies`**, which an earlier version of
+  // this comment blamed. Review read the changesets source:
+  // `assemble-release-plan` hard-codes the propagated type —
+  // `if (type !== 'major' && type !== 'minor') type = 'patch'` — and never reads
+  // that setting at all; it is consumed only by `apply-release-plan` as
+  // `minReleaseType`, the threshold for rewriting the dependency RANGE string.
+  // There is no configuration under which an inherited bump becomes a minor. So
+  // the only thing that raises the barrier is DECLARING the dependent, which is
+  // why this rule requires `minor` rather than merely a mention.
   //
   // Naming the dependent in the SAME changeset fixes both halves at once: it gets
   // its own bump, and it gets the changeset's TEXT in its own changelog rather
@@ -458,22 +468,32 @@ export function releaseViolations({
   // `none` does not count as named: it produces no changelog entry, which is the
   // half that matters here.
   //
-  // **What this delivers, stated precisely, because an earlier `because` claimed
-  // more.** Requiring "any bump except none" fixes the INFORMATION half — the
-  // dependent's changelog carries the changeset's real text instead of "Updated
-  // dependencies". It does NOT raise a version barrier: a dependent declared
-  // `patch` is still taken silently by `^0.3.0`, and the rendered entry lands
-  // under "### Patch Changes" while its body says "Breaking". Review measured
-  // exactly that on `assertion-less-rules-fail.md`, the changeset this rule was
-  // modelled on.
+  // **The VERSION is not evidence either way, which review established by
+  // measurement.** Strip the five dialect rows from `assertion-less-rules-fail.md`
+  // and run the real `changeset version`: `eess-ts` still lands on 0.4.0, because
+  // an unrelated pending changeset declares it `minor`. A reviewer read that as
+  // the rule firing where no harm occurs. It is not — re-measured, `eess-ts`'s
+  // changelog contains the OTHER changesets' text and **nothing** about this
+  // break, which appears only in the kernel's. The barrier can be raised by
+  // accident; the missing text cannot be, and that is the harm this rule names.
   //
-  // Requiring dependents at `minor` would close the barrier half too, and is
-  // narrower than flipping `updateInternalDependencies` globally because it fires
-  // only on a MARKED break. It is not built here because it changes the family's
-  // versioning policy — it would redden the current pending changeset, which
-  // declares its five dialects at `patch` by deliberate hand — and that is a
-  // decision to take openly rather than as a side effect of a gate. Recorded in
-  // bug 0185.
+  // It follows that the question is per-FILE and not per-release: whether some
+  // other pending changeset happens to bump the dependent is incidental, and the
+  // pending set is not stable — a changeset can be released alone.
+  //
+  // **Why `minor` and not merely "named".** An earlier version accepted any bump
+  // except `none`, on the reasoning that the changelog TEXT was the half that
+  // mattered. Measured, that fixed one half and left the other exactly as the bug
+  // found it: with the dependent at `patch`, `eess-ts` releases as `0.3.1` and the
+  // entry renders as `**Breaking:** …` under a heading saying `### Patch Changes`,
+  // which an adopter's caret range takes without asking. At `minor` it releases as
+  // `0.4.0` with the text under `### Minor Changes`.
+  //
+  // This does change how the family versions on a marked break — every dependent
+  // moves a minor — and it reddened one pending changeset, which now declares its
+  // five dialects at `minor` rather than `patch`. That is the deliberate trade:
+  // the bug is about a break reaching an adopter silently, and only the version
+  // stops that.
   const breakHiddenInDependent = breakingAnnotated.flatMap(({ file, decls, owners }) => {
     const declared = new Set(decls.map((d) => d.pkg))
     const broken =
@@ -484,16 +504,18 @@ export function releaseViolations({
       ...new Set(
         broken.flatMap((b) =>
           (dependentsOf[b] ?? []).filter(
-            (dep) => !decls.some((d) => d.pkg === dep && d.bump !== 'none'),
+            (dep) =>
+              !decls.some((d) => d.pkg === dep && (d.bump === 'minor' || d.bump === 'major')),
           ),
         ),
       ),
     ].sort()
     if (missing.length === 0) return []
     const suggestion =
-      `add ${missing.join(', ')} to this changeset — any bump, but not \`none\`. They depend on ` +
-      `${broken.join(', ')}, so they ship this break to anyone who installs THEM, and their ` +
-      `changelog will otherwise read only "Updated dependencies".`
+      `add ${missing.join(', ')} to this changeset at \`minor\`. They depend on ` +
+      `${broken.join(', ')}, so they ship this break to anyone who installs THEM. ` +
+      `\`patch\` is not enough: changesets propagates a dependency bump as a patch no matter ` +
+      `what, and a patch is the release an adopter's \`^0.3.0\` takes without asking.`
     return [
       {
         rule: 'correspondence',

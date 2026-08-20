@@ -42,14 +42,23 @@ patch` throughout — and it was right. The changeset was correct.
 
 ## Root cause
 
-`.changeset/config.json` sets `updateInternalDependencies: "patch"`. That converts
-a correctly-declared kernel `minor` into a `patch` on every dialect. On `0.x`,
-`^0.3.0` / `~0.3.0` / `0.3.x` all resolve to `>=0.3.0 <0.4.0`, so a `minor` is a
-real barrier for the package an adopter installs directly — and a `patch` is not.
+An undeclared dependent **inherits** the release as a `patch`, and no configuration
+changes that. On `0.x`, `^0.3.0` / `~0.3.0` / `0.3.x` all resolve to
+`>=0.3.0 <0.4.0`, so a `minor` is a real barrier for the package an adopter
+installs directly and a `patch` is not. Declaring the dependent is the only lever
+there is.
 
-So the break is announced on a package the adopter does not depend on, in a
-version they never see, while the package they DO depend on says "Updated
-dependencies".
+**The first version of this record blamed `updateInternalDependencies: "patch"`,
+and that was a mechanism which does not exist.** It was asserted in four places.
+Review read the changesets source: `assemble-release-plan` hard-codes the
+inherited type — `if (type !== 'major' && type !== 'minor') type = 'patch'` — and
+never reads that setting at all; it is consumed only by `apply-release-plan` as
+`minReleaseType`, the threshold for rewriting the dependency RANGE string.
+Measured: flipping it to `"minor"` leaves `eess-ts` at `0.3.1`, unchanged.
+
+The error mattered twice. It invented a cause, and it made a rejected alternative
+look like a real option with a stated cost ("version inflation") when it in fact
+does nothing.
 
 ## The repo already knows, and applies the fix by hand
 
@@ -61,103 +70,89 @@ dependencies".
 > "Updated dependencies" — the standalone-sufficiency failure `check:family`
 > exists to prevent, in documentation rather than code.
 
-That paragraph is the missing rule, written as prose and enforced by nobody. It is
-the same situation bug 0184 was opened to fix, one level up: a convention that
-holds only while whoever writes the changeset remembers it.
+That paragraph is the missing rule, written as prose and enforced by nobody.
 
 ## Fix
 
-`release/break-names-dependents`, in `scripts/release-gate.mjs`'s pure core.
+`release/break-names-dependents`, in `scripts/release-gate.mjs`'s pure core: a
+break declared on a package must name every workspace package that lists it in
+`dependencies`, **at `minor` or `major`**.
 
-**Option 1 of the two the draft offered — gate it — and the reason for choosing
-it over changing propagation is that it fixes both halves.**
-`updateInternalDependencies: "minor"` would raise a version barrier but leave the
-dialect's changelog still saying "Updated dependencies"; the adopter would be
-stopped without being told why. Naming the dependent in the same changeset gets it
-its own bump AND the changeset's text in its own changelog. It is also what the
-repo already does by hand — `assertion-less-rules-fail.md` names all six packages
-and explains why in a paragraph — so this makes an existing convention
-enforceable rather than inventing one.
+`minor`, not merely "named". Three reviewers converged on this independently and
+it is what the measurement supports. With the dependent at `patch`, `eess-ts`
+releases as `0.3.1` and the rendered entry reads `**Breaking:** …` under a heading
+saying `### Patch Changes` — an adopter's caret range still takes it without
+asking. At `minor` it releases as `0.4.0`, with the text under `### Minor
+Changes`. Both measured with the real `changeset version`.
 
-A break declared on a package must name every workspace package that lists it in
-`dependencies`. Any bump satisfies it except `none`, which records no changelog
-entry — the half that matters here.
+An earlier version of this rule accepted any bump except `none`, and this record
+claimed that "fixes both halves at once". It did not — it fixed the information
+half and left the barrier exactly as the bug found it. That claim was wrong twice:
+once when written, and once when corrected to "information half only" while the
+remedy printed to contributors still said "any bump will do".
 
-**Regular dependencies only, deliberately.** `eess-crossvalidate` peers on the
-four dialects at `>=0.1.1`, and `onlyUpdatePeerDependentsWhenOutOfRange: true`
-leaves a peer dependent unbumped on purpose — it is the countermeasure for the
-`1.0.0` escalation. Requiring a peer dependent to be declared would fight that.
-The residual cost (crossvalidate's changelog cannot record a sibling break) is
-documented in `RELEASING.md` rather than gated.
+**The cost is one pending changeset.** `assertion-less-rules-fail.md` declared its
+five dialects at `patch`; they are now `minor`, which is what its own body says it
+wants. This does change how the family versions on a marked break — every
+dependent moves a minor — and that is the deliberate trade: a break that reaches
+an adopter silently is the thing the bug is about.
 
-The dependency graph makes the rule narrow: only `@nielspeter/eess` has regular
-dependents, so in practice this says "a kernel break names its five dialects".
-Measured — it reddens nothing on the current tree.
+**Regular dependencies only.** `eess-crossvalidate` peers on the four dialects at
+`>=0.1.1`, and `onlyUpdatePeerDependentsWhenOutOfRange: true` leaves a peer
+dependent unbumped on purpose — the countermeasure for the `1.0.0` escalation.
+Requiring a peer dependent to be declared would fight it. The residual cost
+(crossvalidate's changelog cannot record a sibling break) is in `RELEASING.md`.
+
+The graph keeps the rule narrow: only `@nielspeter/eess` has regular dependents,
+so in practice it says "a kernel break names its five dialects at minor".
+
+## Corrections from review
+
+- **The causal model was false** — see Root cause. Four places corrected.
+- **"Fixes both halves" was false** when the rule accepted `patch`. It is true now
+  that the rule requires `minor`, and it is stated as a measured outcome rather
+  than an argument.
+- **The gate contradicted a skill.** `.claude/skills/release/SKILL.md` — the
+  document an agent loads when told to cut a release — says "Don't pad the
+  changeset with untouched packages … That fakes a change that didn't happen."
+  This rule requires exactly that for a break. Two authorities in one repo giving
+  opposite instructions is the drift this project exists to catch. The skill now
+  carries the carve-out.
+- **A reviewer read the rule as firing where no harm occurs.** Stripping the five
+  dialect rows and running `changeset version` leaves `eess-ts` at `0.4.0` anyway,
+  because an unrelated pending changeset declares it `minor` — so the _version_
+  looked fine. Re-measured: `eess-ts`'s changelog then contains the other
+  changesets' text and **nothing** about this break, which appears only in the
+  kernel's. The barrier can be raised by accident; the missing text cannot be. The
+  question is therefore per-FILE, not per-release: whether some other changeset
+  happens to bump the dependent is incidental, and the pending set is not stable.
 
 ## Verification
 
-- [x] A kernel break naming only the kernel fails. Sabotage-verified **on the real
-      repo**: stripping the five dialect declarations from
-      `.changeset/assertion-less-rules-fail.md` produces
-      `release/break-names-dependents` naming all five missing packages, and
-      `check:release` exits 1. Restored, exits 0.
-- [x] Naming the dependents satisfies it — pinned in both fixtures, so a rule that
-      fired on every breaking changeset could not pass.
-- [x] `none` does not count as named. Pinned; without that row the `!== 'none'`
-      condition was unexercised and survived deletion — found by running the
-      mutation matrix rather than assumed.
-- [x] **The shell wiring is covered, which is the mistake bug 0184 made twice.**
-      The pure fixture passes `dependentsOf` in as a literal, so the code reading
-      `dependencies` out of each `package.json` and inverting it is reachable only
-      end to end. Two `bad-release-e2e.mjs` scenarios walk it. Five mutations run,
-      five caught: rule returns nothing · dropped from the violations array · shell
-      stops reading `dependencies` · argument severed at the call site · `none`
-      counts as named.
-- [x] Registered: `check:nonvacuity` is 43 fixtures (was 42), and the gate-coverage
-      meta-check claims the rule under `check:release`.
-- [x] Documented where a contributor reads it — `RELEASING.md` and `CLAUDE.md`.
+- [x] A kernel break naming only the kernel fails. Sabotage-verified on the real
+      repo, naming all five missing packages; `check:release` exits 1.
+- [x] Naming the dependents at `patch` **also** fails — pinned end to end, because
+      that is the state the bug is actually about.
+- [x] Naming them at `minor` passes, and the adopter is protected: measured with
+      the real `changeset version`, `eess-ts` lands on `0.4.0` and its changelog
+      carries the break text. Previously `0.3.1` under "Patch Changes".
+- [x] `none` does not count. Pinned; without that row the bump condition was
+      unexercised and survived deletion.
+- [x] **The shell wiring is covered** — the mistake bug 0184 made twice. The pure
+      fixture passes `dependentsOf` in as a literal, so the code reading
+      `dependencies` out of each `package.json` is reachable only end to end. Five
+      mutations run, five caught.
+- [x] `check:nonvacuity` is 43 fixtures; the gate-coverage meta-check claims the
+      rule under `check:release`.
+- [x] Documented in `RELEASING.md`, `.changeset/README.md`, `CLAUDE.md`, and the
+      release skill.
 - [x] `npm run validate` exits 0.
-
-## Corrected in review
-
-**The `because` over-claimed, and the record repeated it.** Both said naming the
-dependent "fixes both halves at once". It fixes the INFORMATION half: the
-dependent's changelog carries the changeset's real text instead of "Updated
-dependencies". It does not raise a version barrier. Requiring "any bump except
-`none`" is satisfied by `patch`, and `^0.3.0` still takes a patch silently —
-review measured the rendered result on the very changeset this rule was modelled
-on, where the **Breaking** paragraph lands under a `### Patch Changes` heading.
-The rationale now claims only what the rule delivers.
-
-**A third option nobody had considered.** The draft weighed gating against
-flipping `updateInternalDependencies` globally, and rejected the latter as version
-inflation. The targeted form — require dependents at `minor`, but **only on a
-marked break** — inflates nothing on ordinary kernel minors and would close the
-barrier half too.
-
-It is not built, and the reason is that it changes the family's versioning policy
-rather than enforcing an existing one. It would redden
-`.changeset/assertion-less-rules-fail.md`, which declares its five dialects at
-`patch` by deliberate hand and explains why in its own body. Taking that decision
-as a side effect of a gate is the wrong way round. It is a live option, recorded
-here so the weaker form does not calcify into "the convention" by default.
-
-**The gate contradicted a skill.** `.claude/skills/release/SKILL.md` — the
-document an agent loads when told to cut a release — says "Don't pad the changeset
-with untouched packages … That fakes a change that didn't happen." The new rule
-requires exactly that for a break. Two authorities in one repo giving opposite
-instructions on the same file is the drift this project exists to catch, committed
-by this project. The skill now carries the carve-out, and states why a propagating
-break is not padding.
 
 ## Not fixed, and why
 
-`updateInternalDependencies` stays `"patch"`. With the gate in place a kernel
-break now reaches an adopter as a dialect release carrying real changelog text, so
-the propagation setting is no longer the thing standing between them and the
-information. Changing it would move every dialect's minor on every kernel minor,
-breaking-or-not, which is version inflation bought for a case the gate now covers.
+`updateInternalDependencies` stays `"patch"` — not as a decision, but because it
+has no bearing on this. Changing it moves nothing.
 
-What remains uncovered is a kernel break that is never MARKED as one — the same
-residue bug 0184 records, inherited here: this rule only runs on changesets the
-detector recognises as breaking.
+What remains uncovered is a break that is never MARKED as one: both rules run only
+on changesets the detector recognises. That residue is inherited from bug 0184 and
+recorded there.
