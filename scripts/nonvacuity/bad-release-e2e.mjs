@@ -94,6 +94,39 @@ const E2E = [
     ['release/changed-package-needs-changeset', '@fixture/alpha'],
   ],
   [
+    // Bug 0184's SHELL half. The pure-core fixture passes `breakingFiles` as a
+    // literal, so the chain `declarationsIn -> .breakingMarker -> breakingFiles
+    // -> releaseViolations` is never walked there. Review measured two one-line
+    // mutations in `check-release.mjs` — dropping the push, and dropping the
+    // argument from the call — that each let a real break ship as a patch while
+    // the pure-core fixture stayed green. This scenario walks the whole chain.
+    'a body declaring a break, bumped patch, is caught end to end',
+    ({ write }) => {
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write(
+        '.changeset/breaks.md',
+        "---\n'@fixture/alpha': patch\n---\n\n**Breaking:** `a` is no longer exported.\n",
+      )
+    },
+    1,
+    ['release/breaking-needs-minor', '.changeset/breaks.md'],
+  ],
+  [
+    // The other direction, in the same shell: the rule must not fire when the
+    // break IS declared past patch, or it reddens every correct release.
+    'a body declaring a break, bumped minor, is quiet',
+    ({ write }) => {
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write(
+        '.changeset/breaks.md',
+        "---\n'@fixture/alpha': minor\n---\n\n**Breaking:** `a` is no longer exported.\n",
+      )
+    },
+    0,
+    ['1 of 1 changeset(s) declare a break'],
+    ['release/breaking-needs-minor'],
+  ],
+  [
     'a clean tree with the base at HEAD says it had nothing to read',
     () => {},
     0,

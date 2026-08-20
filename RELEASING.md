@@ -29,6 +29,43 @@ Three ways to satisfy it, all of them declarations:
 over `--empty` in a mixed PR — `--empty` waives the whole run, and the gate says
 which packages it therefore left unchecked.
 
+## Signalling a breaking change (bug 0184)
+
+A break must be **marked in the body** and bumped past `patch`. `check:release`
+reads the marker, not your prose.
+
+| what you write                        | what it means                                           |
+| ------------------------------------- | ------------------------------------------------------- |
+| a line starting `**Breaking …**`      | the house spelling — 4 of the pending changesets use it |
+| a `## Breaking` heading               | also read                                               |
+| `BREAKING CHANGE` / `BREAKING-CHANGE` | the conventional-commits spelling, also read            |
+
+On a `0.x` package a break is a **`minor`**, never `major` — `major` takes the
+package to `1.0.0`, which is a permanent stability claim, and never `patch`,
+which is the bump an adopter takes without reading anything.
+
+**Name the owning package when the changeset touches several.**
+`**Breaking (@nielspeter/eess-ts):**` makes ownership machine-readable, and the
+rule then requires _that_ package past `patch`.
+
+Without an owner it can only ask that **at least one** package is past `patch`,
+because a break is owned by one package while its siblings take a dependency
+patch — `assertion-less-rules-fail.md` is kernel `minor` plus five dialects on
+`patch`, and demanding all of them would redden a correct changeset.
+
+That weaker form has a real hole, and the gate says so out loud rather than
+hiding it: kernel `minor` with the break actually in a dialect on `patch` passes.
+A green run prints how many changesets were checked loosely for exactly this
+reason. If your changeset names more than one package, name the owner.
+
+**The limit, stated because it is load-bearing:** an unmarked break is not
+caught. This gate exists to stop a changeset that SAYS "Breaking" from shipping
+as a patch — it does not infer intent from prose, and no gate does. If you are
+breaking something, write the marker.
+
+`none` is not a way out. It means "no release, recorded", and a body declaring a
+break alongside it is still wrong; the rule fires and says so.
+
 The gate reads a **base ref** (`EESS_RELEASE_BASE`, else the PR's target, else
 `origin/main`, else `main`) and hard-errors if none resolves, so CI checks out
 with `fetch-depth: 0`. It runs on pull requests only: after a merge there is no

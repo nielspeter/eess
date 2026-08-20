@@ -109,7 +109,7 @@ export function packagesTouchedBy(changedFiles, packages) {
  *
  * **The keyword set is measured, not guessed** (bug 0184). Two forms count:
  *
- * - a bolded `**Breaking…**` lead, which is how this repo writes it — 3 of the 9
+ * - a bolded `**Breaking…**` lead, which is how this repo writes it — 4 of the 9
  *   changesets pending when this was built use exactly that shape;
  * - `BREAKING CHANGE` / `BREAKING-CHANGE`, the conventional-commits marker, so a
  *   contributor who reaches for the ecosystem-standard spelling is covered.
@@ -117,25 +117,50 @@ export function packagesTouchedBy(changedFiles, packages) {
  * **What deliberately does NOT count, and why each was rejected:**
  *
  * - `**Migration:**` sections. The obvious second signal, and wrong: 5 pending
- *   changesets carry one and only 3 describe a break, so the two sets differ.
+ *   changesets carry one and only 4 describe a break, so the two sets differ.
  *   Migration guidance accompanies plenty of non-breaking minors.
  * - bare `/breaking/i`. "This is **not** a breaking change" and "avoids breaking
  *   the baseline" both match it. A gate that reddens correct changesets is one
- *   that gets suppressed — ADR-009 rule 3 — and suppressing this one re-opens an
+ *   that gets suppressed — ADR-009 rule 1, whose discriminator is whether the
+ *   remedy is optional and which warns that failing on a judgement call trains
+ *   the reader to suppress — and suppressing this one re-opens an
  *   irreversible path.
  *
- * Requiring the bold marker or the all-caps form makes the negations impossible
- * by construction rather than by a lookaround nobody can read.
+ * Requiring a line-anchored marker or the all-caps form means every negation we
+ * measured fails to match, without a lookaround nobody can read. Stated as
+ * "measured", not "impossible": an unanchored version of this claimed the
+ * stronger thing and was wrong — `a **Breaking** change but did not make one`
+ * matched it.
  *
  * The cost of the narrow set is stated rather than hidden: a break announced in
  * unadorned prose is not caught. That is the honest trade — this gate exists to
  * catch the case where someone wrote "Breaking" and still typed `patch`, not to
  * infer intent from prose.
  */
+export function breakingMarkerIn(summary) {
+  if (typeof summary !== 'string') return undefined
+  // The bolded form closes at its own `**`, so the quoted marker is a whole
+  // span rather than a fixed-width slice. A character cap cut mid-code-span and
+  // printed an unbalanced backtick — `**Breaking for subclasses of `SmellBuilder`
+  // was the measured output, which reads as a typo in the gate rather than as a
+  // quotation of the author's own text.
+  // `__bold__` is CommonMark's other strong emphasis, and `CHANGES` (plural) is
+  // the commoner spelling in the wild than the conventional-commits singular —
+  // both were measured as misses by an adopter review, and both are free: no
+  // negation can match either.
+  const m =
+    /^[ \t]*(?:[-*+][ \t]+)?(?:\*\*|__)(?:BREAKING|Breaking)[^\n]*?(?:\*\*|__)/m.exec(summary) ??
+    /^[ \t]*(?:[-*+][ \t]+)?(?:\*\*|__)(?:BREAKING|Breaking)[^\n]*/m.exec(summary) ??
+    /^#{1,6}[ \t]+(?:BREAKING|Breaking)[^\n]*/m.exec(summary) ??
+    /\bBREAKING[ -]CHANGES?\b/.exec(summary)
+  if (m === null || m === undefined) return undefined
+  const marker = m[0].trim()
+  return marker.length <= 72 ? marker : `${marker.slice(0, 69)}…`
+}
+
+/** Whether a changeset body declares a break. See {@link breakingMarkerIn}. */
 export function declaresBreaking(summary) {
-  if (typeof summary !== 'string') return false
-  if (/\*\*BREAKING|\*\*Breaking/.test(summary)) return true
-  return /\bBREAKING[ -]CHANGE\b/.test(summary)
+  return breakingMarkerIn(summary) !== undefined
 }
 
 export function declarationsIn(text, file) {
@@ -164,7 +189,7 @@ export function declarationsIn(text, file) {
   return {
     declarations,
     empty: declarations.length === 0,
-    breaking: declaresBreaking(parsed.summary),
+    breakingMarker: breakingMarkerIn(parsed.summary),
   }
 }
 
@@ -272,27 +297,120 @@ export function releaseViolations({
   // while its siblings legitimately take a dependency patch, which is the shape
   // of `assertion-less-rules-fail.md` (kernel minor, five dialects patch).
   // Requiring every row to be minor would redden that correct changeset.
-  const brokenOnPatch = [...new Set(breakingFiles)]
-    .map((file) => ({ file, decls: declarations.filter((d) => d.file === file) }))
-    // No declarations at all is the empty-changeset case, which `waiverCandidates`
-    // already owns; there is no bump here to be wrong.
-    .filter(({ decls }) => decls.length > 0)
-    .filter(({ decls }) => !decls.some((d) => d.bump === 'minor' || d.bump === 'major'))
-    .map(({ file, decls }) => ({
-      rule: 'correspondence',
-      ruleId: 'release/breaking-needs-minor',
-      element: file,
+  // One shape: `{ file, marker }`. An earlier draft also accepted a bare path
+  // string, which is two definitions of the same input — the drift this project
+  // exists to catch, in the gate that catches it.
+  const breakingAnnotated = breakingFiles
+    .map(({ file, marker }) => ({
       file,
-      line: decls[0].line,
-      message:
-        `\`${file}\` declares a breaking change and bumps only ` +
-        `${[...new Set(decls.map((d) => d.bump))].sort().join('/')}: ` +
-        `${decls.map((d) => `${d.pkg}=${d.bump}`).join(', ')}\n` +
-        `  raise the package that owns the break to \`minor\` (0.x signals a break with minor, ` +
-        `not major — major here would claim 1.0 stability), or, if the body overstates it, ` +
-        `say plainly that nothing a consumer can observe changed`,
-      because: WHY_BREAKING_PATCH,
+      marker,
+      decls: declarations.filter((d) => d.file === file),
     }))
+    // **The empty case is a finding, not a skip.** An earlier version filtered it
+    // out reasoning "no bump here to be wrong". Measured, that premise is wrong:
+    // `--empty` sets `waived`, which suppresses
+    // release/changed-package-needs-changeset for every changed package — so a
+    // file whose body carries the loudest marker the detector knows turns off the
+    // strongest rule in this gate, and produced ZERO violations. A declared break
+    // with no declared bump is a self-contradiction; fail closed.
+    // **Two strengths, and the weaker one is named in the output.**
+    //
+    // When the marker names its owner — `**Breaking (@nielspeter/eess-ts):**` —
+    // THAT package must be past patch. Without an owner the rule can only ask
+    // that SOMETHING is, because a break is owned by one package while its
+    // siblings take dependency patches: `assertion-less-rules-fail.md` is kernel
+    // minor + five dialects patch, and demanding all of them would redden it.
+    //
+    // The gap that leaves is real and was measured, not theorised: kernel minor
+    // with the break actually in a dialect on patch passes the weak form, and
+    // that is this repo's most common multi-package shape. Naming the owner is
+    // what closes it, which is why the message says so when no owner was given.
+    .map((r) => {
+      const owners = [
+        ...new Set((r.marker ?? '').match(/@[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9.-]*/g) ?? []),
+      ]
+      return { ...r, owners }
+    })
+
+  // How many were checked in the WEAK form: several packages declared, no owner
+  // named, so "at least one past patch" is all the rule can ask. Counted and
+  // printed on every run, including green ones — otherwise the summary reports
+  // the same ✓ for a changeset checked exactly and one checked loosely, and only
+  // one of those is the guarantee the record claims.
+  const breakingLoose = breakingAnnotated.filter(
+    ({ owners, decls }) => owners.length === 0 && decls.length > 1,
+  ).length
+
+  const brokenOnPatch = breakingAnnotated
+    .filter(({ decls, owners }) =>
+      decls.length === 0
+        ? true
+        : owners.length > 0
+          ? !owners.every((o) =>
+              decls.some((d) => d.pkg === o && (d.bump === 'minor' || d.bump === 'major')),
+            )
+          : !decls.some((d) => d.bump === 'minor' || d.bump === 'major'),
+    )
+    .map(({ file, marker, decls, owners }) => {
+      // **Both branches must actually clear the finding** (ADR-009 rule 2). An
+      // earlier wording offered "say plainly that nothing a consumer can observe
+      // changed" — which is what `'@pkg': none` MEANS, and review measured the
+      // rule still firing on `none` while advising exactly that. The gate told
+      // you to do the thing you had just done. The marker, not the bump, is what
+      // this rule reads, so removing the marker is the only second way out.
+      // The empty changeset is its own shape: nothing to raise, so the remedy is
+      // to declare the bump the break needs — or drop the marker if the file
+      // really does ship nothing.
+      if (decls.length === 0) {
+        const emptySuggestion =
+          `declare the bump this break needs — \`'@scope/pkg': minor\` — or, if this changeset ` +
+          `really ships nothing, delete the marker` +
+          (marker === undefined ? '' : `: \`${marker}\``) +
+          `. An empty changeset also WAIVES the changed-package rule for every package in the ` +
+          `run, so this file currently silences more than itself.`
+        return {
+          rule: 'correspondence',
+          ruleId: 'release/breaking-needs-minor',
+          element: file,
+          file,
+          line: 1,
+          message:
+            `\`${file}\` declares a breaking change` +
+            (marker === undefined ? '' : ` (\`${marker}\`)`) +
+            ` and declares no bump at all\n  ${emptySuggestion}`,
+          suggestion: emptySuggestion,
+          because: WHY_BREAKING_PATCH,
+        }
+      }
+      const suggestion =
+        `raise the package that owns the break to \`minor\` (on 0.x a break is a minor; ` +
+        `\`major\` would take it to 1.0.0 and claim stability), or — if this is not a break — ` +
+        `delete the marker this rule matched` +
+        (marker === undefined ? '' : `: \`${marker}\``) +
+        `. Changing the bump alone will not clear this, and neither will \`none\`.` +
+        (owners.length > 0
+          ? ` This changeset names its owner (${owners.join(', ')}), so THAT package is the one that must move.`
+          : decls.length > 1
+            ? ` Name the owning package in the marker — \`**Breaking (${decls[0].pkg}):**\` — and this rule ` +
+              `will check that package specifically instead of accepting any one of the ${String(decls.length)} declared here.`
+            : '')
+      return {
+        rule: 'correspondence',
+        ruleId: 'release/breaking-needs-minor',
+        element: file,
+        file,
+        line: decls[0].line,
+        message:
+          `\`${file}\` declares a breaking change` +
+          (marker === undefined ? '' : ` (\`${marker}\`)`) +
+          ` and bumps only ${[...new Set(decls.map((d) => d.bump))].sort().join('/')}: ` +
+          `${decls.map((d) => `${d.pkg}=${d.bump}`).join(', ')}\n  ${suggestion}`,
+        // Also as its own field: `CLAUDE.md` promises every violation surfaces a
+        // `Fix:` line from `suggestion`, and `--format json` is the agent path.
+        suggestion,
+        because: WHY_BREAKING_PATCH,
+      }
+    })
 
   const violations = [
     ...(waived ? [] : needsChangeset.violations()),
@@ -311,6 +429,15 @@ export function releaseViolations({
       declarations: declarations.length,
       workspace: workspacePackages.length,
       unparseable: unparseable.length,
+      // **Reported by the rule, not by the caller's own variable.** The summary
+      // used to print `breakingFiles.length` read from the shell, while the rule
+      // read the argument. Severing the argument left the two disagreeing in
+      // silence: measured, `check:release` exited 0 over a real break declared as
+      // a patch while printing `✓ 4 of 9 … each bumping past patch`. A denominator
+      // sourced from anywhere but the rule attests a check that may not have run,
+      // which is worse than no denominator at all (ADR-010).
+      breakingExamined: breakingFiles.length,
+      breakingLoose,
       waivers: [...waivers],
       waived,
       // Named, not just counted: under a waiver these are the packages the gate

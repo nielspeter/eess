@@ -6,3 +6,21 @@ find the full documentation for it [in our repository](https://github.com/change
 
 We have a quick list of common questions to get you started engaging with this project in
 [our documentation](https://github.com/changesets/changesets/blob/main/docs/common-questions.md).
+
+## House convention (eess)
+
+Two things `check:release` enforces beyond stock changesets:
+
+1. **Every changed package needs a declaration** — a bump, or `'@nielspeter/eess-<x>': none`
+   if it ships nothing a consumer sees (bug 0106).
+2. **A breaking change must be marked in the body and bumped past `patch`** (bug 0184).
+   Write a line starting `**Breaking …**`, a `## Breaking` heading, or `BREAKING CHANGE`.
+   On a `0.x` package a break is a **`minor`** — `major` means `1.0.0` and claims
+   stability. The gate reads the marker, not your prose, so an unmarked break is
+   not caught: if you are breaking something, write the marker.
+
+   If the changeset names several packages, name the owner too —
+   `**Breaking (@nielspeter/eess-ts):**` — and the gate checks _that_ package
+   rather than accepting any one of them.
+
+See [`RELEASING.md`](../RELEASING.md) for the full process.

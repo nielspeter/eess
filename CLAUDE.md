@@ -156,6 +156,12 @@ or diagrams, run the relevant gate and fix what it reports:
   **base ref**: `EESS_RELEASE_BASE`, else the PR's target, else `origin/main`,
   else `main`, and it hard-errors rather than pretending nothing changed, so a
   shallow clone fails loudly (CI needs `fetch-depth: 0`).
+  It also reads the changeset **body**: one that marks a breaking change — a line
+  starting `**Breaking …**`, a `## Breaking` heading, or `BREAKING CHANGE` — must
+  bump at least one package past `patch`, because npm refuses to re-publish a
+  version and `publish.yml` ships with provenance. On `0.x` a break is a `minor`;
+  `major` claims 1.0 stability. An UNMARKED break is not caught — the gate reads
+  the marker, not your prose (bug 0184).
 
 Each gate prints a violation with a file, a line, a message, and (often) a fix.
 The output is written to be **agent-actionable** — every violation surfaces its

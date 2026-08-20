@@ -167,10 +167,17 @@ function readPendingChangesets() {
   for (const file of files) {
     const r = declarationsIn(readFileSync(file, 'utf8'), file)
     if (r.error !== undefined) unparseable.push({ file, error: r.error })
-    else if (r.empty) waiverCandidates.push(file)
-    else {
+    else if (r.empty) {
+      waiverCandidates.push(file)
+      // An empty changeset that declares a break is collected too, and fails.
+      // It is not "no bump to be wrong": `--empty` sets `waived`, which suppresses
+      // release/changed-package-needs-changeset for EVERY changed package. So the
+      // loudest possible break marker, in this one file shape, turns off the
+      // strongest rule in the gate. Fail closed (ADR-009).
+      if (r.breakingMarker !== undefined) breakingFiles.push({ file, marker: r.breakingMarker })
+    } else {
       declarations.push(...r.declarations)
-      if (r.breaking) breakingFiles.push(file)
+      if (r.breakingMarker !== undefined) breakingFiles.push({ file, marker: r.breakingMarker })
     }
   }
   return { declarations, waiverCandidates, unparseable, breakingFiles, files }
@@ -293,7 +300,21 @@ function consumedContent(file) {
 const consumed = [...consumedPaths]
 for (const file of consumed) {
   const text = consumedContent(file)
-  if (text !== undefined) declarations.push(...declarationsIn(text, file).declarations)
+  if (text === undefined) continue
+  const r = declarationsIn(text, file)
+  declarations.push(...r.declarations)
+  // **The consumed path carries the breaking marker too.** Dropping it made the
+  // release-time flow blind, which is the flow `RELEASING.md` documents: a
+  // changeset authored at step 1 and consumed by `version-packages` at step 2
+  // never meets a PR-time `check:release`, and step 4's `npm run validate` is the
+  // only gate it sees. Measured before this line existed — a `**Breaking`/patch
+  // changeset fired at PR time and reported `examined 0 of 0` after consumption.
+  //
+  // Firing on a consumed changeset is correct, not a false positive: the declared
+  // bump is the one `changeset version` has ALREADY written, so a break declared
+  // as a patch means the version on disk is wrong and the publish must be blocked
+  // while that is still possible.
+  if (r.breakingMarker !== undefined) breakingFiles.push({ file, marker: r.breakingMarker })
 }
 
 // A waiver counts only when it is in THIS diff. Scanning `.changeset/` alone let
@@ -367,17 +388,26 @@ if (violations.length > 0) {
   line('findings', '✓ every changed package is declared, every declaration is real')
 }
 
-// The breaking rule's own denominator, stated whether or not it fired. A rule
-// that examined zero changesets and one that examined nine both print "0
-// findings" otherwise, and only one of those is evidence (ADR-010).
-if (violations.length === 0 || !violations.some((v) => v.ruleId === 'release/breaking-needs-minor'))
-  line(
-    'breaking',
-    breakingFiles.length === 0
-      ? 'no pending changeset declares a break — rule examined 0 of ' +
-          `${String(changesetFiles.length)}`
-      : `✓ ${String(breakingFiles.length)} of ${String(changesetFiles.length)} changeset(s) declare a break, each bumping past patch`,
-  )
+// The breaking rule's own denominator, ALWAYS printed — including on a red run,
+// where "which finding" and "out of how many examined" are different questions.
+// The count comes from `stats`, i.e. from what the rule itself saw: sourcing it
+// from the shell's own `breakingFiles` let the two disagree, and a severed
+// argument then printed a ✓ over a rule that examined nothing.
+const brokeCount = violations.filter((v) => v.ruleId === 'release/breaking-needs-minor').length
+// Pending PLUS consumed: the rule reads both, so a denominator counting only the
+// pending files reports "5 of 9" while one of the 5 is not among the 9.
+const changesetsRead = changesetFiles.length + consumed.length
+line(
+  'breaking',
+  stats.breakingExamined === 0
+    ? `no pending changeset declares a break — rule examined 0 of ${String(changesetsRead)}`
+    : brokeCount === 0
+      ? `✓ ${String(stats.breakingExamined)} of ${String(changesetsRead)} changeset(s) declare a break, each bumping past patch` +
+        (stats.breakingLoose === 0
+          ? ''
+          : ` — ${String(stats.breakingLoose)} checked loosely (several packages, no owner named, so only "at least one" could be asked)`)
+      : `✗ ${String(brokeCount)} of ${String(stats.breakingExamined)} breaking changeset(s) bump only patch/none`,
+)
 
 console.error('')
 if (violations.length === 0) {
