@@ -1,6 +1,6 @@
 /**
  * Exclusion comments that name a rule nobody declares —
- * [bug 0044](../../bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
+ * [bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
  *
  * `.excluding()` warns when a pattern matches zero violations. An inline
  * `// eess-exclude` comment has no equivalent, and **cannot get one on the
@@ -15,7 +15,7 @@
  *
  * ## Why a diagnostic and not a finding
  *
- * [ADR-008](../../adr/008-agent-first-failure-surfaces.md) rule 1's migration
+ * [ADR-008](../../../../adr/009-agent-first-failure-surfaces.md) rule 1's migration
  * corollary: *"a warning is something you hope is read; a command is something
  * someone ran."* This cannot be a check-time finding without parsing every file
  * in scope on every run — the cost the `result.length > 0` gate exists to avoid —

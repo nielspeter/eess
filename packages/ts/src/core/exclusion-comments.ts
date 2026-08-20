@@ -34,7 +34,7 @@ export interface ExclusionWarning {
    * What kind of fault this is, so a caller can act on it differently.
    *
    * `'undocumented'` — the directive is well-formed and **applied**; it just
-   * states no reason. Since v0.38.0 this fails the build ([bug 0039](../../bugs/fixed/0039-an-undocumented-exclusion-comment-suppresses-and-only-warns.md)),
+   * states no reason. Since v0.38.0 this fails the build ([bug 0039](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0039-an-undocumented-exclusion-comment-suppresses-and-only-warns.md)),
    * because a suppression nobody justified is the marker ADR-008 rule 3's
    * corollary warns about.
    *
@@ -244,7 +244,7 @@ function handleSingleLine(
  *   // eess-exclude <rule-a>, <rule-b>: <reason>
  */
 /**
- * Every string-like literal, blanked — [bug 0043](../../bugs/fixed/0043-an-exclusion-directive-inside-a-string-literal-suppresses.md).
+ * Every string-like literal, blanked — [bug 0043](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0043-an-exclusion-directive-inside-a-string-literal-suppresses.md).
  *
  * The scan below is line-based, and a line-based scan cannot tell a directive
  * from the same characters inside a string. Measured before this existed: all
@@ -275,7 +275,7 @@ function handleSingleLine(
  * genuinely does start a comment.
  *
  * A **ts-morph** project rather than the raw compiler API, per
- * [ADR-002](../../adr/002-ts-morph-ast-engine.md), reusing one in-memory project
+ * [ADR-002](../../../../adr/002-ts-morph-ast-engine.md), reusing one in-memory project
  * across calls so the cost is a parse rather than a project construction. The
  * whole scan is gated on a rule having already produced a violation in the file,
  * so nothing is parsed for a clean run.

@@ -52,7 +52,7 @@ import type { ArchProject } from './project.js'
 /**
  * Did this project load nothing at all?
  *
- * The **decision**, extracted — [bug 0048](../../bugs/fixed/0048-the-dead-glob-gate-blames-the-glob-when-the-project-is-empty.md).
+ * The **decision**, extracted — [bug 0048](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0048-the-dead-glob-gate-blames-the-glob-when-the-project-is-empty.md).
  *
  * `emptyProjectAdvice` already owned the *text*, and that was taken to mean the
  * state had one owner. It did not: the test `if (getSourceFiles().length === 0)`

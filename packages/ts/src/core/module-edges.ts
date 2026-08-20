@@ -7,7 +7,7 @@ import { verbatimModuleSyntaxFor } from './per-root-compiler-options.js'
 /**
  * One definition of "a module edge", for every condition that needs one.
  *
- * [Bug 0022](../../bugs/fixed/0022-forward-import-conditions-are-blind-to-reexports-and-dynamic-imports.md):
+ * [Bug 0022](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0022-forward-import-conditions-are-blind-to-reexports-and-dynamic-imports.md):
  * `src/conditions/dependency.ts` collected edges from `sf.getImportDeclarations()`
  * at five sites — static `import` statements and nothing else — while the reverse
  * graph indexed static imports, re-exports **and** dynamic imports. So
@@ -70,7 +70,7 @@ export interface ModuleEdge {
    * and it is what `dependOn`, `notImportFrom`, `onlyImportFrom` and the module
    * predicates ask. It is deliberately NOT the same question as
    * {@link erasesModuleRequest}, and conflating them was
-   * [plan 0087](../../plans/completed/0087-an-inline-type-import-still-requests-the-module.md).
+   * [plan 0087](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0087-an-inline-type-import-still-requests-the-module.md).
    */
   readonly typeOnly: boolean
   /**
@@ -158,7 +158,7 @@ export interface ModuleEdge {
    * someone adds. Measured on `main`, the same 2/1 held for two default imports and for
    * two bare side-effect imports, in **both** families. Bug 0028's shape, wherever a
    * kind or a spelling had no discriminator
-   * ([bug 0059](../../bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)).
+   * ([bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)).
    *
    * **Source-order ordinal rather than the line**, deliberately: a line moves when
    * anything above it is edited, and `identity` exists precisely to survive that.
@@ -182,7 +182,7 @@ export interface ModuleEdge {
    * why {@link edgeDiscriminator} is a tiebreaker of last resort rather than an identity
    * component. The durable fix is a `binding` field consulted before the ordinal, which would
    * separate `import A` from `import C` outright; recorded as out-of-scope in
-   * [plan 0094](../../plans/0094-the-residual-findings-from-the-v0-56-0-review.md).
+   * [plan 0094](https://github.com/nielspeter/ts-archunit/blob/main/plans/0094-the-residual-findings-from-the-v0-56-0-review.md).
    *
    * Both collectors must agree on it, so both walk the literals in source order;
    * `edgeStream` sorts for that reason and not for output tidiness.
@@ -329,7 +329,7 @@ function buildEdges(sourceFile: SourceFile): readonly ModuleEdge[] {
  * accepted baseline entry silently pre-accepts the next one someone adds. Bug 0028's shape,
  * in every spelling that reached this function without a discriminator; the lazy kinds are
  * merely the ones
- * [bug 0059](../../bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)
+ * [bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)
  * made reportable, which is how the narrower reading got written here in the first place.
  *
  * The sort and the `,` are load-bearing and cheap to lose: `getNamedImports()` returns source
@@ -569,7 +569,7 @@ function nextOrdinal(counters: Map<string, number>, edge: ModuleEdge): number {
  * Delegated rather than read from the project, because inside a `workspace()` the project
  * carries the alphabetically-first tsconfig's options and every other package would be
  * judged by them — wrong in both directions, measured
- * ([bug 0058](../../bugs/fixed/0058-workspace-applies-one-packages-compiler-flag-to-all.md)).
+ * ([bug 0058](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0058-workspace-applies-one-packages-compiler-flag-to-all.md)).
  */
 function usesVerbatimModuleSyntax(sourceFile: SourceFile): boolean {
   return verbatimModuleSyntaxFor(sourceFile)

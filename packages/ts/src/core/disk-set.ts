@@ -161,7 +161,7 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
       const full = path.join(dir, entry.name).replaceAll('\\', '/')
       // Prune by NAME, before asking whether it is a directory.
       //
-      // [Bug 0045](../../bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md):
+      // [Bug 0045](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md):
       // `Dirent.isDirectory()` is false for a symlink, so a symlinked
       // `node_modules` — what pnpm produces, and what `git worktree add`
       // leaves behind — fell through to the `else` branch and was recorded as

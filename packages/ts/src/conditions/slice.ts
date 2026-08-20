@@ -28,7 +28,7 @@ import { byCodepoint } from '@nielspeter/eess'
  * It rotated an SCC to start at its lexicographically smallest member, for a real reason:
  * Tarjan emits membership in traversal order, traversal follows the file walk, and the same
  * cycle therefore had two identities on two machines. That is the concern
- * [bug 0010](../../bugs/fixed/0010-violation-identity-embeds-absolute-paths.md) introduced
+ * [bug 0010](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0010-violation-identity-embeds-absolute-paths.md) introduced
  * the `identity` field for — the original docstring cited it here, a little loosely, since
  * 0010 itself is about absolute paths rather than about cycles.
  *
@@ -248,7 +248,7 @@ function siteIdentity(from: string, to: string, site: SliceDependencySite): stri
     // for two distinct violations — so one baseline entry accepts both. That is the very
     // defect plan 0088 was written to fix, in a different shape, and it is the commonest
     // layout there is. `src/conditions/dependency.ts` has the same collision
-    // ([bug 0063](../../bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md)),
+    // ([bug 0063](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md)),
     // which is how it got here: the shape was right to copy, this component was not.
     //
     // An absolute path is safe here — `hashViolation` normalises the repository root out of
@@ -284,7 +284,7 @@ function siteIdentity(from: string, to: string, site: SliceDependencySite): stri
  * Stated here rather than only in `docs/slices.md` because this docstring is what an IDE
  * and an agent read. The same omission stood from v0.48.0 to v0.49.1 and nothing pinned
  * prose against behaviour then either
- * ([bug 0059](../../bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)).
+ * ([bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md)).
  *
  * Given layers ['presentation', 'application', 'persistence', 'domain'],
  * layer N may depend on layers N+1, N+2, ... but NOT on layers N-1, N-2, ...
@@ -361,7 +361,7 @@ export function respectLayerOrder(...args: [string[], ImportOptions] | string[])
  * `require()` is not counted (ESM-only, ADR-004). Contrast `beFreeOfCycles`, which counts
  * only the eager kinds because a cycle is a deadlock in initialization order. Dynamic and
  * type-expression edges were invisible here until
- * [bug 0059](../../bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md);
+ * [bug 0059](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0059-slice-conditions-and-module-conditions-disagree-about-a-dependency.md);
  * this note exists because that docstring said nothing either way.
  *
  * Use for explicit isolation rules, e.g., "no slice may depend on legacy".

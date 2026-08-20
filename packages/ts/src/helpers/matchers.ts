@@ -311,7 +311,7 @@ const COMMENT_LINE_START = String.raw`(?:^|\n)[ \t]*(?:\/\/+|\/\*+|\*+)?[ \t]*`
  *
  * Both halves of that are load-bearing, and each was found by a prose false
  * positive in this repo's own source
- * ([bug 0053](../../bugs/fixed/0053-the-stub-rule-matched-prose-about-stubs.md)).
+ * ([bug 0053](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0053-the-stub-rule-matched-prose-about-stubs.md)).
  *
  * **Anchored to a line start**, because unanchored it matched every sentence that
  * mentions a marker — including the docstring of the fix for bug 0052, which says
@@ -338,7 +338,7 @@ const COMMENT_LINE_START = String.raw`(?:^|\n)[ \t]*(?:\/\/+|\/\*+|\*+)?[ \t]*`
  * "nobody writes NOT IMPLEMENTED", which is precisely the casing the marker branch would
  * otherwise have caught. `anyCase` below DERIVES the alternation, so the class cannot come
  * back one letter at a time
- * ([bug 0061](../../bugs/fixed/0061-an-all-caps-stub-marker-no-longer-matches.md)).
+ * ([bug 0061](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0061-an-all-caps-stub-marker-no-longer-matches.md)).
  */
 /**
  * A word matched case-INSENSITIVELY, letter by letter.

@@ -96,7 +96,7 @@ function edgeViolation(
     message,
     because: context.because,
     // `identity` — the canonical form that supersedes `element::message` in the
-    // baseline hash. [Bug 0028](../../bugs/fixed/0028-two-findings-in-one-file-can-share-a-baseline-identity.md).
+    // baseline hash. [Bug 0028](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0028-two-findings-in-one-file-can-share-a-baseline-identity.md).
     //
     // The message carries the basename and the resolved target and nothing else, so
     // two edges from one file to one module are byte-identical and share a hash.
@@ -126,7 +126,7 @@ function edgeViolation(
     // OUTWARD name and aliases therefore differ. Measured: 26 colliding groups on this
     // repo's barrel go to 0, and the aliased-import pair is what remains.
     identity: [
-      // The FULL PATH, not the basename — [bug 0063](../../bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md).
+      // The FULL PATH, not the basename — [bug 0063](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md).
       //
       // Every other component here is a property of the EDGE, so the basename was the only
       // thing identifying the file, and it does not: two sibling folders each with an
@@ -171,7 +171,7 @@ function importViolation(
    * What distinguishes this finding from a sibling, WITHOUT the file — the caller knows,
    * this function adds the path.
    *
-   * [Bug 0063](../../bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md)'s
+   * [Bug 0063](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md)'s
    * third mechanism, and the one my own corrected scope got wrong twice. This constructor
    * set no identity, so findings fell back to `element::message` — and for
    * `notHaveAliasedImports` the message is `"<basename> aliases \"x\" as \"y\""`, identical

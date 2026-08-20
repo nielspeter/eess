@@ -86,7 +86,7 @@ export function isTypeOnlyReExport(decl: ExportDeclaration): boolean {
  * const options = Array.isArray(args[0]) && args.length > 1 ? (args[1] as ImportOptions) : undefined
  * ```
  *
- * [ADR-005](../../adr/005-no-any-no-type-assertions.md) prescribes a type guard,
+ * [ADR-005](../../../../adr/005-no-any-no-type-assertions.md) prescribes a type guard,
  * and a guard does narrow it: `.filter((a): a is string => …)` produces `string[]`
  * with no assertion, and `typeof second === 'object'` narrows the options. The
  * casts were avoidable; only the direct narrowing was not.
@@ -94,7 +94,7 @@ export function isTypeOnlyReExport(decl: ExportDeclaration): boolean {
  * One owner rather than five copies, which is the other half. The dispatch was
  * duplicated five times, and a duplicated predicate in this repo has already
  * caused a measurement error once —
- * [bug 0044](../../bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
+ * [bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
  */
 export function splitGlobArgs(args: readonly (string[] | ImportOptions | string)[]): {
   globs: string[]

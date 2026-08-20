@@ -122,7 +122,7 @@ export function assertDiscovered(
  *
  * `TRuleId` is that preset's own rule ids as a literal union, so a misspelled
  * override key is a **compile error** rather than a silent no-op
- * ([bug 0038](../../bugs/fixed/0038-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)).
+ * ([bug 0038](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)).
  * Measured before this: `'…/no-silent-cach': 'error'` left the rule at `warn`
  * and the build green — the escalation the author asked for simply did not
  * happen, and the only trace was a line on stderr.
@@ -138,7 +138,7 @@ export function assertDiscovered(
  */
 /**
  * An unknown override key, as a failing configuration finding —
- * [bug 0038](../../bugs/fixed/0038-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
+ * [bug 0038](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
  *
  * `validateOverrides` writes a line to stderr and returns `void`. That is not a
  * signal: measured, `'…/no-silent-cach': 'error'` left the rule at `warn`, the
@@ -347,7 +347,7 @@ export interface PresetBaseOptions<TRuleId extends string = string> {
    * plan 0099's floor fails a check that examined nothing, their only other
    * remedy is `overrides: { id: 'off' }` — which is permanent, never expires,
    * and deletes the rule rather than declaring a fact about it. That is
-   * [ADR-008](../../adr/008-agent-first-failure-surfaces.md) rule 1's
+   * [ADR-008](../../../../adr/009-agent-first-failure-surfaces.md) rule 1's
    * trained-suppression dynamic, produced by our own gate; ADR-009 part 3 makes
    * a carrier binding for exactly this reason.
    *

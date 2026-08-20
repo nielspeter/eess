@@ -5,7 +5,7 @@
  * a pattern that matched nothing (`execute-rule.ts`), diff-aware has
  * `suppressionNotice`, the baseline has `unmatchedBaselineFinding`. The inline
  * comment filter dropped violations and returned no count — and after
- * [bug 0041](../../bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
+ * [bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md)
  * made comments work for every condition family, it became the **widest** filter
  * in the pipeline and the only silent one.
  *

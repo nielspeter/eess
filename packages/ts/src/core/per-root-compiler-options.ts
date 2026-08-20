@@ -5,7 +5,7 @@ import { rootOf } from './project-relative.js'
 /**
  * Compiler options that differ **per package** inside one `workspace()`.
  *
- * [Bug 0058](../../bugs/fixed/0058-workspace-applies-one-packages-compiler-flag-to-all.md):
+ * [Bug 0058](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0058-workspace-applies-one-packages-compiler-flag-to-all.md):
  * `workspace()` builds ONE ts-morph `Project` from the alphabetically-first tsconfig and
  * then only *adds files* from the rest — `addSourceFilesFromTsConfig` adds files, not
  * options. So `sourceFile.getProject().getCompilerOptions()` answers for the tie-break
@@ -17,7 +17,7 @@ import { rootOf } from './project-relative.js'
  * one that reds CI with a remedy ("extract shared code to a lower-level module") that
  * cannot remediate it, because there is nothing to extract.
  *
- * This is [bug 0035](../../bugs/fixed/0035-a-workspace-has-no-single-root.md)'s shape one
+ * This is [bug 0035](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0035-a-workspace-has-no-single-root.md)'s shape one
  * field over, and `project-relative.ts` already solved the "which package owns this file"
  * half — `rootOf()` returns the registered root that contains a file, longest first, so a
  * nested package wins over the repository. This module reuses that answer rather than

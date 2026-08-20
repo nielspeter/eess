@@ -32,7 +32,7 @@ import { registerCacheReset } from './cache-registry.js'
  *
  * So the element type survives without an assertion. One `WeakMap<object,
  * unknown[]>` shared by every family would need a cast on the way out, which
- * [ADR-005](../../adr/005-no-any-no-type-assertions.md) forbids — and the
+ * [ADR-005](../../../adr/005-no-any-no-type-assertions.md) forbids — and the
  * honest alternatives (a `filter` with an always-true type predicate) are worse:
  * they compile, allocate, and lie.
  *

@@ -45,7 +45,7 @@ const CARDINALITY_ASSERTERS = new WeakSet<object>()
  * prevent.
  *
  * Found by review, immediately after the identical hole was closed in
- * [plan 0081](../../plans/completed/0081-a-condition-declares-discovery-ownership.md)'s
+ * [plan 0081](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0081-a-condition-declares-discovery-ownership.md)'s
  * symbol — while this one was being cited in that module's docstring as the safe
  * precedent. The lesson is worth more than the fix: **"module-private" describes
  * the binding, not the value.** A symbol keyed onto a public object is unlisted,

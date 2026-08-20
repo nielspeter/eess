@@ -77,7 +77,7 @@ export function applyFilters(
 
   // Enrich FIRST, because a filter cannot match on a field that is not set yet.
   //
-  // [Bug 0041](../../bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md):
+  // [Bug 0041](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0041-an-exclusion-comment-is-a-no-op-for-most-conditions.md):
   // this block used to run LAST, after the inline-comment filter below. That
   // filter's first statement is `if (!violation.ruleId) return false`
   // (`exclusion-comments.ts:262`), so an exclusion comment matched only

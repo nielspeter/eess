@@ -234,10 +234,10 @@ function groupKeyOf(violation: ArchViolation): string {
  * finding within a rule: two distinct violations sharing one identity are one violation to the
  * baseline, and accepting either accepts both."* That was prose with nothing behind it, and
  * three families broke it independently —
- * [bug 0063](../../bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md)
- * (dependency), [plan 0088](../../plans/0088-a-slice-finding-identifies-itself.md) (slice), and
- * then [0064](../../bugs/fixed/0064-a-dependency-identity-collides-across-two-spellings-of-one-module.md)
- * and [0065](../../bugs/fixed/0065-reverse-dependency-findings-carry-no-identity.md). Each was fixed
+ * [bug 0063](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0063-a-dependency-identity-collides-across-files-sharing-a-basename.md)
+ * (dependency), [plan 0088](https://github.com/nielspeter/ts-archunit/blob/main/plans/0088-a-slice-finding-identifies-itself.md) (slice), and
+ * then [0064](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0064-a-dependency-identity-collides-across-two-spellings-of-one-module.md)
+ * and [0065](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0065-reverse-dependency-findings-carry-no-identity.md). Each was fixed
  * per-family, in the family that happened to be reviewed; this is the mechanism, so the next
  * producer cannot reintroduce it.
  *
@@ -282,7 +282,7 @@ function groupKeyOf(violation: ArchViolation): string {
  *
  * The durable answer is a real per-finding identity — a `binding` field for the edge family,
  * qualified names for the metric family — tracked in
- * [plan 0094](../../plans/0094-the-residual-findings-from-the-v0-56-0-review.md). This is the
+ * [plan 0094](https://github.com/nielspeter/ts-archunit/blob/main/plans/0094-the-residual-findings-from-the-v0-56-0-review.md). This is the
  * floor: a collision can no longer be silent *at scale*. It is not the ceiling.
  *
  * **Why here and not per condition.** `applyFilters` is the one path every terminal shares, and

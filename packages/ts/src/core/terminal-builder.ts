@@ -35,7 +35,7 @@ const CONTRADICTION =
 /**
  * What a family returns from `collectViolations()` — plan 0098.
  *
- * Part of the extension surface [ADR-010](../../adr/010-the-extension-surface-is-a-contract.md)
+ * Part of the extension surface [ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)
  * rule 1 names as contract, so changing this shape is a breaking change.
  */
 export interface CollectResult {
@@ -126,7 +126,7 @@ abstract class RuleDeclaration {
   protected _exclusions: (string | RegExp)[] = []
   protected _silentIndices: Set<number> = new Set()
   /**
-   * The declared-empty grammar — plan 0097, and [ADR-010](../../adr/010-the-extension-surface-is-a-contract.md)
+   * The declared-empty grammar — plan 0097, and [ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)
    * rule 3(a).
    *
    * These lived on `RuleBuilder<T>`, so the smell family — the one bug 0066 is
@@ -621,14 +621,14 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * Plan 0096 gave five families an `examinedUnits()` accessor and `diagnose()`
    * reads it — but it is **optional**, and four waves of vacuity guards have each
    * closed their own enumeration only for the next family to land outside it
-   * ([ADR-009](../../adr/009-a-pass-is-constructed-from-evidence.md)'s Context
+   * ([ADR-009](../../../../adr/010-a-pass-is-constructed-from-evidence.md)'s Context
    * table). A guard is something you can forget to add. A required return type is
    * not: a new family cannot compile without stating its number.
    *
    * Nothing acts on `examined` in this release — plan 0099 adds the floor that
    * fails a rule which produced nothing from nothing. This plan ships the seam
    * alone so that the break to
-   * [ADR-010](../../adr/010-the-extension-surface-is-a-contract.md)'s contract
+   * [ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)'s contract
    * lands in a commit whose only job is the break.
    *
    * ## What the compiler cannot force, and what does
@@ -661,7 +661,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * Does this builder diagnose its own empty discovery?
    *
    * `false` — the gate reports a dead `discovery` glob, which is the fix for
-   * [bug 0040](../../bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)'s
+   * [bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)'s
    * silence half: two of three cross-layer conditions reported **nothing** when a
    * layer resolved to no files.
    *

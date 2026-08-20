@@ -377,7 +377,7 @@ export function deadSelectorFindings(facts: RuleFacts): {
   if (trees.length === 0) return empty
 
   // The project loaded nothing, so no glob can match and none of them is at
-  // fault — [bug 0048](../../bugs/fixed/0048-the-dead-glob-gate-blames-the-glob-when-the-project-is-empty.md).
+  // fault — [bug 0048](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0048-the-dead-glob-gate-blames-the-glob-when-the-project-is-empty.md).
   //
   // Without this the gate reported every selector glob dead and told the
   // reader to *"Correct the glob, or remove the rule"*, which is a remedy for

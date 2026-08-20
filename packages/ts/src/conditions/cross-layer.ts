@@ -33,7 +33,7 @@ import { marksOwnEmptyDiscovery } from '@nielspeter/eess'
  * The finding for a layer that resolved no files, shared by all three conditions.
  *
  * A layer with no files makes every pair through it unchecked, so the condition
- * enforces nothing — [bug 0040](../../bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md).
+ * enforces nothing — [bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md).
  * `haveMatchingCounterpart` guarded this from the start; `haveConsistentExports`
  * and `satisfyPairCondition` did not, and measured **4 violations → 0** on a dead
  * layer. Now one helper, so a fourth condition cannot arrive without it and the

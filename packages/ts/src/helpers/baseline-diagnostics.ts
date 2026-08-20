@@ -177,7 +177,7 @@ function unmatchedCause(ctx: BaselineFacts): string {
   // This branch used to say "Same identity format, so the likely cause is that it
   // was generated against a different repository root". That is one cause among
   // several and the code has checked none of them —
-  // [bug 0060](../../bugs/fixed/0060-a-pattern-change-silently-invalidates-every-baselined-finding.md),
+  // [bug 0060](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0060-a-pattern-change-silently-invalidates-every-baselined-finding.md),
   // where a shipped default pattern changed and a reader spent an hour on `root`
   // before regenerating, which is the outcome `docs/upgrading.md` exists to prevent.
   //

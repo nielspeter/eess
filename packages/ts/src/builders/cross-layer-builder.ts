@@ -241,7 +241,7 @@ export class PairFinalBuilder extends TerminalBuilder {
    * `haveMatchingCounterpart` missed a dead FINAL layer. The blanket declaration
    * suppressed the gate for precisely the case its declared owner did not handle,
    * so the reader got silence instead of a generic message
-   * ([bug 0040](../../bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)).
+   * ([bug 0040](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)).
    *
    * A prose claim about three implementations goes stale when a fourth arrives.
    * A tag read off the condition cannot: an untagged condition is covered by the

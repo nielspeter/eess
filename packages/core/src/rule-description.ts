@@ -22,7 +22,7 @@ export interface RuleDescription {
  * and two test files.
  *
  * One owner, because a duplicated predicate is not a style problem here:
- * [bug 0044](../../bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md)
+ * [bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md)
  * was a measurement error caused by exactly that, and the fix was to delete the
  * duplicate rather than to test both copies.
  *
