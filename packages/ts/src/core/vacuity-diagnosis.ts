@@ -1,6 +1,12 @@
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from './project.js'
-import type { GlobNode, GlobSite, PathUniverse, RuleDescription } from '@nielspeter/eess'
+import type { GlobNode, GlobSite, RuleDescription } from '@nielspeter/eess'
+// The dialect's own `PathUniverse`, not the kernel's identically-shaped one. The
+// values reaching here are built by `pathUniverse()` in this package, so the
+// local type is the one that actually describes them; importing the kernel's
+// compiled only because the two are structurally identical today, which is a
+// coincidence to stop relying on rather than a contract.
+import type { PathUniverse } from './path-universe.js'
 import { DECLARE_INSTEAD, isFaultPosition, UNSUPPRESSABLE } from '@nielspeter/eess'
 import { diagnoseGlob, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
 import { globSitesOf, isDeadGlobTree, isDeadSite } from './glob-evaluator.js'
@@ -198,6 +204,28 @@ function deadSelectorViolation(
  * fires only where a family produced nothing from nothing — bug 0066's shape.
  * Each family's own empty-selection block stays as the better-attributed
  * implementation; this is a floor beneath them, not a replacement.
+ *
+ * Precedence has already removed the other causes by the time this is reached:
+ * no dead selector glob, no missing assertion, no empty project, no cardinality
+ * assertion, no declaration. So the remedy names ONE cause without the hedging
+ * ADR-008 rule 2 forbids.
+ *
+ * Three defects in 0098's preview wording are fixed here, from its
+ * user-perspective review:
+ *
+ * - **It hedged where we hold the fact.** "including any default it applies
+ *   that you did not write" was printed as a hypothetical while the rule knew
+ *   the answer. We materialized the selection, so we know the project loaded N
+ *   files and the selection produced 0 — print the numbers.
+ * - **"can never fail" overstated.** For a `crossLayer` rule whose pairs do not
+ *   exist yet, or a folder empty in a young repository, the rule is correct and
+ *   matches nothing *today*. "never" made a true statement false.
+ * - **The ranking was wrong for the people most likely to adopt early.** It
+ *   called widening the fix and declaring "the exception… proves nothing". For
+ *   a team whose second layer is not built yet, widening is *impossible* — the
+ *   code does not exist — so the only available action was the one the message
+ *   disparaged. Both are now offered as peers, and the declaration is described
+ *   by what it does: it expires.
  */
 export function evidenceFloor(
   facts: RuleFacts,

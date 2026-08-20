@@ -112,6 +112,29 @@ function keyedFromKeys(keys: KeysSource): Map<string, unknown[]> {
  */
 export const sidesOf = selectionMemo<Map<string, unknown[]>>()
 
+/**
+ * The two-sided join: bind two artifacts by key and fail on the difference.
+ *
+ * Where every other builder selects subjects and asserts something about each,
+ * this one declares two (or more) named SIDES, derives a key set from each, and
+ * reports the set difference. It is the kernel's answer to "these two things must
+ * agree" — a route table against its permission map, a diagram against the code,
+ * a README table against the workspace.
+ *
+ * ```ts
+ * correspondence(project)
+ *   .side('routes', classes(project).that().haveDecorator('Controller'), routeKey)
+ *   .side('matrix', Object.keys(ROUTE_PERMISSIONS))
+ *   .should()
+ *   .beComplete()
+ *   .check()
+ * ```
+ *
+ * `beComplete()` reports keys the second side is missing, `haveNoOrphans()` the
+ * reverse, and `beBijective()` both. A builder with fewer than two sides has
+ * compared nothing, and `examinedUnits()` reports that as zero rather than
+ * letting it pass vacuously (ADR-010).
+ */
 export class CorrespondenceBuilder extends TerminalBuilder {
   private _sides: Side[] = []
   private _checkComplete = false

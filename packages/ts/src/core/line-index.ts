@@ -118,6 +118,26 @@ function lineAt(lineStarts: readonly number[], pos: number): number {
 let codeLinesByFile = new WeakMap<SourceFile, readonly number[]>()
 const watched = new WeakSet<SourceFile>()
 
+/**
+ * Join `resetProjectCache()`, the documented consumer escape hatch.
+ *
+ * **This registration is UNPROVEN, and saying so is the point.** Measured:
+ * emptying this callback leaves all 3,523 `packages/ts` tests green. That is not
+ * an oversight to fix with a cleverer test — it follows from what the
+ * registration is FOR. Correctness is already carried by the per-file
+ * `onModified` listener in {@link watchOnce}, which fires on every mutation path
+ * (and which IS proven — removing it reddens two rows in `complexity.test.ts`).
+ * What this adds is **memory reclamation on an explicit reset**: a consumer done
+ * with a large project can drop the tables without waiting for the `WeakMap` keys
+ * to become unreachable.
+ *
+ * A property with no observable correctness signature cannot have a break class,
+ * and this file's own rule two functions down — "a redundant guard is an
+ * unprovable one" — is why that is recorded here rather than left to look
+ * tested. Do not add a test that calls `resetProjectCache()` and asserts the next
+ * measurement is correct: it is correct either way, and such a row would pass
+ * over a deleted callback, which is worse than no row at all.
+ */
 registerCacheReset(() => {
   lineStartsByFile = new WeakMap<SourceFile, readonly number[]>()
   codeLinesByFile = new WeakMap<SourceFile, readonly number[]>()

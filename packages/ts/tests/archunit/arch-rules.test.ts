@@ -1243,12 +1243,24 @@ it('VACUITY: the orphan check really reads our directives', () => {
   // are asserted BY IDENTITY, so deleting one is visible here rather than
   // shrinking a count nobody reads.
   // Grouped BY RULE, not one flat list. The two ADR-005 waivers are the ones this
-  // row was written for and they stay asserted by identity; plan 0165 restored 34
-  // `eess/no-unused-exports` waivers the engine copy had dropped, and folding
-  // those into the same list would have turned an identity assertion into a
-  // 36-element blob nobody reads — the count-not-identity failure the comment
-  // above rejects. Both sets are still exact, so deleting any one directive is
-  // visible here.
+  // row was written for and they stay asserted by identity; plan 0165 restored the
+  // `eess/no-unused-exports` waivers the engine copy had dropped, and folding every
+  // rule's files into ONE list would have turned an identity assertion into a blob
+  // nobody reads — the count-not-identity failure the comment above rejects. Both
+  // sets are still exact, so deleting any one directive is visible here.
+  //
+  // Counted at this commit: 18 `eess/no-unused-exports` directives across the 13
+  // files listed below, and 2 / 2 / 1 for the other three ids. The lists below are
+  // FILES, not directives — one file may carry several. An earlier version of this
+  // comment said 34 and 36; both were stale, which is the same defect as a stale
+  // measurement and is why the numbers now name what they counted.
+  //
+  // **This row proves PRESENCE, not that a waiver is load-bearing**, and that gap
+  // is real: `core/terminal-builder.ts` sat in this list while its only directive
+  // covered a blank line, because the file still contained *a* directive. The
+  // load-bearing check is the next `it`, and it runs only `adr005/no-as-cast-module`
+  // — so 18 of these 20 waivers have no proof they suppress anything. Tracked as
+  // [bug 0177](../../../../work/bugs/0177-the-load-bearing-waiver-check-covers-one-rule-of-four.md).
   const waiverFiles = (ruleId: string): string[] =>
     readdirRecursive(path.resolve('src'))
       .filter((f) => f.endsWith('.ts'))
@@ -1309,7 +1321,6 @@ it('VACUITY: the orphan check really reads our directives', () => {
     'core/disk-set.ts',
     'core/import-candidates.ts',
     'core/object-literal-functions.ts',
-    'core/terminal-builder.ts',
     'core/vacuity-diagnosis.ts',
     'graphql/schema-loader.ts',
     'helpers/baseline.ts',

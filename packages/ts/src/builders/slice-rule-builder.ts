@@ -45,6 +45,22 @@ export type DiscoverySource =
       readonly entries: readonly { readonly name: string; readonly glob: string }[]
     }
 
+/**
+ * Rule builder for slice-level architecture rules.
+ *
+ * Unlike the builders that extend `RuleBuilder<T>`, this one has its own chain:
+ * the grouping step (`matching` / `assignedFrom`) replaces the predicate phase
+ * entirely, because a slice is defined by how files are grouped rather than by a
+ * predicate over already-selected subjects.
+ *
+ * ```ts
+ * slices(project).matching(glob).should().beFreeOfCycles().check()
+ * slices(project).assignedFrom(def).should().respectLayerOrder(...).check()
+ * ```
+ *
+ * This class carried a docblock on `main` and lost it when the file was split
+ * for `eess/max-class-lines`; it is restored rather than rewritten.
+ */
 export class SliceRuleBuilder extends TerminalBuilder {
   private _slices: Slice[] = []
   private _discovery?: DiscoverySource

@@ -15,28 +15,6 @@ import { executeCheck, executeWarn, applyFilters } from './execute-rule.js'
 import { shallowClone } from '@nielspeter/eess'
 
 /**
- * The single root of every rule builder.
- *
- * Owns the terminal-method pattern — `because`, `rule`, `excluding`,
- * `describeRule`, `violations`, `check`, `warn`, `asSeverity`, `severity` —
- * and leaves subclasses only `collectViolations()`, which differs because
- * each builder has its own collection and evaluation model.
- *
- * `RuleBuilder<T>` extends this too, as of plan 0069. It used not to, and the
- * old docstring here said so plainly: "RuleBuilder does NOT extend this
- * because it predates it." The cost was not the duplicated methods, it was
- * that every safety feature added to one root silently did not reach the
- * builders on the other — which is what bug 0013 cost. Anything that must
- * hold for all thirteen builders now has exactly one place to live.
- */
-/**
- * Where the assertion-gate finding sends the reader. Same shape as `GLOB_DOCS`,
- * and it points at the section that states the grammar and the no-opt-out rule —
- * not at the builder's own page, which is about writing rules that work.
- */
-// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
-
-/**
  * Declaring both emptiness assertions is a contradiction, and 0069's appendix
  * says it "must fail at build time, not silently pick one".
  *
@@ -113,6 +91,22 @@ function hasIdentityCollision(violations: readonly ArchViolation[]): boolean {
   return false
 }
 
+/**
+ * The declaration half of every rule builder: what the author states.
+ *
+ * Owns `because`, `rule`, `excluding`, `describeRule`, `asSeverity`, the two
+ * emptiness assertions and the filter state — everything a chain accumulates
+ * BEFORE anything runs. {@link TerminalBuilder} extends this with the terminals
+ * and the execution behind them; a builder subclasses that one and inherits both
+ * halves, so the split is in this file rather than in their contracts.
+ *
+ * `RuleBuilder<T>` extends this too, as of plan 0069. It used not to, and the
+ * old docstring said so plainly: "RuleBuilder does NOT extend this because it
+ * predates it." The cost was not the duplicated methods, it was that every
+ * safety feature added to one root silently did not reach the builders on the
+ * other — which is what bug 0013 cost. Anything that must hold for all thirteen
+ * builders now has exactly one place to live.
+ */
 abstract class RuleDeclaration {
   protected _reason?: string
   protected _metadata?: RuleMetadata
@@ -515,75 +509,6 @@ abstract class RuleDeclaration {
   }
 
   /**
-   * Does this builder diagnose its own empty discovery?
-   *
-   * `false` — the gate reports a dead `discovery` glob, which is the fix for
-   * [bug 0040](../../bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)'s
-   * silence half: two of three cross-layer conditions reported **nothing** when a
-   * layer resolved to no files.
-   *
-   * `true` — the builder owns it, and the gate stays out. Two builders override,
-   * and for different reasons, which is the thing to understand before adding a
-   * third:
-   *
-   * - `SliceRuleBuilder` returns a constant `true`, because its discovery
-   *   semantics are **not** per-tree and cannot be expressed by a position filter
-   *   (below). Nothing about that varies by condition.
-   * - `PairFinalBuilder` **asks its condition**, via the registry in
-   *   `owns-empty-discovery.ts` (plan 0081). There, ownership does vary by
-   *   condition, and a blanket `true` once suppressed the gate for the one
-   *   condition that did not self-report — which is why this used to say
-   *   "`SliceRuleBuilder` is the one that does" and was wrong.
-   *
-   * A hand-maintained roster of which builders override is the defect class plan
-   * 0081 was filed to remove, so this names the two shapes rather than the two
-   * classes:
-   *
-   * | builder | one dead tree among live ones |
-   * | --- | --- |
-   * | `crossLayer` | a **fault** — that layer's pairs are unchecked |
-   * | slice `assignedFrom` | **legitimate** — a slice with no files yet is a real shape |
-   *
-   * `slice-rule-builder.ts` records that second guard being withdrawn before
-   * release for firing on real projects: "a layer not created yet, and the
-   * `strict-boundaries` scaffold itself". Slice already handles the all-empty case
-   * with a better message than the gate's, so it owns both halves.
-   *
-   * Declared, never named from the outside. A list of exceptions in the gate is
-   * an unchecked claim about who owns what — which is exactly the comment this
-   * plan was filed to correct.
-   */
-  protected ownsDiscoveryDiagnosis(): boolean {
-    return false
-  }
-
-  /**
-   * A rule that ran, examined **zero units**, and nothing else explained why —
-   * plan 0099's floor.
-   *
-   * Precedence has already removed the other causes by the time this is reached:
-   * no dead selector glob, no missing assertion, no empty project, no cardinality
-   * assertion, no declaration. So the remedy names ONE cause without the hedging
-   * ADR-008 rule 2 forbids.
-   *
-   * Three defects in 0098's preview wording are fixed here, from its
-   * user-perspective review:
-   *
-   * - **It hedged where we hold the fact.** "including any default it applies
-   *   that you did not write" was printed as a hypothetical while the rule knew
-   *   the answer. We materialized the selection, so we know the project loaded N
-   *   files and the selection produced 0 — print the numbers.
-   * - **"can never fail" overstated.** For a `crossLayer` rule whose pairs do not
-   *   exist yet, or a folder empty in a young repository, the rule is correct and
-   *   matches nothing *today*. "never" made a true statement false.
-   * - **The ranking was wrong for the people most likely to adopt early.** It
-   *   called widening the fix and declaring "the exception… proves nothing". For
-   *   a team whose second layer is not built yet, widening is *impossible* — the
-   *   code does not exist — so the only available action was the one the message
-   *   disparaged. Both are now offered as peers, and the declaration is described
-   *   by what it does: it expires.
-   */
-  /**
    * The narrowing THIS family applied, when it can name it — plan 0099.
    *
    * ADR-009 part 4 wants the zero-examined remedy to name the **actual excluder,
@@ -670,7 +595,21 @@ abstract class RuleDeclaration {
     this._exclusions = [...source._exclusions]
     this._silentIndices = new Set(source._silentIndices)
   }
+}
 
+/**
+ * The terminals — `check()`, `warn()`, `violations()` — and the execution behind
+ * them.
+ *
+ * Split from {@link RuleDeclaration} because a builder does two jobs: it collects
+ * a declaration, and it runs it. Both halves were one class of 372 code lines,
+ * and the gate that measures class size was right about it.
+ *
+ * A subclass still extends `TerminalBuilder` and inherits both halves, so the ten
+ * builders that do are untouched — the split is in this file, not in their
+ * contracts.
+ */
+export abstract class TerminalBuilder extends RuleDeclaration {
   /**
    * Subclasses implement this to collect and evaluate violations, **and to say
    * how many units they examined while doing it** — plan 0098.
@@ -717,21 +656,50 @@ abstract class RuleDeclaration {
    * sabotage row for the wiring belongs in 0099's matrix on day one.
    */
   protected abstract collectViolations(): CollectResult
-}
 
-/**
- * The terminals — `check()`, `warn()`, `violations()` — and the execution behind
- * them.
- *
- * Split from {@link RuleDeclaration} because a builder does two jobs: it collects
- * a declaration, and it runs it. Both halves were one class of 372 code lines,
- * and the gate that measures class size was right about it.
- *
- * A subclass still extends `TerminalBuilder` and inherits both halves, so the ten
- * builders that do are untouched — the split is in this file, not in their
- * contracts.
- */
-export abstract class TerminalBuilder extends RuleDeclaration {
+  /**
+   * Does this builder diagnose its own empty discovery?
+   *
+   * `false` — the gate reports a dead `discovery` glob, which is the fix for
+   * [bug 0040](../../bugs/fixed/0040-a-crosslayer-rule-reports-nothing-when-its-layer-resolves-nothing.md)'s
+   * silence half: two of three cross-layer conditions reported **nothing** when a
+   * layer resolved to no files.
+   *
+   * `true` — the builder owns it, and the gate stays out. Two builders override,
+   * and for different reasons, which is the thing to understand before adding a
+   * third:
+   *
+   * - `SliceRuleBuilder` returns a constant `true`, because its discovery
+   *   semantics are **not** per-tree and cannot be expressed by a position filter
+   *   (below). Nothing about that varies by condition.
+   * - `PairFinalBuilder` **asks its condition**, via the registry in
+   *   `owns-empty-discovery.ts` (plan 0081). There, ownership does vary by
+   *   condition, and a blanket `true` once suppressed the gate for the one
+   *   condition that did not self-report — which is why this used to say
+   *   "`SliceRuleBuilder` is the one that does" and was wrong.
+   *
+   * A hand-maintained roster of which builders override is the defect class plan
+   * 0081 was filed to remove, so this names the two shapes rather than the two
+   * classes:
+   *
+   * | builder | one dead tree among live ones |
+   * | --- | --- |
+   * | `crossLayer` | a **fault** — that layer's pairs are unchecked |
+   * | slice `assignedFrom` | **legitimate** — a slice with no files yet is a real shape |
+   *
+   * `slice-rule-builder.ts` records that second guard being withdrawn before
+   * release for firing on real projects: "a layer not created yet, and the
+   * `strict-boundaries` scaffold itself". Slice already handles the all-empty case
+   * with a better message than the gate's, so it owns both halves.
+   *
+   * Declared, never named from the outside. A list of exceptions in the gate is
+   * an unchecked claim about who owns what — which is exactly the comment this
+   * plan was filed to correct.
+   */
+  protected ownsDiscoveryDiagnosis(): boolean {
+    return false
+  }
+
   /**
    * Execute the rule with the given severity.
    * `.severity('error')` is equivalent to `.check()`.
