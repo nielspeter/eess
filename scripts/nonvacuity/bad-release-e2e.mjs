@@ -127,6 +127,42 @@ const E2E = [
     ['release/breaking-needs-minor'],
   ],
   [
+    // The SHELL half of the empty-changeset finding. The pure fixture proves the
+    // rule (section D2) by passing `breakingFiles` in directly, so the line that
+    // collects an EMPTY changeset's marker was uncovered — measured: deleting it
+    // left both fixtures green.
+    'an --empty changeset whose body declares a break is a finding, not a waiver',
+    ({ write }) => {
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write('.changeset/empty.md', '---\n---\n\n**Breaking:** `a` is gone.\n')
+    },
+    1,
+    ['release/breaking-needs-minor', '.changeset/empty.md'],
+  ],
+  [
+    // The SHELL half of the consumed-changeset path. `changeset version` deletes
+    // the file, so the marker has to be read back out of git — the flow
+    // RELEASING.md documents, where `npm run validate` is the only gate the
+    // changeset ever meets. Measured: deleting the collection line left both
+    // fixtures green while a consumed break-on-patch exited 0.
+    'a CONSUMED changeset that declared a break on patch is still caught',
+    ({ dir, g, write, pkg }) => {
+      branch({ g })
+      write(
+        '.changeset/breaks.md',
+        "---\n'@fixture/alpha': patch\n---\n\n**Breaking:** `a` is gone.\n",
+      )
+      g('add', '-A')
+      g('commit', '-qm', 'changeset on the branch')
+      rmSync(join(dir, '.changeset/breaks.md'))
+      write('packages/alpha/package.json', pkg('@fixture/alpha', '1.0.1'))
+      g('add', '-A')
+      g('commit', '-qm', 'version packages')
+    },
+    1,
+    ['release/breaking-needs-minor', '.changeset/breaks.md'],
+  ],
+  [
     'a clean tree with the base at HEAD says it had nothing to read',
     () => {},
     0,

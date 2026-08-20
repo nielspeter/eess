@@ -126,11 +126,28 @@ export function packagesTouchedBy(changedFiles, packages) {
  *   the reader to suppress — and suppressing this one re-opens an
  *   irreversible path.
  *
- * Requiring a line-anchored marker or the all-caps form means every negation we
- * measured fails to match, without a lookaround nobody can read. Stated as
- * "measured", not "impossible": an unanchored version of this claimed the
- * stronger thing and was wrong — `a **Breaking** change but did not make one`
- * matched it.
+ * **The false-positive surface, measured rather than claimed away.** Two earlier
+ * versions of this comment claimed negations were impossible "by construction",
+ * then that every negation measured failed to match. Both were wrong, and review
+ * measured the counterexamples each time. What is true today:
+ *
+ * | body | fires | correct? |
+ * | --- | --- | --- |
+ * | `a **Breaking** change but did not make one` | no | yes — line-anchored |
+ * | `This is not a breaking change` | no | yes |
+ * | `**Breaking changes:** none — internal only.` | **yes** | **no** |
+ * | `**Breaking change avoided** by keeping the alias` | **yes** | **no** |
+ *
+ * The last two are accepted, deliberately. Detecting them needs a negation test
+ * inside the bolded span, and that trades a LOUD false positive for a SILENT
+ * false negative on an irreversible path — `**Breaking:** none of the old exports
+ * remain` contains "none" and is a genuine break. Wrong direction. The remedy is
+ * cheap and the message states it: do not lead a changeset with a bolded
+ * "Breaking" unless something broke.
+ *
+ * `BREAKING CHANGE` is anchored as a line-leading footer token, which is what the
+ * conventional-commits spec defines it as. Unanchored it fired on prose ABOUT the
+ * marker — including, measured, a changeset describing this very rule.
  *
  * The cost of the narrow set is stated rather than hidden: a break announced in
  * unadorned prose is not caught. That is the honest trade — this gate exists to
@@ -152,7 +169,7 @@ export function breakingMarkerIn(summary) {
     /^[ \t]*(?:[-*+][ \t]+)?(?:\*\*|__)(?:BREAKING|Breaking)[^\n]*?(?:\*\*|__)/m.exec(summary) ??
     /^[ \t]*(?:[-*+][ \t]+)?(?:\*\*|__)(?:BREAKING|Breaking)[^\n]*/m.exec(summary) ??
     /^#{1,6}[ \t]+(?:BREAKING|Breaking)[^\n]*/m.exec(summary) ??
-    /\bBREAKING[ -]CHANGES?\b/.exec(summary)
+    /^BREAKING[ -]CHANGES?:/m.exec(summary)
   if (m === null || m === undefined) return undefined
   const marker = m[0].trim()
   return marker.length <= 72 ? marker : `${marker.slice(0, 69)}…`

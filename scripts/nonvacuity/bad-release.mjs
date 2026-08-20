@@ -166,6 +166,19 @@ const BREAKING_CASES = [
   // strong emphasis. Neither can be matched by a negation, so both are free.
   ['plural CHANGES', 'BREAKING CHANGES: the method is renamed', true],
   ['underscore bold', '__Breaking:__ renamed', true],
+  // Anchored as a line-leading footer token, which is what conventional-commits
+  // defines it as. Unanchored it fired on prose ABOUT the marker — measured, a
+  // changeset describing this very rule would have reddened.
+  ['prose about the marker', 'Adds a rule which keys on the BREAKING CHANGE marker.', false],
+  // **KNOWN AND ACCEPTED false positives, pinned so silencing them is a
+  // decision rather than a drift.** Detecting these needs a negation test inside
+  // the bolded span, which trades a LOUD false positive for a SILENT false
+  // negative on an irreversible path: `**Breaking:** none of the old exports
+  // remain` contains "none" and is a genuine break. Wrong direction. The remedy
+  // is cheap — do not lead a changeset with a bolded "Breaking" unless something
+  // broke — and the violation message says so.
+  ['accepted FP: lead says none', '**Breaking changes:** none — internal only.', true],
+  ['accepted FP: lead says avoided', '**Breaking change avoided** by keeping the alias.', true],
 ]
 for (const [name, body, want] of BREAKING_CASES) {
   let got

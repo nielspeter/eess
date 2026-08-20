@@ -143,10 +143,30 @@ strongest rule in the gate. This record originally called that out of scope on t
 reasoning "there is no bump here to be wrong"; the premise was wrong. It is a
 finding now.
 
+**The same defect, committed twice more while fixing it.** Re-running the
+reviewers' mutation matrix against the repaired tree found that BOTH fixes added
+in response to review — the empty-changeset finding and the consumed-changeset
+path — were themselves covered only at the pure-core level. Their shell wiring
+had no break class: deleting either collection line left both fixtures green. Two
+more end-to-end scenarios close them, and all three `breakingFiles.push` sites are
+now individually sabotage-verified.
+
+That is worth recording rather than quietly fixing. The lesson the reviewers
+taught was "the pure fixture cannot see the wiring", and the first response to it
+reproduced the same gap on two new paths. A fixture that injects its input past
+the seam proves the rule and nothing about how the rule is fed.
+
 **Smaller, all measured by reviewers:** the detector matched a bolded span
 anywhere (`a **Breaking** change but did not make one` fired — a false positive,
 the direction that gets gates suppressed), and missed `## Breaking changes`,
-`BREAKING CHANGES` plural and `__Breaking__`. The line-anchored form fixes the
+`BREAKING CHANGES` plural and `__Breaking__`. Anchoring fixed those; a later pass
+measured three MORE false positives, of which one — the conventional marker
+matching prose _about_ the marker, including a changeset describing this very rule
+— is fixed by anchoring it as the line-leading footer token the spec defines. The
+other two (`**Breaking changes:** none`, `**Breaking change avoided**`) are
+accepted and pinned as fixture cases with the reason: detecting them needs a
+negation test inside the bolded span, which would trade a loud false positive for
+a silent false negative on an irreversible path. The line-anchored form fixes the
 first and the others are added. The consumed-changeset path discarded the marker,
 so the release-time flow `RELEASING.md` documents — author at step 1, consume at
 step 2, `validate` at step 4 — was blind. And the counts in the source comments
