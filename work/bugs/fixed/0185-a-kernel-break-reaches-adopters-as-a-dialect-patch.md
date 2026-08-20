@@ -97,11 +97,24 @@ wants. This does change how the family versions on a marked break — every
 dependent moves a minor — and that is the deliberate trade: a break that reaches
 an adopter silently is the thing the bug is about.
 
-**Regular dependencies only.** `eess-crossvalidate` peers on the four dialects at
-`>=0.1.1`, and `onlyUpdatePeerDependentsWhenOutOfRange: true` leaves a peer
-dependent unbumped on purpose — the countermeasure for the `1.0.0` escalation.
-Requiring a peer dependent to be declared would fight it. The residual cost
-(crossvalidate's changelog cannot record a sibling break) is in `RELEASING.md`.
+**Regular dependencies only — and the first reason given for that was false.**
+This said requiring a peer dependent to be declared would fight
+`onlyUpdatePeerDependentsWhenOutOfRange`, the countermeasure for the `1.0.0`
+escalation. Measured against the real `changeset version` with this repo's own
+config: a peer dependent declared `minor` releases as a **minor**, no escalation,
+with the changeset's text in its changelog. That setting governs automatic bumping
+of an _undeclared_ peer dependent.
+
+What survives is weaker — a peer is a range the consumer resolves — and weaker
+still here, because `eess-crossvalidate` peers at `>=0.1.1`, unbounded.
+
+**The live cost, stated because it is larger than "a residual".** Of the breaking
+changesets currently pending, most break a DIALECT, and a dialect's only workspace
+carrier is `eess-crossvalidate` — excluded. So the rule constrains the kernel edge
+and abstains on the rest. **Widening it to peers is an OPEN decision**, not a
+closed one: it would require crossvalidate to be declared `minor` on several
+pending changesets, which is a second versioning-policy change and belongs to
+whoever owns the release.
 
 The graph keeps the rule narrow: only `@nielspeter/eess` has regular dependents,
 so in practice it says "a kernel break names its five dialects at minor".
@@ -126,6 +139,32 @@ so in practice it says "a kernel break names its five dialects at minor".
   kernel's. The barrier can be raised by accident; the missing text cannot be. The
   question is therefore per-FILE, not per-release: whether some other changeset
   happens to bump the dependent is incidental, and the pending set is not stable.
+
+## The attestation had no break class, twice
+
+Two independent mutation matrices (28 and 37 mutations, neither reusing this
+record's) agreed on the pass/fail behaviour: **every mutation that makes the real
+gate miss a genuine violation is caught by a fixture.** Both then found the same
+weakness somewhere else — in what a GREEN run says about itself.
+
+The honest-zero line could be replaced with a fabricated
+`✓ N of N changeset(s) declare a break, each bumping past patch` in one edit, and
+both fixtures stayed green. That is the same sentence, verbatim, that bug 0184's
+review caught lying over a severed rule. The earlier fix pinned
+`stats.breakingExamined` — the value, where the bug was diagnosed — and left the
+sentence, where it was seen, unasserted. No scenario ever entered that branch under
+assertion.
+
+Three more of the same shape: a red run's `✗` count could be forced to zero and
+print a ✓ over its own finding; the loose-check qualifier — added specifically to
+disclose a residue — could be silenced silently; and the new rule shipped with **no
+denominator at all**, one commit after this file argued a denominator from the
+wrong source is worse than none. All four are now asserted as SENTENCES in the
+end-to-end fixture, and each was re-verified by re-running its mutation.
+
+The general lesson, which is now the third variation of it on this branch: pinning
+a value does not pin the claim made about it, and the claim is what a reader acts
+on.
 
 ## Verification
 
@@ -154,5 +193,20 @@ so in practice it says "a kernel break names its five dialects at minor".
 has no bearing on this. Changing it moves nothing.
 
 What remains uncovered is a break that is never MARKED as one: both rules run only
-on changesets the detector recognises. That residue is inherited from bug 0184 and
-recorded there.
+on changesets the detector recognises. That residue is inherited from bug 0184 —
+**and it has a live instance on this very tree**, which review found and this
+record originally obscured by saying the rule "reddens nothing on the current
+tree" as though that showed good scoping.
+
+`.changeset/baseline-records-what-it-measured.md` declares `@nielspeter/eess:
+minor` and `@nielspeter/eess-ts: minor` and carries **no marker**. Its body says a
+baselined ceiling could silently stop meaning what it meant — by the standard
+`ledger-inherits-the-evidence-gate.md` applies to itself ("a corpus that
+previously passed can now fail on upgrade with no code change of its own" →
+marked `**Breaking**`), that is the same class. So the kernel minor ships and the
+four unnamed dialects publish patches reading "Updated dependencies", carrying it.
+That is this bug's mechanism, live, green, in the same directory as its fix.
+
+Keying on the marker is still right — inferring a break from prose is the
+unfalsifiable alternative. But "reddens nothing today" is a fact about what is
+marked, not evidence that nothing is breaking.

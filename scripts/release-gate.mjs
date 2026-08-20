@@ -365,6 +365,22 @@ export function releaseViolations({
     ({ owners, decls }) => owners.length === 0 && decls.length > 1,
   ).length
 
+  // How many dependency EDGES `break-names-dependents` actually weighed. Without
+  // it the rule contributes no number in any branch, and there is a vacuously
+  // green path with no signal: `dependentsOf` is built from `dependencies` only,
+  // so if the kernel ever moved to `peerDependencies` in the dialects the map
+  // becomes `{}`, the rule examines every breaking changeset and can never fire,
+  // and every run still prints a ✓. One commit after this file argued that a
+  // denominator from the wrong source is worse than none, the new rule shipped
+  // with none at all.
+  const breakDependentEdges = breakingAnnotated.reduce((n, { decls, owners }) => {
+    const broken =
+      owners.length > 0
+        ? owners
+        : decls.filter((d) => d.bump === 'minor' || d.bump === 'major').map((d) => d.pkg)
+    return n + broken.reduce((m, b) => m + (dependentsOf[b] ?? []).length, 0)
+  }, 0)
+
   const brokenOnPatch = breakingAnnotated
     .filter(({ decls, owners }) =>
       decls.length === 0
@@ -560,6 +576,7 @@ export function releaseViolations({
       // which is worse than no denominator at all (ADR-010).
       breakingExamined: breakingFiles.length,
       breakingLoose,
+      breakDependentEdges,
       waivers: [...waivers],
       waived,
       // Named, not just counted: under a waiver these are the packages the gate

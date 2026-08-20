@@ -329,10 +329,24 @@ const waivers = waiverCandidates.filter((f) => changedFiles.includes(f))
 
 const changedPackages = packagesTouchedBy(changedFiles, workspacePackages)
 
-// Who would inherit a break. Regular `dependencies` only — a peer is a range the
-// CONSUMER resolves, and `onlyUpdatePeerDependentsWhenOutOfRange` deliberately
-// leaves a peer dependent unbumped (it is the countermeasure for the 1.0.0
-// escalation). Forcing a peer dependent to be declared would fight that.
+// Who would inherit a break. Regular `dependencies` only.
+//
+// **The first reason given for excluding peers was wrong.** It said requiring a
+// peer dependent to be declared "would fight"
+// `onlyUpdatePeerDependentsWhenOutOfRange`, the countermeasure for the 1.0.0
+// escalation. Measured against the real `changeset version` with this repo's own
+// config: a peer dependent declared `minor` releases as a minor — no escalation —
+// with the changeset's text in its changelog. That setting governs AUTOMATIC
+// bumping of an UNDECLARED peer dependent; an explicit declaration is honoured.
+//
+// What survives is weaker: a peer is a range the CONSUMER resolves, so the
+// dependent does not decide what its users get. Weaker still here, since
+// `eess-crossvalidate` peers at `>=0.1.1` — unbounded — and npm installs peers.
+//
+// The cost is stated rather than hidden: most breaking changesets break a DIALECT,
+// whose only workspace carrier is `eess-crossvalidate`, so the rule constrains the
+// kernel edge and abstains on the rest. Widening to peers is an OPEN decision
+// (bug 0185), not a closed one.
 const workspaceNames = new Set(workspacePackages.map((p) => p.name))
 const dependentsOf = {}
 for (const p of workspacePackages) {
@@ -412,6 +426,19 @@ if (violations.length > 0) {
 // The count comes from `stats`, i.e. from what the rule itself saw: sourcing it
 // from the shell's own `breakingFiles` let the two disagree, and a severed
 // argument then printed a ✓ over a rule that examined nothing.
+// The second rule's own denominator. A ✓ that says nothing about how many
+// dependency edges were weighed reads identically whether there were nine or
+// none — and none is reachable (see `breakDependentEdges`).
+const depsCount = violations.filter((v) => v.ruleId === 'release/break-names-dependents').length
+line(
+  'dependents',
+  stats.breakDependentEdges === 0
+    ? 'no declared break has a workspace dependent — rule weighed 0 edges'
+    : depsCount === 0
+      ? `✓ ${String(stats.breakDependentEdges)} dependency edge(s) weighed, each named at minor`
+      : `✗ ${String(depsCount)} changeset(s) leave a dependent unnamed, of ${String(stats.breakDependentEdges)} edge(s) weighed`,
+)
+
 const brokeCount = violations.filter((v) => v.ruleId === 'release/breaking-needs-minor').length
 // Pending PLUS consumed: the rule reads both, so a denominator counting only the
 // pending files reports "5 of 9" while one of the 5 is not among the 9.

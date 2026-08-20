@@ -110,7 +110,10 @@ const E2E = [
       )
     },
     1,
-    ['release/breaking-needs-minor', '.changeset/breaks.md'],
+    // The ✗ form of the denominator, asserted on a RED run. Forcing `brokeCount`
+    // to 0 otherwise prints a ✓ directly above the finding it is contradicting,
+    // and no fixture noticed.
+    ['release/breaking-needs-minor', '.changeset/breaks.md', 'breaking changeset(s) bump only'],
   ],
   [
     // The other direction, in the same shell: the rule must not fire when the
@@ -179,7 +182,7 @@ const E2E = [
       )
     },
     1,
-    ['release/break-names-dependents', '@fixture/beta'],
+    ['release/break-names-dependents', '@fixture/beta', 'leave a dependent unnamed'],
   ],
   [
     // The quiet direction: naming the dependent AT MINOR satisfies it. Without
@@ -195,7 +198,9 @@ const E2E = [
       )
     },
     0,
-    ['release readiness'],
+    // The dependents denominator, asserted as a SENTENCE for the same reason the
+    // breaking one now is: pinning only the value leaves the claim unfalsifiable.
+    ['release readiness', '1 dependency edge(s) weighed'],
     ['release/break-names-dependents'],
   ],
   [
@@ -215,7 +220,24 @@ const E2E = [
       )
     },
     1,
-    ['release/break-names-dependents', '@fixture/beta'],
+    ['release/break-names-dependents', '@fixture/beta', 'checked loosely'],
+  ],
+  [
+    // **The honest-zero SENTENCE, not just the number behind it.** Review
+    // measured that replacing this branch's string with a fabricated
+    // `✓ N of N … each bumping past patch` survived BOTH fixtures — the exact
+    // sentence bug 0184's review caught lying over a severed rule. The earlier fix
+    // pinned `stats.breakingExamined` (the value, where the bug was diagnosed) and
+    // left the sentence (where it was seen) unasserted. No scenario entered this
+    // branch under assertion until this one.
+    'a run with no breaking changeset says it examined zero, and claims nothing',
+    ({ write }) => {
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write('.changeset/plain.md', "---\n'@fixture/alpha': patch\n---\n\nno break here.\n")
+    },
+    0,
+    ['examined 0 of'],
+    ['declare a break', 'bumping past patch'],
   ],
   [
     'a clean tree with the base at HEAD says it had nothing to read',

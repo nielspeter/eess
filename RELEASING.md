@@ -94,7 +94,11 @@ rendered entry reads `**Breaking:** …` under a heading that says
 `### Patch Changes`. At `minor` it releases as `0.4.0` with the text under
 `### Minor Changes`.
 
-Peer dependents are deliberately NOT required. `eess-crossvalidate` peers on the
+Peer dependents are NOT required — but not for the reason first written here.
+Declaring a peer dependent does **not** trigger the `1.0.0` escalation: measured,
+that setting governs automatic bumping of an _undeclared_ peer dependent, and an
+explicit declaration is honoured unchanged. The argument that survives is weaker:
+a peer is a range the consumer resolves. `eess-crossvalidate` peers on the
 four dialects with `>=0.1.1`, and `onlyUpdatePeerDependentsWhenOutOfRange` leaves
 it unbumped on purpose — that is the countermeasure for the `1.0.0` escalation.
 The cost is that crossvalidate's changelog cannot record a sibling break.

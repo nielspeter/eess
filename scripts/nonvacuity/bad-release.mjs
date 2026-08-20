@@ -39,6 +39,26 @@ const RULES = [
   'release/break-names-dependents',
 ]
 
+/**
+ * KNOWN-EQUIVALENT MUTATIONS, recorded so nobody re-derives them.
+ *
+ * Two mutations survive both fixtures and are proven harmless rather than
+ * assumed so — an independent review ran 37 mutations and these are the residue
+ * with no behavioural difference:
+ *
+ * - `packagesAt`'s `deps` → `[]` (the BASE-ref reader). The workspace is a
+ *   base ∪ head union and head wins for any package present in both, so base deps
+ *   are consulted only for a package DELETED at head — which cannot be a
+ *   dependent that still needs declaring.
+ * - dropping the `workspaceNames` filter when inverting `dependencies`. It would
+ *   admit external packages (`ts-morph`, `picomatch`) as keys in `dependentsOf`,
+ *   but a key is only read for a package declared BROKEN in a changeset, and an
+ *   external package is never declared. No reachable difference.
+ *
+ * Everything else that makes the real gate miss a genuine violation is caught by
+ * at least one fixture — verified twice, by two independent matrices.
+ */
+
 /** A behavioural expectation failed → the gate is vacuous (exit 0), never "premise broken". */
 function vacuous(msg) {
   console.error(`bad-release: ${msg}`)
@@ -419,6 +439,10 @@ const EXPECTED_STATS = {
   breakingExamined: 7,
   // Several packages, no owner named — only "at least one" could be asked.
   breakingLoose: 2,
+  // Dependency edges weighed by break-names-dependents. Zero is reachable — if
+  // every dependent edge became a peer, the rule could never fire — so the number
+  // is pinned rather than left to be inferred from a ✓.
+  breakDependentEdges: 3,
 }
 for (const [k, want] of Object.entries(EXPECTED_STATS)) {
   if (result.stats[k] !== want)
