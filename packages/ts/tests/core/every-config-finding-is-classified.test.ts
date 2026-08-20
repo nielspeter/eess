@@ -76,7 +76,7 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'behavioural: correspondence-builder.test.ts — removing .expectEmpty(side) clears it (plan 0097)',
   },
-  'src/builders/slice-rule-builder.ts::metaViolation': {
+  'src/builders/slice-discovery-message.ts::metaViolation': {
     remedy: 'own',
     verified:
       'behavioural: slice-rule-builder.test.ts bug-0009 corpus — each branch reachable only when its advice is true',
