@@ -1,8 +1,8 @@
 # @nielspeter/eess-crossvalidate
 
-Cross-validation presets for the [eess](../../README.md) family — bind two dialects' artifacts and fail the build when they drift.
+Cross-validation presets for the [eess](https://github.com/nielspeter/eess/blob/main/README.md) family — bind two dialects' artifacts and fail the build when they drift.
 
-The generic engine lives in the kernel: [`correspondence()`](../core) binds two element `Selection`s (from any dialects) and checks completeness both ways plus relation preservation. This package ships the **dialect-coupled presets** — the pairs that must import two concrete dialects.
+The generic engine lives in the kernel: [`correspondence()`](https://www.npmjs.com/package/@nielspeter/eess) binds two element `Selection`s (from any dialects) and checks completeness both ways plus relation preservation. This package ships the **dialect-coupled presets** — the pairs that must import two concrete dialects.
 
 ## Mermaid ↔ TypeScript
 

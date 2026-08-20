@@ -1,8 +1,8 @@
 # @nielspeter/eess-md
 
-Architecture testing for a **Markdown corpus** — the Markdown dialect of the [eess](../../README.md) family. _Specifications you can run._
+Architecture testing for a **Markdown corpus** — the Markdown dialect of the [eess](https://github.com/nielspeter/eess/blob/main/README.md) family. _Specifications you can run._
 
-A repo's markdown (docs, ADRs, plans) should stay honest: cross-links resolve, code pointers point at real lines, and — if you use them — ADRs declare how they're enforced. `eess-md` validates all of that on the shared [`@nielspeter/eess`](../core) kernel, so you write a declarative rules file, not a custom validator script.
+A repo's markdown (docs, ADRs, plans) should stay honest: cross-links resolve, code pointers point at real lines, and — if you use them — ADRs declare how they're enforced. `eess-md` validates all of that on the shared [`@nielspeter/eess`](https://www.npmjs.com/package/@nielspeter/eess) kernel, so you write a declarative rules file, not a custom validator script.
 
 ## Install
 
