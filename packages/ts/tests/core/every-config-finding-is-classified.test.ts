@@ -143,7 +143,7 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
       'it with a normal, real violation (plan 0102; corrected by review to cite the emit-path test, not ' +
       'the preview-only one — the original citation never actually constructed an inertViolation())',
   },
-  'src/helpers/baseline.ts::descriptionChangeFinding': {
+  'src/helpers/baseline-diagnostics.ts::descriptionChangeFinding': {
     remedy: 'own',
     verified: 'behavioural: baseline-description-change.test.ts — regenerating clears it',
   },
@@ -156,7 +156,7 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
       'finding clear. The two guards beside it keep that from passing vacuously: an unchanged ' +
       'metric still compares, and a stamped baseline still ratchets in both directions',
   },
-  'src/helpers/baseline.ts::unmatchedBaselineFinding': {
+  'src/helpers/baseline-diagnostics.ts::unmatchedBaselineFinding': {
     remedy: 'own',
     verified: 'behavioural: baseline.test.ts — a matching baseline produces none',
   },

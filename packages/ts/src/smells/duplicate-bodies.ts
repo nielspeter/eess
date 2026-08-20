@@ -4,18 +4,12 @@ import path from 'node:path'
 import { selectionMemo } from '@nielspeter/eess'
 import { SmellBuilder } from './smell-builder.js'
 import { collectFunctions } from '../models/arch-function.js'
-import { buildFingerprint, computeSimilarity } from './fingerprint.js'
-import type { Fingerprint } from './fingerprint.js'
+import { fingerprintAll, findSimilarPairs } from './similar-pairs.js'
+import type { SimilarPair } from './similar-pairs.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { relativeToRoot } from '../core/project-relative.js'
-
-/** A function paired with its structural fingerprint. */
-interface FingerprintedFunction {
-  fn: ArchFunction
-  fingerprint: Fingerprint
-}
 
 /** Test file patterns for ignoreTests(). */
 const TEST_PATTERNS = ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**']
@@ -75,8 +69,8 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
 
   protected detect(): ArchViolation[] {
     const functions = this.selected()
-    const fingerprinted = this.fingerprintAll(functions)
-    const pairs = this.findSimilarPairs(fingerprinted)
+    const fingerprinted = fingerprintAll(functions)
+    const pairs = findSimilarPairs(fingerprinted, this._minSimilarity, this._minDistinctVocabulary)
     return this.buildViolations(pairs)
   }
 
@@ -194,55 +188,6 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
     return allFunctions
   }
 
-  /** Build fingerprints for all collected functions. */
-  private fingerprintAll(functions: ArchFunction[]): FingerprintedFunction[] {
-    const result: FingerprintedFunction[] = []
-    for (const fn of functions) {
-      const body = fn.getBody()
-      if (!body) continue
-      result.push({ fn, fingerprint: buildFingerprint(body) })
-    }
-    return result
-  }
-
-  /** Compare all pairs of fingerprints, collect those above threshold. */
-  private findSimilarPairs(
-    items: FingerprintedFunction[],
-  ): Array<{ a: ArchFunction; b: ArchFunction; similarity: number }> {
-    const pairs: Array<{ a: ArchFunction; b: ArchFunction; similarity: number }> = []
-
-    for (let i = 0; i < items.length; i++) {
-      for (let j = i + 1; j < items.length; j++) {
-        const a = items[i]
-        const b = items[j]
-        if (!a || !b) continue
-        // Fast rejection 1: if node counts differ too much, similarity cannot reach threshold
-        const maxCount = Math.max(a.fingerprint.nodeCount, b.fingerprint.nodeCount)
-        const minCount = Math.min(a.fingerprint.nodeCount, b.fingerprint.nodeCount)
-        if (maxCount > 0 && minCount / maxCount < this._minSimilarity) {
-          continue
-        }
-        // Fast rejection 2 (plan 0103): neither body has enough distinct vocabulary
-        // for a match to be evidence of anything. `Math.min`, not sum or average —
-        // ONE small-vocabulary side is enough to make the pair uninformative
-        // regardless of the other side's size.
-        const minDistinct = Math.min(
-          a.fingerprint.distinctVocabulary,
-          b.fingerprint.distinctVocabulary,
-        )
-        if (minDistinct < this._minDistinctVocabulary) {
-          continue
-        }
-        const similarity = computeSimilarity(a.fingerprint, b.fingerprint)
-        if (similarity >= this._minSimilarity) {
-          pairs.push({ a: a.fn, b: b.fn, similarity })
-        }
-      }
-    }
-
-    return pairs
-  }
-
   /** Build violations from similar pairs. */
   /**
    * Report order: by folder when `.groupByFolder()` asked for it, otherwise the
@@ -251,9 +196,7 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
    * Extracted from {@link buildViolations} so that method is the violation
    * shape and nothing else — presentation order is a separate decision.
    */
-  private orderedPairs(
-    pairs: Array<{ a: ArchFunction; b: ArchFunction; similarity: number }>,
-  ): Array<{ a: ArchFunction; b: ArchFunction; similarity: number }> {
+  private orderedPairs(pairs: SimilarPair[]): SimilarPair[] {
     if (!this._groupByFolder) return pairs
     return [...pairs].sort((x, y) => {
       const folderA = path.dirname(x.a.getSourceFile().getFilePath())
@@ -262,9 +205,7 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
     })
   }
 
-  private buildViolations(
-    pairs: Array<{ a: ArchFunction; b: ArchFunction; similarity: number }>,
-  ): ArchViolation[] {
+  private buildViolations(pairs: SimilarPair[]): ArchViolation[] {
     const ruleDescription = this.describe()
     const violations: ArchViolation[] = []
 
