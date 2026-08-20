@@ -110,8 +110,6 @@ function keyedFromKeys(keys: KeysSource): Map<string, unknown[]> {
  *   .rule({ id: 'auth/route-matrix', suggestion: 'Add the route to ROUTE_PERMISSIONS.' })
  *   .check()
  */
-// eess-exclude eess/no-unused-exports: read by `correspondence-findings.ts`, split
-// out of this file — the memo must stay keyed on the builder instance.
 export const sidesOf = selectionMemo<Map<string, unknown[]>>()
 
 export class CorrespondenceBuilder extends TerminalBuilder {

@@ -74,8 +74,6 @@ import type { BaselineFacts } from './baseline-diagnostics.js'
 //     entries is byte-identical and keeps matching. Distinct prefix (`cycle-edge::` vs.
 //     `cycle::`) also means an old-format entry cannot accidentally still match a
 //     new-format finding by coincidence, independent of this version bump.
-// eess-exclude eess/no-unused-exports: read by `baseline-diagnostics.ts`, which was
-// split out of this file — the gate does not count a sibling module's import here.
 export const HASH_VERSION = 5
 
 /**
