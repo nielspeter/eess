@@ -91,7 +91,9 @@
  *                 release/changeset-names-real-package. Synthetic inputs, no git:
  *                 the diff half is the impure shell in check-release.mjs, and its
  *                 failure mode is a hard error on an unresolvable base ref rather
- *                 than a silent green.
+ *                 than a silent green. Since bug 0184 it also drives
+ *                 release/breaking-needs-minor: a changeset whose body declares a
+ *                 break while every package it names takes `patch`.
  *   vacuity-matrix (plan 0088 Phase 4a)
  *                 scripts/nonvacuity/bad-vacuity-matrix.mjs runs a mutated COPY
  *                 of the real scripts/vacuity-matrix.mjs with its KNOWN_FAIL_OPEN
@@ -968,6 +970,12 @@ const gates = [
     () => gateNode('bad-release.mjs', 'release/changeset-names-real-package'),
   ],
   ['release/unparseable', () => gateNode('bad-release.mjs', 'release/unparseable-changeset')],
+  // Bug 0184. The only release rule guarding an IRREVERSIBLE effect: npm refuses
+  // to re-publish a version, so a break shipped as a patch is permanent.
+  [
+    'release/breaking-needs-minor',
+    () => gateNode('bad-release.mjs', 'release/breaking-needs-minor'),
+  ],
   [
     'release/gate-fails-the-build',
     () => gateNode('bad-release-e2e.mjs', 'release/changed-package-needs-changeset'),
@@ -1053,6 +1061,7 @@ const GATE_FOR = {
     'release/needs-changeset',
     'release/names-real-package',
     'release/unparseable',
+    'release/breaking-needs-minor',
     'release/gate-fails-the-build',
   ],
 }

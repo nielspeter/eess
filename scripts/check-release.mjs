@@ -157,7 +157,9 @@ function readPendingChangesets() {
   const declarations = []
   const waiverCandidates = []
   const unparseable = []
-  if (!existsSync('.changeset')) return { declarations, waiverCandidates, unparseable, files: [] }
+  const breakingFiles = []
+  if (!existsSync('.changeset'))
+    return { declarations, waiverCandidates, unparseable, breakingFiles, files: [] }
   const files = readdirSync('.changeset')
     .filter(isChangeset)
     .sort()
@@ -166,15 +168,19 @@ function readPendingChangesets() {
     const r = declarationsIn(readFileSync(file, 'utf8'), file)
     if (r.error !== undefined) unparseable.push({ file, error: r.error })
     else if (r.empty) waiverCandidates.push(file)
-    else declarations.push(...r.declarations)
+    else {
+      declarations.push(...r.declarations)
+      if (r.breaking) breakingFiles.push(file)
+    }
   }
-  return { declarations, waiverCandidates, unparseable, files }
+  return { declarations, waiverCandidates, unparseable, breakingFiles, files }
 }
 
 const {
   declarations,
   waiverCandidates,
   unparseable,
+  breakingFiles,
   files: changesetFiles,
 } = readPendingChangesets()
 
@@ -303,6 +309,10 @@ const { violations, stats } = releaseViolations({
   workspacePackages,
   waivers,
   unparseable,
+  // NOT scoped to the diff, unlike `waivers`. A breaking changeset merged by an
+  // earlier PR is still pending until `changeset version` runs, so it is still
+  // about to ship on the wrong bump — the window this gate exists to close.
+  breakingFiles,
 })
 
 // --- report -----------------------------------------------------------------
@@ -356,6 +366,18 @@ if (violations.length > 0) {
 } else {
   line('findings', '✓ every changed package is declared, every declaration is real')
 }
+
+// The breaking rule's own denominator, stated whether or not it fired. A rule
+// that examined zero changesets and one that examined nine both print "0
+// findings" otherwise, and only one of those is evidence (ADR-010).
+if (violations.length === 0 || !violations.some((v) => v.ruleId === 'release/breaking-needs-minor'))
+  line(
+    'breaking',
+    breakingFiles.length === 0
+      ? 'no pending changeset declares a break — rule examined 0 of ' +
+          `${String(changesetFiles.length)}`
+      : `✓ ${String(breakingFiles.length)} of ${String(changesetFiles.length)} changeset(s) declare a break, each bumping past patch`,
+  )
 
 console.error('')
 if (violations.length === 0) {

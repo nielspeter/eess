@@ -24,12 +24,18 @@
  *       so completes the sabotage. A gate regression must never read as fixture
  *       breakage.
  */
-import { packagesTouchedBy, declarationsIn, releaseViolations } from '../release-gate.mjs'
+import {
+  packagesTouchedBy,
+  declarationsIn,
+  declaresBreaking,
+  releaseViolations,
+} from '../release-gate.mjs'
 
 const RULES = [
   'release/changed-package-needs-changeset',
   'release/changeset-names-real-package',
   'release/unparseable-changeset',
+  'release/breaking-needs-minor',
 ]
 
 /** A behavioural expectation failed → the gate is vacuous (exit 0), never "premise broken". */
@@ -113,6 +119,42 @@ for (const [name, text, count, empty] of PARSE_CASES) {
         `only a genuinely empty changeset may waive`,
     )
 }
+// --- B2. the breaking detector: what counts, and what must NOT ---------------
+
+// The keyword set is a measured decision, not a guess (bug 0184). This repo
+// writes a bolded `**Breaking…**` lead — 3 of 9 pending changesets do. It also
+// writes `**Migration:**` sections, in 5 — but those two sets DIFFER, so keying
+// on Migration would fire on changesets describing no break at all. A gate that
+// reddens correct work gets suppressed, which is ADR-009 rule 3.
+const BREAKING_CASES = [
+  ['bolded lead', '**Breaking for subclasses of `SmellBuilder`:** renamed.', true],
+  ['bolded with parenthetical', '**Breaking (0.x — minor signals it):** a rule now fails.', true],
+  ['conventional marker', 'BREAKING CHANGE: the terminal throws.', true],
+  ['hyphenated marker', 'BREAKING-CHANGE: the terminal throws.', true],
+  // The negation that a naive /breaking/i would flag. This is the false positive
+  // the record warned about, and it is why the bold/all-caps form is required.
+  ['negated prose', 'This is not a breaking change for existing callers.', false],
+  ['incidental prose', 'Avoids breaking the baseline when a unit changes.', false],
+  // `**Migration:**` alone is guidance, not a break — measured on this repo.
+  ['migration only', '**Migration:** re-run your baseline.', false],
+  ['lowercase mid-sentence', 'the breaking case is handled', false],
+]
+for (const [name, body, want] of BREAKING_CASES) {
+  let got
+  try {
+    got = declaresBreaking(body)
+  } catch (err) {
+    threw(`in declaresBreaking (${name})`, err)
+  }
+  if (got !== want)
+    vacuous(
+      `declaresBreaking("${name}") returned ${got}, expected ${want} — ` +
+        (want
+          ? 'a declared break would go unchecked'
+          : 'the detector fires on prose, and a gate that reddens correct changesets gets suppressed'),
+    )
+}
+
 // A file the parser rejects must be a finding, never a waiver.
 let broken
 try {
@@ -185,7 +227,20 @@ try {
       // the fixture — measured, and the normal state of a release train.
       { pkg: '@fixture/untouched', bump: 'patch', file: '.changeset/earlier.md', line: 2 },
       { pkg: '@fixture/ghost', bump: 'minor', file: '.changeset/ghost.md', line: 2 },
+      // Breaking body, patch bump: the irreversible case. `changeset publish`
+      // ships with provenance and npm refuses a re-publish, so a contract break
+      // released as a patch cannot be taken back.
+      { pkg: '@fixture/quiet', bump: 'patch', file: '.changeset/breaks-on-patch.md', line: 2 },
+      // Breaking body, minor bump on ONE of several packages: must stay quiet.
+      // Siblings legitimately take a dependency patch while the owner declares
+      // the break — `assertion-less-rules-fail.md` is exactly this shape.
+      // NOT @fixture/core — that one must stay undeclared so the changed-package
+      // rule keeps firing. Choosing it here silently disabled that rule and the
+      // fixture caught it, which is the reason this file asserts an exact SET.
+      { pkg: '@fixture/untouched', bump: 'minor', file: '.changeset/breaks-on-minor.md', line: 2 },
+      { pkg: '@fixture/quiet', bump: 'patch', file: '.changeset/breaks-on-minor.md', line: 3 },
     ],
+    breakingFiles: ['.changeset/breaks-on-patch.md', '.changeset/breaks-on-minor.md'],
     changedPackages: [
       { name: '@fixture/core', dir: 'packages/core' },
       { name: '@fixture/quiet', dir: 'packages/quiet' },
@@ -209,6 +264,7 @@ const EXPECTED = [
   'release/changed-package-needs-changeset :: @fixture/core',
   'release/changeset-names-real-package :: @fixture/ghost',
   'release/unparseable-changeset :: .changeset/bad.md',
+  'release/breaking-needs-minor :: .changeset/breaks-on-patch.md',
 ]
 const actual = result.violations.map((v) => `${v.ruleId} :: ${v.element}`).sort()
 if (actual.join(' | ') !== [...EXPECTED].sort().join(' | ')) {
@@ -239,7 +295,7 @@ if (unexplained.length > 0)
 // stats drives every number the gate prints. Zeroing any of them left the first
 // fixture green while the summary reported a run that had scanned nothing —
 // exactly the shrinking-denominator failure this harness exists to catch.
-const EXPECTED_STATS = { changed: 2, changedDeclared: 1, declarations: 3, workspace: 4, unparseable: 1 }
+const EXPECTED_STATS = { changed: 2, changedDeclared: 1, declarations: 6, workspace: 4, unparseable: 1 }
 for (const [k, want] of Object.entries(EXPECTED_STATS)) {
   if (result.stats[k] !== want)
     vacuous(`stats.${k} is ${result.stats[k]}, expected ${want} — the reported denominator is wrong`)

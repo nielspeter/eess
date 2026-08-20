@@ -19,7 +19,7 @@
  * write disabled the gate. Two definitions of "a changeset" is the drift this
  * project exists to catch, so there is now one.
  *
- * Three rules:
+ * Four rules:
  *
  *   release/changed-package-needs-changeset  a changed package with no changeset
  *                                            declaring a bump — the bug 0106 case.
@@ -31,6 +31,13 @@
  *   release/unparseable-changeset             a file in `.changeset/` the shared
  *                                            parser rejects. Fail-closed: it is a
  *                                            finding, never a waiver.
+ *   release/breaking-needs-minor              a changeset whose body declares a
+ *                                            break while every package it names
+ *                                            takes `patch` (bug 0184). The one
+ *                                            rule here guarding an IRREVERSIBLE
+ *                                            effect: `changeset publish` ships
+ *                                            with provenance and npm refuses a
+ *                                            re-publish.
  *
  * STRONGER THAN `changeset status --since`, deliberately. Measured on a
  * throwaway worktree: changing `packages/core/src` and committing a changeset
@@ -97,6 +104,40 @@ export function packagesTouchedBy(changedFiles, packages) {
  *   `changeset add --empty` case, and exactly what upstream would conclude.
  *   `error` is set when the parser rejects the file; it is never a waiver.
  */
+/**
+ * Whether a changeset body DECLARES a breaking change.
+ *
+ * **The keyword set is measured, not guessed** (bug 0184). Two forms count:
+ *
+ * - a bolded `**Breaking…**` lead, which is how this repo writes it — 3 of the 9
+ *   changesets pending when this was built use exactly that shape;
+ * - `BREAKING CHANGE` / `BREAKING-CHANGE`, the conventional-commits marker, so a
+ *   contributor who reaches for the ecosystem-standard spelling is covered.
+ *
+ * **What deliberately does NOT count, and why each was rejected:**
+ *
+ * - `**Migration:**` sections. The obvious second signal, and wrong: 5 pending
+ *   changesets carry one and only 3 describe a break, so the two sets differ.
+ *   Migration guidance accompanies plenty of non-breaking minors.
+ * - bare `/breaking/i`. "This is **not** a breaking change" and "avoids breaking
+ *   the baseline" both match it. A gate that reddens correct changesets is one
+ *   that gets suppressed — ADR-009 rule 3 — and suppressing this one re-opens an
+ *   irreversible path.
+ *
+ * Requiring the bold marker or the all-caps form makes the negations impossible
+ * by construction rather than by a lookaround nobody can read.
+ *
+ * The cost of the narrow set is stated rather than hidden: a break announced in
+ * unadorned prose is not caught. That is the honest trade — this gate exists to
+ * catch the case where someone wrote "Breaking" and still typed `patch`, not to
+ * infer intent from prose.
+ */
+export function declaresBreaking(summary) {
+  if (typeof summary !== 'string') return false
+  if (/\*\*BREAKING|\*\*Breaking/.test(summary)) return true
+  return /\bBREAKING[ -]CHANGE\b/.test(summary)
+}
+
 export function declarationsIn(text, file) {
   let parsed
   try {
@@ -120,7 +161,11 @@ export function declarationsIn(text, file) {
     file,
     line: lineOf(r.name),
   }))
-  return { declarations, empty: declarations.length === 0 }
+  return {
+    declarations,
+    empty: declarations.length === 0,
+    breaking: declaresBreaking(parsed.summary),
+  }
 }
 
 const WHY_UNDECLARED =
@@ -129,6 +174,10 @@ const WHY_UNDECLARED =
 const WHY_GHOST =
   'a changeset naming a package that does not exist is a declaration that publishes nothing — ' +
   'it looks like a pending release and is one only to a reader'
+const WHY_BREAKING_PATCH =
+  'a contract break released as a patch cannot be taken back — `changeset publish` ships with ' +
+  'provenance and npm refuses to re-publish a version, so the wrong bump is permanent within ' +
+  'the hour it takes anyone to notice'
 const WHY_UNPARSEABLE =
   'a changeset the release tool cannot read declares nothing, and a file that declares nothing ' +
   'must never be mistaken for one declaring "this ships nothing"'
@@ -150,6 +199,7 @@ export function releaseViolations({
   workspacePackages,
   waivers = [],
   unparseable = [],
+  breakingFiles = [],
 }) {
   const declarationSelection = {
     elements: [...declarations],
@@ -217,10 +267,38 @@ export function releaseViolations({
     because: WHY_UNPARSEABLE,
   }))
 
+  // A changeset that says it breaks something must bump at least one package
+  // beyond `patch`. **At least one, not all** — a break is owned by one package
+  // while its siblings legitimately take a dependency patch, which is the shape
+  // of `assertion-less-rules-fail.md` (kernel minor, five dialects patch).
+  // Requiring every row to be minor would redden that correct changeset.
+  const brokenOnPatch = [...new Set(breakingFiles)]
+    .map((file) => ({ file, decls: declarations.filter((d) => d.file === file) }))
+    // No declarations at all is the empty-changeset case, which `waiverCandidates`
+    // already owns; there is no bump here to be wrong.
+    .filter(({ decls }) => decls.length > 0)
+    .filter(({ decls }) => !decls.some((d) => d.bump === 'minor' || d.bump === 'major'))
+    .map(({ file, decls }) => ({
+      rule: 'correspondence',
+      ruleId: 'release/breaking-needs-minor',
+      element: file,
+      file,
+      line: decls[0].line,
+      message:
+        `\`${file}\` declares a breaking change and bumps only ` +
+        `${[...new Set(decls.map((d) => d.bump))].sort().join('/')}: ` +
+        `${decls.map((d) => `${d.pkg}=${d.bump}`).join(', ')}\n` +
+        `  raise the package that owns the break to \`minor\` (0.x signals a break with minor, ` +
+        `not major — major here would claim 1.0 stability), or, if the body overstates it, ` +
+        `say plainly that nothing a consumer can observe changed`,
+      because: WHY_BREAKING_PATCH,
+    }))
+
   const violations = [
     ...(waived ? [] : needsChangeset.violations()),
     ...namesRealPackage.violations(),
     ...unreadable,
+    ...brokenOnPatch,
   ]
 
   const declaredNames = new Set(declarations.map((d) => d.pkg))
