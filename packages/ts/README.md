@@ -9,7 +9,7 @@
 
 Inspired by Java's [ArchUnit](https://www.archunit.org/). Powered by [ts-morph](https://ts-morph.com/).
 
-> **The TypeScript dialect of the [eess](../../README.md) family.** Formerly published as `@nielspeter/ts-archunit` — that name still works as an alias, so existing installs are unaffected. New projects should prefer `@nielspeter/eess-ts`.
+> **The TypeScript dialect of the [eess](https://github.com/nielspeter/eess/blob/main/README.md) family.** Formerly published as `@nielspeter/ts-archunit` — that name still works as an alias, so existing installs are unaffected. New projects should prefer `@nielspeter/eess-ts`.
 
 [Documentation](https://nielspeter.github.io/eess/) · [Getting Started](https://nielspeter.github.io/eess/getting-started) · [What Can It Check?](https://nielspeter.github.io/eess/what-to-check)
 
@@ -38,7 +38,7 @@ rm src/probe.ts                 # green again — and now you trust the green
 
 Then wire the rules into your agent's loop — CI annotations, a Claude Code
 hook, and an AGENTS.md block regenerated from the actual rules:
-[agent integration recipes](../../docs/agent-integration.md).
+[agent integration recipes](https://github.com/nielspeter/eess/blob/main/docs/agent-integration.md).
 
 ## The Problem
 
