@@ -85,15 +85,55 @@ blanket `'../../..'` would have been wrong.
   (ADR-009).
 - **`completed-plans-are-marked-done`** — a duplicate. `check:ledger` already
   enforces it, better and natively. Verified by experiment: setting a completed
-  plan's State to `Draft` produces
-  `work/plans/completed/0058-…:5 ledger/state-folder-mismatch — State: Draft but
-filed in a done-folder`. The adopted version reads `**Status:**`, a field eess
-  does not use, so it would have matched zero plans and passed vacuously.
+  plan's State to `Draft` produces `ledger/state-folder-mismatch — State: Draft
+but filed in a done-folder`.
+
+  **CORRECTION, found in review.** This record originally said the adopted test
+  "would have matched zero plans and passed vacuously". **That was false, and it
+  was asserted without being measured** — in a record whose entire virtue is that
+  it measures. Repointed at `work/plans/completed/`, the test FAILS LOUDLY on two
+  rows: its own vacuity guard is `expect(plans.length).toBeGreaterThan(50)` and
+  eess has 26 completed plans; and 0 of those 26 use `**Status:**`, so the
+  identity row lists every in-scope plan as `(no **Status:** line)`. The test was
+  working correctly. Claiming a vacuous pass is the most damning thing this repo
+  says about a check, and it must never be said from inspection alone.
+
+  The disposition is unchanged and still right — `check:ledger` owns this, and the
+  adopted test's `**Status:**` field and its `FIRST_IN_SCOPE = 78` grandfather
+  boundary are both `ts-archunit` history. But the reason is redundancy, not
+  vacuity.
+
+  **One class of coverage is genuinely lost**, and it is filed rather than
+  absorbed: a plan in a done-folder with **no `State:` line at all** passes
+  `check:ledger` with exit 0. Measured — `headerStateViolation` returns `null`
+  when no line is found (`packages/md/src/rules/ledger.ts`), because a document
+  with no State is treated as "not an item", which is right for `ROADMAP.md` and
+  wrong for something in `completed/`. The only trace is the summary's
+  `124 records · 123 with a readable State`, a delta nothing asserts. Filed as
+  [bug 0182](../0182-a-done-folder-document-with-no-state-line-is-not-an-item.md).
+
 - **`every-plan-declares-its-blast-radius`** — would silently convert a
   review-enforced rule into a gate. eess's ADR-009 says in as many words that
   "Rules 1–4 and rule 6 are **review-enforced**", its Enforcement table has no row
-  for rule 6, and `CLAUDE.md` does not require the line. 3 of 38 plans carry one, so
-  adopting it reddens ~35. That is a policy decision, not a test fix.
+  for rule 6, and `CLAUDE.md` does not require the line.
+
+  **CORRECTED in review.** This said "3 of 38 plans carry one, so adopting it
+  reddens ~35". All three numbers were wrong: the 3 came from a case-insensitive
+  grep for the _phrase_, which matches prose mentions, not the `**Blast radius:**`
+  field the test looks for. Measured with the deleted test's own regex: **0 of 37**
+  numbered plans carry the field, and **20** are in scope (`>= 0078`) — so adopting
+  it reddens all 20, and its grandfather guard (which requires at least one
+  out-of-scope plan to LACK the line) behaves differently than assumed too.
+
+  The ruling is unchanged and is strengthened by the real numbers. But a triage
+  table justified by arithmetic nobody ran is the wrong precedent in this repo.
+
+  **And the real justification is stronger than the one given.** ADR-009 does not
+  merely leave rule 6 review-enforced by omission; it says so outright at line 229:
+  "We deliberately do **not** dogfood these six rules as `eess-ts` rules against
+  this repo's own source." Adopting that test would have contradicted a binding
+  ADR, not pre-empted an undecided policy call.
+
 - **`version-bump-guard`** — tests a shell script eess never ported, guarding a
   hand-edited-version release model eess does not use. eess releases through
   changesets, and `check:release` already enforces that every changed package
@@ -123,9 +163,36 @@ having done it rather than deleting the tests:
    eess equivalent. 0 ambiguous. Four fixture strings (`./old.md`, `./ghost.md`)
    were excluded by guard — they are test data, not citations.
 
+### A defect this fix introduced, found in review and repaired
+
+Repointing the hrefs left the **labels** untouched, so 13 citations read
+`[ADR-008]` while resolving to `adr/009-…`, and `[bug 0020]` while resolving to
+`work/bugs/0156-…`. A reader greps the label, not the href — so the fix for "a
+live link to the wrong decision" produced exactly that, and converted a loud
+failure (a dead link, which the gate saw) into a silent one (a resolving link
+with a wrong name, which no gate sees).
+
+Worse in scale, and pre-existing from the adoption rather than from this fix:
+**177 unlinked prose references** said `ADR-008 rule N` or `ADR-009 part N`.
+eess's ADR-008 (`caller-owns-reporting`) has **no numbered rules at all**; the
+rules are ADR-009's, and the numbered Decision parts are ADR-010's. Both mappings
+were verified in range before rewriting — the cited rule numbers are 1–6 and
+ADR-009 has Rules 1–6; the cited part numbers are 1, 3 and 4 and ADR-010 has
+parts 1–4.
+
+Repaired: 13 labels synced to their targets, 177 prose references renumbered, and
+117 upstream citations relabelled `[ts-archunit ADR-010]` so foreign numbering is
+visible rather than inferred. 0 label/href mismatches remain.
+
+The general lesson is the one the record already carries about roots: a rewrite
+that fixes one half of a reference and not the other is not a partial fix, it is
+a different defect.
+
 `cross-document-links-resolve.test.ts`'s source-comment check is kept even though
 `check:corpus` overlaps its corpus half: the two derive the link set differently,
-and ADR-008 review rule 5 is why a second independent derivation is worth having.
+and ADR-009 rule 5 is why a second independent derivation is worth having. (This
+record cited `ADR-008 review rule 5` until review caught it: eess's ADR-008 has
+no numbered rules at all — an instance of the very defect described below.)
 The `src/`-comment direction is covered by no gate at all.
 
 ## Verification
@@ -136,12 +203,26 @@ The `src/`-comment direction is covered by no gate at all.
       vacuously on an empty corpus — the failure this bug is named after.
       `doctor-is-not-experimental` gained one (`pages.length > 20`) where its
       `upgrading.md` carve-out was removed as vacuous.
+- [x] **Per ROW, not merely per file.** The line above was first written at file
+      granularity and was false at row granularity, which is the granularity
+      ADR-010 uses: two rows of `doc-globs-are-anchored` filtered
+      `ANCHORING_REQUIRED`, a set empty by construction, so no input could redden
+      them and the file-level floor was satisfied by a sibling bucket. Measured —
+      a `./`-prefixed glob added to `docs/cli.md` left all five rows green while
+      selecting 0 modules. The `./` check now runs over every bucket (it is dead
+      for every base, per `core/glob-diagnosis.ts`), the emptiness of the registry
+      is asserted rather than assumed, and the sabotage now reddens naming the
+      file and the glob.
 - [x] Everything that turned red for a REAL reason was fixed or recorded, not
       repointed away — the three classes above.
 - [x] No count re-pinned to fit this corpus: `doc-globs-are-anchored`'s
       `toBe(31)` became a floor, for the reason its own sibling assertion already
       records about `toBe`.
-- [x] `notImportFrom('src/infra/**')` measured to report 1 violation against the
-      `modules` fixture before concluding three doc examples were correct rather
-      than dead — the alternative was editing three correct teaching pages,
-      including the landing page, to satisfy an inherited assertion.
+- [x] `notImportFrom` measured against the `modules` fixture before concluding
+      three doc examples were correct rather than dead — the alternative was
+      editing three correct teaching pages, including the landing page, to satisfy
+      an inherited assertion. Whole fixture: `src/infra/**` → 4 violations,
+      `**/src/infra/**` → 4, `fastify` → 0. (This record first stated "1
+      violation", which was the figure with the selection narrowed by
+      `resideInFolder('src/domain/**')` and did not say so. The relative-equals-
+      anchored equality and the conclusion are unchanged.)
