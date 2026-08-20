@@ -176,11 +176,24 @@ const rules = [
   // chosen because it fired on nothing new, which is fitting the bar to the
   // code. 150/30 is what the conversion actually gives.
   //
-  // All thirteen findings were FIXED rather than waived. Three oversized methods
-  // split, and seven classes split by concern: `Baseline` 171->103,
-  // `DuplicateBodiesBuilder` 168->130, `InconsistentSiblingsBuilder` 204->142,
-  // `CorrespondenceBuilder` 336->145, `SliceRuleBuilder` 237->137, `RuleBuilder`
-  // 218->148, and the kernel's `TerminalBuilder` 215->120.
+  // All thirteen findings were FIXED rather than waived: three oversized methods
+  // split, and seven classes split by concern.
+  //
+  // **The end state, re-measured** at this commit with
+  // `node scripts/measure-class-sizes.mjs`. These numbers were first written by
+  // hand from a throwaway script and were stale within three commits — six of the
+  // seven were wrong, and the headline entry read 145 for a class sitting exactly
+  // ON the threshold. The instrument is committed so the claim stays re-checkable:
+  //
+  //   CorrespondenceBuilder 336->150   SliceRuleBuilder            237->141
+  //   RuleBuilder (ts)      218->146   InconsistentSiblingsBuilder 204->144
+  //   TerminalBuilder(core) 215->128   DuplicateBodiesBuilder      168->126
+  //   Baseline              171->103
+  //
+  // Max method 27 (`TerminalBuilder.deferredWarningAdvice`,
+  // `InconsistentSiblingsBuilder.detect`) against 30, across 41 classes and 453
+  // methods. `CorrespondenceBuilder` has ZERO headroom: the next line added to it
+  // fails this gate. That is the bar working, not a thing to pre-empt.
   //
   // The dialect's `TerminalBuilder` was 372 and is now two classes: a
   // `RuleDeclaration` half that collects the declaration, and a `TerminalBuilder`
@@ -188,12 +201,21 @@ const rules = [
   // splitting into focused classes" — and it costs the ten subclasses nothing,
   // because they still extend `TerminalBuilder` and inherit both halves.
   //
+  // **What that maneuver costs this rule, stated because it is a real limit.**
+  // `class B extends A` in the same file satisfies `maxClassLines` while leaving
+  // every consumer's inherited surface identical — the gate measures DECLARED
+  // classes, so a base-class extraction reads as a split whether or not the jobs
+  // were actually separated. This repo has now performed exactly that on itself,
+  // so the limit is demonstrated rather than theoretical, and the rule's `because`
+  // is scoped to claim only what the mechanism checks.
+  //
   // No class carve-out survives. `GENERATED` stays: `MermaidUnitAstReflection` is
   // langium output, already excluded from `eess/no-unused-exports` for the same
   // reason, and no threshold usefully describes a generated table.
   srcClasses().excluding(GENERATED).should().satisfy(maxClassLines(150)).rule({
     id: 'eess/max-class-lines',
-    because: 'a class past 150 lines of code is carrying more than one job',
+    because:
+      'a class past 150 code lines carries more than one job — measured per declared class, so extracting a base class counts as a split',
   }),
   // No exclusions. Every one of the four methods this rule used to report —
   // `TerminalBuilder.collectWithAssertionGuard` (15 code / 61 span),

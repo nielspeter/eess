@@ -385,9 +385,16 @@ describe('inconsistentSiblings: the second detector the floor gates', () => {
     // not a dead-pattern false negative.
     //
     // The denominator moved from 11 as `correspondence-findings.ts` and
-    // `slice-discovery-message.ts` were split out of their builders. Verified rather than bumped: the new
-    // file holds no `this.copy`, so the numerator is unchanged at 4 and the rule
-    // is inert for exactly the reason stated above.
+    // `slice-discovery-message.ts` were split out of their builders. Verified
+    // rather than bumped: neither new file holds `this.copy`, so the numerator is
+    // unchanged at 4 and the rule is inert for exactly the reason stated above.
+    //
+    // **Say the direction out loud: this made the detector weaker.** 4/11 -> 4/13
+    // moves the showcase FURTHER from its 60% majority, so the restructuring cost
+    // this rule real sensitivity. No verdict changed — it was inert before and is
+    // inert now — and `INERT_FINDING_EMIT` is false, so `check()` stays green and
+    // nothing in the build sees the drift. That is precisely why it is pinned by
+    // value here: the number is the only thing that would notice.
     const rule = smells
       .inconsistentSiblings(p)
       .inFolder('**/src/builders/**')

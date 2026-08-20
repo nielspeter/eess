@@ -65,7 +65,7 @@ export function maxFunctionComplexity(threshold: number): Condition<ArchFunction
  */
 export function maxFunctionLines(threshold: number): Condition<ArchFunction> {
   return {
-    description: `have no more than ${String(threshold)} lines`,
+    description: `have no more than ${String(threshold)} code lines`,
     evaluate(elements: ArchFunction[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const fn of elements) {

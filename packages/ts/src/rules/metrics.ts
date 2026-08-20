@@ -88,7 +88,7 @@ export function maxCyclomaticComplexity(threshold: number): Condition<ClassDecla
  */
 export function maxClassLines(threshold: number): Condition<ClassDeclaration> {
   return {
-    description: `have no more than ${String(threshold)} lines`,
+    description: `have no more than ${String(threshold)} code lines`,
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
@@ -127,7 +127,7 @@ export function maxClassLines(threshold: number): Condition<ClassDeclaration> {
  */
 export function maxMethodLines(threshold: number): Condition<ClassDeclaration> {
   return {
-    description: `have no method longer than ${String(threshold)} lines`,
+    description: `have no method longer than ${String(threshold)} code lines`,
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
