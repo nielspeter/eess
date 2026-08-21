@@ -42,7 +42,22 @@ const fixture = (name: string): string =>
   path.join(import.meta.dirname, '../fixtures/rule-files', name)
 
 /**
- * `fresh: true` on every run in this file, and it is load-bearing.
+ * `fresh: true` on every run in this file, and it is load-bearing — **but it does
+ * not buy full order-independence, and an earlier version of this note claimed it
+ * did.**
+ *
+ * Measured: 12 tests, 2 module executions. ESM caches an evaluation *error*, and
+ * the cache-busting import does not reliably force a re-execution under vitest —
+ * a counter in a fixture's module scope stayed frozen across three consecutive
+ * `runCheck`s. So a test is only guaranteed to see a fresh module if it is the
+ * FIRST loader of that fixture in the file.
+ *
+ * The practical rule, and why the fixtures below look duplicative: **a test whose
+ * assertion depends on the fixture's module scope actually running needs its own
+ * fixture file.** `enforcing-preset-changed.rules.ts` is a byte-copy of
+ * `enforcing-preset.rules.ts` for exactly that reason — sharing it made the
+ * `--changed` test pass in isolation and fail in file order, asserting over a run
+ * in which the preset never executed.
  *
  * A rule file's module is cached after its first import, so a second `runCheck` on the
  * same path does not re-execute its module scope — no terminal fires, and
@@ -292,11 +307,29 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
       // constructed from a default rather than from evidence (ADR-010).
       const collected = jsonViolations(stdout.join(''))
       expect(collected.filter((v) => v.rule === 'eess-ts: reporting')).toHaveLength(0)
-      // The truncation notice is still correct and must stay.
-      expect(collected.some((v) => v.rule === 'eess-ts: rule file')).toBe(true)
-      // The baseline really did suppress all four — otherwise the absence above
-      // could just mean the rule matched nothing.
+      // **By its own text, not its label.** `ruleFileTruncated` and
+      // `ruleFileFailure` share the rule string `eess-ts: rule file`, so asserting
+      // the label is satisfied by a fixture that failed to evaluate for an
+      // unrelated reason — measured: emptying this fixture's selector left every
+      // assertion here green, because the rest are absences and absences hold
+      // trivially. Assert the identity, which is this repo's own rule.
+      expect(collected.some((v) => v.message.includes('stopped evaluating'))).toBe(true)
       expect(collected.filter((v) => v.element.startsWith('parse'))).toHaveLength(0)
+
+      // "Nothing leaked" must be distinguishable from "nothing existed". Re-run the
+      // same fixture with NO baseline: it must produce the four `parse*` violations
+      // the baseline suppressed above. Without this, emptying the fixture's
+      // selector satisfies every assertion in this test.
+      stderr = []
+      stdout = []
+      await runCheck({
+        ...baseArgs,
+        format: 'json',
+        ruleFiles: [fixture('enforcing-inline.rules.ts')],
+      })
+      expect(
+        jsonViolations(stdout.join('')).filter((v) => v.element.startsWith('parse')),
+      ).toHaveLength(4)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }

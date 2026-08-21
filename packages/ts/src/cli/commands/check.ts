@@ -19,6 +19,7 @@ import {
   attributeToRuleFile,
   baselineNotApplied,
   failureOrViolations,
+  ruleFileContributedNoRules,
   ruleFileTruncated,
 } from '../rule-file-findings.js'
 
@@ -159,6 +160,13 @@ export async function runCheck(args: CheckArgs): Promise<number> {
       }
       failedRules++
       continue
+    }
+    // A file that loaded cleanly and produced nothing is the alarm value the
+    // summary line exists to print — and `check` used to print `✓ … 0 rules` over
+    // it while `doctor` refused the same file. See `ruleFileContributedNoRules`.
+    if (builders.length === 0) {
+      collected.push(ruleFileContributedNoRules(file))
+      failedRules++
     }
     ruleCount += builders.length
     for (const builder of builders) {

@@ -186,13 +186,20 @@ are calling it:
 | anywhere, advisory                | `{ report: 'warn' }`     | reports without failing                                                                                                   |
 |                                   | `{ format: 'json' }`     | machine-readable output                                                                                                   |
 
-**`'return'` in a rule file does not work, and it fails loudly.** A rule file
-spreads its presets into `export default [...]`, so `'return'` splats
-`ArchViolation[]` into the rules array — and the loader rejects it:
-`default export entry [0] is not a rule builder (got object)`, exit 1. `tsc
---noEmit` does not catch it (a spread of the wrong array type is not a type
-error), so the CLI is what tells you. Use `'builders'` in a rule file;
-`eess-ts init` scaffolds it.
+**`'return'` in a rule file does not work.** A rule file spreads its presets into
+`export default [...]`, so `'return'` splats the preset's _result_ — an
+`ArchViolation[]` — into the rules array. What happens next depends on your
+codebase, and **both outcomes are bad**:
+
+| your codebase  | what you get                                                                                 |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| has violations | the loader rejects it: `default export entry [0] is not a rule builder (got object)`, exit 1 |
+| **is clean**   | the array is **empty**, so the file exports `[]` and every rule silently disappears          |
+
+`tsc --noEmit` catches neither — a spread of the wrong array type is not a type
+error. `check` now refuses a rule file that contributed no rules, so the clean case
+fails too rather than printing a green tick; before that it exited 0. Use
+`'builders'` in a rule file. `eess-ts init` scaffolds it.
 
 Per-rule severity is tunable via `overrides`.
 

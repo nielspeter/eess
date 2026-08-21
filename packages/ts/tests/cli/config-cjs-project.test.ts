@@ -31,8 +31,25 @@ function cjsProject(): string {
     path.join(dir, 'eess-ts.config.ts'),
     "import { defineConfig } from '@nielspeter/eess-ts'\n\nexport default defineConfig({ rules: ['arch.rules.ts'] })\n",
   )
-  // Minimal ESM-syntax rule file (empty rule set keeps the run self-contained).
-  fs.writeFileSync(path.join(dir, 'arch.rules.ts'), 'export default []\n')
+  // Minimal ESM-syntax rule file. It used to be `export default []`, which is now
+  // itself a finding — a rule file that enforces nothing must not pass — so it
+  // carries one real, trivially-satisfied rule instead. The property under test is
+  // that the ESM-syntax CONFIG loads in a CJS project, and that is unchanged.
+  fs.writeFileSync(
+    path.join(dir, 'tsconfig.json'),
+    JSON.stringify({ compilerOptions: { strict: true }, include: ['src'] }),
+  )
+  fs.mkdirSync(path.join(dir, 'src'), { recursive: true })
+  fs.writeFileSync(
+    path.join(dir, 'src', 'a.ts'),
+    'export class Thing {\n  run(): void {\n    return\n  }\n}\n',
+  )
+  fs.writeFileSync(
+    path.join(dir, 'arch.rules.ts'),
+    "import { project, classes } from '@nielspeter/eess-ts'\n\n" +
+      "const p = project('tsconfig.json')\n\n" +
+      "export default [classes(p).that().resideInFolder('src').should().beExported()]\n",
+  )
   // Simulate `npm install -D @nielspeter/eess-ts` with a symlink to the workspace package.
   const scope = path.join(dir, 'node_modules', '@nielspeter')
   fs.mkdirSync(scope, { recursive: true })

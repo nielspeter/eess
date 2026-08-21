@@ -260,3 +260,54 @@ export function baselineNotApplied(
     bypassFilters: true,
   }
 }
+
+/**
+ * A rule file loaded cleanly and contributed **zero** rules.
+ *
+ * `check` used to print `✓ eess-ts — 0 rules across 1 file · 0 failing` and exit 0
+ * over exactly this, while `doctor` on the same file already refused it with "no
+ * rules found in the given files". Two commands in one CLI disagreeing about
+ * whether "no rules" is an error, and the one wired into CI was the one blessing
+ * it.
+ *
+ * **The shape that makes it urgent** is a migration from `@nielspeter/ts-archunit`,
+ * whose `recommended()` returned builders unconditionally and had no `report`
+ * option. eess-ts's runs and throws by default, so the line ts-archunit's own
+ * `init` scaffolded — `export default [...recommended(p)]` — spreads a *violations*
+ * array. On a codebase with findings that fails loudly (the loader rejects a
+ * non-builder entry). **On a clean codebase the array is empty**, so the file
+ * exports `[]`, the CLI loads nothing, and the run is green with every rule gone.
+ * `tsc --noEmit` passes; nothing reaches stderr.
+ *
+ * The adopter this hits is the one who did the baseline work and cleaned up.
+ *
+ * `CLAUDE.md` already tells agents that a zero denominator "means the gate matched
+ * little or nothing — treat that as a red flag". This makes the CLI agree with its
+ * own instruction instead of printing `✓` over its alarm value.
+ *
+ * `bypassFilters` because it reports absent coverage: there is nothing to grade,
+ * exclude, or accept into a baseline.
+ */
+export function ruleFileContributedNoRules(file: string): ArchViolation {
+  return {
+    rule: 'eess-ts: rule file',
+    element: basename(file),
+    file,
+    line: 1,
+    message:
+      `This rule file loaded without error but contributed no rules, so it enforced ` +
+      `nothing in this run. A green result here would mean "every rule passed" when ` +
+      `what happened is "there were no rules".`,
+    because:
+      `A gate that checks nothing cannot fail, and a passing build is only evidence ` +
+      `if something was actually examined.`,
+    suggestion:
+      `Check what this file's default export actually contains. The usual cause is a ` +
+      `preset spread without \`report: 'builders'\` — \`export default ` +
+      `[...recommended(p)]\` spreads the preset's RESULT, which on a codebase with no ` +
+      `violations is an empty array. Use \`recommended(p, { report: 'builders' })\`. ` +
+      `If the file is deliberately empty, delete it rather than leaving a rule file ` +
+      `that enforces nothing.`,
+    bypassFilters: true,
+  }
+}
