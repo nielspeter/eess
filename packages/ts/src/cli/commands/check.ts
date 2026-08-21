@@ -4,7 +4,11 @@ import { diffAware } from '../../helpers/diff-aware.js'
 import type { OutputFormat } from '@nielspeter/eess'
 import type { ArchViolation, CheckOptions, RuleBuilderLike } from '@nielspeter/eess'
 import { isArchRuleError } from '@nielspeter/eess'
-import { setCallerAggregatesReports, writeReport } from '../../core/execute-rule.js'
+import {
+  setCallerAggregatesReports,
+  violationsWritten,
+  writeReport,
+} from '../../core/execute-rule.js'
 import { suppressionNotice } from '@nielspeter/eess'
 import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess'
 import { commentSuppressionNotice, resetCommentSuppression } from '@nielspeter/eess'
@@ -13,7 +17,9 @@ import { loadRuleFiles } from '../load-rules.js'
 import { dedupeConfigFindings } from '@nielspeter/eess'
 import {
   attributeToRuleFile,
+  baselineNotApplied,
   failureOrViolations,
+  ruleFileContributedNoRules,
   ruleFileTruncated,
 } from '../rule-file-findings.js'
 
@@ -79,6 +85,8 @@ export async function runCheck(args: CheckArgs): Promise<number> {
     // file down with it — which one catch around the whole file would do
     // (bug 0025).
     let builders
+    // Read before the module evaluates, so the delta below describes THIS file.
+    const writtenBefore = violationsWritten()
     try {
       builders = await loadRuleFiles([file], { fresh: args.fresh })
     } catch (error: unknown) {
@@ -104,9 +112,61 @@ export async function runCheck(args: CheckArgs): Promise<number> {
       // happens after the module finished, so nothing was truncated, and the
       // `export default [rule1, rule2]` shape never reaches here at all — an array
       // export builds every rule before any of them runs.
-      if (isArchRuleError(error)) collected.push(ruleFileTruncated(file, total))
+      if (isArchRuleError(error)) {
+        collected.push(ruleFileTruncated(file, total))
+        // Bug 0199 — the same boundary, the other consequence.
+        //
+        // `failureOrViolations` above DID collect this error's violations and
+        // `baseline.filterNew` below DOES filter them. What escaped is the rule
+        // file's OWN printing: `executeCheck` calls `writeReport` unconditionally
+        // one line before it throws (`core/execute-rule.ts`), so a `.check()`
+        // at module scope prints its findings before the CLI can filter anything.
+        // `setCallerAggregatesReports` does not stop it — that flag is read only by
+        // `executeWarn` (`:526`). Root cause is bug 0201.
+        //
+        // **Only when something was actually printed.** `executeWarn` throws the
+        // same error type, and when the CLI is aggregating it writes only the
+        // non-`bypassFilters` entries — for a configuration finding that is
+        // nothing at all. Firing on the bare `isArchRuleError` condition claimed a
+        // leak that did not happen, over a finding whose own text says a baseline
+        // can never suppress it: ADR-009 rule 2, a failure asserting a cause it
+        // cannot verify. Measured by review; `it('does not fire when the throw
+        // carried nothing the rule file could print')` holds it.
+        //
+        // **Only when output actually leaked**, measured rather than inferred.
+        //
+        // More than two paths reach this catch and they do not agree on whether
+        // they printed: a `.check()` (silent since bug 0201), a preset via the
+        // kernel's `reportViolations`, `checkAll()`, and a `.warn()` with a live
+        // selector. So the notice asks the only question it may assert — *did
+        // anything emit while this module was loading?* — by reading a delta over
+        // both emitters.
+        //
+        // **The first version inverted this and it was a measured defect.** It
+        // counted the writes `executeCheck` SUPPRESSED and read the absence of a
+        // suppression as "nothing leaked". A file that suppresses one terminal
+        // while leaking through another satisfies that and leaks: measured, a
+        // `report: 'warn'` preset beside a silenced `.check()` leaked 7 violation
+        // blocks in total silence. A silence built on a stale signal is worse than
+        // the false claim it replaced, because the run says nothing at all.
+        const leaked = violationsWritten() > writtenBefore
+        const printedUnfiltered = error.violations.some((v) => v.bypassFilters !== true)
+        const filtering = args.baseline !== undefined || args.changed
+        if (filtering && printedUnfiltered && leaked) {
+          collected.push(
+            baselineNotApplied(file, { baseline: args.baseline, changed: args.changed }),
+          )
+        }
+      }
       failedRules++
       continue
+    }
+    // A file that loaded cleanly and produced nothing is the alarm value the
+    // summary line exists to print — and `check` used to print `✓ … 0 rules` over
+    // it while `doctor` refused the same file. See `ruleFileContributedNoRules`.
+    if (builders.length === 0) {
+      collected.push(ruleFileContributedNoRules(file))
+      failedRules++
     }
     ruleCount += builders.length
     for (const builder of builders) {

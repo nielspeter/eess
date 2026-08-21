@@ -10,6 +10,68 @@ import {
 } from '@nielspeter/eess-ts/presets'
 ```
 
+## `report` — which one you need depends on where you call it
+
+Every preset **runs its rules and throws** on an error-severity violation by
+default. That is right in a test and wrong in a rule file, so presets take a
+`report` option — the caller owns reporting ([ADR-008](https://github.com/nielspeter/eess/blob/main/adr/008-caller-owns-reporting.md)).
+
+| where                             | pass                     | what happens                                                                                                 |
+| --------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **a rule file** (`arch.rules.ts`) | `{ report: 'builders' }` | returns the builders **unrun**, so the CLI runs them, reports once, and applies `--baseline` and `--changed` |
+| a test, or your own runner        | `{ report: 'return' }`   | runs them and returns `ArchViolation[]` for you to assert on                                                 |
+| advisory, anywhere                | `{ report: 'warn' }`     | reports without failing the run                                                                              |
+| _(omitted)_                       | —                        | runs them and **throws** on the first error-severity violation                                               |
+
+> **`'builders'` is an `eess-ts` value, not a family-wide one.** `'return'`,
+> `'warn'` and the throwing default come from the kernel's `PresetReportOptions`,
+> and every dialect's presets accept them. `'builders'` is `eess-ts`'s own
+> `PresetDelivery` — deliberately kept out of the kernel — so `eess-md`'s
+> `adrEnforcement` / `honestyAtClose` and the `eess-crossvalidate` presets do
+> **not** take it. Those dialects have no aggregating `check` command today, so
+> nothing is lost by it; the distinction matters the day one gains one.
+
+```typescript
+// arch.rules.ts — the CLI runs these
+import { project } from '@nielspeter/eess-ts'
+import { recommended } from '@nielspeter/eess-ts/presets'
+
+const p = project('tsconfig.json')
+
+export default [...recommended(p, { report: 'builders' })]
+```
+
+### Two traps worth knowing
+
+**`'return'` in a rule file does not work.** A rule file spreads its presets into
+`export default [...]`, so `'return'` splats the preset's _result_ — an
+`ArchViolation[]` — into the rules array. What happens next depends on your
+codebase, and **both outcomes are bad**:
+
+| your codebase  | what you get                                                                                 |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| has violations | the loader rejects it: `default export entry [0] is not a rule builder (got object)`, exit 1 |
+| **is clean**   | the array is **empty**, so the file exports `[]` and every rule silently disappears          |
+
+`tsc --noEmit` catches neither — a spread of the wrong array type is not a type
+error. `check` now refuses a rule file that contributed no rules, so the clean case
+fails too rather than printing a green tick; before that it exited 0. Use
+`'builders'` in a rule file. `eess-ts init` scaffolds it.
+
+**This page has now had this wrong twice**, in both directions — first "a silent
+green", then "it fails loudly". Both were half-true and each was written from a
+single measurement over a single codebase. The behaviour depends on whether your
+project has violations, which is exactly the variable a one-project measurement
+cannot see.
+
+**Omitting `report` in a rule file defeats `--baseline`.** The preset then
+enforces during module evaluation and prints its own findings, which never pass
+through the CLI's filters — so violations you have already baselined are printed
+as failures. `check` reports this rather than failing silently, but the fix is
+`report: 'builders'`.
+
+`eess-ts init` scaffolds the correct form.
+
 ## `layeredArchitecture`
 
 The most universal architecture pattern. Nearly every backend project has layers — routes/controllers at the top, services in the middle, repositories/data access at the bottom. The rule is simple: dependencies flow downward, never upward. A repository must never import from a route. A service must never reach into the HTTP layer.

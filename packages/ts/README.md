@@ -175,7 +175,33 @@ layeredArchitecture(p, {
 - `recommended(p)` — a thin, universal safety floor (no `eval`, no Function constructor, no silent catches, no empty bodies) that fires ~never on healthy code.
 - `agentGuardrails(p, { src })` — the mistakes AI coding agents make most: generic errors, stub comments, empty bodies, copy-paste, and banned inline calls. Each rule carries `imperative` metadata for `explain --format agent`.
 
-Every preset returns `ArchViolation[]` and, by default, throws on any error-severity violation. Pass `{ report: 'return' }` to own emission, `{ report: 'warn' }` to report without failing, or `{ format: 'json' }` for machine-readable output — the caller owns reporting (ADR-008). Per-rule severity is tunable via `overrides`.
+Every preset **runs its rules and throws** on any error-severity violation by
+default — the caller owns reporting (ADR-008). What you pass depends on where you
+are calling it:
+
+| where                             | pass                     | why                                                                                                                       |
+| --------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| **a rule file** (`arch.rules.ts`) | `{ report: 'builders' }` | returns the builders **without running them**, so the CLI runs them, reports once, and applies `--baseline` / `--changed` |
+| a test, or your own runner        | `{ report: 'return' }`   | runs the rules and hands you `ArchViolation[]` to assert on                                                               |
+| anywhere, advisory                | `{ report: 'warn' }`     | reports without failing                                                                                                   |
+|                                   | `{ format: 'json' }`     | machine-readable output                                                                                                   |
+
+**`'return'` in a rule file does not work.** A rule file spreads its presets into
+`export default [...]`, so `'return'` splats the preset's _result_ — an
+`ArchViolation[]` — into the rules array. What happens next depends on your
+codebase, and **both outcomes are bad**:
+
+| your codebase  | what you get                                                                                 |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| has violations | the loader rejects it: `default export entry [0] is not a rule builder (got object)`, exit 1 |
+| **is clean**   | the array is **empty**, so the file exports `[]` and every rule silently disappears          |
+
+`tsc --noEmit` catches neither — a spread of the wrong array type is not a type
+error. `check` now refuses a rule file that contributed no rules, so the clean case
+fails too rather than printing a green tick; before that it exited 0. Use
+`'builders'` in a rule file. `eess-ts init` scaffolds it.
+
+Per-rule severity is tunable via `overrides`.
 
 ### Scaffold a starter setup
 

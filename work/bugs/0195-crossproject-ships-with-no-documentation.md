@@ -4,6 +4,12 @@
 
 - **State:** Draft — found by the adopter-persona review of PR #73, verified from
   a packed install.
+- **Priority:** High. Raised from Medium on review of PR #74: this **blocks**
+  [bug 0198](./0198-no-migration-path-from-ts-archunit.md), the release blocker
+  for retiring `@nielspeter/ts-archunit`. The rename is the one API change a
+  migrator must make, and finding 3 below — whether `crossProject` replaces
+  `crossLayer` at all — must be settled before the migration page can be
+  written honestly.
 - **Deferred:** none
 - **Found:** 2026-08-21, customer review of the `crossProject` rename.
 

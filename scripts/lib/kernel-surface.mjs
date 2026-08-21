@@ -25,6 +25,11 @@ export const KERNEL_INTERNAL = new Set([
   'registerCacheReset',
   'clearRegisteredCaches',
   'selectionMemo',
+  // A diagnostic counter the CLI reads to know whether a rule file emitted while
+  // it was loading (bug 0199). Kernel plumbing, not a surface an adopter writes
+  // rules against — re-exporting it would make an internal signal a compatibility
+  // commitment.
+  'violationsEmittedCount',
 ])
 
 /**

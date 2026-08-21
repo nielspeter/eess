@@ -1,6 +1,11 @@
 import fs from 'node:fs'
 import type { ArchViolation } from '@nielspeter/eess'
-import { severityFor, disambiguateIdentities, byCodepoint } from '@nielspeter/eess'
+import {
+  severityFor,
+  disambiguateIdentities,
+  byCodepoint,
+  violationsEmittedCount,
+} from '@nielspeter/eess'
 import type { CheckOptions, OutputFormat } from '@nielspeter/eess'
 import type { RuleMetadata } from '@nielspeter/eess'
 import { ArchRuleError } from '@nielspeter/eess'
@@ -380,6 +385,10 @@ export function writeReport(
   /** Allowlist rules that tested no edges, for the JSON document (bug 0015). */
   untested: readonly EdgeCoverage[] = [],
 ): void {
+  // Counted at the top, before the json early-return, so every path that writes
+  // is counted once. See `violationsWritten()` for why this is an emission count
+  // and not a suppression count.
+  violationsWrittenHere += violations.length
   if (format === 'json') {
     process.stdout.write(formatViolationsJson(violations, reason, untested) + '\n')
     return
@@ -417,6 +426,7 @@ export function writeReport(
  * saying it cannot be suppressed.
  */
 let callerAggregatesReports = false
+let violationsWrittenHere = 0
 
 /**
  * Declare that the caller will report every finding itself. **CLI only.**
@@ -426,6 +436,31 @@ let callerAggregatesReports = false
  */
 export function setCallerAggregatesReports(on: boolean): void {
   callerAggregatesReports = on
+}
+
+/**
+ * How many violations have actually been WRITTEN by either emitter, ever.
+ *
+ * Read as a delta across one rule file's evaluation, this answers the only
+ * question the CLI's "your output was not filtered" notice may assert: *did
+ * anything emit while that module was loading?*
+ *
+ * **This replaced an inverted signal, and the inversion was a measured defect.**
+ * The first version counted the writes `executeCheck` SUPPRESSED and concluded
+ * "then nothing leaked" from the absence of a suppression. That is a double
+ * negative, and a rule file that suppresses one terminal while leaking through
+ * another satisfies it while leaking — measured: a `report: 'warn'` preset plus a
+ * silenced `.check()` in one file leaked 7 violation blocks and the notice stayed
+ * silent. A silence built from a stale signal is worse than the false claim it was
+ * introduced to fix, because the run says nothing at all.
+ *
+ * Both emitters are counted because eess-ts has two: this module's `writeReport`
+ * (used by `executeCheck`, `executeWarn` and `check-all.ts`) and the kernel's
+ * `reportViolations` (used by `finishPreset`). Counting one would reproduce the
+ * same blind spot on the other's path.
+ */
+export function violationsWritten(): number {
+  return violationsWrittenHere + violationsEmittedCount()
 }
 
 /**
@@ -457,7 +492,19 @@ export function executeCheck(
 
   if (filtered.length > 0) {
     const stamped = stampSeverity(filtered, 'error')
-    writeReport(stamped, options?.format, ctx.reason)
+    // Bug 0201. `executeWarn` below has honoured this flag since it shipped;
+    // `executeCheck` never did, so a `.check()` at module scope printed its
+    // findings before the aggregating caller could filter them — which is the
+    // whole of bug 0199 on this path. Measured: the leak goes 4 violations → 0.
+    //
+    // Safe for every other caller because the flag defaults to `false` and only
+    // the CLI sets it: a `.check()` in a test file, where there is no aggregator,
+    // still prints exactly as before.
+    //
+    // The violations are NOT lost when we stay quiet — they ride the throw, which
+    // is the same reason `executeWarn` may suppress only its `bypassFilters`
+    // entries and must still write the rest.
+    if (!callerAggregatesReports) writeReport(stamped, options?.format, ctx.reason)
     throw new ArchRuleError(stamped, ctx.reason)
   }
 }

@@ -160,3 +160,154 @@ export function ruleFileTruncated(file: string, ruleFiles: number): ArchViolatio
     bypassFilters: true,
   }
 }
+
+/**
+ * `--baseline` was passed, but the rule file printed findings the baseline never
+ * filtered. Bug 0199.
+ *
+ * **The mechanism, corrected TWICE. This is the third version and the measured one.**
+ *
+ * 1. *"The preset throws before baseline filtering runs."* False. `runCheck` collects
+ *    a thrown terminal's violations off the error (`failureOrViolations`) and filters
+ *    them; measured, its collection came back empty against a matching baseline.
+ * 2. *"`setCallerAggregatesReports` is module state that does not cross jiti's
+ *    registry."* Also false, and it was the premise of a whole record. The flag is
+ *    read at exactly ONE site — `core/execute-rule.ts`, inside `executeWarn`.
+ *    And jiti is not even the default loader: `cli/import-rule-module.ts` imports
+ *    natively first and reaches jiti only on a module-format refusal.
+ * (Line numbers deliberately omitted: the fix for (3) moved every one of them,
+ * and the first version of this docblock cited three that had already drifted.)
+ *
+ * 3. **What is actually true:** `executeCheck` calls `writeReport(...)`
+ *    **unconditionally** at `core/execute-rule.ts`, one line before it throws.
+ *    A `.check()` at module scope therefore prints its findings always — same
+ *    registry, no jiti, no flag involved. The CLI cannot un-print them.
+ *
+ * The disproof of (2) is one line: a fixture importing the same module graph as the
+ * test's `runCheck`, so the flag was fully visible, printed all four violations
+ * anyway.
+ *
+ * **Why a notice and not the repair.** Making `executeCheck` honour the flag is a
+ * change to when a terminal emits — ADR-008 territory, and it would alter behaviour
+ * for every caller that relies on `.check()` printing, including test files. That is
+ * bug 0201. Until it is decided the run must not be silent about output it could not
+ * filter.
+ *
+ * **Fires only when something was actually printed.** `executeWarn` throws the same
+ * error type, and when the CLI aggregates it writes only non-`bypassFilters` entries
+ * — for a configuration finding, nothing at all. The first version fired on the bare
+ * `isArchRuleError` condition and so claimed a leak that never happened, pointing at
+ * a finding whose own text says a baseline can never suppress it. Asserting a cause
+ * the run cannot verify is the ADR-009 rule 2 defect `ruleFileFailure` names above.
+ *
+ * **What this can and cannot say.** The leaked lines were written before the CLI saw
+ * them, so it cannot know how many there were. Naming a count would be invention.
+ *
+ * `bypassFilters` because it reports a gap in filtering — accepting it into a
+ * baseline would suppress the notice that the baseline is not being applied.
+ */
+export function baselineNotApplied(
+  file: string,
+  filters: { baseline?: string; changed: boolean },
+): ArchViolation {
+  // Name the filters that were actually in play. `--baseline` is not the only one,
+  // and it is not always a FLAG — a config file can set it, and telling someone
+  // "`--baseline` was not applied" when they never typed it sends them looking for
+  // an argument they did not pass (adopter review of PR #74).
+  const names: string[] = []
+  if (filters.baseline !== undefined) names.push(`the baseline \`${basename(filters.baseline)}\``)
+  if (filters.changed) names.push('`--changed` (diff-aware mode)')
+  const list = names.join(' and ')
+
+  return {
+    // NOT `eess-ts: rule file` — `dedupeConfigFindings` keys on
+    // `file + rule + element`, so sharing that label merges this into
+    // `ruleFileTruncated()` and the notice disappears. Measured: it did.
+    //
+    // NOT `eess-ts: baseline` either: it fires for `--changed` too, and three
+    // existing findings already use that label for baseline diagnostics.
+    //
+    // And NOT `eess-ts: filtering`, which it briefly was — across `docs/`
+    // "filtering" is the `.that()` predicate phase (`docs/core-concepts.md:91`,
+    // repeated on every dialect page), so a reader seeing it on a red build would
+    // most reasonably conclude their predicate was wrong. `reporting` is ADR-008's
+    // own noun for what this finding is actually about: who emitted, and when.
+    rule: 'eess-ts: reporting',
+    element: basename(file),
+    file,
+    line: 1,
+    message:
+      `This rule file reported findings itself, so ${list} ` +
+      `${names.length > 1 ? 'were' : 'was'} NOT applied to them — anything it printed ` +
+      `reached you unfiltered, and findings you have already accepted or excluded can ` +
+      `appear as failures. The findings the CLI collected were filtered normally, which ` +
+      `is why the counts in this run disagree.`,
+    because:
+      `A CLI-side filter can only act on findings the CLI collects. A rule file that ` +
+      `calls its own terminal at module scope prints them first, so the run you are ` +
+      `reading is not the run the filter describes.`,
+    // The remedy is ordered generic-first ON PURPOSE. This finding fires for ANY
+    // terminal throwing at module scope — a hand-written `.check()` with no preset
+    // in sight reaches it too — so naming the preset fix alone would be the ADR-009
+    // rule 2 defect its neighbour `ruleFileFailure` calls out by name.
+    suggestion:
+      `Move this file's rules into \`export default [rule1, rule2]\` and drop the ` +
+      `terminal calls — an array export hands every rule to the CLI, which then owns ` +
+      `reporting and applies every filter to all of it. If the rules come from a ` +
+      `preset, pass \`report: 'builders'\` instead — e.g. ` +
+      `\`recommended(p, { report: 'builders' })\` — which returns the builders rather ` +
+      `than running them. \`eess-ts init\` scaffolds both forms correctly.`,
+    bypassFilters: true,
+  }
+}
+
+/**
+ * A rule file loaded cleanly and contributed **zero** rules.
+ *
+ * `check` used to print `✓ eess-ts — 0 rules across 1 file · 0 failing` and exit 0
+ * over exactly this, while `doctor` on the same file already refused it with "no
+ * rules found in the given files". Two commands in one CLI disagreeing about
+ * whether "no rules" is an error, and the one wired into CI was the one blessing
+ * it.
+ *
+ * **The shape that makes it urgent** is a migration from `@nielspeter/ts-archunit`,
+ * whose `recommended()` returned builders unconditionally and had no `report`
+ * option. eess-ts's runs and throws by default, so the line ts-archunit's own
+ * `init` scaffolded — `export default [...recommended(p)]` — spreads a *violations*
+ * array. On a codebase with findings that fails loudly (the loader rejects a
+ * non-builder entry). **On a clean codebase the array is empty**, so the file
+ * exports `[]`, the CLI loads nothing, and the run is green with every rule gone.
+ * `tsc --noEmit` passes; nothing reaches stderr.
+ *
+ * The adopter this hits is the one who did the baseline work and cleaned up.
+ *
+ * `CLAUDE.md` already tells agents that a zero denominator "means the gate matched
+ * little or nothing — treat that as a red flag". This makes the CLI agree with its
+ * own instruction instead of printing `✓` over its alarm value.
+ *
+ * `bypassFilters` because it reports absent coverage: there is nothing to grade,
+ * exclude, or accept into a baseline.
+ */
+export function ruleFileContributedNoRules(file: string): ArchViolation {
+  return {
+    rule: 'eess-ts: rule file',
+    element: basename(file),
+    file,
+    line: 1,
+    message:
+      `This rule file loaded without error but contributed no rules, so it enforced ` +
+      `nothing in this run. A green result here would mean "every rule passed" when ` +
+      `what happened is "there were no rules".`,
+    because:
+      `A gate that checks nothing cannot fail, and a passing build is only evidence ` +
+      `if something was actually examined.`,
+    suggestion:
+      `Check what this file's default export actually contains. The usual cause is a ` +
+      `preset spread without \`report: 'builders'\` — \`export default ` +
+      `[...recommended(p)]\` spreads the preset's RESULT, which on a codebase with no ` +
+      `violations is an empty array. Use \`recommended(p, { report: 'builders' })\`. ` +
+      `If the file is deliberately empty, delete it rather than leaving a rule file ` +
+      `that enforces nothing.`,
+    bypassFilters: true,
+  }
+}

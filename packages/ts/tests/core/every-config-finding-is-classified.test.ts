@@ -86,6 +86,16 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'stated-only: the remedy defers to the error named above it, which is arbitrary — no single fix to apply',
   },
+  'src/cli/rule-file-findings.ts::baselineNotApplied': {
+    remedy: 'own',
+    verified:
+      "behavioural: rule-file-truncation.test.ts — `it('clears once the remedy it names is applied, and the rules then load')` applies the stated fix (`report: 'builders'`) and asserts the finding clears AND that rules still load, which is the remedy-clears half; `it('says so when a preset printed findings the baseline never filtered')` asserts it fires and pins the twin fixtures via the JSON collection; `it('does not fire when the throw carried nothing the rule file could print')` holds the false-positive case; `it('fires for --changed too, not only --baseline')` covers the second filter; and `it('does not warn when the rule file lets the CLI do the reporting')` kills a fix that printed unconditionally",
+  },
+  'src/cli/rule-file-findings.ts::ruleFileContributedNoRules': {
+    remedy: 'own',
+    verified:
+      "behavioural: rule-file-contributes-no-rules.test.ts — `it('fails instead of printing a green tick over zero rules')` fires it on the naive-migration fixture, and `it('stays green when the file does contribute rules and they all pass')` applies the stated remedy (`report: 'builders'`) to the SAME project and asserts the finding clears with a non-zero rule count, so a fix that failed every zero-violation run cannot pass",
+  },
   'src/cli/rule-file-findings.ts::ruleFileTruncated': {
     remedy: 'own',
     verified: 'stated-only: same — the remedy defers to the finding above it',

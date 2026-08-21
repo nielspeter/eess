@@ -34,8 +34,27 @@ export interface PresetReportOptions extends ReportOptions {
  * path) both delegate here, so the two reporting paths can no longer diverge
  * (plan 0070). Emits nothing for an empty set.
  */
+let violationsEmitted = 0
+
+/**
+ * How many violations this module has actually WRITTEN, ever.
+ *
+ * Read as a delta by a caller that aggregates reporting, to answer one question it
+ * cannot otherwise answer: *did something emit while I was loading that module?*
+ *
+ * The alternative a caller might reach for — counting the writes it SUPPRESSED and
+ * inferring "then nothing was written" — is a double negative and is unsound: a
+ * module that suppresses one terminal and leaks through another satisfies it while
+ * leaking. Measured on `eess-ts`, which shipped that inference and fell into
+ * exactly that case. Count emissions, not silences.
+ */
+export function violationsEmittedCount(): number {
+  return violationsEmitted
+}
+
 export function reportViolations(violations: ArchViolation[], options: ReportOptions = {}): void {
   if (violations.length === 0) return
+  violationsEmitted += violations.length
   const format: OutputFormat = options.format ?? 'terminal'
   if (format === 'json') {
     process.stdout.write(formatViolationsJson(violations, options.reason) + '\n')
