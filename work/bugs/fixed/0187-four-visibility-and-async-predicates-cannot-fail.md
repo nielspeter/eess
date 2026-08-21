@@ -2,7 +2,10 @@
 
 ## Status
 
-- **State:** Fixed — sabotage-verified per predicate, all four 0 → 3 or 4.
+- **State:** Fixed — sabotage-verified per predicate: `arePublic`,
+  `areProtected` and `arePrivate` **0 → 3**, `areNotAsync` **0 → 2**.
+  (This line read `0 → 3 or 4` until 2026-08-21, from the same
+  pre-correction measurement 0186's header carried.)
 - **Severity:** Medium
 - **Origin:** self-found · falsifiability sweep extended from `src/rules/` to the
   other 132 exported primitives (conditions, predicates, presets)

@@ -2,7 +2,12 @@
 
 ## Status
 
-- **State:** Fixed — sabotage-verified per rule on the real tree, margins 0 → 5 and 0 → 3.
+- **State:** Fixed — sabotage-verified per rule on the real tree, margins
+  **0 → 4** and **0 → 2**. (This line read `0 → 5 and 0 → 3` until 2026-08-21 —
+  the pre-correction figures the Verification section below already disowns.
+  A header contradicting its own ledger is worse than either number alone,
+  because the header is what a reader sees first. Caught reviewing plan 0193,
+  which cites these four values as its acceptance anchors.)
 - **Severity:** Medium
 - **Origin:** self-found · falsifiability sweep over all 51 `src/rules/` primitives,
   run to answer whether the `ts-archunit` test adoption had been gamed green
