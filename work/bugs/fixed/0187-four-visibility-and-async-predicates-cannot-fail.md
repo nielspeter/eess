@@ -176,10 +176,54 @@ pattern missed a builder subclass defined in the test file itself. Each time the
 regex said "suspicious" and the source said "fine" — the same shape as this
 session's three earlier mutation-matrix false alarms.
 
-So: **no `.not.toThrow()` test was found to be vacuous, and none was changed.**
-What remains true is narrower and worth keeping: the probe covers the
-`Condition.evaluate` path only, so the 26 inert blocks in test doubles and other
-subsystems are unmeasured rather than cleared.
+That first probe covered the `Condition.evaluate` path only, leaving 26 inert
+blocks in test doubles, smells, correspondence, tsconfig and graphql
+**unmeasured rather than cleared**. A second pass closed that.
+
+### The second probe — one seam, every builder
+
+All ten builder families extend a `TerminalBuilder`, and each routes its result
+through a single `collectViolations()` thunk in `asRun()`. Injecting there — "if
+this rule examined anything at all, report a violation" — covers rules, smells,
+correspondence, cross-layer, slice, tsconfig and graphql at once, and reaches
+builder subclasses defined inside test files, because they extend the real thing.
+
+**The seam is in `packages/ts/src/core/terminal-builder.ts`, not the kernel's.**
+Patching `packages/core/src/terminal-builder.ts` changed nothing and the run came
+back identical to baseline — the ts dialect carries its own 917-line
+`TerminalBuilder` (the kernel's is 455) with its own `vacuity-diagnosis.ts` and
+`execute-rule.ts`, and every ts builder imports `../core/terminal-builder.js`. A
+null result that looked like "nothing to find" was actually "wrong file", and only
+the calibration run distinguished them.
+
+Calibrated both ways: probe off, 3528 pass / 0 fail; probe on, 2873 / 655.
+
+|                                         | n       |
+| --------------------------------------- | ------- |
+| **LIVE** under the condition probe      | 267     |
+| **LIVE** under the builder-seam probe   | 296     |
+| **LIVE under either — combined**        | **298** |
+| inert under both: not a rule `.check()` | 39      |
+| inert under both: asserts cardinality   | 21      |
+| inert under both: declares emptiness    | 4       |
+| inert under both: uses `.warn()`        | 1       |
+| inert under both: unexplained           | 6       |
+
+The six were read individually and **all carry a positive assertion in the same
+block** — `expect(() => rule.check()).toThrow(ArchRuleError)`, or a
+`violations()` inspection asserting a `bypassFilters` config finding. Three say
+outright that they were **flipped from `.not.toThrow()`** when the evidence floor
+landed:
+
+> `// Behaviour flip, plan 0099. This asserted '.not.toThrow()': a 'minLines' so …`
+> `// REVERSED at 0.23.0: this asserted '.not.toThrow()', pinning a detector …`
+
+That is this concern, already found and fixed once, with the history kept in the
+tests that changed.
+
+**So: no `.not.toThrow()` test is vacuous, and none was changed.** 298 of 369 are
+demonstrably live; the other 71 are each explained by a mechanism the corpus
+documents. The residue this section opened with is closed, not narrowed.
 
 **`resideInFolder` has no margin.** Widening it explodes the corpus every
 path-based rule selects, and the suite times out (435s against a ~35s norm) on a
