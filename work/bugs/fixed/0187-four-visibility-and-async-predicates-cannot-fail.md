@@ -139,11 +139,47 @@ it must reject. Plus:
 
 ## Residue, stated rather than implied
 
-**`.not.toThrow()` is not fixed by this record.** 28 assertions of that shape
-remain in `tests/integration/function-rules.test.ts` alone, and 371 across
-`packages/ts/tests`. Most are legitimate — a rule that should pass, over a
-fixture that exercises it — but the shape cannot distinguish those from the ones
-here. Nothing measures which is which.
+**`.not.toThrow()` — measured afterwards, and the concern does not survive.**
+This section first said 371 such assertions remain, that "the shape cannot
+distinguish" legitimate ones from the vacuous, and that "nothing measures which
+is which". Something does now, and the population is healthy.
+
+The instrument: make **every** condition report a violation for every element it
+receives (an early return injected into all 74 `evaluate()` bodies in
+`packages/ts/src`), then run the suite. Any `.not.toThrow()` test whose rule
+genuinely examines subjects must fail. The ones that still pass are green for
+some reason other than the rule's own logic. One suite run, not 369.
+
+Of the **369** `it()` blocks containing `.not.toThrow()` (372 occurrences; all
+titles literal, so all matchable against the reporter):
+
+|                                                    | n       |                                                                                                                                |
+| -------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **LIVE** — failed when conditions report           | **267** | the assertion is doing work                                                                                                    |
+| inert: not a rule `.check()`                       | 41      | builder mechanics; `.not.toThrow()` is incidental                                                                              |
+| inert: asserts cardinality                         | 21      | emptiness IS the assertion — `TerminalBuilder.assertsCardinality()` exempts it on purpose                                      |
+| inert: test double / condition defined in the test | 17      | `defineCondition`, `TestRuleBuilder`, `SourceFileRuleBuilder` — outside `src/`, so the probe cannot reach them by construction |
+| inert: subsystem off the `Condition.evaluate` path | 9       | correspondence, smells, tsconfig, graphql                                                                                      |
+| inert: declares its emptiness                      | 6       | `.expectEmpty()` / `.allowEmpty()`                                                                                             |
+| inert: uses `.warn()`                              | 2       | cannot throw by design                                                                                                         |
+| inert: unexplained after classification            | 6       | **read individually — all legitimate**                                                                                         |
+
+The last six were the point of the exercise and every one held up: positive-control
+siblings asserting `.toThrow(ArchRuleError)` in the same block, an inline
+`defineCondition`, a `smells.duplicateBodies` chain, and a `.not.toThrow()` whose
+block's real assertion is a `.toThrow()` two lines down.
+
+**Two classifier false positives are worth recording**, because both were caught by
+reading the test rather than by the tool. A `\.notExist\(` pattern missed
+`notExist<TypeDeclaration>()` written inside `satisfy(...)`, and a "no double"
+pattern missed a builder subclass defined in the test file itself. Each time the
+regex said "suspicious" and the source said "fine" — the same shape as this
+session's three earlier mutation-matrix false alarms.
+
+So: **no `.not.toThrow()` test was found to be vacuous, and none was changed.**
+What remains true is narrower and worth keeping: the probe covers the
+`Condition.evaluate` path only, so the 26 inert blocks in test doubles and other
+subsystems are unmeasured rather than cleared.
 
 **`resideInFolder` has no margin.** Widening it explodes the corpus every
 path-based rule selects, and the suite times out (435s against a ~35s norm) on a
