@@ -154,6 +154,56 @@ gated rows: one for the aggregating default, one for the invariant, cited to the
 tests that hold them. `executeWarn` is the case that gives the invariant content:
 its warn-severity violations do not ride the throw, so it must keep writing them.
 
+## Corrected again — the first guard was itself a fake green
+
+**`checkAll()` throws only the ERROR-severity subset**, so its warn-severity
+findings ride nothing. The first version of this fix suppressed _all_ violations
+under aggregation, which meant those warn findings were written by nobody and
+carried by nothing.
+
+Measured independently by two reviewers and reproduced: four warn findings produced
+and discarded, under `✓ eess-ts — 4 rules across 1 file · 0 failing`, **exit 0**.
+A fake green arriving through this package's own CLI — the exact class it exists to
+prevent — introduced by the fix for a different bug.
+
+Worse than a plain loss: with no write, the dialect's emission counter does not
+advance, so the "output you could not filter" notice could not fire either. The run
+was silent about the silence.
+
+This is precisely the invariant the ADR amendment below names — **suppress exactly
+what rides the throw, and nothing else** — and the reasoning was already written
+correctly one file over, in `deliver()`'s comment about `'warn'`, and not applied
+here. `check-all.ts` now splits the same way `executeWarn` does.
+
+**The test that should have caught it did not exist**, and the one that looked like
+it did was vacuous: the converted `checkAll` test asserted only an absence, so
+replacing its fixture with a module calling no `checkAll` at all left it green. Both
+are fixed — a positive anchor restored, and a dedicated warn-severity fixture added.
+
+**And the dialect emission counter was back at margin 0.** Converting that test to a
+pure absence removed the only thing exercising `writeReport`'s increment. It has its
+own fixture now — `checkall-warn-leaks-under-baseline.rules.ts` — because after this
+fix `checkAll`'s warn write is the only leak in the suite that flows through the
+dialect emitter rather than the kernel's.
+
+## The remedy on the migrator's actual path was a no-op
+
+With a full baseline, the naive migration reds with **zero findings shown** — the
+baseline filtered them all, while `ruleFileTruncated` survives it (`bypassFilters`)
+and says "the finding above". Its remedy then said _"move its rules into
+`export default [rule1, rule2]`"_ over a file that already **is** an array export,
+because `export default [...recommended(p)]` spreads a preset that still enforces at
+module scope.
+
+So the reader was told to do what they had already done, and `report: 'builders'` —
+the actual fix — appeared **nowhere** in the output, since this PR correctly stopped
+the notice that used to carry it. ADR-009 rule 2: a failure that states no usable
+remedy is one where the reader invents one.
+
+`ruleFileTruncated`'s suggestion now names the preset case first, states that a
+spread does not avoid the problem and why, and keeps the array-export advice for the
+shape it actually fits.
+
 ## Verification
 
 - [x] Red test first — `packages/ts/tests/cli/preset-double-print.test.ts`,

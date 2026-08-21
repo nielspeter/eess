@@ -33,3 +33,14 @@ ride a throw, so suppressing them would lose them.
 
 A consequence worth knowing: because the CLI is now the only thing reporting these
 findings, `--baseline` and `--changed` finally apply to them.
+
+**Warn-severity findings are unaffected by the suppression.** `checkAll()` throws
+only the error-severity subset, so its warn findings ride no throw — they are still
+written, and `check` says its filters did not reach them. Suppressing them too would
+have deleted them, which an early version of this change did.
+
+`eess-ts check`'s "this file stopped evaluating" remedy also names
+`report: 'builders'` now. It previously offered only "move its rules into an array
+export", which is a no-op for `export default [...recommended(p)]` — already an
+array export, and still enforcing at module scope because the spread evaluates
+first.

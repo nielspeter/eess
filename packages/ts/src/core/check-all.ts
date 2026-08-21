@@ -1,4 +1,4 @@
-import type { RuleBuilderLike } from '@nielspeter/eess'
+import type { ArchViolation, RuleBuilderLike } from '@nielspeter/eess'
 import type { CheckOptions } from '@nielspeter/eess'
 import { ArchRuleError } from '@nielspeter/eess'
 import { callerAggregates, writeReport } from './execute-rule.js'
@@ -62,12 +62,21 @@ export function checkAll(rules: RuleBuilderLike[], options?: CheckOptions): void
   // findings before an aggregating caller saw them, and the caller then reported
   // the same violations again off the throw below.
   //
-  // The throw is unchanged, so the violations still reach the caller; only the
-  // emission moves. And the flag defaults to `false`, so `checkAll()` in a test
-  // file — where nobody aggregates — prints exactly as before.
-  if (!callerAggregates()) {
+  // **Suppress exactly what rides the throw, and nothing else** — ADR-008's
+  // amendment, and this function is the case that gives it teeth. The throw at the
+  // bottom carries only the ERROR-severity subset, so warn-severity findings ride
+  // nothing. Suppressing them too is not "the caller will report it", it is
+  // deleting them: measured, four warn findings produced and discarded under
+  // `✓ eess-ts — 4 rules across 1 file · 0 failing`, exit 0. A fake green through
+  // this package's own CLI. The first version of this guard did exactly that.
+  //
+  // The flag defaults to `false`, so `checkAll()` in a test file — where nobody
+  // aggregates — still prints everything, exactly as before.
+  const ridesTheThrow = (v: ArchViolation): boolean => (v.severity ?? 'error') === 'error'
+  const toWrite = callerAggregates() ? violations.filter((v) => !ridesTheThrow(v)) : violations
+  if (toWrite.length > 0 || (!callerAggregates() && options?.format === 'json')) {
     writeReport(
-      violations,
+      toWrite,
       options?.format,
       options?.format === 'json' ? notice : undefined,
       untestedRules(),
@@ -93,7 +102,7 @@ export function checkAll(rules: RuleBuilderLike[], options?: CheckOptions): void
     if (suppressed !== undefined) writeStderr(`${suppressed}\n`)
   }
 
-  const errors = violations.filter((v) => (v.severity ?? 'error') === 'error')
+  const errors = violations.filter(ridesTheThrow)
   if (errors.length > 0) {
     throw new ArchRuleError(errors)
   }

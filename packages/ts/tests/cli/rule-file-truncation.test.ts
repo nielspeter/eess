@@ -440,6 +440,15 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
         baseline: baselinePath,
       })
       const report = stderr.join('')
+      // **The positive anchor first.** The conversion of this test originally
+      // dropped it and asserted only the absence — measured: replacing the fixture
+      // with a module that calls no `checkAll` at all left the test green, because
+      // the run it then graded was a `ruleFileFailure` ("could not be evaluated")
+      // that the absence regex does not match. Its sibling two tests down states
+      // the rule in its own comment: asserting only an absence also passes on a
+      // run that did nothing.
+      expect(report).toMatch(/Architecture Violation \[/)
+      expect(report).toContain('parseFooOrder')
       // Bug 0203's third emitter: `check-all.ts` honours the flag now, so the
       // findings reach the user once, through the CLI, with the baseline applied.
       expect(report).not.toMatch(/was not applied|could not be applied/i)
