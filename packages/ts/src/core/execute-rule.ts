@@ -459,6 +459,19 @@ export function setCallerAggregatesReports(on: boolean): void {
  * `reportViolations` (used by `finishPreset`). Counting one would reproduce the
  * same blind spot on the other's path.
  */
+/**
+ * Is a caller aggregating reports for this run?
+ *
+ * Exposed so the two OTHER ts-side emitters can honour the same contract
+ * `executeCheck` does: `presets/shared.ts`'s `deliver()` and `core/check-all.ts`.
+ * Both used to emit unconditionally, so a preset or a `checkAll()` at module scope
+ * printed its findings before the aggregating caller saw them — and the caller then
+ * reported the same violations again off the throw. Bug 0203.
+ */
+export function callerAggregates(): boolean {
+  return callerAggregatesReports
+}
+
 export function violationsWritten(): number {
   return violationsWrittenHere + violationsEmittedCount()
 }

@@ -9,7 +9,8 @@ import type { ArchViolation, ReportMode, OutputFormat } from '@nielspeter/eess'
  * means the kernel's three emission modes stay exactly three.
  */
 export type PresetDelivery = ReportMode | 'builders'
-import { finishPreset } from '@nielspeter/eess'
+import { finishPreset, ArchRuleError } from '@nielspeter/eess'
+import { callerAggregates } from '../core/execute-rule.js'
 import { UNSUPPRESSABLE } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
 import type { Located } from '../predicates/identity.js'
@@ -445,8 +446,30 @@ export function deliver(
   // options enforces, which is what ADR-008 states and what the docs teach.
   if (options?.report === 'builders') return builders
   const violations = builders.flatMap((b) => b.violations())
+  const mode: PresetDelivery = options?.report ?? 'throw'
+
+  // **Bug 0203 — enforce, but let an aggregating caller do the reporting.**
+  //
+  // `finishPreset` emits and then throws. Under `eess-ts check` that printed the
+  // findings before the CLI saw them, and the CLI then reported the same
+  // violations again off the throw: one violation, two blocks, two contradicting
+  // counters, with no flags involved. Measured on a rule file carried over from
+  // `@nielspeter/ts-archunit` — 13 blocks, 6 exact duplicates.
+  //
+  // The throw is kept, so behaviour is unchanged for everyone: the caller still
+  // learns the run failed, and the violations ride the error exactly as
+  // `executeCheck`'s do. Only the emission moves.
+  //
+  // ONLY for the default 'throw' mode. `'warn'` and `'return'` are explicit
+  // choices about emission that a caller made on purpose, and `'warn'`'s
+  // violations do NOT ride a throw — suppressing them here would lose them.
+  if (mode === 'throw' && callerAggregates()) {
+    if (violations.length > 0) throw new ArchRuleError(violations, options?.reason)
+    return violations
+  }
+
   return finishPreset(violations, {
-    report: options?.report ?? 'throw',
+    report: mode,
     format: options?.format,
     reason: options?.reason,
   })

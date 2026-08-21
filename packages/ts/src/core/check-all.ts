@@ -1,7 +1,7 @@
 import type { RuleBuilderLike } from '@nielspeter/eess'
 import type { CheckOptions } from '@nielspeter/eess'
 import { ArchRuleError } from '@nielspeter/eess'
-import { writeReport } from './execute-rule.js'
+import { callerAggregates, writeReport } from './execute-rule.js'
 import { dedupeConfigFindings } from '@nielspeter/eess'
 import { suppressionNotice } from '@nielspeter/eess'
 import { writeStderr } from '@nielspeter/eess'
@@ -57,12 +57,22 @@ export function checkAll(rules: RuleBuilderLike[], options?: CheckOptions): void
   // stderr carries it for every other format. Found by sabotage: removing the
   // `writeStderr` call left the tests green because the notice was reaching
   // stderr through the "Why:" line instead.
-  writeReport(
-    violations,
-    options?.format,
-    options?.format === 'json' ? notice : undefined,
-    untestedRules(),
-  )
+  // Bug 0203 — the third emitter, and the same contract `executeCheck` and
+  // `deliver()` now honour. A `checkAll()` at module scope used to print its
+  // findings before an aggregating caller saw them, and the caller then reported
+  // the same violations again off the throw below.
+  //
+  // The throw is unchanged, so the violations still reach the caller; only the
+  // emission moves. And the flag defaults to `false`, so `checkAll()` in a test
+  // file — where nobody aggregates — prints exactly as before.
+  if (!callerAggregates()) {
+    writeReport(
+      violations,
+      options?.format,
+      options?.format === 'json' ? notice : undefined,
+      untestedRules(),
+    )
+  }
 
   // Bug 0015 reaches the in-test path too. `checkAll` is the vitest-side
   // equivalent of `runCheck`, and a disclosure the recommended runner never
