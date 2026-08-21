@@ -564,10 +564,14 @@ export {
 //
 // Same rule as the block above, applied consistently: removing a published
 // export is breaking, re-exporting is additive, so the burden sits on the
-// removal. Three of the 23 are NOT restored because their implementations were
-// deleted, not merely unexported — `GlobDiagnosis`, `diagnoseDeadGlobs` (its
-// whole module, `core/dead-glob.ts`) and nothing else. Those are a real break
-// and are declared as one in the changeset rather than papered over here.
+// removal. TWO are not restored because their implementations were deleted, not
+// merely unexported: `GlobDiagnosis` and `diagnoseDeadGlobs` (its whole module,
+// `core/dead-glob.ts`). Those are a real break, declared as one in the changeset
+// rather than papered over here.
+//
+// (An earlier draft of this comment said "three of the 23" and then named two.
+// The 23rd was `ReportMode`, which my parse wrongly reported as removed — see
+// above — so the population is 22 and the unrestored count is 2.)
 export type { BaselineFilter, DiffFilterLike, Matcher, UntestedReason } from '@nielspeter/eess'
 export type { CollectResult } from './core/terminal-builder.js'
 export type { DiskSet, OnDisk } from './core/disk-set.js'

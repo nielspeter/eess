@@ -157,10 +157,27 @@ function rulesTemplate(preset: InitPreset, tsconfig: string, sourceRoot: string)
 }
 
 /** The `recommended` include option, sourceRoot-aware (bare when root is `src`). */
+/**
+ * **Every scaffolded preset call carries `report: 'builders'`, and must.**
+ *
+ * A rule FILE spreads its presets into `export default [...]`, so it needs the
+ * builders, not the result of running them. Omitting `report` runs the rules and
+ * throws during module evaluation — which in a rule file means the spread splats
+ * violations into the array, the CLI loads **zero rules**, and `check` reports
+ * `0 rules across 1 file` and exits 0.
+ *
+ * That is the alarm value the summary line exists to surface, produced by the
+ * tool's own scaffold. It happened: the preset default was corrected to enforce
+ * (PR #72 review) and this template was not updated with it. `tsc --noEmit`
+ * passes on the generated file — a spread of the wrong array type is not a type
+ * error — so nothing but running it catches this. `init-scaffold-loads-rules.test.ts`
+ * runs the generated template through `runCheck` and asserts a non-zero rule
+ * count, which is the check that was missing.
+ */
 function recommendedCallFor(sourceRoot: string): string {
   return sourceRoot === 'src'
-    ? 'recommended(p)'
-    : `recommended(p, { include: '**/${sourceRoot}/**' })`
+    ? "recommended(p, { report: 'builders' })"
+    : `recommended(p, { include: '**/${sourceRoot}/**', report: 'builders' })`
 }
 
 function floorRulesTemplate(preset: FloorPreset, tsconfig: string, sourceRoot: string): string {
@@ -171,6 +188,7 @@ function floorRulesTemplate(preset: FloorPreset, tsconfig: string, sourceRoot: s
     noStubs: true,
     noEmptyBodies: true,
     noCopyPaste: true,
+    report: 'builders',
   })`
 
   const presetImport = preset === 'recommended' ? 'recommended' : 'agentGuardrails'
@@ -191,7 +209,7 @@ function floorRulesTemplate(preset: FloorPreset, tsconfig: string, sourceRoot: s
   // imperative rules block for the agent's system prompt.
   // See https://nielspeter.github.io/eess/agent-integration. Then, with
   // { agentGuardrails } imported from '@nielspeter/eess-ts/presets':
-  //   ...agentGuardrails(p, { src: '**/${sourceRoot}/**', noGenericErrors: true })`
+  //   ...agentGuardrails(p, { src: '**/${sourceRoot}/**', noGenericErrors: true, report: 'builders' })`
       : `  // Thin universal safety floor (eval, Function constructor, silent catches,
   // empty bodies). Import { recommended } from '@nielspeter/eess-ts/presets':
   //   ...${recommendedCall},`
@@ -240,6 +258,7 @@ function shapePresetSpec(
       repositories: '**/${root}/repositories/**',
     },
     shared: ['**/${root}/shared/**'],
+    report: 'builders',
   })`,
       }
     case 'strict-boundaries':
@@ -250,6 +269,7 @@ function shapePresetSpec(
     // Example glob — point this at your real feature folders.
     folders: '**/${root}/features/*',
     shared: ['**/${root}/shared/**'],
+    report: 'builders',
   })`,
       }
     case 'data-layer':
@@ -261,6 +281,7 @@ function shapePresetSpec(
     repositories: '**/${root}/repositories/**',
     baseClass: 'BaseRepository',
     requireTypedErrors: true,
+    report: 'builders',
   })`,
       }
   }

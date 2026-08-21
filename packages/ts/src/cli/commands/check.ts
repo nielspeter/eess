@@ -189,10 +189,31 @@ export async function runCheck(args: CheckArgs): Promise<number> {
     const ms = Date.now() - started
     const time = ms < 1000 ? `${String(ms)}ms` : `${(ms / 1000).toFixed(2)}s`
     const scope = `${String(ruleCount)} rule${ruleCount === 1 ? '' : 's'} across ${String(total)} file${total === 1 ? '' : 's'}`
+    // **The symbol is computed from exactly what the exit code is computed from**
+    // — the error-severity count after filtering. Two ways this line lied before,
+    // both measured on the documented on-ramp:
+    //
+    //  - keyed on the RAW failure tally, a baseline that suppressed everything
+    //    printed `✗ … · 0 violations` beside `exit 0`;
+    //  - keyed on `filtered.length`, a warn-only run printed `✗` beside `exit 0`,
+    //    because warnings are advisory and never fail (which the scaffold's own
+    //    output tells the adopter).
+    //
+    // The symbol, the count and the exit code are three renderings of one fact.
+    // Warnings are disclosed alongside rather than folded in or dropped — a run
+    // with warnings is not failing, and is not the same as a silent one.
+    //
+    // `failedRules` is still counted because it answers a different question —
+    // how many RULES failed, versus how many violations there were — and a run
+    // where one rule produced forty is worth telling apart from forty rules
+    // producing one each.
+    const errors = filtered.filter((v) => (v.severity ?? 'error') === 'error').length
+    const warns = filtered.length - errors
+    const warnNote = warns === 0 ? '' : ` · ${String(warns)} warning${warns === 1 ? '' : 's'}`
     writeStderr(
-      failedRules === 0
-        ? `\n✓ eess-ts — ${scope} · 0 failing (${time})\n`
-        : `\n✗ eess-ts — ${scope} · ${String(filtered.length)} violation${filtered.length === 1 ? '' : 's'} (${time})\n`,
+      errors === 0
+        ? `\n✓ eess-ts — ${scope} · 0 failing${warnNote} (${time})\n`
+        : `\n✗ eess-ts — ${scope} · ${String(failedRules)} of ${String(ruleCount)} rule${ruleCount === 1 ? '' : 's'} failing · ${String(errors)} violation${errors === 1 ? '' : 's'}${warnNote} (${time})\n`,
     )
   }
 

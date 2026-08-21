@@ -83,7 +83,7 @@ describe('runInit', () => {
     const rules = read(dir, 'arch.rules.ts')
     expect(rules).toContain("import { project } from '@nielspeter/eess-ts'")
     expect(rules).toContain("import { recommended } from '@nielspeter/eess-ts/presets'")
-    expect(rules).toContain('...recommended(p)')
+    expect(rules).toContain("...recommended(p, { report: 'builders' })")
   })
 
   it('--preset agent-guardrails leads with agentGuardrails from /presets', () => {
@@ -118,7 +118,7 @@ describe('runInit', () => {
     expect(rules).toContain(
       "import { recommended, layeredArchitecture } from '@nielspeter/eess-ts/presets'",
     )
-    expect(rules).toContain('...recommended(p)') // floor still present
+    expect(rules).toContain("...recommended(p, { report: 'builders' })") // floor still present
     expect(rules).toContain('...layeredArchitecture(p, {')
     // Full option-key set — a renamed key in the template fails here (drift guard).
     for (const key of ['layers:', 'routes:', 'services:', 'repositories:', 'shared:']) {
@@ -211,7 +211,7 @@ describe('runInit', () => {
     const text = out.text()
     out.restore()
     const rules = read(dir, 'arch.rules.ts')
-    expect(rules).toContain("recommended(p, { include: '**/lib/**' })")
+    expect(rules).toContain("recommended(p, { include: '**/lib/**', report: 'builders' })")
     expect(text).toContain('source under lib/')
   })
 
@@ -238,7 +238,7 @@ describe('runInit', () => {
     const code = runInit({ cwd: dir, force: true })
     out.restore()
     expect(code).toBe(0)
-    expect(read(dir, 'arch.rules.ts')).toContain('...recommended(p)')
+    expect(read(dir, 'arch.rules.ts')).toContain("...recommended(p, { report: 'builders' })")
   })
 
   it('--dry-run writes nothing and prints the plan', () => {
@@ -417,7 +417,7 @@ describe('runInit source-root detection', () => {
     out.restore()
     // src is the preset default, so the call is bare (no include option)
     const rules = read(dir, 'arch.rules.ts')
-    expect(rules).toContain('...recommended(p),')
+    expect(rules).toContain("...recommended(p, { report: 'builders' }),")
     expect(rules).not.toContain('include:')
   })
 
@@ -435,7 +435,7 @@ describe('runInit source-root detection', () => {
     runInit({ cwd: dir })
     out.restore()
     const rules = read(dir, 'arch.rules.ts')
-    expect(rules).toContain('...recommended(p),')
+    expect(rules).toContain("...recommended(p, { report: 'builders' }),")
     expect(rules).not.toContain('include:')
   })
 })
