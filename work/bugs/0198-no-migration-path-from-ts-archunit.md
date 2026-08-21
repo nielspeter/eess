@@ -105,7 +105,7 @@ output never mentions the baseline, and the rules declared after the throwing
 preset never evaluate at all. Adding `report: 'builders'` to the preset calls
 makes the same project exit 0 with all 5 suppressed.
 
-That is filed as [bug 0199](./0199-a-bare-preset-call-throws-before-baseline-filtering.md)
+That is filed as [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)
 — it is a defect in its own right, not only a migration artefact, since anyone
 hand-writing `recommended(p)` from `packages/ts/README.md:175` hits it. The
 migration page must carry the one-line remedy regardless of how 0199 is fixed.
@@ -132,7 +132,7 @@ answer is silent.
       against eess-ts and the result recorded, including which entries orphan.
       **Done 2026-08-21 — 5/5 hashes identical, 0 orphaned.** See above.
 - [ ] The migration page carries the `report: 'builders'` remedy for
-      [bug 0199](./0199-a-bare-preset-call-throws-before-baseline-filtering.md),
+      [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md),
       whose absence reds a migrator's first run against an accepted baseline.
 - [ ] A ts-archunit project switches by following the page alone, with the gates
       green at the end.

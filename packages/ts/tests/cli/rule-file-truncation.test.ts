@@ -24,7 +24,10 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import path from 'node:path'
+import fs from 'node:fs'
+import os from 'node:os'
 import { runCheck } from '../../src/cli/commands/check.js'
+import { runBaseline } from '../../src/cli/commands/baseline.js'
 import type { ArchViolation } from '@nielspeter/eess'
 
 const fixture = (name: string): string =>
@@ -217,5 +220,89 @@ describe('the array-export shape is not truncated, and must not be told it was',
 
     // Four findings exist in one shape and not the other. That difference IS the bug.
     expect(control.length - truncated.length).toBe(3)
+  })
+})
+
+/**
+ * Bug 0199 — a rule file that ENFORCES at module scope silently defeats `--baseline`.
+ *
+ * A preset called without `report: 'builders'` runs its builders, emits their
+ * violations, and then throws (ADR-008's default is `'throw'`). All of that happens
+ * during module evaluation — **before** `runCheck` reaches `baseline.filterNew`. So
+ * the findings the user has already accepted are printed as failures and the run
+ * reds, while nothing in the output mentions the baseline at all.
+ *
+ * Measured end-to-end from a packed install against a real `@nielspeter/ts-archunit`
+ * baseline: 5 of 5 hashes matched, and the build still exited 1 reporting 2 of them.
+ * The hashes were never the problem — the baseline was simply never consulted.
+ *
+ * The remedy is Option 2 of the bug's three: the CLI cannot apply a baseline it never
+ * saw, so it must SAY so rather than exit red in silence.
+ */
+describe('a rule file that enforces at module scope, with --baseline', () => {
+  it('says the baseline could not be applied, instead of failing in silence', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-'))
+    try {
+      const baselinePath = path.join(dir, 'arch-baseline.json')
+      // Generated from the ARRAY twin, so it holds exactly the violations the
+      // inline file emits — the state a user is in after `eess-ts baseline`.
+      await runBaseline({
+        ruleFiles: [fixture('baselined-inline.rules.ts')],
+        output: baselinePath,
+      })
+      const accepted: unknown = JSON.parse(fs.readFileSync(baselinePath, 'utf-8'))
+      expect(
+        accepted !== null && typeof accepted === 'object' && 'count' in accepted
+          ? accepted.count
+          : 0,
+      ).toBeGreaterThan(0)
+
+      capture()
+      await runCheck({
+        ...baseArgs,
+        ruleFiles: [fixture('enforcing-inline.rules.ts')],
+        baseline: baselinePath,
+      })
+
+      const report = stderr.join('')
+      // The discriminator: the run must name the baseline as not applied. Asserting
+      // only on the exit code would pass on the buggy build too.
+      expect(report).toContain('--baseline')
+      expect(report).toMatch(/was not applied|could not be applied/i)
+      // And it must say what to do about it.
+      expect(report).toContain("report: 'builders'")
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  /**
+   * The discriminator in the other direction: an ordinary run that never enforces
+   * inline must NOT carry this notice. A fix that printed it whenever `--baseline`
+   * is passed would satisfy the test above and be useless.
+   */
+  it('does not warn when the rule file lets the CLI do the reporting', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-clean-'))
+    try {
+      const baselinePath = path.join(dir, 'arch-baseline.json')
+      await runBaseline({
+        ruleFiles: [fixture('baselined-inline.rules.ts')],
+        output: baselinePath,
+      })
+
+      capture()
+      const code = await runCheck({
+        ...baseArgs,
+        ruleFiles: [fixture('baselined-inline.rules.ts')],
+        baseline: baselinePath,
+      })
+
+      const report = stderr.join('')
+      expect(report).not.toMatch(/was not applied|could not be applied/i)
+      // The baseline really did its job here — that is what makes this a control.
+      expect(code).toBe(0)
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

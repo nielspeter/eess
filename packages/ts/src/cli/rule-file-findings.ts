@@ -160,3 +160,59 @@ export function ruleFileTruncated(file: string, ruleFiles: number): ArchViolatio
     bypassFilters: true,
   }
 }
+
+/**
+ * `--baseline` was passed, but the rule file printed findings the baseline never
+ * filtered. Bug 0199.
+ *
+ * **The mechanism, corrected after measurement.** The bug was first written up as
+ * "the preset throws before baseline filtering runs". That is wrong, and the wrong
+ * version is recorded in 0199 because it would have sent the next reader to the
+ * wrong layer. `runCheck` DOES collect a thrown terminal's violations off the error
+ * (`failureOrViolations`) and DOES filter them — measured, the CLI's own collection
+ * came back empty against a matching baseline, exactly as designed.
+ *
+ * What actually leaks is the **rule file's own printing**. `setCallerAggregatesReports`
+ * is module-level state in `core/execute-rule.ts`, and a rule file loads through
+ * jiti's separate module registry (see `isArchRuleError` for the same boundary biting
+ * `instanceof`). So the rule file gets its own copy of that module with the flag
+ * `false`, its terminal writes its own unfiltered report, and only then throws. The
+ * user reads violations they have already accepted; the CLI silently agrees they were
+ * accepted and says nothing.
+ *
+ * **Why a notice and not the root-cause fix.** Making the flag cross registries means
+ * a `globalThis` singleton — a pattern this codebase does not currently use anywhere,
+ * and a cross-cutting decision that belongs in an ADR rather than in a bug fix. Until
+ * that is decided, the run must not be silent about output it could not filter. A
+ * wrong-looking build that explains itself beats one that does not.
+ *
+ * **What this can and cannot say.** The leaked lines were written by another module
+ * instance, so the CLI cannot know how many there were or which. Naming a count would
+ * be invention. It says the output above went unfiltered, why, and the remedy.
+ *
+ * `bypassFilters` because it reports a gap in filtering — accepting it into a baseline
+ * would suppress the notice that the baseline is not being applied.
+ */
+export function baselineNotApplied(file: string, baselinePath: string): ArchViolation {
+  return {
+    // NOT `eess-ts: rule file` — `dedupeConfigFindings` keys on
+    // `file + rule + element`, so sharing that label merges this into
+    // `ruleFileTruncated()` and the notice disappears. Measured: it did.
+    rule: 'eess-ts: baseline',
+    element: basename(file),
+    file,
+    line: 1,
+    message:
+      `This rule file reported findings itself, and \`--baseline\` was NOT applied to ` +
+      `them — any violation printed above reached you unfiltered by ` +
+      `\`${basename(baselinePath)}\`, so violations you have already accepted can appear ` +
+      `here as failures. The rules the CLI collected were filtered normally.`,
+    suggestion:
+      `Pass \`report: 'builders'\` to the preset(s) in this file — for example ` +
+      `\`recommended(p, { report: 'builders' })\` — so the CLI runs the rules and owns the ` +
+      `reporting, and the baseline applies to everything. \`eess-ts init\` scaffolds that ` +
+      `form; a rule file carried over from \`@nielspeter/ts-archunit\` will not have it, ` +
+      `because its presets returned builders and never enforced inline.`,
+    bypassFilters: true,
+  }
+}

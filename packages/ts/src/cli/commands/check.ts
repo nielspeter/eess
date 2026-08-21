@@ -13,6 +13,7 @@ import { loadRuleFiles } from '../load-rules.js'
 import { dedupeConfigFindings } from '@nielspeter/eess'
 import {
   attributeToRuleFile,
+  baselineNotApplied,
   failureOrViolations,
   ruleFileTruncated,
 } from '../rule-file-findings.js'
@@ -104,7 +105,16 @@ export async function runCheck(args: CheckArgs): Promise<number> {
       // happens after the module finished, so nothing was truncated, and the
       // `export default [rule1, rule2]` shape never reaches here at all — an array
       // export builds every rule before any of them runs.
-      if (isArchRuleError(error)) collected.push(ruleFileTruncated(file, total))
+      if (isArchRuleError(error)) {
+        collected.push(ruleFileTruncated(file, total))
+        // Bug 0199 — the same boundary, the other consequence. A terminal firing at
+        // module scope emitted its findings before `baseline.filterNew` below could
+        // see them, so a baseline the caller supplied did not apply to them. The CLI
+        // cannot filter what it never collected; it can refuse to be silent about it.
+        if (args.baseline !== undefined) {
+          collected.push(baselineNotApplied(file, args.baseline))
+        }
+      }
       failedRules++
       continue
     }

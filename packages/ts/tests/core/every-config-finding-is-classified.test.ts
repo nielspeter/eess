@@ -86,6 +86,11 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'stated-only: the remedy defers to the error named above it, which is arbitrary — no single fix to apply',
   },
+  'src/cli/rule-file-findings.ts::baselineNotApplied': {
+    remedy: 'own',
+    verified:
+      "behavioural: rule-file-truncation.test.ts — `it('says the baseline could not be applied, instead of failing in silence')` asserts the notice fires, names `--baseline`, and states the `report: 'builders'` remedy; its neighbour asserts a run that lets the CLI report carries NO such notice, so a fix that printed it unconditionally fails",
+  },
   'src/cli/rule-file-findings.ts::ruleFileTruncated': {
     remedy: 'own',
     verified: 'stated-only: same — the remedy defers to the finding above it',
