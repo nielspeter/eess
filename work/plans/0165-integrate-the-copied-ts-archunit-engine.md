@@ -357,10 +357,35 @@ and `packages/ts/src/core` — including the whole builder stack (`rule-builder`
 `path-universe`, `disk-set`, `combinators`. Unifying them is not a move; it needs
 two design decisions this plan has no mandate to make on its own:
 
-- **a project abstraction for the kernel.** The copied `terminal-builder` is 1298
-  lines and touches `ArchProject` in only 5 places, so the coupling is thin — but
-  the kernel currently has _no_ project concept at all (`PathUniverse` is its
-  pure stand-in), and giving it one constrains all five dialects forever.
+- **a project abstraction for the kernel.** The copied `terminal-builder` touches
+  `ArchProject` in only a handful of places, so the coupling is thin — but the
+  kernel currently has _no_ project concept at all (`PathUniverse` is its pure
+  stand-in), and giving it one constrains all five dialects forever.
+
+  **Re-measured 2026-08-21, and both numbers here were stale — in the direction
+  that makes this decision smaller, not larger.** This bullet said "1298 lines"
+  and "5 places"; the file is **917 lines** and touches `ArchProject` in **3**
+  (`import type`, `getProject()`, `zeroSubjectsViolation(project)`).
+
+  Where it went, traced rather than guessed — a first draft of this note
+  attributed the shrink to `408c8e0`, which accounts for 32 lines of it:
+
+  | commit                                                    | lines |
+  | --------------------------------------------------------- | ----- |
+  | `76d849f` refactor(0166): split the assertion guard       | 1353  |
+  | `67d6cf0` **lift the vacuity machinery out of both** …    | 935   |
+  | `0893477` split TerminalBuilder into declaration/terminal | 949   |
+  | `408c8e0` make the RuleDeclaration seam real              | 917   |
+
+  `67d6cf0` is the one that matters, and its subject says **"out of _both_
+  TerminalBuilders"** — the duplication has already been narrowed once by work
+  that treated the two copies as a pair. That is evidence the remainder is
+  tractable, not just smaller.
+
+  The count is left out of the prose above on purpose now: a line count in a plan
+  is a number nothing re-derives, which is exactly how this one went stale inside
+  its own paragraph about measuring rather than arguing.
+
 - **a pluggable tokenizer for `exclusion-comments`.** The copied version blanks
   string literals with a real ts-morph tokenizer (bug 0154's fix); the kernel's
   does a regex scan. The other four dialects have no TS AST, so the kernel needs
