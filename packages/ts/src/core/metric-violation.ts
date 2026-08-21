@@ -3,40 +3,51 @@ import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation, enclosingScopeName, getElementName } from './violation.js'
 
 /**
- * A finding whose message states a **measurement** — bug-0012 class.
+ * A finding whose message states a **measurement** — bug 0012.
  *
  * Metric conditions write the measured value into the message:
  *
  *     Big has 10 methods (max: 5) — consider splitting into focused classes
  *
- * A baseline that hashes the message alone identifies a violation by text
- * that includes the measurement, so the identity moves whenever the
- * measurement moves — **in either direction**. Baseline a class at 10
- * methods, delete two, and the finding is reported as new:
+ * `hashViolation` identifies a violation by its message, so the identity moved
+ * whenever the measurement moved — **in either direction**. Baseline a class at
+ * 10 methods, delete two, and the finding was reported as new:
  *
  *     10 → 10   green ✓
  *     10 → 12   red   ✓  (worse)
  *     10 → 8    RED   ✗  (better — the defect)
  *     10 → 5    green ✓  (under the threshold)
  *
- * Paying down the debt fails CI, and keeps failing on every incremental step
- * until the class drops under the threshold entirely.
+ * Paying down the debt failed CI, and kept failing on every incremental step
+ * until the class dropped under the threshold entirely. A team that split four
+ * methods out of an 87-method service got a red build for its trouble. The
+ * external audit that motivated this recommends adopting these rules "behind a
+ * ratchet (accept today's god objects, block new regressions)" and records them
+ * at **zero uses** — the ratchet they were told to use did not work.
  *
  * ## Why identity alone cannot fix it
  *
- * `ArchViolation.identity` is for messages that state a derived population,
- * and applying it naively here trades one failure for a worse one:
+ * Bug 0010 added `identity` for messages that state a derived population, and
+ * applying it naively here trades one failure for a worse one:
  *
  * | identity contains | improving to 8 | regressing to 12 |
- * | ------------------ | -------------- | ----------------- |
- * | the count           | **red** ✗      | red ✓             |
- * | no count             | green ✓        | **green** ✗       |
+ * | ----------------- | -------------- | ---------------- |
+ * | the count         | **red** ✗      | red ✓            |
+ * | no count          | green ✓        | **green** ✗      |
  *
  * Dropping the count turns the baseline into a mute button. Identity answers
- * "is this the same finding?", and a metric needs "is it **worse** than what
- * we accepted?" — a comparison, not an equality. So this carries both: a
- * stable identity that finds the entry, and `measured`, which the baseline
- * stores and ratchets against (`Baseline.isKnown` in `@nielspeter/eess`).
+ * "is this the same finding?", and a metric needs "is it **worse** than what we
+ * accepted?" — a comparison, not an equality. So this carries both: a stable
+ * identity that finds the entry, and `measured`, which the baseline stores and
+ * compares. See `Baseline.isKnown`.
+ *
+ * **Ten sites produce these, not the eight the bug enumerated.** That table was
+ * built by grepping the `has N <noun>` message shape, which misses the two
+ * complexity conditions — `has cyclomatic complexity N` puts the number last.
+ * Both were left on `createViolation` in the first cut of this fix while the
+ * docs already claimed complexity was ratcheted, so a reader would have removed
+ * their CI escape hatch for a gate that still fired on every improvement. Found
+ * by review; a mechanical enumeration by *shape* is not one by *behaviour*.
  */
 export function metricViolation(
   node: Node,
@@ -49,14 +60,24 @@ export function metricViolation(
     metric: string
     /** The measurement now. Compared against the baselined value, not equated. */
     measured: number
+    /**
+     * What `measured` COUNTS, when that is not simply the metric's name.
+     *
+     * The baseline persists this and refuses to compare across a change of unit
+     * ([bug 0171](../../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md)).
+     * `lines` is why it exists: the metric kept its name while `linesOfCode`
+     * changed from counting a span to counting code, so identity still matched
+     * and every baselined ceiling silently tripled. A metric whose name already
+     * says what it counts — `methods`, `parameters` — needs nothing here.
+     */
+    unit?: string
     message: string
     /**
-     * The element's qualified name, when `getElementName` would under-qualify
-     * it.
+     * The element's qualified name, when `getElementName` would under-qualify it.
      *
-     * Members need this: `getElementName(member)` returns the bare `save`,
-     * while the message already says `UserRepo.save`. Two classes with a
-     * `save` method would otherwise be one entry.
+     * Members need this: `getElementName(member)` returns the bare `save`, while
+     * the message already says `UserRepo.save`. Two classes with a `save` method
+     * would otherwise be one entry.
      */
     qualifiedName?: string
   },
@@ -71,50 +92,75 @@ export function metricViolation(
   const base = createViolation(node, options.message, context)
   return {
     ...base,
-    // The qualified name reaches `element` too, not only `identity` —
-    // `createViolation` derives it with `getElementName`, which resolves an
-    // unnamed node up to its nearest named ancestor, so a finding ABOUT an
-    // object-literal function would otherwise be labelled with the ENCLOSING
-    // function's name while its own message names it correctly. `element` is
-    // what the terminal prints and one of the fields `.excluding()` matches
-    // by exact membership, so the disagreement would also make an exclusion
-    // written against the printed name silently miss.
+    // The qualified name reaches `element` too, not only `identity` — bug 0068's
+    // first consequence. `createViolation` derives it with `getElementName`,
+    // which resolves an unnamed node up to its nearest named ancestor, so a
+    // finding ABOUT an object-literal function was labelled with the ENCLOSING
+    // function's name while its own message named it correctly. `element` is
+    // what the terminal prints, what the JSON reports, and one of the three
+    // fields string-form `.excluding()` matches by exact membership
+    // (`execute-rule.ts`), so the disagreement also made an exclusion written
+    // against the printed name silently miss.
     element: options.qualifiedName ?? base.element,
-    // File, element and metric — never the value. The value is the thing
-    // being ratcheted, so putting it here makes every change a new finding,
-    // which is the bug. Leaving the FILE out is the other half: two classes
-    // sharing a name in different files must not share one identity, or the
-    // baseline's last-write-wins would silently accept whichever ceiling it
-    // saw last while the sibling sat at its own, different one.
+    // File, element and metric — never the value. The value is the thing being
+    // ratcheted, so putting it here makes every change a new finding, which is
+    // the bug. Leaving the FILE out is the other half, and it was shipped once:
+    // two classes named `Big` in different files produced one identity, one
+    // hash, and `withBaseline`'s last-write-wins picked whichever ceiling came
+    // last — measured, a real 10 → 15 regression was silently accepted while
+    // the sibling sat at 20. That is bug 0028's shape recreated inside bug
+    // 0012's fix, and `ArchViolation.identity`'s own contract forbids it: "two
+    // distinct violations sharing one identity are one violation to the
+    // baseline, and accepting either accepts both."
+    //
+    // A path here is portable: `hashViolation` scrubs identity through
+    // `normalizeIdentityText(text, root)`, which is what that scrub is for.
     identity: `${node.getSourceFile().getFilePath()}::${identityName(node, options.qualifiedName)}::${options.metric}`,
     measured: options.measured,
+    // Defaults to the metric's own name: for `methods` or `parameters` the name
+    // IS the unit, and only a metric that can change what it counts under a
+    // stable name needs to say so explicitly.
+    measuredUnit: options.unit ?? options.metric,
   }
 }
 
 /**
- * The name segment of a metric identity: the subject's own name, **prefixed
- * by the name of whatever encloses it**, so that two subjects sharing a name
- * in one file are still two identities.
+ * The name segment of a metric identity: the subject's own name, **prefixed by the
+ * name of whatever encloses it**, so that two subjects sharing a name in one file
+ * are still two identities.
  *
- * Neither name alone is sufficient:
+ * Measured, across every function shape — neither name alone is sufficient:
  *
- * | shape                              | own name                | enclosing scope | identity segment                 |
- * | ----------------------------------- | ------------------------ | ---------------- | --------------------------------- |
- * | two factories returning `{build}`   | `build`, `build`          | `makeBeta`, `makeGamma` | `makeBeta.build`, …        |
- * | an arrow inside a named function    | `errorResponseBuilder`    | `makeAlpha`      | `makeAlpha.errorResponseBuilder` |
- * | a top-level `function takesFive`    | `takesFive`               | none             | `takesFive` — unchanged           |
- * | a class method via `functions()`    | `Repo.save`               | `Repo`           | `Repo.save` — already carries it  |
+ * | shape                                | own name            | enclosing scope | identity segment          |
+ * | ------------------------------------ | ------------------- | --------------- | ------------------------- |
+ * | two factories returning `{build}`    | `build`, `build`    | `makeBeta`, `makeGamma` | `makeBeta.build`, … |
+ * | an arrow inside a named function     | `errorResponseBuilder` | `makeAlpha`  | `makeAlpha.errorResponseBuilder` |
+ * | a top-level `function takesFive`     | `takesFive`         | none            | `takesFive` — unchanged   |
+ * | a class method via `functions()`     | `Repo.save`         | `Repo`          | `Repo.save` — already carries it |
  *
- * There is deliberately **no `own === scope` short-circuit**: a nested
- * function whose name equals its enclosing function's (`function save() {
- * return { save: … } }`) is exactly the case that needs the prefix, and
- * equality of strings cannot tell "the scope is me" from "the scope happens
- * to share my name".
+ * Two mistakes are recorded here because both shipped and both were found by
+ * review rather than by reasoning:
  *
- * Known limit, stated rather than papered over: a literal in a **call
- * argument** at module level (`register({ handler: … })`) has no enclosing
- * named declaration, so two of them in one file still share an identity.
- * Nothing stable distinguishes them.
+ * 1. **The own name alone** (bug 0068's first fix) moved the collision instead of
+ *    closing it: `owningBindingName` deliberately declines to prefix a literal
+ *    returned from a factory, so both `build`s are just `build`.
+ * 2. **`getElementName` is not a scope.** It returns the node's OWN name when the
+ *    node has one and only walks ancestors otherwise — so for method shorthand
+ *    (`{ build() {} }`, a `MethodDeclaration`) it returned `build`, the prefix was
+ *    skipped, and the fix worked for the arrow spelling of the same code and not
+ *    for this one. The scope now comes from `enclosingScopeName`, which always
+ *    walks from the parent.
+ *
+ * There is deliberately **no `own === scope` short-circuit**: a nested function
+ * whose name equals its enclosing function's (`function save() { return { save:
+ * … } }`) is exactly the case that needs the prefix, and equality of strings
+ * cannot tell "the scope is me" from "the scope happens to share my name".
+ *
+ * Known limit, stated rather than papered over: a literal in a **call argument**
+ * at module level (`register({ handler: … })`) has no enclosing named
+ * declaration, so two of them in one file still share an identity. Nothing stable
+ * distinguishes them — that is bug 0067's territory ("there is no right name
+ * yet"), not this one's.
  */
 function identityName(node: Node, qualifiedName: string | undefined): string {
   const own = qualifiedName ?? getElementName(node)

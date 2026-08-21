@@ -1,10 +1,21 @@
 /**
- * Object-literal function traversal.
+ * Object-literal function traversal. **In `core/` because it was the wrong way up.**
  *
- * This module imports nothing but ts-morph, so `core/` costs no dependency
- * and both `models → core` and `helpers → core` are permitted directions —
- * `models/arch-function.ts` and `helpers/callback-extractor.ts` both need
- * this traversal, and neither should depend on the other to get it.
+ * It lived in `helpers/` and was imported by `models/arch-function.ts` — a
+ * `models → helpers` edge, which is backwards: helpers may depend on models, not
+ * the reverse. That edge sat harmlessly until
+ * [ts-archunit plan 0082](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0082-an-object-literal-callback-keeps-its-name.md)
+ * added `helpers/callback-extractor.ts → models/arch-function.ts` as a **value**
+ * import, closing a runtime cycle.
+ *
+ * Measured: at v0.45.6 no file in `helpers/` had a value import from `models/` —
+ * only `import type`. So the cycle was one day old when
+ * [ts-archunit plan 0084](https://github.com/nielspeter/ts-archunit/blob/main/plans/completed/0084-cycle-detection-that-ignores-type-only-imports.md)
+ * found it, and the rule that exists to catch exactly this was pinned at `.warn()`
+ * with a comment explaining why. A rule that cannot fail let a cycle in overnight.
+ *
+ * This module imports nothing but ts-morph, so `core/` costs it no dependency and
+ * both `models → core` and `helpers → core` are permitted directions.
  */
 
 import { Node } from 'ts-morph'
@@ -14,7 +25,7 @@ import type { PropertyAssignment, MethodDeclaration } from 'ts-morph'
  * A function found as a value in an object literal, with the property-key path
  * that reached it.
  */
-// eess-exclude eess/no-unused-exports: return-element type of the exported collectObjectLiteralFunctions API (must stay exported for declaration emit)
+// eess-exclude eess/no-unused-exports: re-exported from `src/index.ts`; this gate does not count a barrel `export … from` re-export as usage — see work/bugs/0168
 export interface ObjectLiteralFunction {
   /** The function node: `ArrowFunction | FunctionExpression | MethodDeclaration`. */
   readonly node: Node
@@ -28,9 +39,9 @@ const MAX_OBJECT_LITERAL_DEPTH = 3
 /**
  * Walk an object literal and collect every function-valued property — arrow,
  * function expression, or method shorthand — recursing into nested object
- * literals up to `maxDepth`. Call-agnostic: the single traversal shared by
- * `functions()` object-literal collection and the callback-extractor
- * (`within()` / call path), so the two cannot drift.
+ * literals up to `maxDepth`. Call-agnostic (F3): the single traversal shared by
+ * `functions()` object-literal collection (proposal 016) and the
+ * callback-extractor (`within()` / call path), so the two cannot drift.
  *
  * Only descends into nested object-literal property values, never into function
  * bodies. Returns `[]` when `node` is not an object literal.

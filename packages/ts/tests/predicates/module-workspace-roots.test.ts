@@ -1,7 +1,13 @@
 import path from 'node:path'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { workspace, resetProjectCache } from '../../src/core/project.js'
-import { importFrom, havePathMatching } from '../../src/predicates/module.js'
+import { importFrom } from '../../src/predicates/module.js'
+// `havePathMatching` is an IDENTITY predicate and lives in `identity.ts`, not
+// `module.ts` — that placement is what `api/no-single-glob-predicates` scopes
+// around (its rule text names this predicate as legitimately single-glob). eess
+// had it under `module.ts`; the engine adopted in plan 0165 has it, unchanged
+// behaviour and all, under `identity.ts`.
+import { havePathMatching } from '../../src/predicates/identity.js'
 
 const fixture = path.resolve(import.meta.dirname, '../fixtures/workspace-roots')
 

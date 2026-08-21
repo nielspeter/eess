@@ -57,7 +57,8 @@ function scenario(build) {
     mkdirSync(join(dir, dirname(p)), { recursive: true })
     writeFileSync(join(dir, p), s)
   }
-  const pkg = (name, version = '1.0.0') => JSON.stringify({ name, version })
+  const pkg = (name, version = '1.0.0', dependencies) =>
+    JSON.stringify(dependencies === undefined ? { name, version } : { name, version, dependencies })
   g('init', '-q', '-b', 'main')
   g('config', 'user.email', 'fixture@example.invalid')
   g('config', 'user.name', 'fixture')
@@ -92,6 +93,151 @@ const E2E = [
     },
     1,
     ['release/changed-package-needs-changeset', '@fixture/alpha'],
+  ],
+  [
+    // Bug 0184's SHELL half. The pure-core fixture passes `breakingFiles` as a
+    // literal, so the chain `declarationsIn -> .breakingMarker -> breakingFiles
+    // -> releaseViolations` is never walked there. Review measured two one-line
+    // mutations in `check-release.mjs` — dropping the push, and dropping the
+    // argument from the call — that each let a real break ship as a patch while
+    // the pure-core fixture stayed green. This scenario walks the whole chain.
+    'a body declaring a break, bumped patch, is caught end to end',
+    ({ write }) => {
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write(
+        '.changeset/breaks.md',
+        "---\n'@fixture/alpha': patch\n---\n\n**Breaking:** `a` is no longer exported.\n",
+      )
+    },
+    1,
+    // The ✗ form of the denominator, asserted on a RED run. Forcing `brokeCount`
+    // to 0 otherwise prints a ✓ directly above the finding it is contradicting,
+    // and no fixture noticed.
+    ['release/breaking-needs-minor', '.changeset/breaks.md', 'breaking changeset(s) bump only'],
+  ],
+  [
+    // The other direction, in the same shell: the rule must not fire when the
+    // break IS declared past patch, or it reddens every correct release.
+    'a body declaring a break, bumped minor, is quiet',
+    ({ write }) => {
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write(
+        '.changeset/breaks.md',
+        "---\n'@fixture/alpha': minor\n---\n\n**Breaking:** `a` is no longer exported.\n",
+      )
+    },
+    0,
+    ['1 of 1 changeset(s) declare a break'],
+    ['release/breaking-needs-minor'],
+  ],
+  [
+    // The SHELL half of the empty-changeset finding. The pure fixture proves the
+    // rule (section D2) by passing `breakingFiles` in directly, so the line that
+    // collects an EMPTY changeset's marker was uncovered — measured: deleting it
+    // left both fixtures green.
+    'an --empty changeset whose body declares a break is a finding, not a waiver',
+    ({ write }) => {
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write('.changeset/empty.md', '---\n---\n\n**Breaking:** `a` is gone.\n')
+    },
+    1,
+    ['release/breaking-needs-minor', '.changeset/empty.md'],
+  ],
+  [
+    // The SHELL half of the consumed-changeset path. `changeset version` deletes
+    // the file, so the marker has to be read back out of git — the flow
+    // RELEASING.md documents, where `npm run validate` is the only gate the
+    // changeset ever meets. Measured: deleting the collection line left both
+    // fixtures green while a consumed break-on-patch exited 0.
+    'a CONSUMED changeset that declared a break on patch is still caught',
+    ({ dir, g, write, pkg }) => {
+      branch({ g })
+      write(
+        '.changeset/breaks.md',
+        "---\n'@fixture/alpha': patch\n---\n\n**Breaking:** `a` is gone.\n",
+      )
+      g('add', '-A')
+      g('commit', '-qm', 'changeset on the branch')
+      rmSync(join(dir, '.changeset/breaks.md'))
+      write('packages/alpha/package.json', pkg('@fixture/alpha', '1.0.1'))
+      g('add', '-A')
+      g('commit', '-qm', 'version packages')
+    },
+    1,
+    ['release/breaking-needs-minor', '.changeset/breaks.md'],
+  ],
+  [
+    // Bug 0185, SHELL half. The pure fixture passes `dependentsOf` in as a
+    // literal, so the code that READS `dependencies` out of each package.json and
+    // inverts it into that map is only reachable from here. Beta depends on
+    // alpha; a break declared on alpha alone leaves beta shipping it with a
+    // changelog reading "Updated dependencies".
+    'a break in a package others depend on must name them',
+    ({ write, pkg }) => {
+      write('packages/beta/package.json', pkg('@fixture/beta', '1.0.0', { '@fixture/alpha': '^1.0.0' }))
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write(
+        '.changeset/kernel.md',
+        "---\n'@fixture/alpha': minor\n---\n\n**Breaking:** `a` is gone.\n",
+      )
+    },
+    1,
+    ['release/break-names-dependents', '@fixture/beta', 'leave a dependent unnamed'],
+  ],
+  [
+    // The quiet direction: naming the dependent AT MINOR satisfies it. Without
+    // this, a rule that fired on every breaking changeset would pass the row above.
+    'naming the dependent at minor satisfies it',
+    ({ write, pkg }) => {
+      write('packages/beta/package.json', pkg('@fixture/beta', '1.0.0', { '@fixture/alpha': '^1.0.0' }))
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write('packages/beta/src/index.ts', 'export const b = 2\n')
+      write(
+        '.changeset/kernel.md',
+        "---\n'@fixture/alpha': minor\n'@fixture/beta': minor\n---\n\n**Breaking:** `a` is gone.\n",
+      )
+    },
+    0,
+    // The dependents denominator, asserted as a SENTENCE for the same reason the
+    // breaking one now is: pinning only the value leaves the claim unfalsifiable.
+    ['release readiness', '1 dependency edge(s) weighed'],
+    ['release/break-names-dependents'],
+  ],
+  [
+    // `patch` is NOT enough, and this is the row that pins it. changesets
+    // propagates a dependency bump as a patch whatever `updateInternalDependencies`
+    // says — measured in its source — so a dependent declared `patch` ships the
+    // break on a version an adopter's caret range takes without asking. Naming it
+    // was never the point; naming it at a version they will not silently take is.
+    'naming the dependent at patch is NOT enough',
+    ({ write, pkg }) => {
+      write('packages/beta/package.json', pkg('@fixture/beta', '1.0.0', { '@fixture/alpha': '^1.0.0' }))
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write('packages/beta/src/index.ts', 'export const b = 2\n')
+      write(
+        '.changeset/kernel.md',
+        "---\n'@fixture/alpha': minor\n'@fixture/beta': patch\n---\n\n**Breaking:** `a` is gone.\n",
+      )
+    },
+    1,
+    ['release/break-names-dependents', '@fixture/beta', 'checked loosely'],
+  ],
+  [
+    // **The honest-zero SENTENCE, not just the number behind it.** Review
+    // measured that replacing this branch's string with a fabricated
+    // `✓ N of N … each bumping past patch` survived BOTH fixtures — the exact
+    // sentence bug 0184's review caught lying over a severed rule. The earlier fix
+    // pinned `stats.breakingExamined` (the value, where the bug was diagnosed) and
+    // left the sentence (where it was seen) unasserted. No scenario entered this
+    // branch under assertion until this one.
+    'a run with no breaking changeset says it examined zero, and claims nothing',
+    ({ write }) => {
+      write('packages/alpha/src/index.ts', 'export const a = 2\n')
+      write('.changeset/plain.md', "---\n'@fixture/alpha': patch\n---\n\nno break here.\n")
+    },
+    0,
+    ['examined 0 of'],
+    ['declare a break', 'bumping past patch'],
   ],
   [
     'a clean tree with the base at HEAD says it had nothing to read',

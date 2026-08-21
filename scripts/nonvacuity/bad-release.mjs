@@ -24,13 +24,40 @@
  *       so completes the sabotage. A gate regression must never read as fixture
  *       breakage.
  */
-import { packagesTouchedBy, declarationsIn, releaseViolations } from '../release-gate.mjs'
+import {
+  packagesTouchedBy,
+  declarationsIn,
+  declaresBreaking,
+  releaseViolations,
+} from '../release-gate.mjs'
 
 const RULES = [
   'release/changed-package-needs-changeset',
   'release/changeset-names-real-package',
   'release/unparseable-changeset',
+  'release/breaking-needs-minor',
+  'release/break-names-dependents',
 ]
+
+/**
+ * KNOWN-EQUIVALENT MUTATIONS, recorded so nobody re-derives them.
+ *
+ * Two mutations survive both fixtures and are proven harmless rather than
+ * assumed so — an independent review ran 37 mutations and these are the residue
+ * with no behavioural difference:
+ *
+ * - `packagesAt`'s `deps` → `[]` (the BASE-ref reader). The workspace is a
+ *   base ∪ head union and head wins for any package present in both, so base deps
+ *   are consulted only for a package DELETED at head — which cannot be a
+ *   dependent that still needs declaring.
+ * - dropping the `workspaceNames` filter when inverting `dependencies`. It would
+ *   admit external packages (`ts-morph`, `picomatch`) as keys in `dependentsOf`,
+ *   but a key is only read for a package declared BROKEN in a changeset, and an
+ *   external package is never declared. No reachable difference.
+ *
+ * Everything else that makes the real gate miss a genuine violation is caught by
+ * at least one fixture — verified twice, by two independent matrices.
+ */
 
 /** A behavioural expectation failed → the gate is vacuous (exit 0), never "premise broken". */
 function vacuous(msg) {
@@ -93,6 +120,19 @@ const PARSE_CASES = [
   ['CRLF', "---\r\n'@t/a': minor\r\n---\r\n\r\nb\r\n", 1, false],
   ['genuinely empty', '---\n---\n', 0, true],
 ]
+// `declarationsIn` must also REPORT the marker, or the chain from a real file to
+// the rule is unexercised. Measured: deleting that field left this fixture green
+// while the real gate missed a genuine break declared as a patch.
+const withBreak = declarationsIn("---\n'@t/a': patch\n---\n\n**Breaking:** gone\n", '.changeset/b.md')
+if (withBreak.breakingMarker !== '**Breaking:**')
+  vacuous(
+    `declarationsIn reported breakingMarker=${JSON.stringify(withBreak.breakingMarker)} for a body ` +
+      `with a bolded lead, expected "**Breaking:**" — the shell cannot build breakingFiles`,
+  )
+const withoutBreak = declarationsIn("---\n'@t/a': patch\n---\n\nplain\n", '.changeset/p.md')
+if (withoutBreak.breakingMarker !== undefined)
+  vacuous('declarationsIn marked an ordinary changeset as breaking — the rule would fire on everything')
+
 for (const [name, text, count, empty] of PARSE_CASES) {
   let r
   try {
@@ -113,6 +153,70 @@ for (const [name, text, count, empty] of PARSE_CASES) {
         `only a genuinely empty changeset may waive`,
     )
 }
+// --- B2. the breaking detector: what counts, and what must NOT ---------------
+
+// The keyword set is a measured decision, not a guess (bug 0184). This repo
+// writes a bolded `**Breaking…**` lead — 4 of 9 pending changesets do. It also
+// writes `**Migration:**` sections, in 5 — but those two sets DIFFER, so keying
+// on Migration would fire on changesets describing no break at all. A gate that
+// reddens correct work gets suppressed, which is ADR-009 rule 1.
+const BREAKING_CASES = [
+  ['bolded lead', '**Breaking for subclasses of `SmellBuilder`:** renamed.', true],
+  ['bolded with parenthetical', '**Breaking (0.x — minor signals it):** a rule now fails.', true],
+  ['conventional marker', 'BREAKING CHANGE: the terminal throws.', true],
+  ['hyphenated marker', 'BREAKING-CHANGE: the terminal throws.', true],
+  // The negation that a naive /breaking/i would flag. This is the false positive
+  // the record warned about, and it is why the bold/all-caps form is required.
+  ['negated prose', 'This is not a breaking change for existing callers.', false],
+  ['incidental prose', 'Avoids breaking the baseline when a unit changes.', false],
+  // `**Migration:**` alone is guidance, not a break — measured on this repo.
+  ['migration only', '**Migration:** re-run your baseline.', false],
+  ['lowercase mid-sentence', 'the breaking case is handled', false],
+  // Review found the first regex matched a bolded span ANYWHERE, so this
+  // returned true — a false POSITIVE, the direction that gets a gate suppressed.
+  ['bolded mid-sentence negation', 'We considered a **Breaking** change but did not make one.', false],
+  // Line-anchored, so a lead behind a list marker still counts.
+  ['bullet lead', '- **Breaking:** the export is gone.', true],
+  ['bullet negation', '- We considered a **Breaking** change.', false],
+  // The keep-a-changelog heading spelling, which a contributor arriving from
+  // another repo writes. Missed by the first version.
+  ['h2 heading', '## Breaking changes\n\nremoved foo()', true],
+  ['h3 heading', '### Breaking\n\nremoved foo()', true],
+  // Measured as misses by an adopter review: the plural is commoner in the wild
+  // than the conventional-commits singular, and `__bold__` is CommonMark's other
+  // strong emphasis. Neither can be matched by a negation, so both are free.
+  ['plural CHANGES', 'BREAKING CHANGES: the method is renamed', true],
+  ['underscore bold', '__Breaking:__ renamed', true],
+  // Anchored as a line-leading footer token, which is what conventional-commits
+  // defines it as. Unanchored it fired on prose ABOUT the marker — measured, a
+  // changeset describing this very rule would have reddened.
+  ['prose about the marker', 'Adds a rule which keys on the BREAKING CHANGE marker.', false],
+  // **KNOWN AND ACCEPTED false positives, pinned so silencing them is a
+  // decision rather than a drift.** Detecting these needs a negation test inside
+  // the bolded span, which trades a LOUD false positive for a SILENT false
+  // negative on an irreversible path: `**Breaking:** none of the old exports
+  // remain` contains "none" and is a genuine break. Wrong direction. The remedy
+  // is cheap — do not lead a changeset with a bolded "Breaking" unless something
+  // broke — and the violation message says so.
+  ['accepted FP: lead says none', '**Breaking changes:** none — internal only.', true],
+  ['accepted FP: lead says avoided', '**Breaking change avoided** by keeping the alias.', true],
+]
+for (const [name, body, want] of BREAKING_CASES) {
+  let got
+  try {
+    got = declaresBreaking(body)
+  } catch (err) {
+    threw(`in declaresBreaking (${name})`, err)
+  }
+  if (got !== want)
+    vacuous(
+      `declaresBreaking("${name}") returned ${got}, expected ${want} — ` +
+        (want
+          ? 'a declared break would go unchecked'
+          : 'the detector fires on prose, and a gate that reddens correct changesets gets suppressed'),
+    )
+}
+
 // A file the parser rejects must be a finding, never a waiver.
 let broken
 try {
@@ -148,11 +252,15 @@ if (clean.violations.length > 0)
 let waived
 try {
   waived = releaseViolations({
-    declarations: [{ pkg: '@fixture/ghost', bump: 'patch', file: '.changeset/ghost.md', line: 2 }],
+    declarations: [
+      { pkg: '@fixture/ghost', bump: 'patch', file: '.changeset/ghost.md', line: 2 },
+      { pkg: '@fixture/quiet', bump: 'patch', file: '.changeset/breaks.md', line: 2 },
+    ],
     changedPackages: [{ name: '@fixture/core', dir: 'packages/core' }],
     workspacePackages,
     waivers: ['.changeset/empty.md'],
     unparseable: [{ file: '.changeset/bad.md', error: 'invalid YAML' }],
+    breakingFiles: [{ file: '.changeset/breaks.md', marker: '**Breaking:**' }],
   })
 } catch (err) {
   threw('on the waived input', err)
@@ -164,12 +272,39 @@ if (!waivedRules.has('release/changeset-names-real-package'))
   vacuous('an empty changeset silenced release/changeset-names-real-package — `--empty` must not disable the gate')
 if (!waivedRules.has('release/unparseable-changeset'))
   vacuous('an empty changeset silenced release/unparseable-changeset — `--empty` must not disable the gate')
+if (!waivedRules.has('release/breaking-needs-minor'))
+  vacuous('an empty changeset silenced release/breaking-needs-minor — `--empty` must not disable the gate')
 // The waived run has to name what it did not check, or the summary can print a ✓
 // over an unchecked package (the shape of bug 0119, inside the waiver).
 if (waived.stats.unchecked.join(',') !== '@fixture/core')
   vacuous(
     `a waived run reported unchecked=[${waived.stats.unchecked.join(',')}], expected ` +
       `[@fixture/core] — the output cannot say which packages went unchecked`,
+  )
+
+// --- D2. an empty changeset declaring a break is a FINDING, never a waiver ---
+
+// `--empty` sets `waived`, which suppresses release/changed-package-needs-changeset
+// for every changed package. So a file carrying the loudest marker the detector
+// knows would otherwise turn off the strongest rule in the gate — measured at
+// zero violations before this was closed. A declared break with no declared bump
+// is a self-contradiction; fail closed.
+let emptyBreak
+try {
+  emptyBreak = releaseViolations({
+    declarations: [],
+    changedPackages: [{ name: '@fixture/core', dir: 'packages/core' }],
+    workspacePackages,
+    waivers: ['.changeset/empty-but-breaking.md'],
+    breakingFiles: [{ file: '.changeset/empty-but-breaking.md', marker: '**Breaking:**' }],
+  })
+} catch (err) {
+  threw('on the empty-but-breaking input', err)
+}
+if (!emptyBreak.violations.some((v) => v.ruleId === 'release/breaking-needs-minor'))
+  vacuous(
+    'an empty changeset whose body declares a break produced no finding — `--empty` waives the ' +
+      'changed-package rule for every package, so this shape silences more than itself',
   )
 
 // --- E. the measurement: every rule fires, on the expected element ------------
@@ -185,7 +320,56 @@ try {
       // the fixture — measured, and the normal state of a release train.
       { pkg: '@fixture/untouched', bump: 'patch', file: '.changeset/earlier.md', line: 2 },
       { pkg: '@fixture/ghost', bump: 'minor', file: '.changeset/ghost.md', line: 2 },
+      // Breaking body, patch bump: the irreversible case. `changeset publish`
+      // ships with provenance and npm refuses a re-publish, so a contract break
+      // released as a patch cannot be taken back.
+      { pkg: '@fixture/quiet', bump: 'patch', file: '.changeset/breaks-on-patch.md', line: 2 },
+      // Breaking body, minor bump on ONE of several packages: must stay quiet.
+      // Siblings legitimately take a dependency patch while the owner declares
+      // the break — `assertion-less-rules-fail.md` is exactly this shape.
+      // NOT @fixture/core — that one must stay undeclared so the changed-package
+      // rule keeps firing. Choosing it here silently disabled that rule and the
+      // fixture caught it, which is the reason this file asserts an exact SET.
+      { pkg: '@fixture/untouched', bump: 'minor', file: '.changeset/breaks-on-minor.md', line: 2 },
+      { pkg: '@fixture/quiet', bump: 'patch', file: '.changeset/breaks-on-minor.md', line: 3 },
+      { pkg: '@fixture/quiet', bump: 'none', file: '.changeset/breaks-on-none.md', line: 2 },
+      { pkg: '@fixture/untouched', bump: 'minor', file: '.changeset/breaks-owned.md', line: 2 },
+      { pkg: '@fixture/quiet', bump: 'patch', file: '.changeset/breaks-owned.md', line: 3 },
+      { pkg: '@fixture/untouched', bump: 'minor', file: '.changeset/breaks-owned-ok.md', line: 2 },
+      { pkg: '@fixture/quiet', bump: 'patch', file: '.changeset/breaks-owned-ok.md', line: 3 },
+      { pkg: '@fixture/quiet', bump: 'minor', file: '.changeset/kernel-break.md', line: 2 },
+      { pkg: '@fixture/quiet', bump: 'minor', file: '.changeset/dep-none.md', line: 2 },
+      { pkg: '@fixture/untouched', bump: 'none', file: '.changeset/dep-none.md', line: 3 },
     ],
+    breakingFiles: [
+      { file: '.changeset/breaks-on-patch.md', marker: '**Breaking:**' },
+      { file: '.changeset/breaks-on-minor.md', marker: '**Breaking:**' },
+      // `none` is not an escape hatch here. It means "no release, recorded", and
+      // a body declaring a break alongside it is still wrong — review measured an
+      // earlier message ADVISING that exact state while firing on it.
+      { file: '.changeset/breaks-on-none.md', marker: '**Breaking:**' },
+      // OWNER NAMED, and the owner is the one on patch. The weak form accepts
+      // this — a sibling took minor — and it is the shape that actually ships a
+      // break as a patch. Naming the owner is what closes it.
+      { file: '.changeset/breaks-owned.md', marker: '**Breaking (@fixture/quiet):**' },
+      // Owner named and the owner IS past patch: must stay quiet, or naming the
+      // owner would be a worse deal than not naming one.
+      { file: '.changeset/breaks-owned-ok.md', marker: '**Breaking (@fixture/untouched):**' },
+      // Bug 0185: a break in a package OTHERS depend on, announced only on
+      // itself. Correctly bumped `minor`, so `breaking-needs-minor` is quiet —
+      // and the dependent still ships the break to anyone who installs it, with
+      // a changelog reading "Updated dependencies".
+      { file: '.changeset/kernel-break.md', marker: '**Breaking:**' },
+      // A dependent declared `none` or `patch` is not enough. `none` produces no
+      // changelog entry at all; `patch` produces one on a version an adopter's
+      // caret range takes without asking — and changesets propagates a dependency
+      // bump as a patch regardless of config, so `patch` is exactly the state the
+      // bug is about. Without this row the bump condition is unexercised.
+      { file: '.changeset/dep-none.md', marker: '**Breaking:**' },
+    ],
+    // `@fixture/untouched` depends on `@fixture/quiet`. Regular dependencies
+    // only: a peer is a range the consumer resolves.
+    dependentsOf: { '@fixture/quiet': ['@fixture/untouched'] },
     changedPackages: [
       { name: '@fixture/core', dir: 'packages/core' },
       { name: '@fixture/quiet', dir: 'packages/quiet' },
@@ -209,6 +393,11 @@ const EXPECTED = [
   'release/changed-package-needs-changeset :: @fixture/core',
   'release/changeset-names-real-package :: @fixture/ghost',
   'release/unparseable-changeset :: .changeset/bad.md',
+  'release/breaking-needs-minor :: .changeset/breaks-on-patch.md',
+  'release/breaking-needs-minor :: .changeset/breaks-on-none.md',
+  'release/breaking-needs-minor :: .changeset/breaks-owned.md',
+  'release/break-names-dependents :: .changeset/kernel-break.md',
+  'release/break-names-dependents :: .changeset/dep-none.md',
 ]
 const actual = result.violations.map((v) => `${v.ruleId} :: ${v.element}`).sort()
 if (actual.join(' | ') !== [...EXPECTED].sort().join(' | ')) {
@@ -239,7 +428,22 @@ if (unexplained.length > 0)
 // stats drives every number the gate prints. Zeroing any of them left the first
 // fixture green while the summary reported a run that had scanned nothing —
 // exactly the shrinking-denominator failure this harness exists to catch.
-const EXPECTED_STATS = { changed: 2, changedDeclared: 1, declarations: 3, workspace: 4, unparseable: 1 }
+const EXPECTED_STATS = {
+  changed: 2,
+  changedDeclared: 1,
+  declarations: 14,
+  workspace: 4,
+  unparseable: 1,
+  // The summary prints this. Sourced from the caller's own variable instead, it
+  // once printed a ✓ over a rule that examined nothing — see release-gate.mjs.
+  breakingExamined: 7,
+  // Several packages, no owner named — only "at least one" could be asked.
+  breakingLoose: 2,
+  // Dependency edges weighed by break-names-dependents. Zero is reachable — if
+  // every dependent edge became a peer, the rule could never fire — so the number
+  // is pinned rather than left to be inferred from a ✓.
+  breakDependentEdges: 3,
+}
 for (const [k, want] of Object.entries(EXPECTED_STATS)) {
   if (result.stats[k] !== want)
     vacuous(`stats.${k} is ${result.stats[k]}, expected ${want} — the reported denominator is wrong`)

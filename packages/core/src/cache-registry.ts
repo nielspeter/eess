@@ -1,12 +1,16 @@
 /**
  * Where invalidatable caches register themselves.
  *
- * A dialect's project-reset function (e.g. eess-ts's `resetProjectCache()`)
- * calls {@link clearRegisteredCaches} and never learns what is in it — a
- * memoized selection (`selectionMemo`) or any other per-project cache
- * registers its own reset closure here at module scope instead of the reset
- * function importing every cache module directly, which would risk an
- * import cycle between the cache and the project module it needs to key on.
+ * This module exists to break an import cycle, and the cycle was found by this
+ * repository's own `beFreeOfCycles` rule rather than by review. Wiring
+ * `resetProjectCache()` directly to `clearElementCaches()` made
+ * `project.ts → element-cache.ts → project.ts` — the back edge being
+ * `import type { ArchProject }`, which counts, because dependency conditions
+ * have seen type-expression edges since v0.28.0.
+ *
+ * So the registry depends on nothing. `element-cache.ts` and `module-edges.ts`
+ * register a reset closure here; `project.ts` calls {@link clearRegisteredCaches}
+ * and never learns what is in it.
  *
  * A `WeakMap` cannot be enumerated, so "clear" means "replace the map". Each
  * cache contributes the closure that replaces its own.
@@ -21,12 +25,12 @@ export function registerCacheReset(reset: () => void): void {
 /**
  * Drop every registered cache.
  *
- * Caches are keyed on object identity, so a caller who obtains projects
- * through a dialect's own loader (which hands back a cached, stable object)
- * is already covered. This is the escape hatch for a consumer holding a
- * project object **they** built across a mutation of the underlying engine
- * state, where identity does not change and a cached population would
- * otherwise be frozen.
+ * Called by `resetProjectCache()`. The caches are keyed on object identity, so
+ * a caller who obtains projects through `project()` / `workspace()` is already
+ * covered — those functions hand back a new object. This is the escape hatch
+ * for a consumer holding an `ArchProject` **they** built across a mutation of
+ * the underlying ts-morph project, where identity does not change and the
+ * cached population would otherwise be frozen.
  */
 export function clearRegisteredCaches(): void {
   for (const reset of resets) reset()

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { parseExclusionComments, isExcludedByComment } from '@nielspeter/eess'
-import type { ExclusionComment } from '@nielspeter/eess'
-import type { ArchViolation } from '../../src/core/violation.js'
+import { parseExclusionComments, isExcludedByComment } from '../../src/core/exclusion-comments.js'
+import { applyFilters } from '../../src/core/execute-rule.js'
+import type { ExclusionComment } from '../../src/core/exclusion-comments.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { TestRuleBuilder, stubProject, alwaysFail } from '../support/test-rule-builder.js'
 import type { TestElement } from '../support/test-rule-builder.js'
 import fs from 'node:fs'
@@ -71,19 +72,48 @@ describe('parseExclusionComments', () => {
     expect(result.warnings[0]?.message).toContain('Add a reason')
   })
 
-  it('reports nested block start as warning', () => {
+  // Bug 0039. This test used to assert a `Nested` warning and never looked at
+  // `result.exclusions` — which is exactly how the real behaviour stayed
+  // invisible: the inner directive was dropped, the inner `-end` closed the
+  // OUTER block, and the fixture silently produced a `rule-a` exclusion ending
+  // at line 5 that nothing asserted. Nesting two different rules is legitimate
+  // and now works.
+  it('nests two different rules, innermost closed first', () => {
     const source = [
       '// eess-exclude-start rule-a: outer block',
       'const x = 1',
       '// eess-exclude-start rule-b: inner block',
       'const y = 2',
       '// eess-exclude-end',
+      'const z = 3',
+      '// eess-exclude-end',
     ].join('\n')
 
     const result = parseExclusionComments(source, 'src/nested.ts')
-    expect(result.warnings.length).toBeGreaterThanOrEqual(1)
-    const nestedWarning = result.warnings.find((w) => w.message.includes('Nested'))
-    expect(nestedWarning).toBeDefined()
+    expect(result.warnings).toHaveLength(0)
+
+    const byRule = new Map(result.exclusions.map((e) => [e.ruleId, e]))
+    // Innermost closes at the FIRST end, outermost at the second — the whole
+    // fix, as one assertion. Before it, `rule-a` ended at line 5 and `rule-b`
+    // did not exist.
+    expect(byRule.get('rule-b')).toMatchObject({ line: 3, endLine: 5 })
+    expect(byRule.get('rule-a')).toMatchObject({ line: 1, endLine: 7 })
+  })
+
+  it('re-opening a rule that is already open is warned, and still applies', () => {
+    const source = [
+      '// eess-exclude-start rule-a: outer',
+      '// eess-exclude-start rule-a: redundant',
+      '// eess-exclude-end',
+      '// eess-exclude-end',
+    ].join('\n')
+
+    const result = parseExclusionComments(source, 'src/dup.ts')
+    // Warned because the likeliest cause is a missing `-end` — but still
+    // applied, because refusing it is what produced the early-close bug.
+    expect(result.warnings.map((w) => w.kind)).toEqual(['malformed'])
+    expect(result.warnings[0]?.message).toContain('already open')
+    expect(result.exclusions).toHaveLength(2)
   })
 })
 
@@ -176,7 +206,7 @@ describe('isExcludedByComment', () => {
 
 describe('inline exclusion end-to-end', () => {
   it('inline exclusion comment suppresses violation in full pipeline', () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-ts-test-'))
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-archunit-test-'))
     const filePath = path.join(tmpDir, 'test-source.ts')
     const sourceContent = [
       'const x = 1',
@@ -201,39 +231,68 @@ describe('inline exclusion end-to-end', () => {
   })
 })
 
-describe('parseExclusionComments — HTML-comment form (markdown/text dialects)', () => {
-  it('parses a single-line HTML exclusion with reason', () => {
-    const source = [
-      'Some prose.',
-      '<!-- eess-exclude corpus/pointers-resolve: illustrative example, not a live claim -->',
-      'An example pointer `file.ts:10-20` in prose.',
-    ].join('\n')
+describe('a configuration finding cannot be silenced by a `eess-exclude` comment', () => {
+  // `applyFilters` filters comment exclusions with
+  // `v.bypassFilters === true || !isExcludedByComment(...)`, and that first
+  // clause is load-bearing: it is the only thing stopping a `eess-exclude`
+  // comment from suppressing a finding that says the rule enforces nothing.
+  //
+  // Its own docstring named the temptation — "the moment one carries a real
+  // path" — and bug 0026 is that moment: configuration findings are now stamped
+  // with the rule file they came from, so `readFileSync` succeeds and the
+  // comments in that file are parsed. Until then the clause was untestable in
+  // practice and nothing exercised it: these findings carried `file: ''`, so
+  // `readFileSync('')` threw into the catch and no comment could ever match.
+  const scratch = (): string => fs.mkdtempSync(path.join(os.tmpdir(), 'tsau-exclude-comment-'))
 
-    const result = parseExclusionComments(source, 'docs/example.md')
-    expect(result.exclusions).toHaveLength(1)
-    expect(result.exclusions[0]?.ruleId).toBe('corpus/pointers-resolve')
-    expect(result.exclusions[0]?.reason).toBe('illustrative example, not a live claim')
-    expect(result.exclusions[0]?.line).toBe(2)
-    expect(result.exclusions[0]?.isBlock).toBe(false)
-    expect(result.warnings).toHaveLength(0)
-  })
+  it('survives a comment that WOULD match it, while an ordinary violation does not', () => {
+    const dir = scratch()
+    try {
+      const file = path.join(dir, 'arch.rules.ts')
+      // Line 1 is the comment, so line 2 is what it excludes — and the stamped
+      // configuration finding sits at line 1. Both are covered by a block form.
+      fs.writeFileSync(
+        file,
+        [
+          '// eess-exclude-start test/rule: intentional',
+          'const x = 1',
+          '// eess-exclude-end',
+          '',
+        ].join('\n'),
+      )
+      const ctx = {
+        metadata: { id: 'test/rule' },
+        exclusions: [],
+        silentIndices: new Set<number>(),
+      }
+      const ordinary: ArchViolation = {
+        rule: 'r',
+        ruleId: 'test/rule',
+        element: 'x',
+        file,
+        line: 2,
+        message: 'an ordinary violation',
+      }
+      const configFinding: ArchViolation = {
+        rule: 'test/rule',
+        ruleId: 'test/rule',
+        element: 'test/rule',
+        file,
+        line: 1,
+        message: 'this rule asserts nothing and can never fail',
+        bypassFilters: true,
+      }
 
-  it('parses HTML block start/end covering a range', () => {
-    const source = [
-      '<!-- eess-exclude-start corpus/broken-links: quoted foreign snippet -->',
-      '[dead](./nope.md)',
-      '<!-- eess-exclude-end -->',
-    ].join('\n')
+      const kept = applyFilters([ordinary, configFinding], ctx)
 
-    const result = parseExclusionComments(source, 'docs/example.md')
-    expect(result.exclusions).toHaveLength(1)
-    expect(result.exclusions[0]?.isBlock).toBe(true)
-    expect(result.exclusions[0]?.endLine).toBe(3)
-  })
-
-  it('warns on an undocumented HTML exclusion (no reason)', () => {
-    const result = parseExclusionComments('<!-- eess-exclude some/rule -->\nx', 'docs/example.md')
-    expect(result.exclusions).toHaveLength(1)
-    expect(result.warnings.some((w) => w.message.includes('Undocumented'))).toBe(true)
+      // The comment works — otherwise this test proves nothing about the
+      // configuration finding surviving it (the guard would pass because the
+      // comment matched neither).
+      expect(kept.map((v) => v.message)).not.toContain('an ordinary violation')
+      // And the configuration finding is still there.
+      expect(kept.map((v) => v.message)).toContain('this rule asserts nothing and can never fail')
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

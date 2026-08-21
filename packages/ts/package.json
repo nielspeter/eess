@@ -82,6 +82,7 @@
     "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/bin.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:matrix": "npm run build && vitest run --config vitest.matrix.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [

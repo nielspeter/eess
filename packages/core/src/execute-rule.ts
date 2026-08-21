@@ -18,8 +18,7 @@ import { recordCommentSuppression } from './comment-suppression.js'
  * Shared across all builder types (RuleBuilder, SliceRuleBuilder,
  * SchemaRuleBuilder, ResolverRuleBuilder, PairFinalBuilder, SmellBuilder).
  */
-// eess-exclude eess/no-unused-exports: parameter type of the exported applyFilters/executeCheck/executeWarn API (must stay exported for declaration emit)
-export interface ExecuteRuleContext {
+interface ExecuteRuleContext {
   reason?: string
   metadata?: RuleMetadata
   exclusions?: (string | RegExp)[]

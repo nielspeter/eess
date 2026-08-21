@@ -205,6 +205,39 @@ that everything planned was built**, and for work that can't be tested in CI at 
 (infrastructure especially), "merged + green" means _merged, not proven_. Say so —
 mark it "validation owed" — rather than letting a green checkmark overstate it.
 
+## Trust a measurement less than it invites
+
+Almost everything that closes an item is a measurement: _no new failures_, _the
+gate is green_, _this is faster now_. A measurement is evidence only if the
+instrument **could have shown otherwise**, and the two ways it silently cannot
+are worth naming — both have happened repeatedly in this method's own projects,
+to careful people who believed they had checked.
+
+**The instrument that cannot see the failure.** A regression check comparing the
+_names_ of failing tests will not notice a test file that fails to load at all:
+it produces no test names, so it is absent from both sides of the comparison and
+reads as "unchanged". The check ran, it was green, and it was blind to an entire
+class of breakage. The question to ask of any before/after is: _what would this
+have looked like if the thing I fear had actually happened?_ If the answer is
+"the same", it is not evidence yet.
+
+**The environment that was never pinned.** A script that inherits the working
+directory, a build output that was not rebuilt, a cached artifact read in place
+of the source — each quietly measures something other than what was asked, and
+none of them announce it. Pin the root explicitly rather than inheriting it, and
+rebuild before reading anything derived from the thing you just changed.
+
+Two cheap habits blunt both. **State the denominator** — "402 subjects", "6 of 6
+packages", "3,509 tests" — because a bare number cannot be sanity-checked by the
+next reader, while a wrong denominator is usually obvious the moment it is
+written down. And **keep a control that should move**: alongside the thing you
+hope did not change, measure something you expect to. A run where nothing moved
+anywhere is as easily a broken instrument as a clean result.
+
+This is the same discipline as the caution above about green checks, one step
+earlier: there, a green check proves less than it appears to; here, it may not be
+measuring the thing at all.
+
 ## Keeping the memory honest — the open edge
 
 The hardest, least-solved part, and worth naming plainly: **the corpus is a cache

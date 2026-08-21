@@ -156,6 +156,15 @@ or diagrams, run the relevant gate and fix what it reports:
   **base ref**: `EESS_RELEASE_BASE`, else the PR's target, else `origin/main`,
   else `main`, and it hard-errors rather than pretending nothing changed, so a
   shallow clone fails loudly (CI needs `fetch-depth: 0`).
+  It also reads the changeset **body**: one that marks a breaking change — a line
+  starting `**Breaking …**`, a `## Breaking` heading, or `BREAKING CHANGE` — must
+  bump at least one package past `patch`, because npm refuses to re-publish a
+  version and `publish.yml` ships with provenance. On `0.x` a break is a `minor`;
+  `major` claims 1.0 stability. An UNMARKED break is not caught — the gate reads
+  the marker, not your prose (bug 0184). A break in a package others depend on
+  must also NAME them in the same changeset — otherwise the dependent ships the
+  break to its own adopters under a changelog reading "Updated dependencies"
+  (bug 0185).
 
 Each gate prints a violation with a file, a line, a message, and (often) a fix.
 The output is written to be **agent-actionable** — every violation surfaces its
@@ -172,19 +181,34 @@ architecture gates (corpus + spec + arch), skipping build, tests, lint, and the
 slower gates — the "shift feedback left" tier. Run the full `npm run validate`
 before proposing a commit.
 
-On success, every gate reports what it actually scanned — a summary line with
-the denominator and elapsed time — so a fast green is provably non-vacuous, not
-a silent no-op:
+On success, SOME gates report what they actually scanned — a summary line with
+the denominator and elapsed time — so a fast green is provably non-vacuous rather
+than a silent no-op. **Which gates do is uneven, and knowing which is the point:**
 
-- `check:corpus` → `✓ corpus integrity — 104 checks across 46 documents, 0
-violations (254ms)`, with per-check counts above it (documents live/frozen,
-  links, live `path:line` pointers, ADRs).
-- `check:arch` / `check:spec` → `✓ eess-ts — N rules across M files · 0 failing
-(Xs)`; `check:diagram` → the same for `eess-mermaid`.
+| gate                                                            | success summary                                                                                              |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `check:corpus`                                                  | `✓ corpus integrity — 906 checks across 118 documents, 0 violations (4.00s)`, with per-check counts above it |
+| `check:ledger`                                                  | `✓ honesty at close — 49 done-items across 118 records …`                                                    |
+| `check:baseline`                                                | `✓ baseline (recommended) — 4 floor rules across N source files · 0 violations`                              |
+| `check:diagram`                                                 | `✓ eess-mermaid — 1 rule across 1 file · 0 failing (246ms)`                                                  |
+| `check:arch` · `check:spec` · `check:family` · `check:crossval` | **nothing** — a bare exit 0                                                                                  |
 
-If a count reads zero or far lower than expected, the gate matched nothing —
-treat that as a red flag (a vacuous rule or wrong glob), not a pass. These
-summaries print to **stderr in terminal format only**, so `--format json` /
+The emitter lives only in `eess-mermaid`'s CLI and was never ported to
+`eess-ts`'s, so the two gates carrying this repo's architecture and spec
+enforcement announce a clean run with no denominator at all
+([bug 0174](./work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)).
+
+Where a count IS printed, a zero or an unexpectedly low one means the gate matched
+little or nothing — treat that as a red flag (a vacuous rule or wrong glob), not a
+pass. **Read that instruction narrowly:** the rule/file counts in the
+`eess-mermaid` line count declared rules, which do not drop when a selector goes
+dead, so they detect a mis-wired rule FILE and not a mis-wired rule. The number
+that answers vacuity for a rule is `examined` (ADR-010), which the floor reads and
+no CLI currently prints. Until 0174 is fixed, a green `check:arch` is evidence
+that nothing failed, not evidence that anything was examined — for that, run the
+suite or `check:nonvacuity`, which fires all 41 fixtures.
+
+These summaries print to **stderr in terminal format only**, so `--format json` /
 `github` output on stdout stays machine-clean.
 
 ## Commit Messages

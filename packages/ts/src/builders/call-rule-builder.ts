@@ -1,10 +1,13 @@
 import type { ArchProject } from '../core/project.js'
-import { RuleBuilder } from '@nielspeter/eess'
+import { RuleBuilder } from '../core/rule-builder.js'
 import type { ConditionContext } from '@nielspeter/eess'
-import { diagnoseDeadGlobs } from '../core/dead-glob.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
 import { collectCalls } from '../models/arch-call.js'
+import { createElementCache, SOLE_POPULATION } from '../core/element-cache.js'
+
+/** One collection per project, shared by every rule built from it (plan 0075). */
+const cache = createElementCache<ArchCall>()
 import {
   haveNameMatching as identityHaveNameMatching,
   haveNameStartingWith as identityHaveNameStartingWith,
@@ -61,30 +64,22 @@ import {
  *   .check()
  * ```
  */
-export class CallRuleBuilder extends RuleBuilder<ArchCall, ArchProject> {
+export class CallRuleBuilder extends RuleBuilder<ArchCall> {
   /**
    * Argument index to fold into the violation element/message. Set by
    * `.identifiedByArg(index)`. Threaded into `ConditionContext.identifyByArgument`
    * so the eight `archCall.getName()` sites in `src/conditions/call.ts`
    * can build identity-keyed violation strings.
    *
-   * Survives `fork()` via `Object.assign(fork, this)` in the base class
-   * (primitive field; no explicit copy needed). See plan 0057.
+   * Survives a copy via `shallowClone` in `TerminalBuilder.copy` (a primitive
+   * field, so no `copy()` override is needed). See plan 0057.
    */
   protected _identifyByArgument?: number
 
   protected getElements(): ArchCall[] {
-    return this.project.getSourceFiles().flatMap(collectCalls)
-  }
-
-  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
-  protected override sourceEmpty(): boolean {
-    return this.project.getSourceFiles().length === 0
-  }
-
-  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
-  protected override deadGlobDiagnosis(): string | undefined {
-    return diagnoseDeadGlobs(this.project, this.globs())
+    return cache.get(this.project, SOLE_POPULATION, () =>
+      this.project.getSourceFiles().flatMap(collectCalls),
+    )
   }
 
   protected override buildConditionContext(): ConditionContext {
@@ -97,68 +92,113 @@ export class CallRuleBuilder extends RuleBuilder<ArchCall, ArchProject> {
   // --- Identity predicates (subset: no areExported/areNotExported) ---
 
   /**
-   * Filter to calls whose callee name matches the pattern.
-   * A string is compiled to a RegExp. For `app.get(...)` the name is `app.get`.
+   * Narrows the selection to call expressions that have a name matching `pattern`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
    */
   haveNameMatching(pattern: RegExp | string): this {
     return this.addPredicate(identityHaveNameMatching<ArchCall>(pattern))
   }
 
-  /** Filter to calls whose callee name starts with the given prefix. */
+  /**
+   * Narrows the selection to call expressions that have a name starting with `prefix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameStartingWith(prefix: string): this {
     return this.addPredicate(identityHaveNameStartingWith<ArchCall>(prefix))
   }
 
-  /** Filter to calls whose callee name ends with the given suffix. */
+  /**
+   * Narrows the selection to call expressions that have a name ending with `suffix`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   haveNameEndingWith(suffix: string): this {
     return this.addPredicate(identityHaveNameEndingWith<ArchCall>(suffix))
   }
 
-  /** Filter to calls in a file whose absolute path matches the glob. */
+  /**
+   * Narrows the selection to call expressions that reside in a file matching `glob`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   resideInFile(glob: string): this {
     return this.addPredicate(identityResideInFile<ArchCall>(glob))
   }
 
-  /** Filter to calls in a folder whose path matches the glob. */
+  /**
+   * Narrows the selection to call expressions that reside in a folder matching `glob`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   resideInFolder(glob: string): this {
     return this.addPredicate(identityResideInFolder<ArchCall>(glob))
   }
 
   // Note: areExported() and areNotExported() are intentionally omitted.
-  // Call expressions cannot be exported. See spec section 5.1.
+  // Call expressions cannot are exported. See spec section 5.1.
 
   // --- Call-specific predicates ---
 
   /**
-   * Filter to method calls on the object with the exact given name.
-   * For `app.get(...)` use `onObject('app')`; for `router.route.get(...)`
-   * use `onObject('router.route')`. Optional chaining is normalized.
+   * Narrows the selection to call expressions that are called on the object `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
    */
   onObject(name: string): this {
     return this.addPredicate(callOnObject(name))
   }
 
   /**
-   * Filter to calls whose method name matches. Accepts an exact string
-   * or a regex; also matches bare function calls (`handleError(...)`).
+   * Narrows the selection to call expressions that call a method matching `nameOrRegex`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
    */
   withMethod(nameOrRegex: string | RegExp): this {
     return this.addPredicate(callWithMethod(nameOrRegex))
   }
 
   /**
-   * Filter to calls whose argument at `index` matches the pattern, tested
-   * against the argument's source text (so it matches identifiers and
-   * expressions, not just string literals).
+   * Narrows the selection to call expressions that have argument `index` matching `pattern`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
    */
   withArgMatching(index: number, pattern: string | RegExp): this {
     return this.addPredicate(callWithArgMatching(index, pattern))
   }
 
   /**
-   * Filter to calls whose argument at `index` is a string literal whose
-   * value matches the glob. Non-literal arguments (variables, expressions)
-   * never match.
+   * Narrows the selection to call expressions that have string argument `index` matching `glob`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
    */
   withStringArg(index: number, glob: string): this {
     return this.addPredicate(callWithStringArg(index, glob))
@@ -213,9 +253,6 @@ export class CallRuleBuilder extends RuleBuilder<ArchCall, ArchProject> {
    * @param index — zero-based argument index to fold into the identity.
    */
   identifiedByArg(index: number): this {
-    // Copy, not mutate — bug-0016 class. A held selection (`const routes =
-    // calls(p).that()...`) forked into two branches must not have the second
-    // branch's `.identifiedByArg()` retroactively change the first's identity.
     const next = this.copy()
     next._identifyByArgument = index
     return next
@@ -279,14 +316,6 @@ export class CallRuleBuilder extends RuleBuilder<ArchCall, ArchProject> {
   }
 
   // --- Public accessors (used by plan 0015 within()) ---
-
-  /**
-   * Get the underlying ArchProject.
-   * Used by within() to create scoped builders.
-   */
-  getProject(): ArchProject {
-    return this.project
-  }
 
   /**
    * Get the ArchCall elements that match the current predicate chain.

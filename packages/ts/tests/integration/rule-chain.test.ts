@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import { Project, type SourceFile } from 'ts-morph'
 import path from 'node:path'
-import { RuleBuilder } from '@nielspeter/eess'
+import { RuleBuilder } from '../../src/core/rule-builder.js'
 import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 import type { ConditionContext } from '@nielspeter/eess'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 // Minimal SourceFile-based builder for integration testing
-class SourceFileRuleBuilder extends RuleBuilder<SourceFile, ArchProject> {
+class SourceFileRuleBuilder extends RuleBuilder<SourceFile> {
   protected getElements(): SourceFile[] {
     return this.project.getSourceFiles()
   }

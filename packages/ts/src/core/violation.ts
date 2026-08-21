@@ -1,10 +1,19 @@
 import { Node } from 'ts-morph'
-import { generateCodeFrame, type ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation } from '@nielspeter/eess'
+import { generateCodeFrame } from '@nielspeter/eess'
 
-// `ArchViolation` is the kernel's central data type; re-exported here so existing
-// `import { ArchViolation } from '.../core/violation.js'` sites keep working. The
-// functions below are the TS dialect's element→violation adapter (ts-morph Node).
-export type { ArchViolation }
+/**
+ * The ts-morph half of violation construction — plan 0165 Phase 2.
+ *
+ * Everything here takes a `Node`, which is why it cannot live in the kernel:
+ * `@nielspeter/eess` is engine-independent by charter (ADR-007), and the five
+ * dialects that sit on it have no AST in common. The pure half — the
+ * `ArchViolation` shape itself, `severityFor`, `remedyRepeatsMessage`,
+ * `byCodepoint`, `subjectOf` and the identity-collision machinery — is the
+ * kernel's, and there is now exactly ONE copy of it at runtime rather than two.
+ * Two copies is not a tidiness complaint: Phase 1 measured a comment-suppression
+ * registry written by one and read by the other.
+ */
 
 /**
  * Check if a node is a named declaration and return its name, or undefined.
@@ -68,18 +77,6 @@ function isTopLevelDeclaration(node: Node): boolean {
   )
 }
 
-/**
- * Extract a human-readable name from a ts-morph Node.
- *
- * If the node itself is a named declaration (class, function, method, etc.),
- * returns its name directly. Otherwise, walks up the AST ancestors to find
- * the nearest named declaration and builds a qualified name like
- * "ClassName.methodName". This ensures that inner nodes (e.g., AsExpression,
- * CallExpression) produce meaningful element names for `.excluding()` matching.
- *
- * Falls back to the node's kind name only if no named ancestor is found
- * (e.g., top-level expressions in a module).
- */
 export function getElementName(node: Node): string {
   const directName = getNodeName(node)
   if (directName !== undefined) return directName
@@ -87,21 +84,21 @@ export function getElementName(node: Node): string {
 }
 
 /**
- * The structural name of the nearest ENCLOSING declaration — always an
- * ancestor walk, never the node's own name.
+ * The structural name of the nearest ENCLOSING declaration — always an ancestor
+ * walk, never the node's own name.
  *
- * Split out of `getElementName`, which returns the node's own name when it
- * has one and only walks ancestors otherwise. That difference is invisible
- * until something needs "what encloses this?" rather than "what is this
- * called?" — a metric identity built on `getElementName` as if it were a
- * scope leaves method-shorthand object-literal functions (`{ build() {} }`)
- * unqualified, because a `MethodDeclaration` has its own name, so two
- * factories each returning `{ build() {} }` would share one identity while
- * the arrow spelling of the same code would not.
+ * Split out of `getElementName`, which returns the node's own name when it has
+ * one and only walks ancestors otherwise. That difference is invisible until
+ * something needs "what encloses this?" rather than "what is this called?", and
+ * then it is a defect: a metric identity built on `getElementName` as if it were
+ * a scope left method-shorthand object-literal functions (`{ build() {} }`)
+ * unqualified, because a `MethodDeclaration` has its own name — so two factories
+ * each returning `{ build() {} }` shared one identity while the arrow spelling
+ * of the same code did not.
  *
- * Returns `undefined` when no named declaration encloses the node, which is
- * a real answer — a literal passed as a call argument at module level has no
- * scope — and not a value to substitute a kind name for.
+ * Returns `undefined` when no named declaration encloses the node, which is a
+ * real answer — a literal passed as a call argument at module level has no scope
+ * — and not a value to substitute a kind name for.
  */
 export function enclosingScopeName(node: Node): string | undefined {
   // Walk up ancestors collecting structural names: method/constructor/accessor

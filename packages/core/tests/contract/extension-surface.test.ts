@@ -53,6 +53,7 @@ interface WidgetProject {
 class WidgetRuleBuilder extends TerminalBuilder {
   private _widgets: Widget[]
   private _mustBeEmpty = false
+  private _sourceEmpty = false
 
   constructor(project: WidgetProject) {
     super()
@@ -66,9 +67,21 @@ class WidgetRuleBuilder extends TerminalBuilder {
     return next
   }
 
+  /**
+   * The stranger's way of saying "my upstream source loaded nothing at all" —
+   * an unreadable config, a root resolving to no files. Distinct from "the
+   * selection matched nothing", which is what an empty `_widgets` alone means.
+   */
+  loadedNothing(): this {
+    const next = this.copy()
+    next._sourceEmpty = true
+    return next
+  }
+
   protected override copy(): this {
     const clone = super.copy()
     clone._widgets = [...this._widgets]
+    clone._sourceEmpty = this._sourceEmpty
     return clone
   }
 
@@ -89,7 +102,11 @@ class WidgetRuleBuilder extends TerminalBuilder {
         examined: this._widgets.length,
       }
     }
-    return { violations: [], examined: this._widgets.length }
+    return {
+      violations: [],
+      examined: this._widgets.length,
+      ...(this._sourceEmpty ? { sourceEmpty: true } : {}),
+    }
   }
 }
 
@@ -131,6 +148,42 @@ describe('extension surface contract — a direct TerminalBuilder subclass (stra
     expect(() => empty.check()).not.toThrow()
   })
 
+  it('an empty SOURCE outranks .expectEmpty() — ADR-010 part 3, for a stranger dialect', () => {
+    // The clause the whole doctrine rests on: `.expectEmpty()` is the sanctioned
+    // way to say "nothing here is correct", and it must NOT rescue a rule whose
+    // source loaded nothing, because such a rule asserts nothing about anything.
+    //
+    // **This row exists because the branch had no break class.** Measured: making
+    // `zeroLoadedSourceViolation` unreachable in `terminal-builder.ts` left
+    // packages/core at 159/159, and md, mermaid and gherkin green too. `eess-ts`
+    // was unaffected only because it re-implements the same precedence on its own
+    // path — so the KERNEL's copy, the one every other dialect reaches, was
+    // unfalsifiable while its docstring restated the guarantee.
+    //
+    // The break class is confirmed, and confirmed by accident, which is the
+    // strongest form: this row was first run against a `dist` still holding that
+    // sabotage and FAILED at `expect.unreachable`, then passed once the kernel was
+    // rebuilt from restored source. The mutation and the guard were established
+    // independently before they were pointed at each other.
+    //
+    // Compare with the row directly below: same builder, same empty selection,
+    // and `.expectEmpty()` correctly passes there. The only difference is
+    // `loadedNothing()`, so this pins the precedence and not merely "it throws".
+    const noSource = new WidgetRuleBuilder({ widgets: [] }).loadedNothing().expectEmpty()
+    try {
+      noSource.check()
+      expect.unreachable('an empty source must outrank .expectEmpty()')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      const archError = error as ArchRuleError
+      expect(archError.violations[0]?.message).toMatch(/loaded zero units before any selection/)
+      // It says so in the text, so the text must be the thing asserted: a
+      // reader told "this outranks .expectEmpty()" has to see that be true.
+      expect(archError.violations[0]?.message).toMatch(/outranks any\s+\.expectEmpty\(\)/)
+      expect(archError.violations[0]?.bypassFilters).toBe(true)
+    }
+  })
+
   it('.expectEmpty() still works for a stranger subclass', () => {
     const empty = new WidgetRuleBuilder({ widgets: [] })
     expect(() => empty.expectEmpty().check()).not.toThrow()
@@ -150,6 +203,11 @@ class WidgetElementRuleBuilder extends RuleBuilder<Widget, WidgetProject> {
       description: `named "${name}"`,
       test: (w) => w.name === name,
     })
+  }
+
+  /** A condition that never fires — lets a branch assert something and still pass. */
+  static alwaysPasses(): Condition<Widget> {
+    return { description: 'always passes', evaluate: (): ArchViolation[] => [] }
   }
 
   /** A stranger's own .notExist()-shaped condition, using the exported registry. */
@@ -210,12 +268,22 @@ describe('extension surface contract — a RuleBuilder<T, P> subclass (stranger 
     expect(() => {
       selection.should().satisfy(WidgetElementRuleBuilder.notExist()).check()
     }).toThrow(ArchRuleError)
-    // Branch B: a FRESH .should() fork from the same held selection, no
-    // condition added. If branch A's condition had leaked, this would also
-    // throw (still asserting notExist() against 'a'); instead it hits the
-    // "predicates but no conditions" assertion-less path and passes.
+    // Branch B: a FRESH .should() fork from the same held selection, given its
+    // OWN passing condition. If branch A's condition had leaked, this would
+    // also throw (still asserting notExist() against 'a').
+    //
+    // It used to be spelled `selection.should().check()` — no condition at
+    // all — with a comment claiming it "hits the 'predicates but no
+    // conditions' assertion-less path and passes". It did not: `should()`
+    // sets the phase to 'condition', so that guard could never fire, and the
+    // branch passed in total *silence*. The assertion therefore proved
+    // nothing about leaking, and the test was green because of
+    // [bug 0155](../../../../work/bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md),
+    // which now makes an assertion-less rule a finding. Giving branch B a real
+    // condition tests the no-leak contract directly instead of leaning on a
+    // defect to stay quiet.
     expect(() => {
-      selection.should().check()
+      selection.should().satisfy(WidgetElementRuleBuilder.alwaysPasses()).check()
     }).not.toThrow()
   })
 })

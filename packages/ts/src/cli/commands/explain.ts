@@ -1,26 +1,12 @@
+import { isDescribable } from '@nielspeter/eess'
 import type { RuleDescription } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported runExplain API (must stay exported for declaration emit)
-export interface ExplainArgs {
+interface ExplainArgs {
   ruleFiles: string[]
   markdown?: boolean
   /** Explain output format: 'json' (default), 'markdown', or 'agent'. */
   format?: string
-}
-
-interface Describable {
-  describeRule(): RuleDescription
-}
-
-function isDescribable(value: unknown): value is Describable {
-  return (
-    value !== null &&
-    value !== undefined &&
-    typeof value === 'object' &&
-    'describeRule' in value &&
-    typeof value['describeRule'] === 'function'
-  )
 }
 
 /**
@@ -61,7 +47,7 @@ function outputAgent(descriptions: RuleDescription[]): void {
     'The following rules are enforced by CI. Violations will block your PR.',
     '',
     '**Verify before you continue:** after writing or changing code, run ' +
-      '`eess-ts check --format json`, read the `violations` array, and fix ' +
+      '`npx eess-ts check --format json`, read the `violations` array, and fix ' +
       'each one using its `suggestion`. Do this in your edit loop — do not wait for CI.',
     '',
   ]
@@ -110,7 +96,8 @@ function outputAgent(descriptions: RuleDescription[]): void {
 }
 
 function titleCase(s: string): string {
-  return s.length === 0 ? s : (s[0] ?? '').toUpperCase() + s.slice(1)
+  const [first] = s
+  return first === undefined ? s : first.toUpperCase() + s.slice(1)
 }
 
 function outputJson(descriptions: RuleDescription[]): void {

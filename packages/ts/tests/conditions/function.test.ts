@@ -9,7 +9,7 @@ import {
   haveReturnTypeMatching,
 } from '../../src/conditions/function.js'
 import { isString, matching, exactly } from '../../src/helpers/type-matchers.js'
-import { not } from '@nielspeter/eess'
+import { not } from '../../src/core/combinators.js'
 import { collectFunctions } from '../../src/models/arch-function.js'
 import type { ConditionContext } from '@nielspeter/eess'
 import type { ArchFunction } from '../../src/models/arch-function.js'

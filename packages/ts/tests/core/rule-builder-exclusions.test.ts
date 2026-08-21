@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { ArchRuleError } from '@nielspeter/eess'
-import { Baseline, hashViolation } from '@nielspeter/eess'
-import type { ArchViolation } from '../../src/core/violation.js'
+import { Baseline, hashViolation } from '../../src/helpers/baseline.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import {
   TestRuleBuilder,
   stubProject,
@@ -193,6 +193,43 @@ describe('.excluding()', () => {
     expect(() => {
       selection.should().withCondition(alwaysFail()).excluding('OrderService').check()
     }).not.toThrow()
+    warnSpy.mockRestore()
+  })
+
+  it('not leaked BACK from a fork onto the shared selection', () => {
+    // The other direction, and the one nothing tested. `should()` forks, so
+    // two rules derived from one selection must not see each other's
+    // exclusions. `fork()` shallow-copies every field, so the exclusion array
+    // is shared by reference unless something replaces it — and "preserved
+    // across fork" above passes just as happily when it IS shared.
+    //
+    // Plan 0069 moved that copy into `TerminalBuilder.adoptFilterState`, and
+    // reverting it to a plain assignment turns this red and nothing else.
+    const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    const selection = new TestRuleBuilder(stubProject, elements)
+      .that()
+      .withPredicate(nameMatches(/Service$/))
+
+    // First rule excludes UserService...
+    try {
+      selection.should().withCondition(alwaysFail()).excluding('UserService').check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+    }
+
+    // ...the second must still see it.
+    try {
+      selection.should().withCondition(alwaysFail()).check()
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(ArchRuleError)
+      if (error instanceof ArchRuleError) {
+        const names = error.violations.map((v) => v.element)
+        expect(names).toContain('UserService')
+        expect(names).toContain('OrderService')
+      }
+    }
     warnSpy.mockRestore()
   })
 

@@ -418,11 +418,11 @@ See [Cross-Layer Validation](/cross-layer) for usage examples.
 | Export                      | Signature                                                     | Description                                                 |
 | --------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
 | `cyclomaticComplexity`      | `cyclomaticComplexity(body: Node \| undefined): number`       | Calculate McCabe cyclomatic complexity for a function body. |
-| `linesOfCode`               | `linesOfCode(node: Node): number`                             | Count span lines (start to end, inclusive).                 |
+| `linesOfCode`               | `linesOfCode(node: Node): number`                             | Count code lines (comments and blanks excluded).            |
 | `haveCyclomaticComplexity`  | `haveCyclomaticComplexity(opts): Predicate<ClassDeclaration>` | Predicate: class has a method with complexity > threshold.  |
 | `haveComplexity`            | `haveComplexity(opts): Predicate<ArchFunction>`               | Predicate: function has complexity > threshold.             |
-| `haveMoreLinesThan`         | `haveMoreLinesThan(n): Predicate<ClassDeclaration>`           | Predicate: class spans more than n lines.                   |
-| `haveMoreFunctionLinesThan` | `haveMoreFunctionLinesThan(n): Predicate<ArchFunction>`       | Predicate: function spans more than n lines.                |
+| `haveMoreLinesThan`         | `haveMoreLinesThan(n): Predicate<ClassDeclaration>`           | Predicate: class has more than n code lines.                |
+| `haveMoreFunctionLinesThan` | `haveMoreFunctionLinesThan(n): Predicate<ArchFunction>`       | Predicate: function has more than n code lines.             |
 | `haveMoreMethodsThan`       | `haveMoreMethodsThan(n): Predicate<ClassDeclaration>`         | Predicate: class has more than n methods.                   |
 
 ## CLI
@@ -626,10 +626,10 @@ See [Architecture Presets](/presets) for full configuration options.
 | Export                       | Description                                               |
 | ---------------------------- | --------------------------------------------------------- |
 | `maxCyclomaticComplexity(n)` | No method/constructor/getter/setter exceeds complexity n. |
-| `maxClassLines(n)`           | Class spans no more than n lines.                         |
-| `maxMethodLines(n)`          | No method/constructor/getter/setter exceeds n lines.      |
+| `maxClassLines(n)`           | Class has no more than n code lines.                      |
+| `maxMethodLines(n)`          | No method/constructor/getter/setter exceeds n code lines. |
 | `maxMethods(n)`              | Class has no more than n methods.                         |
 | `maxParameters(n)`           | No method/constructor has more than n parameters.         |
 | `maxFunctionComplexity(n)`   | Function complexity does not exceed n.                    |
-| `maxFunctionLines(n)`        | Function spans no more than n lines.                      |
+| `maxFunctionLines(n)`        | Function has no more than n code lines.                   |
 | `maxFunctionParameters(n)`   | Function has no more than n parameters.                   |

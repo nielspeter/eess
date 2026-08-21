@@ -19,44 +19,55 @@ describe('formatViolationsJson', () => {
     const output = formatViolationsJson(violations)
     const parsed: unknown = JSON.parse(output)
     expect(parsed).toEqual({
-      summary: { total: 1, reason: null },
+      summary: { total: 1, errors: 1, warnings: 0, reason: null },
+      untestedAllowlists: [],
+      // Always present, never omitted, so a consumer can tell "nothing was
+      // suppressed" from "this version does not report it" — same contract as
+      // `untestedAllowlists`. Added in v0.37.0 with the disclosure work.
+      commentSuppressed: [],
       violations: [
         {
           rule: 'test rule',
           ruleId: null,
+          severity: 'error',
           element: 'MyService.getTotal',
           file: '/project/src/service.ts',
           line: 42,
+          // Bug 0047. `'violation'` here and `'configuration'` for a finding that
+          // says the rule enforces nothing. The payload had no such field at all — a consumer could
+          // only infer it from an empty `file`, the misleading signal that bug
+          // removed. Guarded properly in `a-fileless-finding-has-no-location.test.ts`.
+          kind: 'violation',
           message: 'bad call to parseInt',
           because: null,
           suggestion: null,
           docs: null,
           codeFrame: null,
           measured: null,
-          kind: 'violation',
         },
       ],
     })
   })
 
-  it('reports kind: "configuration" for a bypassFilters finding, "violation" otherwise', () => {
-    const ordinary = formatViolationsJson([mv()])
-    const config = formatViolationsJson([mv({ bypassFilters: true })])
-    expect((JSON.parse(ordinary) as { violations: [{ kind: string }] }).violations[0].kind).toBe(
-      'violation',
-    )
-    expect((JSON.parse(config) as { violations: [{ kind: string }] }).violations[0].kind).toBe(
-      'configuration',
-    )
+  it('includes codeFrame when present (agent loop payload)', () => {
+    const output = formatViolationsJson([mv({ codeFrame: '  > 42 | parseInt(x)' })])
+    const parsed = JSON.parse(output) as { violations: Array<{ codeFrame: string | null }> }
+    expect(parsed.violations[0]?.codeFrame).toBe('  > 42 | parseInt(x)')
   })
 
-  it('carries codeFrame and measured through onto the wire', () => {
-    const output = formatViolationsJson([mv({ codeFrame: '  1 | code', measured: 12 })])
+  it('serializes severity and summary error/warning counts', () => {
+    const violations = [
+      mv({ element: 'A', severity: 'error' }),
+      mv({ element: 'B', severity: 'warn' }),
+      mv({ element: 'C' }), // absent → defaults to error
+    ]
+    const output = formatViolationsJson(violations)
     const parsed = JSON.parse(output) as {
-      violations: [{ codeFrame: string | null; measured: number | null }]
+      summary: { total: number; errors: number; warnings: number }
+      violations: Array<{ severity: string }>
     }
-    expect(parsed.violations[0].codeFrame).toBe('  1 | code')
-    expect(parsed.violations[0].measured).toBe(12)
+    expect(parsed.summary).toMatchObject({ total: 3, errors: 2, warnings: 1 })
+    expect(parsed.violations.map((v) => v.severity)).toEqual(['error', 'warn', 'error'])
   })
 
   it('formats multiple violations with correct count', () => {

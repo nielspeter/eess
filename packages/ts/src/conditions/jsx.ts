@@ -1,8 +1,8 @@
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { marksAssertsCardinality } from '@nielspeter/eess'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation } from '../core/violation.js'
 import type { ArchJsxElement } from '../models/arch-jsx-element.js'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 
 /**
  * Create a violation from an ArchJsxElement.
@@ -34,8 +34,12 @@ function createJsxViolation(
  * jsxElements(p).that().areHtmlElements('button').should().notExist().check()
  */
 export function notExist(): Condition<ArchJsxElement> {
+  // Satisfied by an EMPTY selection — registered rather than tagged, because a
+  // symbol keyed on this object is readable off it and forgeable (bug 0050).
   return marksAssertsCardinality({
     description: 'not exist',
+    // Zero subjects is this condition's PASSING state, so an empty selection
+    // and an unsatisfiable selector glob are both correct here (plan 0074).
     evaluate(elements: ArchJsxElement[], context: ConditionContext): ArchViolation[] {
       return elements.map((el) =>
         createJsxViolation(el, `<${el.getName()}> should not exist`, context),

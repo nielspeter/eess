@@ -6,9 +6,9 @@ import type {
   SetAccessorDeclaration,
 } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import type { ArchViolation } from '../core/violation.js'
-import { metricViolation } from '../core/metric-violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { cyclomaticComplexity, linesOfCode } from '../helpers/complexity.js'
+import { metricViolation } from '../core/metric-violation.js'
 
 /** All callable members of a class: methods, constructors, getters, setters */
 type ClassMember =
@@ -76,7 +76,8 @@ export function maxCyclomaticComplexity(threshold: number): Condition<ClassDecla
 }
 
 /**
- * No class may exceed the given number of lines (span lines).
+ * No class may exceed the given number of CODE lines — comments and blank
+ * lines are not counted (bug 0170).
  *
  * @example
  * ```ts
@@ -87,7 +88,7 @@ export function maxCyclomaticComplexity(threshold: number): Condition<ClassDecla
  */
 export function maxClassLines(threshold: number): Condition<ClassDeclaration> {
   return {
-    description: `have no more than ${String(threshold)} lines`,
+    description: `have no more than ${String(threshold)} code lines`,
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
@@ -98,8 +99,11 @@ export function maxClassLines(threshold: number): Condition<ClassDeclaration> {
               cls,
               {
                 metric: 'lines',
+                // `code-lines` since bug 0170 — the metric kept its name when it stopped
+                // counting comments, and the baseline must not compare across that.
+                unit: 'code-lines',
                 measured: loc,
-                message: `${cls.getName() ?? '<anonymous>'} has ${String(loc)} lines (max: ${String(threshold)}) — consider splitting into focused classes`,
+                message: `${cls.getName() ?? '<anonymous>'} has ${String(loc)} code lines (max: ${String(threshold)}) — consider splitting into focused classes`,
               },
               context,
             ),
@@ -123,7 +127,7 @@ export function maxClassLines(threshold: number): Condition<ClassDeclaration> {
  */
 export function maxMethodLines(threshold: number): Condition<ClassDeclaration> {
   return {
-    description: `have no method longer than ${String(threshold)} lines`,
+    description: `have no method longer than ${String(threshold)} code lines`,
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
@@ -135,9 +139,12 @@ export function maxMethodLines(threshold: number): Condition<ClassDeclaration> {
                 member,
                 {
                   metric: 'lines',
+                  // `code-lines` since bug 0170 — the metric kept its name when it stopped
+                  // counting comments, and the baseline must not compare across that.
+                  unit: 'code-lines',
                   measured: loc,
                   qualifiedName: getMemberName(cls, member),
-                  message: `${getMemberName(cls, member)} has ${String(loc)} lines (max: ${String(threshold)})`,
+                  message: `${getMemberName(cls, member)} has ${String(loc)} code lines (max: ${String(threshold)})`,
                 },
                 context,
               ),

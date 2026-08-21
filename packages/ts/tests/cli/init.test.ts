@@ -1,21 +1,59 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { Project, Node } from 'ts-morph'
 import { runInit } from '../../src/cli/commands/init.js'
+import type { ArchProject } from '../../src/core/project.js'
+import { recommended } from '../../src/presets/recommended.js'
+import { agentGuardrails } from '../../src/presets/agent-guardrails.js'
+import { layeredArchitecture } from '../../src/presets/layered.js'
+import { strictBoundaries } from '../../src/presets/boundaries.js'
+import { dataLayerIsolation } from '../../src/presets/data-layer.js'
 
 const tmpDirs: string[] = []
 
-/** Fresh temp project dir with a tsconfig; returns the dir. */
-function tmpProject(tsconfig: Record<string, unknown> = { include: ['src'] }): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-init-'))
+/** Create an isolated temp project dir with a tsconfig; optional package.json / source files. */
+function makeProject(
+  opts: {
+    tsconfigInclude?: string[]
+    packageJson?: string | null
+    srcFiles?: Record<string, string>
+  } = {},
+): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tsau-init-'))
   tmpDirs.push(dir)
-  fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2))
+  const include = opts.tsconfigInclude ?? ['src']
+  fs.writeFileSync(
+    path.join(dir, 'tsconfig.json'),
+    JSON.stringify({ compilerOptions: { strict: true }, include }, null, 2),
+  )
+  if (opts.packageJson !== null) {
+    fs.writeFileSync(
+      path.join(dir, 'package.json'),
+      opts.packageJson ?? JSON.stringify({ name: 'x', version: '1.0.0' }, null, 2) + '\n',
+    )
+  }
+  for (const [rel, content] of Object.entries(opts.srcFiles ?? {})) {
+    const full = path.join(dir, rel)
+    fs.mkdirSync(path.dirname(full), { recursive: true })
+    fs.writeFileSync(full, content)
+  }
   return dir
 }
 
-const read = (dir: string, name: string): string => fs.readFileSync(path.join(dir, name), 'utf-8')
-const exists = (dir: string, name: string): boolean => fs.existsSync(path.join(dir, name))
+function read(dir: string, name: string): string {
+  return fs.readFileSync(path.join(dir, name), 'utf-8')
+}
+
+function captureStdout(): { text: () => string; restore: () => void } {
+  const chunks: string[] = []
+  const spy = vi.spyOn(process.stdout, 'write').mockImplementation((c) => {
+    chunks.push(String(c))
+    return true
+  })
+  return { text: () => chunks.join(''), restore: () => spy.mockRestore() }
+}
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -25,129 +63,477 @@ afterEach(() => {
   }
 })
 
-describe('eess-ts init (plan 0071)', () => {
-  it('writes config, rules, and baseline; returns 0', () => {
-    const dir = tmpProject()
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+describe('runInit', () => {
+  it('generates the three files and exits 0', () => {
+    const dir = makeProject()
+    const out = captureStdout()
     const code = runInit({ cwd: dir })
+    out.restore()
     expect(code).toBe(0)
-    expect(exists(dir, 'eess-ts.config.ts')).toBe(true)
-    expect(exists(dir, 'arch.rules.ts')).toBe(true)
-    expect(exists(dir, 'arch-baseline.json')).toBe(true)
+    expect(fs.existsSync(path.join(dir, 'eess-ts.config.ts'))).toBe(true)
+    expect(fs.existsSync(path.join(dir, 'arch.rules.ts'))).toBe(true)
+    expect(fs.existsSync(path.join(dir, 'arch-baseline.json'))).toBe(true)
   })
 
-  it('generates a builder-based rule file (not an eager preset spread)', () => {
-    const dir = tmpProject()
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+  it('default preset (recommended) imports project from root and the preset from /presets', () => {
+    const dir = makeProject()
+    const out = captureStdout()
     runInit({ cwd: dir })
+    out.restore()
     const rules = read(dir, 'arch.rules.ts')
-    // Builder form the CLI can load — functions(p)...satisfy(...).rule(...)
-    expect(rules).toContain('functions(p).that().resideInFile(include).should()')
-    expect(rules).toContain('preset/recommended/no-eval')
-    expect(rules).toContain("imperative: 'Do NOT call eval()'")
-    // NOT the eager spread form that eess's loader rejects
-    expect(rules).not.toContain('...recommended(')
+    expect(rules).toContain("import { project } from '@nielspeter/eess-ts'")
+    expect(rules).toContain("import { recommended } from '@nielspeter/eess-ts/presets'")
+    expect(rules).toContain("...recommended(p, { report: 'builders' })")
   })
 
-  it('--preset agent-guardrails scaffolds the guardrail builders', () => {
-    const dir = tmpProject()
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+  it('--preset agent-guardrails leads with agentGuardrails from /presets', () => {
+    const dir = makeProject()
+    const out = captureStdout()
     runInit({ cwd: dir, preset: 'agent-guardrails' })
+    out.restore()
     const rules = read(dir, 'arch.rules.ts')
-    expect(rules).toContain('preset/agent/no-generic-errors')
-    expect(rules).toContain('smells.duplicateBodies(p)')
+    expect(rules).toContain("import { agentGuardrails } from '@nielspeter/eess-ts/presets'")
+    expect(rules).toContain('...agentGuardrails(p, {')
+    expect(rules).toContain("src: '**/src/**'")
   })
 
-  it('rejects an unknown preset with exit code 1', () => {
-    const dir = tmpProject()
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    expect(runInit({ cwd: dir, preset: 'layered' })).toBe(1)
-    expect(exists(dir, 'arch.rules.ts')).toBe(false)
+  it('rejects an unknown --preset and lists the valid ones', () => {
+    const dir = makeProject()
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const code = runInit({ cwd: dir, preset: 'nope' })
+    expect(code).toBe(1)
+    const msg = errSpy.mock.calls.map((c) => String(c[0])).join('\n')
+    expect(msg).toContain('recommended')
+    expect(msg).toContain('layered')
+    expect(fs.existsSync(path.join(dir, 'arch.rules.ts'))).toBe(false)
   })
 
-  it('errors when the tsconfig is missing', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-init-'))
-    tmpDirs.push(dir)
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    expect(runInit({ cwd: dir })).toBe(1)
+  it('--preset layered scaffolds the floor + layeredArchitecture with fill-in globs', () => {
+    const dir = makeProject()
+    const out = captureStdout()
+    const code = runInit({ cwd: dir, preset: 'layered' })
+    out.restore()
+    expect(code).toBe(0)
+    const rules = read(dir, 'arch.rules.ts')
+    expect(rules).toContain(
+      "import { recommended, layeredArchitecture } from '@nielspeter/eess-ts/presets'",
+    )
+    expect(rules).toContain("...recommended(p, { report: 'builders' })") // floor still present
+    expect(rules).toContain('...layeredArchitecture(p, {')
+    // Full option-key set — a renamed key in the template fails here (drift guard).
+    for (const key of ['layers:', 'routes:', 'services:', 'repositories:', 'shared:']) {
+      expect(rules).toContain(key)
+    }
   })
 
-  it('refuses to overwrite without --force, succeeds with it', () => {
-    const dir = tmpProject()
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
-    vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    expect(runInit({ cwd: dir })).toBe(0)
-    expect(runInit({ cwd: dir })).toBe(1) // conflict
-    expect(runInit({ cwd: dir, force: true })).toBe(0)
+  it('--preset strict-boundaries scaffolds strictBoundaries', () => {
+    const dir = makeProject()
+    const out = captureStdout()
+    runInit({ cwd: dir, preset: 'strict-boundaries' })
+    out.restore()
+    const rules = read(dir, 'arch.rules.ts')
+    expect(rules).toContain(
+      "import { recommended, strictBoundaries } from '@nielspeter/eess-ts/presets'",
+    )
+    for (const key of ["folders: '**/src/features/*'", 'shared:']) {
+      expect(rules).toContain(key)
+    }
   })
 
-  it('--dry-run writes nothing', () => {
-    const dir = tmpProject()
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
-    expect(runInit({ cwd: dir, dryRun: true })).toBe(0)
-    expect(exists(dir, 'arch.rules.ts')).toBe(false)
+  it('--preset data-layer scaffolds dataLayerIsolation', () => {
+    const dir = makeProject()
+    const out = captureStdout()
+    runInit({ cwd: dir, preset: 'data-layer' })
+    out.restore()
+    const rules = read(dir, 'arch.rules.ts')
+    expect(rules).toContain(
+      "import { recommended, dataLayerIsolation } from '@nielspeter/eess-ts/presets'",
+    )
+    for (const key of [
+      'repositories:',
+      "baseClass: 'BaseRepository'",
+      'requireTypedErrors: true',
+    ]) {
+      expect(rules).toContain(key)
+    }
   })
 
-  it('--no-baseline omits the baseline file and config field', () => {
-    const dir = tmpProject()
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+  it('warns that a shape preset scaffolds EXAMPLE globs (false-green guard)', () => {
+    const dir = makeProject()
+    const out = captureStdout()
+    runInit({ cwd: dir, preset: 'layered' })
+    const text = out.text()
+    out.restore()
+    // Closing message must flag the placeholder globs...
+    expect(text.toLowerCase()).toContain('example')
+    expect(text).toContain('enforces nothing')
+    // ...and the generated file must too.
+    expect(read(dir, 'arch.rules.ts')).toContain('enforces NOTHING')
+  })
+
+  it('floor presets do NOT emit the example-globs warning', () => {
+    const dir = makeProject()
+    const out = captureStdout()
+    runInit({ cwd: dir })
+    const text = out.text()
+    out.restore()
+    expect(text).not.toContain('enforces nothing')
+  })
+
+  it('threads the source root into a shape preset scaffold', () => {
+    const dir = makeProject({ tsconfigInclude: ['lib'] })
+    const out = captureStdout()
+    runInit({ cwd: dir, preset: 'layered' })
+    out.restore()
+    expect(read(dir, 'arch.rules.ts')).toContain("routes: '**/lib/routes/**'")
+  })
+
+  it('config omits the dead project/watchDirs fields, keeps rules/baseline/format', () => {
+    const dir = makeProject()
+    const out = captureStdout()
+    runInit({ cwd: dir })
+    out.restore()
+    const config = read(dir, 'eess-ts.config.ts')
+    expect(config).toContain("rules: ['arch.rules.ts']")
+    expect(config).toContain("baseline: 'arch-baseline.json'")
+    expect(config).toContain("format: 'auto'")
+    expect(config).not.toContain('project:')
+    expect(config).not.toContain('watchDirs')
+  })
+
+  it('threads a non-src source root into the preset include and message', () => {
+    const dir = makeProject({
+      tsconfigInclude: ['lib'],
+      srcFiles: { 'lib/a.ts': 'export const a = 1\n' },
+    })
+    const out = captureStdout()
+    runInit({ cwd: dir })
+    const text = out.text()
+    out.restore()
+    const rules = read(dir, 'arch.rules.ts')
+    expect(rules).toContain("recommended(p, { include: '**/lib/**', report: 'builders' })")
+    expect(text).toContain('source under lib/')
+  })
+
+  it('refuses to overwrite existing files and names --force / --dry-run', () => {
+    const dir = makeProject()
+    fs.writeFileSync(path.join(dir, 'arch.rules.ts'), 'pre-existing\n')
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const code = runInit({ cwd: dir })
+    expect(code).toBe(1)
+    const msg = errSpy.mock.calls.map((c) => String(c[0])).join('\n')
+    expect(msg).toContain('arch.rules.ts')
+    expect(msg).toContain('--force')
+    expect(msg).toContain('--dry-run')
+    // nothing else written
+    expect(fs.existsSync(path.join(dir, 'eess-ts.config.ts'))).toBe(false)
+    // the existing file is untouched
+    expect(read(dir, 'arch.rules.ts')).toBe('pre-existing\n')
+  })
+
+  it('--force overwrites an existing file', () => {
+    const dir = makeProject()
+    fs.writeFileSync(path.join(dir, 'arch.rules.ts'), 'pre-existing\n')
+    const out = captureStdout()
+    const code = runInit({ cwd: dir, force: true })
+    out.restore()
+    expect(code).toBe(0)
+    expect(read(dir, 'arch.rules.ts')).toContain("...recommended(p, { report: 'builders' })")
+  })
+
+  it('--dry-run writes nothing and prints the plan', () => {
+    const dir = makeProject()
+    const out = captureStdout()
+    const code = runInit({ cwd: dir, dryRun: true })
+    const text = out.text()
+    out.restore()
+    expect(code).toBe(0)
+    expect(text).toContain('Dry run')
+    expect(text).toContain('arch.rules.ts')
+    expect(fs.existsSync(path.join(dir, 'arch.rules.ts'))).toBe(false)
+  })
+
+  it('--no-baseline skips the baseline file and omits the config field', () => {
+    const dir = makeProject()
+    const out = captureStdout()
     runInit({ cwd: dir, noBaseline: true })
-    expect(exists(dir, 'arch-baseline.json')).toBe(false)
+    out.restore()
+    expect(fs.existsSync(path.join(dir, 'arch-baseline.json'))).toBe(false)
     expect(read(dir, 'eess-ts.config.ts')).not.toContain('baseline:')
   })
 
-  it('detects the source root from tsconfig include and scopes the glob', () => {
-    const dir = tmpProject({ include: ['lib'] })
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+  it('brownfield message states warnings never fail CI and the baseline-before-CI step', () => {
+    const dir = makeProject({ srcFiles: { 'src/a.ts': 'export const a = 1\n' } })
+    const out = captureStdout()
     runInit({ cwd: dir })
-    expect(read(dir, 'arch.rules.ts')).toContain("const include = '**/lib/**'")
+    const text = out.text()
+    out.restore()
+    expect(text).toContain('never fail CI')
+    expect(text).toContain('arch:baseline')
   })
 
-  it('skips a file-like include entry and picks the real source dir', () => {
-    // A common shape: a config file listed before the source glob. Picking the
-    // file would scaffold a glob matching nothing (a vacuous rule set).
-    const dir = tmpProject({ include: ['vite.config.ts', 'src/**/*.ts'] })
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+  it('greenfield message is a plain next-step, no baseline nag', () => {
+    const dir = makeProject() // no src dir
+    const out = captureStdout()
     runInit({ cwd: dir })
-    const rules = read(dir, 'arch.rules.ts')
-    expect(rules).toContain("const include = '**/src/**'")
-    expect(rules).not.toContain('vite.config.ts')
+    const text = out.text()
+    out.restore()
+    expect(text).toContain('Next:')
+    expect(text).not.toContain('never fail CI')
   })
 
-  it('falls back to src on a malformed (unparseable) tsconfig', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-init-'))
+  it('missing tsconfig exits 1 with an actionable message and writes nothing', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tsau-init-'))
     tmpDirs.push(dir)
-    fs.writeFileSync(path.join(dir, 'tsconfig.json'), '{ this is not json')
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
-    expect(runInit({ cwd: dir })).toBe(0)
-    expect(read(dir, 'arch.rules.ts')).toContain("const include = '**/src/**'")
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const code = runInit({ cwd: dir })
+    expect(code).toBe(1)
+    expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('tsc --init'))
+    expect(fs.existsSync(path.join(dir, 'arch.rules.ts'))).toBe(false)
   })
 
-  it('preserves a minified package.json (no full-file reformat)', () => {
-    const dir = tmpProject()
-    fs.writeFileSync(path.join(dir, 'package.json'), '{"name":"demo","version":"1.0.0"}')
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+  it('no package.json: generates files, skips scripts, message points at npx', () => {
+    const dir = makeProject({ packageJson: null })
+    const out = captureStdout()
+    const code = runInit({ cwd: dir })
+    const text = out.text()
+    out.restore()
+    expect(code).toBe(0)
+    expect(fs.existsSync(path.join(dir, 'arch.rules.ts'))).toBe(true)
+    expect(text).toContain('npx eess-ts check')
+    expect(text).not.toContain('npm run arch')
+  })
+
+  it('unparseable package.json: skips script entry gracefully, still writes files', () => {
+    const dir = makeProject({ packageJson: '{ "name": "x", /* oops */ } trailing junk' })
+    const out = captureStdout()
+    const code = runInit({ cwd: dir })
+    const text = out.text()
+    out.restore()
+    expect(code).toBe(0)
+    expect(fs.existsSync(path.join(dir, 'arch.rules.ts'))).toBe(true)
+    expect(text.toLowerCase()).toContain('skipped')
+  })
+
+  it('package.json merge preserves indent and no-trailing-newline, only adds scripts', () => {
+    // 4-space indent, no trailing newline.
+    const original = '{\n    "name": "x",\n    "version": "1.0.0"\n}'
+    const dir = makeProject({ packageJson: original })
+    const out = captureStdout()
     runInit({ cwd: dir })
-    const raw = read(dir, 'package.json')
-    expect(raw).not.toContain('\n') // stayed single-line
-    expect(raw).toContain('"arch":"eess-ts check"')
+    out.restore()
+    const merged = read(dir, 'package.json')
+    expect(merged).toContain('    "scripts": {')
+    expect(merged).toContain('        "arch": "eess-ts check"')
+    expect(merged.endsWith('}')).toBe(true) // no trailing newline added
+    // original fields + order intact
+    expect(merged.indexOf('"name"')).toBeLessThan(merged.indexOf('"version"'))
+    expect(merged.indexOf('"version"')).toBeLessThan(merged.indexOf('"scripts"'))
   })
 
-  it('merges arch scripts into an existing package.json', () => {
-    const dir = tmpProject()
+  it('skips the script merge when an arch script already exists', () => {
+    const dir = makeProject({
+      packageJson: JSON.stringify({ name: 'x', scripts: { arch: 'echo mine' } }, null, 2),
+    })
+    const out = captureStdout()
+    runInit({ cwd: dir })
+    out.restore()
+    expect(read(dir, 'package.json')).toContain('echo mine')
+  })
+
+  it('--dry-run previews over existing files instead of erroring (no conflict wall)', () => {
+    const dir = makeProject()
+    fs.writeFileSync(path.join(dir, 'arch.rules.ts'), 'pre-existing\n')
+    const out = captureStdout()
+    const code = runInit({ cwd: dir, dryRun: true })
+    const text = out.text()
+    out.restore()
+    expect(code).toBe(0)
+    expect(text).toContain('Dry run')
+    expect(text).toContain('exists — needs --force')
+    expect(read(dir, 'arch.rules.ts')).toBe('pre-existing\n') // untouched
+  })
+
+  it('threads a custom --tsconfig path into the generated files', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tsau-init-'))
+    tmpDirs.push(dir)
+    fs.mkdirSync(path.join(dir, 'config'))
     fs.writeFileSync(
-      path.join(dir, 'package.json'),
-      JSON.stringify({ name: 'demo', scripts: { build: 'tsc' } }, null, 2),
+      path.join(dir, 'config', 'tsconfig.build.json'),
+      JSON.stringify({ include: ['src'] }, null, 2),
     )
-    vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    const out = captureStdout()
+    const code = runInit({ cwd: dir, tsconfig: 'config/tsconfig.build.json' })
+    out.restore()
+    expect(code).toBe(0)
+    expect(read(dir, 'arch.rules.ts')).toContain("project('config/tsconfig.build.json')")
+    expect(read(dir, 'eess-ts.config.ts')).toContain('config/tsconfig.build.json')
+  })
+
+  it('reports a write failure (target path is a directory) and returns 1', () => {
+    const dir = makeProject()
+    fs.mkdirSync(path.join(dir, 'arch-baseline.json')) // collide: a dir where a file goes
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const out = captureStdout()
+    const code = runInit({ cwd: dir, force: true }) // force skips conflict check → hits write
+    out.restore()
+    expect(code).toBe(1)
+    expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('could not write'))
+  })
+})
+
+describe('runInit source-root detection', () => {
+  function writeRawTsconfig(raw: string): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tsau-init-'))
+    tmpDirs.push(dir)
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), raw)
+    return dir
+  }
+
+  it('detects the root from a JSONC tsconfig (comments + trailing comma)', () => {
+    const dir = writeRawTsconfig(`{
+      // build config
+      "compilerOptions": { "strict": true },
+      "include": ["app"], /* app sources */
+    }`)
+    const out = captureStdout()
     runInit({ cwd: dir })
-    const pkg: unknown = JSON.parse(read(dir, 'package.json'))
-    const scripts =
-      pkg !== null && typeof pkg === 'object' && 'scripts' in pkg
-        ? (pkg.scripts as Record<string, string>)
-        : {}
-    expect(scripts['arch']).toBe('eess-ts check')
-    expect(scripts['arch:baseline']).toBe('eess-ts baseline')
-    expect(scripts['build']).toBe('tsc') // preserved
+    out.restore()
+    expect(read(dir, 'arch.rules.ts')).toContain("include: '**/app/**'")
+  })
+
+  it('falls back to compilerOptions.rootDir when include is absent', () => {
+    const dir = writeRawTsconfig(JSON.stringify({ compilerOptions: { rootDir: 'source' } }))
+    const out = captureStdout()
+    runInit({ cwd: dir })
+    out.restore()
+    expect(read(dir, 'arch.rules.ts')).toContain("include: '**/source/**'")
+  })
+
+  it('falls back to src when include is glob-first with no literal root', () => {
+    const dir = writeRawTsconfig(JSON.stringify({ include: ['**/*.ts'] }))
+    const out = captureStdout()
+    runInit({ cwd: dir })
+    out.restore()
+    // src is the preset default, so the call is bare (no include option)
+    const rules = read(dir, 'arch.rules.ts')
+    expect(rules).toContain("...recommended(p, { report: 'builders' }),")
+    expect(rules).not.toContain('include:')
+  })
+
+  it('strips a leading ./ from the include entry', () => {
+    const dir = writeRawTsconfig(JSON.stringify({ include: ['./lib'] }))
+    const out = captureStdout()
+    runInit({ cwd: dir })
+    out.restore()
+    expect(read(dir, 'arch.rules.ts')).toContain("include: '**/lib/**'")
+  })
+
+  it('falls back to src on an unparseable tsconfig', () => {
+    const dir = writeRawTsconfig('this is not json at all }{')
+    const out = captureStdout()
+    runInit({ cwd: dir })
+    out.restore()
+    const rules = read(dir, 'arch.rules.ts')
+    expect(rules).toContain("...recommended(p, { report: 'builders' }),")
+    expect(rules).not.toContain('include:')
+  })
+})
+
+describe('generated arch.rules.ts is valid TypeScript', () => {
+  function assertValidRuleFile(dir: string): void {
+    const proj = new Project({ useInMemoryFileSystem: true })
+    const sf = proj.createSourceFile('arch.rules.ts', read(dir, 'arch.rules.ts'))
+    // Syntactic diagnostics only — unresolved '@nielspeter/...' imports are
+    // semantic and expected in this in-memory project.
+    const syntactic = proj.getProgram().compilerObject.getSyntacticDiagnostics(sf.compilerNode)
+    expect(syntactic).toHaveLength(0)
+    // The default export must be an array literal of builders.
+    const expr = sf.getExportAssignment((e) => !e.isExportEquals())?.getExpression()
+    expect(expr !== undefined && Node.isArrayLiteralExpression(expr)).toBe(true)
+  }
+
+  it('recommended preset emits a syntactically valid array-default rule file', () => {
+    const dir = makeProject()
+    const out = captureStdout()
+    runInit({ cwd: dir })
+    out.restore()
+    assertValidRuleFile(dir)
+  })
+
+  it('agent-guardrails preset emits a syntactically valid file with the enabled flags', () => {
+    const dir = makeProject()
+    const out = captureStdout()
+    runInit({ cwd: dir, preset: 'agent-guardrails' })
+    out.restore()
+    assertValidRuleFile(dir)
+    // content-drift guard: the enabled options are actually present
+    const rules = read(dir, 'arch.rules.ts')
+    expect(rules).toContain('noGenericErrors: true')
+    expect(rules).toContain('noCopyPaste: true')
+  })
+
+  for (const preset of ['layered', 'strict-boundaries', 'data-layer']) {
+    it(`${preset} preset emits a syntactically valid array-default rule file`, () => {
+      const dir = makeProject()
+      const out = captureStdout()
+      runInit({ cwd: dir, preset })
+      out.restore()
+      assertValidRuleFile(dir)
+    })
+  }
+})
+
+// Drift guard: the templates embed these exact option objects. Calling the real
+// presets with them here means any signature drift breaks THIS file's typecheck.
+describe('template option shapes stay valid against the presets', () => {
+  const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/presets/recommended')
+  function loadProject(): ArchProject {
+    const tsMorph = new Project({ tsConfigFilePath: path.join(fixturesDir, 'tsconfig.json') })
+    return {
+      tsConfigPath: path.join(fixturesDir, 'tsconfig.json'),
+      _project: tsMorph,
+      getSourceFiles: () => tsMorph.getSourceFiles(),
+    }
+  }
+
+  it('recommended and agentGuardrails accept the generated option objects', () => {
+    const p = loadProject()
+    expect(recommended(p, { include: '**/lib/**', report: 'builders' }).length).toBeGreaterThan(0)
+    expect(
+      agentGuardrails(p, {
+        src: '**/src/**',
+        noGenericErrors: true,
+        noStubs: true,
+        noEmptyBodies: true,
+        noCopyPaste: true,
+        report: 'builders',
+      }).length,
+    ).toBeGreaterThan(0)
+  })
+
+  it('the shape presets accept the generated option objects', () => {
+    const p = loadProject()
+    // If a shape preset's options drift from the init template, this fails to typecheck.
+    layeredArchitecture(p, {
+      layers: {
+        routes: '**/src/routes/**',
+        services: '**/src/services/**',
+        repositories: '**/src/repositories/**',
+      },
+      shared: ['**/src/shared/**'],
+      report: 'builders',
+    })
+    strictBoundaries(p, {
+      folders: '**/src/features/*',
+      shared: ['**/src/shared/**'],
+      report: 'builders',
+    })
+    dataLayerIsolation(p, {
+      repositories: '**/src/repositories/**',
+      baseClass: 'BaseRepository',
+      requireTypedErrors: true,
+      report: 'builders',
+    })
   })
 })

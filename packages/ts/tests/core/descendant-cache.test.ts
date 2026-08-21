@@ -5,8 +5,15 @@
  * filters with the matcher. The walk is a function of the node and the kind;
  * only the filter differs. So N matchers over one body did N identical
  * traversals — and `agentGuardrails` emits one `functions()` rule per banned
- * API, which is exactly that shape. `findMatchesBroad` remains uncached — see
- * the module docstring for why that is filed, not done.
+ * API, which is exactly that shape.
+ *
+ * Measured on this repository (530 files), eight banned APIs: **8,504 walk
+ * requests become 1,063 real traversals** — the ratio is the stable figure, and
+ * wall clock landed between 16 and 23 ms against 88 ms across three
+ * reproductions. Identical findings. The element cache from plan 0075 does not
+ * help here; it removed the redundant *collection* of the functions and left the
+ * body walks in place. `findMatchesBroad` remains uncached and its marginal rule
+ * costs ~57 ms — see the module docstring for why that is filed, not done.
  *
  * ## The invalidation is the dangerous part, and a node key alone is unsafe
  *
@@ -18,10 +25,11 @@
  *     f.getDescendantsOfKind(CallExpression)   -> 2 calls
  *
  * A function node **survives an edit to its own body and is not forgotten**, so
- * a `WeakMap<Node, …>` serves the pre-edit list — the same trap `SourceFile` has,
- * except `Node` has no `onModified` to escape it. Entries are therefore grouped
- * by source file and dropped when that file changes. A count assertion cannot
- * see staleness, so the mutation tests below are the ones that matter.
+ * a `WeakMap<Node, …>` serves the pre-edit list — the same trap plan 0076 found
+ * one level up with `SourceFile`, except `Node` has no `onModified` to escape it.
+ * Entries are therefore grouped by source file and dropped when that file
+ * changes. A count assertion cannot see staleness, so the mutation tests below
+ * are the ones that matter.
  */
 import { describe, it, expect, afterEach } from 'vitest'
 import { Project, SyntaxKind } from 'ts-morph'
@@ -52,17 +60,22 @@ afterEach(() => {
  *
  * The owner prototype is found by walking the chain, not by assuming a depth —
  * `Node.prototype` is five levels above a `SourceFile` instance and patching a
- * nearer level counts only the calls made on source files.
+ * nearer level counts only the calls made on source files. Plan 0075 recorded a
+ * wrong-by-8,424 conclusion from exactly that mistake.
  */
 function countMethod(name: 'getDescendantsOfKind' | 'getDescendants', run: () => void): number {
   // A THROWAWAY project for the probe, not the one under measurement. Creating a
   // file in the caller's project with `overwrite: true` fires `onModified`, so the
-  // harness would silently invalidate the file it was measuring — pointing the
-  // probe at an existing path reds the very first test.
+  // harness silently invalidated the file it was measuring — measured: pointing
+  // the probe at an existing path reds the very first test.
   const sample = new Project({ useInMemoryFileSystem: true }).createSourceFile(
     '/__probe.ts',
     'const a = 1',
   )
+  // The owner prototype is found by WALKING the chain, not by assuming a depth:
+  // `Node.prototype` is five levels above a `SourceFile` instance and patching a
+  // nearer level counts only the calls made on source files. Plan 0075 recorded a
+  // wrong-by-8,424 conclusion from exactly that mistake.
   let proto: object | null = protoOf(sample)
   while (proto !== null && !Object.prototype.hasOwnProperty.call(proto, name)) {
     proto = protoOf(proto)
@@ -246,7 +259,17 @@ describe('an edit to the file invalidates it', () => {
 describe('the broad walk is shared too', () => {
   /**
    * `findMatchesBroad` is the other strategy — `expression()` and `comment()`
-   * declare no `syntaxKinds`, so they must look at every descendant.
+   * declare no `syntaxKinds`, so they must look at every descendant. Measured on
+   * this repository, 1,698 bodies / 117,949 descendants with ts-morph's wrapper
+   * cache warm:
+   *
+   *     getDescendants()          49 ms   <- shared by this
+   *     + getText() on each       71 ms
+   *     + regex on each           68 ms
+   *
+   * The walk is ~three quarters of the cost and the filter is per-matcher, so the
+   * walk is the shareable part. End to end, six successive broad rules:
+   * **~57 ms each becomes ~17 ms each.**
    */
   it('walks a body once however many broad matchers ask', () => {
     const { project, file } = twoBodies()
@@ -265,10 +288,10 @@ describe('the broad walk is shared too', () => {
   })
 
   it('does not conflate two nodes', () => {
-    // Serving the first cached entry for the file regardless of which node was
-    // asked is a WRONG-population bug, not a stale one, and every other broad
-    // test would pass under it. The by-kind map has the equivalent test; this
-    // one does not.
+    // Sabotage found this missing: serving the first cached entry for the file
+    // regardless of which node was asked is a WRONG-population bug, not a stale
+    // one, and every other broad test passed under it. The by-kind map has the
+    // equivalent test; this one did not.
     const { file } = twoBodies()
 
     const f = allDescendants(file.getFunctionOrThrow('f')).map((n) => n.getText())
@@ -283,7 +306,8 @@ describe('the broad walk is shared too', () => {
 
   it('is actually wired into findMatchesBroad, not merely available', () => {
     // The wiring, through the RULE path, with the violations captured inside the
-    // measurement — `0` is also what a rule that analysed nothing reports.
+    // measurement — `0` is also what a rule that analysed nothing reports. This
+    // is the shape the last review showed was missing for the by-kind half.
     const tsMorphProject = new Project({ useInMemoryFileSystem: true })
     tsMorphProject.createSourceFile(
       '/src/parse.ts',
@@ -389,8 +413,8 @@ describe('the broad walk is shared too', () => {
 describe('a forgotten descendant does not become a crash', () => {
   it('re-walks when the cached nodes were forgotten under it', () => {
     /**
-     * Measured against `main` through the rule path: 1 violation before this
-     * cache, `InvalidOperationError` after.
+     * The regression review caught, measured against `main` through the rule
+     * path: 1 violation before this cache, `InvalidOperationError` after.
      *
      * `node.forget()` and `forgetNodesCreatedInBlock()` forget nodes without
      * modifying the file, so `onModified` never fires. The KEY node stays live
@@ -415,17 +439,18 @@ describe('a forgotten descendant does not become a crash', () => {
     expect(run()).toBe(1)
   })
 
-  it('survives forgetNodesCreatedInBlock, because getElements() re-collects rather than caching', () => {
+  it('does not fix forgetNodesCreatedInBlock, which was already broken', () => {
     /**
-     * Honest attribution, the other direction: `FunctionRuleBuilder` has no
-     * element cache of its own here (unlike ts-archunit's, which retains the
-     * `ArchFunction` wrappers created inside the block and reads a forgotten
-     * one on the next run). eess's `getElements()` re-collects fresh from the
-     * ts-morph project every call, so a rule re-run after
-     * `forgetNodesCreatedInBlock` reads live nodes, not stale wrappers, and
-     * does not throw. Pinned so that adding an element cache later — plan
-     * 0075's own shape — tells whoever adds it that this is the behaviour it
-     * would need to preserve, not a case it's free to regress.
+     * Honest attribution, because the first version of this test asserted a fix
+     * nobody made. Measured on BOTH sides: a rule re-run after
+     * `forgetNodesCreatedInBlock` throws on `main` too, so this cache neither
+     * causes nor cures it. The cause is one layer up — plan 0075's element cache
+     * retains the `ArchFunction` wrappers created inside the block, and those are
+     * what the next run reads.
+     *
+     * Pinned as a throw rather than left unstated, so that if someone fixes the
+     * element cache this test tells them the behaviour changed rather than
+     * leaving a silent difference between the two forget APIs.
      */
     const tsMorphProject = new Project({ useInMemoryFileSystem: true })
     tsMorphProject.createSourceFile('/src/a.ts', 'export function f() { eval("x") }')
@@ -441,8 +466,8 @@ describe('a forgotten descendant does not become a crash', () => {
       expect(run()).toBe(1)
     })
 
-    expect(run()).toBe(1)
-    // The escape hatch still works even though nothing here needed it.
+    expect(() => run()).toThrow(/removed or forgotten/)
+    // And the escape hatch works, which is the part that IS this cache's business.
     resetProjectCache()
     expect(run()).toBe(1)
   })
@@ -464,19 +489,19 @@ describe('a forgotten descendant does not become a crash', () => {
 
   it('still invalidates after a reset, because the listener reads the live map', () => {
     /**
-     * The invariant an easy refactor would break, and it is not a revert — it
-     * is the "clarifying" refactor someone reaches for:
+     * The invariant review found undefended, and it is not a revert — it is the
+     * "clarifying" refactor someone reaches for:
      *
      *     const captured = byFile
      *     sourceFile.onModified(() => captured.delete(sourceFile))
      *
      * `registerCacheReset` REPLACES `byFile`, so a captured reference deletes
-     * from the abandoned map and the live entry stays stale. With that
-     * mutation, the rule sees 1 call where the truth is 2 — `notContain`
-     * passing on the call the edit just added.
+     * from the abandoned map and the live entry stays stale. Measured with that
+     * mutation: the rule sees 1 call where the truth is 2 — `notContain` passing
+     * on the call the edit just added. The whole suite stayed green.
      *
-     * The sequence matters: warm, reset, re-warm (which re-registers nothing,
-     * since `watched` is deliberately not cleared), then edit.
+     * The sequence matters: warm, reset, re-warm (which is what re-registers
+     * nothing, since `watched` is deliberately not cleared), then edit.
      */
     const { file } = twoBodies()
     expect(descendantsOfKind(file.getFunctionOrThrow('f'), SyntaxKind.CallExpression)).toHaveLength(
@@ -513,8 +538,8 @@ describe('the rule that pays for it', () => {
     /**
      * The gap sabotage found: every other test here calls `descendantsOfKind`
      * directly, so reverting `findMatchesByKind` to `node.getDescendantsOfKind`
-     * would leave them all green while removing the entire benefit. This
-     * asserts the wiring by counting real traversals through the RULE path.
+     * left them all green while removing the entire benefit. This asserts the
+     * wiring by counting real traversals through the RULE path.
      *
      * Two matchers over the same bodies: uncached that is two walks per function
      * body, cached it is one.
@@ -535,7 +560,9 @@ describe('the rule that pays for it', () => {
     functions(project).should().notContain(call('eval')).violations()
 
     // The violations are captured INSIDE the measurement, because `0 walks` is
-    // also what a rule path that analysed nothing reports.
+    // also what a rule path that analysed nothing reports. Review verified two
+    // reverts — `searchFunctionBody` returning no body, and `findMatchesInNode`
+    // returning `[]` — that left this test green with the count alone.
     let seen: string[] = []
     const walks = countWalks(tsMorphProject, () => {
       seen = functions(project)

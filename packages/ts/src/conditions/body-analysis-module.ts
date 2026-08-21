@@ -1,13 +1,13 @@
 import type { SourceFile } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
+import { identifyMatches } from './match-identity.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import {
   searchModuleBody,
   type ModuleBodyOptions,
   reportedLine,
 } from '../helpers/body-traversal.js'
-import { identifyMatches } from './match-identity.js'
 
 // ─── Module body conditions ────────────────────────────────────────
 
@@ -73,8 +73,8 @@ export function moduleNotContain(
             file: sf.getFilePath(),
             line: reportedLine(node, result.triviaPositions[index]),
             message: `${sf.getBaseName()} contains ${matcher.description} at line ${String(reportedLine(node, result.triviaPositions[index]))}`,
-            because: context.because,
             identity: identities[index],
+            because: context.because,
           })
         })
       }
@@ -115,8 +115,8 @@ export function moduleUseInsteadOf(
             file: sf.getFilePath(),
             line: reportedLine(node, badResult.triviaPositions[index]),
             message: `${sf.getBaseName()} contains ${bad.description} at line ${String(reportedLine(node, badResult.triviaPositions[index]))} — use ${good.description} instead`,
-            because: context.because,
             identity: identities[index],
+            because: context.because,
           })
         })
 

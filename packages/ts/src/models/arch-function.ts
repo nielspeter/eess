@@ -151,17 +151,17 @@ export function fromMethodDeclaration(method: MethodDeclaration): ArchFunction {
 }
 
 /**
- * Options for {@link collectFunctions}.
+ * Options for {@link collectFunctions} / the `functions()` entry point.
  */
-// eess-exclude eess/no-unused-exports: options-parameter type of the exported collectFunctions API (must stay exported for declaration emit)
+// eess-exclude eess/no-unused-exports: re-exported from `src/index.ts`; this gate does not count a barrel `export … from` re-export as usage — see work/bugs/0168
 export interface FunctionCollectionOptions {
   /** Include class methods (pattern 3). Default: `true`. */
   includeMethods?: boolean
   /**
    * Include object-literal function property values — arrows, function
    * expressions, and method shorthand (`{ GET: () => {} }`, `{ GET(){} }`).
-   * Default: `false`. Opt-in because it widens the "named unit" default set.
-   * Each is named by its qualified property-key path.
+   * Default: `false`. Opt-in because it widens the "named unit" default set
+   * (proposal 016). Each is named by its qualified property-key path.
    */
   includeObjectLiteralFunctions?: boolean
 }
@@ -210,7 +210,7 @@ export function collectFunctions(
     }
   }
 
-  // Pattern 4: object-literal function property values (opt-in).
+  // Pattern 4: object-literal function property values (opt-in, proposal 016).
   // Collect from top-level object literals only; the shared traversal recurses
   // into nested ones, so each function is collected exactly once.
   if (includeObjectLiteralFunctions) {
@@ -221,9 +221,11 @@ export function collectFunctions(
       // Prefix the binding that owns the literal, so two object literals in one
       // file that share a key name (`routeA.handler` and `routeB.handler`) are
       // distinguishable. Without it both are just `handler`: the rendered
-      // violation is ambiguous, `.excluding('handler')` hits both, and —since
+      // violation is ambiguous, `.excluding('handler')` hits both, and — since
       // duplicate-pair identity is built from these names — accepting one
-      // finding silently accepts the other.
+      // finding silently accepts the other (bug 0010 collision, measured 3
+      // findings collapsing to 2 identities). The documented example
+      // (`routes["/x"].GET`) always implied this prefix; the code never added it.
       const owner = owningBindingName(root)
       for (const found of collectObjectLiteralFunctions(root)) {
         const keyPath = owner === undefined ? found.keyPath : [owner, ...found.keyPath]

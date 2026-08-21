@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { Project } from 'ts-morph'
 import path from 'node:path'
 import type { ArchProject } from '../../src/core/project.js'
-import { ArchRuleError } from '@nielspeter/eess'
+import type { RuleBuilderLike } from '@nielspeter/eess'
+import type { StrictBoundariesOptions } from '../../src/presets/boundaries.js'
 import { strictBoundaries } from '../../src/presets/boundaries.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/presets/boundaries')
@@ -17,132 +18,107 @@ function loadTestProject(): ArchProject {
   }
 }
 
+const all = (rules: RuleBuilderLike[]) => rules.flatMap((r) => r.violations())
+const errors = (rules: RuleBuilderLike[]) =>
+  all(rules).filter((v) => (v.severity ?? 'error') === 'error')
+const warns = (rules: RuleBuilderLike[]) => all(rules).filter((v) => v.severity === 'warn')
+const violatedIds = (rules: RuleBuilderLike[]) => new Set(all(rules).map((v) => v.ruleId))
+
 describe('strictBoundaries preset', () => {
   const p = loadTestProject()
+  const run = (opts: StrictBoundariesOptions) =>
+    strictBoundaries(p, { ...opts, report: 'builders' })
 
   it('passes for correct boundaries (each feature only imports from shared)', () => {
-    expect(() => {
-      strictBoundaries(p, {
-        folders: '**/src/feature-*',
-        shared: ['**/shared/**'],
-      })
-    }).not.toThrow()
+    expect(errors(run({ folders: '**/src/feature-*', shared: ['**/shared/**'] }))).toEqual([])
   })
 
-  it('override to off suppresses no-cross-boundary', () => {
-    expect(() => {
-      strictBoundaries(p, {
-        folders: '**/src/feature-*',
-        shared: ['**/shared/**'],
-        overrides: {
-          'preset/boundaries/no-cross-boundary': 'off',
-          'preset/boundaries/no-cycles': 'off',
-          'preset/boundaries/shared-isolation': 'off',
-        },
-      })
-    }).not.toThrow()
+  it('override to off suppresses the structural rules', () => {
+    const rules = run({
+      folders: '**/src/feature-*',
+      shared: ['**/shared/**'],
+      overrides: {
+        'preset/boundaries/no-cross-boundary': 'off',
+        'preset/boundaries/no-cycles': 'off',
+        'preset/boundaries/shared-isolation': 'off',
+      },
+    })
+    expect(errors(rules)).toEqual([])
   })
 
-  it('fails loudly when no boundary folders match the glob, instead of silently applying nothing', () => {
-    // Bug-0100-class (plan 0147, this session's own fix): a `folders` glob
-    // matching nothing used to construct zero rules and pass silently — the
-    // vacuity matrix's own KNOWN_FAIL_OPEN entry for this preset. It now
-    // throws a configuration finding naming the cause.
-    expect(() => {
-      strictBoundaries(p, {
-        folders: '**/src/nonexistent-*',
-      })
-    }).toThrow(ArchRuleError)
+  it('fails discovery (not silently) when no boundary folders match the glob', () => {
+    // Previously returned [] — the exact false green ADR-008 forbids.
+    const found = all(run({ folders: '**/src/nonexistent-*' }))
+    const discovery = found.find((v) => v.ruleId === 'preset/boundaries/discovery')
+    expect(discovery).toBeDefined()
+    expect(discovery!.bypassFilters).toBe(true) // config-level meta-finding, survives diff/baseline
   })
 
-  it('passes when the discovery glob matches nothing but noCopyPaste is enabled', () => {
-    // noCopyPaste is the one capability with no dependency on discovered
-    // boundary folders — it alone is enough to make the call construct
-    // something real.
-    expect(() => {
-      strictBoundaries(p, {
-        folders: '**/src/nonexistent-*',
-        noCopyPaste: true,
-      })
-    }).not.toThrow()
-  })
-
-  it('throws when shared is not specified and features import from shared', () => {
+  it('detects cross-boundary imports when shared is not specified', () => {
     // shared defaults to [] — features importing from shared/ become cross-boundary violations
-    expect(() => {
-      strictBoundaries(p, {
-        folders: '**/src/feature-*',
-      })
-    }).toThrow(ArchRuleError)
+    const rules = run({ folders: '**/src/feature-*' })
+    expect(violatedIds(rules)).toContain('preset/boundaries/no-cross-boundary')
   })
 
   describe('isolateTests', () => {
     it('passes when test files do not import from other boundaries', () => {
-      // Each feature's test file only imports from within its own boundary
-      expect(() => {
-        strictBoundaries(p, {
-          folders: '**/src/feature-*',
-          shared: ['**/shared/**'],
-          isolateTests: true,
-        })
-      }).not.toThrow()
+      const rules = run({
+        folders: '**/src/feature-*',
+        shared: ['**/shared/**'],
+        isolateTests: true,
+      })
+      expect(errors(rules)).toEqual([])
     })
 
     it('test-isolation can be overridden to off', () => {
-      expect(() => {
-        strictBoundaries(p, {
-          folders: '**/src/feature-*',
-          shared: ['**/shared/**'],
-          isolateTests: true,
-          overrides: {
-            'preset/boundaries/test-isolation': 'off',
-          },
-        })
-      }).not.toThrow()
+      const rules = run({
+        folders: '**/src/feature-*',
+        shared: ['**/shared/**'],
+        isolateTests: true,
+        overrides: { 'preset/boundaries/test-isolation': 'off' },
+      })
+      expect(all(rules).some((v) => v.ruleId === 'preset/boundaries/test-isolation')).toBe(false)
     })
   })
 
   describe('noCopyPaste', () => {
-    it('warns on duplicate function bodies across boundaries', () => {
-      // feature-a/helper.ts and feature-b/helper.ts have identical bodies.
-      // noCopyPaste triggers smells.duplicateBodies which is dispatched as 'warn'.
+    it('surfaces a WARN (not console.warn) on duplicate bodies across boundaries', () => {
       const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
-      expect(() => {
-        strictBoundaries(p, {
-          folders: '**/src/feature-*',
-          shared: ['**/shared/**'],
-          noCopyPaste: true,
-        })
-      }).not.toThrow()
-      // The duplicate bodies smell should produce warnings
-      expect(spy).toHaveBeenCalled()
+      const rules = run({
+        folders: '**/src/feature-*',
+        shared: ['**/shared/**'],
+        noCopyPaste: true,
+      })
+      const w = warns(rules)
+      expect(w.some((v) => v.ruleId === 'preset/boundaries/no-duplicate-bodies')).toBe(true)
+      expect(w.every((v) => v.severity === 'warn')).toBe(true)
+      expect(errors(rules)).toEqual([]) // warn never fails
+      expect(spy).not.toHaveBeenCalled() // returning form does not console.warn
       spy.mockRestore()
     })
 
     it('no-duplicate-bodies can be overridden to error', () => {
-      expect(() => {
-        strictBoundaries(p, {
-          folders: '**/src/feature-*',
-          shared: ['**/shared/**'],
-          noCopyPaste: true,
-          overrides: {
-            'preset/boundaries/no-duplicate-bodies': 'error',
-          },
-        })
-      }).toThrow(ArchRuleError)
+      const rules = run({
+        folders: '**/src/feature-*',
+        shared: ['**/shared/**'],
+        noCopyPaste: true,
+        overrides: { 'preset/boundaries/no-duplicate-bodies': 'error' },
+      })
+      expect(errors(rules).some((v) => v.ruleId === 'preset/boundaries/no-duplicate-bodies')).toBe(
+        true,
+      )
     })
 
     it('no-duplicate-bodies can be overridden to off', () => {
-      expect(() => {
-        strictBoundaries(p, {
-          folders: '**/src/feature-*',
-          shared: ['**/shared/**'],
-          noCopyPaste: true,
-          overrides: {
-            'preset/boundaries/no-duplicate-bodies': 'off',
-          },
-        })
-      }).not.toThrow()
+      const rules = run({
+        folders: '**/src/feature-*',
+        shared: ['**/shared/**'],
+        noCopyPaste: true,
+        overrides: { 'preset/boundaries/no-duplicate-bodies': 'off' },
+      })
+      expect(all(rules).some((v) => v.ruleId === 'preset/boundaries/no-duplicate-bodies')).toBe(
+        false,
+      )
     })
   })
 })

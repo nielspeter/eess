@@ -1,12 +1,36 @@
-import type { PathUniverse } from '@nielspeter/eess'
 import type { ArchProject } from './project.js'
 
 /**
- * Materialize the project's path universe from ts-morph's own source-file
- * list, once. The pure shape and `viewsFor()` live in the kernel
- * (`@nielspeter/eess`'s `path-universe.js`); only this walk needs
- * `ArchProject`, so only this walk lives here.
+ * Every path a glob could legitimately match in a project, materialized once.
+ *
+ * A free function over `ArchProject` rather than a method on it: bare-object
+ * `ArchProject` literals are real test doubles across the suite, and adding a
+ * required method would break every one of them. Lives in `src/core/`, takes
+ * `ArchProject` in and hands plain strings out, and imports no ts-morph —
+ * ADR-007's batch-first shape by construction, one materialization instead of
+ * a traversal per glob.
  */
+export interface PathUniverse {
+  /** Absolute paths of every file in the project. */
+  readonly filePaths: readonly string[]
+  /**
+   * Immediate parent directories only.
+   *
+   * Not all ancestors. `resideInFolder` tests
+   * `filePath.substring(0, filePath.lastIndexOf('/'))` — the immediate parent
+   * and nothing else — so an all-ancestors set is not a harmless
+   * over-approximation, it is a **false green**: measured on this repo, 41 of
+   * the 122 ancestors are no file's parent, so `resideInFolder('**\/tests/fixtures')`
+   * can never select anything while an all-ancestors universe calls it
+   * satisfiable. Using the parent set removes the over-approximation rather
+   * than excusing it.
+   */
+  readonly parentDirs: readonly string[]
+  /** `filePaths` relative to the tsconfig directory, for message wording. */
+  readonly tsconfigRelativeFilePaths: readonly string[]
+  /** `parentDirs` relative to the tsconfig directory, for message wording. */
+  readonly tsconfigRelativeParentDirs: readonly string[]
+}
 
 const cache = new WeakMap<ArchProject, PathUniverse>()
 
@@ -35,6 +59,28 @@ export function pathUniverse(project: ArchProject): PathUniverse {
   return universe
 }
 
+/**
+ * The views a glob of this kind is matched against.
+ *
+ * Satisfiability is taken against the **union** — a glob is unsatisfiable only
+ * when nothing in any view matches it. That is deliberately generous, so that
+ * a wrong `base` cannot make a glob look unmatched. It does NOT make `base`
+ * message-only: the anchor check in `syntacticFault` consults it, and an
+ * unanchored `base: 'absolute'` glob is dead regardless of what any view
+ * holds. See `GlobBase`.
+ *
+ * `import-target`, `specifier` and `literal` are not path kinds and have no
+ * views, so they can never be found unsatisfiable here.
+ */
+export function viewsFor(
+  universe: PathUniverse,
+  kind: 'file-path' | 'parent-dir' | 'import-target' | 'specifier' | 'literal',
+): readonly (readonly string[])[] {
+  if (kind === 'file-path') return [universe.filePaths, universe.tsconfigRelativeFilePaths]
+  if (kind === 'parent-dir') return [universe.parentDirs, universe.tsconfigRelativeParentDirs]
+  return []
+}
+
 /** The directory containing the tsconfig, with forward slashes and no trailing separator. */
 function tsconfigDir(tsConfigPath: string): string {
   const normalized = tsConfigPath.replaceAll('\\', '/')
@@ -46,9 +92,8 @@ function tsconfigDir(tsConfigPath: string): string {
  * `filePath` relative to `root`, or unchanged when it sits outside.
  *
  * Deliberately not `path.relative`: that would emit `../../..` for a path
- * above the root, which encodes the root's depth — machine-dependent, and
- * exactly the mistake this module's own `discoverIdentityRoot`-adjacent
- * kernel sibling exists to avoid.
+ * above the root, which encodes the root's depth — machine-dependent, and the
+ * same mistake `toPortablePath` exists to avoid.
  */
 function relativeTo(root: string, filePath: string): string {
   if (root === '') return filePath

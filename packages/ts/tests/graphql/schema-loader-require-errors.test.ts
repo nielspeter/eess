@@ -13,13 +13,14 @@ import {
  * successfully, so neither branch is reachable through them — these tests
  * force each failure shape through `setGraphQLLoaderForTests()`.
  *
- * A prior version of this mocked `node:module`'s `createRequire` via
+ * Previously this mocked `node:module`'s `createRequire` via
  * `vi.doMock()` + `vi.resetModules()` + a dynamic `import()` per test. That
- * intercepts a Node builtin, which Vitest does not reliably isolate per-file
- * under its default worker-reuse — passes in isolation but fails
- * intermittently under full-suite load. The seam this file uses instead
- * replaces only `schema-loader.ts`'s own loading step directly — no module
- * graph, no builtin, nothing shared with any other file to race on.
+ * intercepted a Node builtin, which Vitest does not reliably isolate
+ * per-file under its default worker-reuse — passed 8/8 in isolation but
+ * failed intermittently under full-suite load (bug 0080), including the
+ * actual v0.60.0 publish workflow. The seam this file uses now replaces only
+ * `schema-loader.ts`'s own loading step directly — no module graph, no
+ * builtin, nothing shared with any other file to race on.
  */
 
 describe('requireGraphQL() error branching', () => {
@@ -65,8 +66,8 @@ describe('requireGraphQL() error branching', () => {
     // whose own internal require() fails throws MODULE_NOT_FOUND naming THAT
     // file ("Cannot find module './language/kinds.js'"), never the top-level
     // package name. Same code as the "not installed" case; different
-    // specifier — this pins the case so it doesn't get routed to "not
-    // installed" (an install instruction that cannot fix a corrupt install).
+    // specifier. Routing this to "not installed" was the bug the fix in
+    // commit 511ae24 aimed at but did not fully close — this pins the case.
     setGraphQLLoaderForTests(() => {
       throw Object.assign(new Error("Cannot find module './language/kinds.js'"), {
         code: 'MODULE_NOT_FOUND',

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import type { ArchViolation } from '../../src/core/violation.js'
-import { DiffFilter } from '@nielspeter/eess'
+import type { ArchViolation } from '@nielspeter/eess'
+import { DiffFilter } from '../../src/helpers/diff-aware.js'
 import { makeViolation } from '../support/test-rule-builder.js'
 
 /** Shorthand with diff-aware-test defaults. */
@@ -14,7 +14,9 @@ describe('DiffFilter.filterToChanged (extended)', () => {
     const filter = new DiffFilter(changedFiles)
     const violations = [mv('/a.ts'), mv('/b.ts')]
     const result = filter.filterToChanged(violations)
-    expect(result).toHaveLength(2)
+    // "returns all" means these two files, in order — returning one of them
+    // twice also had length 2.
+    expect(result.map((v) => v.file)).toEqual(['/a.ts', '/b.ts'])
   })
 
   it('returns empty when no violations match changed files', () => {

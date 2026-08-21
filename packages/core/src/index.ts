@@ -81,7 +81,7 @@ export { bold, red, dim, yellow, cyan, gray } from './ansi.js'
 // Exclusions
 export { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
 export type { ExclusionComment, ExclusionWarning, ParseResult } from './exclusion-comments.js'
-export { silent } from './silent-exclusion.js'
+export { silent, isSilent } from './silent-exclusion.js'
 export type { SilentExclusion } from './silent-exclusion.js'
 
 // Baseline & diff-aware
@@ -140,3 +140,25 @@ export {
   commentSuppressionNotice,
 } from './comment-suppression.js'
 export { dedupeConfigFindings } from './dedupe-config-findings.js'
+export { assertionLessViolation } from './terminal-builder.js'
+export { toPortablePath } from './identity-root.js'
+export type { Describable } from './rule-description.js'
+export { isDescribable } from './rule-description.js'
+export { resetStderrGuardForTests } from './stderr.js'
+export { DECLARE_INSTEAD } from './unsuppressable.js'
+export { UNSUPPRESSABLE_MECHANISMS } from './unsuppressable.js'
+export { subjectOf } from './violation.js'
+export { identityCollisions } from './violation.js'
+export { resetIdentityCollisions } from './violation.js'
+export { disambiguateIdentities } from './violation.js'
+export { isArchRuleError } from './errors.js'
+export type {
+  ArchJsonViolation,
+  ArchJsonSuppression,
+  ArchJsonUntestedAllowlist,
+  ArchJsonReport,
+} from './format-json.js'
+export type { CorrespondenceResult } from './correspondence-core.js'
+export { setCorrespondence } from './correspondence-core.js'
+export { marksOwnEmptyDiscovery, ownsEmptyDiscovery } from './owns-empty-discovery.js'
+export type { RuleBuilderLike } from './rule-builder-like.js'

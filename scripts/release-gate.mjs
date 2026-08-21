@@ -19,7 +19,7 @@
  * write disabled the gate. Two definitions of "a changeset" is the drift this
  * project exists to catch, so there is now one.
  *
- * Three rules:
+ * Four rules:
  *
  *   release/changed-package-needs-changeset  a changed package with no changeset
  *                                            declaring a bump — the bug 0106 case.
@@ -31,6 +31,13 @@
  *   release/unparseable-changeset             a file in `.changeset/` the shared
  *                                            parser rejects. Fail-closed: it is a
  *                                            finding, never a waiver.
+ *   release/breaking-needs-minor              a changeset whose body declares a
+ *                                            break while every package it names
+ *                                            takes `patch` (bug 0184). The one
+ *                                            rule here guarding an IRREVERSIBLE
+ *                                            effect: `changeset publish` ships
+ *                                            with provenance and npm refuses a
+ *                                            re-publish.
  *
  * STRONGER THAN `changeset status --since`, deliberately. Measured on a
  * throwaway worktree: changing `packages/core/src` and committing a changeset
@@ -97,6 +104,82 @@ export function packagesTouchedBy(changedFiles, packages) {
  *   `changeset add --empty` case, and exactly what upstream would conclude.
  *   `error` is set when the parser rejects the file; it is never a waiver.
  */
+/**
+ * Whether a changeset body DECLARES a breaking change.
+ *
+ * **The keyword set is measured, not guessed** (bug 0184). Two forms count:
+ *
+ * - a bolded `**Breaking…**` lead, which is how this repo writes it — 4 of the 9
+ *   changesets pending when this was built use exactly that shape;
+ * - `BREAKING CHANGE` / `BREAKING-CHANGE`, the conventional-commits marker, so a
+ *   contributor who reaches for the ecosystem-standard spelling is covered.
+ *
+ * **What deliberately does NOT count, and why each was rejected:**
+ *
+ * - `**Migration:**` sections. The obvious second signal, and wrong: 5 pending
+ *   changesets carry one and only 4 describe a break, so the two sets differ.
+ *   Migration guidance accompanies plenty of non-breaking minors.
+ * - bare `/breaking/i`. "This is **not** a breaking change" and "avoids breaking
+ *   the baseline" both match it. A gate that reddens correct changesets is one
+ *   that gets suppressed — ADR-009 rule 1, whose discriminator is whether the
+ *   remedy is optional and which warns that failing on a judgement call trains
+ *   the reader to suppress — and suppressing this one re-opens an
+ *   irreversible path.
+ *
+ * **The false-positive surface, measured rather than claimed away.** Two earlier
+ * versions of this comment claimed negations were impossible "by construction",
+ * then that every negation measured failed to match. Both were wrong, and review
+ * measured the counterexamples each time. What is true today:
+ *
+ * | body | fires | correct? |
+ * | --- | --- | --- |
+ * | `a **Breaking** change but did not make one` | no | yes — line-anchored |
+ * | `This is not a breaking change` | no | yes |
+ * | `**Breaking changes:** none — internal only.` | **yes** | **no** |
+ * | `**Breaking change avoided** by keeping the alias` | **yes** | **no** |
+ *
+ * The last two are accepted, deliberately. Detecting them needs a negation test
+ * inside the bolded span, and that trades a LOUD false positive for a SILENT
+ * false negative on an irreversible path — `**Breaking:** none of the old exports
+ * remain` contains "none" and is a genuine break. Wrong direction. The remedy is
+ * cheap and the message states it: do not lead a changeset with a bolded
+ * "Breaking" unless something broke.
+ *
+ * `BREAKING CHANGE` is anchored as a line-leading footer token, which is what the
+ * conventional-commits spec defines it as. Unanchored it fired on prose ABOUT the
+ * marker — including, measured, a changeset describing this very rule.
+ *
+ * The cost of the narrow set is stated rather than hidden: a break announced in
+ * unadorned prose is not caught. That is the honest trade — this gate exists to
+ * catch the case where someone wrote "Breaking" and still typed `patch`, not to
+ * infer intent from prose.
+ */
+export function breakingMarkerIn(summary) {
+  if (typeof summary !== 'string') return undefined
+  // The bolded form closes at its own `**`, so the quoted marker is a whole
+  // span rather than a fixed-width slice. A character cap cut mid-code-span and
+  // printed an unbalanced backtick — `**Breaking for subclasses of `SmellBuilder`
+  // was the measured output, which reads as a typo in the gate rather than as a
+  // quotation of the author's own text.
+  // `__bold__` is CommonMark's other strong emphasis, and `CHANGES` (plural) is
+  // the commoner spelling in the wild than the conventional-commits singular —
+  // both were measured as misses by an adopter review, and both are free: no
+  // negation can match either.
+  const m =
+    /^[ \t]*(?:[-*+][ \t]+)?(?:\*\*|__)(?:BREAKING|Breaking)[^\n]*?(?:\*\*|__)/m.exec(summary) ??
+    /^[ \t]*(?:[-*+][ \t]+)?(?:\*\*|__)(?:BREAKING|Breaking)[^\n]*/m.exec(summary) ??
+    /^#{1,6}[ \t]+(?:BREAKING|Breaking)[^\n]*/m.exec(summary) ??
+    /^BREAKING[ -]CHANGES?:/m.exec(summary)
+  if (m === null || m === undefined) return undefined
+  const marker = m[0].trim()
+  return marker.length <= 72 ? marker : `${marker.slice(0, 69)}…`
+}
+
+/** Whether a changeset body declares a break. See {@link breakingMarkerIn}. */
+export function declaresBreaking(summary) {
+  return breakingMarkerIn(summary) !== undefined
+}
+
 export function declarationsIn(text, file) {
   let parsed
   try {
@@ -120,7 +203,11 @@ export function declarationsIn(text, file) {
     file,
     line: lineOf(r.name),
   }))
-  return { declarations, empty: declarations.length === 0 }
+  return {
+    declarations,
+    empty: declarations.length === 0,
+    breakingMarker: breakingMarkerIn(parsed.summary),
+  }
 }
 
 const WHY_UNDECLARED =
@@ -129,6 +216,16 @@ const WHY_UNDECLARED =
 const WHY_GHOST =
   'a changeset naming a package that does not exist is a declaration that publishes nothing — ' +
   'it looks like a pending release and is one only to a reader'
+const WHY_BREAKING_PATCH =
+  'a contract break released as a patch cannot be taken back — `changeset publish` ships with ' +
+  'provenance and npm refuses to re-publish a version, so the wrong bump is permanent within ' +
+  'the hour it takes anyone to notice'
+const WHY_BREAK_HIDES_IN_A_DEPENDENT =
+  'an adopter installs a DEPENDENT and may hold no version range on the broken package at all, ' +
+  'so a break announced only where it happened reaches them as an inherited PATCH — a version ' +
+  'their caret range takes without asking, under a changelog that never mentions the break. ' +
+  'Declaring the dependent at minor is the only lever: changesets propagates an inherited bump ' +
+  'as a patch regardless of configuration'
 const WHY_UNPARSEABLE =
   'a changeset the release tool cannot read declares nothing, and a file that declares nothing ' +
   'must never be mistaken for one declaring "this ships nothing"'
@@ -150,6 +247,8 @@ export function releaseViolations({
   workspacePackages,
   waivers = [],
   unparseable = [],
+  breakingFiles = [],
+  dependentsOf = {},
 }) {
   const declarationSelection = {
     elements: [...declarations],
@@ -217,10 +316,245 @@ export function releaseViolations({
     because: WHY_UNPARSEABLE,
   }))
 
+  // A changeset that says it breaks something must bump at least one package
+  // beyond `patch`. **At least one, not all** — a break is owned by one package
+  // while its siblings legitimately take a dependency patch, which is the shape
+  // of `assertion-less-rules-fail.md` (kernel minor, five dialects patch).
+  // Requiring every row to be minor would redden that correct changeset.
+  // One shape: `{ file, marker }`. An earlier draft also accepted a bare path
+  // string, which is two definitions of the same input — the drift this project
+  // exists to catch, in the gate that catches it.
+  const breakingAnnotated = breakingFiles
+    .map(({ file, marker }) => ({
+      file,
+      marker,
+      decls: declarations.filter((d) => d.file === file),
+    }))
+    // **The empty case is a finding, not a skip.** An earlier version filtered it
+    // out reasoning "no bump here to be wrong". Measured, that premise is wrong:
+    // `--empty` sets `waived`, which suppresses
+    // release/changed-package-needs-changeset for every changed package — so a
+    // file whose body carries the loudest marker the detector knows turns off the
+    // strongest rule in this gate, and produced ZERO violations. A declared break
+    // with no declared bump is a self-contradiction; fail closed.
+    // **Two strengths, and the weaker one is named in the output.**
+    //
+    // When the marker names its owner — `**Breaking (@nielspeter/eess-ts):**` —
+    // THAT package must be past patch. Without an owner the rule can only ask
+    // that SOMETHING is, because a break is owned by one package while its
+    // siblings take dependency patches: `assertion-less-rules-fail.md` is kernel
+    // minor + five dialects patch, and demanding all of them would redden it.
+    //
+    // The gap that leaves is real and was measured, not theorised: kernel minor
+    // with the break actually in a dialect on patch passes the weak form, and
+    // that is this repo's most common multi-package shape. Naming the owner is
+    // what closes it, which is why the message says so when no owner was given.
+    .map((r) => {
+      const owners = [
+        ...new Set((r.marker ?? '').match(/@[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9.-]*/g) ?? []),
+      ]
+      return { ...r, owners }
+    })
+
+  // How many were checked in the WEAK form: several packages declared, no owner
+  // named, so "at least one past patch" is all the rule can ask. Counted and
+  // printed on every run, including green ones — otherwise the summary reports
+  // the same ✓ for a changeset checked exactly and one checked loosely, and only
+  // one of those is the guarantee the record claims.
+  const breakingLoose = breakingAnnotated.filter(
+    ({ owners, decls }) => owners.length === 0 && decls.length > 1,
+  ).length
+
+  // How many dependency EDGES `break-names-dependents` actually weighed. Without
+  // it the rule contributes no number in any branch, and there is a vacuously
+  // green path with no signal: `dependentsOf` is built from `dependencies` only,
+  // so if the kernel ever moved to `peerDependencies` in the dialects the map
+  // becomes `{}`, the rule examines every breaking changeset and can never fire,
+  // and every run still prints a ✓. One commit after this file argued that a
+  // denominator from the wrong source is worse than none, the new rule shipped
+  // with none at all.
+  const breakDependentEdges = breakingAnnotated.reduce((n, { decls, owners }) => {
+    const broken =
+      owners.length > 0
+        ? owners
+        : decls.filter((d) => d.bump === 'minor' || d.bump === 'major').map((d) => d.pkg)
+    return n + broken.reduce((m, b) => m + (dependentsOf[b] ?? []).length, 0)
+  }, 0)
+
+  const brokenOnPatch = breakingAnnotated
+    .filter(({ decls, owners }) =>
+      decls.length === 0
+        ? true
+        : owners.length > 0
+          ? !owners.every((o) =>
+              decls.some((d) => d.pkg === o && (d.bump === 'minor' || d.bump === 'major')),
+            )
+          : !decls.some((d) => d.bump === 'minor' || d.bump === 'major'),
+    )
+    .map(({ file, marker, decls, owners }) => {
+      // **Both branches must actually clear the finding** (ADR-009 rule 2). An
+      // earlier wording offered "say plainly that nothing a consumer can observe
+      // changed" — which is what `'@pkg': none` MEANS, and review measured the
+      // rule still firing on `none` while advising exactly that. The gate told
+      // you to do the thing you had just done. The marker, not the bump, is what
+      // this rule reads, so removing the marker is the only second way out.
+      // The empty changeset is its own shape: nothing to raise, so the remedy is
+      // to declare the bump the break needs — or drop the marker if the file
+      // really does ship nothing.
+      if (decls.length === 0) {
+        const emptySuggestion =
+          `declare the bump this break needs — \`'@scope/pkg': minor\` — or, if this changeset ` +
+          `really ships nothing, delete the marker` +
+          (marker === undefined ? '' : `: \`${marker}\``) +
+          `. An empty changeset also WAIVES the changed-package rule for every package in the ` +
+          `run, so this file currently silences more than itself.`
+        return {
+          rule: 'correspondence',
+          ruleId: 'release/breaking-needs-minor',
+          element: file,
+          file,
+          line: 1,
+          message:
+            `\`${file}\` declares a breaking change` +
+            (marker === undefined ? '' : ` (\`${marker}\`)`) +
+            ` and declares no bump at all\n  ${emptySuggestion}`,
+          suggestion: emptySuggestion,
+          because: WHY_BREAKING_PATCH,
+        }
+      }
+      const suggestion =
+        `raise the package that owns the break to \`minor\` (on 0.x a break is a minor; ` +
+        `\`major\` would take it to 1.0.0 and claim stability), or — if this is not a break — ` +
+        `delete the marker this rule matched` +
+        (marker === undefined ? '' : `: \`${marker}\``) +
+        `. Changing the bump alone will not clear this, and neither will \`none\`.` +
+        ((owners.length > 0 ? owners : decls.map((d) => d.pkg)).some(
+          (b) => (dependentsOf[b] ?? []).length > 0,
+        )
+          ? ` Once it is past patch you will also be asked to name the packages that depend on it, ` +
+            `so add them in the same edit.`
+          : '') +
+        (owners.length > 0
+          ? ` This changeset names its owner (${owners.join(', ')}), so THAT package is the one that must move.`
+          : decls.length > 1
+            ? ` Name the owning package in the marker — \`**Breaking (${decls[0].pkg}):**\` — and this rule ` +
+              `will check that package specifically instead of accepting any one of the ${String(decls.length)} declared here.`
+            : '')
+      return {
+        rule: 'correspondence',
+        ruleId: 'release/breaking-needs-minor',
+        element: file,
+        file,
+        line: decls[0].line,
+        message:
+          `\`${file}\` declares a breaking change` +
+          (marker === undefined ? '' : ` (\`${marker}\`)`) +
+          ` and bumps only ${[...new Set(decls.map((d) => d.bump))].sort().join('/')}: ` +
+          `${decls.map((d) => `${d.pkg}=${d.bump}`).join(', ')}\n  ${suggestion}`,
+        // Also as its own field: `CLAUDE.md` promises every violation surfaces a
+        // `Fix:` line from `suggestion`, and `--format json` is the agent path.
+        suggestion,
+        because: WHY_BREAKING_PATCH,
+      }
+    })
+
+  // **A break must be announced on the packages that carry it downstream.**
+  //
+  // Measured with the real `changeset version` (bug 0185): a kernel break
+  // correctly declared `minor` produces `@nielspeter/eess-ts@0.3.1` whose entire
+  // changelog entry is "Updated dependencies". On 0.x, `^0.3.0` blocks `0.4.0` but
+  // takes `0.3.1` — so the barrier the `minor` was supposed to raise never reaches
+  // the package anyone installs.
+  //
+  // **The cause is NOT `updateInternalDependencies`**, which an earlier version of
+  // this comment blamed. Review read the changesets source:
+  // `assemble-release-plan` hard-codes the propagated type —
+  // `if (type !== 'major' && type !== 'minor') type = 'patch'` — and never reads
+  // that setting at all; it is consumed only by `apply-release-plan` as
+  // `minReleaseType`, the threshold for rewriting the dependency RANGE string.
+  // There is no configuration under which an inherited bump becomes a minor. So
+  // the only thing that raises the barrier is DECLARING the dependent, which is
+  // why this rule requires `minor` rather than merely a mention.
+  //
+  // Naming the dependent in the SAME changeset fixes both halves at once: it gets
+  // its own bump, and it gets the changeset's TEXT in its own changelog rather
+  // than "Updated dependencies". `assertion-less-rules-fail.md` already does this
+  // by hand and explains why; this makes the convention enforceable.
+  //
+  // `none` does not count as named: it produces no changelog entry, which is the
+  // half that matters here.
+  //
+  // **The VERSION is not evidence either way, which review established by
+  // measurement.** Strip the five dialect rows from `assertion-less-rules-fail.md`
+  // and run the real `changeset version`: `eess-ts` still lands on 0.4.0, because
+  // an unrelated pending changeset declares it `minor`. A reviewer read that as
+  // the rule firing where no harm occurs. It is not — re-measured, `eess-ts`'s
+  // changelog contains the OTHER changesets' text and **nothing** about this
+  // break, which appears only in the kernel's. The barrier can be raised by
+  // accident; the missing text cannot be, and that is the harm this rule names.
+  //
+  // It follows that the question is per-FILE and not per-release: whether some
+  // other pending changeset happens to bump the dependent is incidental, and the
+  // pending set is not stable — a changeset can be released alone.
+  //
+  // **Why `minor` and not merely "named".** An earlier version accepted any bump
+  // except `none`, on the reasoning that the changelog TEXT was the half that
+  // mattered. Measured, that fixed one half and left the other exactly as the bug
+  // found it: with the dependent at `patch`, `eess-ts` releases as `0.3.1` and the
+  // entry renders as `**Breaking:** …` under a heading saying `### Patch Changes`,
+  // which an adopter's caret range takes without asking. At `minor` it releases as
+  // `0.4.0` with the text under `### Minor Changes`.
+  //
+  // This does change how the family versions on a marked break — every dependent
+  // moves a minor — and it reddened one pending changeset, which now declares its
+  // five dialects at `minor` rather than `patch`. That is the deliberate trade:
+  // the bug is about a break reaching an adopter silently, and only the version
+  // stops that.
+  const breakHiddenInDependent = breakingAnnotated.flatMap(({ file, decls, owners }) => {
+    const declared = new Set(decls.map((d) => d.pkg))
+    const broken =
+      owners.length > 0
+        ? owners
+        : decls.filter((d) => d.bump === 'minor' || d.bump === 'major').map((d) => d.pkg)
+    const missing = [
+      ...new Set(
+        broken.flatMap((b) =>
+          (dependentsOf[b] ?? []).filter(
+            (dep) =>
+              !decls.some((d) => d.pkg === dep && (d.bump === 'minor' || d.bump === 'major')),
+          ),
+        ),
+      ),
+    ].sort()
+    if (missing.length === 0) return []
+    const suggestion =
+      `add ${missing.join(', ')} to this changeset at \`minor\`. They depend on ` +
+      `${broken.join(', ')}, so they ship this break to anyone who installs THEM. ` +
+      `\`patch\` is not enough: changesets propagates a dependency bump as a patch no matter ` +
+      `what, and a patch is the release an adopter's \`^0.3.0\` takes without asking.`
+    return [
+      {
+        rule: 'correspondence',
+        ruleId: 'release/break-names-dependents',
+        element: file,
+        file,
+        line: decls[0]?.line ?? 1,
+        message:
+          `\`${file}\` declares a break in ${broken.join(', ')} and does not name ` +
+          `${missing.length === 1 ? 'the package that depends on it' : 'the packages that depend on it'}: ` +
+          `${missing.join(', ')}\n  ${suggestion}`,
+        suggestion,
+        because: WHY_BREAK_HIDES_IN_A_DEPENDENT,
+      },
+    ]
+  })
+
   const violations = [
     ...(waived ? [] : needsChangeset.violations()),
     ...namesRealPackage.violations(),
     ...unreadable,
+    ...brokenOnPatch,
+    ...breakHiddenInDependent,
   ]
 
   const declaredNames = new Set(declarations.map((d) => d.pkg))
@@ -233,6 +567,16 @@ export function releaseViolations({
       declarations: declarations.length,
       workspace: workspacePackages.length,
       unparseable: unparseable.length,
+      // **Reported by the rule, not by the caller's own variable.** The summary
+      // used to print `breakingFiles.length` read from the shell, while the rule
+      // read the argument. Severing the argument left the two disagreeing in
+      // silence: measured, `check:release` exited 0 over a real break declared as
+      // a patch while printing `✓ 4 of 9 … each bumping past patch`. A denominator
+      // sourced from anywhere but the rule attests a check that may not have run,
+      // which is worse than no denominator at all (ADR-010).
+      breakingExamined: breakingFiles.length,
+      breakingLoose,
+      breakDependentEdges,
       waivers: [...waivers],
       waived,
       // Named, not just counted: under a waiver these are the packages the gate

@@ -1,9 +1,11 @@
 /**
  * A shipped default pattern is part of a baseline identity, so changing it is a migration.
  *
- * A prior rebuild of `STUB_PATTERNS` from a ~90-character case-insensitive regex to a
- * ~200-character anchored one made every baselined `noStubComments` finding stop matching —
- * measured following the documented upgrade recipe: 0 of 4 entries matched.
+ * [ts-archunit Bug 0060](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0060-a-pattern-change-silently-invalidates-every-baselined-finding.md).
+ * v0.47.0 rebuilt `STUB_PATTERNS` from a ~90-character case-insensitive regex to a
+ * ~200-character anchored one, and **every baselined `noStubComments` finding stopped
+ * matching**. Measured following the documented upgrade recipe: 0 of 4 entries matched.
+ * The v0.47.0 upgrade note mentioned baselines only for cycles.
  *
  * ## Why the pattern is in the identity at all
  *
@@ -11,7 +13,7 @@
  * `comment(STUB_PATTERNS)` the matcher description **is** `comment matching /…/`. So the
  * pattern text is inside the identity, not merely inside the rendered message — which is
  * why "just set an identity" does not fix it, and why removing it from the identity is a
- * genuine design decision with no free option.
+ * genuine design decision with no free option (the report has the table).
  *
  * ## What this file is, and what it is not
  *
@@ -55,7 +57,7 @@ const REMEDY = [
   'If the change is correct, do all three:',
   '  1. update the expected string below;',
   '  2. add a CHANGELOG entry saying baselines for the affected rules must be regenerated;',
-  '  3. add the row to docs/upgrading.md, scoped by the rules a user would recognise.',
+  '  3. add the row to the upstream ts-archunit docs/upgrading.md, scoped by the rules a user would recognise.',
 ].join('\n')
 
 describe('anyCase builds a pattern that matches the word it was built from', () => {
@@ -63,14 +65,14 @@ describe('anyCase builds a pattern that matches the word it was built from', () 
   // case-sensitive — so the phrase branch alternates its own letters. Exported for this
   // test only; it is deliberately absent from `src/index.ts`, so it is not public API.
   //
-  // Two silent-wrongness traps live in it, and neither would be caught by a test that only
-  // checks it doesn't throw:
+  // Two silent-wrongness traps were found in it, one release apart, and BOTH by review
+  // rather than by any failing test:
   //
-  //  1. metacharacters left unescaped, so `todo(x)` becomes a capture group;
+  //  1. metacharacters were unescaped, so `todo(x)` became a capture group;
   //  2. a case mapping is not one-to-one — `'ß'.toUpperCase()` is `'SS'` — so a character
   //     CLASS silently could not match its own uppercase form.
   //
-  // Neither throws. The property that catches both is the round trip: whatever the input,
+  // Neither threw. The property that catches both is the round trip: whatever the input,
   // the pattern must match that input in every casing.
   const WORDS = [
     'not',
@@ -113,11 +115,11 @@ describe('anyCase builds a pattern that matches the word it was built from', () 
   })
 })
 
-describe('a shipped default pattern has not moved unnoticed', () => {
+describe('a shipped default pattern has not moved unnoticed (bug 0060)', () => {
   it('the guarded set is DERIVED from source, not believed', () => {
-    // This row could assert `toEqual(['STUB_PATTERNS'])` — a hand-maintained belief about a
-    // hand-maintained list, which pins what the population is thought to be, so a second
-    // default pattern arriving would be invisible to it.
+    // This row asserted `toEqual(['STUB_PATTERNS'])` — a hand-maintained belief about a
+    // hand-maintained list, which is the shape plan 0079 exists to reject: it pins what I
+    // think the population is, so a second default pattern arriving is invisible to it.
     //
     // Derive it instead. A "shipped default pattern" is a `RegExp`-typed parameter with a
     // default, in a function `src/index.ts` exports — that is what makes a user's rule
@@ -167,10 +169,10 @@ describe('a shipped default pattern has not moved unnoticed', () => {
   })
 
   it.each(SHIPPED_DEFAULTS)('%s', (name, pattern) => {
-    // The exact source form, because that is what reaches the identity. The phrase
-    // branch's casing is derived per letter rather than hand-alternated on the first, so
-    // this string stays the DERIVED output, never hand-edited to match a hand-alternated
-    // regression.
+    // The exact source form, because that is what reaches the identity.
+    // Updated for v0.55.0 (bug 0061), following this file's own three-step remedy: the
+    // phrase branch's casing is now derived per letter rather than hand-alternated on the
+    // first. The CHANGELOG and upgrading rows are steps 2 and 3.
     const expected =
       '/(?:^|\\n)[ \\t]*(?:\\/\\/+|\\/\\*+|\\*+)?[ \\t]*(?:TODO|FIXME|HACK|XXX|STUB|DEFERRED|PLACEHOLDER)\\b|(?:^|\\n)[ \\t]*(?:\\/\\/+|\\/\\*+|\\*+)?[ \\t]*(?:[Nn][Oo][Tt]\\s+[Ii][Mm][Pp][Ll][Ee][Mm][Ee][Nn][Tt][Ee][Dd]|[Cc][Oo][Mm][Ii][Nn][Gg]\\s+[Ss][Oo][Oo][Nn])\\b/'
 
@@ -183,9 +185,10 @@ describe('a shipped default pattern has not moved unnoticed', () => {
     // description carries the pattern, and `identifyMatches` puts the description in the
     // identity.
     //
-    // A tautological version of this row would be `expect(\`comment matching \${p}\`).toContain(p)`
-    // — proving nothing about the library. The real coupling runs through the MATCHER's
-    // description and then through `identifyMatches`, so assert both links.
+    // My first version of this row was `expect(\`comment matching \${p}\`).toContain(p)` —
+    // a tautology that proves nothing about the library. Caught reviewing my own file.
+    // The real coupling runs through the MATCHER's description and then through
+    // `identifyMatches`, so assert both links.
     const description = comment(STUB_PATTERNS).description
     expect(description).toContain(String(STUB_PATTERNS))
 

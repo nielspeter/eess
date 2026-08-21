@@ -1,9 +1,11 @@
-import type { ArchViolation } from '../core/violation.js'
+import type { RuleDescription } from '@nielspeter/eess'
+import type { CollectResult } from '../core/terminal-builder.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
+import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { Predicate } from '@nielspeter/eess'
-import { writeStderr } from '@nielspeter/eess'
 import type { LoadedSchema, GraphQLObjectTypeLike, GraphQLTypeLike } from './schema-loader.js'
+import { selectionMemo } from '@nielspeter/eess'
 import type { SchemaElement } from './schema-predicates.js'
 import {
   queries as queriesPredicate,
@@ -45,26 +47,14 @@ function isObjectType(type: GraphQLTypeLike): type is GraphQLObjectTypeLike {
  *   .check()
  * ```
  */
+const selectionOf = selectionMemo<SchemaElement>()
+
 export class SchemaRuleBuilder extends TerminalBuilder {
   private _predicates: Predicate<SchemaElement>[] = []
   private _conditions: Condition<SchemaElement>[] = []
 
   constructor(private readonly loaded: LoadedSchema) {
     super()
-  }
-
-  /**
-   * Independent copy of `_predicates`/`_conditions` — see
-   * `SliceRuleBuilder.copy()` for why this override is required: without it,
-   * two branches derived from the same held selection via the inherited
-   * `.because()`/`.excluding()`/`.rule()`/`.expectEmpty()` would share one
-   * mutable array by reference.
-   */
-  protected override copy(): this {
-    const clone = super.copy()
-    clone._predicates = [...this._predicates]
-    clone._conditions = [...this._conditions]
-    return clone
   }
 
   // --- Predicate methods ---
@@ -168,29 +158,99 @@ export class SchemaRuleBuilder extends TerminalBuilder {
 
   // --- Evaluation ---
 
-  protected collectViolations(): CollectResult {
-    const allElements = this.getElements()
+  /**
+   * An independent copy, carrying both lists.
+   *
+   * This builder does not extend `RuleBuilder`, so it does not inherit that
+   * class's override — and neither `that()` nor `should()` forked here at all,
+   * which made the bug 0016 leak worse on this hierarchy than on the main one:
+   * a held `schema()` selection accumulated every predicate and condition of
+   * every rule derived from it. `docs/graphql.md` teaches exactly that shape.
+   */
+  protected override copy(): this {
+    const clone = super.copy()
+    clone._predicates = [...this._predicates]
+    clone._conditions = [...this._conditions]
+    return clone
+  }
 
-    const filtered = allElements.filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
+  /**
+   * Whether this rule states an assertion at all — the assertion gate's question.
+   *
+   * True once a condition has been added.
+   *
+   * Overrides the `TerminalBuilder` default (`true`), whose JSDoc carries the
+   * contract and the reason this is public rather than protected.
+   */
+  override assertsSomething(): boolean {
+    return this._conditions.length > 0
+  }
+
+  /**
+   * The remedy for this builder's assertion-less state, as one string.
+   *
+   * One channel, so `diagnose()`'s advice and the finding's own message cannot
+   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
+   * what this builder is missing.
+   */
+  override assertionAdvice(): string {
+    return (
+      'this rule has no condition, so it asserts nothing and can never fail. Add a ' +
+      'condition after .should(), e.g. haveFields(...) or acceptArgs(...).'
     )
+  }
+
+  /** Named by id or description, not 'unnamed' (plan 0070 §4). */
+  override describeRule(): RuleDescription {
+    return {
+      ...super.describeRule(),
+      rule: this._metadata?.id ?? this.buildRuleDescription(),
+    }
+  }
+
+  /**
+   * The set the conditions receive — plan 0096, and the ONE method both readers
+   * call. See `ResolverRuleBuilder.selected()` for why sharing it is the point.
+   */
+  private selected(): SchemaElement[] {
+    return selectionOf(this, () =>
+      this.getElements().filter((element) =>
+        this._predicates.every((predicate) => predicate.test(element)),
+      ),
+    )
+  }
+
+  /** Units this rule examined — plan 0096. */
+
+  /**
+   * This family counts schema types — the SDL types it selected.
+   *
+   * Plan 0099: `CollectResult.examined` is unit-typed per family (ADR-009 part
+   * 1), and the zero-examined message prints the noun. Inheriting the base
+   * `'subjects'` is a category error in a sentence whose whole job is naming what
+   * was and was not looked at.
+   */
+  protected override examinedUnitNoun(): string {
+    return 'schema types'
+  }
+
+  /**
+   * How many units this rule actually examined — ADR-010's evidence that a pass
+   * was constructed rather than defaulted.
+   *
+   * The schema types this rule selected.
+   */
+  examinedUnits(): number {
+    return this.selected().length
+  }
+
+  protected collectViolations(): CollectResult {
+    const filtered = this.selected()
 
     if (filtered.length === 0) {
-      // Deliberately not claiming sourceEmpty: SchemaRuleBuilder can be built
-      // from a raw SDL string (schemaFromSDL()) with no ArchProject at all,
-      // and even the project-backed path (schema()) narrows by glob before
-      // construction — the same ambiguity that broke JsxRuleBuilder's
-      // .notExist() case when this was tried against getElements().length.
+      // Plan 0098: the early exit IS the zero-evidence case, stated rather than
+      // implied by an empty violation list.
       return { violations: [], examined: 0 }
-    }
-
-    if (this._conditions.length === 0) {
-      const ruleId = this._metadata?.id ?? 'unnamed'
-      writeStderr(
-        `[eess] Schema rule '${ruleId}' has predicates but no conditions. ` +
-          `Did you forget to add a condition after .should()?`,
-      )
-      return { violations: [], examined: filtered.length }
     }
 
     const context: ConditionContext = {

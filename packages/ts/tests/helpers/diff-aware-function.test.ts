@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import path from 'node:path'
-import { DiffFilter } from '@nielspeter/eess'
+import { DiffFilter } from '../../src/helpers/diff-aware.js'
 import { makeViolation } from '../support/test-rule-builder.js'
 
 /**
@@ -57,7 +57,7 @@ describe('diffAware() function', () => {
   let diffAware: (baseBranch?: string) => DiffFilter
 
   beforeEach(async () => {
-    const mod = await import('@nielspeter/eess')
+    const mod = await import('../../src/helpers/diff-aware.js')
     diffAware = mod.diffAware
   })
 

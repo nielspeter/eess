@@ -6,10 +6,10 @@ import {
   type Symbol as TsSymbol,
 } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation, getElementName } from '../core/violation.js'
-import { metricViolation } from '../core/metric-violation.js'
 import { elementCondition } from './helpers.js'
+import { metricViolation } from '../core/metric-violation.js'
 
 // Inline the union to avoid conditions → predicates import cycle
 // (same pattern as type-level.ts)
@@ -58,14 +58,22 @@ function isPropertyReadonly(prop: TsSymbol): boolean {
   //   Readonly<{a: string}>.a → decl.isReadonly() = false, but
   //   compilerSymbol.links.checkFlags & 8 = 8 (readonly)
   //
-  // eess-exclude eess/adr005-no-type-assertions: reaches TS compiler-internal Symbol.links (not on the public ts.Symbol type) to read CheckFlags for mapped-type readonly detection
+  // Both ids on one directive: `arch-rules.test.ts` calls this check
+  // `adr005/no-as-cast-module` and `arch.internal.rules.ts` calls it
+  // `eess/adr005-no-type-assertions` — the id ADR-005's own Enforcement table
+  // cites as gated. The grammar takes a comma-separated list.
+  // eess-exclude-start eess/adr005-no-type-assertions, adr005/no-as-cast-module: reads ts-morph's private
+  // `compilerSymbol.links.checkFlags`, which has no public typed path — the
+  // unavoidable JS-interop boundary ADR-005 allows. Waived in place rather than by
+  // narrowing the rule's scope, which is how this went unseen for so long (bug 0049).
   const links = (prop.compilerSymbol as unknown as Record<string, unknown>).links
-  if (typeof links === 'object' && links !== null && 'checkFlags' in links) {
-    const flags = links.checkFlags
+  if (typeof links === 'object' && links !== null) {
+    const flags = (links as Record<string, unknown>)['checkFlags']
     if (typeof flags === 'number' && (flags & 8) !== 0) {
       return true
     }
   }
+  // eess-exclude-end eess/adr005-no-type-assertions
 
   // Conservative: treat as mutable if neither strategy detected readonly.
   return false

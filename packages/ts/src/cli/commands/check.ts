@@ -1,21 +1,23 @@
-import { detectFormat, applyFixes } from '@nielspeter/eess'
-import { withBaseline } from '@nielspeter/eess'
-import { diffAware } from '@nielspeter/eess'
-import type { CheckOptions, OutputFormat, ArchViolation } from '@nielspeter/eess'
-import { ArchRuleError, reportViolations, formatViolationsJson } from '@nielspeter/eess'
-import { resetEdgeCoverage, edgeCoverageNotice, writeStderr } from '@nielspeter/eess'
+import { applyFixes, detectFormat } from '@nielspeter/eess'
+import { withBaseline } from '../../helpers/baseline.js'
+import { diffAware } from '../../helpers/diff-aware.js'
+import type { OutputFormat } from '@nielspeter/eess'
+import type { ArchViolation, CheckOptions, RuleBuilderLike } from '@nielspeter/eess'
+import { isArchRuleError } from '@nielspeter/eess'
+import { setCallerAggregatesReports, writeReport } from '../../core/execute-rule.js'
 import { suppressionNotice } from '@nielspeter/eess'
-import { resetCommentSuppression, commentSuppressionNotice } from '@nielspeter/eess'
+import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess'
+import { commentSuppressionNotice, resetCommentSuppression } from '@nielspeter/eess'
+import { writeStderr } from '@nielspeter/eess'
+import { loadRuleFiles } from '../load-rules.js'
 import { dedupeConfigFindings } from '@nielspeter/eess'
-import { loadRuleFiles, type RuleBuilderLike } from '../load-rules.js'
 import {
   attributeToRuleFile,
   failureOrViolations,
   ruleFileTruncated,
 } from '../rule-file-findings.js'
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported runCheck API (must stay exported for declaration emit)
-export interface CheckArgs {
+interface CheckArgs {
   ruleFiles: string[]
   baseline?: string
   changed: boolean
@@ -32,66 +34,89 @@ export interface CheckArgs {
 /**
  * Run architecture rules from the specified rule files.
  *
- * Unified pipeline: collect every builder's `.violations()` across every rule
- * file, apply baseline/diff ONCE over the combined list, report ONCE, and
- * return the post-filter violation count as the exit code.
- *
- * Calling each builder's own `.check()` individually — the previous shape —
- * reports (and for `--format json`, writes a complete document) per builder,
- * so N failing rules concatenate N separate `{summary, violations}` documents
- * on stdout: not valid JSON as a whole, and exactly what `explain --format
- * agent`'s own generated instructions tell an agent to `JSON.parse()`.
- * Measured directly: two failing rules produced two complete JSON documents
- * back to back, and `JSON.parse()` on the combined output threw.
+ * Unified pipeline (plan 0060): collect `.violations()` across every builder
+ * (each stamped with its severity), apply baseline/diff, report ONCE, and set
+ * the exit code from the error-severity count. Warns are reported but do not
+ * fail. A rule file that throws `ArchRuleError` on import (a bare self-executing
+ * preset call) is handled by a best-effort catch — error-severity only.
  */
 export async function runCheck(args: CheckArgs): Promise<number> {
-  // Per run: the tally is module state, and a second `runCheck` in one
-  // process — the CLI's watch loop, or a test — must not inherit the first
-  // run's rules.
+  // Per run: the tally is module state (the `diff-disclosure` pattern), and a
+  // second `runCheck` in one process — the CLI's watch loop, or a test — must
+  // not inherit the first run's rules.
   resetEdgeCoverage()
   resetCommentSuppression()
   const started = Date.now()
   const format: OutputFormat = args.format === 'auto' ? detectFormat() : args.format
 
+  // `--fix` short-circuits the reporting pipeline: it renders what it changed
+  // (or would change) instead of the findings, and its exit code is the count
+  // of violations that have NO automatic fix — the real remaining failures.
+  // eess's own capability (plan 0066); upstream has no equivalent and plan
+  // 0165's engine copy dropped it. Restored in Phase 3.
   if (args.fix === true) {
     const builders = await loadRuleFiles(args.ruleFiles, { fresh: args.fresh })
     return runFix(builders, { format }, args.apply === true)
   }
+  const baseline = args.baseline !== undefined ? withBaseline(args.baseline) : undefined
+  const diff = args.changed ? diffAware(args.base) : undefined
 
-  // Per rule file, not bulk-loaded: two independent failure boundaries. A rule
-  // FILE that cannot even be loaded (a syntax error, or a self-executing rule
-  // file whose first terminal throws at module scope) must not take every
-  // other rule file down with it. Per-BUILDER too: one malformed rule must
-  // not take its siblings in the same file down with it either.
-  const collected: ArchViolation[] = []
+  // This command reports once, at the end, across every rule file. So a
+  // self-executing rule file's own terminals must not also write the findings that
+  // travel on their thrown error — see `setCallerAggregatesReports`.
+  setCallerAggregatesReports(true)
+  let collected: ArchViolation[] = []
   const total = args.ruleFiles.length
+  // The denominator for the summary line below. Accumulated here rather than
+  // derived from `collected`, which counts violations and cannot distinguish
+  // "20 rules, none failing" from "no rules loaded" — the whole point of the line.
   let ruleCount = 0
   let failedRules = 0
   for (const file of args.ruleFiles) {
-    let builders: RuleBuilderLike[]
+    // TWO catches, at the two boundaries that can fail independently. Loading is
+    // per file and can only be attributed to the file; evaluating is per builder,
+    // so a single malformed rule must not take its twenty siblings in the same
+    // file down with it — which one catch around the whole file would do
+    // (bug 0025).
+    let builders
     try {
       builders = await loadRuleFiles([file], { fresh: args.fresh })
     } catch (error: unknown) {
       // A user rule file that self-executes a throwing `.check()` at import
-      // surfaces its violations rather than crashing.
+      // surfaces its violations rather than crashing. (Presets no longer throw
+      // at import — they return builders.)
       collected.push(...failureOrViolations(file, error, total))
-      // For a thrown TERMINAL specifically, say that the file stopped there:
-      // rules before it DID run and report, rules after did not. For any
-      // other error nothing ran at all, and `ruleFileFailure` (inside
-      // `failureOrViolations`) already says the file could not be evaluated.
-      if (error instanceof ArchRuleError) collected.push(ruleFileTruncated(file, total))
+      // …and, for a thrown TERMINAL, say that the file stopped there — the part R3a
+      // specified and did not build (bug 0029). A throw during import aborts the
+      // module, so any rule declared after it never ran and its violations are not
+      // in this report, while the run is red for the thrown finding so nothing else
+      // reveals the gap.
+      //
+      // **Only for an `ArchRuleError`**, which is the signal that a terminal fired:
+      // rules before it DID run and report, rules after did not. For any other error
+      // — a syntax error, a missing dependency — nothing ran at all, and
+      // `ruleFileFailure` already says the file could not be evaluated. Adding
+      // "the rules after this never ran" there would imply some had, and point at a
+      // "finding above" that is an error rather than a finding. Three of bug 0025's
+      // own tests caught exactly that when this fired unconditionally.
+      //
+      // Only at THIS boundary either way. A throw from `builder.violations()` below
+      // happens after the module finished, so nothing was truncated, and the
+      // `export default [rule1, rule2]` shape never reaches here at all — an array
+      // export builds every rule before any of them runs.
+      if (isArchRuleError(error)) collected.push(ruleFileTruncated(file, total))
       failedRules++
       continue
     }
     ruleCount += builders.length
     for (const builder of builders) {
       try {
-        // Attributed here, where the rule file is known — a builder cannot do
-        // it, since the same builder is legal in a test file, where vitest
-        // supplies the frame instead.
-        const violations = attributeToRuleFile(collectViolations(builder, {}), file)
-        if (violations.length > 0) failedRules++
-        collected.push(...violations)
+        // Attributed here, where the rule file is known. A builder cannot do it
+        // — the same builder is legal in a test file, where vitest supplies the
+        // frame instead (bug 0026).
+        const found = attributeToRuleFile(builder.violations(), file)
+        if (found.length > 0) failedRules++
+        collected.push(...found)
       } catch (error: unknown) {
         failedRules++
         collected.push(...failureOrViolations(file, error, total))
@@ -99,86 +124,115 @@ export async function runCheck(args: CheckArgs): Promise<number> {
     }
   }
 
+  // One option, one finding (plan 0074) — after the per-file loop, because the
+  // key includes the rule file: two files with the same bad preset option are
+  // two edits and must both be reported.
+  collected = dedupeConfigFindings(collected)
+
   let filtered = collected
-  if (args.baseline !== undefined) {
-    filtered = withBaseline(args.baseline).filterNew(filtered)
-  }
-  if (args.changed) {
+  if (baseline) filtered = baseline.filterNew(filtered)
+
+  // The one surface that can count. `filterToChanged` runs once here over every
+  // collected violation, so `before - after` is the whole run's suppression —
+  // unlike the per-rule terminals, which see one rule each (plan 0071,
+  // `core/diff-disclosure.ts`). Derived by subtraction rather than asked of the
+  // filter, so it holds for a caller-supplied `DiffFilterLike` too.
+  let notice: string | undefined
+  if (diff) {
     const before = filtered.length
-    const diffFilter = diffAware(args.base)
-    filtered = diffFilter.filterToChanged(filtered)
-    const notice = suppressionNotice(before - filtered.length, diffFilter.size, args.base)
-    if (notice !== undefined) writeStderr(`${notice}\n`)
+    filtered = diff.filterToChanged(filtered)
+    notice = suppressionNotice(before - filtered.length, diff.size, diff.baseBranch)
+    if (notice !== undefined) writeStderr(notice)
   }
 
-  // A preset that fans out combinatorially can produce many identical-shaped
-  // bypassFilters findings from one misconfiguration — collapse those to one
-  // finding-with-a-count before anything downstream (reporting, the exit
-  // count, the terminal summary) counts them as separate edits.
-  filtered = dedupeConfigFindings(filtered)
+  // writeReport handles empties: json always emits one document (so a clean run
+  // is still parseable), terminal/github emit nothing. The notice rides along as
+  // `summary.reason` so a `--format json` consumer reading only stdout still
+  // learns the report is partial — stderr and stdout are different streams, and
+  // an agent piping one of them would otherwise see `total: 0` and stop.
+  // `reason` is rendered as each violation's "Why:" line on the terminal path
+  // (`format.ts`: `v.because ?? reason`), so a RUN-level notice must not travel
+  // that way — it would appear as the justification for an unrelated finding.
+  // `summary.reason` in JSON is genuinely run-level, so it goes there, and
+  // stderr carries it for every other format. Found by sabotage: removing the
+  // `writeStderr` call left the tests green because the notice was reaching
+  // stderr through the "Why:" line instead.
+  writeReport(filtered, format, format === 'json' ? notice : undefined, untestedRules())
 
-  // A `--format json` consumer always gets a parseable document — a clean run
-  // included, so an agent piping stdout doesn't see nothing and stop.
-  // `reportViolations` itself emits nothing for an empty set (correct for its
-  // many other callers, where "no violations" means "print nothing"); only
-  // this CLI path promises a document every time.
-  if (filtered.length > 0) {
-    reportViolations(filtered, { format })
-  } else if (format === 'json') {
-    process.stdout.write(formatViolationsJson(filtered) + '\n')
+  // Bug 0015, and it goes AFTER the report so it reads as a footnote rather than
+  // as part of the findings. JSON carries the same information structurally in
+  // `summary.untestedAllowlists`, so emitting the prose there too would duplicate
+  // it into a document a consumer parses.
+  if (format !== 'json') {
+    const coverage = edgeCoverageNotice()
+    if (coverage !== undefined) writeStderr(`${coverage}\n`)
   }
 
-  // A footnote, not a finding: an allowlist condition (`onlyImportFrom`,
-  // `onlyHaveTypeImportsFrom`) that tested zero edges passed vacuously — for
-  // the `only*` family zero edges is maximal compliance, not absent
-  // evidence, so this discloses rather than fails. Always to stderr,
-  // regardless of format — a `--format json` consumer's document stays
-  // machine-clean, and the disclosure is still visible to a human running
-  // the same command.
-  const coverage = edgeCoverageNotice()
-  if (coverage !== undefined) writeStderr(`${coverage}\n`)
-
-  // Same disclosure discipline as edge-coverage above: the inline
-  // `// eess-exclude` filter is the widest, and only silent, filter in the
-  // pipeline — a run with every finding suppressed by comment reads as
-  // clean unless this says otherwise.
-  const commentNotice = commentSuppressionNotice()
-  if (commentNotice !== undefined) writeStderr(`${commentNotice}\n`)
+  // Inline exclusion comments, same footnote position and the same reason. Kept
+  // out of the JSON prose for the same reason coverage is: a consumer parsing
+  // that document gets the identities structurally, not as a sentence to grep.
+  if (format !== 'json') {
+    const suppressed = commentSuppressionNotice()
+    if (suppressed !== undefined) writeStderr(`${suppressed}\n`)
+  }
 
   // Report the denominator so a fast green is provably non-vacuous, not silence.
   // Terminal only — JSON/GitHub-annotation output on stdout stays machine-clean.
+  //
+  // Present on `main` and dropped by plan 0165's engine copy (`9489684`), which
+  // overwrote this file wholesale. Restored here rather than treated as the
+  // never-had-it gap bug 0174 filed it as: published `eess-ts@0.2.1` ships it,
+  // so its absence was a regression, and a green run that prints nothing cannot
+  // be told apart from a run that loaded no rules — the ADR-009/010 failure this
+  // package exists to prevent, arriving through its own CLI.
   if (format === 'terminal') {
     const ms = Date.now() - started
-    const time = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
-    const scope = `${ruleCount} rule${ruleCount === 1 ? '' : 's'} across ${total} file${total === 1 ? '' : 's'}`
-    process.stderr.write(
-      failedRules === 0
-        ? `\n✓ eess-ts — ${scope} · 0 failing (${time})\n`
-        : `\n✗ eess-ts — ${scope} · ${filtered.length} violation${filtered.length === 1 ? '' : 's'} (${time})\n`,
+    const time = ms < 1000 ? `${String(ms)}ms` : `${(ms / 1000).toFixed(2)}s`
+    const scope = `${String(ruleCount)} rule${ruleCount === 1 ? '' : 's'} across ${String(total)} file${total === 1 ? '' : 's'}`
+    // **The symbol is computed from exactly what the exit code is computed from**
+    // — the error-severity count after filtering. Two ways this line lied before,
+    // both measured on the documented on-ramp:
+    //
+    //  - keyed on the RAW failure tally, a baseline that suppressed everything
+    //    printed `✗ … · 0 violations` beside `exit 0`;
+    //  - keyed on `filtered.length`, a warn-only run printed `✗` beside `exit 0`,
+    //    because warnings are advisory and never fail (which the scaffold's own
+    //    output tells the adopter).
+    //
+    // The symbol, the count and the exit code are three renderings of one fact.
+    // Warnings are disclosed alongside rather than folded in or dropped — a run
+    // with warnings is not failing, and is not the same as a silent one.
+    //
+    // `failedRules` is still counted because it answers a different question —
+    // how many RULES failed, versus how many violations there were — and a run
+    // where one rule produced forty is worth telling apart from forty rules
+    // producing one each.
+    const errors = filtered.filter((v) => (v.severity ?? 'error') === 'error').length
+    const warns = filtered.length - errors
+    const warnNote = warns === 0 ? '' : ` · ${String(warns)} warning${warns === 1 ? '' : 's'}`
+    writeStderr(
+      errors === 0
+        ? `\n✓ eess-ts — ${scope} · 0 failing${warnNote} (${time})\n`
+        : `\n✗ eess-ts — ${scope} · ${String(failedRules)} of ${String(ruleCount)} rule${ruleCount === 1 ? '' : 's'} failing · ${String(errors)} violation${errors === 1 ? '' : 's'}${warnNote} (${time})\n`,
     )
   }
 
-  return filtered.length
-}
-
-/** Collect a builder's violations without printing (prefers `.violations()`). */
-function collectViolations(builder: RuleBuilderLike, options: CheckOptions): ArchViolation[] {
-  if (typeof builder.violations === 'function') return builder.violations()
-  try {
-    builder.check(options)
-    return []
-  } catch (error: unknown) {
-    if (error instanceof ArchRuleError) return error.violations
-    throw error
-  }
+  // Exit code = error-severity count; warns are reported but never fail.
+  return filtered.filter((v) => (v.severity ?? 'error') === 'error').length
 }
 
 /**
  * Apply deterministic fixes (plan 0066). Dry-run unless `write`. Returns the
- * count of violations that have no automatic fix (the real remaining failures).
+ * count of violations that have no automatic fix.
+ *
+ * The remaining-count IS the exit code, deliberately: a run that fixed
+ * everything it could and still leaves real findings must not exit 0 just
+ * because it did some work. `applyFixes` skips overlapping edits rather than
+ * guessing, and says how many it skipped — a silently-dropped edit would leave
+ * the file half-repaired with a green run to match.
  */
 function runFix(builders: RuleBuilderLike[], options: CheckOptions, write: boolean): number {
-  const all = builders.flatMap((b) => collectViolations(b, options))
+  const all = builders.flatMap((b) => b.violations())
   const fixable = all.filter((v) => v.fix !== undefined)
   const result = applyFixes(fixable, { write })
 

@@ -1,9 +1,11 @@
+import type { RuleDescription } from '@nielspeter/eess'
+import type { CollectResult } from '../core/terminal-builder.js'
+import { isRecord } from '@nielspeter/eess'
 import { ScriptTarget, ModuleKind, ModuleResolutionKind } from 'ts-morph'
 import type { CompilerOptions } from 'ts-morph'
-import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
-import { isRecord } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
+import { TerminalBuilder } from '../core/terminal-builder.js'
 import { isStrictFamily, resolveFlag } from './strict-family.js'
 
 const RULE_DESCRIPTION = 'tsconfig compiler options must satisfy requirements'
@@ -29,12 +31,9 @@ export class TsconfigBuilder extends TerminalBuilder {
    * flags are resolved through `strict: true` the way tsc resolves them).
    * Multiple `.requires()` calls merge additively; later keys win on conflict.
    *
-   * Copy-on-write (bug 0016): without routing through `this.copy()`, two
-   * branches held off the same `tsconfig(p)` are literally the same object —
-   * `.requires()` reassigns `this._requirements` in place and returns `this`,
-   * so a second branch's requirements accumulate into the first's. No `copy()`
-   * override is needed on top of the base class's default: the merge builds a
-   * fresh object via spread rather than mutating the inherited one.
+   * Copy-on-write (bug 0016): a held `tsconfig(p)` is not edited by this call.
+   * No `copy()` override is needed because the merge builds a fresh object
+   * rather than mutating the inherited reference.
    */
   requires(spec: Partial<CompilerOptions>): this {
     const next = this.copy()
@@ -42,13 +41,58 @@ export class TsconfigBuilder extends TerminalBuilder {
     return next
   }
 
+  /**
+   * Whether this rule states an assertion at all — the assertion gate's question.
+   *
+   * True once a requirement has been declared; `tsconfig()` with none asserts nothing.
+   *
+   * Overrides the `TerminalBuilder` default (`true`), whose JSDoc carries the
+   * contract and the reason this is public rather than protected.
+   */
+  override assertsSomething(): boolean {
+    return Object.keys(this._requirements).length > 0
+  }
+
+  /**
+   * The remedy for this builder's assertion-less state, as one string.
+   *
+   * One channel, so `diagnose()`'s advice and the finding's own message cannot
+   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
+   * what this builder is missing.
+   */
+  override assertionAdvice(): string {
+    return (
+      'this rule has no requirements, so it asserts nothing and can never fail. Add ' +
+      '.requires({...}) with at least one compiler option, or delete the rule.'
+    )
+  }
+
+  /** Named by id or the fixed rule description, not 'unnamed' (plan 0070 §4). */
+  override describeRule(): RuleDescription {
+    return {
+      ...super.describeRule(),
+      rule: this._metadata?.id ?? RULE_DESCRIPTION,
+    }
+  }
+
+  /**
+   * Requirements this rule declared — plan 0098.
+   *
+   * This family examines a CONFIG, not a corpus, so its unit is not a subject
+   * count. Zero means `.require({})`: a tsconfig rule that asserts nothing,
+   * which is this family's shape of the vacuity every other family expresses as
+   * an empty selection.
+   */
+  examinedUnits(): number {
+    return Object.keys(this._requirements).length
+  }
+
   protected collectViolations(): CollectResult {
-    const opts = this.project._project.getCompilerOptions()
+    const opts = this.getOptions()
     const file = this.project.tsConfigPath
     const violations: ArchViolation[] = []
-    const requiredKeys = Object.keys(this._requirements)
 
-    for (const key of requiredKeys) {
+    for (const key of Object.keys(this._requirements)) {
       const expected = this._requirements[key]
       const strictFamily = isStrictFamily(key)
       const actual = strictFamily ? resolveFlag(opts, key) : opts[key]
@@ -66,20 +110,22 @@ export class TsconfigBuilder extends TerminalBuilder {
       })
     }
 
-    // ADR-010: the unit is the required flag, not the project — a rule with
-    // no .requires() call examined nothing, regardless of how many compiler
-    // options the project itself resolves.
-    return { violations, examined: requiredKeys.length }
+    // Plan 0098. This family examines a CONFIG, not a corpus, so its unit is the
+    // requirements the author declared — the loop above is over exactly these.
+    // Zero means `.require({})`: a tsconfig rule that asserts nothing, which is
+    // this family's shape of the vacuity every other family expresses as an
+    // empty selection.
+    return { violations, examined: this.examinedUnits() }
   }
-}
 
-/**
- * Entry point for a tsconfig config-assertion rule. Mirrors `project()` /
- * `smells` — a flat top-level entry returning a builder that composes with
- * `.because()` / `.excluding()` / `.check()` / `.warn()`.
- */
-export function tsconfig(p: ArchProject): TsconfigBuilder {
-  return new TsconfigBuilder(p)
+  /**
+   * Prefer the public `getCompilerOptions()` (implemented by `project()` /
+   * `workspace()`); fall back to the internal ts-morph project so a bare
+   * `ArchProject` literal (e.g. a test double) still works.
+   */
+  private getOptions(): CompilerOptions {
+    return this.project.getCompilerOptions?.() ?? this.project._project.getCompilerOptions()
+  }
 }
 
 /**

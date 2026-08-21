@@ -15,13 +15,9 @@ export class BadQualityService {
   // Protected field — should NOT be a public-field violation
   protected status = 'active'
 
-  // ES #private field — private by name, should NOT be a public-field violation
-  #internalCount = 0
-
   constructor(name: string) {
     this.name = name
     this.counter = 99 // magic number in constructor (not scanned by noMagicNumbers)
-    this.#internalCount = this.counter
   }
 
   // Public method without JSDoc — violation
@@ -54,5 +50,33 @@ export class WellDocumentedService {
   /** Returns the data. */
   getData(): string {
     return this.data
+  }
+}
+
+/**
+ * ECMAScript hard-private fields — `#name`, not the erasable `private` modifier.
+ *
+ * `getScope()` reports these as `'public'` because they carry no TypeScript
+ * accessibility modifier at all, which made `noPublicFields` tell an author to
+ * "use private" about a field that is already more private than the modifier
+ * version (plan 0165).
+ */
+export class HardPrivateFields {
+  readonly #frozen: string = 'x'
+  #mutable = 1
+
+  /** Reads both, so neither is dead. */
+  read(): string {
+    return this.#frozen + String(this.#mutable)
+  }
+}
+
+/** A public `readonly` INSTANCE field — immutable, so not this rule's subject. */
+export class ReadonlyInstanceField {
+  readonly label: string = 'x'
+
+  /** Reads it, so it is not dead. */
+  read(): string {
+    return this.label
   }
 }

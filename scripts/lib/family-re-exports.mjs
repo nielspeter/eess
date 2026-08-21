@@ -25,24 +25,19 @@
  * `family.rules.ts`'s own docstring names for eess-ts. crossvalidate has no
  * entry here — it is the family's binding tool and must re-export
  * everything its own body imports, per plan 0089's Problem section. */
+import { KERNEL_INTERNAL, FAMILY_ONLY, KERNEL_PRIVATE_BEFORE_THE_SPLIT } from './kernel-surface.mjs'
+
+/**
+ * eess-ts's index deliberately does not re-export the family-only surface
+ * (`correspondence` / `CorrespondenceBuilder` / `matchSelections` /
+ * `applyFixes`); crossvalidate's entry points MUST, so it has no entry here.
+ */
 const ALLOWLIST = {
-  ts: new Set(['correspondence', 'CorrespondenceBuilder', 'matchSelections', 'applyFixes']),
+  ts: FAMILY_ONLY,
 }
 
-/** Kernel-internal plumbing, exempt on every package — the same set
- * `packages/ts/tests/standalone-surface.test.ts` already carries (0088's
- * own ratified decision: "implementation detail, not part of the surface a
- * standalone consumer builds against"). Kept in sync with that file by
- * hand; a genuinely new internal-only symbol needs adding to both. */
-export const KERNEL_INTERNAL = new Set([
-  'applyFilters',
-  'escapeGitHub',
-  'hashViolation',
-  'writeStderr',
-  'registerCacheReset',
-  'clearRegisteredCaches',
-  'selectionMemo',
-])
+// Re-exported for existing importers; the list itself lives in `kernel-surface.mjs`.
+export { KERNEL_INTERNAL } from './kernel-surface.mjs'
 
 const PACKAGE_SRC_RE = /\/packages\/([^/]+)\/src\//
 
@@ -156,10 +151,43 @@ export function reExportsWhatBodyUsesWithAllowlist() {
         const isCrossvalidateEntry = pkg === 'crossvalidate'
         const bodyFiles = isCrossvalidateEntry ? [entry] : packageSourceFiles(entry, pkg)
         const needed = kernelImportsOf(bodyFiles)
+
+        // **The rule's own vacuity guard.** With `needed` empty every loop below
+        // is ∀-over-∅ and this condition reports a clean bill of health for a
+        // package that does not sit on the kernel at all — which is precisely
+        // the state plan 0165's engine copy created, and `check:family` was
+        // GREEN throughout it (measured: 0 kernel imports in `packages/ts/src`,
+        // gate exit 0). A guard that passes because its subject was deleted is
+        // the `0 === 0` shape ADR-009 rule 5 names, and every guard needs its
+        // own.
+        //
+        // `bypassFilters` because it is a finding about the RULE's ability to
+        // enforce, not about a source file: it must survive baseline and
+        // diff-aware filtering like every other configuration finding.
+        if (needed.size === 0) {
+          violations.push({
+            rule: context.rule,
+            element: entry.getBaseName(),
+            file: entry.getFilePath(),
+            line: 1,
+            message:
+              `@nielspeter/eess-${pkg} imports NOTHING from @nielspeter/eess, so this rule ` +
+              'examined zero symbols and cannot fail. Either the package no longer sits on the ' +
+              'kernel — which is an architecture change, not a passing check — or the import ' +
+              'scan is broken.',
+            suggestion:
+              "Restore the package's kernel imports, or remove it from this rule's subject set " +
+              'deliberately. Do not leave a rule that certifies nothing.',
+            because: context.because,
+            bypassFilters: true,
+          })
+          continue
+        }
+
         const allowed = ALLOWLIST[pkg] ?? new Set()
         const exported = reachableExportNames(entry)
         for (const name of needed) {
-          if (KERNEL_INTERNAL.has(name)) continue
+          if (KERNEL_INTERNAL.has(name) || KERNEL_PRIVATE_BEFORE_THE_SPLIT.has(name)) continue
           if (allowed.has(name)) continue
           if (exported.has(name)) continue
           violations.push({

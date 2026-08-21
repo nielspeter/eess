@@ -43,9 +43,17 @@ The capability works. It has simply never been pointed at this repo.
 
 ## Root cause
 
-`packages/ts/src/helpers/within.ts:2` imports `ScopedFunctionRuleBuilder` as a
+`packages/ts/src/builders/within.ts:2` imports `ScopedFunctionRuleBuilder` as a
 **value** (it constructs one), not as a type, so the edge is real at runtime
 rather than erased.
+
+> **Update, 2026-08-19 (plan 0165 Phase 2).** The file moved from `helpers/` to
+> `builders/`, which is the relocation this record proposed, and the cycle is
+> **gone** — measured: nothing under `builders/` imports `within.js`, so the
+> back-edge that closed the loop no longer exists. That resolves the first half.
+> The second half — _nothing watches for cycles_ — still stands: no gate would
+> catch the next one. This record stays open on that half, and the pointer above
+> is updated so it names the file that exists rather than the one that did.
 
 Upstream restructured `within()` so the helper does not reach back into the
 builders layer. That fix predates plan 0088's fold and was not carried across

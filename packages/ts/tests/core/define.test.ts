@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { definePredicate, defineCondition } from '@nielspeter/eess'
-import { and, not } from '@nielspeter/eess'
+import { and, not } from '../../src/core/combinators.js'
 import type { ConditionContext } from '@nielspeter/eess'
 
 describe('definePredicate', () => {

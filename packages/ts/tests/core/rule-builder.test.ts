@@ -8,7 +8,6 @@ import {
   nameMatches,
   alwaysPass,
   alwaysFail,
-  notExistShaped,
 } from '../support/test-rule-builder.js'
 
 // --- Helpers unique to this file ---
@@ -180,32 +179,10 @@ describe('RuleBuilder', () => {
   })
 
   describe('empty element set', () => {
-    // ADR-009/010 (plan 0088 Phase 4): a rule that examines zero elements is a
-    // configuration finding by default — a dead selector reads identically to
-    // "nothing to report" unless the author declares it. These two cases used
-    // to pass silently; that was the exact vacuous-pass hazard the honest-gate
-    // exists to close, not a property worth re-asserting.
-
-    it('.check() throws — a dead selector is a configuration finding, not a silent pass', () => {
-      const builder = new TestRuleBuilder(stubProject, elements)
-      try {
-        builder
-          .that()
-          .withPredicate(nameMatches(/^NothingMatchesThis$/))
-          .should()
-          .withCondition(alwaysFail('unreachable'))
-          .check()
-        expect.unreachable('should have thrown')
-      } catch (error) {
-        expect(error).toBeInstanceOf(ArchRuleError)
-        const archError = error as ArchRuleError
-        expect(archError.violations).toHaveLength(1)
-        expect(archError.violations[0]!.message).toMatch(/examined zero units/)
-        expect(archError.violations[0]!.bypassFilters).toBe(true)
-      }
-    })
-
-    it('.check() passes when the empty selection is declared with .expectEmpty()', () => {
+    it('.check() FAILS when no elements match predicates', () => {
+      // Plan 0074 (R3b) inverted this: an empty selection is a configuration finding by default now. The condition here is `alwaysFail`, and it never ran — the rule
+      // was green because there was nothing to run it on, which is the exact
+      // shape ADR-008 calls a lie.
       const builder = new TestRuleBuilder(stubProject, elements)
       expect(() => {
         builder
@@ -213,89 +190,16 @@ describe('RuleBuilder', () => {
           .withPredicate(nameMatches(/^NothingMatchesThis$/))
           .should()
           .withCondition(alwaysFail('unreachable'))
-          .expectEmpty()
           .check()
-      }).not.toThrow()
+      }).toThrow(ArchRuleError)
     })
 
-    it('.check() throws when the element list itself is empty and undeclared', () => {
+    it('.check() FAILS when the element list is empty', () => {
+      // Plan 0074 (R3b) inverted this: an empty selection is a configuration finding by default now.
       const builder = new TestRuleBuilder(stubProject, [])
-      try {
+      expect(() => {
         builder.should().withCondition(alwaysFail('unreachable')).check()
-        expect.unreachable('should have thrown')
-      } catch (error) {
-        expect(error).toBeInstanceOf(ArchRuleError)
-        const archError = error as ArchRuleError
-        expect(archError.violations).toHaveLength(1)
-        expect(archError.violations[0]!.message).toMatch(/source loaded zero units/)
-        expect(archError.violations[0]!.bypassFilters).toBe(true)
-      }
-    })
-
-    it('.check() still throws when an empty element list is declared with .expectEmpty() — ADR-010 part 3', () => {
-      // getElements() itself returned nothing here — a genuinely empty
-      // source, not a predicate narrowing a real corpus to zero. This
-      // outranks .expectEmpty(): there is no selection to widen, so the
-      // declaration cannot rescue it. Regression for a real gap found in
-      // review: this test used to assert the opposite (.not.toThrow()).
-      const builder = new TestRuleBuilder(stubProject, [])
-      try {
-        builder.should().withCondition(alwaysFail('unreachable')).expectEmpty().check()
-        expect.unreachable('should have thrown')
-      } catch (error) {
-        expect(error).toBeInstanceOf(ArchRuleError)
-        const archError = error as ArchRuleError
-        expect(archError.violations[0]!.message).toMatch(/source loaded zero units/)
-        expect(archError.violations[0]!.message).toMatch(/outranks any \.expectEmpty\(\)/)
-      }
-    })
-  })
-
-  describe('.expectNonEmpty() — overrides the cardinality exemption (plan 0088 review)', () => {
-    it('a cardinality-exempt condition normally passes silently on zero examined', () => {
-      // Baseline: without .expectNonEmpty(), notExistShaped()'s exemption
-      // means a dead selector over it is NOT a configuration finding.
-      const builder = new TestRuleBuilder(stubProject, elements)
-      expect(() => {
-        builder
-          .that()
-          .withPredicate(nameMatches(/^NothingMatchesThis$/))
-          .should()
-          .withCondition(notExistShaped())
-          .check()
-      }).not.toThrow()
-    })
-
-    it('.expectNonEmpty() makes that same case redden — the declaration overrides the exemption', () => {
-      const builder = new TestRuleBuilder(stubProject, elements)
-      try {
-        builder
-          .that()
-          .withPredicate(nameMatches(/^NothingMatchesThis$/))
-          .should()
-          .withCondition(notExistShaped())
-          .expectNonEmpty()
-          .check()
-        expect.unreachable('should have thrown')
-      } catch (error) {
-        expect(error).toBeInstanceOf(ArchRuleError)
-        const archError = error as ArchRuleError
-        expect(archError.violations[0]!.message).toMatch(/declared \.expectNonEmpty\(\)/)
-        expect(archError.violations[0]!.bypassFilters).toBe(true)
-      }
-    })
-
-    it('.expectNonEmpty() is a no-op once real subjects exist — nothing left to assert', () => {
-      const builder = new TestRuleBuilder(stubProject, elements)
-      expect(() => {
-        builder
-          .that()
-          .withPredicate(nameMatches(/Service$/))
-          .should()
-          .withCondition(alwaysPass())
-          .expectNonEmpty()
-          .check()
-      }).not.toThrow()
+      }).toThrow(ArchRuleError)
     })
   })
 
@@ -316,6 +220,168 @@ describe('RuleBuilder', () => {
     })
   })
 
+  describe('.asSeverity()', () => {
+    it('is non-terminal — sets severity, does not throw or warn', () => {
+      const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const configured = builder.should().withCondition(alwaysFail('bad'))
+      const chained = configured.asSeverity('warn')
+
+      // A COPY, not `this` — since bug 0016 a held builder is immutable. What
+      // the contract needs is that it is non-terminal (nothing executed) and
+      // that the severity took effect, not that the same object came back.
+      expect(chained).not.toBe(configured)
+      expect(chained.violations().every((v) => v.severity === 'warn')).toBe(true)
+      // ...and the original is untouched, which is the whole point.
+      expect(configured.violations().every((v) => v.severity === 'error')).toBe(true)
+      expect(warnSpy).not.toHaveBeenCalled()
+      warnSpy.mockRestore()
+    })
+
+    it('stamps warn severity onto .violations()', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const violations = builder
+        .should()
+        .withCondition(alwaysFail('bad'))
+        .asSeverity('warn')
+        .violations()
+      expect(violations.length).toBeGreaterThan(0)
+      expect(violations.every((v) => v.severity === 'warn')).toBe(true)
+    })
+
+    it('defaults .violations() severity to error when asSeverity is not called', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const violations = builder.should().withCondition(alwaysFail('bad')).violations()
+      expect(violations.length).toBeGreaterThan(0)
+      expect(violations.every((v) => v.severity === 'error')).toBe(true)
+    })
+  })
+
+  describe('rule metadata propagates to violations (agent payload)', () => {
+    it('falls back because/suggestion/docs from .because()/.rule() when the condition sets none', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const violations = builder
+        .should()
+        .withCondition(alwaysFail('bad'))
+        .because('domain must stay pure')
+        .rule({ suggestion: 'extract a helper', docs: 'https://adr/1' })
+        .violations()
+      expect(violations.length).toBeGreaterThan(0)
+      expect(violations[0]?.because).toBe('domain must stay pure')
+      expect(violations[0]?.suggestion).toBe('extract a helper')
+      expect(violations[0]?.docs).toBe('https://adr/1')
+    })
+
+    it('propagates the rule id to violations that lack their own', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const violations = builder
+        .should()
+        .withCondition(alwaysFail('bad'))
+        .rule({ id: 'domain/pure' })
+        .violations()
+      expect(violations[0]?.ruleId).toBe('domain/pure')
+    })
+
+    it('does NOT override a ruleId the condition already set', () => {
+      const condWithId = {
+        description: 'sets its own ruleId',
+        evaluate: (els: TestElement[]) =>
+          els.map((el) => ({
+            rule: 'r',
+            ruleId: 'CONDITION_ID',
+            element: el.name,
+            file: el.file,
+            line: el.line,
+            message: 'bad',
+          })),
+      }
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const violations = builder
+        .should()
+        .withCondition(condWithId)
+        .rule({ id: 'RULE_ID' })
+        .violations()
+      expect(violations[0]?.ruleId).toBe('CONDITION_ID')
+    })
+
+    it('does NOT override a suggestion the condition already set (per-violation wins)', () => {
+      const condWithSuggestion = {
+        description: 'fails with its own suggestion',
+        evaluate: (els: TestElement[]) =>
+          els.map((el) => ({
+            rule: 'r',
+            element: el.name,
+            file: el.file,
+            line: el.line,
+            message: 'bad',
+            suggestion: 'CONDITION_FIX',
+          })),
+      }
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const violations = builder
+        .should()
+        .withCondition(condWithSuggestion)
+        .rule({ suggestion: 'RULE_FIX' })
+        .violations()
+      expect(violations[0]?.suggestion).toBe('CONDITION_FIX')
+    })
+  })
+
+  describe('buildImperative (agent explain)', () => {
+    it('renders a negative condition as "Do NOT …"', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const desc = builder
+        .should()
+        .withCondition({ description: 'not contain call to eval', evaluate: () => [] })
+        .describeRule()
+      expect(desc.imperative).toMatch(/^Do NOT contain call to eval/)
+    })
+
+    it('renders a positive condition as "MUST …"', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const desc = builder
+        .should()
+        .withCondition({ description: 'have name matching /X/', evaluate: () => [] })
+        .describeRule()
+      expect(desc.imperative).toMatch(/^MUST have name matching/)
+    })
+
+    it('uses .rule({ imperative }) verbatim when set', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const desc = builder
+        .should()
+        .withCondition(alwaysPass())
+        .rule({ imperative: 'Do NOT foo' })
+        .describeRule()
+      expect(desc.imperative).toBe('Do NOT foo')
+    })
+
+    it('appends the predicate scope suffix', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const desc = builder
+        .that()
+        .withPredicate(nameMatches(/Service$/))
+        .should()
+        .withCondition({ description: 'not import from repositories', evaluate: () => [] })
+        .describeRule()
+      expect(desc.imperative).toContain('Do NOT import from repositories')
+      expect(desc.imperative).toContain('(in code that ')
+    })
+
+    it('falls back to the plain description for multi-condition rules (no mis-negation)', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const desc = builder
+        .should()
+        .withCondition({ description: 'not contain X', evaluate: () => [] })
+        .andShould()
+        .withCondition({ description: 'not contain Y', evaluate: () => [] })
+        .describeRule()
+      // must NOT produce "Do NOT contain X and not contain Y"
+      expect(desc.imperative).not.toMatch(/^Do NOT/)
+      expect(desc.imperative).toContain('should')
+    })
+  })
+
   describe('predicate combination', () => {
     it('ANDs multiple predicates together', () => {
       const builder = new TestRuleBuilder(stubProject, elements)
@@ -332,8 +398,167 @@ describe('RuleBuilder', () => {
       } catch (error) {
         const archError = error as ArchRuleError
         // UserService and OrderService match both predicates
-        expect(archError.violations).toHaveLength(2)
+        // WHICH two matched both predicates — the comment above said it and the
+        // assertion counted instead.
+        expect(archError.violations.map((v) => v.element)).toEqual(['UserService', 'OrderService'])
       }
+    })
+  })
+
+  describe('.subjects() (F1 — filtered-subject materialization)', () => {
+    it('returns the elements narrowed by the predicate chain, by identity', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const subjects = builder
+        .that()
+        .withPredicate(nameMatches(/Service$/))
+        .subjects()
+      expect(subjects.map((e) => e.name)).toEqual(['UserService', 'OrderService'])
+    })
+
+    it('ANDs multiple predicates', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const subjects = builder
+        .that()
+        .withPredicate(nameMatches(/Service$/))
+        .and()
+        .withPredicate(isExported())
+        .subjects()
+      expect(subjects.map((e) => e.name)).toEqual(['UserService', 'OrderService'])
+    })
+
+    it('returns the full population when no predicate is set', () => {
+      const builder = new TestRuleBuilder(stubProject, elements)
+      expect(builder.subjects().map((e) => e.name)).toEqual(elements.map((e) => e.name))
+    })
+
+    it('returns empty when nothing matches — and does NOT warn about missing conditions', () => {
+      const warnSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+      const builder = new TestRuleBuilder(stubProject, elements)
+      const subjects = builder
+        .that()
+        .withPredicate(nameMatches(/^Nope$/))
+        .subjects()
+      expect(subjects).toEqual([])
+      // subjects() materializes; it does not execute, so the condition-phase warning must not fire.
+      expect(warnSpy).not.toHaveBeenCalled()
+      warnSpy.mockRestore()
+    })
+
+    it('feeds conditions from the same filter — subjects() equals the condition input (F1 single source)', () => {
+      const seenByCondition: string[] = []
+      new TestRuleBuilder(stubProject, elements)
+        .that()
+        .withPredicate(nameMatches(/Service$/))
+        .should()
+        .withCondition({
+          description: 'record subjects',
+          evaluate: (els: TestElement[]) => {
+            for (const el of els) seenByCondition.push(el.name)
+            return []
+          },
+        })
+        .check()
+      const viaSubjects = new TestRuleBuilder(stubProject, elements)
+        .that()
+        .withPredicate(nameMatches(/Service$/))
+        .subjects()
+        .map((e) => e.name)
+      // vacuity guard on the guard: the set is non-empty
+      expect(viaSubjects.length).toBeGreaterThan(0)
+      // identity, both directions — subjects() and the condition input cannot drift
+      expect(new Set(viaSubjects)).toEqual(new Set(seenByCondition))
+    })
+
+    it('reflects a named selection without needing .should(), and does not mutate it', () => {
+      const services = new TestRuleBuilder(stubProject, elements)
+        .that()
+        .withPredicate(nameMatches(/Service$/))
+      expect(services.subjects().map((e) => e.name)).toEqual(['UserService', 'OrderService'])
+      // still usable as a rule afterwards
+      expect(() => services.should().withCondition(alwaysPass()).check()).not.toThrow()
+    })
+  })
+
+  describe('.expectNonEmpty() (F4 / plan 0067 — non-vacuity opt-in)', () => {
+    it('fails with a bypass-flagged meta-finding when the selector matches nothing', () => {
+      // The rule carries a condition, which any real `.expectNonEmpty()` rule
+      // has. Without one, 0.23.0's assertion gate reports the missing assertion
+      // first — see the ordering test below.
+      const v = new TestRuleBuilder(stubProject, elements)
+        .that()
+        .withPredicate(nameMatches(/^NothingMatches$/))
+        .expectNonEmpty()
+        .should()
+        .withCondition(alwaysFail('unreachable'))
+        .violations()
+      expect(v).toHaveLength(1)
+      expect(v[0]!.bypassFilters).toBe(true)
+      expect(v[0]!.message).toMatch(/expectNonEmpty|0 subjects/)
+    })
+
+    it('a rule with NO condition reports the missing assertion, not the empty selector', () => {
+      // Gate-first ordering, pinned from the side that decides it (plan 0070
+      // item 5). An assertion-less rule cannot fail whatever its selector does,
+      // so the missing assertion is the root cause; the selector fault
+      // resurfaces once there is something to assert — which the test above is.
+      const v = new TestRuleBuilder(stubProject, elements)
+        .that()
+        .withPredicate(nameMatches(/^NothingMatches$/))
+        .expectNonEmpty()
+        .violations()
+      expect(v).toHaveLength(1)
+      expect(v[0]!.bypassFilters).toBe(true)
+      expect(v[0]!.message).not.toMatch(/expectNonEmpty|0 subjects/)
+      expect(v[0]!.message).toMatch(/asserts nothing|never reached/)
+    })
+
+    it('stays green when the selector matches at least one subject', () => {
+      const v = new TestRuleBuilder(stubProject, elements)
+        .that()
+        .withPredicate(nameMatches(/Service$/))
+        .expectNonEmpty()
+        .should()
+        .withCondition(alwaysPass())
+        .violations()
+      expect(v).toEqual([])
+    })
+
+    it('is now the DEFAULT — the opt-in it used to be is redundant', () => {
+      // Plan 0074 (R3b) inverted this: an empty selection is a configuration finding by default now. This test asserted the opposite and was named "default
+      // unchanged"; the default is what changed. `.expectNonEmpty()` still
+      // reads as documentation of intent, but it no longer alters behaviour —
+      // and `terminal-builder.ts` recorded why the opt-in had to go: it is
+      // "the opt-in this whole plan exists because nobody uses".
+      const withoutOptIn = new TestRuleBuilder(stubProject, elements)
+        .that()
+        .withPredicate(nameMatches(/^NothingMatches$/))
+        .should()
+        .withCondition(alwaysFail('unreachable'))
+        .violations()
+      const withOptIn = new TestRuleBuilder(stubProject, elements)
+        .that()
+        .withPredicate(nameMatches(/^NothingMatches$/))
+        .expectNonEmpty()
+        .should()
+        .withCondition(alwaysFail('unreachable'))
+        .violations()
+
+      expect(withoutOptIn).toHaveLength(1)
+      expect(withoutOptIn[0]?.bypassFilters).toBe(true)
+      // Identical either way — that IS the inversion.
+      expect(withoutOptIn.map((v) => v.message)).toEqual(withOptIn.map((v) => v.message))
+    })
+
+    it('survives a .should() fork', () => {
+      const v = new TestRuleBuilder(stubProject, elements)
+        .that()
+        .withPredicate(nameMatches(/^NothingMatches$/))
+        .expectNonEmpty()
+        .should()
+        .withCondition(alwaysPass())
+        .violations()
+      expect(v).toHaveLength(1)
+      expect(v[0]!.bypassFilters).toBe(true)
     })
   })
 })

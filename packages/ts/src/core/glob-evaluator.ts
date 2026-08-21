@@ -1,17 +1,22 @@
 import picomatch from 'picomatch'
-import type { GlobLeaf, GlobNode, GlobSite, PathUniverse } from '@nielspeter/eess'
-import { isGlobNode, isOpaqueGlob, viewsFor } from '@nielspeter/eess'
+import type { GlobLeaf, GlobNode, GlobSite } from '@nielspeter/eess'
+import { isGlobNode, isOpaqueGlob } from '@nielspeter/eess'
+import type { PathUniverse } from './path-universe.js'
+import { viewsFor } from './path-universe.js'
 import { syntacticFault } from './glob-diagnosis.js'
 
 /**
  * Whether a glob tree can never match anything in this project.
  *
- * This is checked exhaustively rather than argued about: soundness is the
- * requirement — a fault is justified only if the expression selects the
- * empty set for every possible value of the leaves this function cannot
- * see, since all it knows is that a dead site matches nothing. A confident
- * but unsound verdict here fails a working rule, which is worse than the
- * silence this whole subsystem exists to remove.
+ * Three consecutive revisions of this function returned a false verdict, each
+ * on a shape its author had not thought to try, so it is now checked
+ * exhaustively rather than argued about:
+ * `tests/core/glob-evaluator-soundness.test.ts` enumerates every expression of
+ * at most three combinator nodes over {dead, live, opaque} and compares this
+ * implementation against plain set semantics. The requirement is **soundness**
+ * — a fault is justified only if the expression selects the empty set for
+ * every possible value of the leaves this function cannot see, since all it
+ * knows is that a dead site matches nothing.
  *
  * The three rules, and what each one is load-bearing for:
  *
@@ -26,8 +31,8 @@ export function isDeadGlobTree(node: GlobNode, universe: PathUniverse): boolean 
     ? node.children.some((child) => isDeadChild(child, universe))
     : // `every` on an empty array is `true`, which would fault a rule that
       // declares no globs at all. Unreachable, because every combinator
-      // contributes one child per input and a missing declaration becomes
-      // an opaque leaf rather than nothing — but stated, not assumed.
+      // contributes one child per input and a missing declaration becomes an
+      // opaque leaf rather than nothing — but stated, not assumed.
       node.children.length > 0 && node.children.every((child) => isDeadChild(child, universe))
 }
 
@@ -42,19 +47,20 @@ function isDeadChild(child: GlobNode | GlobLeaf<GlobSite>, universe: PathUnivers
  *
  * Two independent ways to be dead, and both are needed:
  *
- * 1. **Syntactically** — a project-relative glob on a predicate that
- *    matches absolute paths can never match, whatever the project contains.
+ * 1. **Syntactically** — `'src/domain/**'` on a predicate that matches
+ *    absolute paths can never match, whatever the project contains.
  * 2. **Against the universe** — anchored, well-formed, and nothing there.
  *
- * The syntactic check is not redundant: the universe carries a
- * tsconfig-relative view so that a wrong `base` cannot make a glob look
- * unmatched, and a project-relative-looking glob can match that view while
- * matching nothing at runtime, where the real predicate reads absolute
- * paths. Unanchored globs are the commonest real mistake, so a design that
- * quietly calls them satisfiable defeats the whole point.
+ * The syntactic check is not redundant, and leaving it out was a live false
+ * green caught by a test: the universe carries a tsconfig-relative view so
+ * that a wrong `base` cannot make a glob look UNmatched — and `'src/domain/**'`
+ * matches `src/domain` in that view while matching nothing at runtime, where
+ * `resideInFolder` reads absolute paths. Unanchored globs are the commonest
+ * real mistake and the entire subject of the 0.18.1 release, so a design that
+ * quietly calls them satisfiable defeats its own purpose.
  *
- * Only `file-path` and `parent-dir` are checkable; `viewsFor` returns no
- * views for the others, and a site with no views is never dead.
+ * Only `file-path` and `parent-dir` are checkable; `viewsFor` returns no views
+ * for the others, and a site with no views is never dead.
  */
 export function isDeadSite(site: GlobSite, universe: PathUniverse): boolean {
   if ((site.polarity ?? 'positive') === 'negative') return false

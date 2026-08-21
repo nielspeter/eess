@@ -59,8 +59,7 @@ export interface Condition<T> {
 
   /**
    * The path globs this condition matches against, if any. See
-   * `Predicate.globs` — same contract, stamped with `position: 'condition'`
-   * by `RuleBuilder.globs()`.
+   * `Predicate.globs` — same contract, stamped with `position: 'condition'`.
    */
   readonly globs?: DeclaredGlobs
 }

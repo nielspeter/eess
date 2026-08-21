@@ -5,9 +5,13 @@ import path from 'node:path'
  * Where the repository or workspace root is, and how to make a path portable
  * relative to it.
  *
- * Depends on nothing but `node:fs` and `node:path` — engine-neutral by
- * construction, so it belongs in the kernel: baseline identity is a
- * dialect-independent concern (`packages/core/src/baseline.ts` already is).
+ * Lives in `core/` rather than `helpers/` because two things in `core/` need
+ * it — violation identity and the disk set behind `outside-project` — and the
+ * `core must not import from helpers` dogfood rule is right: core is the
+ * foundation. This module depends on nothing but `node:fs` and `node:path`, so
+ * it always belonged here; it was in `helpers/` only because `baseline.ts`
+ * happened to need it first. That rule caught the misplacement the same day it
+ * was introduced.
  */
 
 /**
@@ -74,6 +78,10 @@ export function discoverIdentityRoot(startDir: string): string {
  * developer machine has `.git` and resolves the workspace root, CI does not
  * and resolves `packages/api`, the two roots disagree, and every hash differs.
  *
+ * That is bug 0010's own symptom, reintroduced by the heuristic meant to fix
+ * it — and invisible, because both files carry the current hashVersion. Only
+ * npm/yarn/bun put workspaces in `package.json`; everyone else uses a file.
+ *
  * Deliberately **root-only** files. `turbo.json` and `deno.json` are excluded
  * even though they mark monorepos, because both are legal *inside* a package
  * (Turborepo Package Configurations, per-package Deno config) and would anchor
@@ -110,21 +118,39 @@ function declaresWorkspaces(manifestPath: string): boolean {
 }
 
 /**
+ * Convert a filesystem path to its portable form: relative to the identity
+ * root, with forward slashes.
+ *
+ * A path outside the root is returned unchanged — relativising it would encode
+ * the root's *depth* (`../../..`), which varies by machine and would reproduce
+ * the very bug this fixes.
+ */
+export function toPortablePath(filePath: string, root: string): string {
+  const normalizedRoot = normalizeSeparators(root)
+  const normalizedPath = normalizeSeparators(filePath)
+  const prefix = normalizedRoot.endsWith('/') ? normalizedRoot : normalizedRoot + '/'
+  if (!normalizedPath.startsWith(prefix)) return normalizedPath
+  return normalizedPath.slice(prefix.length)
+}
+
+/**
  * Replace every occurrence of the identity root inside free text with a stable
  * token.
  *
  * Rule descriptions, element names and messages are prose: producers
- * interpolate a file path into them. Since the text is unstructured, this
- * substitutes the known root prefix rather than trying to parse paths out of
- * it — a regex would also rewrite a `/src` inside a doubled-star glob, which is
- * not a path at all, and relativising it would encode the root's depth.
+ * interpolate `getFilePath()` into them (`src/smells/duplicate-bodies.ts`,
+ * `src/presets/boundaries.ts`, and any user-written `defineCondition`). Since
+ * the text is unstructured, this substitutes the known root prefix rather than
+ * trying to parse paths out of it — a regex would also rewrite the `/src`
+ * inside a doubled-star glob, which is not a path at all, and relativising it
+ * would encode the root's depth.
  *
  * Substring replacement is sufficient because the only machine-dependent part
- * of an interpolated path IS the root prefix; everything after it is a
- * property of the repository.
+ * of an interpolated path IS the root prefix; everything after it is a property
+ * of the repository.
  *
  * Only the *root* is separator-normalized, never the surrounding text: rule
- * descriptions can embed regex sources (`/\bparse/`), and rewriting their
+ * descriptions embed regex sources (`/\bparse/`), and rewriting their
  * backslashes would let two distinct rules collide on one identity.
  */
 export function normalizeIdentityText(text: string, root: string): string {
@@ -141,8 +167,8 @@ export function normalizeIdentityText(text: string, root: string): string {
 
 /**
  * Normalize Windows separators so a baseline generated on one OS matches on
- * another. Interpolated `path.*` output and the stored `file` field do not
- * always carry forward slashes.
+ * another. ts-morph already returns forward slashes; interpolated `path.*`
+ * output and the stored `file` field do not.
  */
 function normalizeSeparators(value: string): string {
   return value.replaceAll('\\', '/')

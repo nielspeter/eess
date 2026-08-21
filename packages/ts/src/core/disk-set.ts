@@ -1,26 +1,17 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import picomatch from 'picomatch'
-import type { DiskSet, OnDisk } from '@nielspeter/eess'
-import { discoverIdentityRoot } from '@nielspeter/eess'
 import type { ArchProject } from './project.js'
-
-/**
- * Materialize the project's disk set by walking the real filesystem. The
- * pure `OnDisk`/`DiskSet` shape lives in the kernel; only the walk needs
- * `ArchProject` (to find the tsconfig directory) and `node:fs`, so only the
- * walk lives here.
- */
+import { discoverIdentityRoot } from '@nielspeter/eess'
 
 /**
  * Directories never worth walking.
  *
- * `node_modules` and `.git` dominate the cost. The build-output names are
- * here because a walk that reports a `dist/` directory as "absent from the
- * project" is noise, not a finding. The list cannot be complete — a real
- * TypeScript monorepo may hold a Rust `target/`, a Python `.venv`, a
- * `.gradle` — which is why the entry budget below exists rather than a
- * longer list.
+ * `node_modules` and `.git` dominate the cost. The build-output names are here
+ * because a walk that reports `dist/` as "absent from the project" is noise,
+ * not a finding. The list cannot be complete — a real TypeScript monorepo may
+ * hold a Rust `target/`, a Python `.venv`, a `.gradle` — which is why the
+ * entry budget below exists rather than a longer list.
  */
 const PRUNE = new Set([
   'node_modules',
@@ -43,22 +34,51 @@ const PRUNE = new Set([
  * How many directory entries the walk will read before giving up.
  *
  * An implementation constant, not part of the public contract and not
- * tunable. The walk is unbounded in principle: a contributor who has run a
- * native build inside a TypeScript monorepo can leave tens of thousands of
- * entries under one directory, and a *failing* run that then hangs inside a
- * test timeout is a worse experience than the false green this whole
- * mechanism exists to remove. Above the budget the classification degrades
- * to `not-determined`, which costs message quality and nothing else — the
- * enrichment is already fail-open.
+ * tunable. It exists because the walk is unbounded in principle: a
+ * contributor who has run `cargo build` inside a TypeScript monorepo has tens
+ * of thousands of entries under one directory, and a *failing* run that then
+ * hangs inside a 5s vitest timeout is a worse experience than the false green
+ * this whole mechanism exists to remove. Above the budget the classification
+ * degrades to `not-determined`, which costs message quality and nothing else —
+ * the enrichment is already fail-open.
  */
 const ENTRY_BUDGET = 50_000
 
 // `.d.ts` and its `.d.mts`/`.d.cts` siblings count. They ARE TypeScript for
 // the question this set answers — "does this path contain TypeScript your
-// tsconfig is keeping out" — and excluding them makes a directory of pure
-// declarations report "this path exists but contains no TypeScript", which
-// is false.
+// tsconfig is keeping out" — and excluding them made a `types/` directory of
+// pure declarations report "this path exists but contains no TypeScript",
+// which is false.
 const TS_FILE = /\.(m|c)?tsx?$/
+
+/**
+ * What the filesystem says about a glob that the compiler's file set does not.
+ *
+ * Only populated for `no-match` — the other faults are syntactic and the disk
+ * has nothing to add. `not-determined` is the honest answer above the walk's
+ * entry budget, or where the walk refused to look.
+ *
+ * Declared here rather than in `glob-diagnosis.ts` because this is the module
+ * that produces it: the other way round made the two files import each other.
+ * Both edges were `import type` and therefore erased at runtime — but our own
+ * `arch/no-cycles` rule slices by directory, so it could not see a cycle
+ * INSIDE `core/`, and a per-file slicing in a test found it immediately. A
+ * cycle nothing can see is the shape this whole plan is about.
+ */
+export type OnDisk = 'holds-typescript' | 'no-typescript' | 'absent' | 'not-determined'
+
+/**
+ * What the filesystem knows that the compiler's file set does not.
+ *
+ * The second derivation ADR-009 rule 5 asks for: filesystem contents versus
+ * compiler membership. It is what distinguishes "your glob is misspelled" from
+ * "your glob is fine and your tsconfig scope excludes it" — the cheapest wrong
+ * action an agent can take, and the majority case in a real monorepo.
+ */
+export interface DiskSet {
+  /** Classify a glob by what exists on disk under the paths it matches. */
+  classify(glob: string): OnDisk
+}
 
 const cache = new WeakMap<ArchProject, DiskSet>()
 
@@ -66,9 +86,9 @@ const cache = new WeakMap<ArchProject, DiskSet>()
  * The project's disk set, walked at most once and only when asked.
  *
  * Lazy on purpose. This is only ever reached from `diagnoseGlob`, which is
- * only ever reached from an already-firing fault, so a project with no
- * faults never touches the filesystem. An eager version would charge every
- * `check()` a recursive walk to answer a question no fault asked.
+ * only ever reached from an already-firing fault, so a project with no faults
+ * never touches the filesystem. An eager version would charge every `check()`
+ * a recursive walk to answer a question no fault asked.
  */
 export function diskSet(project: ArchProject): DiskSet {
   const cached = cache.get(project)
@@ -79,21 +99,29 @@ export function diskSet(project: ArchProject): DiskSet {
 }
 
 /**
- * The walk, with the budget injectable. Exported for tests only — the
- * degrade path is the difference between "not determined" and a *partial,
- * wrong* classification, and with the budget a module constant it could
- * only ever be reached by accident on a repository nobody has.
+ * The walk, with the budget injectable.
+ *
+ * Exported for tests only. The degrade path is the difference between "not
+ * determined" and a *partial, wrong* classification — a false "contains no
+ * TypeScript" in the one message whose whole defence is that it states only
+ * facts — and with the budget a module constant it could only ever have been
+ * reached by accident on a repository nobody has.
  */
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function buildDiskSet(project: ArchProject, budgetLimit = ENTRY_BUDGET): DiskSet {
   return build(project, budgetLimit)
 }
 
 function build(project: ArchProject, budgetLimit: number): DiskSet {
-  // Guard on the INPUT, before deriving anything. `discoverIdentityRoot`
-  // calls `path.resolve`, so every root it returns is absolute and checking
-  // the output can never fail; a relative or nonexistent `tsConfigPath` (a
-  // hand-built `ArchProject` test double, or a genuinely broken one) must
-  // not walk an unrelated directory or throw from inside a guard.
+  // Guard on the INPUT, before deriving anything. `discoverIdentityRoot` calls
+  // `path.resolve`, so every root it returns is absolute and checking the
+  // output can never fail. Both halves matter, and this repo's own suite
+  // supplies both: the relative `'in-memory'` double (whose dirname is '.',
+  // which would walk the real CWD) and absolute paths that do not exist, where
+  // `readdirSync` throws from inside a guard. Counted in prose as "eight
+  // doubles, two relative" until the suite reached 114 of them — so the shapes
+  // are named and the arithmetic is not. And `ArchProject` is a public type, so
+  // this protects user-constructed projects, not only test doubles.
   if (!path.isAbsolute(project.tsConfigPath)) return UNDETERMINED
   const root = discoverIdentityRoot(path.dirname(project.tsConfigPath))
   if (!fs.existsSync(root)) return UNDETERMINED
@@ -106,10 +134,10 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
    * Directories the walk refused to enter.
    *
    * A glob matching one of these cannot be classified: nothing under it was
-   * seen. Reporting `absent` would say "this path does not exist" about a
-   * realistic rule scope like `**\/dist/**` or `**\/vendor/**`, and `absent`
-   * carries no advice, so the caller falls back to a cause list beginning
-   * "a path segment is misspelled".
+   * seen. Reporting `absent` would say "this path does not exist" about
+   * `**\/dist/**` or `**\/vendor/**` — all realistic rule scopes — and
+   * `absent` carries no advice, so the caller then falls back to a cause list
+   * beginning "a path segment is misspelled".
    */
   const pruned: string[] = []
   let budget = budgetLimit
@@ -133,14 +161,14 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
       const full = path.join(dir, entry.name).replaceAll('\\', '/')
       // Prune by NAME, before asking whether it is a directory.
       //
+      // [ts-archunit Bug 0045](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0045-two-tests-fail-by-environment-and-corrupt-sabotage-verdicts.md):
       // `Dirent.isDirectory()` is false for a symlink, so a symlinked
       // `node_modules` — what pnpm produces, and what `git worktree add`
-      // leaves behind — falls through to the `else` branch and is recorded
-      // as a **file** unless pruned by name first. Recording it as a file
-      // means it never enters `pruned`, so a glob under it would classify
+      // leaves behind — fell through to the `else` branch and was recorded as
+      // a **file**. It never entered `pruned`, so a glob under it classified
       // `absent` ("no such path") instead of `not-determined` ("this walk
-      // cannot say") — those carry different advice, and `absent` is the
-      // one that asserts something false.
+      // cannot say"). Those carry different advice, and `absent` is the one
+      // that asserts something false.
       //
       // Safe: pruning records the path and does not recurse, so no link is
       // followed and the loop argument below is untouched.
@@ -152,11 +180,11 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
       // so symlink loops are impossible by construction. Do not "fix" this
       // with `statSync`, which follows them.
       //
-      // The cost, for symlinks we do NOT prune: a symlinked source
-      // directory — pnpm and yarn workspaces create them — is recorded as a
-      // file, so a glob naming it classifies `no-typescript`. Wrong, but
-      // wrong in the direction that only weakens a message; following the
-      // link risks a walk that never terminates.
+      // The cost, for symlinks we do NOT prune: a symlinked source directory —
+      // pnpm and yarn workspaces create them — is recorded as a file, so a glob
+      // naming it classifies `no-typescript`. Wrong, but wrong in the direction
+      // that only weakens a message; following the link risks a walk that never
+      // terminates.
       if (entry.isDirectory()) {
         dirs.push(full)
         walk(full)
@@ -170,10 +198,11 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   if (exhausted) return UNDETERMINED
 
   // Containment is TRANSITIVE, and that is load-bearing. Using each file's
-  // immediate parent instead would label a docs directory "contains no
-  // TypeScript" while a `.vitepress/config.ts` sits one level below it — a
-  // false statement in the one message whose entire defence is that it
-  // states only facts.
+  // immediate parent instead labels `docs/` "contains no TypeScript" while
+  // `docs/.vitepress/config.ts` sits one level below it — a false statement in
+  // the one message whose entire defence is that it states only facts.
+  // Measured on this repo: 36 directories hold TypeScript transitively but not
+  // directly.
   const holdsTypeScript = new Set<string>()
   for (const file of files) {
     let dir = path.dirname(file)
@@ -186,20 +215,18 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   }
 
   // Directories AND every file, not just the TypeScript ones. Deriving
-  // `absent` from the TypeScript-only set would assert "this path does not
-  // exist" about any path holding only a `.md`, a `.json`, or anything
-  // under a pruned name — and `absent` carries no advice, so the caller
-  // falls back to `no-match`'s list, whose first cause is "a path segment
-  // is misspelled". Exactly the confidently-wrong cause this whole
-  // mechanism exists to avoid.
+  // `absent` from the TypeScript-only set asserted "this path does not exist"
+  // about any path holding a `.md`, a `.json`, or anything under a pruned
+  // name — and `absent` carries no advice, so the caller fell back to
+  // `no-match`'s list, whose first cause is "a path segment is misspelled".
+  // Exactly the confidently-wrong cause ADR-009 rule 2 forbids.
   const everything = [...everyFile, ...dirs]
   const typeScript = new Set(files)
   return {
     classify(glob: string): OnDisk {
       const isMatch = picomatch(glob)
-      // Never `everything.some(isMatch)` — picomatch reads the array index
-      // as its second argument and returns a truthy object from index 1
-      // onwards.
+      // Never `everything.some(isMatch)` — picomatch reads the array index as
+      // its second argument and returns a truthy object from index 1 onwards.
       const matched = everything.filter((candidate) => isMatch(candidate))
       if (matched.length === 0) {
         // Not seen is not the same as not there.
@@ -208,8 +235,9 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
           : 'absent'
       }
       // Per GLOB, not per path: one glob routinely matches paths in both
-      // categories. Any matched path holding TypeScript makes the tsconfig
-      // the story worth telling.
+      // categories — `**/tests/**` matched 44 directories of mixed kind on the
+      // monorepo this was gated against. Any matched path holding TypeScript
+      // makes the tsconfig the story worth telling.
       return matched.some(
         (candidate) => holdsTypeScript.has(candidate) || typeScript.has(candidate),
       )

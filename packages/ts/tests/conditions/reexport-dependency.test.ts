@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import path from 'node:path'
 import { notImportFrom, dependOn } from '../../src/conditions/dependency.js'
-import { notImportFrom as notImportFromPredicate } from '../../src/predicates/module.js'
+// A namespace import, not an alias: `notImportFrom` exists as BOTH a condition
+// and a predicate and this file uses both, so the name genuinely conflicts —
+// which is the case `quality/no-aliased-imports` tells you to fix at the export
+// rather than paper over with a rename.
+import * as modulePredicates from '../../src/predicates/module.js'
 import type { ConditionContext } from '@nielspeter/eess'
 
 // `export … from` re-exports are real dependency edges — the re-exporting module
@@ -43,7 +47,7 @@ describe('re-export dependency edges (export … from)', () => {
   it('the notImportFrom predicate also sees re-export edges', () => {
     // The predicate is true when the module does NOT import from the target; a
     // re-export to infra means it DOES, so the predicate must be false.
-    const predicate = notImportFromPredicate('**/infra/**')
+    const predicate = modulePredicates.notImportFrom('**/infra/**')
     expect(predicate.test(sf('src/bad/reexport-infra.ts'))).toBe(false)
   })
 

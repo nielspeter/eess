@@ -45,10 +45,19 @@ export default [
   // import from the kernel — the re-export-completeness guard. The
   // per-dialect allowlist (scripts/lib/family-re-exports.mjs's own
   // ALLOWLIST) is explicit: eess-ts's index deliberately does NOT re-export
-  // `correspondence` / `CorrespondenceBuilder` / `matchSelections` /
+  // the KERNEL's `correspondence` / `CorrespondenceBuilder` / `matchSelections` /
   // `applyFixes` (they serve crossvalidate/md, and matchSelections backs
   // eess-ts's own cross-layer builder), while crossvalidate's own entry
   // points MUST re-export them — it has no allowlist entry at all.
+  //
+  // "the KERNEL's" is load-bearing and was added after PR #72's review. eess-ts
+  // grew its OWN project-scoped primitive, and it was called `correspondence`
+  // too — so this allowlist, written to mean "eess-ts has no correspondence",
+  // silently permitted "eess-ts has a DIFFERENT correspondence", and the gate
+  // could not see the shadowing because it asks about re-export completeness,
+  // not about single implementation. The eess-ts primitive is `crossProject` /
+  // `CrossProjectBuilder` now, so the two no longer collide by name. Nothing
+  // here would catch it if they did again — that gate is plan 0188 Phase 3.
   modules(p)
     .that()
     .satisfy(

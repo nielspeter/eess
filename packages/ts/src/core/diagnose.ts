@@ -1,48 +1,191 @@
-import type { RuleBuilderLike } from '../cli/load-rules.js'
+import { TerminalBuilder } from './terminal-builder.js'
 import type { ArchProject } from './project.js'
-import type { GlobNode, GlobPosition, OnDisk } from '@nielspeter/eess'
-import { isFaultPosition } from '@nielspeter/eess'
+import type { GlobPosition, GlobSite } from '@nielspeter/eess'
 import type { GlobFault } from './glob-diagnosis.js'
+import type { OnDisk } from './disk-set.js'
 import { diagnoseGlob, syntacticFault, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
-import { globSitesOf, isDeadSite, isDeadGlobTree } from './glob-evaluator.js'
+import { globSitesOf, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'
 import { diskSet } from './disk-set.js'
-import { loadedNothing, emptyProjectAdvice } from './empty-project-advice.js'
+import { isDeadGlobTree } from './glob-evaluator.js'
+import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
+import type { RuleBuilderLike } from '@nielspeter/eess'
+import type { GlobNode } from '@nielspeter/eess'
+import { isFaultPosition } from '@nielspeter/eess'
 
 /**
  * Anything `diagnose()` can inspect: a rule that can describe its globs.
  *
- * Structural rather than a class, so a caller can pass the same
- * `RuleBuilderLike[]` array the CLI's `check`/`baseline` commands already
- * load without any of it being coupled to a class. Every hook is optional —
- * a builder that predates `RuleBuilder<T,P>.globs()`/`.getProject()` (or
- * doesn't route through it, like `SliceRuleBuilder`/`PairFinalBuilder`)
- * simply contributes nothing, silently, rather than throwing.
- *
- * Narrower than ts-archunit's own `DiagnosableRule`, deliberately: that
- * interface has grown, through several ts-archunit-specific plans this repo
- * doesn't carry (deferred/accepted warnings, a structural "inert rule"
- * adequacy predicate, declared-emptiness), to seven finding kinds. eess has
- * the machinery for two of them today — `dead-glob` and `project-empty` —
- * so that's what this ports. See `diagnose()`'s own docstring for exactly
- * which kinds and why the rest are out of scope for now.
+ * Structural rather than `TerminalBuilder`, so a caller can pass the same
+ * `RuleBuilderLike[]` array they already hand to `checkAll` without any
+ * of it being coupled to a class.
  */
 export interface DiagnosableRule extends RuleBuilderLike {
   globs?: () => readonly GlobNode[]
   describeRule?: () => { rule: string; id?: string }
+  /**
+   * Whether this rule asserts anything about what it selected.
+   *
+   * A method rather than a look at `_conditions`: that field is protected, and
+   * reading it would need a type assertion (ADR-005) to duck-type a private
+   * name that no subclass is obliged to keep. Optional, because only the
+   * predicate/condition builders can be in the condition-less state at all —
+   * the rest take their condition as a constructor argument.
+   */
+  assertsSomething?: () => boolean
+  /**
+   * The remedy for this rule's assertion-less state. When present, `diagnose`
+   * reports it VERBATIM as the finding's advice, so the doctor and the
+   * configuration finding the gate raises at runtime carry the same string by
+   * construction (plan 0070) — they were measured diverging, and two texts for
+   * one state is a trust problem for an agent diffing them. Absent, the base
+   * `TerminalBuilder` text is used, from the one place that owns it.
+   */
+  assertionAdvice?: () => string
+  /** The project this rule was built against. */
   getProject?: () => ArchProject | undefined
+  /**
+   * How many units this rule's family examined — plan 0096.
+   *
+   * PUBLIC because `DiagnosableRule` is structural: a protected member cannot
+   * satisfy it, which is the recorded reason `assertsSomething()` is public.
+   *
+   * The unit differs per family and each names its own (ADR-010 part 1), but
+   * every family answers it from the SAME method its `collectViolations()` uses
+   * — not a parallel derivation. A first attempt at this plan let the two
+   * diverge and they disagreed within one commit.
+   *
+   * Calling it RUNS that materialization. `diagnose()` and `doctor` used to
+   * promise they reported "without running any of them"; that sentence changed
+   * with this plan, in the docs as well as here.
+   */
+  examinedUnits?: () => number
+  /**
+   * Whether this rule's emptiness was DECLARED — plan 0097, read here by 0096.
+   *
+   * Public for the same structural reason as `assertsSomething()`. Without it
+   * the preview reports a finding on a rule the gate will accept, and tells the
+   * reader to do the thing they already did.
+   */
+  declaresEmpty?: () => boolean
+
+  /**
+   * This rule's own zero-subjects advice — plan 0099.
+   *
+   * When present, reported VERBATIM, exactly as `assertionAdvice()` is and for
+   * the identical reason plan 0070 recorded: the doctor and the finding the gate
+   * raises must carry the same string **by construction**, because two texts for
+   * one state is a trust problem for an agent diffing them.
+   *
+   * Measured before this seam existed: `check()` said "a declaration is an
+   * assertion, not a silencer" while `doctor` still said "the declaration is not
+   * itself checked yet ... A later release makes this state fail at check time" —
+   * in the release that makes it fail, on the surface ts-archunit's `docs/upgrading.md` tells
+   * people to run first.
+   */
+  zeroSubjectsAdvice?: () => string
+
+  /**
+   * How this family spells the declaration. Absent means the generic
+   * `.expectEmpty()`, which is a `TypeError` on `correspondence` — see
+   * `TerminalBuilder.emptyDeclarationAdvice()`.
+   */
+  emptyDeclarationAdvice?: () => string
+
+  /**
+   * Whether a condition on this rule declares emptiness as its PASSING state —
+   * `.notExist()` and friends. Zero examined is the assertion succeeding, so the
+   * evidence check must not report it. See `TerminalBuilder.assertsCardinality()`
+   * for why this is separate from `declaresEmpty()`.
+   */
+  assertsCardinality?: () => boolean
+
+  /**
+   * This rule's own adequacy advice — plan 0102.
+   *
+   * Distinct from `zeroSubjectsAdvice`: that covers `examinedUnits() === 0`.
+   * This covers a rule whose evidence is non-empty but which is structurally
+   * unable to ever produce a finding as configured (bug 0077(A) — a
+   * divergence-policing detector on a majority-less corpus). Returns the empty
+   * string for any rule that is not inert, so `diagnose()` reports nothing for
+   * a healthy control. Reported VERBATIM, exactly as `zeroSubjectsAdvice` is,
+   * for the same plan-0070 reason: the preview and the check-time finding must
+   * carry the same string by construction, not two texts for one state.
+   */
+  inertAdvice?: () => string
+
+  /**
+   * This rule's own deferred-warning advice — plan 0090.
+   *
+   * A DEFERRED warning (`.asSeverity('warn', { accepted })`) stays `warn` only
+   * for violations whose subject is in `accepted`; this reports when a CURRENT
+   * violation is not — the exact regression an accepted list exists to catch.
+   * Returns `''` for an advisory warning, for a rule at `'error'` severity, and
+   * for a deferred warning whose findings are all still accepted, matching
+   * `inertAdvice`/`zeroSubjectsAdvice`'s own precedent: reported VERBATIM, so
+   * `doctor`'s preview and `checkAll()`/CLI `check`'s eventual failure carry the
+   * same string by construction.
+   */
+  deferredWarningAdvice?: () => string
 }
 
 /** One thing wrong with one rule, named specifically enough to fix. */
 export interface DiagnosticFinding {
   /**
-   * `'dead-glob'` — a glob that can never match. `'project-empty'` — the
-   * project loaded no files, so nothing can match and the globs are not the
-   * fault (the same distinction ts-archunit's own bug 0031 exists for:
-   * diagnosing individual globs against an empty project reports six false
-   * causes for one real one).
+   * `'project-empty'` — the project loaded no files, so nothing can match and
+   * the globs are not the fault (bug 0031); `'dead-glob'` — a glob that can
+   * never match; `'no-condition'` — a rule
+   * that asserts nothing; `'project-unknown'` — a rule whose globs could not
+   * be checked because it cannot name the project it was built against.
    */
-  readonly kind: 'dead-glob' | 'project-empty'
+  readonly kind:
+    | 'dead-glob'
+    | 'no-condition'
+    | 'project-unknown'
+    | 'project-empty'
+    /**
+     * A rule that examined **zero units** while its project loaded files, and
+     * for which nothing else explained the emptiness — plan 0096.
+     *
+     * The preview for plan 0098, which makes the same state FAIL. Distinct from
+     * `'project-empty'` (the instrument loaded nothing) and from `'dead-glob'`
+     * (a glob the author wrote matches nothing): this is the family's OWN
+     * filters removing everything, including defaults the author never wrote.
+     *
+     * It lands in `diagnose()` rather than in `doctor` so that a rule file
+     * importing a test runner — which `doctor` cannot load, ADR-009 rule 1's
+     * corollary — still gets a preview: `expect(diagnose(rules)).toEqual([])`
+     * runs inside the consumer's own suite.
+     */
+    | 'zero-subjects'
+    /**
+     * A rule whose evidence is non-empty but which is structurally unable to
+     * ever produce a finding as configured — plan 0102. Distinct from
+     * `'zero-subjects'`: that fires when `examinedUnits() === 0`; this fires
+     * when `examinedUnits() > 0` but the family's own adequacy predicate
+     * (`inertAdvice?()`) says the rule can never fail regardless. ADR-009's
+     * Notes hand this class to ADR-008 explicitly: "a check can examine 500
+     * subjects and still assert nothing worth knowing."
+     */
+    | 'inert'
+    /**
+     * An inline `// eess-exclude` comment naming a rule id no rule
+     * declares, so it suppresses nothing — [ts-archunit bug 0044](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0044-an-inline-exclusion-comment-has-no-feedback-channel.md).
+     *
+     * Produced by `orphanExclusions()`, never by `diagnose()`: it needs every
+     * rule at once, and `diagnose()` is called per rule file.
+     */
+    | 'orphan-exclusion'
+    /**
+     * A DEFERRED warning (`.asSeverity('warn', { accepted })`) whose current
+     * findings are not all covered by `accepted` — plan 0090. The preview for
+     * the escalation `.violations()`/`checkAll()`/CLI `check` already apply: one
+     * of those findings will report at `error` severity the moment this rule
+     * runs. Distinct from `'inert'` and `'zero-subjects'`, which are about
+     * whether a rule can ever fail; this is about a rule that already fails,
+     * previewed before the run that discovers it does.
+     */
+    | 'deferred-warning'
   /** The rule's id if it has one, else its assembled description. */
   readonly rule: string
   /** Where the glob was written: `resideInFolder("**\/src/x/**")`. */
@@ -54,40 +197,55 @@ export interface DiagnosticFinding {
   /** The sanctioned fix, or an honest list of causes where none is verifiable. */
   readonly advice: string
   /**
+   * For `'orphan-exclusion'`, the line the comment sits on.
+   */
+  readonly line?: number
+  /**
+   * For `'orphan-exclusion'`, the **source** file holding the comment.
+   *
+   * Distinct from `ruleFile`, which names where a *rule* was written. An earlier
+   * revision reused `ruleFile` for this and gave JSON consumers two different
+   * things under one name depending on `kind`.
+   */
+  readonly sourceFile?: string
+  /**
    * The rule file this rule was written in, when the caller knows it.
    *
-   * `diagnose()` never sets this — it is handed rules, not files. `doctor`
-   * sets it, since its loop over rule files is the only place the mapping
-   * exists.
+   * `diagnose()` never sets this — it is handed rules, not files, and inventing
+   * a path it cannot verify is the thing this library exists to stop. `doctor`
+   * sets it, because its loop over rule files is the only place the mapping
+   * exists (bug 0026: `docs/cli.md` claimed identities "in which rule" and that
+   * was true of a dead glob's position and false of every `no-condition`
+   * finding, whose only identity was a prose sentence).
    */
   readonly ruleFile?: string
 }
 
 /**
- * Report which of each rule's declared globs can never match, and whether
- * the project itself loaded nothing — without evaluating any condition.
+ * Report what each rule cannot enforce, without evaluating their conditions.
  *
- * Independent of whether `.check()`/`.warn()` fails: a rule that currently
- * PASSES can still declare a glob that can never match (an `or(dead, live)`
- * selector, or a glob that's dead today but was live when the rule was
- * written), and this is the only way to see it before it silently degrades
- * to always-empty.
+ * It DOES materialize each rule's selection, as of plan 0096 — "this rule
+ * examined nothing" is a fact about the selection. The docstring said "without
+ * running any of them" and that stopped being true; it is the IDE-hover contract
+ * for an exported function, so it is corrected here and not only in `docs/`.
  *
- * **Scope, honestly stated.** ts-archunit's own `diagnose()` (613 lines) has
- * grown to seven finding kinds across several of its own plans this repo
- * doesn't carry: deferred/accepted-warning previews, a structural
- * `inertAdvice()` adequacy predicate, declared-emptiness bookkeeping, and
- * orphaned exclusion comments. This ports the two kinds eess's kernel
- * actually has the machinery for today — `dead-glob` (Phase 4 Batches 1–2's
- * whole point) and `project-empty` (`empty-project-advice.ts`, ported
- * Batch 1, unconsumed until now). The other five need features eess doesn't
- * have yet (`.asSeverity('warn', { accepted })`, a per-family adequacy hook,
- * `.expectEmpty()`'s own declared-state bookkeeping surfaced structurally) —
- * naming them here rather than silently answering a narrower question with
- * ts-archunit's wider promise.
+ * As of plan 0102, one family's `inertAdvice?()` goes further than selection:
+ * `inconsistentSiblings` walks every sibling body's AST to answer it (the same
+ * work `check()` does), so for that one family this IS evaluating the
+ * condition, not just counting what would be handed to it (review: architect).
+ * Still no `Condition.evaluate()` call — the boundary this docstring's
+ * predecessor drew — but "without evaluating" is no longer exactly right for
+ * every family, and is corrected here rather than left for the next reader to
+ * discover by profiling `doctor`.
+ *
+ * The in-process half of `doctor`. It exists because rules written inside
+ * vitest are a co-equal documented path (`docs/running-in-tests.md`), and a
+ * CLI-only diagnostic would leave half the users unable to measure before R3
+ * flips anything — which is the one job R2a has.
  *
  * Reports **identities, never totals**: which glob, in which rule, at which
- * position. A count is a snapshot; callers who want one can take `.length`.
+ * position. A count is a snapshot, and under ADR-009 rule 4 a snapshot is the
+ * thing that rots. Callers who want a number can take `.length`.
  */
 export function diagnose(
   rules: readonly DiagnosableRule[],
@@ -95,73 +253,309 @@ export function diagnose(
 ): DiagnosticFinding[] {
   const findings: DiagnosticFinding[] = []
   /**
-   * Projects already reported empty, by OBJECT not by path — object
-   * identity is what `pathUniverse`/`diskSet` already key their own caches
-   * on, and a path is not a safe identity (two loaders can point at one
-   * tsconfig).
+   * Projects already reported empty, by OBJECT not by path.
+   *
+   * The path is not an identity: `workspace([...])` sets `tsConfigPath` to the
+   * alphabetically first of N configs (`project.ts`), so a `workspace()` and a
+   * `project()` naming that same config collided — and the loser was dropped
+   * silently, contributing no finding at all. A false green inside the fix for
+   * a false green. `project()` and `workspace()` are both memoized, so object
+   * identity IS project identity, and it is what `pathUniverse` and `diskSet`
+   * already key on.
    */
   const emptyProjects = new WeakSet<ArchProject>()
 
   for (const rule of rules) {
     const name = ruleName(rule)
-    // The rule's own project wins over the parameter — a rule file with two
-    // `project()` calls must not have half its globs checked against the
-    // wrong universe. The parameter is a fallback for a rule that cannot
-    // name one at all (no `getProject()`, or it returns `undefined`).
-    const target = rule.getProject?.() ?? project
-    const trees = rule.globs?.() ?? []
-    if (trees.length === 0) continue
 
-    if (target === undefined) {
-      // Still report syntactic faults — a glob can be malformed independent
-      // of any project ('./src/**' is dead everywhere), and withholding it
-      // sends the reader on a round trip for a fault already decided.
-      findings.push(...syntacticFindings(name, trees))
+    // PER RULE, not once for the whole array. Taking the first project any
+    // rule could name and diagnosing everything against it is wrong in both
+    // directions: a rule file with two `project()` calls gets half its globs
+    // checked against the wrong universe — the documented monorepo hazard,
+    // committed by the diagnostic itself — and a file whose rules cannot name
+    // a project at all got silence.
+    // The rule's own project WINS over the parameter. Backwards, the parameter
+    // silently re-checks every rule against one universe — which is the
+    // documented monorepo hazard the paragraph above complains about, and the
+    // `project-unknown` advice used to recommend it. The parameter is a
+    // fallback for rules that cannot name a project, which is the only case it
+    // was ever needed for.
+    const target = rule.getProject?.() ?? project
+
+    // Where this rule's findings begin, so the tail can ask whether anything
+    // else already explained an empty examination (plan 0096's precedence
+    // ruling). The gate has the same shape at `terminal-builder.ts` — each fault
+    // REPLACES what follows — and `diagnose()` must mirror it or the preview
+    // disagrees with the thing it previews.
+    //
+    // ABOVE the `no-condition` push, deliberately. It sat below on the first
+    // pass, so the tail could never see a missing assertion and measured
+    // ['no-condition','zero-subjects'] on three shapes — while the comment on
+    // the tail claimed a missing assertion already named a cause. The code
+    // contradicted its own comment.
+    const before = findings.length
+
+    // A rule with a selector and no condition asserts nothing about what it
+    // selected. Reported here so that R3b's gate can see proposal 019 at all:
+    // a doctor that reported only glob faults would pass while 019's blast
+    // radius was completely unknown — this plan's own question, asked of its
+    // own gate.
+    if (hasNoCondition(rule)) {
+      findings.push({
+        kind: 'no-condition',
+        rule: name,
+        // The builder's own per-state remedy when it offers one — the same
+        // string the runtime prints — falling back to the generic form for a
+        // DiagnosableRule that predates the hook. The old fixed text here said
+        // "add a .should() clause", which is the wrong remedy for the main
+        // shape (the .should() is present; the condition is not).
+        // The builder's own per-state remedy. No literal fallback string here:
+        // an earlier revision hard-coded the generic text a second time, and a
+        // review measured either copy being rewritten with nothing failing —
+        // two strings in the mechanism whose stated purpose is one string, one
+        // place. A DiagnosableRule that predates the hook gets the base
+        // method's text, from the one place that owns it.
+        advice: rule.assertionAdvice?.() ?? TerminalBuilder.prototype.assertionAdvice.call(rule),
+      })
+    }
+
+    const trees = rule.globs?.() ?? []
+
+    // Silence here would be a false green in the tool built to remove false
+    // greens: a rule that declares globs and cannot say which project to check
+    // them against used to be skipped, so a rule file made entirely of such
+    // rules reported a clean bill of health and exited 0 with every one of its
+    // globs unchecked. Say so instead.
+    //
+    // This comment used to name `crossLayer()` and `resolvers()` as the
+    // builders that could not name their project — and by the time it was read
+    // again, `48e3391` had given both a `getProject()`, so it named as examples
+    // the two shapes the fix had repaired. `tests/core/diagnose.test.ts` pins
+    // the truth in both directions: one test drives this branch, and a second
+    // asserts a `crossLayer` rule does NOT reach it. Hence no roster and no
+    // count here — a builder reaches this branch exactly when it implements no
+    // `getProject()` and no project was passed in, which is checked on the
+    // line below rather than remembered in prose.
+    if (!target) {
+      if (trees.length > 0) {
+        findings.push({
+          kind: 'project-unknown',
+          rule: name,
+          advice:
+            'this rule declares globs but cannot say which project it was built against, so they were not checked. A builder constructed directly rather than through its entry point has no project to report',
+        })
+        // ...but the syntactic faults do not need a project, so they are still
+        // reported here rather than held back for a run that may never happen.
+        findings.push(...syntacticFindings(name, trees))
+      }
+      // Evidence is a fact about the FAMILY, not about whether we could name its
+      // project — so this branch reports it too. Under the SAME gate as the tail:
+      // pushed unconditionally it produced ['project-unknown','dead-glob',
+      // 'zero-subjects'], the very shape this plan condemns, on the one path the
+      // ruling had not been extended to.
+      if (findings.length === before) {
+        const noProjectEvidence = zeroSubjectsFinding(rule, name)
+        if (noProjectEvidence !== undefined) findings.push(noProjectEvidence)
+      }
       continue
     }
 
+    // Bug 0031. When the project loaded nothing, EVERY glob is dead and none
+    // of them is the reason. Diagnosing them one by one produced six findings
+    // whose advice said "a path segment is misspelled" about correctly spelled
+    // globs, measured against a real adopting codebase whose root tsconfig is
+    // `"files": []` plus project references.
+    //
+    // The rule is not new here: `slice-rule-builder.ts` already states it —
+    // "blaming the glob would send the caller to the wrong file entirely" —
+    // and `check` printed the right cause in the same run this printed the
+    // wrong one.
+    //
+    // Once per PROJECT, not per rule and not per glob: the identity of this
+    // fault is the tsconfig, so that is what ADR-009 rule 4 asks be named.
+    // Deduped by path rather than by object because the path is what the
+    // message prints, and printing one sentence twice is the thing being
+    // fixed.
     if (loadedNothing(target)) {
       if (!emptyProjects.has(target)) {
         emptyProjects.add(target)
-        findings.push({ kind: 'project-empty', rule: name, advice: emptyProjectAdvice(target) })
+        findings.push({
+          kind: 'project-empty',
+          rule: name,
+          // One owner, shared with the builder's failing-check message. The
+          // clause "Reported once for this project" used to be here and was
+          // FALSE on the primary surface: `doctor` calls `diagnose()` once per
+          // rule file, so two files against one empty tsconfig printed the
+          // sentence claiming it was printed once, twice. Measured by review.
+          advice: emptyProjectAdvice(target),
+        })
       }
+      // The syntactic faults survive an empty project: they are properties of
+      // the glob text, not of what loaded, so withholding them buys the reader
+      // a second failing round trip.
       findings.push(...syntacticFindings(name, trees))
-      // Skip the rest of the glob walk — every one would carry a cause
-      // (this specific glob is wrong) that's false; the real cause already
-      // has its own finding above.
+      // Skip the rest of the glob walk. Not an optimisation — reporting those
+      // globs is the bug, because every one would carry a cause that is false.
       continue
     }
 
     const universe = pathUniverse(target)
+
     for (const tree of trees) {
-      // Only diagnose sites inside a tree that is actually dead. A live
-      // tree may still contain a dead site (`or(dead, live)` is a working
-      // rule), and reporting the dead one there is the false red the tree
-      // exists to prevent.
+      // Only diagnose sites inside a tree that is actually dead. A live tree
+      // may still contain a dead site — `or(dead, live)` is a working rule —
+      // and reporting the dead one there is the false red the tree exists to
+      // prevent.
       if (!isDeadGlobTree(tree, universe)) continue
       for (const site of globSitesOf(tree)) {
-        // An exclusion matching zero is remedy-optional and never a fault; a
-        // positive condition glob is indistinguishable from an armed
-        // tripwire that hasn't fired.
+        // An exclusion matching zero is remedy-optional (proposal 006) and
+        // never a fault, and a positive condition glob is indistinguishable
+        // from an armed tripwire that has not fired. Reporting either asserts
+        // a remedy for a non-fault — and `position` used to be copied into the
+        // finding and never read, so both fired.
         if (!isFaultPosition(site.position)) continue
         if (!isDeadSite(site, universe)) continue
-        findings.push(describeDeadSite(site, name, universe, target))
+        findings.push(describe(site, name, universe, target))
       }
     }
+
+    // LAST, and only if nothing else spoke for this rule. A dead glob, a missing
+    // assertion or an empty project each already names a cause with its own
+    // remedy; adding "your narrowing removed everything" beside one of them
+    // prints the derived symptom above the root cause, with advice that is false
+    // on that path. The first attempt emitted this first and unconditionally,
+    // which measured as ['zero-subjects','dead-glob'] for a single typo and
+    // broke the invariant bug 0040 is filed for — that `diagnose()` and the gate
+    // agree about a dead discovery glob.
+    if (findings.length === before) {
+      const evidence = zeroSubjectsFinding(rule, name)
+      if (evidence !== undefined) findings.push(evidence)
+    }
+
+    // A DISTINCT branch, not folded into the zeroSubjectsFinding guard above:
+    // inertAdvice() only returns non-empty when examinedUnits() > 0 (plan
+    // 0102's own guard requires `matching > 0`), so the two are structurally
+    // mutually exclusive and this never doubles up with the zero-subjects
+    // finding above. Unconditional (not gated on `findings.length === before`)
+    // because the emptiness precedence above governs a different axis
+    // (evidence present vs. absent); this axis is evidence present vs.
+    // adequate, and nothing else in this loop speaks to it.
+    const inert = inertFinding(rule, name)
+    if (inert !== undefined) findings.push(inert)
+
+    // Also unconditional, and naturally exclusive from the two branches above:
+    // `deferredWarningAdvice()` only fires when `.violations()` returns at
+    // least one `error`-severity result, which cannot happen when examined
+    // units is zero (zero-subjects) or the family's own adequacy predicate says
+    // this rule can never produce a finding (inert) — both of those states mean
+    // no violations at all, so `breaching.length` is `0` and this stays silent.
+    const deferred = deferredWarningFinding(rule, name)
+    if (deferred !== undefined) findings.push(deferred)
   }
   return findings
 }
 
 /**
- * The faults that need no project at all. `syntacticFault` takes
- * `(glob, kind, base)` — no universe, no project — so it applies whether or
- * not the caller could name a project. `'./src/**'` is dead in every
- * possible project; loading the tsconfig won't fix it.
+ * A rule that examined nothing, when nothing else explained why — plan 0096.
+ *
+ * Returns `undefined` unless the family answers `examinedUnits()` and answered
+ * zero. Two callers, on purpose: the project-unknown branch (a family with no
+ * project still has evidence — `correspondence` and `schemaFromSDL` have no
+ * `ArchProject` at all, and the first attempt gated this on one and gave those
+ * two families no preview whatsoever) and the tail of the normal path.
+ *
+ * NOT called from the project-empty branch. That fault is the instrument, it
+ * already has its own finding, and reporting both would print one fault twice
+ * — and prefigure 0098's precedence backwards, where an empty project outranks
+ * every declaration because a declaration asserts a fact about a loaded corpus.
+ */
+function zeroSubjectsFinding(rule: DiagnosableRule, name: string): DiagnosticFinding | undefined {
+  if (rule.examinedUnits === undefined) return undefined
+  if (rule.examinedUnits() !== 0) return undefined
+  // The author said empty is the point. Reporting anyway would make the advice
+  // below a remedy the reader has already applied — ADR-009 rule 2's loop — and
+  // would over-report against 0098's floor, which honours the same mint. That
+  // the mint exists at all is why 0097 shipped first; this is its first reader.
+  if (rule.declaresEmpty?.() === true) return undefined
+  // `.notExist()` examines zero BECAUSE that is what it asserts — the gate has
+  // exempted this since 0.34.0 and the preview must agree, or `doctor` reports a
+  // working rule as broken. Plan 0098: the rule-builder family is the first to
+  // report evidence, so this is the first release in which the two could differ.
+  if (rule.assertsCardinality?.() === true) return undefined
+  return {
+    kind: 'zero-subjects',
+    rule: name,
+    // ONE cause, because precedence has already removed the others: this fires
+    // only when no dead glob, missing assertion or empty project explained the
+    // emptiness first. So the remedy can name that cause without the hedging
+    // ADR-009 rule 2 forbids — and it must not say "your filters", because the
+    // commonest trigger is a default the author never wrote (`minLines` is 5).
+    // VERBATIM from the rule when it can speak, so this preview and the gate
+    // cannot drift. The fallback is for a foreign dialect that predates the seam;
+    // it deliberately no longer promises "a later release makes this fail" — that
+    // release is this one.
+    // NO fallback literal. It was a six-line copy of the producer's sentence —
+    // dead for every real builder (every `TerminalBuilder` has the method), never
+    // referenced by a test, and already diverging: no unit noun, no file count,
+    // no narrowing hint. The seam exists because "two texts for one state is the
+    // plan-0070 drift shape"; a fallback is that second text, one level down, in
+    // the commit that added the seam.
+    //
+    // A duck-typed `DiagnosableRule` that cannot answer simply has no advice to
+    // report, which is honest — better than core inventing a sentence for a
+    // family whose units and remedies it does not know.
+    advice:
+      rule.zeroSubjectsAdvice?.() ??
+      'this rule examined 0 units, so it enforces nothing as written today.',
+  }
+}
+
+/**
+ * A rule whose evidence is non-empty but which is structurally unable to ever
+ * produce a finding as configured — plan 0102, bug 0077(A).
+ *
+ * Mirrors `zeroSubjectsFinding`'s shape: returns `undefined` unless the family
+ * answers `inertAdvice()` and answers non-empty. No fallback literal, for the
+ * same reason `zeroSubjectsFinding` has none — a family that cannot answer has
+ * no advice to report, which is honest; core does not invent a sentence for an
+ * adequacy predicate it does not own.
+ */
+function inertFinding(rule: DiagnosableRule, name: string): DiagnosticFinding | undefined {
+  const advice = rule.inertAdvice?.()
+  if (advice === undefined || advice === '') return undefined
+  return { kind: 'inert', rule: name, advice }
+}
+
+/** A deferred warning whose accepted list no longer covers everything it finds — plan 0090. */
+function deferredWarningFinding(
+  rule: DiagnosableRule,
+  name: string,
+): DiagnosticFinding | undefined {
+  const advice = rule.deferredWarningAdvice?.()
+  if (advice === undefined || advice === '') return undefined
+  return { kind: 'deferred-warning', rule: name, advice }
+}
+
+/**
+ * The faults that need no project at all, reported on the branches that have none.
+ *
+ * `syntacticFault` takes `(glob, kind, base)` — no universe, no project — and
+ * is split out for exactly that reason. `'./src/**'` is dead in every possible
+ * project; loading the tsconfig will not fix it. Both early exits below (the
+ * project is unknown, the project is empty) used to swallow these, so the
+ * reader corrected their config, re-ran, and only then learned the glob was
+ * also malformed — a second round trip for a fault already decided.
+ *
+ * Reported by review. Applies to the pre-existing `project-unknown` branch too,
+ * which had the same hole.
  */
 function syntacticFindings(rule: string, trees: readonly GlobNode[]): DiagnosticFinding[] {
   const findings: DiagnosticFinding[] = []
   for (const tree of trees) {
     for (const site of globSitesOf(tree)) {
+      // Same position filter as the main path: an exclusion or condition glob
+      // matching nothing is not a fault, and that does not change because the
+      // fault is syntactic.
       if (!isFaultPosition(site.position)) continue
       const fault = syntacticFault(site.glob, site.kind, site.base)
       if (fault === undefined) continue
@@ -179,8 +573,8 @@ function syntacticFindings(rule: string, trees: readonly GlobNode[]): Diagnostic
   return findings
 }
 
-function describeDeadSite(
-  site: ReturnType<typeof globSitesOf>[number],
+function describe(
+  site: GlobSite,
   rule: string,
   universe: ReturnType<typeof pathUniverse>,
   project: ArchProject,
@@ -188,7 +582,7 @@ function describeDeadSite(
   // The disk set is reached only from here, so a project with no dead globs
   // never walks the filesystem.
   const diagnosis = diagnoseGlob(site, universe, diskSet(project))
-  const onDiskAdvice = diagnosis.onDisk !== undefined ? ON_DISK_ADVICE[diagnosis.onDisk] : ''
+  const onDiskAdvice = diagnosis.onDisk ? ON_DISK_ADVICE[diagnosis.onDisk] : ''
   return {
     kind: 'dead-glob',
     rule,
@@ -203,7 +597,17 @@ function describeDeadSite(
 
 function ruleName(rule: DiagnosableRule): string {
   const described = rule.describeRule?.()
-  // `||`, not `??`: `describeRule()` returns `rule: ''` for a bare entry
-  // point with no predicates/conditions, and `''` is not nullish.
+  // `||` throughout, never `??`: `describeRule()` returns `rule: ''` for a bare
+  // entry point (no predicates, no conditions), and `'' ` is not nullish — so
+  // `?? 'unnamed rule'` made the fallback dead code and `doctor` printed an
+  // empty rule name for precisely the shape this diagnostic is about. Caught by
+  // sabotage, not by reading. The gate derives the same name in
+  // `TerminalBuilder.collectWithAssertionGuard`; both must be non-empty, and
+  // both are asserted so.
   return described?.id || described?.rule || 'unnamed rule'
+}
+
+/** Whether the rule reached a terminal with no condition attached. */
+function hasNoCondition(rule: DiagnosableRule): boolean {
+  return rule.assertsSomething?.() === false
 }

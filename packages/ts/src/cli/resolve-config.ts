@@ -1,9 +1,9 @@
 import path from 'node:path'
+import { importRuleModule } from './import-rule-module.js'
+import { isRecord } from '@nielspeter/eess'
 import fs from 'node:fs'
-import { createJiti } from 'jiti'
 import type { CliConfig } from './config.js'
 
-// Config file names, in resolution order. First match wins.
 const CONFIG_FILENAMES = ['eess-ts.config.ts', 'eess-ts.config.js']
 
 /**
@@ -19,16 +19,10 @@ export async function resolveConfig(explicitPath?: string): Promise<CliConfig> {
 
   if (configPath === undefined) return {}
 
-  // jiti, not raw import(): Node decides a .ts file's module-ness from the
-  // CONSUMER project's package.json `type` field, so an ESM-syntax config
-  // crashes in a "type": "commonjs" project (what `npm init -y` writes) —
-  // bug 0074. Rule files already load via jiti (load-rules.ts); the config
-  // must behave identically regardless of the host package's type.
-  // interopDefault: false — extractDefault reads `.default` itself, and the
-  // interop proxy breaks on `export default null` (its `then` probe during
-  // await dereferences the null default).
-  const jiti = createJiti(import.meta.url, { interopDefault: false })
-  const mod: unknown = await jiti.import(path.resolve(configPath))
+  // Native `import()` first, jiti only if Node refuses the file's module format
+  // — see `import-rule-module.ts`. A config in a `"type": "commonjs"` project is
+  // bug 0074; a config in an ESM project must share the CLI's module registry.
+  const mod: unknown = await importRuleModule(path.resolve(configPath), false)
   return extractDefault(mod)
 }
 
@@ -53,23 +47,27 @@ function extractDefault(mod: unknown): CliConfig {
   if (!('default' in mod)) {
     return {}
   }
-  const defaultExport: unknown = mod['default']
+  const defaultExport: unknown = mod.default
   if (defaultExport === null || defaultExport === undefined || typeof defaultExport !== 'object') {
     return {}
   }
-  // Runtime validate: only pick known CliConfig fields ('in' narrows each read)
+  // Runtime validate: only pick known CliConfig fields
+  if (!isRecord(defaultExport)) return {}
+  const obj = defaultExport
   const config: CliConfig = {}
-  if ('project' in defaultExport && typeof defaultExport.project === 'string')
-    config.project = defaultExport.project
-  if ('baseline' in defaultExport && typeof defaultExport.baseline === 'string')
-    config.baseline = defaultExport.baseline
-  if ('format' in defaultExport) {
-    const format = defaultExport.format
-    if (format === 'terminal' || format === 'json' || format === 'github' || format === 'auto') {
-      config.format = format
+  if (typeof obj['project'] === 'string') config.project = obj['project']
+  if (typeof obj['baseline'] === 'string') config.baseline = obj['baseline']
+  if (typeof obj['format'] === 'string') {
+    // A guard over the literal union, so the narrowing is the check rather than
+    // a cast that repeats it. `includes` on a `string[]` cannot narrow; a
+    // predicate over the same list can.
+    const isFormat = (v: string): v is NonNullable<CliConfig['format']> =>
+      (['terminal', 'json', 'github', 'auto'] as const).some((f) => f === v)
+    if (isFormat(obj['format'])) {
+      config.format = obj['format']
     }
   }
-  if ('rules' in defaultExport && Array.isArray(defaultExport.rules))
-    config.rules = defaultExport.rules.filter((r): r is string => typeof r === 'string')
+  if (Array.isArray(obj['rules']))
+    config.rules = obj['rules'].filter((r): r is string => typeof r === 'string')
   return config
 }

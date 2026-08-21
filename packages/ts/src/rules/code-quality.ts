@@ -1,7 +1,7 @@
-import { SyntaxKind } from 'ts-morph'
+import { Node, SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation } from '../core/violation.js'
 
 /**
@@ -66,13 +66,22 @@ export function noPublicFields(): Condition<ClassDeclaration> {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
         for (const prop of cls.getProperties()) {
-          // ES #private fields are private by name — they carry no scope
-          // modifier, so getScope() reports public (dogfood finding, plan 0060)
-          if (prop.getName().startsWith('#')) continue
+          // An ECMAScript `#private` field FIRST, because `getScope()` cannot see
+          // it: `#name` carries no TypeScript accessibility modifier, so the scope
+          // reads `'public'` and the field was reported. That is a false positive
+          // whose remedy — "use private + getter/setter" — is strictly backwards:
+          // `#` is private at RUNTIME, while `private` is erased at compile time.
+          // Measured on `ArchRuleError.#violations` (plan 0165).
+          if (Node.isPrivateIdentifier(prop.getNameNode())) continue
           const scope = prop.getScope()
           if (scope !== undefined && String(scope) !== 'public') continue
-          // Allow static readonly (constants)
-          if (prop.isStatic() && prop.isReadonly()) continue
+          // `readonly` is not mutable — which is what this rule is named for.
+          // It previously accepted only `static readonly`, so a public
+          // `readonly` INSTANCE field was reported with the remedy "use private
+          // + getter/setter": advice that removes nothing (the field already
+          // cannot be reassigned) and that the rule's own description does not
+          // support. Measured on `DiffFilter.baseBranch` (plan 0165).
+          if (prop.isReadonly()) continue
 
           violations.push(
             createViolation(

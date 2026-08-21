@@ -156,6 +156,19 @@ console.error(
 
 const zeroFileProject = project(VACUITY_TSCONFIG)
 
+/**
+ * A NON-EMPTY project — bug 0155's second derivation.
+ *
+ * Every probe above runs bare over `zeroFileProject`, so each short-circuits
+ * at `sourceEmpty` and never reaches the assertion-less gate, which fires only
+ * when subjects were actually selected. Probing it needs a corpus with
+ * something in it; otherwise that gate's only guard is its own unit-test file.
+ */
+const nonEmptyProject = project(
+  process.env.VACUITY_NONEMPTY_TSCONFIG_OVERRIDE ??
+    path.join(repoRoot, 'packages/ts/tests/fixtures/vacuity-nonempty/tsconfig.json'),
+)
+
 /** Builder factories: call → get a TerminalBuilder-shaped value → `.check()` bare. */
 const BUILDER_PROBES = {
   'classes()': () => tsRoot.classes(zeroFileProject),
@@ -168,19 +181,57 @@ const BUILDER_PROBES = {
   'resolvers()': () => tsGraphql.resolvers(zeroFileProject, 'src/**/*.resolver.ts'),
   'schema()': () => tsGraphql.schema(zeroFileProject, 'src/**/*.graphql'),
   'schemaFromSDL()': () => tsGraphql.schemaFromSDL('type Query { x: String }'),
+  // Bug 0155 — reaches the assertion-less gate, which every zero-file probe
+  // above short-circuits past. Bare `.should()` over a corpus that HAS
+  // subjects: the rule selects something and asserts nothing.
+  'classes() bare .should() over a non-empty corpus': () =>
+    tsRoot.classes(nonEmptyProject).that().haveNameEndingWith('Subject').should(),
 }
 
 /** Presets: call bare with the minimal required options → they run+report internally. */
+/**
+ * **Probed BARE, so the probe asks about the DEFAULT.** This is the mode an
+ * adopter gets by copying the docs, and it is the mode that silently stopped
+ * enforcing.
+ *
+ * These probes used to pass `report: 'throw'` explicitly, and the reason was
+ * recorded here as reasoning: the engine adopted in plan 0165 returned
+ * un-executed builders by default, so a bare call constructed rules and ran
+ * none — it could not throw, and `classify()` scored all five presets
+ * `fail-open`.
+ *
+ * **The gate was right and was reconfigured to stop saying so.** All five
+ * `fail-open` verdicts were correct findings about a real defect; naming the
+ * mode made them go away, and plan 0165 booked the silencing as the fix
+ * (`check:vacuity ✗ 5 presets fail-open → green`). The defect then shipped and
+ * survived until two reviewers found it by hand in PR #72. Commit `9695ce7`
+ * restored the default; this probe was not restored with it, so the gate stayed
+ * blind to a recurrence of the branch's own headline bug — measured: byte-identical
+ * green with the regression fully reintroduced. Found by the enforcement review.
+ *
+ * A preset that constructs NOTHING still scores `fail-open` here, correctly:
+ * `finishPreset([], …)` has nothing to throw about. That is
+ * `presetConstructsNothingViolation`'s case and it must stay detectable.
+ *
+ * One explicit-mode probe is kept below so `report: 'throw'` does not become
+ * untested by moving the others onto the default.
+ */
 const PRESET_PROBES = {
-  'recommended()': () => tsPresets.recommended(zeroFileProject, {}),
-  'agentGuardrails()': () => tsPresets.agentGuardrails(zeroFileProject, { src: 'src/**' }),
-  'layeredArchitecture()': () =>
+  'recommended() [default delivery]': () => tsPresets.recommended(zeroFileProject, {}),
+  'agentGuardrails() [default delivery]': () =>
+    tsPresets.agentGuardrails(zeroFileProject, { src: 'src/**' }),
+  'layeredArchitecture() [default delivery]': () =>
     tsPresets.layeredArchitecture(zeroFileProject, {
       layers: { outer: 'src/outer/**', inner: 'src/inner/**' },
     }),
-  'dataLayerIsolation()': () =>
+  'dataLayerIsolation() [default delivery]': () =>
     tsPresets.dataLayerIsolation(zeroFileProject, { repositories: 'src/repositories/**' }),
-  'strictBoundaries()': () => tsPresets.strictBoundaries(zeroFileProject, { folders: 'src/*' }),
+  'strictBoundaries() [default delivery]': () =>
+    tsPresets.strictBoundaries(zeroFileProject, { folders: 'src/*' }),
+  // The named mode, so moving the five above onto the default does not leave
+  // `report: 'throw'` untested.
+  "recommended() [report: 'throw']": () =>
+    tsPresets.recommended(zeroFileProject, { report: 'throw' }),
 }
 
 /**
@@ -191,18 +242,13 @@ const PRESET_PROBES = {
  * fresh reason if it's still real and still accepted.
  */
 const KNOWN_FAIL_OPEN = [
-  {
-    name: 'schemaFromSDL()',
-    reason:
-      'A narrower, different-shaped gap than the presets above: schemaFromSDL() parses its own ' +
-      'literal SDL argument rather than the shared zero-file project, so it never reaches the ' +
-      'sourceEmpty signal every other builder in this matrix relies on. Called bare (no `.should()` ' +
-      'chained), it hits RuleBuilder\'s own "predicates but no conditions" assertion-less path ' +
-      "(console.warn'd, not silent, but not a thrown finding either) and passes. Real content with " +
-      'a real .should() chain behaves normally — this is specific to the bare, condition-less probe ' +
-      'shape. Not yet filed as its own eess bug/plan.',
-    expires: '2026-11-15',
-  },
+  // Empty — and it should stay that way. The single entry that lived here,
+  // `schemaFromSDL()`, described bug 0155 verbatim: called bare it "hits
+  // RuleBuilder's own 'predicates but no conditions' assertion-less path
+  // (console.warn'd, not silent, but not a thrown finding either) and passes",
+  // filed as no bug and dated to expire 2026-11-15. Bug 0155 filed it and
+  // fixed it — an assertion-less rule is now a configuration finding in every
+  // builder — so the exemption is retired rather than renewed.
 ]
 
 function checkExpiry(entry, today) {

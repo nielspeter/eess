@@ -29,6 +29,88 @@ Three ways to satisfy it, all of them declarations:
 over `--empty` in a mixed PR — `--empty` waives the whole run, and the gate says
 which packages it therefore left unchecked.
 
+## Signalling a breaking change (bug 0184)
+
+A break must be **marked in the body** and bumped past `patch`. `check:release`
+reads the marker, not your prose.
+
+| what you write                                        | also accepted                                                   |
+| ----------------------------------------------------- | --------------------------------------------------------------- |
+| a line starting `**Breaking …**` — the house spelling | `__Breaking …__`, and behind a list marker (`- **Breaking …**`) |
+| a `## Breaking` heading                               | any heading level, `#` to `######`                              |
+| `BREAKING CHANGE:` at the start of a line             | `BREAKING-CHANGE:`, and the plural `BREAKING CHANGES:`          |
+
+This table states no count on purpose. Its first version said "4 of the pending
+changesets use it" and was wrong one commit later; `check:release` prints the live
+number on every run, which is the copy that cannot drift.
+
+**Two spellings that DO fire and should not**, accepted deliberately:
+`**Breaking changes:** none` and `**Breaking change avoided**`. The gate reads the
+marker, not the sentence after it. Detecting those needs a negation test inside
+the bolded span, and `**Breaking:** none of the old exports remain` contains
+"none" while being a real break — so that would trade a loud false positive for a
+silent false negative on a path that cannot be undone. Write a bolded `**Breaking
+…**` lead only when something actually broke; if you hit this, the remedy the gate
+prints (delete the marker) is the right one.
+
+On a `0.x` package a break is a **`minor`**, never `major` — `major` takes the
+package to `1.0.0`, which is a permanent stability claim, and never `patch`,
+which is the bump an adopter takes without reading anything.
+
+**Name the owning package when the changeset touches several.**
+`**Breaking (@nielspeter/eess-ts):**` makes ownership machine-readable, and the
+rule then requires _that_ package past `patch`.
+
+Without an owner it can only ask that **at least one** package is past `patch`,
+because a break is owned by one package while its siblings take a dependency
+patch — `assertion-less-rules-fail.md` is kernel `minor` plus five dialects on
+`patch`, and demanding all of them would redden a correct changeset.
+
+That weaker form has a real hole, and the gate says so out loud rather than
+hiding it: kernel `minor` with the break actually in a dialect on `patch` passes.
+A green run prints how many changesets were checked loosely for exactly this
+reason. If your changeset names more than one package, name the owner.
+
+**A break in the kernel must name the dialects, at `minor`.** `@nielspeter/eess`
+is a regular dependency of all five dialects. An adopter installs `eess-ts`, holds
+no range on the kernel at all, and an undeclared dialect inherits the kernel's
+release as a **patch** — a version their `^0.3.0` takes without asking, under a
+changelog reading only "Updated dependencies" (bug 0185).
+
+**There is no configuration that changes this.** `updateInternalDependencies` is
+not it: changesets hard-codes the inherited type to `patch` in
+`assemble-release-plan`, and reads that setting only in `apply-release-plan`, as
+the threshold for rewriting the dependency RANGE string. Declaring the dialect is
+the only lever.
+
+Declaring each dialect at `minor` in the same changeset does both things: the
+dialect ships on a version an adopter will not silently take, and the changeset's
+TEXT lands in that dialect's own changelog instead of "Updated dependencies".
+`release/break-names-dependents` enforces it.
+
+`patch` is not enough and the gate says so. Measured on this repo's own model
+changeset: with the dialects at `patch`, `eess-ts` releases as `0.3.1` and the
+rendered entry reads `**Breaking:** …` under a heading that says
+`### Patch Changes`. At `minor` it releases as `0.4.0` with the text under
+`### Minor Changes`.
+
+Peer dependents are NOT required — but not for the reason first written here.
+Declaring a peer dependent does **not** trigger the `1.0.0` escalation: measured,
+that setting governs automatic bumping of an _undeclared_ peer dependent, and an
+explicit declaration is honoured unchanged. The argument that survives is weaker:
+a peer is a range the consumer resolves. `eess-crossvalidate` peers on the
+four dialects with `>=0.1.1`, and `onlyUpdatePeerDependentsWhenOutOfRange` leaves
+it unbumped on purpose — that is the countermeasure for the `1.0.0` escalation.
+The cost is that crossvalidate's changelog cannot record a sibling break.
+
+**The limit, stated because it is load-bearing:** an unmarked break is not
+caught. This gate exists to stop a changeset that SAYS "Breaking" from shipping
+as a patch — it does not infer intent from prose, and no gate does. If you are
+breaking something, write the marker.
+
+`none` is not a way out. It means "no release, recorded", and a body declaring a
+break alongside it is still wrong; the rule fires and says so.
+
 The gate reads a **base ref** (`EESS_RELEASE_BASE`, else the PR's target, else
 `origin/main`, else `main`) and hard-errors if none resolves, so CI checks out
 with `fetch-depth: 0`. It runs on pull requests only: after a merge there is no
@@ -127,5 +209,7 @@ After that, the package releases tokenlessly through the workflow like the rest.
 
 Packages version independently via changesets (`.changeset/config.json`), but in
 practice we bump the family together so the six stay in lockstep at a common
-version. Internal dependency ranges are bumped automatically
-(`updateInternalDependencies: patch`).
+version. Internal dependency RANGES are rewritten automatically
+(`updateInternalDependencies: patch` is the threshold for that rewrite — it does
+**not** control how strongly a dependent's version is bumped, which changesets
+hard-codes to `patch`; see "Signalling a breaking change").

@@ -1,10 +1,10 @@
 import type { ClassDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation, getElementName } from '../core/violation.js'
+import { identifyMatches } from './match-identity.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import { searchClassBody, reportedLine } from '../helpers/body-traversal.js'
-import { identifyMatches } from './match-identity.js'
 
 // ─── Class body conditions ──────────────────────────────────────────
 

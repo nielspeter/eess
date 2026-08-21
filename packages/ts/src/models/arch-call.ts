@@ -13,8 +13,7 @@ import {
  * `${object}.${method}` form (e.g. `app.post`) — the predicate-visible
  * identity.
  */
-// eess-exclude eess/no-unused-exports: parameter type of the exported ArchCall.getName API (must stay exported for declaration emit)
-export interface GetNameOptions {
+interface GetNameOptions {
   /**
    * Index of an argument whose source text should be folded into the
    * returned name. When the indexed argument is a `StringLiteral` or
@@ -44,7 +43,7 @@ export interface GetNameOptions {
  * efficient predicate evaluation.
  *
  * Satisfies Named and Located interfaces from identity predicates.
- * Does NOT satisfy Exportable --- call expressions cannot be exported.
+ * Does NOT satisfy Exportable --- call expressions cannot are exported.
  */
 export interface ArchCall {
   /**

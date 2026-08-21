@@ -1,11 +1,11 @@
 import { Node } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { marksAssertsCardinality } from '@nielspeter/eess'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
 import { getFunctionBody, findMatchesInNode, reportedLine } from '../helpers/body-traversal.js'
 import { identifyMatches } from './match-identity.js'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 
 /**
  * Helper to create a violation from an ArchCall.
@@ -18,7 +18,6 @@ function createCallViolation(
   archCall: ArchCall,
   message: string,
   context: ConditionContext,
-  identity?: string,
 ): ArchViolation {
   return {
     rule: context.rule,
@@ -27,7 +26,6 @@ function createCallViolation(
     line: archCall.getStartLineNumber(),
     message,
     because: context.because,
-    identity,
   }
 }
 
@@ -56,8 +54,12 @@ function callNameForMessage(archCall: ArchCall, context: ConditionContext): stri
  * The filtered call set must be empty --- no calls should match the predicates.
  */
 export function notExist(): Condition<ArchCall> {
+  // Satisfied by an EMPTY selection — registered rather than tagged, because a
+  // symbol keyed on this object is readable off it and forgeable (bug 0050).
   return marksAssertsCardinality({
     description: 'not exist',
+    // Zero subjects is this condition's PASSING state, so an empty selection
+    // and an unsatisfiable selector glob are both correct here (plan 0074).
     evaluate(elements: ArchCall[], context: ConditionContext): ArchViolation[] {
       return elements.map((archCall) =>
         createCallViolation(
@@ -114,10 +116,9 @@ export function notHaveCallbackContaining(matcher: ExpressionMatcher): Condition
         // literal-shape walk inside getName({...}) is identical for each.
         const callName = callNameForMessage(archCall, context)
         const args = archCall.getArguments()
-        // Flatten across arguments before assigning identities: a
-        // per-argument counter would restart at 1 for each callback, so two
-        // callbacks with a match in the same enclosing declaration would
-        // collide.
+        // Flatten across arguments before assigning identities: a per-argument
+        // counter would restart at 1 for each callback, so two callbacks with a
+        // match in the same enclosing declaration would collide.
         const matches = args.flatMap((arg) => {
           const body = getFunctionBody(arg)
           return body ? findMatchesInNode(body, matcher) : []
@@ -129,14 +130,14 @@ export function notHaveCallbackContaining(matcher: ExpressionMatcher): Condition
           `${identityNameOf(archCall, context)} :: ${matcher.description}`,
         )
         matches.forEach((match, index) => {
-          violations.push(
-            createCallViolation(
+          violations.push({
+            ...createCallViolation(
               archCall,
               `${callName} has callback containing ${matcher.description} at line ${String(reportedLine(match.node, match.triviaPos))}`,
               context,
-              identities[index],
             ),
-          )
+            identity: identities[index],
+          })
         })
       }
       return violations
@@ -331,8 +332,6 @@ export function notHaveArgumentContaining(matcher: ExpressionMatcher): Condition
         // same archCall — same identity work each time.
         const callName = callNameForMessage(archCall, context)
         const args = archCall.getArguments()
-        // Flatten across arguments before assigning identities — see the
-        // callback-search sibling above for why.
         const matches = args.flatMap((arg) => findMatchesInNode(arg, matcher))
         const identities = identifyMatches(
           'call-argument',
@@ -341,14 +340,14 @@ export function notHaveArgumentContaining(matcher: ExpressionMatcher): Condition
           `${identityNameOf(archCall, context)} :: ${matcher.description}`,
         )
         matches.forEach((match, index) => {
-          violations.push(
-            createCallViolation(
+          violations.push({
+            ...createCallViolation(
               archCall,
               `${callName} argument contains ${matcher.description} at line ${String(reportedLine(match.node, match.triviaPos))}`,
               context,
-              identities[index],
             ),
-          )
+            identity: identities[index],
+          })
         })
       }
       return violations

@@ -1,9 +1,11 @@
 import picomatch from 'picomatch'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { marksAssertsCardinality } from '@nielspeter/eess'
-import type { ArchViolation } from '../core/violation.js'
+import { globNode } from '@nielspeter/eess'
+import type { DeclaredGlobs } from '@nielspeter/eess'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
+import { marksAssertsCardinality } from '@nielspeter/eess'
 
 /**
  * Helper to create a per-element condition for ArchFunction.
@@ -12,8 +14,13 @@ function functionCondition(
   description: string,
   predicate: (fn: ArchFunction) => boolean,
   messageFn: (fn: ArchFunction) => string,
+  globs?: DeclaredGlobs,
 ): Condition<ArchFunction> {
   return {
+    // Threaded through the helper rather than spread onto its result, so a path
+    // condition added later gets the parameter in its face (plan 0073). Undefined
+    // for the name/type conditions, whose `RegExp` is not a path glob at all.
+    globs,
     description,
     evaluate(elements: ArchFunction[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
@@ -47,8 +54,12 @@ function functionCondition(
  *   .because('use shared parseOrder() utility instead')
  */
 export function notExist(): Condition<ArchFunction> {
+  // Satisfied by an EMPTY selection — registered rather than tagged, because a
+  // symbol keyed on this object is readable off it and forgeable (bug 0050).
   return marksAssertsCardinality({
     description: 'not exist',
+    // Zero subjects is this condition's PASSING state, so an empty selection
+    // and an unsatisfiable selector glob are both correct here (plan 0074).
     evaluate(elements: ArchFunction[], context: ConditionContext): ArchViolation[] {
       return elements.map((fn) => ({
         rule: context.rule,
@@ -189,6 +200,7 @@ export function resideInFile(glob: string): Condition<ArchFunction> {
     (fn) => isMatch(fn.getSourceFile().getFilePath()),
     (fn) =>
       `${fn.getName() ?? '<anonymous>'} resides in '${fn.getSourceFile().getFilePath()}' which does not match '${glob}'`,
+    globNode({ glob, kind: 'file-path' }),
   )
 }
 
@@ -211,5 +223,9 @@ export function resideInFolder(glob: string): Condition<ArchFunction> {
       const folder = filePath.substring(0, filePath.lastIndexOf('/'))
       return `${fn.getName() ?? '<anonymous>'} resides in folder '${folder}' which does not match '${glob}'`
     },
+    // `parent-dir`, not `file-path` — the glob is matched against the immediate
+    // parent directory, so it is the twin of `identity.ts:98` and needs the same
+    // kind. A `file-path` kind here would be checked against the wrong universe.
+    globNode({ glob, kind: 'parent-dir' }),
   )
 }

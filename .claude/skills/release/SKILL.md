@@ -27,6 +27,16 @@ Run these and stop if any is wrong:
 Resist two tempting mistakes:
 
 - **Don't pad the changeset** with untouched packages just to force every version to match. That fakes a change that didn't happen, and it's the wrong reflex even though `RELEASING.md` mentions a lockstep habit. If the user genuinely wants lockstep, that's a `fixed` group in the config — a deliberate config decision, not a per-release hack.
+
+  **One carve-out, and it is not padding: a BREAK propagating to dependents.**
+  `release/break-names-dependents` requires a changeset declaring a break to name
+  every workspace package that lists the broken one in `dependencies`. That is not
+  faking a change — those packages really do ship the break to anyone who installs
+  them, and `updateInternalDependencies: "patch"` would otherwise deliver it under
+  a changelog reading only "Updated dependencies" (bug 0185). Naming them is what
+  puts the real text in the changelog an adopter actually reads. See
+  `RELEASING.md`, "Signalling a breaking change".
+
 - **Don't edit a version in `package.json` after the bump.** If the computed version looks wrong, the cause is upstream (a changeset entry or a dependency range) — fix the cause and re-run. `git reset --hard` + re-run is cheap and safe up until the tag push.
 
 If the user asks for "the latest version" without naming one, that means: run the tool, report what it computed, don't editorialize.

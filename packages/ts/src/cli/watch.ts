@@ -1,9 +1,9 @@
 import { watch, type FileChangeInfo } from 'node:fs/promises'
+import { isNullaryCallable } from '@nielspeter/eess'
 import path from 'node:path'
-import { ArchRuleError } from '@nielspeter/eess'
+import { isArchRuleError } from '@nielspeter/eess'
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported watchAndRerun API (must stay exported for declaration emit)
-export interface WatchOptions {
+interface WatchOptions {
   /** Directories to watch for changes */
   watchDirs: string[]
   /** Additional files to watch (e.g., rule files) */
@@ -14,7 +14,7 @@ export interface WatchOptions {
   debounceMs?: number
 }
 
-// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export const TS_FILE_RE = /\.[cm]?tsx?$/
 
 /**
@@ -23,22 +23,30 @@ export const TS_FILE_RE = /\.[cm]?tsx?$/
  * Debounces rapid triggers. If a trigger arrives while the callback
  * is running, it queues a re-run after the current run completes.
  */
-// eess-exclude eess/no-unused-exports: consumed by the test suite (tests are outside the build project)
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export class RunScheduler {
   private debounceTimer: ReturnType<typeof setTimeout> | undefined
   private running = false
   private _pendingRerun = false
   private readonly debounceMs: number
   private readonly onRun: (trigger: string) => Promise<void>
+  /**
+   * How many runs have completed — read by the watch loop's own tests.
+   *
+   * Hard-private with a getter, matching `eess-mermaid`'s `RunScheduler`: the
+   * counter is this class's bookkeeping and a caller that could reassign it
+   * would make the number mean nothing.
+   */
   #runCount = 0
+
+  /** Completed runs. */
+  get runCount(): number {
+    return this.#runCount
+  }
 
   constructor(onRun: (trigger: string) => Promise<void>, debounceMs = 250) {
     this.onRun = onRun
     this.debounceMs = debounceMs
-  }
-
-  get runCount(): number {
-    return this.#runCount
   }
 
   get pendingRerun(): boolean {
@@ -50,8 +58,11 @@ export class RunScheduler {
   }
 
   /**
-   * Queue a run for the given trigger, resetting the debounce window.
-   * If a run is already in progress, marks a pending re-run instead.
+   * Queue a re-run, debounced.
+   *
+   * A run already in flight is not interrupted: the request is remembered and
+   * replayed when it finishes, so a save during a run is never dropped and
+   * never starts a second concurrent run.
    */
   schedule(trigger: string): void {
     if (this.debounceTimer) clearTimeout(this.debounceTimer)
@@ -73,7 +84,7 @@ export class RunScheduler {
     this.onRun(trigger)
       .catch((err: unknown) => {
         // Rule failures are expected — swallow ArchRuleError, print others
-        if (!(err instanceof ArchRuleError)) {
+        if (!isArchRuleError(err)) {
           if (err instanceof Error) {
             console.error(err.message)
           }
@@ -98,9 +109,9 @@ export class RunScheduler {
  * a run is in progress, it is queued and executed after the
  * current run completes.
  *
- * Known limitation: each re-run loads rule files with a fresh (cache-busting)
- * jiti instance. Over long sessions, memory grows — restart the watcher
- * periodically for long sessions.
+ * Known limitation: each re-run uses `importFresh` which creates
+ * a new ESM module cache entry. Over long sessions, memory grows.
+ * Restart the watcher periodically for long sessions.
  */
 export function watchAndRerun(options: WatchOptions): void {
   const { watchDirs, watchFiles, onChangeDetected, debounceMs = 250 } = options
@@ -150,9 +161,23 @@ export function watchAndRerun(options: WatchOptions): void {
   // Graceful shutdown — close all watchers on SIGINT
   process.on('SIGINT', () => {
     for (const w of watchers) {
-      // Ask each async iterator to release its underlying fs.watch handle.
-      void w[Symbol.asyncIterator]().return?.()
+      if ('return' in w && isNullaryCallable(w.return)) {
+        void w.return()
+      }
     }
     process.exit(0)
   })
+}
+
+/**
+ * Import a module with cache-busting for watch mode.
+ *
+ * Node ESM has no cache eviction API. Each call creates a new
+ * module entry via a unique query string. Over long sessions
+ * this leaks memory — see watchAndRerun JSDoc.
+ */
+export async function importFresh(filePath: string): Promise<unknown> {
+  const resolved = path.resolve(filePath)
+  const url = `file://${resolved}?t=${Date.now()}`
+  return import(url)
 }

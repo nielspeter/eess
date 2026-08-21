@@ -1,26 +1,27 @@
 import fs from 'node:fs'
-import path from 'node:path'
 import { isRecord } from '@nielspeter/eess'
+import path from 'node:path'
 
-/**
- * "Floor" presets — a universal rule set scoped to your source glob. eess only
- * scaffolds the floor presets: unlike ts-archunit, eess presets return eager
- * `ArchViolation[]` (ADR-008), which a CLI rule file cannot spread. So `init`
- * emits the floor rules **expanded as builders** (CLI-loadable, editable), and
- * leaves the shape presets (layered / boundaries / data-layer) to test-file use.
- */
+/** "Floor" presets — a universal rule set scoped to your source glob. */
 const FLOOR_PRESETS = ['recommended', 'agent-guardrails'] as const
-const VALID_PRESETS = [...FLOOR_PRESETS] as const
+/** "Shape" presets — architecture patterns; scaffolded with fill-in folder globs. */
+const SHAPE_PRESETS = ['layered', 'strict-boundaries', 'data-layer'] as const
+/** Every preset `init` can scaffold — all are returning-form (spreadable). */
+const VALID_PRESETS = [...FLOOR_PRESETS, ...SHAPE_PRESETS] as const
 type FloorPreset = (typeof FLOOR_PRESETS)[number]
-type InitPreset = FloorPreset
+type ShapePreset = (typeof SHAPE_PRESETS)[number]
+type InitPreset = (typeof VALID_PRESETS)[number]
 
 const VALID_PRESET_SET: ReadonlySet<string> = new Set(VALID_PRESETS)
 
-// eess-exclude eess/no-unused-exports: parameter type of the exported runInit API (must stay exported for declaration emit)
-export interface InitArgs {
+interface InitArgs {
   /** Directory to scaffold into. Defaults to `process.cwd()`. */
   cwd?: string
-  /** Starter preset: `recommended` (default) | `agent-guardrails`. */
+  /**
+   * Starter preset. Floor: `recommended` (default) | `agent-guardrails`.
+   * Shape: `layered` | `strict-boundaries` | `data-layer` (scaffolded with
+   * fill-in folder globs, alongside the `recommended` floor).
+   */
   preset?: string
   /** tsconfig path written into the generated files. Default `tsconfig.json`. */
   tsconfig?: string
@@ -45,7 +46,8 @@ interface StagedFile {
  * (0 success, 1 on a recoverable error — bad `--preset`, missing tsconfig, a
  * file conflict without `--force`, or a write failure). All reads, parses, and
  * conflict checks run before any file is written, so a validation failure never
- * leaves a partial scaffold; a raw I/O failure mid-write is caught and reported.
+ * leaves a partial scaffold; a raw I/O failure mid-write is caught and reported
+ * (writes are ordered, not transactional).
  */
 export function runInit(args: InitArgs): number {
   const cwd = args.cwd ?? process.cwd()
@@ -72,7 +74,7 @@ export function runInit(args: InitArgs): number {
 
   // Stage the generated files in memory (no writes yet).
   const staged: StagedFile[] = [
-    stage(cwd, 'eess-ts.config.ts', configTemplate(writeBaseline)),
+    stage(cwd, 'eess-ts.config.ts', configTemplate(tsconfig, writeBaseline)),
     stage(cwd, 'arch.rules.ts', rulesTemplate(preset, tsconfig, sourceRoot)),
   ]
   if (writeBaseline) {
@@ -118,12 +120,16 @@ export function runInit(args: InitArgs): number {
     return 1
   }
 
-  printClosing(staged, pkgPlan, cwd, sourceRoot)
+  printClosing(staged, pkgPlan, cwd, sourceRoot, preset)
   return 0
 }
 
 function isValidPreset(value: string): value is InitPreset {
   return VALID_PRESET_SET.has(value)
+}
+
+function isFloorPreset(preset: InitPreset): preset is FloorPreset {
+  return preset === 'recommended' || preset === 'agent-guardrails'
 }
 
 function stage(cwd: string, name: string, content: string): StagedFile {
@@ -132,129 +138,183 @@ function stage(cwd: string, name: string, content: string): StagedFile {
 
 // --- Templates ---------------------------------------------------------------
 
-function configTemplate(writeBaseline: boolean): string {
+function configTemplate(tsconfig: string, writeBaseline: boolean): string {
   const baselineLine = writeBaseline ? `\n  baseline: 'arch-baseline.json',` : ''
   return `import { defineConfig } from '@nielspeter/eess-ts'
 
 export default defineConfig({
-  // The active tsconfig is set in arch.rules.ts via project('...').
+  // The active tsconfig is set in arch.rules.ts via project('${tsconfig}').
   rules: ['arch.rules.ts'],${baselineLine}
   format: 'auto',
 })
 `
 }
 
-/** The source-file glob for the floor rules, sourceRoot-aware. */
-function includeGlob(sourceRoot: string): string {
-  return `**/${sourceRoot}/**`
-}
-
 function rulesTemplate(preset: InitPreset, tsconfig: string, sourceRoot: string): string {
-  return preset === 'recommended'
-    ? recommendedRulesTemplate(tsconfig, sourceRoot)
-    : agentGuardrailsRulesTemplate(tsconfig, sourceRoot)
+  return isFloorPreset(preset)
+    ? floorRulesTemplate(preset, tsconfig, sourceRoot)
+    : shapeRulesTemplate(preset, tsconfig, sourceRoot)
 }
 
+/** The `recommended` include option, sourceRoot-aware (bare when root is `src`). */
 /**
- * Header shared by both floor templates: the CLI runs a rule file's default
- * export (an array of builders). eess presets return violations for a test
- * harness, so `init` expands the floor into builders here — visible and editable.
+ * **Every scaffolded preset call carries `report: 'builders'`, and must.**
+ *
+ * A rule FILE spreads its presets into `export default [...]`, so it needs the
+ * builders, not the result of running them. Omitting `report` runs the rules and
+ * throws during module evaluation — which in a rule file means the spread splats
+ * violations into the array, the CLI loads **zero rules**, and `check` reports
+ * `0 rules across 1 file` and exits 0.
+ *
+ * That is the alarm value the summary line exists to surface, produced by the
+ * tool's own scaffold. It happened: the preset default was corrected to enforce
+ * (PR #72 review) and this template was not updated with it. `tsc --noEmit`
+ * passes on the generated file — a spread of the wrong array type is not a type
+ * error — so nothing but running it catches this. `init-scaffold-loads-rules.test.ts`
+ * runs the generated template through `runCheck` and asserts a non-zero rule
+ * count, which is the check that was missing.
  */
-function rulesHeader(tsconfig: string): string {
-  return `// Architecture rules for eess-ts. Run with \`eess-ts check\` (or \`npm run arch\`).
-//
-// This file expands the 'floor' preset into individual builders. eess presets
-// (recommended / agentGuardrails) return violations for a test harness; a CLI
-// rule file is an array of builders, so the rules are inlined below — edit,
-// remove, or add freely. \`eess-ts explain --format agent\` turns the imperative
-// metadata into a rules block for an AI agent's system prompt.
-
-const p = project('${tsconfig}')`
+function recommendedCallFor(sourceRoot: string): string {
+  return sourceRoot === 'src'
+    ? "recommended(p, { report: 'builders' })"
+    : `recommended(p, { include: '**/${sourceRoot}/**', report: 'builders' })`
 }
 
-function recommendedRulesTemplate(tsconfig: string, sourceRoot: string): string {
-  const include = includeGlob(sourceRoot)
-  return `import { project, functions } from '@nielspeter/eess-ts'
-import { functionNoEval, functionNoFunctionConstructor } from '@nielspeter/eess-ts/rules/security'
-import { functionNoSilentCatch } from '@nielspeter/eess-ts/rules/errors'
-import { noEmptyBodies } from '@nielspeter/eess-ts/rules/hygiene'
+function floorRulesTemplate(preset: FloorPreset, tsconfig: string, sourceRoot: string): string {
+  const recommendedCall = recommendedCallFor(sourceRoot)
+  const agentCall = `agentGuardrails(p, {
+    src: '**/${sourceRoot}/**',
+    noGenericErrors: true,
+    noStubs: true,
+    noEmptyBodies: true,
+    noCopyPaste: true,
+    report: 'builders',
+  })`
 
-${rulesHeader(tsconfig)}
-const include = '${include}'
+  const presetImport = preset === 'recommended' ? 'recommended' : 'agentGuardrails'
 
-// Thin universal safety floor — dangerous regardless of project shape.
+  // Lead with the chosen preset; the other is offered in a comment block.
+  const leadBlock =
+    preset === 'recommended'
+      ? `  // Thin universal safety floor.
+  ...${recommendedCall},`
+      : `  // Guardrails for the mistakes AI coding agents make most.
+  ...${agentCall},`
+
+  const alternateBlock =
+    preset === 'recommended'
+      ? `  // Using an AI coding agent? Add agentGuardrails — it targets the mistakes
+  // agents make most (inline logic, generic errors, stubs, empty bodies,
+  // copy-paste), and \`npx eess-ts explain --format agent\` emits an
+  // imperative rules block for the agent's system prompt.
+  // See https://nielspeter.github.io/eess/agent-integration. Then, with
+  // { agentGuardrails } imported from '@nielspeter/eess-ts/presets':
+  //   ...agentGuardrails(p, { src: '**/${sourceRoot}/**', noGenericErrors: true, report: 'builders' })`
+      : `  // Thin universal safety floor (eval, Function constructor, silent catches,
+  // empty bodies). Import { recommended } from '@nielspeter/eess-ts/presets':
+  //   ...${recommendedCall},`
+
+  return `import { project } from '@nielspeter/eess-ts'
+import { ${presetImport} } from '@nielspeter/eess-ts/presets'
+// Uncomment the imports you need for the examples below:
+// import { classes, slices, call } from '@nielspeter/eess-ts'
+
+const p = project('${tsconfig}')
+
+// Rules are collected into the default export; \`eess-ts check\` runs them.
 export default [
-  functions(p).that().resideInFile(include).should().satisfy(functionNoEval()).rule({
-    id: 'preset/recommended/no-eval',
-    because: 'eval() executes arbitrary code — a code-injection risk',
-    suggestion: 'remove eval(); parse or dispatch explicitly',
-    imperative: 'Do NOT call eval()',
-  }),
-  functions(p).that().resideInFile(include).should().satisfy(functionNoFunctionConstructor()).rule({
-    id: 'preset/recommended/no-function-constructor',
-    because: 'the Function constructor is eval() in disguise',
-    suggestion: 'define the function directly instead of building it from a string',
-    imperative: 'Do NOT use the Function constructor',
-  }),
-  functions(p).that().resideInFile(include).should().satisfy(functionNoSilentCatch()).rule({
-    id: 'preset/recommended/no-silent-catch',
-    because: 'a silent catch hides failures',
-    suggestion: 'handle or rethrow the caught error (reference it in the catch)',
-    imperative: 'Do NOT swallow errors in an empty catch',
-  }),
-  functions(p).that().resideInFile(include).should().satisfy(noEmptyBodies()).rule({
-    id: 'preset/recommended/no-empty-bodies',
-    because: 'an empty function body is usually an unfinished stub',
-    suggestion: 'implement the body or remove the function',
-    imperative: 'Do NOT leave a function body empty',
-  }),
+${leadBlock}
+
+${alternateBlock}
 
   // Add project-specific rules below — builders, no .check().
-  //   modules(p).that().resideInFolder('${sourceRoot}/core/**')
-  //     .should().notImportFrom('${sourceRoot}/app/**'),
+  // (Builders default to error; append .asSeverity('warn') to warn, not fail.)
+  //   classes(p).that().resideInFolder('**/${sourceRoot}/services/**')
+  //     .should().notContain(call('parseInt')),
+  //   slices(p).matching('${sourceRoot}/features/*/').should().beFreeOfCycles(),
 ]
 `
 }
 
-function agentGuardrailsRulesTemplate(tsconfig: string, sourceRoot: string): string {
-  const include = includeGlob(sourceRoot)
-  return `import { project, functions, smells } from '@nielspeter/eess-ts'
-import { functionNoGenericErrors } from '@nielspeter/eess-ts/rules/errors'
-import { noStubComments, noEmptyBodies } from '@nielspeter/eess-ts/rules/hygiene'
+/** import name, one-line description, and the fill-in call for a shape preset. */
+function shapePresetSpec(
+  preset: ShapePreset,
+  root: string,
+): {
+  importName: string
+  describe: string
+  call: string
+} {
+  switch (preset) {
+    case 'layered':
+      return {
+        importName: 'layeredArchitecture',
+        describe: 'Layered architecture: dependencies flow downward, layers stay cycle-free.',
+        call: `layeredArchitecture(p, {
+    // Example globs — point these at your real layer folders (top to bottom).
+    layers: {
+      routes: '**/${root}/routes/**',
+      services: '**/${root}/services/**',
+      repositories: '**/${root}/repositories/**',
+    },
+    shared: ['**/${root}/shared/**'],
+    report: 'builders',
+  })`,
+      }
+    case 'strict-boundaries':
+      return {
+        importName: 'strictBoundaries',
+        describe: 'Feature boundaries: each folder imports only from itself and shared.',
+        call: `strictBoundaries(p, {
+    // Example glob — point this at your real feature folders.
+    folders: '**/${root}/features/*',
+    shared: ['**/${root}/shared/**'],
+    report: 'builders',
+  })`,
+      }
+    case 'data-layer':
+      return {
+        importName: 'dataLayerIsolation',
+        describe: 'Repository pattern: repositories extend a base class and throw typed errors.',
+        call: `dataLayerIsolation(p, {
+    // Example values — point at your repository folder and its real base class.
+    repositories: '**/${root}/repositories/**',
+    baseClass: 'BaseRepository',
+    requireTypedErrors: true,
+    report: 'builders',
+  })`,
+      }
+  }
+  // No default: the switch is exhaustive over ShapePreset. Adding a preset to
+  // SHAPE_PRESETS without a case here is a compile error (missing return).
+}
 
-${rulesHeader(tsconfig)}
-const include = '${include}'
+function shapeRulesTemplate(preset: ShapePreset, tsconfig: string, sourceRoot: string): string {
+  const { importName, describe, call } = shapePresetSpec(preset, sourceRoot)
+  const recommendedCall = recommendedCallFor(sourceRoot)
 
-// Guardrails for the mistakes AI coding agents make most.
+  return `import { project } from '@nielspeter/eess-ts'
+import { recommended, ${importName} } from '@nielspeter/eess-ts/presets'
+// Uncomment the imports you need for the examples below:
+// import { classes, slices, call } from '@nielspeter/eess-ts'
+
+const p = project('${tsconfig}')
+
+// Rules are collected into the default export; \`eess-ts check\` runs them.
 export default [
-  functions(p).that().resideInFile(include).should().satisfy(functionNoGenericErrors()).rule({
-    id: 'preset/agent/no-generic-errors',
-    because: 'a generic Error loses the type/context callers need to handle it',
-    suggestion: 'throw a domain-specific error (NotFoundError, ValidationError, …)',
-    imperative: 'Do NOT throw new Error() — throw a domain-specific error class',
-  }),
-  functions(p).that().resideInFile(include).should().satisfy(noStubComments()).rule({
-    id: 'preset/agent/no-stubs',
-    because: 'stub comments (TODO/FIXME/"not implemented") ship unfinished work',
-    suggestion: 'implement the body or remove the stub before committing',
-    imperative: 'Do NOT leave stub comments in a function body',
-  }),
-  functions(p).that().resideInFile(include).should().satisfy(noEmptyBodies()).rule({
-    id: 'preset/agent/no-empty-bodies',
-    because: 'an empty function body is almost always an unfinished stub',
-    suggestion: 'implement the body — every function must have at least one statement',
-    imperative: 'Do NOT leave a function body empty',
-  }),
-  smells.duplicateBodies(p).withMinSimilarity(0.9).rule({
-    id: 'preset/agent/no-copy-paste',
-    because: 'near-identical bodies are copy-paste instead of reuse',
-    suggestion: 'extract the shared logic into one function',
-    imperative: 'Do NOT duplicate a function body — extract the shared logic',
-  }),
+  // The recommended safety floor ships alongside the shape rules below.
+  ...${recommendedCall},
 
-  // Ban a specific call from being inlined (one rule per API):
-  //   import { call } from '@nielspeter/eess-ts'
-  //   functions(p).that().resideInFile(include).should().notContain(call('parseInt')),
+  // ${describe}
+  // IMPORTANT: the globs below are examples. A glob that matches no files
+  // enforces NOTHING (a green run that checks nothing). Point them at your
+  // real folders before you trust the result.
+  ...${call},
+
+  // Add project-specific rules below — builders, no .check().
+  // (Builders default to error; append .asSeverity('warn') to warn, not fail.)
+  //   classes(p).that().resideInFolder('**/${sourceRoot}/services/**')
+  //     .should().notContain(call('parseInt')),
 ]
 `
 }
@@ -294,25 +354,10 @@ function detectSourceRoot(cwd: string, tsconfig: string): string {
   return 'src'
 }
 
-/**
- * The first path segment of a glob, if it is a plausible literal source
- * directory. Rejects wildcards, `.`/`..`, and file-like segments (a dotted
- * extension, e.g. `vite.config.ts`) — a common `include` lists config files
- * before the source glob (`["vite.config.ts", "src/**\/*.ts"]`), and picking
- * the file would scaffold a glob that matches nothing (a silently vacuous rule
- * set — exactly what eess exists to prevent). Callers keep scanning past an
- * `undefined` to the next entry.
- */
+/** The first path segment of a glob, if it is a literal directory (no wildcard). */
 function leadingDir(glob: string): string | undefined {
   const first = glob.replace(/^\.\//, '').split('/')[0]
-  if (
-    first === undefined ||
-    first === '' ||
-    first === '.' ||
-    first === '..' ||
-    first.includes('*') ||
-    /\.[a-z0-9]+$/i.test(first) // looks like a file (has an extension), not a dir
-  ) {
+  if (first === undefined || first === '' || first === '.' || first.includes('*')) {
     return undefined
   }
   return first
@@ -358,11 +403,13 @@ function planPackageJson(cwd: string): PackageJsonPlan {
   let parsed: unknown
   try {
     parsed = JSON.parse(raw)
-  } catch (err) {
-    // The skip reason IS the error handling — we surface it and leave the file
-    // untouched rather than risk corrupting an unparseable package.json.
-    void err
-    return { action: 'skip', reason: 'package.json is not valid JSON — skipped script entry' }
+  } catch (error: unknown) {
+    return {
+      action: 'skip',
+      reason:
+        'package.json is not valid JSON — skipped script entry ' +
+        `(${error instanceof Error ? error.message : String(error)})`,
+    }
   }
   if (!isRecord(parsed)) {
     return { action: 'skip', reason: 'package.json is not an object — skipped script entry' }
@@ -388,14 +435,8 @@ function planPackageJson(cwd: string): PackageJsonPlan {
   return { action: 'write', path: pkgPath, content }
 }
 
-/**
- * Detect the indentation (a tab or N spaces) of an existing JSON file. A
- * minified single-line file (no newline) returns `''` so it stays compact
- * rather than being re-expanded to 2-space — keeping the write to the two added
- * scripts. Multi-line files default to 2 spaces when no indent is detected.
- */
+/** Detect the indentation (a tab or N spaces) of an existing JSON file; default 2 spaces. */
 function detectIndent(raw: string): string {
-  if (!raw.includes('\n')) return ''
   const match = raw.match(/\n(\t+|[ ]+)"/)
   return match?.[1] ?? '  '
 }
@@ -431,6 +472,7 @@ function printClosing(
   pkg: PackageJsonPlan,
   cwd: string,
   sourceRoot: string,
+  preset: InitPreset,
 ): void {
   const scriptsAdded = pkg.action === 'write'
   const runCmd = scriptsAdded ? 'npm run arch' : 'npx eess-ts check'
@@ -441,10 +483,19 @@ function printClosing(
     process.stdout.write(`Note: package.json script entry skipped — ${pkg.reason}.\n`)
   }
 
+  if (!isFloorPreset(preset)) {
+    process.stdout.write(
+      `\n⚠ arch.rules.ts contains EXAMPLE folder globs for the '${preset}' preset. ` +
+        `Edit them to your real folders before trusting a green run — a glob that ` +
+        `matches no files enforces nothing.\n`,
+    )
+  }
+
   if (hasSource(cwd, sourceRoot)) {
     process.stdout.write(
       `\nThis codebase already has source under ${sourceRoot}/. Errors fail the build; ` +
-        `warnings are advisory and never fail CI.\n` +
+        `warnings are advisory and never fail CI, except a finding that a rule\n` +
+        `enforces nothing.\n` +
         `To accept current violations as tracked legacy debt before gating CI, run ` +
         `\`${baselineCmd}\` and commit the result, then: \`${runCmd}\`.\n`,
     )

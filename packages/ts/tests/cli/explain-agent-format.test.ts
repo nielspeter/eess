@@ -1,0 +1,105 @@
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { runExplain } from '../../src/cli/commands/explain.js'
+
+vi.mock('../../src/cli/load-rules.js', () => ({ loadRuleFiles: vi.fn() }))
+
+import { loadRuleFiles } from '../../src/cli/load-rules.js'
+import type { RuleDescription } from '@nielspeter/eess'
+
+const mockLoad = vi.mocked(loadRuleFiles)
+
+/** Run explain --format agent over the given rule descriptions; return stdout. */
+async function runAgent(descs: RuleDescription[]): Promise<string> {
+  const spy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+  mockLoad.mockResolvedValue(descs.map((d) => ({ describeRule: () => d, violations: () => [] })))
+  await runExplain({ ruleFiles: ['rules.ts'], format: 'agent' })
+  return spy.mock.calls.map((c) => String(c[0])).join('')
+}
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
+describe('explain --format agent', () => {
+  it('prints an identical bullet ONCE, however many rules produce it', async () => {
+    // A preset generates one rule per configured folder with identical metadata
+    // — `strictBoundaries({ folders })` over six boundaries produces six
+    // `no-cross-boundary` rules — so the same bullet printed six times. This
+    // output gets committed into an agent's system prompt, where repetition is
+    // tokens on every request and reads as six different rules.
+    const out = await runAgent([
+      {
+        rule: 'r1',
+        id: 'preset/boundaries/no-cross-boundary',
+        imperative: 'Do NOT cross a boundary',
+      },
+      {
+        rule: 'r2',
+        id: 'preset/boundaries/no-cross-boundary',
+        imperative: 'Do NOT cross a boundary',
+      },
+      {
+        rule: 'r3',
+        id: 'preset/boundaries/no-cross-boundary',
+        imperative: 'Do NOT cross a boundary',
+      },
+    ])
+    expect(out.split('Do NOT cross a boundary').length - 1).toBe(1)
+  })
+
+  it('keeps DISTINCT bullets that share a rule id', async () => {
+    // Deduplicated on the bullet text, not the id: two rules can share an id and
+    // differ in imperative, and it is the line that would repeat. Dropping one
+    // of these would be silently deleting a rule from the agent's instructions.
+    const out = await runAgent([
+      { rule: 'r1', id: 'preset/boundaries/x', imperative: 'Do NOT cross a boundary' },
+      { rule: 'r2', id: 'preset/boundaries/x', imperative: 'Do NOT import test helpers' },
+    ])
+    expect(out).toContain('Do NOT cross a boundary')
+    expect(out).toContain('Do NOT import test helpers')
+  })
+
+  it('wraps output in sentinel markers and includes the check-in-loop preamble', async () => {
+    const out = await runAgent([{ rule: 'r', id: 'a/one', imperative: 'Do NOT do X' }])
+    expect(out).toContain('<!-- eess-ts:start -->')
+    expect(out).toContain('<!-- eess-ts:end -->')
+    expect(out).toContain('npx eess-ts check --format json')
+    expect(out.indexOf('<!-- eess-ts:start -->')).toBeLessThan(out.indexOf('<!-- eess-ts:end -->'))
+  })
+
+  it('renders the imperative as a bullet without the because (because lives in the check json)', async () => {
+    const out = await runAgent([
+      { rule: 'r', id: 'x/y', imperative: 'Do NOT throw new Error()', because: 'loses context' },
+    ])
+    expect(out).toContain('- Do NOT throw new Error()')
+    expect(out).not.toContain('loses context')
+  })
+
+  it('groups rules by the id namespace', async () => {
+    const out = await runAgent([
+      { rule: 'r', id: 'preset/agent/no-eval', imperative: 'Do NOT call eval' },
+      { rule: 'r', id: 'naming/get', imperative: 'MUST prefix with get' },
+    ])
+    expect(out).toContain('### Preset')
+    expect(out).toContain('### Naming')
+  })
+
+  it('preserves regex patterns verbatim', async () => {
+    const out = await runAgent([
+      { rule: 'r', id: 'svc/repo', imperative: 'MUST call a method matching /Repository/' },
+    ])
+    expect(out).toContain('/Repository/')
+  })
+
+  it('emits the block with "No rules found." when there are none', async () => {
+    const out = await runAgent([])
+    expect(out).toContain('<!-- eess-ts:start -->')
+    expect(out).toContain('No rules found')
+    expect(out).toContain('<!-- eess-ts:end -->')
+  })
+
+  it('falls back to the rule description when no imperative is set', async () => {
+    const out = await runAgent([{ rule: 'that resides in X should not import Y' }])
+    expect(out).toContain('- that resides in X should not import Y')
+  })
+})

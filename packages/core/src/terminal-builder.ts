@@ -1,3 +1,12 @@
+import {
+  zeroExaminedViolation,
+  deadGlobViolation,
+  unmetExpectNonEmptyViolation,
+  zeroLoadedSourceViolation,
+  expiredExpectEmptyViolation,
+} from './vacuity-findings.js'
+import type { RuleFacts } from './vacuity-findings.js'
+import { UNSUPPRESSABLE } from './unsuppressable.js'
 import type { ArchViolation } from './violation.js'
 import type { CheckOptions } from './check-options.js'
 import type { RuleMetadata } from './rule-metadata.js'
@@ -155,6 +164,15 @@ export abstract class TerminalBuilder {
     }
   }
 
+  /** This rule's own account of itself, for `vacuity-findings.ts`. */
+  private facts(): RuleFacts {
+    return {
+      ruleClass: { name: this.constructor.name },
+      reason: this._reason,
+      describeRule: () => this.describeRule(),
+    }
+  }
+
   /**
    * Execute the rule and return violations after exclusion filtering.
    * Does not throw — use for programmatic access (presets, aggregation).
@@ -249,153 +267,22 @@ export abstract class TerminalBuilder {
   private evidencedViolations(): ArchViolation[] {
     const { violations, examined, sourceEmpty, deadGlob } = this.collectViolations()
     if (examined === 0) {
-      if (sourceEmpty === true) return [...violations, this.zeroLoadedSourceViolation()]
+      if (sourceEmpty === true) return [...violations, zeroLoadedSourceViolation(this.facts())]
       if (this._expectEmpty === true) return violations
-      if (this._expectEmpty === false) return [...violations, this.unmetExpectNonEmptyViolation()]
+      if (this._expectEmpty === false)
+        return [...violations, unmetExpectNonEmptyViolation(this.facts())]
       if (this.assertsCardinality()) return violations
       // A specific dead-glob explanation, when the dialect could compute
       // one, outranks the generic zero-examined message — both name the
       // same underlying fact, and the specific one is strictly more
       // actionable (it names the actual glob and why it can never match).
-      if (deadGlob !== undefined) return [...violations, this.deadGlobViolation(deadGlob)]
-      return [...violations, this.zeroExaminedViolation()]
+      if (deadGlob !== undefined) return [...violations, deadGlobViolation(this.facts(), deadGlob)]
+      return [...violations, zeroExaminedViolation(this.facts())]
     }
     if (this._expectEmpty === true) {
-      return [...violations, this.expiredExpectEmptyViolation(examined)]
+      return [...violations, expiredExpectEmptyViolation(this.facts(), examined)]
     }
     return violations
-  }
-
-  /**
-   * The configuration finding for a rule that examined zero units with no
-   * declared exemption — ADR-009 rule 2: named as a distinct cause (dead
-   * selector, empty corpus, or an unreachable examining seam), not folded
-   * into an ordinary violation message.
-   */
-  private zeroExaminedViolation(): ArchViolation {
-    const described = this.describeRule()
-    const name = described.id ?? described.rule ?? this.constructor.name
-    const message =
-      `this rule examined zero units. If this is expected (the corpus is legitimately ` +
-      `empty right now), declare it explicitly with .expectEmpty() — otherwise this is a ` +
-      `dead selector, an empty project, or a rule that never reaches its own examining ` +
-      `seam, and the fix is to widen the selection, not to suppress this finding.`
-    return {
-      rule: described.rule ?? name,
-      ruleId: described.id,
-      element: name,
-      file: '',
-      line: 0,
-      message,
-      suggestion: message,
-      because: this._reason,
-      bypassFilters: true,
-    }
-  }
-
-  /**
-   * The configuration finding for a rule that examined zero units BECAUSE one
-   * of its declared globs is diagnosably dead — `deadGlob` is the pre-formed
-   * reason a dialect's `RuleBuilder.deadGlobDiagnosis()` computed (a typo, an
-   * unanchored pattern, a directory glob pointed at a file — whatever the
-   * dialect's own glob-evaluation determined). Strictly more actionable than
-   * `zeroExaminedViolation()`'s generic message, which this replaces when a
-   * diagnosis is available; see `evidencedViolations()`.
-   */
-  private deadGlobViolation(deadGlob: string): ArchViolation {
-    const described = this.describeRule()
-    const name = described.id ?? described.rule ?? this.constructor.name
-    const message = `this rule examined zero units — ${deadGlob}`
-    return {
-      rule: described.rule ?? name,
-      ruleId: described.id,
-      element: name,
-      file: '',
-      line: 0,
-      message,
-      suggestion: message,
-      because: this._reason,
-      bypassFilters: true,
-    }
-  }
-
-  /**
-   * The configuration finding for a `.expectNonEmpty()` declaration that
-   * wasn't met — the corpus the author said should never be empty is empty
-   * right now. Overrides `assertsCardinality()`'s silent pass on purpose:
-   * the declaration is a stronger, caller-level claim than what the
-   * condition itself would otherwise tolerate.
-   */
-  private unmetExpectNonEmptyViolation(): ArchViolation {
-    const described = this.describeRule()
-    const name = described.id ?? described.rule ?? this.constructor.name
-    const message =
-      `this rule declared .expectNonEmpty() but examined zero units — the corpus this ` +
-      `rule asserted should never be empty is empty right now. If that's still true, fix ` +
-      `the selection (a glob typo, a missing folder); if the corpus legitimately can be ` +
-      `empty, remove .expectNonEmpty().`
-    return {
-      rule: described.rule ?? name,
-      ruleId: described.id,
-      element: name,
-      file: '',
-      line: 0,
-      message,
-      suggestion: message,
-      because: this._reason,
-      bypassFilters: true,
-    }
-  }
-
-  /**
-   * The configuration finding for the ADR-010 part 3 precedence case: the
-   * family's own upstream source loaded nothing at all — a stronger claim
-   * than an ordinary dead selector, and worded accordingly (the fix is not
-   * "widen the selection", there is no selection yet to widen).
-   */
-  private zeroLoadedSourceViolation(): ArchViolation {
-    const described = this.describeRule()
-    const name = described.id ?? described.rule ?? this.constructor.name
-    const message =
-      `this rule's source loaded zero units before any selection ran — an empty project, ` +
-      `an unreadable tsconfig, or a glob resolving to nothing. This outranks any ` +
-      `.expectEmpty() declaration and any condition satisfied by emptiness: fix the ` +
-      `project/source configuration, not the rule.`
-    return {
-      rule: described.rule ?? name,
-      ruleId: described.id,
-      element: name,
-      file: '',
-      line: 0,
-      message,
-      suggestion: message,
-      because: this._reason,
-      bypassFilters: true,
-    }
-  }
-
-  /**
-   * The configuration finding for a `.expectEmpty()` declaration that has
-   * expired — ADR-010 part 3: the number IS the finding, so it is named.
-   */
-  private expiredExpectEmptyViolation(examined: number): ArchViolation {
-    const described = this.describeRule()
-    const name = described.id ?? described.rule ?? this.constructor.name
-    const message =
-      `this rule declared .expectEmpty() but examined ${String(examined)} unit(s) — the ` +
-      `declaration has expired. If the corpus legitimately grew past empty, remove ` +
-      `.expectEmpty() from this rule; the underlying violations (if any) above still stand.`
-    return {
-      rule: described.rule ?? name,
-      ruleId: described.id,
-      element: name,
-      file: '',
-      line: 0,
-      message,
-      suggestion: message,
-      because: this._reason,
-      bypassFilters: true,
-    }
   }
 
   /**
@@ -475,5 +362,94 @@ export abstract class TerminalBuilder {
    */
   protected assertsCardinality(): boolean {
     return false
+  }
+}
+
+/**
+ * The configuration finding for a rule that asserts nothing — bug 0155.
+ *
+ * An assertion-less rule — subjects found, nothing asserted about them —
+ * cannot fail, so it certifies nothing while reading as coverage.
+ *
+ * **The guard was unreachable, not merely quiet.** It used to read
+ * `_conditions.length === 0 && _phase === 'predicate'`, and `should()` sets
+ * the phase to `'condition'`, so for every rule shape the DSL documents it
+ * could never fire — the defect passed in total silence, never even reaching
+ * the stderr warning it was routed to. Hence no `_phase` term at the call
+ * site.
+ *
+ * **A finding, not a warning**, per ADR-009 rule 1's discriminator: the remedy
+ * is not optional. There is no state in which "keeps asserting nothing" is
+ * correct — add a condition, or delete the rule. The two rules ADR-009 names
+ * as deliberately `warn` (`no-silent-catch`, `no-empty-bodies`) warn *because*
+ * they carry suppressible false positives a reader must judge case by case.
+ * This carries none.
+ *
+ * **A declared emptiness expectation is an assertion**, so `_expectEmpty`
+ * exempts a rule from this gate. `.expectNonEmpty()` reddens when the corpus
+ * it says must never be empty becomes empty; `.expectEmpty()` reddens the day
+ * the set it says must stay empty gains a member. Neither lives in
+ * `_conditions`. Without that term the gate called a working corpus guard
+ * assertion-less and told its author to "add a condition or delete the rule" —
+ * both of which destroy the guard — and for `.expectEmpty()` reported two
+ * findings for one fault. Found in PR #71's review.
+ *
+ * **Placed AFTER the zero-examined branch**, so a dead selector still reports
+ * as a dead selector. Measured: `resideInFolder('srcc/**')` with no condition
+ * reports the dead glob, not this finding. An earlier draft of this docstring
+ * (and of the changeset and bug record) claimed the opposite — "reports the
+ * missing assertion only" — and justified it as gate-first. Both were wrong:
+ * `getElements()` and the predicate filter already ran, so the ordering saves
+ * no work, and the behaviour is the reverse. The real precedence is the better
+ * one, and is now stated as what it is: this finding fires only when subjects
+ * were actually selected.
+ *
+ * **Exported** rather than private to `RuleBuilder`. Its five siblings
+ * (`zeroExaminedViolation`, `deadGlobViolation`, `unmetExpectNonEmptyViolation`,
+ * `expiredExpectEmptyViolation`, `zeroLoadedSourceViolation`) have since moved to
+ * `vacuity-findings.ts`; this one stayed, because unlike them it is constructed
+ * from a builder's own condition list rather than from `RuleFacts` alone. The *detection* has to stay per-builder —
+ * `TerminalBuilder` has no `_conditions` — but a private constructor meant
+ * `eess-ts`'s slice/schema/resolver builders could not reuse it and were left
+ * warning while the kernel's rules failed: the same defect, one DSL, four
+ * different answers.
+ *
+ * `bypassFilters` makes it a **configuration** finding — `error` regardless of
+ * `.asSeverity('warn')`, refused by `.excluding()`, skipped by diff and
+ * baseline. It reports that the rule's own instrument is broken, not a fault
+ * in what was examined, so a filter aimed at the latter must not suppress it.
+ */
+export function assertionLessViolation(ruleId: string, advice?: string): ArchViolation {
+  const remedy =
+    advice ??
+    'Add a condition after .should() (a predicate-only method such as ' +
+      'areExported/areAsync filters elements, it does not assert), or delete the rule.'
+  // `message` is the diagnosis; `suggestion` is the remedy. Keeping them
+  // DISTINCT matters: `remedyRepeatsMessage()` suppresses a `Fix:` line only
+  // when it is byte-identical to `What:`, so folding the remedy into both
+  // printed the whole thing twice — plan 0147's double-print, which an earlier
+  // draft of this function reintroduced by appending UNSUPPRESSABLE to a
+  // suggestion that already repeated the message.
+  const message =
+    `Rule '${ruleId}' selects subjects but asserts nothing about them, so it ` +
+    `cannot fail and certifies nothing.`
+  return {
+    rule: ruleId,
+    element: ruleId,
+    file: '',
+    line: 0,
+    message,
+    // The `.expectNonEmpty()` carve-out is named ON PURPOSE. It satisfies this
+    // gate (a declared emptiness expectation IS an assertion), so an agent
+    // told "add a condition, or delete the rule" and liking neither will find
+    // that one token clears the finding — and on a non-empty corpus
+    // `.expectNonEmpty()` asserts nothing further. ADR-009 rule 3: a marker an
+    // agent can stamp to go green is worse than no marker unless the cost is
+    // stated, so state it here rather than let it be discovered.
+    suggestion:
+      `${remedy} (\`.expectNonEmpty()\` also satisfies this gate, but asserts ` +
+      `only that the corpus is non-empty — it is not a substitute for the ` +
+      `condition you meant.) ${UNSUPPRESSABLE}`,
+    bypassFilters: true,
   }
 }

@@ -45,14 +45,79 @@ the fork froze while the ancestor surged to 0.61 (measured, plan 0088 Phase 1:
 11,594 diff-lines across 118 shared files, 37 modules never received). This
 doctrine is the single most valuable thing the ancestor became in that gap:
 `ts-archunit` earned rules 1–6 below the hard way, across two separate bodies
-of evidence — a defect recurring eight times in one plan's review, five of
-those introduced by the fix for the row above it, then reproduced again by a
-different reviewer against different code four months later. eess has not
+of evidence, both reproduced verbatim below rather than summarised. (An earlier
+version of this paragraph compressed them to "eight times, five of those
+introduced by the fix" — a number that reconciles with neither figure in the
+source, which records **three** of the first eight and **eight of twelve**
+overall. A hand-typed measurement drifting in the retelling is row four of the
+first table below, committed while porting the table that documents it.) eess has not
 independently rediscovered this; it is adopting a doctrine already paid for,
 which is the honest framing and the reason this ADR cites its source rather
 than re-deriving the evidence. What eess contributes is the drift measurement
 above — proof the doctrine's absence is not hypothetical here, it is measured
 against eess's own flagship dialect.
+
+### The inherited evidence, carried across rather than summarised
+
+**These are `ts-archunit`'s records, not eess's.** The numbering is that
+project's and resolves in that repository; nothing below happened here. They are
+reproduced because the rules above are only half the doctrine — the other half is
+being able to RECOGNISE these shapes in your own work, and a one-line summary
+cannot do that. Porting the rules without the diagnosis is what left eess holding
+six rules and no way to notice it was breaking them.
+
+**First body — one plan's review (upstream plan 0063, 2026-07-17).** A
+hand-maintained artifact failed at one narrow job — knowing which API is
+deprecated — **eight times**, most of them inside the fixes for the previous one:
+
+| Layer                                              | Outcome                                          |
+| -------------------------------------------------- | ------------------------------------------------ |
+| A hand-written list of names                       | Missed 9 of 27; reported "clean"                 |
+| A hand-coded matching rule                         | Found 22 of 27; zero on the page it called worst |
+| A hand-coded search scope                          | Correct today; silent the moment API moves       |
+| A hand-typed count in a roadmap                    | Already wrong                                    |
+| A hand-typed measurement in a plan                 | Already wrong                                    |
+| A summary table describing the code beside it      | Prescribed the thing the code had just banned    |
+| A derived value returned as data, asserted nowhere | Silent by construction                           |
+| A snapshot pin                                     | `vitest -u` erases it                            |
+
+The last three were introduced **while fixing** the earlier ones. That is the
+signature of a missing principle, not carelessness.
+
+**It then happened three more times inside that ADR's own first application**,
+each found by mutation _after_ inspection had signed off, and each introduced by
+the fix for the row above it:
+
+| Layer                                                       | Outcome                                                                   |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------- |
+| The failure **message**, rendered only on the red path      | Never executed by a green suite; 6 mutations of it left 13/13 passing     |
+| Four detectors asserting an empty list against clean `src/` | Vacuous by construction; green with the detection deleted                 |
+| A flag exempting items the oracle could not see             | Forced true, **every** item skipped the oracle and the suite stayed green |
+
+Twelve rows, eight of them introduced by a fix. That regress — check → message →
+detectors → oracle — is what rule 6 exists to bound.
+
+**Second body — different code, different reviewers, same shapes** (upstream
+plans 0069–0070, bugs 0011–0024, 2026-07-25 → 07-29), and this time the false
+greens were measured rather than argued:
+
+| Instance                                                                       | Outcome                                                                                                                                                                 |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 17 of that project's own dogfood rules (ts-archunit bug 0011)                  | Selected nothing. Its ADR enforcement was green and vacuous                                                                                                             |
+| `notImportFrom('picomatch')` (ts-archunit bug 0014)                            | Reported **0** while 15 files imported it. The documented way to ban a dependency worked only on dependencies you had not installed                                     |
+| `dataLayerIsolation({ repositories: '…/bad-repo.ts' })` (ts-archunit bug 0018) | Generated its rules and checked nothing — a file glob against a parent-directory matcher. **0** violations on a file that breaks both rules                             |
+| A test named `named selection reuse works` (ts-archunit bug 0016)              | Demonstrated that it did not. Green because the second rule's selection was empty                                                                                       |
+| `onlyImportFrom` (ts-archunit bug 0022)                                        | Blind to `export … from` and `import()`: **0** violations on edges that do cross the boundary. Five preset rules affected                                               |
+| The guard for "this rule asserts nothing" (ts-archunit bug 0019)               | Present in source, correctly written, and gated out of firing by a phase test added for something else                                                                  |
+| A configuration finding's remedy (ts-archunit bug 0021)                        | Printed the author's unrelated `Fix:`. The one producer that deliberately omitted it was overridden a layer up, so the omission never shipped                           |
+| `.warn()` inside a test (ts-archunit bug 0024)                                 | Reaches nobody — the reporter discards it on a passing test. Every test of it asserted the **call**; a spy cannot prove **delivery**                                    |
+| ts-archunit bug 0016's own guards, first attempt                               | 3 of 12 passed under the bug they guarded: a `1 === 1` count coincidence, a merge that overwrote its own leak, and one satisfied by the absence of the thing it guarded |
+| Three sabotage matrices over one surface                                       | Reported 0 of 8 caught-by-nothing, then measured **11**, then 0 of 11, then **9 of 65**. The rigour was constant; the enumeration was not                               |
+
+That last row is why rule 5 carries its enumeration corollary.
+
+Source:
+[ts-archunit ADR-008](https://github.com/nielspeter/ts-archunit/blob/main/adr/008-agent-first-failure-surfaces.md).
 
 ## Decision
 

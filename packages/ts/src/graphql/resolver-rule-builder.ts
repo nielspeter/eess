@@ -1,12 +1,17 @@
+import type { RuleDescription } from '@nielspeter/eess'
+import type { CollectResult } from '../core/terminal-builder.js'
 import type { SourceFile } from 'ts-morph'
-import type { ArchViolation } from '../core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
-import { writeStderr } from '@nielspeter/eess'
-import { TerminalBuilder, type CollectResult } from '@nielspeter/eess'
+import type { ArchProject } from '../core/project.js'
+import type { GlobNode } from '@nielspeter/eess'
+import { globAnyOf, stampGlobs } from '@nielspeter/eess'
+import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { collectFunctions } from '../models/arch-function.js'
+import { selectionMemo } from '@nielspeter/eess'
 import {
   functionContain,
   functionNotContain,
@@ -53,26 +58,58 @@ export function resolveFieldReturning(pattern: RegExp | string): Predicate<ArchF
  *   .check()
  * ```
  */
+const selectionOf = selectionMemo<ArchFunction>()
+
 export class ResolverRuleBuilder extends TerminalBuilder {
   private _predicates: Predicate<ArchFunction>[] = []
   private _conditions: Condition<ArchFunction>[] = []
 
-  constructor(private readonly sourceFiles: SourceFile[]) {
+  /**
+   * @param sourceFiles - The resolver files, already filtered by `resolvers()`.
+   * @param glob - The glob they were filtered by, for diagnostics only.
+   *
+   * `glob` is **optional** because this class is re-exported from the public
+   * `./graphql` subpath, so its constructor is public API and a required
+   * second parameter would break anyone constructing it directly — which
+   * would make R2a a breaking release, and R2a is the one people install in
+   * order to measure before R3. `resolvers()` always passes it.
+   *
+   * Threading it at all is the point: `resolvers()` filters eagerly and hands
+   * this builder only the surviving files, so without the glob string no
+   * `globs()` could ever report `resolvers(p, 'src/reslvers/**')` — the rule
+   * would silently examine zero resolvers and pass.
+   */
+  constructor(
+    private readonly sourceFiles: SourceFile[],
+    private readonly glob?: string,
+    private readonly project?: ArchProject,
+  ) {
     super()
   }
 
+  /** The project this rule was built against. See `RuleBuilder.getProject`. */
+  getProject(): ArchProject | undefined {
+    return this.project
+  }
+
   /**
-   * Independent copy of `_predicates`/`_conditions` — see
-   * `SliceRuleBuilder.copy()` for why this override is required: without it,
-   * two branches derived from the same held selection via the inherited
-   * `.because()`/`.excluding()`/`.rule()`/`.expectEmpty()` would share one
-   * mutable array by reference.
+   * The discovery glob, if `resolvers()` supplied it.
+   *
+   * `tsconfig-relative` is load-bearing, not cosmetic: it is what exempts this
+   * glob from the anchor check, because `resolvers(p, 'src/resolvers/**')` — the
+   * spelling in this class's own example — is correct as written. Declared
+   * `'absolute'` it would be reported unanchored, telling the author to break a
+   * working rule.
    */
-  protected override copy(): this {
-    const clone = super.copy()
-    clone._predicates = [...this._predicates]
-    clone._conditions = [...this._conditions]
-    return clone
+  override globs(): readonly GlobNode[] {
+    if (this.glob === undefined) return []
+    return [
+      stampGlobs(
+        globAnyOf([this.glob], 'file-path', 'tsconfig-relative'),
+        'discovery',
+        (g) => `resolvers(p, "${g.glob}")`,
+      ),
+    ]
   }
 
   // --- Predicate methods ---
@@ -147,30 +184,108 @@ export class ResolverRuleBuilder extends TerminalBuilder {
 
   // --- Evaluation ---
 
-  protected collectViolations(): CollectResult {
-    const allElements = this.getElements()
+  /**
+   * An independent copy, carrying both lists.
+   *
+   * This builder does not extend `RuleBuilder`, so it does not inherit that
+   * class's override — and neither `that()` nor `should()` forked here at all,
+   * which made the bug 0016 leak worse on this hierarchy than on the main one:
+   * a held `schema()` selection accumulated every predicate and condition of
+   * every rule derived from it. `docs/graphql.md` teaches exactly that shape.
+   */
+  protected override copy(): this {
+    const clone = super.copy()
+    clone._predicates = [...this._predicates]
+    clone._conditions = [...this._conditions]
+    return clone
+  }
 
-    const filtered = allElements.filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
+  /**
+   * Whether this rule states an assertion at all — the assertion gate's question.
+   *
+   * True once a condition has been added.
+   *
+   * Overrides the `TerminalBuilder` default (`true`), whose JSDoc carries the
+   * contract and the reason this is public rather than protected.
+   */
+  override assertsSomething(): boolean {
+    return this._conditions.length > 0
+  }
+
+  /**
+   * The remedy for this builder's assertion-less state, as one string.
+   *
+   * One channel, so `diagnose()`'s advice and the finding's own message cannot
+   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
+   * what this builder is missing.
+   */
+  override assertionAdvice(): string {
+    return (
+      'this rule has no condition, so it asserts nothing and can never fail. Add a ' +
+      'condition after .should(), e.g. contain(...), notContain(...) or useInsteadOf(...).'
     )
+  }
+
+  /** Named by id or description, not 'unnamed' (plan 0070 §4). */
+  override describeRule(): RuleDescription {
+    return {
+      ...super.describeRule(),
+      rule: this._metadata?.id ?? this.buildRuleDescription(),
+    }
+  }
+
+  /**
+   * The set the conditions receive — plan 0096, and the ONE method both readers
+   * call.
+   *
+   * The first attempt at 0096 let `collectViolations()` and the evidence
+   * accessor derive this separately, and they disagreed inside one commit: this
+   * builder counted PRE-predicate while its sibling `SchemaRuleBuilder` counted
+   * post. Measured, a chain whose `.that()` selected nothing reported 14 units
+   * examined, handed its conditions 0, and passed green with `diagnose()`
+   * silent — the fail-open cell ADR-009 exists to close, inside the wave that
+   * closes it. Sharing the method is what makes "the preview derives from the
+   * same computation the gate uses" structural rather than a claim.
+   */
+  private selected(): ArchFunction[] {
+    return selectionOf(this, () =>
+      this.getElements().filter((element) =>
+        this._predicates.every((predicate) => predicate.test(element)),
+      ),
+    )
+  }
+
+  /** Units this rule examined — plan 0096. The selection, not what precedes it. */
+
+  /**
+   * This family counts resolvers — the resolver functions it selected.
+   *
+   * Plan 0099: `CollectResult.examined` is unit-typed per family (ADR-009 part
+   * 1), and the zero-examined message prints the noun. Inheriting the base
+   * `'subjects'` is a category error in a sentence whose whole job is naming what
+   * was and was not looked at.
+   */
+  protected override examinedUnitNoun(): string {
+    return 'resolvers'
+  }
+
+  /**
+   * How many units this rule actually examined — ADR-010's evidence that a pass
+   * was constructed rather than defaulted.
+   *
+   * The resolvers this rule selected.
+   */
+  examinedUnits(): number {
+    return this.selected().length
+  }
+
+  protected collectViolations(): CollectResult {
+    const filtered = this.selected()
 
     if (filtered.length === 0) {
-      // Deliberately not claiming sourceEmpty: `sourceFiles` is already a
-      // glob-filtered list, so an empty result here is indistinguishable
-      // from "the resolver glob legitimately matches nothing yet" (e.g.
-      // mid-migration) versus "the project itself loaded nothing" — the
-      // same ambiguity that broke JsxRuleBuilder's .notExist() case when
-      // this was tried against getElements().length instead.
+      // Plan 0098: the early exit IS the zero-evidence case, stated rather than
+      // implied by an empty violation list.
       return { violations: [], examined: 0 }
-    }
-
-    if (this._conditions.length === 0) {
-      const ruleId = this._metadata?.id ?? 'unnamed'
-      writeStderr(
-        `[eess] Resolver rule '${ruleId}' has predicates but no conditions. ` +
-          `Did you forget to add a condition after .should()?`,
-      )
-      return { violations: [], examined: filtered.length }
     }
 
     const context: ConditionContext = {
@@ -189,13 +304,13 @@ export class ResolverRuleBuilder extends TerminalBuilder {
   }
 
   private getElements(): ArchFunction[] {
-    // Object-literal collection is opt-in for `functions()`, where turning it
-    // on by default would flood every rule with inline callbacks. Here it is
-    // the opposite: a GraphQL resolver map IS an object literal
+    // Object-literal collection is opt-in for `functions()`, where turning it on
+    // by default would flood every rule with inline callbacks. Here it is the
+    // opposite: a GraphQL resolver map IS an object literal
     // (`{ Query: { assetCollection: async () => {} } }`), so without this the
     // builder named `resolvers()` selects the helper functions that happen to
-    // sit beside the resolvers and none of the resolvers themselves — a real
-    // schema shaped this way yields 0 resolvers found, and every rule written
+    // sit beside the resolvers and none of the resolvers themselves — measured
+    // on a real schema as 60 subjects, 0 of them resolvers. Every rule written
     // against it then passes on the wrong subjects (ADR-008).
     return this.sourceFiles.flatMap((sf) =>
       collectFunctions(sf, { includeObjectLiteralFunctions: true }),

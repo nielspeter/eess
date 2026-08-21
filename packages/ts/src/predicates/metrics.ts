@@ -38,7 +38,8 @@ export function haveComplexity(opts: { greaterThan: number }): Predicate<ArchFun
 }
 
 /**
- * Predicate: class has more than N lines of code (span lines).
+ * Predicate: class has more than N lines of code — comments and blank lines
+ * excluded (bug 0170).
  */
 export function haveMoreLinesThan(threshold: number): Predicate<ClassDeclaration> {
   return {
@@ -50,7 +51,8 @@ export function haveMoreLinesThan(threshold: number): Predicate<ClassDeclaration
 }
 
 /**
- * Predicate: function has more than N lines of code (span lines).
+ * Predicate: function has more than N lines of code — comments and blank lines
+ * excluded (bug 0170).
  */
 export function haveMoreFunctionLinesThan(threshold: number): Predicate<ArchFunction> {
   return {

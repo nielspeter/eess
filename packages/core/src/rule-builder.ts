@@ -1,3 +1,4 @@
+import { assertionAdviceFor } from './assertion-advice.js'
 import type { Predicate } from './predicate.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
@@ -5,9 +6,8 @@ import type { RuleDescription } from './rule-description.js'
 import type { Selection, ElementInfo } from './correspondence.js'
 import type { DeclaredGlob, GlobNode } from './glob-site.js'
 import { countDeclaredGlobs, stampGlobs } from './glob-site.js'
-import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
+import { TerminalBuilder, type CollectResult, assertionLessViolation } from './terminal-builder.js'
 import { assertsCardinality as conditionAssertsCardinality } from './cardinality.js'
-import { writeStderr } from './stderr.js'
 
 /**
  * A declared glob's own label in a dead-glob finding — the predicate/
@@ -71,10 +71,20 @@ function declaredGlobsOf<T>(predicates: Predicate<T>[], conditions: Condition<T>
  * depends on this exact two-param signature, so it is not replaced by the
  * fold, only extended.
  */
+
 export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   protected _predicates: Predicate<T>[] = []
   protected _conditions: Condition<T>[] = []
   protected _phase: 'predicate' | 'condition' = 'predicate'
+  /** Whether `.should()` was ever reached — bug 0155 state 3/4 vs state 1. */
+  protected _reachedShould = false
+  /**
+   * Descriptions of predicate-only methods used AFTER `.should()` — bug 0155
+   * state 2. A dual-use method dispatches to a condition in that phase and
+   * never lands here, so anything recorded is genuinely a filter written where
+   * an assertion was meant.
+   */
+  protected _misplaced: string[] = []
 
   constructor(protected readonly project: P) {
     super()
@@ -110,6 +120,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   should(): this {
     const fork = this.fork()
     fork._phase = 'condition'
+    fork._reachedShould = true
     return fork
   }
 
@@ -185,10 +196,35 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * about subjects that exist, and exempting it on the strength of the one
    * cardinality condition would silence the other. An empty condition list is
    * NOT exempt: `[].every()` is vacuously `true`, and a rule with zero
-   * conditions is the assertion-less case `collectViolations()`'s own
-   * stderr warning already names — this override must not paper over that
-   * by also declaring it cardinality-satisfied.
+   * conditions is the assertion-less case `collectViolations()` now reports as
+   * a configuration finding (bug 0155; it used to be an unreachable stderr
+   * warning, which this comment named until that fix landed) — this override
+   * must not paper over it by also declaring it cardinality-satisfied.
+   *
+   * **Load-bearing:** for a DEAD selector this early return is the only thing
+   * between an assertion-less rule and a silent pass (the gate runs after the
+   * zero-examined branch). Pinned in `assertion-less-rules.test.ts`.
    */
+  /**
+   * Does this rule assert anything at all? — bug 0155.
+   *
+   * Conditions alone are not enough: a predicate-only method written *after*
+   * `.should()` silently shrank the set the conditions run over, possibly to
+   * empty, in which case they hold vacuously. That rule asserts nothing
+   * meaningful even though `_conditions` is non-empty.
+   */
+  protected assertsSomething(): boolean {
+    return this._conditions.length > 0 && this._misplaced.length === 0
+  }
+
+  protected assertionAdvice(): string {
+    return assertionAdviceFor({
+      reachedShould: this._reachedShould,
+      misplaced: this._misplaced,
+      conditionCount: this._conditions.length,
+    })
+  }
+
   protected override assertsCardinality(): boolean {
     if (this._conditions.length === 0) return false
     return this._conditions.every((condition) => conditionAssertsCardinality(condition))
@@ -233,6 +269,11 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   protected addPredicate(predicate: Predicate<T>): this {
     const next = this.copy()
     next._predicates.push(predicate)
+    // Bug 0155 state 2: a predicate-only method used after `.should()`. Dual-use
+    // methods dispatch to conditions in that phase and never reach here, so this
+    // is a filter written where an assertion was meant — the one state whose fix
+    // is "move it before .should()", not "add a condition".
+    if (next._phase === 'condition') next._misplaced.push(predicate.description)
     return next
   }
 
@@ -266,16 +307,28 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
     const clone = super.copy()
     clone._predicates = [...this._predicates]
     clone._conditions = [...this._conditions]
+    clone._misplaced = [...this._misplaced]
     return clone
   }
 
   /**
-   * Create a fork of this builder with the same predicates but empty conditions.
-   * Used by `.should()` to support named selections without mutation.
+   * A fork of this builder, carrying BOTH lists. Used by `.should()` to support
+   * named selections without mutation.
+   *
+   * **Nothing here clears the conditions** (bug 0156). It used to, and a second
+   * `.should()` therefore silently discarded the first assertion — a rule that
+   * asserted something turned into one that asserted less, by a chain method.
+   * `.should().X().should().Y()` now accumulates exactly as `.andShould()` does.
+   *
+   * Ported from `packages/ts/src/core/rule-builder.ts`, where the engine copy
+   * landed the fix and left the kernel behind. Found by the architect review of
+   * PR #72: `eess-md`, `eess-mermaid` and `eess-gherkin` all extend THIS class,
+   * so they carried the defect — and `check:corpus`, `check:ledger` and
+   * `check:diagram` are md/mermaid gates, meaning this repo's own corpus
+   * enforcement ran on the broken copy.
    */
   protected fork(): this {
     const fork = this.copy()
-    fork._conditions = []
     fork._reason = fork._metadata?.because ?? this._reason
     return fork
   }
@@ -327,18 +380,14 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
       return { violations: [], examined, sourceEmpty, deadGlob }
     }
 
-    // An assertion-less rule (subjects found, nothing asserted about them) is
-    // distinct from the zero-examined case above and stays a stderr warning,
-    // not the unsuppressable ADR-010 finding — examined is non-zero either way.
-    if (this._conditions.length === 0 && this._phase === 'predicate') {
+    // Bug 0155 — gate-first, before the conditions run. See
+    // `assertionLessViolation` for why this is a finding and not a warning,
+    // and why there is no `_phase` term.
+    // `_expectEmpty === undefined`: a declared emptiness expectation is an
+    // assertion too — see `assertionLessViolation`.
+    if (!this.assertsSomething() && this._expectEmpty === undefined) {
       const ruleId = this._metadata?.id ?? (this.buildRuleDescription() || 'unnamed')
-      writeStderr(
-        `[eess] Rule '${ruleId}' has predicates but no conditions. ` +
-          `Did you use a predicate-only method after .should()? ` +
-          `Predicate-only methods (e.g. areExported, areAsync) filter elements; ` +
-          `use a condition method or .satisfy() after .should().`,
-      )
-      return { violations: [], examined }
+      return { violations: [assertionLessViolation(ruleId, this.assertionAdvice())], examined }
     }
 
     // Step 4: Build context for conditions

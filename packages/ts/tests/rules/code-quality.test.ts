@@ -64,6 +64,25 @@ describe('requireJsDocOnPublicMethods', () => {
 })
 
 describe('noPublicFields', () => {
+  it('does NOT flag a public readonly INSTANCE field', () => {
+    // The rule is "no public MUTABLE fields" and already accepted `static
+    // readonly`. A readonly instance field is equally immutable, and the remedy
+    // it was given — "use private + getter/setter" — removes nothing. Measured on
+    // `DiffFilter.baseBranch` (plan 0165).
+    const cls = getClass('ReadonlyInstanceField')
+    expect(noPublicFields().evaluate([cls], ctx)).toEqual([])
+  })
+
+  it('does NOT flag an ECMAScript #private field, mutable or not', () => {
+    // `#name` has no TypeScript accessibility modifier, so `getScope()` answers
+    // `'public'` for it. Reporting it is a false positive of the worst shape: the
+    // remedy says "use private" about a field that is hard-private at RUNTIME,
+    // where `private` is only erased type information. Measured on
+    // `ArchRuleError.#violations` and `RunScheduler.#runCount` (plan 0165).
+    const cls = getClass('HardPrivateFields')
+    expect(noPublicFields().evaluate([cls], ctx)).toEqual([])
+  })
+
   it('flags public mutable fields', () => {
     const cls = getClass('BadQualityService')
     const condition = noPublicFields()
@@ -80,14 +99,6 @@ describe('noPublicFields', () => {
     const violations = condition.evaluate([cls], ctx)
     const names = violations.map((v) => v.message)
     expect(names.some((m) => m.includes('VERSION'))).toBe(false)
-  })
-
-  it('does not flag ES #private fields (private by name, no scope modifier)', () => {
-    const cls = getClass('BadQualityService')
-    const condition = noPublicFields()
-    const violations = condition.evaluate([cls], ctx)
-    const names = violations.map((v) => v.message)
-    expect(names.some((m) => m.includes('internalCount'))).toBe(false)
   })
 
   it('does not flag protected fields', () => {

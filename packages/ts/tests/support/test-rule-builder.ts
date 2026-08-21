@@ -1,8 +1,9 @@
-import { RuleBuilder, marksAssertsCardinality } from '@nielspeter/eess'
+import { Project } from 'ts-morph'
+import { RuleBuilder } from '../../src/core/rule-builder.js'
 import type { ArchProject } from '../../src/core/project.js'
 import type { Predicate } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import type { ArchViolation } from '../../src/core/violation.js'
+import type { ArchViolation } from '@nielspeter/eess'
 
 // --- Shared test element type (superset of all test files) ---
 
@@ -26,7 +27,7 @@ export interface TestElement {
  * register predicates/conditions directly (the real builders
  * do this through their domain-specific fluent methods).
  */
-export class TestRuleBuilder extends RuleBuilder<TestElement, ArchProject> {
+export class TestRuleBuilder extends RuleBuilder<TestElement> {
   constructor(
     project: ArchProject,
     private elements: TestElement[],
@@ -36,17 +37,6 @@ export class TestRuleBuilder extends RuleBuilder<TestElement, ArchProject> {
 
   protected getElements(): TestElement[] {
     return this.elements
-  }
-
-  /**
-   * ADR-010 part 3: unlike a real dialect builder (which derives
-   * `getElements()` from `project.getSourceFiles()`), this harness's
-   * `elements` array IS its source, injected directly — no separate
-   * "domain extraction over a real project" to conflate it with. An empty
-   * `elements` array unambiguously means the source was empty.
-   */
-  protected override sourceEmpty(): boolean {
-    return this.elements.length === 0
   }
 
   /** Register a predicate for testing. */
@@ -63,10 +53,31 @@ export class TestRuleBuilder extends RuleBuilder<TestElement, ArchProject> {
 // --- Stub project (no real ts-morph project needed) ---
 
 /**
- * An empty ArchProject stub for tests that only exercise
- * the builder pipeline and never touch the AST.
+ * An `ArchProject` stub for tests that exercise the builder pipeline without
+ * touching the AST — but which **loads files**, and that is load-bearing.
+ *
+ * It was `{} as ArchProject`. Plan 0099's floor calls `getSourceFiles()` on a
+ * path the old code never reached (`deadSelectorFindings()` returns early when
+ * `globs()` is empty, which it is for `TestRuleBuilder`), so the stub raised a
+ * `TypeError` in five tests rather than failing an assertion.
+ *
+ * The obvious repair — `getSourceFiles: () => []` — is a TRAP that review
+ * measured: an empty list makes `loadedNothing()` true, so `.check() FAILS when
+ * no elements match predicates` would start passing on the **empty-project**
+ * branch instead of the empty-selection one, and its stated subject ("the
+ * condition here is `alwaysFail`, and it never ran") would silently stop being
+ * guarded. The files below exist so the project is genuinely loaded and the
+ * selection is what is empty.
  */
-export const stubProject = {} as ArchProject
+const stubTsMorph = new Project({ useInMemoryFileSystem: true })
+stubTsMorph.createSourceFile('/stub/a.ts', 'export const a = 1\n')
+stubTsMorph.createSourceFile('/stub/b.ts', 'export const b = 2\n')
+
+export const stubProject: ArchProject = {
+  tsConfigPath: '/stub/tsconfig.json',
+  _project: stubTsMorph,
+  getSourceFiles: () => stubTsMorph.getSourceFiles(),
+}
 
 // --- Predicate helpers ---
 
@@ -90,28 +101,6 @@ export function alwaysPass(): Condition<TestElement> {
     description: 'always passes',
     evaluate: () => [],
   }
-}
-
-/**
- * A `.notExist()`-shaped condition for testing the cardinality exemption
- * (and `.expectNonEmpty()`'s override of it) without depending on the real
- * `packages/ts` condition: cardinality-exempt via `marksAssertsCardinality`,
- * and fails for every element found (mirroring "should not exist").
- */
-export function notExistShaped(): Condition<TestElement> {
-  return marksAssertsCardinality({
-    description: 'should not exist',
-    evaluate: (elements: TestElement[], context: ConditionContext): ArchViolation[] =>
-      elements.map((el) => ({
-        rule: context.rule,
-        ruleId: context.ruleId,
-        element: el.name,
-        file: el.file,
-        line: el.line,
-        message: `${el.name} should not exist`,
-        because: context.because,
-      })),
-  })
 }
 
 /**

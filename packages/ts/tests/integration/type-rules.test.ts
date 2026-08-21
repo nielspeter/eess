@@ -4,7 +4,7 @@ import { project } from '../../src/core/project.js'
 import { types } from '../../src/builders/type-rule-builder.js'
 import { ArchRuleError } from '@nielspeter/eess'
 import { isString, isUnionOfLiterals } from '../../src/helpers/type-matchers.js'
-import { not } from '@nielspeter/eess'
+import { not } from '../../src/core/combinators.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')
@@ -12,7 +12,7 @@ const p = project(tsconfigPath)
 
 describe('types() integration', () => {
   it('enforces no bare string on sortBy property', () => {
-    // Motivating use case: catch bare `string` on a sort/order property
+    // This is THE motivating use case from the originating project's plan 0212
     expect(() => {
       types(p)
         .that()
@@ -131,7 +131,7 @@ describe('types() integration', () => {
 
 describe('types() member property conditions integration', () => {
   it('enforces no forbidden pagination property names', () => {
-    // Pagination rule: forbid ad-hoc pagination property names
+    // The pagination rule from bug 0002
     expect(() => {
       types(p)
         .that()

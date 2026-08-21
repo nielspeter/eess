@@ -1,5 +1,5 @@
 /**
- * How much evidence an allowlist condition actually had.
+ * How much evidence an allowlist condition actually had — bug 0015.
  *
  * The `only*` family constrains **edges**, not subjects. Each iterates a
  * subject's imports (or importers) and reports one violation per edge outside
@@ -13,43 +13,45 @@
  *
  * ## Why this reports rather than fails
  *
- * Failing, per-subject or per-rule, does not survive measurement:
+ * [ts-archunit Bug 0015](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0015-allowlist-conditions-pass-vacuously-on-edgeless-subjects.md)
+ * refuted failing, per-subject and per-rule, on measurement:
  *
- * - **Per-subject has no statable remedy.** A dependency-free leaf module —
- *   the ideal innermost-layer citizen — would fail at error severity. The
- *   remedies available are: add an import (harmful), exclude a working rule,
- *   narrow the selector, or delete the rule. None improves anything, because
- *   **for the `only*` family zero edges is maximal compliance**, not absent
- *   evidence. That fails ADR-009 rule 2.
- * - **Per-rule multiplies.** A boundary preset emitting one rule per folder
- *   turns one dependency-free shared folder into many zero-edge rules.
- * - **`ignoreTypeImports` inverts it.** Counting edges after the filter means
- *   a layer whose only dependency is `import type` counts zero and fires on
- *   the best possible outcome — under the option the docs recommend for
- *   layers.
+ * - **Per-subject has no statable remedy.** 14 of this repo's `src/` files have
+ *   zero static imports and 10 are pure leaf modules. `tarjan.ts` is a
+ *   dependency-free algorithm — the ideal innermost-layer citizen — and would
+ *   fail at error severity. The remedies available are: add an import (harmful),
+ *   exclude a working rule, narrow the selector, or delete the rule. None
+ *   improves anything, because **for the `only*` family zero edges is maximal
+ *   compliance**, not absent evidence. That fails ADR-009 rule 2.
+ * - **Per-rule multiplies.** Six boundaries and one dependency-free shared file
+ *   make `strictBoundaries` emit 13 rules, **12** with subjects and zero edges.
+ * - **`ignoreTypeImports` inverts it.** Counting edges after the filter means a
+ *   layer whose only dependency is `import type` counts zero and fires on the
+ *   best possible outcome — under the option the docs recommend for layers.
  *
- * So the remedy is genuinely optional and the reader must judge it, which
- * under ADR-009's fail-closed philosophy is a disclosure, not a failure.
- * This module is the disclosure.
+ * So the remedy is genuinely optional and the reader must judge it, which under
+ * ADR-009 rule 1 is a disclosure, not a failure. This module is the disclosure.
  *
  * ## Why module state rather than a field on `ConditionContext`
  *
  * `ConditionContext` is a **public exported type** backing the documented
- * `defineCondition()`, so extending `Condition<T>` for this would leak a
- * dependency-specific concern into every dialect's condition surface. This
- * follows the same run-scoped-notice pattern used elsewhere in the kernel,
- * including the test reset.
+ * `defineCondition()`, and bug 0015 records that extending `Condition<T>` for
+ * this was one reason the failing design could not ship. `diff-disclosure.ts`
+ * established the pattern for a run-scoped notice that conditions produce and
+ * the CLI consumes; this follows it, including the test reset.
  */
 
 /**
  * Why a rule tested no edges. The three are not interchangeable, and saying the
- * wrong one is a defect — a stated cause that is wrong for the input.
+ * wrong one is an ADR-009 rule 2 defect — a stated cause that is wrong for the
+ * input.
  *
- * A subject whose imports were filtered by `ignoreTypeImports` **has**
- * dependencies, and a reader who opens the folder finds them and concludes
- * the tool is broken if told otherwise; a rule whose allowlist matched no
- * import is pointing at the interesting case — the glob may be a typo —
- * which a generic "dependency-free" sentence would hide.
+ * The first version of this module printed "correct for a genuinely
+ * dependency-free module" for all three. Measured, that is false for two of
+ * them: a subject whose imports were filtered by `ignoreTypeImports` **has**
+ * dependencies, and a reader who opens the folder finds them and concludes the
+ * tool is broken; and a rule whose allowlist matched no import is pointing at
+ * the interesting case — the glob may be a typo — which that sentence hides.
  */
 export type UntestedReason =
   /** The subjects have no edges of any kind. Usually correct, and the layered case. */
@@ -85,11 +87,12 @@ export function recordEdgeCoverage(
 ): void {
   const prior = coverage.get(rule)
   // The MINIMUM edge count, not the maximum. Two evaluations of the same rule
-  // description merge on this key, and taking the max would let a run that
-  // tested edges erase a run that tested none. For a disclosure OF vacuity
-  // the conservative direction is to keep the smaller evidence;
-  // over-disclosing costs a footnote, under-disclosing is the silent pass
-  // this module exists to surface.
+  // description — the same preset over two projects, or the same chain written
+  // twice — merge on this key, and taking the max let a run that tested edges
+  // erase a run that tested none. Measured: the vacuous run vanished from the
+  // report. For a disclosure OF vacuity the conservative direction is to keep
+  // the smaller evidence; over-disclosing costs a footnote, under-disclosing is
+  // the silent pass this module exists to surface.
   coverage.set(rule, {
     rule,
     subjects: Math.max(prior?.subjects ?? 0, subjects),
@@ -102,8 +105,8 @@ export function recordEdgeCoverage(
  * Rules that had subjects and tested no edges — the vacuous passes.
  *
  * A rule with **no subjects** is deliberately excluded: that is an empty
- * selector, a different family's business (ADR-009/010's own evidence gate),
- * and reporting it here would give one fault two owners.
+ * selector, which is `.expectNonEmpty()`'s business and plan 0067's, and
+ * reporting it here would give one fault two owners.
  */
 export function untestedRules(): readonly EdgeCoverage[] {
   return [...coverage.values()].filter((c) => c.subjects > 0 && c.edges === 0)
@@ -112,9 +115,9 @@ export function untestedRules(): readonly EdgeCoverage[] {
 /**
  * The disclosure, or `undefined` when every allowlist was exercised.
  *
- * Names the rules rather than counting them: "3 rules tested nothing" sends
- * the reader to grep, and the whole point is that they must judge whether an
- * edge-free population is correct here.
+ * Names the rules rather than counting them (ADR-009 rule 4): "3 rules tested
+ * nothing" sends the reader to grep, and the whole point is that they must
+ * judge whether an edge-free population is correct here.
  */
 export function edgeCoverageNotice(): string | undefined {
   const untested = untestedRules()

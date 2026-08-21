@@ -4,6 +4,9 @@ import path from 'node:path'
 import {
   areAsync,
   areNotAsync,
+  arePublic,
+  areProtected,
+  arePrivate,
   haveParameterCount,
   haveParameterCountGreaterThan,
   haveParameterCountLessThan,
@@ -34,6 +37,12 @@ describe('function predicates', () => {
       expect(predicate.test(findFn('parseFooOrder'))).toBe(false)
     })
 
+    it('matches an async function — the mirror of the row above (bug 0187)', () => {
+      // `areAsync` survived the sweep only because its other assertion happens to
+      // be `.toBe(false)`. One-sidedness is the defect; direction is luck.
+      expect(areAsync().test(findFn('OrderService.getTotal'))).toBe(true)
+    })
+
     it('has readable description', () => {
       expect(areAsync().description).toBe('are async')
     })
@@ -43,6 +52,17 @@ describe('function predicates', () => {
     it('matches non-async functions', () => {
       const predicate = areNotAsync()
       expect(predicate.test(findFn('parseFooOrder'))).toBe(true)
+    })
+
+    it('rejects an async function — the direction that was missing (bug 0187)', () => {
+      // Without this row the whole predicate is unfalsifiable: `test: () => true`
+      // satisfies the `.toBe(true)` above, so nothing could catch it filtering
+      // nothing at all.
+      expect(areNotAsync().test(findFn('OrderService.getTotal'))).toBe(false)
+    })
+
+    it('has readable description', () => {
+      expect(areNotAsync().description).toBe('are not async')
     })
   })
 
@@ -126,6 +146,77 @@ describe('function predicates', () => {
     it('rejects non-matching return type', () => {
       const predicate = haveReturnType(/^Promise/)
       expect(predicate.test(findFn('parseFooOrder'))).toBe(false)
+    })
+  })
+  /**
+   * Bug 0187. `arePublic`, `areProtected` and `arePrivate` were **unfalsifiable**:
+   * widened to `test: () => true`, so that they filter nothing, all 3519 tests
+   * stayed green.
+   *
+   * They were not untested — they were exercised through the builder in
+   * `tests/integration/function-rules.test.ts`, under a `describe('arePublic (full
+   * chain)')`. Every assertion there is `.not.toThrow()` over a fixture chosen so
+   * the rule passes; one says so in its own comment ("No function in the fixture
+   * returns `any`, so this should pass"). A rule that passes goes on passing when
+   * its selector widens, so none of it could ever fail.
+   *
+   * The fixture needed nothing added: `MixedVisibility` has carried all four
+   * visibility forms since plan 0030. What was missing was asserting against them.
+   *
+   * Written as a matrix rather than one `.toBe(true)` per predicate, because a
+   * predicate is only pinned by the cases it must REJECT.
+   */
+  describe('visibility predicates discriminate (bug 0187)', () => {
+    const MEMBERS: readonly { fn: string; scope: 'public' | 'protected' | 'private' }[] = [
+      { fn: 'MixedVisibility.getPublicData', scope: 'public' },
+      // No access modifier at all. TypeScript treats it as public, and a rule
+      // saying "public methods must X" has to cover it — so it is pinned here
+      // rather than left to be discovered by an adopter.
+      { fn: 'MixedVisibility.noModifier', scope: 'public' },
+      { fn: 'MixedVisibility.loadInternal', scope: 'protected' },
+      { fn: 'MixedVisibility.validate', scope: 'private' },
+    ]
+
+    it('VACUITY: the fixture really carries all three visibilities', () => {
+      // Every row below is a comparison against this fixture. If it drifted to
+      // one visibility the matrix could still be satisfied trivially, so the
+      // spread is asserted before anything is derived from it (ADR-010).
+      const scopes = MEMBERS.map((m) => findFn(m.fn).getScope()).sort()
+      expect([...new Set(scopes)]).toEqual(['private', 'protected', 'public'])
+    })
+
+    it('arePublic() matches the public members and REJECTS the others', () => {
+      for (const m of MEMBERS) {
+        expect(arePublic().test(findFn(m.fn)), m.fn).toBe(m.scope === 'public')
+      }
+    })
+
+    it('areProtected() matches the protected member and REJECTS the others', () => {
+      for (const m of MEMBERS) {
+        expect(areProtected().test(findFn(m.fn)), m.fn).toBe(m.scope === 'protected')
+      }
+    })
+
+    it('arePrivate() matches the private member and REJECTS the others', () => {
+      for (const m of MEMBERS) {
+        expect(arePrivate().test(findFn(m.fn)), m.fn).toBe(m.scope === 'private')
+      }
+    })
+
+    it('the three are mutually exclusive — exactly one matches each member', () => {
+      // Catches a widening that the per-predicate rows above could miss if two of
+      // them drifted together.
+      for (const m of MEMBERS) {
+        const fn = findFn(m.fn)
+        const matched = [arePublic(), areProtected(), arePrivate()].filter((pr) => pr.test(fn))
+        expect(matched.length, m.fn).toBe(1)
+      }
+    })
+
+    it('describe themselves by their scope — the strings baselines hash on', () => {
+      expect(arePublic().description).toBe('are public')
+      expect(areProtected().description).toBe('are protected')
+      expect(arePrivate().description).toBe('are private')
     })
   })
 })

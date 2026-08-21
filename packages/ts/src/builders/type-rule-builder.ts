@@ -1,7 +1,6 @@
 import type { ArchProject } from '../core/project.js'
-import { RuleBuilder } from '@nielspeter/eess'
+import { RuleBuilder } from '../core/rule-builder.js'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
-import { diagnoseDeadGlobs } from '../core/dead-glob.js'
 import {
   areInterfaces,
   areTypeAliases,
@@ -26,6 +25,7 @@ import {
   resideInFile as conditionResideInFile,
   resideInFolder as conditionResideInFolder,
 } from '../conditions/structural.js'
+import { createElementCache, SOLE_POPULATION } from '../core/element-cache.js'
 import {
   haveNameMatching as identityHaveNameMatching,
   resideInFile as identityResideInFile,
@@ -33,6 +33,9 @@ import {
   areExported as identityAreExported,
   areNotExported as identityAreNotExported,
 } from '../predicates/identity.js'
+
+/** One collection per project, shared by every rule built from it (plan 0075). */
+const cache = createElementCache<TypeDeclaration>()
 
 /**
  * Rule builder for interface and type alias declarations.
@@ -47,7 +50,7 @@ import {
  *   .because('sortBy must be a union of literals, not bare string')
  *   .check()
  */
-export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration, ArchProject> {
+export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration> {
   constructor(project: ArchProject) {
     super(project)
   }
@@ -57,56 +60,73 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration, ArchProject> {
    * from all source files in the project.
    */
   protected getElements(): TypeDeclaration[] {
-    const elements: TypeDeclaration[] = []
-    for (const sf of this.project.getSourceFiles()) {
-      elements.push(...sf.getInterfaces())
-      elements.push(...sf.getTypeAliases())
-    }
-    return elements
-  }
-
-  /** ADR-010 part 3: the project itself, not this domain's own extraction. */
-  protected override sourceEmpty(): boolean {
-    return this.project.getSourceFiles().length === 0
-  }
-
-  /** Plan 0147 Phase 4: resolve this rule's declared globs against the real project. */
-  protected override deadGlobDiagnosis(): string | undefined {
-    return diagnoseDeadGlobs(this.project, this.globs())
+    return cache.get(this.project, SOLE_POPULATION, () => {
+      const elements: TypeDeclaration[] = []
+      for (const sf of this.project.getSourceFiles()) {
+        elements.push(...sf.getInterfaces())
+        elements.push(...sf.getTypeAliases())
+      }
+      return elements
+    })
   }
 
   // --- Type-specific predicates ---
 
-  /** Filter to interface declarations only (excludes type aliases). */
+  /**
+   * Narrows the selection to types that are interfaces.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areInterfaces(): this {
     return this.addPredicate(areInterfaces())
   }
 
-  /** Filter to type alias declarations only (excludes interfaces). */
+  /**
+   * Narrows the selection to types that are type aliases.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areTypeAliases(): this {
     return this.addPredicate(areTypeAliases())
   }
 
   /**
-   * Filter to types that have a property with the given name. Resolves
-   * through the type system, so it works for both interfaces and aliases.
+   * Narrows the selection to types that have a property named `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
    */
   haveProperty(name: string): this {
     return this.addPredicate(haveProperty(name))
   }
 
   /**
-   * Filter to types whose named property has a type satisfying the matcher.
-   * Resolves through aliases and mapped types (`Partial<>`, `Pick<>`, ...).
+   * Narrows the selection to types that have property `name` of a type matching `matcher`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
    */
   havePropertyOfType(name: string, matcher: TypeMatcher): this {
     return this.addPredicate(havePropertyOfType(name, matcher))
   }
 
   /**
-   * Filter to types that extend/reference the named type. Interfaces are
-   * matched by their `extends` clause; type aliases by a reference to the
-   * name in the resolved type text.
+   * Narrows the selection to types that extend the type `name`.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
    */
   extendType(name: string): this {
     return this.addPredicate(extendType(name))
@@ -115,20 +135,28 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration, ArchProject> {
   // --- Type-specific conditions ---
 
   /**
-   * Assert that the named property's type satisfies the matcher. Types
-   * lacking the property are skipped (no violation) — pair with
-   * `haveProperty()` to require it.
+   * Asserts that the selected types have property `name` of a type matching `matcher`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
    */
   havePropertyType(name: string, matcher: TypeMatcher): this {
     return this.addCondition(havePropertyType(name, matcher))
   }
 
-  /** Assert that matched types are exported from their module. */
+  /**
+   * Asserts that the selected types are exported.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   beExported(): this {
     return this.addCondition(conditionBeExported())
   }
 
-  /** Assert that the filtered type set is empty (no matched type may exist). */
+  /**
+   * Asserts that the selected types do not exist.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   notExist(): this {
     return this.addCondition(conditionNotExist())
   }
@@ -140,32 +168,56 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration, ArchProject> {
 
   // --- Member property conditions (plan 0030) ---
 
-  /** Assert that every matched type has all of the named properties (one violation per missing name). */
+  /**
+   * Asserts that the selected types have a property named by each of `names`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   havePropertyNamed(...names: string[]): this {
     return this.addCondition(memberHavePropertyNamed(...names))
   }
 
-  /** Assert that no matched type has any of the named properties (one violation per forbidden name found). */
+  /**
+   * Asserts that the selected types do not have a property named by any of `names`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   notHavePropertyNamed(...names: string[]): this {
     return this.addCondition(memberNotHavePropertyNamed(...names))
   }
 
-  /** Assert that every matched type has at least one property whose name matches the regex. */
+  /**
+   * Asserts that the selected types have a property matching `pattern`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   havePropertyMatching(pattern: RegExp): this {
     return this.addCondition(memberHavePropertyMatching(pattern))
   }
 
-  /** Assert that no matched type has a property whose name matches the regex (one violation per match). */
+  /**
+   * Asserts that the selected types do not have a property matching `pattern`.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   notHavePropertyMatching(pattern: RegExp): this {
     return this.addCondition(memberNotHavePropertyMatching(pattern))
   }
 
-  /** Assert that every property of each matched type is `readonly` (resolves `Readonly<T>` too). */
+  /**
+   * Asserts that the selected types have only readonly properties.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   haveOnlyReadonlyProperties(): this {
     return this.addCondition(memberHaveOnlyReadonlyProperties())
   }
 
-  /** Assert that no matched type has more than `max` properties (guards against oversized DTOs). */
+  /**
+   * Asserts that the selected types have at most `max` properties.
+   *
+   * **Condition only** — this is the assertion, so it belongs after `.should()`.
+   */
   maxProperties(max: number): this {
     return this.addCondition(memberMaxProperties(max))
   }
@@ -184,12 +236,26 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration, ArchProject> {
     return this.addPredicate(identityHaveNameMatching(pattern))
   }
 
-  /** Filter to types that are exported from their module. */
+  /**
+   * Narrows the selection to types that are exported.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areExported(): this {
     return this.addPredicate(identityAreExported())
   }
 
-  /** Filter to types that are NOT exported from their module. */
+  /**
+   * Narrows the selection to types that are not exported.
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
   areNotExported(): this {
     return this.addPredicate(identityAreNotExported())
   }

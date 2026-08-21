@@ -119,8 +119,8 @@ function packagesInTree() {
     .filter((e) => e.isDirectory() && existsSync(join('packages', e.name, 'package.json')))
     .map((e) => {
       const dir = `packages/${e.name}`
-      const { name } = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
-      return { name, dir }
+      const parsed = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
+      return { name: parsed.name, dir, deps: Object.keys(parsed.dependencies ?? {}) }
     })
     .filter((p) => typeof p.name === 'string')
 }
@@ -136,8 +136,13 @@ function packagesAt(ref) {
   for (const path of listed) {
     if (!/^packages\/[^/]+\/package\.json$/.test(path)) continue
     try {
-      const { name } = JSON.parse(git('show', `${ref}:${path}`))
-      if (typeof name === 'string') out.push({ name, dir: path.replace(/\/package\.json$/, '') })
+      const parsed = JSON.parse(git('show', `${ref}:${path}`))
+      if (typeof parsed.name === 'string')
+        out.push({
+          name: parsed.name,
+          dir: path.replace(/\/package\.json$/, ''),
+          deps: Object.keys(parsed.dependencies ?? {}),
+        })
     } catch {
       continue // unreadable at the base — the head copy, if any, still counts
     }
@@ -157,7 +162,9 @@ function readPendingChangesets() {
   const declarations = []
   const waiverCandidates = []
   const unparseable = []
-  if (!existsSync('.changeset')) return { declarations, waiverCandidates, unparseable, files: [] }
+  const breakingFiles = []
+  if (!existsSync('.changeset'))
+    return { declarations, waiverCandidates, unparseable, breakingFiles, files: [] }
   const files = readdirSync('.changeset')
     .filter(isChangeset)
     .sort()
@@ -165,16 +172,27 @@ function readPendingChangesets() {
   for (const file of files) {
     const r = declarationsIn(readFileSync(file, 'utf8'), file)
     if (r.error !== undefined) unparseable.push({ file, error: r.error })
-    else if (r.empty) waiverCandidates.push(file)
-    else declarations.push(...r.declarations)
+    else if (r.empty) {
+      waiverCandidates.push(file)
+      // An empty changeset that declares a break is collected too, and fails.
+      // It is not "no bump to be wrong": `--empty` sets `waived`, which suppresses
+      // release/changed-package-needs-changeset for EVERY changed package. So the
+      // loudest possible break marker, in this one file shape, turns off the
+      // strongest rule in the gate. Fail closed (ADR-009).
+      if (r.breakingMarker !== undefined) breakingFiles.push({ file, marker: r.breakingMarker })
+    } else {
+      declarations.push(...r.declarations)
+      if (r.breakingMarker !== undefined) breakingFiles.push({ file, marker: r.breakingMarker })
+    }
   }
-  return { declarations, waiverCandidates, unparseable, files }
+  return { declarations, waiverCandidates, unparseable, breakingFiles, files }
 }
 
 const {
   declarations,
   waiverCandidates,
   unparseable,
+  breakingFiles,
   files: changesetFiles,
 } = readPendingChangesets()
 
@@ -287,7 +305,21 @@ function consumedContent(file) {
 const consumed = [...consumedPaths]
 for (const file of consumed) {
   const text = consumedContent(file)
-  if (text !== undefined) declarations.push(...declarationsIn(text, file).declarations)
+  if (text === undefined) continue
+  const r = declarationsIn(text, file)
+  declarations.push(...r.declarations)
+  // **The consumed path carries the breaking marker too.** Dropping it made the
+  // release-time flow blind, which is the flow `RELEASING.md` documents: a
+  // changeset authored at step 1 and consumed by `version-packages` at step 2
+  // never meets a PR-time `check:release`, and step 4's `npm run validate` is the
+  // only gate it sees. Measured before this line existed — a `**Breaking`/patch
+  // changeset fired at PR time and reported `examined 0 of 0` after consumption.
+  //
+  // Firing on a consumed changeset is correct, not a false positive: the declared
+  // bump is the one `changeset version` has ALREADY written, so a break declared
+  // as a patch means the version on disk is wrong and the publish must be blocked
+  // while that is still possible.
+  if (r.breakingMarker !== undefined) breakingFiles.push({ file, marker: r.breakingMarker })
 }
 
 // A waiver counts only when it is in THIS diff. Scanning `.changeset/` alone let
@@ -297,12 +329,44 @@ const waivers = waiverCandidates.filter((f) => changedFiles.includes(f))
 
 const changedPackages = packagesTouchedBy(changedFiles, workspacePackages)
 
+// Who would inherit a break. Regular `dependencies` only.
+//
+// **The first reason given for excluding peers was wrong.** It said requiring a
+// peer dependent to be declared "would fight"
+// `onlyUpdatePeerDependentsWhenOutOfRange`, the countermeasure for the 1.0.0
+// escalation. Measured against the real `changeset version` with this repo's own
+// config: a peer dependent declared `minor` releases as a minor — no escalation —
+// with the changeset's text in its changelog. That setting governs AUTOMATIC
+// bumping of an UNDECLARED peer dependent; an explicit declaration is honoured.
+//
+// What survives is weaker: a peer is a range the CONSUMER resolves, so the
+// dependent does not decide what its users get. Weaker still here, since
+// `eess-crossvalidate` peers at `>=0.1.1` — unbounded — and npm installs peers.
+//
+// The cost is stated rather than hidden: most breaking changesets break a DIALECT,
+// whose only workspace carrier is `eess-crossvalidate`, so the rule constrains the
+// kernel edge and abstains on the rest. Widening to peers is an OPEN decision
+// (bug 0185), not a closed one.
+const workspaceNames = new Set(workspacePackages.map((p) => p.name))
+const dependentsOf = {}
+for (const p of workspacePackages) {
+  for (const d of p.deps ?? []) {
+    if (!workspaceNames.has(d)) continue
+    ;(dependentsOf[d] ??= []).push(p.name)
+  }
+}
+
 const { violations, stats } = releaseViolations({
   declarations,
   changedPackages,
   workspacePackages,
   waivers,
   unparseable,
+  // NOT scoped to the diff, unlike `waivers`. A breaking changeset merged by an
+  // earlier PR is still pending until `changeset version` runs, so it is still
+  // about to ship on the wrong bump — the window this gate exists to close.
+  breakingFiles,
+  dependentsOf,
 })
 
 // --- report -----------------------------------------------------------------
@@ -356,6 +420,40 @@ if (violations.length > 0) {
 } else {
   line('findings', '✓ every changed package is declared, every declaration is real')
 }
+
+// The breaking rule's own denominator, ALWAYS printed — including on a red run,
+// where "which finding" and "out of how many examined" are different questions.
+// The count comes from `stats`, i.e. from what the rule itself saw: sourcing it
+// from the shell's own `breakingFiles` let the two disagree, and a severed
+// argument then printed a ✓ over a rule that examined nothing.
+// The second rule's own denominator. A ✓ that says nothing about how many
+// dependency edges were weighed reads identically whether there were nine or
+// none — and none is reachable (see `breakDependentEdges`).
+const depsCount = violations.filter((v) => v.ruleId === 'release/break-names-dependents').length
+line(
+  'dependents',
+  stats.breakDependentEdges === 0
+    ? 'no declared break has a workspace dependent — rule weighed 0 edges'
+    : depsCount === 0
+      ? `✓ ${String(stats.breakDependentEdges)} dependency edge(s) weighed, each named at minor`
+      : `✗ ${String(depsCount)} changeset(s) leave a dependent unnamed, of ${String(stats.breakDependentEdges)} edge(s) weighed`,
+)
+
+const brokeCount = violations.filter((v) => v.ruleId === 'release/breaking-needs-minor').length
+// Pending PLUS consumed: the rule reads both, so a denominator counting only the
+// pending files reports "5 of 9" while one of the 5 is not among the 9.
+const changesetsRead = changesetFiles.length + consumed.length
+line(
+  'breaking',
+  stats.breakingExamined === 0
+    ? `no pending changeset declares a break — rule examined 0 of ${String(changesetsRead)}`
+    : brokeCount === 0
+      ? `✓ ${String(stats.breakingExamined)} of ${String(changesetsRead)} changeset(s) declare a break, each bumping past patch` +
+        (stats.breakingLoose === 0
+          ? ''
+          : ` — ${String(stats.breakingLoose)} checked loosely (several packages, no owner named, so only "at least one" could be asked)`)
+      : `✗ ${String(brokeCount)} of ${String(stats.breakingExamined)} breaking changeset(s) bump only patch/none`,
+)
 
 console.error('')
 if (violations.length === 0) {

@@ -91,7 +91,9 @@
  *                 release/changeset-names-real-package. Synthetic inputs, no git:
  *                 the diff half is the impure shell in check-release.mjs, and its
  *                 failure mode is a hard error on an unresolvable base ref rather
- *                 than a silent green.
+ *                 than a silent green. Since bug 0184 it also drives
+ *                 release/breaking-needs-minor: a changeset whose body declares a
+ *                 break while every package it names takes `patch`.
  *   vacuity-matrix (plan 0088 Phase 4a)
  *                 scripts/nonvacuity/bad-vacuity-matrix.mjs runs a mutated COPY
  *                 of the real scripts/vacuity-matrix.mjs with its KNOWN_FAIL_OPEN
@@ -132,7 +134,7 @@
  * the `validate` chain). Exits 0 iff every fixture fired on its violating input.
  */
 import { spawnSync } from 'node:child_process'
-import { writeFileSync, rmSync, readFileSync } from 'node:fs'
+import { writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -404,12 +406,18 @@ function gateInternalArch() {
 
 // --- Gate: family (plan 0089 — standalone-sufficiency rules) ---
 function gateFamilyReExportIndex() {
-  // UNSUPPRESSABLE: a real kernel export md's own sources don't otherwise
+  // `collectViolations`: a real kernel export md's own sources don't otherwise
   // touch — importing it (without re-exporting it) is a genuine, isolated
   // re-export-completeness gap, not a pre-existing one this probe rides on.
+  //
+  // It was `UNSUPPRESSABLE` until plan 0165 Phase 2, which put that name on
+  // `KERNEL_PRIVATE_BEFORE_THE_SPLIT` — so the rule started skipping it and this
+  // probe injected something the gate is designed to ignore. The harness caught
+  // it (bad → exit 0), which is the whole point of the harness; a probe must
+  // inject a symbol the rule actually checks, so pick one off no exclusion list.
   const bad = withMutatedFile(
     FAMILY_REEXPORT_INDEX_TARGET,
-    "import { UNSUPPRESSABLE } from '@nielspeter/eess'",
+    "import { collectViolations } from '@nielspeter/eess'",
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
   const ok = bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts')
@@ -422,11 +430,13 @@ function gateFamilyReExportIndex() {
 }
 
 function gateFamilyReExportCrossvalidate() {
-  // byCodepoint: a different real kernel export than the index.ts probe
-  // uses, so the two probes are provably independent of each other.
+  // `diffAware`: a different real kernel export than the index.ts probe uses, so
+  // the two probes are provably independent of each other. (Was `byCodepoint`,
+  // which plan 0165 Phase 2 moved onto `KERNEL_PRIVATE_BEFORE_THE_SPLIT` — same
+  // disarming as above, same fix.)
   const bad = withMutatedFile(
     FAMILY_REEXPORT_CROSSVALIDATE_TARGET,
-    "import { byCodepoint } from '@nielspeter/eess'",
+    "import { diffAware } from '@nielspeter/eess'",
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
   const ok =
@@ -436,6 +446,61 @@ function gateFamilyReExportCrossvalidate() {
   return {
     ok,
     detail: `bad → exit ${bad.code} (family/re-export-complete on crossvalidate/src/files.ts) · ${cleanNote}`,
+  }
+}
+
+/**
+ * The family rule's OWN vacuity guard — plan 0165 Phase 2.
+ *
+ * The three probes above all inject a MISSING re-export, so every one of them
+ * assumes the package still imports the kernel at all. None can catch the state
+ * plan 0165's engine copy actually produced: `packages/ts/src` importing
+ * `@nielspeter/eess` in ZERO files, where the rule has nothing to examine and
+ * exits 0. Measured — `check:family` was green through that entire baseline,
+ * green *because* the boundary it guards had been deleted.
+ *
+ * So this probe empties a dialect's kernel imports instead of breaking one, and
+ * requires the gate to red. Gherkin, because it is the smallest such package
+ * (one file) and because using a different dialect than the other three probes
+ * keeps them independent.
+ */
+function gateFamilyKernelImportsEmptied() {
+  // EVERY source file in the package, not just its entry. `builder.ts` imports
+  // the kernel across four lines and `index.ts` re-exports the same four names;
+  // stripping only the entry left `needed` non-empty (measured) and the probe
+  // tested the ordinary missing-re-export path instead of the vacuity path.
+  const dir = join(repoRoot, 'packages', 'gherkin', 'src')
+  const targets = readdirSync(dir)
+    .filter((f) => f.endsWith('.ts'))
+    .map((f) => join(dir, f))
+  const originals = new Map(targets.map((t) => [t, readFileSync(t, 'utf8')]))
+  for (const [t, o] of originals) pendingRestores.set(t, o)
+  // Matches a whole import/export declaration, however many lines it spans,
+  // without running past the next `from '` — so it can never swallow the
+  // statement after it.
+  const KERNEL_DECL = /(?:^|\n)(?:import|export)(?:(?!from ')[\s\S])*?from '@nielspeter\/eess'/g
+  let bad
+  try {
+    for (const [t, o] of originals) writeFileSync(t, o.replace(KERNEL_DECL, ''))
+    bad = sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json'])
+  } finally {
+    for (const [t, o] of originals) {
+      writeFileSync(t, o)
+      pendingRestores.delete(t)
+    }
+  }
+  // The finding must name the RULE and the emptied package, and say what is
+  // wrong — an exit code alone cannot tell this apart from the ordinary
+  // missing-re-export failure the three probes above already cover.
+  const ok =
+    bad.code === 1 &&
+    firedOn(bad, 'family/re-export-complete', 'gherkin/src/index.ts') &&
+    /imports NOTHING from @nielspeter\/eess/.test(bad.stdout + bad.stderr)
+  const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
+  const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
+  return {
+    ok,
+    detail: `bad → exit ${bad.code} (gherkin's whole src emptied of kernel imports) · ${cleanNote}`,
   }
 }
 
@@ -787,6 +852,7 @@ const gates = [
   ['family re-export (index)', gateFamilyReExportIndex],
   ['family re-export (crossvalidate)', gateFamilyReExportCrossvalidate],
   ['family re-export (aggregation)', gateFamilyReExportAggregation],
+  ['family kernel-imports emptied', gateFamilyKernelImportsEmptied],
   ['baseline', gateBaseline],
   ['diagram', gateDiagram],
   ['spec', gateSpec],
@@ -904,6 +970,18 @@ const gates = [
     () => gateNode('bad-release.mjs', 'release/changeset-names-real-package'),
   ],
   ['release/unparseable', () => gateNode('bad-release.mjs', 'release/unparseable-changeset')],
+  // Bug 0184. The only release rule guarding an IRREVERSIBLE effect: npm refuses
+  // to re-publish a version, so a break shipped as a patch is permanent.
+  [
+    'release/breaking-needs-minor',
+    () => gateNode('bad-release.mjs', 'release/breaking-needs-minor'),
+  ],
+  // Bug 0185. A break announced only on the package that broke reaches adopters
+  // of its dependents as a patch whose changelog says "Updated dependencies".
+  [
+    'release/break-names-dependents',
+    () => gateNode('bad-release.mjs', 'release/break-names-dependents'),
+  ],
   [
     'release/gate-fails-the-build',
     () => gateNode('bad-release-e2e.mjs', 'release/changed-package-needs-changeset'),
@@ -915,7 +993,7 @@ const gates = [
     () =>
       gateNode(
         'bad-vacuity-matrix.mjs',
-        'schemaFromSDL() (builder) is fail-open with no KNOWN_FAIL_OPEN entry',
+        '__synthetic_fail_open__() (builder) is fail-open with no KNOWN_FAIL_OPEN entry',
       ),
   ],
 ]
@@ -946,6 +1024,7 @@ const GATE_FOR = {
     'family re-export (index)',
     'family re-export (crossvalidate)',
     'family re-export (aggregation)',
+    'family kernel-imports emptied',
   ],
   'check:baseline': ['baseline'],
   'check:diagram': ['diagram'],
@@ -988,6 +1067,8 @@ const GATE_FOR = {
     'release/needs-changeset',
     'release/names-real-package',
     'release/unparseable',
+    'release/breaking-needs-minor',
+    'release/break-names-dependents',
     'release/gate-fails-the-build',
   ],
 }
@@ -999,6 +1080,39 @@ function gateCoverage() {
   const checks = Object.keys(pkg.scripts ?? {}).filter((k) => k.startsWith('check:'))
   const names = new Set(gates.map(([n]) => n))
   const problems = []
+
+  // `ci.yml` runs every step of `validate` — CHECKED, not asserted.
+  //
+  // This function's own call site in `ci.yml` claimed it "proves every step of
+  // validate runs here". It did not: it read `package.json` and never opened the
+  // workflow, so the two lists could drift freely in the one direction that
+  // matters. They had. `check:vacuity` — the gate that probes every published
+  // check-constructor for fail-open — was in `validate` and absent from CI,
+  // discovered by hand in PR #72's review, on a branch that rewrote the script it
+  // runs. A meta-check that cannot see the drift it names is the defect this
+  // repo exists to prevent, one level up from the gates it audits.
+  //
+  // Direction matters: a step in CI but not in `validate` is redundancy, not a
+  // hole. A step in `validate` but not in CI means a local-only gate, which is
+  // the shape that bit us (0129, then again here).
+  const ciPath = join(repoRoot, '.github/workflows/ci.yml')
+  const ci = readFileSync(ciPath, 'utf8')
+  const validateSteps = String(pkg.scripts?.validate ?? '')
+    .split('&&')
+    .map((s) => s.trim().replace(/^npm run /, ''))
+    .filter(Boolean)
+  if (validateSteps.length === 0) problems.push('validate chain is empty or unreadable')
+  for (const step of validateSteps) {
+    if (!ci.includes(`npm run ${step}`)) {
+      problems.push(`validate runs "${step}" but .github/workflows/ci.yml does not`)
+    }
+  }
+  // `test:matrix` is not a `check:*` and not in `validate` — it cannot join the
+  // pre-build suite because it imports from `dist`. It therefore has no other
+  // claimant, and ran on no path at all until PR #72.
+  if (!ci.includes('test:matrix')) {
+    problems.push('packages/ts test:matrix (the vacuity matrix) runs on no CI path')
+  }
   for (const c of checks) {
     if (NO_GATE_NEEDED[c] !== undefined) continue
     const g = GATE_FOR[c]
@@ -1022,8 +1136,13 @@ function gateCoverage() {
     ok: problems.length === 0,
     status:
       problems.length === 0
-        ? 'OK (every check:* accounted for)'
-        : 'FAILED (a check:* is unaccounted for)',
+        ? 'OK (every check:* accounted for, and every validate step runs in CI)'
+        : // Named by what actually failed. The old text said "a check:* is
+          // unaccounted for" unconditionally, which misdescribes the CI-drift
+          // findings added in PR #72 — and a status line that names the wrong
+          // fault sends the reader to the wrong file, which is the failure mode
+          // bug 0174 is filed about.
+          `FAILED (${problems.length} problem(s): ${problems.some((x) => x.includes('ci.yml') || x.includes('CI path')) ? 'validate/CI drift' : 'a check:* is unaccounted for'})`,
     detail:
       problems.length === 0
         ? `${checks.length} check:* scripts — ${Object.keys(GATE_FOR).length} gated by ` +

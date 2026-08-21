@@ -119,15 +119,16 @@ describe('resolveConfig', () => {
     expect(config.format).toBe('auto')
   })
 
-  it('discovers the eess-ts.config.js name from cwd', async () => {
-    const cwdDir = path.join(tmpDir, 'cwd-eess')
+  it('discovers config file from cwd', async () => {
+    // Create a config file in a temp dir and mock process.cwd()
+    const cwdDir = path.join(tmpDir, 'cwd-test')
     fs.mkdirSync(cwdDir, { recursive: true })
     const configFile = path.join(cwdDir, 'eess-ts.config.js')
-    fs.writeFileSync(configFile, `export default { project: 'eess-found.json' };\n`)
+    fs.writeFileSync(configFile, `export default { project: 'found-it.json' };\n`)
 
     vi.spyOn(process, 'cwd').mockReturnValue(cwdDir)
 
     const config = await resolveConfig()
-    expect(config.project).toBe('eess-found.json')
+    expect(config.project).toBe('found-it.json')
   })
 })

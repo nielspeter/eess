@@ -54,18 +54,29 @@ into `report: 'return'` to own emission.
 
 ## Enforcement
 
-Test citations are by file + case name in prose, not the `it(…)` form:
-`check:crossval` (the AST title resolver) scans only the eess-ts project, while
-these tests live in `@nielspeter/eess` (`packages/core`). `check:corpus`
+Most test citations below are by file + case name in prose, not the `it(…)`
+form: `check:crossval` (the AST title resolver) scans only the eess-ts project,
+while those tests live in `@nielspeter/eess` (`packages/core`). `check:corpus`
 verifies the files exist, and the cases run in `npm test` (the gate). Widening
 `check:crossval` to resolve citations across every package is a separate
 follow-on (plan 0070 Out of scope).
 
-| Clause                                                          | Tier | Mechanism                                                                                                                                                                   | Status |
-| --------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| One emitter shared by both paths                                | 1    | `executeCheck` and `finishPreset` both call `reportViolations` — `packages/core/src/report.ts`, `packages/core/src/execute-rule.ts`, `packages/core/src/preset-dispatch.ts` | gated  |
-| Presets return violations, don't force emission                 | 2    | `packages/core/tests/report.test.ts` — the `report: return` case (returns violations, no stderr/stdout write)                                                               | gated  |
-| Default preset behavior unchanged (emit + throw)                | 2    | `packages/core/tests/report.test.ts` — the default throw-mode case (emits once, then throws)                                                                                | gated  |
-| Caller owns format — presets can emit JSON                      | 2    | `packages/core/tests/report.test.ts` — the `format: json` case (writes JSON to stdout)                                                                                      | gated  |
-| Violations returned to the caller carry the rule's own metadata | 2    | `packages/core/tests/execute-rule.test.ts` — the "stamps ruleId, because, suggestion and docs" case, and the "stamps every violation, not just the first" case (bug 0122)   | gated  |
-| A condition's per-element value is never replaced by the rule's | 2    | `packages/core/tests/execute-rule.test.ts` — the "never overwrites a value the condition computed" case (inverting the guard passed the whole suite before this, bug 0122)  | gated  |
+**One row is different and deliberately uses the `it(…)` form** — "Default
+preset behavior unchanged". Its clause is about the **dialect's** preset surface,
+so its mechanism lives in `packages/ts`, which `check:crossval` DOES scan; the
+citation is therefore machine-resolved rather than merely existing. That row
+previously cited a `packages/core` test covering the kernel's `finishPreset`
+default — a different path — and stayed green while the clause was violated in
+the dialect for an entire release cycle
+([bug 0189](../work/bugs/fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)).
+Where a clause can be resolved, resolving it is strictly better than asserting
+the file exists.
+
+| Clause                                                          | Tier | Mechanism                                                                                                                                                                                                                                                                                           | Status |
+| --------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| One emitter shared by both paths                                | 1    | `executeCheck` and `finishPreset` both call `reportViolations` — `packages/core/src/report.ts`, `packages/core/src/execute-rule.ts`, `packages/core/src/preset-dispatch.ts`                                                                                                                         | gated  |
+| Presets return violations, don't force emission                 | 2    | `packages/core/tests/report.test.ts` — the `report: return` case (returns violations, no stderr/stdout write)                                                                                                                                                                                       | gated  |
+| Default preset behavior unchanged (emit + throw)                | 2    | `packages/ts/tests/presets/the-default-enforces.test.ts` · `it('the shape the docs teach — a bare call, result discarded — THROWS')` — the DIALECT's preset surface, which is what this clause is about; `packages/core/tests/report.test.ts` covers the kernel's `finishPreset` default separately | gated  |
+| Caller owns format — presets can emit JSON                      | 2    | `packages/core/tests/report.test.ts` — the `format: json` case (writes JSON to stdout)                                                                                                                                                                                                              | gated  |
+| Violations returned to the caller carry the rule's own metadata | 2    | `packages/core/tests/execute-rule.test.ts` — the "stamps ruleId, because, suggestion and docs" case, and the "stamps every violation, not just the first" case (bug 0122)                                                                                                                           | gated  |
+| A condition's per-element value is never replaced by the rule's | 2    | `packages/core/tests/execute-rule.test.ts` — the "never overwrites a value the condition computed" case (inverting the guard passed the whole suite before this, bug 0122)                                                                                                                          | gated  |
