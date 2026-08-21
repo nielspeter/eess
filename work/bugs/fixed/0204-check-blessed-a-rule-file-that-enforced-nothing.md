@@ -84,7 +84,7 @@ be red. That is the point — it was green over a gate that checked nothing.
       that is the naive migration on a clean codebase. Verified red:
       `expected '✓ eess-ts — 0 rules across 1 file …' to contain 'contributed no rules'`.
 - [x] **The discriminator**: `it('stays green when the file does contribute rules
-    and they all pass')` applies the stated remedy to the same project and
+  and they all pass')` applies the stated remedy to the same project and
       requires a non-zero rule count. A fix that failed every zero-violation run
       would pass the first test and fail this one.
 - [x] The producer is classified in `every-config-finding-is-classified.test.ts`
