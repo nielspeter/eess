@@ -193,10 +193,11 @@ than a silent no-op. **Which gates do is uneven, and knowing which is the point:
 | `check:diagram`                                                 | `✓ eess-mermaid — 1 rule across 1 file · 0 failing (246ms)`                                                  |
 | `check:arch` · `check:spec` · `check:family` · `check:crossval` | **nothing** — a bare exit 0                                                                                  |
 
-The emitter lives only in `eess-mermaid`'s CLI and was never ported to
-`eess-ts`'s, so the two gates carrying this repo's architecture and spec
-enforcement announce a clean run with no denominator at all
-([bug 0174](./work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)).
+`eess-ts` prints one too, restored after this branch's engine copy dropped it —
+`✓ eess-ts — 7 rules across 1 file · 0 failing (2.05s)`, with `✗` and a
+`N of M rules failing` breakdown when it reds. The symbol is derived from the
+same error-severity count as the exit code, so a warn-only run reads `✓ … · N
+warnings` beside `exit 0` rather than contradicting itself.
 
 Where a count IS printed, a zero or an unexpectedly low one means the gate matched
 little or nothing — treat that as a red flag (a vacuous rule or wrong glob), not a
@@ -204,9 +205,11 @@ pass. **Read that instruction narrowly:** the rule/file counts in the
 `eess-mermaid` line count declared rules, which do not drop when a selector goes
 dead, so they detect a mis-wired rule FILE and not a mis-wired rule. The number
 that answers vacuity for a rule is `examined` (ADR-010), which the floor reads and
-no CLI currently prints. Until 0174 is fixed, a green `check:arch` is evidence
-that nothing failed, not evidence that anything was examined — for that, run the
-suite or `check:nonvacuity`, which fires all 41 fixtures.
+no CLI currently prints. **That half of [bug 0174](./work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)
+is still open**, and it is the half that matters: a green `check:arch` with a
+denominator is evidence that seven rules were declared, not that any of them
+examined anything. For that, run the suite, `check:nonvacuity` (43 fixtures), or
+`check:vacuity`.
 
 These summaries print to **stderr in terminal format only**, so `--format json` /
 `github` output on stdout stays machine-clean.

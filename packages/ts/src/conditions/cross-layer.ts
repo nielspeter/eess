@@ -59,7 +59,7 @@ function emptyLayerFinding(
     element: layer.name,
     file: '',
     line: 1,
-    message: `Layer "${layer.name}" matched 0 files — a correspondence over an empty layer enforces nothing. Fix the layer glob.`,
+    message: `Layer "${layer.name}" matched 0 files — a pairing over an empty layer enforces nothing. Fix the layer glob.`,
     because: context.because,
     ruleId: context.ruleId,
     // Its own remedy, never the author's (bug 0042, a live recurrence of

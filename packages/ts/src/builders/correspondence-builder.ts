@@ -2,11 +2,11 @@
  * **The exports here are `crossProject` / `CrossProjectBuilder`; the FILE is still
  * `correspondence-builder.ts`, on purpose.**
  *
- * The symbols were renamed because `correspondence` collided: the kernel exports
+ * The symbols were renamed because `crossProject` collided: the kernel exports
  * a different `correspondence({ left, right })` that `eess-md` re-exports and
  * `docs/markdown.md` teaches, so one word named two incompatible APIs inside one
  * family — and `family.rules.ts`'s allowlist, written to mean "eess-ts has no
- * correspondence", silently permitted "eess-ts has a different one". Found by the
+ * crossProject", silently permitted "eess-ts has a different one". Found by the
  * product and architect reviews of PR #72.
  *
  * The filename did not follow because nine `path:line` pointers in CLOSED records
@@ -47,7 +47,7 @@ export type KeyFn<T> = (subject: T) => string | readonly string[]
 export type KeysSource = readonly string[] | ReadonlySet<string>
 
 /**
- * The materialized state of one correspondence check, threaded to the phase
+ * The materialized state of one crossProject check, threaded to the phase
  * helpers as ONE object.
  *
  * Six values travel together — two sides, their keyed maps, the set result and
@@ -66,7 +66,7 @@ export interface Pairing {
   readonly declared: Declared
 }
 
-/** The assertions a correspondence rule made about its two sides. */
+/** The assertions a crossProject rule made about its two sides. */
 export interface Declared {
   readonly sides: readonly Side[]
   readonly distinctKeys: ReadonlySet<string>
@@ -110,7 +110,7 @@ function keyedFromKeys(keys: KeysSource): Map<string, unknown[]> {
 }
 
 /**
- * Assert a correspondence between two independently-derived key sets:
+ * Assert a crossProject between two independently-derived key sets:
  * "every X has a matching Y" (and/or the reverse). This is ADR-008 Rule 5 as a
  * primitive — two derivations plus a disagreement test — so identity-not-count
  * and non-vacuity are impossible to get wrong.
@@ -119,7 +119,7 @@ function keyedFromKeys(keys: KeysSource): Map<string, unknown[]> {
  * `.beBijective()` → `.check()`.
  *
  * @example
- * correspondence(p)
+ * crossProject(p)
  *   .side('routes', calls(p).that().onObject('app'), byArg(0))
  *   .side('matrix', Object.keys(ROUTE_PERMISSIONS))
  *   .should()
@@ -139,7 +139,7 @@ export const sidesOf = selectionMemo<Map<string, unknown[]>>()
  * a README table against the workspace.
  *
  * ```ts
- * correspondence(project)
+ * crossProject(project)
  *   .side('routes', classes(project).that().haveDecorator('Controller'), routeKey)
  *   .side('matrix', Object.keys(ROUTE_PERMISSIONS))
  *   .should()
@@ -160,7 +160,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
   private _distinctKeys = new Set<string>()
 
   // `_project` is accepted for API symmetry with the other entry points
-  // (modules/classes/…); correspondence's sides carry their own project.
+  // (modules/classes/…); crossProject's sides carry their own project.
   constructor(_project: ArchProject) {
     super()
   }
@@ -170,7 +170,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
   /** Add a side from an already-derived key set (pre-normalized). */
   side(name: string, keys: KeysSource): this
   /**
-   * Declare one side of the correspondence.
+   * Declare one side of the crossProject.
    *
    * `source` is either a `RuleBuilder` selection — in which case `keyFn` is
    * REQUIRED, because a subject has no inherent key and guessing one silently
@@ -184,7 +184,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
     if (source instanceof RuleBuilder) {
       if (!keyFn) {
         throw new TypeError(
-          `correspondence side '${name}' from a selection requires a keyFn (subject -> key).`,
+          `crossProject side '${name}' from a selection requires a keyFn (subject -> key).`,
         )
       }
       next._sides.push({ name, materialize: () => keyedFromSelection(source, keyFn) })
@@ -265,7 +265,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
    * before, on the release that deleted it. Measured green over two populated
    * sides, forever.
    *
-   * A correspondence compares two named sides, so "this rule is empty" has no
+   * A crossProject compares two named sides, so "this rule is empty" has no
    * meaning that is not per-side. Refusing at build time is the same answer
    * this class already gives a contradiction, and it is loud where the
    * inherited semantics were silent.
@@ -274,7 +274,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
     if (side === undefined) {
       throw new TypeError(
         'crossProject() declares emptiness per side: call .expectEmpty(sideName) for each side ' +
-          'you expect to be empty. A correspondence compares two named sides, so a whole-rule ' +
+          'you expect to be empty. A crossProject compares two named sides, so a whole-rule ' +
           'declaration would suppress both and expire on neither.',
       )
     }
@@ -311,7 +311,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
    */
   examinedUnits(): number {
     const [first, second] = this._sides
-    // Zero is the honest answer for an under-declared correspondence: nothing was
+    // Zero is the honest answer for an under-declared crossProject: nothing was
     // compared, and ADR-010 wants that visible rather than defaulted away.
     if (first === undefined || second === undefined) return 0
     const [a, b] = materializeSides(this, first, second)
@@ -361,7 +361,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
   /**
    * Wrong arity counts as asserting nothing, **whatever assertion was chosen**.
    *
-   * `.beComplete()` on a one-sided correspondence cannot assert anything: there
+   * `.beComplete()` on a one-sided crossProject cannot assert anything: there
    * is no second side to compare against, so the call is a claim about a
    * comparison that does not exist. Reading only the assertion flags let that
    * pair through the gate and into `collectViolations()`, where the arity check
@@ -391,11 +391,11 @@ export class CrossProjectBuilder extends TerminalBuilder {
     // would leave the rule exactly as broken (measured in review).
     if (this._sides.length !== 2) {
       return (
-        `this correspondence has ${String(this._sides.length)} side(s) and needs exactly two, ` +
+        `this crossProject has ${String(this._sides.length)} side(s) and needs exactly two, ` +
         'so it compares nothing. Add the missing .side(name, ...) call.'
       )
     }
-    return 'this correspondence asserts nothing: call .beComplete(), .haveNoOrphans(), or .beBijective().'
+    return 'this crossProject asserts nothing: call .beComplete(), .haveNoOrphans(), or .beBijective().'
   }
 
   /** Named by id or by its sides, not 'unnamed' (plan 0070 §4). */
@@ -403,7 +403,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
     const sides = this._sides.map((side) => side.name).join(' <-> ')
     return {
       ...super.describeRule(),
-      rule: this._metadata?.id ?? (sides ? `correspondence [${sides}]` : 'correspondence'),
+      rule: this._metadata?.id ?? (sides ? `crossProject [${sides}]` : 'crossProject'),
     }
   }
 
@@ -466,7 +466,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
 }
 
 /**
- * Entry point: assert a correspondence between two independently-derived key
+ * Entry point: assert a crossProject between two independently-derived key
  * sets. Call `.side(...)` twice, then an assertion terminal.
  */
 export function crossProject(p: ArchProject): CrossProjectBuilder {

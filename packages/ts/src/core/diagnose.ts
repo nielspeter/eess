@@ -87,7 +87,7 @@ export interface DiagnosableRule extends RuleBuilderLike {
 
   /**
    * How this family spells the declaration. Absent means the generic
-   * `.expectEmpty()`, which is a `TypeError` on `correspondence` — see
+   * `.expectEmpty()`, which is a `TypeError` on `crossProject` — see
    * `TerminalBuilder.emptyDeclarationAdvice()`.
    */
   emptyDeclarationAdvice?: () => string
@@ -460,7 +460,7 @@ export function diagnose(
  *
  * Returns `undefined` unless the family answers `examinedUnits()` and answered
  * zero. Two callers, on purpose: the project-unknown branch (a family with no
- * project still has evidence — `correspondence` and `schemaFromSDL` have no
+ * project still has evidence — `crossProject` and `schemaFromSDL` have no
  * `ArchProject` at all, and the first attempt gated this on one and gave those
  * two families no preview whatsoever) and the tail of the normal path.
  *

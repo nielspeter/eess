@@ -52,6 +52,28 @@ directly after `writeReport` and the two footnote notices. There is no summary
 branch. `packages/mermaid/src/cli/commands/check.ts:39-52` has one, added with
 the sibling dialect and never mirrored.
 
+### Corrected 2026-08-21 — "never mirrored" was wrong; it was a REGRESSION
+
+**This diagnosis was false, and the falseness was load-bearing.** `eess-ts` had
+the emitter. It is on `main` at `packages/ts/src/cli/commands/check.ts:156-157`
+and it ships in published `eess-ts@0.2.1`. `git log -S'✓ eess-ts —' main..HEAD`
+names the commit that removed it: `9489684`, the wholesale replacement of
+`eess-ts`'s src and tests with ts-archunit's, which overwrote the file.
+
+So the summary line was not a port that never happened — it was a **regression
+this branch introduced**, and filing it as a never-had-it gap is why no changeset
+declared it and why nobody went looking for what else that commit dropped. A
+wrong fault attribution sends the next reader in circles, which is the failure
+this very record is about.
+
+Found by an adopter review that installed the packed tarball and compared it
+against `0.2.1` — the only method that could have distinguished the two.
+
+**The first half is fixed** (restored, and the symbol now derives from the same
+error count as the exit code). `CLAUDE.md` carried the same wrong diagnosis and
+is corrected with it. **The second half below stands unchanged and is why this
+record stays open.**
+
 ## The part that is NOT just a missing port
 
 Porting the mermaid line verbatim would make `CLAUDE.md`'s _sentence_ true and its

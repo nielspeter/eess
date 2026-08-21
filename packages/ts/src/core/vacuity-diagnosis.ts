@@ -242,7 +242,7 @@ export function evidenceFloor(
   // that ordering is right at SELECTION level and wrong at INSTRUMENT level.
   //
   // `getProject()` may be undefined and that is honest, not a gap:
-  // `correspondence` discards its project by documented design, and an
+  // `crossProject` discards its project by documented design, and an
   // ADR-010 dialect over a non-TypeScript element type has none. The
   // instrument check is skipped; the zero-subjects floor below still holds.
   const project = facts.getProject()
@@ -255,7 +255,7 @@ export function evidenceFloor(
   if (facts.assertsCardinality()) return violations
   // The author said empty is the point. `declaresEmpty()` — not
   // `_expectEmpty` — because `CrossProjectBuilder` declares per side and
-  // overrides this; asking a fully-declared correspondence to declare would
+  // overrides this; asking a fully-declared crossProject to declare would
   // be ADR-009 rule 2's loop, and the base implementation cannot express it.
   if (!facts.declaresEmpty()) return [facts.zeroSubjectsViolation(project)]
   return undefined

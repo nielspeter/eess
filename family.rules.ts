@@ -56,8 +56,18 @@ export default [
   // silently permitted "eess-ts has a DIFFERENT correspondence", and the gate
   // could not see the shadowing because it asks about re-export completeness,
   // not about single implementation. The eess-ts primitive is `crossProject` /
-  // `CrossProjectBuilder` now, so the two no longer collide by name. Nothing
-  // here would catch it if they did again — that gate is plan 0188 Phase 3.
+  // `CrossProjectBuilder` now, so the two no longer collide by name.
+  //
+  // **Nothing here would catch it if they collided again, and no filed plan
+  // would either.** An earlier version of this comment pointed at plan 0188
+  // Phase 3; that is wrong and the correction matters more than the pointer did.
+  // 0188 Phase 3 is scoped as a gate that reds when a kernel concept RE-FORKS
+  // into a dialect. `crossProject` was never a fork of the kernel's
+  // `correspondence` — it is a different API that collided by NAME. An
+  // anti-re-fork gate cannot see "a dialect exports a kernel name with different
+  // semantics", so citing it as the home was a deferral to a record that does
+  // not hold the case. Named as open rather than re-homed to a second wrong
+  // place: see bug 0192.
   modules(p)
     .that()
     .satisfy(
