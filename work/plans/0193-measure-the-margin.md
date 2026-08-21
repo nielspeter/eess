@@ -108,17 +108,61 @@ a count: record the failing `fullName` set on a clean run over the covering set
 (must be empty), run mutated, report `mutated \ baseline`. Cardinality is what
 produced this repo's own off-by-one; identities are what ADR-009 rule 4 asks for.
 
-File granularity is immune to `it.each` inflation. The test count is reported
-because it is informative, and gated on because it is not.
+File granularity is immune to `it.each` inflation — but **not** to the symmetric
+cheat: splitting one test file into five yields margin 5 with no new evidence.
+And `|files|` is itself a cardinality, which sits awkwardly beside this plan's own
+"cardinality is what produced the off-by-one" — the identity diff is what
+answers that, not the unit. The test count is reported because it is
+informative, and not gated on because it is not.
+
+#### THREE units are in play, and the anchors were recorded in the third
+
+Measured independently by two reviewers in separate worktrees, and reproduced:
+
+| primitive     | record's operator, **tests** (what 0186/0187 recorded) | this plan's operator, **tests** | this plan's operator, **files** (the gated metric) |
+| ------------- | ------------------------------------------------------ | ------------------------------- | -------------------------------------------------- |
+| `noConsole`   | 4                                                      | 3                               | 1                                                  |
+| `noJsonParse` | 2                                                      | 1                               | 1                                                  |
+| `arePublic`   | 3                                                      | 2                               | 1                                                  |
+| `areNotAsync` | 2                                                      | 1                               | 1                                                  |
+
+Every anchor drops by exactly one between column 1 and column 2, because in each
+case one failing row is a **description assertion** (`noConsole() describes
+itself by its matcher`, `describe themselves by their scope`, and so on) — which
+this plan's `Condition` operator deliberately preserves.
+
+Two consequences, both of which Phase 1's acceptance clause got wrong:
+
+- **0186/0187's headline numbers are NOT this gate's acceptance values.** They
+  are column 1. Acceptance is stated in column 3, the gated metric's own unit.
+- **In file units all six repaired primitives sit at 1**, the minimum non-zero
+  value — every covering test for them lives in a single file. That is fine for
+  ADR-009's binary question (`0` vs `≥1`) and this gate only asks the binary
+  question. But it must be said out loud: **for this repo's coverage shape the
+  file metric is effectively `0 | ≥1`**, not a gradient.
+
+`areAsync` is the one anchor with a margin large enough to distinguish the file
+metric from the test metric, and it is the one nobody has a number for (0187
+records "~9", honestly labelled as not re-measured). Phase 1 should measure it
+first — it is the only case that tests the metric rather than the plumbing.
 
 ### The mutation operator, per kind — pinned in the script
 
 | kind            | operator                                     | why not the alternative                                                                                                                                                                        |
 | --------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Condition`     | preserve `description`, `evaluate: () => []` | replacing the description also breaks identity assertions, which are a real but _different_ guard. Report both numbers where they differ.                                                      |
-| `Predicate`     | `test: () => true`                           | `test: () => false` selects nothing, trips ADR-010's zero-examined floor, and reddens every rule using it — measuring the **evidence gate**, not the predicate. Uniformly inflated, fail-open. |
-| `PairCondition` | `evaluate: () => []`                         | same shape as `Condition`; stated because it is a third type.                                                                                                                                  |
-| preset          | n/a                                          | not in the population.                                                                                                                                                                         |
+| `Predicate`     | preserve `description`, `test: () => true`   | `test: () => false` selects nothing, trips ADR-010's zero-examined floor, and reddens every rule using it — measuring the **evidence gate**, not the predicate. Uniformly inflated, fail-open. |
+| `PairCondition` | preserve `description`, `evaluate: () => []` | same shape as `Condition`; stated because it is a third type.                                                                                                                                  |
+
+**Every row states the `description` disposition, and that is not cosmetic.** The
+first version of this table left it unstated on the `Predicate` row while
+deliberating it at length on the `Condition` row — worth exactly ±1 per
+predicate, which is the same "artefact of an unstated operator" this plan
+diagnoses elsewhere. 0187's own repro was `{ description: 'MUTATED', test: () =>
+true }`; this gate preserves it, so the gate does not see what those description
+assertions protect. That is a deliberate trade (identity assertions are a real
+but different guard) and it is recorded here as a decision, not assumed.
+| preset | n/a | not in the population. |
 
 ### The trigger is both sides of the edge
 
@@ -153,9 +197,18 @@ tested code rather than prose counts.
 | this branch vs `main`                | 38 files → **161 primitives ≈ 43 min local** |
 
 The median is free and the tail is unaffordable, so the gate needs a policy, not
-an average. **Cap at N primitives, report every one skipped by name, and hand the
-remainder to the periodic sweep.** A silent truncation here would be the same
-defect as a silent margin.
+an average. **Cap at N primitives and report every one skipped by name.** A
+silent truncation here would be the same defect as a silent margin.
+
+**The overflow is disclosed-and-dropped, not deferred.** An earlier version of
+this paragraph handed the remainder to "the periodic sweep" — grep says no such
+thing exists: no phase, no file, no schedule, and `.github/workflows/` holds only
+`ci.yml` and `publish.yml`. Deferring to a mechanism that does not exist is the
+wrong-home defect this corpus keeps catching, and it mattered most precisely
+here: the plan's own cost table says the tail case is a wholesale fold like the
+one that INTRODUCED bugs 0186/0187, so the cap would have deferred almost
+everything on the one commit where it counted. Until a sweep is actually filed,
+the capped remainder is unchecked and the gate says so by name on every run.
 
 ## Implementation phases
 
@@ -223,10 +276,38 @@ much as the number is:
 - **assert the mutation applied non-trivially.** A no-op edit yields margin 0 and
   a false "unfalsifiable" — the fail-open direction.
 - `unmeasurable` on an unparseable summary or a timeout.
+- **attribute every counted failure to the mutation.** This guard was missing
+  from the first version and it is the fail-OPEN one — the other four protect
+  against a false red. Measured by two reviewers independently: a mutated run
+  carried 3 extra failures in `scan-enforceable-primitives.test.ts` that fail on
+  a **clean, unmutated tree** ([bug 0196](../bugs/0196-the-census-test-has-an-undeclared-build-dependency.md)),
+  and under a bare `mutated \ baseline` identity diff those 3 become margin.
+  Noise only ever ADDS failing files, so it lifts a genuine **0** — the gate's
+  only red state — to 1 and silently clears it. Two mechanisms, both required:
+  re-run the failing set unmutated and keep only failures that clear, **and**
+  require each counted failure's file to be in that primitive's covering set.
+- **hold the tree exclusively.** ADR-009 states both halves and the first version
+  of this plan ported one: _"Assert a green baseline before the first patch, **and
+  hold the tree exclusively** (an isolated git worktree, or nobody else running)"_
+  (`adr/009-agent-first-failure-surfaces.md:247-253`). This is a guard the script
+  asserts — own worktree, fresh build, no concurrent build — not prose, because
+  the cost model puts this gate in CI and in a repo where `npm run validate` runs
+  beside agents.
 
-**Acceptance:** re-derive the four anchors under the committed operator rather
-than trusting the hand numbers. Both operators' values are recorded above; the
-script's output must match the one it declares.
+**Acceptance:** re-derive the anchors **in the gated metric's own unit** —
+column 3 of the three-units table above, not the headline numbers in 0186/0187,
+which are column 1. Concretely: `noConsole` · `noJsonParse` · `arePublic` ·
+`areNotAsync` each report margin **1 file**, and the script's reported test
+counts match column 2 (3 · 1 · 2 · 1). If the script disagrees with either
+column, that is a script bug; if a reviewer disagrees with the columns, re-measure
+before editing them. Measure `areAsync` first — it is the only anchor whose file
+and test margins differ, so it is the only one that tests the metric rather than
+the plumbing.
+
+**A builder of this phase should not have to distinguish a script bug from a spec
+conflict**, which is exactly what the first version of this clause forced: it
+asked for "the four anchors" against an operator that produces different numbers
+than the four anchors were recorded under.
 
 **Files:** `scripts/margin.mjs`, `scripts/lib/primitives.mjs` (the census),
 `scripts/lib/primitives.d.mts`, `packages/ts/tests/tools/scan-enforceable-primitives.ts`.
@@ -238,6 +319,16 @@ below), and `scripts/lib/` is where this repo already puts one source shared by 
 gate and a test — `packages/ts/tests/standalone-surface.test.ts:10` imports
 `scripts/lib/kernel-surface.mjs` today. But:
 
+- **The guard must move WITH the census, and its slack must be re-set.**
+  `packages/ts/tests/tools/scan-enforceable-primitives.test.ts:57` sets
+  `POPULATION_FLOOR = 150` against a real population of **181** — 31 primitives,
+  a 17% collapse, before anything reds. Once this census is margin's _scope_, a
+  shrinking population is a cheaper and quieter green: fewer primitives measured,
+  same exit 0. The file-set guard ("no FILE has left the population") and the
+  floor both live in the **test**, which the first version of this Files line did
+  not mention at all — so say explicitly that both move with the derivation and
+  that margin's scope inherits them, and raise the floor to something that
+  actually binds.
 - **It leaves ADR-005's perimeter.** `eslint.config.ts:26-34` scopes
   `no-explicit-any` and friends to `packages/*/src/**` and `packages/*/tests/**`.
   Moving a 332-line ts-morph derivation to `scripts/**.mjs` moves it out of that
@@ -253,9 +344,21 @@ gate and a test — `packages/ts/tests/standalone-surface.test.ts:10` imports
   first version of this line booked it as "moved to a shared home"; it is not.
 
 **Tests:** covering-set computation against a fixture package with a known import
-shape — one test reaching the target only through a barrel re-export, one only by
-reading it as text, one that cannot reach it and must be excluded; a
-mutation-applied assertion per kind; an `unmeasurable` case per guard.
+shape — one test reaching the target only through a barrel re-export (channel 1),
+one only by reading it as text (channel 2), one that cannot reach it and must be
+excluded; a mutation-applied assertion per kind; an `unmeasurable` case per
+guard; and an **attribution** case — a fixture whose baseline is dirty in a file
+outside the covering set, which must not count toward margin.
+
+**Channels 3 and 4 need fixtures too, and channel 4 is the consequential one.**
+The first version of this list covered 1 and 2 and stopped. `dogfood.test.ts` and
+`arch-rules.test.ts` build a ts-morph `Project` over `src/`, so they cover
+**every** primitive with no import edge — get channel-4 detection wrong
+fail-open and covering sets narrow to nothing and every margin is under-reported;
+wrong the other way and every covering set is the whole suite and the cost model
+collapses. Fixture: a `Project`-building test that reaches a target no import
+edge and no `readFileSync` reaches. Channel 3 needs one test touching `dist/`
+with the rebuild asserted.
 
 ### Phase 2 — `check:margin`, diff-aware, fails on zero
 
@@ -269,9 +372,18 @@ distinguishable from "0 because the walk broke" — and per
 [bug 0174](../bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md) no
 existing gate does this, so a new one has no excuse.
 
-**Two break classes**, both needing fixtures: a primitive whose only covering
-test is gutted reds the gate and names it; and a broken summary parse reds as
-`unmeasurable` rather than exiting 0.
+**Three break classes**, all needing fixtures:
+
+1. a primitive whose only covering test is gutted reds the gate and names it;
+2. a broken summary parse reds as `unmeasurable` rather than exiting 0;
+3. **a diff that touches a primitive, with the covering-set index deliberately
+   emptied, must red.** This third one was missing and it is the one the gate's
+   own cost table argues for: **126 of 138 commits have 0 primitives in scope**,
+   so a zero denominator is the gate's ordinary state and a broken index or walk
+   is indistinguishable from the 91% normal path. Without this fixture the
+   cheapest route to green on a red primitive is to make the trigger miss it —
+   and "0 in scope" vs "0 because the walk broke" is a distinction Phase 2
+   already promises to print but nothing would enforce.
 
 **Files:** `scripts/check-margin.mjs`, `package.json`,
 `.github/workflows/ci.yml`, `scripts/check-nonvacuity.mjs`,

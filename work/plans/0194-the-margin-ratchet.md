@@ -95,6 +95,20 @@ terminal by decision rather than by omission.
 The stored margins, the comparison, the guard from Phase 1, and a fixture that
 reds when an entry is lowered without cause.
 
+## The file metric weakens this plan's premise further — measured
+
+This plan is premised on catching margin **drops** — "5 → 1, 3 → 2". Those are
+**test-count** drops. [Plan 0193](./0193-measure-the-margin.md) gates on failing
+**files**, and measured, all six of the primitives that motivated the margin work
+sit at **file margin 1** — every covering test for each lives in a single file.
+
+So in the gated unit almost every primitive sits at 1 or 2, and a ratchet has
+nearly no range to ratchet over. That does not make this plan wrong; it makes its
+**Low** priority better-argued than the reasoning originally given here. If this
+is ever picked up, the first question is not "what is the ratchet policy" but
+"**is there a unit in which a ratchet has range**" — and if the honest answer is
+no, `Won't-do` is the outcome this plan already pre-authorises.
+
 ## Out of scope
 
 - Everything in [0193](./0193-measure-the-margin.md). This plan adds a
