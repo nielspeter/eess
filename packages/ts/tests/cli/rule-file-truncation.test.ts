@@ -291,7 +291,7 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
       // And with nothing leaked, the notice must not fire — it would be a claim
       // constructed from a default rather than from evidence (ADR-010).
       const collected = jsonViolations(stdout.join(''))
-      expect(collected.filter((v) => v.rule === 'eess-ts: filtering')).toHaveLength(0)
+      expect(collected.filter((v) => v.rule === 'eess-ts: reporting')).toHaveLength(0)
       // The truncation notice is still correct and must stay.
       expect(collected.some((v) => v.rule === 'eess-ts: rule file')).toBe(true)
       // The baseline really did suppress all four — otherwise the absence above

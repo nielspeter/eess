@@ -23,6 +23,14 @@ default. That is right in a test and wrong in a rule file, so presets take a
 | advisory, anywhere                | `{ report: 'warn' }`     | reports without failing the run                                                                              |
 | _(omitted)_                       | —                        | runs them and **throws** on the first error-severity violation                                               |
 
+> **`'builders'` is an `eess-ts` value, not a family-wide one.** `'return'`,
+> `'warn'` and the throwing default come from the kernel's `PresetReportOptions`,
+> and every dialect's presets accept them. `'builders'` is `eess-ts`'s own
+> `PresetDelivery` — deliberately kept out of the kernel — so `eess-md`'s
+> `adrEnforcement` / `honestyAtClose` and the `eess-crossvalidate` presets do
+> **not** take it. Those dialects have no aggregating `check` command today, so
+> nothing is lost by it; the distinction matters the day one gains one.
+
 ```typescript
 // arch.rules.ts — the CLI runs these
 import { project } from '@nielspeter/eess-ts'

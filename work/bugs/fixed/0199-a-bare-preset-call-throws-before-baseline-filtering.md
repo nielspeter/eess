@@ -74,7 +74,7 @@ with the flag `false`." **Also false**, and this one was worse: an entire record
 was built on it, and all three of its candidate fixes were aimed at making the flag
 cross registries. Disproved three ways by review:
 
-1. **The flag is read at exactly one site.** `packages/ts/src/core/execute-rule.ts:526`,
+1. **The flag is read at exactly one site.** `packages/ts/src/core/execute-rule.ts`,
    inside `executeWarn`. `executeCheck` never consults it.
 2. **jiti is not the default loader.** `packages/ts/src/cli/load-rules.ts` calls
    `importRuleModule`, and `packages/ts/src/cli/import-rule-module.ts` imports
@@ -85,7 +85,7 @@ cross registries. Disproved three ways by review:
    — printed all four violations unfiltered anyway.
 
 **Version 3, and the measured one:** `executeCheck` calls `writeReport(...)`
-**unconditionally** at `packages/ts/src/core/execute-rule.ts:460`, one line before
+**unconditionally** at `packages/ts/src/core/execute-rule.ts`, one line before
 `throw new ArchRuleError(...)`. A `.check()` at module scope prints its findings
 **always**. No registry, no jiti, no flag. The CLI cannot un-print them, and that is
 the whole of it.
@@ -146,7 +146,7 @@ ADR-008's "caller owns reporting" but changes a default again.
 ## Verification
 
 - [x] Red test first — `packages/ts/tests/cli/rule-file-truncation.test.ts`,
-      `it('says the baseline could not be applied, instead of failing in silence')`.
+      `it('says so when a preset printed findings the baseline never filtered')`.
       Verified red before the fix: `expected 'Architecture Violation [1 of 4]…' to
 contain '--baseline'`, i.e. four already-accepted violations reported with no
       mention of the baseline. Green after.

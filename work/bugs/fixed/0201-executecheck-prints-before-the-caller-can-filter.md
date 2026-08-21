@@ -7,14 +7,14 @@
   already-accepted violations before, and 0 after. **Rewritten once** before that:
   the first version blamed jiti module registries and was wrong; see "What this
   record used to say".
-- **Deferred:** [0203](../0203-the-kernel-preset-path-emits-before-any-caller-can-filter.md)
+- **Deferred:** [0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md)
   — the kernel half, which no dialect flag can reach
 - **Found:** 2026-08-21, while fixing [bug 0199](./0199-a-bare-preset-call-throws-before-baseline-filtering.md).
   Re-diagnosed the same day by the enforcement review of PR #74.
 
 ## Symptom
 
-`packages/ts/src/core/execute-rule.ts:460` — `executeCheck` writes its report and
+`packages/ts/src/core/execute-rule.ts` — `executeCheck` writes its report and
 then throws:
 
 ```ts
@@ -31,7 +31,7 @@ suppress, filter, or re-order that output.
 
 `eess-ts check` is exactly such a caller. It sets `setCallerAggregatesReports(true)`
 so rule files stay quiet and the CLI reports once. **That flag does not apply here:**
-it is read at exactly one site, `packages/ts/src/core/execute-rule.ts:526`, inside
+it is read at exactly one site, `packages/ts/src/core/execute-rule.ts`, inside
 `executeWarn`. `executeCheck` never consults it.
 
 ## Consequences
@@ -46,7 +46,7 @@ it is read at exactly one site, `packages/ts/src/core/execute-rule.ts:526`, insi
    separately measured.
 3. **Comment suppression does NOT leak**, and the first version of this record was
    wrong to say it did. `isExcludedByComment` runs inside `applyFilters` at
-   `packages/ts/src/core/execute-rule.ts:303`, i.e. **before** `writeReport`, so
+   `packages/ts/src/core/execute-rule.ts`, i.e. **before** `writeReport`, so
    `// eess-exclude` does apply to a rule file's own printing. What can go missing
    is the run-level _tally_ — `recordCommentSuppression` at `:306` feeding
    `commentSuppressionNotice()` — which is a different defect and is not filed.
@@ -115,13 +115,29 @@ on a run where nothing leaked, which is a claim constructed from a default
 the two throws apart: a `.check()` we silenced (no notice owed) from a preset's
 throw, which emits through the kernel and never reaches this function.
 
-**The kernel half is NOT fixed and is filed as
-[bug 0203](../0203-the-kernel-preset-path-emits-before-any-caller-can-filter.md).**
-`finishPreset` (`packages/core/src/report.ts:64`) emits unconditionally and has no
-flag to honour; `setCallerAggregatesReports` is ts-dialect state the kernel cannot
-read and should not. Measured after this fix, same run: the `.check()` path leaks
-nothing, the preset path still leaks. That half is an ADR-008 question — the kernel
-has no mode meaning "run, throw, and let my caller emit".
+**This fix made the two engine copies diverge, and that is recorded rather than
+discovered later.** `packages/core/src/execute-rule.ts` has its own `executeCheck`
+which still calls `reportViolations` unconditionally, under a comment reading "One
+emitter for both paths". Before this change the two had identical emission
+semantics. Latent today — [bug 0163](../0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)
+measured that no aggregating caller drives the kernel copy — but it is the second
+such divergence in two days, and it is exactly what
+[plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md) was raised to
+High for. Both the kernel copy and `packages/ts/src/core/check-all.ts` are named in
+[bug 0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md).
+
+**The preset half is NOT fixed and is filed as
+[bug 0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md).**
+`finishPreset` emits unconditionally. Measured after this fix, same run: the
+`.check()` path leaks nothing, the preset path still leaks — and its worst symptom
+turns out to be a **double print with no flags involved at all**, which this record
+did not anticipate.
+
+**The reasoning first written here was wrong** and is corrected in 0203: it said no
+dialect flag could reach the preset path, so the kernel needed a new mode. Measured
+since — `deliver()` in `packages/ts/src/presets/shared.ts` is ts code, is the single
+site all five presets finish through, and honouring the flag there takes the fixture
+from 8 leaked blocks to 2. No kernel change required.
 
 ### The options as originally stated
 
@@ -162,9 +178,9 @@ working precedent for exactly this split.
 - [x] The notice did NOT become unreachable, which is what the first version of
       this box predicted. It became reachable-and-wrong on the fixed path — worse —
       and is now gated on measured leakage. Its remaining live path is
-      [bug 0203](../0203-the-kernel-preset-path-emits-before-any-caller-can-filter.md);
+      [bug 0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md);
       when that lands, the notice must be removed or its last path named (ADR-010).
 - [x] `npm run validate` exits 0 — 3547 tests, 263 files.
 
-Deferred: [0203](../0203-the-kernel-preset-path-emits-before-any-caller-can-filter.md)
+Deferred: [0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md)
 — the kernel half.

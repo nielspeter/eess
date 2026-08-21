@@ -118,7 +118,7 @@ export async function runCheck(args: CheckArgs): Promise<number> {
         // `failureOrViolations` above DID collect this error's violations and
         // `baseline.filterNew` below DOES filter them. What escaped is the rule
         // file's OWN printing: `executeCheck` calls `writeReport` unconditionally
-        // one line before it throws (`core/execute-rule.ts:460`), so a `.check()`
+        // one line before it throws (`core/execute-rule.ts`), so a `.check()`
         // at module scope prints its findings before the CLI can filter anything.
         // `setCallerAggregatesReports` does not stop it — that flag is read only by
         // `executeWarn` (`:526`). Root cause is bug 0201.

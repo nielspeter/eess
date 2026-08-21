@@ -172,11 +172,14 @@ export function ruleFileTruncated(file: string, ruleFiles: number): ArchViolatio
  *    them; measured, its collection came back empty against a matching baseline.
  * 2. *"`setCallerAggregatesReports` is module state that does not cross jiti's
  *    registry."* Also false, and it was the premise of a whole record. The flag is
- *    read at exactly ONE site — `core/execute-rule.ts:526`, inside `executeWarn`.
+ *    read at exactly ONE site — `core/execute-rule.ts`, inside `executeWarn`.
  *    And jiti is not even the default loader: `cli/import-rule-module.ts` imports
  *    natively first and reaches jiti only on a module-format refusal.
+ * (Line numbers deliberately omitted: the fix for (3) moved every one of them,
+ * and the first version of this docblock cited three that had already drifted.)
+ *
  * 3. **What is actually true:** `executeCheck` calls `writeReport(...)`
- *    **unconditionally** at `core/execute-rule.ts:460`, one line before it throws.
+ *    **unconditionally** at `core/execute-rule.ts`, one line before it throws.
  *    A `.check()` at module scope therefore prints its findings always — same
  *    registry, no jiti, no flag involved. The CLI cannot un-print them.
  *
@@ -220,7 +223,16 @@ export function baselineNotApplied(
     // NOT `eess-ts: rule file` — `dedupeConfigFindings` keys on
     // `file + rule + element`, so sharing that label merges this into
     // `ruleFileTruncated()` and the notice disappears. Measured: it did.
-    rule: 'eess-ts: filtering',
+    //
+    // NOT `eess-ts: baseline` either: it fires for `--changed` too, and three
+    // existing findings already use that label for baseline diagnostics.
+    //
+    // And NOT `eess-ts: filtering`, which it briefly was — across `docs/`
+    // "filtering" is the `.that()` predicate phase (`docs/core-concepts.md:91`,
+    // repeated on every dialect page), so a reader seeing it on a red build would
+    // most reasonably conclude their predicate was wrong. `reporting` is ADR-008's
+    // own noun for what this finding is actually about: who emitted, and when.
+    rule: 'eess-ts: reporting',
     element: basename(file),
     file,
     line: 1,
