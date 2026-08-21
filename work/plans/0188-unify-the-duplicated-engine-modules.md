@@ -3,8 +3,16 @@
 ## Status
 
 - **State:** Draft — the two decisions it turns on are stated but not made.
-- **Priority:** Medium — nothing is broken today, and one containment is already
-  holding a real hazard shut. It is the last structural remainder of the fold.
+- **Priority:** **High** — raised 2026-08-21. This read "Medium — nothing is
+  broken today", and that was falsified within the same PR: `packages/core`'s
+  `RuleBuilder.fork()` still cleared its condition list, so
+  `.should().X().should().Y()` silently dropped `X` for `eess-md`,
+  `eess-mermaid` and `eess-gherkin` — and `check:corpus`, `check:ledger` and
+  `check:diagram` are md/mermaid gates, so this repo's own corpus enforcement
+  ran on the defective copy. The fix had landed in `packages/ts` with the engine
+  copy and never reached the kernel. Something WAS broken today, in exactly the
+  way duplication breaks things, and nothing noticed until an architect review
+  read both copies side by side.
 - **Effort:** Large — two ADRs first, then a mechanical move with a real gate.
 - **Created:** 2026-08-21
 
@@ -43,9 +51,16 @@ Medium rather than High.
 
 ## Why it is worth doing anyway — two measured consequences
 
-**A fix lands on one copy and nothing notices.**
-[Bug 0163](../bugs/0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)
-is the demonstrated case: `setCallerAggregatesReports` arrived with the engine
+**A fix lands on one copy and nothing notices.** Two demonstrated cases now, not
+one — and the second is worse, because it was live rather than latent.
+
+**Bug 0156, the kernel half.** `fork()` cleared conditions in `packages/core`
+long after `packages/ts` stopped doing so. Three dialects and three of this
+repo's own gates ran on it. Porting the one-line fix changed no test result
+anywhere, so the suite could not tell either; the guard that closes it was
+written in the same PR that found it.
+
+**Bug 0163**, the original case: `setCallerAggregatesReports` arrived with the engine
 copy and is wired end to end on the eess-ts path, while the kernel's
 `executeWarn` still reports unconditionally — the exact line that bug cites. It
 went half-fixed and no record said so until 2026-08-21.

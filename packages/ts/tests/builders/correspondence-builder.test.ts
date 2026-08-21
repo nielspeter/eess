@@ -456,6 +456,21 @@ describe('crossProject()', () => {
       expect(v[0]!.because).toBe('routes must be registered')
       expect(v[0]!.suggestion).toBe('add it to the registry')
     })
+
+    // The `rule` string is the BASELINE IDENTITY, not a label: hashViolation is
+    // sha256(`${rule}::${subject}`), so editing it silently orphans every
+    // baselined entry for this builder. The crossProject rename changed it from
+    // `correspondence [a <-> b]` with nothing asserting either spelling — margin
+    // 0 on the one string an adopter's baseline hashes on (found by review of
+    // PR #73; the same class bugs 0186/0187 close for noConsole/noJsonParse).
+    it('names the rule by the entry point and both sides, because baselines hash on it', () => {
+      const v = crossProject(stubProject)
+        .side('services', services(), byNameKey)
+        .side('registry', ['UserService'])
+        .beComplete()
+        .violations()
+      expect(v[0]!.rule).toBe('crossProject [services <-> registry]')
+    })
   })
 
   describe('keyFn vocabulary', () => {

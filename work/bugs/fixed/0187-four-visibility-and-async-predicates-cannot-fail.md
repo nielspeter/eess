@@ -2,7 +2,10 @@
 
 ## Status
 
-- **State:** Fixed — sabotage-verified per predicate, all four 0 → 3 or 4.
+- **State:** Fixed — sabotage-verified per predicate: `arePublic`,
+  `areProtected` and `arePrivate` **0 → 3**, `areNotAsync` **0 → 2**.
+  (This line read `0 → 3 or 4` until 2026-08-21, from the same
+  pre-correction measurement 0186's header carried.)
 - **Severity:** Medium
 - **Origin:** self-found · falsifiability sweep extended from `src/rules/` to the
   other 132 exported primitives (conditions, predicates, presets)
@@ -242,7 +245,17 @@ path-based rule selects, and the suite times out (435s against a ~35s norm) on a
 quiet machine. 111 tests reacted, so it is emphatically not unfalsifiable, but
 this method cannot put a number on it.
 
-**42 primitives sit at margin 1** across all 183 swept, and no gate measures
-margin. Still unowned — see 0186's residue, unchanged.
+**Many primitives sit at margin 1**, and no gate measures margin. Still
+unowned — see 0186's residue, unchanged.
+
+**The two figures this paragraph used to carry — "42 at margin 1" and "183
+swept" — are both withdrawn**, by [plan 0193](../../plans/0193-measure-the-margin.md)
+in the same PR that closed this bug. The population is **181** under the guarded
+census (`scanEnforceablePrimitives()`, counted by return type, presets excluded),
+not 183; and "42 at margin 1" was an artefact of an unstated mutation operator —
+0193 measures that the operator choice alone moves a single primitive's margin
+between 2 and 1, so a margin count quoted without its operator means nothing.
+Left here rather than deleted: this is the sixth hand-derived population figure
+in this corpus, and 0193's own self-critique is about that pattern.
 
 Deferred: none

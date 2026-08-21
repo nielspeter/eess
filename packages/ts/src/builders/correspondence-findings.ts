@@ -5,7 +5,7 @@ import type { Declared, Pairing, Side } from './correspondence-builder.js'
 import { sidesOf } from './correspondence-builder.js'
 
 /**
- * How a correspondence finding is shaped.
+ * How a crossProject finding is shaped.
  *
  * Split from the builder because constructing a violation is not deciding one is
  * warranted. Every factory here is a free function over its inputs — the only
@@ -93,7 +93,7 @@ function unboundSideViolation(
       `this rule declares something about a side named '${name}', but its sides are ${known} — ` +
         `so the declaration binds to nothing and asserts nothing.`,
       {
-        rule: `correspondence [${actual.join(' <-> ')}]`,
+        rule: `crossProject [${actual.join(' <-> ')}]`,
         because: reason,
         ruleId: metadata?.id,
       },
@@ -119,7 +119,7 @@ function unexpectedlyNonEmptyViolation(sideName: string, meta: ViolationMeta): A
   return {
     ...baseViolation(
       { element: sideName, file: '', line: 0 },
-      `correspondence side '${sideName}' was declared empty with .expectEmpty('${sideName}'), ` +
+      `crossProject side '${sideName}' was declared empty with .expectEmpty('${sideName}'), ` +
         `and now matches subjects — so the declaration no longer describes this rule.`,
       meta,
     ),
@@ -135,7 +135,7 @@ function emptyViolation(sideName: string, meta: ViolationMeta): ArchViolation {
   return {
     ...baseViolation(
       { element: sideName, file: '', line: 0 },
-      `correspondence side '${sideName}' matched 0 subjects — a correspondence over an ` +
+      `crossProject side '${sideName}' matched 0 subjects — a pairing over an ` +
         `empty side certifies nothing. Fix the selector, or call .expectEmpty('${sideName}') ` +
         `if an empty side is valid here.`,
       meta,
@@ -155,7 +155,7 @@ function emptyViolation(sideName: string, meta: ViolationMeta): ArchViolation {
 }
 
 /**
- * The common shape of every correspondence finding.
+ * The common shape of every crossProject finding.
  *
  * `element`/`file`/`line` travel together as one `at` — they are a location,
  * and passing three positional strings-and-a-number invited exactly the
@@ -182,7 +182,7 @@ function baseViolation(
 
 /**
  * Declarations — `.expectEmpty(name)` / `.withDistinctKeys(name)` — that name a
- * side this correspondence does not have.
+ * side this crossProject does not have.
  *
  * A declaration that binds to no side is a configuration finding, not a no-op
  * (plan 0097, correcting the same defect the shipped version had).
@@ -253,7 +253,7 @@ export function emptinessFindings(p: Pairing): {
 }
 
 /**
- * Findings from the correspondence itself — keys on one side with no partner
+ * Findings from the pairing itself — keys on one side with no partner
  * on the other, in whichever directions the rule asked about.
  */
 export function matchFindings(p: Pairing): ArchViolation[] {
@@ -317,7 +317,7 @@ export function duplicateKeyFindings(p: Pairing): ArchViolation[] {
 }
 
 /**
- * Run the correspondence and collect its findings, in four phases:
+ * Run the pairing and collect its findings, in four phases:
  * unbound declarations, emptiness, the match itself, then duplicate keys.
  *
  * ## The arity throw is an invariant, not an error path
@@ -361,7 +361,7 @@ export function resolveSides(
     sideA,
     sideB,
     meta: {
-      rule: `correspondence [${sideA.name} <-> ${sideB.name}]`,
+      rule: `crossProject [${sideA.name} <-> ${sideB.name}]`,
       because: reason,
       ruleId: metadata?.id,
       suggestion: metadata?.suggestion,
@@ -374,7 +374,7 @@ export function resolveSides(
  * Both sides, materialized once — plan 0096, and the ONE method both readers
  * call.
  *
- * Correspondence has no corpus of its own: its sides ARE its input, so the
+ * CrossProject has no corpus of its own: its sides ARE its input, so the
  * examined unit is their keys and the "selection" is the materialization
  * itself. Sharing it matters more here than anywhere else, because
  * `Side.materialize` is a bare closure over a user-supplied `keyFn` and a full

@@ -338,16 +338,18 @@ See [Smell Detection](/smell-detection) for usage examples.
 
 ## Cross-Layer Validation
 
-| Export                    | Signature                                                                                       | Description                                                              |
-| ------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `crossLayer`              | `crossLayer(p: ArchProject): CrossLayerBuilder`                                                 | Entry point for cross-layer consistency rules.                           |
-| `CrossLayerBuilder`       | class                                                                                           | Builder: `.layer(name, glob)` (2+ required) then `.mapping(fn)`.         |
-| `MappedCrossLayerBuilder` | class                                                                                           | After `.mapping()`: provides `.forEachPair()`.                           |
-| `PairConditionBuilder`    | class                                                                                           | After `.forEachPair()`: provides `.should(condition)`.                   |
-| `PairFinalBuilder`        | class                                                                                           | Terminal: `.because()`, `.rule()`, `.check()`, `.warn()`, `.severity()`. |
-| `haveMatchingCounterpart` | `haveMatchingCounterpart(layers: Layer[]): PairCondition`                                       | Every left-layer file must have a counterpart in the right layer.        |
-| `haveConsistentExports`   | `haveConsistentExports(extractLeft, extractRight): PairCondition`                               | Every exported symbol in left file must appear in right file.            |
-| `satisfyPairCondition`    | `satisfyPairCondition(desc: string, fn: (pair: LayerPair) => Violation \| null): PairCondition` | Custom inline pair condition.                                            |
+| Export                    | Signature                                                                                       | Description                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `crossLayer`              | `crossLayer(p: ArchProject): CrossLayerBuilder`                                                 | Entry point for cross-layer consistency rules.                                                          |
+| `crossProject`            | `crossProject(p: ArchProject): CrossProjectBuilder`                                             | Entry point: compare two independently-derived key sets in one project.                                 |
+| `CrossProjectBuilder`     | class                                                                                           | Builder: `.side(name, source, keyFn)` ×2, then `.beComplete()` / `.haveNoOrphans()` / `.beBijective()`. |
+| `CrossLayerBuilder`       | class                                                                                           | Builder: `.layer(name, glob)` (2+ required) then `.mapping(fn)`.                                        |
+| `MappedCrossLayerBuilder` | class                                                                                           | After `.mapping()`: provides `.forEachPair()`.                                                          |
+| `PairConditionBuilder`    | class                                                                                           | After `.forEachPair()`: provides `.should(condition)`.                                                  |
+| `PairFinalBuilder`        | class                                                                                           | Terminal: `.because()`, `.rule()`, `.check()`, `.warn()`, `.severity()`.                                |
+| `haveMatchingCounterpart` | `haveMatchingCounterpart(layers: Layer[]): PairCondition`                                       | Every left-layer file must have a counterpart in the right layer.                                       |
+| `haveConsistentExports`   | `haveConsistentExports(extractLeft, extractRight): PairCondition`                               | Every exported symbol in left file must appear in right file.                                           |
+| `satisfyPairCondition`    | `satisfyPairCondition(desc: string, fn: (pair: LayerPair) => Violation \| null): PairCondition` | Custom inline pair condition.                                                                           |
 
 See [Cross-Layer Validation](/cross-layer) for usage examples.
 

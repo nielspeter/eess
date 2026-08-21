@@ -2,7 +2,12 @@
 
 ## Status
 
-- **State:** Fixed — sabotage-verified per rule on the real tree, margins 0 → 5 and 0 → 3.
+- **State:** Fixed — sabotage-verified per rule on the real tree, margins
+  **0 → 4** and **0 → 2**. (This line read `0 → 5 and 0 → 3` until 2026-08-21 —
+  the pre-correction figures the Verification section below already disowns.
+  A header contradicting its own ledger is worse than either number alone,
+  because the header is what a reader sees first. Caught reviewing plan 0193,
+  which cites these four values as its acceptance anchors.)
 - **Severity:** Medium
 - **Origin:** self-found · falsifiability sweep over all 51 `src/rules/` primitives,
   run to answer whether the `ts-archunit` test adoption had been gamed green
@@ -129,10 +134,18 @@ logic.
       `tests/tools/scan-enforceable-primitives.test.ts` reads
       `../core/dist/define.d.ts`, so it has an undeclared dependency on
       `npm run build` having run. The original measurements were taken against a
-      stale `dist` and one unrelated test was failing in every run, adding exactly
-      one to each margin; the corrected ones were taken after a fresh build. The
-      same fragility is filed independently by that reviewer. What is certain is
-      the corrected numbers and the named rows; the mechanism is inference.
+      stale `dist` and unrelated tests were failing in every run, adding to each
+      margin; the corrected ones were taken after a fresh build.
+
+      **Corrected 2026-08-21 — this is no longer inference, and the record it
+      cited did not exist.** The sentence here read "the same fragility is filed
+      independently by that reviewer"; grep of `work/` returned no such record.
+      That is the wrong-home defect this corpus keeps catching — a deferral to a
+      record that does not hold the case is worse than an open one. It is now
+      [bug 0196](../0196-the-census-test-has-an-undeclared-build-dependency.md),
+      and the mechanism is measured rather than inferred: removing
+      `packages/core/dist/define.d.ts` fails exactly three tests in
+      `scan-enforceable-primitives.test.ts` on an otherwise clean tree.
 
 - [x] `security.test.ts` goes 8 → 17 tests.
 - [x] The margins were raised deliberately after a first measurement came back
@@ -147,15 +160,27 @@ logic.
 
 ## Residue, stated rather than implied
 
-**The sweep covered `src/rules/` only** — all 51 exported primitives there, of
-which these 2 were unfalsifiable. It did **not** cover `src/conditions/` (62
-exported functions), `src/predicates/` (51), `src/builders/` (21) or
-`src/presets/` (15). Roughly 150 exported functions are unswept. Nothing here
-claims they are falsifiable; nobody has looked.
+**The sweep covered `src/rules/` only** — the exported primitives there, of
+which these 2 were unfalsifiable. It did **not** cover `src/conditions/`,
+`src/predicates/`, `src/builders/` or `src/presets/`. Most exported functions
+are unswept. Nothing here claims they are falsifiable; nobody has looked.
 
-**The systemic gap is not closed by this record, and has no home.** 24 of the 51
+**The per-folder counts this paragraph used to carry are withdrawn.** They were
+hand-derived (`src/conditions/` "62 exported functions" against the guarded
+census's 66, and the rest alongside), and
+[plan 0193](../../plans/0193-measure-the-margin.md) — in the same PR that closed
+this bug — establishes that the population is counted by **return type, not
+folder**: 181 primitives (conditions 66 · predicates 51 · rules 51 · graphql 8 ·
+core 3 · kernel 2), presets deliberately excluded. A folder tally and a census
+tally are different questions and were being quoted as one.
+
+**The systemic gap is not closed by this record, and has no home.** Many of the
 swept rules have a margin of exactly **one** — a single test deletion from
-unfalsifiable — and no gate measures margin.
+unfalsifiable — and no gate measures margin. **The "24 of 51" figure this
+sentence used to carry is withdrawn for the same reason 0187's "42 of 183" is:
+a margin count quoted without its mutation operator means nothing.** 0193
+measures that the operator choice alone moves a single primitive's margin
+between 2 and 1.
 
 A first draft of this section deferred that to "plan 0088 Phase 5, still
 `pending`". **That was wrong and `check:corpus` caught the link.** Plan 0088 is
