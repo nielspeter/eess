@@ -348,7 +348,7 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
     capture()
     await runCheck({
       ...baseArgs,
-      ruleFiles: [fixture('enforcing-preset.rules.ts')],
+      ruleFiles: [fixture('enforcing-preset-changed.rules.ts')],
       changed: true,
       base: 'HEAD',
     })
@@ -382,6 +382,77 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
       // Rules genuinely loaded — asserting only the absence would also pass on a
       // run that loaded nothing.
       expect(report).not.toMatch(/— 0 rules across/)
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  /**
+   * **The third leaking path**, and the one that kept the ts-side emission counter
+   * unfalsifiable. `checkAll()` calls `writeReport` unconditionally
+   * (`core/check-all.ts`), ignoring `callerAggregatesReports` — the same defect
+   * `executeCheck` was fixed for in bug 0201, three files away in the same package.
+   *
+   * Sabotage-measured: without this test, deleting the counter increment inside
+   * `writeReport` left the entire suite green.
+   */
+  it('fires for checkAll() at module scope, which writeReport still leaks', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-checkall-'))
+    try {
+      const baselinePath = path.join(dir, 'arch-baseline.json')
+      fs.writeFileSync(
+        baselinePath,
+        JSON.stringify({ generatedAt: '', hashVersion: 5, root: '.', count: 0, violations: [] }),
+      )
+      capture()
+      await runCheck({
+        ...baseArgs,
+        ruleFiles: [fixture('checkall-at-module-scope.rules.ts')],
+        baseline: baselinePath,
+      })
+      const report = stderr.join('')
+      expect(report).toMatch(/Architecture Violation \[/)
+      expect(report).toMatch(/was not applied|could not be applied/i)
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  /**
+   * **The false-NEGATIVE case** — a silence is worse than a wrong claim, because
+   * the run says nothing at all.
+   *
+   * A rule file can both silence a terminal and leak through another:
+   * `report: 'warn'` emits through the kernel without throwing, while a `.check()`
+   * beside it is silenced by bug 0201's fix and throws. The first version of this
+   * trigger counted SUPPRESSED writes and read the absence of one as "nothing
+   * leaked" — a double negative that this shape satisfies while leaking. Measured
+   * before the fix: 7 violation blocks reached the user unfiltered and no notice
+   * fired.
+   */
+  it('fires when a file both silences one terminal and leaks through another', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-mixed-'))
+    try {
+      // An EMPTY baseline: the filter is in play (so the notice is eligible) but
+      // suppresses nothing, so the `.check()` still throws and reaches the catch.
+      // `--changed` cannot be used here — with no changed files it filters the
+      // `.check()` to empty, so it never throws and the catch never runs.
+      const baselinePath = path.join(dir, 'arch-baseline.json')
+      fs.writeFileSync(
+        baselinePath,
+        JSON.stringify({ generatedAt: '', hashVersion: 5, root: '.', count: 0, violations: [] }),
+      )
+      capture()
+      await runCheck({
+        ...baseArgs,
+        ruleFiles: [fixture('mixed-quiet-and-leaking.rules.ts')],
+        baseline: baselinePath,
+      })
+      const report = stderr.join('')
+      // The leak is real — the preset's findings reached stderr.
+      expect(report).toMatch(/Architecture Violation \[/)
+      // ...so the notice is owed.
+      expect(report).toMatch(/was not applied|could not be applied/i)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }

@@ -143,6 +143,39 @@ The design question is which layer owns it:
 Option 2 is the smallest thing that removes the silence. Option 3 is closest to
 ADR-008's "caller owns reporting" but changes a default again.
 
+## Corrected again on review — the trigger was a double negative
+
+The first shipped trigger asked _"did we suppress a write?"_ and read **no** as
+_"then nothing was written"_. That is unsound, and an enforcement reviewer measured
+the case: a rule file that silences one terminal while leaking through another
+satisfies it **while leaking**.
+
+```
+recommended(p, { report: 'warn' })   // emits 6 violations, does not throw
+functions(p).…should().notExist().check()   // silenced by 0201, throws
+```
+
+Measured with a baseline in play: **7 violation blocks reached the user unfiltered
+and no notice fired.** `report: 'warn'` is a public `ReportMode`, so this needs no
+contrivance; a `try { …check() } catch {}` around a tolerated rule reproduces it.
+
+**A silence built on a stale signal is worse than the false claim it replaced**,
+because the run says nothing at all — the exact shape ADR-010 exists to reject,
+committed while fixing an ADR-010 defect.
+
+The trigger now reads a delta over **emissions**, counted at both emitters —
+`writeReport` in the dialect and `reportViolations` in the kernel. That answers the
+only question the notice may assert: _did anything print while this module was
+loading?_ Three fixtures hold it: the mixed suppressed-and-leaking file above,
+`checkAll()` at module scope, and a preset.
+
+**A third leaking path was found doing this.** `checkAll()` calls `writeReport`
+unconditionally — the same defect `executeCheck` was fixed for, three files away in
+the same package. It is named in
+[bug 0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md). Until
+this fixture existed, the dialect-side counter was at **margin 0**: deleting its
+increment left the whole suite green.
+
 ## Verification
 
 - [x] Red test first — `packages/ts/tests/cli/rule-file-truncation.test.ts`,

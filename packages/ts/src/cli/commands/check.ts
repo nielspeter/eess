@@ -6,7 +6,7 @@ import type { ArchViolation, CheckOptions, RuleBuilderLike } from '@nielspeter/e
 import { isArchRuleError } from '@nielspeter/eess'
 import {
   setCallerAggregatesReports,
-  suppressedCheckWrites,
+  violationsWritten,
   writeReport,
 } from '../../core/execute-rule.js'
 import { suppressionNotice } from '@nielspeter/eess'
@@ -85,7 +85,7 @@ export async function runCheck(args: CheckArgs): Promise<number> {
     // (bug 0025).
     let builders
     // Read before the module evaluates, so the delta below describes THIS file.
-    const quietBefore = suppressedCheckWrites()
+    const writtenBefore = violationsWritten()
     try {
       builders = await loadRuleFiles([file], { fresh: args.fresh })
     } catch (error: unknown) {
@@ -132,23 +132,26 @@ export async function runCheck(args: CheckArgs): Promise<number> {
         // cannot verify. Measured by review; `it('does not fire when the throw
         // carried nothing the rule file could print')` holds it.
         //
-        // **Only when output actually leaked**, which is now a measurement rather
-        // than an assumption. Two throws reach here and only one of them printed:
+        // **Only when output actually leaked**, measured rather than inferred.
         //
-        //  - a `.check()` at module scope — `executeCheck` now honours
-        //    `callerAggregatesReports` (bug 0201) and stays quiet, bumping the
-        //    suppressed-write counter. Nothing leaked, so no notice is owed.
-        //  - a preset's throw — `finishPreset` emits through the KERNEL's
-        //    `reportViolations`, which no ts-side flag reaches, so its findings
-        //    did leak. That half is still open; this notice is what covers it.
+        // More than two paths reach this catch and they do not agree on whether
+        // they printed: a `.check()` (silent since bug 0201), a preset via the
+        // kernel's `reportViolations`, `checkAll()`, and a `.warn()` with a live
+        // selector. So the notice asks the only question it may assert — *did
+        // anything emit while this module was loading?* — by reading a delta over
+        // both emitters.
         //
-        // Before this delta the notice fired on both, and once the `.check()` half
-        // was fixed that made it reachable-and-WRONG rather than merely
-        // conservative — a claim constructed from a default, which ADR-010 forbids.
-        const weStayedQuiet = suppressedCheckWrites() > quietBefore
+        // **The first version inverted this and it was a measured defect.** It
+        // counted the writes `executeCheck` SUPPRESSED and read the absence of a
+        // suppression as "nothing leaked". A file that suppresses one terminal
+        // while leaking through another satisfies that and leaks: measured, a
+        // `report: 'warn'` preset beside a silenced `.check()` leaked 7 violation
+        // blocks in total silence. A silence built on a stale signal is worse than
+        // the false claim it replaced, because the run says nothing at all.
+        const leaked = violationsWritten() > writtenBefore
         const printedUnfiltered = error.violations.some((v) => v.bypassFilters !== true)
         const filtering = args.baseline !== undefined || args.changed
-        if (filtering && printedUnfiltered && !weStayedQuiet) {
+        if (filtering && printedUnfiltered && leaked) {
           collected.push(
             baselineNotApplied(file, { baseline: args.baseline, changed: args.changed }),
           )

@@ -1,6 +1,11 @@
 import fs from 'node:fs'
 import type { ArchViolation } from '@nielspeter/eess'
-import { severityFor, disambiguateIdentities, byCodepoint } from '@nielspeter/eess'
+import {
+  severityFor,
+  disambiguateIdentities,
+  byCodepoint,
+  violationsEmittedCount,
+} from '@nielspeter/eess'
 import type { CheckOptions, OutputFormat } from '@nielspeter/eess'
 import type { RuleMetadata } from '@nielspeter/eess'
 import { ArchRuleError } from '@nielspeter/eess'
@@ -380,6 +385,10 @@ export function writeReport(
   /** Allowlist rules that tested no edges, for the JSON document (bug 0015). */
   untested: readonly EdgeCoverage[] = [],
 ): void {
+  // Counted at the top, before the json early-return, so every path that writes
+  // is counted once. See `violationsWritten()` for why this is an emission count
+  // and not a suppression count.
+  violationsWrittenHere += violations.length
   if (format === 'json') {
     process.stdout.write(formatViolationsJson(violations, reason, untested) + '\n')
     return
@@ -417,7 +426,7 @@ export function writeReport(
  * saying it cannot be suppressed.
  */
 let callerAggregatesReports = false
-let checkWritesSuppressed = 0
+let violationsWrittenHere = 0
 
 /**
  * Declare that the caller will report every finding itself. **CLI only.**
@@ -430,21 +439,28 @@ export function setCallerAggregatesReports(on: boolean): void {
 }
 
 /**
- * How many times `executeCheck` has stayed quiet because the caller aggregates.
+ * How many violations have actually been WRITTEN by either emitter, ever.
  *
- * The CLI reads the DELTA across one rule file's evaluation to tell two throws
- * apart: a `.check()` that we silenced (delta > 0 — nothing leaked, so no
- * "unfiltered output" notice is owed) from a preset's throw, which emits through
- * the kernel's `reportViolations` and never reaches this function (delta 0 —
- * output did leak). Without that distinction the notice fires on a path where it
- * is now false, which is ADR-010's "a claim constructed from a default".
+ * Read as a delta across one rule file's evaluation, this answers the only
+ * question the CLI's "your output was not filtered" notice may assert: *did
+ * anything emit while that module was loading?*
  *
- * A counter rather than a boolean so nesting cannot lose a signal, and read by
- * delta rather than reset per file so it composes with the CLI's existing
- * module-state resets.
+ * **This replaced an inverted signal, and the inversion was a measured defect.**
+ * The first version counted the writes `executeCheck` SUPPRESSED and concluded
+ * "then nothing leaked" from the absence of a suppression. That is a double
+ * negative, and a rule file that suppresses one terminal while leaking through
+ * another satisfies it while leaking — measured: a `report: 'warn'` preset plus a
+ * silenced `.check()` in one file leaked 7 violation blocks and the notice stayed
+ * silent. A silence built from a stale signal is worse than the false claim it was
+ * introduced to fix, because the run says nothing at all.
+ *
+ * Both emitters are counted because eess-ts has two: this module's `writeReport`
+ * (used by `executeCheck`, `executeWarn` and `check-all.ts`) and the kernel's
+ * `reportViolations` (used by `finishPreset`). Counting one would reproduce the
+ * same blind spot on the other's path.
  */
-export function suppressedCheckWrites(): number {
-  return checkWritesSuppressed
+export function violationsWritten(): number {
+  return violationsWrittenHere + violationsEmittedCount()
 }
 
 /**
@@ -488,11 +504,7 @@ export function executeCheck(
     // The violations are NOT lost when we stay quiet — they ride the throw, which
     // is the same reason `executeWarn` may suppress only its `bypassFilters`
     // entries and must still write the rest.
-    if (callerAggregatesReports) {
-      checkWritesSuppressed++
-    } else {
-      writeReport(stamped, options?.format, ctx.reason)
-    }
+    if (!callerAggregatesReports) writeReport(stamped, options?.format, ctx.reason)
     throw new ArchRuleError(stamped, ctx.reason)
   }
 }

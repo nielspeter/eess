@@ -51,7 +51,7 @@ export {
   throwIfViolations,
   presetConstructsNothingViolation,
 } from './preset-dispatch.js'
-export { reportViolations, finishPreset } from './report.js'
+export { reportViolations, finishPreset, violationsEmittedCount } from './report.js'
 export type { ReportMode, ReportOptions, PresetReportOptions } from './report.js'
 export type { RuleSeverity, PresetBaseOptions } from './preset-dispatch.js'
 
