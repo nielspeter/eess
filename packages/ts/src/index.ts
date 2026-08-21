@@ -541,3 +541,41 @@ export {
   suppressionNotice,
   viewsFor,
 } from '@nielspeter/eess'
+
+// ─── Restored published surface, round 2 — PR #72 review ─────────────────────
+//
+// 22 names exported by `@nielspeter/eess-ts` on `main` stopped being exported by
+// it on this branch. Found independently by the product and devops reviewers of
+// PR #72, and confirmed by parsing this file at both refs.
+//
+// My own parse initially said 23 and included `ReportMode`, which is a false
+// positive: it is re-exported above, inside a multi-line `export type` block
+// whose `//` comment broke the comma-split my throwaway parser used. `tsc` caught
+// it as a duplicate identifier. Recorded because the reviewers did NOT claim that
+// name — the tool did, and a review that inherits a tool's error is worse than
+// no tool.
+//
+// The block above claims this was already "verified against 3b851d2". That
+// verification was real but narrower than its wording: it restored the KERNEL
+// names eess-ts used to forward, and never covered eess-ts's own local exports
+// or kernel TYPE-only exports. `standalone-surface.test.ts` could not catch the
+// difference — it uses `import * as ns`, so it sees values only, and its own
+// docstring names `CollectResult` and `Matcher` as blind spots. Both are here.
+//
+// Same rule as the block above, applied consistently: removing a published
+// export is breaking, re-exporting is additive, so the burden sits on the
+// removal. Three of the 23 are NOT restored because their implementations were
+// deleted, not merely unexported — `GlobDiagnosis`, `diagnoseDeadGlobs` (its
+// whole module, `core/dead-glob.ts`) and nothing else. Those are a real break
+// and are declared as one in the changeset rather than papered over here.
+export type { BaselineFilter, DiffFilterLike, Matcher, UntestedReason } from '@nielspeter/eess'
+export type { CollectResult } from './core/terminal-builder.js'
+export type { DiskSet, OnDisk } from './core/disk-set.js'
+export { buildDiskSet, diskSet } from './core/disk-set.js'
+export type { GlobFault } from './core/glob-diagnosis.js'
+export { pathUniverse } from './core/path-universe.js'
+export { globSitesOf, isDeadGlobTree, isDeadSite } from './core/glob-evaluator.js'
+export { isTypeOnlyReExport, splitGlobArgs } from './core/import-options.js'
+export { emptyProjectAdvice, loadedNothing } from './core/empty-project-advice.js'
+export { validateOverrides } from './presets/shared.js'
+export type { StrictFamilyFlag } from './tsconfig/strict-family.js'

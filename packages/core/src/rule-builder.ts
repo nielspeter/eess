@@ -312,12 +312,23 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
   }
 
   /**
-   * Create a fork of this builder with the same predicates but empty conditions.
-   * Used by `.should()` to support named selections without mutation.
+   * A fork of this builder, carrying BOTH lists. Used by `.should()` to support
+   * named selections without mutation.
+   *
+   * **Nothing here clears the conditions** (bug 0156). It used to, and a second
+   * `.should()` therefore silently discarded the first assertion — a rule that
+   * asserted something turned into one that asserted less, by a chain method.
+   * `.should().X().should().Y()` now accumulates exactly as `.andShould()` does.
+   *
+   * Ported from `packages/ts/src/core/rule-builder.ts`, where the engine copy
+   * landed the fix and left the kernel behind. Found by the architect review of
+   * PR #72: `eess-md`, `eess-mermaid` and `eess-gherkin` all extend THIS class,
+   * so they carried the defect — and `check:corpus`, `check:ledger` and
+   * `check:diagram` are md/mermaid gates, meaning this repo's own corpus
+   * enforcement ran on the broken copy.
    */
   protected fork(): this {
     const fork = this.copy()
-    fork._conditions = []
     fork._reason = fork._metadata?.because ?? this._reason
     return fork
   }

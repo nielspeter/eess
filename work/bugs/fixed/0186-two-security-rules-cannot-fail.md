@@ -113,8 +113,27 @@ logic.
       never report, full suite **3510/3510 green** — measured 2026-08-21, not
       inferred from the absence of the names.
 - [x] Sabotage-verified per rule, after the fix: gutting `noConsole` fails
-      **5** tests (was 0); gutting `noJsonParse` fails **3** (was 0). Measured by
-      re-running the sweep's own mutation against the repaired tree.
+      **4** tests (was 0); gutting `noJsonParse` fails **2** (was 0).
+
+      **Corrected 2026-08-21 — the first numbers here were 5 and 3, and both were
+      wrong.** Found by the testing reviewer of PR #72, which re-ran the mutation
+      and got 4 where this record claimed 5. Re-measured directly, naming the
+      failing rows rather than counting them: `noConsole` fails `flags every
+      console access`, `flags an access that is never called`, `is not
+      interchangeable with noConsoleLog()` and `describes itself by its matcher`.
+      The fifth row, `passes for clean class`, asserts `toHaveLength(0)` and stays
+      green when the rule is gutted — the weak class this record's own
+      Verification section explains for `noJsonParse` and then miscounted here.
+
+      **Likely cause of the off-by-one, stated as likely rather than proven:**
+      `tests/tools/scan-enforceable-primitives.test.ts` reads
+      `../core/dist/define.d.ts`, so it has an undeclared dependency on
+      `npm run build` having run. The original measurements were taken against a
+      stale `dist` and one unrelated test was failing in every run, adding exactly
+      one to each margin; the corrected ones were taken after a fresh build. The
+      same fragility is filed independently by that reviewer. What is certain is
+      the corrected numbers and the named rows; the mechanism is inference.
+
 - [x] `security.test.ts` goes 8 → 17 tests.
 - [x] The margins were raised deliberately after a first measurement came back
       `noConsole` 3 / `noJsonParse` **1**. Margin 1 is the weak class this whole

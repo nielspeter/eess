@@ -46,6 +46,7 @@ export async function runCheck(args: CheckArgs): Promise<number> {
   // not inherit the first run's rules.
   resetEdgeCoverage()
   resetCommentSuppression()
+  const started = Date.now()
   const format: OutputFormat = args.format === 'auto' ? detectFormat() : args.format
 
   // `--fix` short-circuits the reporting pipeline: it renders what it changed
@@ -66,6 +67,11 @@ export async function runCheck(args: CheckArgs): Promise<number> {
   setCallerAggregatesReports(true)
   let collected: ArchViolation[] = []
   const total = args.ruleFiles.length
+  // The denominator for the summary line below. Accumulated here rather than
+  // derived from `collected`, which counts violations and cannot distinguish
+  // "20 rules, none failing" from "no rules loaded" — the whole point of the line.
+  let ruleCount = 0
+  let failedRules = 0
   for (const file of args.ruleFiles) {
     // TWO catches, at the two boundaries that can fail independently. Loading is
     // per file and can only be attributed to the file; evaluating is per builder,
@@ -99,15 +105,20 @@ export async function runCheck(args: CheckArgs): Promise<number> {
       // `export default [rule1, rule2]` shape never reaches here at all — an array
       // export builds every rule before any of them runs.
       if (isArchRuleError(error)) collected.push(ruleFileTruncated(file, total))
+      failedRules++
       continue
     }
+    ruleCount += builders.length
     for (const builder of builders) {
       try {
         // Attributed here, where the rule file is known. A builder cannot do it
         // — the same builder is legal in a test file, where vitest supplies the
         // frame instead (bug 0026).
-        collected.push(...attributeToRuleFile(builder.violations(), file))
+        const found = attributeToRuleFile(builder.violations(), file)
+        if (found.length > 0) failedRules++
+        collected.push(...found)
       } catch (error: unknown) {
+        failedRules++
         collected.push(...failureOrViolations(file, error, total))
       }
     }
@@ -163,6 +174,26 @@ export async function runCheck(args: CheckArgs): Promise<number> {
   if (format !== 'json') {
     const suppressed = commentSuppressionNotice()
     if (suppressed !== undefined) writeStderr(`${suppressed}\n`)
+  }
+
+  // Report the denominator so a fast green is provably non-vacuous, not silence.
+  // Terminal only — JSON/GitHub-annotation output on stdout stays machine-clean.
+  //
+  // Present on `main` and dropped by plan 0165's engine copy (`9489684`), which
+  // overwrote this file wholesale. Restored here rather than treated as the
+  // never-had-it gap bug 0174 filed it as: published `eess-ts@0.2.1` ships it,
+  // so its absence was a regression, and a green run that prints nothing cannot
+  // be told apart from a run that loaded no rules — the ADR-009/010 failure this
+  // package exists to prevent, arriving through its own CLI.
+  if (format === 'terminal') {
+    const ms = Date.now() - started
+    const time = ms < 1000 ? `${String(ms)}ms` : `${(ms / 1000).toFixed(2)}s`
+    const scope = `${String(ruleCount)} rule${ruleCount === 1 ? '' : 's'} across ${String(total)} file${total === 1 ? '' : 's'}`
+    writeStderr(
+      failedRules === 0
+        ? `\n✓ eess-ts — ${scope} · 0 failing (${time})\n`
+        : `\n✗ eess-ts — ${scope} · ${String(filtered.length)} violation${filtered.length === 1 ? '' : 's'} (${time})\n`,
+    )
   }
 
   // Exit code = error-severity count; warns are reported but never fail.

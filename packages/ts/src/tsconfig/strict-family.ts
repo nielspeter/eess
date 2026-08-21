@@ -25,7 +25,7 @@ const STRICT_FAMILY = [
   'useUnknownInCatchVariables',
 ] as const satisfies ReadonlyArray<keyof CompilerOptions>
 
-type StrictFamilyFlag = (typeof STRICT_FAMILY)[number]
+export type StrictFamilyFlag = (typeof STRICT_FAMILY)[number]
 
 const STRICT_FAMILY_SET: ReadonlySet<string> = new Set(STRICT_FAMILY)
 

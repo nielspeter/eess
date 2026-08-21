@@ -125,11 +125,23 @@ it must reject. Plus:
 
       | predicate      | before | after |
       | -------------- | ------ | ----- |
-      | `arePublic`    | **0**  | 4     |
-      | `areProtected` | **0**  | 4     |
-      | `arePrivate`   | **0**  | 4     |
-      | `areNotAsync`  | **0**  | 3     |
-      | `areAsync`     | 9      | 10    |
+      | `arePublic`    | **0**  | 3     |
+      | `areProtected` | **0**  | 3     |
+      | `arePrivate`   | **0**  | 3     |
+      | `areNotAsync`  | **0**  | 2     |
+      | `areAsync`     | 9      | ~9    |
+
+      **Corrected 2026-08-21.** The first version of this table read 4/4/4/3/10 —
+      every after-value one too high, the same off-by-one that
+      [bug 0186](./0186-two-security-rules-cannot-fail.md) carried and for the same
+      reason (measured against a stale `dist`, so one unrelated test failed in
+      every run). Re-measured after a fresh build, naming rows instead of counting:
+      gutting `arePublic` fails `arePublic() matches the public members and REJECTS
+      the others`, `the three are mutually exclusive` and `describe themselves by
+      their scope`; gutting `areNotAsync` fails `rejects an async function — the
+      direction that was missing` and `has readable description`. `areAsync` was
+      not re-measured directly and its after-value is left approximate rather than
+      restated as a number nobody checked.
 
 - [x] `tests/predicates/function.test.ts` goes 18 → 27 tests, and the suite
       3519 → 3528. The two deltas agree; the first draft of this line said
