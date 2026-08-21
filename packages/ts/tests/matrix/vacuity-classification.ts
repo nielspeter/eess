@@ -119,11 +119,11 @@ export const CHECKS: Record<string, CheckEntry> = {
     deviation:
       'bare construction reds on the assertion gate before the vacuity cell is reached, so the bare cell is unobservable for this detector',
   },
-  '.:correspondence': {
+  '.:crossProject': {
     unit: 'keys of both sides, summed',
     recipe: (c) => crossProject(c.project).side('left', []).side('right', []).beComplete(),
     deviation:
-      'correspondence has no corpus of its own — its sides ARE its input, so the zero-subject cell is two empty sides',
+      'crossProject has no corpus of its own — its sides ARE its input, so the zero-subject cell is two empty sides',
   },
   '.:crossLayer': {
     unit: 'files matched by the left layer',
@@ -203,6 +203,84 @@ export const NO_CORPUS: readonly string[] = [
 ]
 
 export const NOT_CHECKS: readonly string[] = [
+  // ── Added PR #72: 53 of these had drifted out of the matrix during the engine
+  //    fold and 16 arrived with it. None was noticed, because `tests/matrix/` was
+  //    excluded from the default vitest run AND invoked by no script — the whole
+  //    directory ran on no path, so plan 0095's conformance audit had not executed
+  //    since the fold began. Wired into CI in the same PR; this is its first run.
+  //
+  //    Every name here is a constant, type guard, notice, registration function or
+  //    violation constructor — nothing you can call `.check()` on. Listed rather
+  //    than defaulted, per this file's own rule: "we thought about this one" and
+  //    "we forgot this one" must not look the same.
+  './presets:dispatchRule',
+  './presets:throwIfViolations',
+  '.:FAULT_ADVICE',
+  '.:FAULT_ADVICE.dot-segment',
+  '.:FAULT_ADVICE.file-not-folder',
+  '.:FAULT_ADVICE.no-match',
+  '.:FAULT_ADVICE.unanchored',
+  '.:ON_DISK_ADVICE',
+  '.:ON_DISK_ADVICE.absent',
+  '.:ON_DISK_ADVICE.holds-typescript',
+  '.:ON_DISK_ADVICE.no-typescript',
+  '.:ON_DISK_ADVICE.not-determined',
+  '.:STRICT_FAMILY_SIZE',
+  '.:UNSUPPRESSABLE',
+  '.:activeNotice',
+  '.:assertionLessViolation',
+  '.:assertsCardinality',
+  '.:buildDiskSet',
+  '.:byCodepoint',
+  '.:commentSuppressionNotice',
+  '.:commentSuppressions',
+  '.:countDeclaredGlobs',
+  '.:dedupeConfigFindings',
+  '.:diagnoseGlob',
+  '.:discoverIdentityRoot',
+  '.:diskSet',
+  '.:dispatchRule',
+  '.:edgeCoverageNotice',
+  '.:emptyProjectAdvice',
+  '.:finishPreset',
+  '.:globSitesOf',
+  '.:isAnchored',
+  '.:isDeadGlobTree',
+  '.:isDeadSite',
+  '.:isFaultPosition',
+  '.:isGlobNode',
+  '.:isNullaryCallable',
+  '.:isOpaqueGlob',
+  '.:isProjectRelative',
+  '.:isRecord',
+  '.:isStrictFamily',
+  '.:isTypeOnlyReExport',
+  '.:loadedNothing',
+  '.:marksAssertsCardinality',
+  '.:normalizeIdentityText',
+  '.:pathUniverse',
+  '.:presetConstructsNothingViolation',
+  '.:recordCommentSuppression',
+  '.:recordEdgeCoverage',
+  '.:registerProjectRoots',
+  '.:registerRootCompilerOptions',
+  '.:relativeToRoot',
+  '.:reportViolations',
+  '.:resetCommentSuppression',
+  '.:resetDiffDisclosureForTests',
+  '.:resetEdgeCoverage',
+  '.:resolveFlag',
+  '.:rootFromTsConfigPath',
+  '.:rootOf',
+  '.:shallowClone',
+  '.:splitGlobArgs',
+  '.:suppressionNotice',
+  '.:syntacticFault',
+  '.:throwIfViolations',
+  '.:untestedRules',
+  '.:validateOverrides',
+  '.:verbatimModuleSyntaxFor',
+  '.:viewsFor',
   './graphql:ResolverRuleBuilder',
   './graphql:SchemaRuleBuilder',
   './graphql:acceptArgs',
