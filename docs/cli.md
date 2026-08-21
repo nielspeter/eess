@@ -47,7 +47,14 @@ npx eess-ts check spec.rules.ts --fix --apply
 npx eess-ts baseline arch.rules.ts --output arch-baseline.json
 ```
 
-Records all existing violations so that `check --baseline` only fails on new ones. See [Gradual Adoption](/core-concepts#baseline-mode) for details.
+Records all existing violations so that `check --baseline` only fails on new ones.
+
+> **The baseline applies to findings the CLI collects.** A rule file that calls a
+> terminal at module scope — `.check()` outside `export default [...]`, or a preset
+> without `report: 'builders'` — prints its own findings before the CLI sees them,
+> so `--baseline` does not filter those. `check` reports this rather than failing
+> silently; the fix is the array-export form above, or `report: 'builders'` on the
+> preset. See [Presets → `report`](./presets.md). See [Gradual Adoption](/core-concepts#baseline-mode) for details.
 
 ### `explain` — Dump Rule Metadata
 

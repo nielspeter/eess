@@ -107,15 +107,26 @@ export async function runCheck(args: CheckArgs): Promise<number> {
       // export builds every rule before any of them runs.
       if (isArchRuleError(error)) {
         collected.push(ruleFileTruncated(file, total))
-        // Bug 0199 — the same boundary, the other consequence, and NOT the one the
-        // bug first claimed. `failureOrViolations` above DID collect this error's
-        // violations and `baseline.filterNew` below DOES filter them. What escaped
-        // is the rule file's OWN printing: `setCallerAggregatesReports` is module
-        // state and the rule file holds a second copy of that module through jiti's
-        // registry, so its terminal wrote an unfiltered report before throwing. The
-        // CLI cannot un-print that; it can refuse to be silent about it. Root cause
-        // is bug 0201.
-        if (args.baseline !== undefined) {
+        // Bug 0199 — the same boundary, the other consequence.
+        //
+        // `failureOrViolations` above DID collect this error's violations and
+        // `baseline.filterNew` below DOES filter them. What escaped is the rule
+        // file's OWN printing: `executeCheck` calls `writeReport` unconditionally
+        // one line before it throws (`core/execute-rule.ts:460`), so a `.check()`
+        // at module scope prints its findings before the CLI can filter anything.
+        // `setCallerAggregatesReports` does not stop it — that flag is read only by
+        // `executeWarn` (`:526`). Root cause is bug 0201.
+        //
+        // **Only when something was actually printed.** `executeWarn` throws the
+        // same error type, and when the CLI is aggregating it writes only the
+        // non-`bypassFilters` entries — for a configuration finding that is
+        // nothing at all. Firing on the bare `isArchRuleError` condition claimed a
+        // leak that did not happen, over a finding whose own text says a baseline
+        // can never suppress it: ADR-009 rule 2, a failure asserting a cause it
+        // cannot verify. Measured by review; `it('does not fire when the throw
+        // carried nothing the rule file could print')` holds it.
+        const printedUnfiltered = error.violations.some((v) => v.bypassFilters !== true)
+        if (args.baseline !== undefined && printedUnfiltered) {
           collected.push(baselineNotApplied(file, args.baseline))
         }
       }

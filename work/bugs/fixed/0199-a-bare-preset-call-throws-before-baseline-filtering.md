@@ -4,8 +4,8 @@
 
 - **State:** Fixed — the run now says the baseline did not apply, instead of
   failing in silence. Option 2 of the three below, chosen deliberately; the root
-  cause is [bug 0201](../0201-caller-aggregates-reports-does-not-cross-the-jiti-registry.md).
-- **Deferred:** [0201](../0201-caller-aggregates-reports-does-not-cross-the-jiti-registry.md) — the root cause, and the non-vacuity fixture with it
+  cause is [bug 0201](../0201-executecheck-prints-before-the-caller-can-filter.md).
+- **Deferred:** [0201](../0201-executecheck-prints-before-the-caller-can-filter.md) — the root cause
 - **Found:** 2026-08-21, while measuring ts-archunit → eess-ts baseline
   compatibility for [bug 0198](../0198-no-migration-path-from-ts-archunit.md).
 
@@ -59,39 +59,42 @@ on the next line was never evaluated and its 3 violations went unreported — a
 - **Not** users of `eess-ts init` — it scaffolds `report: 'builders'` on all 8
   preset calls, which is why this never showed up in the repo's own dogfooding.
 
-## Root cause — and this record's first diagnosis was WRONG
+## Root cause — this record got it wrong TWICE
 
-**What this bug originally said:** "the preset throws at module-eval time, before
-the CLI's baseline filtering runs; the `--baseline` flag is silently inert."
+**Version 1 (as filed):** "the preset throws at module-eval time, before the CLI's
+baseline filtering runs; `--baseline` is silently inert." **False.** `runCheck`
+collects a thrown terminal's violations off the error (`failureOrViolations`,
+`packages/ts/src/cli/commands/check.ts:89`) and filters them. Against a matching
+baseline its collection came back **empty** — the filtering worked as designed.
 
-**That is false, and it would have sent the next reader to the wrong layer.**
-Measured while fixing it: `runCheck` **does** collect a thrown terminal's
-violations off the error (`failureOrViolations`, `check.ts:88`) and **does** filter
-them. Against a matching baseline the CLI's own collection came back **empty** —
-the filtering worked exactly as designed, and the run's own summary counted zero
-violations from it.
+**Version 2 (the first correction):** "`setCallerAggregatesReports` is module-level
+state and a rule file loads through jiti's separate registry, so it holds a copy
+with the flag `false`." **Also false**, and this one was worse: an entire record
+([bug 0201](../0201-executecheck-prints-before-the-caller-can-filter.md))
+was built on it, and all three of its candidate fixes were aimed at making the flag
+cross registries. Disproved three ways by review:
 
-**What actually leaks is the rule file's own printing.**
-`setCallerAggregatesReports` exists so a self-executing rule file's terminals stay
-quiet and the CLI reports once. It is **module-level state**
-(`packages/ts/src/core/execute-rule.ts:419`), and a rule file loads through
-**jiti's separate module registry** — the same boundary that already makes
-`error instanceof ArchRuleError` false and forced `isArchRuleError` into existence.
-So the rule file holds its own copy of that module with the flag `false`, its
-terminal writes an **unfiltered** report, and only then throws.
+1. **The flag is read at exactly one site.** `packages/ts/src/core/execute-rule.ts:526`,
+   inside `executeWarn`. `executeCheck` never consults it.
+2. **jiti is not the default loader.** `packages/ts/src/cli/load-rules.ts` calls
+   `importRuleModule`, and `packages/ts/src/cli/import-rule-module.ts` imports
+   **natively first**, reaching jiti only on a module-format refusal (a
+   `"type": "commonjs"` consumer — bug 0074).
+3. **Measured with one shared registry and no jiti at all.** A fixture importing the
+   same module graph as the test's `runCheck` — so the flag was fully visible to it
+   — printed all four violations unfiltered anyway.
 
-The user therefore reads violations they have already accepted, while the CLI
-quietly agrees those violations were accepted and prints nothing about them.
+**Version 3, and the measured one:** `executeCheck` calls `writeReport(...)`
+**unconditionally** at `packages/ts/src/core/execute-rule.ts:460`, one line before
+`throw new ArchRuleError(...)`. A `.check()` at module scope prints its findings
+**always**. No registry, no jiti, no flag. The CLI cannot un-print them, and that is
+the whole of it.
 
-That root cause is [bug 0201](../0201-caller-aggregates-reports-does-not-cross-the-jiti-registry.md).
-It also means `--changed` and comment suppression have the same hole; neither has
-been measured.
-
-**Why the wrong version is left standing above rather than edited away:** the
-symptom section was written from a black-box measurement and was accurate about
-what a user sees. Only the mechanism was invented, and by the reasoning this
-corpus applies elsewhere, a wrong fault attribution is worth recording next to the
-right one.
+**Why both wrong versions are left standing.** By this corpus's own reasoning a
+wrong fault attribution is worth recording next to the right one — and version 2 is
+the stronger argument for it, because it did not stay a sentence. It became a filed
+record with three proposed fixes, two of which could not have worked: options 1 and 2
+of 0201 would not stop `executeCheck` from printing, because it never reads the flag.
 
 ## Fix — Option 2, deliberately
 
@@ -113,7 +116,7 @@ the same `isArchRuleError` boundary as `ruleFileTruncated()` and only when
 Making the flag cross registries needs a `globalThis` singleton — a pattern this
 codebase uses **nowhere** today, and process-global mutable state in a library
 whose ADR-008 is about not doing reporting implicitly. That belongs in an ADR, not
-in a bug fix, and it is [bug 0201](../0201-caller-aggregates-reports-does-not-cross-the-jiti-registry.md).
+in a bug fix, and it is [bug 0201](../0201-executecheck-prints-before-the-caller-can-filter.md).
 Until then a wrong-looking build that explains itself beats one that does not.
 
 **One thing the fix nearly lost.** The first version reused
@@ -160,13 +163,40 @@ file lets the CLI do the reporting')` — a run whose rules the CLI executes
 - [x] The producer is classified in
       `packages/ts/tests/core/every-config-finding-is-classified.test.ts`
       (plan 0078) — the repo's own gate caught it unclassified on the first run.
-- [ ] `validation-owed` — the break class is NOT registered in
-      `scripts/check-nonvacuity.mjs`. The two behavioural tests above are the
-      guard today. Registering it needs a fixture that runs the CLI over a rule
-      file with a baseline, which no existing non-vacuity fixture shape does;
-      deferred→[bug 0201](../0201-caller-aggregates-reports-does-not-cross-the-jiti-registry.md),
-      whose fix has to revisit this notice anyway.
+- [x] `dropped-on-purpose` — the break class is **not** registered in
+      `scripts/check-nonvacuity.mjs`, and on review that is the right call rather
+      than a debt. That script registers **`check:*` repo gates**; not one of the
+      ~20 config-finding producers in the census appears in it — not
+      `ruleFileTruncated`, not `ruleFileFailure`, none. The harness is not shaped
+      for product-CLI findings, and this family's accountability home is the
+      census's `verified` claim in
+      `packages/ts/tests/core/every-config-finding-is-classified.test.ts`.
+      The first version of this box booked it `validation-owed` and deferred it to
+      0201 — a debt no peer carries, deferred to a record whose fix does not touch
+      it. That was a gap dressed as a disposition.
+      **And the blocker first stated here was the wrong one.** It said no fixture
+      shape runs the CLI over a rule file with a baseline; `gateFamilyReExportAggregation`
+      and `gateDiagram` already run `EESS_TS check <rules>` and assert a fired rule.
+      The real blocker is that `firedOn` (`scripts/check-nonvacuity.mjs:293-299`)
+      keys strictly on `v.ruleId`, and configuration findings carry no `ruleId` at
+      all — so registering ANY `bypassFilters` producer would mean keying on prose,
+      which [bug 0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)
+      forbade. That is a checkable statement about all ~16 producers rather than a
+      vague one about this producer, and it is recorded in
+      [bug 0201](../0201-executecheck-prints-before-the-caller-can-filter.md).
+- [x] **The remedy remediates**, which is what makes the census's `behavioural:`
+      claim true rather than `stated-only`.
+      `it('clears once the remedy it names is applied, and the rules then load')`
+      runs the same preset with `report: 'builders'` added and asserts the notice
+      clears — and that rules actually load, since asserting only the absence would
+      also pass on the zero-rules silent green. Added on review: the first version
+      asserted the remedy STRING over one fixture and its absence over a different
+      one, which is a fire/no-fire pair, not a remediation proof.
+- [x] **The false-positive case.** `it('does not fire when the throw carried
+nothing the rule file could print')` — `executeWarn` throws the same error
+      type while writing nothing, and the first version of the fix fired there
+      anyway, asserting a leak that never happened. Found by review, measured, and
+      guarded.
 - [x] `npm run validate` exits 0.
 
-Deferred: [0201](../0201-caller-aggregates-reports-does-not-cross-the-jiti-registry.md)
-(the root cause, and the non-vacuity fixture with it).
+Deferred: [0201](../0201-executecheck-prints-before-the-caller-can-filter.md) — the root cause only.

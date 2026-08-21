@@ -165,33 +165,43 @@ export function ruleFileTruncated(file: string, ruleFiles: number): ArchViolatio
  * `--baseline` was passed, but the rule file printed findings the baseline never
  * filtered. Bug 0199.
  *
- * **The mechanism, corrected after measurement.** The bug was first written up as
- * "the preset throws before baseline filtering runs". That is wrong, and the wrong
- * version is recorded in 0199 because it would have sent the next reader to the
- * wrong layer. `runCheck` DOES collect a thrown terminal's violations off the error
- * (`failureOrViolations`) and DOES filter them — measured, the CLI's own collection
- * came back empty against a matching baseline, exactly as designed.
+ * **The mechanism, corrected TWICE. This is the third version and the measured one.**
  *
- * What actually leaks is the **rule file's own printing**. `setCallerAggregatesReports`
- * is module-level state in `core/execute-rule.ts`, and a rule file loads through
- * jiti's separate module registry (see `isArchRuleError` for the same boundary biting
- * `instanceof`). So the rule file gets its own copy of that module with the flag
- * `false`, its terminal writes its own unfiltered report, and only then throws. The
- * user reads violations they have already accepted; the CLI silently agrees they were
- * accepted and says nothing.
+ * 1. *"The preset throws before baseline filtering runs."* False. `runCheck` collects
+ *    a thrown terminal's violations off the error (`failureOrViolations`) and filters
+ *    them; measured, its collection came back empty against a matching baseline.
+ * 2. *"`setCallerAggregatesReports` is module state that does not cross jiti's
+ *    registry."* Also false, and it was the premise of a whole record. The flag is
+ *    read at exactly ONE site — `core/execute-rule.ts:526`, inside `executeWarn`.
+ *    And jiti is not even the default loader: `cli/import-rule-module.ts` imports
+ *    natively first and reaches jiti only on a module-format refusal.
+ * 3. **What is actually true:** `executeCheck` calls `writeReport(...)`
+ *    **unconditionally** at `core/execute-rule.ts:460`, one line before it throws.
+ *    A `.check()` at module scope therefore prints its findings always — same
+ *    registry, no jiti, no flag involved. The CLI cannot un-print them.
  *
- * **Why a notice and not the root-cause fix.** Making the flag cross registries means
- * a `globalThis` singleton — a pattern this codebase does not currently use anywhere,
- * and a cross-cutting decision that belongs in an ADR rather than in a bug fix. Until
- * that is decided, the run must not be silent about output it could not filter. A
- * wrong-looking build that explains itself beats one that does not.
+ * The disproof of (2) is one line: a fixture importing the same module graph as the
+ * test's `runCheck`, so the flag was fully visible, printed all four violations
+ * anyway.
  *
- * **What this can and cannot say.** The leaked lines were written by another module
- * instance, so the CLI cannot know how many there were or which. Naming a count would
- * be invention. It says the output above went unfiltered, why, and the remedy.
+ * **Why a notice and not the repair.** Making `executeCheck` honour the flag is a
+ * change to when a terminal emits — ADR-008 territory, and it would alter behaviour
+ * for every caller that relies on `.check()` printing, including test files. That is
+ * bug 0201. Until it is decided the run must not be silent about output it could not
+ * filter.
  *
- * `bypassFilters` because it reports a gap in filtering — accepting it into a baseline
- * would suppress the notice that the baseline is not being applied.
+ * **Fires only when something was actually printed.** `executeWarn` throws the same
+ * error type, and when the CLI aggregates it writes only non-`bypassFilters` entries
+ * — for a configuration finding, nothing at all. The first version fired on the bare
+ * `isArchRuleError` condition and so claimed a leak that never happened, pointing at
+ * a finding whose own text says a baseline can never suppress it. Asserting a cause
+ * the run cannot verify is the ADR-009 rule 2 defect `ruleFileFailure` names above.
+ *
+ * **What this can and cannot say.** The leaked lines were written before the CLI saw
+ * them, so it cannot know how many there were. Naming a count would be invention.
+ *
+ * `bypassFilters` because it reports a gap in filtering — accepting it into a
+ * baseline would suppress the notice that the baseline is not being applied.
  */
 export function baselineNotApplied(file: string, baselinePath: string): ArchViolation {
   return {

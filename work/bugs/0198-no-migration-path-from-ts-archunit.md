@@ -59,14 +59,23 @@ across three rule kinds, `@nielspeter/ts-archunit@0.61.0` installed from npm,
 `arch.rules.ts` scaffolded by its own `init --preset recommended` (so the rules
 are valid for that version by construction), baseline generated with
 `ts-archunit baseline`. Then `@nielspeter/eess-ts@0.3.0` packed from this repo
-and installed alongside, with **only the import specifier changed**.
+and installed alongside. The rules file changed in exactly one place per row below —
+the import specifier always, and `report: 'builders'` where the row says so.
 
-| check                                                          | result                                               |
-| -------------------------------------------------------------- | ---------------------------------------------------- |
-| `ts-archunit check --baseline` (control)                       | exit 0, all 5 suppressed                             |
-| `eess-ts check --baseline <ts-archunit's file>`                | **exit 0, all 5 suppressed**                         |
-| `eess-ts check` with no baseline (vacuity control)             | exit 1, **the same 5** violations, same rule strings |
-| eess-ts's own generated baseline, hash-diffed vs ts-archunit's | **5/5 identical**, 0 only-in-A, 0 only-in-B          |
+| check                                                          | rules file                 | result                                               |
+| -------------------------------------------------------------- | -------------------------- | ---------------------------------------------------- |
+| `ts-archunit check --baseline` (control)                       | as scaffolded              | exit 0, all 5 suppressed                             |
+| `eess-ts check --baseline <ts-archunit's file>`                | **+ `report: 'builders'`** | **exit 0, all 5 suppressed**                         |
+| `eess-ts check` with no baseline (vacuity control)             | + `report: 'builders'`     | exit 1, **the same 5** violations, same rule strings |
+| eess-ts's own generated baseline, hash-diffed vs ts-archunit's | + `report: 'builders'`     | **5/5 identical**, 0 only-in-A, 0 only-in-B          |
+| `eess-ts check --baseline`                                     | **specifier swap ONLY**    | exit 1 — two accepted violations reported (bug 0199) |
+
+**The `report: 'builders'` column is load-bearing, and the first version of this
+table omitted it** while the prose above said "only the import specifier changed".
+Those cannot both describe one file: a reader reproducing the method as written
+gets the LAST row, not the second. The hash-compatibility conclusion is unaffected
+— the fourth row is an independent derivation — but the method had to be stated
+correctly, since this record seeds a page other people will follow.
 
 Both use `hashVersion: 5` and the same filename, `arch-baseline.json`. The
 `hashViolation` implementations are byte-identical between the two packages —
@@ -154,3 +163,10 @@ answer is silent.
 - [ ] A ts-archunit project switches by following the page alone, with the gates
       green at the end.
 - [ ] `docs/.vitepress` sidebar reaches the page.
+- [ ] **`npm deprecate @nielspeter/ts-archunit` does not run before `eess-ts`
+      publishes.** Measured 2026-08-21: npm `latest` is `eess-ts@0.2.1` while this
+      repo is at `0.3.0`, and `0.2.1` has neither the truncation notice nor
+      [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)'s.
+      Deprecating first would send switching users to a `latest` that still has
+      0199 with nothing in the output explaining it. Ordering constraint on
+      [plan 0100](../plans/0100-publish-the-fold-retire-ts-archunit.md).

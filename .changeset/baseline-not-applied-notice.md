@@ -5,12 +5,11 @@
 `eess-ts check --baseline` no longer fails in silence when a rule file reports its
 own findings — bug 0199.
 
-A rule file that enforces at module scope (a preset called without
-`report: 'builders'`, whose ADR-008 default is `'throw'`) prints its violations
-itself. Those lines are written by the rule file's **own** module instance — jiti
-gives it a separate registry — so they never pass through the CLI's filters. With
-`--baseline` in play the result is a red build listing violations the user has
-already accepted, and nothing in the output mentioning the baseline at all.
+A rule file that calls a terminal at module scope prints its violations itself:
+`.check()` writes its report unconditionally, one line before it throws. Those
+lines are emitted before the CLI ever sees them, so they never pass through its
+filters. With `--baseline` in play the result is a red build listing violations the
+user has already accepted, and nothing in the output mentioning the baseline at all.
 
 Measured against a real `@nielspeter/ts-archunit` baseline: **all 5 entries
 matched** and the build still exited 1 reporting 2 of them. The hashes were never
@@ -34,6 +33,5 @@ preset calls. `eess-ts init` scaffolds that form already.
 Baseline files themselves transfer unchanged — same `hashVersion`, same
 `arch-baseline.json`, byte-identical hashing.
 
-The underlying cause — CLI reporting state not crossing jiti's module registry,
-which also affects `--changed` and comment suppression — is tracked separately and
-not fixed here.
+The underlying cause — a terminal printing before its caller can filter, which
+also affects `--changed` — is tracked separately and not fixed here.
