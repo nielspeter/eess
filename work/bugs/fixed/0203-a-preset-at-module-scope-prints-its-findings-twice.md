@@ -117,6 +117,43 @@ and bug 0163 measured that no aggregating caller drives it. Converging the two
 copies is [plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md)'s job,
 and this is now a second recorded instance for it.
 
+## Corrected on review — the aggregation flag was a latch
+
+`setCallerAggregatesReports(true)` was called once by `runCheck` and **never set
+back**. That was invisible while `executeCheck` was its only reader — the CLI wants
+suppression for its whole life — and stopped being invisible the moment this fix
+made `deliver()` and `checkAll()` read it too.
+
+Measured by an architecture reviewer and reproduced: a preset called **directly**,
+in a process that had already run `runCheck` once, emitted **6 violation blocks
+before and 0 after**. It still threw, so nothing went falsely green; what vanished
+was the report — the messages, the `Why:`, the `Fix:` — with no signal that anything
+had been swallowed. The suite runs many tests in one process, so this is the shape
+of this repo's own test files, not a hypothetical.
+
+`withCallerAggregating` replaces it: a dynamic extent that restores the previous
+value in a `finally`, so the invariant is "aggregation lasts as long as the run"
+rather than "aggregation is whatever the last caller left behind".
+`setCallerAggregatesReports` is deleted — the repo's own `no-unused-exports` rule
+caught it going dead on the first `check:arch`.
+
+The changeset said "Nothing changes outside the CLI", which was the claim that
+would have shipped to npm and was false for exactly this reason. Corrected.
+
+## ADR-008 amended, because the code now contradicts it
+
+ADR-008 stated "The default stays print-then-throw" and gated a Tier-2 row reading
+"Default preset behavior unchanged (emit + throw)". Under an aggregating caller the
+default is now **throw without emit**, and that row's cited test asserts only the
+throw — so it would have stayed green over a clause the code no longer holds. That
+is bug 0189's shape, in the ADR that narrates bug 0189.
+
+The amendment states the real rule, names the invariant every read site must
+satisfy — **suppress exactly what rides the throw, and nothing else** — and adds two
+gated rows: one for the aggregating default, one for the invariant, cited to the
+tests that hold them. `executeWarn` is the case that gives the invariant content:
+its warn-severity violations do not ride the throw, so it must keep writing them.
+
 ## Verification
 
 - [x] Red test first — `packages/ts/tests/cli/preset-double-print.test.ts`,

@@ -4,11 +4,7 @@ import { diffAware } from '../../helpers/diff-aware.js'
 import type { OutputFormat } from '@nielspeter/eess'
 import type { ArchViolation, CheckOptions, RuleBuilderLike } from '@nielspeter/eess'
 import { isArchRuleError } from '@nielspeter/eess'
-import {
-  setCallerAggregatesReports,
-  violationsWritten,
-  writeReport,
-} from '../../core/execute-rule.js'
+import { withCallerAggregating, violationsWritten, writeReport } from '../../core/execute-rule.js'
 import { suppressionNotice } from '@nielspeter/eess'
 import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess'
 import { commentSuppressionNotice, resetCommentSuppression } from '@nielspeter/eess'
@@ -64,13 +60,25 @@ export async function runCheck(args: CheckArgs): Promise<number> {
     const builders = await loadRuleFiles(args.ruleFiles, { fresh: args.fresh })
     return runFix(builders, { format }, args.apply === true)
   }
-  const baseline = args.baseline !== undefined ? withBaseline(args.baseline) : undefined
-  const diff = args.changed ? diffAware(args.base) : undefined
-
   // This command reports once, at the end, across every rule file. So a
   // self-executing rule file's own terminals must not also write the findings that
-  // travel on their thrown error — see `setCallerAggregatesReports`.
-  setCallerAggregatesReports(true)
+  // travel on their thrown error — see `withCallerAggregating`.
+  //
+  // A SCOPED extent, not a latch. It used to be a bare
+  // a bare flag-set that nothing ever reset, which was harmless
+  // while `executeCheck` was the only reader and stopped being harmless the moment
+  // presets and `checkAll()` read it too: a preset called directly after a
+  // `runCheck` in the same process went silent for the rest of that process.
+  return withCallerAggregating(async () => runCheckInner(args, format, started))
+}
+
+async function runCheckInner(
+  args: CheckArgs,
+  format: OutputFormat,
+  started: number,
+): Promise<number> {
+  const baseline = args.baseline !== undefined ? withBaseline(args.baseline) : undefined
+  const diff = args.changed ? diffAware(args.base) : undefined
   let collected: ArchViolation[] = []
   const total = args.ruleFiles.length
   // The denominator for the summary line below. Accumulated here rather than
@@ -121,7 +129,7 @@ export async function runCheck(args: CheckArgs): Promise<number> {
         // file's OWN printing: `executeCheck` calls `writeReport` unconditionally
         // one line before it throws (`core/execute-rule.ts`), so a `.check()`
         // at module scope prints its findings before the CLI can filter anything.
-        // `setCallerAggregatesReports` does not stop it — that flag is read only by
+        // the aggregation flag does not stop it — that flag is read only by
         // `executeWarn` (`:526`). Root cause is bug 0201.
         //
         // **Only when something was actually printed.** `executeWarn` throws the

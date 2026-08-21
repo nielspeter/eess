@@ -16,10 +16,16 @@ first `eess-ts check`, since its `recommended()` took no `report` option at all.
 `deliver()` and `checkAll()` now do what `.check()` already did: enforce, throw, and
 let an aggregating caller do the reporting.
 
-**Nothing changes outside the CLI.** The flag is set only by `eess-ts check`, so a
-preset or a `checkAll()` in a test file prints exactly as before. The throw is
-unchanged in every case — the caller still learns the run failed, and the violations
-still ride the error.
+**Suppression lasts as long as the run, not the process.** Aggregation is declared
+by `eess-ts check` for the duration of its own run and restored afterwards, so a
+preset or a `checkAll()` used **outside** that run — in a test file, or by an
+embedder — prints exactly as before. That scoping is part of this release: the
+declaration used to be a latch nothing reset, which was invisible while only
+`.check()` read it and would have silenced a preset called anywhere later in the
+same process.
+
+The throw is unchanged in every case — the caller still learns the run failed, and
+the violations still ride the error, which is what the CLI collects and reports.
 
 **Only the default (throwing) mode.** `report: 'warn'` and `report: 'return'` are
 explicit choices about emission and are untouched — and `'warn'`'s violations do not
