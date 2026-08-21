@@ -33,7 +33,7 @@ const FOLDERS = '**/src/features/*'
 const SHARED = ['**/src/shared/**']
 
 const run = (options: Parameters<typeof strictBoundaries>[1]): ArchViolation[] =>
-  strictBoundaries(p, options).flatMap((rule) => rule.violations())
+  strictBoundaries(p, { ...options, report: 'builders' }).flatMap((rule) => rule.violations())
 
 const crossBoundary = (violations: ArchViolation[]): ArchViolation[] =>
   violations.filter((v) => v.ruleId === 'preset/boundaries/no-cross-boundary')
@@ -128,7 +128,7 @@ describe('the message is honest in both configurations', () => {
     // Labelled a tripwire on purpose: a synonym passes it, so it is not the
     // guard — the identity assertions above are. It is here because the defect
     // was authorial, and this is the phrase that was wrong.
-    const rules = strictBoundaries(p, { folders: FOLDERS, shared: SHARED })
+    const rules = strictBoundaries(p, { folders: FOLDERS, shared: SHARED, report: 'builders' })
     const texts = rules.flatMap((rule) => {
       // Fail rather than skip: `return []` degraded a non-describable rule to
       // an empty contribution, so the assertion below could pass over nothing.

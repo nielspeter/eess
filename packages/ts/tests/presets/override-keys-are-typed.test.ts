@@ -113,6 +113,7 @@ describe('preset override keys are typed (bug 0038)', () => {
     }
     const findings = recommended(p, {
       overrides: { 'preset/recommended/no-silent-catch': 'off' },
+      report: 'builders',
     }).flatMap((r) => r.violations())
 
     // Filtered to OVERRIDE findings specifically. The bare in-memory fixture

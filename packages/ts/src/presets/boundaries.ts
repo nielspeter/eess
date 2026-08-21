@@ -1,4 +1,4 @@
-import type { ReportMode, ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { SourceFile } from 'ts-morph'
 import type { ImportOptions } from '../core/import-options.js'
 import picomatch from 'picomatch'
@@ -162,12 +162,9 @@ function applyTestIsolation(
  */
 export function strictBoundaries(
   p: ArchProject,
-  options: StrictBoundariesOptions & { report: ReportMode },
-): ArchViolation[]
-export function strictBoundaries(
-  p: ArchProject,
-  options: StrictBoundariesOptions,
+  options: StrictBoundariesOptions & { report: 'builders' },
 ): RuleBuilderLike[]
+export function strictBoundaries(p: ArchProject, options: StrictBoundariesOptions): ArchViolation[]
 export function strictBoundaries(
   p: ArchProject,
   options: StrictBoundariesOptions,

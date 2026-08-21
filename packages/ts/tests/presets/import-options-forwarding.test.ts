@@ -73,17 +73,31 @@ describe('importOptions reaches the layer conditions (plan 0089)', () => {
   it('flips whether a type-only outward edge is a layer violation', () => {
     const p = typeEdgeProject()
     // Default: layering counts the erased edge, because coupling is the question.
-    expect(ruleIds(layeredArchitecture(p, { layers }))).toContain('preset/layered/layer-order')
+    expect(ruleIds(layeredArchitecture(p, { layers, report: 'builders' }))).toContain(
+      'preset/layered/layer-order',
+    )
     // The option reaches the condition and changes the answer.
     expect(
-      ruleIds(layeredArchitecture(p, { layers, importOptions: { ignoreTypeImports: true } })),
+      ruleIds(
+        layeredArchitecture(p, {
+          layers,
+          importOptions: { ignoreTypeImports: true },
+          report: 'builders',
+        }),
+      ),
     ).not.toContain('preset/layered/layer-order')
   })
 
   it('an explicit false is today’s behaviour — the additive claim, asserted', () => {
     const p = typeEdgeProject()
     expect(
-      ruleIds(layeredArchitecture(p, { layers, importOptions: { ignoreTypeImports: false } })),
+      ruleIds(
+        layeredArchitecture(p, {
+          layers,
+          importOptions: { ignoreTypeImports: false },
+          report: 'builders',
+        }),
+      ),
     ).toContain('preset/layered/layer-order')
   })
 
@@ -112,11 +126,19 @@ describe('importOptions reaches beFreeOfCycles (plan 0089)', () => {
     const opts = { folders: '**/src/*' }
     // Default: the cycle rule ignores erased edges, so a type-only cycle is not
     // a cycle — nothing to report.
-    expect(ruleIds(strictBoundaries(p, opts))).not.toContain('preset/boundaries/no-cycles')
+    expect(ruleIds(strictBoundaries(p, { ...opts, report: 'builders' }))).not.toContain(
+      'preset/boundaries/no-cycles',
+    )
     // Asking for type edges to count makes it one. This is the direction that
     // STRENGTHENS, and it is the half a preset user could not reach before.
     expect(
-      ruleIds(strictBoundaries(p, { ...opts, importOptions: { ignoreTypeImports: false } })),
+      ruleIds(
+        strictBoundaries(p, {
+          ...opts,
+          importOptions: { ignoreTypeImports: false },
+          report: 'builders',
+        }),
+      ),
     ).toContain('preset/boundaries/no-cycles')
   })
 
@@ -127,9 +149,17 @@ describe('importOptions reaches beFreeOfCycles (plan 0089)', () => {
     // item 1 says "reaches `beFreeOfCycles` in BOTH presets".
     const p = twoSlices(TYPE_ONLY_CYCLE.a, TYPE_ONLY_CYCLE.b)
     const layers = { a: '**/src/a/**', b: '**/src/b/**' }
-    expect(ruleIds(layeredArchitecture(p, { layers }))).not.toContain('preset/layered/no-cycles')
+    expect(ruleIds(layeredArchitecture(p, { layers, report: 'builders' }))).not.toContain(
+      'preset/layered/no-cycles',
+    )
     expect(
-      ruleIds(layeredArchitecture(p, { layers, importOptions: { ignoreTypeImports: false } })),
+      ruleIds(
+        layeredArchitecture(p, {
+          layers,
+          importOptions: { ignoreTypeImports: false },
+          report: 'builders',
+        }),
+      ),
     ).toContain('preset/layered/no-cycles')
   })
 
@@ -141,9 +171,17 @@ describe('importOptions reaches beFreeOfCycles (plan 0089)', () => {
       "import { alpha } from '../a/index.js'\nvoid alpha",
     )
     const opts = { folders: '**/src/*' }
-    expect(ruleIds(strictBoundaries(p, opts))).toContain('preset/boundaries/no-cycles')
+    expect(ruleIds(strictBoundaries(p, { ...opts, report: 'builders' }))).toContain(
+      'preset/boundaries/no-cycles',
+    )
     expect(
-      ruleIds(strictBoundaries(p, { ...opts, importOptions: { ignoreTypeImports: true } })),
+      ruleIds(
+        strictBoundaries(p, {
+          ...opts,
+          importOptions: { ignoreTypeImports: true },
+          report: 'builders',
+        }),
+      ),
     ).toContain('preset/boundaries/no-cycles')
   })
 })
@@ -181,9 +219,15 @@ describe('importOptions reaches the isolation conditions too (plan 0089)', () =>
       '/src/core/c.ts': "import type { Ctx } from '../routes/h.js'\nexport type Z = Ctx\n",
     })
     const opts = { layers: { routes: '**/routes/**', core: '**/core/**' }, strict: true }
-    expect(ruleIds(layeredArchitecture(p, opts))).toContain('preset/layered/innermost-isolation')
+    expect(ruleIds(layeredArchitecture(p, { ...opts, report: 'builders' }))).toContain(
+      'preset/layered/innermost-isolation',
+    )
     const ignored = ruleIds(
-      layeredArchitecture(p, { ...opts, importOptions: { ignoreTypeImports: true } }),
+      layeredArchitecture(p, {
+        ...opts,
+        importOptions: { ignoreTypeImports: true },
+        report: 'builders',
+      }),
     )
     expect(ignored).not.toContain('preset/layered/innermost-isolation')
     // And it now agrees with layer-order rather than contradicting it.
@@ -199,9 +243,17 @@ describe('importOptions reaches the isolation conditions too (plan 0089)', () =>
       layers: { routes: '**/routes/**', repositories: '**/repositories/**' },
       restrictedPackages: { '**/repositories/**': ['knex'] },
     }
-    expect(ruleIds(layeredArchitecture(p, opts))).toContain('preset/layered/restricted-packages')
+    expect(ruleIds(layeredArchitecture(p, { ...opts, report: 'builders' }))).toContain(
+      'preset/layered/restricted-packages',
+    )
     expect(
-      ruleIds(layeredArchitecture(p, { ...opts, importOptions: { ignoreTypeImports: true } })),
+      ruleIds(
+        layeredArchitecture(p, {
+          ...opts,
+          importOptions: { ignoreTypeImports: true },
+          report: 'builders',
+        }),
+      ),
     ).not.toContain('preset/layered/restricted-packages')
   })
 
@@ -211,9 +263,17 @@ describe('importOptions reaches the isolation conditions too (plan 0089)', () =>
       '/src/b/index.ts': 'export type Beta = { n: number }\nexport const beta = 1\n',
     })
     const opts = { folders: '**/src/*' }
-    expect(ruleIds(strictBoundaries(p, opts))).toContain('preset/boundaries/no-cross-boundary')
+    expect(ruleIds(strictBoundaries(p, { ...opts, report: 'builders' }))).toContain(
+      'preset/boundaries/no-cross-boundary',
+    )
     expect(
-      ruleIds(strictBoundaries(p, { ...opts, importOptions: { ignoreTypeImports: true } })),
+      ruleIds(
+        strictBoundaries(p, {
+          ...opts,
+          importOptions: { ignoreTypeImports: true },
+          report: 'builders',
+        }),
+      ),
     ).not.toContain('preset/boundaries/no-cross-boundary')
   })
 
@@ -223,9 +283,17 @@ describe('importOptions reaches the isolation conditions too (plan 0089)', () =>
       '/src/b/index.ts': 'export type Beta = { n: number }\nexport const beta = 1\n',
     })
     const opts = { folders: '**/src/b', shared: ['**/shared/**'] }
-    expect(ruleIds(strictBoundaries(p, opts))).toContain('preset/boundaries/shared-isolation')
+    expect(ruleIds(strictBoundaries(p, { ...opts, report: 'builders' }))).toContain(
+      'preset/boundaries/shared-isolation',
+    )
     expect(
-      ruleIds(strictBoundaries(p, { ...opts, importOptions: { ignoreTypeImports: true } })),
+      ruleIds(
+        strictBoundaries(p, {
+          ...opts,
+          importOptions: { ignoreTypeImports: true },
+          report: 'builders',
+        }),
+      ),
     ).not.toContain('preset/boundaries/shared-isolation')
   })
 
@@ -235,9 +303,17 @@ describe('importOptions reaches the isolation conditions too (plan 0089)', () =>
       '/src/b/b.test.ts': 'export type F = { n: number }\nexport const f = 1\n',
     })
     const opts = { folders: '**/src/*', isolateTests: true }
-    expect(ruleIds(strictBoundaries(p, opts))).toContain('preset/boundaries/test-isolation')
+    expect(ruleIds(strictBoundaries(p, { ...opts, report: 'builders' }))).toContain(
+      'preset/boundaries/test-isolation',
+    )
     expect(
-      ruleIds(strictBoundaries(p, { ...opts, importOptions: { ignoreTypeImports: true } })),
+      ruleIds(
+        strictBoundaries(p, {
+          ...opts,
+          importOptions: { ignoreTypeImports: true },
+          report: 'builders',
+        }),
+      ),
     ).not.toContain('preset/boundaries/test-isolation')
   })
 })

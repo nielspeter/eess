@@ -134,12 +134,17 @@ describe('every preset rule carries a remedy', () => {
   const presets: Array<[string, RuleBuilderLike[]]> = [
     [
       'strictBoundaries',
-      strictBoundaries(load('boundaries'), { folders: '**/boundaries/*', noCopyPaste: true }),
+      strictBoundaries(load('boundaries'), {
+        folders: '**/boundaries/*',
+        noCopyPaste: true,
+        report: 'builders',
+      }),
     ],
     [
       'layeredArchitecture',
       layeredArchitecture(load('layered'), {
         layers: { domain: '**/domain/**', app: '**/app/**', infra: '**/infra/**' },
+        report: 'builders',
       }),
     ],
     [
@@ -148,6 +153,7 @@ describe('every preset rule carries a remedy', () => {
         repositories: '**/repositories/**',
         baseClass: 'BaseRepository',
         requireTypedErrors: true,
+        report: 'builders',
       }),
     ],
   ]

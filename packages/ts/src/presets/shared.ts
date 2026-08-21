@@ -1,4 +1,14 @@
 import type { ArchViolation, ReportMode, OutputFormat } from '@nielspeter/eess'
+
+/**
+ * What a preset can be asked to do with its rules.
+ *
+ * Deliberately a DIALECT type rather than a widening of the kernel's
+ * `ReportMode`: `'builders'` is not a reporting mode at all — it suppresses the
+ * run — and the kernel's `finishPreset` must never receive it. Keeping it here
+ * means the kernel's three emission modes stay exactly three.
+ */
+export type PresetDelivery = ReportMode | 'builders'
 import { finishPreset } from '@nielspeter/eess'
 import { UNSUPPRESSABLE } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
@@ -322,19 +332,25 @@ export interface PresetBaseOptions<TRuleId extends string = string> {
    * emit-then-throw; the engine adopted in plan 0165 returns UN-EXECUTED
    * builders and runs nothing until the caller asks — a stronger form of the
    * same principle, and what all 26 of this package's preset test files assert.
-   * Naming a mode opts into the ADR's shape without changing what an existing
-   * caller gets:
+   * How the preset delivers its result. **Omitting it runs the rules and
+   * throws** — ADR-008's documented default, and what published `eess-ts` has
+   * always done:
    *
-   * - omitted → the builders, unexecuted (engine default, unchanged);
+   * - omitted / `'throw'` → run, emit once, then throw if anything failed;
    * - `'return'` → run every rule and return the violations, emitting nothing;
-   * - `'throw'` → run, emit once, then throw if anything failed;
-   * - `'print'` → run and emit, without throwing.
+   * - `'warn'` → run and emit, without throwing;
+   * - `'builders'` → build the rules and run **nothing**, returning them for the
+   *   caller to run (pair with `checkAll()`).
    *
-   * The mismatch between ADR-008's stated DEFAULT and the engine's is real and
-   * is **not** resolved here — see plan 0165 Phase 3. Changing a documented
-   * default is an ADR amendment, not a plan's call to make quietly.
+   * `'builders'` is spelled out on purpose. Plan 0165 Phase 3 restored `report`
+   * "additive, by overload" and, as a side effect of the overload order, made
+   * the builder form what you got by saying *nothing* — so the documented
+   * onboarding path (a bare `layeredArchitecture(p, {…})` inside an `it()`)
+   * became a test that passed unconditionally on any codebase. Every other mode
+   * had a name; only this one was reachable by omission. Naming it restores the
+   * default the ADR states and keeps the capability (PR #72 review).
    */
-  report?: ReportMode
+  report?: PresetDelivery
   /** Output format for the emitting modes. Ignored when `report` is omitted. */
   format?: OutputFormat
   /** Rationale threaded into emitted output. Ignored when `report` is omitted. */
@@ -427,13 +443,16 @@ export function atPath<T extends Located>(glob: string, option?: string): Predic
  */
 export function deliver(
   builders: RuleBuilderLike[],
-  options: { report?: ReportMode; format?: OutputFormat; reason?: string } | undefined,
+  options: { report?: PresetDelivery; format?: OutputFormat; reason?: string } | undefined,
 ): RuleBuilderLike[] | ArchViolation[] {
-  if (options?.report === undefined) return builders
+  // Only an EXPLICIT 'builders' returns without running. Omission falls through
+  // to `finishPreset`, whose own default is 'throw' — so a preset called with no
+  // options enforces, which is what ADR-008 states and what the docs teach.
+  if (options?.report === 'builders') return builders
   const violations = builders.flatMap((b) => b.violations())
   return finishPreset(violations, {
-    report: options.report,
-    format: options.format,
-    reason: options.reason,
+    report: options?.report ?? 'throw',
+    format: options?.format,
+    reason: options?.reason,
   })
 }

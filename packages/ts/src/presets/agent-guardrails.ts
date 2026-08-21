@@ -1,4 +1,4 @@
-import type { ReportMode, ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import { functions } from '../builders/function-rule-builder.js'
@@ -81,9 +81,9 @@ const COLLECT_ALL = { includeObjectLiteralFunctions: true } as const
  */
 export function agentGuardrails(
   p: ArchProject,
-  options: AgentGuardrailsOptions & { report: ReportMode },
-): ArchViolation[]
-export function agentGuardrails(p: ArchProject, options: AgentGuardrailsOptions): RuleBuilderLike[]
+  options: AgentGuardrailsOptions & { report: 'builders' },
+): RuleBuilderLike[]
+export function agentGuardrails(p: ArchProject, options: AgentGuardrailsOptions): ArchViolation[]
 export function agentGuardrails(
   p: ArchProject,
   options: AgentGuardrailsOptions,

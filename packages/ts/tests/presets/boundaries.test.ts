@@ -26,7 +26,8 @@ const violatedIds = (rules: RuleBuilderLike[]) => new Set(all(rules).map((v) => 
 
 describe('strictBoundaries preset', () => {
   const p = loadTestProject()
-  const run = (opts: StrictBoundariesOptions) => strictBoundaries(p, opts)
+  const run = (opts: StrictBoundariesOptions) =>
+    strictBoundaries(p, { ...opts, report: 'builders' })
 
   it('passes for correct boundaries (each feature only imports from shared)', () => {
     expect(errors(run({ folders: '**/src/feature-*', shared: ['**/shared/**'] }))).toEqual([])

@@ -42,6 +42,7 @@ describe('agentGuardrails preset', () => {
       noStubs: true,
       noEmptyBodies: true,
       noCopyPaste: true,
+      report: 'builders',
     })
     // One per enabled rule, BY ID — five builders with the same id also had
     // length 5, and "per enabled rule" is a statement about which.
@@ -55,23 +56,27 @@ describe('agentGuardrails preset', () => {
   })
 
   it('catches inline parseInt (error severity)', () => {
-    const [builder] = agentGuardrails(p, { src: SRC, noInlineLogic: ['parseInt'] })
+    const [builder] = agentGuardrails(p, {
+      src: SRC,
+      noInlineLogic: ['parseInt'],
+      report: 'builders',
+    })
     const violations = builder!.violations()
     expect(violations.some((v) => v.element.includes('parseCount'))).toBe(true)
     expect(violations.every((v) => v.severity === 'error')).toBe(true)
   })
 
   it('catches generic Error, stubs, and empty bodies', () => {
-    const g = agentGuardrails(p, { src: SRC, noGenericErrors: true })
+    const g = agentGuardrails(p, { src: SRC, noGenericErrors: true, report: 'builders' })
     expect(g[0]!.violations().some((v) => v.element.includes('boom'))).toBe(true)
-    const s = agentGuardrails(p, { src: SRC, noStubs: true })
+    const s = agentGuardrails(p, { src: SRC, noStubs: true, report: 'builders' })
     expect(s[0]!.violations().some((v) => v.element.includes('todo'))).toBe(true)
-    const e = agentGuardrails(p, { src: SRC, noEmptyBodies: true })
+    const e = agentGuardrails(p, { src: SRC, noEmptyBodies: true, report: 'builders' })
     expect(e[0]!.violations().some((v) => v.element.includes('emptyBody'))).toBe(true)
   })
 
   it('no-copy-paste is a warn-severity builder', () => {
-    const builders = agentGuardrails(p, { src: SRC, noCopyPaste: true })
+    const builders = agentGuardrails(p, { src: SRC, noCopyPaste: true, report: 'builders' })
     const violations = builders[0]!.violations()
     expect(violations.length).toBeGreaterThan(0)
     expect(violations.every((v) => v.severity === 'warn')).toBe(true)
@@ -82,6 +87,7 @@ describe('agentGuardrails preset', () => {
       src: SRC,
       noGenericErrors: true,
       overrides: { 'preset/agent/no-generic-errors': 'off' },
+      report: 'builders',
     })
     expect(builders).toHaveLength(0)
   })
@@ -96,6 +102,7 @@ describe('agentGuardrails preset', () => {
       src: SRC,
       noGenericErrors: true,
       overrides: { 'preset/agent/no-generic-errors': 'off' },
+      report: 'builders',
     })
     expect(builders).toEqual([])
   })
@@ -111,6 +118,7 @@ describe('agentGuardrails preset', () => {
     const builders = agentGuardrails(p, {
       src: SRC,
       overrides: { 'preset/agent/no-generic-errors': 'off' },
+      report: 'builders',
     })
     const violations = builders.flatMap((b) => b.violations())
     expect(violations).toHaveLength(1)
@@ -128,7 +136,7 @@ describe('agentGuardrails preset', () => {
     const overrides: Partial<Record<string, 'error' | 'warn' | 'off'>> = {
       'preset/agent/no-generic-errrors': 'off', // typo: errrors
     }
-    const builders = agentGuardrails(p, { src: SRC, overrides })
+    const builders = agentGuardrails(p, { src: SRC, overrides, report: 'builders' })
     const violations = builders.flatMap((b) => b.violations())
     expect(violations[0]?.ruleId).toBe('preset/override/preset/agent/no-generic-errrors')
     expect(violations[0]?.suggestion).toContain(
@@ -141,6 +149,7 @@ describe('agentGuardrails preset', () => {
       src: SRC,
       noGenericErrors: true,
       overrides: { 'preset/agent/no-generic-errors': 'warn' },
+      report: 'builders',
     })
     const violations = builder!.violations()
     expect(violations.length).toBeGreaterThan(0)
@@ -148,7 +157,7 @@ describe('agentGuardrails preset', () => {
   })
 
   it('rules carry agent-facing metadata (id/suggestion/because) on violations', () => {
-    const [builder] = agentGuardrails(p, { src: SRC, noGenericErrors: true })
+    const [builder] = agentGuardrails(p, { src: SRC, noGenericErrors: true, report: 'builders' })
     const violations = builder!.violations()
     expect(violations[0]?.ruleId).toBe('preset/agent/no-generic-errors')
     expect(violations[0]?.suggestion).toContain('domain-specific')
@@ -162,6 +171,7 @@ describe('agentGuardrails preset', () => {
       noGenericErrors: true,
       noStubs: true,
       noEmptyBodies: true,
+      report: 'builders',
     })
     const violations = builders.flatMap((b) => b.violations())
     expect(violations).toHaveLength(0)
@@ -170,7 +180,12 @@ describe('agentGuardrails preset', () => {
   it('empty / omitted noInlineLogic generates no inline-logic rules specifically', () => {
     // A DIFFERENT flag stays on, so this is not the truly-minimal call below —
     // it isolates the claim to `noInlineLogic` alone.
-    const builders = agentGuardrails(p, { src: SRC, noInlineLogic: [], noGenericErrors: true })
+    const builders = agentGuardrails(p, {
+      src: SRC,
+      noInlineLogic: [],
+      noGenericErrors: true,
+      report: 'builders',
+    })
     expect(idsOf(builders)).toEqual(['preset/agent/no-generic-errors'])
   })
 
@@ -178,7 +193,7 @@ describe('agentGuardrails preset', () => {
     // Every rule sits behind an optional flag and none was set here — the
     // exact silence bug 0100 measured: `agentGuardrails({ src })` used to
     // return `[]`, a green build that enforced nothing.
-    const builders = agentGuardrails(p, { src: SRC })
+    const builders = agentGuardrails(p, { src: SRC, report: 'builders' })
     expect(builders).toHaveLength(1)
     const violations = builders[0]!.violations()
     // Identity, not count: the ONE violation must be THIS finding, not some
@@ -194,14 +209,14 @@ describe('agentGuardrails preset', () => {
       builders: readonly { violations: () => { ruleId?: string }[] }[],
     ): string[] => builders.flatMap((b) => b.violations()).map((v) => v.ruleId ?? '')
 
-    expect(idsOfViolations(agentGuardrails(p, { src: SRC }))).toContain(
+    expect(idsOfViolations(agentGuardrails(p, { src: SRC, report: 'builders' }))).toContain(
       'preset/agent/constructs-nothing',
     )
     // Applying exactly the stated remedy — "Set at least one of: noInlineLogic,
     // noGenericErrors, …" — and nothing else about the call changes.
-    expect(idsOfViolations(agentGuardrails(p, { src: SRC, noGenericErrors: true }))).not.toContain(
-      'preset/agent/constructs-nothing',
-    )
+    expect(
+      idsOfViolations(agentGuardrails(p, { src: SRC, noGenericErrors: true, report: 'builders' })),
+    ).not.toContain('preset/agent/constructs-nothing')
   })
 
   it('plan 0100: a more specific finding on the same unattempted call reports ONCE, not stacked', () => {
@@ -215,13 +230,18 @@ describe('agentGuardrails preset', () => {
     const builders = agentGuardrails(p, {
       src: SRC,
       expectEmpty: ['preset/agent/no-generic-errors'],
+      report: 'builders',
     })
     const ids = builders.flatMap((b) => b.violations()).map((v) => v.ruleId)
     expect(ids).toEqual(['preset/expect-empty/preset/agent/no-generic-errors'])
   })
 
   it('generates a distinct rule id per noInlineLogic entry', () => {
-    const builders = agentGuardrails(p, { src: SRC, noInlineLogic: ['parseInt', 'eval'] })
+    const builders = agentGuardrails(p, {
+      src: SRC,
+      noInlineLogic: ['parseInt', 'eval'],
+      report: 'builders',
+    })
     // DISTINCT is the claim, and a count of 2 cannot see it: two builders
     // sharing one id — the bug this guards — also had length 2.
     expect(idsOf(builders)).toEqual([
@@ -261,6 +281,7 @@ describe('agentGuardrails sees handler maps', () => {
       noGenericErrors: true,
       noStubs: true,
       noEmptyBodies: true,
+      report: 'builders',
     })
       .flatMap((r) => r.violations())
       .filter((v) => v.ruleId === id)

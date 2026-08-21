@@ -31,7 +31,7 @@ afterEach(() => {
 describe('recommended through the check pipeline', () => {
   it('emits ONE JSON document; the two errors set the exit, the two warns do not', async () => {
     const p = loadTestProject()
-    const builders = recommended(p)
+    const builders = recommended(p, { report: 'builders' })
     vi.mocked(loadRuleFiles).mockResolvedValue(builders)
     const spy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
 

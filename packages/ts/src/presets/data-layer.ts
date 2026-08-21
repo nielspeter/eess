@@ -1,4 +1,4 @@
-import type { ReportMode, ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { ClassDeclaration } from 'ts-morph'
 import type { ArchProject } from '../core/project.js'
 import type { RuleBuilderLike } from '@nielspeter/eess'
@@ -50,12 +50,12 @@ const RULE_IDS = ['preset/data/extend-base', 'preset/data/typed-errors'] as cons
  */
 export function dataLayerIsolation(
   p: ArchProject,
-  options: DataLayerIsolationOptions & { report: ReportMode },
-): ArchViolation[]
+  options: DataLayerIsolationOptions & { report: 'builders' },
+): RuleBuilderLike[]
 export function dataLayerIsolation(
   p: ArchProject,
   options: DataLayerIsolationOptions,
-): RuleBuilderLike[]
+): ArchViolation[]
 export function dataLayerIsolation(
   p: ArchProject,
   options: DataLayerIsolationOptions,

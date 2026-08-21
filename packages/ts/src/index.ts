@@ -579,3 +579,9 @@ export { isTypeOnlyReExport, splitGlobArgs } from './core/import-options.js'
 export { emptyProjectAdvice, loadedNothing } from './core/empty-project-advice.js'
 export { validateOverrides } from './presets/shared.js'
 export type { StrictFamilyFlag } from './tsconfig/strict-family.js'
+
+// The preset delivery mode, so an adopter writing `report: 'builders'` can name
+// the type. Deliberately a dialect type rather than a widening of the kernel's
+// `ReportMode`: `'builders'` suppresses the run instead of choosing an emission
+// mode, and the kernel's `finishPreset` must never receive it.
+export type { PresetDelivery } from './presets/shared.js'

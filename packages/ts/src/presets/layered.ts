@@ -1,4 +1,4 @@
-import type { ReportMode, ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { SourceFile } from 'ts-morph'
 import type { ImportOptions } from '../core/import-options.js'
 import type { ArchProject } from '../core/project.js'
@@ -175,12 +175,12 @@ function applyRestrictedPackages(
  */
 export function layeredArchitecture(
   p: ArchProject,
-  options: LayeredArchitectureOptions & { report: ReportMode },
-): ArchViolation[]
+  options: LayeredArchitectureOptions & { report: 'builders' },
+): RuleBuilderLike[]
 export function layeredArchitecture(
   p: ArchProject,
   options: LayeredArchitectureOptions,
-): RuleBuilderLike[]
+): ArchViolation[]
 export function layeredArchitecture(
   p: ArchProject,
   options: LayeredArchitectureOptions,

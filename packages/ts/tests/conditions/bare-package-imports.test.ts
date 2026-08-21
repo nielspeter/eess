@@ -191,6 +191,7 @@ describe('bug 0014 — bare package specifiers', () => {
         // Only `services/` may use picomatch. `installed-package.ts` is in
         // neither layer, so it must be reported.
         restrictedPackages: { '**/services/**': ['picomatch'] },
+        report: 'builders',
       })
       const violations = rules.flatMap((rule) => rule.violations())
       expect(violations.map((v) => v.ruleId)).toContain('preset/layered/restricted-packages')
@@ -209,6 +210,7 @@ describe('bug 0014 — bare package specifiers', () => {
         layeredArchitecture(archProject, {
           layers: { app: '**/app/**', services: '**/services/**' },
           restrictedPackages: { [allowed]: ['picomatch'] },
+          report: 'builders',
         })
           .flatMap((rule) => rule.violations())
           .filter((v) => v.ruleId === 'preset/layered/restricted-packages')

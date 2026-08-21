@@ -436,7 +436,7 @@ const configFindings = (vs: readonly ArchViolation[]): readonly ArchViolation[] 
 
 describe('presets: the surface an adopter actually installs', () => {
   it('recommended constructs rules that all enforce something', () => {
-    const rules = recommended(p, { include: OUR_SRC })
+    const rules = recommended(p, { include: OUR_SRC, report: 'builders' })
     expect(rules.length).toBeGreaterThan(0)
     expect(configFindings(rules.flatMap((r) => r.violations()))).toEqual([])
   })
@@ -448,6 +448,7 @@ describe('presets: the surface an adopter actually installs', () => {
       noStubs: true,
       noEmptyBodies: true,
       noCopyPaste: true,
+      report: 'builders',
     })
     expect(rules.length).toBeGreaterThan(0)
     expect(configFindings(rules.flatMap((r) => r.violations()))).toEqual([])
@@ -457,7 +458,11 @@ describe('presets: the surface an adopter actually installs', () => {
     // `'**/src/*'`, not `'src/*'`: boundary discovery matches ABSOLUTE paths, so
     // the unprefixed form discovers nothing. The preset said so itself, in the
     // finding this assertion now guards against.
-    const rules = strictBoundaries(p, { folders: `${root}/src/*`, shared: [`${root}/src/core/**`] })
+    const rules = strictBoundaries(p, {
+      folders: `${root}/src/*`,
+      shared: [`${root}/src/core/**`],
+      report: 'builders',
+    })
     expect(rules.length).toBeGreaterThan(0)
     expect(configFindings(rules.flatMap((r) => r.violations()))).toEqual([])
   })
@@ -465,6 +470,7 @@ describe('presets: the surface an adopter actually installs', () => {
   it('layeredArchitecture constructs rules that all enforce something', () => {
     const rules = layeredArchitecture(p, {
       layers: { builders: `${root}/src/builders/**`, core: `${root}/src/core/**` },
+      report: 'builders',
     })
     expect(rules.length).toBeGreaterThan(0)
     expect(configFindings(rules.flatMap((r) => r.violations()))).toEqual([])
@@ -490,7 +496,7 @@ describe('presets: the surface an adopter actually installs', () => {
     // thing and stays useful in the improving direction — an `eval` or a `new
     // Function` reaching `src/` turns it red, and cleaning up a warning never
     // does.
-    const rules = recommended(p, { include: OUR_SRC })
+    const rules = recommended(p, { include: OUR_SRC, report: 'builders' })
     expect(rules.length).toBeGreaterThan(0)
     expect(() => {
       checkAll(rules)

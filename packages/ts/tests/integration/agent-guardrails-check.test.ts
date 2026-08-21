@@ -36,6 +36,7 @@ describe('agentGuardrails through the check pipeline', () => {
       noInlineLogic: ['parseInt'],
       noGenericErrors: true,
       noCopyPaste: true,
+      report: 'builders',
     })
     vi.mocked(loadRuleFiles).mockResolvedValue(builders)
     const spy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)

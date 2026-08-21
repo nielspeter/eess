@@ -150,18 +150,27 @@ export const CHECKS: Record<string, CheckEntry> = {
   },
 
   // ── presets: they construct N checks, so a recipe returns N probeables ────
-  './presets:recommended': { unit: 'per constructed rule', recipe: (c) => recommended(c.project) },
+  './presets:recommended': {
+    unit: 'per constructed rule',
+    recipe: (c) => recommended(c.project, { report: 'builders' }),
+  },
   './presets:agentGuardrails': {
     unit: 'per constructed rule',
-    recipe: (c) => agentGuardrails(c.project, { src: '**/src/**', noCopyPaste: true }),
+    recipe: (c) =>
+      agentGuardrails(c.project, { src: '**/src/**', noCopyPaste: true, report: 'builders' }),
   },
   './presets:strictBoundaries': {
     unit: 'per constructed rule',
-    recipe: (c) => strictBoundaries(c.project, { folders: '**/src/*', noCopyPaste: true }),
+    recipe: (c) =>
+      strictBoundaries(c.project, { folders: '**/src/*', noCopyPaste: true, report: 'builders' }),
   },
   './presets:layeredArchitecture': {
     unit: 'per constructed rule',
-    recipe: (c) => layeredArchitecture(c.project, { layers: { a: '**/a/**', b: '**/b/**' } }),
+    recipe: (c) =>
+      layeredArchitecture(c.project, {
+        layers: { a: '**/a/**', b: '**/b/**' },
+        report: 'builders',
+      }),
   },
   './presets:dataLayerIsolation': {
     // Plan 0100: this minimal call constructs ZERO rules — `unit` describes the
@@ -171,7 +180,8 @@ export const CHECKS: Record<string, CheckEntry> = {
     // (`'config-finding'`, not one-per-rule) — see `KNOWN_FAIL_OPEN`'s comment
     // in vacuity-matrix.test.ts.
     unit: 'per constructed rule',
-    recipe: (c) => dataLayerIsolation(c.project, { repositories: '**/repo/**' }),
+    recipe: (c) =>
+      dataLayerIsolation(c.project, { repositories: '**/repo/**', report: 'builders' }),
   },
 }
 

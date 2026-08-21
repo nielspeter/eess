@@ -1,4 +1,4 @@
-import type { ReportMode, ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import type { Condition } from '@nielspeter/eess'
@@ -128,9 +128,9 @@ const RULE_IDS: readonly string[] = SPECS.map((s) => s.meta.id)
  */
 export function recommended(
   p: ArchProject,
-  options: RecommendedOptions & { report: ReportMode },
-): ArchViolation[]
-export function recommended(p: ArchProject, options?: RecommendedOptions): RuleBuilderLike[]
+  options: RecommendedOptions & { report: 'builders' },
+): RuleBuilderLike[]
+export function recommended(p: ArchProject, options?: RecommendedOptions): ArchViolation[]
 export function recommended(
   p: ArchProject,
   options: RecommendedOptions = {},

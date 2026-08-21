@@ -70,7 +70,9 @@ describe('the presets actually detect a barrel cycle (v0.48.0)', () => {
     // `billing` re-exports through the barrel and the barrel re-exports `billing`, so
     // the two are mutually entangled through `export … from` alone — the exact shape
     // three shipped strings said was undetectable.
-    const found = cycleFindings(strictBoundaries(barrelProject(), { folders: '**/src/features/*' }))
+    const found = cycleFindings(
+      strictBoundaries(barrelProject(), { folders: '**/src/features/*', report: 'builders' }),
+    )
     expect(found.length).toBeGreaterThan(0)
   })
 
@@ -82,6 +84,7 @@ describe('the presets actually detect a barrel cycle (v0.48.0)', () => {
           billing: '**/src/features/billing/**',
           users: '**/src/features/users/**',
         },
+        report: 'builders',
       }),
     )
     expect(found.length).toBeGreaterThan(0)

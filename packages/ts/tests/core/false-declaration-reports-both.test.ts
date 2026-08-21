@@ -51,6 +51,7 @@ describe('a false declaration does not swallow the findings under it', () => {
     const all = layeredArchitecture(p, {
       ...opts,
       expectEmpty: ['preset/layered/restricted-packages'],
+      report: 'builders',
     }).flatMap((r) => r.violations())
 
     // The false declaration is reported — that is the assertion working.
@@ -106,6 +107,7 @@ describe('a false declaration does not swallow the findings under it', () => {
       // Two packages → two rules under one id, BOTH genuinely violated.
       restrictedPackages: { '**/domain/**': ['lodash'], '**/nowhere/**': ['knex'] },
       expectEmpty: ['preset/layered/restricted-packages'],
+      report: 'builders',
     }).flatMap((r) => r.violations())
     const deduped = dedupeConfigFindings(raw)
 
@@ -191,7 +193,7 @@ describe('the remedy names a call the reader can actually make', () => {
     // whose carrier states the spelling because it is the one place that knows
     // both the id and that its caller accepts `expectEmpty`.
     const p = inMemory({ '/src/types-only.ts': 'export type A = { n: number }\n' })
-    const v = recommended(p, { include: '**/types-only.ts' })
+    const v = recommended(p, { include: '**/types-only.ts', report: 'builders' })
       .flatMap((r) => r.violations())
       .find((x) => x.bypassFilters === true)
     expect(v?.message ?? '').toContain('examined 0')

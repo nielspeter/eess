@@ -37,7 +37,7 @@ function buildRules(): RuleBuilderLike[] {
   const rec = projectFor('recommended') // dangerous.ts trips no-eval / no-function-constructor
   const layered = projectFor('layered') // reversed layers trip layer-order; typeImports trips a warn
   return [
-    ...recommended(rec),
+    ...recommended(rec, { report: 'builders' }),
     ...layeredArchitecture(layered, {
       layers: {
         repositories: '**/repositories/**',
@@ -45,6 +45,7 @@ function buildRules(): RuleBuilderLike[] {
         routes: '**/routes/**',
       },
       typeImportsAllowed: ['**/routes/**'],
+      report: 'builders',
     }),
   ]
 }
@@ -121,7 +122,11 @@ describe('shape presets through the check pipeline (returning form)', () => {
     vi.spyOn(process.stderr, 'write').mockReturnValue(true)
     try {
       checkAll(
-        dataLayerIsolation(dl, { repositories: '**/repositories/**', baseClass: 'BaseRepository' }),
+        dataLayerIsolation(dl, {
+          repositories: '**/repositories/**',
+          baseClass: 'BaseRepository',
+          report: 'builders',
+        }),
       )
       expect.fail('should have thrown')
     } catch (e) {

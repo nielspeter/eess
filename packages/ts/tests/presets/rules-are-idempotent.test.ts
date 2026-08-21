@@ -66,7 +66,7 @@ function fingerprint(rules: RuleBuilderLike[]): string[] {
 
 /** Every shipped preset, built against the fixture that trips it. */
 const PRESETS: Array<[string, () => RuleBuilderLike[]]> = [
-  ['recommended', () => recommended(projectFor('recommended'))],
+  ['recommended', () => recommended(projectFor('recommended'), { report: 'builders' })],
   [
     'layeredArchitecture',
     () =>
@@ -76,11 +76,16 @@ const PRESETS: Array<[string, () => RuleBuilderLike[]]> = [
           services: '**/services/**',
           routes: '**/routes/**',
         },
+        report: 'builders',
       }),
   ],
   [
     'strictBoundaries',
-    () => strictBoundaries(projectFor('boundaries'), { folders: '**/src/feature-*' }),
+    () =>
+      strictBoundaries(projectFor('boundaries'), {
+        folders: '**/src/feature-*',
+        report: 'builders',
+      }),
   ],
   [
     'dataLayerIsolation',
@@ -88,6 +93,7 @@ const PRESETS: Array<[string, () => RuleBuilderLike[]]> = [
       dataLayerIsolation(projectFor('data-layer'), {
         repositories: '**/repositories/**',
         baseClass: 'BaseRepository',
+        report: 'builders',
       }),
   ],
   [
@@ -105,6 +111,7 @@ const PRESETS: Array<[string, () => RuleBuilderLike[]]> = [
         noEmptyBodies: true,
         noGenericErrors: true,
         noCopyPaste: true,
+        report: 'builders',
       }),
   ],
 ]

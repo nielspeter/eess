@@ -27,6 +27,7 @@ describe('dataLayerIsolation preset', () => {
     const rules = dataLayerIsolation(p, {
       repositories: '**/repositories/**',
       baseClass: 'BaseRepository',
+      report: 'builders',
     })
     expect(violatedIds(rules)).toContain('preset/data/extend-base')
   })
@@ -35,6 +36,7 @@ describe('dataLayerIsolation preset', () => {
     const rules = dataLayerIsolation(p, {
       repositories: '**/repositories/**',
       requireTypedErrors: true,
+      report: 'builders',
     })
     expect(violatedIds(rules)).toContain('preset/data/typed-errors')
   })
@@ -50,6 +52,7 @@ describe('dataLayerIsolation preset', () => {
       repositories: '**/repositories/bad-repo.ts',
       requireTypedErrors: true,
       baseClass: 'BaseRepository',
+      report: 'builders',
     }).flatMap((r) => r.violations())
     expect(violations.length).toBeGreaterThan(0)
   })
@@ -59,6 +62,7 @@ describe('dataLayerIsolation preset', () => {
       repositories: '**/repositories/**',
       requireTypedErrors: true,
       baseClass: 'BaseRepository',
+      report: 'builders',
     }).flatMap((r) => r.violations())
     expect(violations.length).toBeGreaterThan(0)
   })
@@ -71,6 +75,7 @@ describe('dataLayerIsolation preset', () => {
     const rules = dataLayerIsolation(p, {
       repositories: '**/repositories/good-repo.ts',
       requireTypedErrors: true,
+      report: 'builders',
     })
     expect(rules.flatMap((r) => r.violations())).toEqual([])
   })
@@ -82,6 +87,7 @@ describe('dataLayerIsolation preset', () => {
     const rules = dataLayerIsolation(p, {
       repositories: '**/repositories/bad-repo.ts',
       requireTypedErrors: true,
+      report: 'builders',
     })
     expect(violatedIds(rules)).not.toContain('preset/data/extend-base')
   })
@@ -91,7 +97,10 @@ describe('dataLayerIsolation preset', () => {
     // `dataLayerIsolation({ repositories })` used to return `[]`, a green
     // build on a fixture (bad-repo) that would fail every rule if either
     // flag were on.
-    const rules = dataLayerIsolation(p, { repositories: '**/repositories/bad-repo.ts' })
+    const rules = dataLayerIsolation(p, {
+      repositories: '**/repositories/bad-repo.ts',
+      report: 'builders',
+    })
     expect(rules).toHaveLength(1)
     const violations = rules[0]!.violations()
     expect(violations).toHaveLength(1)
@@ -104,9 +113,11 @@ describe('dataLayerIsolation preset', () => {
     const ids = (rules: RuleBuilderLike[]): string[] =>
       rules.flatMap((r) => r.violations()).map((v) => v.ruleId ?? '')
 
-    expect(ids(dataLayerIsolation(p, { repositories: '**/repositories/bad-repo.ts' }))).toContain(
-      'preset/data/constructs-nothing',
-    )
+    expect(
+      ids(
+        dataLayerIsolation(p, { repositories: '**/repositories/bad-repo.ts', report: 'builders' }),
+      ),
+    ).toContain('preset/data/constructs-nothing')
     // Applying exactly the stated remedy — "Set at least one of: baseClass,
     // requireTypedErrors" — and nothing else about the call changes.
     expect(
@@ -114,6 +125,7 @@ describe('dataLayerIsolation preset', () => {
         dataLayerIsolation(p, {
           repositories: '**/repositories/bad-repo.ts',
           requireTypedErrors: true,
+          report: 'builders',
         }),
       ),
     ).not.toContain('preset/data/constructs-nothing')
@@ -127,6 +139,7 @@ describe('dataLayerIsolation preset', () => {
     const rules = dataLayerIsolation(p, {
       repositories: '**/repositories/bad-repo.ts',
       expectEmpty: ['preset/data/extend-base'],
+      report: 'builders',
     })
     const ids = rules.flatMap((r) => r.violations()).map((v) => v.ruleId)
     expect(ids).toEqual(['preset/expect-empty/preset/data/extend-base'])
@@ -137,6 +150,7 @@ describe('dataLayerIsolation preset', () => {
       repositories: '**/repositories/**',
       baseClass: 'BaseRepository',
       overrides: { 'preset/data/extend-base': 'off' },
+      report: 'builders',
     })
     expect(violatedIds(rules)).not.toContain('preset/data/extend-base')
   })
@@ -149,6 +163,7 @@ describe('dataLayerIsolation preset', () => {
       repositories: '**/repositories/**',
       baseClass: 'BaseRepository',
       overrides: { 'preset/data/extend-base': 'off' },
+      report: 'builders',
     })
     expect(rules).toEqual([])
   })

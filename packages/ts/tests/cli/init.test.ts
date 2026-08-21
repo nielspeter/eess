@@ -499,7 +499,7 @@ describe('template option shapes stay valid against the presets', () => {
 
   it('recommended and agentGuardrails accept the generated option objects', () => {
     const p = loadProject()
-    expect(recommended(p, { include: '**/lib/**' }).length).toBeGreaterThan(0)
+    expect(recommended(p, { include: '**/lib/**', report: 'builders' }).length).toBeGreaterThan(0)
     expect(
       agentGuardrails(p, {
         src: '**/src/**',
@@ -507,6 +507,7 @@ describe('template option shapes stay valid against the presets', () => {
         noStubs: true,
         noEmptyBodies: true,
         noCopyPaste: true,
+        report: 'builders',
       }).length,
     ).toBeGreaterThan(0)
   })
@@ -521,12 +522,18 @@ describe('template option shapes stay valid against the presets', () => {
         repositories: '**/src/repositories/**',
       },
       shared: ['**/src/shared/**'],
+      report: 'builders',
     })
-    strictBoundaries(p, { folders: '**/src/features/*', shared: ['**/src/shared/**'] })
+    strictBoundaries(p, {
+      folders: '**/src/features/*',
+      shared: ['**/src/shared/**'],
+      report: 'builders',
+    })
     dataLayerIsolation(p, {
       repositories: '**/src/repositories/**',
       baseClass: 'BaseRepository',
       requireTypedErrors: true,
+      report: 'builders',
     })
   })
 })

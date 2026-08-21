@@ -559,6 +559,7 @@ describe('the guards that landed on one carrier', () => {
     const data = dataLayerIsolation(p, {
       repositories: '**/types-only.ts',
       baseClass: 'BaseRepository',
+      report: 'builders',
     })
       .flatMap((r) => r.violations())
       .filter((v) => v.bypassFilters === true)
@@ -566,7 +567,11 @@ describe('the guards that landed on one carrier', () => {
     expect(data.map((v) => v.message ?? '').join('\n')).toContain("in this preset's options")
 
     // agent-guardrails' own push helper
-    const agent = agentGuardrails(p, { src: '**/types-only.ts', noEmptyBodies: true })
+    const agent = agentGuardrails(p, {
+      src: '**/types-only.ts',
+      noEmptyBodies: true,
+      report: 'builders',
+    })
       .flatMap((r) => r.violations())
       .filter((v) => v.bypassFilters === true)
     expect(agent.length).toBeGreaterThan(0)

@@ -3,7 +3,7 @@ import { Project } from 'ts-morph'
 import path from 'node:path'
 import type { ArchProject } from '../../src/core/project.js'
 import { recommended } from '../../src/presets/recommended.js'
-import type { ArchViolation } from '@nielspeter/eess'
+import type { ArchViolation, RuleBuilderLike } from '@nielspeter/eess'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/presets/recommended')
 const tsconfigPath = path.join(fixturesDir, 'tsconfig.json')
@@ -21,9 +21,9 @@ describe('recommended preset', () => {
   const p = loadTestProject()
 
   it('is a thin floor — exactly four rules (2 error, 2 warn) with preset/recommended/* ids', () => {
-    const violations = recommended(p).flatMap((b) => b.violations())
+    const violations = recommended(p, { report: 'builders' }).flatMap((b) => b.violations())
     const ids = new Set(violations.map((v) => v.ruleId))
-    expect(recommended(p)).toHaveLength(4)
+    expect(recommended(p, { report: 'builders' })).toHaveLength(4)
     expect(ids).toEqual(
       new Set([
         'preset/recommended/no-eval',
@@ -44,22 +44,24 @@ describe('recommended preset', () => {
 
   it('the default include matches source files under src/', () => {
     // dangerous.ts trips all four; the default include must reach it.
-    const violations = recommended(p).flatMap((b) => b.violations())
+    const violations = recommended(p, { report: 'builders' }).flatMap((b) => b.violations())
     expect(violations.length).toBeGreaterThan(0)
   })
 
   it('the default include does NOT reach files outside src/', () => {
     // scripts/gen.ts has an eval but lives outside src/. Positive control first:
     // scope the include to it and confirm the rule *would* fire there.
-    const scoped = recommended(p, { include: '**/scripts/**' }).flatMap((b) => b.violations())
+    const scoped = recommended(p, { include: '**/scripts/**', report: 'builders' }).flatMap((b) =>
+      b.violations(),
+    )
     expect(scoped.some((v) => v.element?.includes('scriptEval'))).toBe(true)
     // Default include must exclude it.
-    const def = recommended(p).flatMap((b) => b.violations())
+    const def = recommended(p, { report: 'builders' }).flatMap((b) => b.violations())
     expect(def.some((v) => v.element?.includes('scriptEval'))).toBe(false)
   })
 
   it('catches eval and the Function constructor as errors', () => {
-    const violations = recommended(p).flatMap((b) => b.violations())
+    const violations = recommended(p, { report: 'builders' }).flatMap((b) => b.violations())
     const evalV = violations.find((v) => v.ruleId === 'preset/recommended/no-eval')
     const fnV = violations.find((v) => v.ruleId === 'preset/recommended/no-function-constructor')
     expect(evalV?.severity).toBe('error')
@@ -68,7 +70,7 @@ describe('recommended preset', () => {
   })
 
   it('silent-catch and empty-bodies are warnings (reported, non-failing)', () => {
-    const violations = recommended(p).flatMap((b) => b.violations())
+    const violations = recommended(p, { report: 'builders' }).flatMap((b) => b.violations())
     const silent = violations.find((v) => v.ruleId === 'preset/recommended/no-silent-catch')
     const empty = violations.find((v) => v.ruleId === 'preset/recommended/no-empty-bodies')
     expect(silent?.severity).toBe('warn')
@@ -76,7 +78,7 @@ describe('recommended preset', () => {
   })
 
   it('rules carry agent-facing metadata (because/suggestion/imperative)', () => {
-    const violations = recommended(p).flatMap((b) => b.violations())
+    const violations = recommended(p, { report: 'builders' }).flatMap((b) => b.violations())
     const v = violations.find((x) => x.ruleId === 'preset/recommended/no-eval')
     expect(v).toBeDefined()
     expect(v?.suggestion).toBeTruthy()
@@ -84,13 +86,16 @@ describe('recommended preset', () => {
   })
 
   it('produces zero violations on clean code', () => {
-    const violations = recommended(p, { include: '**/clean.ts' }).flatMap((b) => b.violations())
+    const violations = recommended(p, { include: '**/clean.ts', report: 'builders' }).flatMap((b) =>
+      b.violations(),
+    )
     expect(violations).toHaveLength(0)
   })
 
   it('override to "off" omits that specific builder', () => {
     const violations = recommended(p, {
       overrides: { 'preset/recommended/no-eval': 'off' },
+      report: 'builders',
     }).flatMap((b) => b.violations())
     expect(violations.some((v) => v.ruleId === 'preset/recommended/no-eval')).toBe(false)
     // the other three still fire
@@ -100,6 +105,7 @@ describe('recommended preset', () => {
   it('override to "error" promotes a warn rule', () => {
     const empty = recommended(p, {
       overrides: { 'preset/recommended/no-empty-bodies': 'error' },
+      report: 'builders',
     })
       .flatMap((b) => b.violations())
       .find((v) => v.ruleId === 'preset/recommended/no-empty-bodies')
@@ -109,6 +115,7 @@ describe('recommended preset', () => {
   it('override to "warn" downgrades an error rule', () => {
     const evalV = recommended(p, {
       overrides: { 'preset/recommended/no-eval': 'warn' },
+      report: 'builders',
     })
       .flatMap((b) => b.violations())
       .find((v) => v.ruleId === 'preset/recommended/no-eval')
@@ -128,7 +135,9 @@ describe('recommended preset', () => {
     const typo: Partial<Record<string, 'error' | 'warn' | 'off'>> = {}
     typo['preset/recommended/no-evalz'] = 'off'
 
-    const findings = recommended(p, { overrides: typo }).flatMap((r) => r.violations())
+    const findings = recommended(p, { overrides: typo, report: 'builders' }).flatMap((r) =>
+      r.violations(),
+    )
     const config = findings.filter((v) => v.bypassFilters === true)
 
     expect(config).toHaveLength(1)
@@ -143,6 +152,7 @@ describe('recommended preset', () => {
     // Without this, "always report an override problem" passes the row above.
     const findings = recommended(p, {
       overrides: { 'preset/recommended/no-silent-catch': 'off' },
+      report: 'builders',
     }).flatMap((r) => r.violations())
 
     expect(findings.filter((v) => v.bypassFilters === true)).toEqual([])
@@ -172,7 +182,12 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
     'preset/recommended/no-silent-catch',
     'preset/recommended/no-empty-bodies',
   ] as const
-  const configFindings = (rules: ReturnType<typeof recommended>): ArchViolation[] =>
+  // Annotated explicitly rather than as `ReturnType<typeof recommended>`:
+  // `ReturnType` resolves to the LAST overload, and the overloads were
+  // deliberately reordered so that omitting `report` returns violations
+  // (PR #72 review — the builder form is now `report: 'builders'`). Every call
+  // below passes it, so this helper takes builders.
+  const configFindings = (rules: RuleBuilderLike[]): ArchViolation[] =>
     rules.flatMap((r) => r.violations()).filter((v) => v.bypassFilters === true)
 
   it('the carrier reaches EVERY rule the preset constructs', () => {
@@ -180,12 +195,16 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
     // `.expectEmpty()` is unreachable to them; without a carrier their only
     // remedy is `overrides: 'off'`, which is permanent and deletes the rule
     // rather than declaring a fact about it.
-    expect(configFindings(recommended(p, { include: EMPTY }))).toHaveLength(ALL_IDS.length)
+    expect(configFindings(recommended(p, { include: EMPTY, report: 'builders' }))).toHaveLength(
+      ALL_IDS.length,
+    )
 
     // All four clear — so the carrier reached all four, not just the first.
-    expect(configFindings(recommended(p, { include: EMPTY, expectEmpty: [...ALL_IDS] }))).toEqual(
-      [],
-    )
+    expect(
+      configFindings(
+        recommended(p, { include: EMPTY, expectEmpty: [...ALL_IDS], report: 'builders' }),
+      ),
+    ).toEqual([])
   })
 
   it('declaring one rule clears ONLY that rule — by NAME, not by count', () => {
@@ -202,6 +221,7 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
     const one = recommended(p, {
       include: EMPTY,
       expectEmpty: ['preset/recommended/no-eval'],
+      report: 'builders',
     })
     expect(
       configFindings(one)
@@ -214,7 +234,7 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
     // The distinction that makes the carrier safe. Plan 0074: an empty selection
     // is a state you may declare; a selector that can never match is a mistake,
     // and no declaration should hide it. Measured: still reported when declared.
-    const dead = recommended(p, { include: DEAD, expectEmpty: [...ALL_IDS] })
+    const dead = recommended(p, { include: DEAD, expectEmpty: [...ALL_IDS], report: 'builders' })
     expect(configFindings(dead)).toHaveLength(ALL_IDS.length)
     expect(configFindings(dead)[0]?.message).toContain('can never match')
   })
@@ -227,7 +247,7 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
     // expired, so three carriers could quietly do nothing and the row still read
     // green. All four are false over this corpus, so all four must say so.
     expect(
-      configFindings(recommended(p, { expectEmpty: [...ALL_IDS] }))
+      configFindings(recommended(p, { expectEmpty: [...ALL_IDS], report: 'builders' }))
         .map((v) => v.ruleId)
         .sort(),
     ).toEqual([...ALL_IDS].sort())
@@ -240,6 +260,7 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
       include: EMPTY,
       overrides: { 'preset/recommended/no-silent-catch': 'off' },
       expectEmpty: ['preset/recommended/no-silent-catch'],
+      report: 'builders',
     })
     const unbound = configFindings(both).filter((v) =>
       String(v.ruleId ?? '').startsWith('preset/expect-empty/'),
@@ -250,7 +271,7 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
 
   it('CONTROL: no declaration, real corpus — no configuration findings at all', () => {
     // Without this every row above holds if the producer fired always, or never.
-    const plain = recommended(p)
+    const plain = recommended(p, { report: 'builders' })
     expect(plain).toHaveLength(ALL_IDS.length)
     expect(configFindings(plain)).toEqual([])
   })

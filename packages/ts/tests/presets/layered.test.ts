@@ -26,7 +26,8 @@ const violatedIds = (rules: RuleBuilderLike[]) => new Set(all(rules).map((v) => 
 
 describe('layeredArchitecture preset', () => {
   const p = loadTestProject()
-  const run = (opts: LayeredArchitectureOptions) => layeredArchitecture(p, opts)
+  const run = (opts: LayeredArchitectureOptions) =>
+    layeredArchitecture(p, { ...opts, report: 'builders' })
 
   const ordered = {
     routes: '**/routes/**',

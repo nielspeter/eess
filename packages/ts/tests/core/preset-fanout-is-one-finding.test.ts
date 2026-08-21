@@ -138,6 +138,7 @@ describe('the fan-out this was built for, end to end', () => {
     const rules = strictBoundaries(p, {
       folders: '**/src/*',
       shared: ['**/src/not-built-yet/**'],
+      report: 'builders',
     })
     const raw = rules.flatMap((r) => r.violations())
     const rawConfig = raw.filter((v) => v.bypassFilters === true)
@@ -161,6 +162,7 @@ describe('the fan-out this was built for, end to end', () => {
     const rules = strictBoundaries(p, {
       folders: '**/src/*',
       shared: ['**/src/not-built-yet/**'],
+      report: 'builders',
     })
     let thrown: unknown
     try {
@@ -180,7 +182,7 @@ describe('the fan-out this was built for, end to end', () => {
   it('CONTROL: a correct configuration produces no configuration findings', () => {
     // Without this, a dedupe that dropped everything would pass every assertion
     // above.
-    const rules = strictBoundaries(p, { folders: '**/src/*' })
+    const rules = strictBoundaries(p, { folders: '**/src/*', report: 'builders' })
     const findings = dedupeConfigFindings(rules.flatMap((r) => r.violations()))
     expect(findings.filter((v) => v.bypassFilters === true)).toEqual([])
   })
