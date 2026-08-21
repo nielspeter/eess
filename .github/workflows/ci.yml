@@ -63,11 +63,26 @@ jobs:
       - run: npm run check:spec
       # Work-item numbers are unique across every lane (plans, bugs, proposals).
       - run: npm run check:numbers
+      # Every published check-constructor is probed for fail-open. Absent from
+      # this file until PR #72's review found it — the ONLY step of `validate`
+      # that was missing, on a branch that rewrote the script it runs. The
+      # comment below claimed a meta-check prevented exactly this; it could not
+      # (see `gateCoverage`), and now does.
+      - run: npm run check:vacuity
       # Every gate above is proven non-vacuous: violating fixtures must make it exit 1.
       # Also proves every step of `validate` runs here — this list and the chain
-      # in package.json are two lists of one thing, and were allowed to drift (0129).
+      # in package.json are two lists of one thing, and were allowed to drift (0129,
+      # and again with check:vacuity until PR #72). `gateCoverage` now reads THIS
+      # file, so the claim is checked rather than asserted.
       - run: npm run check:nonvacuity
       - run: npm run typecheck
+      # The vacuity matrix imports from `dist`, so it cannot join the pre-build
+      # suite and lives behind its own script. It ran on NO path until PR #72's
+      # review — 48 tests, invoked by nothing: not `test`, not `validate`, not
+      # this file. `packages/ts/vitest.config.ts` justified the exclusion by
+      # pointing at "an explicit post-build CI step"; this is that step, which
+      # did not exist when the comment was written.
+      - run: npm run test:matrix --workspace packages/ts
       - run: npm run check:examples
       - run: npm run check:docs-code
       # The review harness stays runnable against a foreign project.

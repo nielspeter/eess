@@ -1080,6 +1080,39 @@ function gateCoverage() {
   const checks = Object.keys(pkg.scripts ?? {}).filter((k) => k.startsWith('check:'))
   const names = new Set(gates.map(([n]) => n))
   const problems = []
+
+  // `ci.yml` runs every step of `validate` — CHECKED, not asserted.
+  //
+  // This function's own call site in `ci.yml` claimed it "proves every step of
+  // validate runs here". It did not: it read `package.json` and never opened the
+  // workflow, so the two lists could drift freely in the one direction that
+  // matters. They had. `check:vacuity` — the gate that probes every published
+  // check-constructor for fail-open — was in `validate` and absent from CI,
+  // discovered by hand in PR #72's review, on a branch that rewrote the script it
+  // runs. A meta-check that cannot see the drift it names is the defect this
+  // repo exists to prevent, one level up from the gates it audits.
+  //
+  // Direction matters: a step in CI but not in `validate` is redundancy, not a
+  // hole. A step in `validate` but not in CI means a local-only gate, which is
+  // the shape that bit us (0129, then again here).
+  const ciPath = join(repoRoot, '.github/workflows/ci.yml')
+  const ci = readFileSync(ciPath, 'utf8')
+  const validateSteps = String(pkg.scripts?.validate ?? '')
+    .split('&&')
+    .map((s) => s.trim().replace(/^npm run /, ''))
+    .filter(Boolean)
+  if (validateSteps.length === 0) problems.push('validate chain is empty or unreadable')
+  for (const step of validateSteps) {
+    if (!ci.includes(`npm run ${step}`)) {
+      problems.push(`validate runs "${step}" but .github/workflows/ci.yml does not`)
+    }
+  }
+  // `test:matrix` is not a `check:*` and not in `validate` — it cannot join the
+  // pre-build suite because it imports from `dist`. It therefore has no other
+  // claimant, and ran on no path at all until PR #72.
+  if (!ci.includes('test:matrix')) {
+    problems.push('packages/ts test:matrix (the vacuity matrix) runs on no CI path')
+  }
   for (const c of checks) {
     if (NO_GATE_NEEDED[c] !== undefined) continue
     const g = GATE_FOR[c]
@@ -1103,8 +1136,13 @@ function gateCoverage() {
     ok: problems.length === 0,
     status:
       problems.length === 0
-        ? 'OK (every check:* accounted for)'
-        : 'FAILED (a check:* is unaccounted for)',
+        ? 'OK (every check:* accounted for, and every validate step runs in CI)'
+        : // Named by what actually failed. The old text said "a check:* is
+          // unaccounted for" unconditionally, which misdescribes the CI-drift
+          // findings added in PR #72 — and a status line that names the wrong
+          // fault sends the reader to the wrong file, which is the failure mode
+          // bug 0174 is filed about.
+          `FAILED (${problems.length} problem(s): ${problems.some((x) => x.includes('ci.yml') || x.includes('CI path')) ? 'validate/CI drift' : 'a check:* is unaccounted for'})`,
     detail:
       problems.length === 0
         ? `${checks.length} check:* scripts — ${Object.keys(GATE_FOR).length} gated by ` +
