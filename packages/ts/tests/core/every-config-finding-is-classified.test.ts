@@ -89,7 +89,7 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
   'src/cli/rule-file-findings.ts::baselineNotApplied': {
     remedy: 'own',
     verified:
-      "behavioural: rule-file-truncation.test.ts — `it('clears once the remedy it names is applied, and the rules then load')` applies the stated fix (`report: 'builders'`) to the same preset and asserts the finding clears AND that rules still load, which is the remedy-clears half; `it('says the baseline could not be applied, instead of failing in silence')` asserts it fires and pins the twin fixtures via the JSON collection; `it('does not fire when the throw carried nothing the rule file could print')` holds the false-positive case; and `it('does not warn when the rule file lets the CLI do the reporting')` kills a fix that printed unconditionally",
+      "behavioural: rule-file-truncation.test.ts — `it('clears once the remedy it names is applied, and the rules then load')` applies the stated fix (`report: 'builders'`) and asserts the finding clears AND that rules still load, which is the remedy-clears half; `it('says the baseline could not be applied, instead of failing in silence')` asserts it fires and pins the twin fixtures via the JSON collection; `it('does not fire when the throw carried nothing the rule file could print')` holds the false-positive case; `it('fires for --changed too, not only --baseline')` covers the second filter; and `it('does not warn when the rule file lets the CLI do the reporting')` kills a fix that printed unconditionally",
   },
   'src/cli/rule-file-findings.ts::ruleFileTruncated': {
     remedy: 'own',

@@ -203,24 +203,37 @@ export function ruleFileTruncated(file: string, ruleFiles: number): ArchViolatio
  * `bypassFilters` because it reports a gap in filtering — accepting it into a
  * baseline would suppress the notice that the baseline is not being applied.
  */
-export function baselineNotApplied(file: string, baselinePath: string): ArchViolation {
+export function baselineNotApplied(
+  file: string,
+  filters: { baseline?: string; changed: boolean },
+): ArchViolation {
+  // Name the filters that were actually in play. `--baseline` is not the only one,
+  // and it is not always a FLAG — a config file can set it, and telling someone
+  // "`--baseline` was not applied" when they never typed it sends them looking for
+  // an argument they did not pass (adopter review of PR #74).
+  const names: string[] = []
+  if (filters.baseline !== undefined) names.push(`the baseline \`${basename(filters.baseline)}\``)
+  if (filters.changed) names.push('`--changed` (diff-aware mode)')
+  const list = names.join(' and ')
+
   return {
     // NOT `eess-ts: rule file` — `dedupeConfigFindings` keys on
     // `file + rule + element`, so sharing that label merges this into
     // `ruleFileTruncated()` and the notice disappears. Measured: it did.
-    rule: 'eess-ts: baseline',
+    rule: 'eess-ts: filtering',
     element: basename(file),
     file,
     line: 1,
     message:
-      `This rule file reported findings itself, and \`--baseline\` was NOT applied to ` +
-      `them — any violation printed above reached you unfiltered by ` +
-      `\`${basename(baselinePath)}\`, so violations you have already accepted can appear ` +
-      `here as failures. The rules the CLI collected were filtered normally.`,
+      `This rule file reported findings itself, so ${list} ` +
+      `${names.length > 1 ? 'were' : 'was'} NOT applied to them — anything it printed ` +
+      `reached you unfiltered, and findings you have already accepted or excluded can ` +
+      `appear as failures. The findings the CLI collected were filtered normally, which ` +
+      `is why the counts in this run disagree.`,
     because:
-      `A baseline can only suppress findings the CLI collects. A rule file that calls ` +
-      `its own terminal at module scope prints them first, so the run you are reading ` +
-      `is not the run the baseline describes.`,
+      `A CLI-side filter can only act on findings the CLI collects. A rule file that ` +
+      `calls its own terminal at module scope prints them first, so the run you are ` +
+      `reading is not the run the filter describes.`,
     // The remedy is ordered generic-first ON PURPOSE. This finding fires for ANY
     // terminal throwing at module scope — a hand-written `.check()` with no preset
     // in sight reaches it too — so naming the preset fix alone would be the ADR-009
@@ -228,7 +241,7 @@ export function baselineNotApplied(file: string, baselinePath: string): ArchViol
     suggestion:
       `Move this file's rules into \`export default [rule1, rule2]\` and drop the ` +
       `terminal calls — an array export hands every rule to the CLI, which then owns ` +
-      `reporting and applies the baseline to all of it. If the rules come from a ` +
+      `reporting and applies every filter to all of it. If the rules come from a ` +
       `preset, pass \`report: 'builders'\` instead — e.g. ` +
       `\`recommended(p, { report: 'builders' })\` — which returns the builders rather ` +
       `than running them. \`eess-ts init\` scaffolds both forms correctly.`,

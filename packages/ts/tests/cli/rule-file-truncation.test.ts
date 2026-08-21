@@ -303,9 +303,9 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
       // report rather than stderr, because in this mode stderr carries the rule
       // file's own leaked print and the CLI's report goes to stdout — which is the
       // very split this bug is about.
-      const notice = collected.find((v) => v.rule === 'eess-ts: baseline')
+      const notice = collected.find((v) => v.rule === 'eess-ts: filtering')
       expect(notice).toBeDefined()
-      expect(notice?.message).toContain('--baseline')
+      expect(notice?.message).toContain('arch-baseline.json')
       expect(notice?.message).toMatch(/was not applied|could not be applied/i)
       // And it must say what to do about it. THIS fixture contains no preset — a
       // bare `functions(p)…check()` — so the remedy it needs is the generic one.
@@ -448,6 +448,29 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }
+  })
+
+  /**
+   * **`--changed` leaks identically, and shipped with nothing.** Found by the
+   * adopter review, which measured a transcript that contradicts itself in three
+   * consecutive lines: five violation blocks printed, then "Diff-aware mode
+   * suppressed 5 findings outside the 0 changed files", then an exit claiming one.
+   *
+   * The first version of this fix gated on `args.baseline !== undefined`, which is
+   * arbitrary — the condition that matters is "the rule file self-reported while a
+   * CLI-side filter was in play", and `--changed` is such a filter.
+   */
+  it('fires for --changed too, not only --baseline', async () => {
+    capture()
+    await runCheck({
+      ...baseArgs,
+      ruleFiles: [fixture('enforcing-inline.rules.ts')],
+      changed: true,
+      base: 'HEAD',
+    })
+    const report = stderr.join('')
+    expect(report).toMatch(/was not applied|could not be applied/i)
+    expect(report).toContain('--changed')
   })
 
   /**

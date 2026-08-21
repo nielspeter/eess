@@ -27,10 +27,19 @@ packages together. There is no page, no section, no snippet.
 ## Why this blocks the release rather than following it
 
 The API surface is **not** the gap — that is already closed. Measured against the
-published `@nielspeter/ts-archunit@0.61.0` `.d.ts`: 253 exports, of which **251
-are present in eess-ts under the same name**, and eess-ts exports 311 in total.
-The only two absent are `correspondence` / `CorrespondenceBuilder`, deliberately
-renamed to `crossProject` / `CrossProjectBuilder`.
+published `@nielspeter/ts-archunit@0.61.0`: **the only two exports absent from
+eess-ts are `correspondence` / `CorrespondenceBuilder`**, deliberately renamed to
+`crossProject` / `CrossProjectBuilder`. Everything else is present under the same
+name, and eess-ts exports a superset.
+
+**The counts are deliberately not quoted here, because the first version's were
+wrong.** It said "253 exports, of which 251 are present, eess-ts exporting 311" —
+derived by regex over `index.d.ts`. A reviewer re-derived them with the TypeScript
+checker (`getExportsOfModule`) and got **317 / 396 / 315 shared** — the same
+qualitative answer, numbers off by roughly 25%. The regex could not see re-exported
+and type-only surface. That is the sixth hand-derived population figure this corpus
+has had to withdraw, and the reason the migration page must carry the command that
+produced any number it quotes, dated, rather than the number alone.
 
 So a migration is genuinely small — which is exactly why leaving it undocumented
 is the wrong trade. The work is a page, not an engine.
@@ -47,6 +56,16 @@ corpus answers today:
    scripts — do they change, and does `init` overwrite or collide with an existing
    ts-archunit setup?
 4. **Presets.** Do preset names and their `overrides` keys carry over unchanged?
+5. **Inline exclusion comments — the widest surface, and the first version of this
+   record never asked.** The token changed: `// ts-archunit-exclude <id>: <why>` →
+   `// eess-exclude <id>: <why>`. Measured by the adopter review on one identical
+   source file: ts-archunit reports 4 violations and "1 finding suppressed by
+   inline comments"; eess-ts reports **5**, with **no mention** of the comment on
+   the line above. The exemption evaporates silently. It fails loud rather than
+   green, so it is not a fake pass — but it is a wrong attribution, and the blast
+   radius is every file in the repo rather than one rules file. eess-ts already has
+   the machinery to notice these comments; it should recognise the legacy token and
+   say so.
 
 ## Measured: baseline compatibility (2026-08-21)
 

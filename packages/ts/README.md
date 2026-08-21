@@ -186,12 +186,13 @@ are calling it:
 | anywhere, advisory                | `{ report: 'warn' }`     | reports without failing                                                                                                   |
 |                                   | `{ format: 'json' }`     | machine-readable output                                                                                                   |
 
-**`'return'` in a rule file is a silent green, not a smaller failure.** A rule file
+**`'return'` in a rule file does not work, and it fails loudly.** A rule file
 spreads its presets into `export default [...]`, so `'return'` splats
-`ArchViolation[]` into the rules array, the CLI loads **zero rules**, and `check`
-prints `0 rules across 1 file` and exits **0**. `tsc --noEmit` does not catch it —
-a spread of the wrong array type is not a type error. Use `'builders'` in a rule
-file. `eess-ts init` scaffolds it for you.
+`ArchViolation[]` into the rules array — and the loader rejects it:
+`default export entry [0] is not a rule builder (got object)`, exit 1. `tsc
+--noEmit` does not catch it (a spread of the wrong array type is not a type
+error), so the CLI is what tells you. Use `'builders'` in a rule file;
+`eess-ts init` scaffolds it.
 
 Per-rule severity is tunable via `overrides`.
 

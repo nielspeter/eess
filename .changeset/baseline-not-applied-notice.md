@@ -12,8 +12,8 @@ filters. With `--baseline` in play the result is a red build listing violations 
 user has already accepted, and nothing in the output mentioning the baseline at all.
 
 Measured against a real `@nielspeter/ts-archunit` baseline: **all 5 entries
-matched** and the build still exited 1 reporting 2 of them. The hashes were never
-the problem; the printed output simply never reached the filter.
+matched** and the build still exited 1, with every one of them printed. The hashes
+were never the problem; the printed output simply never reached the filter.
 
 The run now says so, and names the one-line remedy:
 

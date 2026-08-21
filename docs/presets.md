@@ -35,12 +35,13 @@ export default [...recommended(p, { report: 'builders' })]
 
 ### Two traps worth knowing
 
-**`'return'` in a rule file is a silent green.** A rule file spreads its presets
-into `export default [...]`. With `'return'` the spread splats `ArchViolation[]`
-into the rules array, the CLI loads **zero rules**, and `check` prints
-`0 rules across 1 file` and exits **0**. `tsc --noEmit` does not catch it — a
-spread of the wrong array type is not a type error. That `0 rules` is the alarm
-value the summary line exists to print; if you see it, this is usually why.
+**`'return'` in a rule file does not work.** A rule file spreads its presets into
+`export default [...]`, so `'return'` splats `ArchViolation[]` into the rules array
+and the loader rejects it — `default export entry [0] is not a rule builder (got
+object)`, exit 1. `tsc --noEmit` does not catch it (a spread of the wrong array
+type is not a type error), so the CLI is what tells you. Measured, not assumed:
+an earlier draft of this page claimed it was a silent `0 rules` green, which was
+the behaviour before the loader gained that guard.
 
 **Omitting `report` in a rule file defeats `--baseline`.** The preset then
 enforces during module evaluation and prints its own findings, which never pass

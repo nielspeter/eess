@@ -126,8 +126,11 @@ export async function runCheck(args: CheckArgs): Promise<number> {
         // cannot verify. Measured by review; `it('does not fire when the throw
         // carried nothing the rule file could print')` holds it.
         const printedUnfiltered = error.violations.some((v) => v.bypassFilters !== true)
-        if (args.baseline !== undefined && printedUnfiltered) {
-          collected.push(baselineNotApplied(file, args.baseline))
+        const filtering = args.baseline !== undefined || args.changed
+        if (filtering && printedUnfiltered) {
+          collected.push(
+            baselineNotApplied(file, { baseline: args.baseline, changed: args.changed }),
+          )
         }
       }
       failedRules++
