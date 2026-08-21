@@ -122,7 +122,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
 
   /**
    * Return the predicate-filtered elements as a labelled `Selection<T>` for
-   * cross-validation (`correspondence()`). The set is exactly the elements this
+   * cross-validation (`crossProject()`). The set is exactly the elements this
    * rule would evaluate — the same filtering `.check()` applies.
    *
    * **Restored in plan 0165 Phase 2.** `select()` is eess's, not upstream's: it
@@ -173,7 +173,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    *
    * Distinct from the abstract `getElements()`, which is the *pre-filter*
    * population. This is the materialization contract (F1, plan 0064) that
-   * composable primitives build on — `correspondence().side(selection, keyFn)`
+   * composable primitives build on — `crossProject().side(selection, keyFn)`
    * keys each subject, and `.expectNonEmpty()` (plan 0064+) asserts the set is
    * non-empty. It does not evaluate conditions and never warns about their
    * absence, so it is safe to call on a bare `.that()` selection.

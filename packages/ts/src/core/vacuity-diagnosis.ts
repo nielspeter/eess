@@ -254,7 +254,7 @@ export function evidenceFloor(
   // must agree or `doctor` and `check` disagree about a working rule.
   if (facts.assertsCardinality()) return violations
   // The author said empty is the point. `declaresEmpty()` — not
-  // `_expectEmpty` — because `CorrespondenceBuilder` declares per side and
+  // `_expectEmpty` — because `CrossProjectBuilder` declares per side and
   // overrides this; asking a fully-declared correspondence to declare would
   // be ADR-009 rule 2's loop, and the base implementation cannot express it.
   if (!facts.declaresEmpty()) return [facts.zeroSubjectsViolation(project)]

@@ -176,7 +176,7 @@ describe('smells.inconsistentSiblings()', () => {
       const advice = builder.inertAdvice()
       expect(advice).toContain('examined 5 sibling files')
       expect(advice).toContain('only 1 of them')
-      expect(advice).toContain('correspondence().side(...).beComplete()')
+      expect(advice).toContain('crossProject().side(...).beComplete()')
     })
 
     it('diagnose does not require the flip — truthful on a FRESH builder', () => {

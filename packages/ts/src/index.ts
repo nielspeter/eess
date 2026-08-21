@@ -366,8 +366,8 @@ export {
 
 // Correspondence / coverage primitive (proposal 017)
 export {
-  correspondence,
-  CorrespondenceBuilder,
+  crossProject,
+  CrossProjectBuilder,
   byName,
   byArg,
   byPropertyNames,

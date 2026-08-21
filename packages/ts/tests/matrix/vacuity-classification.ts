@@ -17,7 +17,7 @@ import {
   calls,
   call,
   classes,
-  correspondence,
+  crossProject,
   crossLayer,
   functions,
   jsxElements,
@@ -121,7 +121,7 @@ export const CHECKS: Record<string, CheckEntry> = {
   },
   '.:correspondence': {
     unit: 'keys of both sides, summed',
-    recipe: (c) => correspondence(c.project).side('left', []).side('right', []).beComplete(),
+    recipe: (c) => crossProject(c.project).side('left', []).side('right', []).beComplete(),
     deviation:
       'correspondence has no corpus of its own — its sides ARE its input, so the zero-subject cell is two empty sides',
   },
@@ -272,7 +272,7 @@ export const NOT_CHECKS: readonly string[] = [
   '.:Baseline',
   '.:CallRuleBuilder',
   '.:ClassRuleBuilder',
-  '.:CorrespondenceBuilder',
+  '.:CrossProjectBuilder',
   '.:CrossLayerBuilder',
   '.:DiffFilter',
   '.:DuplicateBodiesBuilder',

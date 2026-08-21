@@ -26,7 +26,7 @@ import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
-import { byName, correspondence } from '../../src/builders/correspondence-builder.js'
+import { byName, crossProject } from '../../src/builders/correspondence-builder.js'
 import type { ArchProject } from '../../src/core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 
@@ -138,7 +138,7 @@ describe('a config finding carries its own remedy, not the author’s (bug 0021)
     const empty = functions(p)
       .that()
       .haveNameMatching(/^definitelyNotAFunction$/)
-    const findings = correspondence(p)
+    const findings = crossProject(p)
       .side('a', empty, byName())
       .side('b', ['k'])
       .beComplete()
@@ -201,7 +201,7 @@ describe('a config finding carries its own remedy, not the author’s (bug 0021)
         .beExported()
         .violations(),
       ...slices(sl).matching('src/nowhere/').should().beFreeOfCycles().violations(),
-      ...correspondence(poc)
+      ...crossProject(poc)
         .side(
           'a',
           functions(poc)

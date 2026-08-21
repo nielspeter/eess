@@ -60,7 +60,7 @@ describe('mutatesThenReturnsThis — hands the receiver back after editing it', 
 
   it('flags the aliased receiver — `const next = this`, then return next', () => {
     // This is the shape that made the shipped detector miss a full revert of
-    // CorrespondenceBuilder.side(). It reads like copy-on-write and is not.
+    // CrossProjectBuilder.side(). It reads like copy-on-write and is not.
     const src = `class B {
       private _items: string[] = []
       add(x: string): this { const next = this; next._items.push(x); return next }

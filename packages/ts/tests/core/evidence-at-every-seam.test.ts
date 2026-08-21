@@ -32,7 +32,7 @@ import type { ArchProject } from '../../src/core/project.js'
 import { diagnose } from '../../src/core/diagnose.js'
 import { smells } from '../../src/smells/index.js'
 import { call, globAnyOf, stampGlobs } from '../../src/index.js'
-import { correspondence } from '../../src/builders/correspondence-builder.js'
+import { crossProject } from '../../src/builders/correspondence-builder.js'
 import { modules, slices, crossLayer, haveMatchingCounterpart } from '../../src/index.js'
 import { tsconfig } from '../../src/tsconfig/index.js'
 import { resolvers, schemaFromSDL } from '../../src/graphql/index.js'
@@ -66,8 +66,8 @@ describe('a family counts what it examined (plan 0096)', () => {
   })
 
   it('correspondence: two empty sides is its zero-subject state', () => {
-    expect(correspondence(loaded).side('a', []).side('b', []).examinedUnits()).toBe(0)
-    expect(correspondence(loaded).side('a', ['k']).side('b', []).examinedUnits()).toBe(1)
+    expect(crossProject(loaded).side('a', []).side('b', []).examinedUnits()).toBe(0)
+    expect(crossProject(loaded).side('a', ['k']).side('b', []).examinedUnits()).toBe(1)
   })
 
   it('graphql schema: fields loaded, predicates narrow to zero', () => {
@@ -182,7 +182,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
     // also condition-less — so the rows passed under `toContain` while actually
     // reporting ['no-condition','zero-subjects'], conflating the fault they mean
     // to prove with a different one.
-    expect(kindsOf(correspondence(loaded).side('a', []).side('b', []).beComplete())).toEqual([
+    expect(kindsOf(crossProject(loaded).side('a', []).side('b', []).beComplete())).toEqual([
       'zero-subjects',
     ])
     expect(
@@ -196,7 +196,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
     // The plan pre-registered this row and the first pass shipped without it,
     // because `const before` was captured AFTER the no-condition push so the tail
     // could never suppress on it.
-    expect(kindsOf(correspondence(loaded).side('a', []).side('b', []))).toEqual(['no-condition'])
+    expect(kindsOf(crossProject(loaded).side('a', []).side('b', []))).toEqual(['no-condition'])
   })
 
   it('yields to a declaration — the advice must not tell you to do what you did', () => {
@@ -217,7 +217,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
     // an ADR-008 split-row equivalence — and that equivalence EXPIRED the moment
     // `diagnose()` became its first reader, one commit later. Reverting the
     // override to the base body left the whole suite green until this row.
-    const base = correspondence(loaded).side('a', []).side('b', []).beComplete()
+    const base = crossProject(loaded).side('a', []).side('b', []).beComplete()
     expect(kindsOf(base)).toEqual(['zero-subjects'])
     // One of two sides is not a declaration about the rule.
     expect(kindsOf(base.expectEmpty('a'))).toEqual(['zero-subjects'])
@@ -227,7 +227,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
     // And `[].every(...)` is TRUE, so a correspondence with no sides at all would
     // declare itself empty vacuously — the ∀-over-∅ shape this whole plan is
     // about, reappearing inside the check that suppresses the plan's own finding.
-    expect(correspondence(loaded).beComplete().declaresEmpty()).toBe(false)
+    expect(crossProject(loaded).beComplete().declaresEmpty()).toBe(false)
   })
 
   it('resolvers reports through diagnose(), not only through the accessor', () => {
@@ -318,7 +318,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
     // names, and assert the finding clears. The generic `.expectEmpty()` is a
     // TypeError on correspondence, so an advice string shared across families
     // would send this reader into an exception — verified, not assumed.
-    const rule = correspondence(loaded).side('a', []).side('b', []).beComplete()
+    const rule = crossProject(loaded).side('a', []).side('b', []).beComplete()
     const [finding] = diagnose([rule]).filter((f) => f.kind === 'zero-subjects')
     expect(finding?.advice).toContain('.expectEmpty(sideName)')
     expect(finding?.advice).not.toContain('with .expectEmpty() if')
@@ -410,7 +410,7 @@ describe('classification of the evidence hooks (plan 0096)', () => {
   const COUNTS_AT_ITS_OWN_SEAM: readonly string[] = [
     'DuplicateBodiesBuilder', // post-minLines, post-glob
     'InconsistentSiblingsBuilder', // folders of >= 2, not files
-    'CorrespondenceBuilder', // materialized sides, and it has no project
+    'CrossProjectBuilder', // materialized sides, and it has no project
     'SchemaRuleBuilder', // post-predicate fields; no project either
     'ResolverRuleBuilder', // post-predicate resolvers
     // Plan 0098 — the seam's return type forced these. `RuleBuilder` is the
@@ -489,7 +489,7 @@ describe('classification of the evidence hooks (plan 0096)', () => {
   it('CONTROL: that link is a real constraint, not a claim about an empty set', () => {
     // The row above is [] if no builder overrides `expectEmpty` at all. One does.
     const redefiners = [...named.keys()].filter((n) => ownerOf(named.get(n), 'expectEmpty') === n)
-    expect(redefiners).toContain('CorrespondenceBuilder')
+    expect(redefiners).toContain('CrossProjectBuilder')
   })
 })
 

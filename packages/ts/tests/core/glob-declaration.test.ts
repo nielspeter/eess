@@ -69,7 +69,7 @@ const DECLARES_GLOBS = [
 
 const TAKES_NO_GLOB = [
   // Takes two selections, not paths.
-  'CorrespondenceBuilder',
+  'CrossProjectBuilder',
   // Asserts compiler options; there is no glob to be wrong about.
   'TsconfigBuilder',
   // `schema()` loads through `loadSchemaFromGlob`, which THROWS on zero

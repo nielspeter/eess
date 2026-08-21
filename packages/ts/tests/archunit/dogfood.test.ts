@@ -56,7 +56,7 @@ import {
   call,
   smells,
   tsconfig,
-  correspondence,
+  crossProject,
   crossLayer,
   satisfyPairCondition,
   checkAll,
@@ -198,7 +198,7 @@ describe('smells: the detectors the floor lives by', () => {
     const witherNames = [
       '#SmellBuilder.ignoreTests',
       '#SmellBuilder.groupByFolder',
-      '#CorrespondenceBuilder.beComplete',
+      '#CrossProjectBuilder.beComplete',
     ]
     for (const name of witherNames) {
       expect(
@@ -213,8 +213,8 @@ describe('smells: the detectors the floor lives by', () => {
     // pair would pass even if a second edge of the same triangle regressed.
     const pairs: [string, string][] = [
       ['#SmellBuilder.ignoreTests', '#SmellBuilder.groupByFolder'],
-      ['#SmellBuilder.ignoreTests', '#CorrespondenceBuilder.beComplete'],
-      ['#SmellBuilder.groupByFolder', '#CorrespondenceBuilder.beComplete'],
+      ['#SmellBuilder.ignoreTests', '#CrossProjectBuilder.beComplete'],
+      ['#SmellBuilder.groupByFolder', '#CrossProjectBuilder.beComplete'],
     ]
     for (const [a, b] of pairs) {
       const stillPairs = identities.some((id) => id.includes(a) && id.includes(b))
@@ -266,7 +266,7 @@ describe('correspondence: the surfaces that must stay in step', () => {
     // `beComplete()`, not `haveNoOrphans()`: the invariant is one-directional.
     // Every builder needs a test; extra test files (`within`, the object-literal
     // and identified-by-arg cases) are additional coverage, not orphans.
-    const rule = correspondence(p)
+    const rule = crossProject(p)
       .side('builder', builders)
       .side('test', tests)
       .should()

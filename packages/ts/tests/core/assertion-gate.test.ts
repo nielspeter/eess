@@ -32,7 +32,7 @@ import { functions } from '../../src/builders/function-rule-builder.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { emptyProjectAdvice } from '../../src/core/empty-project-advice.js'
-import { correspondence } from '../../src/builders/correspondence-builder.js'
+import { crossProject } from '../../src/builders/correspondence-builder.js'
 import { tsconfig } from '../../src/tsconfig/index.js'
 import { smells } from '../../src/smells/index.js'
 import { call } from '../../src/helpers/matchers.js'
@@ -154,14 +154,14 @@ describe('assertionAdvice: one remedy per state, and only its own', () => {
     const parsers = functions(p)
       .that()
       .haveNameMatching(/^parse/)
-    const twoSides = correspondence(p)
+    const twoSides = crossProject(p)
       .side('a', parsers, (f) => f.getName() ?? '?')
       .side('b', ['x'])
     expect(advice(twoSides)).toContain('.beComplete()')
 
     // One side is an ARITY fault: adding .beComplete() would leave the rule
     // exactly as broken, so the advice must not name it.
-    const oneSide = correspondence(p).side('a', parsers, (f) => f.getName() ?? '?')
+    const oneSide = crossProject(p).side('a', parsers, (f) => f.getName() ?? '?')
     const a = advice(oneSide)
     expect(a).toContain('.side(')
     expect(a).not.toContain('.beComplete()')
@@ -205,10 +205,10 @@ describe('assertionAdvice: one remedy per state, and only its own', () => {
       parsers.should().that(),
       tsconfig(repo),
       smells.inconsistentSiblings(p2).minLines(2),
-      correspondence(p)
+      crossProject(p)
         .side('a', parsers, (f) => f.getName() ?? '?')
         .side('b', ['x']),
-      correspondence(p).side('a', parsers, (f) => f.getName() ?? '?'),
+      crossProject(p).side('a', parsers, (f) => f.getName() ?? '?'),
       slices(sl).matching('src/').should(),
       schemaFromSDL('type Query { a: String }').that().queries().should(),
       resolvers(load('graphql'), 'src/**/*.resolver.ts'),
@@ -741,7 +741,7 @@ describe('diagnose() parity — one string, one place', () => {
       { rule: resolvers(gp, 'src/**/*.resolver.ts'), label: 'ResolverRuleBuilder' },
       { rule: tsconfig(repo), label: 'TsconfigBuilder' },
       {
-        rule: correspondence(p)
+        rule: crossProject(p)
           .side(
             'a',
             functions(p)
@@ -750,7 +750,7 @@ describe('diagnose() parity — one string, one place', () => {
             (f) => f.getName() ?? '?',
           )
           .side('b', ['x']),
-        label: 'CorrespondenceBuilder',
+        label: 'CrossProjectBuilder',
       },
       {
         rule: smells.inconsistentSiblings(project(fixtures('smells/inconsistent-siblings'))),
@@ -858,7 +858,7 @@ describe('assertion classification of every exported builder', () => {
     // requirements object; {} is reachable
     'TsconfigBuilder',
     // both check flags false is reachable
-    'CorrespondenceBuilder',
+    'CrossProjectBuilder',
     // no pattern is reachable
     'InconsistentSiblingsBuilder',
     // the abstract root that OWNS the conditions hook — its subclasses inherit

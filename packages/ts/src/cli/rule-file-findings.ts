@@ -42,7 +42,7 @@ export function attributeToRuleFile(
  * `runCheck` and `runBaseline` caught `ArchRuleError` and rethrew everything
  * else, so any other error escaped the per-file loop and terminated the process
  * — no report written, no exit code returned, and every finding already
- * collected discarded. Measured: one malformed `correspondence()` in one file
+ * collected discarded. Measured: one malformed `crossProject()` in one file
  * silenced a second file's four real violations, and printed a raw Node stack
  * trace with `node_modules` paths in their place.
  *
@@ -82,7 +82,7 @@ export function ruleFileFailure(file: string, error: unknown, ruleFiles: number)
     // builder), and naming one cause for all of them is the ADR-009 rule 2
     // defect. The error message above is the evidence; the builder sentence is
     // offered as the common case that is fixable without touching source code.
-    suggestion: `Fix the error named above in this rule file. If it names a builder method — for example a correspondence() with the wrong number of .side(...) calls — the rule is misconfigured rather than violated, so the fix is in the rule file and not in the code it checks.`,
+    suggestion: `Fix the error named above in this rule file. If it names a builder method — for example a crossProject() with the wrong number of .side(...) calls — the rule is misconfigured rather than violated, so the fix is in the rule file and not in the code it checks.`,
     bypassFilters: true,
   }
 }

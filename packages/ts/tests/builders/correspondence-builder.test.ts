@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import { ArchRuleError } from '@nielspeter/eess'
 import {
-  correspondence,
+  crossProject,
   byName,
   byArg,
   byPropertyNames,
@@ -41,11 +41,11 @@ function services(): TestRuleBuilder {
 }
 const byNameKey = (e: TestElement): string => e.name
 
-describe('correspondence()', () => {
+describe('crossProject()', () => {
   describe('.beComplete() — A ⊆ B (coverage)', () => {
     it('passes when every A key has a B match', () => {
       expect(() => {
-        correspondence(stubProject)
+        crossProject(stubProject)
           .side('services', services(), byNameKey)
           .side('registry', ['UserService', 'OrderService', 'Extra'])
           .should()
@@ -55,7 +55,7 @@ describe('correspondence()', () => {
     })
 
     it('fails, naming the uncovered A key, when a match is missing', () => {
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .beComplete()
@@ -68,7 +68,7 @@ describe('correspondence()', () => {
 
   describe('.haveNoOrphans() — B ⊆ A', () => {
     it('flags a B key with no A source', () => {
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService', 'OrderService', 'Ghost'])
         .haveNoOrphans()
@@ -81,7 +81,7 @@ describe('correspondence()', () => {
   describe('.beBijective() — both directions', () => {
     it('passes only when the key sets are identical', () => {
       expect(() => {
-        correspondence(stubProject)
+        crossProject(stubProject)
           .side('services', services(), byNameKey)
           .side('registry', ['UserService', 'OrderService'])
           .beBijective()
@@ -91,7 +91,7 @@ describe('correspondence()', () => {
 
     it('reports both a missing and an orphan (identity, not cardinality)', () => {
       // same count on both sides, but one dropped + one added
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService', 'Ghost'])
         .beBijective()
@@ -108,7 +108,7 @@ describe('correspondence()', () => {
       const emptySel = new TestRuleBuilder(stubProject, elements)
         .that()
         .withPredicate(nameMatches(/^NothingMatches$/))
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', emptySel, byNameKey)
         .side('registry', ['UserService'])
         .beComplete()
@@ -119,7 +119,7 @@ describe('correspondence()', () => {
     })
 
     it('fails when a keys side is empty', () => {
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', [])
         .beComplete()
@@ -133,7 +133,7 @@ describe('correspondence()', () => {
         .that()
         .withPredicate(nameMatches(/^NothingMatches$/))
       expect(() => {
-        correspondence(stubProject)
+        crossProject(stubProject)
           .side('services', emptySel, byNameKey)
           .side('registry', ['UserService'])
           .expectEmpty('services')
@@ -148,7 +148,7 @@ describe('correspondence()', () => {
       // read: `allowEmpty` restored, permanent and silent, in fewer characters
       // than before, on the release that deleted it. A correspondence compares
       // two named sides, so "this rule is empty" has no per-rule meaning.
-      expect(() => correspondence(stubProject).side('a', []).side('b', []).expectEmpty()).toThrow(
+      expect(() => crossProject(stubProject).side('a', []).side('b', []).expectEmpty()).toThrow(
         TypeError,
       )
     })
@@ -157,7 +157,7 @@ describe('correspondence()', () => {
       // The typo case. ADR-010 part 3 rules the identical preset case a FAILING
       // finding, never a warning — a declaration that binds to nothing asserts
       // nothing, and saying so is the whole difference from `allowEmpty`.
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .expectEmpty('servcies') // typo
@@ -181,7 +181,7 @@ describe('correspondence()', () => {
       // `services` genuinely is not empty so the corrected declaration has
       // genuinely expired. Asserted rather than filtered, because a filtered
       // empty list would also pass if `violations()` returned nothing at all.
-      const fixed = correspondence(stubProject)
+      const fixed = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .expectEmpty('services')
@@ -198,7 +198,7 @@ describe('correspondence()', () => {
 
       // The remedy's OTHER branch — remove the declaration — is the one an
       // agent takes, and it clears everything.
-      const removed = correspondence(stubProject)
+      const removed = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .beComplete()
@@ -212,7 +212,7 @@ describe('correspondence()', () => {
       // message, file and line — the identity shape bugs 0064, 0065 and 0067 were
       // filed for, where `hashViolation` keys both to one baseline entry and the
       // terminal prints the same sentence twice.
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .expectEmpty('typo')
@@ -225,7 +225,7 @@ describe('correspondence()', () => {
     it('two unbound names report two findings, by identity', () => {
       // The `.map()`'s identity property: one finding per bad name, not one
       // per rule. Catches a future "report only the first" simplification.
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .expectEmpty('servcies')
@@ -236,7 +236,7 @@ describe('correspondence()', () => {
     })
 
     it('distinctKeysOn() with an unbound name is caught by the same check', () => {
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .distinctKeysOn('registrees') // typo
@@ -248,7 +248,7 @@ describe('correspondence()', () => {
     it('.expectEmpty(side) FAILS the day that side fills up — plan 0097', () => {
       // The property that makes it an assertion rather than `allowEmpty()`'s
       // permission, which had no failing state and so stayed green forever.
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .expectEmpty('services')
@@ -265,7 +265,7 @@ describe('correspondence()', () => {
     it('the expiry remedy remediates: removing the declaration clears it', () => {
       // ADR-009 rule 2's behavioural corollary — apply the stated fix and assert
       // the finding clears, rather than asserting the sentence reads well.
-      const withoutDeclaration = correspondence(stubProject)
+      const withoutDeclaration = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .beComplete()
@@ -283,7 +283,7 @@ describe('correspondence()', () => {
         .that()
         .withPredicate(nameMatches(/^NothingMatches$/))
       expect(() => {
-        correspondence(stubProject)
+        crossProject(stubProject)
           .side('a', emptyA, byNameKey)
           .side('b', [])
           .expectEmpty('a')
@@ -299,7 +299,7 @@ describe('correspondence()', () => {
       // that choice and NOTHING falsified it: swapping the two branches produced
       // 0 failures across 3305 tests, measured by two reviewers independently.
       //
-      // The difference is reachable here. `CorrespondenceBuilder.declaresEmpty()`
+      // The difference is reachable here. `CrossProjectBuilder.declaresEmpty()`
       // is an all-sides conjunction and this class reports its own per-side
       // expiry, so reading it at the root would emit a THIRD, whole-rule finding
       // on top of the two per-side ones — the double-report the root's sole
@@ -308,7 +308,7 @@ describe('correspondence()', () => {
       // `.expectEmpty(sideName) for each side`, so it would say
       // "`.expectEmpty(sideName) for each side` asserted this RULE examines
       // nothing" — a claim this class refuses to make by design.
-      const vs = correspondence(stubProject)
+      const vs = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService', 'OrderService'])
         .expectEmpty('services')
@@ -328,7 +328,7 @@ describe('correspondence()', () => {
   describe('.distinctKeysOn() — over-normalization guard', () => {
     it('fails per collapsed subject when a side maps distinct subjects to one key', () => {
       const base = () =>
-        correspondence(stubProject)
+        crossProject(stubProject)
           .side('a', new TestRuleBuilder(stubProject, elements).that(), () => 'same')
           .side('b', ['same'])
           .beComplete()
@@ -343,7 +343,7 @@ describe('correspondence()', () => {
 
   describe('multi-key / empty keyFn', () => {
     it('a keyFn returning [] contributes no keys (subject deliberately vanishes)', () => {
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('a', services(), () => [])
         .side('b', ['UserService'])
         .expectEmpty('a') // a produced no keys — declared, so not a finding
@@ -357,7 +357,7 @@ describe('correspondence()', () => {
   describe('terminals + errors', () => {
     it('.check() throws ArchRuleError on violations', () => {
       expect(() => {
-        correspondence(stubProject)
+        crossProject(stubProject)
           .side('services', services(), byNameKey)
           .side('registry', ['UserService'])
           .beComplete()
@@ -375,7 +375,7 @@ describe('correspondence()', () => {
       //
       // `.beComplete()` on one side cannot assert anything: there is no second
       // side to compare against. So the fault reports identically either way.
-      const rule = correspondence(stubProject).side('a', ['x']).beComplete()
+      const rule = crossProject(stubProject).side('a', ['x']).beComplete()
       expect(rule.assertsSomething()).toBe(false)
       const v = rule.violations()
       expect(v).toHaveLength(1)
@@ -412,7 +412,7 @@ describe('correspondence()', () => {
       // ArchRuleError-only catch and dropped every remaining rule file. It is
       // now a configuration finding, so it formats, baselines, annotates and
       // exits like every other finding.
-      const rule = correspondence(stubProject).side('a', ['x']).side('b', ['x'])
+      const rule = crossProject(stubProject).side('a', ['x']).side('b', ['x'])
       const v = rule.violations()
       expect(v).toHaveLength(1)
       expect(v[0]?.bypassFilters).toBe(true)
@@ -422,7 +422,7 @@ describe('correspondence()', () => {
     })
 
     it('the remedy remediates: adding .beComplete() clears the finding', () => {
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('a', ['x'])
         .side('b', ['x'])
         .beComplete()
@@ -433,7 +433,7 @@ describe('correspondence()', () => {
     it('wrong arity still names arity, not an assertion', () => {
       // Two faults reach the same hook, and naming the wrong one is ADR-008
       // rule 2: adding .beComplete() here would leave the rule as broken.
-      const v = correspondence(stubProject).side('a', ['x']).violations()
+      const v = crossProject(stubProject).side('a', ['x']).violations()
       expect(v).toHaveLength(1)
       expect(v[0]?.message).toContain('.side(')
       expect(v[0]?.message).not.toContain('.beComplete()')
@@ -441,11 +441,11 @@ describe('correspondence()', () => {
 
     it('a selection side requires a keyFn', () => {
       // @ts-expect-error — keyFn is required for a selection source
-      expect(() => correspondence(stubProject).side('s', services())).toThrow(/requires a keyFn/)
+      expect(() => crossProject(stubProject).side('s', services())).toThrow(/requires a keyFn/)
     })
 
     it('propagates rule metadata to violations (agent payload)', () => {
-      const v = correspondence(stubProject)
+      const v = crossProject(stubProject)
         .side('services', services(), byNameKey)
         .side('registry', ['UserService'])
         .beComplete()
@@ -487,7 +487,7 @@ describe('correspondence()', () => {
         'src/a.ts': 'export class Alpha {}\n',
         'src/b.ts': 'export class Beta {}\n',
       })
-      const v = correspondence(p)
+      const v = crossProject(p)
         .side('classes', classes(p).that(), byName())
         .side('registry', ['Alpha']) // Beta is missing
         .beComplete()
@@ -505,7 +505,7 @@ describe('correspondence()', () => {
           'app.get("/a", () => {})\n' +
           'app.get("/b", () => {})\n',
       })
-      const v = correspondence(p)
+      const v = crossProject(p)
         .side('routes', calls(p).that().onObject('app').and().withMethod('get'), byArg(0))
         .side('registry', ['/a']) // '/b' missing — byArg unquotes, so keys are '/a','/b'
         .beComplete()
@@ -520,7 +520,7 @@ describe('correspondence()', () => {
       const p = inMemoryProject({
         'src/limits.ts': 'export class Limits { a = 1; b = 2; c = 3 }\n',
       })
-      const v = correspondence(p)
+      const v = crossProject(p)
         .side(
           'fields',
           classes(p)

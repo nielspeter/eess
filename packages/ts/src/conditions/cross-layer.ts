@@ -19,7 +19,7 @@ import { marksOwnEmptyDiscovery } from '@nielspeter/eess'
  * "Match" is determined by the mapping function provided via `.mapping()`.
  *
  * This is an existence/coverage check, so it shares the set-difference +
- * non-vacuity core (`setCorrespondence`, F2) with `correspondence()` — the two
+ * non-vacuity core (`setCorrespondence`, F2) with `crossProject()` — the two
  * "every X has a matching Y" engines cannot drift, and neither can silently
  * green on an empty side: a left layer that matched **zero** files is a
  * mis-globbed layer that enforces nothing, so it now fails (ADR-008) rather

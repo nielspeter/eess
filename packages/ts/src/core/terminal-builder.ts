@@ -184,7 +184,7 @@ abstract class RuleDeclaration {
    * failure the moment the typo is fixed, and until then the intent is stated
    * in the rule where a reader sees it — rather than in a baseline, or nowhere.
    *
-   * Symmetric with {@link expectNonEmpty} for the rule builders. A family may **refuse** the zero-arg form where a whole-rule notion of empty has no meaning — `CorrespondenceBuilder` throws, because it declares per side — so a consumer walking `TerminalBuilder[]` must not call it unguarded. Exactly symmetric, and the two together mean
+   * Symmetric with {@link expectNonEmpty} for the rule builders. A family may **refuse** the zero-arg form where a whole-rule notion of empty has no meaning — `CrossProjectBuilder` throws, because it declares per side — so a consumer walking `TerminalBuilder[]` must not call it unguarded. Exactly symmetric, and the two together mean
    * the empty/non-empty question is always answerable from the rule text.
    * Declaring both is a contradiction and throws here rather than silently
    * picking one.
@@ -201,7 +201,7 @@ abstract class RuleDeclaration {
    *
    * The base answer is the whole-rule flag. It is `protected` and overridable
    * because a family whose declaration is not whole-rule must be able to say so:
-   * `CorrespondenceBuilder` declares per SIDE and refuses the zero-arg form
+   * `CrossProjectBuilder` declares per SIDE and refuses the zero-arg form
    * entirely, so `_expectEmpty` is unreachable there and this default would
    * answer `false` for a rule whose every side the author declared — reporting a
    * finding that tells them to declare what they declared, which is ADR-008
@@ -215,7 +215,7 @@ abstract class RuleDeclaration {
    * rule 5 violation inside the migration that plan warns about.
    *
    * It exists now, ahead of the floor that reads it, for a reason worth stating:
-   * a private version of this lived on `CorrespondenceBuilder` and was deleted
+   * a private version of this lived on `CrossProjectBuilder` and was deleted
    * as dead code, correctly — but the deletion also removed the only expression
    * of the concept, so the override 0098 needs would have gone missing SILENTLY
    * rather than as the compile error a narrowed-visibility clash would have
@@ -230,7 +230,7 @@ abstract class RuleDeclaration {
    *
    * The sibling of `assertionAdvice()`, and it exists for the same reason: a
    * remedy is only verified to remediate if following it works, and the generic
-   * `.expectEmpty()` is a `TypeError` on `CorrespondenceBuilder`, which declares
+   * `.expectEmpty()` is a `TypeError` on `CrossProjectBuilder`, which declares
    * per side. Advice that names the one form the reader cannot call is ADR-008
    * rule 2's failure with extra confidence.
    *
@@ -652,7 +652,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * **That equivalence expires in plan 0099**, which reads `examined` at the
    * floor. The commit that gives a claim its first reader is the commit that must
    * retire it — this repo has already had one recorded equivalence outlive its
-   * truth by exactly one commit (`CorrespondenceBuilder.declaresEmpty`), and a
+   * truth by exactly one commit (`CrossProjectBuilder.declaresEmpty`), and a
    * sabotage row for the wiring belongs in 0099's matrix on day one.
    */
   protected abstract collectViolations(): CollectResult
@@ -719,7 +719,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    *
    * **Gate-first**, ahead of `collectViolations()`, for three measured reasons:
    * an assertion-less rule cannot produce a legitimate finding, so running it
-   * buys nothing but a full AST walk; `CorrespondenceBuilder.collectViolations`
+   * buys nothing but a full AST walk; `CrossProjectBuilder.collectViolations`
    * throws before returning, so a gate placed after it would never run for that
    * builder and its `RangeError` would escape the CLI's `ArchRuleError`-only
    * catch, dropping every remaining rule file; and the alternative ordering —

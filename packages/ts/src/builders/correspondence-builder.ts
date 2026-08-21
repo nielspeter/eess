@@ -1,3 +1,20 @@
+/**
+ * **The exports here are `crossProject` / `CrossProjectBuilder`; the FILE is still
+ * `correspondence-builder.ts`, on purpose.**
+ *
+ * The symbols were renamed because `correspondence` collided: the kernel exports
+ * a different `correspondence({ left, right })` that `eess-md` re-exports and
+ * `docs/markdown.md` teaches, so one word named two incompatible APIs inside one
+ * family — and `family.rules.ts`'s allowlist, written to mean "eess-ts has no
+ * correspondence", silently permitted "eess-ts has a different one". Found by the
+ * product and architect reviews of PR #72.
+ *
+ * The filename did not follow because nine `path:line` pointers in CLOSED records
+ * (plans 0147 and 0150) cite it. Renaming the file would either break them or
+ * require rewriting finished history to describe a name that never existed at the
+ * time. The collision was in the published API, and that is what was fixed;
+ * tidying the filename is not worth falsifying a record.
+ */
 import type { ViolationMeta } from './correspondence-findings.js'
 import {
   duplicateKeyFindings,
@@ -135,7 +152,7 @@ export const sidesOf = selectionMemo<Map<string, unknown[]>>()
  * compared nothing, and `examinedUnits()` reports that as zero rather than
  * letting it pass vacuously (ADR-010).
  */
-export class CorrespondenceBuilder extends TerminalBuilder {
+export class CrossProjectBuilder extends TerminalBuilder {
   private _sides: Side[] = []
   private _checkComplete = false
   private _checkNoOrphans = false
@@ -242,7 +259,7 @@ export class CorrespondenceBuilder extends TerminalBuilder {
    * required one is not a valid override of `TerminalBuilder`'s zero-arg
    * `expectEmpty()` — but the OVERRIDE VALIDITY argument justifies the
    * signature, not the semantics. Inheriting the base meaning gave
-   * `correspondence().expectEmpty()` a whole-rule flag that suppressed the
+   * `crossProject().expectEmpty()` a whole-rule flag that suppressed the
    * empty-side finding for BOTH sides and that the expiry branch never read:
    * `allowEmpty` restored, permanent and silent, in fewer characters than
    * before, on the release that deleted it. Measured green over two populated
@@ -256,7 +273,7 @@ export class CorrespondenceBuilder extends TerminalBuilder {
   override expectEmpty(side?: string): this {
     if (side === undefined) {
       throw new TypeError(
-        'correspondence() declares emptiness per side: call .expectEmpty(sideName) for each side ' +
+        'crossProject() declares emptiness per side: call .expectEmpty(sideName) for each side ' +
           'you expect to be empty. A correspondence compares two named sides, so a whole-rule ' +
           'declaration would suppress both and expire on neither.',
       )
@@ -452,8 +469,8 @@ export class CorrespondenceBuilder extends TerminalBuilder {
  * Entry point: assert a correspondence between two independently-derived key
  * sets. Call `.side(...)` twice, then an assertion terminal.
  */
-export function correspondence(p: ArchProject): CorrespondenceBuilder {
-  return new CorrespondenceBuilder(p)
+export function crossProject(p: ArchProject): CrossProjectBuilder {
+  return new CrossProjectBuilder(p)
 }
 
 // --- keyFn vocabulary (the common cases; keyFn stays a raw escape hatch) ---

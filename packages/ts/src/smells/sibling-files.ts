@@ -111,7 +111,7 @@ export function inertMessage(a: { matching: number; total: number }, patternDesc
     `cannot produce a finding today. It reports a file that diverges from what its siblings do; with no ` +
     `majority reachable by adopting files, there is no divergence to report. ` +
     `If this rule asserts a convention the codebase is still adopting, replace it with ` +
-    `correspondence().side(...).beComplete(), which fails the day a file falls short — until adoption is ` +
+    `crossProject().side(...).beComplete(), which fails the day a file falls short — until adoption is ` +
     `complete, so expect that red. If the intent is to police divergence rather than the convention itself, ` +
     `widen the folder so a majority forms, or choose a pattern the sibling files already share.`
   )

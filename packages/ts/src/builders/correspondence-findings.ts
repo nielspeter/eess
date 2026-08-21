@@ -354,7 +354,7 @@ export function resolveSides(
   const [sideA, sideB] = sides
   if (sides.length !== 2 || sideA === undefined || sideB === undefined) {
     throw new RangeError(
-      `correspondence() requires exactly two .side(...) calls; got ${String(sides.length)}.`,
+      `crossProject() requires exactly two .side(...) calls; got ${String(sides.length)}.`,
     )
   }
   return {
@@ -396,7 +396,7 @@ export function materializeSides(
   const [first, second] = pair
   if (first === undefined || second === undefined) {
     throw new RangeError(
-      `correspondence(): the memoized side pair held ${String(pair.length)} entries, not 2.`,
+      `crossProject(): the memoized side pair held ${String(pair.length)} entries, not 2.`,
     )
   }
   return [first, second]

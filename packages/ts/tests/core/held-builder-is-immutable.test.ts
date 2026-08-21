@@ -11,7 +11,7 @@
  * not have reached them. The
  * leaks that matter most are the ones that turn a later rule GREEN —
  * `SmellBuilder.ignorePaths` (inherit an ignore, skip the files),
- * `CorrespondenceBuilder.allowEmpty` (inherit an opt-out from the empty-side
+ * `CrossProjectBuilder.allowEmpty` (inherit an opt-out from the empty-side
  * guard), and any narrowing predicate (inherit it, select nothing, pass).
  *
  * Two derivations, per ADR-008:
@@ -35,7 +35,7 @@ import {
 } from '../helpers/builder-mutation-scan.js'
 import { project } from '../../src/core/project.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
-import { byName, correspondence } from '../../src/builders/correspondence-builder.js'
+import { byName, crossProject } from '../../src/builders/correspondence-builder.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { calls } from '../../src/builders/call-rule-builder.js'
@@ -365,12 +365,12 @@ describe('a held builder is immutable — behavioural', () => {
     )
   })
 
-  it('CorrespondenceBuilder: a leaked allowEmpty would hide an empty side', () => {
+  it('CrossProjectBuilder: a leaked allowEmpty would hide an empty side', () => {
     const p = load('poc')
     const empty = functions(p)
       .that()
       .haveNameMatching(/^nothingMatchesThis$/)
-    const held = correspondence(p).side('a', empty, byName()).side('b', ['x'])
+    const held = crossProject(p).side('a', empty, byName()).side('b', ['x'])
 
     // Not declared: the empty side is the reported root cause.
     expect(() => held.beComplete().check()).toThrow(ArchRuleError)

@@ -392,7 +392,7 @@ export class SliceRuleBuilder extends TerminalBuilder {
     // `strict-boundaries` scaffold itself) with no opt-out, and their remedies were
     // written for one input and emitted for all of them. They return once the
     // remedy is executable data and an opt-out exists, mirroring
-    // `correspondence().allowEmpty(name)`.
+    // `crossProject().allowEmpty(name)`.
 
     const context: ConditionContext = {
       rule: this.buildRuleDescription(),

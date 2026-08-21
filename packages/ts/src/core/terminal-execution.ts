@@ -75,7 +75,7 @@ export function collectWithAssertionGuard(run: RuleRun): ArchViolation[] {
     //
     // `_expectEmpty`, NOT `declaresEmpty()`: `.notExist()` over a non-empty
     // selection is the condition doing its job, never an expired declaration,
-    // and on `CorrespondenceBuilder` `declaresEmpty()` is an all-sides
+    // and on `CrossProjectBuilder` `declaresEmpty()` is an all-sides
     // conjunction whose per-side expiry that class reports itself.
     if (examined > 0 && run.expectsEmpty) {
       return [expiredDeclarationViolation(run.facts, examined), ...violations]
