@@ -181,33 +181,51 @@ architecture gates (corpus + spec + arch), skipping build, tests, lint, and the
 slower gates — the "shift feedback left" tier. Run the full `npm run validate`
 before proposing a commit.
 
-On success, SOME gates report what they actually scanned — a summary line with
-the denominator and elapsed time — so a fast green is provably non-vacuous rather
-than a silent no-op. **Which gates do is uneven, and knowing which is the point:**
+On success, **every** gate reports what it actually scanned — a denominator and
+(mostly) an elapsed time — so a fast green is provably non-vacuous rather than a
+silent no-op. They do it in three formats, which is worth knowing because a grep
+for one of them will miss the other two:
 
-| gate                                                            | success summary                                                                                              |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `check:corpus`                                                  | `✓ corpus integrity — 906 checks across 118 documents, 0 violations (4.00s)`, with per-check counts above it |
-| `check:ledger`                                                  | `✓ honesty at close — 49 done-items across 118 records …`                                                    |
-| `check:baseline`                                                | `✓ baseline (recommended) — 4 floor rules across N source files · 0 violations`                              |
-| `check:diagram`                                                 | `✓ eess-mermaid — 1 rule across 1 file · 0 failing (246ms)`                                                  |
-| `check:arch` · `check:spec` · `check:family` · `check:crossval` | **nothing** — a bare exit 0                                                                                  |
+| format                       | gates                                                                             | shape                                                                                                                          |
+| ---------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| dialect CLI (`✓`, stderr)    | `check:arch` · `check:spec` · `check:family`                                      | `✓ eess-ts — N rules across M files · 0 failing (T)`                                                                           |
+|                              | `check:diagram`                                                                   | `✓ eess-mermaid — N rules across M files · 0 failing (T)`                                                                      |
+| script summary (`✓`, stderr) | `check:corpus`                                                                    | `✓ corpus integrity — N checks across M documents, 0 violations (T)`, with per-check counts above it                           |
+|                              | `check:ledger`                                                                    | `✓ honesty at close — N done-items across M records (… plans + … bugs + … proposals), M with a readable State, 0 findings (T)` |
+|                              | `check:baseline`                                                                  | `✓ baseline (recommended) — 4 floor rules across N source files · 0 violations (T)`                                            |
+|                              | `check:docs-code` · `check:vacuity` · `check:release`                             | `✓ <name> — N …`                                                                                                               |
+| bare `OK` line (no `✓`)      | `check:integrity` · `check:numbers` · `check:review-harness` · `check:nonvacuity` | `<name>: OK — N …` (e.g. `next-number: OK — 140 numbered items`)                                                               |
+|                              | `check:crossval`                                                                  | one `OK` line **per check**, each with its own count — no single summary                                                       |
+|                              | `check:examples`                                                                  | vitest's own `N passed (N)`                                                                                                    |
 
-`eess-ts` prints one too, restored after this branch's engine copy dropped it —
-`✓ eess-ts — 7 rules across 1 file · 0 failing (2.05s)`, with `✗` and a
-`N of M rules failing` breakdown when it reds. The symbol is derived from the
-same error-severity count as the exit code, so a warn-only run reads `✓ … · N
-warnings` beside `exit 0` rather than contradicting itself.
+**A previous version of this section claimed four gates printed "nothing — a bare
+exit 0".** That was false, and the way it was measured is the lesson: the check
+was `grep '^✓'`, which cannot see a `name: OK — N …` line. An instrument that
+looks for one format and reports absence is the same fail-open shape these gates
+exist to catch — so if you extend this table, run the gate and read its output,
+don't grep for a symbol.
 
-Where a count IS printed, a zero or an unexpectedly low one means the gate matched
+**The counts above are written as `N`/`M`/`T` on purpose.** An earlier version of
+this table pinned live numbers (`906 checks across 118 documents`) and was wrong
+within a few commits — the same drift `RELEASING.md` records for its own
+`**Breaking**` table. What the table is for is _which gates print a denominator at
+all_; the live number is the gate's to print on every run, and that copy cannot go
+stale.
+
+`eess-ts` prints its summary with `✗` and an `N of M rules failing` breakdown when
+it reds. The symbol is derived from the same error-severity count as the exit code,
+so a warn-only run reads `✓ … · N warnings` beside `exit 0` rather than
+contradicting itself.
+
+A zero or unexpectedly low count means the gate matched
 little or nothing — treat that as a red flag (a vacuous rule or wrong glob), not a
-pass. **Read that instruction narrowly:** the rule/file counts in the
-`eess-mermaid` line count declared rules, which do not drop when a selector goes
+pass. **Read that instruction narrowly:** the rule/file counts in the `eess-ts` and
+`eess-mermaid` lines count _declared_ rules, which do not drop when a selector goes
 dead, so they detect a mis-wired rule FILE and not a mis-wired rule. The number
 that answers vacuity for a rule is `examined` (ADR-010), which the floor reads and
 no CLI currently prints. **That half of [bug 0174](./work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)
 is still open**, and it is the half that matters: a green `check:arch` with a
-denominator is evidence that seven rules were declared, not that any of them
+denominator is evidence that its rules were _declared_, not that any of them
 examined anything. For that, run the suite, `check:nonvacuity` (43 fixtures), or
 `check:vacuity`.
 

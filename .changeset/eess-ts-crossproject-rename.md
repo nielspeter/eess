@@ -2,12 +2,25 @@
 '@nielspeter/eess-ts': minor
 ---
 
-**Breaking (@nielspeter/eess-ts)** — `correspondence()` and
-`CorrespondenceBuilder` are renamed to **`crossProject()`** and
-**`CrossProjectBuilder`**. 0.x, so a minor signals it.
+**New:** `crossProject()` / `CrossProjectBuilder` — compare two
+independently-derived key sets within one TypeScript project.
 
-**Migration:** rename the import and the call. Nothing else changes — same
-builder, same `.side(…).side(…)` chain, same behaviour.
+**Not marked breaking, and the reason is measured.** No published
+`@nielspeter/eess-ts` (`0.1.0`, `0.1.1`, `0.2.0`, `0.2.1`) exports
+`correspondence` or `CorrespondenceBuilder`, or even ships
+`dist/builders/correspondence-builder.js` — so no eess-ts adopter can perform a
+migration, and a `**Breaking**` lead here would head that package's changelog
+with a no-op for every reader of it.
+
+**If you are migrating from `@nielspeter/ts-archunit`** (the heritage package
+this repo folds in, which does publish `correspondence` at
+`dist/index.d.ts:100`), this is that API renamed. Exactly two symbols move:
+
+**Migration:** rename the import and the call. The `.side(…).side(…)` chain and
+the behaviour are unchanged — but note the violation `rule:` identity changes
+with the name (`correspondence [a <-> b]` → `crossProject [a <-> b]`), and
+`hashViolation` keys baselines on it, so regenerate any baseline holding these
+findings. `setCorrespondence` and `CorrespondenceResult` keep their names.
 
 ```diff
 -import { correspondence } from '@nielspeter/eess-ts'

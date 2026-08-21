@@ -2,11 +2,11 @@
  * **The exports here are `crossProject` / `CrossProjectBuilder`; the FILE is still
  * `correspondence-builder.ts`, on purpose.**
  *
- * The symbols were renamed because `crossProject` collided: the kernel exports
+ * The symbols were renamed because `correspondence` collided: the kernel exports
  * a different `correspondence({ left, right })` that `eess-md` re-exports and
  * `docs/markdown.md` teaches, so one word named two incompatible APIs inside one
  * family — and `family.rules.ts`'s allowlist, written to mean "eess-ts has no
- * crossProject", silently permitted "eess-ts has a different one". Found by the
+ * correspondence", silently permitted "eess-ts has a different one". Found by the
  * product and architect reviews of PR #72.
  *
  * The filename did not follow because nine `path:line` pointers in CLOSED records
@@ -110,7 +110,7 @@ function keyedFromKeys(keys: KeysSource): Map<string, unknown[]> {
 }
 
 /**
- * Assert a crossProject between two independently-derived key sets:
+ * Assert a correspondence between two independently-derived key sets:
  * "every X has a matching Y" (and/or the reverse). This is ADR-008 Rule 5 as a
  * primitive — two derivations plus a disagreement test — so identity-not-count
  * and non-vacuity are impossible to get wrong.
@@ -170,7 +170,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
   /** Add a side from an already-derived key set (pre-normalized). */
   side(name: string, keys: KeysSource): this
   /**
-   * Declare one side of the crossProject.
+   * Declare one side of the pairing.
    *
    * `source` is either a `RuleBuilder` selection — in which case `keyFn` is
    * REQUIRED, because a subject has no inherent key and guessing one silently
@@ -311,7 +311,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
    */
   examinedUnits(): number {
     const [first, second] = this._sides
-    // Zero is the honest answer for an under-declared crossProject: nothing was
+    // Zero is the honest answer for an under-declared pairing: nothing was
     // compared, and ADR-010 wants that visible rather than defaulted away.
     if (first === undefined || second === undefined) return 0
     const [a, b] = materializeSides(this, first, second)
@@ -466,7 +466,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
 }
 
 /**
- * Entry point: assert a crossProject between two independently-derived key
+ * Entry point: assert a correspondence between two independently-derived key
  * sets. Call `.side(...)` twice, then an assertion terminal.
  */
 export function crossProject(p: ArchProject): CrossProjectBuilder {

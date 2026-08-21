@@ -55,10 +55,15 @@ the sibling dialect and never mirrored.
 ### Corrected 2026-08-21 — "never mirrored" was wrong; it was a REGRESSION
 
 **This diagnosis was false, and the falseness was load-bearing.** `eess-ts` had
-the emitter. It is on `main` at `packages/ts/src/cli/commands/check.ts:156-157`
-and it ships in published `eess-ts@0.2.1`. `git log -S'✓ eess-ts —' main..HEAD`
-names the commit that removed it: `9489684`, the wholesale replacement of
-`eess-ts`'s src and tests with ts-archunit's, which overwrote the file.
+the emitter. It is on `main` at `packages/ts/src/cli/commands/check.ts:215-216`
+and it ships in published `eess-ts@0.2.1` (`git show v0.2.1:packages/ts/src/cli/commands/check.ts`).
+
+**The commit that removed it cannot be cited by sha.** It was the wholesale
+replacement of `eess-ts`'s src and tests with ts-archunit's, on the
+`adopt-ts-archunit-tests` branch — and PR #72 landed **squashed** as `7031427`, so
+that branch's individual commits are ancestors of neither `main` nor this branch
+and die when it is pruned. Reproduce against the squash instead:
+`git show 7031427 -- packages/ts/src/cli/commands/check.ts`.
 
 So the summary line was not a port that never happened — it was a **regression
 this branch introduced**, and filing it as a never-had-it gap is why no changeset

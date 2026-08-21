@@ -135,7 +135,7 @@ function emptyViolation(sideName: string, meta: ViolationMeta): ArchViolation {
   return {
     ...baseViolation(
       { element: sideName, file: '', line: 0 },
-      `crossProject side '${sideName}' matched 0 subjects — a crossProject over an ` +
+      `crossProject side '${sideName}' matched 0 subjects — a pairing over an ` +
         `empty side certifies nothing. Fix the selector, or call .expectEmpty('${sideName}') ` +
         `if an empty side is valid here.`,
       meta,
@@ -253,7 +253,7 @@ export function emptinessFindings(p: Pairing): {
 }
 
 /**
- * Findings from the crossProject itself — keys on one side with no partner
+ * Findings from the pairing itself — keys on one side with no partner
  * on the other, in whichever directions the rule asked about.
  */
 export function matchFindings(p: Pairing): ArchViolation[] {
@@ -317,7 +317,7 @@ export function duplicateKeyFindings(p: Pairing): ArchViolation[] {
 }
 
 /**
- * Run the crossProject and collect its findings, in four phases:
+ * Run the pairing and collect its findings, in four phases:
  * unbound declarations, emptiness, the match itself, then duplicate keys.
  *
  * ## The arity throw is an invariant, not an error path

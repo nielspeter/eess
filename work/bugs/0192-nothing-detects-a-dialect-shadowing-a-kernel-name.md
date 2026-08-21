@@ -74,7 +74,9 @@ alongside it is unambiguous.
 
 - [ ] Red test first: a dialect declaring its own export under a kernel name reds
       the gate. Must fail today — measured, `check:family` is green over exactly
-      that state on `b219429~1`.
+      that state. (Measured on `adopt-ts-archunit-tests`, which PR #72 squashed
+      into `7031427`; the pre-rename tree is `7031427~1`, since that branch's own
+      shas are ancestors of nothing and die when it is pruned.)
 - [ ] The break class is registered in `scripts/check-nonvacuity.mjs`.
 - [ ] `eess-md`'s legitimate re-export of the kernel's `correspondence` stays
       green — the gate distinguishes forwarding from shadowing.

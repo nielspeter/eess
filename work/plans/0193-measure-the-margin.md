@@ -159,7 +159,55 @@ defect as a silent margin.
 
 ## Implementation phases
 
+### Phase 0 (FIRST) — the ADR-009 amendment, which owns the definitions
+
+**Re-ordered from last to first, and the reason is binding, not stylistic.**
+
+ADR-009 records _"We deliberately do **not** dogfood these six rules"_, carries
+rule 5 (independence) as `manual`, and lists under Alternatives Considered that
+this is _"worth revisiting if a mechanical subset emerges"_. Margin **is** that
+subset — rule 5's reviewer question (`adr/009-agent-first-failure-surfaces.md:288-291`:
+_"what would this test do if the thing it guards were completely broken?" If the
+answer is "pass," the derivations are not independent_) computed instead of asked.
+
+**The metric definition and the mutation-operator table move into the ADR.** They
+do not stay here. This plan's Design section pins four things everything
+downstream depends on — `margin = |distinct failing test FILES|` as an identity
+diff, the per-kind operator table, `unmeasurable` fails, and the cap policy — and
+the plan itself measures that the operator choice alone moves `noJsonParse`
+between 2 and 1. A `check:margin` citation from the ADR's Enforcement table means
+only what the operator table says, and **this plan closes to
+`work/plans/completed/`**. ADR-009 rejects exactly that, verbatim, in its own
+Alternatives Considered:
+
+> Rejected. A completed plan moves to `work/plans/completed/`, so a binding
+> project-wide rule would be buried where nobody greps — the exact failure this
+> ADR describes.
+
+Building the mechanism first and amending after would open a window in which a
+binding ADR says no mechanism is possible while one ships — the drift
+`check:corpus` exists to catch, scheduled deliberately. Decision before work.
+
+**The rule-5 row is SPLIT, not flipped.** Flipping it wholesale would over-claim:
+rule 5 covers every derivation in this repo — including the census's own
+166/185/187/231/150 history and the ADR enforcement convention — while
+`check:margin` sees 181 eess-ts primitives and nothing else. Claiming mechanical
+coverage of the remainder is "an enforced rule that is wrong" over "an
+unenforceable rule stated honestly", the inversion `adr/009-agent-first-failure-surfaces.md:292-295`
+warns against. Two rows:
+
+| clause                                                      | tier | mechanism                          | status   |
+| ----------------------------------------------------------- | ---- | ---------------------------------- | -------- |
+| Rule 5 (independence) over `eess-ts` enforceable primitives | 2    | `scripts/check-margin.mjs`         | `gated`  |
+| Rule 5 (independence) everywhere else                       | 5    | reviewer question, review-enforced | `manual` |
+
+If Phase 1's measurement does not hold up, the honest outcome is the second row
+alone plus a recorded refusal in the ADR — not a `gated` row over a mechanism
+that does not work.
+
 ### Phase 1 — `scripts/margin.mjs`, and its guards
+
+_Runs after Phase 0: the ADR amendment is the decision this builds against._
 
 The measurement, consuming the shared census. Its guards are the deliverable as
 much as the number is:
@@ -180,9 +228,29 @@ much as the number is:
 than trusting the hand numbers. Both operators' values are recorded above; the
 script's output must match the one it declares.
 
-**Files:** `scripts/margin.mjs`, `scripts/lib/primitives.mjs` (the census, moved
-to a shared home), `packages/ts/tests/tools/scan-enforceable-primitives.ts`
-(import path only).
+**Files:** `scripts/margin.mjs`, `scripts/lib/primitives.mjs` (the census),
+`scripts/lib/primitives.d.mts`, `packages/ts/tests/tools/scan-enforceable-primitives.ts`.
+
+**The census move is a port, not bookkeeping — three things this must settle.**
+Placement is right: the census derives its population from `packages/ts/package.json`'s
+`exports` map, it is a repo dogfood tool (a `margin` CLI command is out of scope
+below), and `scripts/lib/` is where this repo already puts one source shared by a
+gate and a test — `packages/ts/tests/standalone-surface.test.ts:10` imports
+`scripts/lib/kernel-surface.mjs` today. But:
+
+- **It leaves ADR-005's perimeter.** `eslint.config.ts:26-34` scopes
+  `no-explicit-any` and friends to `packages/*/src/**` and `packages/*/tests/**`.
+  Moving a 332-line ts-morph derivation to `scripts/**.mjs` moves it out of that
+  block, and the precedent's cost is visible: `scripts/lib/kernel-surface.d.mts`
+  is four hand-written `Set<string>` lines. A hand-maintained `.d.mts` for a
+  derivation this size is a real drift surface — either extend the ESLint block to
+  cover `scripts/lib/**` or say why the `.d.mts` is acceptable here.
+- **One implementation, not two.** A `.mjs` script cannot import the `.ts`, so the
+  derivation moves and `scan-enforceable-primitives.ts` becomes a shim — which
+  means the existing 462-line guard test then tests _through_ a shim into untyped
+  JS. Name which file holds the implementation before writing either.
+- **Effort.** This is a TS→JS port of 332 lines of ts-morph plus its guard. The
+  first version of this line booked it as "moved to a shared home"; it is not.
 
 **Tests:** covering-set computation against a fixture package with a known import
 shape — one test reaching the target only through a barrel re-export, one only by
@@ -214,17 +282,6 @@ that writes to the tree it validates and runs the suite as a subprocess. A
 miniature fixture package with its own tiny suite is the only shape that fits the
 existing fixtures — and it changes what `margin.mjs` is parameterised over (a
 package root, not a hardcoded `packages/ts`).
-
-### Phase 3 — the ADR-009 amendment
-
-ADR-009 records _"We deliberately do **not** dogfood these six rules"_, carries
-rule 5 (independence) as `manual`, and lists under Alternatives Considered that
-this is _"worth revisiting if a mechanical subset emerges"_. Margin **is** that
-subset — rule 5's reviewer question computed instead of asked.
-
-Either flip that row to a Tier-2 mechanism citing `check:margin`, or record in the
-ADR why margin does not discharge rule 5. Shipping the mechanism while a binding
-ADR says none is possible is the drift `check:corpus` exists to catch.
 
 ## Out of scope
 
@@ -259,8 +316,10 @@ ADR says none is possible is the drift `check:corpus` exists to catch.
 
 ## Progress ledger
 
-- [ ] Phase 1 — `scripts/margin.mjs` + shared census + guards, anchors reproduced
+- [ ] Phase 0 — ADR-009 amended FIRST: the metric definition and operator table
+      land in the ADR, and rule 5's row is split (Tier 2 `gated` over eess-ts
+      primitives + Tier 5 `manual` elsewhere), or the refusal is recorded there
+- [ ] Phase 1 — `scripts/margin.mjs` + census port + guards, anchors reproduced
 - [ ] Phase 2 — `check:margin`, both break classes fixtured, denominator printed
-- [ ] Phase 3 — ADR-009's rule-5 row amended, or the refusal recorded there
 
 Deferred: the ratchet → [plan 0194](./0194-the-margin-ratchet.md).
