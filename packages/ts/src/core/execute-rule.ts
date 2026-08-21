@@ -417,6 +417,7 @@ export function writeReport(
  * saying it cannot be suppressed.
  */
 let callerAggregatesReports = false
+let checkWritesSuppressed = 0
 
 /**
  * Declare that the caller will report every finding itself. **CLI only.**
@@ -426,6 +427,24 @@ let callerAggregatesReports = false
  */
 export function setCallerAggregatesReports(on: boolean): void {
   callerAggregatesReports = on
+}
+
+/**
+ * How many times `executeCheck` has stayed quiet because the caller aggregates.
+ *
+ * The CLI reads the DELTA across one rule file's evaluation to tell two throws
+ * apart: a `.check()` that we silenced (delta > 0 — nothing leaked, so no
+ * "unfiltered output" notice is owed) from a preset's throw, which emits through
+ * the kernel's `reportViolations` and never reaches this function (delta 0 —
+ * output did leak). Without that distinction the notice fires on a path where it
+ * is now false, which is ADR-010's "a claim constructed from a default".
+ *
+ * A counter rather than a boolean so nesting cannot lose a signal, and read by
+ * delta rather than reset per file so it composes with the CLI's existing
+ * module-state resets.
+ */
+export function suppressedCheckWrites(): number {
+  return checkWritesSuppressed
 }
 
 /**
@@ -457,7 +476,23 @@ export function executeCheck(
 
   if (filtered.length > 0) {
     const stamped = stampSeverity(filtered, 'error')
-    writeReport(stamped, options?.format, ctx.reason)
+    // Bug 0201. `executeWarn` below has honoured this flag since it shipped;
+    // `executeCheck` never did, so a `.check()` at module scope printed its
+    // findings before the aggregating caller could filter them — which is the
+    // whole of bug 0199 on this path. Measured: the leak goes 4 violations → 0.
+    //
+    // Safe for every other caller because the flag defaults to `false` and only
+    // the CLI sets it: a `.check()` in a test file, where there is no aggregator,
+    // still prints exactly as before.
+    //
+    // The violations are NOT lost when we stay quiet — they ride the throw, which
+    // is the same reason `executeWarn` may suppress only its `bypassFilters`
+    // entries and must still write the rest.
+    if (callerAggregatesReports) {
+      checkWritesSuppressed++
+    } else {
+      writeReport(stamped, options?.format, ctx.reason)
+    }
     throw new ArchRuleError(stamped, ctx.reason)
   }
 }

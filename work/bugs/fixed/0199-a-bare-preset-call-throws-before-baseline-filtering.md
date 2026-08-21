@@ -4,8 +4,8 @@
 
 - **State:** Fixed — the run now says the baseline did not apply, instead of
   failing in silence. Option 2 of the three below, chosen deliberately; the root
-  cause is [bug 0201](../0201-executecheck-prints-before-the-caller-can-filter.md).
-- **Deferred:** [0201](../0201-executecheck-prints-before-the-caller-can-filter.md) — the root cause
+  cause is [bug 0201](./0201-executecheck-prints-before-the-caller-can-filter.md).
+- **Deferred:** [0201](./0201-executecheck-prints-before-the-caller-can-filter.md) — the root cause
 - **Found:** 2026-08-21, while measuring ts-archunit → eess-ts baseline
   compatibility for [bug 0198](../0198-no-migration-path-from-ts-archunit.md).
 
@@ -70,7 +70,7 @@ baseline its collection came back **empty** — the filtering worked as designed
 **Version 2 (the first correction):** "`setCallerAggregatesReports` is module-level
 state and a rule file loads through jiti's separate registry, so it holds a copy
 with the flag `false`." **Also false**, and this one was worse: an entire record
-([bug 0201](../0201-executecheck-prints-before-the-caller-can-filter.md))
+([bug 0201](./0201-executecheck-prints-before-the-caller-can-filter.md))
 was built on it, and all three of its candidate fixes were aimed at making the flag
 cross registries. Disproved three ways by review:
 
@@ -116,7 +116,7 @@ the same `isArchRuleError` boundary as `ruleFileTruncated()` and only when
 Making the flag cross registries needs a `globalThis` singleton — a pattern this
 codebase uses **nowhere** today, and process-global mutable state in a library
 whose ADR-008 is about not doing reporting implicitly. That belongs in an ADR, not
-in a bug fix, and it is [bug 0201](../0201-executecheck-prints-before-the-caller-can-filter.md).
+in a bug fix, and it is [bug 0201](./0201-executecheck-prints-before-the-caller-can-filter.md).
 Until then a wrong-looking build that explains itself beats one that does not.
 
 **One thing the fix nearly lost.** The first version reused
@@ -183,7 +183,7 @@ file lets the CLI do the reporting')` — a run whose rules the CLI executes
       which [bug 0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)
       forbade. That is a checkable statement about all ~16 producers rather than a
       vague one about this producer, and it is recorded in
-      [bug 0201](../0201-executecheck-prints-before-the-caller-can-filter.md).
+      [bug 0201](./0201-executecheck-prints-before-the-caller-can-filter.md).
 - [x] **The remedy remediates**, which is what makes the census's `behavioural:`
       claim true rather than `stated-only`.
       `it('clears once the remedy it names is applied, and the rules then load')`
@@ -199,4 +199,4 @@ nothing the rule file could print')` — `executeWarn` throws the same error
       guarded.
 - [x] `npm run validate` exits 0.
 
-Deferred: [0201](../0201-executecheck-prints-before-the-caller-can-filter.md) — the root cause only.
+Deferred: [0201](./0201-executecheck-prints-before-the-caller-can-filter.md) — the root cause only.

@@ -4,7 +4,11 @@ import { diffAware } from '../../helpers/diff-aware.js'
 import type { OutputFormat } from '@nielspeter/eess'
 import type { ArchViolation, CheckOptions, RuleBuilderLike } from '@nielspeter/eess'
 import { isArchRuleError } from '@nielspeter/eess'
-import { setCallerAggregatesReports, writeReport } from '../../core/execute-rule.js'
+import {
+  setCallerAggregatesReports,
+  suppressedCheckWrites,
+  writeReport,
+} from '../../core/execute-rule.js'
 import { suppressionNotice } from '@nielspeter/eess'
 import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess'
 import { commentSuppressionNotice, resetCommentSuppression } from '@nielspeter/eess'
@@ -80,6 +84,8 @@ export async function runCheck(args: CheckArgs): Promise<number> {
     // file down with it — which one catch around the whole file would do
     // (bug 0025).
     let builders
+    // Read before the module evaluates, so the delta below describes THIS file.
+    const quietBefore = suppressedCheckWrites()
     try {
       builders = await loadRuleFiles([file], { fresh: args.fresh })
     } catch (error: unknown) {
@@ -125,9 +131,24 @@ export async function runCheck(args: CheckArgs): Promise<number> {
         // can never suppress it: ADR-009 rule 2, a failure asserting a cause it
         // cannot verify. Measured by review; `it('does not fire when the throw
         // carried nothing the rule file could print')` holds it.
+        //
+        // **Only when output actually leaked**, which is now a measurement rather
+        // than an assumption. Two throws reach here and only one of them printed:
+        //
+        //  - a `.check()` at module scope — `executeCheck` now honours
+        //    `callerAggregatesReports` (bug 0201) and stays quiet, bumping the
+        //    suppressed-write counter. Nothing leaked, so no notice is owed.
+        //  - a preset's throw — `finishPreset` emits through the KERNEL's
+        //    `reportViolations`, which no ts-side flag reaches, so its findings
+        //    did leak. That half is still open; this notice is what covers it.
+        //
+        // Before this delta the notice fired on both, and once the `.check()` half
+        // was fixed that made it reachable-and-WRONG rather than merely
+        // conservative — a claim constructed from a default, which ADR-010 forbids.
+        const weStayedQuiet = suppressedCheckWrites() > quietBefore
         const printedUnfiltered = error.violations.some((v) => v.bypassFilters !== true)
         const filtering = args.baseline !== undefined || args.changed
-        if (filtering && printedUnfiltered) {
+        if (filtering && printedUnfiltered && !weStayedQuiet) {
           collected.push(
             baselineNotApplied(file, { baseline: args.baseline, changed: args.changed }),
           )

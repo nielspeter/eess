@@ -2,10 +2,14 @@
 
 ## Status
 
-- **State:** Draft — **rewritten 2026-08-21.** The first version of this record
-  blamed jiti module registries and was wrong; see "What this record used to say".
-- **Deferred:** none
-- **Found:** 2026-08-21, while fixing [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md).
+- **State:** Fixed — `executeCheck` now honours `callerAggregatesReports`, exactly
+  as `executeWarn` always has. Measured: a `.check()` at module scope leaked 4
+  already-accepted violations before, and 0 after. **Rewritten once** before that:
+  the first version blamed jiti module registries and was wrong; see "What this
+  record used to say".
+- **Deferred:** [0203](../0203-the-kernel-preset-path-emits-before-any-caller-can-filter.md)
+  — the kernel half, which no dialect flag can reach
+- **Found:** 2026-08-21, while fixing [bug 0199](./0199-a-bare-preset-call-throws-before-baseline-filtering.md).
   Re-diagnosed the same day by the enforcement review of PR #74.
 
 ## Symptom
@@ -33,7 +37,7 @@ it is read at exactly one site, `packages/ts/src/core/execute-rule.ts:526`, insi
 ## Consequences
 
 1. **`--baseline` does not apply to what a self-executing rule file prints.** The
-   measured symptom of [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md):
+   measured symptom of [bug 0199](./0199-a-bare-preset-call-throws-before-baseline-filtering.md):
    a project whose baseline matched **5 of 5** violations still showed two of them
    as failures, because the rule file printed them itself. 0199 ships a notice
    saying so; this record is the repair.
@@ -72,12 +76,12 @@ for a different reason than was given.
 `scripts/check-nonvacuity.mjs` at all.** `firedOn` (`scripts/check-nonvacuity.mjs:293-299`)
 keys strictly on `v.ruleId`, and configuration findings carry no `ruleId` — so the
 only way to register one is to key on its prose, which
-[bug 0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)
+[bug 0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)
 specifically forbade.
 
 That is why none of the ~16 producers in `packages/ts/src/cli/rule-file-findings.ts`
 and its siblings appears in that harness, and why
-[bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)
+[bug 0199](./0199-a-bare-preset-call-throws-before-baseline-filtering.md)
 disposed its registration box as `dropped-on-purpose` rather than owed. The family's
 accountability lives in the census's `verified` claim instead.
 
@@ -85,9 +89,41 @@ Worth its own record if anyone wants these gate-level rather than suite-level; n
 here because this is where it was found, and because a fix that gave configuration
 findings a stable `ruleId` would unblock all of them at once.
 
-## Fix
+## Fix — the dialect half, one line
 
-Not decided, and it is an ADR-008 question rather than a patch.
+`packages/ts/src/core/execute-rule.ts`:
+
+```ts
+if (callerAggregatesReports) {
+  checkWritesSuppressed++
+} else {
+  writeReport(stamped, options?.format, ctx.reason)
+}
+throw new ArchRuleError(stamped, ctx.reason)
+```
+
+The same guard `executeWarn` has had since it shipped. **Safe for every other
+caller because the flag defaults to `false` and only the CLI sets it** — a
+`.check()` in a test file, where there is no aggregator, prints exactly as before.
+The violations are not lost when it stays quiet: they ride the throw, which is the
+same reason `executeWarn` may suppress only its `bypassFilters` entries.
+
+The counter is not decoration. Once `.check()` stopped leaking, the
+`baselineNotApplied` notice became **reachable and wrong** on that path — it fired
+on a run where nothing leaked, which is a claim constructed from a default
+(ADR-010). `suppressedCheckWrites()` lets the CLI read a per-file delta and tell
+the two throws apart: a `.check()` we silenced (no notice owed) from a preset's
+throw, which emits through the kernel and never reaches this function.
+
+**The kernel half is NOT fixed and is filed as
+[bug 0203](../0203-the-kernel-preset-path-emits-before-any-caller-can-filter.md).**
+`finishPreset` (`packages/core/src/report.ts:64`) emits unconditionally and has no
+flag to honour; `setCallerAggregatesReports` is ts-dialect state the kernel cannot
+read and should not. Measured after this fix, same run: the `.check()` path leaks
+nothing, the preset path still leaks. That half is an ADR-008 question — the kernel
+has no mode meaning "run, throw, and let my caller emit".
+
+### The options as originally stated
 
 1. **Make `executeCheck` honour `callerAggregatesReports`**, as `executeWarn`
    already does. Smallest change. But it alters when a terminal emits for **every**
@@ -104,15 +140,31 @@ working precedent for exactly this split.
 
 ## Verification
 
-- [ ] Red test first: a self-executing `.check()` rule file run under
-      `eess-ts check` must not write its own report — asserted on the rule file's
-      output, not the CLI's.
-- [ ] `--changed` is measured for the same leak and the result recorded either way.
-- [ ] Comment suppression is confirmed unaffected (it should be — see Consequence 3),
-      and the run-level tally question is either fixed or filed.
-- [ ] `.check()` in a **test file** still prints — that is the behaviour every
-      existing consumer depends on and the reason this is not a one-line change.
-- [ ] With the fix, [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)'s
-      `baselineNotApplied` notice becomes unreachable **via the `.check()` path**.
-      Decide then whether any path can still reach it; if none can, remove it rather
-      than leave a rule that cannot fire (ADR-010).
+- [x] Red test first — `packages/ts/tests/cli/rule-file-truncation.test.ts`,
+      `it('no longer prints its own findings, so no notice is owed')`. Verified by
+      sabotage: reverting `executeCheck` to write unconditionally reds it.
+- [x] The leak is measured, not asserted: 6 violation blocks before (four of them
+      already accepted in the baseline), 2 after — both the CLI's own configuration
+      findings. The test asserts `parseFooOrder` never reaches stderr AND that the
+      baseline suppressed all four, so the absence cannot be a rule that matched
+      nothing.
+- [x] `.check()` in a **test file** still prints. By construction: the flag
+      defaults to `false` and only `runCheck` sets it. The whole suite — 3547 tests
+      across 263 files — is green, and it is full of `.check()` calls that depend
+      on today's behaviour.
+- [x] `--changed` covered: the notice is gated on any CLI-side filter, not just
+      `--baseline`, after an adopter measured a self-contradicting transcript on
+      that path. `it('fires for --changed too, not only --baseline')`.
+- [x] Comment suppression confirmed unaffected — `isExcludedByComment` runs inside
+      `applyFilters` **before** `writeReport`, so exclusions do apply to a rule
+      file's own printing. The run-level tally question is noted in the record and
+      not filed; it is a different defect and n=0 evidence today.
+- [x] The notice did NOT become unreachable, which is what the first version of
+      this box predicted. It became reachable-and-wrong on the fixed path — worse —
+      and is now gated on measured leakage. Its remaining live path is
+      [bug 0203](../0203-the-kernel-preset-path-emits-before-any-caller-can-filter.md);
+      when that lands, the notice must be removed or its last path named (ADR-010).
+- [x] `npm run validate` exits 0 — 3547 tests, 263 files.
+
+Deferred: [0203](../0203-the-kernel-preset-path-emits-before-any-caller-can-filter.md)
+— the kernel half.

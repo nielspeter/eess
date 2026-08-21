@@ -232,35 +232,41 @@ describe('the array-export shape is not truncated, and must not be told it was',
 })
 
 /**
- * Bug 0199 — a rule file that ENFORCES at module scope silently defeats `--baseline`.
+ * Bug 0199 / 0201 — a rule file that ENFORCES at module scope, under a CLI-side filter.
  *
- * **Not because the CLI fails to filter.** `runCheck` collects a thrown terminal's
- * violations off the error and filters them normally; measured, its collection comes
- * back empty against a matching baseline. What the user reads is the rule file's OWN
- * print: `executeCheck` calls `writeReport` unconditionally one line before it throws
- * (`core/execute-rule.ts:460`), and `finishPreset` → `reportViolations` does the same
- * on the preset path. Those lines are emitted before the CLI sees anything.
+ * **Two paths, and after bug 0201's `.check()` half only one of them still leaks.**
  *
- * Two earlier explanations are recorded as wrong in the bug, because both were
- * believed here first: "the CLI never filtered them" and "the flag doesn't cross
- * jiti's module registry". The second is disproved by the fixtures below — they load
- * natively, in one registry, with `setCallerAggregatesReports(true)` fully visible,
- * and the leak reproduces anyway.
+ * `runCheck` collects a thrown terminal's violations off the error and filters them
+ * normally — that was never broken. What the user reads is whatever the rule file
+ * PRINTED before throwing, which no CLI-side filter can touch:
  *
- * Measured end-to-end from a packed install against a real ts-archunit baseline:
- * 5 of 5 hashes matched, and the build still exited 1 reporting 2 of them. The
- * hashes were never the problem.
+ * | path in the rule file        | emits through                    | after 0201's fix     |
+ * | ---------------------------- | -------------------------------- | -------------------- |
+ * | `.check()` at module scope   | ts `executeCheck` → `writeReport` | **silent** — fixed   |
+ * | a preset without `'builders'` | kernel `finishPreset` → `reportViolations` | still leaks |
  *
- * What ships is a NOTICE, not the repair — the CLI cannot un-print what another
- * call already wrote, so it says so. The repair is bug 0201.
+ * `executeCheck` now honours `callerAggregatesReports`, exactly as `executeWarn`
+ * always has. The kernel half has no such flag to honour and is filed separately.
+ *
+ * Two earlier explanations are recorded as wrong in bug 0199, because both were
+ * believed here first: "the CLI never filtered them", and "the flag doesn't cross
+ * jiti's module registry". The second is disproved by these fixtures — they load
+ * natively, in one registry, with the flag fully visible, and the leak reproduced
+ * anyway until `executeCheck` was changed.
  */
-describe('a rule file that enforces at module scope, with --baseline', () => {
-  it('says the baseline could not be applied, instead of failing in silence', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-'))
+describe('a rule file that enforces at module scope, under a CLI-side filter', () => {
+  /**
+   * **The 0201 regression test.** A `.check()` at module scope must now print
+   * NOTHING of its own — and must therefore get no "unfiltered output" notice,
+   * because there is no longer any unfiltered output to warn about.
+   *
+   * Measured before the fix: 6 violation blocks, four of them already accepted in
+   * the baseline. After: 2, both of them the CLI's own configuration findings.
+   */
+  it('no longer prints its own findings, so no notice is owed', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0201-'))
     try {
       const baselinePath = path.join(dir, 'arch-baseline.json')
-      // Generated from the ARRAY twin, so it holds exactly the violations the
-      // inline file emits — the state a user is in after `eess-ts baseline`.
       await runBaseline({
         ruleFiles: [fixture('baselined-inline.rules.ts')],
         output: baselinePath,
@@ -273,61 +279,36 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
       ).toBeGreaterThan(0)
 
       capture()
-      const code = await runCheck({
+      await runCheck({
         ...baseArgs,
         format: 'json',
         ruleFiles: [fixture('enforcing-inline.rules.ts')],
         baseline: baselinePath,
       })
 
-      // **This assertion is what pins the twin fixtures together.** Nothing else
-      // does: the notice fires on `isArchRuleError && --baseline` alone, so if
-      // `baselined-inline.rules.ts` drifted to a different selector its baseline
-      // would hold unrelated entries and every other assertion here would still
-      // pass — the test would stop demonstrating that ACCEPTED violations
-      // resurfaced. Measured by review: changing the twin's selector left the whole
-      // file green.
-      //
-      // It is also the only assertion that proves the notice's own sentence, "The
-      // rules the CLI collected were filtered normally": the CLI's collection must
-      // be EXACTLY the two configuration findings, with none of the four `parse*`
-      // violations surviving the baseline. Under drift it would be six.
+      // The leak itself: not one accepted violation may reach stderr.
+      expect(stderr.join('')).not.toContain('parseFooOrder')
+      // And with nothing leaked, the notice must not fire — it would be a claim
+      // constructed from a default rather than from evidence (ADR-010).
       const collected = jsonViolations(stdout.join(''))
-      expect(collected).toHaveLength(2)
-      expect(collected.filter((v) => v.element.startsWith('parse'))).toHaveLength(0)
-      // A notice demoted to a warning would otherwise leave this green.
-      expect(code).toBeGreaterThan(0)
-
-      // The discriminator: the run must name the baseline as not applied. Asserting
-      // only on the exit code would pass on the buggy build too. Read from the JSON
-      // report rather than stderr, because in this mode stderr carries the rule
-      // file's own leaked print and the CLI's report goes to stdout — which is the
-      // very split this bug is about.
-      const notice = collected.find((v) => v.rule === 'eess-ts: filtering')
-      expect(notice).toBeDefined()
-      expect(notice?.message).toContain('arch-baseline.json')
-      expect(notice?.message).toMatch(/was not applied|could not be applied/i)
-      // And it must say what to do about it. THIS fixture contains no preset — a
-      // bare `functions(p)…check()` — so the remedy it needs is the generic one.
-      // Asserting the preset advice here would assert guidance inapplicable to the
-      // file under test, which is the ADR-009 rule 2 defect `ruleFileFailure`
-      // names in this same source file. `jsonViolations` does not project
-      // `suggestion`, so the remedy text itself is asserted by
-      // `it('names the generic remedy for a rule file with no preset in it')`
-      // below, which runs this same fixture in terminal format.
+      expect(collected.filter((v) => v.rule === 'eess-ts: filtering')).toHaveLength(0)
+      // The truncation notice is still correct and must stay.
       expect(collected.some((v) => v.rule === 'eess-ts: rule file')).toBe(true)
+      // The baseline really did suppress all four — otherwise the absence above
+      // could just mean the rule matched nothing.
+      expect(collected.filter((v) => v.element.startsWith('parse'))).toHaveLength(0)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }
   })
 
   /**
-   * The preset half of the remedy, asserted over a file it applies to — a preset
-   * called without `report: 'builders'`, which is the common way to reach this
-   * finding even though the trigger does not require a preset at all.
+   * **The half that still leaks**, and the notice that covers it. A preset emits
+   * through the kernel's `reportViolations`, which no ts-side flag reaches — so its
+   * findings are printed before the CLI sees them and the baseline cannot apply.
    */
-  it('offers the preset remedy when the enforcement came from a preset', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-preset-'))
+  it('says so when a preset printed findings the baseline never filtered', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-'))
     try {
       const baselinePath = path.join(dir, 'arch-baseline.json')
       fs.writeFileSync(
@@ -335,55 +316,51 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
         JSON.stringify({ generatedAt: '', hashVersion: 5, root: '.', count: 0, violations: [] }),
       )
       capture()
-      await runCheck({
+      const code = await runCheck({
         ...baseArgs,
         ruleFiles: [fixture('enforcing-preset.rules.ts')],
         baseline: baselinePath,
       })
       const report = stderr.join('')
       expect(report).toMatch(/was not applied|could not be applied/i)
-      expect(report).toContain("report: 'builders'")
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true })
-    }
-  })
-
-  /**
-   * The remedy text for a preset-less file, asserted in terminal format because
-   * `--format json` does not project `suggestion`. Its pair —
-   * `it('offers the preset remedy when the enforcement came from a preset')` —
-   * asserts the other branch over a file that HAS a preset.
-   */
-  it('names the generic remedy for a rule file with no preset in it', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-generic-'))
-    try {
-      const baselinePath = path.join(dir, 'arch-baseline.json')
-      await runBaseline({
-        ruleFiles: [fixture('baselined-inline.rules.ts')],
-        output: baselinePath,
-      })
-      capture()
-      await runCheck({
-        ...baseArgs,
-        ruleFiles: [fixture('enforcing-inline.rules.ts')],
-        baseline: baselinePath,
-      })
-      const report = stderr.join('')
+      // Names the baseline FILE, not a flag the caller may never have typed —
+      // `eess-ts.config.ts` can set it.
+      expect(report).toContain('arch-baseline.json')
+      // Generic remedy first: this finding fires for any module-scope terminal,
+      // so naming only the preset fix would be the ADR-009 rule 2 defect that
+      // `ruleFileFailure` calls out by name in the same source file.
       expect(report).toContain('export default [rule1, rule2]')
+      expect(report).toContain("report: 'builders'")
+      // A notice demoted to a warning would otherwise leave this green.
+      expect(code).toBeGreaterThan(0)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }
   })
 
   /**
-   * **The remedy remediates** — the half that makes the census's `behavioural:`
-   * claim true rather than `stated-only`.
-   *
-   * Same preset, same project, same baseline; the ONLY difference is the
-   * `report: 'builders'` the finding tells you to add. The notice must clear, and
-   * the rules must actually load — asserting only the notice's absence would also
-   * pass if the file loaded zero rules, which is the silent green
-   * `init.ts` documents.
+   * `--changed` is a CLI-side filter too, and shipped with nothing until an adopter
+   * measured a transcript that contradicted itself in three consecutive lines:
+   * violations printed, then "Diff-aware mode suppressed N findings", then an exit
+   * claiming fewer. Gating the notice on `--baseline` alone was arbitrary.
+   */
+  it('fires for --changed too, not only --baseline', async () => {
+    capture()
+    await runCheck({
+      ...baseArgs,
+      ruleFiles: [fixture('enforcing-preset.rules.ts')],
+      changed: true,
+      base: 'HEAD',
+    })
+    const report = stderr.join('')
+    expect(report).toMatch(/was not applied|could not be applied/i)
+    expect(report).toContain('--changed')
+  })
+
+  /**
+   * **The remedy remediates** — what makes the census's `behavioural:` claim true
+   * rather than `stated-only`. Same preset, same baseline; the only difference is
+   * the `report: 'builders'` the finding tells you to add.
    */
   it('clears once the remedy it names is applied, and the rules then load', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-fixed-'))
@@ -402,7 +379,8 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
       const report = stderr.join('')
       expect(report).not.toMatch(/was not applied|could not be applied/i)
       expect(report).not.toContain('stopped evaluating')
-      // Rules genuinely loaded — `0 rules across N file` is the alarm value.
+      // Rules genuinely loaded — asserting only the absence would also pass on a
+      // run that loaded nothing.
       expect(report).not.toMatch(/— 0 rules across/)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
@@ -410,21 +388,11 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
   })
 
   /**
-   * **The false-positive case, found by review and measured.**
-   *
-   * `executeWarn` ALSO throws `ArchRuleError`, but when the CLI is aggregating it
-   * writes only the non-`bypassFilters` entries — and a configuration finding is
-   * `bypassFilters`, so it writes **nothing**. `truncating.rules.ts` is exactly that
-   * shape: the rule file prints not one line, the CLI collects the config finding
-   * and reports it once, and the baseline was applied to everything there was to
-   * apply it to.
-   *
-   * The first version of this fix fired the notice there anyway, on the bare
-   * `isArchRuleError && --baseline` condition. Both of its clauses were false for
-   * that run, and the "violation printed above" it pointed at was one whose own text
-   * says a baseline can never suppress it. Asserting a cause the run cannot verify
-   * is the ADR-009 rule 2 defect that `ruleFileFailure` names three functions above
-   * `baselineNotApplied` in the same source file.
+   * **The false-positive case.** `executeWarn` throws the same error type while
+   * writing nothing when the CLI aggregates, because a configuration finding is
+   * `bypassFilters`. The first version of this fix fired the notice there anyway —
+   * asserting a leak that never happened, over a finding whose own text says a
+   * baseline can never suppress it.
    */
   it('does not fire when the throw carried nothing the rule file could print', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-warn-'))
@@ -441,9 +409,7 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
         baseline: baselinePath,
       })
       const report = stderr.join('')
-      // The truncation notice is correct here and must stay.
       expect(report).toContain('stopped evaluating')
-      // The baseline notice is NOT, and must not appear.
       expect(report).not.toMatch(/was not applied|could not be applied/i)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
@@ -451,32 +417,9 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
   })
 
   /**
-   * **`--changed` leaks identically, and shipped with nothing.** Found by the
-   * adopter review, which measured a transcript that contradicts itself in three
-   * consecutive lines: five violation blocks printed, then "Diff-aware mode
-   * suppressed 5 findings outside the 0 changed files", then an exit claiming one.
-   *
-   * The first version of this fix gated on `args.baseline !== undefined`, which is
-   * arbitrary — the condition that matters is "the rule file self-reported while a
-   * CLI-side filter was in play", and `--changed` is such a filter.
-   */
-  it('fires for --changed too, not only --baseline', async () => {
-    capture()
-    await runCheck({
-      ...baseArgs,
-      ruleFiles: [fixture('enforcing-inline.rules.ts')],
-      changed: true,
-      base: 'HEAD',
-    })
-    const report = stderr.join('')
-    expect(report).toMatch(/was not applied|could not be applied/i)
-    expect(report).toContain('--changed')
-  })
-
-  /**
-   * The discriminator in the other direction: an ordinary run that never enforces
-   * inline must NOT carry this notice. A fix that printed it whenever `--baseline`
-   * is passed would satisfy the test above and be useless.
+   * The discriminator in the other direction: a run the CLI reports must carry no
+   * notice at all. A fix that printed it whenever a filter was passed would satisfy
+   * every test above and fail this one.
    */
   it('does not warn when the rule file lets the CLI do the reporting', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-clean-'))
@@ -486,10 +429,7 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
         ruleFiles: [fixture('baselined-inline.rules.ts')],
         output: baselinePath,
       })
-
-      // Non-vacuity of the CONTROL, asserted here rather than borrowed from its
-      // sibling: a dead selector would also yield exit 0, so without this the
-      // control's own premise ("the baseline really did its job") is unproven.
+      // Non-vacuity of the CONTROL: a dead selector would also yield exit 0.
       const accepted: unknown = JSON.parse(fs.readFileSync(baselinePath, 'utf-8'))
       expect(
         accepted !== null && typeof accepted === 'object' && 'count' in accepted
@@ -503,10 +443,8 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
         ruleFiles: [fixture('baselined-inline.rules.ts')],
         baseline: baselinePath,
       })
-
       const report = stderr.join('')
       expect(report).not.toMatch(/was not applied|could not be applied/i)
-      // The baseline really did its job here — that is what makes this a control.
       expect(code).toBe(0)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
