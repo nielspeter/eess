@@ -1,3 +1,33 @@
+it('a clean project does not throw — enforcement is not noise', () => {
+  // The other half of "the default enforces": it must stay quiet when there is
+  // nothing to report. Without this the file is one-sided — it would pass just
+  // as well if the preset threw unconditionally, which is the defect shape
+  // bug 0187 was about.
+  //
+  // A real in-memory file rather than an empty project: zero loaded sources
+  // trips the evidence floor, which outranks any declaration and would make
+  // this throw for a reason that has nothing to do with the default.
+  const tsMorph = new Project({ useInMemoryFileSystem: true })
+  tsMorph.createSourceFile(
+    '/clean/src/ok.ts',
+    'export class Ok {\n  greet(name: string): string {\n    return `hi ${name}`\n  }\n}\n',
+  )
+  const clean: ArchProject = {
+    tsConfigPath: '/clean/tsconfig.json',
+    _project: tsMorph,
+    getSourceFiles: () => tsMorph.getSourceFiles(),
+  }
+  expect(() => {
+    recommended(clean, { include: '**/clean/**' })
+  }).not.toThrow()
+})
+
+// The first version of the row above asserted `builders.length > 0` under a
+// title about not throwing — a verbatim duplicate of an earlier row, with a
+// comment claiming a glob "that matches nothing the preset can fault" while
+// passing the same `'**/*'` the VACUITY row proves DOES fault. Three
+// disagreements in nine lines, in the file written to close a false green.
+// Caught by the enforcement review of PR #72.
 /**
  * A preset called with no `report` option **enforces**: it runs the rules,
  * emits once, and throws if anything failed.
@@ -85,13 +115,5 @@ describe('a preset with no report option enforces (PR #72 review)', () => {
     expect(() => {
       recommended(p, { include, report: 'warn' })
     }).not.toThrow()
-  })
-
-  it('a CLEAN project does not throw — the default is enforcement, not noise', () => {
-    // Scoped to a glob that matches nothing the preset can fault, declared so the
-    // evidence floor does not fire instead. The point is that "no violations"
-    // and "did not run" are different outcomes, and only one of them is silent.
-    const builders = recommended(p, { include, report: 'builders' })
-    expect(builders.length).toBeGreaterThan(0)
   })
 })

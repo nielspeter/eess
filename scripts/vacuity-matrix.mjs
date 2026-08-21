@@ -190,35 +190,48 @@ const BUILDER_PROBES = {
 
 /** Presets: call bare with the minimal required options → they run+report internally. */
 /**
- * Probed with `report: 'throw'` — ADR-008's mode, restored in plan 0165 Phase 3.
+ * **Probed BARE, so the probe asks about the DEFAULT.** This is the mode an
+ * adopter gets by copying the docs, and it is the mode that silently stopped
+ * enforcing.
  *
- * The engine adopted in plan 0165 returns UN-EXECUTED builders by default, so a
- * bare call constructs rules and runs none: it cannot throw, and `classify()`
- * scored all five presets `fail-open` for a reason that was about delivery
- * rather than vacuity. Naming the mode makes the probe ask the question it is
- * for — *does this preset's rule set fail over a zero-file project?* — instead
- * of *does calling it throw?*
+ * These probes used to pass `report: 'throw'` explicitly, and the reason was
+ * recorded here as reasoning: the engine adopted in plan 0165 returned
+ * un-executed builders by default, so a bare call constructed rules and ran
+ * none — it could not throw, and `classify()` scored all five presets
+ * `fail-open`.
+ *
+ * **The gate was right and was reconfigured to stop saying so.** All five
+ * `fail-open` verdicts were correct findings about a real defect; naming the
+ * mode made them go away, and plan 0165 booked the silencing as the fix
+ * (`check:vacuity ✗ 5 presets fail-open → green`). The defect then shipped and
+ * survived until two reviewers found it by hand in PR #72. Commit `9695ce7`
+ * restored the default; this probe was not restored with it, so the gate stayed
+ * blind to a recurrence of the branch's own headline bug — measured: byte-identical
+ * green with the regression fully reintroduced. Found by the enforcement review.
  *
  * A preset that constructs NOTHING still scores `fail-open` here, correctly:
- * `finishPreset([], { report: 'throw' })` has nothing to throw about. That is
+ * `finishPreset([], …)` has nothing to throw about. That is
  * `presetConstructsNothingViolation`'s case and it must stay detectable.
+ *
+ * One explicit-mode probe is kept below so `report: 'throw'` does not become
+ * untested by moving the others onto the default.
  */
 const PRESET_PROBES = {
-  'recommended()': () => tsPresets.recommended(zeroFileProject, { report: 'throw' }),
-  'agentGuardrails()': () =>
-    tsPresets.agentGuardrails(zeroFileProject, { src: 'src/**', report: 'throw' }),
-  'layeredArchitecture()': () =>
+  'recommended() [default delivery]': () => tsPresets.recommended(zeroFileProject, {}),
+  'agentGuardrails() [default delivery]': () =>
+    tsPresets.agentGuardrails(zeroFileProject, { src: 'src/**' }),
+  'layeredArchitecture() [default delivery]': () =>
     tsPresets.layeredArchitecture(zeroFileProject, {
       layers: { outer: 'src/outer/**', inner: 'src/inner/**' },
-      report: 'throw',
     }),
-  'dataLayerIsolation()': () =>
-    tsPresets.dataLayerIsolation(zeroFileProject, {
-      repositories: 'src/repositories/**',
-      report: 'throw',
-    }),
-  'strictBoundaries()': () =>
-    tsPresets.strictBoundaries(zeroFileProject, { folders: 'src/*', report: 'throw' }),
+  'dataLayerIsolation() [default delivery]': () =>
+    tsPresets.dataLayerIsolation(zeroFileProject, { repositories: 'src/repositories/**' }),
+  'strictBoundaries() [default delivery]': () =>
+    tsPresets.strictBoundaries(zeroFileProject, { folders: 'src/*' }),
+  // The named mode, so moving the five above onto the default does not leave
+  // `report: 'throw'` untested.
+  "recommended() [report: 'throw']": () =>
+    tsPresets.recommended(zeroFileProject, { report: 'throw' }),
 }
 
 /**

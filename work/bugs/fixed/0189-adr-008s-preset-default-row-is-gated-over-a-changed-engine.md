@@ -25,9 +25,19 @@ as a `gated` Enforcement row, that the **default preset behaviour is emit + thro
 | ------------------------------------------------ | ---- | ------------------------------------------------------------------ | ------- |
 | Default preset behavior unchanged (emit + throw) | 2    | `packages/core/tests/report.test.ts` — the default throw-mode case | `gated` |
 
-The adopted engine does not do that. `recommended(p, options?)` with no `report`
-option returns `RuleBuilderLike[]` — builders for the caller to run — and only
-the `{ report: ReportMode }` overload returns `ArchViolation[]`:
+The adopted engine did not do that, at the time this was filed.
+`recommended(p, options?)` with no `report` option returned `RuleBuilderLike[]` —
+builders for the caller to run — and only the `{ report: ReportMode }` overload
+returned `ArchViolation[]`.
+
+**This reproduction is historical and no longer runs.** The signature below was
+deleted by the fix (`9695ce7`); read it against `b219429~1`. A `fixed/` record
+whose repro silently stops reproducing is worse than one that says so — the next
+reader would try it, see the current signature, and conclude the record was
+wrong rather than resolved. Flagged by the enforcement review, which caught that
+closing the record left its repro asserting a shape that no longer exists.
+
+At the time of filing:
 
 ```ts
 export function recommended(

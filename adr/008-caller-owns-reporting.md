@@ -54,12 +54,23 @@ into `report: 'return'` to own emission.
 
 ## Enforcement
 
-Test citations are by file + case name in prose, not the `it(…)` form:
-`check:crossval` (the AST title resolver) scans only the eess-ts project, while
-these tests live in `@nielspeter/eess` (`packages/core`). `check:corpus`
+Most test citations below are by file + case name in prose, not the `it(…)`
+form: `check:crossval` (the AST title resolver) scans only the eess-ts project,
+while those tests live in `@nielspeter/eess` (`packages/core`). `check:corpus`
 verifies the files exist, and the cases run in `npm test` (the gate). Widening
 `check:crossval` to resolve citations across every package is a separate
 follow-on (plan 0070 Out of scope).
+
+**One row is different and deliberately uses the `it(…)` form** — "Default
+preset behavior unchanged". Its clause is about the **dialect's** preset surface,
+so its mechanism lives in `packages/ts`, which `check:crossval` DOES scan; the
+citation is therefore machine-resolved rather than merely existing. That row
+previously cited a `packages/core` test covering the kernel's `finishPreset`
+default — a different path — and stayed green while the clause was violated in
+the dialect for an entire release cycle
+([bug 0189](../work/bugs/fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)).
+Where a clause can be resolved, resolving it is strictly better than asserting
+the file exists.
 
 | Clause                                                          | Tier | Mechanism                                                                                                                                                                                                                                                                                           | Status |
 | --------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
