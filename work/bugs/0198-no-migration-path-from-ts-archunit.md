@@ -113,6 +113,20 @@ migration page must carry the one-line remedy regardless of how 0199 is fixed.
 Also found: [bug 0200](./0200-a-failing-rule-file-reports-one-of-zero-rules.md) —
 the summary line on that path reads `1 of 0 rules failing`.
 
+## Blocked on bug 0195, and that was not recorded
+
+Question 1 is the `correspondence` → `crossProject` rename, and this record already
+says it is _"the single thing a migrator must change is the single thing they
+cannot read about"_. That page is
+[bug 0195](./0195-crossproject-ships-with-no-documentation.md) — filed **Medium**,
+whose own fix ordering is "settle 3, then 2, then 1", and whose finding 3 is the
+undecided question of whether `crossProject` replaces `crossLayer` at all (it does
+not, for the `haveConsistentExports` path).
+
+So this **High** release blocker cannot close until a **Medium** with an open
+design question closes. Neither `BUGS.md` nor the list below said so. It is stated
+here now rather than left for whoever picks this up to discover.
+
 ## Fix
 
 Not decided. At minimum a `docs/migrating-from-ts-archunit.md`, reachable from
@@ -125,9 +139,12 @@ answer is silent.
 
 ## Verification
 
-- [ ] The export-surface diff is reproduced by a script, not hand-typed, so the
-      "251 of 253" claim cannot go stale (see the corpus's standing problem with
-      hand-derived population counts — plan 0193).
+- [ ] `dropped-on-purpose` — "the export-surface diff is reproduced by a script,
+      not hand-typed". That is a tooling deliverable, not migration documentation,
+      and holding a release blocker open for it would block the release on
+      something unrelated to migrating. The hand-derived risk is real (plan 0193's
+      standing problem), so the page must state the date and the command that
+      produced the number instead of presenting it as timeless.
 - [x] Baseline compatibility is **measured**: a real ts-archunit baseline is run
       against eess-ts and the result recorded, including which entries orphan.
       **Done 2026-08-21 — 5/5 hashes identical, 0 orphaned.** See above.

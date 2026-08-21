@@ -107,10 +107,14 @@ export async function runCheck(args: CheckArgs): Promise<number> {
       // export builds every rule before any of them runs.
       if (isArchRuleError(error)) {
         collected.push(ruleFileTruncated(file, total))
-        // Bug 0199 — the same boundary, the other consequence. A terminal firing at
-        // module scope emitted its findings before `baseline.filterNew` below could
-        // see them, so a baseline the caller supplied did not apply to them. The CLI
-        // cannot filter what it never collected; it can refuse to be silent about it.
+        // Bug 0199 — the same boundary, the other consequence, and NOT the one the
+        // bug first claimed. `failureOrViolations` above DID collect this error's
+        // violations and `baseline.filterNew` below DOES filter them. What escaped
+        // is the rule file's OWN printing: `setCallerAggregatesReports` is module
+        // state and the rule file holds a second copy of that module through jiti's
+        // registry, so its terminal wrote an unfiltered report before throwing. The
+        // CLI cannot un-print that; it can refuse to be silent about it. Root cause
+        // is bug 0201.
         if (args.baseline !== undefined) {
           collected.push(baselineNotApplied(file, args.baseline))
         }

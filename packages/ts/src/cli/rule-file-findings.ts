@@ -207,12 +207,21 @@ export function baselineNotApplied(file: string, baselinePath: string): ArchViol
       `them — any violation printed above reached you unfiltered by ` +
       `\`${basename(baselinePath)}\`, so violations you have already accepted can appear ` +
       `here as failures. The rules the CLI collected were filtered normally.`,
+    because:
+      `A baseline can only suppress findings the CLI collects. A rule file that calls ` +
+      `its own terminal at module scope prints them first, so the run you are reading ` +
+      `is not the run the baseline describes.`,
+    // The remedy is ordered generic-first ON PURPOSE. This finding fires for ANY
+    // terminal throwing at module scope — a hand-written `.check()` with no preset
+    // in sight reaches it too — so naming the preset fix alone would be the ADR-009
+    // rule 2 defect its neighbour `ruleFileFailure` calls out by name.
     suggestion:
-      `Pass \`report: 'builders'\` to the preset(s) in this file — for example ` +
-      `\`recommended(p, { report: 'builders' })\` — so the CLI runs the rules and owns the ` +
-      `reporting, and the baseline applies to everything. \`eess-ts init\` scaffolds that ` +
-      `form; a rule file carried over from \`@nielspeter/ts-archunit\` will not have it, ` +
-      `because its presets returned builders and never enforced inline.`,
+      `Move this file's rules into \`export default [rule1, rule2]\` and drop the ` +
+      `terminal calls — an array export hands every rule to the CLI, which then owns ` +
+      `reporting and applies the baseline to all of it. If the rules come from a ` +
+      `preset, pass \`report: 'builders'\` instead — e.g. ` +
+      `\`recommended(p, { report: 'builders' })\` — which returns the builders rather ` +
+      `than running them. \`eess-ts init\` scaffolds both forms correctly.`,
     bypassFilters: true,
   }
 }

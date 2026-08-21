@@ -269,7 +269,38 @@ describe('a rule file that enforces at module scope, with --baseline', () => {
       // only on the exit code would pass on the buggy build too.
       expect(report).toContain('--baseline')
       expect(report).toMatch(/was not applied|could not be applied/i)
-      // And it must say what to do about it.
+      // And it must say what to do about it. THIS fixture contains no preset — a
+      // bare `functions(p)…check()` — so the remedy it needs is the generic one.
+      // Asserting the preset advice here would assert guidance inapplicable to the
+      // file under test, which is the ADR-009 rule 2 defect `ruleFileFailure`
+      // names in this same source file.
+      expect(report).toContain('export default [rule1, rule2]')
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  /**
+   * The preset half of the remedy, asserted over a file it applies to — a preset
+   * called without `report: 'builders'`, which is the common way to reach this
+   * finding even though the trigger does not require a preset at all.
+   */
+  it('offers the preset remedy when the enforcement came from a preset', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-preset-'))
+    try {
+      const baselinePath = path.join(dir, 'arch-baseline.json')
+      fs.writeFileSync(
+        baselinePath,
+        JSON.stringify({ generatedAt: '', hashVersion: 5, root: '.', count: 0, violations: [] }),
+      )
+      capture()
+      await runCheck({
+        ...baseArgs,
+        ruleFiles: [fixture('enforcing-preset.rules.ts')],
+        baseline: baselinePath,
+      })
+      const report = stderr.join('')
+      expect(report).toMatch(/was not applied|could not be applied/i)
       expect(report).toContain("report: 'builders'")
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })

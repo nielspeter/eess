@@ -10,6 +10,46 @@ import {
 } from '@nielspeter/eess-ts/presets'
 ```
 
+## `report` — which one you need depends on where you call it
+
+Every preset **runs its rules and throws** on an error-severity violation by
+default. That is right in a test and wrong in a rule file, so presets take a
+`report` option — the caller owns reporting ([ADR-008](https://github.com/nielspeter/eess/blob/main/adr/008-caller-owns-reporting.md)).
+
+| where                             | pass                     | what happens                                                                                                 |
+| --------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **a rule file** (`arch.rules.ts`) | `{ report: 'builders' }` | returns the builders **unrun**, so the CLI runs them, reports once, and applies `--baseline` and `--changed` |
+| a test, or your own runner        | `{ report: 'return' }`   | runs them and returns `ArchViolation[]` for you to assert on                                                 |
+| advisory, anywhere                | `{ report: 'warn' }`     | reports without failing the run                                                                              |
+| _(omitted)_                       | —                        | runs them and **throws** on the first error-severity violation                                               |
+
+```typescript
+// arch.rules.ts — the CLI runs these
+import { project } from '@nielspeter/eess-ts'
+import { recommended } from '@nielspeter/eess-ts/presets'
+
+const p = project('tsconfig.json')
+
+export default [...recommended(p, { report: 'builders' })]
+```
+
+### Two traps worth knowing
+
+**`'return'` in a rule file is a silent green.** A rule file spreads its presets
+into `export default [...]`. With `'return'` the spread splats `ArchViolation[]`
+into the rules array, the CLI loads **zero rules**, and `check` prints
+`0 rules across 1 file` and exits **0**. `tsc --noEmit` does not catch it — a
+spread of the wrong array type is not a type error. That `0 rules` is the alarm
+value the summary line exists to print; if you see it, this is usually why.
+
+**Omitting `report` in a rule file defeats `--baseline`.** The preset then
+enforces during module evaluation and prints its own findings, which never pass
+through the CLI's filters — so violations you have already baselined are printed
+as failures. `check` reports this rather than failing silently, but the fix is
+`report: 'builders'`.
+
+`eess-ts init` scaffolds the correct form.
+
 ## `layeredArchitecture`
 
 The most universal architecture pattern. Nearly every backend project has layers — routes/controllers at the top, services in the middle, repositories/data access at the bottom. The rule is simple: dependencies flow downward, never upward. A repository must never import from a route. A service must never reach into the HTTP layer.
