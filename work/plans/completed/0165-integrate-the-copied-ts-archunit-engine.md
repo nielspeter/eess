@@ -2,7 +2,12 @@
 
 ## Status
 
-- **State:** Draft — created 2026-08-19, off a committed baseline
+- **State:** Done — 2026-08-21, closed in PR #72 with all three phases landed
+  and every Success-definition clause met or ruled. The three deferrals now
+  point at records that exist: [plan 0188](../0188-unify-the-duplicated-engine-modules.md)
+  owns the two structural decisions and the 27 duplicated modules,
+  [bug 0189](../../bugs/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)
+  owns ADR-008's preset default. Originally created 2026-08-19, off a committed baseline
   (`9489684`, branch `adopt-ts-archunit-tests`). This plan does **not** decide
   whether to copy; the copy is done and measured. It decides how the copied
   engine becomes an eess package again.
@@ -15,13 +20,13 @@
 
 ## Problem
 
-[Plan 0088](./completed/0088-fold-ts-archunit-into-eess.md) set out to fold
+[Plan 0088](./0088-fold-ts-archunit-into-eess.md) set out to fold
 ts-archunit's engine into eess and closed as _"all 7 phases (+4a) landed and
 verified."_ It reconciled per file instead of copying — compare, keep eess's
 where the two looked equivalent — and that is a mode in which a fix whose
 shape is a **deletion** or a **reordering** leaves no trace to notice.
 
-The [fold audit](../fold-audit-2026-08-19.md) measured the result by reading
+The [fold audit](../../fold-audit-2026-08-19.md) measured the result by reading
 upstream's 72 fixed-bug records: 11 fixes missing, 15 partial. That audit was
 the wrong instrument, and this plan exists partly because a cheaper one
 answered the same question far better:
@@ -37,19 +42,19 @@ eess-ts's accumulated distance from the engine 0088 claimed to have folded in.
 With upstream's source in place, **3353 of 3419 tests pass**.
 
 It also resolves, in one move, eight bugs filed and half-fixed on 2026-08-19 —
-[0154](../bugs/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+[0154](../../bugs/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 literal blanking, 0155 the assertion gate,
-[0156](../bugs/0156-should-twice-silently-drops-the-first-assertion.md)
+[0156](../../bugs/0156-should-twice-silently-drops-the-first-assertion.md)
 `fork()`'s condition-clear,
-[0157](../bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)
+[0157](../../bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)
 `overrideFindings`,
-[0158](../bugs/0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md)
+[0158](../../bugs/0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md)
 undocumented-fails-closed,
-[0159](../bugs/0159-violation-identities-collide-across-distinct-findings.md)
+[0159](../../bugs/0159-violation-identities-collide-across-distinct-findings.md)
 `disambiguateIdentities`,
-[0160](../bugs/0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)
+[0160](../../bugs/0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)
 `within()`'s restructure, and
-[0161](../bugs/0161-smell-detectors-silently-miss-object-literal-functions.md)
+[0161](../../bugs/0161-smell-detectors-silently-miss-object-literal-functions.md)
 object-literal collection — all verified present in the copied source.
 
 ## What the baseline is, precisely
@@ -149,7 +154,7 @@ the same `0 === 0` shape ADR-009's rule 5 names.
    its own `core/`, so the kernel/dialect split is **un-done for this package**
    while integration happens. The other four dialects still sit on the kernel.
 2. eess's own additions that upstream lacks were dropped: ADR-008's `report`
-   option, `--fix` ([plan 0066](./completed/0066-eess-deterministic-autofix.md)),
+   option, `--fix` ([plan 0066](./0066-eess-deterministic-autofix.md)),
    and `havePathMatching`. The 16 eess-only test files covering them are still
    present and failing — that is how they stay visible instead of being
    quietly lost.
@@ -263,12 +268,12 @@ reddened three tests that had been green. Reverted and added to
 formatter is exactly the tool that cannot tell the difference.
 
 Phase 1 also cleared the corpus-side breakage the copy caused:
-[bug 0160](../bugs/0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)'s
+[bug 0160](../../bugs/0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)'s
 code pointer into the old `helpers/` location of `within.ts` (the file moved to
-[`packages/ts/src/builders/within.ts`](../../packages/ts/src/builders/within.ts))
+[`packages/ts/src/builders/within.ts`](../../../packages/ts/src/builders/within.ts))
 and the three ADR citations in
-[ADR-006](../../adr/006-framework-rules-architecture.md) and
-[ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md) — **still open**,
+[ADR-006](../../../adr/006-framework-rules-architecture.md) and
+[ADR-010](../../../adr/010-a-pass-is-constructed-from-evidence.md) — **still open**,
 carried into Phase 2 rather than closed here, because two of the three cited
 tests moved into files the kernel re-split will move again.
 
@@ -476,7 +481,7 @@ own `recommended` preset and they belong to the same unowned bucket as
 ## Out of scope
 
 - **Upstream's corpus** — `adr/`, `bugs/`, `plans/`, `proposals/`, `docs/`,
-  `spikes/`. That is [plan 0090](./0090-adopt-ts-archunit-work-corpus.md)'s
+  `spikes/`. That is [plan 0090](../0090-adopt-ts-archunit-work-corpus.md)'s
   scope, and this record is the evidence its "heritage — preserved, not
   re-audited" framing needs revising: 26 of those 72 fixed-bug records
   described defects live in the engine eess owns. Revising 0090 is not this
@@ -487,7 +492,7 @@ own `recommended` preset and they belong to the same unowned bucket as
 - **The other four dialects' own engines.** They sit on the kernel and are
   untouched until Phase 2 restores it.
 - **Retiring ts-archunit.** That is
-  [plan 0100](./0100-publish-the-fold-retire-ts-archunit.md), and it now has a
+  [plan 0100](../0100-publish-the-fold-retire-ts-archunit.md), and it now has a
   real prerequisite: this plan, not 0088.
 
 ## Test inventory
@@ -548,6 +553,21 @@ tokenizer, which the 27 still-duplicated modules wait on (Phase 2 says why each
 is a decision rather than a move); and (3) ADR-008's preset default, which the
 adopted engine no longer matches (Phase 3).
 
+**Re-homed 2026-08-21, because "deferred→ADR" named no ADR.** All three
+dispositions pointed at documents that did not exist — and because their ledger
+boxes are `[x]`, `check:ledger` could not see it. A disposition whose home is
+absent is a silent deferral wearing a token, which is the one failure the close
+ritual exists to prevent. The homes now exist and are Draft records on the
+boards:
+
+- (1) and (2) → **[plan 0188](../0188-unify-the-duplicated-engine-modules.md)**,
+  which owns writing both ADRs _and_ the 27-module unification that waits on
+  them, with a Phase 3 gate so the split cannot silently re-open.
+- (3) → **[bug 0189](../../bugs/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)**
+  — ADR-008 carries a `gated` row asserting a preset default the engine no
+  longer has, and its cited mechanism tests the kernel rather than the ts
+  preset surface, so the row is green over a path it does not reach.
+
 Also unowned by any phase, and stated plainly rather than left implied: **204
 `check:arch` violations and 11 `check:baseline` findings** — the copied source
 under eess's own conventions (missing JSDoc, unused exports, non-null
@@ -555,3 +575,19 @@ assertions, silent catches). Measured identical before and after Phases 2 and 3,
 so no phase caused them and no phase claims them. This plan's Success definition
 requires them fixed or ruled; that work needs either a fourth phase or an
 explicit deferral, and it is the user's call which.
+
+**Resolved 2026-08-21 — `done-otherwise`, and the paragraph above is now
+history.** They were not deferred and no fourth phase was written; they were
+closed by the branch's own subsequent work. Measured at close:
+
+| gate             | at `9489684`   | at close                                                  |
+| ---------------- | -------------- | --------------------------------------------------------- |
+| `check:arch`     | 204 violations | **exit 0**                                                |
+| `check:baseline` | 11 findings    | **exit 0** — 4 floor rules across 245 files, 0 violations |
+
+What survives is **21 findings suppressed by inline `// eess-exclude`
+comments**, which `check:arch` prints on every run under the heading _"They are
+exemptions, not passes"_. That is the "or ruled" half of the Success clause
+working exactly as written — each is a ruling recorded at the site, visible on
+every green run, rather than a silence. The gate surfacing them is why this can
+be called closed rather than merely green.

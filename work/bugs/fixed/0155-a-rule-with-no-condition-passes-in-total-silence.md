@@ -78,6 +78,51 @@ assertion-less rule "stays a stderr warning, not the unsuppressable ADR-010
 finding." That decision is defensible; what is not is that the warning it
 routes to cannot fire for the documented rule shape.
 
+### Re-verified 2026-08-21 — the pointers rotted, the fix did not
+
+**Every line number in this section is historical and no longer resolves to what
+it describes.** The kernel re-split ([plan 0165](../../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md)
+Phase 2) moved 30 modules and renumbered the rest. Read them against the anchor
+this record already names — `810808b`, the `v0.2.3` release commit — where
+`packages/core/src/rule-builder.ts:337` is verifiably the broken guard, comment
+and all. In the current tree those same numbers land in `buildRuleDescription()`,
+which has nothing to do with this bug.
+
+`check:corpus` is green over all of them, and that is not a gate failure: the
+pointer check proves a cited line **exists**, never that it says what the prose
+claims — which is [bug 0138](../0138-pointer-resolve-proves-existence-not-truth.md),
+demonstrated here on a record filed two days earlier.
+
+**The grep in this section has also inverted.** It reads
+`grep -rn "assertsSomething\|collectWithAssertionGuard" packages/` returns **zero
+hits** in eess — the diagnosis that eess lacked upstream's instrument. Run today
+it returns many: the instrument is present on both paths. That sentence is true
+of the tree it was written against and false of this one.
+
+Where the machinery lives now:
+
+|                             |                                                                           |
+| --------------------------- | ------------------------------------------------------------------------- |
+| the guard                   | `packages/core/src/rule-builder.ts:377`                                   |
+| `assertsSomething()`        | `packages/core/src/rule-builder.ts:216`                                   |
+| `should()` sets the phase   | `packages/core/src/rule-builder.ts:122`                                   |
+| the finding constructor     | `packages/core/src/terminal-builder.ts:422`                               |
+| the rewritten contract test | `packages/core/tests/contract/extension-surface.test.ts:265` (was `:207`) |
+
+**The check worth making, given the split, is that the fix survived on _both_
+implementations** — the failure mode [bug 0163](../0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)
+turned out to have, where a fix landed on one of two duplicated copies and
+nothing recorded it. It did:
+
+- kernel — `rule-builder.ts:377` calls `assertionLessViolation()`;
+- eess-ts — `core/terminal-execution.ts:28` branches on `run.assertsSomething()`
+  and returns `assertionLessFinding(run.facts)`.
+
+Two constructors for one concept, which is the duplication 0165 Phase 2 names
+rather than a defect in this fix. Both dialect families are gated; no path
+regressed. The old `writeStderr` warning ("predicates but no conditions") is gone
+from the tree entirely.
+
 ## A kernel contract test is green because of this defect
 
 Found in PR #70's review, and it constrains the fix.
@@ -217,5 +262,9 @@ belongs in a helper.
 - [x] `extension-surface.test.ts` and its comment rewritten so branch B proves
       "no leak" with its own passing condition, not via silence.
 - [x] `npm run validate` green.
+- [x] **Re-verified 2026-08-21** on both duplicated engine copies, after the
+      kernel re-split renumbered every pointer this record cites. The gate is
+      live on the kernel and on eess-ts; the citations are corrected above and
+      anchored to `810808b`.
 
 Deferred: none.

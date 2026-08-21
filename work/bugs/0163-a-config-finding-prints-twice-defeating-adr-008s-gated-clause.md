@@ -40,7 +40,7 @@ Predates plan 0088's fold. See the [fold audit](../fold-audit-2026-08-19.md).
 **This section said "eess has no equivalent (`grep -rn
 "setCallerAggregatesReports" packages/` returns nothing)". That is no longer
 true.** Re-run today, that grep returns four hits. The switch arrived with the
-engine copy ([plan 0165](../plans/0165-integrate-the-copied-ts-archunit-engine.md))
+engine copy ([plan 0165](../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md))
 and is wired end to end on the **eess-ts** path:
 
 - `packages/ts/src/core/execute-rule.ts` declares and exports it;

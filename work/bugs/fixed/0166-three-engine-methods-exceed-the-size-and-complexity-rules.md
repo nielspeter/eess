@@ -100,5 +100,5 @@ Deferred: [bug 0167](../0167-method-size-rules-can-only-be-excluded-by-class.md)
 - [Bug 0164](../0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md)
   — the same shape one level up: a class over its size rule because the assertion
   gate needs overridable hooks.
-- [Plan 0165](../../plans/0165-integrate-the-copied-ts-archunit-engine.md) — the
+- [Plan 0165](../../plans/completed/0165-integrate-the-copied-ts-archunit-engine.md) — the
   sweep that took `check:arch` from 202 findings to these four.
