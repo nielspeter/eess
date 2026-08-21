@@ -6,7 +6,7 @@
   and every Success-definition clause met or ruled. The three deferrals now
   point at records that exist: [plan 0188](../0188-unify-the-duplicated-engine-modules.md)
   owns the two structural decisions and the 27 duplicated modules,
-  [bug 0189](../../bugs/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)
+  [bug 0189](../../bugs/fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)
   owns ADR-008's preset default. Originally created 2026-08-19, off a committed baseline
   (`9489684`, branch `adopt-ts-archunit-tests`). This plan does **not** decide
   whether to copy; the copy is done and measured. It decides how the copied
@@ -563,7 +563,7 @@ boards:
 - (1) and (2) → **[plan 0188](../0188-unify-the-duplicated-engine-modules.md)**,
   which owns writing both ADRs _and_ the 27-module unification that waits on
   them, with a Phase 3 gate so the split cannot silently re-open.
-- (3) → **[bug 0189](../../bugs/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)**
+- (3) → **[bug 0189](../../bugs/fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)**
   — ADR-008 carries a `gated` row asserting a preset default the engine no
   longer has, and its cited mechanism tests the kernel rather than the ts
   preset surface, so the row is green over a path it does not reach.

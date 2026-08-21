@@ -327,11 +327,6 @@ export interface PresetBaseOptions<TRuleId extends string = string> {
   /**
    * Delivery mode — [ADR-008](../../../../adr/008-caller-owns-reporting.md).
    *
-   * **Additive, and the default is deliberately NOT `'throw'`.** ADR-008's
-   * Decision text says a preset returns violations and defaults to
-   * emit-then-throw; the engine adopted in plan 0165 returns UN-EXECUTED
-   * builders and runs nothing until the caller asks — a stronger form of the
-   * same principle, and what all 26 of this package's preset test files assert.
    * How the preset delivers its result. **Omitting it runs the rules and
    * throws** — ADR-008's documented default, and what published `eess-ts` has
    * always done:

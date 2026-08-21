@@ -98,10 +98,12 @@ gate must red.
 
 ## Out of scope
 
-- **ADR-008's preset default**, 0165's third deferral. Filed separately as
-  [bug 0189](../bugs/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md) —
-  it is a documented clause contradicted by the code, which is a defect, not a
-  structural decision.
+- **ADR-008's preset default**, 0165's third deferral. Was filed separately as
+  [bug 0189](../bugs/fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)
+  and is now **fixed** — the engine enforces again by default and the ADR row
+  cites a mechanism that fails. Kept in this list as a pointer rather than
+  deleted: it was one of 0165's three deferrals, and a reader tracing where those
+  went should find all three.
 - Changing what md/mermaid adopters see. Better diagnostics for them are a
   _consequence_ this plan may enable; promising them here would make the success
   definition untestable.
