@@ -9,11 +9,12 @@
 - **Implements:** proposal 006
 - **Priority:** Medium — every current and future fence consumer hand-rolls the same
   workaround, and the workaround is lossy (below).
-- **Effort:** Small — **two** packages (`eess-mermaid` ships the signature via bug 0211;
-  this plan rewires `eess-crossvalidate`), and **not additive**: narrowing a published
-  entry point's contract is a break. An earlier draft said "one package, additive"; both
-  halves were wrong. The break itself is declared by bug 0211's changeset — this plan must
-  not declare a second one for the same change.
+- **Effort:** Small — two packages. This plan **adds and consumes** the `provenance`
+  parameter (`eess-mermaid`) and rewires the caller (`eess-crossvalidate`). Adding an
+  optional parameter is **additive**: a minor, not a break — the break is bug 0211's split,
+  declared by its changeset. This plan needs **its own** changeset naming both packages;
+  `check:release` is diff-scoped, so "declare nothing because another record declared the
+  break" would red its own PR. An earlier draft said exactly that.
 - **Created:** 2026-08-22
 
 ## Problem
@@ -42,8 +43,9 @@ agent cannot act on.
 
 ## Approach
 
-Bug 0211 splits `diagram()` because content sniffing is unsound, **and lands the
-`(text, provenance?)` signature with provenance unconsumed.** This plan is the wiring:
+Bug 0211 splits `diagram()` because content sniffing is unsound, leaving a source parser
+that takes `(text)`. This plan adds provenance to it **and consumes it in the same
+delivery** — an accepted-and-ignored parameter is worse than none:
 
 - the **path loader** reads a file and sets `filePath` as it does now;
 - the **source parser** takes `(text, provenance?)` where provenance carries `{ file, line }`.
@@ -67,6 +69,16 @@ document the datum precisely.
 - [ ] The standalone-`.mmd` path still reports `filePath` unchanged.
 - [ ] `md-mermaid`'s `identify` workaround is removed, and its findings get _better_
       attribution than before — that is the regression test that this was worth doing.
+
+## Files Changed
+
+- `packages/mermaid/src/parser/` — the `provenance` parameter and the `line + n` arithmetic
+- `packages/mermaid/src/conditions/class.ts` — `file`/`line` from provenance when present
+- `packages/crossvalidate/src/md-mermaid.ts` — remove the `identify` re-attribution
+- `packages/crossvalidate/tests/` — fixtures
+- a changeset: `@nielspeter/eess-mermaid` minor (additive parameter),
+  `@nielspeter/eess-crossvalidate` patch (attribution output changes — consumer-observable,
+  so not `none`)
 
 ## Out of Scope
 

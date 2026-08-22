@@ -50,20 +50,39 @@ already parses the Ruling via `scripts/lib/proposal-ruling.mjs` (`operativeRulin
 `declaredImplements`). This is wiring, not capability.
 
 - **Acceptance criteria section.** Three things this plan must settle rather than inherit:
-  - **Matching.** `haveSection(string)` is exact equality (`matchName` in
-    `packages/md/src/model/query.ts`), so the template's own casing matches **0 of 6**. Use a
-    case-insensitive level-2 heading match. Do **not** use a bare substring: measured, that
-    matches 005 on a superseded appendix heading and matches 006 on a mention inside its own
-    review — a forged membership suppressing a red.
+  - **Matching, and it is not free.** `haveSection(string)` is exact equality (`matchName`,
+    `packages/md/src/model/query.ts`), so the template's own lower-case casing matches
+    **0 of 6**. A `RegExp` gives case-insensitivity for nothing — but **depth does not
+    exist at this seam**: `hasSection` reads `s.name` only and never `s.depth`, though the
+    model carries it (`packages/md/src/model/document.ts:10`). So "level-2 heading" needs
+    either a script-local `definePredicate` or a depth-aware condition in `eess-md`.
+
+    The second is the dogfooding answer — a family that cannot state its own lane
+    convention in its own dialect is the finding — but it changes a published package and
+    means this plan is **not** "wiring, not capability". Pick one and re-cost accordingly.
+
+    Do **not** use a bare substring: measured, it matches 005 on four `###` headings inside
+    superseded Rewrite/Appendix sections — a forged membership suppressing a red. (An
+    earlier draft also claimed it matches 006 "on a mention inside its own review". It does
+    not: `hasSection` iterates headings only, and 006's occurrence is inline code in a
+    paragraph, which no heading rule can see. Corrected here rather than quietly.)
+
   - **What it asserts, honestly.** A heading rule proves _a heading exists_. "Did the author
     state a break class and how non-vacuity is kept" is Tier 4 and this plan will not pretend
     to check it. The structural version worth having is section **plus a table with named
     columns** — `haveTableRowsSatisfying` is the primitive, and it is how the ADR Enforcement
     table is already gated. That is still Tier 1, but it cannot be satisfied by a bare
     heading with three words under it. **Say in the rule's `because` what it does not prove.**
-  - **Migration.** 4 of 6 proposals would red on day one. Decide now, in this plan: gate
-    forward from a date, or fix 001/002's casing and grandfather 003–006 with a recorded
-    reason. Deferring it means the first green run is blocked on proposal 006 growing a
+  - **Migration, and it is a denominator decision.** 4 of 6 proposals would red on day one.
+    Both options have a consequence this plan must state, not just pick:
+    - _Gate forward from a date_ — the rule examines **zero** proposals on day one. Under
+      ADR-010 zero examined units is a configuration finding unless declared, so this needs
+      an explicit `.expectEmpty()`-shaped declaration or it is the "0 checks scanned" green
+      this repo treats as a red flag.
+    - _Fix 001/002's casing and grandfather 003–006_ — the real denominator is 2 of 6, and
+      the summary line must print that honestly rather than "6 proposals scanned".
+
+    Deferring the choice means the first green run is blocked on proposal 006 growing a
     section its own review says it cannot write until Ask B leaves Held.
 
 - **Board agreement.** Each board row's Ruling cell equals the file's operative Ruling, and
@@ -91,9 +110,15 @@ already parses the Ruling via `scripts/lib/proposal-ruling.mjs` (`operativeRulin
 "the one place the policy is decided". Proposal 006 is the first proposal ruled that way,
 and it was split into three plans in the same change, each declaring `**Implements:**`.
 
-So the gate reports `6 total · 1 accepted` and 006 is not the 1. Nothing verifies the split
-happened, nothing checks the disposition table's owner column resolves, and deleting plans
-0212/0213/0214 tomorrow leaves every gate green.
+So the gate reports `6 total · 1 accepted` and 006 is not the 1.
+
+> **A previous draft of this plan claimed "deleting plans 0212/0213/0214 tomorrow leaves
+> every gate green". That is false and was measured wrong.** Deleting 0214 in a worktree
+> reds `corpus/broken-links` in six places, because the disposition table's owner cells are
+> markdown links. The residual gap is narrower and is what this rule should target: nothing
+> proves a `Split and sequence` proposal produced _any_ plan, and nothing requires the owner
+> cell to be a link rather than prose. Recorded rather than silently corrected — a plan
+> proposing a gate on a mis-measured gap is the shape this repo files bugs about.
 
 That is a policy change made in practice and never written down. This plan owes either:
 

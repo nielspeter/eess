@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — three measured instances in one day, all green.
-- **Deferred:** none
+- **Deferred:** the anchored-citation half — see Verification
 - **Found:** 2026-08-22, across the review rounds on bug 0209 and proposal 006. Named as
   deserving its own record in
   [0209](./fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md) and by two
@@ -70,13 +70,24 @@ relies on, and `CLAUDE.md` states the stronger one.
 
 ## Verification
 
-- [ ] Red first: a pointer whose line exists but whose content has nothing to do with the
-      citing prose. All three rows above are ready-made fixtures.
+> **Scope note, added after review.** This record owns the honest-claim half only, and three
+> of the four boxes below need the mechanism it defers. They are disposed here rather than
+> left to look deliverable: closing this bug on an undischargeable checklist is how a
+> `deferred→<home>` with no home gets written. **The honest half ships no gate** — after it
+> lands, a citation that drifts onto an unrelated line still passes silently. That is the
+> correct trade under ADR-009 (stated-weak beats over-claimed), and it is not a fix.
+
+- [ ] `deferred→ the anchored-citation plan` — red first: a pointer whose line exists but
+      whose content has nothing to do with the citing prose. All three rows above are
+      ready-made fixtures.
 - [ ] `CLAUDE.md`'s description matches what the gate asserts.
-- [ ] If an anchored form ships: a citation whose anchor is absent at the target reds,
-      and the message names the anchor and what is actually there.
-- [ ] A break class in `scripts/nonvacuity/` — an emptied aboutness check must not stay
-      green.
+- [ ] `deferred→ the anchored-citation plan` — a citation whose anchor is absent at the
+      target reds, and the message names the anchor and what is actually there.
+- [ ] `deferred→ the anchored-citation plan` — a break class in `scripts/nonvacuity/`; an
+      emptied aboutness check must not stay green.
+
+**Deferred:** the anchored-citation mechanism, to a plan not yet filed. Whoever picks this
+up files it; this record does not pretend to carry it.
 
 ## Out of scope
 

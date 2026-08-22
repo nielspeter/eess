@@ -1,114 +1,131 @@
-# Plan 0214: one authority for "what kind of Mermaid diagram is this?"
+# Plan 0214: publish `eess-mermaid`'s modelled-kind vocabulary
 
 ## Status
 
-- **State:** Draft — the highest-value, lowest-cost item in this area, and the one the
-  submission did not contain. Found by review; [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md)
-  had already routed the decision here.
+- **State:** Draft — implements [ADR-011](../../adr/011-a-dialect-publishes-its-modelled-vocabulary.md).
+  An earlier draft of this plan tried to **design** that contract in its Approach and
+  got it wrong twice; review's finding was that a cross-package contract binding every
+  future dialect is a decision, not work. The decision now lives in the ADR and this
+  plan builds it.
 - **Implements:** proposal 006
-- **Priority:** Medium — it closes a live fail-open defect (0210) and removes the
+- **Priority:** Medium — closes a live fail-open defect
+  ([bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md)) and removes the
   precondition that makes any future diagram kind unsafe to add.
-- **Effort:** Small-Medium — move a pure function, export it, rewire three call sites.
-  `@nielspeter/eess-mermaid` minor, `@nielspeter/eess-crossvalidate` patch.
+- **Effort:** Medium — **not** the "move a pure function, rewire three call sites" an
+  earlier draft claimed. Two new exports on a published package, a derivation that
+  cannot be hand-edited, per-binding consumption declarations in a second package, a
+  two-sided completeness check, bug 0210's five inherited verification boxes, and a
+  non-vacuity fixture per ADR-011 clause.
 - **Created:** 2026-08-22
 
 ## Problem
 
-Five kind-lists now live in **two** packages, four of them **outside** the package that
-owns the Mermaid language:
-
-| copy             | location                                         | shape                                                                                                          |
-| ---------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `HEADER_PATTERN` | `packages/mermaid/src/core/diagram.ts:5`         | `classDiagram` only; drives the unsound path-vs-source sniff (bug 0211)                                        |
-| `ER_HEADER`      | `packages/crossvalidate/src/md-mermaid-er.ts:32` | allowlist, anchored to the raw body — fail-open, [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md) |
-| `FOREIGN_HEADER` | `packages/crossvalidate/src/md-mermaid.ts:34`    | denylist of ~25 kinds                                                                                          |
-| `declaredKind()` | `packages/crossvalidate/src/md-mermaid.ts:40`    | the real one — handles `%%` comments, single- and multi-line `%%{init}%%`, `---` frontmatter                   |
-
-`declaredKind()` is a pure `string → kind` function with no markdown and no corpus
-knowledge. It is the lexical prelude of the two `.langium` grammars, and it lives in a
-binding package.
-
-**The cost is not tidiness.** Nothing keeps the set of kinds a parser can model in lockstep
-with the selector that decides which fences reach it. Ship a grammar and forget to update
-`FOREIGN_HEADER`, and every fence of that kind is silently skipped while
-`check:crossval`'s guard stays satisfied by unrelated class diagrams and the gate exits 0.
-That is the fail-open class this repo exists to prevent, at the level of the feature itself.
+Five restatements of "which Mermaid kinds does eess model" live across two packages,
+and nothing keeps them in agreement — the table is in
+[ADR-011's Context](../../adr/011-a-dialect-publishes-its-modelled-vocabulary.md).
+Bug 0210 is the live instance: `ER_HEADER` is an allowlist, so a themed `erDiagram`
+has been silently dropped for months.
 
 ## Approach
 
-Move the predicate to the package that owns the language, and make the two bindings consume
-it rather than re-derive it.
+ADR-011 decides the shape. This plan builds it for `eess-mermaid`, and the two
+things below are where an earlier draft was wrong — recorded because the second one
+is subtle enough to be worth a warning:
 
-**Moving the lexer is not enough, and that was this plan's first defect.** `md-mermaid.ts:186`
-_already calls_ `declaredKind()`, so relocating it changes one import line and leaves
-`FOREIGN_HEADER` — the list that goes stale when a grammar ships — exactly as it was. The
-Problem above and the Verification below are about a **registry**; the export is about a
-**lexer**. They are different capabilities.
+**1. The published set must be derived, not declared.** `MODELLED_KINDS` has to be
+derivable from the artifacts themselves; a hand-editable constant satisfies the
+letter of ADR-011 and inverts its purpose, because adding a name with no parser
+silently removes coverage. Two candidate derivations, and the plan must pick one and
+say why:
 
-And the obvious repair is a trap: replacing the denylist with `modelledKinds.includes(kind)`
-inverts fail-closed to fail-open, which is precisely the regression
-[bug 0209](../bugs/fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md)'s fix exists
-to prevent. An _unknown_ kind must still reach the parser.
+- **From the grammar files.** Glob `packages/mermaid/src/parser/grammar/*.langium`
+  and gate that each contributes exactly one kind. Unforgeable without deleting a
+  grammar. Cost: a filesystem read, and a rule that the glob is non-empty.
+- **From a parser registry** — `{ classDiagram: parseClassDiagram, erDiagram: parseErDiagram }`,
+  keys co-located with the parsers. Nothing can add a key without adding a parser, it
+  costs nothing at import, and it doubles as the dispatch table
+  [bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md)'s
+  split entry point needs anyway.
 
-So `eess-mermaid` exports **two** sets and each binding derives its own selector:
+  > Note the Langium constraint that rules out a third option: the generated module
+  > exports each grammar as a separate named constant with no "all languages" export,
+  > so walking "every grammar" requires importing each by name — which is itself
+  > hand-listed, and forgeable in exactly the way this plan exists to prevent.
 
-- `MERMAID_KINDS` — the known-kind vocabulary (what Mermaid can spell);
-- `MODELLED_KINDS` — the subset this dialect has a grammar for, **derived from the grammar
-  set, not hand-listed beside it**, or the registry is forgeable in exactly the way this
-  plan exists to prevent.
+**2. Three categories, and only a sibling's is deniable.** A binding's selector is
+**not** `MODELLED_KINDS`-complement. Per ADR-011, `classDiagram-v2` is
+known-unmodelled and must still reach the parser to be reported as a grammar gap;
+an unknown kind must reach it too, fail-closed. Only kinds a _sibling binding_
+consumes may be denied.
 
-A binding's denylist is then `MERMAID_KINDS − (the kinds it consumes)`. Adding a grammar
-moves one entry in one place; fail-closed survives, because a kind in neither set is unknown
-and still reaches the parser.
+> An earlier draft specified `denylist = MERMAID_KINDS − consumed`. Both reviewers
+> found independently that this puts `classDiagram-v2` in the denylist — turning
+> today's loud, honestly-phrased finding into `skipped += 1`, a counter nobody must
+> print. It also inverts `md-mermaid-er`: every unknown kind would reach the ER
+> parser as well, so one fence would yield two parse findings from two presets.
+> Recorded rather than quietly replaced: the remedy committed the defect the plan
+> was written to prevent, which is the fourth instance of that shape in this
+> record's lineage.
 
-- Export `declaredKind()` (or `diagramKind()`) from `packages/mermaid/src/parser/`.
-  **It must return the normalised kind token**, not the raw line — the current
-  implementation returns `graph TD` and callers normalise separately via `kindOf`'s
-  `split(/[\s{]/)`. Shipping the raw-line version as public API bakes in a footgun.
-- `md-mermaid` and `md-mermaid-er` both consume it. That fixes 0210 as a consequence:
-  a themed `erDiagram` stops being silently dropped.
-- **Not the kernel.** `packages/core` has no diagram concept and `arch.rules.ts`'s
-  `eess/kernel-no-dialects` keeps it that way. Mermaid syntax knowledge in
-  `@nielspeter/eess` would constrain all five dialects to serve one.
+**3. Rewire both bindings** to declare consumption against the published set.
+`md-mermaid` consumes `classDiagram`; `md-mermaid-er` consumes `erDiagram`; each
+declares the other's explicitly. That fixes bug 0210 as a consequence.
+
+**Not the kernel** — ADR-011's last clause, already gated by `eess/kernel-no-dialects`.
+
+## Files Changed
+
+- `packages/mermaid/src/parser/` — the derivation, `MODELLED_KINDS`, and the
+  normalised `diagramKind()` (it must return the kind token; today `declaredKind()`
+  returns the raw line `graph TD` and callers normalise separately via `kindOf`)
+- `packages/mermaid/src/index.ts` — the two exports
+- `packages/crossvalidate/src/md-mermaid.ts`, `md-mermaid-er.ts` — consumption declarations
+- `scripts/nonvacuity/` — a fixture per ADR-011 clause (below)
+- a changeset: `@nielspeter/eess-mermaid` minor (new exports),
+  `@nielspeter/eess-crossvalidate` **minor, not patch** — fixing a fail-open selector
+  means fences that were silently skipped are now compared, so an adopter's green
+  build can go red on upgrade with no rule change of their own
 
 ## Verification
 
-- [ ] Red first: a themed `erDiagram` fixture is not selected today (bug 0210's repro).
-- [ ] After the move it is selected and compared, and `tableErStats` counts it.
-- [ ] **The lockstep check** — a kind in `MODELLED_KINDS` that **no binding declares**, in
-      either direction, must red. This is the criterion the whole plan exists for; without
-      it the duplication is removed and the failure mode is not.
+Each row of [ADR-011's Enforcement table](../../adr/011-a-dialect-publishes-its-modelled-vocabulary.md)
+is `pending` until the matching box here is ticked, and each needs a
+`scripts/nonvacuity/` fixture rather than only a unit test — bug 0209's review showed
+the unit suite can catch a selector regression while every production gate stays green.
 
-      > Worded carefully, because the first draft's version — "a kind the parser models but
-      > the selector excludes must red" — **reds a correct configuration today**: `erDiagram`
-      > is modelled *and* excluded by `md-mermaid`, correctly, because that fence is
-      > `md-mermaid-er`'s job. The property is *undeclared*, not *excluded*. Each binding
-      > declares which modelled kinds it consumes, with an explicit not-consumed entry for
-      > the rest, and the check is two-sided completeness over those declarations — which is
-      > the kernel's `correspondence()`, not a second join engine.
-
-- [ ] A break class in `scripts/nonvacuity/`, not only a unit test. Bug 0209's review showed
-      the unit suite can catch a selector regression while every production gate stays green.
-- [ ] `check:family` still green — the predicate is dialect-local and
-      `eess-crossvalidate` already peer-depends on `eess-mermaid`, so no standalone
-      sufficiency invariant moves.
+- [ ] `MODELLED_KINDS` is exported and **derived**: adding a grammar without
+      registering it cannot leave the set unchanged. Corruption fixture: register a
+      third parser, assert the set grows without a second edit.
+- [ ] A modelled kind no binding declares reds, in either direction — two-sided
+      completeness via the kernel's `correspondence()`, not a hand-rolled join.
+      **Name which `check:*` invocation drives the fixture**; a fixture asserting the
+      constants agree with each other proves nothing about what CI runs.
+- [ ] **A known-unmodelled kind still reaches the parser.** Corruption fixture: move
+      `classDiagram-v2` into the denied set, assert the build reds. This is the clause
+      the earlier design violated and it is the one most worth pinning.
+- [ ] An unknown kind still reaches the parser (fail-closed) — `mixed-diagram.md`
+      already covers this for `md-mermaid`; extend to `md-mermaid-er`.
+- [ ] Bug 0210's own five boxes, inherited: a themed `erDiagram` is selected and
+      compared, a `---` frontmatter'd one likewise, `tableErStats` counts it, and a
+      non-ER fence is still skipped **without the document being skipped with it**.
+- [ ] `check:family` green — the exports are dialect-local and `eess-crossvalidate`
+      already peer-depends on `eess-mermaid`, so no standalone-sufficiency invariant
+      moves. (`family/re-export-complete` covers kernel symbols only, so a
+      mermaid-owned export is outside its scope either way.)
 
 ## Who closes bug 0210
 
-**This plan ships the fix; 0210 closes `done-otherwise → 0214`.** Stated because both
-records described the same repair and neither named the owner, which is how a bug gets
-marked fixed without its own floor being met. 0210's five verification boxes come with it —
-including the two this plan's first draft dropped: a `---` frontmatter'd ER diagram must
-also be selected, and a non-ER fence must still be skipped **without the document being
-skipped with it**. That second one is the fail-open half.
+**This plan ships the fix; 0210 closes `done-otherwise → 0214`**, carrying its five
+verification boxes here. Stated because both records described the same repair and
+neither named the owner, which is how a bug gets marked fixed without its own floor
+being met.
 
 ## Out of Scope
 
-- **Whether `eess-mermaid` iterates markdown itself.** That is proposal 006's OQ1, and its
-  "corpus dialect" branch is gated shut by `eess/mermaid-isolated`. This plan moves
-  **language** facts only; the container stays with `eess-md` and the loop with
-  `eess-crossvalidate`. That distinction is the point, and it is why this plan does not
-  need OQ1 answered first.
+- **The language-tag divergence.** `md-mermaid-er` accepts `lang === null`;
+  `md-mermaid` requires `lang === 'mermaid'`. ADR-011 governs _kind_ vocabulary only
+  and says so; this remains a per-binding option and needs its own decision.
 - `diagram()`'s sniff — [bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md).
-  It consumes this predicate, so 0214 makes 0211's fix cheaper, but they are separable.
-- Any new grammar. Ask B is Held.
+  If that lands first, its dispatch table and this plan's parser registry are the
+  same artifact; sequence them together or build the registry once.
+- Any new grammar. Ask B on proposal 006 is Held.

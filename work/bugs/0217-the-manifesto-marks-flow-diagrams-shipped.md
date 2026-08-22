@@ -75,7 +75,9 @@ record should not pretend otherwise.
 
 ## Out of scope
 
-- **A general "does this section's claim run in CI" gate.** That is Tier 4 for most
-  sections and not worth faking. The narrow mermaid-fence case in the third box is the
-  part that is mechanizable.
+- **A general "does this section's claim run in CI" gate**, and the manifesto-wide sweep of
+  every `shipped` marker. That is Tier 4 for most sections, not worth faking, and the sweep
+  is [plan 0075](../plans/0075-manifesto-reconciliation.md)'s job — an earlier draft of this
+  record claimed it as a verification box, which would have made this bug unclosable. This
+  record owns **one marker** and the question of whether any mechanism is possible.
 - Ask B itself — [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md).
