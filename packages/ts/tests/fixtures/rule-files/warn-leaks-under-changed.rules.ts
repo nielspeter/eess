@@ -1,10 +1,15 @@
-// The one path that still legitimately leaks, exercised under `--changed`.
+// A leak exercised under `--changed`, through the PRESET path.
 //
-// `executeWarn` writes its advisory (warn-severity) violations directly, and it
-// MUST: unlike `.check()`'s, they do not ride the thrown error — the throw carries
-// only the configuration findings — so suppressing the write would lose them
-// entirely. So a `.warn()` at module scope prints output no CLI-side filter can
-// reach, and the notice is genuinely owed.
+// **This does not exercise `executeWarn`, and its first docblock said it did.** It
+// uses `recommended(p, { report: 'warn' })`, which finishes through the kernel's
+// `finishPreset` → `reportViolations` — a different emitter from the rule-level
+// `.warn()` terminal. That mislabel is why `executeWarn`'s own emit stayed
+// uncounted and untested: the fixture that appeared to cover it covered something
+// else. The rule-level case is `warn-terminal-leaks.rules.ts`.
+//
+// What both shapes share, and why the notice is owed either way: warn-severity
+// violations ride no throw — the throw carries only the configuration findings —
+// so they must be written, and that write is output no CLI-side filter can reach.
 //
 // The `.check()` after it is what makes the file throw, so the CLI's catch runs.
 import path from 'node:path'
