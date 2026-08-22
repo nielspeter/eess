@@ -2,6 +2,13 @@
 
 ## 0.4.0
 
+> **Upgrading from 0.2.2? Read the 0.3.0 section below as well.**
+> 0.3.0 was versioned but **never published to npm** — the last release
+> of this package was 0.2.2, so this release carries two minors' worth of
+> changes. A `## 0.3.0` heading normally means "a version you already
+> have"; here it does not, and some of the changes that will affect your
+> build are in it.
+
 ### Minor Changes
 
 - 7031427: A rule that selects subjects and asserts nothing about them now fails — bug 0155.

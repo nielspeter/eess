@@ -2,6 +2,13 @@
 
 ## 0.4.0
 
+> **Upgrading from 0.2.1? Read the 0.3.0 section below as well.**
+> 0.3.0 was versioned but **never published to npm** — the last release
+> of this package was 0.2.1, so this release carries two minors' worth of
+> changes. A `## 0.3.0` heading normally means "a version you already
+> have"; here it does not, and some of the changes that will affect your
+> build are in it.
+
 ### Minor Changes
 
 - 7031427: A rule that selects subjects and asserts nothing about them now fails — bug 0155.
@@ -125,7 +132,7 @@
 
   `crossProject` shipped as a public API with no page, no sidebar entry and no worked
   example — discoverable only from a deprecation callout on the page for the API it
-  replaces. It now has [its own page](https://nielspeter.github.io/eess/cross-project),
+  replaces. It now has [its own page](https://github.com/nielspeter/eess/blob/main/docs/cross-project.md),
   with three examples that compile in CI and a migration table from `crossLayer`.
 
   `crossLayer()` carries an `@deprecated` tag naming `crossProject()` as its
