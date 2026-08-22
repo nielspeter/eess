@@ -106,33 +106,120 @@ certifies nothing, so `crossProject` says so rather than returning zero violatio
 
 ```
 crossProject side 'services' matched 0 subjects — a pairing over an empty side
-certifies nothing.
+certifies nothing. Fix the selector, or call .expectEmpty('services') if an empty
+side is valid here.
 ```
 
-If a side is _expected_ to be empty — you are asserting that nothing matches yet —
-declare it with `.expectEmpty('services')` and the finding goes away. Declaring it
-is the difference between "I know" and "the glob broke".
+If a side is _expected_ to be empty, declare it with `.expectEmpty('services')`.
+
+**That is an assertion, not a permission, and the difference is the point.** It does
+not merely silence the finding — it asserts the side **is** empty, and **fails the
+day it stops being**. So a rule that was certifying nothing about a side starts
+reporting the moment that side fills up, instead of staying quietly green. An intent
+that expires and says so.
+
+## Guarding against over-normalisation
+
+Folding a pairing into a key means two different subjects can collapse onto the same
+key — and then the comparison silently checks less than you think.
+`.distinctKeysOn(side)` fails if a side maps two distinct subjects to one key:
+
+```typescript
+import { project, classes, crossProject, byName } from '@nielspeter/eess-ts'
+
+const p = project('tsconfig.json')
+
+export default [
+  crossProject(p)
+    .side(
+      'services',
+      classes(p)
+        .that()
+        .haveNameMatching(/Service$/),
+      byName(),
+    )
+    .side('registry', ['UserService', 'OrderService'])
+    .distinctKeysOn('services')
+    .beComplete(),
+]
+```
+
+Worth adding on any side whose key function does string surgery — which is every
+side in [Comparing symbols, not files](#comparing-symbols-not-files).
 
 ## Migrating from `crossLayer`
 
-`crossLayer()` is superseded by `crossProject()`. The mapping between them:
+**`crossProject` covers most `crossLayer` rules, not all of them.** The condition is
+precise and worth checking before you start.
 
-| `crossLayer`                                       | `crossProject`                                    |
-| -------------------------------------------------- | ------------------------------------------------- |
-| `.layer(name, glob)` ×2                            | `.side(name, source, keyFn)` ×2                   |
-| `.mapping(fn)` — pairs files                       | fold the pairing into the **key** (prefix it)     |
-| `.forEachPair().should(haveMatchingCounterpart())` | `.beComplete()` / `.haveNoOrphans()`              |
-| `.should(haveConsistentExports(l, r))`             | array-returning key functions, as shown above     |
-| `.should(satisfyPairCondition(fn))`                | derive the keys the condition would have compared |
+### The precondition: your pairing must be key equality
 
-**What you gain:** either side can come from outside the project — a config file, a
+`crossLayer`'s `.mapping(fn)` is an **arbitrary relation** — it tests every left file
+against every right file and keeps the pairs the function accepts. `crossProject`
+compares key **sets**, so it can only express pairings of the form
+`key(a) === key(b)`, where each key is derived from its own side independently.
+
+That covers the common case — matching by a name stem, a route path, an ID. It does
+**not** cover a relation that needs to see both files at once:
+
+| `.mapping(fn)`                                                | key-encodable?                                 |
+| ------------------------------------------------------------- | ---------------------------------------------- |
+| `(a, b) => stem(a) === stem(b)`                               | yes                                            |
+| `(a, b) => a.getBaseName().startsWith(b.getBaseName())`       | **no** — prefix matching is not an equivalence |
+| `(a, b) => a.getDirectory() === b.getDirectory().getParent()` | **no** — structural                            |
+| "the route imports its schema"                                | **no** — reference relation                    |
+
+If your mapping is not key equality, **keep `crossLayer`.**
+
+### The mapping, for rules that do qualify
+
+| `crossLayer`                                       | `crossProject`                                                                                                    |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `.layer(name, glob)` ×2                            | `.side(name, source, keyFn)` ×2                                                                                   |
+| `.layer(...)` ×3+ (a chain)                        | **no equivalent** — a side count other than two is a configuration finding, so an N-layer chain becomes N−1 rules |
+| `.mapping(fn)` — pairs files                       | fold the pairing into the **key** — subject to the precondition above                                             |
+| `.forEachPair().should(haveMatchingCounterpart())` | `.beComplete()` / `.haveNoOrphans()` / `.beBijective()`                                                           |
+| `.should(haveConsistentExports(l, r))`             | array-returning key functions, as shown above                                                                     |
+| `.should(satisfyPairCondition(fn))`                | **usually no equivalent** — see below                                                                             |
+
+### `satisfyPairCondition` has no general translation
+
+Its callback returns a fully-constructed violation, so the author chooses `element`,
+`file`, `line`, `message`, `severity`, and `measured` / `metricUnit`. `crossProject`
+builds its findings itself and exposes none of those. So:
+
+- **An assertion that is not set difference** — a count comparison, an inequality, an
+  ordering — cannot be expressed. A rule reporting _"user-route.ts has 3 methods but
+  user-schema.ts has 2 schemas"_ can be approximated by keying each side
+  `pair::count=N` and calling `.beBijective()`, but one clear finding becomes two
+  opaque key mismatches in opposite directions.
+- **A metric finding has no equivalent at all.** A pair condition emitting `measured`
+  - `metricUnit` feeds the baseline's numeric ratchet; `crossProject` findings carry
+    neither.
+
+Keep `crossLayer` for these.
+
+### What changes when you do migrate
+
+**You gain:** either side can come from outside the project — a config file, a
 generated list — because a side is just a set of strings. `crossLayer` could only
 compare globs within one project.
 
-**What you lose, stated plainly:** attribution. `haveConsistentExports` reports the
-violation against the left file, with a message naming both files and the symbol.
-`crossProject` reports the composite key in the message and a less specific
-`element`. The information is all there; it reads less well in a list of elements.
+**Attribution degrades.** `haveConsistentExports` reports against the left file, with
+a message naming both files and the symbol. `crossProject` puts the composite key in
+the message and a less specific `element`. The information survives; it reads worse
+in a list of elements.
+
+**Unpaired files change behaviour, not just wording.** `haveConsistentExports` only
+inspects files it managed to pair — a left file with no counterpart produces zero
+findings from it, because that case belonged to `haveMatchingCounterpart`. Under the
+prefixed-key form there is one rule, not two, so that same file produces **one
+finding per exported symbol**. Usually an improvement; always a change.
+
+**Your baseline does not survive.** Identity is `rule::element::message`, and
+migrating changes all three. Every accepted finding is orphaned, so the first run
+after migrating reds with the full set. Regenerate deliberately rather than
+re-accepting in bulk.
 
 ## See also
 

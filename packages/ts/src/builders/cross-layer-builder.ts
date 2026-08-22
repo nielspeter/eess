@@ -328,12 +328,20 @@ export class PairFinalBuilder extends TerminalBuilder {
  *   .check()
  */
 /**
- * @deprecated Superseded by `crossProject()`. It replaces every `crossLayer` use —
- * including `haveConsistentExports`, via a key function that returns an array — but
- * it is a REWRITE, not a rename: the file pairing moves from `.mapping(fn)` into the
- * key. See `docs/crossproject.md` § "Migrating from `crossLayer`" for the mapping
- * and for the one thing that genuinely degrades (violation attribution, not
- * capability).
+ * @deprecated Superseded by `crossProject()` **for pairings that are key equality** —
+ * `key(a) === key(b)` with each key derived from its own side. That covers most
+ * rules, including `haveConsistentExports` (a key function may return an array, so
+ * one file expands into one key per symbol). It is a rewrite, not a rename: the
+ * pairing moves from `.mapping(fn)` into the key.
+ *
+ * KEEP `crossLayer` if your `.mapping(fn)` is not key equality — prefix matching,
+ * directory nesting, "imports its schema" — or if you use `satisfyPairCondition`,
+ * whose callback builds its own violation (including `measured`/`metricUnit` for the
+ * baseline ratchet) and has no `crossProject` equivalent. Chains of 3+ layers become
+ * N−1 separate rules.
+ *
+ * Migration table and the full list of what changes:
+ * https://nielspeter.github.io/eess/crossproject#migrating-from-crosslayer
  */
 export function crossLayer(p: ArchProject): CrossLayerBuilder {
   return new CrossLayerBuilder(p)

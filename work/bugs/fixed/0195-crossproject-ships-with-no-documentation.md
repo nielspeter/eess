@@ -83,8 +83,28 @@ crossProject(p)
 
 Run against this repo's own fixtures it reports
 `domain "domain.ts::User" has no matching services` — the same class of finding
-`haveConsistentExports` produces. So `crossProject` is a genuine replacement in
-**capability**, and the open design question this record was blocked on is closed.
+`haveConsistentExports` produces.
+
+**And then the correction over-corrected, which review caught.** Saying
+`crossProject` replaces _every_ `crossLayer` use, with attribution as the only loss,
+generalised one measurement of one shape. Three exceptions are real:
+
+1. **`.mapping(fn)` is an arbitrary relation.** `computePairs` filters the full
+   Cartesian product by the caller's predicate. A key join expresses only
+   `key(a) === key(b)` with each key derived independently, so a non-separable
+   relation — prefix matching, directory nesting, "imports its schema" — has **no
+   key encoding at all**.
+2. **`satisfyPairCondition` returns a fully-constructed `ArchViolation`**, so its
+   author controls `severity`, `identity`, and `measured`/`metricUnit`.
+   `crossProject` builds findings through `baseViolation` and exposes none of those:
+   a pair condition emitting a metric finding, which feeds the baseline's numeric
+   ratchet, has no equivalent. That is a **capability** gap, not attribution.
+3. **Three or more layers.** `crossProject` takes exactly two sides; a chain becomes
+   N−1 rules.
+
+So the honest statement, and the one the page and the `@deprecated` tag now carry:
+`crossProject` supersedes `crossLayer` **for pairings that are key equality**, which
+is most of them — and `crossLayer` is retained for the rest.
 
 **What genuinely degrades is attribution, and the migration page must say so.**
 `haveConsistentExports` reports `element: pair.left.getBaseName()` with the message
