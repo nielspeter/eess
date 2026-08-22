@@ -62,9 +62,48 @@ Deprecating first would route people onto exactly the failures the guide tells t
 how to avoid. Deferred here from
 [bug 0198](../bugs/fixed/0198-no-migration-path-from-ts-archunit.md).
 
-**The deprecation message must name the migration guide** —
-`https://nielspeter.github.io/eess/migrating-from-ts-archunit` — since that page is
-the whole answer to "what do I do now".
+**The deprecation message must name the migration guide**, since that page is the
+whole answer to "what do I do now" — and it must name a URL that **resolves**.
+
+**It must NOT be the docs site.** Measured 2026-08-22: `https://nielspeter.github.io/eess/`
+returns **404**, the repo has `has_pages: false`, and `.github/workflows/` contains
+no Pages deploy. Meanwhile `https://nielspeter.github.io/ts-archunit/` returns
+**200** — so during the rename the OLD project's docs work and the NEW project's do
+not, which
+[bug 0180](../bugs/0180-the-documentation-site-the-shipped-readmes-link-to-is-404.md)
+names as "the worst possible signal during a rename". An `npm deprecate` notice is
+the highest-traffic pointer this project will ever emit and it cannot be edited out
+of an adopter's install log.
+
+Use the GitHub blob URL, which is live the moment the guide merges:
+`https://github.com/nielspeter/eess/blob/main/docs/migrating-from-ts-archunit.md`.
+Switch to the docs site only once
+[bug 0180](../bugs/0180-the-documentation-site-the-shipped-readmes-link-to-is-404.md)
+ships a Pages deploy — note `npm run docs:build` currently FAILS and nothing gates
+it, so "we have a docs site" is not yet true even locally.
+
+### The precondition, as something you can run
+
+Before `npm deprecate`, all three must hold:
+
+```bash
+# 1. the WHOLE six-package release is on the registry, not just eess-ts —
+#    crossvalidate publishes last, and a partial window is the hazard Phase 1 exists for
+for p in eess eess-ts eess-md eess-mermaid eess-gherkin eess-crossvalidate; do
+  echo "$p $(npm view @nielspeter/$p version)"
+done
+
+# 2. the guide resolves
+curl -sfo /dev/null https://github.com/nielspeter/eess/blob/main/docs/migrating-from-ts-archunit.md && echo 'guide OK'
+
+# 3. the published eess-ts actually has what the guide tells people to write
+npm view @nielspeter/eess-ts@latest --json | grep -q . && echo 'check crossProject is exported'
+```
+
+The third matters more than it looks: `@nielspeter/eess-ts@0.2.1` — today's `latest`
+— exports **neither** `crossProject` nor `correspondence`, so the guide's §3 tells a
+switcher to write an import that does not resolve on the version they would install.
+The guide is written against the version this plan publishes, throughout.
 The plan closes with that PR — not with a later observation that the packages
 work in the wild. If they turn out not to, that is a new bug.
 
@@ -100,8 +139,11 @@ resolves from the registry.
 
 ### Phase 2 — Deprecate and archive the fork
 
-- `npm deprecate @nielspeter/ts-archunit 'retired — folded into
-@nielspeter/eess-ts'`.
+- `npm deprecate @nielspeter/ts-archunit 'retired — folded into @nielspeter/eess-ts. Migration guide: https://github.com/nielspeter/eess/blob/main/docs/migrating-from-ts-archunit.md'`
+  — **the message above is the one to run, verbatim.** The Approach section's
+  requirement that it name the guide is stated there; this is the line that gets
+  copy-pasted, and an earlier version of this plan carried a message with no URL in
+  it at all.
 - Mark the ts-archunit repository archived. It is **not deleted**: it stays the
   canonical provenance source for the corpus that
   [0090](./0090-adopt-ts-archunit-work-corpus.md) migrates. Archiving does not

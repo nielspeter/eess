@@ -3,7 +3,7 @@
 ---
 
 A migration guide for `@nielspeter/ts-archunit` users:
-https://nielspeter.github.io/eess/migrating-from-ts-archunit
+https://github.com/nielspeter/eess/blob/main/docs/migrating-from-ts-archunit.md
 
 Docs only — nothing in the package changes.
 

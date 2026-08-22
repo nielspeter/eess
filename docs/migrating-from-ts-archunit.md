@@ -4,8 +4,13 @@
 same rule vocabulary, same baseline format — it was renamed when it became one
 dialect of a family rather than a standalone tool.
 
-**Most projects change one line.** This page is longer than that because four
-things do change, and one of them is silent if you do not know about it.
+**Most projects change one line.** This page is longer than that because four things
+do change, and one of them is silent if you do not know about it.
+
+> **This page is written against `@nielspeter/eess-ts` 0.4.0 and later.** Earlier
+> published versions predate the rename in §3 and the fixes §1 relies on — on
+> `0.2.1` the `crossProject` import below does not resolve at all. Check what you
+> installed with `npm view @nielspeter/eess-ts version` before working through it.
 
 ## The short version
 

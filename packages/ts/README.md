@@ -9,7 +9,7 @@
 
 Inspired by Java's [ArchUnit](https://www.archunit.org/). Powered by [ts-morph](https://ts-morph.com/).
 
-> **The TypeScript dialect of the [eess](https://github.com/nielspeter/eess/blob/main/README.md) family.** Formerly published as `@nielspeter/ts-archunit` — that name still works as an alias, so existing installs are unaffected. New projects should prefer `@nielspeter/eess-ts`. Migrating? See [Migrating from ts-archunit](https://nielspeter.github.io/eess/migrating-from-ts-archunit).
+> **The TypeScript dialect of the [eess](https://github.com/nielspeter/eess/blob/main/README.md) family.** Formerly published as `@nielspeter/ts-archunit` — that name still works as an alias, so existing installs are unaffected. New projects should prefer `@nielspeter/eess-ts`. Migrating? See [Migrating from ts-archunit](https://github.com/nielspeter/eess/blob/main/docs/migrating-from-ts-archunit.md).
 
 [Documentation](https://nielspeter.github.io/eess/) · [Getting Started](https://nielspeter.github.io/eess/getting-started) · [What Can It Check?](https://nielspeter.github.io/eess/what-to-check)
 

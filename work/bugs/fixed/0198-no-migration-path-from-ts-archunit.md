@@ -224,5 +224,13 @@ was last edited:
       **the plan's, not this record's** — noted here because this page is what the
       deprecation notice will point at.
 
+**The deprecation must not name the docs site.** Measured on review:
+`https://nielspeter.github.io/eess/` is **404** with `has_pages: false` and no Pages
+workflow, while `https://nielspeter.github.io/ts-archunit/` is **200** — the old
+project's docs work and the new project's do not
+([bug 0180](../0180-the-documentation-site-the-shipped-readmes-link-to-is-404.md)).
+The changeset and the package README carry the GitHub blob URL instead, because a
+changelog entry and an npm deprecation notice are both permanent.
+
 Deferred: the deprecation ordering constraint, to
 [plan 0100](../../plans/0100-publish-the-fold-retire-ts-archunit.md).
