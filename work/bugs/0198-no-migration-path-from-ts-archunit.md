@@ -48,7 +48,7 @@ is the wrong trade. The work is a page, not an engine.
 corpus answers today:
 
 1. **The rename.** `correspondence()` → `crossProject()`. This is the one symbol
-   that moved, and per [bug 0195](./0195-crossproject-ships-with-no-documentation.md)
+   that moved, and per [bug 0195](./fixed/0195-crossproject-ships-with-no-documentation.md)
    it is also the one with no documentation page — so the single thing a migrator
    must change is the single thing they cannot read about.
 2. **Baselines — MEASURED 2026-08-21, and the answer is good.** See below.
@@ -141,19 +141,32 @@ migration page must carry the one-line remedy regardless of how 0199 is fixed.
 Also found: [bug 0200](./0200-a-failing-rule-file-reports-one-of-zero-rules.md) —
 the summary line on that path reads `1 of 0 rules failing`.
 
-## Blocked on bug 0195, and that was not recorded
+## Was blocked on bug 0195 — UNBLOCKED 2026-08-22
 
-Question 1 is the `correspondence` → `crossProject` rename, and this record already
-says it is _"the single thing a migrator must change is the single thing they
-cannot read about"_. That page is
-[bug 0195](./0195-crossproject-ships-with-no-documentation.md) — filed **Medium**,
-whose own fix ordering is "settle 3, then 2, then 1", and whose finding 3 is the
-undecided question of whether `crossProject` replaces `crossLayer` at all (it does
-not, for the `haveConsistentExports` path).
+Question 1 is the `correspondence` → `crossProject` rename, and this record said it
+is _"the single thing a migrator must change is the single thing they cannot read
+about"_. That page was
+[bug 0195](./fixed/0195-crossproject-ships-with-no-documentation.md), now **fixed**:
+`docs/cross-project.md` ships with a migration table.
 
-So this **High** release blocker cannot close until a **Medium** with an open
-design question closes. Neither `BUGS.md` nor the list below said so. It is stated
-here now rather than left for whoever picks this up to discover.
+**Its open design question is settled, and this record's summary of it was wrong.**
+The text here said `crossProject` "does not" replace `crossLayer` "for the
+`haveConsistentExports` path". Measured: it does — a key function may return an
+**array**, so one file expands into one key per exported symbol and the pairing
+folds into the key's prefix.
+
+**But the opposite over-claim then replaced it and is also corrected.** 0195's fix
+first asserted `crossProject` replaces _every_ `crossLayer` use with attribution as
+the only loss. Review measured three exceptions, and the migration page now states
+them: a `.mapping(fn)` that is not key equality has no key encoding at all;
+`satisfyPairCondition` builds its own violation (including `measured`/`metricUnit`
+for the baseline ratchet) and has no equivalent; and a 3+ layer chain becomes N−1
+rules.
+
+**What this means for the migration guide:** `crossLayer` is superseded for most
+rules and retained for the rest, and the page must say which — it does. Baselines
+also do not survive the rename (identity is `rule::element::message` and all three
+change), which is a second answer to this record's question 2.
 
 ## Fix
 

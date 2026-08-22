@@ -5,9 +5,14 @@ The `crossLayer()` entry point checks consistency between layers of your applica
 > **Deprecated:** `crossLayer()` still works, but is superseded. There are two
 > successors and which you want depends on where your two sides come from:
 >
-> - **`crossProject(p)`** — from `@nielspeter/eess-ts`, for two sides within one
->   TypeScript project. This is the direct replacement for `crossLayer()`, and it
->   reads in the same vocabulary: `crossProject(p).side(…).side(…)`.
+> - **[`crossProject(p)`](./cross-project.md)** — from `@nielspeter/eess-ts`, for two
+>   sides within one TypeScript project, and it reads in the same vocabulary:
+>   `crossProject(p).side(…).side(…)`. It supersedes `crossLayer()` **for pairings
+>   that are key equality**, which is most of them — but not all, and it is a
+>   **rewrite rather than a rename**. See
+>   [Migrating from `crossLayer`](./cross-project.md#migrating-from-crosslayer) for
+>   the precondition, the mapping table, and what `crossProject` cannot express
+>   (non-separable pairings, `satisfyPairCondition`, chains of 3+ layers).
 > - **`correspondence({ left, right })`** — from `@nielspeter/eess` directly, for
 >   binding two `Selection`s from _any_ loaders, not just globs within one
 >   project. It is a **kernel-level** primitive and stays a direct kernel import,

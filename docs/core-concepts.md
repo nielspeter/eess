@@ -66,16 +66,17 @@ const p = workspace([
 
 Each entry point creates a rule builder for a specific kind of element:
 
-| Entry Point      | Operates On                         | Use Case                                                            |
-| ---------------- | ----------------------------------- | ------------------------------------------------------------------- |
-| `modules(p)`     | Source files                        | Import/dependency rules                                             |
-| `classes(p)`     | Class declarations                  | Inheritance, decorators, methods, body analysis                     |
-| `functions(p)`   | Functions, arrow functions, methods | Naming, parameters, body analysis                                   |
-| `types(p)`       | Interfaces + type aliases           | Property types, type safety                                         |
-| `slices(p)`      | Groups of files                     | Cycles, layer ordering                                              |
-| `calls(p)`       | Call expressions                    | Framework-agnostic route/handler matching                           |
-| `jsxElements(p)` | JSX elements in .tsx/.jsx files     | Design system compliance, accessibility, structural JSX conventions |
-| `within(sel)`    | Scoped callbacks                    | Rules inside matched call callbacks                                 |
+| Entry Point       | Operates On                         | Use Case                                                            |
+| ----------------- | ----------------------------------- | ------------------------------------------------------------------- |
+| `modules(p)`      | Source files                        | Import/dependency rules                                             |
+| `classes(p)`      | Class declarations                  | Inheritance, decorators, methods, body analysis                     |
+| `functions(p)`    | Functions, arrow functions, methods | Naming, parameters, body analysis                                   |
+| `types(p)`        | Interfaces + type aliases           | Property types, type safety                                         |
+| `slices(p)`       | Groups of files                     | Cycles, layer ordering                                              |
+| `calls(p)`        | Call expressions                    | Framework-agnostic route/handler matching                           |
+| `jsxElements(p)`  | JSX elements in .tsx/.jsx files     | Design system compliance, accessibility, structural JSX conventions |
+| `within(sel)`     | Scoped callbacks                    | Rules inside matched call callbacks                                 |
+| `crossProject(p)` | Two key sets                        | Two independently-derived lists must agree                          |
 
 ## The Chain
 
