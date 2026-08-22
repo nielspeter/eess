@@ -2,7 +2,10 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-08-22. Freeze walk: no open questions in the body;
+- **State:** Ready — **Phase 1 shipped 2026-08-22** (tag `v0.4.0`, all six packages
+  live on npm with provenance). Phases 2 and 3 remain: the deprecation is deliberately
+  deferred to a later date, and the retirement claim cannot become mechanically true
+  until it runs. Frozen 2026-08-22; freeze walk: no open questions in the body;
   every record it depends on is Done or Fixed (0088, 0089, 0101, 0106, 0198, 0199,
   0203, 0204); the two Drafts it cites are context rather than dependencies — 0090
   is explicitly independent ("archiving does not wait on 0090") and 0180 is the
@@ -222,8 +225,52 @@ ADR-009's row `gated`.
   `gated` because of that check — not because someone asserted it.
 - The plan closes with the Phase 3 PR. Nothing waits on a later observation.
 
+## Phase 1 — what the pre-publish review caught
+
+Recorded because the value was in the catching, and because the same class will
+recur at the next release. Three reviewers ran against the release PR before the
+tag; devops passed it, and the other two found defects that publish would have made
+permanent:
+
+- **15 measured-404 URLs in surfaces that ship.** Eleven in `packages/ts/README.md`
+  — three of them the masthead an adopter clicks first on npm — and four compiled
+  into `dist`, two being the runtime `Docs:` links printed on every vacuity and glob
+  finding. The release was about to ship a package whose docs are dead while the
+  predecessor it deprecates has docs that are live, which is
+  [bug 0180](../bugs/0180-the-documentation-site-the-shipped-readmes-link-to-is-404.md)'s
+  own "worst possible signal during a rename". Rewritten to GitHub blob URLs — 0180's
+  option 2, and the treatment this plan had already chosen for the deprecation
+  message but that had not been applied to the package itself.
+- **A migration instruction no adopter could follow.** The `SmellBuilder` changelog
+  entry said to rename `examinedCount` → `examinedUnits`. Measured against the
+  published `0.2.1` tarball, `examinedCount` appears in **zero files** — it never
+  shipped. The real change is a NEW abstract member, so the subclass stops compiling
+  and the stated remedy is a no-op.
+- **Six hidden unpublished minors.** Every package skipped a version that was
+  versioned but never released, and a `## 0.3.0` heading is the universal convention
+  for "a version you already have". For `eess-ts` that section holds the largest
+  break in the release. Each changelog now opens by naming the version the reader is
+  actually coming from.
+- **This phase's own README check was half-done.** It carries "the published README
+  documents every shipped subpath" from bug 0106; `md-gherkin` had been fixed and
+  `md-mermaid`, `files` and `md-mermaid-er` had not. Since `README.md` ships in the
+  tarball, the alternative was cutting `0.4.1`.
+
+One framing correction worth keeping: **`CHANGELOG.md` is in no package's `files`
+array**, so changelogs never reach npm and stay editable. What is immutable at
+publish is `README.md` and `dist`. The first round of fixes went to the correctable
+artifact.
+
 ## Progress ledger
 
-- [ ] Phase 1 — coordinated release of all six packages
+- [x] Phase 1 — coordinated release of all six packages. **Done 2026-08-22**, tag
+      `v0.4.0`, `publish.yml` green with SLSA provenance on every tarball. Its
+      definition of done verified **against the registry**, not the repo: - all six published at compatible ranges — `eess` 0.2.2→0.4.0, `eess-ts`
+      0.2.1→0.4.0, `eess-md` 0.3.0→0.5.0, `eess-mermaid` 0.1.3→0.3.0,
+      `eess-gherkin` 0.1.2→0.3.0, `eess-crossvalidate` 0.2.0→0.4.0; - a clean install of a dialect from npm yields **one** kernel copy — the
+      window this phase exists to keep shut never opened; - `./gherkin-ts` resolves from the registry, which discharges the deferral
+      this phase carried from
+      [bug 0106](../bugs/fixed/0106-no-gate-requires-a-changeset.md): the subpath
+      had merged with no changeset and existed in no published version.
 - [ ] Phase 2 — deprecate `@nielspeter/ts-archunit`, archive the repo
 - [ ] Phase 3 — retirement test live, ADR-009 row flipped to `gated`
