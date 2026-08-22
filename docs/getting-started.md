@@ -13,6 +13,10 @@ npm install -D @nielspeter/eess-ts
 ```
 
 > `eess-ts` is the TypeScript dialect, evolved from ts-archunit's engine. Install `@nielspeter/eess-ts`.
+>
+> Coming from `@nielspeter/ts-archunit`? See
+> [Migrating from ts-archunit](./migrating-from-ts-archunit.md) — most projects
+> change one import line, but four things do change and one is silent.
 
 ## Quick Start with Presets
 

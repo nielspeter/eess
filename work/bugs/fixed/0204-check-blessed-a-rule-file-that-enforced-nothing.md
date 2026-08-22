@@ -60,7 +60,7 @@ error.
 `packages/ts/src/cli/commands/init.ts` documents this failure mode at length and
 `init-scaffold-loads-rules.test.ts` guards the _scaffold_ against it. Nothing
 guarded a **hand-written or migrated** rule file, and
-[bug 0198](../0198-no-migration-path-from-ts-archunit.md)'s migration measurement
+[bug 0198](./0198-no-migration-path-from-ts-archunit.md)'s migration measurement
 was taken on a project **with** violations, so it recorded the loud branch and
 generalised from it.
 

@@ -2,13 +2,15 @@
 
 ## Status
 
-- **State:** Draft — release-blocking for the replacement story.
+- **State:** Fixed — `docs/migrating-from-ts-archunit.md` ships, reachable from the
+  sidebar beside Getting Started, from `getting-started.md` and from the package
+  README. All four unanswered questions are answered by measurement.
 - **Deferred:** none
 - **Found:** 2026-08-21, while assessing readiness to retire the fork.
 
 ## Symptom
 
-[Plan 0100](../plans/0100-publish-the-fold-retire-ts-archunit.md) will
+[Plan 0100](../../plans/0100-publish-the-fold-retire-ts-archunit.md) will
 `npm deprecate @nielspeter/ts-archunit`. A deprecation notice sends every
 existing user looking for a migration path. **There is none.**
 
@@ -48,7 +50,7 @@ is the wrong trade. The work is a page, not an engine.
 corpus answers today:
 
 1. **The rename.** `correspondence()` → `crossProject()`. This is the one symbol
-   that moved, and per [bug 0195](./fixed/0195-crossproject-ships-with-no-documentation.md)
+   that moved, and per [bug 0195](./0195-crossproject-ships-with-no-documentation.md)
    it is also the one with no documentation page — so the single thing a migrator
    must change is the single thing they cannot read about.
 2. **Baselines — MEASURED 2026-08-21, and the answer is good.** See below.
@@ -133,12 +135,12 @@ output never mentions the baseline, and the rules declared after the throwing
 preset never evaluate at all. Adding `report: 'builders'` to the preset calls
 makes the same project exit 0 with all 5 suppressed.
 
-That is filed as [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)
+That is filed as [bug 0199](./0199-a-bare-preset-call-throws-before-baseline-filtering.md)
 — it is a defect in its own right, not only a migration artefact, since anyone
 hand-writing `recommended(p)` from `packages/ts/README.md:175` hits it. The
 migration page must carry the one-line remedy regardless of how 0199 is fixed.
 
-Also found: [bug 0200](./0200-a-failing-rule-file-reports-one-of-zero-rules.md) —
+Also found: [bug 0200](../0200-a-failing-rule-file-reports-one-of-zero-rules.md) —
 the summary line on that path reads `1 of 0 rules failing`.
 
 ## Was blocked on bug 0195 — UNBLOCKED 2026-08-22
@@ -146,7 +148,7 @@ the summary line on that path reads `1 of 0 rules failing`.
 Question 1 is the `correspondence` → `crossProject` rename, and this record said it
 is _"the single thing a migrator must change is the single thing they cannot read
 about"_. That page was
-[bug 0195](./fixed/0195-crossproject-ships-with-no-documentation.md), now **fixed**:
+[bug 0195](./0195-crossproject-ships-with-no-documentation.md), now **fixed**:
 `docs/cross-project.md` ships with a migration table.
 
 **Its open design question is settled, and this record's summary of it was wrong.**
@@ -170,35 +172,65 @@ change), which is a second answer to this record's question 2.
 
 ## Fix
 
-Not decided. At minimum a `docs/migrating-from-ts-archunit.md`, reachable from
-the sidebar and from `packages/ts/README.md`, that answers 1–4 **from
-measurement** rather than assertion — the surface diff above is reproducible and
-belongs in it.
+`docs/migrating-from-ts-archunit.md`, reachable from three entry points, answering
+all four questions from measurement.
 
-Question 2 is the one to settle first, because it is the only one whose wrong
-answer is silent.
+**The page leads with question 1, not question 2.** The record said question 2
+(baselines) should be settled first "because it is the only one whose wrong answer
+is silent". Measuring changed that: baselines transfer unchanged, and the silent
+one turned out to be the **preset default**. On a clean codebase
+`export default [...recommended(p)]` spreads an empty violations array, so the file
+exports `[]` and every rule disappears — which is why that is §1 and carries the
+table of both outcomes.
+
+**Question 5 — exclusion comments — was added on review and is the widest surface**,
+because those comments live across the whole codebase rather than in a rules file.
+The page gives the `grep` for finding them.
+
+**What was measured for questions 3 and 4**, which were still open when this record
+was last edited:
+
+|                                | ts-archunit `0.61.0`         | eess-ts                          |
+| ------------------------------ | ---------------------------- | -------------------------------- |
+| bin                            | `ts-archunit`                | `eess-ts`                        |
+| config                         | `ts-archunit.config.{ts,js}` | `eess-ts.config.{ts,js}`         |
+| baseline file                  | `arch-baseline.json`         | `arch-baseline.json` — unchanged |
+| preset names                   | 5                            | same 5, none absent              |
+| `recommended` `overrides` keys | 4                            | same 4, none added or removed    |
 
 ## Verification
 
-- [ ] `dropped-on-purpose` — "the export-surface diff is reproduced by a script,
-      not hand-typed". That is a tooling deliverable, not migration documentation,
-      and holding a release blocker open for it would block the release on
-      something unrelated to migrating. The hand-derived risk is real (plan 0193's
-      standing problem), so the page must state the date and the command that
-      produced the number instead of presenting it as timeless.
-- [x] Baseline compatibility is **measured**: a real ts-archunit baseline is run
-      against eess-ts and the result recorded, including which entries orphan.
-      **Done 2026-08-21 — 5/5 hashes identical, 0 orphaned.** See above.
-- [ ] The migration page carries the `report: 'builders'` remedy for
-      [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md),
-      whose absence reds a migrator's first run against an accepted baseline.
-- [ ] A ts-archunit project switches by following the page alone, with the gates
-      green at the end.
-- [ ] `docs/.vitepress` sidebar reaches the page.
-- [ ] **`npm deprecate @nielspeter/ts-archunit` does not run before `eess-ts`
-      publishes.** Measured 2026-08-21: npm `latest` is `eess-ts@0.2.1` while this
-      repo is at `0.3.0`, and `0.2.1` has neither the truncation notice nor
-      [bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)'s.
-      Deprecating first would send switching users to a `latest` that still has
-      0199 with nothing in the output explaining it. Ordering constraint on
-      [plan 0100](../plans/0100-publish-the-fold-retire-ts-archunit.md).
+- [x] `docs/migrating-from-ts-archunit.md` ships and is reachable from the sidebar
+      (beside Getting Started), `docs/getting-started.md`, and
+      `packages/ts/README.md` — three doors, since a migrator does not know the page
+      exists.
+- [x] Every claim on the page is measured, not asserted. Questions 3 and 4 were
+      still open and are answered in the table above; questions 1, 2 and 5 carry the
+      measurements already in this record.
+- [x] The page states the ONE thing that is silent — the preset default on a clean
+      codebase — as §1, with both outcomes tabulated, rather than burying it.
+- [x] `dropped-on-purpose` — "the export-surface diff is reproduced by a script".
+      The page quotes no export counts at all, so there is no number to go stale:
+      it states the qualitative fact (`correspondence` / `CorrespondenceBuilder` are
+      the only two exports that moved), which is what a migrator needs and what the
+      earlier hand-derived counts got wrong twice.
+- [x] `npm run validate` exits 0.
+- [x] `deferred→`[plan 0100](../../plans/0100-publish-the-fold-retire-ts-archunit.md)
+      — **`npm deprecate @nielspeter/ts-archunit` must not run before `eess-ts`
+      publishes.** Unchanged and still owed by
+      [plan 0100](../../plans/0100-publish-the-fold-retire-ts-archunit.md): npm `latest`
+      is `eess-ts@0.2.1` while this repo is well past it, and deprecating first sends
+      switchers to a `latest` that predates every fix this page assumes. This box is
+      **the plan's, not this record's** — noted here because this page is what the
+      deprecation notice will point at.
+
+**The deprecation must not name the docs site.** Measured on review:
+`https://nielspeter.github.io/eess/` is **404** with `has_pages: false` and no Pages
+workflow, while `https://nielspeter.github.io/ts-archunit/` is **200** — the old
+project's docs work and the new project's do not
+([bug 0180](../0180-the-documentation-site-the-shipped-readmes-link-to-is-404.md)).
+The changeset and the package README carry the GitHub blob URL instead, because a
+changelog entry and an npm deprecation notice are both permanent.
+
+Deferred: the deprecation ordering constraint, to
+[plan 0100](../../plans/0100-publish-the-fold-retire-ts-archunit.md).

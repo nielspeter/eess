@@ -7,7 +7,7 @@
   cause is [bug 0201](./0201-executecheck-prints-before-the-caller-can-filter.md).
 - **Deferred:** [0201](./0201-executecheck-prints-before-the-caller-can-filter.md) — the root cause
 - **Found:** 2026-08-21, while measuring ts-archunit → eess-ts baseline
-  compatibility for [bug 0198](../0198-no-migration-path-from-ts-archunit.md).
+  compatibility for [bug 0198](./0198-no-migration-path-from-ts-archunit.md).
 
 ## Symptom
 
