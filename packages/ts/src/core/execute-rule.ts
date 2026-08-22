@@ -475,10 +475,21 @@ export async function withCallerAggregating<T>(fn: () => Promise<T>): Promise<T>
  * silent. A silence built from a stale signal is worse than the false claim it was
  * introduced to fix, because the run says nothing at all.
  *
- * Both emitters are counted because eess-ts has two: this module's `writeReport`
- * (used by `executeCheck`, `executeWarn` and `check-all.ts`) and the kernel's
- * `reportViolations` (used by `finishPreset`). Counting one would reproduce the
- * same blind spot on the other's path.
+ * **Three emitters are counted, not two, and an earlier version of this docblock
+ * got the list wrong.** It said `writeReport` was "used by `executeCheck`,
+ * `executeWarn` and `check-all.ts`" — `executeWarn` does not call it. It writes
+ * through `writeStderr` / `process.stdout.write` directly, with its own
+ * json/github/terminal branching, so it moved neither counter and the leak
+ * detector could not see it. Measured: a live `.warn()` beside a throwing
+ * `.check()` under `--baseline` leaked its advisory findings in silence.
+ *
+ * The three: this module's `writeReport` (`executeCheck`, `check-all.ts`), this
+ * module's `executeWarn` advisory write, and the kernel's `reportViolations`
+ * (`finishPreset`). Missing any one reproduces the blind spot on that path — which
+ * is exactly what happened, twice.
+ *
+ * That every emitter must be counted, and that nothing enforces it, is
+ * [bug 0205](../../../../work/bugs/0205-four-emitters-restate-the-suppression-rule-and-disagree.md).
  */
 /**
  * Is a caller aggregating reports for this run?
@@ -608,6 +619,16 @@ export function executeWarn(
       ? stamped.filter((v) => v.bypassFilters !== true)
       : stamped
     if (advisory.length > 0) {
+      // Counted, because this is an EMISSION and an aggregating caller's leak
+      // detector reads emissions. This function does not go through `writeReport`
+      // — it has its own json/github/terminal branching, deliberately, so that a
+      // json run's stdout document stays the caller's alone — and that made it
+      // invisible: measured, a live `.warn()` beside a throwing `.check()` under
+      // `--baseline` printed its advisory findings unfiltered while
+      // `violationsWritten()` reported nothing written, so the "your filters did
+      // not reach this" notice stayed silent. Bug 0199's false negative, reopened
+      // through the one emitter this module's own docblock claimed was covered.
+      violationsWrittenHere += advisory.length
       if (options?.format === 'json') {
         writeStderr(formatViolationsJson(advisory, ctx.reason))
       } else if (options?.format === 'github') {

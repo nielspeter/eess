@@ -47,6 +47,16 @@ That gap is the real subject here. It is the same one
 [ADR-008's amendment](../../adr/008-caller-owns-reporting.md) records: aggregation
 is a property of the run, and the kernel's preset API is per-call.
 
+## This and bug 0205 prescribe opposite fixes for the same site
+
+[Bug 0205](./0205-four-emitters-restate-the-suppression-rule-and-disagree.md) wants
+`deliver()` wired into a shared ts-side emit-and-throw primitive. Option 2 below
+**deletes** `deliver()`'s aggregation branch entirely, removing it from 0205's four
+sites. Doing 0205 first deepens the bypass this record is about.
+
+**Whichever ships first makes the other's stated fix wrong.** Decide this one first,
+or decide both together.
+
 ## Fix
 
 Not decided. Three shapes, in increasing order of what they commit to:
