@@ -45,15 +45,30 @@ Without the option, `...recommended(p)` spreads the preset's **result**, not its
 builders. What happens next depends on your codebase and neither outcome is what
 you want:
 
-| your codebase  | what you get                                                                         |
-| -------------- | ------------------------------------------------------------------------------------ |
-| has violations | the loader rejects it — `default export entry [0] is not a rule builder`, exit 1     |
-| **is clean**   | the result is an **empty array**, so the file exports `[]` and every rule disappears |
+| your codebase  | what you get                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| has violations | the preset throws while the file loads. `check` reports `This rule file stopped evaluating…` and exits 1 — loud, and it names the fix |
+| **is clean**   | the result is an **empty array**. The spread adds nothing, and those rules are silently gone                                          |
 
-`tsc --noEmit` catches neither: a spread of the wrong array type is not a type
-error. Since `0.4.0`, `eess-ts check` refuses a rule file that contributed no rules
-rather than printing a green tick over it — so the clean case now fails loudly too.
-On older versions it exits 0.
+`tsc --noEmit` catches neither: a spread of the wrong array type is not a type error.
+
+**The clean case is only loud if the preset was the file's ONLY source of rules.**
+Since `0.4.0`, `check` refuses a rule file that contributed _zero_ rules — but if
+your file also has hand-written rules, or a second preset, those still load. The run
+is green, the summary shows a plausible non-zero count, and the preset's rules are
+simply missing from it.
+
+**So verify by comparison, not by looking for zero:**
+
+```bash
+npx eess-ts check          # before adding the option
+# ...add report: 'builders' to every preset call...
+npx eess-ts check          # after
+```
+
+If the rule count **goes up**, those rules were not running before. There is no fixed
+number to check against — how many rules a preset contributes depends on the options
+you pass it — so the difference is the signal.
 
 Applies to every preset: `recommended`, `agentGuardrails`, `layeredArchitecture`,
 `strictBoundaries`, `dataLayerIsolation`. `eess-ts init` scaffolds the correct form.
@@ -145,18 +160,20 @@ If your `.mapping(fn)` is not key equality — prefix matching, directory nestin
 [Migrating From `crossLayer`](/cross-project#migrating-from-crosslayer) for which
 applies to you.
 
-## Checking you are done
+## Checking You Are Done
 
 ```bash
 npx eess-ts check
 ```
 
-Read the summary line. `0 rules across N files` means your rules did not load —
-almost always §1.
-
 ```
 ✓ eess-ts — 25 rules across 2 files · 0 failing (8.71s)
 ```
+
+**Read the rule count, and compare it to what you expect — not to zero.**
+`0 rules across N files` does mean your rules did not load, but a _partial_ loss from
+§1 shows a plausible non-zero number under a green tick. The before/after comparison
+in §1 is what detects that; a single green run cannot.
 
 If a run reports findings you had already accepted, check whether the output says
 your baseline was not applied — a rule file that enforces at module scope prints
