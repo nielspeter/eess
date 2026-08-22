@@ -340,7 +340,7 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
    * through the kernel's `reportViolations`, which no ts-side flag reaches — so its
    * findings are printed before the CLI sees them and the baseline cannot apply.
    */
-  it('says so when a preset printed findings the baseline never filtered', async () => {
+  it('no longer leaks when a preset enforces at module scope either', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-'))
     try {
       const baselinePath = path.join(dir, 'arch-baseline.json')
@@ -355,16 +355,12 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
         baseline: baselinePath,
       })
       const report = stderr.join('')
-      expect(report).toMatch(/was not applied|could not be applied/i)
-      // Names the baseline FILE, not a flag the caller may never have typed —
-      // `eess-ts.config.ts` can set it.
-      expect(report).toContain('arch-baseline.json')
-      // Generic remedy first: this finding fires for any module-scope terminal,
-      // so naming only the preset fix would be the ADR-009 rule 2 defect that
-      // `ruleFileFailure` calls out by name in the same source file.
-      expect(report).toContain('export default [rule1, rule2]')
-      expect(report).toContain("report: 'builders'")
-      // A notice demoted to a warning would otherwise leave this green.
+      // Bug 0203: `deliver()` now honours the aggregating caller, so the preset
+      // enforces (still throws) without emitting. Nothing leaked, so no notice is
+      // owed — and the CLI reports the violations once, off the throw.
+      expect(report).not.toMatch(/was not applied|could not be applied/i)
+      expect(report).toContain('stopped evaluating')
+      // The run still fails: the throw is unchanged, only the emission moved.
       expect(code).toBeGreaterThan(0)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
@@ -381,7 +377,7 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
     capture()
     await runCheck({
       ...baseArgs,
-      ruleFiles: [fixture('enforcing-preset-changed.rules.ts')],
+      ruleFiles: [fixture('warn-leaks-under-changed.rules.ts')],
       changed: true,
       base: 'HEAD',
     })
@@ -429,7 +425,7 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
    * Sabotage-measured: without this test, deleting the counter increment inside
    * `writeReport` left the entire suite green.
    */
-  it('fires for checkAll() at module scope, which writeReport still leaks', async () => {
+  it('no longer leaks for checkAll() at module scope either', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0199-checkall-'))
     try {
       const baselinePath = path.join(dir, 'arch-baseline.json')
@@ -444,8 +440,18 @@ describe('a rule file that enforces at module scope, under a CLI-side filter', (
         baseline: baselinePath,
       })
       const report = stderr.join('')
+      // **The positive anchor first.** The conversion of this test originally
+      // dropped it and asserted only the absence — measured: replacing the fixture
+      // with a module that calls no `checkAll` at all left the test green, because
+      // the run it then graded was a `ruleFileFailure` ("could not be evaluated")
+      // that the absence regex does not match. Its sibling two tests down states
+      // the rule in its own comment: asserting only an absence also passes on a
+      // run that did nothing.
       expect(report).toMatch(/Architecture Violation \[/)
-      expect(report).toMatch(/was not applied|could not be applied/i)
+      expect(report).toContain('parseFooOrder')
+      // Bug 0203's third emitter: `check-all.ts` honours the flag now, so the
+      // findings reach the user once, through the CLI, with the baseline applied.
+      expect(report).not.toMatch(/was not applied|could not be applied/i)
     } finally {
       fs.rmSync(dir, { recursive: true, force: true })
     }

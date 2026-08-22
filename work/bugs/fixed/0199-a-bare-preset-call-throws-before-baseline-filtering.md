@@ -172,7 +172,7 @@ loading?_ Three fixtures hold it: the mixed suppressed-and-leaking file above,
 **A third leaking path was found doing this.** `checkAll()` calls `writeReport`
 unconditionally — the same defect `executeCheck` was fixed for, three files away in
 the same package. It is named in
-[bug 0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md). Until
+[bug 0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md). Until
 this fixture existed, the dialect-side counter was at **margin 0**: deleting its
 increment left the whole suite green.
 

@@ -429,13 +429,34 @@ let callerAggregatesReports = false
 let violationsWrittenHere = 0
 
 /**
- * Declare that the caller will report every finding itself. **CLI only.**
+ * Run `fn` with report aggregation on, restoring the previous value afterwards.
  *
- * Not an option on `CheckOptions`: a self-executing rule file passes no options, and
- * this is a property of who is driving the run rather than of any one rule.
+ * **A dynamic extent, not a latch.** This replaced an exported
+ * `setCallerAggregatesReports(on)` that the CLI called once and nothing ever set
+ * back. Aggregation is a property of a RUN, and while `executeCheck` was the only
+ * reader the difference was invisible — the CLI wanted suppression for its whole
+ * life. It stopped being invisible the moment `deliver()` and `checkAll()` read it
+ * too (bug 0203): measured, a preset called directly in a process that had already
+ * run `runCheck` once emitted **6 violation blocks before and 0 after**. It still
+ * threw, so nothing went falsely green — but the report, the `Why:` and the `Fix:`
+ * were gone, with no signal that anything had been swallowed.
+ *
+ * Not an option on `CheckOptions`: a self-executing rule file writes `.check()`
+ * with no arguments and a preset is called by the RULE FILE, not by the CLI, so
+ * there is no per-call site the CLI could set. This is a property of who is
+ * driving the run.
+ *
+ * Restores rather than clears, so nesting cannot switch a still-running outer
+ * aggregation off.
  */
-export function setCallerAggregatesReports(on: boolean): void {
-  callerAggregatesReports = on
+export async function withCallerAggregating<T>(fn: () => Promise<T>): Promise<T> {
+  const previous = callerAggregatesReports
+  callerAggregatesReports = true
+  try {
+    return await fn()
+  } finally {
+    callerAggregatesReports = previous
+  }
 }
 
 /**
@@ -459,6 +480,19 @@ export function setCallerAggregatesReports(on: boolean): void {
  * `reportViolations` (used by `finishPreset`). Counting one would reproduce the
  * same blind spot on the other's path.
  */
+/**
+ * Is a caller aggregating reports for this run?
+ *
+ * Exposed so the two OTHER ts-side emitters can honour the same contract
+ * `executeCheck` does: `presets/shared.ts`'s `deliver()` and `core/check-all.ts`.
+ * Both used to emit unconditionally, so a preset or a `checkAll()` at module scope
+ * printed its findings before the aggregating caller saw them — and the caller then
+ * reported the same violations again off the throw. Bug 0203.
+ */
+export function callerAggregates(): boolean {
+  return callerAggregatesReports
+}
+
 export function violationsWritten(): number {
   return violationsWrittenHere + violationsEmittedCount()
 }

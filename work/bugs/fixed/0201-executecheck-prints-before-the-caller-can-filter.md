@@ -7,7 +7,7 @@
   already-accepted violations before, and 0 after. **Rewritten once** before that:
   the first version blamed jiti module registries and was wrong; see "What this
   record used to say".
-- **Deferred:** [0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md)
+- **Deferred:** [0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md)
   — the kernel half, which no dialect flag can reach
 - **Found:** 2026-08-21, while fixing [bug 0199](./0199-a-bare-preset-call-throws-before-baseline-filtering.md).
   Re-diagnosed the same day by the enforcement review of PR #74.
@@ -124,10 +124,10 @@ measured that no aggregating caller drives the kernel copy — but it is the sec
 such divergence in two days, and it is exactly what
 [plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md) was raised to
 High for. Both the kernel copy and `packages/ts/src/core/check-all.ts` are named in
-[bug 0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md).
+[bug 0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md).
 
 **The preset half is NOT fixed and is filed as
-[bug 0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md).**
+[bug 0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md).**
 `finishPreset` emits unconditionally. Measured after this fix, same run: the
 `.check()` path leaks nothing, the preset path still leaks — and its worst symptom
 turns out to be a **double print with no flags involved at all**, which this record
@@ -178,9 +178,9 @@ working precedent for exactly this split.
 - [x] The notice did NOT become unreachable, which is what the first version of
       this box predicted. It became reachable-and-wrong on the fixed path — worse —
       and is now gated on measured leakage. Its remaining live path is
-      [bug 0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md);
+      [bug 0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md);
       when that lands, the notice must be removed or its last path named (ADR-010).
 - [x] `npm run validate` exits 0 — 3547 tests, 263 files.
 
-Deferred: [0203](../0203-a-preset-at-module-scope-prints-its-findings-twice.md)
+Deferred: [0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md)
 — the kernel half.

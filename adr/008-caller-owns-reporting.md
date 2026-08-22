@@ -42,6 +42,45 @@ lives in one place, and it is opt-in for the preset path.**
 The default stays print-then-throw, so no CLI change is required; a caller opts
 into `report: 'return'` to own emission.
 
+### Amendment 2026-08-22 — a run-level caller may suppress emission
+
+**The default is print-then-throw for a caller that has not said otherwise.** A
+caller that declares it aggregates the whole run gets **throw without emit**, and
+that is not an opt-in mode — it is selected by the run, not by the call.
+
+The distinction the paragraph above missed: `report` is chosen at the **call site**,
+and for the case this governs there is no call site to choose at. A self-executing
+rule file writes `.check()` with no arguments, and `recommended(p)` is written by
+the rule file's author, not by the CLI that loads it. So the CLI cannot express
+"run these and let me do the reporting" through `PresetReportOptions` or
+`CheckOptions` — the only party who could pass an option is the one party who does
+not know a CLI is driving.
+
+`eess-ts`'s `withCallerAggregating` is therefore a run-scoped declaration rather
+than an option, and while it is in effect `executeCheck`, `deliver()` and
+`checkAll()` throw without emitting. **The violations are not lost:** they ride the
+thrown `ArchRuleError`, which the aggregating caller collects and reports once.
+
+**The governing invariant, which the four read sites must each satisfy: suppress
+exactly what rides the throw, and nothing else.** `executeWarn` is the case that
+proves the rule has content — its warn-severity violations do **not** ride the
+throw (only the configuration findings do), so it suppresses only the
+`bypassFilters` entries and writes the rest. A future emitter that suppresses more
+than rides the throw loses findings silently.
+
+**Why it was needed:** without it a preset at module scope emitted its findings and
+then threw, and the CLI reported the same violations again off the throw — measured
+at 13 blocks for 7 findings, under a summary claiming one
+([bug 0203](../work/bugs/fixed/0203-a-preset-at-module-scope-prints-its-findings-twice.md)).
+No CLI-side filter could reach the printed copy either, so `--baseline` and
+`--changed` did not apply to it
+([bug 0199](../work/bugs/fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)).
+
+**Scope, stated because it bounds the claim:** this is a `eess-ts` mechanism. The
+kernel's `finishPreset` has no such flag and neither does the kernel's own
+`executeCheck`, which still emits unconditionally — recorded as knowingly divergent
+and owned by [plan 0188](../work/plans/0188-unify-the-duplicated-engine-modules.md).
+
 ## Consequences
 
 - Embedders own reporting: no double render, and preset violations can be
@@ -72,11 +111,13 @@ the dialect for an entire release cycle
 Where a clause can be resolved, resolving it is strictly better than asserting
 the file exists.
 
-| Clause                                                          | Tier | Mechanism                                                                                                                                                                                                                                                                                           | Status |
-| --------------------------------------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| One emitter shared by both paths                                | 1    | `executeCheck` and `finishPreset` both call `reportViolations` — `packages/core/src/report.ts`, `packages/core/src/execute-rule.ts`, `packages/core/src/preset-dispatch.ts`                                                                                                                         | gated  |
-| Presets return violations, don't force emission                 | 2    | `packages/core/tests/report.test.ts` — the `report: return` case (returns violations, no stderr/stdout write)                                                                                                                                                                                       | gated  |
-| Default preset behavior unchanged (emit + throw)                | 2    | `packages/ts/tests/presets/the-default-enforces.test.ts` · `it('the shape the docs teach — a bare call, result discarded — THROWS')` — the DIALECT's preset surface, which is what this clause is about; `packages/core/tests/report.test.ts` covers the kernel's `finishPreset` default separately | gated  |
-| Caller owns format — presets can emit JSON                      | 2    | `packages/core/tests/report.test.ts` — the `format: json` case (writes JSON to stdout)                                                                                                                                                                                                              | gated  |
-| Violations returned to the caller carry the rule's own metadata | 2    | `packages/core/tests/execute-rule.test.ts` — the "stamps ruleId, because, suggestion and docs" case, and the "stamps every violation, not just the first" case (bug 0122)                                                                                                                           | gated  |
-| A condition's per-element value is never replaced by the rule's | 2    | `packages/core/tests/execute-rule.test.ts` — the "never overwrites a value the condition computed" case (inverting the guard passed the whole suite before this, bug 0122)                                                                                                                          | gated  |
+| Clause                                                                                | Tier | Mechanism                                                                                                                                                                                                                                                                                                                                                              | Status |
+| ------------------------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| One emitter shared by both paths                                                      | 1    | `executeCheck` and `finishPreset` both call `reportViolations` — `packages/core/src/report.ts`, `packages/core/src/execute-rule.ts`, `packages/core/src/preset-dispatch.ts`                                                                                                                                                                                            | gated  |
+| Presets return violations, don't force emission                                       | 2    | `packages/core/tests/report.test.ts` — the `report: return` case (returns violations, no stderr/stdout write)                                                                                                                                                                                                                                                          | gated  |
+| Default preset behavior for a caller that has not declared aggregation: emit + throw  | 2    | `packages/ts/tests/presets/the-default-enforces.test.ts` · `it('the shape the docs teach — a bare call, result discarded — THROWS')` — the DIALECT's preset surface, which is what this clause is about; `packages/core/tests/report.test.ts` covers the kernel's `finishPreset` default separately                                                                    | gated  |
+| Under a run-level aggregating caller: throw WITHOUT emit, violations riding the throw | 2    | `packages/ts/tests/cli/preset-double-print.test.ts` · `it('reports each finding once, not twice')` — the preset emits nothing of its own and the CLI reports once; `packages/ts/tests/cli/aggregation-is-scoped.test.ts` · `it('a direct preset call still reports after the CLI has run in the same process')` pins the scope so suppression cannot leak past the run | gated  |
+| Suppress exactly what rides the throw, and nothing else                               | 2    | `packages/ts/tests/cli/rule-file-truncation.test.ts` · `it('fires when a file both silences one terminal and leaks through another')` — `executeWarn`'s advisory violations do NOT ride the throw, so they are still written and the CLI says its filters did not reach them                                                                                           | gated  |
+| Caller owns format — presets can emit JSON                                            | 2    | `packages/core/tests/report.test.ts` — the `format: json` case (writes JSON to stdout)                                                                                                                                                                                                                                                                                 | gated  |
+| Violations returned to the caller carry the rule's own metadata                       | 2    | `packages/core/tests/execute-rule.test.ts` — the "stamps ruleId, because, suggestion and docs" case, and the "stamps every violation, not just the first" case (bug 0122)                                                                                                                                                                                              | gated  |
+| A condition's per-element value is never replaced by the rule's                       | 2    | `packages/core/tests/execute-rule.test.ts` — the "never overwrites a value the condition computed" case (inverting the guard passed the whole suite before this, bug 0122)                                                                                                                                                                                             | gated  |

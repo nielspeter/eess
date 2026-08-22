@@ -153,10 +153,13 @@ export function ruleFileTruncated(file: string, ruleFiles: number): ArchViolatio
       `that point never ran and its violations are not in this report. Rules that had already ` +
       `run are reported normally.${others}`,
     suggestion:
-      `Fix the finding above, then re-run to see the rest of this file. If you would rather the ` +
-      `file always evaluate in full, move its rules into \`export default [rule1, rule2]\` — an ` +
-      `array export builds every rule before any of them runs, so one finding cannot hide the ` +
-      `others.`,
+      `Fix the finding above, then re-run to see the rest of this file. To make the file ` +
+      `always evaluate in full: if its rules come from a preset, pass \`report: 'builders'\` — ` +
+      `e.g. \`recommended(p, { report: 'builders' })\` — which returns the builders instead of ` +
+      `running them at module scope. A spread like \`export default [...recommended(p)]\` does ` +
+      `NOT avoid this on its own, because the spread evaluates before the array exists. ` +
+      `Otherwise move the rules into \`export default [rule1, rule2]\` and drop the terminal ` +
+      `calls, so every rule is built before any of them runs.`,
     bypassFilters: true,
   }
 }

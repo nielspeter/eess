@@ -1,7 +1,7 @@
-import type { RuleBuilderLike } from '@nielspeter/eess'
+import type { ArchViolation, RuleBuilderLike } from '@nielspeter/eess'
 import type { CheckOptions } from '@nielspeter/eess'
 import { ArchRuleError } from '@nielspeter/eess'
-import { writeReport } from './execute-rule.js'
+import { callerAggregates, writeReport } from './execute-rule.js'
 import { dedupeConfigFindings } from '@nielspeter/eess'
 import { suppressionNotice } from '@nielspeter/eess'
 import { writeStderr } from '@nielspeter/eess'
@@ -57,12 +57,31 @@ export function checkAll(rules: RuleBuilderLike[], options?: CheckOptions): void
   // stderr carries it for every other format. Found by sabotage: removing the
   // `writeStderr` call left the tests green because the notice was reaching
   // stderr through the "Why:" line instead.
-  writeReport(
-    violations,
-    options?.format,
-    options?.format === 'json' ? notice : undefined,
-    untestedRules(),
-  )
+  // Bug 0203 — the third emitter, and the same contract `executeCheck` and
+  // `deliver()` now honour. A `checkAll()` at module scope used to print its
+  // findings before an aggregating caller saw them, and the caller then reported
+  // the same violations again off the throw below.
+  //
+  // **Suppress exactly what rides the throw, and nothing else** — ADR-008's
+  // amendment, and this function is the case that gives it teeth. The throw at the
+  // bottom carries only the ERROR-severity subset, so warn-severity findings ride
+  // nothing. Suppressing them too is not "the caller will report it", it is
+  // deleting them: measured, four warn findings produced and discarded under
+  // `✓ eess-ts — 4 rules across 1 file · 0 failing`, exit 0. A fake green through
+  // this package's own CLI. The first version of this guard did exactly that.
+  //
+  // The flag defaults to `false`, so `checkAll()` in a test file — where nobody
+  // aggregates — still prints everything, exactly as before.
+  const ridesTheThrow = (v: ArchViolation): boolean => (v.severity ?? 'error') === 'error'
+  const toWrite = callerAggregates() ? violations.filter((v) => !ridesTheThrow(v)) : violations
+  if (toWrite.length > 0 || (!callerAggregates() && options?.format === 'json')) {
+    writeReport(
+      toWrite,
+      options?.format,
+      options?.format === 'json' ? notice : undefined,
+      untestedRules(),
+    )
+  }
 
   // Bug 0015 reaches the in-test path too. `checkAll` is the vitest-side
   // equivalent of `runCheck`, and a disclosure the recommended runner never
@@ -83,7 +102,7 @@ export function checkAll(rules: RuleBuilderLike[], options?: CheckOptions): void
     if (suppressed !== undefined) writeStderr(`${suppressed}\n`)
   }
 
-  const errors = violations.filter((v) => (v.severity ?? 'error') === 'error')
+  const errors = violations.filter(ridesTheThrow)
   if (errors.length > 0) {
     throw new ArchRuleError(errors)
   }
