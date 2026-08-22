@@ -23,6 +23,7 @@ export default defineConfig({
           { text: 'Calculator Walkthrough', link: '/eess-walkthrough-calculator' },
           { text: 'eess as a Harness', link: '/eess-as-a-harness' },
           { text: 'Getting Started', link: '/getting-started' },
+          { text: 'Migrating from ts-archunit', link: '/migrating-from-ts-archunit' },
           { text: 'What to Check', link: '/what-to-check' },
         ],
       },

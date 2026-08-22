@@ -48,6 +48,23 @@ a plan held open pending a deploy, which is the one thing
 
 Run after both 0088 and 0089 have merged, in one session, in this order: publish,
 then deprecate, then make the retirement claim mechanically true in a closing PR.
+
+**Publish before deprecating, and the order is a constraint rather than a
+preference.** A deprecation notice sends every remaining ts-archunit user looking
+for the successor. Until `eess-ts` publishes, npm `latest` is a version that
+predates the fixes the migration page assumes — the preset-default trap
+([0199](../bugs/fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)),
+the silent zero-rules green
+([0204](../bugs/fixed/0204-check-blessed-a-rule-file-that-enforced-nothing.md)) and
+the double print
+([0203](../bugs/fixed/0203-a-preset-at-module-scope-prints-its-findings-twice.md)).
+Deprecating first would route people onto exactly the failures the guide tells them
+how to avoid. Deferred here from
+[bug 0198](../bugs/fixed/0198-no-migration-path-from-ts-archunit.md).
+
+**The deprecation message must name the migration guide** —
+`https://nielspeter.github.io/eess/migrating-from-ts-archunit` — since that page is
+the whole answer to "what do I do now".
 The plan closes with that PR — not with a later observation that the packages
 work in the wild. If they turn out not to, that is a new bug.
 
