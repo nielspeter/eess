@@ -341,7 +341,7 @@ export class PairFinalBuilder extends TerminalBuilder {
  * N−1 separate rules.
  *
  * Migration table and the full list of what changes:
- * https://nielspeter.github.io/eess/cross-project#migrating-from-crosslayer
+ * https://github.com/nielspeter/eess/blob/main/docs/cross-project.md#migrating-from-crosslayer
  */
 export function crossLayer(p: ArchProject): CrossLayerBuilder {
   return new CrossLayerBuilder(p)

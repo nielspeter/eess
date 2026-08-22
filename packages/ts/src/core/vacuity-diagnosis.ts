@@ -40,7 +40,7 @@ function singularise(noun: string, n: number): string {
 // single-line waiver covers exactly the next line.
 // eess-exclude eess/no-unused-exports: test-only consumer
 export const ASSERTION_DOCS =
-  'https://nielspeter.github.io/eess/violation-reporting#a-rule-must-assert-something'
+  'https://github.com/nielspeter/eess/blob/main/docs/violation-reporting.md#a-rule-must-assert-something'
 
 export interface RuleFacts {
   /** The builder's own class, for naming the rule in a finding. */

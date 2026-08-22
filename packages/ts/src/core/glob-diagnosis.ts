@@ -27,7 +27,7 @@ interface GlobDiagnosis {
 }
 
 /** Where the glob conventions these messages talk about are documented. */
-export const GLOB_DOCS = 'https://nielspeter.github.io/eess/slices'
+export const GLOB_DOCS = 'https://github.com/nielspeter/eess/blob/main/docs/slices.md'
 
 /**
  * Whether a glob can already match an absolute path.

@@ -404,22 +404,27 @@ lines (max: 100)` rather than `Big has 120 lines (max: 100)` — the old wording
   terminal path, as it did before. JSON and GitHub-annotation output on stdout are
   unchanged.
 
-- 7031427: **Breaking for subclasses of `SmellBuilder`:** `protected abstract examinedCount(): number` is now `abstract examinedUnits(): number`.
+- 7031427: **Breaking for subclasses of `SmellBuilder`:** the class now declares
+  `abstract examinedUnits(): number`, which your subclass must implement.
 
-  Two changes in one member, so a custom detector will fail to compile rather than
-  silently keep an unused method:
-  - **Renamed.** `examinedUnits` is the name the rest of the family uses for the
-    ADR-010 evidence count, and `SmellBuilder` was the only surface still spelling
-    it differently.
-  - **No longer `protected`.** The count is now readable from outside the class,
-    because a caller deciding whether a rule was inert has to be able to ask. It is
-    what `inertAdvice()` reports and what the zero-examined floor reads.
+  **If you subclassed the published `SmellBuilder` (0.2.1 or earlier), this is a NEW
+  abstract member, not a rename.** Your subclass will stop compiling with _"does not
+  implement inherited abstract member `examinedUnits`"_.
 
-  To migrate, rename the method and drop the `protected` modifier. The body is
-  unchanged: return the number of units this detector actually looked at — not the
-  number it could have looked at, and not a constant. A constant fails
-  `tests/core/evidence-at-every-seam.test.ts`, which requires the count to respond
-  to input in both directions.
+  **To migrate: implement `examinedUnits()`.** Return the number of units this
+  detector actually looked at — not the number it could have looked at, and not a
+  constant. A constant fails `tests/core/evidence-at-every-seam.test.ts`, which
+  requires the count to respond to input in both directions.
+
+  `examinedUnits` is the name the rest of the family uses for the ADR-010 evidence
+  count, and it is public rather than `protected` because a caller deciding whether
+  a rule was inert has to be able to ask: it is what `inertAdvice()` reports and what
+  the zero-examined floor reads.
+
+  _An earlier draft of this entry described it as renaming `examinedCount`. That
+  member existed only between releases — `grep examinedCount` over the published
+  `0.2.1` tarball returns nothing — so "rename the method" was an instruction no
+  adopter could follow._
 
 - 6dbc6f4: `workspace()` now resolves per-package facts against each package's own root, not only the alphabetically-first (tie-break-winner) tsconfig's — plan 0148.
 
