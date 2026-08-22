@@ -55,11 +55,17 @@ Markdown-fence extraction of mermaid diagrams is built, shipped and dogfooded.
   `packages/md/src/model/document.ts:36` carries
   `{ lang, value, line }`, and every document carries
   `packages/md/src/model/document.ts:64`.
-- `eess-crossvalidate`'s `md-mermaid` binding consumes exactly that:
-  `packages/crossvalidate/src/md-mermaid.ts:56` selects
-  mermaid fences and
-  `packages/crossvalidate/src/md-mermaid.ts:57` feeds the fence
-  string straight to `diagram()`.
+- `eess-crossvalidate`'s `md-mermaid` binding consumes exactly that: it selects
+  mermaid fences at `packages/crossvalidate/src/md-mermaid.ts:143` and feeds the
+  fence string straight to `diagram()` at
+  `packages/crossvalidate/src/md-mermaid.ts:93`.
+
+  > Re-anchored after [bug 0209](../bugs/fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md)
+  > moved both lines. The survey originally cited `:56`/`:57`, which the fix
+  > turned into unrelated JSDoc — `check:corpus` stayed green because the
+  > pointer rule proves a line **exists**, not that it still says what the
+  > citing prose claims. The claim itself is unchanged: fence extraction ships.
+
 - Its sibling `md-mermaid-er` does the same for ER, selecting on fence **content**
   at `packages/crossvalidate/src/md-mermaid-er.ts:53`.
 

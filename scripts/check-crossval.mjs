@@ -29,7 +29,10 @@ import {
   scenarioCitationsResolve,
   scenarioCitationStats,
 } from '@nielspeter/eess-crossvalidate/md-gherkin'
-import { embeddedDiagramsMatchCode } from '@nielspeter/eess-crossvalidate/md-mermaid'
+import {
+  embeddedDiagramsMatchCode,
+  embeddedDiagramStats,
+} from '@nielspeter/eess-crossvalidate/md-mermaid'
 import { diagram } from '@nielspeter/eess-mermaid'
 import { features, scenarios } from '@nielspeter/eess-gherkin'
 import { project } from '@nielspeter/eess-ts'
@@ -186,18 +189,30 @@ gate('md↔mermaid (embedded diagrams match code)', () => {
   // hole left-to-right leaves open (an empty diagram vacuously satisfies
   // leftUnmatched; 'both' makes every real kernel class fail as
   // rightUnmatched instead — verified against correspondence.ts).
-  embeddedDiagramsMatchCode(
-    corpus({ roots: ['docs/architecture.md'] }),
-    project('packages/core/tsconfig.build.json'),
-    { scope: '**/packages/core/src/**', completeness: 'both', ...opts },
+  // ONE corpus, handed to both the preset and the denominator. Two constructions
+  // could disagree about what was even loaded, which is the forgeable half that
+  // survived the first fix (review).
+  const kernelDocs = corpus({ roots: ['docs/architecture.md'] })
+  embeddedDiagramsMatchCode(kernelDocs, project('packages/core/tsconfig.build.json'), {
+    scope: '**/packages/core/src/**',
+    completeness: 'both',
+    ...opts,
+  })
+  // What this guard proves, exactly: the SELECTOR still selects something. It
+  // shares `classDiagramBlocks` with the preset, so the two cannot disagree
+  // about which fences are in scope — that was the first fix's defect, a
+  // hand-rolled `lang === 'mermaid'` count over a different population.
+  //
+  // What it does NOT prove: that the comparison ran. Neutering the preset's
+  // loop leaves this printing `1 diagram(s)` (measured, review). The break class
+  // for that is `scripts/nonvacuity/bad-md-mermaid.mjs`, which reds on exactly
+  // that mutation — named here so the guard is not read as more than it is.
+  const s = embeddedDiagramStats(kernelDocs)
+  if (s.diagrams === 0) throw new Error('md↔mermaid examined zero class diagrams — green-but-empty')
+  console.error(
+    `  md↔mermaid — ${s.diagrams} diagram(s) across ${s.documents} document(s)` +
+      (s.skipped > 0 ? `, ${s.skipped} non-class fence(s) skipped` : ''),
   )
-  const fences = corpus({ roots: ['docs/architecture.md'] })
-    .documents()
-    .flatMap((d) => d.codeBlocks)
-    .filter((b) => b.lang === 'mermaid')
-  if (fences.length === 0)
-    throw new Error('md↔mermaid scanned zero mermaid fences — green-but-empty')
-  console.error(`  md↔mermaid — ${fences.length} mermaid fence(s) in docs/architecture.md`)
 })
 
 process.exit(failures > 0 ? 1 : 0)
