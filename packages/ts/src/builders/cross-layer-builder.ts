@@ -327,6 +327,14 @@ export class PairFinalBuilder extends TerminalBuilder {
  *   .should(haveMatchingCounterpart())
  *   .check()
  */
+/**
+ * @deprecated Superseded by `crossProject()`. It replaces every `crossLayer` use —
+ * including `haveConsistentExports`, via a key function that returns an array — but
+ * it is a REWRITE, not a rename: the file pairing moves from `.mapping(fn)` into the
+ * key. See `docs/crossproject.md` § "Migrating from `crossLayer`" for the mapping
+ * and for the one thing that genuinely degrades (violation attribution, not
+ * capability).
+ */
 export function crossLayer(p: ArchProject): CrossLayerBuilder {
   return new CrossLayerBuilder(p)
 }

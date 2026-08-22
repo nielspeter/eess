@@ -48,7 +48,7 @@ is the wrong trade. The work is a page, not an engine.
 corpus answers today:
 
 1. **The rename.** `correspondence()` → `crossProject()`. This is the one symbol
-   that moved, and per [bug 0195](./0195-crossproject-ships-with-no-documentation.md)
+   that moved, and per [bug 0195](./fixed/0195-crossproject-ships-with-no-documentation.md)
    it is also the one with no documentation page — so the single thing a migrator
    must change is the single thing they cannot read about.
 2. **Baselines — MEASURED 2026-08-21, and the answer is good.** See below.
@@ -146,7 +146,7 @@ the summary line on that path reads `1 of 0 rules failing`.
 Question 1 is the `correspondence` → `crossProject` rename, and this record already
 says it is _"the single thing a migrator must change is the single thing they
 cannot read about"_. That page is
-[bug 0195](./0195-crossproject-ships-with-no-documentation.md) — filed **Medium**,
+[bug 0195](./fixed/0195-crossproject-ships-with-no-documentation.md) — filed **Medium**,
 whose own fix ordering is "settle 3, then 2, then 1", and whose finding 3 is the
 undecided question of whether `crossProject` replaces `crossLayer` at all (it does
 not, for the `haveConsistentExports` path).

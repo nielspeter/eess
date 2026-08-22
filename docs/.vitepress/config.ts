@@ -39,6 +39,7 @@ export default defineConfig({
           { text: 'JSX Element Rules', link: '/jsx' },
           { text: 'Pattern Templates', link: '/patterns' },
           { text: 'Slices & Layers', link: '/slices' },
+          { text: 'Cross-Project Correspondence', link: '/crossproject' },
           { text: 'Cross-Layer Validation', link: '/cross-layer' },
           { text: 'Smell Detection', link: '/smell-detection' },
           { text: 'GraphQL Rules', link: '/graphql' },
