@@ -113,12 +113,35 @@ the citing test's own `file`/`line`.
 ## Markdown ↔ Mermaid
 
 ```typescript
-import { embeddedDiagramsMatchCode } from '@nielspeter/eess-crossvalidate/md-mermaid'
+import {
+  embeddedDiagramsMatchCode,
+  embeddedDiagramStats,
+} from '@nielspeter/eess-crossvalidate/md-mermaid'
 ```
 
 A ```mermaid fence embedded in a Markdown page must match the code it claims to
 describe — a diagram that drifts from the source is a document that lies while
 looking authoritative.
+
+Only **class diagrams** are compared. A fence declaring another kind
+(`sequenceDiagram`, `flowchart`, `gantt`, …) is skipped as a different artifact,
+not treated as a broken class diagram; a fence whose kind is unrecognised is
+still handed to the parser, so an unknown diagram costs a loud finding rather
+than silent coverage loss. `embeddedDiagramStats` reports what was compared —
+`documents`, `diagrams`, and the `skipped` count — so a pass is evidence rather
+than a default:
+
+```typescript
+const docs = corpus({ roots: ['docs/architecture.md'] })
+embeddedDiagramsMatchCode(docs, project('tsconfig.json'), { completeness: 'both' })
+
+const stats = embeddedDiagramStats(docs)
+if (stats.diagrams === 0) throw new Error('selected zero class diagrams — green-but-empty')
+```
+
+`diagrams` counts fences **selected**, not classes compared — a fence that turns
+out not to parse is selected and then reported. Pair the guard with
+`completeness: 'both'` if you also want an emptied diagram to fail.
 
 ## Markdown ↔ Mermaid ER
 
