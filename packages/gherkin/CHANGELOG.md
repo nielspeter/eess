@@ -1,5 +1,140 @@
 # @nielspeter/eess-gherkin
 
+## 0.3.0
+
+### Minor Changes
+
+- 7031427: A rule that selects subjects and asserts nothing about them now fails — bug 0155.
+
+  **Breaking (0.x — minor signals it, not a 1.0 stability claim):** a rule
+  written as `.that().<predicate>.should()` with no condition after it used to
+  pass in **total silence**. It now produces an unsuppressable configuration
+  finding, so a build that was green on such a rule will go red on upgrade with
+  no code change of its own.
+
+  That is the fix working. Such a rule cannot fail, so it certifies nothing while
+  reading as coverage — the false-green class ADR-009 and ADR-010 exist to make
+  unrepresentable.
+  - **The guard was unreachable, not merely quiet.** It tested
+    `_conditions.length === 0 && _phase === 'predicate'`, and `should()` sets the
+    phase to `'condition'` — so for every rule shape the DSL documents it could
+    never fire. Even the stderr warning it was routed to never appeared. The
+    `_phase` term is gone.
+  - **A finding, not a warning**, per ADR-009 rule 1's discriminator: the remedy
+    is not optional. There is no state in which "keeps asserting nothing" is
+    correct — add a condition, or delete the rule. (`no-silent-catch` and
+    `no-empty-bodies` stay `warn` precisely because they carry suppressible false
+    positives a reader must judge one by one. This carries none.)
+  - **`bypassFilters`**: `error` regardless of `.asSeverity('warn')`, refused by
+    `.excluding()`, skipped by diff and baseline. It reports that the rule's own
+    instrument is broken, not a fault in what was examined.
+  - **A dead selector still reports as a dead selector.** This finding fires only
+    when subjects were actually selected; a rule with a dead glob and no
+    condition reports the dead glob, the more useful root cause.
+  - **Every builder gives the same answer.** `slices()`, `schema()`,
+    `schemaFromSDL()` and `resolvers()` carried the identical branch as a stderr
+    warning and now fail too, each with its own remedy. Fixing only the kernel
+    would have left one DSL with four different answers to the same mistake.
+
+  **Every dialect is named deliberately.** The behaviour change is in the kernel,
+  but an adopter installs `eess-ts` (or `-md`, `-mermaid`, …) and reads _that_
+  package's changelog. Declaring only the kernel would route this text to a
+  package they may not know exists, while their own changelog said "Updated
+  dependencies" — the standalone-sufficiency failure `check:family` exists to
+  prevent, in documentation rather than code.
+
+  **Migration:** each finding names the rule and both remedies. Add the condition
+  you meant to assert, or delete the rule. If a rule was deliberately held as a
+  reusable _selection_, keep holding it — the finding fires only when a rule is
+  actually executed, not when a selection is derived from.
+
+  Measured before landing: **zero** assertion-less rules across this repo's own
+  five gate files, and one affected test — a kernel contract test that was green
+  for the wrong reason and is rewritten here to prove its contract directly.
+
+- 5c4a3ec: New kernel re-exports closing real standalone-sufficiency gaps — plan 0089 Phase 1.
+
+  **Fixed (0.x — minor signals the addition, not a 1.0 stability claim):** each
+  sibling dialect promises to be a complete tool on its own — a user installing
+  only one package gets everything they need, with no second, direct
+  `@nielspeter/eess` install. A new `family.rules.ts` dogfood gate
+  (`check:family`) now asserts this mechanically, and running it against the
+  real repo for the first time surfaced genuine gaps in every dialect:
+  - **`@nielspeter/eess-mermaid`** was missing `marksAssertsCardinality` — the
+    one kernel symbol `conditions/class.ts` used internally that its own
+    `core/index.ts` barrel didn't carry.
+  - **`@nielspeter/eess-gherkin`** had **zero** kernel re-exports before this
+    fix, despite its own `builder.ts` importing `RuleBuilder`, `Condition`,
+    `Predicate`, and `ArchViolation` directly. All four are now re-exported.
+  - **`@nielspeter/eess-crossvalidate`** — the family's binding tool, and the
+    one dialect with no allowlist exception — had none of its 7 flat entry
+    files (`mermaid-ts`, `md-ts`, `md-mermaid`, `files`, `md-gherkin`,
+    `gherkin-ts`, `md-mermaid-er`) re-exporting the kernel symbols each one
+    imports (`correspondence`, `finishPreset`, `ArchViolation`, `Direction`,
+    `Selection`, `ElementInfo`, `PresetReportOptions`). Each subpath now
+    re-exports exactly what it itself imports.
+  - **`@nielspeter/eess-md`** had **zero** kernel re-exports before this fix,
+    despite `rules/ledger.ts`/`rules/adr.ts` using `RuleBuilder`, `Predicate`,
+    `Condition`, `ConditionContext`, `ArchFix`, `PresetReportOptions`,
+    `PresetBaseOptions`, `finishPreset`, `generateCodeFrame`, `not`,
+    `dispatchRule`, `validateOverrides` internally. All now re-exported. Also:
+    `correspondence`/`CorrespondenceBuilder` — required by this package's own
+    README example (`rows()` + `correspondence()`, the flagship way to bind a
+    markdown table to code) but never actually re-exported, so that documented
+    example did not compile against `@nielspeter/eess-md` alone; found in
+    review, fixed the same way.
+  - **`@nielspeter/eess-ts`** gained its whole preset-authoring toolkit
+    (`reportViolations`, `dispatchRule`, `validateOverrides`,
+    `throwIfViolations`, `finishPreset`, `presetConstructsNothingViolation`,
+    `RuleSeverity`, `PresetBaseOptions`, `PresetReportOptions`, `ReportMode`,
+    `ReportOptions`) at the package root — a convenience, not a gap fix: these
+    were already reachable via the `/presets` subpath, and 0088 already
+    ratified "root or presets" as satisfying standalone sufficiency for this
+    package. No second install was ever required here.
+
+  **Migration:** none needed — every change here is a new, additive re-export.
+  Nothing that worked before stops working.
+
+- 7031427: **Breaking (@nielspeter/eess)** — a second `.should()` no longer discards the
+  first assertion (bug 0156, the kernel half). 0.x, so a minor signals it.
+
+  The kernel's `RuleBuilder.fork()` cleared the condition list, so
+  `.should().X().should().Y()` silently dropped `X`. A rule that asserted two
+  things asserted one, and nothing reported the loss — a false green in the
+  engine itself.
+
+  **Read this if you write rules with `eess-md`, `eess-mermaid` or
+  `eess-gherkin`.** All three extend the kernel's `RuleBuilder`, so all three
+  carried this. On upgrade, a rule spelled with two `.should()` calls starts
+  enforcing the assertion it was silently dropping, and **can report violations it
+  never reported before**. Those findings were always real; they were being
+  discarded. Check each one on its merits rather than re-baselining.
+
+  The dialects are named at `minor` rather than inheriting a `patch` because the
+  change is observable in their output (bug 0185).
+
+  **`eess-ts` is named too, and it is the one dialect this does not actually
+  change.** It carries its own copy of the builder stack, already fixed, so its
+  behaviour is identical before and after. `check:release` required it anyway and
+  is right to: the rule reads the dependency graph, and eess-ts really does depend
+  on `@nielspeter/eess`, so an adopter of eess-ts would otherwise inherit this
+  release as a silent patch. That the declaration over-states what changes _for
+  that one package_ is a consequence of the duplication, not of the rule — the
+  gate cannot know a dialect quietly stopped using the kernel module it depends
+  on. Recorded rather than waived.
+
+  **Why it was one-sided.** `eess-ts` got this fix when plan 0165 copied the
+  upstream engine in; the kernel did not, and nothing recorded the split. The
+  duplication that allows it is [plan 0188](https://github.com/nielspeter/eess/blob/main/work/plans/0188-unify-the-duplicated-engine-modules.md).
+
+### Patch Changes
+
+- Updated dependencies [7031427]
+- Updated dependencies [7031427]
+- Updated dependencies [26f7352]
+- Updated dependencies [7031427]
+  - @nielspeter/eess@0.4.0
+
 ## 0.2.0
 
 ### Minor Changes
