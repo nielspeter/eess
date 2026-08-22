@@ -1,5 +1,162 @@
 # @nielspeter/eess
 
+## 0.4.0
+
+> **Upgrading from 0.2.2? Read the 0.3.0 section below as well.**
+> 0.3.0 was versioned but **never published to npm** — the last release
+> of this package was 0.2.2, so this release carries two minors' worth of
+> changes. A `## 0.3.0` heading normally means "a version you already
+> have"; here it does not, and some of the changes that will affect your
+> build are in it.
+
+### Minor Changes
+
+- 7031427: A rule that selects subjects and asserts nothing about them now fails — bug 0155.
+
+  **Breaking (0.x — minor signals it, not a 1.0 stability claim):** a rule
+  written as `.that().<predicate>.should()` with no condition after it used to
+  pass in **total silence**. It now produces an unsuppressable configuration
+  finding, so a build that was green on such a rule will go red on upgrade with
+  no code change of its own.
+
+  That is the fix working. Such a rule cannot fail, so it certifies nothing while
+  reading as coverage — the false-green class ADR-009 and ADR-010 exist to make
+  unrepresentable.
+  - **The guard was unreachable, not merely quiet.** It tested
+    `_conditions.length === 0 && _phase === 'predicate'`, and `should()` sets the
+    phase to `'condition'` — so for every rule shape the DSL documents it could
+    never fire. Even the stderr warning it was routed to never appeared. The
+    `_phase` term is gone.
+  - **A finding, not a warning**, per ADR-009 rule 1's discriminator: the remedy
+    is not optional. There is no state in which "keeps asserting nothing" is
+    correct — add a condition, or delete the rule. (`no-silent-catch` and
+    `no-empty-bodies` stay `warn` precisely because they carry suppressible false
+    positives a reader must judge one by one. This carries none.)
+  - **`bypassFilters`**: `error` regardless of `.asSeverity('warn')`, refused by
+    `.excluding()`, skipped by diff and baseline. It reports that the rule's own
+    instrument is broken, not a fault in what was examined.
+  - **A dead selector still reports as a dead selector.** This finding fires only
+    when subjects were actually selected; a rule with a dead glob and no
+    condition reports the dead glob, the more useful root cause.
+  - **Every builder gives the same answer.** `slices()`, `schema()`,
+    `schemaFromSDL()` and `resolvers()` carried the identical branch as a stderr
+    warning and now fail too, each with its own remedy. Fixing only the kernel
+    would have left one DSL with four different answers to the same mistake.
+
+  **Every dialect is named deliberately.** The behaviour change is in the kernel,
+  but an adopter installs `eess-ts` (or `-md`, `-mermaid`, …) and reads _that_
+  package's changelog. Declaring only the kernel would route this text to a
+  package they may not know exists, while their own changelog said "Updated
+  dependencies" — the standalone-sufficiency failure `check:family` exists to
+  prevent, in documentation rather than code.
+
+  **Migration:** each finding names the rule and both remedies. Add the condition
+  you meant to assert, or delete the rule. If a rule was deliberately held as a
+  reusable _selection_, keep holding it — the finding fires only when a rule is
+  actually executed, not when a selection is derived from.
+
+  Measured before landing: **zero** assertion-less rules across this repo's own
+  five gate files, and one affected test — a kernel contract test that was green
+  for the wrong reason and is rewritten here to prove its contract directly.
+
+- 7031427: The baseline records what a measurement COUNTS, and refuses to compare across a change of unit — bug 0171.
+
+  **Breaking (@nielspeter/eess-ts)** — 0.x, so a minor signals it, not a 1.0
+  stability claim. A baseline that previously suppressed silently can now report on
+  upgrade with no code change of its own, which is the same class as the other
+  breaks in this release.
+
+  **Why `eess-ts` is named as the owner and the other dialects are not.** The
+  mechanism lives in the kernel's baseline, but only `eess-ts` produces findings
+  carrying a `measured` value — `eess-md`, `-mermaid`, `-gherkin` and
+  `-crossvalidate` produce none, so their adopters have no baselined measurement
+  that could stop comparing. Declaring them would announce a change their users
+  cannot observe. If a dialect ever gains a metric finding, this reasoning expires
+  and it belongs in the list.
+
+  **Read this if you hold a baseline with metric findings.** An accepted ceiling is
+  a number in a unit, and until now the baseline compared across a change of unit
+  without noticing. `linesOfCode` changing from span lines to code lines (same
+  release) moved every baselined size ceiling by roughly 3x while the identity hash
+  stayed put — so entries kept matching, kept suppressing, and a class could grow
+  to about three times its accepted size with the build green the whole way.
+
+  Violations now carry `measuredUnit`, baseline entries persist it, and a stored
+  measurement is compared only when the units demonstrably agree. When they do
+  not, the finding is **reported** rather than silently re-accepted, alongside a
+  configuration finding naming the affected elements with both numbers and telling
+  you to regenerate.
+
+  **What you will see on upgrade:** if you have baselined `maxClassLines`,
+  `maxMethodLines` or `maxFunctionLines` findings, they will be reported once,
+  with an explanation. That is the point — your ceilings were recorded in span
+  lines and this version measures code lines, so the old numbers cannot be
+  compared. Check each element is genuinely acceptable at its new number, then
+  regenerate. Baselines for `complexity`, `methods`, `parameters`, `properties`
+  and `named-exports` are unaffected: those metrics count what they always
+  counted, so old entries stay valid.
+
+  Re-accepting without reading re-baselines whatever drift the old unit was hiding.
+
+- 7031427: **Breaking (@nielspeter/eess)** — a second `.should()` no longer discards the
+  first assertion (bug 0156, the kernel half). 0.x, so a minor signals it.
+
+  The kernel's `RuleBuilder.fork()` cleared the condition list, so
+  `.should().X().should().Y()` silently dropped `X`. A rule that asserted two
+  things asserted one, and nothing reported the loss — a false green in the
+  engine itself.
+
+  **Read this if you write rules with `eess-md`, `eess-mermaid` or
+  `eess-gherkin`.** All three extend the kernel's `RuleBuilder`, so all three
+  carried this. On upgrade, a rule spelled with two `.should()` calls starts
+  enforcing the assertion it was silently dropping, and **can report violations it
+  never reported before**. Those findings were always real; they were being
+  discarded. Check each one on its merits rather than re-baselining.
+
+  The dialects are named at `minor` rather than inheriting a `patch` because the
+  change is observable in their output (bug 0185).
+
+  **`eess-ts` is named too, and it is the one dialect this does not actually
+  change.** It carries its own copy of the builder stack, already fixed, so its
+  behaviour is identical before and after. `check:release` required it anyway and
+  is right to: the rule reads the dependency graph, and eess-ts really does depend
+  on `@nielspeter/eess`, so an adopter of eess-ts would otherwise inherit this
+  release as a silent patch. That the declaration over-states what changes _for
+  that one package_ is a consequence of the duplication, not of the rule — the
+  gate cannot know a dialect quietly stopped using the kernel module it depends
+  on. Recorded rather than waived.
+
+  **Why it was one-sided.** `eess-ts` got this fix when plan 0165 copied the
+  upstream engine in; the kernel did not, and nothing recorded the split. The
+  duplication that allows it is [plan 0188](https://github.com/nielspeter/eess/blob/main/work/plans/0188-unify-the-duplicated-engine-modules.md).
+
+### Patch Changes
+
+- 26f7352: `reportViolations` counts the violations it writes, exposed as
+  `violationsEmittedCount()`.
+
+  Purely additive: an internal counter and an accessor, no behaviour change. Nothing
+  about when or what `reportViolations` emits is different.
+
+  **Why it exists.** A caller that aggregates reporting — `eess-ts check` — needs to
+  know whether anything emitted while it was loading a rule file, so it can tell the
+  user their `--baseline` / `--changed` did not apply to output that was printed
+  before the CLI saw it.
+
+  The version of that check which shipped first counted the writes it **suppressed**
+  and read the absence of a suppression as "nothing was written". That is a double
+  negative and it is unsound: a rule file that silences one terminal while leaking
+  through another satisfies it _while leaking_. Measured — a `report: 'warn'` preset
+  beside a silenced `.check()` in one file leaked 7 violation blocks and the run said
+  nothing at all. A silence built on a stale signal is worse than the false claim it
+  replaced.
+
+  Counting emissions answers the question directly, at the site that does the
+  emitting. `eess-ts` counts its own second emitter the same way and reads the sum.
+
+  The accessor is kernel plumbing rather than a surface to write rules against, so
+  `eess-ts` does not re-export it.
+
 ## 0.3.0
 
 ### Minor Changes

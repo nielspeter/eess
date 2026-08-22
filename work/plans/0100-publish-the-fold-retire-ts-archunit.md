@@ -2,7 +2,13 @@
 
 ## Status
 
-- **State:** Draft — created 2026-08-12 by splitting the unmergeable tail off
+- **State:** Ready — frozen 2026-08-22. Freeze walk: no open questions in the body;
+  every record it depends on is Done or Fixed (0088, 0089, 0101, 0106, 0198, 0199,
+  0203, 0204); the two Drafts it cites are context rather than dependencies — 0090
+  is explicitly independent ("archiving does not wait on 0090") and 0180 is the
+  reason the deprecation uses a GitHub blob URL instead of the 404ing docs site.
+  The runnable precondition block under Approach is the internalised floor.
+  Originally created 2026-08-12 by splitting the unmergeable tail off
   [plan 0088](./completed/0088-fold-ts-archunit-into-eess.md). 0088 had nine phases ending
   in "Retire ts-archunit" (work in **another repository**) and "Version, release,
   and the adopter migration story" (an act that completes at `npm publish`, not at

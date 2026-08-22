@@ -207,7 +207,7 @@ function floorRulesTemplate(preset: FloorPreset, tsconfig: string, sourceRoot: s
   // agents make most (inline logic, generic errors, stubs, empty bodies,
   // copy-paste), and \`npx eess-ts explain --format agent\` emits an
   // imperative rules block for the agent's system prompt.
-  // See https://nielspeter.github.io/eess/agent-integration. Then, with
+  // See https://github.com/nielspeter/eess/blob/main/docs/agent-integration.md Then, with
   // { agentGuardrails } imported from '@nielspeter/eess-ts/presets':
   //   ...agentGuardrails(p, { src: '**/${sourceRoot}/**', noGenericErrors: true, report: 'builders' })`
       : `  // Thin universal safety floor (eval, Function constructor, silent catches,

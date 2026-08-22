@@ -110,6 +110,34 @@ in the coverage gate it was meant to narrow — the exemption should have been
 removed the moment the work landed. The violation names both the scenario and
 the citing test's own `file`/`line`.
 
+## Markdown ↔ Mermaid
+
+```typescript
+import { embeddedDiagramsMatchCode } from '@nielspeter/eess-crossvalidate/md-mermaid'
+```
+
+A ```mermaid fence embedded in a Markdown page must match the code it claims to
+describe — a diagram that drifts from the source is a document that lies while
+looking authoritative.
+
+## Markdown ↔ Mermaid ER
+
+```typescript
+import { tableErAgree, tableErStats } from '@nielspeter/eess-crossvalidate/md-mermaid-er'
+```
+
+An ER diagram and the table it documents must agree. `tableErStats` reports what
+was compared, so a pass is evidence rather than a default.
+
+## Files
+
+```typescript
+import { files } from '@nielspeter/eess-crossvalidate/files'
+```
+
+A file-set loader for binding a side of a correspondence to paths on disk rather
+than to a parsed dialect.
+
 ## Peers
 
 The dialects are optional peer dependencies — install the ones your presets use

@@ -11,7 +11,7 @@ Inspired by Java's [ArchUnit](https://www.archunit.org/). Powered by [ts-morph](
 
 > **The TypeScript dialect of the [eess](https://github.com/nielspeter/eess/blob/main/README.md) family.** Formerly published as `@nielspeter/ts-archunit` — that name still works as an alias, so existing installs are unaffected. New projects should prefer `@nielspeter/eess-ts`. Migrating? See [Migrating from ts-archunit](https://github.com/nielspeter/eess/blob/main/docs/migrating-from-ts-archunit.md).
 
-[Documentation](https://nielspeter.github.io/eess/) · [Getting Started](https://nielspeter.github.io/eess/getting-started) · [What Can It Check?](https://nielspeter.github.io/eess/what-to-check)
+[Documentation](https://github.com/nielspeter/eess) · [Getting Started](https://github.com/nielspeter/eess/blob/main/docs/getting-started.md) · [What Can It Check?](https://github.com/nielspeter/eess/blob/main/docs/what-to-check.md)
 
 ## Quickstart — zero to a red gate
 
@@ -365,14 +365,14 @@ smells
 
 ### More Features
 
-- **[Call matching](https://nielspeter.github.io/eess/calls)** — framework-agnostic route/handler inspection (Express, Fastify, Hono)
-- **[Scoped rules](https://nielspeter.github.io/eess/body-analysis)** — `within(routes).functions()` for callback-level rules
-- **[Pattern templates](https://nielspeter.github.io/eess/patterns)** — enforce return type shapes (`{ items, total, skip, limit }`)
-- **[GraphQL rules](https://nielspeter.github.io/eess/graphql)** — schema and resolver conventions
-- **[Cross-layer validation](https://nielspeter.github.io/eess/cross-layer)** — route/schema/SDK consistency
-- **[Custom predicates and conditions](https://nielspeter.github.io/eess/custom-rules)** — `definePredicate()`, `defineCondition()`, `and`/`or`/`not` combinators
-- **[Metrics](https://nielspeter.github.io/eess/metrics)** — cyclomatic complexity, lines of code, method count limits
-- **[CLI](https://nielspeter.github.io/eess/cli)** — `check`, `baseline`, `explain`, `--watch` mode
+- **[Call matching](https://github.com/nielspeter/eess/blob/main/docs/calls.md)** — framework-agnostic route/handler inspection (Express, Fastify, Hono)
+- **[Scoped rules](https://github.com/nielspeter/eess/blob/main/docs/body-analysis.md)** — `within(routes).functions()` for callback-level rules
+- **[Pattern templates](https://github.com/nielspeter/eess/blob/main/docs/patterns.md)** — enforce return type shapes (`{ items, total, skip, limit }`)
+- **[GraphQL rules](https://github.com/nielspeter/eess/blob/main/docs/graphql.md)** — schema and resolver conventions
+- **[Cross-layer validation](https://github.com/nielspeter/eess/blob/main/docs/cross-layer.md)** — route/schema/SDK consistency
+- **[Custom predicates and conditions](https://github.com/nielspeter/eess/blob/main/docs/custom-rules.md)** — `definePredicate()`, `defineCondition()`, `and`/`or`/`not` combinators
+- **[Metrics](https://github.com/nielspeter/eess/blob/main/docs/metrics.md)** — cyclomatic complexity, lines of code, method count limits
+- **[CLI](https://github.com/nielspeter/eess/blob/main/docs/cli.md)** — `check`, `baseline`, `explain`, `--watch` mode
 
 ## Entry Points
 
