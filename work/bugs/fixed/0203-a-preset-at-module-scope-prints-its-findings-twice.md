@@ -204,6 +204,19 @@ remedy is one where the reader invents one.
 spread does not avoid the problem and why, and keeps the array-export advice for the
 shape it actually fits.
 
+## Follow-ups filed rather than absorbed
+
+- [**0205**](../0205-four-emitters-restate-the-suppression-rule-and-disagree.md) —
+  the invariant this bug's fix depends on ("suppress exactly what rides the throw")
+  is restated inline at four emitters and enforced by nothing. It already went wrong
+  at one of them **inside this fix** and shipped as a fake green until review caught
+  it, so this is a demonstrated failure mode rather than a tidiness concern.
+- [**0206**](../0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md) —
+  `deliver()` throws `ArchRuleError` itself rather than delegating to
+  `finishPreset`, because the kernel has no mode meaning "run, throw, and let my
+  caller emit". Latent today; the exposure is that the flagship dialect's default
+  path no longer flows through the kernel finisher.
+
 ## Verification
 
 - [x] Red test first — `packages/ts/tests/cli/preset-double-print.test.ts`,
