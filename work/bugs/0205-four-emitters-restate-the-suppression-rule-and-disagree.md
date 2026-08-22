@@ -145,11 +145,61 @@ emit". That is an amendment to
 
 Draw that line before building, or the decision lands buried.
 
+## The ADR row for this clause was `gated` over a mechanism that could not fail
+
+[ADR-008](../../adr/008-caller-owns-reporting.md)'s Enforcement table carried one
+Tier-2 row for this invariant, `gated`, whose Mechanism cell asserted in prose that
+it covered `executeWarn` — cited against a test whose fixture leaks through the
+**kernel preset path** and never exercises `executeWarn` at all.
+
+Measured: gutting `executeWarn`'s aggregation branch to suppress everything left the
+cited test file green at 14/14 and the whole suite green. **Margin 0.**
+
+That is bug 0189's exact shape — a `gated` row resolving against a different path —
+inside the ADR whose own Enforcement preamble tells bug 0189's story, and it was
+introduced by the amendment written for bug 0203. ADR-009 rule 5's question answered
+wrong: _what would this check do if the thing it guards were completely broken?_
+Pass.
+
+Split into three rows, one per site, each cited against a mechanism that can see it
+— and the `executeCheck`/`deliver()` row states plainly that the clause as written is
+vacuous for them and names the proposition that is not.
+
+## The fifth-emitter catch is buildable, and the repo has the precedent
+
+The earlier text left this as an open either/or. It resolves: the population is
+small and enumerable — roughly 7 emit call sites in `packages/ts/src` and 3 in
+`packages/core/src`, all reached through six symbols (`writeReport`,
+`formatViolations`, `formatViolationsJson`, `formatViolationsGitHub`,
+`reportViolations`, `finishPreset`).
+
+The shape is `packages/ts/tests/core/every-config-finding-is-classified.test.ts`,
+keyed by `path::enclosingFunction` exactly as that census is:
+
+- every emit call site appears in a `CLASSIFIED` table declaring its `ridesTheThrow`
+  predicate (or `'never runs under aggregation'`) **and** whether it advances the
+  counter;
+- unclassified fails — that is the fifth-emitter catch; stale entries fail too;
+- a **"the scan cannot be bypassed"** row, the analogue of the census's
+  `bypassFilters`-is-always-literal row: flag any `writeStderr` /
+  `process.stdout.write` in `packages/*/src` whose argument derives from an
+  `ArchViolation[]` and whose enclosing function is not in the table. Resolved
+  through ts-morph symbols, as that census already does — not a spelling list.
+
+Without this, the fix is centralisation and the record should not claim more.
+
 ## Verification
 
-- [ ] Red test first: a fixture per emitter asserting that findings which ride **no**
-      throw still reach the user under aggregation. `checkAll`'s exists
-      (`checkall-warn-only.rules.ts`); the others do not.
+- [ ] Red test first, **and the per-site proposition differs** — the first version
+      of this box wrote one sentence for four sites and was vacuous at two of them.
+      "Findings that ride no throw" is **empty by construction** at `executeCheck`
+      and `deliver()`, whose throws carry everything, so a fixture written to that
+      spec there matches zero elements and passes on any implementation, including
+      one deleted outright. The propositions with content: - `executeWarn`, `checkAll` — _the non-riding subset is still written exactly
+      once_. `checkAll`'s holds (`checkall-warn-only.rules.ts`); `executeWarn`'s
+      holds only since [bug 0207](./fixed/0207-a-rule-level-warn-emits-uncounted-so-the-leak-notice-stays-silent.md)
+      added `warn-terminal-leaks.rules.ts`, and before that its margin was **0**. - `executeCheck`, `deliver()` — _nothing is written twice_. Both hold today
+      (`preset-double-print.test.ts`; `deliver()`'s margin measured at 2).
 - [ ] Sabotage: widening any one emitter's suppression to "everything" reds a test.
       Measured today — doing that to `check-all.ts` reds exactly one, and doing it
       to `executeWarn` is unmeasured.
@@ -162,6 +212,6 @@ Draw that line before building, or the decision lands buried.
       `checkall-warn-leaks-under-baseline.rules.ts`; the kernel's is
       `mixed-quiet-and-leaking.rules.ts`.
 - [ ] A FIFTH emitter that calls neither the helper nor the counter is caught by
-      something. If no mechanism can do that, say so in the record rather than
-      implying centralisation solved it — a helper makes the sites consistent, which
-      is not the same as making the invariant enforceable.
+      the census below. **A helper makes the sites consistent; it does not make the
+      invariant enforceable** — those are different, and only the census closes the
+      second.
