@@ -147,7 +147,7 @@ Question 1 is the `correspondence` → `crossProject` rename, and this record sa
 is _"the single thing a migrator must change is the single thing they cannot read
 about"_. That page was
 [bug 0195](./fixed/0195-crossproject-ships-with-no-documentation.md), now **fixed**:
-`docs/crossproject.md` ships with a migration table.
+`docs/cross-project.md` ships with a migration table.
 
 **Its open design question is settled, and this record's summary of it was wrong.**
 The text here said `crossProject` "does not" replace `crossLayer` "for the

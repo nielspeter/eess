@@ -1,5 +1,5 @@
 ---
-'@nielspeter/eess-ts': patch
+'@nielspeter/eess-ts': minor
 ---
 
 `crossProject()` is documented, and `crossLayer()` is marked deprecated with a
@@ -7,12 +7,16 @@ successor.
 
 `crossProject` shipped as a public API with no page, no sidebar entry and no worked
 example — discoverable only from a deprecation callout on the page for the API it
-replaces. It now has [its own page](https://nielspeter.github.io/eess/crossproject),
+replaces. It now has [its own page](https://nielspeter.github.io/eess/cross-project),
 with three examples that compile in CI and a migration table from `crossLayer`.
 
 `crossLayer()` carries an `@deprecated` tag naming `crossProject()` as its
-successor. Nothing about `crossLayer` changes — it still works — but your editor
-will now say so, and point at the migration.
+successor. Nothing about `crossLayer` changes — it still works, and no API moves.
+
+**Declared `minor`, not `patch`, and the reason is the tag.** If you lint with
+`@typescript-eslint/no-deprecated`, this reddens your build the moment you upgrade —
+and `patch` is the bump renovate and dependabot auto-merge. It is not a break, so it
+carries no breaking marker; it is a `minor` so the upgrade is a decision.
 
 **It supersedes `crossLayer` for pairings that are key equality — most of them, not
 all — and it is a rewrite rather than a rename.** The page states the precondition

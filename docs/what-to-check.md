@@ -471,6 +471,12 @@ resolvers(p, 'src/resolvers/**')
 
 Verify that matching counterparts exist across layers, such as a schema for every route.
 
+> **Reach for [`crossProject`](/cross-project) first.** It covers this case and is
+> the current API; `crossLayer` below is deprecated but retained for pairings that
+> are not key equality. Same question, two tools — see
+> [Migrating From `crossLayer`](/cross-project#migrating-from-crosslayer) for which
+> you need.
+
 ```typescript
 // Every route must have a matching schema
 crossLayer(p)

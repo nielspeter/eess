@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Fixed — `docs/crossproject.md` ships, reachable from the sidebar, with
+- **State:** Fixed — `docs/cross-project.md` ships, reachable from the sidebar, with
   compiled examples and a migration table; `crossLayer` carries an `@deprecated` tag
   naming the successor; and finding 3's open design question is settled by
   measurement.
@@ -136,7 +136,7 @@ which must land together with the migration snippet the tag points at.
 
 ## Verification
 
-- [x] `docs/` carries `crossproject.md`, reachable from the sidebar (placed above
+- [x] `docs/` carries `cross-project.md`, reachable from the sidebar (placed above
       the API it supersedes), with **three** worked examples that compile under
       `check:docs-code` — the fence count went 44 → 47.
 - [x] `crossLayer` carries an `@deprecated` tag naming `crossProject` as the
@@ -146,6 +146,19 @@ which must land together with the migration snippet the tag points at.
 - [x] `docs/cross-layer.md`'s callout no longer claims a _direct_ replacement. It
       says "replaces every `crossLayer()` use", calls it a rewrite, and links the
       migration table.
+- [x] The rest of the exported surface this record's Symptom named — `byName`,
+      `byArg`, `byPropertyNames`, `KeyFn`, `KeysSource` — is in
+      `docs/api-reference.md`, under a `## Cross-Project Validation` section of its
+      own rather than inside the deprecated API's. Caught on review: all four
+      verification boxes were ticked while the Symptom's own list was undisposed,
+      and `check:ledger` reads checkboxes, not the Symptom.
+- [x] **The discovery paths, which are this record's actual Symptom.** The first fix
+      added a page and stopped there, leaving three of the four doors pointing at the
+      deprecated API: `api-reference.md` had `crossProject` inside a
+      `## Cross-Layer Validation` section that closed by linking `/cross-layer`;
+      `core-concepts.md`'s Entry Points table — the canonical list of what exists —
+      had no row; and `what-to-check.md` taught `crossLayer` as _the_ way to do the
+      same job with no note. All three now route to the current API.
 - [x] Finding 3 settled by measurement rather than argument — see above. The claim
       that `haveConsistentExports` had no equivalent was **false**.
 
