@@ -8,7 +8,7 @@
   and misspells the key gets the unescalated default, a stderr line, and a
   passing build.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0038), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (upstream bug 0038), prompted by [bug 0154](./fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
   (`0.2.1`). `validateOverrides(…): void` is unchanged in `810808b` (the
   `v0.2.3` release commit), so this is live for adopters today.

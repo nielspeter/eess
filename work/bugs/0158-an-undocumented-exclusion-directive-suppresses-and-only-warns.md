@@ -8,7 +8,7 @@
   `// eess-exclude <rule-id>` is a working kill switch for any rule, on any
   line, and the only feedback is a stderr line that does not fail the build.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0039), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (upstream bug 0039), prompted by [bug 0154](./fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** published `@nielspeter/eess` `0.2.2` / `eess-ts` `0.2.1` —
   the defect predates plan 0088's fold.
 - **Reported:** 2026-08-19
@@ -62,7 +62,7 @@ Nested blocks: `handleBlockStart` early-returns when `openBlocks.size > 0`
 (`:138-145`), state is a `Map` (`:207`), and `handleBlockEnd` closes **every**
 open block at once (`:103-107`). Upstream replaced this with a stack of frames.
 
-**Same file, same freeze as [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md).**
+**Same file, same freeze as [bug 0154](./fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md).**
 `exclusion-comments.ts` has **one** commit in its history — the initial
 monorepo commit (`9ec8f06`). `git show --stat 6dbc6f4 -- packages/core/src/exclusion-comments.ts`
 is **empty**: the fold never touched this file at all. It is in its pre-fix
@@ -79,7 +79,7 @@ adopting team reaches for first.
 
 ## Fix — measured 2026-08-19
 
-Built and measured alongside [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+Built and measured alongside [bug 0154](./fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 (same file, same pass), in an isolated worktree against a green baseline.
 
 | check                                                     | before                           | after                      |

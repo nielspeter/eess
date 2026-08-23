@@ -42,7 +42,7 @@ eess-ts's accumulated distance from the engine 0088 claimed to have folded in.
 With upstream's source in place, **3353 of 3419 tests pass**.
 
 It also resolves, in one move, eight bugs filed and half-fixed on 2026-08-19 —
-[0154](../../bugs/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+[0154](../../bugs/fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 literal blanking, 0155 the assertion gate,
 [0156](../../bugs/0156-should-twice-silently-drops-the-first-assertion.md)
 `fork()`'s condition-clear,

@@ -8,7 +8,7 @@
 - **Severity:** High — false green. Two assertions are written, one is
   enforced, real findings are discarded, and the build passes with no output.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0020), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (upstream bug 0020), prompted by [bug 0154](./fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
   (`0.2.1`). `fork._conditions = []` is at `rule-builder.ts:294` in `810808b`
   (the `v0.2.3` release commit), so this is live for adopters today.

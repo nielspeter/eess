@@ -1,4 +1,5 @@
 import type { ArchViolation } from './violation.js'
+import { maskNonCommentSpans } from './mask-non-comment.js'
 
 /**
  * Exclusion comment parsed from source code.
@@ -42,13 +43,54 @@ export interface ParseResult {
 
 // Single-line: // eess-exclude <rule-id>[, <rule-id>]: <reason>
 // Single-line without reason: // eess-exclude <rule-id>
-const SINGLE_LINE_RE = /\/\/\s*eess-exclude\s+(.+)/
+// The directive must OPEN its comment (bug 0154). Masking alone took this file's
+// own false-positive count from 12 to 7; the rest were genuine line comments that
+// merely DESCRIBE the grammar — like the line above this one. No lexical rule can
+// separate those, but anchoring to the start of the comment body separates all of
+// them from every real directive, including the trailing `code // eess-exclude …`
+// form.
+//
+// Rejected alternative: validating the rule-id's shape. It rejects `<rule-id>`
+// and still accepts `// see eess-exclude a/b: why`, and it couples this parser to
+// an id grammar nothing else enforces.
+const SINGLE_LINE_RE = /^[ \t]*eess-exclude[ \t]+(.+)/
+
+/**
+ * The body of a line's FIRST `//` comment, or undefined if it has none.
+ *
+ * The directive must open the comment, and it must be the comment the line
+ * actually starts — not any `//` on the line. A grammar description carries two:
+ *
+ *     // Single-line: // eess-exclude <rule-id>: <reason>
+ *
+ * Anchoring to `//` alone matches the second one and reads the file's own
+ * documentation as 8 live waivers. Taking the first `//` and requiring the
+ * directive at the start of its body separates every description from every real
+ * directive, including the trailing `code // eess-exclude …` form, whose first
+ * `//` is the directive's own.
+ */
+const CODE_LIKE = /\.(?:[cm]?[jt]sx?|vue|svelte)$/i
+
+/**
+ * The HTML-comment forms exist for text dialects whose sources have no `//` —
+ * markdown corpora and the like. In a `.ts` file `// <!-- eess-exclude … -->` is
+ * prose describing the grammar, and reading it accounted for the last 2 of this
+ * very file's own false hits (bug 0154).
+ */
+function htmlFormsApply(filePath: string): boolean {
+  return !CODE_LIKE.test(filePath)
+}
+
+function firstCommentBody(line: string): string | undefined {
+  const at = line.indexOf('//')
+  return at === -1 ? undefined : line.slice(at + 2)
+}
 
 // Block start: // eess-exclude-start <rule-id>[, <rule-id>]: <reason>
-const BLOCK_START_RE = /\/\/\s*eess-exclude-start\s+(.+)/
+const BLOCK_START_RE = /^[ \t]*eess-exclude-start[ \t]+(.+)/
 
 // Block end: // eess-exclude-end
-const BLOCK_END_RE = /\/\/\s*eess-exclude-end\b/
+const BLOCK_END_RE = /^[ \t]*eess-exclude-end\b/
 
 // HTML-comment forms — the same directives for text dialects whose sources
 // aren't `//`-commented (markdown corpora, and any future text dialect).
@@ -201,7 +243,13 @@ function handleSingleLine(
  *   <!-- eess-exclude-start <rule-id>: <reason> --> / <!-- eess-exclude-end -->
  */
 export function parseExclusionComments(sourceText: string, filePath: string): ParseResult {
-  const lines = sourceText.split('\n')
+  // Bug 0154: read directives from MASKED text, never the raw source. Strings,
+  // templates, regex literals and block comments are blanked first — a directive
+  // written inside one is prose, and reading it silently waived a real finding on
+  // the next line. Masking is length- and line-preserving, so every position
+  // reported below is still the position in the original file.
+  const lines = maskNonCommentSpans(sourceText).split('\n')
+  const htmlApply = htmlFormsApply(filePath)
   const exclusions: ExclusionComment[] = []
   const warnings: ExclusionWarning[] = []
   const openBlocks = new Map<string, ExclusionComment>()
@@ -212,20 +260,30 @@ export function parseExclusionComments(sourceText: string, filePath: string): Pa
     const lineNum = i + 1
 
     // Check block end first (before start/single so we don't match -start as single)
-    if (BLOCK_END_RE.test(line) || HTML_BLOCK_END_RE.test(line)) {
+    // The `//` forms read the FIRST comment's body; the HTML forms read the
+    // whole line, since they are for text dialects with no `//` at all.
+    const body = firstCommentBody(line)
+    if (
+      (body !== undefined && BLOCK_END_RE.test(body)) ||
+      (htmlApply && HTML_BLOCK_END_RE.test(line))
+    ) {
       handleBlockEnd(openBlocks, exclusions, warnings, filePath, lineNum)
       continue
     }
 
     // Check block start
-    const startMatch = BLOCK_START_RE.exec(line) ?? HTML_BLOCK_START_RE.exec(line)
+    const startMatch =
+      (body === undefined ? null : BLOCK_START_RE.exec(body)) ??
+      (htmlApply ? HTML_BLOCK_START_RE.exec(line) : null)
     if (startMatch?.[1]) {
       handleBlockStart(startMatch[1], openBlocks, warnings, filePath, lineNum)
       continue
     }
 
     // Check single-line exclude (must not match block directives)
-    const singleMatch = SINGLE_LINE_RE.exec(line) ?? HTML_SINGLE_RE.exec(line)
+    const singleMatch =
+      (body === undefined ? null : SINGLE_LINE_RE.exec(body)) ??
+      (htmlApply ? HTML_SINGLE_RE.exec(line) : null)
     if (singleMatch?.[1]) {
       handleSingleLine(singleMatch[1], exclusions, warnings, filePath, lineNum)
     }
