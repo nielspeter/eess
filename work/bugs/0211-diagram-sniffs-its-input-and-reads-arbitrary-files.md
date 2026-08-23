@@ -68,18 +68,30 @@ Split the entry point so there is no sniff:
 Keep `diagram()` as a deprecated alias if consumers need it, but it must stop
 dispatching on content.
 
-**This record lands the full `(text, provenance?)` signature**, with provenance optional and
-unconsumed. Plan 0213 is then pure wiring — remove `md-mermaid`'s re-attribution workaround,
-do the `line + n` arithmetic, add the fixtures. Stated because an earlier draft specified the
-signature here _and_ disclaimed it in Out of scope while 0213 specified it too: two records
-owning one signature is how it gets implemented twice, and on a published entry point it
-would cost two breaking changesets instead of one.
+**This record removes the sniff and nothing else.** The parser takes `(text)`;
+[plan 0213](../plans/0213-diagram-provenance-for-fence-callers.md) adds `provenance` **and
+consumes it** in one delivery.
+
+> A previous draft had this record land `(text, provenance?)` with provenance _unconsumed_,
+> justified as avoiding "two breaking changesets instead of one". Review falsified that:
+> only the split is breaking — adding an optional parameter later is **additive**, a minor.
+> So the clean seam costs nothing, and the draft would have published a front door that
+> accepts evidence and silently discards it, with no verification box covering it.
+>
+> Recorded twice over, because the correction itself failed once: it was reported as
+> applied in a commit message while the edit had silently no-opped against reflowed text,
+> leaving this record and 0213 specifying contradicting signatures for one published
+> export — the exact defect the paragraph above warns about.
 
 **Release.** `diagram()` is public API of `@nielspeter/eess-mermaid` (`packages/mermaid/src/index.ts:18`)
 and its only README example is the path form. Narrowing it is a break: a `minor` on 0.x
-carrying a `**Breaking …**` marker and a migration line. Per bug 0185 the same changeset must
-**name `@nielspeter/eess-crossvalidate`**, which consumes `diagram()` — otherwise its adopters
-get the break under a changelog reading "Updated dependencies".
+carrying a `**Breaking …**` marker and a migration line. Naming `@nielspeter/eess-crossvalidate` in the same changeset is **optional**, not required:
+it consumes `diagram()` but declares `@nielspeter/eess-mermaid` under `peerDependencies`, and
+`scripts/check-release.mjs` weighs regular `dependencies` only ("Who would inherit a break.
+Regular `dependencies` only."). An earlier draft cited bug 0185 as compelling it; review
+measured that `release/break-names-dependents` will not require it and that crossvalidate is
+not bumped at all, so the "Updated dependencies" outcome cannot occur. Naming it is a choice
+that costs crossvalidate a version.
 
 ## Verification
 
