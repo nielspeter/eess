@@ -159,6 +159,51 @@ for (const name of WORKSPACE_PKGS) {
   }
 }
 
+// ---------- 3. the build cleans its own output ----------
+
+// `tsc -p` OVERWRITES; it never removes. So a source file that is deleted or
+// moved leaves its `.js`/`.d.ts` behind in `dist/` forever, and `dist/` is
+// gitignored, so nothing ever shows it. Measured when this check was written:
+// 36 orphaned `.d.ts` across the workspace, the oldest four months of them from
+// plan 0165's engine copy whose `src/` counterparts no longer exist.
+//
+// That is not a cosmetic leftover. `dist/` is what a consumer installs and what
+// any `.d.ts`-based measurement reads — a survey of "which kernel symbols reach
+// a dialect's public type surface" was run against it during this branch and
+// answered from files whose source had been deleted, which is exactly the shape
+// of fake evidence this repo exists to refuse.
+//
+// The fix is structural rather than detective: every package removes `dist`
+// before it builds, so the class cannot occur. This check does not look for
+// stale files — after the fix there would never be any, and a check that cannot
+// fail is worth less than no check (ADR-009). It checks the MECHANISM is wired,
+// which is the thing that can actually regress: a package added later, with no
+// `prebuild`, silently reopens the hole.
+
+const CLEANS_DIST = /\brm\b[^&|]*\bdist\b|\brimraf\b[^&|]*\bdist\b|\bnode:fs\b[^&|]*\bdist\b/
+
+for (const dir of pkgDirs) {
+  const pkgPath = join(packagesDir, dir, 'package.json')
+  let parsed
+  try {
+    parsed = readJson(pkgPath)
+  } catch {
+    continue
+  }
+  const scripts = parsed.scripts ?? {}
+  if (!scripts.build) continue
+  const cleans = [scripts.prebuild, scripts.clean, scripts.build].some(
+    (s) => typeof s === 'string' && CLEANS_DIST.test(s),
+  )
+  if (!cleans) {
+    problems.push(
+      `stale build output: ${parsed.name} builds but never removes dist/ first — ` +
+        `add "prebuild": "rm -rf dist" so a deleted source file cannot leave its ` +
+        `.js/.d.ts behind (tsc overwrites, it never deletes)`,
+    )
+  }
+}
+
 // ---------- report ----------
 
 if (problems.length > 0) {
@@ -168,5 +213,5 @@ if (problems.length > 0) {
   process.exit(1)
 }
 console.error(
-  `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, all @nielspeter/eess* locally linked.`,
+  `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, all @nielspeter/eess* locally linked, every build cleans its dist/.`,
 )
