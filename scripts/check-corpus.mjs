@@ -20,6 +20,7 @@
  * `npm run check:corpus`.
  */
 import { resolve } from 'node:path'
+import { addedSince, resolveBaseRef } from './lib/base-ref.mjs'
 import { corpus, docs, links, matchTableRows, pointers } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
 import { definePredicate, matchSelections, reportViolations } from '@nielspeter/eess'
@@ -650,6 +651,108 @@ for (const d of promotedProposals) {
   }
 }
 
+// ---- Plan 0218, rule 1: a NEW proposal states its acceptance criteria -------
+//
+// `PROPOSALS.md`'s template requires, per capability, the break class and how
+// non-vacuity is kept. Nothing checked it, and measured 2026-08-23 the
+// convention had never once been met in the shape the template prescribes.
+//
+// DIFF-GATED, and that is the whole design. Every corpus-wide framing was
+// measured and every one was bad: gating all six reds two terminal records
+// (rewriting history); gating live ones reds 003 and 006, both correctly
+// mid-flight and unable to comply for reasons their own reviews state; gating
+// accepted ones examines a single promoted record; gating live-and-accepted
+// examines nothing at all. Asking only about proposals a change ADDS means the
+// mess stops growing without anyone having to clean it up first — the same
+// bargain `check:release` makes, which is why nobody had to retro-declare six
+// packages the day that gate landed.
+//
+// Depth is read directly rather than through `haveSection`, which sees only the
+// name. That matters: 005's four `### Acceptance criteria (…)` headings miss an
+// anchored regex because of the PARENTHETICAL, not the level, so a future
+// `### Acceptance criteria` in an appendix would satisfy a name-only rule.
+const hasAcceptanceCriteria = definePredicate('has a level-2 "Acceptance criteria" section', (d) =>
+  d.sections.some((s) => s.depth === 2 && /^acceptance criteria$/i.test(s.name)),
+)
+
+const base = resolveBaseRef()
+const newProposalViolations = []
+let addedProposalsExamined = 0
+
+if (!base.ok) {
+  // Fail CLOSED. This gate has many rules and only this one needs a diff, so an
+  // unresolved base is a configuration finding rather than a fatal error — but
+  // it is never silence. Treating "no base ref" as "nothing was added" is the
+  // shape where a shallow CI clone turns a gate into a no-op.
+  newProposalViolations.push({
+    rule: 'proposal-ruling',
+    ruleId: 'corpus/proposal-diff-base-unresolved',
+    element: 'work/proposals',
+    file: resolve(c.root, 'work/proposals/PROPOSALS.md'),
+    line: 1,
+    message: `the acceptance-criteria rule needs a base commit to read the diff, and ${base.headline}`,
+    suggestion: base.detail.filter((d) => d !== '').join(' '),
+    codeFrame: undefined,
+  })
+} else {
+  const byRelPath = new Map(allDocs.map((d) => [d.relPath, d]))
+  for (const relPath of addedSince(base.mergeBase, 'work/proposals/')) {
+    const d = byRelPath.get(relPath)
+    if (d === undefined || !isProposalDoc(d) || isProbeArtifact(d)) continue
+    addedProposalsExamined += 1
+    if (hasAcceptanceCriteria.test(d)) continue
+    const n = proposalNumberFromPath(d.relPath)
+    newProposalViolations.push({
+      rule: 'docs',
+      ruleId: 'corpus/new-proposal-states-no-acceptance-criteria',
+      element: `proposal ${n === null ? d.relPath : pad3(n)}`,
+      file: d.file,
+      line: 1,
+      message: `${d.relPath} is new in this change and has no level-2 "## Acceptance criteria" section`,
+      suggestion:
+        'state, per capability, the break class — the specific corruption that must produce ' +
+        'a violation — and how non-vacuity is kept. A capability with no break class is ' +
+        'unfalsifiable, which is what this section exists to prevent.',
+      codeFrame: undefined,
+    })
+  }
+}
+
+// ---- Plan 0218, rule 2: a ruling that names a remedy names an owner ---------
+//
+// A `Docs-only` ruling says "the capability ships; write the docs" — it names a
+// remedy and creates no owner, so the remedy evaporates. Measured: proposal 004
+// was ruled `Docs-only` on 2026-08-13 and ten days later none of the
+// documentation existed, with every gate green and the proposal's own header
+// reading as settled. Bug 0219 fixed that instance; this is the recurrence.
+//
+// NOT diff-gated: unlike rule 1 this has a standing denominator (every proposal
+// carrying such a ruling), so the two are never both empty by construction.
+const REMEDY_RULINGS = new Set(['Docs-only'])
+const remedyProposals = liveDocs.filter(
+  (d) => isProposalDoc(d) && !isProbeArtifact(d) && REMEDY_RULINGS.has(operativeRuling(d.text)),
+)
+const remedyOwnerViolations = remedyProposals.flatMap((d) => {
+  const n = proposalNumberFromPath(d.relPath)
+  if (n !== null && (ownersByProposal.get(n) ?? []).length > 0) return []
+  return [
+    {
+      rule: 'correspondence',
+      ruleId: 'corpus/remedy-ruling-names-no-owner',
+      element: `proposal ${n === null ? d.relPath : pad3(n)}`,
+      file: d.file,
+      line: operativeRulingLine(d.text),
+      message:
+        `${d.relPath} is ruled "${operativeRuling(d.text)}", which names a remedy, but no plan ` +
+        `or bug declares "**Implements:** proposal ${n === null ? 'NNN' : pad3(n)}" to own it`,
+      suggestion:
+        'file the plan or bug that does the work and declare it there — a ruling that names ' +
+        'a remedy and no owner is a remedy nothing tracks.',
+      codeFrame: undefined,
+    },
+  ]
+})
+
 // --format json/github — emit all violations machine-readable, then exit (plan 0070).
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
@@ -665,6 +768,8 @@ if (format === 'json' || format === 'github') {
     ...boardRulingViolations,
     ...promotedViolations,
     ...acceptedDenominatorViolations,
+    ...newProposalViolations,
+    ...remedyOwnerViolations,
   ]
   reportViolations(all, { format })
   process.exit(all.length > 0 ? 1 : 0)
@@ -703,7 +808,9 @@ const proposalPlanFindingCount =
   danglingImplementsViolations.length +
   boardRulingViolations.length +
   promotedViolations.length +
-  acceptedDenominatorViolations.length
+  acceptedDenominatorViolations.length +
+  newProposalViolations.length +
+  remedyOwnerViolations.length
 const proposalLinkageOk = proposalPlanFindingCount === 0
 // The affirmative clause is gated on rows ACTUALLY EXAMINED, not on the finding
 // count. Enforcement review measured the old form printing
@@ -715,6 +822,7 @@ line(
   `${proposalDocsCount} total · ${acceptedProposalCount} accepted · ` +
     `${boardRowsExamined} of ${boardRowsTotal} board row(s) examined · ` +
     `${promotedProposals.length} promoted · ` +
+    `${addedProposalsExamined} added · ${remedyProposals.length} remedy-ruled · ` +
     `${
       proposalLinkageOk && boardExaminedAll
         ? '✓ every accepted proposal has a plan, every Ruling/Implements parses, board agrees with each file'
@@ -729,6 +837,8 @@ const problems = [
   ...boardRulingViolations,
   ...promotedViolations,
   ...acceptedDenominatorViolations,
+  ...newProposalViolations,
+  ...remedyOwnerViolations,
   ...unparseableRulingViolations,
   ...unparseableImplementsViolations,
   ...danglingImplementsViolations,

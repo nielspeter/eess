@@ -254,11 +254,11 @@ Recorded rather than left to be rediscovered:
   scanned and its `State:` readable; 0216 gave it the terminal states that make
   the box-disposition check reachable. It now reports a real done count.
 - **Acceptance criteria are required by the template below and checked by
-  nothing** — [plan 0218](../plans/0218-gate-proposal-acceptance-criteria.md).
+  nothing** — [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md).
   Measured: no proposal has ever carried the section in the shape the template
   prescribes.
 - **A ruling that names a remedy creates no owner** —
-  [plan 0218](../plans/0218-gate-proposal-acceptance-criteria.md) carries the rule.
+  [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md) carries the rule.
   004's `Docs-only` ruling named documentation as the whole fix and nothing tracked it;
   ten days later none of it existed, while the proposal's header read as settled. The
   mirror case is a remainder "deferred behind plan NNNN" in prose, which is what 002 had

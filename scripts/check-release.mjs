@@ -26,7 +26,7 @@
  * Run: `npm run check:release`. Exits non-zero on any finding, and on an
  * unresolvable base ref. `--format json|github` for machine-readable output.
  */
-import { execFileSync } from 'node:child_process'
+import { git, resolveBaseRef } from './lib/base-ref.mjs'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { reportViolations } from '@nielspeter/eess'
@@ -38,25 +38,7 @@ const elapsed = () => {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
 }
 
-// `core.quotepath=false` so a non-ASCII path arrives as itself rather than
-// `"packages/md/src/caf\303\251.ts"`, which no prefix test would ever match and
-// which review found silently hid the owning package.
-const git = (...args) =>
-  execFileSync('git', ['-c', 'core.quotepath=false', ...args], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim()
-
 const lines = (s) => s.split('\n').filter((l) => l !== '')
-
-/** Resolve a ref to a sha, or undefined when it does not exist here. */
-function revParse(ref) {
-  try {
-    return git('rev-parse', '--verify', '--quiet', `${ref}^{commit}`) || undefined
-  } catch {
-    return undefined // `--quiet` exits 1 for an unknown ref; that is the answer, not an error
-  }
-}
 
 function die(headline, detail) {
   console.error('')
@@ -68,44 +50,13 @@ function die(headline, detail) {
 
 // --- the base ref -----------------------------------------------------------
 
-// An explicit override is a promise, not a hint: if EESS_RELEASE_BASE is set and
-// does not resolve, fail rather than quietly measuring a different base.
-const override = process.env.EESS_RELEASE_BASE
-if (override !== undefined && override !== '' && revParse(override) === undefined) {
-  die(`EESS_RELEASE_BASE='${override}' does not resolve`, [
-    'The override was set explicitly, so falling back to another base would',
-    'silently measure a different diff than the one you asked for.',
-  ])
-}
-
-const candidates = [
-  override,
-  process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : undefined,
-  'origin/main',
-  'main',
-].filter((r) => r !== undefined && r !== '')
-
-const baseRef = candidates.find((r) => revParse(r) !== undefined)
-if (baseRef === undefined) {
-  die('no base ref resolves', [
-    `tried: ${candidates.join(', ')}`,
-    '',
-    'This gate compares against a base commit, so it cannot run without one.',
-    'In CI: `actions/checkout` needs `fetch-depth: 0` (the default depth of 1',
-    'leaves no `origin/main`). Locally: set EESS_RELEASE_BASE=<ref>.',
-  ])
-}
-
-let mergeBase
-try {
-  mergeBase = git('merge-base', baseRef, 'HEAD')
-} catch {
-  die(`no merge base between '${baseRef}' and HEAD`, [
-    'Unrelated histories, or a partial fetch. In CI use `fetch-depth: 0`.',
-  ])
-}
-const headSha = git('rev-parse', 'HEAD')
-const baseIsHead = mergeBase === headSha
+// Resolution lives in `scripts/lib/base-ref.mjs` — one module, two consumers
+// (this gate and check:corpus's diff-gated proposal rules, plan 0218). This gate
+// cannot run at all without a base, so an unresolved one is fatal here; the
+// corpus gate treats the same failure as a configuration finding on one rule.
+const base = resolveBaseRef()
+if (!base.ok) die(base.headline, base.detail)
+const { baseRef, mergeBase, headSha, baseIsHead } = base
 
 // --- the workspace: base ∪ head --------------------------------------------
 

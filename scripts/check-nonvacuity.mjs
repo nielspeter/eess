@@ -217,6 +217,8 @@ const PROBE_CORPUS_PROMOTED = join(
   'promoted',
   '__nonvacuity_probe_997-promoted__.md',
 )
+const PROBE_NEW_PROPOSAL = join(repoRoot, 'work', 'proposals', '999-nonvacuity-new-proposal.md')
+const PROBE_REMEDY_PROPOSAL = join(repoRoot, 'work', 'proposals', '999-nonvacuity-remedy.md')
 // Plan 0142 (closing bug 0141): no leading digits in the basename — unlike
 // the real 001-005 proposals, so proposalNumberFromPath() can never collide
 // with a real proposal number (testing review's fixture-numbering finding).
@@ -267,15 +269,21 @@ const PROBE_CORPUS_PLAN_IMPLEMENTS_UNRESOLVED = join(
   '__nonvacuity_probe_implements_unresolved__.md',
 )
 
-/** Run a command from the repo root and capture combined stdout+stderr + exit code. */
-function sh(cmd, args) {
+/**
+ * Run a command from the repo root and capture combined stdout+stderr + exit code.
+ *
+ * `extraEnv` overlays the child's environment. One gate needs it: the diff-gated
+ * proposal rule is proved by handing the child a base ref that does not resolve,
+ * which is the branch a shallow CI clone would take.
+ */
+function sh(cmd, args, extraEnv) {
   // Force deterministic terminal-format output from the child CLIs: under
   // GitHub Actions, `--format auto` switches to `::error` annotations whose
   // text differs from the terminal renderer (e.g. it never contains the
   // literal "silent catch" phrase gateInternalArch greps for), so this
   // meta-check failed in CI while passing locally. The gates assert on output
   // substrings, so the child format must not vary by environment.
-  const env = { ...process.env }
+  const env = { ...process.env, ...extraEnv }
   delete env.GITHUB_ACTIONS
   delete env.CI
   const r = spawnSync(cmd, args, { cwd: repoRoot, encoding: 'utf8', env })
@@ -443,6 +451,8 @@ rmSync(PROBE_CORPUS_POINTER, { force: true })
 rmSync(PROBE_CORPUS_BOARD_PROPOSAL, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_DUP, { force: true })
 rmSync(PROBE_CORPUS_PROMOTED, { force: true })
+rmSync(PROBE_NEW_PROPOSAL, { force: true })
+rmSync(PROBE_REMEDY_PROPOSAL, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
 rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
@@ -937,6 +947,56 @@ function gateCorpusAcceptedDenominatorEmpty() {
   }
 }
 
+// --- plan 0218: the two proposal-content rules ------------------------------
+//
+// The new-proposal probe cannot use the `__nonvacuity_probe*` prefix: the rule
+// it exercises deliberately skips probe artifacts (otherwise every probe that
+// plants a proposal would trip it), so a probe named that way would be invisible
+// to the very rule it is proving. `999-nonvacuity-*` is `.gitignore`d for the
+// same crash-safety reason the prefix exists, and swept at startup.
+
+function gateCorpusNewProposalCriteria() {
+  return gateProposalProbe(
+    PROBE_NEW_PROPOSAL,
+    '# Proposal 999 — non-vacuity probe\n\n**State:** Draft — probe.\n\n' +
+      'Added by this run and carrying no acceptance-criteria section. That is the probe.\n',
+    'corpus/new-proposal-states-no-acceptance-criteria',
+    '999',
+  )
+}
+
+// `Docs-only` names a remedy and creates no owner, which is how proposal 004's
+// documentation went ten days unwritten with every gate green. The probe carries
+// an acceptance-criteria section on purpose, so it fires THIS rule and not also
+// the one above — a probe that trips two rules cannot tell you which is wired.
+function gateCorpusRemedyRulingOwner() {
+  return gateProposalProbe(
+    PROBE_REMEDY_PROPOSAL,
+    '# Proposal 999 — non-vacuity probe\n\n**State:** Draft — probe.\n\n' +
+      '## Acceptance criteria\n\nBreak class: this row exists so the probe fires one rule.\n\n' +
+      '## Review — 2026-01-01\n\n**Ruling: Docs-only**\n\n' +
+      'A remedy named, and no plan or bug declaring Implements against it.\n',
+    'corpus/remedy-ruling-names-no-owner',
+    '999',
+  )
+}
+
+// The diff-gated rule needs a base commit, and "no base" must never read as
+// "nothing was added" — that is how a shallow CI clone turns a gate into a
+// no-op. An override that does not resolve is the cheapest way to prove the
+// fail-closed branch, and it is the branch a real shallow clone would take.
+function gateCorpusDiffBaseUnresolved() {
+  const bad = { EESS_RELEASE_BASE: '__nonvacuity_no_such_ref__' }
+  const json = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'], bad)
+  const terminal = sh(process.execPath, [join('scripts', 'check-corpus.mjs')], bad)
+  const ok =
+    json.code === 1 && firedOn(json, 'corpus/proposal-diff-base-unresolved') && terminal.code === 1
+  return {
+    ok,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/proposal-diff-base-unresolved)`,
+  }
+}
+
 // --- the `Promoted` obligation ----------------------------------------------
 // Three rules the plan's first version argued were not owed. Review falsified
 // that: a `Promoted` proposal naming nothing passed both gates green.
@@ -1258,6 +1318,9 @@ const gates = [
   ['corpus/promoted-names-no-owner', gateCorpusPromotedNamesNoOwner],
   ['corpus/promoted-not-dispatchable', gateCorpusPromotedNotDispatchable],
   ['corpus/promoted-has-held-asks', gateCorpusPromotedHasHeldAsks],
+  ['corpus/new-proposal-criteria', gateCorpusNewProposalCriteria],
+  ['corpus/remedy-ruling-owner', gateCorpusRemedyRulingOwner],
+  ['corpus/proposal-diff-base', gateCorpusDiffBaseUnresolved],
   ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
   ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
   ['corpus/plan-implements-unresolved', gateCorpusPlanImplementsUnresolved],
@@ -1377,6 +1440,9 @@ const GATE_FOR = {
     'corpus/promoted-names-no-owner',
     'corpus/promoted-not-dispatchable',
     'corpus/promoted-has-held-asks',
+    'corpus/new-proposal-criteria',
+    'corpus/remedy-ruling-owner',
+    'corpus/proposal-diff-base',
     'corpus/proposal-implements-discriminates',
     'corpus/plan-implements-unparseable',
     'corpus/plan-implements-unresolved',

@@ -30,3 +30,7 @@ reports/
 # packages/ts/tests/core/warn-survives-the-test-runner.test.ts. A crashed run
 # leaves untracked .test.ts files that the next typecheck compiles.
 packages/*/tests/__generated__/
+
+# plan 0218: the new-proposal fixture plants an untracked proposal the rule must
+# SEE, so it cannot use the `__nonvacuity_probe*` prefix the rule filters out.
+work/proposals/999-nonvacuity-*

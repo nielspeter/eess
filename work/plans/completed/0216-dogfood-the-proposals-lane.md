@@ -259,7 +259,7 @@ decoration.
 ## Out of Scope
 
 - **The acceptance-criteria section rule** → split out to
-  [plan 0218](../0218-gate-proposal-acceptance-criteria.md). It is the one item here that
+  [plan 0218](../completed/0218-gate-proposal-acceptance-criteria.md). It is the one item here that
   still turns on open decisions — exact-vs-regex matching, whether heading depth needs a
   new `eess-md` condition (a published package change), and what happens to the four
   proposals that have no such section. Splitting it is what keeps 0216 closable in one PR.

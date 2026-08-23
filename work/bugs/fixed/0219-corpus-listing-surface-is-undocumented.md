@@ -48,7 +48,7 @@ tracked it for ten days, and the proposal's own header read as though the matter
 settled.
 
 That second half is the interesting one, and it is not this bug's to fix — see
-[plan 0218](../../plans/0218-gate-proposal-acceptance-criteria.md), which now carries a rule
+[plan 0218](../../plans/completed/0218-gate-proposal-acceptance-criteria.md), which now carries a rule
 for it.
 
 ## Fix
