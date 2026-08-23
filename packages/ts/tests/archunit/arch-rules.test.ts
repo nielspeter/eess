@@ -806,7 +806,7 @@ describe('Hygiene', () => {
           'project',
           'workspace',
           // Precondition guard — caller must verify the initializer
-          'fromArrowVariableDeclaration',
+          'fromFunctionInitializerDeclaration',
           // GraphQL schema loader — requires graphql peer dep
           'requireGraphQL',
           'loadSchemaFromGlob',

@@ -144,11 +144,8 @@ export {
   fromFunctionInitializerDeclaration,
   fromArrowVariableDeclaration,
   fromMethodDeclaration,
-  fromObjectLiteralFunction,
 } from './models/arch-function.js'
 export type { FunctionCollectionOptions } from './models/arch-function.js'
-// Shared object-literal function traversal (proposal 016 / F3)
-export { collectObjectLiteralFunctions } from './core/object-literal-functions.js'
 export type { ObjectLiteralFunction } from './core/object-literal-functions.js'
 
 // Function predicates
@@ -315,7 +312,7 @@ export { collectViolations } from './helpers/baseline-generator.js'
 // Call entry point (plan 0014)
 export { calls, CallRuleBuilder } from './builders/call-rule-builder.js'
 export type { ArchCall } from './models/arch-call.js'
-export { collectCalls, fromCallExpression } from './models/arch-call.js'
+export { fromCallExpression } from './models/arch-call.js'
 
 // Call predicates (standalone)
 export { onObject, withMethod, withArgMatching, withStringArg } from './predicates/call.js'
@@ -478,23 +475,8 @@ export type {
 // 3b851d2 — the last commit before the copy — rather than against the baseline
 // the copy had already damaged. (Phase 2's exclusion list made exactly that
 // mistake, and its record says so.)
-export {
-  registerProjectRoots,
-  rootFromTsConfigPath,
-  rootOf,
-  relativeToRoot,
-} from './core/project-relative.js'
-export {
-  registerRootCompilerOptions,
-  verbatimModuleSyntaxFor,
-} from './core/per-root-compiler-options.js'
-export {
-  syntacticFault,
-  diagnoseGlob,
-  FAULT_ADVICE,
-  ON_DISK_ADVICE,
-} from './core/glob-diagnosis.js'
-export { isStrictFamily, resolveFlag, STRICT_FAMILY_SIZE } from './tsconfig/strict-family.js'
+export { rootFromTsConfigPath, rootOf, relativeToRoot } from './core/project-relative.js'
+export { syntacticFault } from './core/glob-diagnosis.js'
 export {
   isFaultPosition,
   countDeclaredGlobs,
@@ -576,13 +558,11 @@ export {
 export type { BaselineFilter, DiffFilterLike, Matcher, UntestedReason } from '@nielspeter/eess'
 export type { CollectResult } from './core/terminal-builder.js'
 export type { DiskSet, OnDisk } from './core/disk-set.js'
-export { buildDiskSet, diskSet } from './core/disk-set.js'
+export { diskSet } from './core/disk-set.js'
 export type { GlobFault } from './core/glob-diagnosis.js'
 export { pathUniverse } from './core/path-universe.js'
-export { globSitesOf, isDeadGlobTree, isDeadSite } from './core/glob-evaluator.js'
-export { isTypeOnlyReExport, splitGlobArgs } from './core/import-options.js'
-export { emptyProjectAdvice, loadedNothing } from './core/empty-project-advice.js'
 export { validateOverrides } from './presets/shared.js'
+export { STRICT_FAMILY_SIZE } from './tsconfig/strict-family.js'
 export type { StrictFamilyFlag } from './tsconfig/strict-family.js'
 
 // The preset delivery mode, so an adopter writing `report: 'builders'` can name

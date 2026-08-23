@@ -26,31 +26,6 @@ export type { ArchClass, ArchRelationship } from './models/arch-class.js'
 export { collectClasses, collectRelationships } from './models/arch-class.js'
 
 // Predicates
-export {
-  haveStereotype as predicateHaveStereotype,
-  haveNameMatching,
-  haveNameStartingWith,
-  haveNameEndingWith,
-  haveMemberNamed,
-  haveMethodNamed,
-  areAbstract,
-  haveAtLeastOneMethod,
-  haveNoMembers,
-  extendName,
-} from './predicates/class.js'
-
-// Conditions
-export {
-  notExtendStereotype,
-  extendClass,
-  notExist,
-  haveStereotype as conditionHaveStereotype,
-  notHaveStereotype,
-  dependOn,
-  notDependOn,
-  notDependOnStereotype,
-} from './conditions/class.js'
-
 // Directive parsing
 export { parseDirectives, findDirective } from './parser/parse-directives.js'
 export type {

@@ -1,6 +1,6 @@
 /**
  * A misspelled override key does not compile —
- * [bug 0157](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
+ * [bug 0157](../../../../work/bugs/fixed/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
  *
  * The runtime finding is guarded in `recommended.test.ts`. This guards the other
  * half, and it needs a different instrument: a type cannot be asserted at run
