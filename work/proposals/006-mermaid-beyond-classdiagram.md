@@ -1,17 +1,28 @@
 # Proposal 006 — Mermaid beyond `classDiagram`, and diagrams embedded in Markdown
 
-**State:** Draft — filed 2026-08-22, not yet reviewed. The existing-code survey
+**State:** Draft — filed 2026-08-22; **reviewed 2026-08-22** (architect · product · enforcement), ruling `Split and sequence` — see `## Review` below. The existing-code survey
 below was run before filing and **it materially changed the ask**: half of what
 was requested already ships. What survives is smaller, sharper, and split into
 two questions that deserve different answers.
-**Priority:** Medium — extends adoption surface. It does not close a gap between
+**Priority:** Medium — extends adoption surface. ~~It does not close a gap between
 what eess claims and what it checks: `eess-mermaid` has never claimed to model
-sequence, flow or state diagrams, so nothing here is currently over-claimed.
+sequence, flow or state diagrams, so nothing here is currently over-claimed.~~
+**⚠️ Falsified by this proposal's own review and annotated rather than edited away
+(`PROPOSALS.md`, "Corrections stay in the record").** `docs/manifesto.md:223` marks
+`## Mermaid Semantic Schemas — shipped` — where the manifesto defines _shipped_ as
+"exists, runs in CI today" — over a `graph TD` example that no eess grammar parses.
+So a gap between claim and check does exist. Filed as
+[bug 0217](../bugs/0217-the-manifesto-marks-flow-diagrams-shipped.md); whether that
+makes this proposal High is left to the author, and the Priority above is unchanged
+pending that decision rather than silently revised.
 **Origin:** inbound — a consuming project whose entire diagram corpus is
 Markdown-embedded, and whose diagram types `eess-mermaid` does not model. The
 project holds **155 mermaid fences across 32 documents and zero `.mmd` files**.
 **Affects:** `@nielspeter/eess-mermaid` (parsers, `diagram()` entry point) ·
-`@nielspeter/eess-crossvalidate` (`md-mermaid` subpath).
+`@nielspeter/eess-crossvalidate` (`md-mermaid` subpath) · **and `@nielspeter/eess-ts` for
+Ask B** — added after review: both "Strong" rows need a right-hand side that dialect does
+not have (`ArchCall` is the syntactic callee, not a resolved class→class edge; enums are not
+in the `types()` element set at all).
 
 ## The ask, as received
 
@@ -56,12 +67,20 @@ Markdown-fence extraction of mermaid diagrams is built, shipped and dogfooded.
   `{ lang, value, line }`, and every document carries
   `packages/md/src/model/document.ts:64`.
 - `eess-crossvalidate`'s `md-mermaid` binding consumes exactly that: it selects
-  mermaid fences at `packages/crossvalidate/src/md-mermaid.ts:143` and feeds the
+  mermaid fences at `packages/crossvalidate/src/md-mermaid.ts:186` and feeds the
   fence string straight to `diagram()` at
-  `packages/crossvalidate/src/md-mermaid.ts:93`.
+  `packages/crossvalidate/src/md-mermaid.ts:120`.
 
-  > Re-anchored after [bug 0209](../bugs/fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md)
-  > moved both lines. The survey originally cited `:56`/`:57`, which the fix
+  > **These pointers went stale TWICE.** Re-anchored once after
+  > [bug 0209](../bugs/fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md)
+  > moved both lines — and the same PR's later commits moved them again, onto
+  > `suggestion:` and a JSDoc line, which is what all three reviewers found. Corrected
+  > below to `:186`/`:120` and recorded rather than quietly fixed: a survey that cannot
+  > cite its own evidence on the second attempt is a survey defect, and this lane already
+  > records the same shape for proposal 004. `check:corpus` stayed green through both
+  > rounds — `:56`/`:57` first, then `:143`/`:93` — because the pointer rule proves a line
+  > **exists**, not that it still says what the citing prose claims. Filed as
+  > [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md). The survey originally cited `:56`/`:57`, which the fix
   > turned into unrelated JSDoc — `check:corpus` stayed green because the
   > pointer rule proves a line **exists**, not that it still says what the
   > citing prose claims. The claim itself is unchanged: fence extraction ships.
@@ -153,6 +172,17 @@ These are the author's to settle; the review should argue them, not resolve them
    support is a `node(doc, id)` callback, that is a precedent to copy rather than
    a mechanism to invent — and it would change the answer to question 2.
 
+4. **Which authority owns the set of modelled diagram kinds, and what fails when the parser
+   set and a binding's selector disagree?** Today: nobody, and nothing. Five kind-lists live
+   across two packages. This question was raised by the review rather than the submission,
+   and ~~[plan 0214] is the attempt to answer it — its registry design is where the answer will
+   be argued.~~ **0214 no longer answers this.** Four drafts of a registry were each
+   falsified (see that plan's "What four drafts got wrong"), and it now explicitly declines:
+   _"this plan does not publish a kind registry."_ **OQ4 is therefore un-owned and stays
+   open here**, which is the right home — a proposal outlives the plans it spawns, and the
+   four falsifiers plus the suppression-registry constraint are the floor a fifth attempt
+   must clear.
+
 ## Out of scope
 
 - **`gantt`.** No code correspondence exists. Named here so the decision is on
@@ -166,3 +196,97 @@ These are the author's to settle; the review should argue them, not resolve them
   errors. That is a defect in shipped code, not a design question, and belongs in
   the bug lane. It is noted here only because it blocks Ask A for exactly the
   corpora Ask A is about.
+
+## Review — 2026-08-22
+
+**Ruling: Split and sequence**
+
+Three lenses — architect, product, enforcement — reviewed this independently and reached
+the same ruling. The survey discipline is right and the break-class table is the correct
+instrument; what fails is that this is four-to-six shippable things under one header, and
+the column that decides Ask B is unmeasured judgment printed in the same visual grammar as
+measured counts.
+
+**The proposal's own defects, recorded rather than fixed away.** Its re-anchored code
+pointers were stale a **second** time, landing on `suggestion:` and on a JSDoc line, in the
+same paragraph that diagnoses pointer staleness — all three reviewers found it
+independently. Its Priority rationale ("nothing here is currently over-claimed") is
+falsified by this repo's own design spec: `docs/manifesto.md` marks
+`## Mermaid Semantic Schemas — shipped`, where _shipped_ is defined as "exists, runs in CI
+today", and its only worked example is a `graph TD` — a kind `FOREIGN_HEADER` denylists by
+name. Either this is High priority or the manifesto owes a status correction. And it has
+**no acceptance criteria at all**: zero occurrences of "non-vacuity", "fixture",
+"examined", "tier" or "warn". `PROPOSALS.md` requires the break class _and how
+non-vacuity is kept_; this delivered the first and omitted the second — proposal 001's
+recorded correction, committed again.
+
+**Two findings outrank the design question and leave for the bug lane.**
+[Bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md):
+`diagram()` dispatches on content, so any non-`classDiagram` input is probed against the
+filesystem — measured, a fence body that is a path causes an arbitrary local file read
+whose content reaches CI output, and a fence naming a real `.mmd` is compared against code
+as that file. That makes Ask A2 a soundness fix with an ergonomics rider, not the reverse.
+[Bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md) already routes the shared
+diagram-kind predicate here, and this proposal never mentions it — a dangling
+forward-reference to the highest-value, lowest-cost item in the area.
+
+**Ask A does not survive as one ask.** Fence extraction ships; A1 is a narrower docs gap
+than stated (`packages/mermaid/README.md` never mentions fences, and nothing under `docs/`
+mentions `md-mermaid`); A2 is now bug 0211's fix; and a third piece the proposal does not
+contain — extracting `declaredKind()` into `eess-mermaid` — is the one that removes three
+of four duplicate copies of diagram-kind knowledge.
+
+**Ask B is not costed correctly.** Both "Strong" rows need a right-hand side `eess-ts`
+does not have: `ArchCall` is the syntactic callee, not a resolved class→class edge, and
+enums are not in the `types()` element set at all — yet `eess-ts` is not in `Affects:`.
+The Strong/Weak axis also collapses under its own logic, because `stateDiagram-v2` needs a
+caller-declared mapping exactly as `flowchart` does; the axis that survives is whether a
+diagram element carries an identifier _intended_ to denote a code identifier. The cost
+model quotes the ER shape (parser + collectors, no builder) while Ask B's value argument
+assumes the classDiagram shape (models → predicates → conditions → builder, barrel, CLI,
+`check:family`, docs, changeset, fixtures) — an order of magnitude apart. And adding a
+modelled kind means _removing_ entries from a fail-closed denylist written days earlier,
+with nothing keeping the grammar set and the selector in lockstep: ship a grammar, forget
+`FOREIGN_HEADER`, and every fence of that kind is skipped while the gate prints a
+denominator and exits 0.
+
+**Dogfooding inverts the proposed order.** This repo's own corpus holds `classDiagram`,
+`erDiagram` and one `graph` — the kind rated Weak — and **zero** `sequenceDiagram` or
+`stateDiagram`. The lane has direct precedent for parking on that ground: plan 0096 put the
+ER binding out of scope indefinitely for want of an `erDiagram` here. So Ask B's two Strong
+rows would ship capabilities eess cannot run against itself, proved only by synthetic
+fixtures.
+
+**Open questions.** Not resolved here. But OQ1's "corpus dialect" branch is **gated shut**
+by `arch.rules.ts`'s `eess/mermaid-isolated`, and reversing that is a new binding decision
+that belongs in an ADR rather than a plan bullet — the proposal should say so before the
+author decides. OQ2's fallback rests on `validateReferences`, which has no production
+caller. And answering OQ3 "yes" obliges rewriting the table OQ2 depends on, which makes
+**OQ3 the blocking one**, not OQ2 as ordered. A fourth question is owed and missing: which
+authority owns the set of modelled diagram kinds, and what fails when the parser table and
+the fence selector disagree? Today the answers are "nobody" and "nothing".
+
+### Disposition, per ask
+
+A proposal is a design record; it does not become work. Accepted parts are implemented by
+plans — one each, because they have different closure conditions — and this record points at
+them. Rejected parts stay here with the reason, so the same ask does not return.
+
+| ask                                                                                                | disposition            | owner                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A1** — discoverability: fence support exists but is unfindable from `eess-mermaid`'s own surface | **Accepted**           | [plan 0212](../plans/0212-eess-mermaid-fence-discoverability.md) — narrow: `packages/mermaid/README.md` never mentions fences, and nothing under `docs/` mentions `md-mermaid`. Two paragraphs, not a re-export                                                                                                                                                             |
+| **A2** — `diagram()` provenance, so a fence consumer need not re-attribute                         | **Accepted, reshaped** | [plan 0213](../plans/0213-diagram-provenance-for-fence-callers.md), sequenced **after** [bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md) — the sniffing defect makes this a split entry point (path loader / source parser). 0211 lands `(text)`; this plan adds and consumes `provenance`                                                    |
+| **A3** — extract `declaredKind()` into `eess-mermaid` _(not in the submission; found by review)_   | **Accepted**           | [plan 0214](../plans/0214-extract-the-diagram-kind-predicate.md); folds in [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md) and fixes it by testing the **declared kind** rather than the raw fence body. ~~removes three of four duplicate copies of diagram-kind knowledge~~ — **falsified**: moving the lexer removes none of the four kind lists; see 0214 |
+| **B** — `sequenceDiagram`                                                                          | **Held**               | not rejected, not ready. Needs the deciding measurement (what fraction of participants resolve to real classes), an `eess-ts` cost line — `ArchCall` is the syntactic callee, not a resolved class→class edge — and a dogfood consumer, since this repo has none                                                                                                            |
+| **B** — `stateDiagram-v2`                                                                          | **Held**               | same, plus a new element type: enums are not in `types()` at all                                                                                                                                                                                                                                                                                                            |
+| **B** — `flowchart` / `graph`                                                                      | **Held**               | blocked on OQ3. If a caller-declared mapping is the mechanism, this becomes shippable on the same shape as ER — and the ordering above inverts                                                                                                                                                                                                                              |
+| **B** — `gantt`                                                                                    | **Rejected**           | no code counterpart. Schedules are not specs, dates drift by design, and no author would fix the finding. On the record so the ask does not return                                                                                                                                                                                                                          |
+
+**Not this proposal's to sequence.** Bugs 0210 and 0211 are defects in shipped code, found
+while reviewing this design. They are named above because they gate two accepted parts, but
+they belong to the bug lane and close on their own terms.
+
+**Before any Ask B part leaves Held**, this record owes an `## Acceptance criteria` section
+in proposal 001's shape: one criterion per submode per type, each naming its fixture file and
+the substring the assertion keys on — comparison submode, parse-failure path, and selector.
+That is the half `PROPOSALS.md` requires and this submission omitted.
