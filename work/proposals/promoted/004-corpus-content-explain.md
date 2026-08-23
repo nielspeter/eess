@@ -1,6 +1,6 @@
 # Proposal 004 — eess-md / eess-gherkin: A Corpus-Content `explain` Equivalent
 
-**State:** Promoted — → [bug 0219](../../bugs/0219-corpus-listing-surface-is-undocumented.md), which declares `**Implements:** proposal 004` and owns the documentation this ruling called for. Promoted 2026-08-23. **The ask was never dispatched until then**: the `Docs-only` ruling named a remedy and created no owner, and measured on that date the listing surface appeared in 0 files under `docs/` and 0 package READMEs — ten days after the ruling. Reviewed 2026-08-13 (architect · product · enforcement, plus
+**State:** Promoted — → [bug 0219](../../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md), which declares `**Implements:** proposal 004` and owns the documentation this ruling called for. Promoted 2026-08-23. **The ask was never dispatched until then**: the `Docs-only` ruling named a remedy and created no owner, and measured on that date the listing surface appeared in 0 files under `docs/` and 0 package READMEs — ten days after the ruling. Reviewed 2026-08-13 (architect · product · enforcement, plus
 survey). Problem **accepted**; primitive **declined** — the capability already
 ships in the public API of both dialects and was undocumented. Ruling is
 **docs-only**. See _Review_ below — it is the operative section, and everything

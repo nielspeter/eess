@@ -2,13 +2,13 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-08-23; fix not built.
+- **State:** Fixed — documented 2026-08-23, in the same PR that filed it. `Deferred: none`.
 - **Priority:** Low — not a correctness gap. It is the whole remedy
-  [proposal 004](../proposals/promoted/004-corpus-content-explain.md) was ruled to need,
+  [proposal 004](../../proposals/promoted/004-corpus-content-explain.md) was ruled to need,
   and the ruling landed on 2026-08-13 with nothing owning the work since.
 - **Implements:** proposal 004
 - **Origin:** self-found — auditing the proposals lane after
-  [plan 0216](../plans/0216-dogfood-the-proposals-lane.md) gave it terminal states. 004
+  [plan 0216](../../plans/0216-dogfood-the-proposals-lane.md) gave it terminal states. 004
   read `Draft` with a header saying its primitive was **declined** and the ruling was
   **docs-only**, which reads as finished; the docs were never written.
 
@@ -47,7 +47,7 @@ tracked it for ten days, and the proposal's own header read as though the matter
 settled.
 
 That second half is the interesting one, and it is not this bug's to fix — see
-[plan 0218](../plans/0218-gate-proposal-acceptance-criteria.md), which now carries a rule
+[plan 0218](../../plans/0218-gate-proposal-acceptance-criteria.md), which now carries a rule
 for it.
 
 ## Fix
@@ -67,7 +67,17 @@ closes the gap; it does not gate against it reopening.
 
 ## Verification
 
-- [ ] Red first is not available in the usual sense — there is no rule to fail. The
-      standing check is the `grep` above returning matches instead of nothing.
-- [ ] The added fences compile under `check:docs-code` (they import, so they are scanned).
-- [ ] `npm run validate` green.
+- [x] The standing check inverts: the `grep` in _Repro_ returned nothing before and returns
+      matches now — `documents()` in 3 files, `fileIndex` in 3, `set.scenarios()` in 1.
+- [x] The added fences compile under `check:docs-code`, which went **48 → 51** import-bearing
+      TS fences. This is the real verification and it is stronger than it looks: the gherkin
+      example dereferences `sc.relPath`, `sc.line`, `sc.title` and `sc.tags`, so `tsc` would
+      have failed the fence if any of those had been wrong about the shipped type. A prose
+      description of an API cannot be checked; a compiled one can.
+- [x] `npm run validate` green.
+- [ ] **Nothing requires these symbols to keep having a fence.** `dropped-on-purpose` here
+      and named as a gap: `check:docs-code` compiles the fences that exist, it does not
+      demand one per exported symbol. Deleting this section would be silent. That is a
+      corpus-wide question about doc coverage, not this bug's to answer — and it is the same
+      shape as the rule [plan 0218](../../plans/0218-gate-proposal-acceptance-criteria.md) now
+      carries for rulings that name a remedy.

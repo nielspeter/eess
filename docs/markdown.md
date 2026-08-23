@@ -27,6 +27,43 @@ links(c).that().areInternal().should().resolve().check()
 pointers(c).that().areLive().should().resolve().check()
 ```
 
+## What did the corpus actually load?
+
+A green rule over an empty corpus is the failure mode this project exists to catch, so
+`corpus()` will tell you what it found. The returned `Corpus` is inspectable, not just
+something you pass to a builder:
+
+```typescript
+import { corpus } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['docs/**'], frozen: ['**/archived/**'] })
+
+// Every document the globs matched, parsed — the denominator behind your rules.
+for (const d of c.documents()) {
+  console.log(d.relPath, d.frozen ? '(frozen)' : '', `${d.sections.length} sections`)
+}
+
+console.log(c.documents().length) // 0 here means the globs matched nothing, not that all is well
+console.log(c.root) // repo root the globs, links and `path:line` pointers resolve against
+console.log(c.fileIndex.size) // every file under that root — what link/pointer resolution searches
+```
+
+Each `MdDocument` carries `relPath`, `file`, `frozen`, `text`, `sections`, `tables`,
+`codeBlocks` and the raw mdast `root`, so a one-off question about the corpus is a loop,
+not a new rule.
+
+Two things worth knowing:
+
+- **`frozen` documents are loaded, not skipped.** They appear in `documents()` with
+  `frozen: true`; it is the rules that treat them as history. So `documents().length` is
+  the total, and `documents().filter((d) => !d.frozen).length` is what a gate will fail on.
+- **`root` defaults to `process.cwd()`**, which is why a gate run from a subdirectory
+  silently resolves a different set. If a corpus comes back smaller than you expect, print
+  `c.root` first.
+
+`@nielspeter/eess-gherkin`'s `features()` returns the same shape of answer — `root`,
+`features()` and `scenarios()` — for the same reason.
+
 ## What it checks
 
 - **Links** — internal cross-links between markdown files resolve to real targets. Static-site conventions are supported (extensionless links, `index.md` directories, a site root) via options on `.resolve()`.
