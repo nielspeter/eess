@@ -188,7 +188,7 @@ check is wired to the production script, not a standalone rule.
   table.
 - `work/proposals/002-comment-embedded-links.md`,
   `003-future-dialect-candidates.md`, `004-corpus-content-explain.md`,
-  `005-crossvalidate-stale-wip-detection.md` — `**Ruling:` lines reformatted
+  `promoted/005-crossvalidate-stale-wip-detection.md` — `**Ruling:` lines reformatted
   to the fixed shape (content unchanged).
 - `scripts/check-corpus.mjs` — fourth check.
 - `scripts/check-nonvacuity.mjs` — new `gateCorpusProbe` row.

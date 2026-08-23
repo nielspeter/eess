@@ -142,7 +142,7 @@ line and the proposal's ruling line. Corruption that must produce it: flip 001's
 Ruling to `Ship as-is` and leave 0089 and 0101 untouched. The inverse direction
 is deliberately **not** a violation — a plan may cite a declined proposal for
 context, as [003](./003-future-dialect-candidates.md) and
-[004](./004-corpus-content-explain.md) both do.
+[004](./promoted/004-corpus-content-explain.md) both do.
 
 **What the violation must say.** Both sides, both lines — per this section's own
 two-sided rule. `plan 0089:176 excludes "proposal 001" as future surface, but

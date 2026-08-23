@@ -26,19 +26,24 @@ import { findUncoveredLanes, findLaneDoneVacuity } from './lib/lane-coverage.mjs
 // all, and an unrecognised token silently disabled half the check rather than
 // reporting.
 //
-// `proposals` closes differently (bug 0121) and is not a third instance of the
-// same shape. A proposal's `**State:**` token stays `Draft` even after review —
-// the review outcome is a separate `Ruling`, recorded in a `## Review` section
-// and on PROPOSALS.md's board, not a second State value (verified against all
-// four proposals filed so far: none ever writes `State: Reviewed`). So
-// `terminalStates: []`: nothing here is "ledger-closed" the way a plan/bug is,
-// and `isDoneItem` is always false for this lane, which is deliberate — a
-// proposal's own checkboxes are Acceptance Criteria / Open Questions, a design
-// checklist, not a deferral ledger, and running the box-disposition check
-// against them would be a false-positive machine (001 alone carries 31 open
-// boxes of that shape). `closeInPlace: true` and `doneFolders: []` because
-// proposals never move — a declined one (002) sits where it is with its ruling
-// in its header.
+// `proposals` closes on its own vocabulary (plan 0216). Review does not close a
+// proposal — the `Ruling` records the verdict, and a proposal reviewed
+// `Rewrite needed` stays live. What closes it is the ask being *dispatched*:
+// `Promoted` when plans or bugs own it (the header names them), `Rejected` when
+// it will not be done — the bugs lane's word, not a third synonym for it.
+//
+// The terminal token names its successor, which is the whole reason promotion is
+// safe here. Until 0216 this lane ran `terminalStates: []`, and the comment that
+// stood here argued a terminal state was impossible: a proposal's checkboxes are
+// Acceptance Criteria / Open Questions — a design checklist, not a deferral
+// ledger — so box-disposition would be a false-positive machine. That half is
+// still true, and it is not the objection it looked like. Measured 2026-08-23:
+// 001 carries 29 open boxes and 002 carries 6, the other four carry none, and
+// BOTH are ruled `Rewrite needed`. They stay live, never promote, and their boxes
+// never reach the check. A proposal's boxes travel with it into the plan it
+// promotes to — that is what promotion means. (The old comment said "001 alone
+// carries 31"; it carries 29. The count was never re-measured after it was
+// written.)
 const LANES = [
   {
     name: 'plans',
@@ -59,11 +64,10 @@ const LANES = [
   {
     name: 'proposals',
     roots: ['work/proposals/**'],
-    doneFolders: [],
+    doneFolders: ['/promoted/', '/rejected/'],
     boardFiles: ['PROPOSALS.md', 'README.md'],
-    closeInPlace: true,
-    states: ['Draft'],
-    terminalStates: [],
+    states: ['Draft', 'Promoted', 'Rejected'],
+    terminalStates: ['Promoted', 'Rejected'],
   },
 ]
 
@@ -153,7 +157,9 @@ const line = (label, detail) => console.error(`  ${label.padEnd(11)}${detail}`)
 console.error('')
 console.error('check:ledger · honesty at close')
 for (const sc of scans) {
-  // A lane with no terminalStates (proposals) can never have a done-item —
+  // A lane with no terminalStates AND no done-folders can never have a done-item —
+  // as of plan 0216 no lane here is that shape, so this branch is dead in this
+  // repo and kept for the kit's copiers, who may still declare one.
   // isDoneItem reduces to `[].includes(x)`, always false — so its box-disposition
   // check is dead code by construction, not "nothing happens to be closed yet."
   // Say so at the one place a reader actually looks, not just in a source

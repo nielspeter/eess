@@ -13,6 +13,16 @@
   open-work adoption is written against the engine that 0088 makes eess's. It does
   **not** wait on 0100's archival — an archived repo is still readable (0100
   Phase 2 states this from the other side).
+- **Implements:** proposal 002 — this plan is where 002's widened primitive was
+  deferred to, and 002's own header has said so since 2026-08-12. Until 2026-08-23 that
+  deferral existed only as prose on both sides (this plan cites the proposal; the
+  proposal cites this plan), which is exactly the shape
+  [bug 0141](../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md) found and
+  [plan 0142](./completed/0142-bind-proposals-to-plans.md) built the `**Implements:**`
+  declaration for — and the mechanism went unused on the one live case it had. Declaring
+  it makes the deferral mechanical. It does **not** promote 002: its ruling is
+  `Rewrite needed`, which `corpus/promoted-proposal-not-dispatchable` refuses, correctly —
+  the material is still live work, and closing 002 needs a re-review, not a state flip.
 - **Priority:** Medium — a consequence of retirement, not a prerequisite. History can
   stay in the archived repo until this lands; nothing gates on it.
 - **Effort:** Medium-Large — mechanical move + a renumbering/re-homing decision

@@ -92,13 +92,14 @@ export const LANE_DONE_VACUOUS_RULE = 'ledger/lane-done-vacuous'
  * this narrow stayed completely invisible as long as some OTHER lane still
  * had a nonzero count. This checks each lane independently instead.
  *
- * A lane with `terminalStates: []` (e.g. `proposals`) is structurally exempt
+ * A lane with `terminalStates: []` and no done-folders is structurally exempt
  * — `isDoneItem` reduces to `[].includes(x)`, always `false`, by design, not
  * corruption. `expectEmptyDone: true` is the caller-declared, non-inferrable
  * escape hatch for a lane that may legitimately have zero done-items right
  * now — a freshly-bootstrapped `kit/`-seeded lane before its first item
  * closes — mirroring `honestyAtClose`'s own `expectEmptyHeaders`. Neither of
- * this repo's own real lanes needs it today; a lane copying this file into a
+ * this repo's own three lanes needs it today — `proposals` was the standing
+ * example until plan 0216 gave it `Promoted`/`Rejected`; a lane copying this file into a
  * new project should set it until its own history exists.
  *
  * @param {ReadonlyArray<{name: string, terminalStates: readonly string[], doneItems: number, expectEmptyDone?: boolean}>} lanes

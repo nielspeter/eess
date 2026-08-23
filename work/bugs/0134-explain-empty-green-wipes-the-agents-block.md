@@ -13,7 +13,7 @@
   honesty gap as [0130](./0130-cli-summary-counts-the-invocation.md): a command
   reporting a shape that examined nothing as if it had examined something.
 - **Origin:** self-found · enforcement review of
-  [proposal 004](../proposals/004-corpus-content-explain.md), which proposed
+  [proposal 004](../proposals/promoted/004-corpus-content-explain.md), which proposed
   mirroring this contract into two more dialects
 - **Reported:** 2026-08-13
 
@@ -107,7 +107,7 @@ replaced with something that _looks_ deliberately generated, under sentinels
 that assert provenance. The next agent to read `AGENTS.md` is told, in eess's
 own voice, that the project enforces no architecture rules.
 
-It is also the contract [proposal 004](../proposals/004-corpus-content-explain.md)
+It is also the contract [proposal 004](../proposals/promoted/004-corpus-content-explain.md)
 proposed mirroring into `eess-md` and `eess-gherkin`. Cloning it first would have
 tripled the blast radius; the proposal was declined for other reasons, but this
 is why the empty case has to be settled before any dialect copies it.

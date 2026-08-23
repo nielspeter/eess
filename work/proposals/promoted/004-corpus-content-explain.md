@@ -1,6 +1,6 @@
 # Proposal 004 — eess-md / eess-gherkin: A Corpus-Content `explain` Equivalent
 
-**State:** Draft — reviewed 2026-08-13 (architect · product · enforcement, plus
+**State:** Promoted — → [bug 0219](../../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md), which declares `**Implements:** proposal 004` and owns the documentation this ruling called for. Promoted 2026-08-23. **The ask was never dispatched until then**: the `Docs-only` ruling named a remedy and created no owner, and measured on that date the listing surface appeared in 0 files under `docs/` and 0 package READMEs — ten days after the ruling. Reviewed 2026-08-13 (architect · product · enforcement, plus
 survey). Problem **accepted**; primitive **declined** — the capability already
 ships in the public API of both dialects and was undocumented. Ruling is
 **docs-only**. See _Review_ below — it is the operative section, and everything
@@ -8,7 +8,7 @@ after it is preserved as submitted, not as agreed.
 **Priority:** ~~Medium~~ → **Low** (review). Not a correctness gap; one incident,
 one project, cause a bad `find`, capability already shipped. The submitted
 rationale — eess's own stated audience is agents consuming its output in-loop
-([`docs/agent-integration.md`](../../docs/agent-integration.md)) — is why the
+([`docs/agent-integration.md`](../../../docs/agent-integration.md)) — is why the
 _documentation_ gap is worth closing, not why a new primitive is.
 **Origin:** **inbound** — authored by an agent working in another project
 (a consuming project, not this repo), triggered by a real mistake that project's
@@ -22,7 +22,7 @@ command.
 
 `eess-ts` ships `npx eess-ts explain` — a documented, first-class command that
 dumps every active rule as structured JSON or markdown, explicitly for "team
-onboarding, AI system prompts, and CI auditing" ([`docs/explain.md`](../../docs/explain.md)).
+onboarding, AI system prompts, and CI auditing" ([`docs/explain.md`](../../../docs/explain.md)).
 `eess-md` and `eess-gherkin` have no equivalent for **corpus content** — there
 is no documented, stable way to ask "what markdown documents / ADRs / feature
 files / scenarios already exist in this corpus," short of hand-rolling shell
@@ -117,7 +117,7 @@ catches — see _The defect this proposal surfaced_ below.
    list and exits 0. That is legitimate as DX, but _Priority_ argues from
    `docs/agent-integration.md` — a drift-prevention doc — and never states that
    this is not an enforcement mechanism. Tier: none. Proposal
-   [001](./001-md-corpus-rule-coverage.md)'s recorded correction is the
+   [001](../001-md-corpus-rule-coverage.md)'s recorded correction is the
    precedent.
 
 ### Corrections to specific claims in the text below
@@ -168,7 +168,7 @@ any widening of `RuleDescription` to carry element inventories.
 not a bullet under a subcommand proposal — with the shared-skeleton question
 answered in it, under the constraint that `@nielspeter/eess` has zero runtime
 dependencies and a shared rule-file loader needs `jiti`. Sequence it after plan
-[0089](../plans/completed/0089-family-standalone-sufficiency.md), whose Phase 2 wording
+[0089](../../plans/completed/0089-family-standalone-sufficiency.md), whose Phase 2 wording
 ("the dialect's CLI/gate works with nothing but the single package installed")
 currently reads _gate_ for md and gherkin.
 
@@ -184,7 +184,7 @@ real rules block in `AGENTS.md` with "No rules found", in the step whose selling
 point is that standing instructions "cannot drift from what CI enforces".
 `packages/mermaid/src/cli/commands/explain.ts:36-41` has no empty branch at all,
 so the two implementations do not agree on the empty case. Filed as bug
-[0134](../bugs/0134-explain-empty-green-wipes-the-agents-block.md); independent
+[0134](../../bugs/0134-explain-empty-green-wipes-the-agents-block.md); independent
 of any ruling here.
 
 ### Unresolved, carried forward

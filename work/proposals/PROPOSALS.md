@@ -43,18 +43,57 @@ Three proposals, three capabilities that already existed. **Survey first.**
 
 ## Vocabulary
 
-**State** — a proposal's header carries a `**State:**` line, and in practice it
-carries exactly one value forever: `Draft`. Going through review does not flip
-it to a second token — every proposal filed so far, reviewed or not, accepted or
-declined, still reads `**State:** Draft` in its own file (verified against all
-four: 001-004). What changes on review is the `Ruling`, below, plus the prose
-after the em dash and the presence of a `## Review` section — not the token
-itself. `check:ledger`'s `proposals` lane (bug 0121) reads only this one literal
-value; anything else is reported as `ledger/unknown-state`, not silently ignored.
+**State** — a proposal's header carries a `**State:**` line. **Review does not
+change it.** A proposal ruled `Rewrite needed` is still live work; what changes on
+review is the `Ruling` below, the prose after the em dash, and the presence of a
+`## Review` section. What closes a proposal is the ask being _dispatched_.
 
-| State   | Meaning                                                         |
-| ------- | --------------------------------------------------------------- |
-| `Draft` | filed. The only value a proposal's own header has ever carried. |
+| State      | Meaning                                                                    | Folder      |
+| ---------- | -------------------------------------------------------------------------- | ----------- |
+| `Draft`    | filed. Live, whether or not it has been reviewed                           | in place    |
+| `Promoted` | dispatched — a plan or bug owns it, **and the header names it**            | `promoted/` |
+| `Rejected` | will not be done. The header says why, so the ask does not silently return | `rejected/` |
+
+`Rejected` is the bugs lane's word, deliberately: `Won't-do` (plans) / `Rejected`
+(bugs) / a third synonym here would make a stranger learn three words for one
+idea. It is a **State**, distinct from the `Reject` **Ruling** below — a ruling is
+a verdict on the submission, a state is where the record now lives. There is no
+`rejected/` directory yet; the first rejection creates it, the way `BUGS.md`
+records for its own lane.
+
+`Promoted` and `Rejected` are terminal, and `check:ledger` treats them as such
+(plan 0216). The terminal token **names its successor** — that is the whole reason
+promotion is safe in a lane whose checkboxes are a design checklist rather than a
+deferral ledger: a proposal's open boxes travel with it into the plan it promotes to.
+
+> **An earlier version of this section claimed "no separate linkage rule is owed",
+> because `check:corpus` already verifies named plans via `**Implements:**`+`ACCEPTED_RULINGS`. That was false, and three reviewers falsified it
+> independently.** The inherited rule keys on the **Ruling**, never on the
+> **State**, and `ACCEPTED_RULINGS` is only `Ship as-is` / `Ship with changes`. So
+> `Split and sequence`, `Rewrite needed`, `Docs-only` and `Reject` were all
+> promotable while naming nothing — and `Split and sequence` is 006's, the next
+> promotion. Measured: a `Promoted` proposal naming no owner passed both gates
+> green. A convention with no mechanism is what ADR-009 exists to reject, so the
+> rules below were built. Recorded rather than edited away.
+
+Three checks hold the terminal state honest, all in `check:corpus`:
+
+| rule                                 | fires when                                                                       |
+| ------------------------------------ | -------------------------------------------------------------------------------- |
+| `promoted-proposal-names-no-owner`   | `Promoted` and no plan **or bug** declares `**Implements:** proposal NNN`        |
+| `promoted-proposal-not-dispatchable` | `Promoted` on a `Rewrite needed` / `Reject` ruling — live work, not a dispatch   |
+| `promoted-proposal-has-held-asks`    | `Promoted` while a disposition row is still `Held` — a live ask leaving the lane |
+
+The third exists because `honestyAtClose` reads GFM task boxes and a disposition
+table is a **table**: closing a proposal with every ask still `Held` produced zero
+findings until this rule.
+
+Until 2026-08-23 this lane had no terminal state at all, and this section asserted
+that `Draft` was "the only value a proposal's own header has ever carried" — true
+when written, and exactly the kind of sentence that rots. `check:ledger` reported
+the consequence in its own summary: `6 scanned · 0 done`, with 005 fully
+discharged and still reading `Draft`. Anything outside the vocabulary above is
+reported as `ledger/unknown-state`, not silently ignored.
 
 The board's **Status** column below is a different, _derived_ fact — whether a
 `## Review — YYYY-MM-DD` section exists in the file — not a second `State` value.
@@ -141,10 +180,10 @@ false claims about corpus state contained one.
 | Item                                                                                                  | Priority | Status      | Ruling             | Origin                      | Related plans                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ----------------------------------------------------------------------------------------------------- | -------- | ----------- | ------------------ | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [001 — express a corpus's own conventions](./001-md-corpus-rule-coverage.md)                          | High     | 🔵 Reviewed | Rewrite needed     | self-found                  | builds on [0069](../plans/completed/0069-spec-corpus-reach.md) ✅; out of scope for [0089](../plans/completed/0089-family-standalone-sufficiency.md), [0101](../plans/completed/0101-sibling-gates-go-fail-closed.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| [002 — links embedded in source-code comments](./002-comment-embedded-links.md)                       | Medium   | 🔵 Reviewed | Rewrite needed     | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md) ⇄ (cited both ways)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| [002 — links embedded in source-code comments](./002-comment-embedded-links.md)                       | Medium   | 🔵 Reviewed | Rewrite needed     | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md), which now **declares** `**Implements:** proposal 002` rather than only citing it in prose (2026-08-23) — the mechanism bug 0141 built, unused on its one live case until then. Stays `Draft`: the ruling is `Rewrite needed`, and `corpus/promoted-proposal-not-dispatchable` refuses promotion on it, correctly                                                                                                                                                                                                                                                                                                                                                                                                  |
 | [003 — future dialect candidates (catalog)](./003-future-dialect-candidates.md)                       | —        | 🔵 Reviewed | Rewrite needed     | brainstormed w/ maintainer  | excludes [0078](../plans/0078-workflow-dialect.md); ER candidate parked by [0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| [004 — corpus-content `explain` equivalent](./004-corpus-content-explain.md)                          | Low      | 🔵 Reviewed | Docs-only          | inbound · consuming project | CLI question sequenced after [0089](../plans/completed/0089-family-standalone-sufficiency.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| [005 — crossvalidate: detect a stale `@wip` tag](./005-crossvalidate-stale-wip-detection.md)          | Medium   | 🔵 Reviewed | Ship as-is         | inbound · consuming project | implemented by [0145](../plans/completed/0145-crossvalidate-stale-wip-detection.md) ✅; folds in one row of [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md); cites [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the fixture tier avoided; accepted after a third review round found [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)                                                                                                                                                                                                                                                                                                                                                                          |
+| [004 — corpus-content `explain` equivalent](./promoted/004-corpus-content-explain.md)                 | Low      | 🔵 Reviewed | Docs-only          | inbound · consuming project | ✅ **Promoted** → [bug 0219](../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md), which declares `**Implements:** proposal 004` and owns the docs this ruling called for. The remedy was unowned for ten days: measured 2026-08-23, the listing surface appeared in 0 files under `docs/` and 0 package READMEs. CLI question sequenced after [0089](../plans/completed/0089-family-standalone-sufficiency.md)                                                                                                                                                                                                                                                                                                                                                                  |
+| [005 — crossvalidate: detect a stale `@wip` tag](./promoted/005-crossvalidate-stale-wip-detection.md) | Medium   | 🔵 Reviewed | Ship as-is         | inbound · consuming project | implemented by [0145](../plans/completed/0145-crossvalidate-stale-wip-detection.md) ✅; folds in one row of [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md); cites [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the fixture tier avoided; accepted after a third review round found [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)                                                                                                                                                                                                                                                                                                                                                                          |
 | [006 — mermaid beyond `classDiagram`, and diagrams in Markdown](./006-mermaid-beyond-classdiagram.md) | Medium   | 🔵 Reviewed | Split and sequence | inbound · consuming project | survey found Ask A already ships via `packages/crossvalidate/src/md-mermaid.ts:186`; three lenses agreed the ask is 4–6 shippable things. Accepted parts owned by [0212](../plans/0212-eess-mermaid-fence-discoverability.md) · [0213](../plans/0213-diagram-provenance-for-fence-callers.md) · [0214](../plans/0214-extract-the-diagram-kind-predicate.md). Spawned [bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md) (`diagram()` sniffs its input — arbitrary file read from fence content) and [bug 0217](../bugs/0217-the-manifesto-marks-flow-diagrams-shipped.md), inherits [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md). Its own pointers went stale twice and it shipped with no acceptance criteria — both recorded in the Review |
 
 **What each one asked for.** 001 — `terms()`/`vocabulary()` plus coverage over
@@ -206,22 +245,49 @@ picking any of these up:
 
 Recorded rather than left to be rediscovered:
 
-- **No terminal folder.** Plans move to `completed/`/`wont-do/` and bugs to
-  `fixed/`/`rejected/`. Proposals have no such convention — a declined proposal
-  (002) sits in place with its ruling in its header. That works while the lane is
-  small; it means the board is the only thing distinguishing live from settled.
-- **`check:ledger` reads this lane but can't hold it honest at close** — bug
-  [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md), fixed: the lane
-  is scanned and its `State:` verified readable. What the fix couldn't add is a
-  terminal state — proposals carry only `Draft` forever (see _Vocabulary_
-  above), so the box-disposition check this lane's own `terminalStates: []`
-  deliberately opts out of never runs here, by design, not by gap.
+- **~~No terminal folder.~~** Closed 2026-08-23 by
+  [plan 0216](../plans/completed/0216-dogfood-the-proposals-lane.md): `promoted/` and
+  `declined/`, mirroring `completed/`/`wont-do/` on plans and `fixed/`/`rejected/`
+  on bugs. 005 is the first to move.
+- **~~`check:ledger` reads this lane but can't hold it honest at close~~** — bug
+  [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md) made the lane
+  scanned and its `State:` readable; 0216 gave it the terminal states that make
+  the box-disposition check reachable. It now reports a real done count.
+- **Acceptance criteria are required by the template below and checked by
+  nothing** — [plan 0218](../plans/0218-gate-proposal-acceptance-criteria.md).
+  Measured: no proposal has ever carried the section in the shape the template
+  prescribes.
+- **A ruling that names a remedy creates no owner** —
+  [plan 0218](../plans/0218-gate-proposal-acceptance-criteria.md) carries the rule.
+  004's `Docs-only` ruling named documentation as the whole fix and nothing tracked it;
+  ten days later none of it existed, while the proposal's header read as settled. The
+  mirror case is a remainder "deferred behind plan NNNN" in prose, which is what 002 had
+  until 0090 declared it.
 - **The `work/` README lanes table lists one lane** — bug
   [0108](../bugs/0108-work-readme-lanes-table-lists-one-lane.md). This board does
   not fix that; it gives the lane something to point at.
 
-`check:corpus` does gate this file: its cross-links must resolve and any
-`path:line` pointer must ground in real code.
+`check:corpus` does gate this file: its cross-links must resolve, any `path:line`
+pointer must ground in real code, and — since plan 0216 — the board and the
+proposal files must **correspond**. The file is the source of truth; the board is a
+copy, and a copy nothing compares is a copy that drifts.
+
+It is a two-sided join, not a per-row spot check, so all of these red: a row whose
+`Ruling` disagrees with its file, a proposal with **no row at all**, a row naming a
+proposal that does not exist, a row that does not open with a number, and two files
+claiming one number. Rows are matched by the proposal number that opens the `Item`
+cell, so reordering the board is not a violation and a proposal moving into
+`promoted/` keeps matching.
+
+> A previous version of this paragraph, and of plan 0216, motivated the rule with
+> _"006's row read `—` while its file read `Split and sequence`."_ **No commit
+> carries that drift.** At `95ebf15` the row read `—` and the file had no `Ruling`
+> line at all — they agreed; at `4d7ad72` both read `Split and sequence`. It was a
+> transient working-tree state while PR #83 was authored, written up as a defect
+> found in the corpus. The rule is still worth having — the other direction, a
+> re-review changing the file while the board keeps the old verdict, is real and
+> reds — but an unmeasured example does not belong in a lane spec. Corrected here
+> rather than quietly.
 
 ## Proposal template
 

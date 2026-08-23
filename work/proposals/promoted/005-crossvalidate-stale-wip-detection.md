@@ -1,12 +1,12 @@
 # Proposal 005 — crossvalidate: detect a stale `@wip` tag
 
-**State:** Draft — three review rounds 2026-08-14 (round 1: architect ·
+**State:** Promoted — → [plan 0145](../../plans/completed/0145-crossvalidate-stale-wip-detection.md), built and merged (it declares `**Implements:** proposal 005`). Promoted 2026-08-23 by [plan 0216](../../plans/completed/0216-dogfood-the-proposals-lane.md), which gave this lane a terminal state; the ask is fully dispatched and no open box remains. Three review rounds 2026-08-14 (round 1: architect ·
 product · enforcement, plus survey; round 2, scoped: architect · enforcement,
 on the round-1 rewrite; round 3, full again: architect · product ·
 enforcement, on whether the round-2 rewrite was ready for actual acceptance —
 the first proposal in this repo evaluated against a real, built proposal→plan
-linkage gate, [bug 0141](../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
-0142](../plans/completed/0142-bind-proposals-to-plans.md)). **`Rewrite v3`** below is
+linkage gate, [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
+0142](../../plans/completed/0142-bind-proposals-to-plans.md)). **`Rewrite v3`** below is
 the operative section — round 3 found the core thesis (placement, break
 class, evidence) sound for the first time, and two closable-not-fundamental
 defect classes: the `isExempt`/`include` defaults were jointly unsatisfiable,
@@ -122,7 +122,7 @@ to a kernel-level primitive (`beDisjoint()`, the unbuilt dual of
   `scripts/check-nonvacuity.mjs` with its own denominator guard (the shape of
   `scripts/nonvacuity/bad-gherkin-ts.mjs`). Worth noting: `scenariosCovered`
   — the function this proposal extends — is already named in
-  [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md) as one
+  [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md) as one
   of three un-fixtured `check:crossval` presets. A plan should sequence with
   or after 0112, and rewrite this criterion around a committed fixture rather
   than a stats function a caller must remember to both call and eyeball.
@@ -258,7 +258,7 @@ packages/crossvalidate/src/*.ts` returns 0 for `gherkin-ts.ts`,
 - **The non-vacuity plan modeled the fixture on `bad-gherkin-ts.mjs` — the
   exact tier bug 0127 converted `corpus/links`/`corpus/pointers` away from,
   in the PR that closed hours before this review.** `bad-gherkin-ts.mjs` is
-  named in [0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
+  named in [0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
   as a fixture that proves its own rebuilt condition fires, never that the
   production script (`scripts/check-crossval.mjs`) invokes it.
   `GATE_FOR['check:crossval']`'s coverage check
@@ -308,7 +308,7 @@ covered` — but that is an analytical proof, not what the spike measured.
   severity question above (the caller who wants a legitimate long-lived
   `@wip` writes `isExempt` to exclude it).
 - Minor, both reviewers: routing through `correspondence()` would have
-  inherited open [bug 0124](../bugs/0124-correspondence-stamps-one-remedy-onto-opposite-branches.md)
+  inherited open [bug 0124](../../bugs/0124-correspondence-stamps-one-remedy-onto-opposite-branches.md)
   (one `suggest` slot serving opposite-cause remedies) — moot once the
   kernel route is dropped, noted as a further reason the direct path is
   cleaner, not just smaller.
@@ -371,7 +371,7 @@ reviewers' independent conclusion that the edit is what makes that gap
 load-bearing.
 
 One thing was found and fixed _outside_ this proposal, in the course of
-verifying it: [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)
+verifying it: [bug 0144](../../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)
 — `md-gherkin.ts` contained raw NUL bytes that made `grep` silently treat it
 as binary, producing a real false negative in this very review round.
 
@@ -387,8 +387,8 @@ lifecycle, reserved for the library author, not settled here.
 Replaces _Rewrite v2_ (now _Appendix C_) in full. Third review round (this
 time full: architect, product, enforcement), triggered because this proposal
 was being evaluated for actual acceptance for the first time — the first
-proposal in this repo to reach that point since [bug 0141](../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
-0142](../plans/completed/0142-bind-proposals-to-plans.md) wired a real gate to it. All
+proposal in this repo to reach that point since [bug 0141](../../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md)/[plan
+0142](../../plans/completed/0142-bind-proposals-to-plans.md) wired a real gate to it. All
 three reviewers independently confirmed the placement, break class, and
 evidence discipline are now correct — the first round of the three where the
 core thesis survived intact. Two classes of real defect remained, both
@@ -396,7 +396,7 @@ closable without new measurement, and are closed below. A verification note
 first: the coordinator's own Step 2 survey claimed `ExtractedCitation` does
 not exist in `md-gherkin.ts`; it does (`md-gherkin.ts:18`) — the grep that
 said otherwise was defeated by two raw NUL bytes in that file, which made it
-read as binary. Filed and fixed as [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md),
+read as binary. Filed and fixed as [bug 0144](../../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md),
 outside this proposal. `ExtractedTestCitation`, the type this proposal
 actually extends, remains `gherkin-ts.ts`'s own, not `md-gherkin.ts`'s — the
 naming decision below is corrected accordingly.
@@ -612,7 +612,7 @@ rows' weaker tier:
 4. **The production denominator is fixed by committing one real, honestly
    still-unbuilt scenario**, not by asserting a printed-but-unchecked count.
    `packages/crossvalidate/specs/scenario-binding.feature` gains one new
-   scenario, tagged `@wip`, describing [plan 0079](../plans/0079-tier-2-3-mechanization.md)'s
+   scenario, tagged `@wip`, describing [plan 0079](../../plans/0079-tier-2-3-mechanization.md)'s
    own still-open Tier-2 step-exercising gap ("a scenario's steps are proven
    to run, not just cited") — genuinely not yet built, by an existing,
    independent High-priority plan with no mechanism in sight, the honest
@@ -624,7 +624,7 @@ rows' weaker tier:
    (`scenarios().filter(include).length`, not `scenarioTestStats`'s
    unfiltered one), so it keeps meaning what it already claims to mean.
 6. **A `scenariosCovered` fixture joins this plan**, folding in one of [bug
-   0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)'s three
+   0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md)'s three
    named rows rather than waiting on it — both round-3 product and
    enforcement independently reached this conclusion: `include` is a new,
    unpoliced exclusion lever on a gate with zero fixture coverage today, and
@@ -847,7 +847,7 @@ reasons.
 The first pass modeled its fixture on `bad-gherkin-ts.mjs` — a rebuild-tier
 fixture that proves its own condition fires over a hand-built corpus, never
 that `scripts/check-crossval.mjs` invokes it. That is the exact tier
-[bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
+[bug 0127](../../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)
 converted `corpus/links`/`corpus/pointers` away from, in the PR that closed
 hours before this pass — and `GATE_FOR`'s own coverage check
 (`scripts/check-nonvacuity.mjs`, `gateCoverage()`) only verifies a gate row's
@@ -889,7 +889,7 @@ scripts/check-crossval.mjs` itself — not a private re-invocation of
   `check-crossval.mjs`'s own output (matching how it already prints
   `scenario↔test — N citations across M scenarios`) proves a real run wasn't
   silently scoped to nothing.
-- Sequenced with or after [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)
+- Sequenced with or after [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md)
   — `scenariosCovered`, the function this extends, is itself one of three
   un-fixtured `check:crossval` presets; shipping a fourth un-fixtured sibling
   compounds a named, open gap rather than closing one.
@@ -1080,7 +1080,7 @@ criterion, rewritten:
   nothing.
 - Registered in `GATE_FOR['check:crossval']`
   (`scripts/check-nonvacuity.mjs`).
-- Sequenced with or after [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md)
+- Sequenced with or after [bug 0112](../../bugs/0112-three-crossval-presets-have-no-fixture.md)
   — `scenariosCovered` itself, the function this extends, is one of three
   un-fixtured `check:crossval` presets; a plan should not ship a second
   un-fixtured sibling.
