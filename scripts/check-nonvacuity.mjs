@@ -323,7 +323,17 @@ function violationsOf(r) {
  * only on `ruleId` + `work/proposals/PROPOSALS.md` means a genuine board drift
  * on a real row could answer for the probe (testing review, plan 0216).
  */
+/**
+ * Every rule id some fixture asserted on, collected as the run happens.
+ *
+ * `firedOn` is the one place an in-harness fixture names the rule it proves, so
+ * it is the one place this needs recording. The audit at the end of this file
+ * compares it against the ids `check-corpus.mjs` can actually emit.
+ */
+const ASSERTED_RULE_IDS = new Set()
+
 function firedOn(r, ruleId, fileFragment, elementFragment) {
+  ASSERTED_RULE_IDS.add(ruleId)
   return violationsOf(r).some(
     (v) =>
       v?.ruleId === ruleId &&
@@ -1564,6 +1574,53 @@ for (const [name, run] of gates) {
     res.status ??
     (res.ok ? 'OK (fails on violating input)' : 'FAILED (did not fail on violating input)')
   console.log(`nonvacuity: ${name} — ${status} · ${res.detail}`)
+}
+
+// ---- every rule id `check-corpus.mjs` can emit carries a fixture -----------
+//
+// `gateCoverage()` above asserts per-SCRIPT: every `check:*` has at least one
+// fixture. That is not the same as every RULE having one, and the difference has
+// bitten twice — three rule ids shipped behind a single fixture, and the manual
+// "N of N are covered" audit that was supposed to catch it was done by hand with
+// a regex that was wrong both times.
+//
+// Emitted ids are read from the SOURCE; asserted ids from the RUN. The two halves
+// must come from different places or the audit proves nothing.
+const corpusSource = readFileSync(join(repoRoot, 'scripts', 'check-corpus.mjs'), 'utf8')
+const emittedRuleIds = new Set(
+  [...corpusSource.matchAll(/'(corpus\/[a-z0-9-]+)'/g)].map((m) => m[1]),
+)
+
+// The extractor needs its OWN denominator. `[a-z-]+` — the obvious character
+// class — cannot see `corpus/unfixtured-0218`, in a repo that names things 0218;
+// review measured that id passing straight through. An instrument that looks for
+// one shape and reports absence is the failure these gates exist to catch, so
+// count the literal `ruleId:` assignments independently and refuse to pass when
+// the two disagree.
+const literalAssignments = (corpusSource.match(/\bruleId:\s*'/g) ?? []).length
+const parsedAssignments = new Set(
+  [...corpusSource.matchAll(/\bruleId:\s*'(corpus\/[a-z0-9-]+)'/g)].map((m) => m[1]),
+).size
+const unfixturedRuleIds = [...emittedRuleIds].filter((id) => !ASSERTED_RULE_IDS.has(id)).sort()
+
+if (parsedAssignments < literalAssignments) {
+  allOk = false
+  console.log(
+    `nonvacuity: rule-id coverage — FAILED · the extractor read ${parsedAssignments} of ` +
+      `${literalAssignments} literal \`ruleId:\` assignments — an id it cannot parse is ` +
+      'invisible to this audit, so the audit cannot honestly report absence',
+  )
+} else if (unfixturedRuleIds.length > 0) {
+  allOk = false
+  console.log(
+    `nonvacuity: rule-id coverage — FAILED · check-corpus.mjs can emit ${unfixturedRuleIds.length} ` +
+      `rule id(s) no fixture asserts on: ${unfixturedRuleIds.join(', ')}`,
+  )
+} else {
+  console.log(
+    `nonvacuity: rule-id coverage — OK · all ${emittedRuleIds.size} rule ids check-corpus.mjs ` +
+      'can emit are asserted by a fixture',
+  )
 }
 
 // Bug 0127: "gates each failed" over-claimed — most fixtures prove their own

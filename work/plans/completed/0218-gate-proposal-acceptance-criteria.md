@@ -83,6 +83,22 @@ generality it did not have.
 that plant proposals now carry an `## Acceptance criteria` section — they are supposed to
 model honest proposals — so the filter was deleted rather than tidied.
 
+## The one thing kept from the reverted design
+
+`check:nonvacuity` now derives its own rule-id coverage instead of asserting it. Emitted
+ids are read from `check-corpus.mjs`'s **source**; asserted ids from the **run**, via
+`firedOn`. Different places on purpose — an audit whose two halves come from one place
+proves nothing.
+
+This exists because the claim it replaces was wrong twice. "N of N rule ids fixtured" was
+checked by hand with a regex that missed a whole call form, then with one that missed
+`[a-z0-9-]` — so `corpus/unfixtured-0218` was invisible to it, in a repo that names things 0218. The extractor therefore carries its own denominator: it counts literal `ruleId:`
+assignments independently and refuses to pass when it parsed fewer than it found.
+
+`gateCoverage()` asserts per-_script_; this asserts per-_rule_. The gap between them is how
+three rule ids once shipped behind one fixture. Verified by planting an unfixtured
+digit-bearing id: it reds.
+
 ## Files Changed
 
 - `scripts/check-corpus.mjs` — two rules and a zero-guard on the first rule's subjects
