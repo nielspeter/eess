@@ -38,9 +38,35 @@ Two exclusions, both principled:
   its review says no entry states a break class, which _is_ this gap, and the rewrite is
   where it gets fixed.
 
-Nothing else is exempt, and **nothing was grandfathered**. `adrEnforcement` runs with zero
-exemptions and all ten ADRs carry their table because someone wrote them; the same happened
-here — 006 gained its section in this change.
+**Three existing proposals are shielded by these exclusions, and that should be said plainly
+rather than dressed as "nothing was grandfathered" — an earlier draft of this plan claimed
+exactly that, and it was false.** Measured with every exclusion removed, the failures would
+be **003, 004 and 005**:
+
+| proposal | excluded by | has the section?  | is the exclusion doing work?           |
+| -------- | ----------- | ----------------- | -------------------------------------- |
+| 001, 002 | ruling      | yes               | **no** — they pass on their own merits |
+| 003      | ruling      | no                | **yes — shielded**                     |
+| 004, 005 | terminal    | no                | **yes — shielded**                     |
+| 006      | —           | yes, written here | checked                                |
+
+So the ruling exclusion does real work for exactly **one** record. Each case, judged
+separately rather than by the rule that covers them:
+
+- **005** did state acceptance criteria — four `### Acceptance criteria` headings, at depth 3,
+  inside superseded appendices. Failing it would demand editing a closed record whose content
+  is historically accurate. The exclusion is right.
+- **004**'s ask was answered by "the capability already ships", so criteria for it are close to
+  meaningless, and it is closed.
+- **003** genuinely lacks them and its review says so. The argument — a document the review
+  declared deficient should not be re-audited for content it does not yet have — is one I
+  believe, and it is still an exclusion that shields a file. The honest test is whether I
+  would have written it had 003 complied; I think so, but the reader should weigh that
+  knowing 003 is the only record it protects.
+
+What _is_ true about grandfathering: **006 was not**. It owed the section, the rule found it
+on the first run, and it gained one here rather than an exemption — which is the half of
+`adrEnforcement`'s adoption that applies.
 
 **2. A `Docs-only` ruling names an owner** that declares `**Implements:** proposal NNN` —
 a plan **or a bug**, since 004's owner is bug 0219.

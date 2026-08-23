@@ -257,8 +257,10 @@ Recorded rather than left to be rediscovered:
   Closed 2026-08-23 by [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md). The rule reds on
   a live proposal with no level-2 `## Acceptance criteria` heading; terminal records and
   those ruled `Rewrite needed`/`Reject` are excluded, because for those the ruling is
-  already the finding. It found exactly one record on its first run — 006 — which gained
-  the section rather than being grandfathered.
+  already the finding. It found exactly one record on its first run — 006 — which
+  gained the section rather than an exemption. **Three others are shielded by those
+  exclusions and would otherwise fail**: 003 (ruled `Rewrite needed`; its review already
+  records the gap) and 004/005 (terminal). 001 and 002 pass on their own merits.
 - **~~A `Docs-only` ruling creates no owner.~~** Closed 2026-08-23 by
   [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md). 004's ruling named documentation as
   the whole fix and nothing tracked it; ten days later none of it existed while the header
