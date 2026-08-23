@@ -9,7 +9,7 @@
   and the ruling landed on 2026-08-13 with nothing owning the work since.
 - **Implements:** proposal 004
 - **Origin:** self-found — auditing the proposals lane after
-  [plan 0216](../../plans/0216-dogfood-the-proposals-lane.md) gave it terminal states. 004
+  [plan 0216](../../plans/completed/0216-dogfood-the-proposals-lane.md) gave it terminal states. 004
   read `Draft` with a header saying its primitive was **declined** and the ruling was
   **docs-only**, which reads as finished; the docs were never written.
 

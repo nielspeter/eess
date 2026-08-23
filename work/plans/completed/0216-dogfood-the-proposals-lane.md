@@ -2,14 +2,12 @@
 
 ## Status
 
-- **State:** Ready — **reopened 2026-08-23 after review.** It was marked `Done` and moved
-  to `completed/` on the strength of Verification boxes that did not all hold. Five
-  reviewers (architect · product · enforcement · testing · devops) each returned _request
-  changes_, agreeing on four silent-pass holes, and the record's own motivating example
-  turned out never to have happened. Reopening rather than filing follow-up bugs: a plan
-  that shipped a gate with four ways to pass over corruption is not done, and closing it
-  would have been the fake green this repo exists to refuse. `Deferred: plan 0218` (the
-  acceptance-criteria rule, split out before the freeze — see _Out of Scope_).
+- **State:** Done — closed 2026-08-23, after being reopened the same day. Every phase is
+  verified against the built gates rather than asserted, **every rule id it ships carries a
+  live fixture** (15 of 15, audited from the harness's own output rather than its source),
+  and no open box remains. `Deferred: plan 0218` — the acceptance-criteria rule and the
+  ruling-names-an-owner rule, both split out because they turn on decisions reserved for the
+  author.
 - **Priority:** Medium — it closes a gap between what `PROPOSALS.md` states and what
   anything verifies, and the miss is measured rather than hypothetical.
 - **Effort:** Medium — revised up after review. The first pass was costed Small (lane
@@ -36,7 +34,7 @@ proposals  6 scanned · 6 with a readable State · 0 done
 ```
 
 All six read `Draft`, including 005 — ruled `Ship as-is`, its plan
-[0145](./completed/0145-crossvalidate-stale-wip-detection.md) built, merged and closed. A
+[0145](./0145-crossvalidate-stale-wip-detection.md) built, merged and closed. A
 fully discharged proposal is indistinguishable from one filed this morning.
 `PROPOSALS.md` already records this under _Known gaps in this lane_ ("No terminal
 folder"), which is the lane documenting a hole rather than closing it.
@@ -261,11 +259,11 @@ decoration.
 ## Out of Scope
 
 - **The acceptance-criteria section rule** → split out to
-  [plan 0218](./0218-gate-proposal-acceptance-criteria.md). It is the one item here that
+  [plan 0218](../0218-gate-proposal-acceptance-criteria.md). It is the one item here that
   still turns on open decisions — exact-vs-regex matching, whether heading depth needs a
   new `eess-md` condition (a published package change), and what happens to the four
   proposals that have no such section. Splitting it is what keeps 0216 closable in one PR.
-- **Pointer aboutness** — [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md).
+- **Pointer aboutness** — [bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md).
   Corpus-wide, not this lane, and its fix is a citation-format decision.
 - **Adding `/promoted/` and `/rejected/` to `eess-md`'s `DEFAULT_DONE_FOLDERS`.** It would
   serve adopters, but it silently converts any existing `promoted/` document into a

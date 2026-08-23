@@ -906,6 +906,37 @@ function gateCorpusProposalNumberDuplicated() {
   )
 }
 
+// The accepted-proposal -> plan rule is live-only, so its denominator drains as
+// proposals promote or freeze. Devops review found it had never carried the
+// zero-guard the board rule gained, and the guard then shipped without a fixture
+// of its own — the same omission one level down. Sabotage: demote the lane's only
+// accepted proposal, so nothing is accepted while reviews plainly happened.
+function gateCorpusAcceptedDenominatorEmpty() {
+  const p005 = join(
+    repoRoot,
+    'work',
+    'proposals',
+    'promoted',
+    '005-crossvalidate-stale-wip-detection.md',
+  )
+  const { json, terminal } = withRewrittenFile(
+    p005,
+    (t) => t.split('**Ruling: Ship as-is**').join('**Ruling: Docs-only**'),
+    () => ({
+      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+    }),
+  )
+  const ok =
+    json.code === 1 &&
+    firedOn(json, 'corpus/accepted-proposal-denominator-empty') &&
+    terminal.code === 1
+  return {
+    ok,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/accepted-proposal-denominator-empty)`,
+  }
+}
+
 // --- the `Promoted` obligation ----------------------------------------------
 // Three rules the plan's first version argued were not owed. Review falsified
 // that: a `Promoted` proposal naming nothing passed both gates green.
@@ -1223,6 +1254,7 @@ const gates = [
   ['corpus/proposal-missing-from-board', gateCorpusProposalMissingFromBoard],
   ['corpus/proposal-board-row-unresolved', gateCorpusBoardRowUnresolved],
   ['corpus/proposal-number-duplicated', gateCorpusProposalNumberDuplicated],
+  ['corpus/accepted-denominator-empty', gateCorpusAcceptedDenominatorEmpty],
   ['corpus/promoted-names-no-owner', gateCorpusPromotedNamesNoOwner],
   ['corpus/promoted-not-dispatchable', gateCorpusPromotedNotDispatchable],
   ['corpus/promoted-has-held-asks', gateCorpusPromotedHasHeldAsks],
@@ -1341,6 +1373,7 @@ const GATE_FOR = {
     'corpus/proposal-missing-from-board',
     'corpus/proposal-board-row-unresolved',
     'corpus/proposal-number-duplicated',
+    'corpus/accepted-denominator-empty',
     'corpus/promoted-names-no-owner',
     'corpus/promoted-not-dispatchable',
     'corpus/promoted-has-held-asks',

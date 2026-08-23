@@ -246,7 +246,7 @@ picking any of these up:
 Recorded rather than left to be rediscovered:
 
 - **~~No terminal folder.~~** Closed 2026-08-23 by
-  [plan 0216](../plans/0216-dogfood-the-proposals-lane.md): `promoted/` and
+  [plan 0216](../plans/completed/0216-dogfood-the-proposals-lane.md): `promoted/` and
   `declined/`, mirroring `completed/`/`wont-do/` on plans and `fixed/`/`rejected/`
   on bugs. 005 is the first to move.
 - **~~`check:ledger` reads this lane but can't hold it honest at close~~** — bug

@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — split out of [plan 0216](./0216-dogfood-the-proposals-lane.md) on
+- **State:** Draft — split out of [plan 0216](./completed/0216-dogfood-the-proposals-lane.md) on
   2026-08-23, which shipped the lane's close and board gate without it. This is the one
   item there that still turns on decisions reserved for the author; it is a Draft
   precisely so those stay open.
@@ -82,7 +82,7 @@ Reserved for the author. A review surfaces and argues these; it does not settle 
 
 ## A second rule, added 2026-08-23: a ruling that names a remedy must name an owner
 
-Found while auditing the lane after [plan 0216](./0216-dogfood-the-proposals-lane.md) gave
+Found while auditing the lane after [plan 0216](./completed/0216-dogfood-the-proposals-lane.md) gave
 it terminal states, and it is the same defect class 0216's review found four times over: a
 convention stated in prose with no mechanism.
 
