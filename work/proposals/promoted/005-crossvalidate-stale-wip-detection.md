@@ -1,6 +1,6 @@
 # Proposal 005 — crossvalidate: detect a stale `@wip` tag
 
-**State:** Promoted — → [plan 0145](../../plans/completed/0145-crossvalidate-stale-wip-detection.md), built and merged (it declares `**Implements:** proposal 005`). Promoted 2026-08-23 by [plan 0216](../../plans/completed/0216-dogfood-the-proposals-lane.md), which gave this lane a terminal state; the ask is fully dispatched and no open box remains. Three review rounds 2026-08-14 (round 1: architect ·
+**State:** Promoted — → [plan 0145](../../plans/completed/0145-crossvalidate-stale-wip-detection.md), built and merged (it declares `**Implements:** proposal 005`). Promoted 2026-08-23 by [plan 0216](../../plans/0216-dogfood-the-proposals-lane.md), which gave this lane a terminal state; the ask is fully dispatched and no open box remains. Three review rounds 2026-08-14 (round 1: architect ·
 product · enforcement, plus survey; round 2, scoped: architect · enforcement,
 on the round-1 rewrite; round 3, full again: architect · product ·
 enforcement, on whether the round-2 rewrite was ready for actual acceptance —

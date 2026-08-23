@@ -202,7 +202,20 @@ const PROBE_CORPUS_BOARD_PROPOSAL = join(
   repoRoot,
   'work',
   'proposals',
-  '998-nonvacuity-probe-board.md',
+  '__nonvacuity_probe_998-board__.md',
+)
+const PROBE_CORPUS_PROPOSAL_DUP = join(
+  repoRoot,
+  'work',
+  'proposals',
+  '__nonvacuity_probe_003-dup__.md',
+)
+const PROBE_CORPUS_PROMOTED = join(
+  repoRoot,
+  'work',
+  'proposals',
+  'promoted',
+  '__nonvacuity_probe_997-promoted__.md',
 )
 // Plan 0142 (closing bug 0141): no leading digits in the basename — unlike
 // the real 001-005 proposals, so proposalNumberFromPath() can never collide
@@ -304,12 +317,18 @@ function violationsOf(r) {
   return out
 }
 
-/** True when ONE violation carries both the rule and (optionally) the file. */
-function firedOn(r, ruleId, fileFragment) {
+/**
+ * True when ONE violation carries the rule and (optionally) the file and the
+ * element. The element arm matters for probes that mutate a SHARED file: keying
+ * only on `ruleId` + `work/proposals/PROPOSALS.md` means a genuine board drift
+ * on a real row could answer for the probe (testing review, plan 0216).
+ */
+function firedOn(r, ruleId, fileFragment, elementFragment) {
   return violationsOf(r).some(
     (v) =>
       v?.ruleId === ruleId &&
-      (fileFragment === undefined || String(v?.file ?? '').includes(fileFragment)),
+      (fileFragment === undefined || String(v?.file ?? '').includes(fileFragment)) &&
+      (elementFragment === undefined || String(v?.element ?? '').includes(elementFragment)),
   )
 }
 
@@ -324,8 +343,16 @@ function withProbe(path, contents, fn) {
 }
 
 /**
- * Sabotage a REAL, existing file — prepend `injectedLine`, run `fn`, and
- * always restore the file's exact original content afterward.
+ * Sabotage a REAL, existing file — apply `rewrite` to its contents, run `fn`,
+ * and always restore the file's exact original content afterward.
+ *
+ * Throws when `rewrite` is a NO-OP. A sabotage whose pattern silently stopped
+ * matching would otherwise run the gate against pristine content, see green,
+ * and report the rule as covered — the vacuity this harness exists to catch,
+ * in the harness itself.
+ *
+ * `withMutatedFile(path, injectedLine, fn)` is the prepend special case and
+ * delegates here.
  *
  * `withProbe` writes a brand-new throwaway file; that shape doesn't fit
  * `family/re-export-complete` (bug 0089's own rule 2), whose subject must be
@@ -391,6 +418,8 @@ rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
 rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
 rmSync(PROBE_CORPUS_POINTER, { force: true })
 rmSync(PROBE_CORPUS_BOARD_PROPOSAL, { force: true })
+rmSync(PROBE_CORPUS_PROPOSAL_DUP, { force: true })
+rmSync(PROBE_CORPUS_PROMOTED, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
 rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
@@ -697,17 +726,68 @@ function gateCorpusProposalUncited() {
   )
 }
 
-// Plan 0216: the board's `Ruling` column is a hand-kept copy of the file's
-// operative Ruling, and nothing compared them until now — 006's row said `—`
-// while its file said `Split and sequence`.
+// Plan 0216: the board is a two-sided join, so it ships several rule ids. The
+// harness's own comment at the plan-0142 probes warns that `gateCoverage()`
+// asserts per-SCRIPT, not per-rule-id — a new rule inside an already-covered
+// script is invisible to it. Enforcement and testing review both measured that
+// exact hole here: the first version shipped three rule ids and one fixture,
+// and both ADR-010 guards could be neutered to `if (false)` with the harness
+// still reporting the gate green. One fixture per rule id below.
 //
-// The probe's file says `Rewrite needed` on purpose: an ACCEPTED ruling would
-// also trip `corpus/accepted-proposal-uncited` (no plan implements 998), and a
-// probe that fires two rules can't tell you which one is wired.
+// The probe basenames are `__nonvacuity_probe_NNN-…__.md`, not `NNN-…md`: the
+// `.gitignore` rule is `**/__nonvacuity_probe*`, a basename PREFIX, so a
+// digit-led name escapes it (devops + testing review, measured under SIGKILL —
+// the file survived and was `git add -A`-able inside a tracked corpus root).
+// `PROPOSAL_NUMBER_RE` matches digits anywhere in the basename, so the number
+// still parses; `__nonvacuity_probe_9001-matched__.md` set this precedent.
+
+/** Splice a row into the `## Board` table — structurally, not by row numbering. */
+function spliceBoardRow(text, row) {
+  const lines = text.split('\n')
+  const head = lines.findIndex((l) => /^##\s+Board\s*$/.test(l))
+  if (head < 0) return text // no board section → no-op → the guard throws
+  let last = -1
+  for (let i = head; i < lines.length; i += 1) {
+    if (/^\|/.test(lines[i])) last = i
+    else if (last >= 0 && lines[i].trim() === '') break
+  }
+  if (last < 0) return text
+  lines.splice(last + 1, 0, row)
+  return lines.join('\n')
+}
+
+const BOARD_MD = join(repoRoot, 'work', 'proposals', 'PROPOSALS.md')
+const BOARD_REL = 'work/proposals/PROPOSALS.md'
+
+/** Rewrite the real board, run the production script both ways, assert one rule. */
+function gateBoardRewrite(ruleId, rewrite, elementFragment, fileFragment = BOARD_REL) {
+  const { json, terminal } = withRewrittenFile(BOARD_MD, rewrite, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const ok =
+    json.code === 1 && firedOn(json, ruleId, fileFragment, elementFragment) && terminal.code === 1
+  return { ok, detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId})` }
+}
+
+/** Plant a proposal file, run the production script both ways, assert one rule. */
+function gateProposalProbe(probePath, contents, ruleId, elementFragment) {
+  const { json, terminal } = withProbe(probePath, contents, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const ok =
+    json.code === 1 && firedOn(json, ruleId, undefined, elementFragment) && terminal.code === 1
+  return { ok, detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId})` }
+}
+
+// --- board: the drift the rule exists for -----------------------------------
+// The probe plants a proposal AND a board row rather than mutating a real row,
+// so it hard-codes no live verdict. `Rewrite needed` on purpose: an accepted
+// ruling would also trip `corpus/accepted-proposal-uncited`.
 function gateCorpusProposalBoardRuling() {
-  const board = join(repoRoot, 'work', 'proposals', 'PROPOSALS.md')
   const row =
-    '| [998 — non-vacuity probe](./998-nonvacuity-probe-board.md) | Low | 🔵 Reviewed | ' +
+    '| [998 — non-vacuity probe](./__nonvacuity_probe_998-board__.md) | Low | 🔵 Reviewed | ' +
     'Reject | self-found | — |'
   const { json, terminal } = withProbe(
     PROBE_CORPUS_BOARD_PROPOSAL,
@@ -716,17 +796,8 @@ function gateCorpusProposalBoardRuling() {
       'The board row planted beside this says `Reject`. The disagreement is the probe.\n',
     () =>
       withRewrittenFile(
-        board,
-        (t) => {
-          // Append to the board table: after the last row that opens a table cell
-          // with a proposal link. Anchored on the 006 row's line ending rather
-          // than a count, so adding a seventh real proposal doesn't break it.
-          const lines = t.split('\n')
-          const last = lines.reduce((acc, l, i) => (/^\| \[00\d /.test(l) ? i : acc), -1)
-          if (last < 0) return t // no board rows → rewrite is a no-op → guard throws
-          lines.splice(last + 1, 0, row)
-          return lines.join('\n')
-        },
+        BOARD_MD,
+        (t) => spliceBoardRow(t, row),
         () => ({
           json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
           terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
@@ -735,12 +806,102 @@ function gateCorpusProposalBoardRuling() {
   )
   const ok =
     json.code === 1 &&
-    firedOn(json, 'corpus/proposal-board-ruling-drift', 'work/proposals/PROPOSALS.md') &&
+    firedOn(json, 'corpus/proposal-board-ruling-drift', 'work/proposals/PROPOSALS.md', '998') &&
     terminal.code === 1
   return {
     ok,
     detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/proposal-board-ruling-drift)`,
   }
+}
+
+// --- board: the two ADR-010 guards, which shipped uncovered ------------------
+function gateCorpusBoardUnreadable() {
+  return gateBoardRewrite('corpus/proposal-board-unreadable', (t) =>
+    t.replace(/^(\|\s*Item\s*\|[^\n]*?\|\s*)Ruling(\s*\|)/m, '$1Verdict$2'),
+  )
+}
+
+function gateCorpusBoardExaminedNothing() {
+  // Every Item cell loses its leading number, so every row is unkeyable. The
+  // per-row finding fires too; this asserts the DENOMINATOR guard specifically.
+  return gateBoardRewrite('corpus/proposal-board-examined-nothing', (t) =>
+    t.replace(/^\| \[(\d{3}) /gm, '| [P$1 '),
+  )
+}
+
+// --- board: the three holes the one-sided first version let through ----------
+function gateCorpusProposalMissingFromBoard() {
+  return gateBoardRewrite(
+    'corpus/proposal-missing-from-board',
+    (t) =>
+      t
+        .split('\n')
+        .filter((l) => !/^\| \[006 /.test(l))
+        .join('\n'),
+    '006',
+    // This finding is attributed to the proposal that fell off the board, not to
+    // the board — that is the file whose author has to act.
+    'work/proposals/006-mermaid-beyond-classdiagram.md',
+  )
+}
+
+function gateCorpusBoardRowUnresolved() {
+  return gateBoardRewrite(
+    'corpus/proposal-board-row-unresolved',
+    (t) =>
+      spliceBoardRow(
+        t,
+        '| [042 — ghost](./__nonvacuity_probe_042-ghost__.md) | Low | 🔵 Reviewed | Reject | self-found | — |',
+      ),
+    '042',
+  )
+}
+
+function gateCorpusProposalNumberDuplicated() {
+  // A second file claiming 003 — what a botched `git mv` into promoted/ makes.
+  return gateProposalProbe(
+    PROBE_CORPUS_PROPOSAL_DUP,
+    '# Proposal 003 — duplicate-number probe\n\n**State:** Draft — probe.\n',
+    'corpus/proposal-number-duplicated',
+    '003',
+  )
+}
+
+// --- the `Promoted` obligation ----------------------------------------------
+// Three rules the plan's first version argued were not owed. Review falsified
+// that: a `Promoted` proposal naming nothing passed both gates green.
+const PROMOTED_PROBE_HEAD = '# Proposal 997 — non-vacuity probe\n\n'
+
+function gateCorpusPromotedNamesNoOwner() {
+  return gateProposalProbe(
+    PROBE_CORPUS_PROMOTED,
+    `${PROMOTED_PROBE_HEAD}**State:** Promoted — naming no successor at all.\n\n` +
+      '## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n',
+    'corpus/promoted-proposal-names-no-owner',
+    '997',
+  )
+}
+
+function gateCorpusPromotedNotDispatchable() {
+  return gateProposalProbe(
+    PROBE_CORPUS_PROMOTED,
+    `${PROMOTED_PROBE_HEAD}**State:** Promoted — on a ruling that is live work.\n\n` +
+      '## Review — 2026-01-01\n\n**Ruling: Rewrite needed**\n',
+    'corpus/promoted-proposal-not-dispatchable',
+    '997',
+  )
+}
+
+function gateCorpusPromotedHasHeldAsks() {
+  return gateProposalProbe(
+    PROBE_CORPUS_PROMOTED,
+    `${PROMOTED_PROBE_HEAD}**State:** Promoted — with an ask still Held.\n\n` +
+      '## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
+      '| ask | disposition | owner |\n| --- | --- | --- |\n' +
+      '| **A1** — the probe | **Held** | not rejected, not ready |\n',
+    'corpus/promoted-proposal-has-held-asks',
+    '997',
+  )
 }
 
 // A Review section whose Ruling doesn't parse to the closed vocabulary must
@@ -1017,6 +1178,14 @@ const gates = [
   ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
   ['corpus/proposal-ruling-unparseable', gateCorpusRulingUnparseable],
   ['corpus/proposal-board-ruling', gateCorpusProposalBoardRuling],
+  ['corpus/proposal-board-unreadable', gateCorpusBoardUnreadable],
+  ['corpus/proposal-board-examined-nothing', gateCorpusBoardExaminedNothing],
+  ['corpus/proposal-missing-from-board', gateCorpusProposalMissingFromBoard],
+  ['corpus/proposal-board-row-unresolved', gateCorpusBoardRowUnresolved],
+  ['corpus/proposal-number-duplicated', gateCorpusProposalNumberDuplicated],
+  ['corpus/promoted-names-no-owner', gateCorpusPromotedNamesNoOwner],
+  ['corpus/promoted-not-dispatchable', gateCorpusPromotedNotDispatchable],
+  ['corpus/promoted-has-held-asks', gateCorpusPromotedHasHeldAsks],
   ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
   ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
   ['corpus/plan-implements-unresolved', gateCorpusPlanImplementsUnresolved],
@@ -1126,6 +1295,14 @@ const GATE_FOR = {
     'corpus/proposal-plan-linkage',
     'corpus/proposal-ruling-unparseable',
     'corpus/proposal-board-ruling',
+    'corpus/proposal-board-unreadable',
+    'corpus/proposal-board-examined-nothing',
+    'corpus/proposal-missing-from-board',
+    'corpus/proposal-board-row-unresolved',
+    'corpus/proposal-number-duplicated',
+    'corpus/promoted-names-no-owner',
+    'corpus/promoted-not-dispatchable',
+    'corpus/promoted-has-held-asks',
     'corpus/proposal-implements-discriminates',
     'corpus/plan-implements-unparseable',
     'corpus/plan-implements-unresolved',

@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — split out of [plan 0216](./completed/0216-dogfood-the-proposals-lane.md) on
+- **State:** Draft — split out of [plan 0216](./0216-dogfood-the-proposals-lane.md) on
   2026-08-23, which shipped the lane's close and board gate without it. This is the one
   item there that still turns on decisions reserved for the author; it is a Draft
   precisely so those stay open.

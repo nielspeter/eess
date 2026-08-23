@@ -56,9 +56,16 @@ Neutral machine token, project-local prose after it — see
 
 4. **Set the state + move the file — in this PR.** Set `**State:** Done`
    (`Won't-do` if dropped). Move the file to the lane's done-folder
-   (`plans/completed/` · `bugs/fixed/` · `support/delivered/` — `wont-do/` for
-   `Won't-do`) as part of the diff, so completion is atomic with the merge and
-   reviewable.
+   (`plans/completed/` · `bugs/fixed/` · `support/delivered/` · `proposals/promoted/`
+   — `wont-do/` / `rejected/` for the dropped case) as part of the diff, so
+   completion is atomic with the merge and reviewable.
+
+   **The proposals lane closes differently.** A proposal is not "done", it is
+   _dispatched_: `Promoted` when a plan or bug now owns the ask — **and the header
+   names it** — or `Rejected` when it will not be done. Review does not close a
+   proposal; a `Rewrite needed` ruling is still live work. Gated: a `Promoted`
+   proposal that names no owner, sits on a `Rewrite needed`/`Reject` ruling, or
+   still carries a `Held` disposition row is a violation, not a state.
 
 5. **Update the board.** Mark it done on `ROADMAP.md` / `BUGS.md` / the lane's board
    (strikethrough + a "done (PR #NN) → completed/" note, the house style).

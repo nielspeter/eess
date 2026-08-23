@@ -51,15 +51,42 @@ review is the `Ruling` below, the prose after the em dash, and the presence of a
 | State      | Meaning                                                                    | Folder      |
 | ---------- | -------------------------------------------------------------------------- | ----------- |
 | `Draft`    | filed. Live, whether or not it has been reviewed                           | in place    |
-| `Promoted` | dispatched — plans own it, **and the header names them**                   | `promoted/` |
-| `Declined` | will not be done. The header says why, so the ask does not silently return | `declined/` |
+| `Promoted` | dispatched — a plan or bug owns it, **and the header names it**            | `promoted/` |
+| `Rejected` | will not be done. The header says why, so the ask does not silently return | `rejected/` |
 
-`Promoted` and `Declined` are terminal, and `check:ledger` treats them as such
+`Rejected` is the bugs lane's word, deliberately: `Won't-do` (plans) / `Rejected`
+(bugs) / a third synonym here would make a stranger learn three words for one
+idea. It is a **State**, distinct from the `Reject` **Ruling** below — a ruling is
+a verdict on the submission, a state is where the record now lives. There is no
+`rejected/` directory yet; the first rejection creates it, the way `BUGS.md`
+records for its own lane.
+
+`Promoted` and `Rejected` are terminal, and `check:ledger` treats them as such
 (plan 0216). The terminal token **names its successor** — that is the whole reason
 promotion is safe in a lane whose checkboxes are a design checklist rather than a
-deferral ledger: a proposal's open boxes travel with it into the plan it promotes
-to. `check:corpus` already verifies the named plans resolve
-(`**Implements:**` + `ACCEPTED_RULINGS`), so no separate linkage rule is owed.
+deferral ledger: a proposal's open boxes travel with it into the plan it promotes to.
+
+> **An earlier version of this section claimed "no separate linkage rule is owed",
+> because `check:corpus` already verifies named plans via `**Implements:**`+`ACCEPTED_RULINGS`. That was false, and three reviewers falsified it
+> independently.** The inherited rule keys on the **Ruling**, never on the
+> **State**, and `ACCEPTED_RULINGS` is only `Ship as-is` / `Ship with changes`. So
+> `Split and sequence`, `Rewrite needed`, `Docs-only` and `Reject` were all
+> promotable while naming nothing — and `Split and sequence` is 006's, the next
+> promotion. Measured: a `Promoted` proposal naming no owner passed both gates
+> green. A convention with no mechanism is what ADR-009 exists to reject, so the
+> rules below were built. Recorded rather than edited away.
+
+Three checks hold the terminal state honest, all in `check:corpus`:
+
+| rule                                 | fires when                                                                       |
+| ------------------------------------ | -------------------------------------------------------------------------------- |
+| `promoted-proposal-names-no-owner`   | `Promoted` and no plan **or bug** declares `**Implements:** proposal NNN`        |
+| `promoted-proposal-not-dispatchable` | `Promoted` on a `Rewrite needed` / `Reject` ruling — live work, not a dispatch   |
+| `promoted-proposal-has-held-asks`    | `Promoted` while a disposition row is still `Held` — a live ask leaving the lane |
+
+The third exists because `honestyAtClose` reads GFM task boxes and a disposition
+table is a **table**: closing a proposal with every ask still `Held` produced zero
+findings until this rule.
 
 Until 2026-08-23 this lane had no terminal state at all, and this section asserted
 that `Draft` was "the only value a proposal's own header has ever carried" — true
@@ -219,7 +246,7 @@ picking any of these up:
 Recorded rather than left to be rediscovered:
 
 - **~~No terminal folder.~~** Closed 2026-08-23 by
-  [plan 0216](../plans/completed/0216-dogfood-the-proposals-lane.md): `promoted/` and
+  [plan 0216](../plans/0216-dogfood-the-proposals-lane.md): `promoted/` and
   `declined/`, mirroring `completed/`/`wont-do/` on plans and `fixed/`/`rejected/`
   on bugs. 005 is the first to move.
 - **~~`check:ledger` reads this lane but can't hold it honest at close~~** — bug
@@ -235,12 +262,26 @@ Recorded rather than left to be rediscovered:
   not fix that; it gives the lane something to point at.
 
 `check:corpus` does gate this file: its cross-links must resolve, any `path:line`
-pointer must ground in real code, and — since plan 0216 — **each board row's
-`Ruling` cell must equal the operative `**Ruling:**` in the proposal it names.**
-The file is the source of truth; the board is a copy, and a copy nothing compares
-is a copy that drifts (006's row read `—` while its file read
-`Split and sequence`). Rows are matched by the proposal number that opens the
-`Item` cell, so reordering the board is not a violation.
+pointer must ground in real code, and — since plan 0216 — the board and the
+proposal files must **correspond**. The file is the source of truth; the board is a
+copy, and a copy nothing compares is a copy that drifts.
+
+It is a two-sided join, not a per-row spot check, so all of these red: a row whose
+`Ruling` disagrees with its file, a proposal with **no row at all**, a row naming a
+proposal that does not exist, a row that does not open with a number, and two files
+claiming one number. Rows are matched by the proposal number that opens the `Item`
+cell, so reordering the board is not a violation and a proposal moving into
+`promoted/` keeps matching.
+
+> A previous version of this paragraph, and of plan 0216, motivated the rule with
+> _"006's row read `—` while its file read `Split and sequence`."_ **No commit
+> carries that drift.** At `95ebf15` the row read `—` and the file had no `Ruling`
+> line at all — they agreed; at `4d7ad72` both read `Split and sequence`. It was a
+> transient working-tree state while PR #83 was authored, written up as a defect
+> found in the corpus. The rule is still worth having — the other direction, a
+> re-review changing the file while the board keeps the old verdict, is real and
+> reds — but an unmeasured example does not belong in a lane spec. Corrected here
+> rather than quietly.
 
 ## Proposal template
 

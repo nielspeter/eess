@@ -2,16 +2,23 @@
 
 ## Status
 
-- **State:** Done — built and merged 2026-08-23, all four phases, every Verification box
-  measured rather than reasoned. The design was **taken from the sibling lanes and from an
-  adopter corpus**, not invented: see _Design, from precedent_. `Deferred: plan 0218` (the
+- **State:** Ready — **reopened 2026-08-23 after review.** It was marked `Done` and moved
+  to `completed/` on the strength of Verification boxes that did not all hold. Five
+  reviewers (architect · product · enforcement · testing · devops) each returned _request
+  changes_, agreeing on four silent-pass holes, and the record's own motivating example
+  turned out never to have happened. Reopening rather than filing follow-up bugs: a plan
+  that shipped a gate with four ways to pass over corruption is not done, and closing it
+  would have been the fake green this repo exists to refuse. `Deferred: plan 0218` (the
   acceptance-criteria rule, split out before the freeze — see _Out of Scope_).
 - **Priority:** Medium — it closes a gap between what `PROPOSALS.md` states and what
   anything verifies, and the miss is measured rather than hypothetical.
-- **Effort:** Small — lane config in `scripts/check-ledger.mjs`, one rule in
-  `scripts/check-corpus.mjs`, one folder, one file moved. **No package change, no kernel
-  change, no changeset** — every primitive already ships.
-- **Created:** 2026-08-22 · **Frozen:** 2026-08-23
+- **Effort:** Medium — revised up after review. The first pass was costed Small (lane
+  config, one rule, one folder, one file moved) and that was honest for what it built; it
+  was not honest for what the built thing had to be. The board check is a two-sided join,
+  the terminal state needed three rules the plan argued were not owed, and the harness went
+  from one fixture to nine. **Still no package change and no changeset** — every primitive
+  already ships.
+- **Created:** 2026-08-22 · **Frozen:** 2026-08-23 · **Reopened:** 2026-08-23
 
 ## Problem
 
@@ -29,14 +36,19 @@ proposals  6 scanned · 6 with a readable State · 0 done
 ```
 
 All six read `Draft`, including 005 — ruled `Ship as-is`, its plan
-[0145](./0145-crossvalidate-stale-wip-detection.md) built, merged and closed. A
+[0145](./completed/0145-crossvalidate-stale-wip-detection.md) built, merged and closed. A
 fully discharged proposal is indistinguishable from one filed this morning.
 `PROPOSALS.md` already records this under _Known gaps in this lane_ ("No terminal
 folder"), which is the lane documenting a hole rather than closing it.
 
 **2. Board ↔ file Ruling agreement.** The board's `Ruling` column is a copy of the
-operative `**Ruling:**` in the proposal. Nothing compares them, and 006's row carried `—`
-while the file said `Split and sequence`.
+operative `**Ruling:**` in the proposal, and nothing compares them. (An earlier draft
+motivated this with _"006's row carried `—` while the file said `Split and sequence`"_.
+**No commit carries that drift** — at `95ebf15` the row read `—` and the file had no
+`Ruling` line, so they agreed; at `4d7ad72` both read `Split and sequence`. A transient
+working-tree state, written up as a corpus defect. The real drift direction — a re-review
+changes the file, the board keeps the old verdict — is what the rule catches, and it is
+enough on its own.)
 
 ## Design, from precedent
 
@@ -56,7 +68,7 @@ being figured out — with a status line of this shape:
 Not `Done`. **`promoted`, naming what it became.** That is the right token for this lane
 too, and adopting it settles three things at once:
 
-- **The terminal state exists** — `Promoted` and `Declined`, mirroring `completed/` +
+- **The terminal state exists** — `Promoted` and `Rejected`, mirroring `completed/` +
   `wont-do/` on plans and `fixed/` + `rejected/` on bugs.
 - **The linkage obligation becomes intrinsic.** `Promoted` is only _writable_ when you can
   name the plans it became, and `check:corpus` already verifies those names resolve
@@ -105,7 +117,7 @@ _cannot_ have a terminal state, and that argument is what this plan falsifies. T
 comment keeps the true half (checkboxes are a design checklist, not a deferral ledger) and
 records why promotion is nonetheless safe.
 
-`promoted/` and `declined/` are deliberately **not** added to `check:corpus`'s `frozen`
+`promoted/` and `rejected/` are deliberately **not** added to `check:corpus`'s `frozen`
 list (`scripts/check-corpus.mjs:64`, currently `completed|wont-do|fixed|archived`), so a
 settled proposal keeps its links and `path:line` pointers gated. Freezing is why stale
 pointers in closed records go uncaught elsewhere; this lane starts without that debt.
@@ -132,7 +144,7 @@ In `scripts/check-corpus.mjs`, beside the existing proposal block, using
 (`scripts/lib/proposal-ruling.mjs`): **each board row's `Ruling` cell equals its file's
 operative Ruling.**
 
-- Break class: 006's row said `—` while the file said `Split and sequence`. Also fires when
+- Break class: a row's `Ruling` disagreeing with its file. Fires when
   a re-review changes a file's Ruling and the board keeps the old one.
 - Message names both sides — the row's value, the file's value, and the file — so the fix
   is unambiguous rather than "these disagree".
@@ -142,7 +154,7 @@ operative Ruling.**
 
 ## Phase 4 — say it in `PROPOSALS.md`
 
-- **Vocabulary → State table**: add `Promoted` and `Declined`. The current table asserts
+- **Vocabulary → State table**: add `Promoted` and `Rejected`. The current table asserts
   `Draft` is "the only value a proposal's own header has ever carried" — true when written,
   false after Phase 2, and it is the kind of sentence that rots silently.
 - **Known gaps → "No terminal folder"**: removed, because it is no longer true.
@@ -157,59 +169,101 @@ deferred.
 ## Files Changed
 
 - `scripts/check-ledger.mjs` — the `proposals` lane's `states` / `terminalStates` /
-  `doneFolders` / `closeInPlace` (`:60-67`) and the comment above it (`:29-41`)
-- `scripts/check-corpus.mjs` — one rule beside the existing proposal block
-- `scripts/nonvacuity/` — one violating fixture for that rule
+  `doneFolders` / `closeInPlace`, and the comment above `LANES` that argued a terminal
+  state was impossible here
+- `scripts/check-corpus.mjs` — the board correspondence (a two-sided join), the three
+  `Promoted` obligation rules, and a zero-guard on `acceptedProposalCount`
+- `scripts/check-nonvacuity.mjs` — `withRewrittenFile`, an element-precise `firedOn`, and
+  nine fixtures
+- `scripts/lib/lane-coverage.mjs` — two docstrings that named `proposals` as the
+  structurally-exempt lane, which it no longer is
+- `.claude/skills/close/SKILL.md`, `kit/skills/close/SKILL.md`,
+  `.claude/skills/review-proposal/SKILL.md` — the lane can close now, and no skill knew
 - `work/proposals/promoted/005-crossvalidate-stale-wip-detection.md` — moved, State flipped
-- `work/proposals/PROPOSALS.md` — State vocabulary, the retired gap, the 005 row
-- `work/plans/completed/0142-…`, `work/plans/completed/0145-…`, `work/bugs/fixed/0141-…` —
-  inbound links repaired
+- `work/proposals/PROPOSALS.md` — State vocabulary, the retired gaps, the corrections
+- three inbound links repaired, two of them in frozen folders no gate reads
 
 ## Verification
 
-All six measured against the built gates, not reasoned about.
+Every box below was measured against the built gates. **The first version of this section
+was not** — see the reopening note at the end.
 
-- [x] Red first: four sabotage cases each red exactly this rule and restore clean — a
-      changed board verdict, a blanked cell (006's real defect, reproduced), a renamed
-      `Ruling` header, and every `Item` cell stripped of its leading number. The message
-      names both values and the file: _"board says proposal 5's Ruling is (none) but
-      work/proposals/promoted/005-….md says «Ship as-is»"_, with a `Fix:` naming the file
-      as the source of truth.
-- [x] Committed fixture — `corpus/proposal-board-ruling` in `scripts/check-nonvacuity.mjs`,
-      taking the harness from 43 fixtures to 44. It plants a probe proposal **and** a board
-      row rather than mutating a real row, so it does not hard-code whichever verdict 006
-      carries today.
-- [x] `check:ledger` now reports `proposals 6 scanned · 6 with a readable State · 1 done
-(ledger-checked)`. The parenthetical "(no terminal state — box-disposition check
-      never runs on this lane)" is gone.
-- [x] Both placement directions red: a `State: Promoted` proposal left in
-      `work/proposals/` and a `Draft` sitting inside `promoted/` each produce one
+- [x] The board check is a **two-sided join** (`matchTableRows` + `matchSelections`), so it
+      reds on all five corruptions, each attributed to its own rule id: a drifted `Ruling`
+      cell (`proposal-board-ruling-drift`), a proposal with no row
+      (`proposal-missing-from-board`), a row naming no real proposal
+      (`proposal-board-row-unresolved`), a row with no leading number, and two files
+      claiming one number (`proposal-number-duplicated`).
+- [x] Three ADR-010 guards, one per way this rule can examine nothing: board document
+      missing (`proposal-board-missing`), board table unreadable
+      (`proposal-board-unreadable`), and every row unmatched
+      (`proposal-board-examined-nothing`). The summary's affirmative clause is gated on
+      **rows actually examined**, not on the finding count.
+- [x] The three `Promoted` obligation rules red as specified: promoting while naming no
+      owner, promoting on a `Rewrite needed`/`Reject` ruling, and promoting with a `Held`
+      disposition row. Verified against real records — promoting 006 fires
+      `has-held-asks` and **not** `names-no-owner`, because plans 0212/0213/0214 do declare
+      `**Implements:** proposal 006`.
+- [x] Nine committed fixtures, one per rule id — the harness goes **43 → 52**. Review
+      measured the first pass shipping three rule ids behind one fixture, with both
+      ADR-010 guards neuterable to `if (false)` while the harness stayed green.
+- [x] `check:ledger` reports `proposals 6 scanned · 6 with a readable State · 1 done
+(ledger-checked)`; the "(no terminal state — box-disposition check never runs on this
+      lane)" parenthetical is gone. Both placement directions red one
       `ledger/state-folder-mismatch`.
-- [x] `check:corpus` green — 1209 checks across 150 documents, 0 violations; all four
-      inbound links to 005 repaired, including the two in frozen folders no gate reads.
-- [x] The summary prints `6 board row(s)`. **This is not decoration — it caught a real
-      defect in this plan's own rule**, see below.
+- [x] `acceptedProposalCount` gained the zero-guard it never had — a pre-existing fail-open
+      in the same summary line, found by devops review.
+- [x] Every probe basename is `.gitignore`-covered. The first pass shipped
+      `998-nonvacuity-probe-board.md`, the only probe in the harness the ignore rule missed
+      (`**/__nonvacuity_probe*` is a basename prefix); under SIGKILL it survived inside a
+      tracked corpus root.
+- [ ] **`corpus/proposal-board-missing` has no fixture** — `dropped-on-purpose`. Exercising
+      it means removing a tracked file for the duration of a probe, which is a strictly
+      larger blast radius than the rewrite-and-restore every other fixture uses. The rule
+      is verified by hand and its break class is recorded here; the honest statement is
+      that it is hand-verified, not gated. Named rather than left as an eight-of-nine.
 
-> **The first version of this rule examined zero rows and passed green.** It keyed on the
-> row's link target, regexing for `](…)` in the `Item` cell — but `MdTable` rows are
-> _rendered_ cell text, so mdast had already stripped the link markup. Six rows, six
-> skips, `✓ 0 violations`. The denominator printed `0 board row(s)` and that is the only
-> reason it was caught. Two consequences, both shipped: the rule now keys on the leading
-> number in the cell, and a board table whose every row is skipped is itself a finding
-> (`corpus/proposal-board-examined-nothing`) rather than a visible-but-passing zero.
-> Recorded because a plan that ships a fail-closed gate and nearly shipped a vacuous one
-> should say so.
+## Reopened after review, and what that cost
+
+Five reviewers ran against the first pass. All five returned _request changes_, with no
+contradictions between them and three independent confirmations of the same hole. What they
+found, all reproduced before acting:
+
+1. **The board rule was one-sided.** Deleting a board row, unnumbering a row while its
+   `Ruling` drifted, hiding the real board behind a decoy table, and two files claiming one
+   number **all passed green**. The plan's own Phase 3 specified `rows`/`matchTableRows`;
+   the code hand-rolled a `find` + `Map` + `forEach` a hundred lines below the
+   `matchSelections` the same file already used.
+2. **`Promoted` naming nothing was green** for four of six rulings, because the inherited
+   linkage keys on the Ruling and `ACCEPTED_RULINGS` is only `Ship as-is` / `Ship with
+changes`. The plan asserted "no second rule is owed" and put that in `PROPOSALS.md` as
+   spec. It was owed.
+3. **The two ADR-010 guards had no fixture** and could be deleted silently.
+4. **Promoting with live `Held` asks was green** — `honestyAtClose` reads task boxes, and a
+   disposition table is a table.
+
+> **And the first version of the board rule examined zero rows and passed green.** It keyed
+> on the row's link target, regexing for `](…)` — but `MdTable` rows are _rendered_ cell
+> text, so mdast had already stripped the markup. Six rows, six skips, `✓ 0 violations`.
+> The `board row(s)` denominator is the only reason it was caught, which is the argument
+> for printing denominators at all.
+
+The pattern across all four is one thing: **a convention asserted in prose and not
+mechanised.** That is the defect class this plan exists to close, committed four times
+inside the fix for it. Recorded here rather than in four follow-up bugs, because a plan
+that closes on an untrue Verification box teaches the next reader that the box is
+decoration.
 
 ## Out of Scope
 
 - **The acceptance-criteria section rule** → split out to
-  [plan 0218](../0218-gate-proposal-acceptance-criteria.md). It is the one item here that
+  [plan 0218](./0218-gate-proposal-acceptance-criteria.md). It is the one item here that
   still turns on open decisions — exact-vs-regex matching, whether heading depth needs a
   new `eess-md` condition (a published package change), and what happens to the four
   proposals that have no such section. Splitting it is what keeps 0216 closable in one PR.
-- **Pointer aboutness** — [bug 0215](../../bugs/0215-pointer-gate-proves-existence-not-aboutness.md).
+- **Pointer aboutness** — [bug 0215](../bugs/0215-pointer-gate-proves-existence-not-aboutness.md).
   Corpus-wide, not this lane, and its fix is a citation-format decision.
-- **Adding `/promoted/` and `/declined/` to `eess-md`'s `DEFAULT_DONE_FOLDERS`.** It would
+- **Adding `/promoted/` and `/rejected/` to `eess-md`'s `DEFAULT_DONE_FOLDERS`.** It would
   serve adopters, but it silently converts any existing `promoted/` document into a
   ledger-checked done-item — a behaviour change owing a changeset and its own record. This
   plan passes them explicitly instead.

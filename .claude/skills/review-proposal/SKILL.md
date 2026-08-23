@@ -270,6 +270,14 @@ not this skill's) is now owed before `check:corpus` is clean again — this skil
 records the finding and stops, per its own guard below, and does not accept the
 proposal by writing the Ruling.
 
+**Reviewing never closes a proposal either.** The lane has terminal states —
+`Promoted` (a plan or bug owns the ask, and the header names it) and `Rejected` —
+but they mark _dispatch_, not _verdict_. A proposal ruled `Rewrite needed` stays
+`Draft`, because the material is still live. Writing `State: Promoted` is the job
+of whoever files the owning record, in that record's own PR, and `check:corpus`
+refuses it when no owner declares `**Implements:** proposal NNN`, when the ruling
+is `Rewrite needed`/`Reject`, or when any disposition row is still `Held`.
+
 ## Guards (the failures models actually have)
 
 - **Skipping the survey.** Every duplication finding in this project's history came from

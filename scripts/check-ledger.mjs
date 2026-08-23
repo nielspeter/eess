@@ -29,8 +29,8 @@ import { findUncoveredLanes, findLaneDoneVacuity } from './lib/lane-coverage.mjs
 // `proposals` closes on its own vocabulary (plan 0216). Review does not close a
 // proposal — the `Ruling` records the verdict, and a proposal reviewed
 // `Rewrite needed` stays live. What closes it is the ask being *dispatched*:
-// `Promoted` when plans own it (the header names them), `Declined` when it will
-// not be done.
+// `Promoted` when plans or bugs own it (the header names them), `Rejected` when
+// it will not be done — the bugs lane's word, not a third synonym for it.
 //
 // The terminal token names its successor, which is the whole reason promotion is
 // safe here. Until 0216 this lane ran `terminalStates: []`, and the comment that
@@ -64,10 +64,10 @@ const LANES = [
   {
     name: 'proposals',
     roots: ['work/proposals/**'],
-    doneFolders: ['/promoted/', '/declined/'],
+    doneFolders: ['/promoted/', '/rejected/'],
     boardFiles: ['PROPOSALS.md', 'README.md'],
-    states: ['Draft', 'Promoted', 'Declined'],
-    terminalStates: ['Promoted', 'Declined'],
+    states: ['Draft', 'Promoted', 'Rejected'],
+    terminalStates: ['Promoted', 'Rejected'],
   },
 ]
 
@@ -157,7 +157,9 @@ const line = (label, detail) => console.error(`  ${label.padEnd(11)}${detail}`)
 console.error('')
 console.error('check:ledger · honesty at close')
 for (const sc of scans) {
-  // A lane with no terminalStates (proposals) can never have a done-item —
+  // A lane with no terminalStates AND no done-folders can never have a done-item —
+  // as of plan 0216 no lane here is that shape, so this branch is dead in this
+  // repo and kept for the kit's copiers, who may still declare one.
   // isDoneItem reduces to `[].includes(x)`, always false — so its box-disposition
   // check is dead code by construction, not "nothing happens to be closed yet."
   // Say so at the one place a reader actually looks, not just in a source
