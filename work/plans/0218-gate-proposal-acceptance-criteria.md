@@ -46,39 +46,67 @@ prove.**
 
 ## Open questions
 
-Reserved for the author. A review surfaces and argues these; it does not settle them.
+Reserved for the author. **Spiked 2026-08-23** rather than argued — an earlier draft of this
+plan claimed both were "answered by precedent", and the spikes falsified that.
 
-1. **Where the depth check lives.** `hasSection` (`packages/md/src/model/query.ts:9-11`)
-   reads `s.name` only and never `s.depth`, though the model carries it
-   (`packages/md/src/model/document.ts:10`). Two answers:
-   - a script-local `definePredicate` — no package change, ships immediately;
-   - a depth-aware option on `haveSection` in `eess-md` — the dogfooding answer, since a
-     family that cannot state its own lane convention in its own dialect is the finding,
-     but it changes a published package.
+### 1. Where the depth check lives — **resolved, and not the way the draft said**
 
-   Note an anchored regex may make the question moot: `/^acceptance criteria$/i` matches
-   001 and 002's `## Acceptance Criteria` and does **not** match 005's
-   `### Acceptance criteria (…)`, because the parenthetical is part of the heading name.
-   Measure that before deciding either option is needed.
+The draft argued an anchored regex made depth moot. Measured against every real heading:
 
-   Do **not** use a bare substring: measured, it matches 005 on four `###` headings inside
-   superseded Rewrite/Appendix sections — a forged membership suppressing a red. (An
-   earlier draft also claimed it matches 006 "on a mention inside its own review". It does
-   not: `hasSection` iterates headings only, and 006's occurrence is inline code in a
-   paragraph, which no heading rule can see.)
+| proposal      | heading                                                  | depth | `/^acceptance criteria$/i` |
+| ------------- | -------------------------------------------------------- | ----- | -------------------------- |
+| 001           | `Acceptance Criteria`                                    | 2     | match                      |
+| 002           | `Acceptance Criteria`                                    | 2     | match                      |
+| 005           | `Acceptance criteria (revised)` ×2, `(v1)`, `(original)` | 3     | no                         |
+| 003, 004, 006 | none                                                     | —     | —                          |
 
-2. **Migration, and it is a denominator decision.** 4 of 6 proposals would red on day one.
-   Both options have a consequence to state, not just pick:
-   - _Fix 001/002's casing, exempt 003–006 by an explicit committed list_ — the precedent
-     is `adrEnforcement`, which exempts by name rather than by date. The real denominator
-     is then 2 of 6, and the summary must print that honestly rather than "6 scanned".
-   - _Gate forward from a date_ — the rule examines **zero** proposals on day one. Under
-     ADR-010 zero examined units is a configuration finding unless declared, so this needs
-     an explicit `.expectEmpty()`-shaped declaration or it is the "0 checks scanned" green
-     this repo treats as a red flag.
+005 fails to match because of the **parenthetical**, not the depth. A future
+`### Acceptance criteria` with no parenthetical, inside a superseded appendix, would satisfy
+an anchored regex. So depth is not moot; it was coincidentally unnecessary against today's
+corpus, which is exactly the kind of green this repo distrusts.
 
-   Deferring the choice means the first green run is blocked on proposal 006 growing a
-   section its own review says it cannot write until Ask B leaves `Held`.
+**The real resolution is cheaper than either option the draft posed.** `MdSection.depth` is
+public (`packages/md/src/model/document.ts:10`) and `definePredicate` is already imported by
+`scripts/check-corpus.mjs`, which uses it twice. So
+`doc.sections.some((s) => s.depth === 2 && /^acceptance criteria$/i.test(s.name))` is a
+script-local predicate reading depth directly — no `eess-md` change, no changeset, and
+structurally correct rather than accidentally correct. This question is closed.
+
+### 2. The denominator — **genuinely open, and no framing is clean**
+
+Measured across every plausible scope:
+
+| framing                               | examined | would red | on                  |
+| ------------------------------------- | -------- | --------- | ------------------- |
+| every proposal                        | 6        | 4         | 003 006 **004 005** |
+| live only (not `promoted`/`rejected`) | 4        | 2         | 003 006             |
+| accepted ruling only                  | 1        | 1         | **005**             |
+| live **and** accepted                 | 0        | 0         | — (ADR-010 vacuous) |
+
+Each fails differently:
+
+- **Every proposal** reds two terminal records. 004 and 005 are closed history; retro-fitting
+  acceptance criteria into them is rewriting the record, not enforcing a convention.
+- **Live only** reds 003 and 006 — and **both are legitimately unable to comply.** 003's
+  ruling is `Rewrite needed` precisely because "no entry states a break class", so the rule
+  would demand the thing the rewrite exists to produce. 006's own review states it cannot
+  write acceptance criteria until Ask B leaves `Held`. A gate that reds on records correctly
+  mid-flight teaches authors to route around it.
+- **Accepted only** examines one record, and it is promoted.
+- **Live and accepted** examines **zero**, which under ADR-010 is a configuration finding
+  unless explicitly declared.
+
+The exemption precedent the draft cited does not rescue this either. `adrEnforcement` is
+called with **no exclusions at all** (`scripts/check-corpus.mjs:146`), and all 10 ADRs carry
+the table — that gate was adopted by making every subject compliant, not by grandfathering.
+The one per-item registry in this repo, `KNOWN_FAIL_OPEN` (`scripts/vacuity-matrix.mjs:244`),
+is deliberately **empty**, with a comment saying it should stay that way, and its entries
+carry expiry dates that fail the build when stale. Starting a new registry with two entries
+is starting in debt.
+
+**This is the decision, and it is the author's**: which of the four framings, and if it is
+one of the two that red on mid-flight records, what those records are supposed to do about
+it. Nothing else in this plan is blocked on anything else.
 
 ## A second rule, added 2026-08-23: a ruling that names a remedy must name an owner
 

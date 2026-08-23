@@ -20,23 +20,24 @@ been wrong about the shipped type.
 export with no documentation is silent. The gate proves that what is written is _true_,
 never that anything is _written_.
 
-Measured 2026-08-23, over named exports in each dialect's `src/index.ts` against every file
-in `docs/` and `packages/*/README.md`:
+Measured 2026-08-23, over named exports in each dialect's `src/index.ts`, against every file
+in `docs/` and `packages/*/README.md`. **Split by kind, because it changes what the fix can
+be:**
 
-| package        | exported | appear in no doc or README |
-| -------------- | -------- | -------------------------- |
-| `eess` (core)  | 156      | 102                        |
-| `eess-ts`      | 395      | 108                        |
-| `eess-md`      | 58       | 34                         |
-| `eess-mermaid` | 75       | 41                         |
-| `eess-gherkin` | 12       | 5                          |
-| **total**      | **696**  | **290 (42%)**              |
+| kind           | exported | undocumented | share |
+| -------------- | -------- | ------------ | ----- |
+| runtime values | 486      | 169          | 35%   |
+| types only     | 210      | 121          | 58%   |
+| **total**      | **696**  | **290**      | 42%   |
 
-**Read that number as a ceiling, not a count.** The instrument is a word-boundary grep for
-the exported name, so it cannot tell a documented concept from an incidental mention, and it
-counts every exported type — including ones that only ever appear inside a signature and may
-not want standalone prose. What it does establish is the shape: two of every five public
-names appear nowhere a reader would look, and **nothing anywhere reports that.**
+**The instrument, sanity-checked.** Widening the doc corpus to include `adr/` moves the
+runtime figure only 169 → 160, so the number is not an artefact of where it looked. But it
+is still a **word-boundary grep**, which cannot tell a documented concept from an incidental
+mention and counts every exported type including ones that only appear inside a signature.
+Read it as a ceiling. One spot-check shows the residual error is real and small:
+`reportViolations` reads as undocumented against `docs/` + READMEs and **is** discussed at
+length in `adr/008` — so a consumer reading the docs site would not find it, which is
+arguably still the gap, but the grep cannot make that judgement.
 
 ## Repro
 
@@ -59,21 +60,37 @@ of it existed with every gate green.
 
 ## Fix — the decision this needs first
 
-Not obvious, and it is the reason this is a bug record and not a patch:
+Not obvious, and **spiked 2026-08-23 rather than argued.** All three candidates were measured
+and all three cost something real:
 
-1. **Require a fence per exported symbol.** Honest and unambiguous, and would red on 290
-   symbols on day one. Needs an explicit, committed allowlist to be adoptable — which is a
-   suppression registry, with everything that implies.
-2. **Require it per _entry point_** — every `export` an `index.ts` names in its public
-   surface section, rather than every symbol. Much smaller denominator, and it matches how
-   the docs are actually organised.
-3. **Ratchet.** Record today's 290 as a baseline and fail only on an increase. Cheap, and
-   the shape `check:baseline` already uses — but it accepts the current state as correct,
-   which for 42% is a large thing to accept silently.
+1. **Per exported symbol.** Reds on **160 runtime exports** on day one. The obvious
+   denominator-shrinker does not exist: this repo already has a curated "exported but not
+   public surface" concept — `KERNEL_INTERNAL`, `FAMILY_ONLY`, `ANSI_INTERNAL`,
+   `KERNEL_PRIVATE_BEFORE_THE_SPLIT` in `scripts/lib/kernel-surface.mjs` — and together they
+   total **31 names**. Adopting this option means curating roughly 130 more, which is a
+   suppression registry starting deeply in debt. Compare `KNOWN_FAIL_OPEN`
+   (`scripts/vacuity-matrix.mjs:244`), the one per-item registry here, which is deliberately
+   **empty** with a comment saying it should stay that way.
 
-The denominator question decides the answer and it is reserved for the author. What is
-**not** open: whichever ships must print its own denominator, because a doc-coverage rule
-that examines nothing is the same defect one level up.
+   That the sample is dominated by plumbing — `byCodepoint`, `registerCacheReset`,
+   `selectionMemo`, `presetConstructsNothingViolation` — is the point: `check:family` forces
+   dialects to re-export every kernel symbol their own source imports, so "exported" is a
+   much wider set than "public API a consumer calls", **by design**.
+
+2. **Per curated entry point.** Measured against this repo's own list of the entry points
+   that matter — the 15 builders and presets `scripts/vacuity-matrix.mjs` probes —
+   **0 of 15 are undocumented.** The rule would examine 15 and find nothing, today and
+   probably for a long time. Under ADR-010 that is a configuration finding unless declared,
+   and declaring it means shipping a gate whose green is structural.
+
+3. **Ratchet on the count.** Cheap, and it is the shape `check:baseline` already uses. It
+   also accepts 33% of the runtime surface as correct, silently, which for a repo whose
+   thesis is that specs must not drift from code is a large thing to accept without saying
+   so out loud.
+
+**The decision is which cost to pay**, and it is the author's. What is not open: whichever
+ships must print its own denominator, because a doc-coverage rule that examines nothing is
+this same defect one level up.
 
 ## Verification
 
