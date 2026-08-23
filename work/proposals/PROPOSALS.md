@@ -257,10 +257,9 @@ Recorded rather than left to be rediscovered:
   Closed 2026-08-23 by [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md). The rule reds on
   a live proposal with no level-2 `## Acceptance criteria` heading; terminal records and
   those ruled `Rewrite needed`/`Reject` are excluded, because for those the ruling is
-  already the finding. It found exactly one record on its first run — 006 — which
-  gained the section rather than an exemption. **Three others are shielded by those
-  exclusions and would otherwise fail**: 003 (ruled `Rewrite needed`; its review already
-  records the gap) and 004/005 (terminal). 001 and 002 pass on their own merits.
+  already the finding. **No exclusions**: every proposal is checked, and all six state
+  their criteria. 006 gained the section when the rule first ran; 003, 004 and 005 gained
+  theirs when the exclusions that had been shielding them were removed.
 - **~~A `Docs-only` ruling creates no owner.~~** Closed 2026-08-23 by
   [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md). 004's ruling named documentation as
   the whole fix and nothing tracked it; ten days later none of it existed while the header
@@ -285,9 +284,9 @@ Recorded rather than left to be rediscovered:
 
 Two things an author needs. **The heading is gated at level 2** (`##`) and matched
 case-insensitively but otherwise exactly — `### Acceptance criteria (revised)` does not
-count, deliberately: proposal 005 carries four of those inside superseded sections. And the
-rule **skips proposals ruled `Rewrite needed` or `Reject`**, because the review has already
-said the document is not finished; the ruling is the finding.
+count, deliberately: proposal 005 carries four of those inside superseded sections. And it applies to
+**every** proposal — no exclusion for terminal records or for rulings, because those were
+measured to be shielding three that simply owed the section.
 
 What it does not prove: the heading's _contents_. An empty section satisfies it, and the
 rule says so in its own `because` rather than letting the `suggestion` imply otherwise.

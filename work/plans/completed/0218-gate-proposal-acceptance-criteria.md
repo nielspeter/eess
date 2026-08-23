@@ -38,35 +38,36 @@ Two exclusions, both principled:
   its review says no entry states a break class, which _is_ this gap, and the rewrite is
   where it gets fixed.
 
-**Three existing proposals are shielded by these exclusions, and that should be said plainly
-rather than dressed as "nothing was grandfathered" — an earlier draft of this plan claimed
-exactly that, and it was false.** Measured with every exclusion removed, the failures would
-be **003, 004 and 005**:
+**No exclusions, and the debt was paid rather than protected.** An earlier version of this
+rule exempted terminal records and those ruled `Rewrite needed`/`Reject`, on arguments that
+were reasonable in isolation: closed history should not be rewritten, and a document the
+review already found deficient should not be re-audited for content it does not yet have.
+Measured with the exemptions removed, they were shielding **three real records** — 003, 004
+and 005 — which is grandfathering under a better name. An earlier draft of this plan then
+claimed "nothing was grandfathered", which was simply false.
 
-| proposal | excluded by | has the section?  | is the exclusion doing work?           |
-| -------- | ----------- | ----------------- | -------------------------------------- |
-| 001, 002 | ruling      | yes               | **no** — they pass on their own merits |
-| 003      | ruling      | no                | **yes — shielded**                     |
-| 004, 005 | terminal    | no                | **yes — shielded**                     |
-| 006      | —           | yes, written here | checked                                |
+All six proposals now state their criteria, and what each needed is worth recording because
+none of it was busywork:
 
-So the ruling exclusion does real work for exactly **one** record. Each case, judged
-separately rather than by the rule that covers them:
+- **005** had stated them **four times** — once per rewrite — always as
+  `### Acceptance criteria (…)` nested inside the rewrite that owned them. The convention was
+  met in substance and not in shape. The operative set is restated at level 2; the appendices
+  stay as the record of what each round said.
+- **004** was ruled `Docs-only`, so its one capability _is_ the documentation — and stating a
+  break class for it is exactly what would have stopped the remedy evaporating, which it did
+  for ten days ([bug 0219](../../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md)).
+  Its section also names the half that is **not** mechanised, since a `Docs-only` ruling
+  invites that mistake.
+- **003** is a catalog, so its capability is the bar an entry must clear before becoming a
+  proposal of its own. Its review ruled `Rewrite needed` precisely because no entry stated
+  one; the section sets the bar and the ruling stands.
 
-- **005** did state acceptance criteria — four `### Acceptance criteria` headings, at depth 3,
-  inside superseded appendices. Failing it would demand editing a closed record whose content
-  is historically accurate. The exclusion is right.
-- **004**'s ask was answered by "the capability already ships", so criteria for it are close to
-  meaningless, and it is closed.
-- **003** genuinely lacks them and its review says so. The argument — a document the review
-  declared deficient should not be re-audited for content it does not yet have — is one I
-  believe, and it is still an exclusion that shields a file. The honest test is whether I
-  would have written it had 003 complied; I think so, but the reader should weigh that
-  knowing 003 is the only record it protects.
-
-What _is_ true about grandfathering: **006 was not**. It owed the section, the rule found it
-on the first run, and it gained one here rather than an exemption — which is the half of
-`adrEnforcement`'s adoption that applies.
+**A guard died with the exclusions, and that is the right outcome.** The rule carried an
+ADR-010 zero-guard — "0 subjects while proposals exist". With the exclusions gone
+`criteriaSubjects` _is_ `liveDocs.filter(isProposalDoc)`, so that condition is unreachable by
+construction. A guard that cannot fire is worth less than no guard, so it and its fixture
+were deleted rather than left as decoration. The denominator carries the evidence instead:
+the summary prints `6 criteria-checked`, and a zero there means a broken selector.
 
 **2. A `Docs-only` ruling names an owner** that declares `**Implements:** proposal NNN` —
 a plan **or a bug**, since 004's owner is bug 0219.

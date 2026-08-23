@@ -659,39 +659,22 @@ for (const d of promotedProposals) {
 // kept. Nothing checked it, and proposal 006 shipped without the section at all,
 // which its own review recorded as a defect it committed.
 //
-// Two exclusions, both principled rather than convenient:
+// EVERY proposal, with no exclusions. An earlier version of this rule exempted
+// terminal records and those ruled `Rewrite needed`/`Reject`, on arguments that
+// were reasonable in isolation — closed history should not be rewritten; a
+// document the review already found deficient should not be re-audited. Measured
+// with the exemptions removed, they were shielding three real records (003, 004,
+// 005), which is grandfathering by another name. All three were made to comply
+// instead, which is how `adrEnforcement` was adopted: zero exemptions, and all
+// ten ADRs carry their table because someone wrote them.
 //
-//  - TERMINAL records (`promoted/`, `rejected/`) are closed history. Their
-//    content is a record of what was decided, not a live ask, and re-litigating
-//    it would mean rewriting the archive. This is why the other lanes freeze
-//    their done-folders; this one keeps them live only so their `path:line`
-//    pointers stay gated.
-//  - `Rewrite needed` and `Reject` — the same set promotion already refuses.
-//    The review has ALREADY found the document deficient; a gate demanding a
-//    section from a document the review rejected adds nothing, because the
-//    ruling is the finding. 003 is exactly this case: its review says no entry
-//    states a break class, which IS this gap, and the rewrite is where it gets
-//    fixed.
-//
-// Nothing else is exempt. This gate was NOT grandfathered — `adrEnforcement`
-// runs with zero exemptions and all ten ADRs carry their table because someone
-// wrote them, and that is the precedent followed here: proposal 006 gained its
-// section in the same change that added this rule.
-const isTerminalProposal = (d) => PROPOSAL_DONE_FOLDERS.some((seg) => `/${d.relPath}`.includes(seg))
-
 // Depth is read directly. `haveSection` matches on name alone, and proposal 005
-// carries four `### Acceptance criteria (…)` headings inside superseded
-// appendices — so a name-only rule would be satisfied by a heading buried at any
-// level. The parenthetical happens to save it today; the depth is what should.
+// carried four `### Acceptance criteria (…)` headings inside superseded
+// appendices — a name-only rule would be satisfied by a heading at any level.
 const statesAcceptanceCriteria = (d) =>
   d.sections.some((s) => s.depth === 2 && /^acceptance criteria$/i.test(s.name))
 
-const criteriaSubjects = liveDocs.filter(
-  (d) =>
-    isProposalDoc(d) &&
-    !isTerminalProposal(d) &&
-    !UNPROMOTABLE_RULINGS.has(operativeRuling(d.text)),
-)
+const criteriaSubjects = liveDocs.filter(isProposalDoc)
 
 const criteriaViolations = criteriaSubjects
   .filter((d) => !statesAcceptanceCriteria(d))
@@ -715,31 +698,16 @@ const criteriaViolations = criteriaSubjects
     }
   })
 
-// ADR-010: this rule's subjects are narrowed by two exclusions, so an empty set
-// is reachable — every live proposal ruled `Rewrite needed` at once is an
-// ordinary lane state. A pass over nothing is not a pass.
-const criteriaDenominatorViolations =
-  criteriaSubjects.length === 0 && liveDocs.some(isProposalDoc)
-    ? [
-        {
-          rule: 'docs',
-          ruleId: 'corpus/proposal-criteria-examined-nothing',
-          element: 'work/proposals',
-          file: resolve(c.root, 'work/proposals/PROPOSALS.md'),
-          line: 1,
-          message:
-            'the acceptance-criteria rule examined 0 proposals — every live one is terminal ' +
-            'or ruled Rewrite needed/Reject',
-          because:
-            'a rule that examines nothing passes for a reason unrelated to the corpus being ' +
-            'correct, and the exclusions here are broad enough to reach that state',
-          suggestion:
-            'this is legitimate if the lane really is entirely mid-rewrite — but say so ' +
-            'deliberately rather than letting a green stand for it.',
-          codeFrame: undefined,
-        },
-      ]
-    : []
+// No zero-guard here, and that is a consequence of removing the exclusions
+// rather than an omission. `criteriaSubjects` IS `liveDocs.filter(isProposalDoc)`,
+// so "zero subjects while proposals exist" is unreachable by construction — the
+// earlier version's guard was only satisfiable because the exclusions could
+// narrow a non-empty lane to nothing. A guard that cannot fire is worth less
+// than no guard (ADR-009), so it was deleted with them.
+//
+// The ADR-010 evidence is the denominator instead: the summary prints
+// `N criteria-checked`, and N is every live proposal. A zero there means the
+// selector or the roots are broken, which is visible rather than guarded.
 
 // ---- Plan 0218: a ruling that names a remedy names an owner ----------------
 //
@@ -790,7 +758,6 @@ if (format === 'json' || format === 'github') {
     ...promotedViolations,
     ...acceptedDenominatorViolations,
     ...criteriaViolations,
-    ...criteriaDenominatorViolations,
     ...docsOnlyOwnerViolations,
   ]
   reportViolations(all, { format })
@@ -832,7 +799,6 @@ const proposalPlanFindingCount =
   promotedViolations.length +
   acceptedDenominatorViolations.length +
   criteriaViolations.length +
-  criteriaDenominatorViolations.length +
   docsOnlyOwnerViolations.length
 const proposalLinkageOk = proposalPlanFindingCount === 0
 // The affirmative clause is gated on rows ACTUALLY EXAMINED, not on the finding
@@ -861,7 +827,6 @@ const problems = [
   ...promotedViolations,
   ...acceptedDenominatorViolations,
   ...criteriaViolations,
-  ...criteriaDenominatorViolations,
   ...docsOnlyOwnerViolations,
   ...unparseableRulingViolations,
   ...unparseableImplementsViolations,

@@ -981,18 +981,6 @@ function gateCorpusProposalCriteria() {
   )
 }
 
-// The rule's subjects are narrowed by two exclusions, so an empty set is
-// reachable — every live proposal ruled `Rewrite needed` at once is an ordinary
-// lane state, and a pass over nothing is not a pass.
-function gateCorpusCriteriaExaminedNothing() {
-  return corpusSabotage(
-    P006,
-    (t) => t.replace('**Ruling: Split and sequence**', '**Ruling: Rewrite needed**'),
-    'corpus/proposal-criteria-examined-nothing',
-    'work/proposals',
-  )
-}
-
 // Proposal 004 is ruled `Docs-only` and owned by bug 0219. Strip the bug's
 // declaration and the remedy has no owner — which is the state 004 was actually
 // in for ten days.
@@ -1324,7 +1312,6 @@ const gates = [
   ['corpus/proposal-number-duplicated', gateCorpusProposalNumberDuplicated],
   ['corpus/accepted-denominator-empty', gateCorpusAcceptedDenominatorEmpty],
   ['corpus/proposal-criteria', gateCorpusProposalCriteria],
-  ['corpus/criteria-examined-nothing', gateCorpusCriteriaExaminedNothing],
   ['corpus/docs-only-owner', gateCorpusDocsOnlyOwner],
   ['corpus/promoted-names-no-owner', gateCorpusPromotedNamesNoOwner],
   ['corpus/promoted-not-dispatchable', gateCorpusPromotedNotDispatchable],
@@ -1446,7 +1433,6 @@ const GATE_FOR = {
     'corpus/proposal-number-duplicated',
     'corpus/accepted-denominator-empty',
     'corpus/proposal-criteria',
-    'corpus/criteria-examined-nothing',
     'corpus/docs-only-owner',
     'corpus/promoted-names-no-owner',
     'corpus/promoted-not-dispatchable',
