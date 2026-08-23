@@ -204,7 +204,7 @@ was not** — see the reopening note at the end.
       disposition row. Verified against real records — promoting 006 fires
       `has-held-asks` and **not** `names-no-owner`, because plans 0212/0213/0214 do declare
       `**Implements:** proposal 006`.
-- [x] Nine committed fixtures, one per rule id — the harness goes **43 → 52**. Review
+- [x] Ten committed fixtures, one per rule id — the harness goes **43 → 53**. Review
       measured the first pass shipping three rule ids behind one fixture, with both
       ADR-010 guards neuterable to `if (false)` while the harness stayed green.
 - [x] `check:ledger` reports `proposals 6 scanned · 6 with a readable State · 1 done
@@ -217,11 +217,15 @@ was not** — see the reopening note at the end.
       `998-nonvacuity-probe-board.md`, the only probe in the harness the ignore rule missed
       (`**/__nonvacuity_probe*` is a basename prefix); under SIGKILL it survived inside a
       tracked corpus root.
-- [ ] **`corpus/proposal-board-missing` has no fixture** — `dropped-on-purpose`. Exercising
-      it means removing a tracked file for the duration of a probe, which is a strictly
-      larger blast radius than the rewrite-and-restore every other fixture uses. The rule
-      is verified by hand and its break class is recorded here; the honest statement is
-      that it is hand-verified, not gated. Named rather than left as an eight-of-nine.
+- [x] **All three ADR-010 guards are fixtured**, `corpus/proposal-board-missing` included.
+      An earlier version of this section left that one out as `dropped-on-purpose`, arguing
+      that removing a tracked file was "a strictly larger blast radius than the
+      rewrite-and-restore every other fixture uses". **That reasoning did not survive being
+      checked**: `restoreAllPending()` restores by writing saved content back, which recovers
+      a deleted file exactly as it recovers a mutated one — so `withRemovedFile` carries the
+      identical guarantee and is twelve lines. Recorded because the gap shipped with a
+      justification, and a justification that dissolves on inspection is worse than a plain
+      gap: it teaches the next reader to trust the next disposition token.
 
 ## Reopened after review, and what that cost
 

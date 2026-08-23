@@ -410,6 +410,29 @@ function withMutatedFile(path, injectedLine, fn) {
   return withRewrittenFile(path, (original) => `${injectedLine}\n${original}`, fn)
 }
 
+/**
+ * Sabotage by REMOVING a real file, run `fn`, and always restore it.
+ *
+ * Same guarantees as `withRewrittenFile`, and deliberately built on the same
+ * `pendingRestores` map: `restoreAllPending()` writes the saved content back, and
+ * a write restores a deleted file exactly as it restores a mutated one. An
+ * earlier version of plan 0216 left `corpus/proposal-board-missing` unfixtured
+ * on the grounds that removing a tracked file was "a bigger blast radius than
+ * rewrite-and-restore". It is not — it is the same operation with an empty
+ * intermediate state, and the reasoning did not survive being checked.
+ */
+function withRemovedFile(path, fn) {
+  const original = readFileSync(path, 'utf8')
+  pendingRestores.set(path, original)
+  try {
+    rmSync(path, { force: true })
+    return fn()
+  } finally {
+    writeFileSync(path, original)
+    pendingRestores.delete(path)
+  }
+}
+
 // Sweep any leftover probes before doing anything — they must never survive.
 rmSync(PROBE_ARCH, { force: true })
 rmSync(PROBE_CATCH, { force: true })
@@ -814,7 +837,23 @@ function gateCorpusProposalBoardRuling() {
   }
 }
 
-// --- board: the two ADR-010 guards, which shipped uncovered ------------------
+// --- board: the three ADR-010 guards, which shipped uncovered ---------------
+// The outermost one — the board document itself absent — is the case product and
+// enforcement review both measured printing an affirmative "board agrees with
+// each file" over zero rows.
+function gateCorpusBoardMissing() {
+  const { json, terminal } = withRemovedFile(BOARD_MD, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const ok =
+    json.code === 1 && firedOn(json, 'corpus/proposal-board-missing') && terminal.code === 1
+  return {
+    ok,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/proposal-board-missing)`,
+  }
+}
+
 function gateCorpusBoardUnreadable() {
   return gateBoardRewrite('corpus/proposal-board-unreadable', (t) =>
     t.replace(/^(\|\s*Item\s*\|[^\n]*?\|\s*)Ruling(\s*\|)/m, '$1Verdict$2'),
@@ -1178,6 +1217,7 @@ const gates = [
   ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
   ['corpus/proposal-ruling-unparseable', gateCorpusRulingUnparseable],
   ['corpus/proposal-board-ruling', gateCorpusProposalBoardRuling],
+  ['corpus/proposal-board-missing', gateCorpusBoardMissing],
   ['corpus/proposal-board-unreadable', gateCorpusBoardUnreadable],
   ['corpus/proposal-board-examined-nothing', gateCorpusBoardExaminedNothing],
   ['corpus/proposal-missing-from-board', gateCorpusProposalMissingFromBoard],
@@ -1295,6 +1335,7 @@ const GATE_FOR = {
     'corpus/proposal-plan-linkage',
     'corpus/proposal-ruling-unparseable',
     'corpus/proposal-board-ruling',
+    'corpus/proposal-board-missing',
     'corpus/proposal-board-unreadable',
     'corpus/proposal-board-examined-nothing',
     'corpus/proposal-missing-from-board',

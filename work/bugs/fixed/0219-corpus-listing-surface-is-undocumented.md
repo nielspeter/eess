@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Fixed — documented 2026-08-23, in the same PR that filed it. `Deferred: none`.
+- **State:** Fixed — documented 2026-08-23, in the same PR that filed it.
+  `Deferred: bug 0220`.
 - **Priority:** Low — not a correctness gap. It is the whole remedy
   [proposal 004](../../proposals/promoted/004-corpus-content-explain.md) was ruled to need,
   and the ruling landed on 2026-08-13 with nothing owning the work since.
@@ -63,7 +64,9 @@ Document the listing surface where a reader already is:
 
 Note the honest limit: `check:docs-code` compiles import-bearing TS fences, so a fence
 added here is type-checked, but nothing requires these symbols to _have_ a fence. This bug
-closes the gap; it does not gate against it reopening.
+closes the gap;
+[bug 0220](../0220-nothing-requires-a-public-symbol-to-be-documented.md) is what would stop
+it reopening.
 
 ## Verification
 
@@ -75,9 +78,9 @@ closes the gap; it does not gate against it reopening.
       have failed the fence if any of those had been wrong about the shipped type. A prose
       description of an API cannot be checked; a compiled one can.
 - [x] `npm run validate` green.
-- [ ] **Nothing requires these symbols to keep having a fence.** `dropped-on-purpose` here
-      and named as a gap: `check:docs-code` compiles the fences that exist, it does not
-      demand one per exported symbol. Deleting this section would be silent. That is a
-      corpus-wide question about doc coverage, not this bug's to answer — and it is the same
-      shape as the rule [plan 0218](../../plans/0218-gate-proposal-acceptance-criteria.md) now
-      carries for rulings that name a remedy.
+- [ ] **Nothing requires these symbols to keep having a fence** —
+      `deferred→`[bug 0220](../0220-nothing-requires-a-public-symbol-to-be-documented.md),
+      filed in this PR rather than named as a gap. `check:docs-code` compiles the fences
+      that exist and demands none, so deleting this section is silent; 0220 measured the
+      scale (290 of 696 exported symbols, 42%, appear in no doc or README) and carries the
+      denominator decision the fix turns on.
