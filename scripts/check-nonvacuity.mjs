@@ -1307,6 +1307,13 @@ const gates = [
   ],
   ['review-harness', () => gateNode('bad-review-harness.mjs', 'foreign-project token')],
   ['work/numbers', () => gateNode('bad-numbers.mjs', 'duplicate number across lanes')],
+  // The three gates that used to be waived. One fixture, three subjects — they
+  // share a shape (sabotage a real file, run the real gate, assert it fails) and
+  // splitting them would build three git-spawning fixtures where one does.
+  [
+    'gates/formerly-waived',
+    () => gateNode('bad-waived-gates.mjs', 'each red on their own subject'),
+  ],
   [
     'vacuity-matrix',
     () =>
@@ -1321,13 +1328,19 @@ const gates = [
 // The gate list is hand-maintained, so deleting a row was a silent, green change
 // — the same class as a vacuous gate, one level up (bug 0110). Waivers are
 // explicit and must say why.
+// Only STRUCTURAL waivers remain. The three `'no-gate-yet'` entries that used to
+// live here — `check:integrity`, `check:examples`, `check:docs-code` — were a
+// permission slip, and measurably so: replacing `check-docs-code.mjs` with a
+// four-line script that always exits 0 left this harness printing
+// `gate coverage — OK` and `no fixture is silently green`. A gate deleted
+// outright, and the meta-gate green.
+//
+// All three now have one (`bad-waived-gates.mjs`). "Not yet" is not a category
+// this list accepts: a check that cannot be shown to fail is worth less than no
+// check, and that argument does not stop applying at the harness.
 const NO_GATE_NEEDED = {
   'check:fast': 'an alias — runs corpus + spec + arch, each gated on its own',
   'check:nonvacuity': 'this harness',
-  'check:integrity': 'no-gate-yet — npm workspace guardrails, see 0110',
-  'check:examples':
-    'no-gate-yet — tsc over the single-dialect templates + vitest over cross-dialect.*.test.ts (plan 0091 made the latter half real: it runs eess-crossvalidate presets with genuine red fixtures), see 0110',
-  'check:docs-code': 'no-gate-yet — doc fences compile, see 0110',
 }
 // A check:* script may run several presets, and one gate row proves only the one
 // preset its fixture violates. Mapping a script to a single row therefore
@@ -1401,6 +1414,9 @@ const GATE_FOR = {
     'release/break-names-dependents',
     'release/gate-fails-the-build',
   ],
+  'check:integrity': ['gates/formerly-waived'],
+  'check:examples': ['gates/formerly-waived'],
+  'check:docs-code': ['gates/formerly-waived'],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.
