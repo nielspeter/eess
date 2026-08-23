@@ -29,7 +29,7 @@ a real citing test already exists for it. The exemption, once granted, never
 expires on its own.
 
 Full problem statement, evidence, and the accepted design are in
-[proposal 005](../../proposals/005-crossvalidate-stale-wip-detection.md)'s
+[proposal 005](../../proposals/promoted/005-crossvalidate-stale-wip-detection.md)'s
 `## Rewrite v3 — 2026-08-14` section (the operative one — `## Review —
 2026-08-14 (third pass...)` immediately above it carries the `Ship as-is`
 Ruling and a synthesis of what three rounds of review settled). This plan

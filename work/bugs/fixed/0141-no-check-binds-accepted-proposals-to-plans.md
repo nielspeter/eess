@@ -119,7 +119,7 @@ repo's own reproduction guidance (`arch.rules.ts`'s `-F` note, 0127's
 >
 > ```
 > work/proposals/002-comment-embedded-links.md:117:**Ruling: adopt the problem, decline the primitive, defer the API behind plan
-> work/proposals/005-crossvalidate-stale-wip-detection.md:204:**Ruling: not plan-ready, second time. The Rewrite's placement argument was
+> work/proposals/promoted/005-crossvalidate-stale-wip-detection.md:204:**Ruling: not plan-ready, second time. The Rewrite's placement argument was
 > ```
 >
 > `RULING_RE`'s `[A-Za-z -]` class excludes the comma and period that appear

@@ -194,6 +194,16 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
 const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
+// Plan 0216's board↔file Ruling rule needs BOTH halves of a disagreement: a
+// proposal file with a Ruling, and a board row claiming a different one. So the
+// probe is a planted proposal plus an appended board row — not a mutation of a
+// real row, which would hard-code whatever verdict 006 happens to carry today.
+const PROBE_CORPUS_BOARD_PROPOSAL = join(
+  repoRoot,
+  'work',
+  'proposals',
+  '998-nonvacuity-probe-board.md',
+)
 // Plan 0142 (closing bug 0141): no leading digits in the basename — unlike
 // the real 001-005 proposals, so proposalNumberFromPath() can never collide
 // with a real proposal number (testing review's fixture-numbering finding).
@@ -345,16 +355,32 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
     process.exit(130)
   })
 }
-function withMutatedFile(path, injectedLine, fn) {
+function withRewrittenFile(path, rewrite, fn) {
   const original = readFileSync(path, 'utf8')
   pendingRestores.set(path, original)
   try {
-    writeFileSync(path, `${injectedLine}\n${original}`)
+    const next = rewrite(original)
+    // Fail CLOSED on a no-op rewrite. A sabotage whose pattern stopped matching
+    // (the file drifted, a table was reformatted) would otherwise run the gate
+    // against pristine content, see green, and report the rule as covered — a
+    // probe that proves nothing while claiming it does. This is the exact shape
+    // the corpus probes exist to catch, so it must not be the harness's own bug.
+    if (next === original) {
+      throw new Error(
+        `non-vacuity: the sabotage of ${path} changed nothing — its pattern no longer ` +
+          'matches, so this probe cannot prove the rule fires. Fix the pattern.',
+      )
+    }
+    writeFileSync(path, next)
     return fn()
   } finally {
     writeFileSync(path, original)
     pendingRestores.delete(path)
   }
+}
+
+function withMutatedFile(path, injectedLine, fn) {
+  return withRewrittenFile(path, (original) => `${injectedLine}\n${original}`, fn)
 }
 
 // Sweep any leftover probes before doing anything — they must never survive.
@@ -364,6 +390,7 @@ rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
 rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
 rmSync(PROBE_CORPUS_POINTER, { force: true })
+rmSync(PROBE_CORPUS_BOARD_PROPOSAL, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
 rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
@@ -670,6 +697,52 @@ function gateCorpusProposalUncited() {
   )
 }
 
+// Plan 0216: the board's `Ruling` column is a hand-kept copy of the file's
+// operative Ruling, and nothing compared them until now — 006's row said `—`
+// while its file said `Split and sequence`.
+//
+// The probe's file says `Rewrite needed` on purpose: an ACCEPTED ruling would
+// also trip `corpus/accepted-proposal-uncited` (no plan implements 998), and a
+// probe that fires two rules can't tell you which one is wired.
+function gateCorpusProposalBoardRuling() {
+  const board = join(repoRoot, 'work', 'proposals', 'PROPOSALS.md')
+  const row =
+    '| [998 — non-vacuity probe](./998-nonvacuity-probe-board.md) | Low | 🔵 Reviewed | ' +
+    'Reject | self-found | — |'
+  const { json, terminal } = withProbe(
+    PROBE_CORPUS_BOARD_PROPOSAL,
+    '# Proposal 998 — non-vacuity probe\n\n**State:** Draft — probe.\n\n' +
+      '## Review — 2026-01-01\n\n**Ruling: Rewrite needed**\n\n' +
+      'The board row planted beside this says `Reject`. The disagreement is the probe.\n',
+    () =>
+      withRewrittenFile(
+        board,
+        (t) => {
+          // Append to the board table: after the last row that opens a table cell
+          // with a proposal link. Anchored on the 006 row's line ending rather
+          // than a count, so adding a seventh real proposal doesn't break it.
+          const lines = t.split('\n')
+          const last = lines.reduce((acc, l, i) => (/^\| \[00\d /.test(l) ? i : acc), -1)
+          if (last < 0) return t // no board rows → rewrite is a no-op → guard throws
+          lines.splice(last + 1, 0, row)
+          return lines.join('\n')
+        },
+        () => ({
+          json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+          terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+        }),
+      ),
+  )
+  const ok =
+    json.code === 1 &&
+    firedOn(json, 'corpus/proposal-board-ruling-drift', 'work/proposals/PROPOSALS.md') &&
+    terminal.code === 1
+  return {
+    ok,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/proposal-board-ruling-drift)`,
+  }
+}
+
 // A Review section whose Ruling doesn't parse to the closed vocabulary must
 // be its own finding, not silently "not accepted" — the exact failure mode
 // bug 0141's own first draft committed against its own reproduction (a
@@ -943,6 +1016,7 @@ const gates = [
   // gateCorpusProbe shape from day one.
   ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
   ['corpus/proposal-ruling-unparseable', gateCorpusRulingUnparseable],
+  ['corpus/proposal-board-ruling', gateCorpusProposalBoardRuling],
   ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
   ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
   ['corpus/plan-implements-unresolved', gateCorpusPlanImplementsUnresolved],
@@ -1051,6 +1125,7 @@ const GATE_FOR = {
     'corpus/pointers',
     'corpus/proposal-plan-linkage',
     'corpus/proposal-ruling-unparseable',
+    'corpus/proposal-board-ruling',
     'corpus/proposal-implements-discriminates',
     'corpus/plan-implements-unparseable',
     'corpus/plan-implements-unresolved',

@@ -302,6 +302,101 @@ const danglingImplementsViolations = danglingImplementsDocs.map((d) => {
   }
 })
 
+// The board's `Ruling` column is a hand-maintained COPY of the operative
+// `**Ruling:**` in the proposal file, and nothing compared the two until plan
+// 0216. Measured: proposal 006's row carried `—` while its file said
+// `Split and sequence`, so the board reported a reviewed proposal as unreviewed.
+// The drift also runs the other way — a second `## Review` section changes the
+// operative Ruling and the board keeps the old verdict, which is worse, because
+// a stale verdict reads as current.
+//
+// Keyed on the proposal NUMBER that opens each row's Item cell, so reordering
+// the board is not a violation and a proposal that moves into `promoted/` keeps
+// matching. NOT keyed on the cell's link target: `MdTable` rows are *rendered*
+// cell text, so the link markup is already stripped by the time this sees it —
+// the first version of this rule regexed for `](…)`, matched nothing, and
+// passed green over all six rows. The denominator below is what caught it.
+const boardDoc = allDocs.find((d) => /work\/proposals\/PROPOSALS\.md$/.test(d.relPath))
+const proposalByNumber = new Map(
+  allDocs.filter(isProposalDoc).map((d) => [proposalNumberFromPath(d.relPath), d]),
+)
+// `—`, `-`, `–` and an empty cell all mean "no ruling recorded". Emphasis and
+// code fences are stripped first: the cell is prose in a table, so `**Reject**`
+// and `Reject` are the same claim and must not read as drift.
+const boardRulingCell = (cell) => {
+  const v = String(cell ?? '')
+    .replace(/[`*_]/g, '')
+    .trim()
+  return v === '' || v === '—' || v === '-' || v === '–' ? null : v
+}
+const boardTable = boardDoc?.tables.find(
+  (t) => t.header.includes('Item') && t.header.includes('Ruling'),
+)
+const boardRulingViolations = []
+let boardRowsChecked = 0
+if (boardDoc && !boardTable) {
+  // ADR-010: a rule that examines nothing must say so as a finding, not pass.
+  // The board table is found by its header, so a renamed column silently
+  // disables this check — exactly the failure class this gate exists for.
+  boardRulingViolations.push({
+    rule: 'proposal-ruling',
+    ruleId: 'corpus/proposal-board-unreadable',
+    element: boardDoc.relPath,
+    file: boardDoc.file,
+    line: 1,
+    message: `${boardDoc.relPath} has no board table with both "Item" and "Ruling" columns`,
+    suggestion:
+      'restore the board table headers, or update the header names this check looks for ' +
+      'in scripts/check-corpus.mjs — a board this rule cannot read is not a board it passes.',
+    codeFrame: undefined,
+  })
+} else if (boardDoc && boardTable) {
+  const itemIdx = boardTable.header.indexOf('Item')
+  const rulingIdx = boardTable.header.indexOf('Ruling')
+  boardTable.rows.forEach((row, i) => {
+    const lead = /^(\d+)\b/.exec(String(row[itemIdx] ?? '').trim())?.[1]
+    const num = lead === undefined ? null : String(Number(lead))
+    const doc = num === null ? undefined : proposalByNumber.get(num)
+    if (!doc) return
+    boardRowsChecked += 1
+    const onBoard = boardRulingCell(row[rulingIdx])
+    const inFile = operativeRuling(doc.text)
+    if (onBoard === inFile) return
+    boardRulingViolations.push({
+      rule: 'correspondence',
+      ruleId: 'corpus/proposal-board-ruling-drift',
+      element: `proposal ${num}`,
+      file: boardDoc.file,
+      line: boardTable.rowLines[i] ?? boardTable.line,
+      message:
+        `PROPOSALS.md board says proposal ${num}'s Ruling is ` +
+        `${onBoard === null ? '(none)' : `"${onBoard}"`} but ` +
+        `${doc.relPath} says ${inFile === null ? '(none)' : `"${inFile}"`}`,
+      suggestion:
+        'the file is the source of truth — copy its operative Ruling (the LAST ' +
+        '"**Ruling: <verdict>**" line in the file) into this board cell.',
+      codeFrame: undefined,
+    })
+  })
+  // ADR-010: a pass is constructed from evidence. A board table this rule can
+  // read but whose every row it skips is the same no-op as no rule at all — and
+  // it is not hypothetical: see the comment above.
+  if (boardRowsChecked === 0) {
+    boardRulingViolations.push({
+      rule: 'proposal-ruling',
+      ruleId: 'corpus/proposal-board-examined-nothing',
+      element: boardDoc.relPath,
+      file: boardDoc.file,
+      line: boardTable.line,
+      message: `${boardDoc.relPath}'s board table has ${boardTable.rows.length} row(s) and this check matched none of them to a proposal`,
+      suggestion:
+        'each board row\'s Item cell must open with the proposal number (e.g. "006 — …"), ' +
+        'and that proposal must exist under work/proposals/.',
+      codeFrame: undefined,
+    })
+  }
+}
+
 // --format json/github — emit all violations machine-readable, then exit (plan 0070).
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
@@ -314,6 +409,7 @@ if (format === 'json' || format === 'github') {
     ...unparseableRulingViolations,
     ...unparseableImplementsViolations,
     ...danglingImplementsViolations,
+    ...boardRulingViolations,
   ]
   reportViolations(all, { format })
   process.exit(all.length > 0 ? 1 : 0)
@@ -349,18 +445,20 @@ const proposalPlanFindingCount =
   proposalPlanViolations.length +
   unparseableRulingViolations.length +
   unparseableImplementsViolations.length +
-  danglingImplementsViolations.length
+  danglingImplementsViolations.length +
+  boardRulingViolations.length
 const proposalLinkageOk = proposalPlanFindingCount === 0
 line(
   'proposals',
-  `${proposalDocsCount} total · ${acceptedProposalCount} accepted · ` +
-    `${proposalLinkageOk ? '✓ every accepted proposal has a plan, every Ruling/Implements parses' : `✗ ${proposalPlanFindingCount} finding(s)`}`,
+  `${proposalDocsCount} total · ${acceptedProposalCount} accepted · ${boardRowsChecked} board row(s) · ` +
+    `${proposalLinkageOk ? '✓ every accepted proposal has a plan, every Ruling/Implements parses, board agrees with each file' : `✗ ${proposalPlanFindingCount} finding(s)`}`,
 )
 
 const problems = [
   ...broken,
   ...stale,
   ...proposalPlanViolations,
+  ...boardRulingViolations,
   ...unparseableRulingViolations,
   ...unparseableImplementsViolations,
   ...danglingImplementsViolations,

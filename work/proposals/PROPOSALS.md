@@ -43,18 +43,30 @@ Three proposals, three capabilities that already existed. **Survey first.**
 
 ## Vocabulary
 
-**State** — a proposal's header carries a `**State:**` line, and in practice it
-carries exactly one value forever: `Draft`. Going through review does not flip
-it to a second token — every proposal filed so far, reviewed or not, accepted or
-declined, still reads `**State:** Draft` in its own file (verified against all
-four: 001-004). What changes on review is the `Ruling`, below, plus the prose
-after the em dash and the presence of a `## Review` section — not the token
-itself. `check:ledger`'s `proposals` lane (bug 0121) reads only this one literal
-value; anything else is reported as `ledger/unknown-state`, not silently ignored.
+**State** — a proposal's header carries a `**State:**` line. **Review does not
+change it.** A proposal ruled `Rewrite needed` is still live work; what changes on
+review is the `Ruling` below, the prose after the em dash, and the presence of a
+`## Review` section. What closes a proposal is the ask being _dispatched_.
 
-| State   | Meaning                                                         |
-| ------- | --------------------------------------------------------------- |
-| `Draft` | filed. The only value a proposal's own header has ever carried. |
+| State      | Meaning                                                                    | Folder      |
+| ---------- | -------------------------------------------------------------------------- | ----------- |
+| `Draft`    | filed. Live, whether or not it has been reviewed                           | in place    |
+| `Promoted` | dispatched — plans own it, **and the header names them**                   | `promoted/` |
+| `Declined` | will not be done. The header says why, so the ask does not silently return | `declined/` |
+
+`Promoted` and `Declined` are terminal, and `check:ledger` treats them as such
+(plan 0216). The terminal token **names its successor** — that is the whole reason
+promotion is safe in a lane whose checkboxes are a design checklist rather than a
+deferral ledger: a proposal's open boxes travel with it into the plan it promotes
+to. `check:corpus` already verifies the named plans resolve
+(`**Implements:**` + `ACCEPTED_RULINGS`), so no separate linkage rule is owed.
+
+Until 2026-08-23 this lane had no terminal state at all, and this section asserted
+that `Draft` was "the only value a proposal's own header has ever carried" — true
+when written, and exactly the kind of sentence that rots. `check:ledger` reported
+the consequence in its own summary: `6 scanned · 0 done`, with 005 fully
+discharged and still reading `Draft`. Anything outside the vocabulary above is
+reported as `ledger/unknown-state`, not silently ignored.
 
 The board's **Status** column below is a different, _derived_ fact — whether a
 `## Review — YYYY-MM-DD` section exists in the file — not a second `State` value.
@@ -144,7 +156,7 @@ false claims about corpus state contained one.
 | [002 — links embedded in source-code comments](./002-comment-embedded-links.md)                       | Medium   | 🔵 Reviewed | Rewrite needed     | inbound · reference corpus  | deferred behind [0090](../plans/0090-adopt-ts-archunit-work-corpus.md) ⇄ (cited both ways)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | [003 — future dialect candidates (catalog)](./003-future-dialect-candidates.md)                       | —        | 🔵 Reviewed | Rewrite needed     | brainstormed w/ maintainer  | excludes [0078](../plans/0078-workflow-dialect.md); ER candidate parked by [0096](../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | [004 — corpus-content `explain` equivalent](./004-corpus-content-explain.md)                          | Low      | 🔵 Reviewed | Docs-only          | inbound · consuming project | CLI question sequenced after [0089](../plans/completed/0089-family-standalone-sufficiency.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| [005 — crossvalidate: detect a stale `@wip` tag](./005-crossvalidate-stale-wip-detection.md)          | Medium   | 🔵 Reviewed | Ship as-is         | inbound · consuming project | implemented by [0145](../plans/completed/0145-crossvalidate-stale-wip-detection.md) ✅; folds in one row of [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md); cites [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the fixture tier avoided; accepted after a third review round found [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)                                                                                                                                                                                                                                                                                                                                                                          |
+| [005 — crossvalidate: detect a stale `@wip` tag](./promoted/005-crossvalidate-stale-wip-detection.md) | Medium   | 🔵 Reviewed | Ship as-is         | inbound · consuming project | implemented by [0145](../plans/completed/0145-crossvalidate-stale-wip-detection.md) ✅; folds in one row of [bug 0112](../bugs/0112-three-crossval-presets-have-no-fixture.md); cites [bug 0127](../bugs/fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md) for the fixture tier avoided; accepted after a third review round found [bug 0144](../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md)                                                                                                                                                                                                                                                                                                                                                                          |
 | [006 — mermaid beyond `classDiagram`, and diagrams in Markdown](./006-mermaid-beyond-classdiagram.md) | Medium   | 🔵 Reviewed | Split and sequence | inbound · consuming project | survey found Ask A already ships via `packages/crossvalidate/src/md-mermaid.ts:186`; three lenses agreed the ask is 4–6 shippable things. Accepted parts owned by [0212](../plans/0212-eess-mermaid-fence-discoverability.md) · [0213](../plans/0213-diagram-provenance-for-fence-callers.md) · [0214](../plans/0214-extract-the-diagram-kind-predicate.md). Spawned [bug 0211](../bugs/0211-diagram-sniffs-its-input-and-reads-arbitrary-files.md) (`diagram()` sniffs its input — arbitrary file read from fence content) and [bug 0217](../bugs/0217-the-manifesto-marks-flow-diagrams-shipped.md), inherits [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md). Its own pointers went stale twice and it shipped with no acceptance criteria — both recorded in the Review |
 
 **What each one asked for.** 001 — `terms()`/`vocabulary()` plus coverage over
@@ -206,22 +218,29 @@ picking any of these up:
 
 Recorded rather than left to be rediscovered:
 
-- **No terminal folder.** Plans move to `completed/`/`wont-do/` and bugs to
-  `fixed/`/`rejected/`. Proposals have no such convention — a declined proposal
-  (002) sits in place with its ruling in its header. That works while the lane is
-  small; it means the board is the only thing distinguishing live from settled.
-- **`check:ledger` reads this lane but can't hold it honest at close** — bug
-  [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md), fixed: the lane
-  is scanned and its `State:` verified readable. What the fix couldn't add is a
-  terminal state — proposals carry only `Draft` forever (see _Vocabulary_
-  above), so the box-disposition check this lane's own `terminalStates: []`
-  deliberately opts out of never runs here, by design, not by gap.
+- **~~No terminal folder.~~** Closed 2026-08-23 by
+  [plan 0216](../plans/completed/0216-dogfood-the-proposals-lane.md): `promoted/` and
+  `declined/`, mirroring `completed/`/`wont-do/` on plans and `fixed/`/`rejected/`
+  on bugs. 005 is the first to move.
+- **~~`check:ledger` reads this lane but can't hold it honest at close~~** — bug
+  [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md) made the lane
+  scanned and its `State:` readable; 0216 gave it the terminal states that make
+  the box-disposition check reachable. It now reports a real done count.
+- **Acceptance criteria are required by the template below and checked by
+  nothing** — [plan 0218](../plans/0218-gate-proposal-acceptance-criteria.md).
+  Measured: no proposal has ever carried the section in the shape the template
+  prescribes.
 - **The `work/` README lanes table lists one lane** — bug
   [0108](../bugs/0108-work-readme-lanes-table-lists-one-lane.md). This board does
   not fix that; it gives the lane something to point at.
 
-`check:corpus` does gate this file: its cross-links must resolve and any
-`path:line` pointer must ground in real code.
+`check:corpus` does gate this file: its cross-links must resolve, any `path:line`
+pointer must ground in real code, and — since plan 0216 — **each board row's
+`Ruling` cell must equal the operative `**Ruling:**` in the proposal it names.**
+The file is the source of truth; the board is a copy, and a copy nothing compares
+is a copy that drifts (006's row read `—` while its file read
+`Split and sequence`). Rows are matched by the proposal number that opens the
+`Item` cell, so reordering the board is not a violation.
 
 ## Proposal template
 
