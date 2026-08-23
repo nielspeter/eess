@@ -31,6 +31,8 @@ import {
   hasUnparseableRuling,
   isAccepted,
   operativeRuling,
+  PROPOSAL_DONE_FOLDERS,
+  rulingsObliging,
   operativeRulingLine,
   proposalNumberFromPath,
 } from './lib/proposal-ruling.mjs'
@@ -580,7 +582,7 @@ for (const d of allDocs.filter(isOwnerDoc)) {
 // this to convention: promoting 001 fires 29 `ledger/silent-open-box` findings
 // against Acceptance Criteria, and the pressure at that point is to bulk-
 // annotate for green. `Declined` is the token for those.
-const UNPROMOTABLE_RULINGS = new Set(['Rewrite needed', 'Reject'])
+const UNPROMOTABLE_RULINGS = rulingsObliging('unfinished')
 
 const promotedProposals = liveDocs.filter(
   (d) => isProposalDoc(d) && stateToken(d.text) === 'Promoted',
@@ -675,8 +677,7 @@ for (const d of promotedProposals) {
 // runs with zero exemptions and all ten ADRs carry their table because someone
 // wrote them, and that is the precedent followed here: proposal 006 gained its
 // section in the same change that added this rule.
-const isTerminalProposal = (d) => /work\/proposals\/(promoted|rejected)\//.test(d.relPath)
-const UNFINISHED_RULINGS = new Set(['Rewrite needed', 'Reject'])
+const isTerminalProposal = (d) => PROPOSAL_DONE_FOLDERS.some((seg) => `/${d.relPath}`.includes(seg))
 
 // Depth is read directly. `haveSection` matches on name alone, and proposal 005
 // carries four `### Acceptance criteria (…)` headings inside superseded
@@ -688,9 +689,8 @@ const statesAcceptanceCriteria = (d) =>
 const criteriaSubjects = liveDocs.filter(
   (d) =>
     isProposalDoc(d) &&
-    !isProbeArtifact(d) &&
     !isTerminalProposal(d) &&
-    !UNFINISHED_RULINGS.has(operativeRuling(d.text)),
+    !UNPROMOTABLE_RULINGS.has(operativeRuling(d.text)),
 )
 
 const criteriaViolations = criteriaSubjects
@@ -748,9 +748,9 @@ const criteriaDenominatorViolations =
 // ruled `Docs-only` on 2026-08-13 and ten days later none of the documentation
 // existed, with every gate green and the proposal's header reading as settled.
 // Bug 0219 fixed that instance; this is the recurrence.
-const DOCS_ONLY_RULINGS = new Set(['Docs-only'])
+const NAMES_A_REMEDY = rulingsObliging('needs-an-owner')
 const docsOnlyProposals = allDocs.filter(
-  (d) => isProposalDoc(d) && !isProbeArtifact(d) && DOCS_ONLY_RULINGS.has(operativeRuling(d.text)),
+  (d) => isProposalDoc(d) && NAMES_A_REMEDY.has(operativeRuling(d.text)),
 )
 const docsOnlyOwnerViolations = docsOnlyProposals.flatMap((d) => {
   const n = proposalNumberFromPath(d.relPath)

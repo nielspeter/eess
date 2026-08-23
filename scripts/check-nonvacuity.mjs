@@ -742,7 +742,7 @@ function gateCorpusPointers() {
 function gateCorpusProposalUncited() {
   return gateCorpusProbe(
     PROBE_CORPUS_PROPOSAL_UNCITED,
-    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
+    '# Non-vacuity probe\n\n## Acceptance criteria\n\nBreak class: the probe itself.\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
       'Accepted, on purpose, with no implementing plan — the probe.\n',
     'corpus/accepted-proposal-uncited',
     'work/proposals/__nonvacuity_probe_proposal__.md',
@@ -1039,7 +1039,7 @@ function gateCorpusPromotedHasHeldAsks() {
 function gateCorpusRulingUnparseable() {
   return gateCorpusProbe(
     PROBE_CORPUS_RULING_UNPARSEABLE,
-    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n' +
+    '# Non-vacuity probe\n\n## Acceptance criteria\n\nBreak class: the probe itself.\n\n## Review — 2026-01-01\n\n' +
       '**Ruling: ship as-is — old-style free prose, garbled on purpose.**\n\nThe probe.\n',
     'corpus/proposal-ruling-unparseable',
     'work/proposals/__nonvacuity_probe_ruling__.md',
@@ -1059,7 +1059,7 @@ function gateCorpusRulingUnparseable() {
 // run so a regression in either direction fails this row.
 function gateCorpusProposalImplementsDiscriminates() {
   const proposalMd =
-    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
+    '# Non-vacuity probe\n\n## Acceptance criteria\n\nBreak class: the probe itself.\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
     'Accepted — the discrimination probe.\n'
   // Deliberately contains the word "implements" near "proposal 9001", in a
   // negating sentence — a loose prose-matching regex (testing review's

@@ -59,6 +59,30 @@ Applied honestly, the rule reds on exactly one — 006 — and 006 owed the sect
 version is ~40 lines with no git at all, and it is what shipped. Recorded because the wrong
 turn was reasonable at every individual step and only obvious in aggregate.
 
+## One classification, not three subsets
+
+The first version of these rules hand-listed `['Rewrite needed', 'Reject']` and
+`['Docs-only']` inline — beside an `ACCEPTED_RULINGS` in `scripts/lib/proposal-ruling.mjs`
+whose own comment says _"it is the one place the policy is decided"_, and an
+`UNPROMOTABLE_RULINGS` elsewhere in the same file. **Three hand-written subsets of one
+closed six-value vocabulary, in two files, none bound to it.** A seventh verdict would have
+fallen through all three and acquired no obligation at all, silently.
+
+Replaced by `RULING_OBLIGATION`: one exhaustive map from each ruling to what it obliges
+(`needs-a-plan` · `needs-an-owner` · `unfinished` · `none`), asserted in both directions at
+load. Every subset is now derived from it. Verified: adding a seventh ruling without an
+obligation throws before any gate runs.
+
+Two smaller ones went the same way. The lane's terminal folders were typed out in both
+`check-ledger.mjs`'s lane config and this gate's "is this closed history" test; they now come
+from `PROPOSAL_DONE_FOLDERS`. And `DOCS_ONLY_RULINGS` was a `Set` with one member —
+generality it did not have.
+
+**The rules no longer know the test harness exists.** They used to filter
+`!isProbeArtifact(d)`, which is scaffolding leaking into production selection. The probes
+that plant proposals now carry an `## Acceptance criteria` section — they are supposed to
+model honest proposals — so the filter was deleted rather than tidied.
+
 ## Files Changed
 
 - `scripts/check-corpus.mjs` — two rules and a zero-guard on the first rule's subjects
