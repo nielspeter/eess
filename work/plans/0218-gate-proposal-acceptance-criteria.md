@@ -80,6 +80,37 @@ Reserved for the author. A review surfaces and argues these; it does not settle 
    Deferring the choice means the first green run is blocked on proposal 006 growing a
    section its own review says it cannot write until Ask B leaves `Held`.
 
+## A second rule, added 2026-08-23: a ruling that names a remedy must name an owner
+
+Found while auditing the lane after [plan 0216](./0216-dogfood-the-proposals-lane.md) gave
+it terminal states, and it is the same defect class 0216's review found four times over: a
+convention stated in prose with no mechanism.
+
+**Measured.** Proposal 004's ruling was `Docs-only` — _"the capability already ships; what
+is missing is any documentation pointing at it."_ That names a remedy and creates **no
+owner**. Ten days later the listing surface (`documents()`, `root`, `fileIndex`) appeared
+in **0** files under `docs/` and **0** package READMEs, and the proposal's own header read
+`Draft — primitive **declined** … Ruling is **docs-only**`, which reads as settled. The
+remedy had evaporated and nothing could tell.
+
+The same shape on the other side: proposal 002 says its widened primitive is _"deferred
+behind plan 0090"_, and 0090 cited 002 back **in prose only** — the exact thing
+[bug 0141](../bugs/fixed/0141-no-check-binds-accepted-proposals-to-plans.md) found, on the
+one live case the `**Implements:**` mechanism existed for. Both are now declared, but
+nothing would have caught either.
+
+**The rule.** A proposal whose operative Ruling is `Docs-only`, or whose header defers a
+remainder, must name an owner that resolves — the same shape as
+`corpus/promoted-proposal-names-no-owner`, applied one state earlier. It belongs here
+rather than in 0216 because it is about **what a proposal must state**, which is this
+plan's whole subject.
+
+**Open question 3.** "Defers a remainder" is prose today (`deferred behind plan NNNN`) and
+a rule cannot key on prose without inviting the false positives bug 0110 warns about. Two
+answers: gate only the closed case (`Docs-only` ⇒ an owner), which is Tier 1 and cheap; or
+introduce a machine form for the deferral, which is new lane vocabulary and a bigger ask.
+Reserved for the author, like the two above.
+
 ## Out of Scope
 
 - Everything 0216 shipped: the lane's terminal states, `promoted/` / `declined/`, and the

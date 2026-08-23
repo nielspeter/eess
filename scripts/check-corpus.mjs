@@ -167,6 +167,15 @@ const isProposalDoc = (d) =>
   d.relPath.startsWith('work/proposals/') && !/PROPOSALS\.md$/.test(d.relPath)
 const isPlanDoc = (d) => d.relPath.startsWith('work/plans/')
 
+// An OWNER is any record that can declare `**Implements:** proposal NNN` — plans
+// or bugs. Product review of plan 0216: proposal 004's ruling is `Docs-only` and
+// its remaining ask is owned by a bug, so restricting owners to the plan lane
+// would have been wrong. Widening the owner set also widens the two
+// Implements-VALIDATION rules below: a bug that could satisfy the promotion rule
+// with a malformed or dangling declaration, and be told nothing, would be a
+// fail-open introduced by the widening itself.
+const isOwnerDoc = (d) => isPlanDoc(d) || d.relPath.startsWith('work/bugs/')
+
 // Left (proposals) is live-only: an archived/frozen proposal is history, not
 // a claim that still needs a plan. Right (plans) is NOT filtered — a plan
 // under `work/plans/completed/` still implements the proposal it declares.
@@ -286,7 +295,7 @@ const unparseableRulingViolations = unparseableRulingDocs.map((d) => ({
 // this" — branch review found the first version applied this discipline to
 // Ruling only, leaving the field this plan itself invented unenforced.
 const unparseableImplementsDocs = liveDocs.filter(
-  (d) => isPlanDoc(d) && hasUnparseableImplements(d.text),
+  (d) => isOwnerDoc(d) && hasUnparseableImplements(d.text),
 )
 const unparseableImplementsViolations = unparseableImplementsDocs.map((d) => ({
   rule: 'proposal-ruling',
@@ -317,7 +326,7 @@ const allProposalNumbers = new Set(
   allDocs.filter(isProposalDoc).map((d) => proposalNumberFromPath(d.relPath)),
 )
 const danglingImplementsDocs = liveDocs.filter((d) => {
-  if (!isPlanDoc(d)) return false
+  if (!isOwnerDoc(d)) return false
   const n = declaredImplements(d.text)
   return n !== null && !allProposalNumbers.has(n)
 })
@@ -555,7 +564,6 @@ const stateLine = (doc) => {
 // bugs. Product review: 004's ruling is `Docs-only` and its remaining ask is
 // owned by bug 0134, so restricting owners to the plan lane would be wrong.
 // allDocs, not liveDocs: a plan in `completed/` still owns what it built.
-const isOwnerDoc = (d) => d.relPath.startsWith('work/plans/') || d.relPath.startsWith('work/bugs/')
 const ownersByProposal = new Map()
 for (const d of allDocs.filter(isOwnerDoc)) {
   const n = declaredImplements(d.text)

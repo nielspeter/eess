@@ -1,0 +1,73 @@
+# Bug 0219: the corpus listing surface is public API documented nowhere
+
+## Status
+
+- **State:** Draft — measured 2026-08-23; fix not built.
+- **Priority:** Low — not a correctness gap. It is the whole remedy
+  [proposal 004](../proposals/promoted/004-corpus-content-explain.md) was ruled to need,
+  and the ruling landed on 2026-08-13 with nothing owning the work since.
+- **Implements:** proposal 004
+- **Origin:** self-found — auditing the proposals lane after
+  [plan 0216](../plans/0216-dogfood-the-proposals-lane.md) gave it terminal states. 004
+  read `Draft` with a header saying its primitive was **declined** and the ruling was
+  **docs-only**, which reads as finished; the docs were never written.
+
+## Symptom
+
+`corpus()` is public in `@nielspeter/eess-md` and its **listing surface is not
+documented anywhere**. Measured 2026-08-23:
+
+| symbol        | occurrences in `docs/` | in any `packages/*/README.md` |
+| ------------- | ---------------------- | ----------------------------- |
+| `documents()` | 0                      | 0                             |
+| `.root`       | 0                      | 0                             |
+| `fileIndex`   | 0                      | 0                             |
+
+`corpus(...)` itself appears in `docs/markdown.md`, `docs/crossvalidate.md` and
+`packages/md/README.md` — but only as the thing you pass to a rule builder. Nothing
+shows that the returned `Corpus` will tell you **what it loaded**.
+
+## Repro
+
+```bash
+grep -rl 'documents()' docs/ packages/*/README.md   # → no matches
+```
+
+Then read `packages/md/src/corpus.ts:35-40`: `documents()`, `root` and `fileIndex` are all
+public on the exported `Corpus` interface, and `Corpus`/`CorpusOptions` are exported from
+`packages/md/src/index.ts:9-10`.
+
+## Root cause
+
+Not a code defect — a documentation gap that outlived the record that found it. Proposal
+004 asked for a corpus-content `explain` equivalent; the survey found the capability
+already ships in both dialects it named, so the ruling was `Docs-only`. **`Docs-only` names
+a remedy and creates no owner**, so the remedy evaporated: no plan, no bug, no board row
+tracked it for ten days, and the proposal's own header read as though the matter was
+settled.
+
+That second half is the interesting one, and it is not this bug's to fix — see
+[plan 0218](../plans/0218-gate-proposal-acceptance-criteria.md), which now carries a rule
+for it.
+
+## Fix
+
+Document the listing surface where a reader already is:
+
+- `packages/md/README.md` — a short section under the existing corpus material: what
+  `documents()` returns, that `root` and `fileIndex` exist and what they are for.
+- `docs/markdown.md` — the same, as a worked example, since that is the page a reader
+  reaches from the site.
+- The gherkin equivalent (`features()` / `scenarios()`, `packages/gherkin/src/index.ts:12-14`)
+  gets the same treatment — 004 named **both** dialects and both are undocumented.
+
+Note the honest limit: `check:docs-code` compiles import-bearing TS fences, so a fence
+added here is type-checked, but nothing requires these symbols to _have_ a fence. This bug
+closes the gap; it does not gate against it reopening.
+
+## Verification
+
+- [ ] Red first is not available in the usual sense — there is no rule to fail. The
+      standing check is the `grep` above returning matches instead of nothing.
+- [ ] The added fences compile under `check:docs-code` (they import, so they are scanned).
+- [ ] `npm run validate` green.
