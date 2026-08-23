@@ -15,12 +15,18 @@
  * Always reports what it scanned (documents, per-check counts, elapsed time) so
  * a fast green is provably non-vacuous, not a silent no-op.
  *
+ * Since plan 0218 this gate SHELLS GIT: one rule is diff-gated (a proposal a
+ * change ADDS must state its acceptance criteria), so it resolves a base ref via
+ * `scripts/lib/base-ref.mjs`, shared with `check:release`. An unresolved base is
+ * a configuration finding on that one rule, never a silent skip — every other
+ * rule here still reads only the corpus.
+ *
  * `**‍/completed/**`, `**‍/wont-do/**`, `**‍/fixed/**`, `**‍/archived/**` are
  * frozen (historical). Exits non-zero on a live violation. Run:
  * `npm run check:corpus`.
  */
 import { resolve } from 'node:path'
-import { addedSince, resolveBaseRef } from './lib/base-ref.mjs'
+import { addedSince, contentAt, pathsAt, resolveBaseRef } from './lib/base-ref.mjs'
 import { corpus, docs, links, matchTableRows, pointers } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
 import { definePredicate, matchSelections, reportViolations } from '@nielspeter/eess'
@@ -373,7 +379,26 @@ const boardDoc = allDocs.find((d) => /work\/proposals\/PROPOSALS\.md$/.test(d.re
 // The first attempt at this exemption dropped probes from the join entirely and
 // broke two of the new fixtures instead — a carve-out one level too wide. Kept
 // as narrow as it can be: one arm of one rule.
-const isProbeArtifact = (d) => /__nonvacuity_probe/.test(d.relPath)
+// Two probe shapes, and they are not interchangeable. Most probes carry the
+// reserved `__nonvacuity_probe` prefix. The diff-gated rule's probes cannot —
+// that rule deliberately skips probe artifacts, so a probe named that way would
+// be invisible to the very rule it proves — and are named `NNN-nonvacuity-*`
+// instead, `.gitignore`d for the same crash-safety reason.
+//
+// Two predicates, because the rules genuinely differ on what they must see:
+//
+//  - `isProbeArtifact` (ANY probe) is what the BOARD correspondence uses. A
+//    probe has no board row and never should, and review measured the cost of
+//    getting this wrong: a killed run left a red gate telling you to add a board
+//    row for a phantom proposal 999, for a file `git status` reports as absent.
+//  - `isReservedProbe` (the classic prefix only) is what the proposal-CONTENT
+//    rules use, because their own probes are `NNN-nonvacuity-*` by necessity —
+//    a probe those rules cannot see is a probe that proves nothing about them.
+//
+// Getting this backwards is not theoretical: collapsing the two broke the
+// docs-only fixture the moment it was tried.
+const isProbeArtifact = (d) => /nonvacuity/.test(d.relPath)
+const isReservedProbe = (d) => /__nonvacuity_probe/.test(d.relPath)
 const boardProposalDocs = allDocs.filter(isProposalDoc)
 
 /** Display form - the number as the corpus writes it: `006`, not `6`. */
@@ -679,6 +704,17 @@ const base = resolveBaseRef()
 const newProposalViolations = []
 let addedProposalsExamined = 0
 
+// The `because` every violation in this repo is supposed to carry, and it says
+// what the rule does NOT prove. The plan specified a stronger Tier-1 form —
+// section PLUS a table with named columns, via `haveTableRowsSatisfying` — so
+// that "a heading with three words under it" could not satisfy it. That did not
+// ship; see the plan's own record of the downgrade. Until it does, an empty
+// section clears this rule, and the `because` must not pretend otherwise.
+const CRITERIA_BECAUSE =
+  'a capability with no stated break class is unfalsifiable, and this lane requires the ' +
+  'section per capability. NOTE: this rule proves only that the heading EXISTS — it does ' +
+  'not read what is under it, so an empty section satisfies it.'
+
 if (!base.ok) {
   // Fail CLOSED. This gate has many rules and only this one needs a diff, so an
   // unresolved base is a configuration finding rather than a fatal error — but
@@ -691,28 +727,112 @@ if (!base.ok) {
     file: resolve(c.root, 'work/proposals/PROPOSALS.md'),
     line: 1,
     message: `the acceptance-criteria rule needs a base commit to read the diff, and ${base.headline}`,
-    suggestion: base.detail.filter((d) => d !== '').join(' '),
+    because:
+      'a diff-gated rule with no diff examines nothing, and a zero it cannot justify is ' +
+      'indistinguishable from a zero it measured',
+    suggestion:
+      'set EESS_RELEASE_BASE=<ref>, or in CI give `actions/checkout` `fetch-depth: 0` — the ' +
+      'default depth of 1 leaves no `origin/main` to compare against.',
     codeFrame: undefined,
   })
 } else {
-  const byRelPath = new Map(allDocs.map((d) => [d.relPath, d]))
+  // A proposal is identified by its NUMBER, not its path. With `--no-renames`
+  // (which `addedSince` must pass, or a `git mv` to a new number is invisible)
+  // every move reports as an addition — including promotion, which is a move
+  // within the prefix. Excluding numbers that already existed at the base is
+  // what makes "new proposal" mean a new SUBJECT rather than a new path, so
+  // promoting 006 tomorrow does not demand acceptance criteria that 006's own
+  // review says it cannot yet write.
+  const numbersAtBase = new Set(
+    pathsAt(base.mergeBase, 'work/proposals/')
+      .map((rel) => proposalNumberFromPath(rel))
+      .filter((n) => n !== null),
+  )
+  // liveDocs, matching every other rule in this block. A proposal added into a
+  // frozen folder is history being imported, not a new ask — and the file's own
+  // header prints frozen documents as "reported, never gated".
+  const byRelPath = new Map(liveDocs.map((d) => [d.relPath, d]))
   for (const relPath of addedSince(base.mergeBase, 'work/proposals/')) {
+    if (!/\.md$/.test(relPath) || /PROPOSALS\.md$/.test(relPath)) continue
+    if (/__nonvacuity_probe/.test(relPath)) continue
     const d = byRelPath.get(relPath)
-    if (d === undefined || !isProposalDoc(d) || isProbeArtifact(d)) continue
+    if (d === undefined) {
+      // NOT a silent skip. This is the denominator's own loop, and the same
+      // shape 250 lines above was converted into a finding for that reason. It
+      // fires when the corpus did not load a markdown file git says was added —
+      // in practice a frozen folder, or a cwd that disagrees with git's root,
+      // which would otherwise print `0 added` from a loop that matched nothing.
+      newProposalViolations.push({
+        rule: 'docs',
+        ruleId: 'corpus/added-proposal-not-loaded',
+        element: relPath,
+        file: resolve(c.root, relPath),
+        line: 1,
+        message: `${relPath} was added under work/proposals/ but the corpus did not load it as a live proposal`,
+        because:
+          'this rule counts what it examined; a path it cannot load is a hole in that count, ' +
+          'not an absence',
+        suggestion:
+          'if it is history being imported, say so by placing it in a frozen folder; if the ' +
+          'corpus root disagrees with the repository root, run the gate from the repo root.',
+        codeFrame: undefined,
+      })
+      continue
+    }
+    const n = proposalNumberFromPath(d.relPath)
+    if (n !== null && numbersAtBase.has(n)) continue // moved, not new
     addedProposalsExamined += 1
     if (hasAcceptanceCriteria.test(d)) continue
-    const n = proposalNumberFromPath(d.relPath)
     newProposalViolations.push({
       rule: 'docs',
       ruleId: 'corpus/new-proposal-states-no-acceptance-criteria',
       element: `proposal ${n === null ? d.relPath : pad3(n)}`,
       file: d.file,
       line: 1,
-      message: `${d.relPath} is new in this change and has no level-2 "## Acceptance criteria" section`,
+      message:
+        `${d.relPath} is new since ${base.baseRef} and has no level-2 ` +
+        '"## Acceptance criteria" section',
+      because: CRITERIA_BECAUSE,
       suggestion:
-        'state, per capability, the break class — the specific corruption that must produce ' +
-        'a violation — and how non-vacuity is kept. A capability with no break class is ' +
-        'unfalsifiable, which is what this section exists to prevent.',
+        'add a "## Acceptance criteria" section stating, per capability, the break class — ' +
+        'the specific corruption that must produce a violation — and how non-vacuity is kept.',
+      codeFrame: undefined,
+    })
+  }
+}
+
+// A proposal that HAD the section and lost it. Diff-gating deliberately leaves
+// the six existing proposals alone, but review measured the cost: deleting
+// `## Acceptance Criteria` from proposal 001 left the build green, so the two
+// records that DO comply could silently stop.
+//
+// Narrow on purpose. `--diff-filter=AM` would have closed it too and would red
+// on any edit to 003 or 006 — records whose own reviews say they cannot yet
+// write the section — which teaches authors to route around the gate. "Had it,
+// no longer has it" has no such false positive: it cannot fire on a record that
+// never had it.
+const criteriaRegressionViolations = []
+if (base.ok && !base.baseIsHead) {
+  for (const d of liveDocs) {
+    if (!isProposalDoc(d) || isReservedProbe(d)) continue
+    if (hasAcceptanceCriteria.test(d)) continue
+    const was = contentAt(base.mergeBase, d.relPath)
+    if (was === undefined) continue // did not exist at the base — rule 1's business
+    if (!/^##[ \t]+acceptance criteria[ \t]*$/im.test(was)) continue // never had it
+    const n = proposalNumberFromPath(d.relPath)
+    criteriaRegressionViolations.push({
+      rule: 'docs',
+      ruleId: 'corpus/proposal-lost-its-acceptance-criteria',
+      element: `proposal ${n === null ? d.relPath : pad3(n)}`,
+      file: d.file,
+      line: 1,
+      message: `${d.relPath} had a level-2 "## Acceptance criteria" section at ${base.baseRef} and no longer does`,
+      because:
+        'the lane requires the section per capability; a record that met the convention and ' +
+        'stopped is a regression, and diff-gating the ADD would not see it',
+      suggestion:
+        'restore the section, or — if the heading was deliberately renamed — rename it back; ' +
+        'this rule fires only for records that already had it.',
       codeFrame: undefined,
     })
   }
@@ -728,17 +848,17 @@ if (!base.ok) {
 //
 // NOT diff-gated: unlike rule 1 this has a standing denominator (every proposal
 // carrying such a ruling), so the two are never both empty by construction.
-const REMEDY_RULINGS = new Set(['Docs-only'])
-const remedyProposals = liveDocs.filter(
-  (d) => isProposalDoc(d) && !isProbeArtifact(d) && REMEDY_RULINGS.has(operativeRuling(d.text)),
+const DOCS_ONLY_RULINGS = new Set(['Docs-only'])
+const docsOnlyProposals = liveDocs.filter(
+  (d) => isProposalDoc(d) && !isReservedProbe(d) && DOCS_ONLY_RULINGS.has(operativeRuling(d.text)),
 )
-const remedyOwnerViolations = remedyProposals.flatMap((d) => {
+const docsOnlyOwnerViolations = docsOnlyProposals.flatMap((d) => {
   const n = proposalNumberFromPath(d.relPath)
   if (n !== null && (ownersByProposal.get(n) ?? []).length > 0) return []
   return [
     {
       rule: 'correspondence',
-      ruleId: 'corpus/remedy-ruling-names-no-owner',
+      ruleId: 'corpus/docs-only-ruling-names-no-owner',
       element: `proposal ${n === null ? d.relPath : pad3(n)}`,
       file: d.file,
       line: operativeRulingLine(d.text),
@@ -769,7 +889,8 @@ if (format === 'json' || format === 'github') {
     ...promotedViolations,
     ...acceptedDenominatorViolations,
     ...newProposalViolations,
-    ...remedyOwnerViolations,
+    ...criteriaRegressionViolations,
+    ...docsOnlyOwnerViolations,
   ]
   reportViolations(all, { format })
   process.exit(all.length > 0 ? 1 : 0)
@@ -799,6 +920,16 @@ line(
   'ADRs',
   `${adrDocs.length} enforced · ${adrError ? '✗ invalid' : '✓ tables + citations resolve'}`,
 )
+// "found nothing" and "could not look" must not collide (bug 0120). Three
+// different zeros are possible here and the reader has to be able to tell them
+// apart: no base at all, a base that IS head (every push to main — the sibling
+// gate calls running there "theatre" and guards itself off), and a real diff
+// that added nothing.
+const addedBasis = !base.ok
+  ? '— added (no base ref)'
+  : base.baseIsHead
+    ? `— added (base ${base.baseRef} is HEAD; nothing to diff)`
+    : `${addedProposalsExamined} added since ${base.baseRef}`
 const proposalDocsCount = liveDocs.filter(isProposalDoc).length
 const planDocsCount = liveDocs.filter(isPlanDoc).length
 const proposalPlanFindingCount =
@@ -810,7 +941,8 @@ const proposalPlanFindingCount =
   promotedViolations.length +
   acceptedDenominatorViolations.length +
   newProposalViolations.length +
-  remedyOwnerViolations.length
+  criteriaRegressionViolations.length +
+  docsOnlyOwnerViolations.length
 const proposalLinkageOk = proposalPlanFindingCount === 0
 // The affirmative clause is gated on rows ACTUALLY EXAMINED, not on the finding
 // count. Enforcement review measured the old form printing
@@ -822,7 +954,7 @@ line(
   `${proposalDocsCount} total · ${acceptedProposalCount} accepted · ` +
     `${boardRowsExamined} of ${boardRowsTotal} board row(s) examined · ` +
     `${promotedProposals.length} promoted · ` +
-    `${addedProposalsExamined} added · ${remedyProposals.length} remedy-ruled · ` +
+    `${addedBasis} · ${docsOnlyProposals.length} docs-only · ` +
     `${
       proposalLinkageOk && boardExaminedAll
         ? '✓ every accepted proposal has a plan, every Ruling/Implements parses, board agrees with each file'
@@ -838,7 +970,8 @@ const problems = [
   ...promotedViolations,
   ...acceptedDenominatorViolations,
   ...newProposalViolations,
-  ...remedyOwnerViolations,
+  ...criteriaRegressionViolations,
+  ...docsOnlyOwnerViolations,
   ...unparseableRulingViolations,
   ...unparseableImplementsViolations,
   ...danglingImplementsViolations,

@@ -138,7 +138,7 @@
  * the `validate` chain). Exits 0 iff every fixture fired on its violating input.
  */
 import { spawnSync } from 'node:child_process'
-import { writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs'
+import { writeFileSync, rmSync, readFileSync, readdirSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -219,6 +219,16 @@ const PROBE_CORPUS_PROMOTED = join(
 )
 const PROBE_NEW_PROPOSAL = join(repoRoot, 'work', 'proposals', '999-nonvacuity-new-proposal.md')
 const PROBE_REMEDY_PROPOSAL = join(repoRoot, 'work', 'proposals', '999-nonvacuity-remedy.md')
+// A frozen folder inside the lane: git reports the file as added, the corpus
+// loads it as history, so it is in `allDocs` and not in `liveDocs` — the exact
+// gap `corpus/added-proposal-not-loaded` exists to refuse to skip silently.
+const PROBE_FROZEN_PROPOSAL = join(
+  repoRoot,
+  'work',
+  'proposals',
+  'archived',
+  '999-nonvacuity-frozen.md',
+)
 // Plan 0142 (closing bug 0141): no leading digits in the basename — unlike
 // the real 001-005 proposals, so proposalNumberFromPath() can never collide
 // with a real proposal number (testing review's fixture-numbering finding).
@@ -332,12 +342,34 @@ function violationsOf(r) {
  * on a real row could answer for the probe (testing review, plan 0216).
  */
 function firedOn(r, ruleId, fileFragment, elementFragment) {
+  ASSERTED_RULE_IDS.add(ruleId)
   return violationsOf(r).some(
     (v) =>
       v?.ruleId === ruleId &&
       (fileFragment === undefined || String(v?.file ?? '').includes(fileFragment)) &&
       (elementFragment === undefined || String(v?.element ?? '').includes(elementFragment)),
   )
+}
+
+/**
+ * Every rule id some fixture asserted on, collected as the run happens.
+ *
+ * `firedOn` is the one place an in-harness fixture names the rule it proves, so
+ * it is the one place this needs to be recorded. Fixtures driven through
+ * `gateNode` (a standalone `bad-*.mjs`) never call it and declare their coverage
+ * in {@link GATE_NODE_RULE_IDS} instead.
+ */
+const ASSERTED_RULE_IDS = new Set()
+
+/**
+ * What each standalone `bad-*.mjs` fixture proves, by rule id.
+ *
+ * Declared rather than derived because these fixtures spawn the gate themselves
+ * and assert in their own process. An entry here is a claim the audit below
+ * takes at face value — keep it honest.
+ */
+const GATE_NODE_RULE_IDS = {
+  'bad-corpus-diff-e2e.mjs': ['corpus/new-proposal-states-no-acceptance-criteria'],
 }
 
 /** Write a probe file, run `fn`, and always delete the probe afterward. */
@@ -453,6 +485,17 @@ rmSync(PROBE_CORPUS_PROPOSAL_DUP, { force: true })
 rmSync(PROBE_CORPUS_PROMOTED, { force: true })
 rmSync(PROBE_NEW_PROPOSAL, { force: true })
 rmSync(PROBE_REMEDY_PROPOSAL, { force: true })
+rmSync(PROBE_FROZEN_PROPOSAL, { force: true })
+rmSync(join(repoRoot, 'work', 'proposals', 'archived'), { recursive: true, force: true })
+// By GLOB, not by the exact paths above: a probe added later and swept by name
+// is a probe that strands itself the first time someone forgets a line here.
+for (const dir of [join(repoRoot, 'work', 'proposals')]) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isFile() && /nonvacuity/.test(entry.name)) {
+      rmSync(join(dir, entry.name), { force: true })
+    }
+  }
+}
 rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
 rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
@@ -967,16 +1010,59 @@ function gateCorpusNewProposalCriteria() {
 
 // `Docs-only` names a remedy and creates no owner, which is how proposal 004's
 // documentation went ten days unwritten with every gate green. The probe carries
-// an acceptance-criteria section on purpose, so it fires THIS rule and not also
-// the one above — a probe that trips two rules cannot tell you which is wired.
-function gateCorpusRemedyRulingOwner() {
+// an acceptance-criteria section on purpose, so the diff-gated rule above stays
+// quiet on it and this fixture proves one rule rather than two. (An earlier
+// version of this comment claimed the probe trips exactly one rule outright.
+// Three reviewers measured that it also tripped `proposal-missing-from-board`,
+// because `isProbeArtifact` matched only the `__nonvacuity_probe` prefix. The
+// predicate was widened; the claim is now true, and it was not.)
+// An added path the corpus does not load as a live proposal must be reported,
+// not skipped — it is a hole in this rule's own denominator. Added because the
+// rule-id coverage audit below caught it shipping unfixtured, which is the first
+// thing that audit found and the reason it exists.
+function gateCorpusAddedProposalNotLoaded() {
+  mkdirSync(dirname(PROBE_FROZEN_PROPOSAL), { recursive: true })
+  return gateProposalProbe(
+    PROBE_FROZEN_PROPOSAL,
+    '# Proposal 999 — non-vacuity probe\n\n**State:** Draft — probe, in a frozen folder.\n',
+    'corpus/added-proposal-not-loaded',
+    '999',
+  )
+}
+
+// Diff-gating the ADD deliberately leaves the six existing proposals alone, so a
+// record that DOES comply could stop complying silently — measured on proposal
+// 001, which went green with its section renamed away. The sabotage is on a real
+// tracked file because the rule's whole subject is "it had this at the base".
+function gateCorpusCriteriaRegression() {
+  const p001 = join(repoRoot, 'work', 'proposals', '001-md-corpus-rule-coverage.md')
+  const atBase = { EESS_RELEASE_BASE: 'HEAD~1' }
+  const { json, terminal } = withRewrittenFile(
+    p001,
+    (t) => t.replace('## Acceptance Criteria', '## Criteria, renamed away'),
+    () => ({
+      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'], atBase),
+      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')], atBase),
+    }),
+  )
+  const ok =
+    json.code === 1 &&
+    firedOn(json, 'corpus/proposal-lost-its-acceptance-criteria', undefined, '001') &&
+    terminal.code === 1
+  return {
+    ok,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/proposal-lost-its-acceptance-criteria)`,
+  }
+}
+
+function gateCorpusDocsOnlyRulingOwner() {
   return gateProposalProbe(
     PROBE_REMEDY_PROPOSAL,
     '# Proposal 999 — non-vacuity probe\n\n**State:** Draft — probe.\n\n' +
       '## Acceptance criteria\n\nBreak class: this row exists so the probe fires one rule.\n\n' +
       '## Review — 2026-01-01\n\n**Ruling: Docs-only**\n\n' +
       'A remedy named, and no plan or bug declaring Implements against it.\n',
-    'corpus/remedy-ruling-names-no-owner',
+    'corpus/docs-only-ruling-names-no-owner',
     '999',
   )
 }
@@ -1319,7 +1405,13 @@ const gates = [
   ['corpus/promoted-not-dispatchable', gateCorpusPromotedNotDispatchable],
   ['corpus/promoted-has-held-asks', gateCorpusPromotedHasHeldAsks],
   ['corpus/new-proposal-criteria', gateCorpusNewProposalCriteria],
-  ['corpus/remedy-ruling-owner', gateCorpusRemedyRulingOwner],
+  // The in-harness probe rides the UNTRACKED arm of `addedSince`. This one
+  // drives the COMMITTED arm — the only one a pull request uses — against a real
+  // worktree, and pins the `--no-renames` bypass two reviewers measured.
+  ['corpus/new-proposal-criteria-e2e', () => gateNode('bad-corpus-diff-e2e.mjs', 'committed arm')],
+  ['corpus/docs-only-ruling-owner', gateCorpusDocsOnlyRulingOwner],
+  ['corpus/added-proposal-not-loaded', gateCorpusAddedProposalNotLoaded],
+  ['corpus/criteria-regression', gateCorpusCriteriaRegression],
   ['corpus/proposal-diff-base', gateCorpusDiffBaseUnresolved],
   ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
   ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
@@ -1441,7 +1533,10 @@ const GATE_FOR = {
     'corpus/promoted-not-dispatchable',
     'corpus/promoted-has-held-asks',
     'corpus/new-proposal-criteria',
-    'corpus/remedy-ruling-owner',
+    'corpus/new-proposal-criteria-e2e',
+    'corpus/docs-only-ruling-owner',
+    'corpus/added-proposal-not-loaded',
+    'corpus/criteria-regression',
     'corpus/proposal-diff-base',
     'corpus/proposal-implements-discriminates',
     'corpus/plan-implements-unparseable',
@@ -1566,6 +1661,36 @@ for (const [name, run] of gates) {
     res.status ??
     (res.ok ? 'OK (fails on violating input)' : 'FAILED (did not fail on violating input)')
   console.log(`nonvacuity: ${name} — ${status} · ${res.detail}`)
+}
+
+// ---- every rule id `check-corpus.mjs` can emit carries a fixture -----------
+//
+// Plan 0218's review: the claim "18 of 18 rule ids fixtured" was true when made
+// and had NO MECHANISM — it was audited by hand, twice, with a regex that was
+// wrong both times. `gateCoverage()` asserts per-SCRIPT, so a nineteenth rule id
+// inside an already-covered script ships unfixtured and this harness still
+// reports "N fixtures each fired". That already happened once (three rule ids
+// behind one fixture, recorded above).
+//
+// Reading the SOURCE for emitted ids and the RUN for asserted ones is deliberate:
+// the two halves must come from different places or the audit proves nothing.
+for (const [script, ids] of Object.entries(GATE_NODE_RULE_IDS))
+  for (const id of ids) ASSERTED_RULE_IDS.add(id)
+
+const corpusSource = readFileSync(join(repoRoot, 'scripts', 'check-corpus.mjs'), 'utf8')
+const emittedRuleIds = new Set([...corpusSource.matchAll(/'(corpus\/[a-z-]+)'/g)].map((m) => m[1]))
+const unfixturedRuleIds = [...emittedRuleIds].filter((id) => !ASSERTED_RULE_IDS.has(id)).sort()
+if (unfixturedRuleIds.length > 0) {
+  allOk = false
+  console.log(
+    `nonvacuity: rule-id coverage — FAILED · check-corpus.mjs can emit ${unfixturedRuleIds.length} ` +
+      `rule id(s) no fixture asserts on: ${unfixturedRuleIds.join(', ')}`,
+  )
+} else {
+  console.log(
+    `nonvacuity: rule-id coverage — OK · all ${emittedRuleIds.size} rule ids check-corpus.mjs ` +
+      'can emit are asserted by a fixture',
+  )
 }
 
 // Bug 0127: "gates each failed" over-claimed — most fixtures prove their own

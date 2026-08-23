@@ -100,31 +100,77 @@ export function resolveBaseRef(env = process.env) {
 /**
  * Repo-relative paths ADDED since the merge base, matching `prefix`.
  *
- * The union of two things, because either alone is a half-answer:
+ * The union of three things, because each alone is a half-answer:
  *
  *  - additions COMMITTED between the merge base and HEAD — what CI sees on a
  *    pull request, and the only half that matters there;
+ *  - the INDEX — staged but not yet committed, the window a pre-commit hook and
+ *    `check:fast` run in, invisible to both other halves;
  *  - files present in the working tree and not yet tracked — what a local
- *    `npm run validate` sees BEFORE you commit, which is when a missing section
- *    is cheapest to add.
+ *    `npm run validate` sees before `git add`.
+ *
+ * `--no-renames` is mandatory, not stylistic. With rename detection on — git's
+ * default — a genuinely new file arrives as `R` whenever the same change deletes
+ * a similar one, and `--diff-filter=A` then reports nothing. Two reviewers
+ * measured that independently against the proposals gate: `git mv` an existing
+ * proposal to a new number and the rule examined zero. `check-release.mjs` has
+ * passed `--no-renames` for this reason since it was written; the two consumers
+ * of this module must not disagree about it.
+ *
+ * NOTE for callers: with `--no-renames`, a move WITHIN `prefix` (promoting a
+ * proposal into `promoted/`) also reports as an addition. That is correct at
+ * this layer — the path is new — and wrong for a caller asking "is this a new
+ * SUBJECT". Such a caller pairs this with {@link pathsAt} and excludes by its
+ * own identity, not by path.
  *
  * `--others` is deliberately NOT passed `--exclude-standard`: callers filter by
  * `prefix`, and inside a corpus directory the ignored files are the non-vacuity
  * harness's own probes, which a caller must be able to see in order to fixture
  * this at all. Outside that prefix nothing is returned, so `node_modules` and
- * `dist` never arrive here.
+ * `dist` never arrive here — and the pathspec, not a post-filter, is what keeps
+ * that cheap (unscoped, `--others` walks every untracked path in the repo).
  */
 export function addedSince(mergeBase, prefix) {
-  const committed = git('diff', '--name-status', '--diff-filter=A', mergeBase, 'HEAD', '--', prefix)
+  const committed = git(
+    'diff',
+    '--name-status',
+    '--no-renames',
+    '--diff-filter=A',
+    mergeBase,
+    'HEAD',
+    '--',
+    prefix,
+  )
     .split('\n')
     .filter((l) => l !== '')
     .map((l) => l.split('\t')[1])
-  // SCOPED to `prefix` as a pathspec, not filtered afterwards. Unscoped,
-  // `--others` walks every untracked file in the repo — measured 16,204 here,
-  // almost all of them `node_modules` — on every single run of this gate, which
-  // took the non-vacuity harness from seconds to minutes before it was caught.
+  const staged = git(
+    'diff',
+    '--cached',
+    '--name-only',
+    '--no-renames',
+    '--diff-filter=A',
+    '--',
+    prefix,
+  ).split('\n')
   const untracked = git('ls-files', '--others', '--', prefix).split('\n')
-  return [...new Set([...committed, ...untracked])].filter(
+  return [...new Set([...committed, ...staged, ...untracked])].filter(
     (p) => p !== undefined && p !== '' && p.startsWith(prefix),
   )
+}
+
+/** Repo-relative paths that existed at `ref` under `prefix`. */
+export function pathsAt(ref, prefix) {
+  return git('ls-tree', '-r', '--name-only', ref, '--', prefix)
+    .split('\n')
+    .filter((l) => l !== '')
+}
+
+/** A file's content at `ref`, or undefined when it did not exist there. */
+export function contentAt(ref, path) {
+  try {
+    return git('show', `${ref}:${path}`)
+  } catch {
+    return undefined // absent at that ref; that is the answer, not an error
+  }
 }

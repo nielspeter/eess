@@ -152,7 +152,7 @@ or diagrams, run the relevant gate and fix what it reports:
   (`npx changeset`), or an explicit `'@nielspeter/eess-<x>': none` if the change
   ships nothing a consumer can observe. Tests and package-local docs count as
   changes — the definition is changesets' own, and declining the bump is your
-  call to declare, not the tool's to guess. This is the only gate that reads a
+  call to declare, not the tool's to guess. This is one of two gates that read a
   **base ref**: `EESS_RELEASE_BASE`, else the PR's target, else `origin/main`,
   else `main`, and it hard-errors rather than pretending nothing changed, so a
   shallow clone fails loudly (CI needs `fetch-depth: 0`).
@@ -226,7 +226,7 @@ that answers vacuity for a rule is `examined` (ADR-010), which the floor reads a
 no CLI currently prints. **That half of [bug 0174](./work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)
 is still open**, and it is the half that matters: a green `check:arch` with a
 denominator is evidence that its rules were _declared_, not that any of them
-examined anything. For that, run the suite, `check:nonvacuity` (43 fixtures), or
+examined anything. For that, run the suite, `check:nonvacuity` (it prints its own count), or
 `check:vacuity`.
 
 These summaries print to **stderr in terminal format only**, so `--format json` /

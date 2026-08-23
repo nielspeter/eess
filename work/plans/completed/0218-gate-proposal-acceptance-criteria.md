@@ -2,11 +2,13 @@
 
 ## Status
 
-- **State:** Done — built and closed 2026-08-23. Both rules ship diff-gated / corpus-gated
-  as designed, each with its own fixture, and the corpus gate is now 18 of 18 rule ids
-  fixtured. `Deferred: none`. Split out of
-  [plan 0216](./0216-dogfood-the-proposals-lane.md); filed as decision-blocked and
-  it was not — one more pass found the option that needed no decision.
+- **State:** Done — built, reviewed and closed 2026-08-23, **after a five-lens review found
+  a fail-open in the first version**. Three content rules and a config finding now ship, each
+  fixtured, and rule-id coverage is no longer a claim: `check:nonvacuity` derives it and
+  fails when a rule id has no fixture. `Deferred: bug 0221` (the kernel's `diffAware()`, which
+  cannot tell "nothing changed" from "wrong base"). Split out of
+  [plan 0216](./0216-dogfood-the-proposals-lane.md); filed as decision-blocked and it was
+  not — one more pass found the option that needed no decision.
 - **Priority:** Medium — `PROPOSALS.md` requires the section and nothing checks it, but
   unlike 0216's items the miss has no measured live consequence yet.
 - **Effort:** Small–Medium. Both rules are script-local in `scripts/check-corpus.mjs` —
@@ -202,16 +204,83 @@ Reserved for the author, like the two above.
       that reads the corpus, which is why the two together are never both empty.
 - [x] `npm run validate` exit 0; `check:release` still green on the extracted module.
 
+## What shipped is weaker than "What the rule can honestly assert", deliberately
+
+That section above specifies the structural form worth having as **section plus a table with
+named columns**, via `haveTableRowsSatisfying`, "so it cannot be satisfied by a bare heading
+with three words under it". **The table half did not ship.** What ships is heading presence,
+so an empty `## Acceptance criteria` clears rule 1.
+
+That is a defensible Tier-1 check and an honest one only if it says so, which is what three
+reviewers found it did not. Two consequences, both now in the code:
+
+- every violation carries a `because` that states the limit outright — _"this rule proves
+  only that the heading EXISTS — it does not read what is under it, so an empty section
+  satisfies it"_;
+- the `suggestion` still asks for the break class, because that is what an author should
+  write; the `because` is what stops the pair from over-claiming together.
+
+Left undone on purpose: the table check itself. It needs a column vocabulary this lane has
+never used, and inventing one to satisfy a plan's own prose is the wrong order. Recorded here
+rather than as a silent scale-back, because the plan closed `Deferred: none` once already
+with this paragraph unamended.
+
 ## What building it changed about the plan
 
-**The performance bug is worth recording, because the fix looked free and was not.** Rule 1
-needs to see proposals added but not yet committed — that is when a missing section is
-cheapest to add — so `addedSince` unions committed additions with `git ls-files --others`.
-Unscoped, that walks every untracked file in the repo: **16,204 here**, almost all of them
-`node_modules`, on every run of the gate. It took the non-vacuity harness from seconds to
-over two minutes before it was caught. Passing the prefix as a **pathspec** rather than
-filtering afterwards fixes it; the count is now 0 outside a fixture run. A filter that runs
-after the walk is not the same as a walk that never happens.
+**A performance bug, and a measurement of it that was itself wrong.** Rule 1 needs to see
+proposals added but not yet committed — that is when a missing section is cheapest to add —
+so `addedSince` unions committed additions with `git ls-files --others`. Unscoped, that walks
+every untracked path in the repo: **16,204 here**, almost all `node_modules`, on every run of
+the gate. Passing the prefix as a **pathspec** rather than filtering afterwards fixes it, and
+the lesson stands: a filter that runs after the walk is not the same as a walk that never
+happens.
+
+> **The first version of this paragraph said it "took the non-vacuity harness from seconds to
+> over two minutes". That is false, and review measured it.** The unscoped call costs
+> **0.12s** against **0.02s** scoped — ~100ms per gate run, a few seconds across the whole
+> harness. And the harness on `main`, containing none of this code, **already takes 1:48**.
+> The baseline was never seconds. What actually happened is that a 120-second shell timeout
+> fired and I attributed it to my own change without measuring the harness first. An
+> unmeasured before/after, in a closed record, in the plan that ships a gate against
+> unfalsifiable claims — recorded rather than quietly deleted.
+
+## What the review found, and it was the half that runs in CI
+
+Five lenses. Two found the same Critical independently, from different angles, and I had
+reproduced it before either landed.
+
+**Rule 1 fell open on a rename.** `git diff --diff-filter=A` runs with rename detection on by
+default, so `git mv` an existing proposal to a **new number** arrives as `R` and the rule
+examined nothing — measured, `0 added`, green. `check-release.mjs` has passed `--no-renames`
+since it was written, for this exact reason, three lines from the import this plan added.
+
+`--no-renames` alone is the wrong fix and that is why it needed thought: promotion is a
+`git mv` **within** the prefix, so with the flag it becomes an addition — and since none of
+the six existing proposals carries a level-2 section, the next promotion would red. The fix
+keys on the proposal **number**: `--no-renames` for the file list, then drop any path whose
+number already resolved at the merge base. Verified both ways — the rename now reds, the
+promotion does not.
+
+**And the arm that runs in CI had no fixture.** Both in-harness probes plant an _untracked_
+file, so they rode `ls-files --others` only. Delete the committed arm entirely and the
+harness stayed green — while the committed arm is the only one a pull request uses.
+`bad-corpus-diff-e2e.mjs` now drives it against a real worktree with a real commit, and pins
+the rename case; deleting the arm makes that fixture fail.
+
+**Three more, each fixed:**
+
+- **A regression was invisible.** Diff-gating the _add_ meant a proposal that complied could
+  silently stop. `proposal-lost-its-acceptance-criteria` fires only for records that had the
+  section, so it cannot red 003 or 006 — which is why the narrow form beats `--diff-filter=AM`.
+- **`0 added` could not be told from "could not look".** The gate runs on push to `main`,
+  where merge-base _is_ HEAD. The summary now distinguishes all three zeros by name.
+- **A silent `continue` sat on the denominator** — the same shape this file converts into a
+  finding 250 lines earlier. Now `corpus/added-proposal-not-loaded`.
+
+**The audit that was a claim is now a mechanism.** "18 of 18 rule ids fixtured" had none — I
+checked it by hand, twice, with a regex wrong both times. `check:nonvacuity` now reads the
+emitted ids from the gate's source and the asserted ids from the run, and fails on any gap.
+**It caught an unfixtured rule on its first execution** — one I had added an hour earlier.
 
 ## Out of Scope
 
