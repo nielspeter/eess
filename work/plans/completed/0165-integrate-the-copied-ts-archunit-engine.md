@@ -48,7 +48,7 @@ literal blanking, 0155 the assertion gate,
 `fork()`'s condition-clear,
 [0157](../../bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)
 `overrideFindings`,
-[0158](../../bugs/0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md)
+[0158](../../bugs/fixed/0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md)
 undocumented-fails-closed,
 [0159](../../bugs/0159-violation-identities-collide-across-distinct-findings.md)
 `disambiguateIdentities`,

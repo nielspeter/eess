@@ -127,13 +127,18 @@ function parseRuleIdsAndReason(content: string): { ruleIds: string[]; reason: st
 
 /** Handle a block-end directive line. */
 function handleBlockEnd(
-  openBlocks: Map<string, ExclusionComment>,
+  openBlocks: ExclusionComment[][],
   exclusions: ExclusionComment[],
   warnings: ExclusionWarning[],
   filePath: string,
   lineNum: number,
 ): void {
-  if (openBlocks.size === 0) {
+  // Bug 0158: pop the INNERMOST frame. Closing every open block meant an inner
+  // `-end` silently ended the outer one, so the outer waiver stopped applying
+  // partway through the region it was written for — two wrong results from one
+  // input, and neither reported.
+  const frame = openBlocks.pop()
+  if (frame === undefined) {
     warnings.push({
       message: `eess-exclude-end without matching start`,
       file: filePath,
@@ -142,11 +147,10 @@ function handleBlockEnd(
     return
   }
 
-  for (const [, comment] of openBlocks) {
+  for (const comment of frame) {
     comment.endLine = lineNum
     exclusions.push(comment)
   }
-  openBlocks.clear()
 }
 
 /** Emit undocumented-exclusion warnings for each rule ID when no reason is given. */
@@ -172,35 +176,31 @@ function warnUndocumented(
 /** Handle a block-start directive line. */
 function handleBlockStart(
   content: string,
-  openBlocks: Map<string, ExclusionComment>,
+  openBlocks: ExclusionComment[][],
   warnings: ExclusionWarning[],
   filePath: string,
   lineNum: number,
 ): void {
-  if (openBlocks.size > 0) {
-    warnings.push({
-      message: `Nested eess-exclude-start — close existing block first`,
-      file: filePath,
-      line: lineNum,
-    })
-    return
-  }
-
   const { ruleIds, reason } = parseRuleIdsAndReason(content)
 
   if (reason === '') {
     warnUndocumented(warnings, ruleIds, 'eess-exclude-start', filePath, lineNum)
+    return
   }
 
-  for (const ruleId of ruleIds) {
-    openBlocks.set(ruleId, {
+  // Bug 0158: nesting is supported rather than refused. Blocks are a STACK, not
+  // a map keyed by rule id — the map dropped an inner `-start` outright, and a
+  // second start for the same id overwrote the first. One `-start` pushes one
+  // frame, whatever number of ids it names.
+  openBlocks.push(
+    ruleIds.map((ruleId) => ({
       ruleId,
       reason,
       file: filePath,
       line: lineNum,
       isBlock: true,
-    })
-  }
+    })),
+  )
 }
 
 /** Handle a single-line exclude directive. */
@@ -216,8 +216,14 @@ function handleSingleLine(
 
   const { ruleIds, reason } = parseRuleIdsAndReason(content)
 
+  // Bug 0158: the grammar documents `<rule-id>: <reason>`, and a reason-free
+  // directive used to suppress anyway with only a line on stderr. A waiver that
+  // states no justification silencing a real finding while the build exits 0 is
+  // the same class as a waiver nobody wrote — the requirement is enforced, not
+  // announced.
   if (reason === '') {
     warnUndocumented(warnings, ruleIds, 'eess-exclude', filePath, lineNum)
+    return
   }
 
   for (const ruleId of ruleIds) {
@@ -252,7 +258,7 @@ export function parseExclusionComments(sourceText: string, filePath: string): Pa
   const htmlApply = htmlFormsApply(filePath)
   const exclusions: ExclusionComment[] = []
   const warnings: ExclusionWarning[] = []
-  const openBlocks = new Map<string, ExclusionComment>()
+  const openBlocks: ExclusionComment[][] = []
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -290,12 +296,14 @@ export function parseExclusionComments(sourceText: string, filePath: string): Pa
   }
 
   // Any unclosed blocks are errors
-  for (const [, comment] of openBlocks) {
-    warnings.push({
-      message: `eess-exclude-start without matching end for rule '${comment.ruleId}'`,
-      file: filePath,
-      line: comment.line,
-    })
+  for (const frame of openBlocks) {
+    for (const comment of frame) {
+      warnings.push({
+        message: `eess-exclude-start without matching end for rule '${comment.ruleId}'`,
+        file: filePath,
+        line: comment.line,
+      })
+    }
   }
 
   return { exclusions, warnings }
