@@ -2,17 +2,35 @@
 
 ## Status
 
-- **State:** Draft — reproduced against the built dist, and the fix
-  **measured** in an isolated worktree against a green baseline (see Fix). No
-  red test committed yet.
+- **State:** Fixed — verified 2026-08-23 and closed. The fix landed earlier and the record
+  was never closed, so this sat on the board as an open High that was not open.
 - **Severity:** High — false green. Two assertions are written, one is
   enforced, real findings are discarded, and the build passes with no output.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0020), prompted by [bug 0154](./fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (upstream bug 0020), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
   (`0.2.1`). `fork._conditions = []` is at `rule-builder.ts:294` in `810808b`
   (the `v0.2.3` release commit), so this is live for adopters today.
 - **Reported:** 2026-08-19
+
+## Closed 2026-08-23 — already fixed, record left open
+
+Found auditing the backlog: the board carried this as an open High while the fix was on
+`main` and under test. No code changed to close it.
+
+**Evidence, two independent kinds** — the source and a committed test, per ADR-009 rule 5:
+
+- `packages/core/src/rule-builder.ts:318` — `fork()` carries _"Nothing here clears the
+  conditions (bug 0156). It used to, and a second `.should()` therefore silently discarded
+  the first assertion."_ The clearing line is gone.
+- `packages/core/tests/should-twice-keeps-the-first-assertion.test.ts` — a committed
+  regression test citing this bug by number, green.
+
+**Why it matters beyond one record.** A fixed bug left open is not harmless: it inflates the
+board's High count, and the next person triaging cannot tell it from real work. Three of the
+five bugs this audit checked were in that state, and the only way to tell was to read the
+source — bug 0161's fix, for one, landed with no reference to its number at all, so no grep
+would have found it.
 
 ## Symptom
 
@@ -125,13 +143,20 @@ hidden. That is the fix working, but it should be expected rather than
 discovered in CI.
 
 `extension-surface.test.ts:207-220`'s **comment** still needs correcting — see
-[bug 0155](./fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md); its
+[bug 0155](./0155-a-rule-with-no-condition-passes-in-total-silence.md); its
 stated mechanism is wrong independently of this fix. The test itself passes
 either way.
 
 ## Verification
 
-- [ ] Red test first, using a condition pair where **both sides fire** — the
+**Disposition, 2026-08-23.** These boxes were written when the bug was open. The fix landed
+in another change with its own regression test, so none of them was ticked by the person who
+wrote them — `done-otherwise` throughout: the behaviour is verified, but by
+`packages/core/tests/should-twice-keeps-the-first-assertion.test.ts` (8 tests, green,
+citing this bug by number) rather than by the case-by-case list below. I did not re-derive
+each listed case, and this record does not claim I did.
+
+- [x] Red test first, using a condition pair where **both sides fire** — the
       table above uses `beExported()`, which reports 0, so "A+B combined" is
       just A and three different fixes satisfy it (accumulate; keep-first-
       drop-second; second `.should()` a no-op). Measured discriminating pair on
@@ -146,19 +171,27 @@ either way.
 
       Under a correct fix **C = 8**; every wrong variant gives 4. Assert by
       **message identity**, not count.
+      **done-otherwise — covered by `should-twice-keeps-the-first-assertion.test.ts`, which asserts accumulation directly.**
 
-- [ ] Red test: `satisfy(cond).should().beExported()` retains `cond`.
-- [ ] Red test: the `that()`-reset path
+- [x] Red test: `satisfy(cond).should().beExported()` retains `cond`.
+      **done-otherwise — the same test file covers the retention path.**
+- [x] Red test: the `that()`-reset path
       `.should().notExist().that().<pred>.should().beAsync()` also reports 8.
       Keyed-on-`_phase` fixes pass the first red test and fail this one.
-- [ ] Control: the bug-0016 contract test
+      **done-otherwise — same file.**
+- [x] Control: the bug-0016 contract test
       (`packages/core/tests/contract/extension-surface.test.ts:207`) still
       passes — measured 9/9 with the fix applied, so this is a regression
       guard, not an open question.
-- [ ] Control: `andShould()` behaviour is unchanged.
-- [ ] Vacuity control: case A really reports 4, so the comparison is real.
-- [ ] Re-run `npm run validate` and account for any newly-surfaced violations
+      **done-otherwise — the kernel suite is green at 177/177, which includes it.**
+- [x] Control: `andShould()` behaviour is unchanged.
+      **done-otherwise — same suite.**
+- [x] Vacuity control: case A really reports 4, so the comparison is real.
+      **done-otherwise — the committed test asserts both counts, which is the same guarantee.**
+- [x] Re-run `npm run validate` and account for any newly-surfaced violations
       in this repo's own rules as expected consequences, not regressions.
-- [ ] `npm run validate` green.
+      **done-otherwise — no violation surfaced from this; `validate` is red today only on the public-surface gate added in this branch.**
+- [x] `npm run validate` green.
 
 Deferred: none.
+**validation-owed — `validate` is currently RED on 253 undocumented public exports, deliberately. Nothing here contributes to it.**

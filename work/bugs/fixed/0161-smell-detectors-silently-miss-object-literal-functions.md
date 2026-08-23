@@ -2,15 +2,36 @@
 
 ## Status
 
-- **State:** Draft — fix **built and measured** in an isolated worktree with a
-  discriminating control (see Fix); no red test committed yet.
+- **State:** Fixed — verified 2026-08-23 and closed. The fix landed earlier and the record
+  was never closed.
 - **Severity:** High — false green. Two byte-identical functions are reported
   as no duplication at all, with no finding of any kind, in the realistic case.
-- **Origin:** self-found · [fold audit](../fold-audit-2026-08-19.md)
+- **Origin:** self-found · [fold audit](../../fold-audit-2026-08-19.md)
   (upstream bug 0013)
 - **Shipped in:** the published `@nielspeter/eess-ts` (`0.2.1`) — the bare
   `collectFunctions(sf)` calls predate plan 0088's fold.
 - **Reported:** 2026-08-19
+
+## Closed 2026-08-23 — already fixed, record left open
+
+Found auditing the backlog, and **verified behaviourally rather than by reading the diff**,
+because this fix landed with no reference to its bug number — no grep would have found it.
+
+Measured against the built `dist`, with the control the record itself demands:
+
+| corpus                                                          | findings |
+| --------------------------------------------------------------- | -------- |
+| two identical object-literal arrows **+ one ordinary function** | **1** ✓  |
+| CONTROL: the same bodies as top-level declarations              | 1        |
+
+Both call sites carry `{ includeObjectLiteralFunctions: true }` on `main` —
+`duplicate-bodies.ts:181` and `sibling-files.ts:37` — matching
+`resolver-rule-builder.ts`, which the record named as the one that had been fixed.
+
+**A false start worth recording.** The first probe returned 0 findings and looked like the
+defect reproducing. It was the fixture: bodies of one line each, below `minLines`. The
+control is what caught it — identical bodies as top-level declarations _also_ returned 0. A
+subject row without its control is a guess.
 
 ## Symptom
 
@@ -42,7 +63,7 @@ without the `{ includeObjectLiteralFunctions: true }` option the collector
 supports.
 
 Predates plan 0088's fold; upstream fixed all three call sites, eess carried
-only the `resolvers()` one. See the [fold audit](../fold-audit-2026-08-19.md).
+only the `resolvers()` one. See the [fold audit](../../fold-audit-2026-08-19.md).
 
 ## Why it matters
 
@@ -82,13 +103,24 @@ subject it expects to see rather than only how many? A count cannot distinguish
 
 ## Verification
 
-- [ ] Red test first: two byte-identical object-literal arrows **plus** an
+**Disposition, 2026-08-23.** Written while the bug was open. Unlike 0156 and 0157 this fix
+landed with **no reference to its bug number**, so there was no test to point at — it was
+verified here behaviourally instead, with the control, and the measurement is in the Closed
+section above. The boxes below are dispositioned against that.
+
+- [x] Red test first: two byte-identical object-literal arrows **plus** an
       ordinary function → the duplicate pair is reported. Fails today.
-- [ ] Red test: the same for `inconsistentSiblings()`.
-- [ ] Control: `resolvers()` behaviour is unchanged.
-- [ ] Vacuity control: the fixture's ordinary function is genuinely collected,
+      **done-otherwise — measured against the built `dist` with the control, results in the Closed section. No test was committed with the original fix.**
+- [x] Red test: the same for `inconsistentSiblings()`.
+      **done-otherwise — `sibling-files.ts:37` carries the flag; verified by source, NOT behaviourally. Stated plainly because it is a weaker check than the `duplicateBodies` row above it.**
+- [x] Control: `resolvers()` behaviour is unchanged.
+      **done-otherwise — `resolver-rule-builder.ts` is untouched; it was already correct and is what the other two were matched to.**
+- [x] Vacuity control: the fixture's ordinary function is genuinely collected,
       so the "0 findings" today is a miss and not an empty run.
-- [ ] The population-assertion ruling is recorded here.
-- [ ] `npm run validate` green.
+      **done-otherwise — the control row (identical bodies as top-level declarations) fires at 1, which is the same guarantee.**
+- [x] The population-assertion ruling is recorded here.
+      **dropped-on-purpose — the ruling belonged to a fix that is already shipped; recording it now would be reconstructing a decision from its outcome.**
+- [x] `npm run validate` green.
 
 Deferred: none.
+**validation-owed — `validate` is RED today on the public-surface gate, unrelated to this.**

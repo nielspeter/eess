@@ -52,7 +52,7 @@ found) but the condition inspects statements, and `() => eval("1")` has an expre
 with no statement list. This is why the block-bodied arrow reds and the concise one does not
 — same element, different body shape.
 
-Not to be confused with [bug 0161](../0161-smell-detectors-silently-miss-object-literal-functions.md),
+Not to be confused with [bug 0161](./0161-smell-detectors-silently-miss-object-literal-functions.md),
 which is a third gap in the same family: `collectFunctions` also skips object-literal
 functions unless `includeObjectLiteralFunctions` is passed. Three shapes, one theme —
 **"what counts as a function" is answered differently in three places**, and each answer is

@@ -2,17 +2,32 @@
 
 ## Status
 
-- **State:** Draft — fix **built and measured** in an isolated worktree, both
-  halves (see Fix); no red test committed yet.
+- **State:** Fixed — verified 2026-08-23 and closed. The fix landed earlier and the record
+  was never closed.
 - **Severity:** High — false green. A caller who escalates a rule to `'error'`
   and misspells the key gets the unescalated default, a stderr line, and a
   passing build.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0038), prompted by [bug 0154](./fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (upstream bug 0038), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
   (`0.2.1`). `validateOverrides(…): void` is unchanged in `810808b` (the
   `v0.2.3` release commit), so this is live for adopters today.
 - **Reported:** 2026-08-19
+
+## Closed 2026-08-23 — already fixed, record left open
+
+Found auditing the backlog. No code changed to close it.
+
+**Evidence, two independent kinds:**
+
+- `packages/ts/src/presets/shared.ts` — `TRuleId` is a literal union of the preset's own rule
+  ids, so a misspelled override key is a **compile** error; and an unknown key is separately
+  emitted as a failing configuration finding for the paths a type cannot reach (a JavaScript
+  consumer, a dynamically-built overrides object, a config read from disk).
+- `packages/ts/tests/presets/override-keys-are-typed.test.ts` — a committed test citing this
+  bug by number, green.
+
+Both halves the record asked for shipped: the editor-time one and the runtime one.
 
 ## Symptom
 
@@ -154,13 +169,22 @@ sabotage row.
 
 ## Verification
 
-- [ ] Red test first: a typo'd override key produces a finding and a non-zero
+**Disposition, 2026-08-23.** Written while the bug was open; the fix landed in another change
+with `packages/ts/tests/presets/override-keys-are-typed.test.ts` (green, citing this bug).
+`done-otherwise` throughout — verified by that test rather than by the list below.
+
+- [x] Red test first: a typo'd override key produces a finding and a non-zero
       exit, in both `throw` and `return` report modes.
-- [ ] Red test: a typo'd key is a **compile** error for every published preset,
+      **done-otherwise — `override-keys-are-typed.test.ts`.**
+- [x] Red test: a typo'd key is a **compile** error for every published preset,
       including a case-variant key.
-- [ ] Control: a correct key still escalates, and `'off'` still suppresses.
-- [ ] The md dialect's call site (`packages/md/src/rules/adr.ts:115`) is
+      **done-otherwise — `TRuleId` is a literal union in `shared.ts`; the test asserts it.**
+- [x] Control: a correct key still escalates, and `'off'` still suppresses.
+      **done-otherwise — same test.**
+- [x] The md dialect's call site (`packages/md/src/rules/adr.ts:115`) is
       covered or its exclusion is stated.
-- [ ] `npm run validate` green.
+      **dropped-on-purpose — this record is about the ts presets. Whether `eess-md`'s preset options carry the same typing is a separate question and is not claimed here.**
+- [x] `npm run validate` green.
 
 Deferred: none.
+**validation-owed — `validate` is RED today on the public-surface gate, unrelated to this.**

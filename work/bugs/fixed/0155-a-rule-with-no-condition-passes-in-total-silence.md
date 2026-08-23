@@ -149,7 +149,7 @@ Two consequences:
   is weaker than the citation implies: the test does exercise the copy-on-write
   contract, but its final assertion currently proves nothing.
 
-See [bug 0156](../0156-should-twice-silently-drops-the-first-assertion.md).
+See [bug 0156](./0156-should-twice-silently-drops-the-first-assertion.md).
 An intermediate draft claimed the two fixes were _entangled_ — that 0156 could
 not be fixed without first settling `fork()` semantics. **That is not so:**
 0156's fix is measured, one line, and leaves this contract test passing 9/9.

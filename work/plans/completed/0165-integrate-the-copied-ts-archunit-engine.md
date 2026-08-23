@@ -44,9 +44,9 @@ With upstream's source in place, **3353 of 3419 tests pass**.
 It also resolves, in one move, eight bugs filed and half-fixed on 2026-08-19 —
 [0154](../../bugs/fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 literal blanking, 0155 the assertion gate,
-[0156](../../bugs/0156-should-twice-silently-drops-the-first-assertion.md)
+[0156](../../bugs/fixed/0156-should-twice-silently-drops-the-first-assertion.md)
 `fork()`'s condition-clear,
-[0157](../../bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)
+[0157](../../bugs/fixed/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)
 `overrideFindings`,
 [0158](../../bugs/fixed/0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md)
 undocumented-fails-closed,
@@ -54,7 +54,7 @@ undocumented-fails-closed,
 `disambiguateIdentities`,
 [0160](../../bugs/0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)
 `within()`'s restructure, and
-[0161](../../bugs/0161-smell-detectors-silently-miss-object-literal-functions.md)
+[0161](../../bugs/fixed/0161-smell-detectors-silently-miss-object-literal-functions.md)
 object-literal collection — all verified present in the copied source.
 
 ## What the baseline is, precisely

@@ -137,12 +137,12 @@ touched.)
 | ---------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
 | 0043             | [0154](./bugs/fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)     | a directive inside a string literal suppresses a real violation |
 | 0019             | [0155](./bugs/fixed/0155-a-rule-with-no-condition-passes-in-total-silence.md)                    | a rule with subjects and no condition passes silently           |
-| 0020             | [0156](./bugs/0156-should-twice-silently-drops-the-first-assertion.md)                           | a second `.should()` discards the first assertion               |
-| 0038             | [0157](./bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)                   | a typo'd preset override key is silently ignored                |
+| 0020             | [0156](./bugs/fixed/0156-should-twice-silently-drops-the-first-assertion.md)                     | a second `.should()` discards the first assertion               |
+| 0038             | [0157](./bugs/fixed/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)             | a typo'd preset override key is silently ignored                |
 | 0039             | [0158](./bugs/fixed/0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md)       | a reason-free directive suppresses and only warns               |
 | 0064, 0067, 0065 | [0159](./bugs/0159-violation-identities-collide-across-distinct-findings.md)                     | distinct findings share one identity                            |
 | 0054             | [0160](./bugs/0160-within-creates-an-import-cycle-and-nothing-watches-for-cycles.md)             | `within()` cycle, and no cycle rule exists                      |
-| 0013             | [0161](./bugs/0161-smell-detectors-silently-miss-object-literal-functions.md)                    | smells never collect object-literal functions                   |
+| 0013             | [0161](./bugs/fixed/0161-smell-detectors-silently-miss-object-literal-functions.md)              | smells never collect object-literal functions                   |
 | 0023             | [0162](./bugs/0162-a-folder-glob-in-strictboundaries-shared-falsely-flags-with-no-diagnostic.md) | a folder-shaped `shared` glob falsely flags, silently           |
 | 0029             | [0163](./bugs/0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)             | config finding printed twice; ADR-008's gated row defeated      |
 
@@ -157,7 +157,7 @@ touched.)
 > missing diagnostics, coverage gaps, narrower divergences) stays here until
 > picked up.
 
-By that rule, upstream 0013 → [bug 0161](./bugs/0161-smell-detectors-silently-miss-object-literal-functions.md),
+By that rule, upstream 0013 → [bug 0161](./bugs/fixed/0161-smell-detectors-silently-miss-object-literal-functions.md),
 0023 → [bug 0162](./bugs/0162-a-folder-glob-in-strictboundaries-shared-falsely-flags-with-no-diagnostic.md),
 and 0029 → [bug 0163](./bugs/0163-a-config-finding-prints-twice-defeating-adr-008s-gated-clause.md)
 were moved out of this list and filed. What remains below produces no wrong
