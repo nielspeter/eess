@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-08-23; fix not built.
+- **State:** Fixed — red test first, both causes fixed, all five shapes verified through the
+  real gate. `Deferred: none`.
 - **Priority:** High — `recommended` is the preset every adopter installs, described in
   `scripts/check-baseline.mjs` as "the universal safety floor every consumer gets, applied to
   us". Two ordinary TypeScript shapes pass straight through it, and this repo's own
@@ -51,7 +52,7 @@ found) but the condition inspects statements, and `() => eval("1")` has an expre
 with no statement list. This is why the block-bodied arrow reds and the concise one does not
 — same element, different body shape.
 
-Not to be confused with [bug 0161](./0161-smell-detectors-silently-miss-object-literal-functions.md),
+Not to be confused with [bug 0161](../0161-smell-detectors-silently-miss-object-literal-functions.md),
 which is a third gap in the same family: `collectFunctions` also skips object-literal
 functions unless `includeObjectLiteralFunctions` is passed. Three shapes, one theme —
 **"what counts as a function" is answered differently in three places**, and each answer is
@@ -69,19 +70,55 @@ input — no fixture is silently green`.
 That is the finding behind the finding: a non-vacuity fixture proves a rule can fire, never
 that it fires on everything it claims to cover.
 
-## Fix
+## Fix — built
 
-1. Collect `FunctionExpression` initializers alongside `ArrowFunction` in `collectFunctions`.
-2. Make the body-analysis conditions read a concise arrow body as the single expression it is,
-   rather than an empty statement list.
-3. Fixture **per shape**, not per rule. The five rows in the table above are the test matrix,
-   and they should be a committed fixture so a future collector change cannot silently drop one.
+**Two causes, two changes, and they are not the same kind of defect.**
 
-Whether the same two shapes are missed by the other three floor rules — and by the
-`agentGuardrails` / `strictBoundaries` presets — is unmeasured and part of the fix.
+1. **Traversal** (`packages/ts/src/helpers/body-traversal.ts`). Both match paths walk
+   `descendantsOfKind` / `allDescendants` — **descendants only**. A concise arrow's
+   `getBody()` returns the `CallExpression` _as_ the body, so the node that matters was never
+   tested. `searchFunctionBody` now also tests the body root, **but only when it is not a
+   `Block`**: testing a `Block` root is the over-match the file already warns about, where
+   `expression(/…/)` matches a function's entire body text and turns every body-analysis rule
+   into a whole-declaration one.
+
+2. **Collection** (`packages/ts/src/models/arch-function.ts`). A `VariableDeclaration` whose
+   initializer is a `FunctionExpression` was collected by nothing. `fromArrowVariableDeclaration`
+   is now `fromFunctionInitializerDeclaration` and handles both; the old name is kept as a
+   `@deprecated` alias because it is exported from `index.ts` and removing it would be a
+   break.
+
+**Verified through the real gate**, not just the unit test — the same sabotage matrix that
+found the bug, appended to `packages/core/src/violation.ts` and reverted between runs:
+
+| shape                                        | before | after |
+| -------------------------------------------- | ------ | ----- |
+| `function a() { return eval("1") }`          | red    | red   |
+| `const a = () => { return eval("1") }`       | red    | red   |
+| `const a = () => eval("1")`                  | green  | red   |
+| `const a = function () { return eval("1") }` | green  | red   |
+| `class A { m() { return eval("1") } }`       | red    | red   |
+
+Clean source still exits 0.
+
+**Not fixed here, and named rather than left implicit:** whether the other three `recommended`
+rules and the `agentGuardrails` / `strictBoundaries` presets miss the same shapes. The
+traversal fix is shared, so they very likely improve too — but "likely" is not measured, and
+this record does not claim it.
 
 ## Verification
 
-- [ ] Red first: all five shapes in the Symptom table red for `no-eval`.
-- [ ] The same matrix run against every rule in `recommended`, with the results recorded here.
-- [ ] A committed fixture covering the matrix, so the harness stops proving one shape.
+- [x] **Red first.** `packages/ts/tests/rules/no-eval-function-shapes.test.ts` was written
+      before either fix and failed on exactly two rows — the concise arrow and the function
+      expression — with the other three green. That is the bug, captured before any source
+      changed.
+- [x] All five shapes red through `npm run check:baseline` itself, and clean source still
+      exits 0.
+- [x] **A test per shape, not per rule.** The matrix is the committed fixture, so a future
+      collector or traversal change cannot silently drop a shape the way this one did.
+- [x] No regressions: `packages/ts` was **12 files / 17 tests failing before and after**
+      (those failures are pre-existing on `main`), and the pass count moved 3423 → 3429 —
+      exactly the six new tests.
+- [ ] The same matrix against the other floor rules and the two other presets —
+      `dropped-on-purpose` here, and stated in the Fix section as unmeasured rather than
+      assumed.

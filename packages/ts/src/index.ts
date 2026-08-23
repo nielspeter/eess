@@ -141,6 +141,7 @@ export type { ArchFunction } from './models/arch-function.js'
 export {
   collectFunctions,
   fromFunctionDeclaration,
+  fromFunctionInitializerDeclaration,
   fromArrowVariableDeclaration,
   fromMethodDeclaration,
   fromObjectLiteralFunction,
