@@ -65,13 +65,22 @@ record should not pretend otherwise.
 
 ## Verification
 
-- [ ] Every `shipped` section in `docs/manifesto.md` names a mechanism that runs in CI, or
-      is re-marked. This bug is one instance; the sweep is what closes it honestly.
-- [ ] Proposal 006's Priority rationale is annotated in place (`PROPOSALS.md`'s
-      "Corrections stay in the record"), and plan 0212's derived rationale re-stated.
-- [ ] Consider whether the manifesto's status tokens are checkable at all. A `shipped`
-      section whose worked example is a mermaid fence must name a kind the parser models —
-      that narrow case _is_ Tier-1 checkable, and would have caught this one.
+- [ ] **The one marker.** `## Mermaid Semantic Schemas` carries a status its own section can
+      support — `partial` or `vision` — or its `graph TD` example is replaced by a kind eess
+      models.
+- [x] Proposal 006's Priority rationale annotated in place, and plan 0212's derived rationale
+      re-stated — both done on this branch.
+- [ ] **A break class, or an honest `manual`.** Either build the narrow Tier-1 rule — _a
+      `shipped` section whose worked example is a mermaid fence must name a kind eess has a
+      grammar for_ — with a violating fixture, or record in the manifesto that its status
+      markers are `manual` and no mechanism is claimed. Without one, closing this bug leaves
+      the next `shipped` over-claim equally free, which under ADR-009 is a check that cannot
+      fail.
+
+> An earlier revision of this record was reported as applied and silently did not land, so
+> box 1 kept demanding a manifesto-wide sweep — which is
+> [plan 0075](../plans/0075-manifesto-reconciliation.md)'s job and would have made this bug
+> unclosable. Recorded because it is the same no-op-edit failure this branch hit three times.
 
 ## Out of scope
 

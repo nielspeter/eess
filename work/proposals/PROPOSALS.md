@@ -110,6 +110,23 @@ adoption surface; Low is speculative or demand-driven.
 **A proposal is not evidence of demand.** 002 measured 130 real citations and was
 still declined. An unmeasured ask is a shape, not a signal.
 
+## Disposition — per ask, inside a Ruling
+
+A `Split and sequence` ruling disposes each **ask** separately; the values below are that
+column's vocabulary. Introduced by proposal 006's review and documented here rather than
+deferred, because a word coined in a review and defined nowhere is the drift this lane
+exists to catch.
+
+| Disposition          | Meaning                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `Accepted`           | a plan owns it; the row names that plan                                                     |
+| `Accepted, reshaped` | accepted, but not as asked — the row says what changed and why                              |
+| `Held`               | not rejected and not ready. **The row must state what would unhold it**, or it is a soft no |
+| `Rejected`           | will not be done. The row states the reason, so the ask does not return                     |
+
+A `Held` row with no stated condition, or an `Accepted` row whose owner does not resolve, is
+a defect in the disposition — not a state.
+
 ## Corrections stay in the record
 
 Where a review falsifies a claim, the claim is **annotated in place, not edited

@@ -61,9 +61,10 @@ that carries a fence body into `existsSync`.
 Split the entry point so there is no sniff:
 
 - a **path loader** — reads the file, sets `filePath`;
-- a **source parser** taking `(text, provenance?)` — never touches the filesystem, and
-  takes the `{ file, line }` that [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)'s
-  Ask A2 wants anyway, as a real parameter rather than a re-attribution workaround.
+- a **source parser** taking `(text)` — never touches the filesystem. It gains an optional
+  `provenance` parameter in [plan 0213](../plans/0213-diagram-provenance-for-fence-callers.md),
+  which adds **and consumes** it in one delivery; adding an optional parameter later is
+  additive, so nothing is gained by landing it here unconsumed.
 
 Keep `diagram()` as a deprecated alias if consumers need it, but it must stop
 dispatching on content.
@@ -109,4 +110,4 @@ that costs crossvalidate a version.
 
 - **Consuming the provenance** — attribution arithmetic, removing the workaround, and the
   fixtures are [plan 0213](../plans/0213-diagram-provenance-for-fence-callers.md). This
-  record ships the signature; 0213 makes it do something.
+  record removes the sniff; 0213 adds the parameter and consumes it.

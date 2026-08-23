@@ -77,17 +77,22 @@ relies on, and `CLAUDE.md` states the stronger one.
 > lands, a citation that drifts onto an unrelated line still passes silently. That is the
 > correct trade under ADR-009 (stated-weak beats over-claimed), and it is not a fix.
 
-- [ ] `deferred→ the anchored-citation plan` — red first: a pointer whose line exists but
+- [ ] `dropped-on-purpose` — red first: a pointer whose line exists but
       whose content has nothing to do with the citing prose. All three rows above are
       ready-made fixtures.
 - [ ] `CLAUDE.md`'s description matches what the gate asserts.
-- [ ] `deferred→ the anchored-citation plan` — a citation whose anchor is absent at the
+- [ ] `dropped-on-purpose` — a citation whose anchor is absent at the
       target reds, and the message names the anchor and what is actually there.
-- [ ] `deferred→ the anchored-citation plan` — a break class in `scripts/nonvacuity/`; an
+- [ ] `dropped-on-purpose` — a break class in `scripts/nonvacuity/`; an
       emptied aboutness check must not stay green.
 
-**Deferred:** the anchored-citation mechanism, to a plan not yet filed. Whoever picks this
-up files it; this record does not pretend to carry it.
+**Deferred:** the anchored-citation mechanism. **No plan is filed for it, deliberately** —
+the design fork (optional anchor vs required, and ~250 pointers of authoring cost either way)
+is not settled enough to write a Ready plan against, and a Draft plan reserving a number for
+an unsettled design is the phantom this corpus's own lane guards forbid. So this is a
+`dropped-on-purpose` for now with the reasoning above it: the honest-claim half ships, the
+mechanism is described, and whoever wants it has the design fork written down. Re-file as a
+plan when the fork is decided.
 
 ## Out of scope
 
