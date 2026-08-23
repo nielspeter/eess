@@ -937,6 +937,64 @@ function gateCorpusAcceptedDenominatorEmpty() {
   }
 }
 
+// --- plan 0218: proposal content -------------------------------------------
+//
+// All three sabotage REAL files rather than planting probes. The subjects are
+// live proposals and the records that own them, so a probe would need to be
+// visible to these rules and invisible to the board — which is a naming problem
+// that cost an earlier version of this plan a `.gitignore` line, a sweep change
+// and a destructive-cleanup bug. `withRewrittenFile` restores on any exit and
+// fails closed when its pattern stops matching.
+const CORPUS_JSON = [join('scripts', 'check-corpus.mjs'), '--format', 'json']
+const CORPUS_TERM = [join('scripts', 'check-corpus.mjs')]
+
+function corpusSabotage(path, rewrite, ruleId, elementFragment) {
+  const { json, terminal } = withRewrittenFile(path, rewrite, () => ({
+    json: sh(process.execPath, CORPUS_JSON),
+    terminal: sh(process.execPath, CORPUS_TERM),
+  }))
+  const ok =
+    json.code === 1 && firedOn(json, ruleId, undefined, elementFragment) && terminal.code === 1
+  return { ok, detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId})` }
+}
+
+const P006 = join(repoRoot, 'work', 'proposals', '006-mermaid-beyond-classdiagram.md')
+
+// 006 is the one live proposal this rule examines, and the one that owed the
+// section — so removing it again is the exact violating input.
+function gateCorpusProposalCriteria() {
+  return corpusSabotage(
+    P006,
+    (t) => t.replace('\n## Acceptance criteria\n', '\n## Criteria, renamed away\n'),
+    'corpus/proposal-states-no-acceptance-criteria',
+    '006',
+  )
+}
+
+// The rule's subjects are narrowed by two exclusions, so an empty set is
+// reachable — every live proposal ruled `Rewrite needed` at once is an ordinary
+// lane state, and a pass over nothing is not a pass.
+function gateCorpusCriteriaExaminedNothing() {
+  return corpusSabotage(
+    P006,
+    (t) => t.replace('**Ruling: Split and sequence**', '**Ruling: Rewrite needed**'),
+    'corpus/proposal-criteria-examined-nothing',
+    'work/proposals',
+  )
+}
+
+// Proposal 004 is ruled `Docs-only` and owned by bug 0219. Strip the bug's
+// declaration and the remedy has no owner — which is the state 004 was actually
+// in for ten days.
+function gateCorpusDocsOnlyOwner() {
+  return corpusSabotage(
+    join(repoRoot, 'work', 'bugs', 'fixed', '0219-corpus-listing-surface-is-undocumented.md'),
+    (t) => t.replace('- **Implements:** proposal 004\n', ''),
+    'corpus/docs-only-ruling-names-no-owner',
+    '004',
+  )
+}
+
 // --- the `Promoted` obligation ----------------------------------------------
 // Three rules the plan's first version argued were not owed. Review falsified
 // that: a `Promoted` proposal naming nothing passed both gates green.
@@ -1255,6 +1313,9 @@ const gates = [
   ['corpus/proposal-board-row-unresolved', gateCorpusBoardRowUnresolved],
   ['corpus/proposal-number-duplicated', gateCorpusProposalNumberDuplicated],
   ['corpus/accepted-denominator-empty', gateCorpusAcceptedDenominatorEmpty],
+  ['corpus/proposal-criteria', gateCorpusProposalCriteria],
+  ['corpus/criteria-examined-nothing', gateCorpusCriteriaExaminedNothing],
+  ['corpus/docs-only-owner', gateCorpusDocsOnlyOwner],
   ['corpus/promoted-names-no-owner', gateCorpusPromotedNamesNoOwner],
   ['corpus/promoted-not-dispatchable', gateCorpusPromotedNotDispatchable],
   ['corpus/promoted-has-held-asks', gateCorpusPromotedHasHeldAsks],
@@ -1374,6 +1435,9 @@ const GATE_FOR = {
     'corpus/proposal-board-row-unresolved',
     'corpus/proposal-number-duplicated',
     'corpus/accepted-denominator-empty',
+    'corpus/proposal-criteria',
+    'corpus/criteria-examined-nothing',
+    'corpus/docs-only-owner',
     'corpus/promoted-names-no-owner',
     'corpus/promoted-not-dispatchable',
     'corpus/promoted-has-held-asks',
