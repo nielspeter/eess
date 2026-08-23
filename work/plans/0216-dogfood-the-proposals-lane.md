@@ -2,7 +2,11 @@
 
 ## Status
 
-- **State:** Draft — the primitives all ship; what is missing is rules.
+- **State:** Draft — the primitives all ship; what is missing is rules. **Widened
+  2026-08-23** to absorb the one surviving item from withdrawn plan 0218: this lane has no
+  terminal state and no done-folder, so it cannot close. 0218 proposed a whole lifecycle for
+  that, was measured wrong in enough places to be withdrawn rather than revised, and its
+  other two checks were already this plan's.
 - **Priority:** Medium — it closes a gap between what `PROPOSALS.md` requires and what
   anything verifies, and the miss is measured rather than hypothetical.
 - **Effort:** Small — rules in `scripts/check-corpus.mjs` beside the linkage check that
@@ -102,6 +106,58 @@ already parses the Ruling via `scripts/lib/proposal-ruling.mjs` (`operativeRulin
       implementation cannot stay green.
 - [ ] The gate reports a denominator — proposals examined — so a dead glob is visible.
       Six proposals today; a run reporting zero is the failure to watch.
+
+## A fourth item, folded in: the lane has no way to close
+
+Withdrawn plan 0218 proposed a whole lifecycle for this lane — six states, a `settled/`
+folder, a `/propose` skill and three gates. Review measured it wrong in enough places that
+it was withdrawn rather than revised, and **its checks 2 and 3 were this plan's already**.
+What survives is one item, and one blocker that has to be settled before it can be built.
+
+**The gap, measured.** `check:ledger` reports it in its own words:
+
+```
+proposals  6 scanned · 6 with a readable State · 0 done
+           (no terminal state — box-disposition check never runs on this lane)
+```
+
+All six proposals read `Draft`, including 005 — ruled `Ship as-is`, its plan 0145 built and
+closed. A fully discharged proposal is indistinguishable from one filed this morning. The
+sibling lanes both have a terminal state and a done-folder; this one has neither:
+
+| lane          | author  | promote            | build         | close    | terminal folder |
+| ------------- | ------- | ------------------ | ------------- | -------- | --------------- |
+| plans         | `/plan` | `/plan-ready`      | `/plan-build` | `/close` | `completed/`    |
+| bugs          | `/bug`  | —                  | red→green     | `/close` | `fixed/`        |
+| **proposals** | none    | `/review-proposal` | —             | **none** | **none**        |
+
+**The blocker, and it is why 0218 was wrong to call this a config change.**
+`scripts/check-ledger.mjs` sets `terminalStates: []` for this lane **deliberately**, and says
+why: _"a proposal's own checkboxes are Acceptance Criteria / Open Questions, a design
+checklist, not a deferral ledger, and running the box-disposition check against them would
+be a false-positive machine (001 alone carries 31 open boxes of that shape)."_
+
+Measured today: **001 carries 29 open boxes, 002 carries 6.** Give this lane a terminal token
+without addressing that, and the first close emits ~35 `ledger/silent-open-box` findings
+against break-class specifications — items that are not deferrals and have no honest
+disposition token. Review also measured that marking a proposal `Settled` with `Held` rows
+standing produces **zero** findings, because `honestyAtClose` reads GFM task items and a
+disposition table is a table. So the naive version lands a terminal state whose honesty
+nothing checks _and_ fires the wrong check on the wrong boxes.
+
+- [ ] **Settle this before building.** Either scope the box-disposition check to a ledger
+      region so acceptance criteria are out of it, or add a terminal token and leave
+      `terminalStates` empty here with the reason recorded, or record that this lane closes
+      in place. All three are honest; picking none is what 0218 did.
+- [ ] Then: one terminal token and a done-folder, using `work/README.md`'s existing
+      vocabulary rather than inventing new words. 005 moves into it — verified fully
+      dispatched, zero open boxes, one closed owner.
+
+**Deliberately not folded in.** 0218's six states (four of them derivable from the operative
+Ruling and the owners' states), its plan-or-bug owner widening (zero denominator — no bug
+record declares `**Implements:**`, and every one of 006's accepted rows names a plan), and
+its `/propose` skill. Each was justified by a single case, and two of its three justifying
+counts did not reproduce.
 
 ## The third rule, and it is the one the lane most needs
 
