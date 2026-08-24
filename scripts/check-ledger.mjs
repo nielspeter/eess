@@ -18,6 +18,7 @@ import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 import { reportViolations } from '@nielspeter/eess'
 import { findUncoveredLanes, findLaneDoneVacuity } from './lib/lane-coverage.mjs'
+import { PROPOSAL_DONE_FOLDERS } from './lib/proposal-ruling.mjs'
 
 // Two closing lanes, two vocabularies. A plan closes on `Done`/`Won't-do`; a bug
 // closes on `Fixed`/`Rejected` (work/bugs/BUGS.md). They are scanned separately
@@ -64,7 +65,7 @@ const LANES = [
   {
     name: 'proposals',
     roots: ['work/proposals/**'],
-    doneFolders: ['/promoted/', '/rejected/'],
+    doneFolders: PROPOSAL_DONE_FOLDERS,
     boardFiles: ['PROPOSALS.md', 'README.md'],
     states: ['Draft', 'Promoted', 'Rejected'],
     terminalStates: ['Promoted', 'Rejected'],

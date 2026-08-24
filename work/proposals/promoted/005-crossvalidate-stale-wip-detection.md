@@ -45,6 +45,25 @@ citation nobody is checking) one level removed: instead of a citation
 drifting from the code it cites, an _exemption_ drifts from the thing it was
 exempting.
 
+## Acceptance criteria
+
+Surfaced at level 2 on 2026-08-23 by [plan 0218](../../plans/completed/0218-gate-proposal-acceptance-criteria.md),
+which made the convention enforceable. **This proposal always stated them** — four times, in
+fact, once per rewrite — but always as `### Acceptance criteria (…)` nested inside the
+rewrite that owned them, so the lane's own requirement was met in substance and not in shape.
+The operative set is _Rewrite v3_'s, restated here rather than moved, so the appendices stay
+readable as the record of what each round actually said.
+
+| capability                     | break class — what must go red                                                                                                                                                                                                                                             | non-vacuity                                                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| a stale `@wip` tag is detected | a scenario matching the caller's `isExempt` that has a real, resolvable citing test produces one violation naming **both** the scenario's own `file`/`line` and the citing test's, via `citedScenarioSites` — never the tag's, since the model carries no per-tag position | `bad-crossval-gherkin-e2e.mjs`, a strong-tier fixture proving both the fire and no-fire directions against the real script |
+| the denominator is real        | the production count is fixed by a committed, honestly-unbuilt `@wip` scenario, so an emptied selector cannot report a clean pass                                                                                                                                          | the same fixture, plus the committed scenario itself                                                                       |
+
+One question the earlier rounds left implicit and v3 decided: a citation from a **skipped**
+test still counts as "cites it" for staleness, matching `scenarioTestsResolve` and
+`scenariosCovered` (`gherkin-ts.ts:70-75`). Consistency across the three gherkin-ts gates is
+worth more than a bespoke carve-out, and the escape hatch is the same either way.
+
 ## Review — 2026-08-14
 
 **Ruling: Rewrite needed**

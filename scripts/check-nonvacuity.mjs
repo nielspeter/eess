@@ -323,7 +323,17 @@ function violationsOf(r) {
  * only on `ruleId` + `work/proposals/PROPOSALS.md` means a genuine board drift
  * on a real row could answer for the probe (testing review, plan 0216).
  */
+/**
+ * Every rule id some fixture asserted on, collected as the run happens.
+ *
+ * `firedOn` is the one place an in-harness fixture names the rule it proves, so
+ * it is the one place this needs recording. The audit at the end of this file
+ * compares it against the ids `check-corpus.mjs` can actually emit.
+ */
+const ASSERTED_RULE_IDS = new Set()
+
 function firedOn(r, ruleId, fileFragment, elementFragment) {
+  ASSERTED_RULE_IDS.add(ruleId)
   return violationsOf(r).some(
     (v) =>
       v?.ruleId === ruleId &&
@@ -742,7 +752,7 @@ function gateCorpusPointers() {
 function gateCorpusProposalUncited() {
   return gateCorpusProbe(
     PROBE_CORPUS_PROPOSAL_UNCITED,
-    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
+    '# Non-vacuity probe\n\n## Acceptance criteria\n\nBreak class: the probe itself.\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
       'Accepted, on purpose, with no implementing plan — the probe.\n',
     'corpus/accepted-proposal-uncited',
     'work/proposals/__nonvacuity_probe_proposal__.md',
@@ -937,6 +947,52 @@ function gateCorpusAcceptedDenominatorEmpty() {
   }
 }
 
+// --- plan 0218: proposal content -------------------------------------------
+//
+// All three sabotage REAL files rather than planting probes. The subjects are
+// live proposals and the records that own them, so a probe would need to be
+// visible to these rules and invisible to the board — which is a naming problem
+// that cost an earlier version of this plan a `.gitignore` line, a sweep change
+// and a destructive-cleanup bug. `withRewrittenFile` restores on any exit and
+// fails closed when its pattern stops matching.
+const CORPUS_JSON = [join('scripts', 'check-corpus.mjs'), '--format', 'json']
+const CORPUS_TERM = [join('scripts', 'check-corpus.mjs')]
+
+function corpusSabotage(path, rewrite, ruleId, elementFragment) {
+  const { json, terminal } = withRewrittenFile(path, rewrite, () => ({
+    json: sh(process.execPath, CORPUS_JSON),
+    terminal: sh(process.execPath, CORPUS_TERM),
+  }))
+  const ok =
+    json.code === 1 && firedOn(json, ruleId, undefined, elementFragment) && terminal.code === 1
+  return { ok, detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (${ruleId})` }
+}
+
+const P006 = join(repoRoot, 'work', 'proposals', '006-mermaid-beyond-classdiagram.md')
+
+// 006 is the one live proposal this rule examines, and the one that owed the
+// section — so removing it again is the exact violating input.
+function gateCorpusProposalCriteria() {
+  return corpusSabotage(
+    P006,
+    (t) => t.replace('\n## Acceptance criteria\n', '\n## Criteria, renamed away\n'),
+    'corpus/proposal-states-no-acceptance-criteria',
+    '006',
+  )
+}
+
+// Proposal 004 is ruled `Docs-only` and owned by bug 0219. Strip the bug's
+// declaration and the remedy has no owner — which is the state 004 was actually
+// in for ten days.
+function gateCorpusDocsOnlyOwner() {
+  return corpusSabotage(
+    join(repoRoot, 'work', 'bugs', 'fixed', '0219-corpus-listing-surface-is-undocumented.md'),
+    (t) => t.replace('- **Implements:** proposal 004\n', ''),
+    'corpus/docs-only-ruling-names-no-owner',
+    '004',
+  )
+}
+
 // --- the `Promoted` obligation ----------------------------------------------
 // Three rules the plan's first version argued were not owed. Review falsified
 // that: a `Promoted` proposal naming nothing passed both gates green.
@@ -981,7 +1037,7 @@ function gateCorpusPromotedHasHeldAsks() {
 function gateCorpusRulingUnparseable() {
   return gateCorpusProbe(
     PROBE_CORPUS_RULING_UNPARSEABLE,
-    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n' +
+    '# Non-vacuity probe\n\n## Acceptance criteria\n\nBreak class: the probe itself.\n\n## Review — 2026-01-01\n\n' +
       '**Ruling: ship as-is — old-style free prose, garbled on purpose.**\n\nThe probe.\n',
     'corpus/proposal-ruling-unparseable',
     'work/proposals/__nonvacuity_probe_ruling__.md',
@@ -1001,7 +1057,7 @@ function gateCorpusRulingUnparseable() {
 // run so a regression in either direction fails this row.
 function gateCorpusProposalImplementsDiscriminates() {
   const proposalMd =
-    '# Non-vacuity probe\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
+    '# Non-vacuity probe\n\n## Acceptance criteria\n\nBreak class: the probe itself.\n\n## Review — 2026-01-01\n\n**Ruling: Ship as-is**\n\n' +
     'Accepted — the discrimination probe.\n'
   // Deliberately contains the word "implements" near "proposal 9001", in a
   // negating sentence — a loose prose-matching regex (testing review's
@@ -1255,6 +1311,8 @@ const gates = [
   ['corpus/proposal-board-row-unresolved', gateCorpusBoardRowUnresolved],
   ['corpus/proposal-number-duplicated', gateCorpusProposalNumberDuplicated],
   ['corpus/accepted-denominator-empty', gateCorpusAcceptedDenominatorEmpty],
+  ['corpus/proposal-criteria', gateCorpusProposalCriteria],
+  ['corpus/docs-only-owner', gateCorpusDocsOnlyOwner],
   ['corpus/promoted-names-no-owner', gateCorpusPromotedNamesNoOwner],
   ['corpus/promoted-not-dispatchable', gateCorpusPromotedNotDispatchable],
   ['corpus/promoted-has-held-asks', gateCorpusPromotedHasHeldAsks],
@@ -1374,6 +1432,8 @@ const GATE_FOR = {
     'corpus/proposal-board-row-unresolved',
     'corpus/proposal-number-duplicated',
     'corpus/accepted-denominator-empty',
+    'corpus/proposal-criteria',
+    'corpus/docs-only-owner',
     'corpus/promoted-names-no-owner',
     'corpus/promoted-not-dispatchable',
     'corpus/promoted-has-held-asks',
@@ -1500,6 +1560,53 @@ for (const [name, run] of gates) {
     res.status ??
     (res.ok ? 'OK (fails on violating input)' : 'FAILED (did not fail on violating input)')
   console.log(`nonvacuity: ${name} — ${status} · ${res.detail}`)
+}
+
+// ---- every rule id `check-corpus.mjs` can emit carries a fixture -----------
+//
+// `gateCoverage()` above asserts per-SCRIPT: every `check:*` has at least one
+// fixture. That is not the same as every RULE having one, and the difference has
+// bitten twice — three rule ids shipped behind a single fixture, and the manual
+// "N of N are covered" audit that was supposed to catch it was done by hand with
+// a regex that was wrong both times.
+//
+// Emitted ids are read from the SOURCE; asserted ids from the RUN. The two halves
+// must come from different places or the audit proves nothing.
+const corpusSource = readFileSync(join(repoRoot, 'scripts', 'check-corpus.mjs'), 'utf8')
+const emittedRuleIds = new Set(
+  [...corpusSource.matchAll(/'(corpus\/[a-z0-9-]+)'/g)].map((m) => m[1]),
+)
+
+// The extractor needs its OWN denominator. `[a-z-]+` — the obvious character
+// class — cannot see `corpus/unfixtured-0218`, in a repo that names things 0218;
+// review measured that id passing straight through. An instrument that looks for
+// one shape and reports absence is the failure these gates exist to catch, so
+// count the literal `ruleId:` assignments independently and refuse to pass when
+// the two disagree.
+const literalAssignments = (corpusSource.match(/\bruleId:\s*'/g) ?? []).length
+const parsedAssignments = new Set(
+  [...corpusSource.matchAll(/\bruleId:\s*'(corpus\/[a-z0-9-]+)'/g)].map((m) => m[1]),
+).size
+const unfixturedRuleIds = [...emittedRuleIds].filter((id) => !ASSERTED_RULE_IDS.has(id)).sort()
+
+if (parsedAssignments < literalAssignments) {
+  allOk = false
+  console.log(
+    `nonvacuity: rule-id coverage — FAILED · the extractor read ${parsedAssignments} of ` +
+      `${literalAssignments} literal \`ruleId:\` assignments — an id it cannot parse is ` +
+      'invisible to this audit, so the audit cannot honestly report absence',
+  )
+} else if (unfixturedRuleIds.length > 0) {
+  allOk = false
+  console.log(
+    `nonvacuity: rule-id coverage — FAILED · check-corpus.mjs can emit ${unfixturedRuleIds.length} ` +
+      `rule id(s) no fixture asserts on: ${unfixturedRuleIds.join(', ')}`,
+  )
+} else {
+  console.log(
+    `nonvacuity: rule-id coverage — OK · all ${emittedRuleIds.size} rule ids check-corpus.mjs ` +
+      'can emit are asserted by a fixture',
+  )
 }
 
 // Bug 0127: "gates each failed" over-claimed — most fixtures prove their own

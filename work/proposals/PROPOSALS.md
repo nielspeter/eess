@@ -253,21 +253,45 @@ Recorded rather than left to be rediscovered:
   [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md) made the lane
   scanned and its `State:` readable; 0216 gave it the terminal states that make
   the box-disposition check reachable. It now reports a real done count.
-- **Acceptance criteria are required by the template below and checked by
-  nothing** — [plan 0218](../plans/0218-gate-proposal-acceptance-criteria.md).
-  Measured: no proposal has ever carried the section in the shape the template
-  prescribes.
-- **A ruling that names a remedy creates no owner** —
-  [plan 0218](../plans/0218-gate-proposal-acceptance-criteria.md) carries the rule.
-  004's `Docs-only` ruling named documentation as the whole fix and nothing tracked it;
-  ten days later none of it existed, while the proposal's header read as settled. The
-  mirror case is a remainder "deferred behind plan NNNN" in prose, which is what 002 had
-  until 0090 declared it.
+- **~~Acceptance criteria are required by the template below and checked by nothing.~~**
+  Closed 2026-08-23 by [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md). The rule reds on
+  a live proposal with no level-2 `## Acceptance criteria` heading; terminal records and
+  those ruled `Rewrite needed`/`Reject` are excluded, because for those the ruling is
+  already the finding. **No exclusions**: every proposal is checked, and all six state
+  their criteria. 006 gained the section when the rule first ran; 003, 004 and 005 gained
+  theirs when the exclusions that had been shielding them were removed.
+- **~~A `Docs-only` ruling creates no owner.~~** Closed 2026-08-23 by
+  [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md). 004's ruling named documentation as
+  the whole fix and nothing tracked it; ten days later none of it existed while the header
+  read as settled.
+- **`Split and sequence` still creates no obligation**, by the same argument — it names a
+  remedy ("split before planning") and no owner. So does a remainder "deferred behind plan
+  NNNN" in prose, which is what 002 had until 0090 declared it. Both are prose, and a rule
+  keying on prose is the false-positive machine bug 0110 warns about. Open, not folded into
+  a closed plan.
 - **The `work/` README lanes table lists one lane** — bug
   [0108](../bugs/0108-work-readme-lanes-table-lists-one-lane.md). This board does
   not fix that; it gives the lane something to point at.
 
-`check:corpus` does gate this file: its cross-links must resolve, any `path:line`
+## What the gates check
+
+| rule                                     | fires when                                                                            |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `proposal-states-no-acceptance-criteria` | a live proposal has no level-2 `## Acceptance criteria` heading                       |
+| `docs-only-ruling-names-no-owner`        | a `Docs-only` ruling with no plan **or bug** declaring `**Implements:** proposal NNN` |
+| `promoted-proposal-*` (three)            | see the State table above                                                             |
+| `proposal-board-*` (five)                | the board and the files disagree                                                      |
+
+Two things an author needs. **The heading is gated at level 2** (`##`) and matched
+case-insensitively but otherwise exactly — `### Acceptance criteria (revised)` does not
+count, deliberately: proposal 005 carries four of those inside superseded sections. And it applies to
+**every** proposal — no exclusion for terminal records or for rulings, because those were
+measured to be shielding three that simply owed the section.
+
+What it does not prove: the heading's _contents_. An empty section satisfies it, and the
+rule says so in its own `because` rather than letting the `suggestion` imply otherwise.
+
+`check:corpus` also gates this file: its cross-links must resolve, any `path:line`
 pointer must ground in real code, and — since plan 0216 — the board and the
 proposal files must **correspond**. The file is the source of truth; the board is a
 copy, and a copy nothing compares is a copy that drifts.

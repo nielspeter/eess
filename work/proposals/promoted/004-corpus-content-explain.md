@@ -57,6 +57,24 @@ assertions — no listing/explain primitive) offers this generically, so it isn'
 portable to a project that hasn't happened to add the same `--verbose` branch
 to its own wrapper.
 
+## Acceptance criteria
+
+Added 2026-08-23 by [plan 0218](../../plans/completed/0218-gate-proposal-acceptance-criteria.md).
+This proposal was ruled `Docs-only` — the survey found the capability already shipped — so
+its one capability is the **documentation**, and stating a break class for it is what would
+have stopped the remedy evaporating. It did evaporate: ten days passed with none of it
+written and every gate green, which is [bug 0219](../../bugs/fixed/0219-corpus-listing-surface-is-undocumented.md).
+
+| capability                                                                                                                                               | break class — what must go red                                                                                                                                                       | non-vacuity                                                                                                                                    |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| the corpus listing surface is documented — `corpus().documents()`, `.root`, `.fileIndex` in `eess-md`, and `features()`'s `FeatureSet` in `eess-gherkin` | measured before the fix: all three md symbols appeared in **0** files under `docs/` and **0** package READMEs. The standing check is the inverse — a grep for them returning nothing | the added examples are import-bearing TS fences, so `check:docs-code` compiles them and they cannot rot into something that does not typecheck |
+
+**What this does not prove, stated because a `Docs-only` ruling invites exactly this
+mistake:** `check:docs-code` compiles the fences that exist and requires none, so deleting
+the section is silent. That gap is [bug 0220](../../bugs/0220-nothing-requires-a-public-symbol-to-be-documented.md),
+not this proposal's to close — but a proposal whose entire deliverable is documentation
+should say which half of it is mechanised.
+
 ## Review — 2026-08-13
 
 **Ruling: Docs-only**
