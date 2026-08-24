@@ -143,5 +143,36 @@ if (examples === 0) {
   vacuous(`check:examples exited ${examples} with an example that does not compile`)
 }
 
-console.error(`${NAME}: OK — integrity, surface and examples each red on their own subject`)
+// 4. check:integrity, second check — a package that builds without cleaning dist.
+//
+// `check:integrity` runs THREE checks (phantom deps, local linking, stale build
+// output). Scenario 1 covers the first, so `GATE_FOR` marked the whole script
+// accounted for while the newest of the three had no probe at all — the exact
+// one-row-per-multi-check-script trap `GATE_FOR`'s own comment warns about.
+//
+// Removing `prebuild` is the regression that matters: `tsc` overwrites but never
+// deletes, so a package without it leaves the `.js`/`.d.ts` of every deleted
+// source file in the tarball forever, and `dist/` is gitignored so nothing shows
+// it. Asserting the package NAME appears keeps this honest if the gate ever reds
+// for one of its other two checks.
+const stale = withSabotage(
+  'packages/gherkin/package.json',
+  (t) => {
+    const next = t.replace(/\s*"prebuild": "rm -rf dist",\n/, '\n')
+    if (next === t) throw new Error('gherkin package.json has no prebuild to remove')
+    return next
+  },
+  () => runCapture('check:integrity'),
+)
+if (!stale.out.includes('@nielspeter/eess-gherkin')) {
+  vacuous(
+    `check:integrity (exit ${stale.status}) never named @nielspeter/eess-gherkin after its ` +
+      `prebuild clean was removed`,
+  )
+}
+
+console.error(
+  `${NAME}: OK — integrity (phantom dep + stale output), surface and examples each red on ` +
+    `their own subject`,
+)
 process.exit(1)

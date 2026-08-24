@@ -98,10 +98,20 @@ Peer dependents are NOT required — but not for the reason first written here.
 Declaring a peer dependent does **not** trigger the `1.0.0` escalation: measured,
 that setting governs automatic bumping of an _undeclared_ peer dependent, and an
 explicit declaration is honoured unchanged. The argument that survives is weaker:
-a peer is a range the consumer resolves. `eess-crossvalidate` peers on the
-four dialects with `>=0.1.1`, and `onlyUpdatePeerDependentsWhenOutOfRange` leaves
-it unbumped on purpose — that is the countermeasure for the `1.0.0` escalation.
-The cost is that crossvalidate's changelog cannot record a sibling break.
+a peer is a range the consumer resolves. `onlyUpdatePeerDependentsWhenOutOfRange`
+leaves crossvalidate unbumped on purpose — that is the countermeasure for the
+`1.0.0` escalation. The cost is that crossvalidate's changelog cannot record a
+sibling break.
+
+**Keep the floors at the shipped versions.** They were `>=0.1.1` until 2026-08-24,
+which admitted any dialect ever published. That was harmless only while every
+package sat on the same kernel range; the kernel split (ADR-011) ended that, and
+a consumer on the newest crossvalidate plus a floor-old dialect would have
+resolved **two copies of `@nielspeter/eess`** — which holds module-level mutable
+state (edge-coverage counters, comment-suppression counters, identity
+collisions, the cache registry), so the state silently splits. Raise each floor
+to the version this release ships. A `>=X` range never goes out of range upward,
+so doing so cannot trigger the escalation.
 
 **The limit, stated because it is load-bearing:** an unmarked break is not
 caught. This gate exists to stop a changeset that SAYS "Breaking" from shipping

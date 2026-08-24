@@ -57,7 +57,9 @@ export const ANSI_INTERNAL = new Set([])
  * export before the copy either.
  *
  * The ratchet still bites — a kernel export that is NOT here and NOT re-exported
- * reds `standalone-surface.test.ts` — and the second test there keeps the list
- * from going stale by requiring every name to still exist in the kernel.
+ * reds `standalone-surface.test.ts`. Its companion staleness test requires every
+ * name here to still exist on the kernel root; with the list empty that loop runs
+ * over nothing, which is why the clause-2 assertion beside it (no `/internal`
+ * symbol is reachable from a dialect) is what now carries the weight.
  */
 export const KERNEL_PRIVATE_BEFORE_THE_SPLIT = new Set([])

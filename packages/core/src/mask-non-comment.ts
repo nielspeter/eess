@@ -147,3 +147,74 @@ export function maskNonCommentSpans(sourceText: string): string {
 
   return out
 }
+
+/**
+ * The markdown answer to the question `maskNonCommentSpans` asks of code.
+ *
+ * A `.md` file has no string or template literals, so running the JS/TS lexer
+ * over one is a category error — and a costly one, because markdown is
+ * backtick-dense: a single unbalanced backtick in prose opened a "template
+ * literal" that swallowed the rest of the file, silencing every real directive
+ * after it. Fail-closed, so no invented suppression, but a waiver that stops
+ * working for a reason nobody can see is its own defect.
+ *
+ * What markdown DOES have is code spans, and they mean the same thing a string
+ * literal means in code: this is an example of the grammar, not an instance of
+ * it. Fenced blocks (``` or ~~~) and inline spans are blanked; prose is left
+ * alone. Length- and line-preserving, so reported positions do not move.
+ *
+ * An unterminated fence blanks to end-of-file. That is the fail-closed
+ * direction: text under a fence that was opened and never closed is more likely
+ * an example than a waiver, and the cost is a directive that does not apply
+ * rather than one that applies where nobody asked.
+ */
+export function maskMarkdownCodeSpans(sourceText: string): string {
+  const lines = sourceText.split('\n')
+  const out: string[] = []
+  let fenceChar: string | undefined
+  let fenceLength = 0
+
+  for (const line of lines) {
+    const opener = /^\s*(`{3,}|~{3,})/.exec(line)
+    const marker = opener === null ? undefined : opener[1]
+
+    if (fenceChar !== undefined) {
+      // Inside a fence: blank everything, the closing marker line included.
+      out.push(' '.repeat(line.length))
+      if (marker !== undefined && marker.charAt(0) === fenceChar && marker.length >= fenceLength) {
+        fenceChar = undefined
+        fenceLength = 0
+      }
+      continue
+    }
+
+    if (marker !== undefined) {
+      fenceChar = marker.charAt(0)
+      fenceLength = marker.length
+      out.push(' '.repeat(line.length))
+      continue
+    }
+
+    // Outside a fence: blank BALANCED inline spans only. An odd backtick is
+    // prose, and treating it as an opener is exactly the bug this replaces.
+    out.push(blankInlineCodeSpans(line))
+  }
+  return out.join('\n')
+}
+
+/** Blank `…` runs on one line, leaving an unpaired backtick as ordinary text. */
+function blankInlineCodeSpans(line: string): string {
+  const ticks: number[] = []
+  for (let i = 0; i < line.length; i++) {
+    if (line.charAt(i) === '`') ticks.push(i)
+  }
+  if (ticks.length < 2) return line
+  let out = line
+  for (let i = 0; i + 1 < ticks.length; i += 2) {
+    const open = ticks[i]
+    const close = ticks[i + 1]
+    if (open === undefined || close === undefined) continue
+    out = out.slice(0, open) + ' '.repeat(close - open + 1) + out.slice(close + 1)
+  }
+  return out
+}

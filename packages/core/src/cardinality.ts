@@ -16,9 +16,13 @@
  * empty-selection gate on any rule, permanently and invisibly. That is
  * `.allowEmpty()` wearing a different hat.
  *
- * This symbol is **not** re-exported from `src/index.ts`, and `package.json`'s
- * `exports` map has no wildcard subpath, so a consumer cannot import it to
- * name the key. The escape hatch users *do* get is `.expectEmpty()`, which is
+ * This symbol is **not** re-exported from `src/index.ts`. It IS reachable, from
+ * `@nielspeter/eess/internal` — ADR-011 gave the kernel a second entry point, so
+ * the old rationale here ("the exports map has no wildcard subpath, so a consumer
+ * cannot import it") no longer holds and has been replaced rather than left
+ * standing. The real defence is unchanged and was always the load-bearing one:
+ * the marker lives in a module-private `WeakSet`, so holding the symbol does not
+ * let you forge a mark. The escape hatch users *do* get is `.expectEmpty()`, which is
  * an assertion that fails when the selection stops being empty — not a
  * silencer.
  */

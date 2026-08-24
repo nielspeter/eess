@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-08-23; fix not built.
+- **State:** Draft — the gate is built and blocks on the kernel root (all 85 root exports
+  documented as of 2026-08-24); the 89 dialect-side exports and the denominator holes are
+  reported, not required, and are what keeps this record open.
 - **Priority:** Medium — no live incorrectness, but it is the gate-shaped half of a defect
   this repo has now hit twice, and the second time it went ten days unnoticed.
 - **Origin:** self-found — closing [bug 0219](./fixed/0219-corpus-listing-surface-is-undocumented.md),
@@ -94,7 +96,27 @@ this same defect one level up.
 
 ## Verification
 
-- [ ] Red first: deleting a documented section reds, naming the symbol that lost its fence.
-- [ ] A committed violating fixture, so an emptied implementation cannot stay green.
-- [ ] The gate prints symbols examined and symbols covered — a zero or an unexpectedly low
+- [x] Red first: deleting a documented section reds, naming the symbol that lost its fence.
+      **done-otherwise** — the gate is keyed on the SYMBOL, not the fence, so the red-first
+      case is an undocumented export rather than a deleted section: `scripts/check-surface.mjs`
+      reds naming it. Measured on the branch that built it, 253 of 664 at the first run.
+- [x] A committed violating fixture, so an emptied implementation cannot stay green.
+      `scripts/nonvacuity/bad-waived-gates.mjs` scenario 2. Note what it took to make that
+      claim true: the first version appended `export const X = 1`, which the gate's parser
+      (braced lists only) could not see, and asserted a non-zero exit the gate produced
+      anyway — so it passed while testing nothing. It now sabotages the kernel root with a
+      braced export and asserts the gate NAMES the symbol.
+- [x] The gate prints symbols examined and symbols covered — a zero or an unexpectedly low
       denominator is the failure to watch.
+      It prints the kernel-root denominator on success and the dialect census either way.
+      **The denominator has known holes and they are not fixed here:** `exportsOf` reads only
+      `packages/<pkg>/src/index.ts`, so `eess-crossvalidate` (no `index.ts`, seven subpath
+      entries) contributes **zero**, eess-ts's twelve subpaths are unscanned, and a
+      declaration-form or `export *` re-export is invisible. Found in review.
+- [ ] **deferred→ this record** — the 89 dialect-side undocumented exports. The gate reports
+      them; nothing requires them. ADR-011 clause 1 governs the kernel root only, so blocking
+      on the dialects would be a gate enforcing more than any decision authorises.
+- [ ] **deferred→ this record** — the denominator holes above. Drive the scan off each
+      package's `exports` map instead of one hardcoded file.
+
+Deferred: this record (the dialect surfaces, and the denominator holes).

@@ -44,12 +44,12 @@ export { reportViolations, finishPreset } from './report.js'
 export type { ReportMode, ReportOptions, PresetReportOptions } from './report.js'
 export type { RuleSeverity, PresetBaseOptions } from './preset-dispatch.js'
 
-// Matching engine — shared by correspondence() and eess-ts's crossLayer
-
 // Cross-validation — bind two element Selections and assert they correspond
+export { correspondence, CorrespondenceBuilder } from './correspondence.js'
 export type { Selection, ElementInfo, Direction } from './correspondence.js'
-
-// Lower-level building blocks (used by dialects and covered by kernel tests)
+// The options types of the two functions above. Behind `/internal` in ADR-011's
+// first cut, which left both callable and neither nameable — found in review.
+export type { RelationSpec, CorrespondenceOptions, KeyBy } from './correspondence.js'
 
 // Exclusions
 export { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
@@ -91,15 +91,10 @@ export type {
 export type { CorrespondenceResult } from './correspondence-core.js'
 export { setCorrespondence } from './correspondence-core.js'
 export type { RuleBuilderLike } from './rule-builder-like.js'
-export { correspondence, CorrespondenceBuilder } from './correspondence.js'
 
-// Promoted back to the root after review (ADR-011 follow-up).
-// `globNode`/`globAnyOf` are the only author-facing constructors of the globs a
-// user-written `definePredicate` declares — a documented extension point, so
-// putting them behind `/internal` made the documented path require it.
-// The three types are the parameter types of `correspondence()` and
-// `preserveRelations()`, both public: a consumer could call them but not NAME
-// their options. Both were missed because the type closure ran BEFORE the
-// manual reversals, not after.
-export type { RelationSpec, CorrespondenceOptions, KeyBy } from './correspondence.js'
+// Glob declaration — the constructors a user-written `definePredicate` needs to
+// declare what it matches on. The types are above; these build them. ADR-011's
+// first cut moved them behind `/internal` and left `packages/ts/src/index.ts`'s
+// comment about them standing over the types alone, so the documented extension
+// path required the internal entry point.
 export { globAnyOf, globNode } from './glob-site.js'

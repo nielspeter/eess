@@ -180,7 +180,23 @@ for (const name of WORKSPACE_PKGS) {
 // which is the thing that can actually regress: a package added later, with no
 // `prebuild`, silently reopens the hole.
 
-const CLEANS_DIST = /\brm\b[^&|]*\bdist\b|\brimraf\b[^&|]*\bdist\b|\bnode:fs\b[^&|]*\bdist\b/
+// The FIRST version of this pattern was `\brm\b[^&|]*\bdist\b|…`, and review
+// measured it accepting three commands that do not clean:
+//
+//   "rm -rf dist-tmp"                         — `\bdist\b` matches before the `-`
+//   "tsc -p tsconfig.build.json && rm -rf dist" — cleans AFTER the build, publishing nothing
+//   "echo \"remember to rm the dist\""          — prose
+//
+// It also accepted `scripts.clean`, which nothing in this repo invokes. So the
+// check that exists to satisfy ADR-009 was itself fail-open: it asserted a
+// substring, while its own comment claimed it asserted a mechanism.
+//
+// This form requires the WHOLE `prebuild` command to be a removal of exactly
+// `dist`. Anchored, so a suffix is not a match; `prebuild` only, because that is
+// the slot npm runs before `build`; and no `&&`, because a removal sequenced
+// after anything else is not a pre-build clean.
+const CLEANS_DIST =
+  /^(?:rm\s+-rf?\s+\.?\/?dist|rimraf\s+\.?\/?dist|node\s+-e\s+["'][^"']*rmSync\(\s*["']\.?\/?dist["'][^"']*["'])\s*$/
 
 for (const dir of pkgDirs) {
   const pkgPath = join(packagesDir, dir, 'package.json')
@@ -192,9 +208,8 @@ for (const dir of pkgDirs) {
   }
   const scripts = parsed.scripts ?? {}
   if (!scripts.build) continue
-  const cleans = [scripts.prebuild, scripts.clean, scripts.build].some(
-    (s) => typeof s === 'string' && CLEANS_DIST.test(s),
-  )
+  const prebuild = scripts.prebuild
+  const cleans = typeof prebuild === 'string' && CLEANS_DIST.test(prebuild.trim())
   if (!cleans) {
     problems.push(
       `stale build output: ${parsed.name} builds but never removes dist/ first — ` +

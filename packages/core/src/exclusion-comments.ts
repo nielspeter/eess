@@ -1,5 +1,5 @@
 import type { ArchViolation } from './violation.js'
-import { maskNonCommentSpans } from './mask-non-comment.js'
+import { maskNonCommentSpans, maskMarkdownCodeSpans } from './mask-non-comment.js'
 
 /**
  * Exclusion comment parsed from source code.
@@ -266,7 +266,13 @@ export function parseExclusionComments(sourceText: string, filePath: string): Pa
   // written inside one is prose, and reading it silently waived a real finding on
   // the next line. Masking is length- and line-preserving, so every position
   // reported below is still the position in the original file.
-  const lines = maskNonCommentSpans(sourceText).split('\n')
+  // Mask with the lexer that matches the file. Running the JS/TS one over
+  // markdown made a stray backtick swallow every directive after it — the same
+  // question (is this text an example or an instance?) needs the host language's
+  // answer, not one language's answer everywhere.
+  const lines = (CODE_LIKE.test(filePath) ? maskNonCommentSpans : maskMarkdownCodeSpans)(
+    sourceText,
+  ).split('\n')
   const htmlApply = htmlFormsApply(filePath)
   const exclusions: ExclusionComment[] = []
   const warnings: ExclusionWarning[] = []
