@@ -108,15 +108,34 @@ this same defect one level up.
       braced export and asserts the gate NAMES the symbol.
 - [x] The gate prints symbols examined and symbols covered — a zero or an unexpectedly low
       denominator is the failure to watch.
-      It prints the kernel-root denominator on success and the dialect census either way.
-      **The denominator has known holes and they are not fixed here:** `exportsOf` reads only
-      `packages/<pkg>/src/index.ts`, so `eess-crossvalidate` (no `index.ts`, seven subpath
-      entries) contributes **zero**, eess-ts's twelve subpaths are unscanned, and a
-      declaration-form or `export *` re-export is invisible. Found in review.
-- [ ] **deferred→ this record** — the 89 dialect-side undocumented exports. The gate reports
-      them; nothing requires them. ADR-011 clause 1 governs the kernel root only, so blocking
-      on the dialects would be a gate enforcing more than any decision authorises.
-- [ ] **deferred→ this record** — the denominator holes above. Drive the scan off each
-      package's `exports` map instead of one hardcoded file.
+      It prints the kernel-root denominator on success and the dialect census either way,
+      with names. The holes review found — `exportsOf` reading one hardcoded `index.ts`, so
+      `eess-crossvalidate` contributed **zero**, eess-ts's twelve subpaths were unscanned,
+      and declaration-form or `export *` re-exports were invisible — are **fixed**: the scan
+      is driven off each package's `exports` map and follows `export *`. crossvalidate went
+      0 → 38.
+- [x] **done** — the denominator holes. The scan reads each package's `exports` map and
+      follows `export *`; every published entry point is counted.
+- [ ] the dialect-side undocumented exports — **116, and classified 2026-08-24.**
 
-Deferred: this record (the dialect surfaces, and the denominator holes).
+      The count rose 89 → 116 because the scan got better, not because anything regressed.
+
+      **The classification came out one-sided, and it settles what to do.** 94 of the 116
+      are named in another emitted `.d.ts` — a consumer meets them in a signature of
+      something they already call. The remaining 22 look declaration-only only because
+      crossvalidate declares and uses each options type in the same subpath file; they are
+      signature types too. By shape: 30 `*Options`, 35 element/model types, 7 `*RuleBuilder`
+      return types, and the rest parser and stats functions.
+
+      **There is no meaningful un-export subset.** Unlike the kernel — where 71 of 156 were
+      genuine plumbing — the dialect surfaces are undocumented *public API*: the argument and
+      return types of functions the dialects already export and document. This is the same
+      "callable but not nameable" defect ADR-011 clause 1 exists for, replicated across five
+      packages.
+
+      So the open question is no longer "document or un-export" — it is only whether the
+      gate should BLOCK on them, which needs a clause. ADR-011 clause 1 governs the kernel
+      root; extending it to the dialects is an amendment, and the evidence now supports one:
+      a census that is 100% real API is documentation debt, not noise.
+
+Deferred: this record (the dialect surfaces — classified, not yet documented).
