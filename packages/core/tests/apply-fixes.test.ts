@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
-import { applyFixes, type ArchViolation, type ArchFix } from '../src/index.js'
+import { type ArchViolation, type ArchFix } from '../src/index.js'
+import { applyFixes } from '../src/internal.js'
 
 function tmpFile(contents: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-fix-'))

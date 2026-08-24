@@ -29,7 +29,7 @@ import { dataLayerIsolation } from '../../src/presets/data-layer.js'
 import { schemaFromSDL } from '../../src/graphql/index.js'
 import { ArchRuleError } from '@nielspeter/eess'
 import { diagnose } from '../../src/core/diagnose.js'
-import { dedupeConfigFindings } from '@nielspeter/eess'
+import { dedupeConfigFindings } from '@nielspeter/eess/internal'
 
 function inMemory(files: Record<string, string>): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })

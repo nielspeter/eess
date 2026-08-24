@@ -1,0 +1,78 @@
+// @nielspeter/eess/internal — family plumbing (ADR-011).
+//
+// NOT public API. These symbols exist so the sibling dialects can share the
+// kernel's engine without each reimplementing it; a consumer writing rules never
+// names them, and nothing here is taught by `docs/` or a package README.
+//
+// The boundary is enforced on this side of the line only: a dialect may import
+// from here, and its barrel must never re-export what it finds. It cannot be
+// enforced on the consumer's side — a subpath export is published and resolvable
+// by anyone, which ADR-011's Enforcement table records as `manual` rather than
+// pretending otherwise.
+//
+// Moving a symbol OUT of here and onto the root is additive. Moving one IN is a
+// breaking change and needs a changeset that says so.
+
+export type { ApplyResult } from './apply-fixes.js'
+export type { Describable } from './rule-description.js'
+export type { OnDisk, DiskSet } from './disk-set.js'
+export type { Pair, MatchResult, MatchOptions } from './matching.js'
+export type { PathUniverse } from './path-universe.js'
+export type { RelationSpec, CorrespondenceOptions, KeyBy } from './correspondence.js'
+export { DECLARE_INSTEAD } from './unsuppressable.js'
+export { UNSUPPRESSABLE } from './unsuppressable.js'
+export { UNSUPPRESSABLE_MECHANISMS } from './unsuppressable.js'
+export { applyFilters } from './execute-rule.js'
+export { applyFixes } from './apply-fixes.js'
+export { assertionLessViolation } from './terminal-builder.js'
+export { bold, red, dim, yellow, cyan, gray } from './ansi.js'
+export { byCodepoint, severityFor, remedyRepeatsMessage } from './violation.js'
+export { dedupeConfigFindings } from './dedupe-config-findings.js'
+export { disambiguateIdentities } from './violation.js'
+export { discoverIdentityRoot, normalizeIdentityText } from './identity-root.js'
+export { escapeGitHub } from './format-github.js'
+export { hashViolation } from './baseline.js'
+export { identityCollisions } from './violation.js'
+export { isAnchored, isProjectRelative } from './project-relative.js'
+export { isArchRuleError } from './errors.js'
+export { isDescribable } from './rule-description.js'
+export {
+  isFaultPosition,
+  countDeclaredGlobs,
+  isGlobNode,
+  isOpaqueGlob,
+  globAnyOf,
+  globNode,
+  stampGlobs,
+  negateGlobs,
+  combineGlobs,
+} from './glob-site.js'
+export { isRecord, isNullaryCallable } from './type-guards.js'
+export { isSilent } from './silent-exclusion.js'
+export { marksAssertsCardinality } from './cardinality.js'
+export { marksOwnEmptyDiscovery, ownsEmptyDiscovery } from './owns-empty-discovery.js'
+export { matchSelections } from './matching.js'
+export { presetConstructsNothingViolation } from './preset-dispatch.js'
+export {
+  recordEdgeCoverage,
+  untestedRules,
+  edgeCoverageNotice,
+  resetEdgeCoverage,
+} from './edge-coverage.js'
+export { registerCacheReset, clearRegisteredCaches } from './cache-registry.js'
+export {
+  resetCommentSuppression,
+  recordCommentSuppression,
+  commentSuppressions,
+  commentSuppressionNotice,
+} from './comment-suppression.js'
+export { resetIdentityCollisions } from './violation.js'
+export { resetStderrGuardForTests } from './stderr.js'
+export { selectionMemo } from './selection-memo.js'
+export { shallowClone } from './shallow-clone.js'
+export { subjectOf } from './violation.js'
+export { suppressionNotice, activeNotice, resetDiffDisclosureForTests } from './diff-disclosure.js'
+export { toPortablePath } from './identity-root.js'
+export { viewsFor } from './path-universe.js'
+export { violationsEmittedCount } from './report.js'
+export { writeStderr } from './stderr.js'

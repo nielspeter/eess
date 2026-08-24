@@ -1,7 +1,7 @@
 import { Node, SyntaxKind } from 'ts-morph'
 import type { SourceFile, StringLiteral } from 'ts-morph'
 import { isTypeOnlyImport, isTypeOnlyReExport } from './import-options.js'
-import { registerCacheReset } from '@nielspeter/eess'
+import { registerCacheReset } from '@nielspeter/eess/internal'
 import { verbatimModuleSyntaxFor } from './per-root-compiler-options.js'
 
 /**

@@ -20,11 +20,11 @@ import { describe, it, expect } from 'vitest'
 import {
   RuleBuilder,
   ArchRuleError,
-  marksAssertsCardinality,
   type Condition,
   type ConditionContext,
   type ArchViolation,
 } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 
 interface Widget {
   readonly name: string

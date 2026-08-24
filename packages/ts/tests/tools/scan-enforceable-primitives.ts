@@ -86,7 +86,7 @@ import { Node, Project } from 'ts-morph'
 import type { ExportedDeclarations, SourceFile } from 'ts-morph'
 import fs from 'node:fs'
 import path from 'node:path'
-import { isRecord } from '@nielspeter/eess'
+import { isRecord } from '@nielspeter/eess/internal'
 
 /** The three return types that make a function something you can point at code. */
 export const PRIMITIVE_KINDS: readonly string[] = ['Condition', 'PairCondition', 'Predicate']

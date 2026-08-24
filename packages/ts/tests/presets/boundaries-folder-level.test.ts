@@ -24,7 +24,7 @@ import path from 'node:path'
 import { project } from '../../src/core/project.js'
 import { strictBoundaries } from '../../src/presets/boundaries.js'
 import type { ArchViolation } from '@nielspeter/eess'
-import { isDescribable } from '@nielspeter/eess'
+import { isDescribable } from '@nielspeter/eess/internal'
 
 const p = project(
   path.resolve(import.meta.dirname, '../fixtures/presets/boundaries-folder-level/tsconfig.json'),

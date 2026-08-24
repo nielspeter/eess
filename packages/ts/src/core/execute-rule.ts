@@ -5,19 +5,19 @@ import {
   disambiguateIdentities,
   byCodepoint,
   violationsEmittedCount,
-} from '@nielspeter/eess'
+} from '@nielspeter/eess/internal'
 import type { CheckOptions, OutputFormat } from '@nielspeter/eess'
 import type { RuleMetadata } from '@nielspeter/eess'
 import { ArchRuleError } from '@nielspeter/eess'
 import { formatViolations } from '@nielspeter/eess'
 import { formatViolationsJson } from '@nielspeter/eess'
-import { activeNotice } from '@nielspeter/eess'
+import { activeNotice } from '@nielspeter/eess/internal'
 import { formatViolationsGitHub } from '@nielspeter/eess'
 import { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
 import type { ExclusionWarning } from './exclusion-comments.js'
-import { UNSUPPRESSABLE } from '@nielspeter/eess'
-import { recordCommentSuppression } from '@nielspeter/eess'
-import { writeStderr } from '@nielspeter/eess'
+import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
+import { recordCommentSuppression } from '@nielspeter/eess/internal'
+import { writeStderr } from '@nielspeter/eess/internal'
 import type { EdgeCoverage } from '@nielspeter/eess'
 
 /**

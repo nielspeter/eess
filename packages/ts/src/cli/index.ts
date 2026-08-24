@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util'
-import { isRecord } from '@nielspeter/eess'
+import { isRecord } from '@nielspeter/eess/internal'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'

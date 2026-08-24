@@ -6,12 +6,12 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { GlobNode } from '@nielspeter/eess'
-import { globAnyOf, stampGlobs } from '@nielspeter/eess'
+import { globAnyOf, stampGlobs } from '@nielspeter/eess/internal'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { collectFunctions } from '../models/arch-function.js'
-import { selectionMemo } from '@nielspeter/eess'
+import { selectionMemo } from '@nielspeter/eess/internal'
 import {
   functionContain,
   functionNotContain,

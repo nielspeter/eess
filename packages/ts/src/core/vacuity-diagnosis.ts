@@ -7,7 +7,7 @@ import type { GlobNode, GlobSite, RuleDescription } from '@nielspeter/eess'
 // compiled only because the two are structurally identical today, which is a
 // coincidence to stop relying on rather than a contract.
 import type { PathUniverse } from './path-universe.js'
-import { DECLARE_INSTEAD, isFaultPosition, UNSUPPRESSABLE } from '@nielspeter/eess'
+import { DECLARE_INSTEAD, isFaultPosition, UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import { diagnoseGlob, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
 import { globSitesOf, isDeadGlobTree, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'

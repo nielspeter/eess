@@ -10,7 +10,6 @@ export { not, and, or } from './core/combinators.js'
 // Core — condition interface & violation model
 export type { Condition, ConditionContext } from '@nielspeter/eess'
 export type { ArchViolation } from '@nielspeter/eess'
-export { severityFor } from '@nielspeter/eess'
 export {
   createViolation,
   getElementName,
@@ -26,7 +25,6 @@ export {
 // Re-exported from the kernel since plan 0165 Phase 2 — they are pure, so they
 // live in `@nielspeter/eess`, and eess-ts forwards them so a standalone
 // installation still sees them (`tests/standalone-surface.test.ts`).
-export { remedyRepeatsMessage } from '@nielspeter/eess'
 
 // Core — rule builder, error & metadata
 export { RuleBuilder } from './core/rule-builder.js'
@@ -34,7 +32,6 @@ export { TerminalBuilder } from './core/terminal-builder.js'
 export { ArchRuleError } from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'
-export type { PathUniverse } from '@nielspeter/eess'
 
 // Core — code frame & formatting
 export { generateCodeFrame } from '@nielspeter/eess'
@@ -59,7 +56,6 @@ export type {
   GlobTree,
   OpaqueGlob,
 } from '@nielspeter/eess'
-export { combineGlobs, globAnyOf, globNode, negateGlobs, stampGlobs } from '@nielspeter/eess'
 
 // In-process diagnostics (plan 0069 R2a). The vitest-facing half of `doctor`:
 // rules written inside tests are a co-equal documented path, and a CLI-only
@@ -477,26 +473,7 @@ export type {
 // mistake, and its record says so.)
 export { rootFromTsConfigPath, rootOf, relativeToRoot } from './core/project-relative.js'
 export { syntacticFault } from './core/glob-diagnosis.js'
-export {
-  isFaultPosition,
-  countDeclaredGlobs,
-  isGlobNode,
-  isOpaqueGlob,
-  resetCommentSuppression,
-  recordCommentSuppression,
-  commentSuppressions,
-  commentSuppressionNotice,
-  dispatchRule,
-  throwIfViolations,
-  presetConstructsNothingViolation,
-  finishPreset,
-  byCodepoint,
-  assertionLessViolation,
-  recordEdgeCoverage,
-  untestedRules,
-  edgeCoverageNotice,
-  resetEdgeCoverage,
-} from '@nielspeter/eess'
+export { dispatchRule, throwIfViolations, finishPreset } from '@nielspeter/eess'
 export type {
   RuleSeverity,
   PresetBaseOptions,
@@ -506,24 +483,7 @@ export type {
 // The remainder of the pre-copy surface (same rule as the block above): these
 // were public in eess-ts before the engine copy, so their absence is a break,
 // not a cleanup.
-export {
-  UNSUPPRESSABLE,
-  activeNotice,
-  assertsCardinality,
-  dedupeConfigFindings,
-  discoverIdentityRoot,
-  isAnchored,
-  isNullaryCallable,
-  isProjectRelative,
-  isRecord,
-  marksAssertsCardinality,
-  normalizeIdentityText,
-  reportViolations,
-  resetDiffDisclosureForTests,
-  shallowClone,
-  suppressionNotice,
-  viewsFor,
-} from '@nielspeter/eess'
+export { assertsCardinality, reportViolations } from '@nielspeter/eess'
 
 // ─── Restored published surface, round 2 — PR #72 review ─────────────────────
 //

@@ -11,7 +11,7 @@ import { isDeadGlobTree } from './glob-evaluator.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
 import type { RuleBuilderLike } from '@nielspeter/eess'
 import type { GlobNode } from '@nielspeter/eess'
-import { isFaultPosition } from '@nielspeter/eess'
+import { isFaultPosition } from '@nielspeter/eess/internal'
 
 /**
  * Anything `diagnose()` can inspect: a rule that can describe its globs.

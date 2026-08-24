@@ -1,7 +1,7 @@
 import type { RuleDescription } from '@nielspeter/eess'
 import picomatch from 'picomatch'
 import path from 'node:path'
-import { selectionMemo } from '@nielspeter/eess'
+import { selectionMemo } from '@nielspeter/eess/internal'
 import { SmellBuilder } from './smell-builder.js'
 import { collectFunctions } from '../models/arch-function.js'
 import { fingerprintAll, findSimilarPairs } from './similar-pairs.js'

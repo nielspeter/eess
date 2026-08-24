@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { ArchViolation } from '@nielspeter/eess'
-import { dedupeConfigFindings } from '@nielspeter/eess'
+import { dedupeConfigFindings } from '@nielspeter/eess/internal'
 import { project, checkAll } from '../../src/index.js'
 import { ArchRuleError } from '@nielspeter/eess'
 import { strictBoundaries } from '../../src/presets/boundaries.js'

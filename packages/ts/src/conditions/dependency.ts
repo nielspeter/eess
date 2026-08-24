@@ -3,8 +3,8 @@ import type { SourceFile, ImportDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { candidatesFor, matchedCandidate } from '../core/import-candidates.js'
-import { recordEdgeCoverage } from '@nielspeter/eess'
-import { globAnyOf } from '@nielspeter/eess'
+import { recordEdgeCoverage } from '@nielspeter/eess/internal'
+import { globAnyOf } from '@nielspeter/eess/internal'
 import {
   edgeTypeOnlyRemedy,
   edgeDiscriminator,
@@ -22,7 +22,7 @@ export type { ImportOptions } from '../core/import-options.js'
 import type { ImportOptions } from '../core/import-options.js'
 import { splitGlobArgs } from '../core/import-options.js'
 import { rootOf } from '../core/project-relative.js'
-import { byCodepoint } from '@nielspeter/eess'
+import { byCodepoint } from '@nielspeter/eess/internal'
 
 /**
  * Which edge kinds a forward dependency condition reports on.

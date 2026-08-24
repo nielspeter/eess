@@ -13,7 +13,7 @@ import path from 'node:path'
 import { attributeToRuleFile, ruleFileFailure } from '../../src/cli/rule-file-findings.js'
 import { formatViolationsGitHub } from '@nielspeter/eess'
 import { formatViolations } from '@nielspeter/eess'
-import { severityFor } from '@nielspeter/eess'
+import { severityFor } from '@nielspeter/eess/internal'
 
 describe('ruleFileFailure', () => {
   const failure = ruleFileFailure('rules/arch.rules.ts', new RangeError('malformed rule'), 2)

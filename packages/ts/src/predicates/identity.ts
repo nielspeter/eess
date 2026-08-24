@@ -1,7 +1,7 @@
 import picomatch from 'picomatch'
 import type { SourceFile } from 'ts-morph'
 import type { Predicate } from '@nielspeter/eess'
-import { globNode } from '@nielspeter/eess'
+import { globNode } from '@nielspeter/eess/internal'
 import { isProjectRelative, relativeToRoot } from '../core/project-relative.js'
 
 /** Types that have a name — ClassDeclaration, FunctionDeclaration, InterfaceDeclaration, etc. */

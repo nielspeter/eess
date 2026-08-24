@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { matchSelections } from '../src/index.js'
+import { matchSelections } from '../src/internal.js'
 
 describe('matchSelections() — shared matching engine', () => {
   it('keyBy: pairs by key, reports unmatched both ways', () => {

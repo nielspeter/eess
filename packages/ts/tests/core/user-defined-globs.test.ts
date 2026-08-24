@@ -47,7 +47,7 @@ import type { SourceFile } from 'ts-morph'
 import { modules } from '../../src/index.js'
 import { definePredicate, defineCondition } from '@nielspeter/eess'
 import { diagnose } from '../../src/core/diagnose.js'
-import { globNode } from '@nielspeter/eess'
+import { globNode } from '@nielspeter/eess/internal'
 import { globSitesOf } from '../../src/core/glob-evaluator.js'
 import type { ArchProject } from '../../src/core/project.js'
 

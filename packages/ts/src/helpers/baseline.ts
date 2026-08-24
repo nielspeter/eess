@@ -2,9 +2,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
 import type { ArchViolation } from '@nielspeter/eess'
-import { subjectOf } from '@nielspeter/eess'
-import { discoverIdentityRoot, normalizeIdentityText, toPortablePath } from '@nielspeter/eess'
-import { writeStderr } from '@nielspeter/eess'
+import { subjectOf } from '@nielspeter/eess/internal'
+import {
+  discoverIdentityRoot,
+  normalizeIdentityText,
+  toPortablePath,
+} from '@nielspeter/eess/internal'
+import { writeStderr } from '@nielspeter/eess/internal'
 import { descriptionChangeFinding, unmatchedBaselineFinding } from './baseline-diagnostics.js'
 import type { BaselineFacts } from './baseline-diagnostics.js'
 

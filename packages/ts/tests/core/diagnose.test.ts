@@ -20,9 +20,8 @@ import {
   haveMatchingCounterpart,
   or,
   not,
-  globAnyOf,
-  stampGlobs,
 } from '../../src/index.js'
+import { globAnyOf, stampGlobs } from '@nielspeter/eess/internal'
 import * as graphql from '../../src/graphql/index.js'
 import { resideInFolder } from '../../src/predicates/identity.js'
 import type { Located } from '../../src/predicates/identity.js'

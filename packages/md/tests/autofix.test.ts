@@ -4,7 +4,8 @@ import path from 'node:path'
 import os from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { applyFixes, type ArchViolation } from '@nielspeter/eess'
+import { type ArchViolation } from '@nielspeter/eess'
+import { applyFixes } from '@nielspeter/eess/internal'
 import { corpus, links, pointers } from '../src/index.js'
 
 const fixtureRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/autofix')

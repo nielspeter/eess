@@ -11,7 +11,7 @@ import {
   resetCommentSuppression,
   commentSuppressions,
   commentSuppressionNotice,
-} from '@nielspeter/eess'
+} from '@nielspeter/eess/internal'
 import { project, functions, call } from '../../src/index.js'
 import { functionNotContain } from '../../src/conditions/body-analysis-function.js'
 import { applyFilters } from '../../src/core/execute-rule.js'

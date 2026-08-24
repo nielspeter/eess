@@ -2,7 +2,7 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation } from '../core/violation.js'
 import type { ArchJsxElement } from '../models/arch-jsx-element.js'
-import { marksAssertsCardinality } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 
 /**
  * Create a violation from an ArchJsxElement.

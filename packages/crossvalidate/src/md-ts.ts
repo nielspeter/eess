@@ -1,5 +1,6 @@
 import picomatch from 'picomatch'
-import { correspondence, type Selection } from '@nielspeter/eess'
+import { type Selection } from '@nielspeter/eess'
+import { correspondence } from '@nielspeter/eess'
 import type { Corpus } from '@nielspeter/eess-md'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import { citedItTitles, itTitleOf } from './it-title.js'

@@ -5,7 +5,7 @@ import type { ArchProject } from '../core/project.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { GlobNode } from '@nielspeter/eess'
-import { globAnyOf, stampGlobs } from '@nielspeter/eess'
+import { globAnyOf, stampGlobs } from '@nielspeter/eess/internal'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { Slice, SliceDefinition } from '../models/slice.js'
 import {

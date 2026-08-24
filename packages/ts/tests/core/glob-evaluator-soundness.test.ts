@@ -24,7 +24,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import type { GlobNode, GlobSite } from '@nielspeter/eess'
-import { combineGlobs, globNode, negateGlobs } from '@nielspeter/eess'
+import { combineGlobs, globNode, negateGlobs } from '@nielspeter/eess/internal'
 import { isDeadGlobTree } from '../../src/core/glob-evaluator.js'
 import type { PathUniverse } from '../../src/core/path-universe.js'
 

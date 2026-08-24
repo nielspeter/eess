@@ -16,37 +16,28 @@
  * Kernel-internal plumbing, exempt on every package (plan 0088's own ratified
  * decision: "implementation detail, not part of the surface a standalone
  * consumer builds against").
+
+ * **Emptied by ADR-011.** Every name that used to be here now lives behind
+ * `@nielspeter/eess/internal`, so it is not on the kernel's root surface at all
+ * and needs no exemption from the re-export requirement. The list is kept as an
+ * empty, exported set rather than deleted: `check:family` and
+ * `standalone-surface.test.ts` both read it, and an empty set is the honest
+ * statement that the boundary moved into the module structure. A name added back
+ * here would mean "public at the root, but deliberately not re-exported" — a real
+ * category, currently unused.
  */
-export const KERNEL_INTERNAL = new Set([
-  'applyFilters',
-  'escapeGitHub',
-  'hashViolation',
-  'writeStderr',
-  'registerCacheReset',
-  'clearRegisteredCaches',
-  'selectionMemo',
-  // A diagnostic counter the CLI reads to know whether a rule file emitted while
-  // it was loading (bug 0199). Kernel plumbing, not a surface an adopter writes
-  // rules against — re-exporting it would make an internal signal a compatibility
-  // commitment.
-  'violationsEmittedCount',
-])
+export const KERNEL_INTERNAL = new Set([])
 
 /**
  * The dialect-family-only surface — plan 0088 Phase 4's named exception. Serves
  * crossvalidate/md's two-sided binding, not a standalone ts user.
  */
-export const FAMILY_ONLY = new Set([
-  'correspondence',
-  'CorrespondenceBuilder',
-  'matchSelections',
-  'applyFixes',
-])
+export const FAMILY_ONLY = new Set(['correspondence', 'CorrespondenceBuilder'])
 
 /**
  * ANSI colour helpers — terminal-formatting internals, not programmatic surface.
  */
-export const ANSI_INTERNAL = new Set(['bold', 'red', 'dim', 'yellow', 'cyan', 'gray'])
+export const ANSI_INTERNAL = new Set([])
 
 /**
  * Kernel exports that eess-ts has never published.
@@ -69,18 +60,4 @@ export const ANSI_INTERNAL = new Set(['bold', 'red', 'dim', 'yellow', 'cyan', 'g
  * reds `standalone-surface.test.ts` — and the second test there keeps the list
  * from going stale by requiring every name to still exist in the kernel.
  */
-export const KERNEL_PRIVATE_BEFORE_THE_SPLIT = new Set([
-  'DECLARE_INSTEAD',
-  'UNSUPPRESSABLE_MECHANISMS',
-  'disambiguateIdentities',
-  'identityCollisions',
-  'isArchRuleError',
-  'isDescribable',
-  'isSilent',
-  'marksOwnEmptyDiscovery',
-  'ownsEmptyDiscovery',
-  'resetIdentityCollisions',
-  'resetStderrGuardForTests',
-  'subjectOf',
-  'toPortablePath',
-])
+export const KERNEL_PRIVATE_BEFORE_THE_SPLIT = new Set([])

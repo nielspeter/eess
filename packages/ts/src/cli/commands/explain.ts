@@ -1,4 +1,4 @@
-import { isDescribable } from '@nielspeter/eess'
+import { isDescribable } from '@nielspeter/eess/internal'
 import type { RuleDescription } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 

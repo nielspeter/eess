@@ -40,7 +40,7 @@ import {
   commentSuppressionNotice,
   commentSuppressions,
   resetCommentSuppression,
-} from '@nielspeter/eess'
+} from '@nielspeter/eess/internal'
 import type { ArchProject } from '../../src/core/project.js'
 
 const RULE_ID = 'probe/no-forbidden'

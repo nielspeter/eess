@@ -7,7 +7,7 @@ import type { SliceDependencySite } from '../helpers/slice-graph.js'
 import { edgeDiscriminator, edgeVerb } from '../core/module-edges.js'
 import { sliceGraph, buildFileToSliceMap } from '../helpers/slice-graph.js'
 import { tarjanSCC, type AdjacencyList } from '../helpers/tarjan.js'
-import { byCodepoint } from '@nielspeter/eess'
+import { byCodepoint } from '@nielspeter/eess/internal'
 
 /**
  * Assert that no circular dependencies exist between slices.

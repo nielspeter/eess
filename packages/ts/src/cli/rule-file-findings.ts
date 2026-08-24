@@ -1,5 +1,5 @@
 import type { ArchViolation } from '@nielspeter/eess'
-import { isArchRuleError } from '@nielspeter/eess'
+import { isArchRuleError } from '@nielspeter/eess/internal'
 import { basename } from 'node:path'
 
 /**

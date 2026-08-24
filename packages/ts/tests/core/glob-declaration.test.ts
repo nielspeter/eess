@@ -15,6 +15,8 @@ import path from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import * as rootExports from '../../src/index.js'
+// plumbing, not eess-ts's surface — reached at its own entry point (ADR-011)
+import { stampGlobs } from '@nielspeter/eess/internal'
 import * as graphqlExports from '../../src/graphql/index.js'
 import { RuleBuilder } from '../../src/core/rule-builder.js'
 import { TerminalBuilder } from '../../src/core/terminal-builder.js'
@@ -322,5 +324,5 @@ describe('combinator propagation', () => {
 
 /** Stamp a declared tree so its sites can be inspected. */
 function stamp(declared: NonNullable<ReturnType<typeof resideInFolder>['globs']>) {
-  return rootExports.stampGlobs(declared, 'selector', (g) => g.glob)
+  return stampGlobs(declared, 'selector', (g) => g.glob)
 }

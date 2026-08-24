@@ -1,6 +1,6 @@
 import { SyntaxKind } from 'ts-morph'
 import type { Node, SourceFile } from 'ts-morph'
-import { registerCacheReset } from '@nielspeter/eess'
+import { registerCacheReset } from '@nielspeter/eess/internal'
 
 /**
  * The per-file line index behind `linesOfCode`.

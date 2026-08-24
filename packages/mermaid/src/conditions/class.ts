@@ -1,5 +1,5 @@
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { marksAssertsCardinality } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 import type { ArchViolation } from '../core/violation.js'
 import { createViolation } from '../core/violation.js'
 import type { ArchClass } from '../models/arch-class.js'

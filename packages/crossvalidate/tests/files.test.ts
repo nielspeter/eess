@@ -3,7 +3,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { isAbsolute } from 'node:path'
-import { correspondence, ArchRuleError, type Selection, type ArchViolation } from '@nielspeter/eess'
+import { ArchRuleError, type Selection, type ArchViolation } from '@nielspeter/eess'
+import { correspondence } from '@nielspeter/eess'
 import { files } from '../src/files.js'
 
 /** Build a small file tree in a temp dir (avoids committing gitignored dirs). */

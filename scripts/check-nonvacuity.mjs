@@ -599,7 +599,12 @@ function gateFamilyReExportAggregation() {
   // package, not just the file under direct suspicion.
   const bad = withMutatedFile(
     FAMILY_REEXPORT_AGGREGATION_TARGET,
-    "import { remedyRepeatsMessage } from '@nielspeter/eess'",
+    // A ROOT symbol md does not re-export. It was `remedyRepeatsMessage` until
+    // ADR-011 moved that behind `@nielspeter/eess/internal`, where it obliges no
+    // re-export by design — which turned this fixture's violating input into a
+    // legal one and the probe green-for-nothing. The payload has to name a symbol
+    // the rule still owes a re-export for, or the fixture proves nothing.
+    "import { throwIfViolations } from '@nielspeter/eess'",
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
   const ok = bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts')

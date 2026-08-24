@@ -1,6 +1,6 @@
 import type { RuleDescription } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
-import { isRecord } from '@nielspeter/eess'
+import { isRecord } from '@nielspeter/eess/internal'
 import { ScriptTarget, ModuleKind, ModuleResolutionKind } from 'ts-morph'
 import type { CompilerOptions } from 'ts-morph'
 import type { ArchProject } from '../core/project.js'
