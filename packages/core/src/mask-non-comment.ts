@@ -195,6 +195,15 @@ export function maskMarkdownCodeSpans(sourceText: string): string {
       continue
     }
 
+    // Markdown's THIRD code construct: a 4-space (or tab) indented block. Missed
+    // by the first version, which handled fences and inline spans only — so an
+    // indented example of a directive was read as a live waiver. Deliberately
+    // over-broad (a wrapped list item indents too): over-masking hides a
+    // directive, which is loud; under-masking invents one, which is silent.
+    if (/^(?: {4}|\t)/.test(line)) {
+      out.push(' '.repeat(line.length))
+      continue
+    }
     // Outside a fence: blank BALANCED inline spans only. An odd backtick is
     // prose, and treating it as an opener is exactly the bug this replaces.
     out.push(blankInlineCodeSpans(line))
@@ -202,19 +211,58 @@ export function maskMarkdownCodeSpans(sourceText: string): string {
   return out.join('\n')
 }
 
-/** Blank `…` runs on one line, leaving an unpaired backtick as ordinary text. */
+/**
+ * Blank code spans on one line, matching backtick RUNS the way CommonMark does:
+ * an opening run of N backticks is closed by the next run of exactly N.
+ *
+ * The first version paired backticks one at a time, which left the contents of
+ * any run of two or more exposed — so a directive inside ``…`` survived masking
+ * and was read as a live waiver. That is a suppression nobody wrote, the one
+ * direction this whole module exists to prevent (bug 0154), reintroduced by the
+ * fix for it. Multi-tick runs are not exotic here: they are the repo's own
+ * convention for code containing a backtick.
+ *
+ * An unclosed run is left as ordinary text, so a stray tick in prose still
+ * cannot swallow the rest of the line.
+ */
 function blankInlineCodeSpans(line: string): string {
-  const ticks: number[] = []
-  for (let i = 0; i < line.length; i++) {
-    if (line.charAt(i) === '`') ticks.push(i)
+  const runs: Array<{ start: number; length: number }> = []
+  let i = 0
+  while (i < line.length) {
+    if (line.charAt(i) !== '`') {
+      i += 1
+      continue
+    }
+    const start = i
+    while (i < line.length && line.charAt(i) === '`') i += 1
+    runs.push({ start, length: i - start })
   }
-  if (ticks.length < 2) return line
+  if (runs.length < 2) return line
+
   let out = line
-  for (let i = 0; i + 1 < ticks.length; i += 2) {
-    const open = ticks[i]
-    const close = ticks[i + 1]
-    if (open === undefined || close === undefined) continue
-    out = out.slice(0, open) + ' '.repeat(close - open + 1) + out.slice(close + 1)
+  let openIndex = 0
+  while (openIndex < runs.length) {
+    const open = runs[openIndex]
+    if (open === undefined) break
+    let closeIndex = -1
+    for (let j = openIndex + 1; j < runs.length; j++) {
+      const candidate = runs[j]
+      if (candidate !== undefined && candidate.length === open.length) {
+        closeIndex = j
+        break
+      }
+    }
+    if (closeIndex === -1) {
+      // No matching close: this run is prose, not a delimiter.
+      openIndex += 1
+      continue
+    }
+    const close = runs[closeIndex]
+    if (close === undefined) break
+    const from = open.start
+    const to = close.start + close.length
+    out = out.slice(0, from) + ' '.repeat(to - from) + out.slice(to)
+    openIndex = closeIndex + 1
   }
   return out
 }

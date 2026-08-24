@@ -119,10 +119,18 @@ const docs = withSabotage(
   (t) => `${t}\nconst ${SENTINEL} = 1\nexport { ${SENTINEL} }\n`,
   () => runCapture('check:surface'),
 )
-if (!docs.out.includes(SENTINEL)) {
+// Both halves, deliberately. Naming the symbol proves DETECTION and is immune to
+// an unrelated red; a non-zero exit proves BLOCKING. Review measured that the
+// name-only form left `process.exit(1)` in `scripts/check-surface.mjs`
+// unguarded — delete that one line and the gate still printed the symbol, still
+// exited 0, and this fixture stayed green. The excuse for dropping the exit code
+// ("it cannot tell detection from an unrelated red") does not apply to the
+// population this gate blocks on: the kernel root is clean, so exit 0 is the
+// baseline and any non-zero is this fixture's doing.
+if (!docs.out.includes(SENTINEL) || docs.status === 0) {
   vacuous(
-    `check:surface (exit ${docs.status}) never named ${SENTINEL} — it did not see the ` +
-      `undocumented export this fixture added to the kernel root`,
+    `check:surface exited ${docs.status} and ${docs.out.includes(SENTINEL) ? 'named' : 'never named'} ` +
+      `${SENTINEL} — it must both SEE the undocumented kernel-root export and FAIL on it`,
   )
 }
 
@@ -171,8 +179,39 @@ if (!stale.out.includes('@nielspeter/eess-gherkin')) {
   )
 }
 
+// 5. check:docs-code — a documentation fence that does not compile.
+//
+// Scenario 2 used to be this gate's only fixture. Retargeting it to
+// `check:surface` (which took the public-surface half of the script) left
+// `check:docs-code` with NO probe at all, while `GATE_FOR` still recorded it as
+// covered — so deleting the whole script would have left the meta-gate printing
+// `gate coverage — OK`. That is verbatim the state whose measurement justified
+// abolishing the `no-gate-yet` waivers, restored by the fix for a different
+// finding. Found in review.
+const fence = withSabotage(
+  'docs/getting-started.md',
+  (t) => {
+    // The anchor has to sit inside a fence the gate actually COMPILES, and most
+    // are not: a fence is checked only if it imports AND calls an entry function
+    // (`project`/`workspace`/`corpus`/`features`) — 51 qualify, 306 are fragments
+    // skipped by design. The first attempt at this fixture sabotaged a fence in
+    // `docs/custom-rules.md`, which imports `definePredicate` and is therefore a
+    // fragment; the gate exited 0 and the obvious reading was "the gate is
+    // fail-open". It is not. The probe was aimed at a fence nothing checks, which
+    // is its own lesson about writing sabotage against a filtered population.
+    const at = t.indexOf("\nimport { project } from '@nielspeter/eess-ts'")
+    if (at === -1) throw new Error('docs/getting-started.md: anchor import line not found')
+    const after = t.indexOf('\n', at + 1) + 1
+    return `${t.slice(0, after)}const __nonvacuityBrokenFence__: number = 'not a number'\n${t.slice(after)}`
+  },
+  () => run('check:docs-code'),
+)
+if (fence === 0) {
+  vacuous(`check:docs-code exited ${fence} with a documentation fence that does not typecheck`)
+}
+
 console.error(
-  `${NAME}: OK — integrity (phantom dep + stale output), surface and examples each red on ` +
-    `their own subject`,
+  `${NAME}: OK — integrity (phantom dep + stale output), surface, docs-code and examples ` +
+    `each red on their own subject`,
 )
 process.exit(1)

@@ -97,3 +97,40 @@ describe('a reason-free -start still occupies a frame (regression, review of ADR
     expect(warnings.filter((w) => /without matching start/.test(w.message))).toEqual([])
   })
 })
+
+describe('a malformed -start occupies a frame and says so (review of ADR-011 branch)', () => {
+  // The empty-frame fix reached the reason-free shape and not this one: a bare
+  // `// eess-exclude-start` matched the regex not at all, so it pushed no frame
+  // and emitted nothing — the enclosing waiver still closed early, and a balanced
+  // file still reported an unmatched `-end`. Same two symptoms, a shape further
+  // out. Found by review of the fix.
+  const src = [
+    '// eess-exclude-start rule-a: outer', // 1
+    'code', // 2
+    '// eess-exclude-start', // 3  <- no ids, no reason
+    'more', // 4
+    '// eess-exclude-end', // 5
+    'tail', // 6
+    '// eess-exclude-end', // 7
+  ].join('\n')
+
+  it('the outer block still ends at its own -end', () => {
+    const { exclusions } = parseExclusionComments(src, 'probe.ts')
+    expect(exclusions.find((e) => e.ruleId === 'rule-a')?.endLine).toBe(7)
+  })
+
+  it('a balanced file reports no unmatched -end', () => {
+    const { warnings } = parseExclusionComments(src, 'probe.ts')
+    expect(warnings.filter((w) => /without matching start/.test(w.message))).toEqual([])
+  })
+
+  it('the malformed directive is reported, not swallowed', () => {
+    const { warnings } = parseExclusionComments(src, 'probe.ts')
+    expect(warnings.some((w) => /names no rule id/.test(w.message))).toBe(true)
+  })
+
+  it('it suppresses nothing', () => {
+    const { exclusions } = parseExclusionComments(src, 'probe.ts')
+    expect(exclusions.map((e) => e.ruleId)).toEqual(['rule-a'])
+  })
+})

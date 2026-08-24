@@ -18,7 +18,7 @@ edge-coverage counters. Because `check:family` required each dialect to re-expor
 every kernel symbol its own source imports, each of those was published again by
 every dialect that touched it.
 
-**What moved.** 78 symbols now live at `@nielspeter/eess/internal`. If you import one
+**What moved.** 71 symbols now live at `@nielspeter/eess/internal`. If you import one
 from `@nielspeter/eess`, change the specifier — nothing was deleted or renamed.
 
 **What did not move**, because "unreferenced in this repo" is not "not API":
@@ -26,6 +26,13 @@ from `@nielspeter/eess`, change the specifier — nothing was deleted or renamed
 surface of eess-md and eess-crossvalidate), `reportViolations` and `finishPreset`
 (named seams in ADR-008), and the `ArchJson*` types, which describe the `--format
 json` output that `docs/agent-integration.md` teaches.
+
+Also still on the root, and worth naming because an earlier draft of this changeset
+said otherwise: `globNode` and `globAnyOf` (the constructors a user-written
+`definePredicate` needs to declare its globs — a documented extension point), and
+`CorrespondenceOptions`, `RelationSpec` and `KeyBy` (the parameter types of
+`correspondence()` and `preserveRelations()`, both public). **Do not rewrite imports
+of those five to `/internal`** — they are not there.
 
 **The dialects' surfaces shrink too.** A dialect no longer re-exports kernel plumbing
 it only uses internally, so `eess-ts`, `eess-md` and `eess-mermaid` each drop what they

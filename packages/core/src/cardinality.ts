@@ -16,15 +16,26 @@
  * empty-selection gate on any rule, permanently and invisibly. That is
  * `.allowEmpty()` wearing a different hat.
  *
- * This symbol is **not** re-exported from `src/index.ts`. It IS reachable, from
- * `@nielspeter/eess/internal` — ADR-011 gave the kernel a second entry point, so
- * the old rationale here ("the exports map has no wildcard subpath, so a consumer
- * cannot import it") no longer holds and has been replaced rather than left
- * standing. The real defence is unchanged and was always the load-bearing one:
- * the marker lives in a module-private `WeakSet`, so holding the symbol does not
- * let you forge a mark. The escape hatch users *do* get is `.expectEmpty()`, which is
- * an assertion that fails when the selection stops being empty — not a
- * silencer.
+ * **What actually stops a consumer doing this: not enough.** Say it plainly,
+ * because two earlier versions of this comment did not.
+ *
+ * The `WeakSet` below defends the KEY — membership cannot be read off an object,
+ * copied, or forged. It does not defend the CALL. Anyone holding
+ * `marksAssertsCardinality` can mark any condition, and it is reachable from
+ * `@nielspeter/eess/internal`. The first rationale here ("the exports map has no
+ * wildcard subpath") stopped being true when ADR-011 added the subpath; the
+ * second ("the `WeakSet` is the real defence") was simply wrong about which half
+ * it guards, and was written in the same branch that added the subpath.
+ *
+ * The honest position: this is narrower than it was — on `main` the marker was
+ * exported from the kernel ROOT and re-exported by eess-ts's root, so it sat on
+ * two published surfaces; it is now on one, named `/internal`, which no dialect
+ * re-exports. It is not closed. Closing it means validating at the registration
+ * site (accept only conditions from a sanctioned constructor), which is a design
+ * change, not a comment.
+ *
+ * The escape hatch users are *meant* to have is `.expectEmpty()` — an assertion
+ * that fails when the selection stops being empty, not a silencer.
  */
 const CARDINALITY_ASSERTERS = new WeakSet<object>()
 

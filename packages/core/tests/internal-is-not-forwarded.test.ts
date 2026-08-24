@@ -35,10 +35,12 @@ describe('no dialect forwards @nielspeter/eess/internal (ADR-011 clause 2)', () 
   const FORWARD = /export\s+(?:type\s+)?\{[^}]*\}\s*from\s*['"]@nielspeter\/eess\/internal['"]/
   /** `export * from '…/internal'` — a blanket forward. */
   const STAR = /export\s+\*\s+from\s*['"]@nielspeter\/eess\/internal['"]/
+  /** `export * as ns from '…/internal'` — one namespace object, still a forward. */
+  const STAR_AS = /export\s+\*\s+as\s+[A-Za-z_]\w*\s+from\s*['"]@nielspeter\/eess\/internal['"]/
 
   it('no dialect source re-exports anything from the internal entry point', () => {
     const offenders = sources
-      .filter(([, text]) => FORWARD.test(text) || STAR.test(text))
+      .filter(([, text]) => FORWARD.test(text) || STAR.test(text) || STAR_AS.test(text))
       .map(([file]) => file)
     expect(offenders).toEqual([])
   })
@@ -54,6 +56,7 @@ describe('no dialect forwards @nielspeter/eess/internal (ADR-011 clause 2)', () 
     expect(FORWARD.test("export { writeStderr } from '@nielspeter/eess/internal'")).toBe(true)
     expect(FORWARD.test("export type { OnDisk } from '@nielspeter/eess/internal'")).toBe(true)
     expect(STAR.test("export * from '@nielspeter/eess/internal'")).toBe(true)
+    expect(STAR_AS.test("export * as internal from '@nielspeter/eess/internal'")).toBe(true)
     // …and do not match the legitimate root form
     expect(FORWARD.test("export { not } from '@nielspeter/eess'")).toBe(false)
   })

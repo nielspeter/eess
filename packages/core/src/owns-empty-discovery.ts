@@ -51,10 +51,18 @@
  * and a test asserts that constructor emits no own symbols. `PairCondition` has no
  * sanctioned constructor, so there is nothing to make the analogous guarantee.
  *
- * A module-level `WeakSet` has no such hole. Membership is not a property of the
- * object, so it cannot be read off one, copied, or forged — a caller would need
- * this module's binding, and it is not exported. `WeakSet` rather than `Set` so a
- * condition is not retained after its rule is discarded.
+ * A module-level `WeakSet` closes that hole for the KEY: membership is not a
+ * property of the object, so it cannot be read off one, copied, or forged.
+ *
+ * It does not close it for the CALL, and the clause that used to say so — "a
+ * caller would need this module's binding, and it is not exported" — was already
+ * false when it was written: `marksOwnEmptyDiscovery` was exported from the
+ * kernel root. It now sits behind `@nielspeter/eess/internal`, which is narrower
+ * and still reachable. See `cardinality.ts` for the same limitation stated in
+ * full; the two markers share it.
+ *
+ * `WeakSet` rather than `Set` so a condition is not retained after its rule is
+ * discarded.
  */
 const OWNERS = new WeakSet<object>()
 

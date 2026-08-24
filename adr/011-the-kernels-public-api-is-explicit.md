@@ -3,7 +3,8 @@
 ## Status
 
 Accepted (2026-08-24). Proposed 2026-08-23 and **built the same day** — the
-entry point exists, 78 symbols moved behind it, and the Enforcement rows below
+entry point exists, 71 symbols sit behind it (78 moved in the first cut; review
+sent five back to the root and two more were never internal), and the rows below
 were rewritten against what shipped rather than what was intended.
 
 The classification was the work, and it was judgment, exactly as the Context

@@ -113,6 +113,13 @@ collisions, the cache registry), so the state silently splits. Raise each floor
 to the version this release ships. A `>=X` range never goes out of range upward,
 so doing so cannot trigger the escalation.
 
+**Do it in the `changeset version` commit, not before it.** Raising a floor to a
+version that is not published yet makes `npm install` fail with `ETARGET` for every
+fresh clone — and CI does not notice, because `npm ci` builds from
+`package-lock.json` and npm's lockfile validation compares names and versions only,
+never `peerDependencies`. Green build, broken clone. Measured on this repo when the
+floors were raised one commit early.
+
 **The limit, stated because it is load-bearing:** an unmarked break is not
 caught. This gate exists to stop a changeset that SAYS "Breaking" from shipping
 as a patch — it does not infer intent from prose, and no gate does. If you are

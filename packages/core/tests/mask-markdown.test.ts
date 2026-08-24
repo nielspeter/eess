@@ -41,6 +41,29 @@ describe('markdown is masked as markdown, not as JavaScript', () => {
     expect(exclusions).toEqual([])
   })
 
+  // Review of the first version of this masker. `blankInlineCodeSpans` paired
+  // backticks one at a time, so a CommonMark run of two or more left its contents
+  // exposed — and a directive inside one was parsed as a LIVE waiver. That is a
+  // suppression nobody wrote, which is the direction bug 0154 exists to prevent,
+  // reintroduced by the fix for it. Double-backtick spans are this repo's own
+  // convention for code containing a backtick (see CLAUDE.md's ADR-citation rule).
+  it('a directive inside a multi-backtick span is not a waiver', () => {
+    const md = 'Write ``<!-- eess-exclude some/rule: forged -->`` here.'
+    const { exclusions } = parseExclusionComments(md, 'doc.md')
+    expect(exclusions).toEqual([])
+  })
+
+  it('a run is closed by a run of the SAME length, per CommonMark', () => {
+    // A single tick inside a double-tick span does not close it.
+    const md = 'see ``a ` b`` and `c` done'
+    const masked = maskMarkdownCodeSpans(md)
+    expect(masked).toContain('see ')
+    expect(masked).toContain(' and ')
+    expect(masked).toContain(' done')
+    expect(masked).not.toContain('a ` b')
+    expect(masked).not.toContain('c')
+  })
+
   it('the mask preserves length and line count', () => {
     const md = ['a `b` c', '```', 'inside', '```', 'd'].join('\n')
     const masked = maskMarkdownCodeSpans(md)

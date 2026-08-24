@@ -70,6 +70,7 @@ const SINGLE_LINE_RE = /^[ \t]*eess-exclude[ \t]+(.+)/
  * `//` is the directive's own.
  */
 const CODE_LIKE = /\.(?:[cm]?[jt]sx?|vue|svelte)$/i
+const MARKDOWN_LIKE = /\.(?:md|markdown|mdx)$/i
 
 /**
  * The HTML-comment forms exist for text dialects whose sources have no `//` —
@@ -87,7 +88,12 @@ function firstCommentBody(line: string): string | undefined {
 }
 
 // Block start: // eess-exclude-start <rule-id>[, <rule-id>]: <reason>
-const BLOCK_START_RE = /^[ \t]*eess-exclude-start[ \t]+(.+)/
+// The trailing group is OPTIONAL. A bare `// eess-exclude-start` (no ids, no
+// reason) used to match nothing at all — so it pushed no frame, said nothing,
+// and the next `-end` closed the ENCLOSING block. Same two symptoms as the
+// reason-free case, through a shape the reason-free fix did not reach: it is a
+// bracket the reader can see, so it must consume the `-end` written for it.
+const BLOCK_START_RE = /^[ \t]*eess-exclude-start(?:[ \t]+(.*))?[ \t]*$/
 
 // Block end: // eess-exclude-end
 const BLOCK_END_RE = /^[ \t]*eess-exclude-end\b/
@@ -183,6 +189,22 @@ function handleBlockStart(
 ): void {
   const { ruleIds, reason } = parseRuleIdsAndReason(content)
 
+  if (ruleIds.length === 0) {
+    // A `-start` naming no rule at all. It still consumes its `-end` (see the
+    // regex comment), but it is malformed and saying nothing about it would be
+    // the silence this whole grammar is written to refuse.
+    warnings.push({
+      message:
+        `eess-exclude-start names no rule id. ` +
+        `Fix: write // eess-exclude-start <rule-id>: <why>, or delete the directive ` +
+        `and its matching -end.`,
+      file: filePath,
+      line: lineNum,
+    })
+    openBlocks.push([])
+    return
+  }
+
   if (reason === '') {
     warnUndocumented(warnings, ruleIds, 'eess-exclude-start', filePath, lineNum)
     // Push an EMPTY frame rather than returning. Refusing the waiver and
@@ -270,9 +292,20 @@ export function parseExclusionComments(sourceText: string, filePath: string): Pa
   // markdown made a stray backtick swallow every directive after it — the same
   // question (is this text an example or an instance?) needs the host language's
   // answer, not one language's answer everywhere.
-  const lines = (CODE_LIKE.test(filePath) ? maskNonCommentSpans : maskMarkdownCodeSpans)(
-    sourceText,
-  ).split('\n')
+  //
+  // Routed on MARKDOWN specifically, not on "not code". The first version used
+  // `!CODE_LIKE`, which handed `.mmd`, `.feature`, `.yml` and everything else to
+  // the markdown lexer — and a `.mmd` node label is a quoted string, which the
+  // JS masker blanks and the markdown one does not. That is the very mistake this
+  // comment describes, committed by the fix for it. Anything neither code nor
+  // markdown keeps the conservative masker: over-masking hides a directive
+  // (loud), under-masking invents one (silent).
+  const mask = CODE_LIKE.test(filePath)
+    ? maskNonCommentSpans
+    : MARKDOWN_LIKE.test(filePath)
+      ? maskMarkdownCodeSpans
+      : maskNonCommentSpans
+  const lines = mask(sourceText).split('\n')
   const htmlApply = htmlFormsApply(filePath)
   const exclusions: ExclusionComment[] = []
   const warnings: ExclusionWarning[] = []
@@ -299,8 +332,12 @@ export function parseExclusionComments(sourceText: string, filePath: string): Pa
     const startMatch =
       (body === undefined ? null : BLOCK_START_RE.exec(body)) ??
       (htmlApply ? HTML_BLOCK_START_RE.exec(line) : null)
-    if (startMatch?.[1]) {
-      handleBlockStart(startMatch[1], openBlocks, warnings, filePath, lineNum)
+    // `startMatch !== null`, not `startMatch?.[1]`. The capture is optional now, so
+    // a bare `// eess-exclude-start` matches with group 1 undefined — and testing
+    // the GROUP threw that line away again, which is the same "no frame, silent,
+    // enclosing block closes early" defect one level up from the regex.
+    if (startMatch !== null) {
+      handleBlockStart(startMatch[1] ?? '', openBlocks, warnings, filePath, lineNum)
       continue
     }
 
