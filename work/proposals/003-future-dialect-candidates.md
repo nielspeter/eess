@@ -36,6 +36,23 @@ does not argue that any one candidate should be built. It records the ones
 raised so a future session doesn't re-derive the same list from scratch, and
 states plainly what is missing before any of them earns a plan.
 
+## Acceptance criteria
+
+Added 2026-08-23 by [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md).
+This proposal is a **catalog**, so its capability is not a dialect — it is the bar an entry
+must clear before it becomes a proposal of its own. Its review ruled `Rewrite needed`
+precisely because no entry stated one, which is this section's subject, and writing it here
+is the first half of that rewrite rather than a substitute for it.
+
+| capability                                     | break class — what must go red                                                                                                                                                                                                                                                      | non-vacuity                                                                                                                                                         |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| an entry is promotable to its own proposal     | the entry names no corruption that a rule over that dialect would catch. A candidate with no break class is a wish, and the catalog's job is to keep those out of the plan lane                                                                                                     | each promoted entry becomes a proposal, which this lane now gates for its own acceptance-criteria section — so the requirement propagates rather than stopping here |
+| the catalog does not assert what already ships | an entry claims a capability the family already has. Measured on this record: **GraphQL ships** (959 LOC, a sub-path export, a docs page) and the ER cost was understated — two of eight entries were wrong on their face, which is what the existing-code survey exists to prevent | the survey is a step in `review-proposal`, and its findings are recorded in the proposal rather than the reviewer's head                                            |
+
+**Deliberately not claimed:** that any entry is ready. Six of the eight state no break class
+today; this section sets the bar and the rewrite is where entries meet it or are dropped.
+The `Rewrite needed` ruling stands.
+
 ## Review — 2026-08-13
 
 **Ruling: Rewrite needed**

@@ -32,6 +32,8 @@ import {
   hasUnparseableRuling,
   isAccepted,
   operativeRuling,
+  PROPOSAL_DONE_FOLDERS,
+  rulingsObliging,
   operativeRulingLine,
   proposalNumberFromPath,
 } from './lib/proposal-ruling.mjs'
@@ -581,7 +583,7 @@ for (const d of allDocs.filter(isOwnerDoc)) {
 // this to convention: promoting 001 fires 29 `ledger/silent-open-box` findings
 // against Acceptance Criteria, and the pressure at that point is to bulk-
 // annotate for green. `Declined` is the token for those.
-const UNPROMOTABLE_RULINGS = new Set(['Rewrite needed', 'Reject'])
+const UNPROMOTABLE_RULINGS = rulingsObliging('unfinished')
 
 const promotedProposals = liveDocs.filter(
   (d) => isProposalDoc(d) && stateToken(d.text) === 'Promoted',
@@ -651,6 +653,96 @@ for (const d of promotedProposals) {
   }
 }
 
+// ---- Plan 0218: a proposal states its acceptance criteria ------------------
+//
+// `PROPOSALS.md`'s template requires, per capability, the break class — the
+// specific corruption that must produce a violation — and how non-vacuity is
+// kept. Nothing checked it, and proposal 006 shipped without the section at all,
+// which its own review recorded as a defect it committed.
+//
+// EVERY proposal, with no exclusions. An earlier version of this rule exempted
+// terminal records and those ruled `Rewrite needed`/`Reject`, on arguments that
+// were reasonable in isolation — closed history should not be rewritten; a
+// document the review already found deficient should not be re-audited. Measured
+// with the exemptions removed, they were shielding three real records (003, 004,
+// 005), which is grandfathering by another name. All three were made to comply
+// instead, which is how `adrEnforcement` was adopted: zero exemptions, and all
+// ten ADRs carry their table because someone wrote them.
+//
+// Depth is read directly. `haveSection` matches on name alone, and proposal 005
+// carried four `### Acceptance criteria (…)` headings inside superseded
+// appendices — a name-only rule would be satisfied by a heading at any level.
+const statesAcceptanceCriteria = (d) =>
+  d.sections.some((s) => s.depth === 2 && /^acceptance criteria$/i.test(s.name))
+
+const criteriaSubjects = liveDocs.filter(isProposalDoc)
+
+const criteriaViolations = criteriaSubjects
+  .filter((d) => !statesAcceptanceCriteria(d))
+  .map((d) => {
+    const n = proposalNumberFromPath(d.relPath)
+    return {
+      rule: 'docs',
+      ruleId: 'corpus/proposal-states-no-acceptance-criteria',
+      element: `proposal ${n === null ? d.relPath : pad3(n)}`,
+      file: d.file,
+      line: 1,
+      message: `${d.relPath} has no level-2 "## Acceptance criteria" section`,
+      because:
+        'a capability with no stated break class is unfalsifiable, and this lane requires the ' +
+        'section per capability. NOTE: this proves only that the heading EXISTS — it does not ' +
+        'read what is under it, so an empty section satisfies it.',
+      suggestion:
+        'add a "## Acceptance criteria" section stating, per capability, the break class — ' +
+        'the specific corruption that must produce a violation — and how non-vacuity is kept.',
+      codeFrame: undefined,
+    }
+  })
+
+// No zero-guard here, and that is a consequence of removing the exclusions
+// rather than an omission. `criteriaSubjects` IS `liveDocs.filter(isProposalDoc)`,
+// so "zero subjects while proposals exist" is unreachable by construction — the
+// earlier version's guard was only satisfiable because the exclusions could
+// narrow a non-empty lane to nothing. A guard that cannot fire is worth less
+// than no guard (ADR-009), so it was deleted with them.
+//
+// The ADR-010 evidence is the denominator instead: the summary prints
+// `N criteria-checked`, and N is every live proposal. A zero there means the
+// selector or the roots are broken, which is visible rather than guarded.
+
+// ---- Plan 0218: a ruling that names a remedy names an owner ----------------
+//
+// `Docs-only` says "the capability ships; write the docs" — it names a remedy
+// and creates no owner, so the remedy evaporates. Measured: proposal 004 was
+// ruled `Docs-only` on 2026-08-13 and ten days later none of the documentation
+// existed, with every gate green and the proposal's header reading as settled.
+// Bug 0219 fixed that instance; this is the recurrence.
+const NAMES_A_REMEDY = rulingsObliging('needs-an-owner')
+const docsOnlyProposals = allDocs.filter(
+  (d) => isProposalDoc(d) && NAMES_A_REMEDY.has(operativeRuling(d.text)),
+)
+const docsOnlyOwnerViolations = docsOnlyProposals.flatMap((d) => {
+  const n = proposalNumberFromPath(d.relPath)
+  if (n !== null && (ownersByProposal.get(n) ?? []).length > 0) return []
+  return [
+    {
+      rule: 'correspondence',
+      ruleId: 'corpus/docs-only-ruling-names-no-owner',
+      element: `proposal ${n === null ? d.relPath : pad3(n)}`,
+      file: d.file,
+      line: operativeRulingLine(d.text),
+      message:
+        `${d.relPath} is ruled "Docs-only", which names a remedy, but no plan or bug ` +
+        `declares "**Implements:** proposal ${n === null ? 'NNN' : n}" to own it`,
+      because:
+        'a ruling that names a remedy and no owner is a remedy nothing tracks — measured on ' +
+        'proposal 004, whose documentation went ten days unwritten with every gate green',
+      suggestion: 'file the plan or bug that does the work and declare it there.',
+      codeFrame: undefined,
+    },
+  ]
+})
+
 // --format json/github — emit all violations machine-readable, then exit (plan 0070).
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
@@ -666,6 +758,8 @@ if (format === 'json' || format === 'github') {
     ...boardRulingViolations,
     ...promotedViolations,
     ...acceptedDenominatorViolations,
+    ...criteriaViolations,
+    ...docsOnlyOwnerViolations,
   ]
   reportViolations(all, { format })
   process.exit(all.length > 0 ? 1 : 0)
@@ -704,7 +798,9 @@ const proposalPlanFindingCount =
   danglingImplementsViolations.length +
   boardRulingViolations.length +
   promotedViolations.length +
-  acceptedDenominatorViolations.length
+  acceptedDenominatorViolations.length +
+  criteriaViolations.length +
+  docsOnlyOwnerViolations.length
 const proposalLinkageOk = proposalPlanFindingCount === 0
 // The affirmative clause is gated on rows ACTUALLY EXAMINED, not on the finding
 // count. Enforcement review measured the old form printing
@@ -715,7 +811,8 @@ line(
   'proposals',
   `${proposalDocsCount} total · ${acceptedProposalCount} accepted · ` +
     `${boardRowsExamined} of ${boardRowsTotal} board row(s) examined · ` +
-    `${promotedProposals.length} promoted · ` +
+    `${promotedProposals.length} promoted · ${criteriaSubjects.length} criteria-checked · ` +
+    `${docsOnlyProposals.length} docs-only · ` +
     `${
       proposalLinkageOk && boardExaminedAll
         ? '✓ every accepted proposal has a plan, every Ruling/Implements parses, board agrees with each file'
@@ -730,6 +827,8 @@ const problems = [
   ...boardRulingViolations,
   ...promotedViolations,
   ...acceptedDenominatorViolations,
+  ...criteriaViolations,
+  ...docsOnlyOwnerViolations,
   ...unparseableRulingViolations,
   ...unparseableImplementsViolations,
   ...danglingImplementsViolations,

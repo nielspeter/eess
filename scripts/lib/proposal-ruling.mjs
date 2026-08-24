@@ -45,13 +45,64 @@ export const RULING_VOCABULARY = [
 ]
 
 /**
- * Rulings that mean "accepted; this proposal should have a plan." Excludes
- * `Split and sequence` deliberately: per `PROPOSALS.md`, that ruling means
- * "more than one shippable thing; split before planning" — the next step is
- * decomposing the proposal itself, not yet a plan. If that reading changes,
- * change this set; it is the one place the policy is decided.
+ * What each ruling OBLIGES — one exhaustive map over the closed vocabulary.
+ *
+ * This used to be three separate hand-written subsets in two files
+ * (`ACCEPTED_RULINGS` here, `UNPROMOTABLE_RULINGS` and a one-member
+ * `DOCS_ONLY_RULINGS` in `check-corpus.mjs`), each answering a different
+ * question about the same six values. Nothing bound them to the vocabulary, so
+ * a seventh verdict would have fallen through all three silently and acquired
+ * no obligation at all. Exhaustiveness is asserted below, which turns that
+ * silence into a startup error.
+ *
+ *  - `needs-a-plan`   — accepted; a plan must declare `**Implements:**`.
+ *  - `needs-an-owner` — the ruling names a remedy; some record must own it.
+ *  - `unfinished`     — the review already found the document deficient, so it
+ *                       cannot be promoted and is not asked for content the
+ *                       rewrite exists to produce. The ruling IS the finding.
+ *  - `none`           — deliberately obligation-free. `Split and sequence` means
+ *                       "more than one shippable thing; split before planning",
+ *                       so the next step is decomposing the proposal, not a
+ *                       plan. `PROPOSALS.md` states this; changing it is a
+ *                       policy decision made HERE and nowhere else.
  */
-export const ACCEPTED_RULINGS = new Set(['Ship as-is', 'Ship with changes'])
+export const RULING_OBLIGATION = {
+  'Ship as-is': 'needs-a-plan',
+  'Ship with changes': 'needs-a-plan',
+  'Split and sequence': 'none',
+  'Docs-only': 'needs-an-owner',
+  'Rewrite needed': 'unfinished',
+  Reject: 'unfinished',
+}
+
+// Exhaustive in both directions, checked at load. A ruling added to the
+// vocabulary without an obligation, or an obligation for a ruling that is not in
+// the vocabulary, is a typo or an undecided policy — either way it must not
+// resolve to "no obligation" quietly.
+{
+  const missing = RULING_VOCABULARY.filter((r) => RULING_OBLIGATION[r] === undefined)
+  const extra = Object.keys(RULING_OBLIGATION).filter((r) => !RULING_VOCABULARY.includes(r))
+  if (missing.length > 0 || extra.length > 0) {
+    throw new Error(
+      'proposal-ruling: RULING_OBLIGATION must classify exactly the closed vocabulary — ' +
+        `missing: [${missing.join(', ')}], not in vocabulary: [${extra.join(', ')}]`,
+    )
+  }
+}
+
+/** Rulings carrying a given obligation. Derived — never hand-listed again. */
+export const rulingsObliging = (obligation) =>
+  new Set(RULING_VOCABULARY.filter((r) => RULING_OBLIGATION[r] === obligation))
+
+/** Accepted; this proposal should have a plan declaring `**Implements:**`. */
+export const ACCEPTED_RULINGS = rulingsObliging('needs-a-plan')
+
+/**
+ * The lane's terminal folders. Declared here rather than in each consumer:
+ * `check-ledger.mjs`'s lane config and `check-corpus.mjs`'s "is this closed
+ * history" test were two hand-kept copies of one fact.
+ */
+export const PROPOSAL_DONE_FOLDERS = ['/promoted/', '/rejected/']
 
 const FENCE_RE = /(```|~~~)[\s\S]*?\1/g
 

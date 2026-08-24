@@ -197,6 +197,30 @@ These are the author's to settle; the review should argue them, not resolve them
   the bug lane. It is noted here only because it blocks Ask A for exactly the
   corpora Ask A is about.
 
+## Acceptance criteria
+
+Added 2026-08-23, when [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md) made the
+convention enforceable. **This proposal shipped without this section** — its own review
+below recorded that as a defect it committed, and the gate that now catches it found this
+record on its first run.
+
+Per capability: the break class — the specific corruption that must produce a violation —
+and how non-vacuity is kept. Only the **accepted** asks are covered; the `Held` ones cannot
+state a break class yet, and why is stated below rather than left blank.
+
+| capability                                                                                                                                             | break class — what must go red                                                                                                                                                                                                                                                                       | non-vacuity                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A1** — fence support is discoverable from `eess-mermaid`'s own surface ([plan 0212](../plans/0212-eess-mermaid-fence-discoverability.md))            | None that a gate can produce. This is a documentation gap: `packages/mermaid/README.md` never mentions fences and nothing under `docs/` mentions `md-mermaid`. Tier 4, closed by review, and it is listed here so the absence is deliberate rather than an oversight                                 | the doc fences are compiled by `check:docs-code`, so the example cannot rot into something that does not typecheck — it does **not** require the section to exist (see [bug 0220](../bugs/0220-nothing-requires-a-public-symbol-to-be-documented.md)) |
+| **A2** — `diagram()` carries provenance so a fence consumer need not re-attribute ([plan 0213](../plans/0213-diagram-provenance-for-fence-callers.md)) | a diagram parsed from a Markdown fence reports a `filePath` that is either absent or points at something the caller must re-derive — so a violation's `file` names the wrong artifact                                                                                                                | a fixture parsing a fence and asserting the reported source, red when provenance is dropped                                                                                                                                                           |
+| **A3** — `declaredKind()` extracted into `eess-mermaid` ([plan 0214](../plans/0214-extract-the-diagram-kind-predicate.md))                             | a themed `erDiagram` — one prefixed with `%%{init}%%` or `---` frontmatter — is silently dropped from the md↔mermaid binding because the selector tests the raw body instead of the declared kind. This is [bug 0210](../bugs/0210-er-fence-selector-is-an-allowlist.md), measured, not hypothetical | a committed fixture carrying a themed `erDiagram`; the binding must select it, and removing the kind predicate must red                                                                                                                               |
+
+**The `Held` asks state no break class, and that is the reason they are Held.**
+`sequenceDiagram` needs the deciding measurement (what fraction of participants resolve to
+real code); `stateDiagram-v2` needs a new element type — enums are not in `types()` at all;
+`flowchart`/`graph` is blocked on Open Question 3. Each row in the disposition table below
+names what would unhold it. A capability with no break class is unfalsifiable, which is
+precisely why these are not accepted.
+
 ## Review — 2026-08-22
 
 **Ruling: Split and sequence**
