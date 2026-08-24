@@ -38,3 +38,23 @@ than being quietly deleted.
 `eess-crossvalidate` is named here because it peer-depends on all three dialects.
 It imports none of the removed symbols and needs no change — but a consumer reading
 its changelog should see the break named, not "Updated dependencies" (bug 0185).
+
+## Removed with no replacement — the full list
+
+These 37 are dialect-local. They were never kernel symbols, so
+`@nielspeter/eess/internal` does **not** have them and no import path reaches them any
+more. If you used one, the fluent builder is the supported route.
+
+**`@nielspeter/eess-ts` (19)** — FAULT_ADVICE, ON_DISK_ADVICE, buildDiskSet, collectCalls, collectObjectLiteralFunctions, diagnoseGlob, emptyProjectAdvice, fromObjectLiteralFunction, globSitesOf, isDeadGlobTree, isDeadSite, isStrictFamily, isTypeOnlyReExport, loadedNothing, registerProjectRoots, registerRootCompilerOptions, resolveFlag, splitGlobArgs, verbatimModuleSyntaxFor
+
+**`@nielspeter/eess-mermaid` (18)** — areAbstract, conditionHaveStereotype, dependOn, extendClass, extendName, haveAtLeastOneMethod, haveMemberNamed, haveMethodNamed, haveNameEndingWith, haveNameMatching, haveNameStartingWith, haveNoMembers, notDependOn, notDependOnStereotype, notExist, notExtendStereotype, notHaveStereotype, predicateHaveStereotype
+
+The mermaid list is the free predicate/condition block in full. Every one is available
+as a builder method (`classes(d).that().areAbstract()`, `.should().notHaveStereotype(x)`)
+— that is the documented surface per ADR-003, and it is unchanged.
+
+Two eess-ts entries are worth calling out because their siblings survived:
+`collectCalls` went while `fromCallExpression` from the same module stayed, and
+`fromObjectLiteralFunction` went while `fromFunctionDeclaration` and
+`fromMethodDeclaration` stayed. In both cases the survivor is reachable from a
+documented path and the removed one was not.

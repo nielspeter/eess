@@ -1422,6 +1422,9 @@ const GATE_FOR = {
   'check:integrity': ['gates/formerly-waived'],
   'check:examples': ['gates/formerly-waived'],
   'check:docs-code': ['gates/formerly-waived'],
+  // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
+  // sabotages the KERNEL ROOT — the only population this gate blocks on.
+  'check:surface': ['gates/formerly-waived'],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.

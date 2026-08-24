@@ -4,7 +4,7 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { candidatesFor, matchedCandidate } from '../core/import-candidates.js'
 import { recordEdgeCoverage } from '@nielspeter/eess/internal'
-import { globAnyOf } from '@nielspeter/eess/internal'
+import { globAnyOf } from '@nielspeter/eess'
 import {
   edgeTypeOnlyRemedy,
   edgeDiscriminator,

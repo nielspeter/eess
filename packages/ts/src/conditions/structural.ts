@@ -4,7 +4,7 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation, getElementFile, getElementName } from '../core/violation.js'
 import { elementCondition } from './helpers.js'
-import { globNode } from '@nielspeter/eess/internal'
+import { globNode } from '@nielspeter/eess'
 import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 
 /**

@@ -26,7 +26,6 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, readdirSync } from 'nod
 import { join, basename } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fromMarkdown } from 'mdast-util-from-markdown'
-import { undocumentedExports } from './lib/public-surface.mjs'
 import { ESLint } from 'eslint'
 import tseslint from 'typescript-eslint'
 
@@ -225,35 +224,7 @@ if (failures.length > 0) {
 // already declares which exports are plumbing rather than API. It is not
 // extended here: an exemption list this gate maintains for itself would be the
 // gate forgiving its own subject.
-const surface = undocumentedExports(process.cwd())
-if (surface.missing.length > 0) {
-  console.error('')
-  console.error(
-    `  ✗ public surface — ${surface.missing.length} of ${surface.public.length} exported ` +
-      'symbols appear in no docs/ page, package README or ADR:',
-  )
-  const byPkg = new Map()
-  for (const m of surface.missing) byPkg.set(m.pkg, [...(byPkg.get(m.pkg) ?? []), m.name])
-  for (const [pkg, names] of [...byPkg].sort()) {
-    console.error(`      @nielspeter/eess${pkg === 'core' ? '' : `-${pkg}`}  (${names.length})`)
-    console.error(`        ${names.sort().join(', ')}`)
-  }
-  console.error('')
-  console.error(
-    '      Fix: document it where a reader would look, or stop exporting it. A symbol on the',
-  )
-  console.error(
-    '      public surface that no page mentions is either undocumented API or an accidental',
-  )
-  console.error(
-    "      export — both are drift, and which one it is is the author's call, not this gate's.",
-  )
-  console.error('')
-  process.exit(1)
-}
-
 console.error(
-  `  ✓ doc code-fence checks — ${fences.length} fences compile + no deprecated API · ` +
-    `${surface.public.length} public exports all documented (${elapsed()})`,
+  `  ✓ doc code-fence checks — ${fences.length} fences compile + no deprecated API (${elapsed()})`,
 )
 console.error('')

@@ -185,6 +185,18 @@ function handleBlockStart(
 
   if (reason === '') {
     warnUndocumented(warnings, ruleIds, 'eess-exclude-start', filePath, lineNum)
+    // Push an EMPTY frame rather than returning. Refusing the waiver and
+    // refusing the frame are different things: `-start`/`-end` is a bracket
+    // language, so a `-start` the reader can see must consume the `-end` the
+    // reader wrote for it, whatever we decide about its reason.
+    //
+    // Returning here — as this did when bug 0158's two halves shipped together —
+    // let the next `-end` pop the OUTER frame, so a valid enclosing waiver
+    // stopped early and a balanced file reported "end without matching start".
+    // That is precisely the frame-mangling 0158's nesting half removed,
+    // reintroduced by its reason-required half. Empty means it suppresses
+    // nothing, which is the refusal; present means the brackets still pair.
+    openBlocks.push([])
     return
   }
 

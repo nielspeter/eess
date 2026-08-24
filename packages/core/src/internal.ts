@@ -18,7 +18,6 @@ export type { Describable } from './rule-description.js'
 export type { OnDisk, DiskSet } from './disk-set.js'
 export type { Pair, MatchResult, MatchOptions } from './matching.js'
 export type { PathUniverse } from './path-universe.js'
-export type { RelationSpec, CorrespondenceOptions, KeyBy } from './correspondence.js'
 export { DECLARE_INSTEAD } from './unsuppressable.js'
 export { UNSUPPRESSABLE } from './unsuppressable.js'
 export { UNSUPPRESSABLE_MECHANISMS } from './unsuppressable.js'
@@ -41,8 +40,6 @@ export {
   countDeclaredGlobs,
   isGlobNode,
   isOpaqueGlob,
-  globAnyOf,
-  globNode,
   stampGlobs,
   negateGlobs,
   combineGlobs,

@@ -45,6 +45,12 @@ export { definePredicate, defineCondition } from '@nielspeter/eess'
 // Glob declaration model (plan 0069). Exported because a user-written
 // predicate must be able to declare its globs — otherwise it is permanently
 // opaque, and any `or()` containing it can never be diagnosed.
+//
+// The two CONSTRUCTORS belong here as much as the types do. ADR-011's first cut
+// moved them behind `@nielspeter/eess/internal` and left this comment standing
+// over types alone — so the documented path (`definePredicate` + declare your
+// globs) required the internal entry point. Found in review.
+export { globNode, globAnyOf } from '@nielspeter/eess'
 export type {
   DeclaredGlob,
   DeclaredGlobs,

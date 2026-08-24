@@ -92,3 +92,14 @@ export type { CorrespondenceResult } from './correspondence-core.js'
 export { setCorrespondence } from './correspondence-core.js'
 export type { RuleBuilderLike } from './rule-builder-like.js'
 export { correspondence, CorrespondenceBuilder } from './correspondence.js'
+
+// Promoted back to the root after review (ADR-011 follow-up).
+// `globNode`/`globAnyOf` are the only author-facing constructors of the globs a
+// user-written `definePredicate` declares — a documented extension point, so
+// putting them behind `/internal` made the documented path require it.
+// The three types are the parameter types of `correspondence()` and
+// `preserveRelations()`, both public: a consumer could call them but not NAME
+// their options. Both were missed because the type closure ran BEFORE the
+// manual reversals, not after.
+export type { RelationSpec, CorrespondenceOptions, KeyBy } from './correspondence.js'
+export { globAnyOf, globNode } from './glob-site.js'

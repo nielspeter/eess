@@ -1,6 +1,6 @@
 import picomatch from 'picomatch'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { globNode } from '@nielspeter/eess/internal'
+import { globNode } from '@nielspeter/eess'
 import type { DeclaredGlobs } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'

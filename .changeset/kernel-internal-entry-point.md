@@ -27,10 +27,14 @@ surface of eess-md and eess-crossvalidate), `reportViolations` and `finishPreset
 (named seams in ADR-008), and the `ArchJson*` types, which describe the `--format
 json` output that `docs/agent-integration.md` teaches.
 
-**The dialects' surfaces shrink too.** A dialect no longer re-exports plumbing it only
-uses internally, so `eess-ts`, `eess-md` and `eess-mermaid` each drop the kernel
-internals they used to forward. Same rule: if you imported one from a dialect, take it
-from `@nielspeter/eess/internal`.
+**The dialects' surfaces shrink too.** A dialect no longer re-exports kernel plumbing
+it only uses internally, so `eess-ts`, `eess-md` and `eess-mermaid` each drop what they
+used to forward. For those, the rule above applies — the symbol is a KERNEL symbol and
+`@nielspeter/eess/internal` has it.
+
+**That rule does not cover the 37 dialect-local symbols removed in the same release.**
+Those were never kernel symbols, so `/internal` does not have them and there is no
+replacement path; see the companion changeset for the list and the reasoning.
 
 Measured across the family: exported symbols 627 → 543, and symbols documented nowhere
 224 → 139.

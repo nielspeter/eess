@@ -60,3 +60,40 @@ describe('nested block directives', () => {
     expect(exclusions.map((e) => e.ruleId).sort()).toEqual(['rule-a', 'rule-b'])
   })
 })
+
+describe('a reason-free -start still occupies a frame (regression, review of ADR-011 branch)', () => {
+  // The reason-required half of bug 0158 returned from `handleBlockStart` BEFORE
+  // pushing, so a reason-free `-start` consumed no frame and the next `-end`
+  // popped the OUTER block. That is the frame-mangling the nesting half of the
+  // same bug was written to remove, reintroduced through the other half — and
+  // the two halves shipped together, so nothing caught it.
+  //
+  // Balanced input, one bad directive in the middle. The outer waiver must still
+  // run to ITS end, and a balanced file must not report an unmatched `-end`.
+  const src = [
+    '// eess-exclude-start rule-a: outer', // 1
+    'code', // 2
+    '// eess-exclude-start rule-b', // 3  <- no reason: refused, but it is still a frame
+    'more', // 4
+    '// eess-exclude-end', // 5  <- closes the REFUSED inner block
+    'tail', // 6
+    '// eess-exclude-end', // 7  <- closes rule-a
+  ].join('\n')
+
+  it('the outer block ends at its own -end, not the inner one', () => {
+    const { exclusions } = parseExclusionComments(src, 'probe.ts')
+    const outer = exclusions.find((e) => e.ruleId === 'rule-a')
+    expect(outer?.endLine).toBe(7)
+  })
+
+  it('the reason-free block is still refused', () => {
+    const { exclusions, warnings } = parseExclusionComments(src, 'probe.ts')
+    expect(exclusions.map((e) => e.ruleId)).toEqual(['rule-a'])
+    expect(warnings.some((w) => /Undocumented exclusion at probe\.ts:3/.test(w.message))).toBe(true)
+  })
+
+  it('a balanced file reports no unmatched -end', () => {
+    const { warnings } = parseExclusionComments(src, 'probe.ts')
+    expect(warnings.filter((w) => /without matching start/.test(w.message))).toEqual([])
+  })
+})

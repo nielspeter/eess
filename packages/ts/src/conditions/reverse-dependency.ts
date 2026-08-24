@@ -4,7 +4,7 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { moduleEdges } from '../core/module-edges.js'
 import { recordEdgeCoverage } from '@nielspeter/eess/internal'
-import { globAnyOf } from '@nielspeter/eess/internal'
+import { globAnyOf } from '@nielspeter/eess'
 import { relativeToRoot } from '../core/project-relative.js'
 
 // ─── Reverse import graph (cached per ts-morph Project) ──────────

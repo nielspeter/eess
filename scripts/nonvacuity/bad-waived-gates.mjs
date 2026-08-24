@@ -38,12 +38,20 @@ function vacuous(msg) {
 // NON-ZERO, not `=== 1`. A gate's contract is "fails the build"; the specific
 // code is the tool's business — `tsc` exits 2 on compile errors, which an
 // earlier version of this fixture read as the gate not failing.
-const run = (script) =>
+const spawn = (script) =>
   spawnSync('npm', ['run', '--silent', script], {
     cwd: REPO,
     encoding: 'utf8',
     env: { ...process.env, CI: undefined, GITHUB_ACTIONS: undefined },
-  }).status
+  })
+
+const run = (script) => spawn(script).status
+
+/** Status AND output — needed when exit code alone cannot attribute the failure. */
+const runCapture = (script) => {
+  const r = spawn(script)
+  return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` }
+}
 
 /** Sabotage a real file, run `fn`, always restore. */
 function withSabotage(relPath, rewrite, fn) {
@@ -82,14 +90,40 @@ if (integrity === 0) {
   vacuous(`check:integrity exited ${integrity} with a phantom \`ts-morph\` import in eess-md`)
 }
 
-// 2. check:docs-code — an export on the public surface that no page mentions.
+// 2. check:surface — an undocumented symbol on the KERNEL ROOT.
+//
+// Three things here are deliberate, and the first two were WRONG in the first
+// version of this fixture — found in review, and each hid the other.
+//
+// The SUBJECT is the kernel root. `check:surface` blocks on ADR-011 clause 1's
+// population only; the dialect surfaces are a reported census. This probe used to
+// sabotage `packages/gherkin/src/index.ts` and run `check:docs-code`, which owned
+// the surface block at the time — it owns only fence compilation now, so the old
+// probe tested a gate that no longer asks the question.
+//
+// The PAYLOAD is a braced export. `exportsOf` parses
+// `/^export\s+(type\s+)?\{([^}]+)\}/gm` (`scripts/lib/public-surface.mjs`), so a
+// declaration-form `export const X = 1` is invisible to the very gate this probe
+// exists to trip. Measured: with that payload the gate's `missing` set did not
+// change at all.
+//
+// The ASSERTION reads the output, not the exit code. This gate carries a real,
+// documented backlog and can be red for its own reasons, so an exit-code probe
+// cannot tell "the gate saw my symbol" from "the gate was red anyway" — a pass
+// constructed from a default (ADR-010), inside the harness written to refuse
+// them. Naming the symbol is immune to the baseline, and it is what `firedOn`
+// does for the rule-id-bearing gates.
+const SENTINEL = '__nonvacuityUndocumentedSymbol__'
 const docs = withSabotage(
-  'packages/gherkin/src/index.ts',
-  (t) => `${t}\nexport const __nonvacuityUndocumentedSymbol__ = 1\n`,
-  () => run('check:docs-code'),
+  'packages/core/src/index.ts',
+  (t) => `${t}\nconst ${SENTINEL} = 1\nexport { ${SENTINEL} }\n`,
+  () => runCapture('check:surface'),
 )
-if (docs === 0) {
-  vacuous(`check:docs-code exited ${docs} with an export documented nowhere`)
+if (!docs.out.includes(SENTINEL)) {
+  vacuous(
+    `check:surface (exit ${docs.status}) never named ${SENTINEL} — it did not see the ` +
+      `undocumented export this fixture added to the kernel root`,
+  )
 }
 
 // 3. check:examples — an example that does not typecheck.
@@ -109,5 +143,5 @@ if (examples === 0) {
   vacuous(`check:examples exited ${examples} with an example that does not compile`)
 }
 
-console.error(`${NAME}: OK — integrity, docs-code and examples each red on their own subject`)
+console.error(`${NAME}: OK — integrity, surface and examples each red on their own subject`)
 process.exit(1)
