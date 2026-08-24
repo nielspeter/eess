@@ -72,6 +72,41 @@ functions(p)
   .check()
 ```
 
+### Declaring the globs a predicate matches on
+
+A predicate that filters by path should say which globs it uses. Without that it is
+**opaque**: when a rule matches nothing, the vacuity diagnosis cannot tell "the glob is
+dead" from "nothing was there to match", and any `or()` containing an opaque predicate
+becomes undiagnosable too — one unlabelled branch makes the whole tree unreadable.
+
+`globNode` wraps one declared glob; `globAnyOf` declares several alternatives at once.
+
+```typescript
+import { definePredicate, globNode, classes, project } from '@nielspeter/eess-ts'
+import type { ClassDeclaration } from 'ts-morph'
+
+const p = project('tsconfig.json')
+
+const inGeneratedCode = definePredicate<ClassDeclaration>(
+  'lives in generated code',
+  (cls) => cls.getSourceFile().getFilePath().includes('/__generated__/'),
+  // Third argument, not an options object. Without it the predicate is opaque,
+  // and a rule that matches nothing cannot say whether the glob is dead or the
+  // folder is empty.
+  globNode({ glob: '**/__generated__/**', kind: 'file-path' }),
+)
+
+classes(p).that().satisfy(inGeneratedCode).should().notExist().check()
+```
+
+`kind` says what the glob is matched against — `'file-path'`, `'parent-dir'`,
+`'import-target'`, `'specifier'` or `'literal'`. Use `globAnyOf(['a/**', 'b/**'],
+'file-path')` when the predicate accepts any of several paths.
+
+If a predicate genuinely cannot describe its matching as globs, declare that instead of
+leaving it silent — an explicit "cannot be described" marker keeps the surrounding tree
+diagnosable, where an undeclared predicate reads exactly like a dead one.
+
 ## `defineCondition()`
 
 Create a custom condition to assert with arbitrary logic. Conditions receive all matched elements and return an array of violations:

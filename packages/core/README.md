@@ -101,7 +101,16 @@ You normally don't install this directly — you install a dialect:
 - [`@nielspeter/eess-ts`](https://www.npmjs.com/package/@nielspeter/eess-ts) — TypeScript
 - [`@nielspeter/eess-mermaid`](https://www.npmjs.com/package/@nielspeter/eess-mermaid) — Mermaid class diagrams
 
-Install `@nielspeter/eess` directly only when authoring a new dialect or a cross-dialect tool on top of the kernel.
+Install `@nielspeter/eess` directly only when authoring a new dialect or a cross-dialect
+tool on top of the kernel.
+
+**If that is you, `/internal` is your surface, not a wall.** The two sentences above look
+like they contradict each other — "not for you", then "install it if you are writing a
+dialect" — so to be explicit: a dialect author is exactly who `/internal` exists for, and
+the five in this repo import from it. What the root alone gives you is the rule-authoring
+vocabulary, not the engine. Nothing there is documented and it changes without migration
+notes, so treat it as a contract you re-check on each kernel bump; if you are building a
+dialect you intend to publish, open an issue and we will work out what belongs on the root.
 
 ## License
 

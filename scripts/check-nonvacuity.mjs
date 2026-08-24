@@ -1446,9 +1446,19 @@ function gateCoverage() {
   // runs. A meta-check that cannot see the drift it names is the defect this
   // repo exists to prevent, one level up from the gates it audits.
   //
-  // Direction matters: a step in CI but not in `validate` is redundancy, not a
-  // hole. A step in `validate` but not in CI means a local-only gate, which is
-  // the shape that bit us (0129, then again here).
+  // BOTH directions are holes, and the sentence here used to say otherwise: "a
+  // step in CI but not in `validate` is redundancy, not a hole." Falsified on
+  // 2026-08-24. `test:matrix` was CI-only, a full local `npm run validate` went
+  // green, and CI reded on a stale vacuity-classification row the ADR-011 branch
+  // had left behind — so the author's evidence of readiness was silent about a
+  // step that decides the merge. That is a local-only BLIND SPOT, the mirror of
+  // the local-only gate (0129), and it costs the same thing: a green that does
+  // not mean what the person reading it thinks.
+  //
+  // The old exemption said `test:matrix` "cannot join the pre-build suite because
+  // it imports from `dist`". True of the pre-build suite; not true of `validate`,
+  // which begins with `npm run build` — and `test:matrix` builds again itself. It
+  // is in `validate` now, last, beside the other build-dependent step.
   const ciPath = join(repoRoot, '.github/workflows/ci.yml')
   const ci = readFileSync(ciPath, 'utf8')
   const validateSteps = String(pkg.scripts?.validate ?? '')
@@ -1461,11 +1471,28 @@ function gateCoverage() {
       problems.push(`validate runs "${step}" but .github/workflows/ci.yml does not`)
     }
   }
-  // `test:matrix` is not a `check:*` and not in `validate` — it cannot join the
-  // pre-build suite because it imports from `dist`. It therefore has no other
-  // claimant, and ran on no path at all until PR #72.
+  // `test:matrix` is not a `check:*`, so it needs its own claimant on both paths.
   if (!ci.includes('test:matrix')) {
     problems.push('packages/ts test:matrix (the vacuity matrix) runs on no CI path')
+  }
+  if (!String(pkg.scripts?.validate ?? '').includes('test:matrix')) {
+    problems.push(
+      'packages/ts test:matrix runs in CI but not in `validate` — a local green would not see it',
+    )
+  }
+
+  // The reverse sweep: any `npm run <script>` a CI step invokes must also have a
+  // local claimant, or a full local green is silent about it.
+  const CI_ONLY_BY_DESIGN = new Set([
+    'build', // every gate below it depends on it; validate runs it first
+  ])
+  for (const m of ci.matchAll(/npm run ([a-z][\w:-]*)/g)) {
+    const step = m[1]
+    if (step === undefined || CI_ONLY_BY_DESIGN.has(step)) continue
+    const inValidate = String(pkg.scripts?.validate ?? '').includes(`npm run ${step}`)
+    if (!inValidate && !step.startsWith('test:matrix')) {
+      problems.push(`.github/workflows/ci.yml runs "${step}" but \`validate\` does not`)
+    }
   }
   for (const c of checks) {
     if (NO_GATE_NEEDED[c] !== undefined) continue
@@ -1496,7 +1523,7 @@ function gateCoverage() {
           // findings added in PR #72 — and a status line that names the wrong
           // fault sends the reader to the wrong file, which is the failure mode
           // bug 0174 is filed about.
-          `FAILED (${problems.length} problem(s): ${problems.some((x) => x.includes('ci.yml') || x.includes('CI path')) ? 'validate/CI drift' : 'a check:* is unaccounted for'})`,
+          `FAILED (${problems.length} problem(s): ${problems.some((x) => x.includes('ci.yml') || x.includes('CI path') || x.includes('in CI but not in')) ? 'validate/CI drift' : 'a check:* is unaccounted for'})`,
     detail:
       problems.length === 0
         ? `${checks.length} check:* scripts — ${Object.keys(GATE_FOR).length} gated by ` +
