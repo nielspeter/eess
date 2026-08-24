@@ -2,7 +2,10 @@
 /**
  * Workspace integrity guardrails for the eess monorepo (plan 0051, Phase 1).
  *
- * npm workspaces has two failure modes this repo must not regress into:
+ * Four checks. The first two are npm-workspace failure modes, which is what this
+ * script was created for; the last two are workspace-wide invariants that need
+ * the same per-package walk and would otherwise each need their own script.
+ * (Review called the drift out: the header said "two" and listed four.)
  *
  *  1. Phantom dependencies — hoisting lets a package `import` a package that only
  *     a sibling declares; it works in the workspace but breaks on a standalone
@@ -52,6 +55,26 @@ const problems = []
 
 function readJson(p) {
   return JSON.parse(readFileSync(p, 'utf8'))
+}
+
+/**
+ * Every file under `dir`, regardless of extension — the population for checks
+ * that care about a file's BYTES rather than its role in the compile. Kept
+ * separate from `walkTs` because widening that one would change what the
+ * phantom-dep check reads.
+ */
+function walkAny(dir, acc) {
+  let entries
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return
+  }
+  for (const e of entries) {
+    const p = join(dir, e.name)
+    if (e.isDirectory()) walkAny(p, acc)
+    else if (e.isFile()) acc.push(p)
+  }
 }
 
 function walkTs(dir, acc) {
@@ -264,10 +287,34 @@ for (const dir of pkgDirs) {
 // payloads, and a guard that reds on its own test data teaches people to
 // disable it.
 
+// `walkTs` filters to `.ts`, which is right for the phantom-dep check (only a
+// compiled module can carry a runtime import) and WRONG here. Review measured
+// it: `packages/mermaid/src/parser/grammar/*.langium` are source text living
+// inside the very glob this check advertises, and a raw NUL planted in one left
+// the gate green AND the denominator unmoved — the file was never counted, so
+// nothing looked missing. Text tooling does not care about extensions, so
+// neither does this walk. `.tsx`/`.mts`/`.cts` are covered by the same change
+// rather than by a list that needs extending.
 const nulScanned = []
+let packagesWalked = 0
 for (const dir of pkgDirs) {
   const files = []
-  walkTs(join(packagesDir, dir, 'src'), files)
+  walkAny(join(packagesDir, dir, 'src'), files)
+  // Per-package, not per-run. The first version summed across every package and
+  // compared the TOTAL to zero, so one package's `src` being renamed or moved
+  // dropped its files silently while the headline count stayed healthy — the
+  // exact shape bug 0131 round 3 found one lane over. Measured in review:
+  // making gherkin contribute zero files left the gate at exit 0 printing
+  // "243 source files free of raw NUL bytes", with a `data`-classified file
+  // inside a package it claimed to have scanned.
+  if (files.length === 0) {
+    problems.push(
+      `source text: ${dir} contributed 0 files under packages/${dir}/src — this ` +
+        `check cannot speak for that package, so its pass is not evidence about it`,
+    )
+    continue
+  }
+  packagesWalked += 1
   for (const file of files) {
     nulScanned.push(file)
     // Read as a Buffer, not utf8: the point is the raw byte, and a decode step
@@ -281,18 +328,20 @@ for (const dir of pkgDirs) {
     problems.push(
       `source text: ${file.replace(ROOT + '/', '')} contains ${count} raw NUL ` +
         `byte(s) (first at line ${line}), so grep/rg skip this file silently and ` +
-        `git diff renders it as binary — write the two-character escape "\\0" ` +
-        `instead of the raw byte; the runtime string is identical`,
+        `git diff renders it as binary — replace the raw byte with an escape its ` +
+        `own syntax provides (in TS/JS, the two-character "\\0"; the runtime ` +
+        `string is identical)`,
     )
   }
 }
 
-// The gate's own denominator. Walking the wrong root, or a `walkTs` that stops
-// matching, would otherwise report OK over nothing — the fail-open shape this
-// whole check exists to refuse (ADR-010: a pass is constructed from evidence).
-if (nulScanned.length === 0) {
+// Run-level backstop beneath the per-package one above: if `pkgDirs` itself
+// came back empty there are no per-package findings to raise, and the loop would
+// complete having examined nothing at all (ADR-010: a pass is constructed from
+// evidence, never from a default).
+if (packagesWalked === 0) {
   problems.push(
-    `source text: scanned 0 files under packages/*/src — the check examined ` +
+    `source text: 0 packages walked under packages/ — the check examined ` +
       `nothing, so its pass is not evidence of anything`,
   )
 }
@@ -308,5 +357,5 @@ if (problems.length > 0) {
 console.error(
   `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, ` +
     `all @nielspeter/eess* locally linked, every build cleans its dist/, ` +
-    `${nulScanned.length} source files free of raw NUL bytes.`,
+    `${nulScanned.length} source files across ${packagesWalked} packages free of raw NUL bytes.`,
 )

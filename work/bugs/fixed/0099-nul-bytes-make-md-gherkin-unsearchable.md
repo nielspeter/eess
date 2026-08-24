@@ -118,8 +118,20 @@ const scenarioKeys = new Set(set.scenarios().map((s) => `${s.relPath}\\0${s.titl
 _(written above with a doubled backslash so this record stays plain text; the
 source takes the single-backslash `\0`.)_
 
-No changeset — the emitted string, the public surface, and the behaviour are all
-identical.
+**This paragraph originally read "No changeset — the emitted string, the public
+surface, and the behaviour are all identical." That was wrong, and it is left
+here corrected rather than deleted because the same wrong call was actually
+shipped once.** The emitted string is identical; the emitted FILE is not. `tsc`
+copies a template literal's source bytes straight into the `.js`, and `dist/` is
+what `files` publishes — so the byte reaches the registry and an adopter's
+`grep` over `node_modules` silently skips the file. Measured: compiling the
+pre-fix source emits a `.js` that `file(1)` calls `data`.
+
+Bug [0144](./0144-md-gherkin-nul-bytes-break-grep.md) shipped its fix under
+`'@nielspeter/eess-crossvalidate': none` with the words "ships nothing a consumer
+can observe". It shipped a real, adopter-observable fix with no changelog line.
+The rule this establishes: **a source-byte change is `patch`, not `none`, whenever
+`tsc` carries the byte into `dist`.**
 
 ## Closing
 
@@ -137,10 +149,28 @@ n/a`, and box 1 here — the check — was never built. Two correct write-ups, z
 mechanism. That is the state ADR-009 calls worse than no check, because a record
 that describes a class reads as coverage of it.
 
-**3. Building the guard found a third instance, live.**
+**3. Building the guard found the byte still live — and it was the FOURTH
+finding of it, not the third.** This record originally claimed three. Review
+found the miscount, and the filing it missed is the strongest one.
+
+`fix/0086-nul-bytes-in-published-dist` (`36935f8`, **2026-08-08** — four days
+_before_ this record was filed) had already found this exact byte, **fixed it**,
+measured the consequence against the registry, and shipped a 188-line guard for
+the whole class. It was never opened as a PR. Its commit body:
+
+> Verified against the registry — `eess-gherkin@0.1.2`'s `dist/builder.js` carries
+> 1 NUL, `eess-crossvalidate@0.1.2`'s `dist/md-gherkin.js` carries 2, both
+> classified binary.
+
+So the true account is worse than "two correct write-ups are not a mechanism": it
+is **three correct write-ups and one complete, tested, unmerged fix**, and the
+byte still sat in the tree. The crossvalidate half was later repaired by another
+route; the gherkin half waited sixteen days for this PR to re-derive it, minus the
+registry finding and with a narrower guard.
+
 `packages/gherkin/src/builder.ts:27` had carried a raw `0x00` since
 2026-07-13 — six weeks, the whole `@nielspeter/eess-gherkin` builder invisible to
-`grep`, through both filings and every review in between:
+`grep`, through every filing and every review in between:
 
 ```
 $ file packages/gherkin/src/builder.ts
@@ -176,43 +206,114 @@ the raw byte written where the two-character `\0` escape belonged. Fixed here.
 - [x] `grep -n "scenarioCitationsResolve" packages/crossvalidate/src/md-gherkin.ts`
       lists the definition — at line 106 now, not the 102 written above; the
       file has moved on since this was filed.
-- [x] `git diff` on the gherkin fix renders line-level — the first readable diff
-      that file has had since it was created.
-- [x] The md↔gherkin tests pass unchanged: 9 files / 89 tests in
-      `packages/crossvalidate`, 2 / 9 in `packages/gherkin`. The key separator is
+- [x] `git diff` renders line-level **from the next change onward**. This box
+      originally claimed the fix's own diff was "the first readable diff that
+      file has had" — that was false, and review measured it: git classifies a
+      diff as binary if EITHER side is, and the pre-image still carries the NUL,
+      so `git show 890513c -- packages/gherkin/src/builder.ts` is still
+      `Bin 2625 -> 2626 bytes` / `Binary files … differ`. It was also the one box
+      that could not have been true when written, because the commit did not
+      exist yet — which is the tell. The fix's own diff is the LAST unreadable
+      one.
+- [x] The md↔gherkin tests pass unchanged — 9 files / 89 tests in
+      crossvalidate, 2 / 9 in gherkin, via `npx vitest run --root <pkg>`. The
+      flag matters: `--dir` also collects a fixture project's own tests and
+      reports 10 / 92, which review flagged as a reader being unable to
+      reproduce the number. The key separator is
       byte-identical (`\0` in a template literal IS `U+0000` — asserted in node).
+- [x] The composite key's SEPARATOR is now pinned by a test. Testing review
+      measured that nothing constrained it: deleting `\0` from
+      `packages/gherkin/src/builder.ts:27` outright left all nine gherkin tests
+      green, so an agent "fixing" the raw byte could have dropped the composite
+      key entirely with every gate still passing. The existing duplicate-title
+      test cannot catch it — its `toHaveLength(1)` is satisfied by a key of
+      `title` alone. Two fixtures now collide only when the separator is absent
+      (`key-collision.feature` / `key-collision.feature.feature`), and deleting
+      the separator reds exactly that one test.
 - [x] `npm run validate` green.
 
 Deferred: none.
 
 ## Scope this guard does NOT cover
 
-Stated because an unstated limit reads as coverage, which is this record's own
-lesson twice over:
+Stated because an unstated limit reads as coverage — this record's own lesson,
+now four times over. Review found three of these; the section as first written
+missed all three, which is the section failing its own standard.
 
-- **`packages/\*/src/**/_.ts`only.** Not`scripts/`, not the rule files, not
-`work/`. The survey discipline it protects is the one written down
-(`review-proposal`Step 2: "grep`packages/_/src`, always"), and both incidents
-landed there. A NUL planted in `scripts/` today is still invisible and still
-  ungated.
-- **Not the nonvacuity fixtures.** `scripts/nonvacuity/` holds deliberately
-  corrupt payloads; a guard that reds on its own test data teaches people to
-  disable it.
+**Everything under a package's `src/`, whatever the extension.** The walk
+originally filtered to `.ts`. Review measured the hole: the two Langium grammars
+under `packages/mermaid/src/parser/grammar/` are source text inside the very
+glob this check advertises, and a raw NUL planted in one left the gate green
+_and the denominator unmoved_ — the file was never counted, so nothing looked
+missing. The walk now reads every file under `src/`, which also covers
+`.tsx`/`.mts`/`.cts` without a list that needs extending. Denominator moved
+247 → 249.
+
+**Per package, not per run.** The zero-files guard originally summed across all
+packages and compared the total to zero, so one package's `src/` being renamed
+dropped it silently while the headline count stayed healthy. Review measured
+that too: gherkin contributing zero files gave exit 0 and
+`243 source files free of raw NUL bytes`, with a `data`-classified file inside
+a package the gate claimed to have scanned. Each package now has to contribute
+at least one file or the check says it cannot speak for that package.
+
+Still genuinely out of scope:
+
+- **Not `scripts/`, the rule files, or `work/`.** The survey discipline this
+  protects is the written one — `review-proposal` Step 2, "grep
+  `packages/*/src`, always" — and every incident landed there. A NUL in
+  `arch.rules.ts` today is still invisible and still ungated, and it would
+  silently break every architecture survey this repo runs.
+- **Not `scripts/nonvacuity/`** — but not for the reason first given here. The
+  original wording said it "holds deliberately corrupt payloads", and testing
+  review checked that against the disk: **zero tracked files in this repo carry a
+  raw NUL**, the nonvacuity fixtures included. Scenario 6 builds its payload at
+  runtime from a `\x00` escape, which is the correct form. A whole-repo scan
+  would be green today. So the exclusion rests on the fixtures being _allowed_ to
+  plant such a payload in future, not on one existing — a weaker reason, and the
+  honest one.
+- **Not what already shipped.** This is the limit that matters most to anyone
+  but us, and the first version of this section did not mention it at all.
+  `prebuild: rm -rf dist` plus `tsc -p` makes `dist/` a pure function of `src/`,
+  so gating `src` protects every FUTURE tarball — and does nothing for the four
+  already on the registry. Measured during review, against npm:
+
+  ```
+  PUBLISHED 0.1.0: dist/builder.js [1 NUL]
+  PUBLISHED 0.1.1: dist/builder.js [1 NUL]
+  PUBLISHED 0.1.2: dist/builder.js [1 NUL]
+  PUBLISHED 0.3.0: dist/builder.js [1 NUL]   <- dist-tag: latest
+  ```
+
+  Every published `@nielspeter/eess-gherkin`, including `latest`, carries it
+  right now. The rest of the family is clean. `RELEASING.md` has no practice for
+  "a published version carries a defect" — no `npm deprecate`, nothing — and
+  this is the second time a tarball has been found carrying this exact byte.
+  That absence is now load-bearing.
+
 - **NUL only.** Other bytes that make `file(1)` say `data` — a stray `0x01`, an
-  invalid UTF-8 sequence — are not checked. NUL is the one this repo has been
-  bitten by three times, so it is the one with a measured failure behind it.
+  invalid UTF-8 sequence — are not checked.
 
-  Calling the rest speculation would be too easy, though, and it would be wrong:
-  **prior art exists and is better reasoned than this guard.** An unmerged branch
-  from 2026-08-08 (`fix/0086-nul-bytes-in-published-dist`, `36935f8`) carries a
-  188-line `scripts/check-source-text.mjs` that checks control bytes AND invalid
-  UTF-8 across all tracked source, and makes an argument this record did not:
+  The first version of this section justified that by saying NUL is the _loud_
+  case, quoting the prior-art branch below: NUL makes grep say
+  `Binary file … matches`, whereas invalid UTF-8 makes it exit 1 silently.
+  **On this machine that is false**, and review measured it:
 
-  > NUL makes `file(1)` say `data` and grep say "Binary file … matches" — a
-  > visible refusal. **Invalid UTF-8 is the silent one**: a stray latin-1 byte in
-  > a UTF-8 locale makes grep exit 1 with no output and no warning at all.
+  | tool                                                | on a NUL-bearing file   | exit  |
+  | --------------------------------------------------- | ----------------------- | ----- |
+  | `/usr/bin/grep` (BSD)                               | `Binary file … matches` | 0     |
+  | `grep` **on PATH** (ugrep 7.8.4, invoked with `-I`) | _no output at all_      | **1** |
 
-  If that is right — and it reads right — then the loudest case is the one now
-  gated and the quietest is not. That branch was never proposed for merge and its
-  guard never landed, which is its own instance of this record's lesson. It is
-  kept, not deleted, for exactly that reason.
+  The `grep` a developer or an agent actually gets in this environment excludes
+  binary files outright. So NUL is exactly as silent here as the case deferred
+  on the grounds that NUL is louder. The deferral stands on cost, not on that
+  argument — and the argument should not be repeated.
+
+  **Prior art exists and is better reasoned than this guard.** The unmerged
+  `fix/0086-nul-bytes-in-published-dist` (`36935f8`, 2026-08-08) carries a
+  188-line `scripts/check-source-text.mjs` covering control bytes AND invalid
+  UTF-8 across all git-tracked source, with its own gate, denominator, CI wiring
+  and four non-vacuity probes. It is kept, not deleted, for that reason — but a
+  paragraph inside a closed record is where things go to be forgotten, which is
+  this record's lesson yet again. Its disposition needs an owner and a record of
+  its own.

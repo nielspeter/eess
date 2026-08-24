@@ -19,6 +19,31 @@ describe('scenarios() rule builder', () => {
     expect(violations[0]?.line).toBe(4)
   })
 
+  // The key is `relPath` + U+0000 + `title`. Testing review measured that NOTHING
+  // constrained the separator: deleting it outright left all nine tests green, so
+  // an agent "fixing" the raw-NUL byte could have dropped the composite key
+  // entirely and every gate would have stayed green. The existing duplicate-title
+  // test does not catch it — its `toHaveLength(1)` is satisfied by a key of
+  // `title` alone.
+  //
+  // These two fixtures are the collision that separator prevents. Concatenated
+  // without it both sides read `key-collision.feature.featureShared`; with any
+  // separator that cannot occur in a path or a title, they differ. So this test
+  // is green now and reds the moment the separator goes — which is what the
+  // encoding fix in bug 0099 was quietly relying on and nothing checked.
+  it('does not collide two scenarios whose path and title concatenate alike', () => {
+    const set = features({
+      cwd: FIXTURES,
+      roots: ['key-collision.feature', 'key-collision.feature.feature'],
+    })
+    const builder = scenarios(set).should().haveUniqueTitles()
+    // Non-vacuous: both scenarios really were examined.
+    expect(
+      builder.select({ label: 'scenario', identify: (s) => ({ name: s.title }) }).elements.length,
+    ).toBe(2)
+    expect(builder.rule({ id: 'gherkin/unique-titles' }).violations()).toHaveLength(0)
+  })
+
   it('passes a corpus with unique titles (green, non-vacuous)', () => {
     const set = features({
       cwd: FIXTURES,

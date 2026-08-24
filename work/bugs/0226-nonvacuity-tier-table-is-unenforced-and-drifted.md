@@ -9,8 +9,12 @@
   when judging how strong a gate is, which makes it the same class as the
   defects this harness exists to catch, one level up.
 - **Origin:** self-found · noticed while auditing `GATE_FOR` after adding the
-  `finished-not-closed` row (PR #88) and the raw-NUL row
-  ([0099](./fixed/0099-nul-bytes-make-md-gherkin-unsearchable.md), PR #89)
+  `finished-not-closed` row (PR #88). The raw-NUL guard in
+  [0099](./fixed/0099-nul-bytes-make-md-gherkin-unsearchable.md) (PR #89) added no
+  `GATE_FOR` row at first — it rode the existing `gates/formerly-waived`, which is
+  this record's own central complaint. Review caught that; #89 then split the row
+  six ways. An earlier wording here said #89 "added the raw-NUL row", which
+  undercut the argument by describing the fix as though it were the problem.
 - **Reported:** 2026-08-24
 
 ## Symptom
@@ -32,18 +36,37 @@ file:
 
 |                                                     |        |
 | --------------------------------------------------- | ------ |
-| rows in `GATE_FOR`                                  | 58     |
+| rows in `GATE_FOR`                                  | 63     |
 | rows named in the header table                      | 24     |
-| rows absent by name                                 | **34** |
-| …of those, absent under **any** name or description | **27** |
+| rows absent by name                                 | **39** |
+| …of those, absent under **any** name or description | **35** |
 
-The 7-row difference is rows the table describes under a different label —
+The 4-row difference is rows the table describes under a different label —
 `arch (root rules)` appears as `arch`, `crossval/gherkin-ts` as `crossval/gk`,
-three `release/*` rows as one `release` block. That mismatch is itself part of
-the defect: there is no naming correspondence between the two lists, so nothing
-mechanical could reconcile them even if someone wanted to.
+`release/needs-changeset` and `release/names-real-package` inside one `release`
+block. That mismatch is itself part of the defect: there is no naming
+correspondence between the two lists, so nothing mechanical could reconcile them
+even if someone wanted to.
 
-The 27 with no description at all, grouped:
+**How to re-derive these numbers — because the first version of this record got
+them wrong, and a hand-count is exactly what this record is about.** Extract every
+row from `GATE_FOR` (the values of its `'check:*': [...]` entries), take the
+header docstring as everything before the first `import`, and ask of each row
+whether the header contains its literal name; for the ones it does not, check by
+hand whether an alias describes it. The first version said 27 absent-under-any-name
+and a 7-row alias difference. Both were wrong: it hand-counted a bulleted list
+that itself listed 29 while the prose said 27, and it credited `release/unparseable`
+to a `release` block that never mentions it. Review caught it. Run the extraction;
+do not count the list.
+
+**These numbers moved while this record was open**, which is the drift in
+miniature. PR #89 split `check:integrity`'s single `gates/formerly-waived` row
+into six per-subject rows — taking `GATE_FOR` from 58 to 63 and the
+absent-under-any-name figure from 30 to 35. Six new rows, none of them in the
+table, added by the very branch that filed this record.
+
+The 35 with no description at all, grouped. Treat this list as a convenience,
+not as the measurement — re-derive it:
 
 - `family re-export (index)`, `(crossvalidate)`, `(aggregation)`,
   `family kernel-imports emptied` — the whole `check:family` gate (plan 0089)
@@ -56,11 +79,19 @@ The 27 with no description at all, grouped:
 - `corpus/promoted-names-no-owner`, `-not-dispatchable`, `-has-held-asks`
 - `corpus/proposal-number-duplicated`, `corpus/accepted-denominator-empty`,
   `corpus/proposal-criteria`, `corpus/docs-only-owner`, `corpus/link-routing`,
-  `crossval/md-ts`, `release/break-names-dependents`, `gates/formerly-waived`
+  `crossval/md-ts`, `release/break-names-dependents`, `release/unparseable`
+- `integrity/phantom-dep`, `integrity/stale-output`, `integrity/source-text`,
+  `surface/undocumented-export`, `docs-code/fence-does-not-compile`,
+  `examples/does-not-compile` — the six rows PR #89 created while filing this
 
-`gates/formerly-waived` is the one that stings: it is the row answering for
-**four** `check:*` scripts (`integrity`, `examples`, `docs-code`, `surface`),
-and a reader following the file's own instruction will not find it.
+The row that stung most was `gates/formerly-waived`, which answered for **four**
+`check:*` scripts (`integrity`, `examples`, `docs-code`, `surface`) — a reader
+following the file's own instruction would not find it at all. PR #89 retired it
+for six per-subject rows, after review pointed out that `GATE_FOR`'s own doctrine
+("the value is a LIST, and it is the list a reader can audit against the script")
+had five other gates obeying it and this one not. That fixes the machine-readable
+half. **The prose half is now worse, not better** — six rows where there was one,
+and still none of them in the table.
 
 ## Root cause
 

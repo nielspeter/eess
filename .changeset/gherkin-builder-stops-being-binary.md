@@ -2,17 +2,33 @@
 '@nielspeter/eess-gherkin': patch
 ---
 
-`packages/gherkin/src/builder.ts` carried a raw `0x00` byte as a composite-key
-separator, written where the two-character `\0` escape belonged. The runtime
-string is identical either way, so nothing behavioural changes — but every tool
-that classifies files by content treated the whole builder as binary, which
-means `grep` and `rg` silently skipped it and `git diff` rendered it as
-`Bin … bytes` instead of a patch. It had been that way since the package was
-created on 2026-07-13.
+**If you have run a text search over this package's `node_modules` on any version
+up to 0.3.0, `dist/builder.js` was silently excluded from it. Re-run it.**
 
-That is observable to an adopter: searching the installed package for a symbol
-defined in that file returned nothing, with no warning and no error.
+That file carried a raw `0x00` byte, used as a composite-key separator and written
+where the two-character `\0` escape belonged. `tsc` copies a template literal's
+source bytes into the emit, so the byte reached the published `dist/`. Every tool
+that classifies files by content then treats the whole module as binary:
 
-`check:integrity` now reads every `packages/*/src/**/*.ts` as bytes and reds on
-a raw NUL, so the class cannot come back quietly (it has now been filed three
-times — bugs 0099, 0144, and this one).
+```
+$ file node_modules/@nielspeter/eess-gherkin/dist/builder.js
+… : data
+$ grep -c picomatch node_modules/@nielspeter/eess-gherkin/dist/builder.js
+                       # three occurrences in the file; no output, exit 1
+```
+
+No warning, no error — a search that skipped the file is indistinguishable from
+one that found nothing in it. Which grep you have decides how quiet it is: BSD
+grep at least says `Binary file … matches`; ugrep with `-I` (what many agent
+harnesses invoke) says nothing at all and exits 1.
+
+**Affected: 0.1.0, 0.1.1, 0.1.2, 0.3.0** — every version published so far,
+including `latest`. Fixed from this release on. The rest of the family is clean.
+
+Nothing behavioural changes: `\0` in a template literal is `U+0000`, so the key
+separator is byte-identical and no API moves. Only the file becomes text again.
+
+`check:integrity` now reads every file under `packages/*/src` as bytes and reds on
+a raw NUL, per package rather than per run, so this cannot return unnoticed in a
+future release. It has now been filed four times — bugs 0099 and 0144, an unmerged
+2026-08-08 branch that fixed it first, and this.

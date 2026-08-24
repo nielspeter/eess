@@ -128,9 +128,15 @@
  * waiver, so deleting a row can no longer be a silent, green change. Both are
  * excluded from the gate count so the denominator stays honest.
  *
- * The four probe files are ephemeral: created just before their run, deleted in a
+ * The ephemeral probe files are created just before their run, deleted in a
  * finally block, and swept at startup so a prior crash can never leave one in
- * packages/core/src or scripts/nonvacuity/. Everything else is a committed
+ * packages/core/src or scripts/nonvacuity/. The count used to be written out as
+ * "four" and went stale the first time one was added; it is not written out any
+ * more. One exception is real and worth knowing: `bad-waived-gates.mjs` plants
+ * its own probes and has the finally but NOT the startup sweep, so a SIGKILL
+ * mid-scenario leaves a file behind. Every such name starts with
+ * `__nonvacuity_probe` so `.gitignore` catches it, and the leftovers are loud
+ * rather than silent — the raw-NUL one reds `check:integrity` naming itself. Everything else is a committed
  * fixture under scripts/nonvacuity/. Uses only node builtins + the workspace
  * packages.
  *
@@ -1121,8 +1127,11 @@ function gateCorpusPlanImplementsUnresolved() {
 }
 
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
-function gateNode(script, mustSay) {
-  const r = sh(process.execPath, [join('scripts', 'nonvacuity', script)])
+function gateNode(script, mustSay, argv = []) {
+  // `argv` lets ONE fixture file answer for several rows, each row running only
+  // the scenario it is named for. Added when `check:integrity`'s four checks
+  // were split out of a single `gates/formerly-waived` row — see `GATE_FOR`.
+  const r = sh(process.execPath, [join('scripts', 'nonvacuity', script), ...argv])
   // Exit 1 is NOT sufficient on its own (bug 0109): node also exits 1 on an
   // unhandled throw, a syntax error, and a failed module resolution — and a
   // top-level import is resolved before the fixture's own try/catch can run, so
@@ -1378,12 +1387,58 @@ const gates = [
   ],
   ['review-harness', () => gateNode('bad-review-harness.mjs', 'foreign-project token')],
   ['work/numbers', () => gateNode('bad-numbers.mjs', 'duplicate number across lanes')],
-  // The three gates that used to be waived. One fixture, three subjects — they
-  // share a shape (sabotage a real file, run the real gate, assert it fails) and
-  // splitting them would build three git-spawning fixtures where one does.
+  // The gates that used to be waived. ONE fixture file, six subjects — they share
+  // a shape (sabotage a real file, run the real gate, assert it fails), so they
+  // stay in one file rather than six git-spawning ones. But they get a row EACH,
+  // because a row is what `gateCoverage()` counts and what a reader audits.
+  //
+  // They used to share a single row called `gates/formerly-waived`, and review
+  // measured what that cost: `check:integrity` runs four checks, so a new check
+  // inside it was invisible to `gateCoverage()` by construction — the raw-NUL
+  // guard could be deleted with this harness still printing `gate coverage — OK`.
+  // The doctrine under `GATE_FOR` had said so all along; four `check:*` scripts
+  // were pointing at this one row in violation of it.
   [
-    'gates/formerly-waived',
-    () => gateNode('bad-waived-gates.mjs', 'each red on their own subject'),
+    'integrity/phantom-dep',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'integrity/phantom-dep red on its own subject', [
+        'integrity/phantom-dep',
+      ]),
+  ],
+  [
+    'integrity/stale-output',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'integrity/stale-output red on its own subject', [
+        'integrity/stale-output',
+      ]),
+  ],
+  [
+    'integrity/source-text',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'integrity/source-text red on its own subject', [
+        'integrity/source-text',
+      ]),
+  ],
+  [
+    'surface/undocumented-export',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'surface/undocumented-export red on its own subject', [
+        'surface/undocumented-export',
+      ]),
+  ],
+  [
+    'docs-code/fence-does-not-compile',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'docs-code/fence-does-not-compile red on its own subject', [
+        'docs-code/fence-does-not-compile',
+      ]),
+  ],
+  [
+    'examples/does-not-compile',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'examples/does-not-compile red on its own subject', [
+        'examples/does-not-compile',
+      ]),
   ],
   [
     'vacuity-matrix',
@@ -1488,12 +1543,20 @@ const GATE_FOR = {
     'release/break-names-dependents',
     'release/gate-fails-the-build',
   ],
-  'check:integrity': ['gates/formerly-waived'],
-  'check:examples': ['gates/formerly-waived'],
-  'check:docs-code': ['gates/formerly-waived'],
+  // One row per CHECK, not per script — the doctrine stated below `GATE_FOR`,
+  // which `check:corpus` (24), `check:ledger` (8), `check:release` (6),
+  // `check:crossval` (7) and `check:family` (4) already follow. `check:integrity`
+  // did not: four checks behind one row named after harness history, so
+  // `gateCoverage()` counted the script as accounted for while any check inside
+  // it could be deleted silently. That is how the raw-NUL check nearly shipped
+  // uncovered, and review pointed out the fixture's own comment diagnosed it
+  // without fixing it. All four scenarios live in `bad-waived-gates.mjs`.
+  'check:integrity': ['integrity/phantom-dep', 'integrity/stale-output', 'integrity/source-text'],
+  'check:examples': ['examples/does-not-compile'],
+  'check:docs-code': ['docs-code/fence-does-not-compile'],
   // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
   // sabotages the KERNEL ROOT — the only population this gate blocks on.
-  'check:surface': ['gates/formerly-waived'],
+  'check:surface': ['surface/undocumented-export'],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.
