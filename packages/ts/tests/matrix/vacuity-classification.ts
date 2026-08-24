@@ -463,6 +463,7 @@ export const NOT_CHECKS: readonly string[] = [
   '.:implement',
   '.:importFrom',
   '.:isBoolean',
+  '.:isArchRuleError',
   '.:isCI',
   '.:isExcludedByComment',
   '.:isNumber',

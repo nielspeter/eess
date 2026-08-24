@@ -29,7 +29,7 @@ export {
 // Core — rule builder, error & metadata
 export { RuleBuilder } from './core/rule-builder.js'
 export { TerminalBuilder } from './core/terminal-builder.js'
-export { ArchRuleError } from '@nielspeter/eess'
+export { ArchRuleError, isArchRuleError } from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'
 
