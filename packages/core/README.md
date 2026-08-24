@@ -52,6 +52,7 @@ A preset never emits on its own — the caller owns emission (ADR-008).
 - **`PresetBaseOptions`** — what every preset accepts: an `overrides` map of rule id → `RuleSeverity`, plus the reporting controls. Extend it when you write a preset so `{ report: 'return' }` works without your own plumbing.
 - **`RuleBuilderLike`** — the one-method shape (`violations()`) a preset needs from anything it dispatches, so a preset is not coupled to a dialect's builder class.
 - **`Dispatchable`** — what `dispatchRule` accepts: a builder that can produce violations _and_ name itself, so the dispatcher can apply a per-rule override to it. Strictly more than `RuleBuilderLike`; that one is the narrower shape used where only the findings matter.
+- **`isArchRuleError(err)`** — use this instead of `instanceof ArchRuleError` when catching. `instanceof` compares class identity, so it returns `false` whenever two copies of the package are on disk — a nested `node_modules`, or a rule file loaded through a separate module registry. The check is structural (the stamped `name` plus the `violations` array), so it survives that. The thrown shape itself — `violations: ArchViolation[]` — is public either way.
 - **`ArchFix`** — a machine-applicable edit on a violation: `file`, a `[start, end)` character span, and the `replacement` text. This is what `--fix` applies.
 
 ### The JSON report

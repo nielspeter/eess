@@ -33,7 +33,6 @@ export { escapeGitHub } from './format-github.js'
 export { hashViolation } from './baseline.js'
 export { identityCollisions } from './violation.js'
 export { isAnchored, isProjectRelative } from './project-relative.js'
-export { isArchRuleError } from './errors.js'
 export { isDescribable } from './rule-description.js'
 export {
   isFaultPosition,

@@ -3,8 +3,9 @@
 ## Status
 
 Accepted (2026-08-24). Proposed 2026-08-23 and **built the same day** — the
-entry point exists, 71 symbols sit behind it (78 moved in the first cut; review
-sent five back to the root and two more were never internal), and the rows below
+entry point exists, 70 symbols sit behind it (78 moved in the first cut; review
+sent five back to the root, a sixth was caught auditing the final list, and two
+more were never internal), and the rows below
 were rewritten against what shipped rather than what was intended.
 
 The classification was the work, and it was judgment, exactly as the Context
@@ -23,6 +24,20 @@ point, and left `packages/ts/src/index.ts`'s own comment about them standing ove
 types alone; and `CorrespondenceOptions` / `RelationSpec` / `KeyBy`, the parameter
 types of `correspondence()` and `preserveRelations()`, both public, so a consumer
 could call them and not name their arguments.
+
+A sixth came later, from reading the finished list rather than from review:
+`isArchRuleError`. Its own docstring is the argument — _"the same hazard exists for
+any consumer with two copies of eess-ts on disk"_ — so the structural check exists
+precisely for the consumer whose `instanceof ArchRuleError` returns false, and
+putting it behind `/internal` put it out of reach of the person who needs it, while
+the thrown shape it detects stays public. Identical to the `globNode` mistake.
+
+Three that were audited in the same pass and correctly stayed internal, recorded so
+the question is not reopened: `applyFixes` (only eess-ts's own CLI calls it, to
+implement `--fix`, and no dialect ever re-exported it), and `Pair` / `MatchResult` /
+`MatchOptions` (the result types of `matchSelections`, which is itself internal —
+the `Pair` that appears in `docs/` is eess-ts's `LayerPair`/`PairCondition`, a
+different type).
 
 **The last two groups share one cause, and it is procedural.** The closure runs over
 the seed and the manual reversals happen after it, so every reversal re-opens the
