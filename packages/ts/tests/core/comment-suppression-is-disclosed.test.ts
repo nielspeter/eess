@@ -18,7 +18,7 @@ import {
   commentSuppressions,
   recordCommentSuppression,
   resetCommentSuppression,
-} from '@nielspeter/eess'
+} from '@nielspeter/eess/internal'
 
 afterEach(() => {
   resetCommentSuppression()

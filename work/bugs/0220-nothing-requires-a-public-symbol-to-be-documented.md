@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-08-23; fix not built.
+- **State:** Draft — the gate is built and blocks on the kernel root (all 85 root exports
+  documented as of 2026-08-24); the 89 dialect-side exports and the denominator holes are
+  reported, not required, and are what keeps this record open.
 - **Priority:** Medium — no live incorrectness, but it is the gate-shaped half of a defect
   this repo has now hit twice, and the second time it went ten days unnoticed.
 - **Origin:** self-found — closing [bug 0219](./fixed/0219-corpus-listing-surface-is-undocumented.md),
@@ -94,7 +96,46 @@ this same defect one level up.
 
 ## Verification
 
-- [ ] Red first: deleting a documented section reds, naming the symbol that lost its fence.
-- [ ] A committed violating fixture, so an emptied implementation cannot stay green.
-- [ ] The gate prints symbols examined and symbols covered — a zero or an unexpectedly low
+- [x] Red first: deleting a documented section reds, naming the symbol that lost its fence.
+      **done-otherwise** — the gate is keyed on the SYMBOL, not the fence, so the red-first
+      case is an undocumented export rather than a deleted section: `scripts/check-surface.mjs`
+      reds naming it. Measured on the branch that built it, 253 of 664 at the first run.
+- [x] A committed violating fixture, so an emptied implementation cannot stay green.
+      `scripts/nonvacuity/bad-waived-gates.mjs` scenario 2. Note what it took to make that
+      claim true: the first version appended `export const X = 1`, which the gate's parser
+      (braced lists only) could not see, and asserted a non-zero exit the gate produced
+      anyway — so it passed while testing nothing. It now sabotages the kernel root with a
+      braced export and asserts the gate NAMES the symbol.
+- [x] The gate prints symbols examined and symbols covered — a zero or an unexpectedly low
       denominator is the failure to watch.
+      It prints the kernel-root denominator on success and the dialect census either way,
+      with names. The holes review found — `exportsOf` reading one hardcoded `index.ts`, so
+      `eess-crossvalidate` contributed **zero**, eess-ts's twelve subpaths were unscanned,
+      and declaration-form or `export *` re-exports were invisible — are **fixed**: the scan
+      is driven off each package's `exports` map and follows `export *`. crossvalidate went
+      0 → 38.
+- [x] **done** — the denominator holes. The scan reads each package's `exports` map and
+      follows `export *`; every published entry point is counted.
+- [ ] the dialect-side undocumented exports — **116, and classified 2026-08-24.**
+
+      The count rose 89 → 116 because the scan got better, not because anything regressed.
+
+      **The classification came out one-sided, and it settles what to do.** 94 of the 116
+      are named in another emitted `.d.ts` — a consumer meets them in a signature of
+      something they already call. The remaining 22 look declaration-only only because
+      crossvalidate declares and uses each options type in the same subpath file; they are
+      signature types too. By shape: 30 `*Options`, 35 element/model types, 7 `*RuleBuilder`
+      return types, and the rest parser and stats functions.
+
+      **There is no meaningful un-export subset.** Unlike the kernel — where 71 of 156 were
+      genuine plumbing — the dialect surfaces are undocumented *public API*: the argument and
+      return types of functions the dialects already export and document. This is the same
+      "callable but not nameable" defect ADR-011 clause 1 exists for, replicated across five
+      packages.
+
+      So the open question is no longer "document or un-export" — it is only whether the
+      gate should BLOCK on them, which needs a clause. ADR-011 clause 1 governs the kernel
+      root; extending it to the dialects is an amendment, and the evidence now supports one:
+      a census that is 100% real API is documentation debt, not noise.
+
+Deferred: this record (the dialect surfaces — classified, not yet documented).

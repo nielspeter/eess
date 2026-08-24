@@ -1,5 +1,5 @@
 import type { Node, SourceFile, SyntaxKind } from 'ts-morph'
-import { registerCacheReset } from '@nielspeter/eess'
+import { registerCacheReset } from '@nielspeter/eess/internal'
 
 /**
  * One descendant walk per (node, kind), shared across matchers.

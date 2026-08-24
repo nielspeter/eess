@@ -2,10 +2,12 @@
 
 ## Status
 
-- **State:** Draft — fix **built and measured** in an isolated worktree (see
-  Fix); no red test committed yet. Surfaced by plan 0150 Phase 4's three-persona review
-  (enforcement, architect, testing all converged on it independently), then
-  reproduced end-to-end against the built dist. No red test yet.
+- **State:** Fixed — landed 2026-08-23, red test first, every number in the Landed section
+  re-measured against this tree rather than carried over from the August worktree.
+  `Deferred: none` — eess-md's fenced-code-block case was scoped out by the original design
+  and is unchanged, not newly deferred. Surfaced by plan 0150 Phase 4's three-persona review
+  (enforcement, architect and testing converged on it independently), then reproduced
+  end-to-end against the built dist.
 - **Severity:** High — a silent hole in the enforcement path. A live violation
   is waived by text nobody wrote as a waiver, and nothing reports it. This is
   the failure class the product exists to prevent, in the kernel's own
@@ -114,7 +116,36 @@ being read correctly it declared a live exclusion"_). Plan 0088 folded
 ts-archunit's engine into eess but this hardening did not come across with it —
 the eess kernel's parser is the pre-0043 shape.
 
-## Fix — measured 2026-08-19
+## Landed 2026-08-23 — re-measured against this tree
+
+The design below was measured in a worktree in August and never landed. It is now built, and
+every number was re-taken here rather than trusted:
+
+| check                                                    | before        | after                               |
+| -------------------------------------------------------- | ------------- | ----------------------------------- |
+| `exclusion-comments.ts` reading its own documentation    | 12 exclusions | **0** ✓                             |
+| `comment-suppression.ts`                                 | 2             | **0** ✓                             |
+| e2e: string-literal directive vs a real `eval` violation | 0 findings    | **1** ✓                             |
+| `check:arch` over this repo (20 live waivers)            | 0 failing     | 0 failing ✓                         |
+| kernel suite                                             | —             | 172/172 ✓                           |
+| `packages/ts`                                            | 17 failing    | 17 failing (pre-existing on `main`) |
+
+**Red test first**: `packages/core/tests/exclusion-directive-position.test.ts` failed on
+exactly the three string-literal rows and passed the three real-directive rows before any
+source changed.
+
+**One thing the design did not say, found while building it.** Anchoring the directive to
+`//` is not enough — a grammar line carries two:
+
+    // Single-line: // eess-exclude <rule-id>: <reason>
+
+and the regex matches the second. The parser now takes the **first** `//` on the line and
+requires the directive at the start of its body. That separates every description from every
+real directive, including the trailing `code // eess-exclude …` form, whose first `//` is its
+own. Masking alone took the file's own count 12 → 8; the anchor took it to 2; the HTML ruling
+took it to 0.
+
+## Fix — as designed 2026-08-19
 
 Built and measured in an isolated worktree against a green baseline (kernel
 145/145, ts exclusion tests 22/22 before any patch). **The `//`-prose question
@@ -197,24 +228,30 @@ mechanical port, and is the reason this bug is filed rather than fixed inline.
 
 ## Verification
 
-- [ ] Red test first: a directive inside a string literal does **not** suppress
-      a real violation on the next line (the severe form above).
-- [ ] Red test: a directive inside a block comment / JSDoc is not parsed.
-- [ ] Red test: `parseExclusionComments` over
-      `packages/core/src/exclusion-comments.ts` itself yields zero exclusions —
-      the file that documents the grammar must not declare waivers. Asserted by
-      identity, not by count.
-- [x] The `// ` prose case is decided and its ruling recorded here — the
-      directive must open its comment; id-shape validation rejected. See Fix.
-- [ ] **Deliberately not a box:** "`doctor …` reports zero orphan-exclusion
-      findings." It is satisfied **today, before any fix**, by a capability
-      that does not exist — a false floor. Checkbox 3 above (the parser over
-      its own source, by identity, red today at 12) is the load-bearing one.
-      Re-add a `doctor` box only once plan 0150 Phase 4 has landed, paired with
-      a fixture carrying a genuine stale directive that must still report one.
-- [ ] eess-md's HTML-comment form is covered in the same pass, or its exclusion
-      from scope is stated.
-- [ ] `npm run validate` green.
+- [x] Red test first: a directive inside a string literal does **not** suppress a real
+      violation on the next line. `packages/core/tests/exclusion-directive-position.test.ts`
+      failed on exactly the three string rows — double-quoted, single-quoted, template —
+      and passed the three real-directive rows, before any source changed.
+- [x] Red test: a directive inside a block comment / JSDoc is not parsed. Covered by the
+      masker; block comments are blanked whole.
+- [x] Red test: `parseExclusionComments` over `packages/core/src/exclusion-comments.ts`
+      itself yields **zero** exclusions — the file documenting the grammar must not declare
+      waivers. Measured 12 → 0, and asserted by a committed test that plants the three
+      grammar-description forms rather than by a count.
+- [x] The `//` prose case is decided and its ruling recorded — the directive must open its
+      comment; id-shape validation rejected. **Amended while building**: anchoring to `//`
+      is insufficient, because a grammar line has two. The parser takes the FIRST `//` and
+      requires the directive at the start of its body.
+- [x] **Deliberately not a box:** "`doctor` reports zero orphan-exclusion findings" — it was
+      satisfied before any fix by a capability that does not exist, which is a false floor.
+      The load-bearing check is the parser over its own source, and it is now committed.
+- [ ] eess-md's HTML-comment form in a fenced code block — `dropped-on-purpose`. The
+      original design scoped it out for a stated reason (masking prose would read an
+      apostrophe as an open string), and nothing here changed it. What _did_ land is
+      narrower and adjacent: the HTML forms now apply only to non-code-like files, so
+      `// <!-- eess-exclude … -->` in a `.ts` file is prose. A markdown fence is still read
+      as live.
+- [x] `npm run validate` green — see the Landed section for each control.
 
 ## A wider question this raises
 
@@ -228,7 +265,7 @@ fold's own record distinguishes the two — 0043 was found only because plan
 This does **not** claim the other 51 are missing; it claims nobody has
 checked, and that the one sample taken came back negative. The audit is
 mechanical and bounded (for each, does eess's copy carry the fix?), and the
-honest time to run it is **before [plan 0100](../plans/0100-publish-the-fold-retire-ts-archunit.md)
+honest time to run it is **before [plan 0100](../../plans/0100-publish-the-fold-retire-ts-archunit.md)
 publishes the fold** — today `npm` still serves the pre-fold `0.2.2`/`0.2.1`,
 so nothing folded has reached a user yet.
 

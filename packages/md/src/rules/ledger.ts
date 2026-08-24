@@ -163,7 +163,7 @@ function stripFencedCode(s: string): string {
  * the done-item test and the placement check so the two cannot disagree about
  * what a document says it is.
  */
-function findState(
+export function findState(
   text: string,
   vocabulary: readonly string[],
 ): { state?: string; raw: string; line: number } | null {

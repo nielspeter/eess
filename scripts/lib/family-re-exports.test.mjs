@@ -15,6 +15,7 @@ import assert from 'node:assert/strict'
 import { writeFileSync, unlinkSync, readFileSync } from 'node:fs'
 import { Project } from 'ts-morph'
 import { reExportsWhatBodyUsesWithAllowlist, KERNEL_INTERNAL } from './family-re-exports.mjs'
+import { FAMILY_ONLY } from './kernel-surface.mjs'
 
 const MD_TSCONFIG = 'packages/md/tsconfig.build.json'
 const CROSSVALIDATE_TSCONFIG = 'packages/crossvalidate/tsconfig.build.json'
@@ -173,15 +174,28 @@ test('per-package allowlist: ts is exempt from correspondence, crossvalidate is 
   )
 })
 
-test('KERNEL_INTERNAL symbols are exempt everywhere', () => {
+// ADR-011 clause 3. This used to probe a KERNEL_INTERNAL name imported from the
+// kernel ROOT, because that is where plumbing lived and an allowlist was what
+// exempted it. The allowlist is empty now: plumbing sits behind
+// `@nielspeter/eess/internal`, and the exemption is the module specifier itself.
+// So the probe asks the question that is now load-bearing — an `/internal`
+// import must oblige no re-export — rather than a question about an empty set.
+test('a symbol imported from @nielspeter/eess/internal obliges no re-export', () => {
   const body = 'packages/md/src/__test_probe_body8__.ts'
   const entry = 'packages/md/src/__test_probe_entry8__.ts'
   withPackageFiles(
     MD_TSCONFIG,
     {
+      // The probe imports from BOTH entry points on purpose. A body that touched
+      // only `/internal` would leave this rule with an empty examined set, and it
+      // is fail-closed (ADR-010) — it reports "imports NOTHING from
+      // @nielspeter/eess … cannot fail" rather than passing, which would make the
+      // test green for the wrong reason. So `not` supplies a real root obligation
+      // that the entry satisfies, and `selectionMemo` is the one under test:
+      // present in the body, absent from the entry, and owed nothing.
       [body]:
-        "import { selectionMemo } from '@nielspeter/eess'\nexport function use(): typeof selectionMemo { return selectionMemo }\n",
-      [entry]: 'export {}\n',
+        "import { not } from '@nielspeter/eess'\nimport { selectionMemo } from '@nielspeter/eess/internal'\nexport function use(): typeof selectionMemo { return selectionMemo }\nexport const n = not\n",
+      [entry]: "export { not } from '@nielspeter/eess'\n",
     },
     entry,
     (_project, entrySf) => {
@@ -287,8 +301,10 @@ test('the exclusion lists have ONE source — standalone-surface.test.ts restate
     )
   }
   // And this file reads the shared module rather than a copy of its own.
-  assert.ok(
-    KERNEL_INTERNAL.size > 0,
-    'KERNEL_INTERNAL is empty — the shared import resolved to nothing',
-  )
+  // Non-vacuity on the shared import itself. KERNEL_INTERNAL is legitimately
+  // EMPTY after ADR-011 — every name it held moved behind `/internal`, where the
+  // module structure exempts it — so an emptiness check there would now fail for
+  // the right reason and prove nothing. FAMILY_ONLY is the set still carrying
+  // members, and it is what proves the import resolved to a real module.
+  assert.ok(FAMILY_ONLY.size > 0, 'FAMILY_ONLY is empty — the shared import resolved to nothing')
 })

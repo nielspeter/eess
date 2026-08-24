@@ -2,11 +2,11 @@ import type { ArchViolation, RuleBuilderLike } from '@nielspeter/eess'
 import type { CheckOptions } from '@nielspeter/eess'
 import { ArchRuleError } from '@nielspeter/eess'
 import { callerAggregates, writeReport } from './execute-rule.js'
-import { dedupeConfigFindings } from '@nielspeter/eess'
-import { suppressionNotice } from '@nielspeter/eess'
-import { writeStderr } from '@nielspeter/eess'
-import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess'
-import { commentSuppressionNotice, resetCommentSuppression } from '@nielspeter/eess'
+import { dedupeConfigFindings } from '@nielspeter/eess/internal'
+import { suppressionNotice } from '@nielspeter/eess/internal'
+import { writeStderr } from '@nielspeter/eess/internal'
+import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess/internal'
+import { commentSuppressionNotice, resetCommentSuppression } from '@nielspeter/eess/internal'
 
 /**
  * Run an array of rules (e.g. a spread preset) and throw one aggregated

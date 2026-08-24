@@ -26,7 +26,7 @@ import {
 } from './correspondence-findings.js'
 import type { RuleDescription } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
-import { selectionMemo } from '@nielspeter/eess'
+import { selectionMemo } from '@nielspeter/eess/internal'
 import type { ArchProject } from '../core/project.js'
 import { RuleBuilder } from '../core/rule-builder.js'
 import { TerminalBuilder } from '../core/terminal-builder.js'

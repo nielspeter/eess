@@ -28,9 +28,13 @@
 import { KERNEL_INTERNAL, FAMILY_ONLY, KERNEL_PRIVATE_BEFORE_THE_SPLIT } from './kernel-surface.mjs'
 
 /**
- * eess-ts's index deliberately does not re-export the family-only surface
- * (`correspondence` / `CorrespondenceBuilder` / `matchSelections` /
- * `applyFixes`); crossvalidate's entry points MUST, so it has no entry here.
+ * eess-ts's index deliberately does not re-export the family-only surface —
+ * `correspondence` / `CorrespondenceBuilder`; crossvalidate's entry points MUST,
+ * so it has no entry here.
+ *
+ * `matchSelections` and `applyFixes` were on this list until ADR-011 moved them
+ * behind `@nielspeter/eess/internal`. They need no allowlist entry now: they are
+ * not on the kernel root, so nothing obliges a dialect to re-export them.
  */
 const ALLOWLIST = {
   ts: FAMILY_ONLY,
@@ -187,6 +191,11 @@ export function reExportsWhatBodyUsesWithAllowlist() {
         const allowed = ALLOWLIST[pkg] ?? new Set()
         const exported = reachableExportNames(entry)
         for (const name of needed) {
+          // Both sets are EMPTY after ADR-011 — every name they held moved behind
+          // `@nielspeter/eess/internal`, where the module specifier exempts it and no
+          // list has to. Kept as a live read rather than deleted: re-adding a name here
+          // would mean "public at the root, but deliberately not re-exported", which is
+          // a real category the family may want again.
           if (KERNEL_INTERNAL.has(name) || KERNEL_PRIVATE_BEFORE_THE_SPLIT.has(name)) continue
           if (allowed.has(name)) continue
           if (exported.has(name)) continue

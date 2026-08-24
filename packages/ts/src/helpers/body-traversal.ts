@@ -268,6 +268,20 @@ export function searchFunctionBody(fn: ArchFunction, matcher: ExpressionMatcher)
   }
 
   const matchingNodes = findMatchesInNode(body, matcher)
+
+  // A CONCISE arrow body IS the expression — `() => eval(x)` has no Block, so
+  // `getBody()` returns the CallExpression itself and both traversals walk only
+  // its DESCENDANTS. The node that matters is therefore never tested, and bug
+  // 0224 measured the consequence: `eval` in a concise arrow passed the
+  // `recommended` floor every adopter installs.
+  //
+  // Only when the body is not a Block. Testing a Block root is the over-match
+  // the comment above warns about — `expression(/…/)` against a Block matches
+  // the function's whole body text, turning every body-analysis rule into a
+  // whole-declaration one.
+  if (!NodeUtils.isBlock(body) && matcher.matches(body)) {
+    matchingNodes.push({ node: body })
+  }
   return toResult(matchingNodes)
 }
 

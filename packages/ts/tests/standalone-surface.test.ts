@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as kernel from '@nielspeter/eess'
+import * as kernelInternal from '@nielspeter/eess/internal'
 import * as tsRoot from '../src/index.js'
 import * as tsPresets from '../src/presets/index.js'
 import {
@@ -47,6 +48,24 @@ describe('standalone sufficiency: eess-ts re-exports the kernel surface it owns 
       (name) => !EXCLUDED.has(name) && !reachable.has(name),
     )
     expect(missing).toEqual([])
+  })
+
+  // ADR-011 clause 2. The three lists above are empty now, so the staleness test
+  // below can no longer fail on them — this is the assertion that replaced the
+  // bookkeeping they used to do. The boundary is structural: a plumbing symbol is
+  // absent from the kernel root entirely, and a dialect that forwards one from
+  // `@nielspeter/eess/internal` puts it back on a published surface, which is the
+  // exact duplication the split removed.
+  it('no symbol behind @nielspeter/eess/internal is reachable from eess-ts', () => {
+    const reachable = new Set([...Object.keys(tsRoot), ...Object.keys(tsPresets)])
+    const forwarded = Object.keys(kernelInternal).filter((name) => reachable.has(name))
+    expect(forwarded).toEqual([])
+  })
+
+  it('the internal entry point is non-empty, so the guard above can actually fail', () => {
+    // Without this, deleting internal.ts's contents would make the clause-2 test
+    // pass over an empty set — a green built from nothing (ADR-010).
+    expect(Object.keys(kernelInternal).length).toBeGreaterThan(20)
   })
 
   it('the exclusion lists themselves stay real — every excluded name still exists in the kernel', () => {

@@ -32,12 +32,12 @@ import {
   TerminalBuilder,
   RuleBuilder,
   ArchRuleError,
-  marksAssertsCardinality,
   type CollectResult,
   type Condition,
   type ConditionContext,
   type ArchViolation,
 } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 
 // --- Angle 1: a direct TerminalBuilder subclass — a fictional "widget" dialect ---
 

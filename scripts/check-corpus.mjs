@@ -22,7 +22,8 @@
 import { resolve } from 'node:path'
 import { corpus, docs, links, matchTableRows, pointers } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
-import { definePredicate, matchSelections, reportViolations } from '@nielspeter/eess'
+import { definePredicate, reportViolations } from '@nielspeter/eess'
+import { matchSelections } from '@nielspeter/eess/internal'
 import { isRepoNativeLink, siteOptsAreSafe, unclassifiedRoots } from './lib/corpus-link-routing.mjs'
 import {
   declaredImplements,

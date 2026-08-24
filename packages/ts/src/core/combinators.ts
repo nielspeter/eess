@@ -1,6 +1,6 @@
 import type { Predicate } from '@nielspeter/eess'
 import type { TypeMatcher } from './type-matcher.js'
-import { combineGlobs, negateGlobs } from '@nielspeter/eess'
+import { combineGlobs, negateGlobs } from '@nielspeter/eess/internal'
 
 /**
  * Negates a predicate or type matcher.

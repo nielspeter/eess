@@ -11,7 +11,7 @@
   about them, and `.check()` returns normally. This is the defect the product
   exists to prevent, in the library's own engine.
 - **Origin:** self-found · fold audit of ts-archunit's fixed-bug corpus
-  (upstream bug 0019), prompted by [bug 0154](../0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  (upstream bug 0019), prompted by [bug 0154](./0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
 - **Shipped in:** the published `@nielspeter/eess` (`0.2.2`) / `eess-ts`
   (`0.2.1`). The guard is at `rule-builder.ts:337` in `810808b` (the `v0.2.3`
   release commit), so this is live for adopters today — not gated behind plan 0100.
@@ -149,7 +149,7 @@ Two consequences:
   is weaker than the citation implies: the test does exercise the copy-on-write
   contract, but its final assertion currently proves nothing.
 
-See [bug 0156](../0156-should-twice-silently-drops-the-first-assertion.md).
+See [bug 0156](./0156-should-twice-silently-drops-the-first-assertion.md).
 An intermediate draft claimed the two fixes were _entangled_ — that 0156 could
 not be fixed without first settling `fork()` semantics. **That is not so:**
 0156's fix is measured, one line, and leaves this contract test passing 9/9.

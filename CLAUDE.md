@@ -24,6 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | [008](./adr/008-caller-owns-reporting.md)                 | Reporting       | Detection is separate from emission. One `reportViolations`; presets take `{ report }` (default unchanged).              |
 | [009](./adr/009-agent-first-failure-surfaces.md)          | Fail-Closed     | A check that cannot fail is worth less than no check. Ported from `ts-archunit` ADR-008; six binding rules.              |
 | [010](./adr/010-a-pass-is-constructed-from-evidence.md)   | Vacuity Proof   | A pass is constructed from evidence — `{ violations, examined }` — never a default. Prospective on the fold (plan 0088). |
+| [011](./adr/011-the-kernels-public-api-is-explicit.md)    | Kernel API      | The kernel root is public API; family plumbing lives behind `@nielspeter/eess/internal`. (Accepted; 78 symbols moved)    |
 
 ### ADR authoring convention — the Enforcement table (eess enforcement-table v1)
 

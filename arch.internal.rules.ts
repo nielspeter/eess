@@ -63,7 +63,11 @@ const GENERATED = /\/parser\/generated\//
 const ENV_ADAPTERS = /\/core\/src\/(ansi|environment)\.ts$/ // these modules ARE the env boundary
 // Entry points = import-graph roots (the packages' exports+bin maps, verbatim):
 const ENTRY_POINTS = [
-  /\/core\/src\/index\.ts$/,
+  // `internal.ts` is a published entry point too — `@nielspeter/eess/internal`,
+  // the family-plumbing surface ADR-011 split off. Same status as `index.ts`
+  // here: its exports exist for a consumer (a sibling dialect), so
+  // "referenced by another file in this package" is the wrong question to ask.
+  /\/core\/src\/(index|internal)\.ts$/,
   /\/ts\/src\/(index|cli\/bin|presets\/index|graphql\/index)\.ts$/,
   /\/ts\/src\/rules\/(typescript|security|errors|naming|dependencies|code-quality|metrics|architecture|hygiene)\.ts$/,
   /\/mermaid\/src\/(index|cli\/bin)\.ts$/,

@@ -5,7 +5,7 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { Predicate } from '@nielspeter/eess'
 import type { LoadedSchema, GraphQLObjectTypeLike, GraphQLTypeLike } from './schema-loader.js'
-import { selectionMemo } from '@nielspeter/eess'
+import { selectionMemo } from '@nielspeter/eess/internal'
 import type { SchemaElement } from './schema-predicates.js'
 import {
   queries as queriesPredicate,

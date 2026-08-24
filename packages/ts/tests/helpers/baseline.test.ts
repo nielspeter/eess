@@ -211,7 +211,7 @@ describe('which violations plan 0082 actually moved in the baseline', () => {
 })
 
 /**
- * [Bug 0171](../../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md):
+ * [Bug 0171](../../../../work/bugs/fixed/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md):
  * an accepted ceiling is a number IN A UNIT, and the baseline used to compare
  * across a change of unit without noticing.
  *

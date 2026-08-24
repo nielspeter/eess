@@ -87,7 +87,7 @@ Two parts, and the second is the durable one:
 If part 1 turns out to be more invasive than expected, part 2 can still land
 first with the current cycle waived by an explicit, reasoned
 `// eess-exclude` — a documented waiver is honest; silence is not. (Note
-[bug 0158](./0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md):
+[bug 0158](./fixed/0158-an-undocumented-exclusion-directive-suppresses-and-only-warns.md):
 a waiver written without a reason currently suppresses silently, so give it
 one.)
 

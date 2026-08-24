@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { formatViolationsGitHub, escapeGitHub } from '@nielspeter/eess'
+import { formatViolationsGitHub } from '@nielspeter/eess'
+import { escapeGitHub } from '@nielspeter/eess/internal'
 import { makeViolation } from '../support/test-rule-builder.js'
 
 /** Shorthand with format-github-test defaults. */

@@ -1,6 +1,6 @@
 /**
  * A second `.should()` must not discard the first assertion —
- * [bug 0156](../../../work/bugs/0156-should-twice-silently-drops-the-first-assertion.md),
+ * [bug 0156](../../../work/bugs/fixed/0156-should-twice-silently-drops-the-first-assertion.md),
  * the KERNEL half.
  *
  * The fix landed in `packages/ts` when plan 0165's engine copy arrived and never

@@ -353,7 +353,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    *
    * **The name is historical.** It used to clear the conditions, which is what
    * distinguished it from `copy()`, and that clearing was
-   * [bug 0156](../../../../work/bugs/0156-should-twice-silently-drops-the-first-assertion.md):
+   * [bug 0156](../../../../work/bugs/fixed/0156-should-twice-silently-drops-the-first-assertion.md):
    * a second `.should()` on a builder that already carried a condition discarded
    * it, so `.should().notExist().should().beExported()` enforced only the second
    * and lost four findings with no output. Measured. Removed in 0.23.0 —

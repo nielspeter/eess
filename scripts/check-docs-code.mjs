@@ -213,6 +213,17 @@ if (failures.length > 0) {
   process.exit(1)
 }
 
+// ---- bug 0220: the fences that exist are not the fences that are owed -------
+//
+// The check above compiles what is written. It requires nothing to BE written,
+// so a new undocumented export is silent and deleting a documented section is
+// silent — a denominator of supply, never of demand. That asymmetry is what
+// ADR-009 calls a check that cannot fail.
+//
+// `NOT_PUBLIC_SURFACE` is read from `kernel-surface.mjs`, the one place that
+// already declares which exports are plumbing rather than API. It is not
+// extended here: an exemption list this gate maintains for itself would be the
+// gate forgiving its own subject.
 console.error(
   `  ✓ doc code-fence checks — ${fences.length} fences compile + no deprecated API (${elapsed()})`,
 )

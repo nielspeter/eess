@@ -1,6 +1,6 @@
 import { SyntaxKind } from 'ts-morph'
 import type { Node, SourceFile } from 'ts-morph'
-import { registerCacheReset } from '@nielspeter/eess'
+import { registerCacheReset } from '@nielspeter/eess/internal'
 
 /**
  * The per-file line index behind `linesOfCode`.
@@ -34,7 +34,7 @@ const NON_CODE_KINDS = new Set([
  * `}` still counts — it is a source line; this is not a statement count.
  *
  * **Why not the span.**
- * [Bug 0170](../../../../work/bugs/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md):
+ * [Bug 0170](../../../../work/bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md):
  * this was `end - start + 1`, which measures documentation as size. In this repo
  * that put two rules in direct conflict — `eess/jsdoc-on-public-methods` requires
  * a doc block on every public method, and `eess/max-class-lines` then counted

@@ -1,16 +1,17 @@
 import {
-  correspondence,
   finishPreset,
   type ArchViolation,
   type Direction,
   type PresetReportOptions,
 } from '@nielspeter/eess'
+import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { diagram, classes as mmdClasses } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
-export { correspondence, finishPreset } from '@nielspeter/eess'
+export { finishPreset } from '@nielspeter/eess'
+export { correspondence } from '@nielspeter/eess'
 export type { ArchViolation, Direction, PresetReportOptions } from '@nielspeter/eess'
 
 // A fence's language tag says it is Mermaid; it does not say which DIAGRAM it

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { applyFilters } from '../src/index.js'
+import { applyFilters } from '../src/internal.js'
 import { executeWarn, executeCheck } from '../src/execute-rule.js'
 import { ArchRuleError } from '../src/errors.js'
 import type { ArchViolation } from '../src/violation.js'

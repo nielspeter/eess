@@ -2,7 +2,7 @@ import type { DiagnosableRule, DiagnosticFinding } from '../../core/diagnose.js'
 import { diagnose } from '../../core/diagnose.js'
 import { isArchRuleError } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
-import { writeStderr } from '@nielspeter/eess'
+import { writeStderr } from '@nielspeter/eess/internal'
 import { orphanExclusions } from '../../core/orphan-exclusions.js'
 
 interface DoctorArgs {

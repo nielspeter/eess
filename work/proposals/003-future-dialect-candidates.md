@@ -123,7 +123,7 @@ matching resolver` at `:117`. Its elements are `SchemaElement`
   dialect, and it is not small.
 - **`erEntities(diagram)` does not exist.** The exports are
   `collectEntities(ast)` and `collectErRelationships(ast)`
-  (`packages/mermaid/src/index.ts:87`). Separately, `ErEntityInfo`
+  (`packages/mermaid/src/index.ts:62`). Separately, `ErEntityInfo`
   (`packages/mermaid/src/models/er-entity.ts:14`) carries **no line**, where the
   class model keeps one — so a correspondence built on it reports line 0 on every
   violation, the same attribution defect the graphql module already ships.

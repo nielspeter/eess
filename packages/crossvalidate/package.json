@@ -50,6 +50,7 @@
   "license": "MIT",
   "scripts": {
     "prepublishOnly": "npm run build",
+    "prebuild": "rm -rf dist",
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
@@ -66,10 +67,10 @@
     "picomatch": "^4.0.4"
   },
   "peerDependencies": {
-    "@nielspeter/eess-ts": ">=0.1.1",
-    "@nielspeter/eess-mermaid": ">=0.1.1",
-    "@nielspeter/eess-md": ">=0.1.1",
-    "@nielspeter/eess-gherkin": ">=0.1.1"
+    "@nielspeter/eess-ts": ">=0.4.0",
+    "@nielspeter/eess-mermaid": ">=0.3.0",
+    "@nielspeter/eess-md": ">=0.5.0",
+    "@nielspeter/eess-gherkin": ">=0.3.0"
   },
   "peerDependenciesMeta": {
     "@nielspeter/eess-ts": {

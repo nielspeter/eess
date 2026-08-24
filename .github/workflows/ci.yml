@@ -90,3 +90,8 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run test
+      # LAST, deliberately. GitHub Actions fails fast, so a step placed above the
+      # suite hides it. The kernel-surface check sat mid-chain in its first
+      # version and stopped `lint`, `format:check` and every test from running —
+      # including the one ADR-011 row 2 names as its `gated` mechanism.
+      - run: npm run check:surface

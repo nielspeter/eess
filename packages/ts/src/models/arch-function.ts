@@ -88,9 +88,11 @@ export function fromFunctionDeclaration(decl: FunctionDeclaration): ArchFunction
  *
  * Precondition: caller must verify the initializer is an ArrowFunction.
  */
-export function fromArrowVariableDeclaration(decl: VariableDeclaration): ArchFunction {
-  const arrow = decl.getInitializerIfKind(SyntaxKind.ArrowFunction)
-  if (!arrow) throw new Error('Expected arrow function initializer')
+export function fromFunctionInitializerDeclaration(decl: VariableDeclaration): ArchFunction {
+  const arrow =
+    decl.getInitializerIfKind(SyntaxKind.ArrowFunction) ??
+    decl.getInitializerIfKind(SyntaxKind.FunctionExpression)
+  if (!arrow) throw new Error('Expected an arrow function or function expression initializer')
   return {
     getName: () => decl.getName(),
     getSourceFile: () => decl.getSourceFile(),
@@ -196,8 +198,16 @@ export function collectFunctions(
 
   // Pattern 2: const arrow functions
   for (const varDecl of sourceFile.getVariableDeclarations()) {
-    if (varDecl.getInitializerIfKind(SyntaxKind.ArrowFunction)) {
-      functions.push(fromArrowVariableDeclaration(varDecl))
+    // ArrowFunction and FunctionExpression both. `const a = function () {}` is
+    // an ordinary shape and was collected by nothing — bug 0224 measured `eval`
+    // passing the `recommended` floor inside one, because the element never
+    // reached the rule at all. (Distinct from the concise-arrow half of that
+    // bug, which was a traversal gap, not a collection gap.)
+    if (
+      varDecl.getInitializerIfKind(SyntaxKind.ArrowFunction) ??
+      varDecl.getInitializerIfKind(SyntaxKind.FunctionExpression)
+    ) {
+      functions.push(fromFunctionInitializerDeclaration(varDecl))
     }
   }
 
@@ -312,3 +322,9 @@ function qualifiedName(keyPath: readonly string[]): string {
     })
     .join('')
 }
+
+/**
+ * @deprecated Use {@link fromFunctionInitializerDeclaration} — it handles
+ * `function () {}` initializers as well as arrows (bug 0224).
+ */
+export const fromArrowVariableDeclaration = fromFunctionInitializerDeclaration

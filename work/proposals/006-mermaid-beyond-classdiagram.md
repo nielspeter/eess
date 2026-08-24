@@ -112,7 +112,7 @@ Grammars are Langium, one file per type, and they are **small**:
 Adding a type costs one `.langium` grammar, one `parse-*.ts`, and its `collect*`
 functions — the shape both existing parsers already follow
 (`packages/mermaid/src/index.ts:21`,
-`packages/mermaid/src/index.ts:86`). The mechanism is not the
+`packages/mermaid/src/index.ts:62`). The mechanism is not the
 hard part.
 
 ## What the survey leaves

@@ -609,7 +609,12 @@ function gateFamilyReExportAggregation() {
   // package, not just the file under direct suspicion.
   const bad = withMutatedFile(
     FAMILY_REEXPORT_AGGREGATION_TARGET,
-    "import { remedyRepeatsMessage } from '@nielspeter/eess'",
+    // A ROOT symbol md does not re-export. It was `remedyRepeatsMessage` until
+    // ADR-011 moved that behind `@nielspeter/eess/internal`, where it obliges no
+    // re-export by design — which turned this fixture's violating input into a
+    // legal one and the probe green-for-nothing. The payload has to name a symbol
+    // the rule still owes a re-export for, or the fixture proves nothing.
+    "import { throwIfViolations } from '@nielspeter/eess'",
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
   const ok = bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts')
@@ -1274,6 +1279,14 @@ const gates = [
     'corpus/ledger/uncovered-lane',
     () => gateNode('bad-lane-coverage.mjs', 'ledger/uncovered-lane'),
   ],
+  // The reverse of honesty-at-close: an OPEN record that is secretly finished.
+  // Its two controls (work-in-progress, and a correctly closed record) are the
+  // load-bearing part — see the fixture's header for why the conjunction is what
+  // gets asserted rather than "every box ticked".
+  [
+    'corpus/ledger/finished-not-closed',
+    () => gateNode('bad-finished-not-closed.mjs', 'ledger/finished-not-closed'),
+  ],
   // Bug 0131 round 3: a corruption scoped to ONE lane (not the whole corpus)
   // must still fail loudly — the first version of this check summed
   // done-items across every lane before comparing to zero, so a single-lane
@@ -1365,6 +1378,13 @@ const gates = [
   ],
   ['review-harness', () => gateNode('bad-review-harness.mjs', 'foreign-project token')],
   ['work/numbers', () => gateNode('bad-numbers.mjs', 'duplicate number across lanes')],
+  // The three gates that used to be waived. One fixture, three subjects — they
+  // share a shape (sabotage a real file, run the real gate, assert it fails) and
+  // splitting them would build three git-spawning fixtures where one does.
+  [
+    'gates/formerly-waived',
+    () => gateNode('bad-waived-gates.mjs', 'each red on their own subject'),
+  ],
   [
     'vacuity-matrix',
     () =>
@@ -1379,13 +1399,19 @@ const gates = [
 // The gate list is hand-maintained, so deleting a row was a silent, green change
 // — the same class as a vacuous gate, one level up (bug 0110). Waivers are
 // explicit and must say why.
+// Only STRUCTURAL waivers remain. The three `'no-gate-yet'` entries that used to
+// live here — `check:integrity`, `check:examples`, `check:docs-code` — were a
+// permission slip, and measurably so: replacing `check-docs-code.mjs` with a
+// four-line script that always exits 0 left this harness printing
+// `gate coverage — OK` and `no fixture is silently green`. A gate deleted
+// outright, and the meta-gate green.
+//
+// All three now have one (`bad-waived-gates.mjs`). "Not yet" is not a category
+// this list accepts: a check that cannot be shown to fail is worth less than no
+// check, and that argument does not stop applying at the harness.
 const NO_GATE_NEEDED = {
   'check:fast': 'an alias — runs corpus + spec + arch, each gated on its own',
   'check:nonvacuity': 'this harness',
-  'check:integrity': 'no-gate-yet — npm workspace guardrails, see 0110',
-  'check:examples':
-    'no-gate-yet — tsc over the single-dialect templates + vitest over cross-dialect.*.test.ts (plan 0091 made the latter half real: it runs eess-crossvalidate presets with genuine red fixtures), see 0110',
-  'check:docs-code': 'no-gate-yet — doc fences compile, see 0110',
 }
 // A check:* script may run several presets, and one gate row proves only the one
 // preset its fixture violates. Mapping a script to a single row therefore
@@ -1452,6 +1478,7 @@ const GATE_FOR = {
     'corpus/ledger/dead-selector',
     'corpus/ledger/uncovered-lane',
     'corpus/ledger/lane-done-vacuous',
+    'corpus/ledger/finished-not-closed',
   ],
   'check:release': [
     'release/needs-changeset',
@@ -1461,6 +1488,12 @@ const GATE_FOR = {
     'release/break-names-dependents',
     'release/gate-fails-the-build',
   ],
+  'check:integrity': ['gates/formerly-waived'],
+  'check:examples': ['gates/formerly-waived'],
+  'check:docs-code': ['gates/formerly-waived'],
+  // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
+  // sabotages the KERNEL ROOT — the only population this gate blocks on.
+  'check:surface': ['gates/formerly-waived'],
 }
 // Rows that measure the harness itself rather than a check:* script. They are
 // excluded from the count for the reason stated at the run loop below.
@@ -1482,9 +1515,19 @@ function gateCoverage() {
   // runs. A meta-check that cannot see the drift it names is the defect this
   // repo exists to prevent, one level up from the gates it audits.
   //
-  // Direction matters: a step in CI but not in `validate` is redundancy, not a
-  // hole. A step in `validate` but not in CI means a local-only gate, which is
-  // the shape that bit us (0129, then again here).
+  // BOTH directions are holes, and the sentence here used to say otherwise: "a
+  // step in CI but not in `validate` is redundancy, not a hole." Falsified on
+  // 2026-08-24. `test:matrix` was CI-only, a full local `npm run validate` went
+  // green, and CI reded on a stale vacuity-classification row the ADR-011 branch
+  // had left behind — so the author's evidence of readiness was silent about a
+  // step that decides the merge. That is a local-only BLIND SPOT, the mirror of
+  // the local-only gate (0129), and it costs the same thing: a green that does
+  // not mean what the person reading it thinks.
+  //
+  // The old exemption said `test:matrix` "cannot join the pre-build suite because
+  // it imports from `dist`". True of the pre-build suite; not true of `validate`,
+  // which begins with `npm run build` — and `test:matrix` builds again itself. It
+  // is in `validate` now, last, beside the other build-dependent step.
   const ciPath = join(repoRoot, '.github/workflows/ci.yml')
   const ci = readFileSync(ciPath, 'utf8')
   const validateSteps = String(pkg.scripts?.validate ?? '')
@@ -1492,16 +1535,60 @@ function gateCoverage() {
     .map((s) => s.trim().replace(/^npm run /, ''))
     .filter(Boolean)
   if (validateSteps.length === 0) problems.push('validate chain is empty or unreadable')
+  // Token comparison, not substring. `validate.includes('npm run test')` is true
+  // the moment `npm run test:matrix` is in the chain — so this loop, and the
+  // reverse sweep below, both reported "covered" for the largest step in the
+  // chain whether or not it was there. Measured after `test:matrix` was added:
+  // deleting `npm run test &&` from `validate` produced NO finding in either
+  // direction. A membership test that cannot distinguish `test` from
+  // `test:matrix` is not a membership test.
+  const ciSteps = new Set(
+    [...ci.matchAll(/npm run ([a-z][\w:-]*)/g)].map((m) => m[1]).filter(Boolean),
+  )
   for (const step of validateSteps) {
-    if (!ci.includes(`npm run ${step}`)) {
+    const stepName = step.split(/\s+/)[0]
+    if (stepName !== undefined && !ciSteps.has(stepName)) {
       problems.push(`validate runs "${step}" but .github/workflows/ci.yml does not`)
     }
   }
-  // `test:matrix` is not a `check:*` and not in `validate` — it cannot join the
-  // pre-build suite because it imports from `dist`. It therefore has no other
-  // claimant, and ran on no path at all until PR #72.
+  // `test:matrix` is not a `check:*`, so it needs its own claimant on both paths.
   if (!ci.includes('test:matrix')) {
     problems.push('packages/ts test:matrix (the vacuity matrix) runs on no CI path')
+  }
+  if (!String(pkg.scripts?.validate ?? '').includes('test:matrix')) {
+    problems.push(
+      'packages/ts test:matrix runs in CI but not in `validate` — a local green would not see it',
+    )
+  }
+
+  // The reverse sweep: any `npm run <script>` a CI step invokes must also have a
+  // local claimant, or a full local green is silent about it.
+  // Deliberately EMPTY. The first version listed `build` "by design", which
+  // exempted nothing — `validate` begins with `npm run build`, so the membership
+  // test already passed. ADR-009 rule 5 asks what would fail if a carve-out were
+  // emptied; the answer was nothing, which means it was decoration reading as a
+  // decision. If a CI-only step ever genuinely belongs here, add it WITH the
+  // reason it cannot run locally.
+  const CI_ONLY_BY_DESIGN = new Set([])
+  for (const m of ci.matchAll(/npm run ([a-z][\w:-]*)/g)) {
+    const step = m[1]
+    if (step === undefined || CI_ONLY_BY_DESIGN.has(step)) continue
+    const validateStepNames = new Set(
+      String(pkg.scripts?.validate ?? '')
+        .split('&&')
+        .map(
+          (x) =>
+            x
+              .trim()
+              .replace(/^npm run /, '')
+              .split(/\s+/)[0],
+        )
+        .filter(Boolean),
+    )
+    const inValidate = validateStepNames.has(step)
+    if (!inValidate) {
+      problems.push(`.github/workflows/ci.yml runs "${step}" but \`validate\` does not`)
+    }
   }
   for (const c of checks) {
     if (NO_GATE_NEEDED[c] !== undefined) continue
@@ -1532,7 +1619,7 @@ function gateCoverage() {
           // findings added in PR #72 — and a status line that names the wrong
           // fault sends the reader to the wrong file, which is the failure mode
           // bug 0174 is filed about.
-          `FAILED (${problems.length} problem(s): ${problems.some((x) => x.includes('ci.yml') || x.includes('CI path')) ? 'validate/CI drift' : 'a check:* is unaccounted for'})`,
+          `FAILED (${problems.length} problem(s): ${problems.some((x) => x.includes('ci.yml') || x.includes('CI path') || x.includes('in CI but not in')) ? 'validate/CI drift' : 'a check:* is unaccounted for'})`,
     detail:
       problems.length === 0
         ? `${checks.length} check:* scripts — ${Object.keys(GATE_FOR).length} gated by ` +

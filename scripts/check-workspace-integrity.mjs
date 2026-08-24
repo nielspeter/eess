@@ -159,6 +159,66 @@ for (const name of WORKSPACE_PKGS) {
   }
 }
 
+// ---------- 3. the build cleans its own output ----------
+
+// `tsc -p` OVERWRITES; it never removes. So a source file that is deleted or
+// moved leaves its `.js`/`.d.ts` behind in `dist/` forever, and `dist/` is
+// gitignored, so nothing ever shows it. Measured when this check was written:
+// 36 orphaned `.d.ts` across the workspace, the oldest four months of them from
+// plan 0165's engine copy whose `src/` counterparts no longer exist.
+//
+// That is not a cosmetic leftover. `dist/` is what a consumer installs and what
+// any `.d.ts`-based measurement reads — a survey of "which kernel symbols reach
+// a dialect's public type surface" was run against it during this branch and
+// answered from files whose source had been deleted, which is exactly the shape
+// of fake evidence this repo exists to refuse.
+//
+// The fix is structural rather than detective: every package removes `dist`
+// before it builds, so the class cannot occur. This check does not look for
+// stale files — after the fix there would never be any, and a check that cannot
+// fail is worth less than no check (ADR-009). It checks the MECHANISM is wired,
+// which is the thing that can actually regress: a package added later, with no
+// `prebuild`, silently reopens the hole.
+
+// The FIRST version of this pattern was `\brm\b[^&|]*\bdist\b|…`, and review
+// measured it accepting three commands that do not clean:
+//
+//   "rm -rf dist-tmp"                         — `\bdist\b` matches before the `-`
+//   "tsc -p tsconfig.build.json && rm -rf dist" — cleans AFTER the build, publishing nothing
+//   "echo \"remember to rm the dist\""          — prose
+//
+// It also accepted `scripts.clean`, which nothing in this repo invokes. So the
+// check that exists to satisfy ADR-009 was itself fail-open: it asserted a
+// substring, while its own comment claimed it asserted a mechanism.
+//
+// This form requires the WHOLE `prebuild` command to be a removal of exactly
+// `dist`. Anchored, so a suffix is not a match; `prebuild` only, because that is
+// the slot npm runs before `build`; and no `&&`, because a removal sequenced
+// after anything else is not a pre-build clean.
+const CLEANS_DIST =
+  /^(?:rm\s+-rf?\s+\.?\/?dist|rimraf\s+\.?\/?dist|node\s+-e\s+["'][^"']*rmSync\(\s*["']\.?\/?dist["'][^"']*["'])\s*$/
+
+for (const dir of pkgDirs) {
+  const pkgPath = join(packagesDir, dir, 'package.json')
+  let parsed
+  try {
+    parsed = readJson(pkgPath)
+  } catch {
+    continue
+  }
+  const scripts = parsed.scripts ?? {}
+  if (!scripts.build) continue
+  const prebuild = scripts.prebuild
+  const cleans = typeof prebuild === 'string' && CLEANS_DIST.test(prebuild.trim())
+  if (!cleans) {
+    problems.push(
+      `stale build output: ${parsed.name} builds but never removes dist/ first — ` +
+        `add "prebuild": "rm -rf dist" so a deleted source file cannot leave its ` +
+        `.js/.d.ts behind (tsc overwrites, it never deletes)`,
+    )
+  }
+}
+
 // ---------- report ----------
 
 if (problems.length > 0) {
@@ -168,5 +228,5 @@ if (problems.length > 0) {
   process.exit(1)
 }
 console.error(
-  `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, all @nielspeter/eess* locally linked.`,
+  `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, all @nielspeter/eess* locally linked, every build cleans its dist/.`,
 )

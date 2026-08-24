@@ -10,7 +10,6 @@ export { not, and, or } from './core/combinators.js'
 // Core — condition interface & violation model
 export type { Condition, ConditionContext } from '@nielspeter/eess'
 export type { ArchViolation } from '@nielspeter/eess'
-export { severityFor } from '@nielspeter/eess'
 export {
   createViolation,
   getElementName,
@@ -26,15 +25,13 @@ export {
 // Re-exported from the kernel since plan 0165 Phase 2 — they are pure, so they
 // live in `@nielspeter/eess`, and eess-ts forwards them so a standalone
 // installation still sees them (`tests/standalone-surface.test.ts`).
-export { remedyRepeatsMessage } from '@nielspeter/eess'
 
 // Core — rule builder, error & metadata
 export { RuleBuilder } from './core/rule-builder.js'
 export { TerminalBuilder } from './core/terminal-builder.js'
-export { ArchRuleError } from '@nielspeter/eess'
+export { ArchRuleError, isArchRuleError } from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'
-export type { PathUniverse } from '@nielspeter/eess'
 
 // Core — code frame & formatting
 export { generateCodeFrame } from '@nielspeter/eess'
@@ -48,6 +45,12 @@ export { definePredicate, defineCondition } from '@nielspeter/eess'
 // Glob declaration model (plan 0069). Exported because a user-written
 // predicate must be able to declare its globs — otherwise it is permanently
 // opaque, and any `or()` containing it can never be diagnosed.
+//
+// The two CONSTRUCTORS belong here as much as the types do. ADR-011's first cut
+// moved them behind `@nielspeter/eess/internal` and left this comment standing
+// over types alone — so the documented path (`definePredicate` + declare your
+// globs) required the internal entry point. Found in review.
+export { globNode, globAnyOf } from '@nielspeter/eess'
 export type {
   DeclaredGlob,
   DeclaredGlobs,
@@ -59,7 +62,6 @@ export type {
   GlobTree,
   OpaqueGlob,
 } from '@nielspeter/eess'
-export { combineGlobs, globAnyOf, globNode, negateGlobs, stampGlobs } from '@nielspeter/eess'
 
 // In-process diagnostics (plan 0069 R2a). The vitest-facing half of `doctor`:
 // rules written inside tests are a co-equal documented path, and a CLI-only
@@ -141,13 +143,11 @@ export type { ArchFunction } from './models/arch-function.js'
 export {
   collectFunctions,
   fromFunctionDeclaration,
+  fromFunctionInitializerDeclaration,
   fromArrowVariableDeclaration,
   fromMethodDeclaration,
-  fromObjectLiteralFunction,
 } from './models/arch-function.js'
 export type { FunctionCollectionOptions } from './models/arch-function.js'
-// Shared object-literal function traversal (proposal 016 / F3)
-export { collectObjectLiteralFunctions } from './core/object-literal-functions.js'
 export type { ObjectLiteralFunction } from './core/object-literal-functions.js'
 
 // Function predicates
@@ -314,7 +314,7 @@ export { collectViolations } from './helpers/baseline-generator.js'
 // Call entry point (plan 0014)
 export { calls, CallRuleBuilder } from './builders/call-rule-builder.js'
 export type { ArchCall } from './models/arch-call.js'
-export { collectCalls, fromCallExpression } from './models/arch-call.js'
+export { fromCallExpression } from './models/arch-call.js'
 
 // Call predicates (standalone)
 export { onObject, withMethod, withArgMatching, withStringArg } from './predicates/call.js'
@@ -477,43 +477,9 @@ export type {
 // 3b851d2 — the last commit before the copy — rather than against the baseline
 // the copy had already damaged. (Phase 2's exclusion list made exactly that
 // mistake, and its record says so.)
-export {
-  registerProjectRoots,
-  rootFromTsConfigPath,
-  rootOf,
-  relativeToRoot,
-} from './core/project-relative.js'
-export {
-  registerRootCompilerOptions,
-  verbatimModuleSyntaxFor,
-} from './core/per-root-compiler-options.js'
-export {
-  syntacticFault,
-  diagnoseGlob,
-  FAULT_ADVICE,
-  ON_DISK_ADVICE,
-} from './core/glob-diagnosis.js'
-export { isStrictFamily, resolveFlag, STRICT_FAMILY_SIZE } from './tsconfig/strict-family.js'
-export {
-  isFaultPosition,
-  countDeclaredGlobs,
-  isGlobNode,
-  isOpaqueGlob,
-  resetCommentSuppression,
-  recordCommentSuppression,
-  commentSuppressions,
-  commentSuppressionNotice,
-  dispatchRule,
-  throwIfViolations,
-  presetConstructsNothingViolation,
-  finishPreset,
-  byCodepoint,
-  assertionLessViolation,
-  recordEdgeCoverage,
-  untestedRules,
-  edgeCoverageNotice,
-  resetEdgeCoverage,
-} from '@nielspeter/eess'
+export { rootFromTsConfigPath, rootOf, relativeToRoot } from './core/project-relative.js'
+export { syntacticFault } from './core/glob-diagnosis.js'
+export { dispatchRule, throwIfViolations, finishPreset } from '@nielspeter/eess'
 export type {
   RuleSeverity,
   PresetBaseOptions,
@@ -523,24 +489,7 @@ export type {
 // The remainder of the pre-copy surface (same rule as the block above): these
 // were public in eess-ts before the engine copy, so their absence is a break,
 // not a cleanup.
-export {
-  UNSUPPRESSABLE,
-  activeNotice,
-  assertsCardinality,
-  dedupeConfigFindings,
-  discoverIdentityRoot,
-  isAnchored,
-  isNullaryCallable,
-  isProjectRelative,
-  isRecord,
-  marksAssertsCardinality,
-  normalizeIdentityText,
-  reportViolations,
-  resetDiffDisclosureForTests,
-  shallowClone,
-  suppressionNotice,
-  viewsFor,
-} from '@nielspeter/eess'
+export { assertsCardinality, reportViolations } from '@nielspeter/eess'
 
 // ─── Restored published surface, round 2 — PR #72 review ─────────────────────
 //
@@ -575,13 +524,11 @@ export {
 export type { BaselineFilter, DiffFilterLike, Matcher, UntestedReason } from '@nielspeter/eess'
 export type { CollectResult } from './core/terminal-builder.js'
 export type { DiskSet, OnDisk } from './core/disk-set.js'
-export { buildDiskSet, diskSet } from './core/disk-set.js'
+export { diskSet } from './core/disk-set.js'
 export type { GlobFault } from './core/glob-diagnosis.js'
 export { pathUniverse } from './core/path-universe.js'
-export { globSitesOf, isDeadGlobTree, isDeadSite } from './core/glob-evaluator.js'
-export { isTypeOnlyReExport, splitGlobArgs } from './core/import-options.js'
-export { emptyProjectAdvice, loadedNothing } from './core/empty-project-advice.js'
 export { validateOverrides } from './presets/shared.js'
+export { STRICT_FAMILY_SIZE } from './tsconfig/strict-family.js'
 export type { StrictFamilyFlag } from './tsconfig/strict-family.js'
 
 // The preset delivery mode, so an adopter writing `report: 'builders'` can name

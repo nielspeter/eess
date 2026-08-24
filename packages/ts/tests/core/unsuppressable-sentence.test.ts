@@ -27,9 +27,13 @@ import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { applyFilters } from '../../src/core/execute-rule.js'
-import { severityFor } from '@nielspeter/eess'
+import { severityFor } from '@nielspeter/eess/internal'
 import { DiffFilter } from '../../src/helpers/diff-aware.js'
-import { DECLARE_INSTEAD, UNSUPPRESSABLE, UNSUPPRESSABLE_MECHANISMS } from '@nielspeter/eess'
+import {
+  DECLARE_INSTEAD,
+  UNSUPPRESSABLE,
+  UNSUPPRESSABLE_MECHANISMS,
+} from '@nielspeter/eess/internal'
 import { Baseline } from '../../src/helpers/baseline.js'
 import type { ArchViolation } from '@nielspeter/eess'
 

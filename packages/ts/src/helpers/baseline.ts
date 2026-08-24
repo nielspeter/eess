@@ -2,9 +2,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
 import type { ArchViolation } from '@nielspeter/eess'
-import { subjectOf } from '@nielspeter/eess'
-import { discoverIdentityRoot, normalizeIdentityText, toPortablePath } from '@nielspeter/eess'
-import { writeStderr } from '@nielspeter/eess'
+import { subjectOf } from '@nielspeter/eess/internal'
+import {
+  discoverIdentityRoot,
+  normalizeIdentityText,
+  toPortablePath,
+} from '@nielspeter/eess/internal'
+import { writeStderr } from '@nielspeter/eess/internal'
 import { descriptionChangeFinding, unmatchedBaselineFinding } from './baseline-diagnostics.js'
 import type { BaselineFacts } from './baseline-diagnostics.js'
 
@@ -135,7 +139,7 @@ interface AcceptedMeasurement {
  * stamping is still safely comparable against one.
  *
  * `code-lines` is deliberately absent, and that absence is the entire fix for
- * [bug 0171](../../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md).
+ * [bug 0171](../../../../work/bugs/fixed/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md).
  * An unstamped `lines` entry was written when `linesOfCode` returned a SPAN, so
  * its number is denominated in something the tool no longer produces —
  * measured, roughly three times the current value on this repo's own source.

@@ -89,7 +89,7 @@ const SPECS = [
 /**
  * Derived from `SPECS`, never restated. A hand-written union is a second list
  * that drifts the moment a rule is added — which is the whole shape of
- * [bug 0157](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)
+ * [bug 0157](../../../../work/bugs/fixed/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)
  * and of the census in plan 0078.
  */
 type RecommendedRuleId = (typeof SPECS)[number]['meta']['id']

@@ -64,7 +64,7 @@ export function metricViolation(
      * What `measured` COUNTS, when that is not simply the metric's name.
      *
      * The baseline persists this and refuses to compare across a change of unit
-     * ([bug 0171](../../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md)).
+     * ([bug 0171](../../../../work/bugs/fixed/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md)).
      * `lines` is why it exists: the metric kept its name while `linesOfCode`
      * changed from counting a span to counting code, so identity still matched
      * and every baselined ceiling silently tripled. A metric whose name already

@@ -77,7 +77,7 @@ export interface ArchViolation {
    *
    * The baseline persists it and refuses to compare a stored measurement
    * against a current one carrying a different unit
-   * ([bug 0171](../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md)).
+   * ([bug 0171](../../../work/bugs/fixed/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md)).
    * Without it, changing what a metric COUNTS silently moved every baselined
    * ceiling: `linesOfCode` went from span lines to code lines, entries kept
    * matching on identity, and a class could then grow to roughly three times

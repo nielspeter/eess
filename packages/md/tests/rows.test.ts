@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { correspondence, ArchRuleError, type Selection, type ArchViolation } from '@nielspeter/eess'
+import { ArchRuleError, type Selection, type ArchViolation } from '@nielspeter/eess'
+import { correspondence } from '@nielspeter/eess'
 import { corpus, rows } from '../src/index.js'
 
 /** Run a checking chain and return the violations it raises (empty if none). */

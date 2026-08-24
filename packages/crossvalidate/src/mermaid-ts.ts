@@ -1,4 +1,5 @@
-import { correspondence, type Direction } from '@nielspeter/eess'
+import { type Direction } from '@nielspeter/eess'
+import { correspondence } from '@nielspeter/eess'
 import { classes as mmdClasses, type ArchProject as MermaidDiagram } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
 

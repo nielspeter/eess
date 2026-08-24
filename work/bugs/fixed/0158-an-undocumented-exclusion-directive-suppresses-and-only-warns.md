@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — fix **built and measured** in an isolated worktree (see
-  Fix); no red test committed yet.
+- **State:** Fixed — landed 2026-08-23, red test first, every number re-measured against
+  this tree rather than carried over from the August worktree. `Deferred: none`.
 - **Severity:** High — false green, and in published code. A reason-free
   `// eess-exclude <rule-id>` is a working kill switch for any rule, on any
   line, and the only feedback is a stderr line that does not fail the build.
@@ -128,17 +128,34 @@ cheaper than separately.
 
 ## Verification
 
-- [ ] Red test first: a reason-free directive does **not** suppress, and
-      produces a finding. Fails today.
-- [ ] Red test: nested `-start`/`-end` pairs close one-for-one, asserted on
-      `result.exclusions` — not merely that a "Nested" warning exists.
-      (`packages/ts/tests/helpers/exclusion-comments.test.ts:76-80` sets up
-      this fixture today and never inspects `exclusions`, which is exactly how
-      the behaviour stayed invisible.)
-- [ ] Control: a documented directive still suppresses.
-- [ ] Vacuity control: the fixture yields a real finding without any directive.
-- [ ] This repo's own `// eess-exclude` directives audited for reason-free
-      instances.
-- [ ] `npm run validate` green.
+`packages/core/tests/exclusion-reason-and-nesting.test.ts` — written first, failed on
+exactly the three defective behaviours and passed both controls before any source changed.
+
+- [x] Red test first: a reason-free directive does **not** suppress. End-to-end through the
+      real `recommended` preset: **0 findings → 1**, and the control with a reason stays at 0.
+- [x] Red test: nested `-start`/`-end` close one-for-one, asserted on `result.exclusions`
+      rather than on the presence of a "Nested" warning — which is precisely how the
+      behaviour stayed invisible, since the existing fixture set up the case and never
+      inspected the result.
+- [x] Control: a documented directive still suppresses. `check:arch` green with this repo's
+      **20 live waivers** still applying.
+- [x] Vacuity control: the fixture yields a real finding with no directive at all.
+- [x] This repo's own directives audited: **25 files, 24 exclusions, 0 warnings** — every
+      one already states a reason, so enforcing the requirement broke nothing here.
+- [x] Kernel 177/177; `packages/ts` unchanged at 17 pre-existing failures.
+
+## Landed 2026-08-23 — three causes, not two
+
+The record named two halves. Building it found a third, and it is the reason nesting was
+"unsupported" rather than broken:
+
+1. **Reason-free suppression** — `handleSingleLine` and `handleBlockStart` warned and then
+   created the exclusion anyway. They now return.
+2. **`-end` closed every open block**, so an inner `-end` silently ended the outer one.
+   Blocks are now a **stack** and `-end` pops the innermost.
+3. **`handleBlockStart` refused nesting outright** — it warned "close existing block first"
+   and dropped the inner directive. That was not a consequence of the map keyed by rule id;
+   it was an explicit early return. Nesting is now supported, which is what the reproduction's
+   second row was actually asking for.
 
 Deferred: none.

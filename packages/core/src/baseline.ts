@@ -32,7 +32,7 @@ export interface BaselineEntry {
   /**
    * What {@link measured} counts — `code-lines`, `methods`, `complexity`.
    *
-   * Written since [bug 0171](../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md).
+   * Written since [bug 0171](../../../work/bugs/fixed/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md).
    * An accepted ceiling is a number IN A UNIT, and comparing across a change of
    * unit does not measure a regression — it moves the bar. Absent on entries
    * written before stamping, which {@link Baseline.isKnown} treats as "unknown

@@ -5,7 +5,7 @@ import type { DeclaredGlobs } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
-import { marksAssertsCardinality } from '@nielspeter/eess'
+import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 
 /**
  * Helper to create a per-element condition for ArchFunction.

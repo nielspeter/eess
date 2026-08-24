@@ -11,7 +11,7 @@ import type { GlobSite, Located, Predicate } from '../../src/index.js'
 import type { DiagnosableRule } from '../../src/core/diagnose.js'
 import { diagnose } from '../../src/core/diagnose.js'
 import { orphanExclusions } from '../../src/core/orphan-exclusions.js'
-import { resetCommentSuppression, commentSuppressions } from '@nielspeter/eess'
+import { resetCommentSuppression, commentSuppressions } from '@nielspeter/eess/internal'
 import { isDeadSite } from '../../src/core/glob-evaluator.js'
 import { edgesOf } from '../../src/core/module-edges.js'
 import { pathUniverse } from '../../src/core/path-universe.js'
@@ -806,7 +806,7 @@ describe('Hygiene', () => {
           'project',
           'workspace',
           // Precondition guard — caller must verify the initializer
-          'fromArrowVariableDeclaration',
+          'fromFunctionInitializerDeclaration',
           // GraphQL schema loader — requires graphql peer dep
           'requireGraphQL',
           'loadSchemaFromGlob',

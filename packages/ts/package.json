@@ -79,6 +79,7 @@
   "author": "Niels Peter",
   "scripts": {
     "prepublishOnly": "npm run build",
+    "prebuild": "rm -rf dist",
     "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/bin.js",
     "test": "vitest run",
     "test:watch": "vitest",

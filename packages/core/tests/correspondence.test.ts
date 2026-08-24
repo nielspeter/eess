@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import {
-  correspondence,
-  formatViolationsJson,
-  type Selection,
-  ArchRuleError,
-} from '../src/index.js'
+import { formatViolationsJson, type Selection, ArchRuleError } from '../src/index.js'
+import { correspondence } from '../src/index.js'
 
 interface Named {
   name: string

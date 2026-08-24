@@ -32,7 +32,7 @@ import {
   untestedRules,
   edgeCoverageNotice,
   resetEdgeCoverage,
-} from '@nielspeter/eess'
+} from '@nielspeter/eess/internal'
 import { formatViolationsJson } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 

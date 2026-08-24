@@ -66,7 +66,7 @@ import { havePropertyNamed, notHavePropertyNamed } from '../../src/conditions/me
 import { haveAttribute } from '../../src/conditions/jsx.js'
 import { modules } from '../../src/index.js'
 import { diagnose } from '../../src/core/diagnose.js'
-import { isGlobNode, isOpaqueGlob } from '@nielspeter/eess'
+import { isGlobNode, isOpaqueGlob } from '@nielspeter/eess/internal'
 import { globSitesOf } from '../../src/core/glob-evaluator.js'
 import type { DeclaredGlob, DeclaredGlobs, GlobKind } from '@nielspeter/eess'
 import type { Condition } from '@nielspeter/eess'

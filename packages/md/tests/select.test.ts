@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { correspondence, ArchRuleError, type Selection, type ArchViolation } from '@nielspeter/eess'
+import { ArchRuleError, type Selection, type ArchViolation } from '@nielspeter/eess'
+import { correspondence } from '@nielspeter/eess'
 import { corpus, docs, links, pointers } from '../src/index.js'
 
 const fixtureRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/corpus')

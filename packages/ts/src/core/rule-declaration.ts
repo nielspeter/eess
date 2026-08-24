@@ -5,7 +5,7 @@ import type {
   Predicate,
   RuleDescription,
 } from '@nielspeter/eess'
-import { countDeclaredGlobs, stampGlobs } from '@nielspeter/eess'
+import { countDeclaredGlobs, stampGlobs } from '@nielspeter/eess/internal'
 
 /**
  * Where a glob was written, for the message.

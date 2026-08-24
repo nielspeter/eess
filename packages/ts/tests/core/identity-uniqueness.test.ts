@@ -25,7 +25,7 @@ import { describe, it, expect } from 'vitest'
 import { Project, ts } from 'ts-morph'
 import type { ArchProject } from '../../src/core/project.js'
 import type { ArchViolation } from '@nielspeter/eess'
-import { disambiguateIdentities } from '@nielspeter/eess'
+import { disambiguateIdentities } from '@nielspeter/eess/internal'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { hashViolation } from '../../src/helpers/baseline.js'
 

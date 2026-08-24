@@ -58,7 +58,7 @@ side)'`.
   14/14 false-positive rate against this repo, and it crashed on
   mixed-dialect rule files (`doctor spec.rules.ts`). The parser gap is a live
   suppression hole in its own right and is now
-  [bug 0154](../bugs/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
+  [bug 0154](../bugs/fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md)
   (`High`); **Phase 4 is blocked on it.** Three lessons owed on resume:
   1. **Port from the source's test list, not its implementation.**
      ts-archunit pairs the unit test with a **dogfood** test (its own
@@ -148,7 +148,7 @@ throughout: read the live source before deciding port-verbatim vs.
 port-adapted vs. reject-as-superseded), and record the ruling here rather
 than assuming a port is the right shape.
 
-**Blocked on [bug 0154](../bugs/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md).**
+**Blocked on [bug 0154](../bugs/fixed/0154-a-directive-inside-a-string-literal-suppresses-a-real-violation.md).**
 See Status for the 2026-08-18 attempt and the three lessons it owes on
 resume — in particular, the dogfood test is not optional, and `npm run
 validate` alone cannot evidence this phase.

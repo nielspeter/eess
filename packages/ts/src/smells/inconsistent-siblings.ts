@@ -7,7 +7,7 @@ import {
 import type { SiblingScope } from './sibling-files.js'
 import type { RuleDescription } from '@nielspeter/eess'
 import type { SourceFile } from 'ts-morph'
-import { selectionMemo } from '@nielspeter/eess'
+import { selectionMemo } from '@nielspeter/eess/internal'
 import { SmellBuilder } from './smell-builder.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchViolation } from '@nielspeter/eess'

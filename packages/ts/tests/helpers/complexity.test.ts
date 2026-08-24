@@ -117,7 +117,7 @@ describe('linesOfCode', () => {
     expect(linesOfCode(fn)).toBeGreaterThan(5)
   })
 
-  // [Bug 0170](../../../../work/bugs/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md):
+  // [Bug 0170](../../../../work/bugs/fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md):
   // this returned `end - start + 1`, so a documented class failed
   // `maxClassLines` on the JSDoc that `eess/jsdoc-on-public-methods` requires of
   // it — one rule breaking another. Measured on this repo, six of nine class

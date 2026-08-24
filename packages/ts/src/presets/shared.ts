@@ -11,14 +11,14 @@ import type { ArchViolation, ReportMode, OutputFormat } from '@nielspeter/eess'
 export type PresetDelivery = ReportMode | 'builders'
 import { finishPreset, ArchRuleError } from '@nielspeter/eess'
 import { callerAggregates } from '../core/execute-rule.js'
-import { UNSUPPRESSABLE } from '@nielspeter/eess'
+import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import type { Predicate } from '@nielspeter/eess'
 import type { Located } from '../predicates/identity.js'
 import { resideInFile, resideInFolder } from '../predicates/identity.js'
 import { or } from '../core/combinators.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import type { RuleBuilderLike } from '@nielspeter/eess'
-import { writeStderr } from '@nielspeter/eess'
+import { writeStderr } from '@nielspeter/eess/internal'
 
 export type RuleSeverity = 'error' | 'warn' | 'off'
 
@@ -133,7 +133,7 @@ export function assertDiscovered(
  *
  * `TRuleId` is that preset's own rule ids as a literal union, so a misspelled
  * override key is a **compile error** rather than a silent no-op
- * ([bug 0157](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)).
+ * ([bug 0157](../../../../work/bugs/fixed/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md)).
  * Measured before this: `'…/no-silent-cach': 'error'` left the rule at `warn`
  * and the build green — the escalation the author asked for simply did not
  * happen, and the only trace was a line on stderr.
@@ -149,7 +149,7 @@ export function assertDiscovered(
  */
 /**
  * An unknown override key, as a failing configuration finding —
- * [bug 0157](../../../../work/bugs/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
+ * [bug 0157](../../../../work/bugs/fixed/0157-a-typo-in-a-preset-override-key-is-a-silent-false-green.md).
  *
  * `validateOverrides` writes a line to stderr and returns `void`. That is not a
  * signal: measured, `'…/no-silent-cach': 'error'` left the rule at `warn`, the
