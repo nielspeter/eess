@@ -18,6 +18,15 @@
  *     resolve to a symlink into `packages/`, not a real directory from the
  *     registry.
  *
+ *  3. Stale build output — `tsc -p` overwrites but never deletes, so a removed
+ *     source file leaves its `.js`/`.d.ts` in the gitignored `dist/` forever.
+ *     Every package must clean `dist` before it builds.
+ *
+ *  4. Source that stopped being text — one raw `0x00` byte makes grep, rg and
+ *     `git diff` treat a whole source file as binary and skip it SILENTLY, so a
+ *     survey reads "not found" where the answer is. Bug 0099 / bug 0144, the
+ *     same defect found twice because neither filing left a guard behind.
+ *
  * Exits non-zero on any violation. Zero dependencies — node builtins only.
  * Run: `npm run check:integrity`.
  */
@@ -219,6 +228,75 @@ for (const dir of pkgDirs) {
   }
 }
 
+// ---------- 4. source text stays text ----------
+
+// A single raw `0x00` byte anywhere in a source file makes every tool that
+// classifies by content treat the whole file as binary. `grep` and `rg` then
+// exclude it from a search SILENTLY — no warning, no error, no exit code — so a
+// sweep over the package returns "not found" for a symbol that is plainly
+// defined there. `git diff` degrades the same way: `Bin 5912 -> 5983 bytes`
+// instead of a reviewable patch.
+//
+// This is not hypothetical and it is not cheap. `packages/crossvalidate/src/
+// md-gherkin.ts` carried two of them for months, written as a composite-key
+// separator — the IDEA was sound (a `U+0000` cannot collide with a path or a
+// title); only the ENCODING was wrong, a raw byte where the two-character `\0`
+// escape produces an identical runtime string. Nothing could catch it: the file
+// is valid UTF-8, `tsc` and ts-morph read it fine, and its tests passed.
+//
+// What it cost: it was filed TWICE, two days apart, by two reviewers who each
+// re-derived it from scratch (bugs 0099 and 0144) — the second never knew the
+// first existed. Before that it produced a live false negative that went into a
+// filed bug report as evidence, because a grep sweep of the package silently
+// skipped the one file that held the answer. This repo's whole survey
+// discipline — the `review-proposal` skill's Step 2 ("grep `packages/*/src`,
+// always"), every reviewer persona's instructions — assumes grep sees every
+// source file. For that file, for months, it did not.
+//
+// Neither bug shipped a guard. 0144 closed with "Red test written first: n/a",
+// and 0099's guard box is the one this closes. So the class stayed open with
+// two records saying it was understood: exactly the state ADR-009 calls worse
+// than no check, because the record reads as coverage.
+//
+// Scope is `packages/*/src/**/*.ts` — the population the survey discipline
+// names and both incidents hit. It is deliberately NOT the whole repo: the
+// non-vacuity fixtures under `scripts/nonvacuity/` carry deliberately corrupt
+// payloads, and a guard that reds on its own test data teaches people to
+// disable it.
+
+const nulScanned = []
+for (const dir of pkgDirs) {
+  const files = []
+  walkTs(join(packagesDir, dir, 'src'), files)
+  for (const file of files) {
+    nulScanned.push(file)
+    // Read as a Buffer, not utf8: the point is the raw byte, and a decode step
+    // is one more place for the thing being measured to be normalised away.
+    const buf = readFileSync(file)
+    const first = buf.indexOf(0)
+    if (first === -1) continue
+    let count = 0
+    for (let i = first; i !== -1; i = buf.indexOf(0, i + 1)) count += 1
+    const line = buf.subarray(0, first).toString('utf8').split('\n').length
+    problems.push(
+      `source text: ${file.replace(ROOT + '/', '')} contains ${count} raw NUL ` +
+        `byte(s) (first at line ${line}), so grep/rg skip this file silently and ` +
+        `git diff renders it as binary — write the two-character escape "\\0" ` +
+        `instead of the raw byte; the runtime string is identical`,
+    )
+  }
+}
+
+// The gate's own denominator. Walking the wrong root, or a `walkTs` that stops
+// matching, would otherwise report OK over nothing — the fail-open shape this
+// whole check exists to refuse (ADR-010: a pass is constructed from evidence).
+if (nulScanned.length === 0) {
+  problems.push(
+    `source text: scanned 0 files under packages/*/src — the check examined ` +
+      `nothing, so its pass is not evidence of anything`,
+  )
+}
+
 // ---------- report ----------
 
 if (problems.length > 0) {
@@ -228,5 +306,7 @@ if (problems.length > 0) {
   process.exit(1)
 }
 console.error(
-  `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, all @nielspeter/eess* locally linked, every build cleans its dist/.`,
+  `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, ` +
+    `all @nielspeter/eess* locally linked, every build cleans its dist/, ` +
+    `${nulScanned.length} source files free of raw NUL bytes.`,
 )

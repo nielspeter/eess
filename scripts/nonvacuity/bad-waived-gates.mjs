@@ -17,6 +17,11 @@
  *   check:docs-code  — a public export documented nowhere
  *   check:examples   — an example that does not compile
  *
+ * It has since grown past those three, because `check:integrity` runs several
+ * checks behind one `GATE_FOR` row and each new one is invisible to
+ * `gateCoverage()` until a scenario here trips it: stale build output (4) and a
+ * source file carrying raw NUL bytes (6).
+ *
  * Exit codes (consumed by scripts/check-nonvacuity.mjs):
  *   1 = every scenario behaved as expected (the gate fails builds it must) — OK
  *   0 = a scenario did not — that gate is vacuous
@@ -69,7 +74,12 @@ function withSabotage(relPath, rewrite, fn) {
   }
 }
 
-/** Sabotage by ADDING a file, run `fn`, always remove it. */
+/**
+ * Sabotage by ADDING a file, run `fn`, always remove it.
+ *
+ * `contents` may be a string or a Buffer — scenario 6 plants raw bytes, which a
+ * string literal in this file could not express without making THIS file binary.
+ */
 function withAddedFile(relPath, contents, fn) {
   const path = join(REPO, relPath)
   try {
@@ -210,8 +220,39 @@ if (fence === 0) {
   vacuous(`check:docs-code exited ${fence} with a documentation fence that does not typecheck`)
 }
 
+// 6. check:integrity, third check — a source file that stopped being text.
+//
+// The same one-row-per-multi-check-script trap as scenario 4, one check later:
+// `check:integrity` now runs FOUR checks and `GATE_FOR` still maps the script to
+// a single row, so a new check inside it is invisible to `gateCoverage()` by
+// construction. That is not a hypothetical — it is how the NUL-byte class stayed
+// live for six weeks after being filed TWICE (bugs 0099 and 0144): both records
+// described it correctly and neither left anything that could fail.
+//
+// The probe writes a `Buffer`, so the file on disk gets a genuine `0x00` byte —
+// the thing under test is the byte, not a string that renders like one. This
+// fixture's OWN source uses the `\x00` escape to build it, which is the point:
+// the escape keeps THIS file text (the correct form) while the Buffer plants the
+// raw byte in the probe (the defect). Writing a raw byte here instead would make
+// the fixture itself unsearchable — and the guard it tests would then red on it.
+//
+// Asserting the file NAME appears keeps it honest against the gate's other three
+// checks, per scenario 4's lesson.
+const NUL_PROBE = 'packages/core/src/__nonvacuity_nul_probe__.ts'
+const nul = withAddedFile(
+  NUL_PROBE,
+  Buffer.from('export const sep = `a\x00b`\n', 'utf8'),
+  () => runCapture('check:integrity'),
+)
+if (!nul.out.includes('__nonvacuity_nul_probe__') || nul.status === 0) {
+  vacuous(
+    `check:integrity exited ${nul.status} and ${nul.out.includes('__nonvacuity_nul_probe__') ? 'named' : 'never named'} ` +
+      `the raw-NUL probe — it must both SEE a source file that grep skips and FAIL on it`,
+  )
+}
+
 console.error(
-  `${NAME}: OK — integrity (phantom dep + stale output), surface, docs-code and examples ` +
-    `each red on their own subject`,
+  `${NAME}: OK — integrity (phantom dep + stale output + raw NUL), surface, docs-code and ` +
+    `examples each red on their own subject`,
 )
 process.exit(1)
