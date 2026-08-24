@@ -53,11 +53,20 @@ Each `MdDocument` carries `relPath`, `file`, `frozen`, `text`, `sections`, `tabl
 not a new rule.
 
 `corpus()`'s argument is `CorpusOptions`: `roots` (required), `frozen` (as
-above), and two more worth knowing about — `ignore` (directories/globs never
-walked at all, merged with a built-in set: `node_modules`, `.git`, `dist`,
-`coverage`, `.output`, `.nuxt`, `.vercel`) and `cwd` (the repo root
+above), and two more worth knowing about — `ignore` and `cwd` (the repo root
 `roots`/`frozen`/`ignore` resolve against — the same thing `c.root` reports
 back, and defaults to `process.cwd()` as the second bullet below explains).
+
+`ignore` is narrower than it sounds, in three ways worth knowing before you rely
+on it. It is a **glob over repo-relative file paths**, so a bare directory name
+(`ignore: ['drafts']`) matches nothing and reports nothing — write
+`'**/drafts/**'`. It is applied **after** the filesystem walk and only decides
+which `.md` files become documents, so ignored files still appear in `fileIndex`:
+links and `path:line` pointers still resolve into that folder, and
+`vocabulary({ fromFolders })` still derives terms from it. And it is **not**
+merged with the built-in walk exclusions (`node_modules`, `.git`, `dist`,
+`coverage`, `.output`, `.nuxt`, `.vercel`, and the rest of `BUILTIN_IGNORE`) —
+those two are separate mechanisms that never see each other.
 
 `sections`, `tables`, and `codeBlocks` are themselves typed: `MdSection`
 (`name`, `depth`, `line`), `MdTable` (`header`, `rows`, `rowLines` — one real
@@ -147,6 +156,44 @@ ledger reconciliation is built from (see "Ledger reconciliation" below), and
 is exported for a caller who wants task items without going through the
 corpus builder chain.
 
+### Writing a condition for task items
+
+`TaskItemRuleBuilder` ships the two predicates above and **no conditions** — so
+`taskItems(c).that().areOpen().should().check()` type-checks and then fails closed
+at runtime, correctly: _"selects subjects but asserts nothing about them, so it
+cannot fail and certifies nothing."_ The assertion is yours to write.
+
+`Condition`, `Predicate`, `ConditionContext` and `ArchViolation` are re-exported
+from `@nielspeter/eess-md`, so a plain object literal is enough and no second
+install is needed. (`defineCondition`/`definePredicate` are kernel helpers and are
+**not** on eess-md's barrel — reach for the literal, not the helper.)
+
+```typescript
+import { corpus, taskItems } from '@nielspeter/eess-md'
+import type { Condition, MdTaskItem } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['work/**'] })
+
+const carriesAnOwner: Condition<MdTaskItem> = {
+  description: 'names who owns it',
+  evaluate: (items) =>
+    items
+      .filter((item) => !/@[a-z0-9-]+/i.test(item.text))
+      .map((item) => ({
+        rule: 'ledger/unowned-open-box',
+        element: item.text,
+        file: item.doc.file,
+        line: item.line,
+        message: `open box has no owner: "${item.text}"`,
+      })),
+}
+
+taskItems(c).that().areOpen().should().satisfy(carriesAnOwner).check()
+```
+
+`evaluate` receives the filtered items and returns one `ArchViolation` per
+failure — an empty array means every item passed.
+
 ## Binding a table to code
 
 A markdown table is a spec — a package list, an ADR index. `rows()` turns its body rows into first-class elements, and `.select()` (inherited from the kernel on every eess builder) makes any selection one side of a [`correspondence()`](/crossvalidate). Bind the table to what it describes, and drift either way fails the build:
@@ -220,8 +267,11 @@ set of names — a bounded-context list, a package list, a set of canonical
 folder names — and fail when the prose drifts from it.
 
 `vocabulary(corpus, options)` derives the term set. `VocabularyOptions` has
-three sources, unioned: `fromFolders` (a glob over directory paths; each
-matched directory's basename becomes a term), `fromHeadings` (`{ files, depth?
+three sources, unioned: `fromFolders` (a glob over directory paths; each matched
+directory **that contains at least one file** contributes its basename as a term —
+terms are derived by splitting file paths out of `fileIndex`, so a freshly-created
+empty folder contributes nothing and the resulting violation will blame your prose
+rather than the empty folder), `fromHeadings` (`{ files, depth?
 }` — every heading at that depth in the matched files becomes a term), and
 explicit `terms`. `normalize` (default: trim) is applied to both the derived
 terms and the references checked against them. It returns a `Vocabulary`:
@@ -267,11 +317,40 @@ without resolving citations). It extends the kernel's `PresetBaseOptions`, so
 `@nielspeter/eess-md/rules/ledger` ships a second opt-in preset,
 `honestyAtClose` — the working-method's "an item closes with nothing silently
 lost" gate. It reads GFM task boxes (via `collectTaskItems`, above) and a
-document's `State:` header line, and reports three things: a done item with an
+document's `State:` header line, and reports four things: a done item with an
 open box carrying no disposition token (`ledger/silent-open-box`), a
 `Deferred: none` summary that contradicts a box disposed as
-`deferred→<home>` (`ledger/deferred-none-lie`), and a `State:` value that
-doesn't match its folder (`ledger/state-folder-mismatch`).
+`deferred→<home>` (`ledger/deferred-none-lie`), a `State:` value that
+doesn't match its folder (`ledger/state-folder-mismatch`), and a `State:` value
+outside the declared vocabulary (`ledger/unknown-state`).
+
+That last one is the finding a new adopter meets first, and it is a **violation,
+not an ignore**: the default vocabulary is `Draft | Ready | Open | Done |
+Won't-do`, so a corpus using `In Review` or `Shipped` reds until you pass your own
+`states`/`terminalStates`. An unreadable state is reported rather than skipped on
+purpose — a record whose status nobody can parse is indistinguishable from one
+that has none, which is what bug 0120 is about.
+
+`findState(text, vocabulary)` is the same scan the preset uses to read a
+document's status, exported so a caller can ask the question without a second
+opinion. It returns `{ state?, raw, line }` or `null`, and the three things it
+gets right are the three a hand-rolled regex gets wrong: it strips fenced code
+first (so an example `**State:** Draft` inside a fence is not the document's
+state), it accepts every label form the corpus uses (`**State:**`, `**State**:`,
+`__State__:`, bare `State:`, with or without a bullet), and it canonicalises
+apostrophe glyphs so a smart-quoted `Won’t-do` is the same token as `Won't-do`.
+`state` is absent when the value is outside `vocabulary` — `raw` still carries
+what was written, which is what `ledger/unknown-state` reports.
+
+If you are writing your own ledger check, call this rather than re-deriving it.
+This repo learned that twice: once when `check-ledger.mjs` re-derived the scan and
+printed a wrong denominator, and again when a new check hand-rolled the same
+regexes and got all four of the above wrong.
+
+Like every preset, `honestyAtClose` throws by default: `HonestyAtCloseOptions`
+extends `PresetReportOptions`, so `report: 'return'` hands you the
+`ArchViolation[]` instead and `report: 'warn'` prints without failing (ADR-008 —
+the caller owns emission). The same is true of `adrEnforcement`.
 
 ```
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'

@@ -139,12 +139,15 @@ const laneDoneVacuousViolations = findLaneDoneVacuity(
 // direction is where completed work sat: 0170 and 0171 were both fully ticked,
 // zero open, "ready to close", and open since 2026-08-19 with this gate green
 // over them the whole time.
-const finishedNotClosedViolations = findFinishedNotClosed(
+const finishedNotClosed = findFinishedNotClosed(
   scans.map((s) => ({
-    dir: s.lane.roots[0].replace(/\/\*\*$/, ''),
+    roots: s.lane.roots,
+    doneFolders: s.lane.doneFolders,
+    states: s.lane.states,
     terminalStates: s.lane.terminalStates,
   })),
 )
+const finishedNotClosedViolations = finishedNotClosed.violations
 
 const violations = [
   ...scans.flatMap((s) => s.violations),
@@ -211,7 +214,8 @@ if (violations.length === 0) {
   console.error(
     `  ✓ honesty at close — ${doneCount} done-items across ${scanned} records ` +
       `(${scans.map((sc) => `${sc.stats.scanned} ${sc.lane.name}`).join(' + ')}), ` +
-      `${readable} with a readable State, 0 findings (${elapsed()})`,
+      `${readable} with a readable State, ${finishedNotClosed.examined} of them still open ` +
+      `(checked for finished-but-open), 0 findings (${elapsed()})`,
   )
 } else {
   console.error(
