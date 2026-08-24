@@ -2,7 +2,10 @@
 
 ## Status
 
-- **State:** Draft — fix built and measured; ready to close with this PR.
+- **State:** Fixed — closed 2026-08-24. The fix shipped on 2026-08-19; the record did not. the baseline records and compares what a number COUNTS — `measuredUnit`, `MEANING_NEVER_CHANGED` and `staleMeasurementFinding` are in `packages/core/src/violation.ts` and `baseline.ts`, and the six verification boxes are ticked against named tests.
+
+  Found by `ledger/finished-not-closed`, a check written the same day precisely because `honestyAtClose` proves a DONE item hides no open box and nothing proved the reverse — so a finished record could sit open indefinitely with `check:ledger` green over it. This is the first thing that check caught.
+
 - **Found:** 2026-08-19, in review of the `linesOfCode` change
   ([bug 0170](./0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)).
 

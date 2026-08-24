@@ -1,5 +1,5 @@
 /**
- * The PRODUCER census for [bug 0171](../../../../work/bugs/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md).
+ * The PRODUCER census for [bug 0171](../../../../work/bugs/fixed/0171-a-metric-unit-change-silently-loosens-every-baselined-ratchet.md).
  *
  * The baseline refuses to compare measurements whose units disagree, but that
  * mechanism is inert unless the rules actually stamp a unit. `metrics.test.ts`

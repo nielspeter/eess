@@ -1223,6 +1223,14 @@ const gates = [
     'corpus/ledger/uncovered-lane',
     () => gateNode('bad-lane-coverage.mjs', 'ledger/uncovered-lane'),
   ],
+  // The reverse of honesty-at-close: an OPEN record that is secretly finished.
+  // Its two controls (work-in-progress, and a correctly closed record) are the
+  // load-bearing part — see the fixture's header for why the conjunction is what
+  // gets asserted rather than "every box ticked".
+  [
+    'corpus/ledger/finished-not-closed',
+    () => gateNode('bad-finished-not-closed.mjs', 'ledger/finished-not-closed'),
+  ],
   // Bug 0131 round 3: a corruption scoped to ONE lane (not the whole corpus)
   // must still fail loudly — the first version of this check summed
   // done-items across every lane before comparing to zero, so a single-lane
@@ -1410,6 +1418,7 @@ const GATE_FOR = {
     'corpus/ledger/dead-selector',
     'corpus/ledger/uncovered-lane',
     'corpus/ledger/lane-done-vacuous',
+    'corpus/ledger/finished-not-closed',
   ],
   'check:release': [
     'release/needs-changeset',

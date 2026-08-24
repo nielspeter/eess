@@ -18,6 +18,7 @@ import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 import { reportViolations } from '@nielspeter/eess'
 import { findUncoveredLanes, findLaneDoneVacuity } from './lib/lane-coverage.mjs'
+import { findFinishedNotClosed } from './lib/finished-not-closed.mjs'
 
 // Two closing lanes, two vocabularies. A plan closes on `Done`/`Won't-do`; a bug
 // closes on `Fixed`/`Rejected` (work/bugs/BUGS.md). They are scanned separately
@@ -133,10 +134,23 @@ const laneDoneVacuousViolations = findLaneDoneVacuity(
   })),
 )
 
+// The reverse of honesty-at-close. `honestyAtClose` proves a DONE item hides no
+// open box; this proves an OPEN item is not secretly finished. The missing
+// direction is where completed work sat: 0170 and 0171 were both fully ticked,
+// zero open, "ready to close", and open since 2026-08-19 with this gate green
+// over them the whole time.
+const finishedNotClosedViolations = findFinishedNotClosed(
+  scans.map((s) => ({
+    dir: s.lane.roots[0].replace(/\/\*\*$/, ''),
+    terminalStates: s.lane.terminalStates,
+  })),
+)
+
 const violations = [
   ...scans.flatMap((s) => s.violations),
   ...uncoveredLaneViolations,
   ...laneDoneVacuousViolations,
+  ...finishedNotClosedViolations,
 ]
 const scanned = scans.reduce((n, s) => n + s.stats.scanned, 0)
 const doneCount = scans.reduce((n, s) => n + s.stats.doneItems, 0)

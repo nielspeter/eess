@@ -2,7 +2,10 @@
 
 ## Status
 
-- **State:** Draft — fix built and measured; ready to close with this PR.
+- **State:** Fixed — closed 2026-08-24. The fix shipped on 2026-08-19; the record did not. the `linesOfCode` metric counts code, not span — `unit: 'code-lines'` is declared by the line rules (`packages/ts/src/rules/metrics.ts`, `metrics-function.ts`) and the ten verification boxes are ticked against named tests.
+
+  Found by `ledger/finished-not-closed`, a check written the same day precisely because `honestyAtClose` proves a DONE item hides no open box and nothing proved the reverse — so a finished record could sit open indefinitely with `check:ledger` green over it. This is the first thing that check caught.
+
 - **Found:** 2026-08-19, auditing the size-rule carve-outs in `arch.internal.rules.ts`.
 
 ## Symptom
@@ -49,8 +52,8 @@ for a class/method/function"_. Their assertions are `toBeGreaterThan(10)`,
 `toBeGreaterThanOrEqual(3)` and `toBeGreaterThan(5)` — every one of which a
 code-line implementation also satisfies. The titles claim a contract the
 assertions cannot distinguish, so two earlier bugs
-([0166](./fixed/0166-three-engine-methods-exceed-the-size-and-complexity-rules.md),
-[0167](./0167-method-size-rules-can-only-be-excluded-by-class.md)) cited "the
+([0166](./0166-three-engine-methods-exceed-the-size-and-complexity-rules.md),
+[0167](../0167-method-size-rules-can-only-be-excluded-by-class.md)) cited "the
 tests pin this deliberately" for a behaviour nothing was holding in place.
 
 ## Fix
@@ -121,7 +124,7 @@ physical-source-lines metric, not a statement count.
 
 The two classes that remain — `CorrespondenceBuilder` (329 code / 628 span) and
 `TerminalBuilder` (372 / 1218) — are genuinely over on code and are owed a split
-by [bug 0164](./0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md).
+by [bug 0164](../0164-rulebuilder-carries-the-assertion-gate-and-exceeds-its-own-size-rules.md).
 The kernel's own `terminal-builder.ts` (215) and `rule-builder.ts` (139) pass and
 are no longer excluded.
 
@@ -213,5 +216,5 @@ irrelevant, because splitting the class needs none of them.
 ## Out of scope
 
 That a method-size carve-out can only be expressed per class — that is
-[bug 0167](./0167-method-size-rules-can-only-be-excluded-by-class.md), and it
+[bug 0167](../0167-method-size-rules-can-only-be-excluded-by-class.md), and it
 stays true afterwards for the elements that genuinely remain over.

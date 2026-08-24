@@ -76,7 +76,7 @@ Not decided. Three candidates, in rough order of preference:
 
 ## Update, 2026-08-19 — no longer live, and one premise was wrong
 
-[Bug 0170](./0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)
+[Bug 0170](./fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)
 fixed `linesOfCode` to count code rather than span. All four methods this bug was
 written about were under the threshold on code, so `maxMethodLines` now carries
 **no exclusions at all** and no class is unwatched on its account.

@@ -5,7 +5,7 @@
 - **State:** Fixed — fix built, measured and merged with this PR.
 - **Deferred:** [0176](../0176-no-census-requires-a-cache-to-be-resettable.md)
 - **Found:** 2026-08-20, review of the `linesOfCode` performance work
-  ([bug 0170](../0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)).
+  ([bug 0170](./0170-linesofcode-counts-comments-so-documentation-reads-as-size.md)).
   Found independently by four reviewers.
 
 ## Symptom

@@ -5,7 +5,7 @@
 - **State:** Draft — **eess is not currently affected**; see Blast radius. Filed
   so the trap is recorded before anyone adds glob-based loading.
 - **Found:** 2026-08-20, while measuring the size-threshold distribution for
-  [bug 0170](./0170-linesofcode-counts-comments-so-documentation-reads-as-size.md).
+  [bug 0170](./fixed/0170-linesofcode-counts-comments-so-documentation-reads-as-size.md).
 
 ## Symptom
 
