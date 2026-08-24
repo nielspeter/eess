@@ -41,6 +41,41 @@
  * Deliberately narrow, because the false positive costs more than the miss: a
  * record with NO boxes claims nothing and is skipped, a record with any open box
  * is in progress, and only "has a ledger, every box ticked, still open" fires.
+ *
+ * ## Why this lives here, and what would move it
+ *
+ * `scripts/lib/` is step 1 of [ADR-006]'s graduation path — *"write rules in the
+ * consuming project"* — and this repo is that project. `lane-coverage.mjs` next
+ * door is the same shape. Step 2 is *"if a rule is general enough → extract to
+ * the framework package"*, which here means a fifth finding inside
+ * `honestyAtClose` (`packages/md/src/rules/ledger.ts`). That costs no new export:
+ * every input it needs — `terminalStates`, `doneFolders`, `states` — is already
+ * on `HonestyAtCloseOptions`, and a rule id is not an exported symbol. The
+ * portable kit ships `honestyAtClose`, so a working-method property enforced only
+ * here is a property the kit does not ship. The argument for promotion is good.
+ *
+ * **It is not promoted yet, on purpose, and step 3 is the reason:** *"never add a
+ * rule to a framework package without real-world validation."* As of 2026-08-24
+ * this rule is hours old, its first implementation was wrong in four ways that
+ * review had to find, and its evidence is two records in one repo on one day —
+ * both of which were already known before it existed. Promoting it into a preset
+ * adopters already run, where it would newly red their builds, is exactly what
+ * step 3 forbids. Citing ADR-006 to justify skipping ADR-006 is the shape to
+ * avoid.
+ *
+ * **Promote when either is true**, and not before:
+ *
+ *   1. it catches a finished-but-open record nobody had already noticed — i.e. it
+ *      finds something it was not written for; or
+ *   2. it survives a release cycle in this repo with no false positive.
+ *
+ * Neither needs tracking overhead. Whoever meets one of them should move it, and
+ * should also reconsider whether it belongs as a finding inside `honestyAtClose`
+ * or as its own preset — a new finding from an existing preset changes behaviour
+ * silently for everyone who runs it, which is a changeset-worthy decision either
+ * way.
+ *
+ * [ADR-006]: ../../adr/006-framework-rules-architecture.md
  */
 import { corpus } from '@nielspeter/eess-md'
 import { collectTaskItems } from '@nielspeter/eess-md'
