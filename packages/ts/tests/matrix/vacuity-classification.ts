@@ -202,7 +202,7 @@ export const NO_CORPUS: readonly string[] = [
   './graphql:schemaFromSDL', // the SDL string is the input
 ]
 
-// 53 names were removed from this file on 2026-08-24: the ADR-011 branch stopped
+// 61 rows were removed from this file on 2026-08-24: the ADR-011 branch stopped
 // eess-ts's barrel re-exporting 37 internal helpers, and their classification rows
 // outlived the exports. The matrix asserts BOTH directions — an unclassified export
 // and a classified name nobody publishes — and the reverse direction is what caught

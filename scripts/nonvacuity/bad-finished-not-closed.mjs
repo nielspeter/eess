@@ -20,6 +20,8 @@
  *   0 = did not fire, or fired on a control (vacuous / over-broad) — fail
  *   2 = unexpected error — fail
  */
+import { spawnSync } from 'node:child_process'
+import { writeFileSync, rmSync } from 'node:fs'
 import {
   findFinishedNotClosed,
   FINISHED_NOT_CLOSED_RULE,
@@ -42,8 +44,16 @@ try {
   }
 
   const hitTarget = named.some((f) => f.includes('0001-finished-but-open'))
+  // Four controls, and the last two exist because review's sabotage matrix walked
+  // through the first version: dropping the no-boxes guard, and dropping the
+  // unreadable-state skip, both left the fixture green. A control set that only
+  // covers the shapes you thought of proves only that you thought of them.
   const hitControls = named.filter(
-    (f) => f.includes('0002-still-open') || f.includes('0003-properly-closed'),
+    (f) =>
+      f.includes('0002-still-open') ||
+      f.includes('0003-properly-closed') ||
+      f.includes('0004-no-ledger-at-all') ||
+      f.includes('0005-unreadable-state'),
   )
   const wrongRule = found.filter((v) => v.rule !== FINISHED_NOT_CLOSED_RULE)
 
@@ -81,6 +91,47 @@ try {
       `bad-finished-not-closed: a lane that loaded nothing did not report ` +
         `${FINISHED_NOT_CLOSED_VACUOUS_RULE} (examined=${emptyLane.examined}) — the silent ` +
         `zero is unguarded`,
+    )
+    process.exit(0)
+  }
+
+  // END-TO-END WIRING. Everything above proves the FUNCTION discriminates; none of
+  // it proves `check-ledger.mjs` calls it against `work/`. Review demonstrated the
+  // gap: delete the `...finishedNotClosedViolations` spread from the violations
+  // array and every gate stayed green, this fixture included. So plant a real
+  // finished-but-open record in the live lane and require the real gate to red on
+  // it.
+  const PLANT = 'work/bugs/9999-nonvacuity-finished-but-open.md'
+  writeFileSync(
+    PLANT,
+    [
+      '# Bug 9999: planted by the non-vacuity harness',
+      '',
+      '## Status',
+      '',
+      '- **State:** Draft — planted; removed by the fixture that wrote it.',
+      '',
+      '## Verification',
+      '',
+      '- [x] every box ticked',
+      '- [x] none open',
+      '',
+    ].join('\n'),
+  )
+  let wired
+  try {
+    const run = spawnSync('npm', ['run', '--silent', 'check:ledger'], {
+      encoding: 'utf8',
+      env: { ...process.env, CI: undefined, GITHUB_ACTIONS: undefined },
+    })
+    wired = `${run.stdout ?? ''}${run.stderr ?? ''}`
+  } finally {
+    rmSync(PLANT, { force: true })
+  }
+  if (!wired.includes(FINISHED_NOT_CLOSED_RULE) || !wired.includes('9999')) {
+    console.error(
+      `bad-finished-not-closed: check:ledger did not report ${FINISHED_NOT_CLOSED_RULE} for a ` +
+        `planted finished-but-open record — the rule is not wired to the live corpus`,
     )
     process.exit(0)
   }

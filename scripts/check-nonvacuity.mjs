@@ -1475,8 +1475,19 @@ function gateCoverage() {
     .map((s) => s.trim().replace(/^npm run /, ''))
     .filter(Boolean)
   if (validateSteps.length === 0) problems.push('validate chain is empty or unreadable')
+  // Token comparison, not substring. `validate.includes('npm run test')` is true
+  // the moment `npm run test:matrix` is in the chain — so this loop, and the
+  // reverse sweep below, both reported "covered" for the largest step in the
+  // chain whether or not it was there. Measured after `test:matrix` was added:
+  // deleting `npm run test &&` from `validate` produced NO finding in either
+  // direction. A membership test that cannot distinguish `test` from
+  // `test:matrix` is not a membership test.
+  const ciSteps = new Set(
+    [...ci.matchAll(/npm run ([a-z][\w:-]*)/g)].map((m) => m[1]).filter(Boolean),
+  )
   for (const step of validateSteps) {
-    if (!ci.includes(`npm run ${step}`)) {
+    const stepName = step.split(/\s+/)[0]
+    if (stepName !== undefined && !ciSteps.has(stepName)) {
       problems.push(`validate runs "${step}" but .github/workflows/ci.yml does not`)
     }
   }
@@ -1492,14 +1503,30 @@ function gateCoverage() {
 
   // The reverse sweep: any `npm run <script>` a CI step invokes must also have a
   // local claimant, or a full local green is silent about it.
-  const CI_ONLY_BY_DESIGN = new Set([
-    'build', // every gate below it depends on it; validate runs it first
-  ])
+  // Deliberately EMPTY. The first version listed `build` "by design", which
+  // exempted nothing — `validate` begins with `npm run build`, so the membership
+  // test already passed. ADR-009 rule 5 asks what would fail if a carve-out were
+  // emptied; the answer was nothing, which means it was decoration reading as a
+  // decision. If a CI-only step ever genuinely belongs here, add it WITH the
+  // reason it cannot run locally.
+  const CI_ONLY_BY_DESIGN = new Set([])
   for (const m of ci.matchAll(/npm run ([a-z][\w:-]*)/g)) {
     const step = m[1]
     if (step === undefined || CI_ONLY_BY_DESIGN.has(step)) continue
-    const inValidate = String(pkg.scripts?.validate ?? '').includes(`npm run ${step}`)
-    if (!inValidate && !step.startsWith('test:matrix')) {
+    const validateStepNames = new Set(
+      String(pkg.scripts?.validate ?? '')
+        .split('&&')
+        .map(
+          (x) =>
+            x
+              .trim()
+              .replace(/^npm run /, '')
+              .split(/\s+/)[0],
+        )
+        .filter(Boolean),
+    )
+    const inValidate = validateStepNames.has(step)
+    if (!inValidate) {
       problems.push(`.github/workflows/ci.yml runs "${step}" but \`validate\` does not`)
     }
   }

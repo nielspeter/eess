@@ -150,8 +150,11 @@ summary line rather than silently skipping unreachable pointers.
 `.areOpen()` and `.areChecked()` filter on the box state. The underlying
 extraction, `collectTaskItems(root)`, returns the doc-less `MdTaskItemRef`
 (`checked`, `text`, `line`) that `MdTaskItem` adds `doc` to — a task item
-inside fenced code or a blockquote is excluded for free, since mdast never
-represents either as a live `listItem`. It's the primitive `honestyAtClose`'s
+inside fenced code or a blockquote is excluded for free — but by two different
+mechanisms, worth knowing if you ever debug a box that vanished. Fenced code is
+never a `listItem` in mdast at all, so it costs nothing. A blockquote **does**
+produce a `listItem`, and `collectTaskItems` skips it deliberately with an
+`inBlockquote` flag — a guard that exists, not an absence. It's the primitive `honestyAtClose`'s
 ledger reconciliation is built from (see "Ledger reconciliation" below), and
 is exported for a caller who wants task items without going through the
 corpus builder chain.
@@ -267,7 +270,7 @@ set of names — a bounded-context list, a package list, a set of canonical
 folder names — and fail when the prose drifts from it.
 
 `vocabulary(corpus, options)` derives the term set. `VocabularyOptions` has
-three sources, unioned: `fromFolders` (a glob over directory paths; each matched
+three sources, unioned: `fromFolders` (ONE glob string, not an array; each matched
 directory **that contains at least one file** contributes its basename as a term —
 terms are derived by splitting file paths out of `fileIndex`, so a freshly-created
 empty folder contributes nothing and the resulting violation will blame your prose
@@ -287,15 +290,25 @@ text after the label, before cleanup — `doc`, `line`). `.resideInFile(glob)`
 scopes to a file pattern; `.resolveAgainst(vocab)` is the condition — every
 reference's `value` must be a term of the given `Vocabulary`.
 
-```
-// e.g. a line reading "Bounded Context: Billing" — the vocabulary must
-// contain 'Billing', however it was derived.
-const vocab = vocabulary(c, { fromFolders: 'src/contexts/*' })
+```typescript
+import { corpus, vocabulary, terms } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['docs/**'] })
+
+// `fromFolders` is ONE glob (a string, not an array). Each matched directory
+// that contains at least one file contributes its basename as a term.
+const contexts = vocabulary(c, { fromFolders: 'src/contexts/*' })
+
+// `label` locates the reference; `value` (optional) extracts it from the rest
+// of the line. The default strips markdown emphasis, trims, AND truncates at
+// the first ` · `, ` — `, ` – ` or ` | ` — so "**Billing** — the money one"
+// yields `Billing`, not the whole tail. Fenced code is blanked before scanning,
+// so an example in a fence never becomes a reference.
 terms(c, { label: /Bounded Context:/ })
   .that()
   .resideInFile('docs/**')
   .should()
-  .resolveAgainst(vocab)
+  .resolveAgainst(contexts)
   .check()
 ```
 
@@ -352,10 +365,22 @@ extends `PresetReportOptions`, so `report: 'return'` hands you the
 `ArchViolation[]` instead and `report: 'warn'` prints without failing (ADR-008 —
 the caller owns emission). The same is true of `adrEnforcement`.
 
-```
-import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
+```typescript
+import { corpus } from '@nielspeter/eess-md'
+import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 
-honestyAtClose(c, { doneFolders: ['/completed/', '/fixed/'] })
+const c = corpus({ roots: ['work/**'] })
+const opts = {
+  doneFolders: ['completed', 'fixed'],
+  terminalStates: ['Done', "Won't-do"],
+}
+
+// Throws on the first finding — pass `report: 'return'` to get the array instead.
+honestyAtClose(c, opts)
+
+// Print what it examined; a zero here is the failure to watch, not a pass.
+const stats = ledgerStats(c, opts)
+console.error(`${stats.doneItems} done-items across ${stats.scanned} records`)
 ```
 
 `HonestyAtCloseOptions` configures the vocabulary this reads: `doneFolders`
