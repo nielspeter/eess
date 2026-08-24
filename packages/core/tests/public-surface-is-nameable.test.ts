@@ -30,34 +30,73 @@ describe('the kernel root is nameable from the kernel root (ADR-011 clause 1)', 
     .getSourceFileOrThrow(path.join(repoRoot, 'packages/core/src/internal.ts'))
     .getExportedDeclarations()
 
+  /** Every type name this package declares anywhere in its own src. */
+  const declaredHere = new Set<string>()
+  for (const sf of project.getSourceFiles()) {
+    if (!sf.getFilePath().includes('/packages/core/src/')) continue
+    for (const d of [
+      ...sf.getInterfaces(),
+      ...sf.getTypeAliases(),
+      ...sf.getClasses(),
+      ...sf.getEnums(),
+    ]) {
+      const n = d.getName()
+      if (n) declaredHere.add(n)
+    }
+  }
+
   /** Type names a root export mentions in its own surface — never in a body. */
   function surfaceTypeNames(decls: ReturnType<typeof rootExports.get>): string[] {
     const out: string[] = []
     for (const decl of decls ?? []) {
       for (const ref of decl.getDescendantsOfKind(SyntaxKind.TypeReference)) {
+        // Skip a function BODY (implementation, not surface) and skip anything
+        // under a `private`/`protected` member — tsc emits those into the .d.ts,
+        // but a caller cannot reach them, so they are not a nameability problem.
         let parent: Node | undefined = ref.getParent()
-        let insideBody = false
+        let hidden = false
         while (parent !== undefined) {
           if (Node.isBlock(parent)) {
-            insideBody = true
+            hidden = true
             break
+          }
+          if (Node.isModifierable(parent)) {
+            const mods = parent
+              .getModifiers()
+              .map((m) => m.getText())
+              .join(' ')
+            if (/\b(?:private|protected)\b/.test(mods)) {
+              hidden = true
+              break
+            }
           }
           parent = parent.getParent()
         }
-        if (!insideBody) out.push(ref.getTypeName().getText().split('.')[0] ?? '')
+        if (!hidden) out.push(ref.getTypeName().getText().split('.')[0] ?? '')
       }
     }
     return out
   }
 
-  it('no root export names a type that only @nielspeter/eess/internal provides', () => {
-    const internalOnly = new Set(
-      [...internalExports.keys()].filter((name) => !rootExports.has(name)),
-    )
+  // The predicate is "not reachable from the ROOT", not "provided by /internal".
+  // The first version asked the narrower question and therefore could not see the
+  // strictly worse case: a type exported from NEITHER entry point. `dispatchRule`
+  // is documented consumer API and its parameter type `Dispatchable` was exactly
+  // that — callable, unnameable, and invisible to a test written for the defect
+  // it is an instance of. Found in review of that test.
+  it('no root export names a type a consumer cannot get from the root', () => {
+    const nameable = new Set(rootExports.keys())
+    // Structural/utility names that are not nominal types a consumer imports.
+    const BUILTIN =
+      /^(?:Array|Readonly|Record|Partial|Promise|Map|Set|WeakSet|WeakMap|Iterable|Omit|Pick|Exclude|Extract|NonNullable|ReturnType|Parameters|RegExp|Error|Date|Function|Object|String|Number|Boolean|Symbol|BigInt|unknown|any|never|void|this|T|L|R|P|V|K|E|U)$/
     const leaks: string[] = []
     for (const [name, decls] of rootExports) {
       for (const referenced of surfaceTypeNames(decls)) {
-        if (internalOnly.has(referenced)) leaks.push(`${name} names ${referenced}`)
+        if (!referenced || BUILTIN.test(referenced)) continue
+        // Only names this package DECLARES — a ts-morph or lib.d.ts type is not
+        // ours to re-export.
+        if (!declaredHere.has(referenced)) continue
+        if (!nameable.has(referenced)) leaks.push(`${name} names ${referenced}`)
       }
     }
     expect([...new Set(leaks)]).toEqual([])

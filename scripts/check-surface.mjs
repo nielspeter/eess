@@ -44,6 +44,11 @@ if (dialects.length > 0) {
   )
   for (const [pkg, names] of [...byPkg].sort()) {
     console.error(`      @nielspeter/eess-${pkg}  (${names.length})`)
+    // Names, not just a count. The comment above says "a number nobody can see is
+    // a number nobody pays down" and then printed only counts, which is the same
+    // failure one level down: a census you cannot act on is a census nobody acts
+    // on. Review caught the contradiction between the comment and the code.
+    console.error(`        ${[...names].sort().join(', ')}`)
   }
 }
 

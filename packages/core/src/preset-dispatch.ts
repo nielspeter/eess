@@ -22,7 +22,7 @@ export interface PresetBaseOptions extends PresetReportOptions {
  * Anything with `.rule()` and `.violations()` — works with both
  * `RuleBuilder<T, P>` and `TerminalBuilder` hierarchies, across all dialects.
  */
-interface Dispatchable {
+export interface Dispatchable {
   rule(m: RuleMetadata): { violations(): ArchViolation[] }
   violations(): ArchViolation[]
 }

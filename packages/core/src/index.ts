@@ -43,6 +43,11 @@ export { dispatchRule, validateOverrides, throwIfViolations } from './preset-dis
 export { reportViolations, finishPreset } from './report.js'
 export type { ReportMode, ReportOptions, PresetReportOptions } from './report.js'
 export type { RuleSeverity, PresetBaseOptions } from './preset-dispatch.js'
+// `dispatchRule`'s own parameter type. It was exported from neither entry point
+// — callable, unnameable — which is the `correspondence`/`CorrespondenceOptions`
+// defect again, on documented preset-authoring API (ADR-006). Found by widening
+// the nameability test from "internal-only" to "unreachable from the root".
+export type { Dispatchable } from './preset-dispatch.js'
 
 // Cross-validation — bind two element Selections and assert they correspond
 export { correspondence, CorrespondenceBuilder } from './correspondence.js'

@@ -39,6 +39,12 @@ export {
 // compile against @nielspeter/eess-md alone, the exact second-install this
 // plan exists to close.
 export { correspondence, CorrespondenceBuilder } from '@nielspeter/eess'
+// …and the types of their arguments. Re-exporting the FUNCTION and not its
+// options left an eess-md user able to call `correspondence()` and unable to
+// name what they pass it — the same callable-but-unnameable defect the kernel
+// was fixed for, one package out. `check:family` cannot see it: it is
+// import-driven, and md's source never imports these names.
+export type { CorrespondenceOptions, RelationSpec, KeyBy } from '@nielspeter/eess'
 
 // Document model
 export type { MdDocument, MdSection, MdTable, MdCodeBlock } from './model/document.js'

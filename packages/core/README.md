@@ -23,9 +23,14 @@ This package is the engine every eess dialect runs on. It knows nothing about Ty
 
 You want the root. `/internal` exists so the dialects can share one engine without
 each name they touch becoming a public commitment; it is published because npm has
-no way to ship a package-private module, not because it is for you. Nothing there
-is documented, its contents change without a migration note, and no dialect
-re-exports it. See
+no way to ship a package-private module, not because it is for you. Nothing there is
+documented, and no dialect re-exports it _as its own API_. Two names — `DiskSet`
+and `OnDisk` — are also on `@nielspeter/eess-ts`'s root, where they are eess-ts's
+own types that happen to share a name; that is the whole of the overlap.
+
+Breaking something here is still a versioned change and still needs a changeset
+(ADR-011 clause 4). What you are not owed is migration guidance, because it is not
+API. See
 [ADR-011](https://github.com/nielspeter/eess/blob/main/adr/011-the-kernels-public-api-is-explicit.md).
 
 If a symbol you used disappeared from the root, it moved here — the import path is
@@ -46,6 +51,7 @@ A preset never emits on its own — the caller owns emission (ADR-008).
 - **`RuleSeverity`** — `'error' | 'warn' | 'off'`, the value of a per-rule override.
 - **`PresetBaseOptions`** — what every preset accepts: an `overrides` map of rule id → `RuleSeverity`, plus the reporting controls. Extend it when you write a preset so `{ report: 'return' }` works without your own plumbing.
 - **`RuleBuilderLike`** — the one-method shape (`violations()`) a preset needs from anything it dispatches, so a preset is not coupled to a dialect's builder class.
+- **`Dispatchable`** — what `dispatchRule` accepts: a builder that can produce violations _and_ name itself, so the dispatcher can apply a per-rule override to it. Strictly more than `RuleBuilderLike`; that one is the narrower shape used where only the findings matter.
 - **`ArchFix`** — a machine-applicable edit on a violation: `file`, a `[start, end)` character span, and the `replacement` text. This is what `--fix` applies.
 
 ### The JSON report
