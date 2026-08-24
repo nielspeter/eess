@@ -8,6 +8,7 @@
   open was the guard (box 1), and that is what closes it: `check:integrity`
   now reads every `packages/*/src/**/*.ts` as bytes and reds on a raw `0x00`.
 - **Found on closing:** a THIRD instance, live in the tree — see _Closing_ below.
+- **Fixed:** 2026-08-24 (PR #89)
 - **Reported:** 2026-08-12 — self-found while verifying the bug reports filed
   from the [plan 0096](../../plans/completed/0096-dogfood-missing-crossvalidate-bindings.md)
   review, when repeated greps over the crossvalidate package returned nothing
