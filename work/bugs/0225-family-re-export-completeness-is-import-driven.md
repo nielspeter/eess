@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-08-24 against the built `.d.ts`; no red test written yet.
+- **State:** Draft — narrowed 2026-08-24. The acute instances are guarded by a
+  compile-checked consumer fixture (`examples/public-surface.test.ts`); the general
+  gate question below is still open.
 - **Priority:** Medium — a real standalone-sufficiency hole, but it fails loudly at the
   consumer's `tsc` rather than silently. No fake green.
 - **Origin:** self-found, reviewing [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md).
@@ -64,10 +66,37 @@ Two shapes, and they are not equivalent:
   on build output, and this repo has already been burned once by measuring against `dist`
   (36 stale `.d.ts`, see the `prebuild` clean in the same branch).
 
+## Narrowed, 2026-08-24 — what the fixture does and does not close
+
+`examples/public-surface.test.ts` imports from the **published** specifiers and
+**names** every type in an annotation, so `tsc -p examples/tsconfig.json` reds if
+any becomes unreachable. Sabotage-verified in both directions: stripping
+`CorrespondenceOptions`/`RelationSpec`/`KeyBy` from the kernel root reds, and
+stripping them from eess-md's barrel reds with the same error a consumer sees —
+`'"@nielspeter/eess-md"' has no exported member named 'CorrespondenceOptions'`.
+
+That matters because it reaches the half nothing else could. Runtime tests cannot:
+TypeScript erases types, so a test calls `correspondence({ left, right })` with an
+object literal and never touches the options type — which is exactly how this
+survived every gate. `standalone-surface.test.ts` says so itself: _"`import _ as
+ns`only captures what exists at runtime, so type-only kernel exports aren't
+covered here."* It also fixes a second, wider hole: 76 test files import`../src/index.js` and only 7 import the published specifier, so most of the suite
+would pass with the barrels wrong.
+
+**It does not close this record**, and the difference is the point. The fixture
+guards the names someone remembered to write down. A signature-only type added
+next month is caught only if a human adds a line — which is a discipline, not a
+mechanism, and this repo's own history says disciplines lapse. The general fix
+below (signature-reachability in `check:family`) is still the mechanism; what has
+changed is that the acute cases are guarded and the record is no longer urgent.
+
 ## Verification
 
-- [ ] Red first: delete one of eess-md's three correspondence type re-exports and the gate
+- [x] Red first: delete one of eess-md's three correspondence type re-exports and something
       reds, naming the symbol and the barrel.
+      **done-otherwise** — not `check:family`, which is what this record proposes, but
+      `check:examples`: the compile-checked consumer fixture reds with the consumer's own
+      error text. The box is satisfied; the mechanism it named is not built.
 - [ ] The existing import-driven cases still red (the four probes in
       `scripts/lib/family-re-exports.test.mjs` are the regression set).
 - [ ] Non-vacuity: the fixture asserts the specific finding, not just a non-zero exit —
