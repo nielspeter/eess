@@ -200,5 +200,19 @@ landed there. A NUL planted in `scripts/` today is still invisible and still
   disable it.
 - **NUL only.** Other bytes that make `file(1)` say `data` — a stray `0x01`, an
   invalid UTF-8 sequence — are not checked. NUL is the one this repo has been
-  bitten by three times; the rest is speculation and would be a rule written for
-  no measured failure.
+  bitten by three times, so it is the one with a measured failure behind it.
+
+  Calling the rest speculation would be too easy, though, and it would be wrong:
+  **prior art exists and is better reasoned than this guard.** An unmerged branch
+  from 2026-08-08 (`fix/0086-nul-bytes-in-published-dist`, `36935f8`) carries a
+  188-line `scripts/check-source-text.mjs` that checks control bytes AND invalid
+  UTF-8 across all tracked source, and makes an argument this record did not:
+
+  > NUL makes `file(1)` say `data` and grep say "Binary file … matches" — a
+  > visible refusal. **Invalid UTF-8 is the silent one**: a stray latin-1 byte in
+  > a UTF-8 locale makes grep exit 1 with no output and no warning at all.
+
+  If that is right — and it reads right — then the loudest case is the one now
+  gated and the quietest is not. That branch was never proposed for merge and its
+  guard never landed, which is its own instance of this record's lesson. It is
+  kept, not deleted, for exactly that reason.
