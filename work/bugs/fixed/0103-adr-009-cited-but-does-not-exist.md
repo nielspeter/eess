@@ -80,7 +80,7 @@ No changeset — comments only, no package surface and no runtime effect.
       (Natural home: `scripts/check-workspace-integrity.mjs`, which already
       walks the workspace reading files — see
       [0092](../0092-integrity-gate-misses-three-packages.md) and
-      [0099](../0099-nul-bytes-make-md-gherkin-unsearchable.md), which edit the
+      [0099](./0099-nul-bytes-make-md-gherkin-unsearchable.md), which edit the
       same script.) Not written — the symptom this test would have caught
       resolved on its own when plan 0088 created the target file, before
       anyone built the guard. The general enforcement capability stays a real

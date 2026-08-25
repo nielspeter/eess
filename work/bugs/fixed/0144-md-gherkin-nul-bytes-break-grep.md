@@ -3,6 +3,12 @@
 ## Status
 
 - **State:** Fixed — found, fixed, and verified the same session it was found.
+- **Duplicate of [0099](./0099-nul-bytes-make-md-gherkin-unsearchable.md)**, filed
+  two days earlier for the same two bytes in the same file. Neither filing knew
+  about the other, and neither left a guard — so a THIRD instance
+  (`packages/gherkin/src/builder.ts`) survived both and stayed binary for six
+  weeks. Recorded here on 2026-08-24, when closing 0099 built the check. The
+  duplication is the finding: two correct write-ups are not a mechanism.
 - **Severity:** Medium — not a runtime defect (the NUL bytes were a working key
   separator, functionally correct), but a verification-methodology hole: this
   repo's own review discipline is "grep `packages/*/src`, always" (the
