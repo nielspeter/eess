@@ -43,3 +43,28 @@ export interface Predicate<T> {
    */
   readonly originLabel?: string
 }
+
+/**
+ * Record a predicate on a builder, noting it if it arrived after `.should()`.
+ *
+ * A free function for the same reason as `recordExclusions` and
+ * `selectMatching`: the two builders sit in incompatible hierarchies, so there
+ * is no common base to hold a method. The copies were 94% similar and differed
+ * only in comment wording and braces — no behaviour.
+ *
+ * `phase` is read, never written: recording a misplaced predicate is a
+ * diagnosis, not a state change.
+ */
+export function recordPredicate<T>(
+  predicate: Predicate<T>,
+  predicates: Predicate<T>[],
+  misplaced: string[],
+  phase: string,
+): void {
+  predicates.push(predicate)
+  // Bug 0155 state 2: a predicate-only method used after `.should()`. Dual-use
+  // methods dispatch to conditions in that phase and never reach here, so this is
+  // a filter written where an assertion was meant — the one state whose fix is
+  // "move it before .should()", not "add a condition".
+  if (phase === 'condition') misplaced.push(predicate.description)
+}

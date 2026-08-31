@@ -1,6 +1,7 @@
 import { assertionAdviceFor } from './assertion-advice.js'
 import type { Predicate } from './predicate.js'
 import { selectMatching } from './correspondence.js'
+import { recordPredicate } from './predicate.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
 import type { RuleDescription } from './rule-description.js'
@@ -289,12 +290,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    */
   protected addPredicate(predicate: Predicate<T>): this {
     const next = this.copy()
-    next._predicates.push(predicate)
-    // Bug 0155 state 2: a predicate-only method used after `.should()`. Dual-use
-    // methods dispatch to conditions in that phase and never reach here, so this
-    // is a filter written where an assertion was meant — the one state whose fix
-    // is "move it before .should()", not "add a condition".
-    if (next._phase === 'condition') next._misplaced.push(predicate.description)
+    recordPredicate(predicate, next._predicates, next._misplaced, next._phase)
     return next
   }
 

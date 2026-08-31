@@ -1,4 +1,4 @@
-import { selectMatching } from '@nielspeter/eess/internal'
+import { selectMatching, recordPredicate } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import {
   assertionAdviceOf,
@@ -303,14 +303,8 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    */
   protected addPredicate(predicate: Predicate<T>): this {
     const next = this.copy()
-    next._predicates.push(predicate)
-    // A predicate-only method used after `.should()` (dual-use methods
-    // dispatch to conditions in that phase and never land here). Recorded so
-    // the assertion-less remedy can say "move it before .should()" — the one
-    // state whose fix is not "add a condition" (plan 0070, state 2).
-    if (next._phase === 'condition') {
-      next._misplaced.push(predicate.description)
-    }
+    // The kernel's. The two copies differed only in comment wording and braces.
+    recordPredicate(predicate, next._predicates, next._misplaced, next._phase)
     return next
   }
 
