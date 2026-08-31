@@ -1,5 +1,6 @@
 import picomatch from 'picomatch'
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
+import { violationsFor } from './shared.js'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { parseErDiagram, collectEntities, type ErEntityInfo } from '@nielspeter/eess-mermaid'
 
@@ -31,15 +32,11 @@ export interface TableErAgreeOptions extends PresetReportOptions {
 const RULE = 'entity property tables and their erDiagram should agree'
 const ER_HEADER = /^\s*erDiagram\b/
 
-const v = (doc: MdDocument, line: number, message: string, because: string): ArchViolation => ({
-  rule: RULE,
-  ruleId: 'crossval/table-er-agree',
-  element: doc.relPath,
-  file: doc.file,
-  line,
-  message,
-  because,
-})
+const v = violationsFor<{ doc: MdDocument; line: number }>(
+  RULE,
+  'crossval/table-er-agree',
+  ({ doc, line }) => ({ element: doc.relPath, file: doc.file, line }),
+)
 
 interface ErBlock {
   readonly entities: ErEntityInfo[]
@@ -91,8 +88,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Arch
       if (b.parseError !== undefined) {
         violations.push(
           v(
-            doc,
-            b.line,
+            { doc, line: b.line },
             `erDiagram does not parse as standard Mermaid ER syntax: ${b.parseError}`,
             'a diagram the standard grammar rejects cannot be validated — fix the syntax',
           ),
@@ -106,8 +102,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Arch
     if (entity === undefined) {
       violations.push(
         v(
-          doc,
-          diagramLine,
+          { doc, line: diagramLine },
           `erDiagram does not declare entity '${entityName}'`,
           'the diagram and the document must describe the same entity',
         ),
@@ -123,8 +118,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Arch
     if (table === undefined) {
       violations.push(
         v(
-          doc,
-          diagramLine,
+          { doc, line: diagramLine },
           `no property table matching section ${String(options.table.section)} to compare the erDiagram against`,
           'attributes ⊆ properties is only checkable when the table exists',
         ),
@@ -152,8 +146,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Arch
       if (tableType === undefined) {
         violations.push(
           v(
-            doc,
-            diagramLine,
+            { doc, line: diagramLine },
             `erDiagram attribute '${attr.name}' of '${entityName}' is not a row of the property table`,
             'a diagram attribute the table does not carry is drift between two views of one entity',
           ),
@@ -163,8 +156,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Arch
       if (typeIdx >= 0 && tableType.toLowerCase() !== attr.type.toLowerCase()) {
         violations.push(
           v(
-            doc,
-            diagramLine,
+            { doc, line: diagramLine },
             `type of '${attr.name}' disagrees: table says '${tableType}', erDiagram says '${attr.type}'`,
             'the two representations must state the same type',
           ),

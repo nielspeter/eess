@@ -15,6 +15,7 @@ import { ruleDescriptionFrom } from './rule-description.js'
 import type { SilentExclusion } from './silent-exclusion.js'
 import { recordExclusions } from './silent-exclusion.js'
 import { executeCheck, executeWarn, applyFilters } from './execute-rule.js'
+import type { ExecuteRuleContext } from './execute-rule.js'
 import { shallowClone } from './shallow-clone.js'
 
 /**
@@ -165,16 +166,33 @@ export abstract class TerminalBuilder {
   }
 
   /**
-   * Execute the rule and return violations after exclusion filtering.
-   * Does not throw — use for programmatic access (presets, aggregation).
+   * What every terminal method hands the filter pipeline.
+   *
+   * The same four fields were written out at each of `violations`, `check` and
+   * `warn` — `no-copy-paste` reported the three at 100% with `applyFilters ->
+   * executeCheck` as the only varying axis. `eess-ts`'s `TerminalBuilder`
+   * already had exactly this method; the kernel never adopted it.
+   *
+   * Not just tidier: three terminal methods that build the filter context
+   * separately can drift, and a field present on `.check()` but missing on
+   * `.violations()` means a rule fails in CI and passes when a preset
+   * aggregates it — the same finding, two answers.
    */
-  violations(): ArchViolation[] {
-    return applyFilters(this.evidencedViolations(), {
+  private filterContext(): ExecuteRuleContext {
+    return {
       reason: this._reason,
       metadata: this._metadata,
       exclusions: this._exclusions,
       silentIndices: this._silentIndices,
-    })
+    }
+  }
+
+  /**
+   * Execute the rule and return violations after exclusion filtering.
+   * Does not throw — use for programmatic access (presets, aggregation).
+   */
+  violations(): ArchViolation[] {
+    return applyFilters(this.evidencedViolations(), this.filterContext())
   }
 
   /**
@@ -184,16 +202,7 @@ export abstract class TerminalBuilder {
    * @param options - Optional baseline, diff filtering, and output format
    */
   check(options?: CheckOptions): void {
-    executeCheck(
-      this.evidencedViolations(),
-      {
-        reason: this._reason,
-        metadata: this._metadata,
-        exclusions: this._exclusions,
-        silentIndices: this._silentIndices,
-      },
-      options,
-    )
+    executeCheck(this.evidencedViolations(), this.filterContext(), options)
   }
 
   /**
@@ -203,16 +212,7 @@ export abstract class TerminalBuilder {
    * @param options - Optional baseline, diff filtering, and output format
    */
   warn(options?: CheckOptions): void {
-    executeWarn(
-      this.evidencedViolations(),
-      {
-        reason: this._reason,
-        metadata: this._metadata,
-        exclusions: this._exclusions,
-        silentIndices: this._silentIndices,
-      },
-      options,
-    )
+    executeWarn(this.evidencedViolations(), this.filterContext(), options)
   }
 
   /**

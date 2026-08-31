@@ -1,12 +1,12 @@
 import type { ClassDeclaration } from 'ts-morph'
-import type { ElementInfo } from '@nielspeter/eess'
+import type { ArchViolation, ElementInfo } from '@nielspeter/eess'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 // Every source file in this package re-exports what it imports from the kernel,
 // so installing eess-crossvalidate alone never requires a second, direct
 // @nielspeter/eess install.
-export type { ElementInfo }
+export type { ArchViolation, ElementInfo }
 
 /**
  * Conventions every binding in this package shares.
@@ -48,4 +48,27 @@ export function resolveFeature(path: string, set: FeatureSet): readonly string[]
   const all = set.features().map((f) => f.relPath)
   if (all.includes(path)) return [path]
   return all.filter((rel) => rel.endsWith(`/${path}`))
+}
+
+/**
+ * A binding's violation constructor: the rule and its id fixed once, the site
+ * turned into `element`/`file`/`line` by the binding's own `locate`.
+ *
+ * Four bindings had written this out by hand — `no-copy-paste` reported three
+ * of them at 100% (the fourth escaped only because it took `(doc, line)` as two
+ * arguments instead of one site).
+ *
+ * `locate` is a callback and not a field list because the sites genuinely
+ * differ: a test citation locates by `file:line`, a scenario by
+ * `relPath › title`, a document by `relPath`. What must NOT differ is that
+ * every finding carries all three — a cross-validation violation with no
+ * `file`, or with an `element` a reader cannot find in either artifact, names
+ * drift without saying where it is (ADR-009 rule 2).
+ */
+export function violationsFor<Site>(
+  rule: string,
+  ruleId: string,
+  locate: (site: Site) => { element: string; file: string; line: number },
+): (site: Site, message: string, because: string) => ArchViolation {
+  return (site, message, because) => ({ rule, ruleId, ...locate(site), message, because })
 }

@@ -1,5 +1,5 @@
 import picomatch from 'picomatch'
-import { resolveFeature } from './shared.js'
+import { resolveFeature, violationsFor } from './shared.js'
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
@@ -78,15 +78,11 @@ function extractCitations(
 
 /** Resolve a cited path against the set: exact relPath, or unique `/`-boundary suffix. */
 
-const v = (c: Citation, message: string, because: string): ArchViolation => ({
-  rule: RULE,
-  ruleId: 'crossval/scenario-citations-resolve',
+const v = violationsFor<Citation>(RULE, 'crossval/scenario-citations-resolve', (c) => ({
   element: `${c.doc.relPath}:${c.line}`,
   file: c.doc.file,
   line: c.line,
-  message,
-  because,
-})
+}))
 
 /**
  * Cross-validate that every scenario citation in the markdown corpus resolves

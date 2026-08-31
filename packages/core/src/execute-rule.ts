@@ -20,7 +20,7 @@ import { recordCommentSuppression } from './comment-suppression.js'
  * Shared across all builder types (RuleBuilder, SliceRuleBuilder,
  * SchemaRuleBuilder, ResolverRuleBuilder, PairFinalBuilder, SmellBuilder).
  */
-interface ExecuteRuleContext {
+export interface ExecuteRuleContext {
   reason?: string
   metadata?: RuleMetadata
   exclusions?: (string | RegExp)[]
