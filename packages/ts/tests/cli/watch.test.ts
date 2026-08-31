@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { parseCliArgs, run } from '../../src/cli/index.js'
 import { project, resetProjectCache } from '../../src/core/project.js'
-import { RunScheduler, TS_FILE_RE } from '../../src/cli/watch.js'
+import { TS_FILE_RE } from '../../src/cli/watch.js'
+// RunScheduler moved to the kernel when the ts and mermaid watch loops were
+// unified — the copies had drifted, one keeping an `instanceof` check the other
+// had replaced. Same class, one implementation, still tested here.
+import { RunScheduler } from '@nielspeter/eess/internal'
 import path from 'node:path'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')

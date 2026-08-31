@@ -72,3 +72,10 @@ export { toPortablePath } from './identity-root.js'
 export { viewsFor } from './path-universe.js'
 export { violationsEmittedCount } from './report.js'
 export { writeStderr } from './stderr.js'
+
+// Watch-mode scheduling and the watch loop, shared by every dialect CLI. Family
+// plumbing rather than public API (ADR-011): a consumer writing rules never
+// calls this; a dialect's `--watch` does. Unified here because the two copies
+// drifted and one of them kept a bug the other had fixed — see `watch.ts`.
+export { RunScheduler, watchAndRerun } from './watch.js'
+export type { WatchOptions } from './watch.js'
