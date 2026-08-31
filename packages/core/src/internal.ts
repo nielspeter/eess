@@ -106,7 +106,7 @@ export { recordExclusions } from './silent-exclusion.js'
 
 // Applying a rule's predicates to its elements. Family plumbing: the dialects'
 // builders call it, a consumer writing rules does not.
-export { selectMatching } from './correspondence.js'
+export { selectMatching, matchingElements } from './correspondence.js'
 
 // Recording a predicate on a builder, diagnosing one that arrived after
 // `.should()`. Family plumbing.

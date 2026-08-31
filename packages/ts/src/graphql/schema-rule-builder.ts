@@ -4,7 +4,7 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { Predicate } from '@nielspeter/eess'
 import type { LoadedSchema, GraphQLObjectTypeLike, GraphQLTypeLike } from './schema-loader.js'
-import { selectionMemo } from '@nielspeter/eess/internal'
+import { selectionMemo, matchingElements } from '@nielspeter/eess/internal'
 import type { SchemaElement } from './schema-predicates.js'
 import {
   queries as queriesPredicate,
@@ -214,11 +214,7 @@ export class SchemaRuleBuilder extends TerminalBuilder {
    * call. See `ResolverRuleBuilder.selected()` for why sharing it is the point.
    */
   private selected(): SchemaElement[] {
-    return selectionOf(this, () =>
-      this.getElements().filter((element) =>
-        this._predicates.every((predicate) => predicate.test(element)),
-      ),
-    )
+    return selectionOf(this, () => matchingElements(this.getElements(), this._predicates))
   }
 
   /** Units this rule examined — plan 0096. */

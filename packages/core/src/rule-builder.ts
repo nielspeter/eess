@@ -1,6 +1,6 @@
 import { assertionAdviceFor } from './assertion-advice.js'
 import type { Predicate } from './predicate.js'
-import { selectMatching } from './correspondence.js'
+import { selectMatching, matchingElements } from './correspondence.js'
 import { recordPredicate } from './predicate.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
@@ -378,9 +378,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    */
   protected collectViolations(): CollectResult {
     const allElements = this.getElements()
-    const filtered = allElements.filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
-    )
+    const filtered = matchingElements(allElements, this._predicates)
     const examined = filtered.length
 
     if (filtered.length === 0) {

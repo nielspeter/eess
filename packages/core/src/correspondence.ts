@@ -288,10 +288,30 @@ export function selectMatching<T>(
   opts: { label: string; identify: (element: T) => ElementInfo },
 ): Selection<T> {
   return {
-    elements: elements.filter((element) =>
-      predicates.every((predicate) => predicate.test(element)),
-    ),
+    elements: matchingElements(elements, predicates),
     label: opts.label,
     identify: opts.identify,
   }
+}
+
+/**
+ * The elements every predicate admits.
+ *
+ * The same conjunction as `selectMatching`, without a `Selection` around it —
+ * split out because `eess-ts`'s two GraphQL builders want the ARRAY, to memoise
+ * it as the one set both `check()` and `diagnose()` read (plan 0096). They each
+ * carried this filter inline, byte for byte, which `no-copy-paste` reported at
+ * 100%; folding them onto `selectMatching` was not open, since a `Selection`
+ * carries a label and an `identify` neither of them has at that point.
+ *
+ * Sharing it with `selectMatching` matters beyond the duplicate count: "the
+ * elements a rule selected" must be ONE answer, or a builder's `.select()` side
+ * and its condition side can disagree about which elements the predicates
+ * admitted — the divergence ADR-010 exists to make impossible.
+ */
+export function matchingElements<T>(
+  elements: readonly T[],
+  predicates: readonly Predicate<T>[],
+): T[] {
+  return elements.filter((element) => predicates.every((predicate) => predicate.test(element)))
 }

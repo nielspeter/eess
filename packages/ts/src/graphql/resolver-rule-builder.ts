@@ -11,7 +11,7 @@ import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { collectFunctions } from '../models/arch-function.js'
-import { selectionMemo } from '@nielspeter/eess/internal'
+import { selectionMemo, matchingElements } from '@nielspeter/eess/internal'
 import {
   functionContain,
   functionNotContain,
@@ -250,11 +250,7 @@ export class ResolverRuleBuilder extends TerminalBuilder {
    * same computation the gate uses" structural rather than a claim.
    */
   private selected(): ArchFunction[] {
-    return selectionOf(this, () =>
-      this.getElements().filter((element) =>
-        this._predicates.every((predicate) => predicate.test(element)),
-      ),
-    )
+    return selectionOf(this, () => matchingElements(this.getElements(), this._predicates))
   }
 
   /** Units this rule examined — plan 0096. The selection, not what precedes it. */

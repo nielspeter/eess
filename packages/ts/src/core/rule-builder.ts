@@ -1,4 +1,4 @@
-import { selectMatching, recordPredicate } from '@nielspeter/eess/internal'
+import { selectMatching, recordPredicate, matchingElements } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import {
   assertionAdviceOf,
@@ -378,9 +378,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    */
   protected filterElements(): T[] {
     // AND semantics — every predicate must match.
-    return this.getElements().filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
-    )
+    return matchingElements(this.getElements(), this._predicates)
   }
 
   /**
