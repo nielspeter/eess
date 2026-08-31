@@ -1,3 +1,4 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import { Project, type SourceFile, type CompilerOptions } from 'ts-morph'
 import path from 'node:path'
 import { clearRegisteredCaches } from '@nielspeter/eess/internal'
@@ -53,7 +54,8 @@ export function project(tsConfigPath: string): ArchProject {
   }
 
   if (!fs.existsSync(resolved)) {
-    throw new Error(
+    throw new ArchConfigError(
+      'project',
       `tsconfig not found: ${resolved}\n` +
         `Provide a valid path to tsconfig.json, e.g. project('tsconfig.json') or project('./packages/app/tsconfig.json')`,
     )
@@ -114,7 +116,8 @@ const workspaceCache = new Map<string, ArchProject>()
  */
 export function workspace(tsConfigPaths: string[]): ArchProject {
   if (tsConfigPaths.length === 0) {
-    throw new Error(
+    throw new ArchConfigError(
+      'workspace',
       'workspace() requires at least one tsconfig path.\n' +
         'Example: workspace(["apps/web/tsconfig.json", "packages/shared/tsconfig.json"])',
     )
@@ -137,7 +140,8 @@ export function workspace(tsConfigPaths: string[]): ArchProject {
   // Validate all paths exist before creating the project
   for (const resolved of resolvedPaths) {
     if (!fs.existsSync(resolved)) {
-      throw new Error(
+      throw new ArchConfigError(
+        'workspace',
         `tsconfig not found: ${resolved}\n` +
           `Provide valid paths to tsconfig.json files in the workspace() call.`,
       )
@@ -146,7 +150,7 @@ export function workspace(tsConfigPaths: string[]): ArchProject {
 
   // Create project with the alphabetically first tsconfig's compiler options
   const primaryConfig = resolvedPaths[0]
-  if (!primaryConfig) throw new Error('No resolved paths available')
+  if (!primaryConfig) throw new ArchConfigError('workspace', 'No resolved paths available')
   const tsMorphProject = new Project({
     tsConfigFilePath: primaryConfig,
   })

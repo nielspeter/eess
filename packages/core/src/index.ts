@@ -19,7 +19,7 @@ export { RuleBuilder } from './rule-builder.js'
 export { TerminalBuilder } from './terminal-builder.js'
 export type { CollectResult } from './terminal-builder.js'
 export { assertsCardinality } from './cardinality.js'
-export { ArchRuleError, isArchRuleError } from './errors.js'
+export { ArchRuleError, isArchRuleError, ArchConfigError, isArchConfigError } from './errors.js'
 export type { RuleMetadata } from './rule-metadata.js'
 export type { RuleDescription } from './rule-description.js'
 

@@ -1,3 +1,4 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import path from 'node:path'
 import { importRuleModule } from './import-rule-module.js'
 import { isNullaryCallable } from '@nielspeter/eess/internal'
@@ -44,7 +45,8 @@ export async function loadRuleFiles(
     // with `tests/cli/load-rules.test.ts` carrying eess's assertions.
     items.forEach((item, index) => {
       if (!isRuleBuilderLike(item)) {
-        throw new Error(
+        throw new ArchConfigError(
+          'loadRuleFiles',
           `Rule file "${file}": default export entry [${index}] is not a rule builder ` +
             `(got ${describeValue(item)}). Every entry must be a builder with a .check() ` +
             `method — e.g. \`modules(p).that()…\`. A preset that returns void cannot be placed ` +
@@ -75,12 +77,14 @@ function resolveExported(exported: unknown, file: string): unknown[] {
     if (Array.isArray(result)) {
       return result
     }
-    throw new Error(
+    throw new ArchConfigError(
+      'resolveExported',
       `Rule file "${file}": default-exported function must return an array of rule builders ` +
         `(got ${describeValue(result)}).`,
     )
   }
-  throw new Error(
+  throw new ArchConfigError(
+    'resolveExported',
     `Rule file "${file}": default export must be an array of rule builders, or a function ` +
       `returning one (got ${describeValue(exported)}). Add \`export default [ …builders ]\`.`,
   )

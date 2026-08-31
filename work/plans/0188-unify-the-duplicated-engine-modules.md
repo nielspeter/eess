@@ -156,3 +156,67 @@ gate must red.
 - [ ] Phase 3 — the anti-re-fork gate, sabotage-proven
 
 Deferred: none.
+
+## Measured inventory, 2026-08-31 — and it is now on every `validate` run
+
+This plan argued its case from two incidents and a reading of the tree. There is
+now a standing measurement, because eess started dogfooding its own
+`agentGuardrails` preset (`check:guardrails`, added the same day). Its
+`no-copy-paste` rule reports **84 warnings** across `packages/*/src/**`:
+
+|                     | count  |
+| ------------------- | ------ |
+| cross-package pairs | **21** |
+| within one package  | 63     |
+
+The 21 are this plan's subject, and ten of them are **byte-identical**:
+
+```
+100%  assertHomogeneous        core ~ ts
+100%  parseRuleIdsAndReason    core ~ ts
+100%  isExcludedByComment      core ~ ts
+100%  viewsFor                 core ~ ts
+100%  validateOverrides        core ~ ts
+100%  RuleBuilder.select       core ~ ts
+100%  TerminalBuilder.excluding core ~ RuleDeclaration.excluding (ts)
+ 97%  DiffFilter.filterToChanged core ~ ts
+```
+
+Plus a second cluster this plan's title does not cover but its argument does —
+the **CLI**, duplicated mermaid↔ts rather than core↔ts:
+
+```
+100%  requireRuleFiles         mermaid ~ ts
+100%  findConfigFile           mermaid ~ ts
+100%  RunScheduler.schedule    mermaid ~ ts
+ 98%  RunScheduler.executeRun  mermaid ~ ts
+ 98%  watchAndRerun            mermaid ~ ts
+ 99%  walk                     crossvalidate ~ md
+```
+
+`watchAndRerun` is the pair bug 0169's correction names as a literal copy-paste
+differing in two tokens. None of these has a decision blocking it — they are not
+waiting on this plan's two ADRs, which are about the kernel gaining a project
+abstraction and a pluggable tokenizer. **A CLI-and-helpers slice could ship
+before either decision is made.**
+
+### Why the number is trustworthy now, and was not before
+
+The count used to be quoted as **270** by-design-similar rule-wrapper bodies, in
+`check-baseline.mjs`'s written rationale for not running the preset at all. Both
+halves were wrong: it is 84, and they are largely true duplicates rather than
+by-design similarity (bug 0169's correction of 2026-08-31 read the bodies —
+`check` ~ `warn` differs in one call target, the metrics conditions differ in a
+measure and a message). The rationale was self-sealing: it was the reason not to
+run the preset, so nothing tested it.
+
+### What changed structurally
+
+The debt is no longer argued, it is **printed on every `validate` run** with this
+plan named as its owner. That is the difference between a deferral and an
+exemption — and this plan's own thesis is that a deferral nothing measures is how
+`fork()`, `setCallerAggregatesReports` and bug 0227 each survived.
+
+Deciding not to fold this plan into the PR that produced the measurement was
+deliberate: its two prerequisites are ADR-shaped, and this plan already says
+"neither is this plan's to settle by writing code."

@@ -96,6 +96,7 @@ for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
  * leave one behind, and again on a handled signal. */
 const PROBE_PATHS = [
   'packages/core/src/__nonvacuity_probe_nul__.ts',
+  'packages/core/src/__nonvacuity_probe_generic_error__.ts',
   'examples/__nonvacuity_probe__.test.ts',
 ]
 
@@ -339,6 +340,33 @@ SCENARIOS['integrity/source-text'] = () => {
   }
 }
 
+
+SCENARIOS['guardrails/generic-error'] = () => {
+  // 7. check:guardrails — a bare `throw new Error` in package source.
+  //
+  // This gate exists because the preset behind it was exempted from this repo
+  // for months on a written rationale nothing could test. The fixture is the
+  // thing that keeps the exemption from coming back quietly: delete the gate,
+  // or narrow its `src`, or turn its severity down, and this scenario says so.
+  //
+  // The probe is a real source file under `packages/*/src/**` because that is
+  // the population the gate declares. Asserting the probe's NAME appears keeps
+  // it honest against the gate's other four rules, per scenario 4's lesson.
+  const GENERIC_ERROR_PROBE = 'packages/core/src/__nonvacuity_probe_generic_error__.ts'
+  const generic = withAddedFile(
+    GENERIC_ERROR_PROBE,
+    'export function probeThatThrows(): never {\n' +
+      "  throw new Error('a bare Error the guardrails preset must object to')\n" +
+      '}\n',
+    () => runCapture('check:guardrails'),
+  )
+  if (!generic.out.includes('__nonvacuity_probe_generic_error__') || generic.status === 0) {
+    vacuous(
+      `check:guardrails exited ${generic.status} and ${generic.out.includes('__nonvacuity_probe_generic_error__') ? 'named' : 'never named'} ` +
+        `the bare-Error probe — it must both SEE a generic throw in package source and FAIL on it`,
+    )
+  }
+}
 
 // --- dispatch ---------------------------------------------------------------
 

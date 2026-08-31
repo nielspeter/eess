@@ -1,3 +1,4 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import {
   type FunctionDeclaration,
   type VariableDeclaration,
@@ -92,7 +93,11 @@ export function fromFunctionInitializerDeclaration(decl: VariableDeclaration): A
   const arrow =
     decl.getInitializerIfKind(SyntaxKind.ArrowFunction) ??
     decl.getInitializerIfKind(SyntaxKind.FunctionExpression)
-  if (!arrow) throw new Error('Expected an arrow function or function expression initializer')
+  if (!arrow)
+    throw new ArchConfigError(
+      'fromFunctionInitializerDeclaration',
+      'Expected an arrow function or function expression initializer',
+    )
   return {
     getName: () => decl.getName(),
     getSourceFile: () => decl.getSourceFile(),

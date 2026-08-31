@@ -1,3 +1,4 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import type { SourceFile } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
@@ -75,7 +76,10 @@ export function haveDefaultExport(): Condition<SourceFile> {
  */
 export function haveMaxExports(max: number): Condition<SourceFile> {
   if (!Number.isInteger(max) || max < 0) {
-    throw new Error(`haveMaxExports: max must be a non-negative integer, got ${String(max)}`)
+    throw new ArchConfigError(
+      'haveMaxExports',
+      `haveMaxExports: max must be a non-negative integer, got ${String(max)}`,
+    )
   }
   return {
     description: `have at most ${String(max)} export(s)`,

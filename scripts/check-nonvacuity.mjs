@@ -1420,6 +1420,13 @@ const gates = [
       ]),
   ],
   [
+    'guardrails/generic-error',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'guardrails/generic-error red on its own subject', [
+        'guardrails/generic-error',
+      ]),
+  ],
+  [
     'surface/undocumented-export',
     () =>
       gateNode('bad-waived-gates.mjs', 'surface/undocumented-export red on its own subject', [
@@ -1552,6 +1559,7 @@ const GATE_FOR = {
   // uncovered, and review pointed out the fixture's own comment diagnosed it
   // without fixing it. All four scenarios live in `bad-waived-gates.mjs`.
   'check:integrity': ['integrity/phantom-dep', 'integrity/stale-output', 'integrity/source-text'],
+  'check:guardrails': ['guardrails/generic-error'],
   'check:examples': ['examples/does-not-compile'],
   'check:docs-code': ['docs-code/fence-does-not-compile'],
   // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which

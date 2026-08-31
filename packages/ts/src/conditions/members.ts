@@ -1,3 +1,4 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import {
   Node,
   type InterfaceDeclaration,
@@ -92,7 +93,10 @@ function isPropertyReadonly(prop: TsSymbol): boolean {
  */
 export function havePropertyNamed(...names: string[]): Condition<PropertyBearingNode> {
   if (names.length === 0) {
-    throw new Error('havePropertyNamed() requires at least one property name')
+    throw new ArchConfigError(
+      'havePropertyNamed',
+      'havePropertyNamed() requires at least one property name',
+    )
   }
   const quotedNames = names.map((n) => `"${n}"`).join(', ')
   return {
@@ -133,7 +137,10 @@ export function havePropertyNamed(...names: string[]): Condition<PropertyBearing
  */
 export function notHavePropertyNamed(...names: string[]): Condition<PropertyBearingNode> {
   if (names.length === 0) {
-    throw new Error('notHavePropertyNamed() requires at least one property name')
+    throw new ArchConfigError(
+      'notHavePropertyNamed',
+      'notHavePropertyNamed() requires at least one property name',
+    )
   }
   const nameSet = new Set(names)
   const quotedNames = names.map((n) => `"${n}"`).join(', ')
