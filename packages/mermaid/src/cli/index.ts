@@ -1,3 +1,4 @@
+import { requireRuleFiles } from '@nielspeter/eess/internal'
 import { parseArgs } from 'node:util'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -66,22 +67,13 @@ function parseCliArgs(args: string[]): ParsedArgs {
   })
 }
 
-function requireRuleFiles(ruleFiles: string[]): boolean {
-  if (ruleFiles.length > 0) return true
-  console.error(
-    'Error: No rule files specified. Pass rule files as arguments or set them in eess-mermaid.config.ts.',
-  )
-  process.exitCode = 1
-  return false
-}
-
 async function handleCheck(
   ruleFiles: string[],
   values: ParsedArgs['values'],
   config: Awaited<ReturnType<typeof resolveConfig>>,
   format: OutputFormat | 'auto',
 ): Promise<void> {
-  if (!requireRuleFiles(ruleFiles)) return
+  if (!requireRuleFiles(ruleFiles, 'eess-mermaid.config.ts')) return
 
   if (values.watch === true) {
     const watchDirs = config.watchDirs ?? ['src']
@@ -108,7 +100,7 @@ async function handleCheck(
 }
 
 async function handleExplain(ruleFiles: string[], markdown: boolean | undefined): Promise<void> {
-  if (!requireRuleFiles(ruleFiles)) return
+  if (!requireRuleFiles(ruleFiles, 'eess-mermaid.config.ts')) return
   const explainArgs: ExplainArgs = { ruleFiles, markdown }
   await runExplain(explainArgs)
 }

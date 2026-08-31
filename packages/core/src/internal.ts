@@ -79,3 +79,20 @@ export { writeStderr } from './stderr.js'
 // drifted and one of them kept a bug the other had fixed — see `watch.ts`.
 export { RunScheduler, watchAndRerun } from './watch.js'
 export type { WatchOptions } from './watch.js'
+
+// The dialect-independent halves of CLI config handling — finding the file,
+// validating what a loaded module claims, and classifying Node's module-format
+// refusal. Family plumbing (ADR-011): a consumer writing rules never calls
+// these; every dialect's CLI does, and did so from its own copy until now.
+export {
+  findConfigFile,
+  extractSharedConfig,
+  isModuleFormatRefusal,
+  requireRuleFiles,
+} from './cli-config.js'
+export type { SharedCliConfig } from './cli-config.js'
+
+// Recursive file discovery for the dialects that read a directory tree rather
+// than a TypeScript project (`eess-md`, `eess-crossvalidate`). Each carried its
+// own copy at 99% similarity.
+export { walkFiles, toPosix } from './file-walk.js'

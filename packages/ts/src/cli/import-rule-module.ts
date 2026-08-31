@@ -1,5 +1,6 @@
 import { createJiti } from 'jiti'
 import { importFresh } from './watch.js'
+import { isModuleFormatRefusal } from '@nielspeter/eess/internal'
 
 /**
  * Load a rule file or config module — natively when Node can, via jiti when it cannot.
@@ -41,20 +42,4 @@ export async function importRuleModule(file: string, fresh: boolean): Promise<un
       : createJiti(import.meta.url)
     return jiti.import(file)
   }
-}
-
-/**
- * Did Node refuse this file for its MODULE FORMAT, rather than for anything the
- * file does?
- *
- * Narrow on purpose. A broad `catch` that fell back to jiti on any error would
- * re-execute a rule file that had already run — doubling its output — and would
- * hide a genuine syntax error behind a second, differently-worded failure.
- */
-function isModuleFormatRefusal(error: unknown): boolean {
-  if (!(error instanceof SyntaxError)) return false
-  return (
-    error.message.includes('Cannot use import statement outside a module') ||
-    error.message.includes("Unexpected token 'export'")
-  )
 }
