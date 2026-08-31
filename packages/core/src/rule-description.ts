@@ -49,3 +49,32 @@ export function isDescribable(value: unknown): value is Describable {
   if (!('describeRule' in value)) return false
   return typeof value.describeRule === 'function'
 }
+
+/**
+ * A rule's English description, assembled from what it declared.
+ *
+ * `subject` is the noun the rule opens with when its builder has one — the
+ * GraphQL builders say `schema that ... should ...` and
+ * `resolvers that ... should ...`; the general builders open with `that`. That
+ * one word was the only difference between four copies of this function, which
+ * `no-copy-paste` reported as a cluster at 100%.
+ *
+ * An empty predicate or condition list contributes nothing rather than an empty
+ * clause, so a rule that never reached `.should()` reads `that X` and not
+ * `that X should ` — the missing half is what `assertionAdvice` then reports.
+ *
+ * `slice-rule-builder.ts` is deliberately NOT a caller: its description is a
+ * different sentence (`slices [a, b] should ...`), not this one with a prefix.
+ */
+export function ruleDescriptionOf(
+  predicates: readonly { description: string }[],
+  conditions: readonly { description: string }[],
+  subject?: string,
+): string {
+  const predicateDesc = predicates.map((p) => p.description).join(' and ')
+  const conditionDesc = conditions.map((c) => c.description).join(' and ')
+  const parts: string[] = subject === undefined ? [] : [subject]
+  if (predicateDesc) parts.push(`that ${predicateDesc}`)
+  if (conditionDesc) parts.push(`should ${conditionDesc}`)
+  return parts.join(' ')
+}

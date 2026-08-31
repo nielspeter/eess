@@ -18,6 +18,7 @@ import {
   haveMatchingResolver as haveMatchingResolverCondition,
 } from './schema-conditions.js'
 import { evaluateConditions } from '@nielspeter/eess/internal'
+import { ruleDescriptionOf } from '@nielspeter/eess/internal'
 
 /**
  * Structural type guard: check if a GraphQL type has `getFields()`.
@@ -296,11 +297,6 @@ export class SchemaRuleBuilder extends TerminalBuilder {
   }
 
   private buildRuleDescription(): string {
-    const predicateDesc = this._predicates.map((p) => p.description).join(' and ')
-    const conditionDesc = this._conditions.map((c) => c.description).join(' and ')
-    const parts: string[] = ['schema']
-    if (predicateDesc) parts.push(`that ${predicateDesc}`)
-    if (conditionDesc) parts.push(`should ${conditionDesc}`)
-    return parts.join(' ')
+    return ruleDescriptionOf(this._predicates, this._conditions, 'schema')
   }
 }

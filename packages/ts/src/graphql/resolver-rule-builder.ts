@@ -18,6 +18,7 @@ import {
   functionUseInsteadOf,
 } from '../conditions/body-analysis-function.js'
 import { evaluateConditions } from '@nielspeter/eess/internal'
+import { ruleDescriptionOf } from '@nielspeter/eess/internal'
 
 /**
  * Predicate: filter to resolver functions for fields returning types matching the pattern.
@@ -309,11 +310,6 @@ export class ResolverRuleBuilder extends TerminalBuilder {
   }
 
   private buildRuleDescription(): string {
-    const predicateDesc = this._predicates.map((p) => p.description).join(' and ')
-    const conditionDesc = this._conditions.map((c) => c.description).join(' and ')
-    const parts: string[] = ['resolvers']
-    if (predicateDesc) parts.push(`that ${predicateDesc}`)
-    if (conditionDesc) parts.push(`should ${conditionDesc}`)
-    return parts.join(' ')
+    return ruleDescriptionOf(this._predicates, this._conditions, 'resolvers')
   }
 }

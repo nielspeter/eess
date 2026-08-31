@@ -115,3 +115,7 @@ export { recordPredicate } from './predicate.js'
 // Running a rule's conditions over its selected elements, carrying the evidence
 // count ADR-010 requires. Family plumbing: dialect builders call it.
 export { evaluateConditions } from './condition.js'
+
+// Assembling a rule's English description from what it declared. Family
+// plumbing: every dialect builder renders one, a consumer does not.
+export { ruleDescriptionOf } from './rule-description.js'

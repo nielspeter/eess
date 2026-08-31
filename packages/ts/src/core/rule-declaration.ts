@@ -1,5 +1,6 @@
 import type { Condition, GlobNode, Predicate, RuleDescription } from '@nielspeter/eess'
 import { declaredGlobsOf } from '@nielspeter/eess/internal'
+import { ruleDescriptionOf } from '@nielspeter/eess/internal'
 
 /**
  * A rule as DECLARED — what was chained onto the builder, before anything runs.
@@ -55,12 +56,9 @@ function misplacedPredicateAdvice(declared: DeclaredRule): string {
  * Build the rule description from predicates and conditions.
  */
 export function buildRuleDescription(declared: DeclaredRule): string {
-  const predicateDesc = declared.predicates.map((p) => p.description).join(' and ')
-  const conditionDesc = declared.conditions.map((c) => c.description).join(' and ')
-  const parts: string[] = []
-  if (predicateDesc) parts.push(`that ${predicateDesc}`)
-  if (conditionDesc) parts.push(`should ${conditionDesc}`)
-  return parts.join(' ')
+  // The kernel's. This package's copy differed only in taking a `DeclaredRule`
+  // rather than the two lists.
+  return ruleDescriptionOf(declared.predicates, declared.conditions)
 }
 
 /**

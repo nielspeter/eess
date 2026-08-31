@@ -10,6 +10,7 @@ import type { DeclaredGlob, GlobNode } from './glob-site.js'
 import { countDeclaredGlobs, stampGlobs } from './glob-site.js'
 import { TerminalBuilder, type CollectResult, assertionLessViolation } from './terminal-builder.js'
 import { assertsCardinality as conditionAssertsCardinality } from './cardinality.js'
+import { ruleDescriptionOf } from './rule-description.js'
 
 /**
  * A declared glob's own label in a dead-glob finding — the predicate/
@@ -356,12 +357,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * Build the rule description from predicates and conditions.
    */
   private buildRuleDescription(): string {
-    const predicateDesc = this._predicates.map((p) => p.description).join(' and ')
-    const conditionDesc = this._conditions.map((c) => c.description).join(' and ')
-    const parts: string[] = []
-    if (predicateDesc) parts.push(`that ${predicateDesc}`)
-    if (conditionDesc) parts.push(`should ${conditionDesc}`)
-    return parts.join(' ')
+    return ruleDescriptionOf(this._predicates, this._conditions)
   }
 
   /**
