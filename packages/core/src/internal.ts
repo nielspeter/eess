@@ -99,3 +99,7 @@ export { walkFiles, toPosix } from './file-walk.js'
 // The globs a rule declares, stamped with their origin. Family plumbing — a
 // dialect's own rule-declaration layer calls it; a consumer writing rules does not.
 export { declaredGlobsOf } from './rule-builder.js'
+
+// Recording exclusion patterns into a builder's state. Family plumbing: the
+// dialects' builders call it, a consumer writing rules does not.
+export { recordExclusions } from './silent-exclusion.js'

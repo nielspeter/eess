@@ -12,7 +12,7 @@ import type { CheckOptions } from './check-options.js'
 import type { RuleMetadata } from './rule-metadata.js'
 import type { RuleDescription } from './rule-description.js'
 import type { SilentExclusion } from './silent-exclusion.js'
-import { isSilent } from './silent-exclusion.js'
+import { recordExclusions } from './silent-exclusion.js'
 import { executeCheck, executeWarn, applyFilters } from './execute-rule.js'
 import { shallowClone } from './shallow-clone.js'
 
@@ -138,14 +138,7 @@ export abstract class TerminalBuilder {
    */
   excluding(...patterns: (string | RegExp | SilentExclusion)[]): this {
     const next = this.copy()
-    for (const p of patterns) {
-      if (isSilent(p)) {
-        next._exclusions.push(p.pattern)
-        next._silentIndices.add(next._exclusions.length - 1)
-      } else {
-        next._exclusions.push(p)
-      }
-    }
+    recordExclusions(patterns, next._exclusions, next._silentIndices)
     return next
   }
 
