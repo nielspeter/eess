@@ -58,7 +58,13 @@ export type { RelationSpec, CorrespondenceOptions, KeyBy } from './correspondenc
 
 // Exclusions
 export { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
-export type { ExclusionComment, ExclusionWarning, ParseResult } from './exclusion-comments.js'
+export type {
+  ExclusionComment,
+  ExclusionWarning,
+  ParseResult,
+  MaskNonComment,
+  ParseExclusionOptions,
+} from './exclusion-comments.js'
 export { silent } from './silent-exclusion.js'
 export type { SilentExclusion } from './silent-exclusion.js'
 

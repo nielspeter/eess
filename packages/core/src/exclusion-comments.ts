@@ -29,6 +29,22 @@ export interface ExclusionWarning {
   file: string
   /** Line number */
   line: number
+  /**
+   * What kind of fault this is, so a caller can act on it differently.
+   *
+   * `'undocumented'` — the directive is well-formed but states no reason. It is
+   * refused (see the reason-free branches below), and a caller may additionally
+   * promote this to a finding so the author is told what to fix rather than
+   * shown the unrelated violation their waiver was covering. `eess-ts` does.
+   *
+   * `'malformed'` — the directive is broken syntax. Also refused, and the
+   * original violation is already firing, so a stderr line is the right weight.
+   *
+   * Added when the two parsers were unified (ADR-012): only `eess-ts`'s copy had
+   * it, and its `execute-rule` branches on it. Merging without it would have
+   * silently downgraded bug 0039's gate to a stderr line.
+   */
+  kind: 'undocumented' | 'malformed'
 }
 
 /**
@@ -149,6 +165,7 @@ function handleBlockEnd(
       message: `eess-exclude-end without matching start`,
       file: filePath,
       line: lineNum,
+      kind: 'malformed',
     })
     return
   }
@@ -175,6 +192,7 @@ function warnUndocumented(
         `  Fix: Add a reason — // ${directive} ${ruleId}: <why>`,
       file: filePath,
       line: lineNum,
+      kind: 'undocumented',
     })
   }
 }
@@ -200,8 +218,17 @@ function handleBlockStart(
         `and its matching -end.`,
       file: filePath,
       line: lineNum,
+      kind: 'malformed',
     })
-    openBlocks.push([])
+    openBlocks.push(
+      ruleIds.map((ruleId) => ({
+        ruleId,
+        reason,
+        file: filePath,
+        line: lineNum,
+        isBlock: true,
+      })),
+    )
     return
   }
 
@@ -218,8 +245,35 @@ function handleBlockStart(
     // That is precisely the frame-mangling 0158's nesting half removed,
     // reintroduced by its reason-required half. Empty means it suppresses
     // nothing, which is the refusal; present means the brackets still pair.
-    openBlocks.push([])
+    openBlocks.push(
+      ruleIds.map((ruleId) => ({
+        ruleId,
+        reason,
+        file: filePath,
+        line: lineNum,
+        isBlock: true,
+      })),
+    )
     return
+  }
+
+  // A rule re-opened while already open is warned but still applied. The likeliest
+  // cause is a missing `-end`, which the author wants to know; refusing it is what
+  // produced the early-close bug. Ported from `eess-ts` when the parsers were
+  // unified (ADR-012) — the kernel had no such warning, so `eess-md`,
+  // `eess-mermaid` and `eess-gherkin` never got it.
+  const alreadyOpen = new Set(openBlocks.flat().map((c) => c.ruleId))
+  for (const ruleId of ruleIds) {
+    if (!alreadyOpen.has(ruleId)) continue
+    warnings.push({
+      message:
+        `eess-exclude-start for '${ruleId}' is already open — ` +
+        `the enclosing block covers this region. Fix: remove this directive, ` +
+        `or close the enclosing block first if the nesting was unintended.`,
+      file: filePath,
+      line: lineNum,
+      kind: 'malformed',
+    })
   }
 
   // Bug 0158: nesting is supported rather than refused. Blocks are a STACK, not
@@ -251,13 +305,22 @@ function handleSingleLine(
   const { ruleIds, reason } = parseRuleIdsAndReason(content)
 
   // Bug 0158: the grammar documents `<rule-id>: <reason>`, and a reason-free
-  // directive used to suppress anyway with only a line on stderr. A waiver that
-  // states no justification silencing a real finding while the build exits 0 is
-  // the same class as a waiver nobody wrote — the requirement is enforced, not
-  // announced.
+  // directive must not silence a real finding while the build exits 0.
+  //
+  // **How that is enforced changed in ADR-012, and the change is the point.**
+  // This used to `return` — refusing the waiver — so the author saw the original
+  // violation and a line on stderr about their directive. `eess-ts` had always
+  // done the opposite (bug 0039): apply the waiver, and let `execute-rule`
+  // replace the suppressed finding with an UNSUPPRESSABLE one saying the waiver
+  // states no reason. Both end red; the second tells the author what to fix
+  // instead of showing them the thing they were waiving.
+  //
+  // Unifying the two parsers forced a choice, and `eess-ts`'s is the better
+  // design, so the kernel adopts it — which means the other four dialects gain
+  // it. It is safe here because the kernel's own `execute-rule` now does the
+  // promotion; applying without promoting would be the fail-open.
   if (reason === '') {
     warnUndocumented(warnings, ruleIds, 'eess-exclude', filePath, lineNum)
-    return
   }
 
   for (const ruleId of ruleIds) {
@@ -282,7 +345,32 @@ function handleSingleLine(
  *   <!-- eess-exclude <rule-id>: <reason> -->      (markdown / text dialects)
  *   <!-- eess-exclude-start <rule-id>: <reason> --> / <!-- eess-exclude-end -->
  */
-export function parseExclusionComments(sourceText: string, filePath: string): ParseResult {
+/**
+ * Blanks the spans of a file that are NOT comments, length- and line-preserving
+ * so every reported position still points at the original.
+ *
+ * A dialect that knows its language supplies one; `eess-ts` passes a
+ * ts-morph-backed masker. See ADR-012.
+ */
+export type MaskNonComment = (sourceText: string, filePath: string) => string
+
+export interface ParseExclusionOptions {
+  /**
+   * A dialect's own masker, applied BEFORE the kernel's default.
+   *
+   * Composition, not replacement (ADR-012 clause 3). An injected masker can only
+   * blank MORE than the default, never less, so the worst a bad one can do is
+   * hide a directive (loud) rather than expose one written inside a string
+   * literal (silent, and bug 0154).
+   */
+  mask?: MaskNonComment
+}
+
+export function parseExclusionComments(
+  sourceText: string,
+  filePath: string,
+  options?: ParseExclusionOptions,
+): ParseResult {
   // Bug 0154: read directives from MASKED text, never the raw source. Strings,
   // templates, regex literals and block comments are blanked first — a directive
   // written inside one is prose, and reading it silently waived a real finding on
@@ -300,12 +388,17 @@ export function parseExclusionComments(sourceText: string, filePath: string): Pa
   // comment describes, committed by the fix for it. Anything neither code nor
   // markdown keeps the conservative masker: over-masking hides a directive
   // (loud), under-masking invents one (silent).
-  const mask = CODE_LIKE.test(filePath)
+  const defaultMask = CODE_LIKE.test(filePath)
     ? maskNonCommentSpans
     : MARKDOWN_LIKE.test(filePath)
       ? maskMarkdownCodeSpans
       : maskNonCommentSpans
-  const lines = mask(sourceText).split('\n')
+  // The dialect's masker runs FIRST and the default runs over its output, so the
+  // default's protection cannot be opted out of (ADR-012). A dialect supplies
+  // accuracy; it cannot supply permission.
+  const injected = options?.mask
+  const masked = injected ? defaultMask(injected(sourceText, filePath)) : defaultMask(sourceText)
+  const lines = masked.split('\n')
   const htmlApply = htmlFormsApply(filePath)
   const exclusions: ExclusionComment[] = []
   const warnings: ExclusionWarning[] = []
@@ -357,6 +450,7 @@ export function parseExclusionComments(sourceText: string, filePath: string): Pa
         message: `eess-exclude-start without matching end for rule '${comment.ruleId}'`,
         file: filePath,
         line: comment.line,
+        kind: 'malformed',
       })
     }
   }
