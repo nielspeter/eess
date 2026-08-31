@@ -395,7 +395,7 @@ element rather than a new one:
 
 > **Caveat on frontmatter, and a prerequisite.** Reading it is free; the _AST_ is
 > wrong about it. The corpus parses with GFM extensions only
-> (`packages/md/src/corpus.ts:95-98`) and no frontmatter extension, so the
+> (`packages/md/src/corpus.ts:74-77`) and no frontmatter extension, so the
 > closing `---` turns the last frontmatter line into a **setext heading**. The
 > fixture above is reported by `docs()` as having a depth-2 section named
 > `"State: Ready\ntitle: A doc"` — a phantom section at line 2. `haveSection`
