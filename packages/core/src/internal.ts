@@ -95,3 +95,7 @@ export type { SharedCliConfig } from './cli-config.js'
 // than a TypeScript project (`eess-md`, `eess-crossvalidate`). Each carried its
 // own copy at 99% similarity.
 export { walkFiles, toPosix } from './file-walk.js'
+
+// The globs a rule declares, stamped with their origin. Family plumbing — a
+// dialect's own rule-declaration layer calls it; a consumer writing rules does not.
+export { declaredGlobsOf } from './rule-builder.js'

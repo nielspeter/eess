@@ -26,14 +26,37 @@ function describeOrigin(description: string, glob: DeclaredGlob, siteCount: numb
  * rather than a method body, to keep the class itself under this repo's own
  * 300-line class-length gate (`arch.internal.rules.ts`).
  */
-function declaredGlobsOf<T>(predicates: Predicate<T>[], conditions: Condition<T>[]): GlobNode[] {
+/**
+ * The globs a rule declares, stamped with where each came from.
+ *
+ * Exported (as family plumbing) so `eess-ts` can call it instead of keeping its
+ * own copy — they were 94% similar, and the difference was not cosmetic: only
+ * the eess-ts copy honoured `originLabel`. The kernel's `Predicate` has carried
+ * that field all along and this function ignored it, so a preset's label was
+ * dropped for `eess-md`, `eess-mermaid` and `eess-gherkin`. Found by unifying.
+ */
+export function declaredGlobsOf<T>(
+  // `readonly`, widened so a caller holding a frozen declaration can pass it
+  // without a copy. Strictly more permissive; the body only iterates.
+  predicates: readonly Predicate<T>[],
+  conditions: readonly Condition<T>[],
+): GlobNode[] {
   const trees: GlobNode[] = []
   for (const predicate of predicates) {
     if (predicate.globs) {
       const count = countDeclaredGlobs(predicate.globs)
       trees.push(
-        stampGlobs(predicate.globs, 'selector', (g) =>
-          describeOrigin(predicate.description, g, count),
+        stampGlobs(
+          predicate.globs,
+          'selector',
+          (g) =>
+            // A preset's `originLabel` names the option the user wrote rather
+            // than the calls it expanded into. Used VERBATIM, skipping
+            // `describeOrigin`: that appends `("glob")` to disambiguate a
+            // predicate holding several sites, and a label already names exactly
+            // one option and one glob — left in, the finding read
+            // `shared: "**/x/**" ("**/x/**")`.
+            predicate.originLabel ?? describeOrigin(predicate.description, g, count),
         ),
       )
     }
