@@ -33,6 +33,23 @@ export interface SimilarPair {
  * comparison is callable and testable without one.
  */
 
+/**
+ * Does one function's body enclose the other's?
+ *
+ * Only meaningful within one source file; two bodies in different files can
+ * never nest. Compared on the BODY spans rather than the declarations, because
+ * that is what was fingerprinted.
+ */
+function containsOther(a: ArchFunction, b: ArchFunction): boolean {
+  const bodyA = a.getBody()
+  const bodyB = b.getBody()
+  if (!bodyA || !bodyB) return false
+  if (bodyA.getSourceFile() !== bodyB.getSourceFile()) return false
+  const [startA, endA] = [bodyA.getStart(), bodyA.getEnd()]
+  const [startB, endB] = [bodyB.getStart(), bodyB.getEnd()]
+  return (startA <= startB && endA >= endB) || (startB <= startA && endB >= endA)
+}
+
 /** Build fingerprints for all collected functions. */
 export function fingerprintAll(functions: ArchFunction[]): FingerprintedFunction[] {
   const result: FingerprintedFunction[] = []
@@ -74,6 +91,15 @@ export function findSimilarPairs(
       if (minDistinct < minDistinctVocabulary) {
         continue
       }
+      // A body compared against a body NESTED INSIDE IT can never be
+      // actionable: "extract the shared logic into one function" is impossible
+      // when one function already contains the other. The detector generates
+      // these itself, because it collects object-literal functions by design —
+      // so `const rule = () => ({ evaluate })` yields both the outer arrow and
+      // the `evaluate` inside it, and they are similar by construction.
+      //
+      // Measured on this repo: 10 of 173 pairs, every one of them noise.
+      if (containsOther(a.fn, b.fn)) continue
       const similarity = computeSimilarity(a.fingerprint, b.fingerprint)
       if (similarity >= minSimilarity) {
         pairs.push({
