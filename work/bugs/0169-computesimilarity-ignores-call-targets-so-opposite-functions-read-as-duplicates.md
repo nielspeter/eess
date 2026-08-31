@@ -441,3 +441,61 @@ Still not a better score. In priority order, all measured, none built:
 
 Items 1–3 are presentation. That is the honest headline: the detector's problem
 at scale is overwhelmingly what it SAYS, not what it scores.
+
+## Built, 2026-08-31 — items 1 to 3. The score is untouched.
+
+Presentation only, exactly as the analysis above concluded. No pair is dropped,
+no threshold moved, `computeSimilarity` unchanged.
+
+|                                    | before         | after           |
+| ---------------------------------- | -------------- | --------------- |
+| production monorepo (~5,600 files) | 4,770 findings | **407** (11.7x) |
+| this repo                          | 220            | **93**          |
+
+**1. Clusters, not pairs** (`smells/clusters.ts`). Connected components over the
+similarity graph. A two-member cluster IS the pair, so it keeps the message and
+the baseline identity that already shipped; only three-or-more collapses, which
+is where the inflation lived.
+
+**2. Ranked by declaration-name identity.** A copy of one function into another
+file sorts first. `.groupByFolder()` still wins when asked for.
+
+**3. Findings say what varies** (`smells/variation.ts`). The LCS alignment
+`computeSimilarity` computes and discards is reused to compare texts at aligned
+positions. A systematic rename is ONE axis however often it occurs.
+
+```
+isExcludedByComment (core) is 100% similar to isExcludedByComment (ts)
+  - identical text: a literal copy
+assertHomogeneous   (core) is 100% similar to assertHomogeneous   (ts)
+  - 1 varying axis: '...Matcher functions...' -> '...TypeMatcher functions...'
+functionContain is 85% similar to haveOnlyReadonlyProperties
+  - 12 varying axes: fn -> element, ArchFunction -> PropertyBearingNode, +9 more
+```
+
+**Not built: the polarity veto.** It is the only genuine algorithm defect left
+and it changes the score, which is the class of change this record already had
+reverted once. It needs the fixture set the correction above demands — including
+one pinning that comparison operators must NOT veto — and that is its own piece
+of work.
+
+### What the build cost, recorded because it is the interesting part
+
+- **The repo's own architecture rules rejected the first two shapes** — a method
+  at 49 lines against a 30 limit, then the class at 187 against 150 — which is
+  what produced `smells/duplicate-report.ts`. The rules were right both times.
+- **`no-unused-exports` forced a real decision** rather than a hiding: either
+  `variationBetween` is public API or the types come off the export. It is
+  public now, beside `computeSimilarity`, which is where it belongs.
+- **The NUL guard from [0099](./fixed/0099-nul-bytes-make-md-gherkin-unsearchable.md)
+  caught the author of the NUL guard.** `variation.ts` used a raw `0x00` as a
+  composite-key separator — the identical instinct, the identical mistake, six
+  hours after filing two bugs about it. Caught before it could be committed. That
+  is the fifth instance of the class and the first the mechanism stopped.
+- **The identity collision guard caught a real regression.** Clustering anchors a
+  finding at ONE member, so `routeB.handler` stopped appearing as an `element`
+  and `baseline-portability.test.ts` went red. The fixture was three
+  byte-identical bodies — one cluster, one finding, and a collision guard that
+  sees one finding has no teeth. Rebuilt as three shapes across two clusters, so
+  the two same-named keys are now two separate findings whose identities must not
+  merge. That is a sharper test of the original bug than the fixture it replaced.

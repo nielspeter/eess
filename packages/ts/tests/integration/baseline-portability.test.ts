@@ -603,10 +603,17 @@ export function b(): void {
     // Every reported element is qualified by the binding that owns its literal.
     for (const element of elements) {
       expect(element, 'object-literal findings must name their owning binding').toMatch(
-        /^(routeA|routeB|routeC)\./,
+        /^(routeA|routeB|routeC|routeD|routeE|routeF)\./,
       )
     }
     // Both `handler` keys are represented — they are not merged into one.
+    //
+    // They now sit in two DIFFERENT clusters (the fixture gained a second and
+    // third shape when findings began reporting per cluster rather than per
+    // pair), which makes this a sharper version of the original bug: two
+    // same-named keys reported as two separate findings whose identities must
+    // not merge. Under the old fixture all three bodies were identical, so once
+    // they collapsed into one cluster there was nothing left to distinguish.
     expect(elements.some((e) => e.startsWith('routeA.'))).toBe(true)
     expect(elements.some((e) => e.startsWith('routeB.'))).toBe(true)
   })

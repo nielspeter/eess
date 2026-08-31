@@ -353,6 +353,8 @@ export { DuplicateBodiesBuilder } from './smells/duplicate-bodies.js'
 export { InconsistentSiblingsBuilder } from './smells/inconsistent-siblings.js'
 export type { Fingerprint } from './smells/fingerprint.js'
 export { buildFingerprint, computeSimilarity } from './smells/fingerprint.js'
+export { variationBetween } from './smells/variation.js'
+export type { Variation, VariationAxis } from './smells/variation.js'
 
 // Cross-layer validation (plan 0022)
 export type { Layer, LayerPair } from './models/cross-layer.js'

@@ -13,6 +13,15 @@ export interface SimilarPair {
   a: ArchFunction
   b: ArchFunction
   similarity: number
+  /**
+   * The fingerprints the score came from, carried so a REPORTED pair can be
+   * asked what varies between the two bodies without a second AST pass.
+   *
+   * Optional because a caller may construct a pair by hand — the message
+   * builder degrades to the bare percentage rather than assuming.
+   */
+  fingerprintA?: Fingerprint
+  fingerprintB?: Fingerprint
 }
 
 /**
@@ -67,7 +76,13 @@ export function findSimilarPairs(
       }
       const similarity = computeSimilarity(a.fingerprint, b.fingerprint)
       if (similarity >= minSimilarity) {
-        pairs.push({ a: a.fn, b: b.fn, similarity })
+        pairs.push({
+          a: a.fn,
+          b: b.fn,
+          similarity,
+          fingerprintA: a.fingerprint,
+          fingerprintB: b.fingerprint,
+        })
       }
     }
   }

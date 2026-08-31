@@ -86,12 +86,12 @@ describe('Fingerprint', () => {
     })
 
     it('produces 1.0 for two empty fingerprints', () => {
-      const empty = { kinds: [], calls: [], nodeCount: 0, distinctVocabulary: 0 }
+      const empty = { kinds: [], texts: [], calls: [], nodeCount: 0, distinctVocabulary: 0 }
       expect(computeSimilarity(empty, empty)).toBe(1.0)
     })
 
     it('produces 0.0 when one fingerprint is empty and the other is not', () => {
-      const empty = { kinds: [], calls: [], nodeCount: 0, distinctVocabulary: 0 }
+      const empty = { kinds: [], texts: [], calls: [], nodeCount: 0, distinctVocabulary: 0 }
       const fpA = buildFingerprint(getBody('parseWebhookOrder'))
       expect(computeSimilarity(empty, fpA)).toBe(0.0)
       expect(computeSimilarity(fpA, empty)).toBe(0.0)
