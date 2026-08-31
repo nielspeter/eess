@@ -12,20 +12,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **CRITICAL:** All architectural decisions are documented in `/adr/`. These decisions are **binding** and must be followed in all plans and code. Read relevant ADRs before implementing features.
 
-| ADR                                                          | Title           | Key Takeaway                                                                                                                                |
-| ------------------------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| [001](./adr/001-toolchain-node-vitest-eslint-prettier.md)    | Toolchain       | Node 24 + TS ~5.9 (pinned to ts-morph) + Vitest 4 + ESLint 10 + Prettier 3.8. No Bun.                                                       |
-| [002](./adr/002-ts-morph-ast-engine.md)                      | AST Engine      | ts-morph 27 for all AST and type checking. No tree-sitter/SWC/raw TS API.                                                                   |
-| [003](./adr/003-fluent-builder-dsl.md)                       | DSL Pattern     | Fluent builder with method chaining. `entry(p).that().<predicate>.should().<condition>.check()`                                             |
-| [004](./adr/004-esm-only-package.md)                         | Module Format   | ESM only. `"type": "module"`, Node.js >=24. No dual CJS/ESM.                                                                                |
-| [005](./adr/005-no-any-no-type-assertions.md)                | Type Safety     | No `any`, no `as` casts. Use ts-morph type guards. Only `eslint-disable` at JS interop boundaries.                                          |
-| [006](./adr/006-framework-rules-architecture.md)             | Framework Rules | Rules are code, not config. Separate npm packages per framework. Presets are functions.                                                     |
-| [007](./adr/007-isolate-ast-engine-boundary.md)              | Engine Boundary | Confine ts-morph behind one engine module; batch-first boundary. (Proposed; confinement `pending`)                                          |
-| [008](./adr/008-caller-owns-reporting.md)                    | Reporting       | Detection is separate from emission. One `reportViolations`; presets take `{ report }` (default unchanged).                                 |
-| [009](./adr/009-agent-first-failure-surfaces.md)             | Fail-Closed     | A check that cannot fail is worth less than no check. Ported from `ts-archunit` ADR-008; six binding rules.                                 |
-| [010](./adr/010-a-pass-is-constructed-from-evidence.md)      | Vacuity Proof   | A pass is constructed from evidence — `{ violations, examined }` — never a default. Prospective on the fold (plan 0088).                    |
-| [011](./adr/011-the-kernels-public-api-is-explicit.md)       | Kernel API      | The kernel root is public API; family plumbing lives behind `@nielspeter/eess/internal`. (Accepted; 78 symbols moved)                       |
-| [012](./adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) | Borrowed Lexer  | The kernel owns one exclusion-comment parser and takes the lexer as an optional capability; its default is the conservative one. (Accepted) |
+| ADR                                                           | Title             | Key Takeaway                                                                                                                                      |
+| ------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [001](./adr/001-toolchain-node-vitest-eslint-prettier.md)     | Toolchain         | Node 24 + TS ~5.9 (pinned to ts-morph) + Vitest 4 + ESLint 10 + Prettier 3.8. No Bun.                                                             |
+| [002](./adr/002-ts-morph-ast-engine.md)                       | AST Engine        | ts-morph 27 for all AST and type checking. No tree-sitter/SWC/raw TS API.                                                                         |
+| [003](./adr/003-fluent-builder-dsl.md)                        | DSL Pattern       | Fluent builder with method chaining. `entry(p).that().<predicate>.should().<condition>.check()`                                                   |
+| [004](./adr/004-esm-only-package.md)                          | Module Format     | ESM only. `"type": "module"`, Node.js >=24. No dual CJS/ESM.                                                                                      |
+| [005](./adr/005-no-any-no-type-assertions.md)                 | Type Safety       | No `any`, no `as` casts. Use ts-morph type guards. Only `eslint-disable` at JS interop boundaries.                                                |
+| [006](./adr/006-framework-rules-architecture.md)              | Framework Rules   | Rules are code, not config. Separate npm packages per framework. Presets are functions.                                                           |
+| [007](./adr/007-isolate-ast-engine-boundary.md)               | Engine Boundary   | Confine ts-morph behind one engine module; batch-first boundary. (Proposed; confinement `pending`)                                                |
+| [008](./adr/008-caller-owns-reporting.md)                     | Reporting         | Detection is separate from emission. One `reportViolations`; presets take `{ report }` (default unchanged).                                       |
+| [009](./adr/009-agent-first-failure-surfaces.md)              | Fail-Closed       | A check that cannot fail is worth less than no check. Ported from `ts-archunit` ADR-008; six binding rules.                                       |
+| [010](./adr/010-a-pass-is-constructed-from-evidence.md)       | Vacuity Proof     | A pass is constructed from evidence — `{ violations, examined }` — never a default. Prospective on the fold (plan 0088).                          |
+| [011](./adr/011-the-kernels-public-api-is-explicit.md)        | Kernel API        | The kernel root is public API; family plumbing lives behind `@nielspeter/eess/internal`. (Accepted; 78 symbols moved)                             |
+| [012](./adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md)  | Borrowed Lexer    | The kernel owns one exclusion-comment parser and takes the lexer as an optional capability; its default is the conservative one. (Accepted)       |
+| [013](./adr/013-the-kernel-takes-the-fact-not-the-project.md) | Facts Not Project | The kernel gains no project concept; it takes the emptiness fact a dialect materialises. Measured: the whole coupling was two members. (Accepted) |
 
 ### ADR authoring convention — the Enforcement table (eess enforcement-table v1)
 

@@ -2,7 +2,12 @@
 
 ## Status
 
-- **State:** Draft — the two decisions it turns on are stated but not made.
+- **State:** Draft — **both decisions are now made**, as
+  [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (the lexer)
+  and [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the
+  project). ADR-012 is also BUILT: the exclusion-comment parsers are unified and
+  `eess-ts`'s copy is 426 lines shorter. What remains of this plan is ADR-013's
+  build — the two builders — and the CLI/helper slice already landed.
 - **Priority:** **High** — raised 2026-08-21. This read "Medium — nothing is
   broken today", and that was falsified within the same PR: `packages/core`'s
   `RuleBuilder.fork()` still cleared its condition list, so
@@ -93,13 +98,32 @@ latent; neither is a reason to leave two copies.
 
 ## The two decisions — ADRs, not phases
 
-**1. A project abstraction for the kernel.** The kernel has _no_ project concept
+**1. A project abstraction for the kernel — SETTLED, and the framing here was
+wrong.** [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)
+measured it: the entire `ArchProject` surface the kernel would need is
+`getSourceFiles()` and `tsConfigPath` — one boolean and one string, both reached
+through a single call. So the kernel gains no project concept at all; it takes
+the emptiness FACT the dialect materialises, which is `PathUniverse`'s existing
+seam applied a second time. The warning below — that giving the kernel a project
+"constrains all five dialects forever" — is right, and is exactly why the answer
+is not to give it one.
+
+The original text, kept because the measurement is what refuted it:
+The kernel has _no_ project concept
 (`PathUniverse` is its pure stand-in). Giving it one constrains all five dialects
 forever. Re-measured for this plan, the coupling is thinner than 0165 recorded:
 the ts `terminal-builder` touches `ArchProject` in **3** places — `import type`,
 `getProject()`, `zeroSubjectsViolation(project)` — not 5.
 
-**2. A pluggable tokenizer for `exclusion-comments`.** The copied version blanks
+**2. A pluggable tokenizer for `exclusion-comments` — SETTLED and BUILT** as
+[ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md). The kernel
+owns one parser and takes the masker as an optional capability, composed so an
+injected one can only blank more. Unifying it surfaced three divergences the
+copies had hidden — a missing `kind` discriminator, a disagreement about what a
+reason-free waiver does, and an `already open` warning only `eess-ts` had. All
+three are recorded in that ADR rather than absorbed.
+
+The original text: The copied version blanks
 string literals with a real ts-morph tokenizer (bug 0154's fix); the kernel's
 does a regex scan. The other four dialects have no TS AST, so the kernel needs an
 injection point rather than a choice between the two.
