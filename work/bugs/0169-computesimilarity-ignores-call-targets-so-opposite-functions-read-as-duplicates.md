@@ -261,3 +261,102 @@ now measured rather than argued, and it is the binding one. Adding to it:
 
 Nothing was changed in `packages/ts/src` for this addendum. The record stays
 Draft, the symptom stays unfixed, and the measurement scripts were throwaway.
+
+## Correction, 2026-08-31 (same day, later) — I read the bodies, and the premise is wrong
+
+The addendum above is sound where it measures the ALGORITHM (disjoint vocabulary
+scores 1.00; `min()` is disqualified as a combining shape; a call-free body is a
+genre). It is wrong where it accepts this record's framing of what the findings
+MEAN, and so is this record's opening claim. Both were reached by reading
+function **names** and inferring; neither had read the bodies.
+
+Read, five of them:
+
+**`check` ~ `warn`, 100%** — this record calls it the headline false positive:
+_"`check` throws and `warn` does not... not duplicates under any reading — the
+remedy the finding suggests (consolidate them) would be a defect."_ The bodies:
+
+```ts
+check(options?: CheckOptions): void {
+  executeCheck(this.evidencedViolations(), { reason: …, metadata: …, exclusions: …, silentIndices: … }, options)
+}
+warn(options?: CheckOptions): void {
+  executeWarn (this.evidencedViolations(), { reason: …, metadata: …, exclusions: …, silentIndices: … }, options)
+}
+```
+
+Byte-identical but for one call target. Their kind histograms are **identical** —
+measured, zero differing kinds. This is a textbook type-2 clone and consolidating
+it (one private `run(mode, options)`) is a strict improvement, not a defect.
+`check` does not throw; `executeCheck` does. The record read the method names and
+attributed the callee's behaviour to the caller.
+
+**The `evaluate` family, 33 pairs — the class dismissed as "the DSL's shape".**
+`maxCyclomaticComplexity` ~ `maxParameters` in `packages/ts/src/rules/metrics.ts`
+are the same loop over the same members pushing the same `metricViolation`,
+differing in the measure (`cyclomaticComplexity(member.getBody())` vs
+`member.getParameters().length`), one metric name and one message. That is
+parameterisable duplication, not an interface obligation.
+
+**`functionContain` ~ `mustMatchName`, 88%** — the least duplicate-looking pair in
+a random sample of eight: different files, different names, different element
+types. Still the same `Condition<T>` body — accumulate, loop, negated test, push a
+constructed violation. Weaker: consolidating costs generics over three axes, so
+reasonable people differ. Borderline, not false.
+
+**`isExcludedByComment` core ~ ts, 100%** — literal duplication, and following it
+found [bug 0227](./0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md), a
+live defect nine days old. A true positive that paid for itself.
+
+### What this changes
+
+**The score is largely right; the triage was wrong.** These findings are real
+structural duplication, on a spectrum from "obviously extract this" (`check` ~
+`warn`, one axis) to "you could, but the abstraction may cost more than it saves"
+(`functionContain` ~ `mustMatchName`, three axes). That is not a precision
+problem. The detector reports _structural duplication_; the reader wants
+_actionable duplication_; only the second is a judgement call, and the tool has
+never been asked for it.
+
+An earlier version of this addendum put the corpus at "~15% precision, 85%
+noise". **Retracted** — it was computed by bucketing on function names, and every
+body it bucketed as noise and then actually read turned out to be duplicated.
+
+**One genuine algorithm defect survives the correction.**
+`haveStereotype` ~ `notHaveStereotype` at 0.974 is real: a `!` is one token that
+INVERTS the meaning, while an identifier rename is zero tokens, so LCS ranks the
+negation as more similar than the rename. Measured fix — reject a pair whose
+counts of polarity-inverting kinds differ:
+
+```
+haveStereotype ~ notHaveStereotype   0.974  rejected  (not: 1 v 0)
+classContain ~ functionContain       0.962  reported  (no difference)
+```
+
+The pinned genuine duplicate survives, which neither call-overlap nor
+vocabulary-overlap managed. **But the veto set must be polarity only.** Tested
+with a wider signature including comparison operators, `watchAndRerun` (ts ~
+mermaid, a literal copy-paste) was rejected on `strictEq: 1 v 0` — the veto
+problem again, one rung down. `===` is what a copy-paste legitimately tweaks; `!`
+is not.
+
+### The fix that follows
+
+Not a better score. **Report the axes of variation, not just the percentage.**
+The tool already computes enough to say _what differs_ — `check` ~ `warn` differ
+in one call target; the adopter's two guards differ in five property names; the
+metrics pair differs in a measure, a name and a message. Those three are the same
+number on screen today and three different verdicts in a reader's head.
+
+That is also precisely the cost the adopter paid: a senior engineer read both
+functions to discover the variation was a field list. The finding was not wrong —
+it was unactionable, and being unactionable is what taught them to distrust it.
+
+Concretely, and still unbuilt:
+
+1. Add the polarity veto (measured above; needs the fixtures this record's
+   correction demands, including one pinning that comparison operators must NOT
+   veto).
+2. Emit the varying axes in the message.
+3. Leave the score alone.
+4. Keep it `.warn()`.
