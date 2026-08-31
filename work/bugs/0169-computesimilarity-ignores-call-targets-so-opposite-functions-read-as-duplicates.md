@@ -3,8 +3,12 @@
 ## Status
 
 - **State:** Draft — **the symptom below is confirmed; the fix prescribed below was
-  built, reviewed, measured wrong, and reverted.** See the correction at the end.
+  built, reviewed, measured wrong, and reverted.** See the correction at the end,
+  and then the 2026-08-31 addendum, which reports this reaching a real adopter and
+  measures the obvious second attempt failing the same way as the first.
 - **Found:** 2026-08-19, auditing the code-quality rules eess ships.
+- **Confirmed externally:** 2026-08-31, by an adopter project (not this repo)
+  whose team independently traced it to `computeSimilarity`.
 
 ## Symptom
 
@@ -160,3 +164,100 @@ A same-named test failing for a new reason was invisible to it too.
 - Carry fixtures for every rejected alternative. The reverted version argued for
   `min` over product and mean in its docstring, citing exact numbers, with no
   test pinning any of them — all three sabotages stayed green.
+
+## Addendum, 2026-08-31 — it reached an adopter, and the obvious fix fails too
+
+### It is not a theoretical false positive any more
+
+An adopter project hit this on two type guards for two different types with
+different field sets, and their engineer traced it correctly and unaided — to
+`computeSimilarity` being LCS over node kinds and `buildFingerprint`'s own
+docstring promising to ignore identifiers. Their conclusion: _"detector precision
+limitation, not real duplication... there is nothing to consolidate here."_
+
+They were right, and they were also being generous. Their reading was that the
+detector "cannot tell `fieldNameA` from `field_name_a`" — near-identical spellings.
+It is worse: it cannot tell **any** two names apart. Reduced to a fixture with
+deliberately disjoint vocabulary — two guards sharing not one field name:
+
+```
+vocabulary A: value, harbour, 'string', length, 0, lantern, meridian, quarry, tessellate
+vocabulary B: value, cobblestone, 'string', length, 0, driftwood, ferrous, gantry, juniper
+shared      : value, 'string', length, 0        <- only the scaffolding
+
+structural similarity (what the rule uses):  1.00
+vocabulary overlap (Jaccard, never read)  :  0.29
+```
+
+100%, on bodies with 29% vocabulary in common. The cost lands on the adopter as
+an investigation: a senior engineer read both guards in full, reasoned about
+their type contracts, and wrote up a defence — to dismiss a finding the tool
+should not have made. That is the real price of a false positive in an
+agent-facing tool, and it is why this is not merely cosmetic.
+
+### The fix this record proposes cannot reach that case
+
+Both bodies make **zero calls**:
+
+```
+calls in A: []
+calls in B: []
+```
+
+Call-target overlap is undefined for them, so the pair falls back to the
+structural score unchanged. This record's own Residual already says so — _"Six
+pairs in this corpus make no calls at all and fall back to the structural score
+unchanged"_ — but it files that as a rounding error. The adopter's case IS that
+residual, and a type guard, a validator, a mapper, a reducer over property
+accesses are all call-free by nature. The residual is a whole genre.
+
+### The obvious alternative fails on the same rock
+
+`buildFingerprint` builds a `Set` of distinct identifier/literal texts and keeps
+only its `.size` (as `distinctVocabulary`, used as a floor). The set itself — the
+body's actual vocabulary — is discarded. Comparing those sets is the natural
+second axis for call-free bodies, so it was measured before being written down
+here, against the pairs this record names, with the same `min(structural, second)`
+shape the first attempt used:
+
+| pair                                   | structural | vocab overlap | wanted             | got            |
+| -------------------------------------- | ---------- | ------------- | ------------------ | -------------- |
+| `classContain` ~ `functionContain`     | 0.962      | **0.500**     | must SURVIVE       | **eliminated** |
+| `haveStereotype` ~ `notHaveStereotype` | 0.974      | **1.000**     | must be ELIMINATED | **survives**   |
+| `watchAndRerun` (ts ~ mermaid)         | 0.979      | 0.891         | must survive       | survives       |
+| `check` ~ `warn`                       | 1.000      | 0.833         | must be eliminated | eliminated     |
+| `and` ~ `or`                           | 0.921      | 0.800         | must be eliminated | eliminated     |
+
+Corpus-wide: 169 pairs at structural ≥ 0.85 become 40 under the conjunction.
+
+**It fails in both directions, on two of the five named pairs.** It kills
+`classContain` ~ `functionContain` — the pinned genuine duplicate — _exactly as
+call-target overlap did_, for exactly the same reason: `min()` hands the second
+axis a veto over a strong structural match. And it keeps
+`haveStereotype` ~ `notHaveStereotype` at vocabulary 1.000, because logical
+negations of one another share every identifier they use. Vocabulary cannot see a
+`!`.
+
+So this is a negative result, and it is the useful kind: **the shape is wrong, not
+the axis.** Two different second axes, chosen for different reasons, both break the
+same pinned pair the same way. Anyone reaching for a third axis under `min()`
+should expect the same outcome.
+
+### What this changes about the fix
+
+Nothing in _"What a real fix has to do"_ below is retracted; the second bullet is
+now measured rather than argued, and it is the binding one. Adding to it:
+
+- **A call-free body is a first-class case, not a residual.** Any candidate must
+  be measured against the guards fixture above, where every call-based signal is
+  empty by construction.
+- **`min()` is disqualified as the combining shape** — twice, independently.
+  Whatever the second axis, it cannot hold a veto. A floor that only rejects when
+  the structural score is _itself_ marginal, or a weighting that cannot pull a
+  1.00 below threshold on its own, are the shapes left unmeasured.
+- **`haveStereotype` ~ `notHaveStereotype` needs an axis that can see negation.**
+  Neither calls nor vocabulary can. That may mean the honest answer for this pair
+  is that no cheap fingerprint distinguishes it, and the detector should say so.
+
+Nothing was changed in `packages/ts/src` for this addendum. The record stays
+Draft, the symptom stays unfixed, and the measurement scripts were throwaway.
