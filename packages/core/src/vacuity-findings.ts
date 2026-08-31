@@ -21,14 +21,24 @@ export interface RuleFacts {
  * selector, empty corpus, or an unreachable examining seam), not folded
  * into an ordinary violation message.
  */
-export function zeroExaminedViolation(facts: RuleFacts): ArchViolation {
+/**
+ * The shape every configuration finding in this module shares.
+ *
+ * All five differ ONLY in their `message`, which `no-copy-paste` reported as one
+ * cluster at 100%. Extracting it puts the contract they have in common in one
+ * place, and that contract is load-bearing rather than incidental:
+ *
+ * - `bypassFilters: true` — a vacuity finding must survive `--changed`, a
+ *   baseline and an `eess-exclude`. A suppression mechanism that can suppress
+ *   the complaint about itself is not a mechanism.
+ * - `file: ''`, `line: 0` — there is no source position, because the fault is
+ *   the RULE, not a place in the code. That is also why the diff filter has to
+ *   exempt these explicitly (see `diff-aware.ts`).
+ * - `suggestion` is the message — its own remedy, never the author's (bug 0021).
+ */
+function configFinding(facts: RuleFacts, message: string): ArchViolation {
   const described = facts.describeRule()
   const name = described.id ?? described.rule ?? facts.ruleClass.name
-  const message =
-    `this rule examined zero units. If this is expected (the corpus is legitimately ` +
-    `empty right now), declare it explicitly with .expectEmpty() — otherwise this is a ` +
-    `dead selector, an empty project, or a rule that never reaches its own examining ` +
-    `seam, and the fix is to widen the selection, not to suppress this finding.`
   return {
     rule: described.rule ?? name,
     ruleId: described.id,
@@ -40,6 +50,15 @@ export function zeroExaminedViolation(facts: RuleFacts): ArchViolation {
     because: facts.reason,
     bypassFilters: true,
   }
+}
+
+export function zeroExaminedViolation(facts: RuleFacts): ArchViolation {
+  const message =
+    `this rule examined zero units. If this is expected (the corpus is legitimately ` +
+    `empty right now), declare it explicitly with .expectEmpty() — otherwise this is a ` +
+    `dead selector, an empty project, or a rule that never reaches its own examining ` +
+    `seam, and the fix is to widen the selection, not to suppress this finding.`
+  return configFinding(facts, message)
 }
 
 /**
@@ -52,20 +71,8 @@ export function zeroExaminedViolation(facts: RuleFacts): ArchViolation {
  * diagnosis is available; see `evidencedViolations()`.
  */
 export function deadGlobViolation(facts: RuleFacts, deadGlob: string): ArchViolation {
-  const described = facts.describeRule()
-  const name = described.id ?? described.rule ?? facts.ruleClass.name
   const message = `this rule examined zero units — ${deadGlob}`
-  return {
-    rule: described.rule ?? name,
-    ruleId: described.id,
-    element: name,
-    file: '',
-    line: 0,
-    message,
-    suggestion: message,
-    because: facts.reason,
-    bypassFilters: true,
-  }
+  return configFinding(facts, message)
 }
 
 /**
@@ -76,24 +83,12 @@ export function deadGlobViolation(facts: RuleFacts, deadGlob: string): ArchViola
  * condition itself would otherwise tolerate.
  */
 export function unmetExpectNonEmptyViolation(facts: RuleFacts): ArchViolation {
-  const described = facts.describeRule()
-  const name = described.id ?? described.rule ?? facts.ruleClass.name
   const message =
     `this rule declared .expectNonEmpty() but examined zero units — the corpus this ` +
     `rule asserted should never be empty is empty right now. If that's still true, fix ` +
     `the selection (a glob typo, a missing folder); if the corpus legitimately can be ` +
     `empty, remove .expectNonEmpty().`
-  return {
-    rule: described.rule ?? name,
-    ruleId: described.id,
-    element: name,
-    file: '',
-    line: 0,
-    message,
-    suggestion: message,
-    because: facts.reason,
-    bypassFilters: true,
-  }
+  return configFinding(facts, message)
 }
 
 /**
@@ -103,24 +98,12 @@ export function unmetExpectNonEmptyViolation(facts: RuleFacts): ArchViolation {
  * "widen the selection", there is no selection yet to widen).
  */
 export function zeroLoadedSourceViolation(facts: RuleFacts): ArchViolation {
-  const described = facts.describeRule()
-  const name = described.id ?? described.rule ?? facts.ruleClass.name
   const message =
     `this rule's source loaded zero units before any selection ran — an empty project, ` +
     `an unreadable tsconfig, or a glob resolving to nothing. This outranks any ` +
     `.expectEmpty() declaration and any condition satisfied by emptiness: fix the ` +
     `project/source configuration, not the rule.`
-  return {
-    rule: described.rule ?? name,
-    ruleId: described.id,
-    element: name,
-    file: '',
-    line: 0,
-    message,
-    suggestion: message,
-    because: facts.reason,
-    bypassFilters: true,
-  }
+  return configFinding(facts, message)
 }
 
 /**
@@ -128,21 +111,9 @@ export function zeroLoadedSourceViolation(facts: RuleFacts): ArchViolation {
  * expired — ADR-010 part 3: the number IS the finding, so it is named.
  */
 export function expiredExpectEmptyViolation(facts: RuleFacts, examined: number): ArchViolation {
-  const described = facts.describeRule()
-  const name = described.id ?? described.rule ?? facts.ruleClass.name
   const message =
     `this rule declared .expectEmpty() but examined ${String(examined)} unit(s) — the ` +
     `declaration has expired. If the corpus legitimately grew past empty, remove ` +
     `.expectEmpty() from this rule; the underlying violations (if any) above still stand.`
-  return {
-    rule: described.rule ?? name,
-    ruleId: described.id,
-    element: name,
-    file: '',
-    line: 0,
-    message,
-    suggestion: message,
-    because: facts.reason,
-    bypassFilters: true,
-  }
+  return configFinding(facts, message)
 }
