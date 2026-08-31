@@ -9,7 +9,7 @@ import type { ArchViolation, ReportMode, OutputFormat } from '@nielspeter/eess'
  * means the kernel's three emission modes stay exactly three.
  */
 export type PresetDelivery = ReportMode | 'builders'
-import { finishPreset, ArchRuleError } from '@nielspeter/eess'
+import { finishPreset, ArchRuleError, validateOverrides } from '@nielspeter/eess'
 import { callerAggregates } from '../core/execute-rule.js'
 import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import type { Predicate } from '@nielspeter/eess'
@@ -18,7 +18,6 @@ import { resideInFile, resideInFolder } from '../predicates/identity.js'
 import { or } from '../core/combinators.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import type { RuleBuilderLike } from '@nielspeter/eess'
-import { writeStderr } from '@nielspeter/eess/internal'
 
 export type RuleSeverity = 'error' | 'warn' | 'off'
 
@@ -385,26 +384,6 @@ export interface PresetBaseOptions<TRuleId extends string = string> {
 }
 
 /**
- * Validate override keys against known rule IDs.
- * Warns for unrecognized keys (likely typos).
- */
-export function validateOverrides(
-  overrides: Partial<Record<string, RuleSeverity>> | undefined,
-  knownIds: readonly string[],
-): void {
-  if (!overrides) return
-  const knownSet = new Set(knownIds)
-  for (const key of Object.keys(overrides)) {
-    if (!knownSet.has(key)) {
-      writeStderr(
-        `[eess] Override key '${key}' does not match any rule in this preset. ` +
-          `Available rules: ${knownIds.join(', ')}`,
-      )
-    }
-  }
-}
-
-/**
  * Match a user-supplied glob against the file path **or** its parent directory.
  *
  * Preset options name a location — `repositories`, `shared`, a layer glob — and
@@ -474,3 +453,9 @@ export function deliver(
     reason: options?.reason,
   })
 }
+
+// The kernel's — this package carried a byte-identical copy differing only in
+// two signature widths, which the kernel adopted. Re-exported (from the ROOT,
+// not `/internal`, so ADR-011 clause 2 is satisfied) because `recommended` and
+// `agent-guardrails` import it from here.
+export { validateOverrides }

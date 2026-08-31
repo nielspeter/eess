@@ -70,8 +70,13 @@ export function dispatchRule(
  * (likely typos).
  */
 export function validateOverrides(
-  overrides: Record<string, RuleSeverity> | undefined,
-  knownIds: string[],
+  // `Partial<Record<...>>` and `readonly`, widened from the narrower shapes this
+  // signature had, so `eess-ts`'s byte-identical copy could be deleted rather
+  // than kept for its types. Both are strictly more permissive: `Partial` admits
+  // an explicit `undefined` value, `readonly` admits a frozen list. No caller
+  // loses anything.
+  overrides: Partial<Record<string, RuleSeverity>> | undefined,
+  knownIds: readonly string[],
 ): void {
   if (!overrides) return
   const knownSet = new Set(knownIds)
