@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { GlobSite, GlobNode } from '@nielspeter/eess'
-import type { PathUniverse } from '@nielspeter/eess/internal'
+import type { PathUniverse } from '@nielspeter/eess'
 import { isDeadGlobTree, isDeadSite, globSitesOf } from '../../src/core/glob-evaluator.js'
 
 const universe: PathUniverse = {

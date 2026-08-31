@@ -534,6 +534,11 @@ export type { DiskSet, OnDisk } from './core/disk-set.js'
 export { diskSet } from './core/disk-set.js'
 export type { GlobFault } from './core/glob-diagnosis.js'
 export { pathUniverse } from './core/path-universe.js'
+// The type `pathUniverse` returns. It is the kernel's now — this package used to
+// declare a byte-identical copy — so it must be re-exported here or a standalone
+// eess-ts consumer could not name the return type without a second kernel
+// install (plan 0089's rule, and check:family enforces it).
+export type { PathUniverse } from '@nielspeter/eess'
 export { validateOverrides } from './presets/shared.js'
 export { STRICT_FAMILY_SIZE } from './tsconfig/strict-family.js'
 export type { StrictFamilyFlag } from './tsconfig/strict-family.js'
