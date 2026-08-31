@@ -1,4 +1,5 @@
 import type { ArchViolation } from './violation.js'
+import type { Predicate } from './predicate.js'
 import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
 import { matchSelections, type MatchOptions } from './matching.js'
 import {
@@ -270,4 +271,27 @@ function relations<L, R>(
     }
   }
   return out
+}
+
+/**
+ * The elements a rule's predicates admit, as a `Selection`.
+ *
+ * A free function over the elements and the predicates rather than a method,
+ * for the same reason as `recordExclusions`: the two builders that need it sit
+ * in incompatible hierarchies — `eess-ts` has three levels where the kernel has
+ * two — so there is no common base to hold it. The two copies were
+ * byte-identical.
+ */
+export function selectMatching<T>(
+  elements: readonly T[],
+  predicates: readonly Predicate<T>[],
+  opts: { label: string; identify: (element: T) => ElementInfo },
+): Selection<T> {
+  return {
+    elements: elements.filter((element) =>
+      predicates.every((predicate) => predicate.test(element)),
+    ),
+    label: opts.label,
+    identify: opts.identify,
+  }
 }

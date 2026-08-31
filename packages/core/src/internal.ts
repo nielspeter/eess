@@ -103,3 +103,7 @@ export { declaredGlobsOf } from './rule-builder.js'
 // Recording exclusion patterns into a builder's state. Family plumbing: the
 // dialects' builders call it, a consumer writing rules does not.
 export { recordExclusions } from './silent-exclusion.js'
+
+// Applying a rule's predicates to its elements. Family plumbing: the dialects'
+// builders call it, a consumer writing rules does not.
+export { selectMatching } from './correspondence.js'

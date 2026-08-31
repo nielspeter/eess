@@ -1,5 +1,6 @@
 import { assertionAdviceFor } from './assertion-advice.js'
 import type { Predicate } from './predicate.js'
+import { selectMatching } from './correspondence.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
 import type { RuleDescription } from './rule-description.js'
@@ -188,10 +189,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * @param opts.identify - map an element to its message metadata (name/file/line)
    */
   select(opts: { label: string; identify: (element: T) => ElementInfo }): Selection<T> {
-    const filtered = this.getElements().filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
-    )
-    return { elements: filtered, label: opts.label, identify: opts.identify }
+    return selectMatching(this.getElements(), this._predicates, opts)
   }
 
   /**

@@ -1,3 +1,4 @@
+import { selectMatching } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import {
   assertionAdviceOf,
@@ -140,10 +141,9 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    * @param opts.identify - map an element to its message metadata (name/file/line)
    */
   select(opts: { label: string; identify: (element: T) => ElementInfo }): Selection<T> {
-    const filtered = this.getElements().filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
-    )
-    return { elements: filtered, label: opts.label, identify: opts.identify }
+    // The kernel's — this was byte-identical, and the hierarchies differ, so a
+    // free function is the only way the two builders can share it.
+    return selectMatching(this.getElements(), this._predicates, opts)
   }
 
   /** This rule as declared — the input every description and advice reads. */
