@@ -1,5 +1,6 @@
 import type { Node, SourceFile, SyntaxKind } from 'ts-morph'
 import { registerCacheReset } from '@nielspeter/eess/internal'
+import { invalidateOnModify } from './invalidate-on-modify.js'
 
 /**
  * One descendant walk per (node, kind), shared across matchers.
@@ -114,11 +115,9 @@ registerCacheReset(() => {
  * edit invisible and passed the entire suite — there is a test named for it.
  */
 function watchOnce(sourceFile: SourceFile): void {
-  if (watched.has(sourceFile)) return
-  watched.add(sourceFile)
-  sourceFile.onModified(() => {
-    byFile.delete(sourceFile)
-    allByFile.delete(sourceFile)
+  invalidateOnModify(sourceFile, watched, (file) => {
+    byFile.delete(file)
+    allByFile.delete(file)
   })
 }
 

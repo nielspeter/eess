@@ -1,6 +1,7 @@
 import { SyntaxKind } from 'ts-morph'
 import type { Node, SourceFile } from 'ts-morph'
 import { registerCacheReset } from '@nielspeter/eess/internal'
+import { invalidateOnModify } from './invalidate-on-modify.js'
 
 /**
  * The per-file line index behind `linesOfCode`.
@@ -162,11 +163,9 @@ registerCacheReset(() => {
  * first.
  */
 function watchOnce(sourceFile: SourceFile): void {
-  if (watched.has(sourceFile)) return
-  watched.add(sourceFile)
-  sourceFile.onModified(() => {
-    lineStartsByFile.delete(sourceFile)
-    codeLinesByFile.delete(sourceFile)
+  invalidateOnModify(sourceFile, watched, (file) => {
+    lineStartsByFile.delete(file)
+    codeLinesByFile.delete(file)
   })
 }
 
