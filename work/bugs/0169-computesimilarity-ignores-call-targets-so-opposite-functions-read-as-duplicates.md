@@ -499,3 +499,45 @@ of work.
   sees one finding has no teeth. Rebuilt as three shapes across two clusters, so
   the two same-named keys are now two separate findings whose identities must not
   merge. That is a sharper test of the original bug than the fixture it replaced.
+
+## Re-run on both corpora after the build, 2026-08-31
+
+The build above was measured mid-flight. Re-run end to end through the shipped
+builder, on the committed source:
+
+|                                                                             | before | after   |
+| --------------------------------------------------------------------------- | ------ | ------- |
+| this repo                                                                   | 220    | **93**  |
+| production monorepo, root tsconfig (adds `scripts/`, `examples/`, `tests/`) | —      | **527** |
+
+On this repo the **top 12 findings are all cross-package copies** — the ranking
+surfaces the kernel/dialect duplication first, including the `exclusion-comments`
+pair that led to [bug 0227](./0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md).
+34 are literal copies, 14 vary in one axis, 31 are clusters of three or more.
+
+The wider corpus opens with exactly what it should:
+
+```
+walk            (scripts/graph-fix-stale-links.ts) is 100% similar to walk (scripts/graph-render.ts) — identical text: a literal copy
+bootstrap       (apps/admin-ui/src/main.tsx)       is 100% similar to bootstrap (apps/identity-gateway-ui/src/main.tsx) — identical text: a literal copy
+timestampPrefix (packages/migrations/src/generate.ts) is 100% similar to timestampPrefix (…/scaffold.ts) — identical text: a literal copy
+seed            (examples/nextjs-blog/seed/seed.ts) is up to 100% similar to 2 other bodies …
+```
+
+### The re-run found two defects the mid-flight measurement had missed
+
+**Mine, and it defeated the whole point.** 527 findings rendered as **658
+lines**. A varying "identifier" can be a string literal and a string literal can
+be a forty-line SQL query in a template, so axis texts carried their own newlines
+straight into the message. Fixed: axis texts are whitespace-collapsed and elided
+at 32 characters — collapsed BEFORE truncating, so a multi-line literal is not
+cut at its first newline and silently presented as the whole text. Re-measured:
+527 findings, 527 lines, zero continuation lines. Pinned by a test.
+
+**Pre-existing** — [bug 0228](./0228-ignoretests-does-not-match-tsx-so-react-tests-are-never-ignored.md).
+`.ignoreTests()` globs `**/*.test.ts`, `**/*.spec.ts`, `**/__tests__/**` and no
+`.tsx`, so in a React codebase it ignores nothing. Measured: 6 findings from
+`.test.tsx` files with the flag explicitly set. `smells.siblingFiles()` carries a
+duplicate of the same constant and the same hole.
+
+Both are the argument for re-running rather than trusting a mid-build number.

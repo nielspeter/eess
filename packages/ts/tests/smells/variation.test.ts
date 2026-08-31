@@ -118,3 +118,24 @@ describe('variationBetween', () => {
     expect(v.comparedTexts).toBe(0)
   })
 })
+
+describe('message rendering', () => {
+  it('keeps a finding on ONE line when a varying text is a multi-line literal', async () => {
+    // Measured on a ~5,600-file monorepo: 527 findings rendered as 658 lines,
+    // because a varying "identifier" can be a string literal and a string
+    // literal can be a forty-line SQL query. A finding that spills defeats the
+    // whole point of reporting axes.
+    const { varianceSummary } = await import('../../src/smells/duplicate-report.js')
+    const sql = '`\n  WITH RECURSIVE ancestors AS (\n    SELECT c.*, 1 as depth\n  )\n`'
+    const mk = (text: string): Parameters<typeof varianceSummary>[0] => ({
+      a: undefined as never,
+      b: undefined as never,
+      similarity: 1,
+      fingerprintA: { kinds: [80], texts: [text], calls: [], nodeCount: 1, distinctVocabulary: 1 },
+      fingerprintB: { kinds: [80], texts: ['x'], calls: [], nodeCount: 1, distinctVocabulary: 1 },
+    })
+    const summary = varianceSummary(mk(sql))
+    expect(summary).not.toContain('\n')
+    expect(summary).toContain('…')
+  })
+})

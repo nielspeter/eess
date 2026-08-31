@@ -21,6 +21,30 @@ import { variationBetween } from './variation.js'
  */
 const MAX_SHOWN = 3
 
+/**
+ * Longest an axis text is shown before it is elided.
+ *
+ * A varying "identifier" can be a string literal, and a string literal can be a
+ * forty-line SQL query in a template. Measured on a ~5,600-file monorepo: 527
+ * findings rendered as **658 lines**, because axis texts carried their own
+ * newlines straight into the message. A finding that spills over many lines
+ * defeats the entire point of reporting axes, which is that a reader can triage
+ * one at a glance.
+ */
+const MAX_AXIS_TEXT = 32
+
+/**
+ * One axis text, guaranteed to be one short line.
+ *
+ * Whitespace is collapsed BEFORE truncating, so a multi-line literal is not
+ * merely cut at its first newline — that would silently present the first line
+ * as if it were the whole text.
+ */
+function oneLine(text: string): string {
+  const flat = text.replace(/\s+/g, ' ').trim()
+  return flat.length <= MAX_AXIS_TEXT ? flat : `${flat.slice(0, MAX_AXIS_TEXT - 1)}…`
+}
+
 /** How one body reads inside a message. */
 function locate(fn: ArchFunction): string {
   return `${fn.getName() ?? '<anonymous>'} (${fn.getSourceFile().getFilePath()}:${String(fn.getStartLineNumber())})`
@@ -50,7 +74,7 @@ export function varianceSummary(pair: SimilarPair | undefined): string {
   if (variation.axes.length === 0) return ' — identical text: a literal copy'
   const shown = variation.axes
     .slice(0, MAX_SHOWN)
-    .map((axis) => `${axis.from} -> ${axis.to}`)
+    .map((axis) => `${oneLine(axis.from)} -> ${oneLine(axis.to)}`)
     .join(', ')
   const rest = variation.axes.length - Math.min(MAX_SHOWN, variation.axes.length)
   const noun = variation.axes.length === 1 ? 'axis' : 'axes'
