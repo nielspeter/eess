@@ -1,6 +1,5 @@
 import type { RuleDescription } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
-import type { ArchViolation } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { Predicate } from '@nielspeter/eess'
@@ -18,6 +17,7 @@ import {
   acceptArgs as acceptArgsCondition,
   haveMatchingResolver as haveMatchingResolverCondition,
 } from './schema-conditions.js'
+import { evaluateConditions } from '@nielspeter/eess/internal'
 
 /**
  * Structural type guard: check if a GraphQL type has `getFields()`.
@@ -245,14 +245,6 @@ export class SchemaRuleBuilder extends TerminalBuilder {
   }
 
   protected collectViolations(): CollectResult {
-    const filtered = this.selected()
-
-    if (filtered.length === 0) {
-      // Plan 0098: the early exit IS the zero-evidence case, stated rather than
-      // implied by an empty violation list.
-      return { violations: [], examined: 0 }
-    }
-
     const context: ConditionContext = {
       rule: this.buildRuleDescription(),
       because: this._reason,
@@ -260,12 +252,10 @@ export class SchemaRuleBuilder extends TerminalBuilder {
       suggestion: this._metadata?.suggestion,
       docs: this._metadata?.docs,
     }
-
-    const violations: ArchViolation[] = []
-    for (const condition of this._conditions) {
-      violations.push(...condition.evaluate(filtered, context))
-    }
-    return { violations, examined: filtered.length }
+    // The kernel's. The zero-evidence early exit and the `examined` count travel
+    // with it — the two builders in this folder once derived that count
+    // separately and disagreed, which is the fail-open the comment above records.
+    return evaluateConditions(this.selected(), this._conditions, context)
   }
 
   private getElements(): SchemaElement[] {

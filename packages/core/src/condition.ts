@@ -63,3 +63,31 @@ export interface Condition<T> {
    */
   readonly globs?: DeclaredGlobs
 }
+
+/**
+ * Run every condition over the selected elements, carrying the evidence.
+ *
+ * `examined` is the count the conditions were actually HANDED — not the
+ * pre-predicate population — and that distinction is the reason this is shared
+ * rather than written per builder. `graphql/resolver-rule-builder.ts` records
+ * what happened when two sibling builders derived it separately: one counted
+ * pre-predicate and the other post, and a chain whose `.that()` selected nothing
+ * reported 14 units examined, handed its conditions 0, and passed green with
+ * `diagnose()` silent. That is the fail-open cell ADR-009 exists to close.
+ *
+ * The zero-element early exit is stated rather than implied by an empty
+ * violation list (plan 0098): `{ violations: [], examined: 0 }` is the
+ * zero-evidence case, and ADR-010 wants it said out loud.
+ */
+export function evaluateConditions<T>(
+  elements: T[],
+  conditions: readonly Condition<T>[],
+  context: ConditionContext,
+): { violations: ArchViolation[]; examined: number } {
+  if (elements.length === 0) return { violations: [], examined: 0 }
+  const violations: ArchViolation[] = []
+  for (const condition of conditions) {
+    violations.push(...condition.evaluate(elements, context))
+  }
+  return { violations, examined: elements.length }
+}

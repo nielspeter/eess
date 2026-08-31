@@ -111,3 +111,7 @@ export { selectMatching } from './correspondence.js'
 // Recording a predicate on a builder, diagnosing one that arrived after
 // `.should()`. Family plumbing.
 export { recordPredicate } from './predicate.js'
+
+// Running a rule's conditions over its selected elements, carrying the evidence
+// count ADR-010 requires. Family plumbing: dialect builders call it.
+export { evaluateConditions } from './condition.js'
