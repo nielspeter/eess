@@ -51,8 +51,9 @@ Medium rather than High.
 
 ## Why it is worth doing anyway — two measured consequences
 
-**A fix lands on one copy and nothing notices.** Two demonstrated cases now, not
-one — and the second is worse, because it was live rather than latent.
+**A fix lands on one copy and nothing notices.** Three demonstrated cases now —
+and the third is the freshest, which is the argument this section most needed:
+the hazard is not historical, it fired again nine days ago.
 
 **Bug 0156, the kernel half.** `fork()` cleared conditions in `packages/core`
 long after `packages/ts` stopped doing so. Three dialects and three of this
@@ -64,6 +65,22 @@ written in the same PR that found it.
 copy and is wired end to end on the eess-ts path, while the kernel's
 `executeWarn` still reports unconditionally — the exact line that bug cites. It
 went half-fixed and no record said so until 2026-08-21.
+
+**Bug 0227**, 2026-08-31, the newest. PR #88 fixed bug 0158 in
+`packages/core/src/exclusion-comments.ts` — a reason-free `eess-exclude-start`
+now reports against the `-start`. `packages/ts/src/core/exclusion-comments.ts`
+never got it, so the dialect adopters install is **silent** on a bare `-start`
+and blames the `-end` line for a fault on the `-start`. Nothing suppresses
+wrongly, so no gate could notice; the divergence was found by running
+`smells.duplicateBodies()` over this repo a week later, which is not a mechanism.
+
+That case also carries a warning for this plan's own method. Comparing the two
+copies by TEXT gives a wrong answer: grepping for bug numbers and fix keywords
+says eess-ts is missing bug 0154's string-literal protection too. It is not —
+eess-ts uses ts-morph's real lexer where the kernel had to hand-roll masking to
+stay ts-morph-free. Same protection, different mechanism, zero shared
+vocabulary. Any audit of what has and has not travelled between these copies has
+to be behavioural.
 
 **One hazard is held shut by a containment, not a fix.** 0165 Phase 2 names it:
 module-level state in `execute-rule.ts` read by one copy and written by the
