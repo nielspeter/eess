@@ -360,3 +360,84 @@ Concretely, and still unbuilt:
 2. Emit the varying axes in the message.
 3. Leave the score alone.
 4. Keep it `.warn()`.
+
+## Measured at scale, 2026-08-31 — a ~5,600-file production monorepo
+
+Everything above was measured on eess itself, which is small and unusual (a
+fluent DSL, high structural regularity by design). Run against an unrelated
+production TypeScript monorepo — ~5,600 source files, 1,079 loaded, 3,810
+function bodies past the shipped filters:
+
+```
+FINDINGS AT SHIPPED DEFAULTS: 4770     (899 at 100%)
+distinct functions involved : 1681     — 44% of every qualifying body
+elapsed (comparison only)   : 55s
+```
+
+**More findings than the functions that produced them.** No one reads that, and
+the reason is not precision.
+
+### Failure 1 — pairs, where the observation is a cluster
+
+Taking connected components over the similarity graph:
+
+```
+407 clusters  ->  4,770 pair findings          (11.7x inflation)
+top 8 clusters alone      ->  2,338 findings   (49% of the output)
+largest cluster: 89 members -> 398 findings
+one cluster of 53 members   -> 436 findings
+```
+
+A group of N mutually-similar functions emits N²/2 findings carrying one
+observation. The worst single function is reported **29 times**. Even if every
+finding is true — and after the correction above, many are — the output is
+inflated an order of magnitude over the actionable unit, which is "these 89
+functions share a shape", not 398 lines of pairs.
+
+### Failure 2 — the one identifier that matters is the one discarded
+
+`buildFingerprint` ignores identifiers, which is correct for the BODY: that is
+what makes it a type-2 clone detector. It also ignores the function's own
+**name**, and that is where the signal was. Bucketing all 4,770:
+
+| bucket                         | findings | share | reading                                      |
+| ------------------------------ | -------- | ----- | -------------------------------------------- |
+| different file, different name | 2,683    | 56.2% | convergent idiom — usually NOT actionable    |
+| same class                     | 974      | 20.4% | siblings — usually consolidatable            |
+| different file, **same** name  | 649      | 13.6% | a COPY of one function — the valuable bucket |
+| same file, different class     | 464      | 9.7%  | co-located — worth a look                    |
+
+Both of these scored **100%**:
+
+- `timestampPrefix` in `generate.ts` and in `scaffold.ts` — same name, two files.
+  A literal copy-paste. Actionable.
+- `getPersonalAccessToken` ~ `getOrganization` — two SDK wrapper methods with the
+  same shape and nothing else in common. Not actionable under any reading.
+
+Same score, opposite verdicts, and the thing that separates them costs nothing to
+compute. It is also how the valuable finding in eess was reached:
+`isExcludedByComment` present in two packages under the same name led to
+[bug 0227](./0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md).
+
+**Caution against over-fitting this.** Same-class siblings (20.4%) are frequently
+the most consolidatable of all — one repository in the corpus above has six
+`exists*` methods differing only in a table name and a where-clause set. So name
+identity is a RANKING signal, not a filter: dropping the different-name bucket
+would discard real same-class duplication, and dropping cross-file would have
+discarded bug 0227.
+
+### What the fix is, after all of this
+
+Still not a better score. In priority order, all measured, none built:
+
+1. **Cluster, don't enumerate.** 407 units instead of 4,770 lines — the single
+   biggest legibility win, and it changes no score.
+2. **Rank by declaration-name identity**, cross-file same-name first. Cheap,
+   already available, and it surfaces the copies.
+3. **Report the axes of variation** (from the correction above) so a reader can
+   tell one varying call target from five varying property names.
+4. **Polarity veto** for the negation defect — the only genuine algorithm bug
+   that survived scrutiny.
+
+Items 1–3 are presentation. That is the honest headline: the detector's problem
+at scale is overwhelmingly what it SAYS, not what it scores.
