@@ -1,4 +1,5 @@
 import picomatch from 'picomatch'
+import { resolveFeature } from './shared.js'
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
@@ -76,11 +77,6 @@ function extractCitations(
 }
 
 /** Resolve a cited path against the set: exact relPath, or unique `/`-boundary suffix. */
-function resolveFeature(path: string, set: FeatureSet): readonly string[] {
-  const all = set.features().map((f) => f.relPath)
-  if (all.includes(path)) return [path]
-  return all.filter((rel) => rel.endsWith(`/${path}`))
-}
 
 const v = (c: Citation, message: string, because: string): ArchViolation => ({
   rule: RULE,

@@ -1,4 +1,5 @@
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
+import { resolveFeature } from './shared.js'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
 import path from 'node:path'
@@ -95,11 +96,6 @@ function itTitles(project: ArchProject): TestCitationSite[] {
 }
 
 /** Resolve a cited path against the set: exact relPath, or unique `/`-boundary suffix. */
-function resolveFeature(path: string, set: FeatureSet): readonly string[] {
-  const all = set.features().map((f) => f.relPath)
-  if (all.includes(path)) return [path]
-  return all.filter((rel) => rel.endsWith(`/${path}`))
-}
 
 const v = (site: TestCitationSite, message: string, because: string): ArchViolation => ({
   rule: RULE,

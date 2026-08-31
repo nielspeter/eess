@@ -1,4 +1,5 @@
 import type { Root, Nodes } from 'mdast'
+import { textOf } from './text-of.js'
 import type { MdDocument } from './document.js'
 
 /** A markdown link occurrence within a document (before doc back-reference). */
@@ -23,12 +24,6 @@ export interface MdLinkRef {
 
 // A URL is external if it has a scheme (`https:`, `mailto:`) or is protocol-relative.
 const EXTERNAL_RE = /^([a-z][a-z0-9+.-]*:|\/\/)/i
-
-function textOf(node: Nodes): string {
-  if ('value' in node && typeof node.value === 'string') return node.value
-  if ('children' in node) return node.children.map((c) => textOf(c)).join('')
-  return ''
-}
 
 /**
  * Collect inline markdown links (`[text](url)`) from a document tree. Links

@@ -2,6 +2,7 @@ import { type Direction } from '@nielspeter/eess'
 import { correspondence } from '@nielspeter/eess'
 import { classes as mmdClasses, type ArchProject as MermaidDiagram } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
+import { identifyTsClass } from './shared.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): crossvalidate is
 // the family's binding tool, so unlike the other dialects it MUST re-export
@@ -43,17 +44,10 @@ export function diagramMatchesCode(
     identify: (c) => ({ name: c.name }),
   })
 
-  const right = tsClasses(project)
-    .that()
-    .resideInFolder(scope)
-    .select({
-      label: 'TS class',
-      identify: (c) => ({
-        name: c.getName() ?? '<anonymous>',
-        file: c.getSourceFile().getFilePath(),
-        line: c.getStartLineNumber(),
-      }),
-    })
+  const right = tsClasses(project).that().resideInFolder(scope).select({
+    label: 'TS class',
+    identify: identifyTsClass,
+  })
 
   correspondence({ left, right })
     .should()
