@@ -13,6 +13,7 @@ import type { SilentExclusion } from '@nielspeter/eess'
 import { recordExclusions } from '@nielspeter/eess/internal'
 import { executeCheck, executeWarn, applyFilters } from './execute-rule.js'
 import { shallowClone } from '@nielspeter/eess/internal'
+import { ruleDescriptionFrom } from '@nielspeter/eess/internal'
 
 /**
  * Declaring both emptiness assertions is a contradiction, and 0069's appendix
@@ -322,14 +323,12 @@ abstract class RuleDeclaration {
    * Used by the `explain` CLI subcommand.
    */
   describeRule(): RuleDescription {
-    return {
+    return ruleDescriptionFrom({
+      metadata: this._metadata,
+      reason: this._reason,
       rule: this._metadata?.id ?? 'unnamed',
-      id: this._metadata?.id,
-      because: this._reason,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-      imperative: this._metadata?.imperative ?? this._reason,
-    }
+      imperativeFallback: this._reason,
+    })
   }
 
   /**

@@ -10,7 +10,8 @@ import type { DeclaredGlob, GlobNode } from './glob-site.js'
 import { countDeclaredGlobs, stampGlobs } from './glob-site.js'
 import { TerminalBuilder, type CollectResult, assertionLessViolation } from './terminal-builder.js'
 import { assertsCardinality as conditionAssertsCardinality } from './cardinality.js'
-import { ruleDescriptionOf } from './rule-description.js'
+import { ruleDescriptionOf, ruleDescriptionFrom } from './rule-description.js'
+import { conditionContextFrom } from './condition.js'
 
 /**
  * A declared glob's own label in a dead-glob finding — the predicate/
@@ -199,14 +200,11 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * Used by the `explain` CLI subcommand.
    */
   describeRule(): RuleDescription {
-    return {
+    return ruleDescriptionFrom({
+      metadata: this._metadata,
+      reason: this._reason,
       rule: this.buildRuleDescription(),
-      id: this._metadata?.id,
-      because: this._reason,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-      imperative: this._metadata?.imperative,
-    }
+    })
   }
 
   /**
@@ -421,12 +419,10 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * Call `super.buildConditionContext()` and spread the result.
    */
   protected buildConditionContext(): ConditionContext {
-    return {
+    return conditionContextFrom({
+      metadata: this._metadata,
+      reason: this._reason,
       rule: this.buildRuleDescription(),
-      because: this._reason,
-      ruleId: this._metadata?.id,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-    }
+    })
   }
 }

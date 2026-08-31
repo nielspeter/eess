@@ -1,5 +1,6 @@
 import type { ArchViolation } from './violation.js'
 import type { DeclaredGlobs } from './glob-site.js'
+import type { RuleMetadata } from './rule-metadata.js'
 
 /**
  * Context passed to conditions during evaluation.
@@ -33,6 +34,34 @@ export interface ConditionContext {
    * the leak for one optional primitive.
    */
   identifyByArgument?: number
+}
+
+/**
+ * The context a condition receives, projected from what the rule declared.
+ *
+ * Four of the five fields are read off `RuleMetadata` identically everywhere;
+ * only `rule` — the assembled English sentence — differs, because the kernel's
+ * `RuleBuilder` builds it from its own lists and `eess-ts`'s builds it from a
+ * `DeclaredRule`. The two bodies were 93% similar with that as the sole varying
+ * axis.
+ *
+ * Worth one owner beyond the duplicate count: this context is what a violation
+ * message is written from, so a field silently absent on one side of the family
+ * produces findings that name their rule in one dialect and not the other —
+ * exactly the "a violation must be actionable" clause of ADR-009.
+ */
+export function conditionContextFrom(opts: {
+  metadata: RuleMetadata | undefined
+  reason: string | undefined
+  rule: string
+}): ConditionContext {
+  return {
+    rule: opts.rule,
+    because: opts.reason,
+    ruleId: opts.metadata?.id,
+    suggestion: opts.metadata?.suggestion,
+    docs: opts.metadata?.docs,
+  }
 }
 
 /**

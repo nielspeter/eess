@@ -1,4 +1,5 @@
 import { selectMatching, recordPredicate, matchingElements } from '@nielspeter/eess/internal'
+import { conditionContextFrom } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import {
   assertionAdviceOf,
@@ -481,12 +482,10 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    * Call `super.buildConditionContext()` and spread the result.
    */
   protected buildConditionContext(): ConditionContext {
-    return {
+    return conditionContextFrom({
+      metadata: this._metadata,
+      reason: this._reason,
       rule: buildRuleDescription(this.asDeclared()),
-      because: this._reason,
-      ruleId: this._metadata?.id,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-    }
+    })
   }
 }

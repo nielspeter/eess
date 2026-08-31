@@ -1,6 +1,6 @@
 import type { Condition, GlobNode, Predicate, RuleDescription } from '@nielspeter/eess'
 import { declaredGlobsOf } from '@nielspeter/eess/internal'
-import { ruleDescriptionOf } from '@nielspeter/eess/internal'
+import { ruleDescriptionOf, ruleDescriptionFrom } from '@nielspeter/eess/internal'
 
 /**
  * A rule as DECLARED — what was chained onto the builder, before anything runs.
@@ -110,12 +110,10 @@ export function assertionAdviceOf(declared: DeclaredRule): string {
 
 /** The value behind `RuleBuilder.describeRule()`. */
 export function describeRuleOf(declared: DeclaredRule): RuleDescription {
-  return {
+  return ruleDescriptionFrom({
+    metadata: declared.metadata,
+    reason: declared.reason,
     rule: buildRuleDescription(declared),
-    id: declared.metadata?.id,
-    because: declared.reason,
-    suggestion: declared.metadata?.suggestion,
-    docs: declared.metadata?.docs,
-    imperative: declared.metadata?.imperative ?? buildImperative(declared),
-  }
+    imperativeFallback: buildImperative(declared),
+  })
 }

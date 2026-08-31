@@ -11,6 +11,7 @@ import type { ArchViolation } from './violation.js'
 import type { CheckOptions } from './check-options.js'
 import type { RuleMetadata } from './rule-metadata.js'
 import type { RuleDescription } from './rule-description.js'
+import { ruleDescriptionFrom } from './rule-description.js'
 import type { SilentExclusion } from './silent-exclusion.js'
 import { recordExclusions } from './silent-exclusion.js'
 import { executeCheck, executeWarn, applyFilters } from './execute-rule.js'
@@ -147,14 +148,11 @@ export abstract class TerminalBuilder {
    * Used by the `explain` CLI subcommand.
    */
   describeRule(): RuleDescription {
-    return {
+    return ruleDescriptionFrom({
+      metadata: this._metadata,
+      reason: this._reason,
       rule: this._metadata?.id ?? 'unnamed',
-      id: this._metadata?.id,
-      because: this._reason,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-      imperative: this._metadata?.imperative,
-    }
+    })
   }
 
   /** This rule's own account of itself, for `vacuity-findings.ts`. */
