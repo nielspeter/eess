@@ -36,6 +36,66 @@ function getMemberName(cls: ClassDeclaration, member: ClassMember): string {
 }
 
 /**
+ * A ceiling on one measurement of every callable member of every class.
+ *
+ * `maxCyclomaticComplexity`, `maxMethodLines` and `maxParameters` were the same
+ * nested walk three times over — `no-copy-paste` reported them at 98% — and the
+ * walk is the part that must not drift: a metric that visited methods but not
+ * accessors would report a clean ceiling for a class whose getter breaches it,
+ * which is a pass constructed from a partial scan (ADR-010).
+ *
+ * `unit` is threaded rather than derived from `metric`: `lines` kept its name
+ * when `linesOfCode` stopped counting comments, and the baseline refuses to
+ * compare across a unit change precisely so that silent tripling cannot happen
+ * again (bug 0171). A metric whose name already says what it counts passes
+ * nothing here.
+ */
+function memberCeiling(
+  threshold: number,
+  spec: {
+    description: string
+    metric: string
+    unit?: string
+    measure: (member: ClassMember) => number
+    message: (name: string, measured: number) => string
+  },
+): Condition<ClassDeclaration> {
+  return {
+    description: spec.description,
+    evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
+      const violations: ArchViolation[] = []
+      for (const cls of elements) {
+        for (const member of getClassMembers(cls)) {
+          const value = spec.measure(member)
+          if (value <= threshold) continue
+          const name = getMemberName(cls, member)
+          violations.push(
+            metricViolation(
+              member,
+              {
+                metric: spec.metric,
+                ...(spec.unit === undefined ? {} : { unit: spec.unit }),
+                // Written long-hand deliberately: `measured,` is a
+                // ShorthandPropertyAssignment, and the producer census in
+                // `every-metric-finding-carries-its-unit.test.ts` walks
+                // PropertyAssignment. Shorthand here made this producer
+                // invisible to it — the census now sees both kinds, and this
+                // spelling keeps the two from having to agree twice.
+                measured: value,
+                qualifiedName: name,
+                message: spec.message(name, value),
+              },
+              context,
+            ),
+          )
+        }
+      }
+      return violations
+    },
+  }
+}
+
+/**
  * No method/constructor/getter/setter in the class may exceed the given
  * cyclomatic complexity.
  *
@@ -47,32 +107,13 @@ function getMemberName(cls: ClassDeclaration, member: ClassMember): string {
  * ```
  */
 export function maxCyclomaticComplexity(threshold: number): Condition<ClassDeclaration> {
-  return {
+  return memberCeiling(threshold, {
     description: `have no method with cyclomatic complexity > ${String(threshold)}`,
-    evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
-      const violations: ArchViolation[] = []
-      for (const cls of elements) {
-        for (const member of getClassMembers(cls)) {
-          const cc = cyclomaticComplexity(member.getBody())
-          if (cc > threshold) {
-            violations.push(
-              metricViolation(
-                member,
-                {
-                  metric: 'complexity',
-                  measured: cc,
-                  qualifiedName: getMemberName(cls, member),
-                  message: `${getMemberName(cls, member)} has cyclomatic complexity ${String(cc)} (max: ${String(threshold)}) — split into smaller methods`,
-                },
-                context,
-              ),
-            )
-          }
-        }
-      }
-      return violations
-    },
-  }
+    metric: 'complexity',
+    measure: (member) => cyclomaticComplexity(member.getBody()),
+    message: (name, cc) =>
+      `${name} has cyclomatic complexity ${String(cc)} (max: ${String(threshold)}) — split into smaller methods`,
+  })
 }
 
 /**
@@ -126,35 +167,15 @@ export function maxClassLines(threshold: number): Condition<ClassDeclaration> {
  * ```
  */
 export function maxMethodLines(threshold: number): Condition<ClassDeclaration> {
-  return {
+  return memberCeiling(threshold, {
     description: `have no method longer than ${String(threshold)} code lines`,
-    evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
-      const violations: ArchViolation[] = []
-      for (const cls of elements) {
-        for (const member of getClassMembers(cls)) {
-          const loc = linesOfCode(member)
-          if (loc > threshold) {
-            violations.push(
-              metricViolation(
-                member,
-                {
-                  metric: 'lines',
-                  // `code-lines` since bug 0170 — the metric kept its name when it stopped
-                  // counting comments, and the baseline must not compare across that.
-                  unit: 'code-lines',
-                  measured: loc,
-                  qualifiedName: getMemberName(cls, member),
-                  message: `${getMemberName(cls, member)} has ${String(loc)} code lines (max: ${String(threshold)})`,
-                },
-                context,
-              ),
-            )
-          }
-        }
-      }
-      return violations
-    },
-  }
+    metric: 'lines',
+    // `code-lines` since bug 0170 — the metric kept its name when it stopped
+    // counting comments, and the baseline must not compare across that.
+    unit: 'code-lines',
+    measure: (member) => linesOfCode(member),
+    message: (name, loc) => `${name} has ${String(loc)} code lines (max: ${String(threshold)})`,
+  })
 }
 
 /**
@@ -208,32 +229,13 @@ export function maxMethods(threshold: number): Condition<ClassDeclaration> {
  * ```
  */
 export function maxParameters(threshold: number): Condition<ClassDeclaration> {
-  return {
+  return memberCeiling(threshold, {
     description: `have no method with more than ${String(threshold)} parameters`,
-    evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
-      const violations: ArchViolation[] = []
-      for (const cls of elements) {
-        for (const member of getClassMembers(cls)) {
-          const params = member.getParameters().length
-          if (params > threshold) {
-            violations.push(
-              metricViolation(
-                member,
-                {
-                  metric: 'parameters',
-                  measured: params,
-                  qualifiedName: getMemberName(cls, member),
-                  message: `${getMemberName(cls, member)} has ${String(params)} parameters (max: ${String(threshold)}) — use an options object`,
-                },
-                context,
-              ),
-            )
-          }
-        }
-      }
-      return violations
-    },
-  }
+    metric: 'parameters',
+    measure: (member) => member.getParameters().length,
+    message: (name, params) =>
+      `${name} has ${String(params)} parameters (max: ${String(threshold)}) — use an options object`,
+  })
 }
 
 // Re-export function-level metric conditions from the same sub-path

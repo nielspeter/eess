@@ -228,7 +228,15 @@ describe('a function metric identifies the function its message names (bug 0068)
     // there are enough of them that this is a population and not an accident.
     // `0 === 0` is green, which is exactly how the first version passed.
     expect(parsed.length).toBe(textualOccurrences)
-    expect(parsed.length).toBeGreaterThanOrEqual(9)
+    // Five, not nine: the six member/function metric conditions now emit
+    // through two shared ceilings (`memberCeiling`, `functionCeiling`) instead
+    // of six copies of the same walk. The floor is here so an empty scan
+    // cannot pass — but the real guard is the line above it, which is identity
+    // rather than counting: every textual `metricViolation(` must have been
+    // parsed. A call site that stopped being seen reds there whatever this
+    // number says, which is why lowering this one alongside a real
+    // consolidation does not buy back the vacuity it was written against.
+    expect(parsed.length).toBeGreaterThanOrEqual(5)
 
     // Identity, not emptiness — rule 5: "counting is the shortcut".
     expect(

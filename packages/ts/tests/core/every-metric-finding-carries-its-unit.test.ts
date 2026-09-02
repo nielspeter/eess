@@ -77,7 +77,17 @@ function metricProducers(project: Project): MetricProducer[] {
   for (const sourceFile of project.getSourceFiles()) {
     const rel = path.relative(REPO, sourceFile.getFilePath())
     if (!rel.startsWith('src/')) continue
-    for (const assignment of sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment)) {
+    // BOTH assignment kinds. `{ measured: value }` is a PropertyAssignment and
+    // `{ measured }` is a ShorthandPropertyAssignment, and a scan that walked
+    // only the first was blind to any producer that named its local `measured`
+    // — found when `memberCeiling` in `rules/metrics.ts` did exactly that and
+    // dropped out of this census silently. A census that cannot see a producer
+    // reports the same green as one where every producer is stamped.
+    const assignments = [
+      ...sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment),
+      ...sourceFile.getDescendantsOfKind(SyntaxKind.ShorthandPropertyAssignment),
+    ]
+    for (const assignment of assignments) {
       if (assignment.getName() !== 'measured') continue
       const literal = assignment.getParent()
       if (!Node.isObjectLiteralExpression(literal)) continue
@@ -101,10 +111,17 @@ describe('every metric-finding producer supplies the unit its ratchet uses', () 
     // them is the failure that lets an unstamped producer through: if
     // `isMetricViolationArgument` started returning true for everything, every
     // site would read as 'delegated' and nothing would ever be unstamped.
+    //
+    // Seven, down from nine: the six member/function metric conditions in
+    // `rules/metrics.ts` and `rules/metrics-function.ts` now emit through two
+    // shared ceilings instead of six copies of the same walk. The floor moves
+    // only alongside a real consolidation — never to accommodate a producer
+    // that stopped being SEEN, which is the failure this row exists for and
+    // which the row below (identity, not counting) is the real defence against.
     const found = metricProducers(loadSource())
-    expect(found.length).toBeGreaterThanOrEqual(9)
+    expect(found.length).toBeGreaterThanOrEqual(7)
     expect(found.filter((p) => p.route === 'stamped').length).toBeGreaterThanOrEqual(2)
-    expect(found.filter((p) => p.route === 'delegated').length).toBeGreaterThanOrEqual(7)
+    expect(found.filter((p) => p.route === 'delegated').length).toBeGreaterThanOrEqual(5)
   })
 
   it('no metric finding is produced without a unit', () => {
