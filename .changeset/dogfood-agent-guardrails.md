@@ -32,7 +32,13 @@ to load" is preserved.
 The preset asked for this type and the repo did not have it. That is what
 dogfooding is for.
 
-Remaining honestly: 84 `no-copy-paste` warnings. They ship as warnings by design,
-they are real duplication rather than by-design similarity, and plan 0188 owns
-them — with a measured inventory now recorded there. The gate blocks on errors and
-prints the warnings; it does not call them clean.
+Remaining honestly: `no-copy-paste` warnings, down from 84 at the moment the
+preset was first run to 38 as this ships. Every reduction is an extraction, not a
+threshold move — the shared owner each one produced is named in its own commit,
+and several turned out to be fixes rather than tidying, because the duplicate
+copies had already drifted apart. What is left divides into findings whose
+remedy is a DSL decision (a `haveX`/`notHaveX` pair is duplicated by
+construction, and collapsing it changes the public API) and a handful the
+detector reports on eight or more varying axes, which is same-shape rather than
+copy-paste. Plan 0188 owns the remainder. The gate blocks on errors and prints
+the warnings; it does not call them clean.
