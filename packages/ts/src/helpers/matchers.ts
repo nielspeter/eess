@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type CommentRange } from 'ts-morph'
+import { Node, SyntaxKind, type CommentRange, type KindToNodeMappings } from 'ts-morph'
 import { writeStderr } from '@nielspeter/eess/internal'
 
 /**
@@ -77,13 +77,13 @@ function normalizeText(text: string): string {
  * chaining is a real difference, and it is now visible as one line at each
  * call site rather than buried in the middle of a copy.
  */
-function textMatcher(
+function textMatcher<K extends SyntaxKind>(
   pattern: string | RegExp,
   spec: {
-    kind: SyntaxKind
+    kind: K
     exact: string
     fuzzy: string
-    textOf: (node: Node) => string | undefined
+    textOf: (node: KindToNodeMappings[K]) => string
   },
 ): ExpressionMatcher {
   return {
@@ -93,8 +93,9 @@ function textMatcher(
         : `${spec.fuzzy} ${String(pattern)}`,
     syntaxKinds: [spec.kind],
     matches(node: Node): boolean {
-      const text = spec.textOf(node)
-      if (text === undefined) return false
+      const typed = node.asKind(spec.kind)
+      if (typed === undefined) return false
+      const text = spec.textOf(typed)
       return typeof pattern === 'string' ? text === pattern : pattern.test(text)
     },
   }
@@ -119,8 +120,7 @@ export function call(nameOrRegex: string | RegExp): ExpressionMatcher {
     kind: SyntaxKind.CallExpression,
     exact: 'call to',
     fuzzy: 'call matching',
-    textOf: (node) =>
-      Node.isCallExpression(node) ? normalizeText(node.getExpression().getText()) : undefined,
+    textOf: (node) => normalizeText(node.getExpression().getText()),
   })
 }
 
@@ -142,8 +142,7 @@ export function access(chain: string | RegExp): ExpressionMatcher {
     kind: SyntaxKind.PropertyAccessExpression,
     exact: 'access to',
     fuzzy: 'access matching',
-    textOf: (node) =>
-      Node.isPropertyAccessExpression(node) ? normalizeText(node.getText()) : undefined,
+    textOf: (node) => normalizeText(node.getText()),
   })
 }
 
@@ -167,7 +166,7 @@ export function newExpr(nameOrRegex: string | RegExp): ExpressionMatcher {
     fuzzy: 'new matching',
     // Deliberately NOT normalized: `new a?.B()` is not valid syntax, so there
     // is no optional chaining to strip, and stripping would only mask a typo.
-    textOf: (node) => (Node.isNewExpression(node) ? node.getExpression().getText() : undefined),
+    textOf: (node) => node.getExpression().getText(),
   })
 }
 

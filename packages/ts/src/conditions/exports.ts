@@ -12,25 +12,11 @@ import type { ArchViolation } from '@nielspeter/eess'
  *   .check()
  */
 export function notHaveDefaultExport(): Condition<SourceFile> {
-  return {
-    description: 'not have a default export',
-    evaluate(elements: SourceFile[], context: ConditionContext): ArchViolation[] {
-      const violations: ArchViolation[] = []
-      for (const sf of elements) {
-        if (sf.getDefaultExportSymbol()) {
-          violations.push({
-            rule: context.rule,
-            element: sf.getBaseName(),
-            file: sf.getFilePath(),
-            line: 1,
-            message: `${sf.getBaseName()} has a default export`,
-            because: context.because,
-          })
-        }
-      }
-      return violations
-    },
-  }
+  return moduleCondition(
+    'not have a default export',
+    (sf) => sf.getDefaultExportSymbol() !== undefined,
+    (sf) => `${sf.getBaseName()} has a default export`,
+  )
 }
 
 /**
@@ -42,24 +28,45 @@ export function notHaveDefaultExport(): Condition<SourceFile> {
  *   .check()
  */
 export function haveDefaultExport(): Condition<SourceFile> {
+  return moduleCondition(
+    'have a default export',
+    (sf) => sf.getDefaultExportSymbol() === undefined,
+    (sf) => `${sf.getBaseName()} does not have a default export`,
+  )
+}
+
+/**
+ * A module-level condition: one violation per file that fails the test.
+ *
+ * `haveDefaultExport` and `notHaveDefaultExport` were byte-identical but for
+ * the polarity of one `if` and the wording of two strings — `no-copy-paste`
+ * reported them as literally the same text.
+ *
+ * They stay two exported functions and cannot become one. `not()` composes
+ * predicates, which answer a boolean; a condition owns its violation MESSAGE,
+ * and the negation of "does not have a default export" is not a mechanical
+ * inversion of that sentence — it is "has a default export", which only the
+ * author can write. A generic negation would emit the wrong remedy, which is
+ * ADR-009 rule 2's whole subject. So the loop is shared and the sentence is not.
+ *
+ * `line: 1` because the finding is about the module, not a position in it.
+ */
+function moduleCondition(
+  description: string,
+  violatesWhen: (sf: SourceFile) => boolean,
+  message: (sf: SourceFile) => string,
+): Condition<SourceFile> {
   return {
-    description: 'have a default export',
-    evaluate(elements: SourceFile[], context: ConditionContext): ArchViolation[] {
-      const violations: ArchViolation[] = []
-      for (const sf of elements) {
-        if (!sf.getDefaultExportSymbol()) {
-          violations.push({
-            rule: context.rule,
-            element: sf.getBaseName(),
-            file: sf.getFilePath(),
-            line: 1,
-            message: `${sf.getBaseName()} does not have a default export`,
-            because: context.because,
-          })
-        }
-      }
-      return violations
-    },
+    description,
+    evaluate: (elements, context) =>
+      elements.filter(violatesWhen).map((sf) => ({
+        rule: context.rule,
+        element: sf.getBaseName(),
+        file: sf.getFilePath(),
+        line: 1,
+        message: message(sf),
+        because: context.because,
+      })),
   }
 }
 

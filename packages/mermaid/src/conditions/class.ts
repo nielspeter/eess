@@ -99,6 +99,33 @@ export function extendClass(superName: string): Condition<ArchClass> {
   }
 }
 
+/**
+ * A class-level condition: one violation per class that fails the test.
+ *
+ * `haveStereotype`, `notHaveStereotype`, `dependOn` and `notDependOn` were
+ * four literal copies of `filter().map(classViolation)` — `no-copy-paste`
+ * reported them as identical text.
+ *
+ * Each pair stays TWO exported conditions rather than one plus `not()`.
+ * `not()` composes predicates, which answer a boolean; a condition owns its
+ * violation MESSAGE, and "is missing required stereotype" does not invert into
+ * "has forbidden stereotype" mechanically — only the author can write the
+ * other sentence. A generic negation would emit a remedy pointing the reader
+ * at the wrong change, which is what ADR-009 rule 2 forbids. So the loop is
+ * shared and the sentence is not.
+ */
+function classCondition(
+  description: string,
+  violatesWhen: (c: ArchClass) => boolean,
+  message: (c: ArchClass) => string,
+): Condition<ArchClass> {
+  return {
+    description,
+    evaluate: (elements, context) =>
+      elements.filter(violatesWhen).map((c) => classViolation(c, message(c), context)),
+  }
+}
+
 export function notExist(): Condition<ArchClass> {
   return marksAssertsCardinality({
     description: 'not exist',
@@ -109,27 +136,19 @@ export function notExist(): Condition<ArchClass> {
 }
 
 export function haveStereotype(name: string): Condition<ArchClass> {
-  return {
-    description: `have stereotype <<${name}>>`,
-    evaluate(elements: ArchClass[], context: ConditionContext): ArchViolation[] {
-      return elements
-        .filter((c) => !c.stereotypes.includes(name))
-        .map((c) =>
-          classViolation(c, `${c.name} is missing required stereotype <<${name}>>`, context),
-        )
-    },
-  }
+  return classCondition(
+    `have stereotype <<${name}>>`,
+    (c) => !c.stereotypes.includes(name),
+    (c) => `${c.name} is missing required stereotype <<${name}>>`,
+  )
 }
 
 export function notHaveStereotype(name: string): Condition<ArchClass> {
-  return {
-    description: `not have stereotype <<${name}>>`,
-    evaluate(elements: ArchClass[], context: ConditionContext): ArchViolation[] {
-      return elements
-        .filter((c) => c.stereotypes.includes(name))
-        .map((c) => classViolation(c, `${c.name} has forbidden stereotype <<${name}>>`, context))
-    },
-  }
+  return classCondition(
+    `not have stereotype <<${name}>>`,
+    (c) => c.stereotypes.includes(name),
+    (c) => `${c.name} has forbidden stereotype <<${name}>>`,
+  )
 }
 
 function dependenciesOf(c: ArchClass): string[] {
@@ -139,25 +158,19 @@ function dependenciesOf(c: ArchClass): string[] {
 }
 
 export function dependOn(targetName: string): Condition<ArchClass> {
-  return {
-    description: `depend on ${targetName}`,
-    evaluate(elements: ArchClass[], context: ConditionContext): ArchViolation[] {
-      return elements
-        .filter((c) => !dependenciesOf(c).includes(targetName))
-        .map((c) => classViolation(c, `${c.name} does not depend on ${targetName}`, context))
-    },
-  }
+  return classCondition(
+    `depend on ${targetName}`,
+    (c) => !dependenciesOf(c).includes(targetName),
+    (c) => `${c.name} does not depend on ${targetName}`,
+  )
 }
 
 export function notDependOn(targetName: string): Condition<ArchClass> {
-  return {
-    description: `not depend on ${targetName}`,
-    evaluate(elements: ArchClass[], context: ConditionContext): ArchViolation[] {
-      return elements
-        .filter((c) => dependenciesOf(c).includes(targetName))
-        .map((c) => classViolation(c, `${c.name} depends on ${targetName}`, context))
-    },
-  }
+  return classCondition(
+    `not depend on ${targetName}`,
+    (c) => dependenciesOf(c).includes(targetName),
+    (c) => `${c.name} depends on ${targetName}`,
+  )
 }
 
 export function notDependOnStereotype(stereotype: string): Condition<ArchClass> {
