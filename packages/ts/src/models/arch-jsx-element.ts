@@ -240,20 +240,7 @@ function buildAttributeAccessors(getAttrs: () => JsxAttributeLike[]) {
 // eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function fromJsxElement(el: JsxElement): ArchJsxElement {
   const opening = el.getOpeningElement()
-  const tagName = opening.getTagNameNode().getText()
-  const htmlTag = isHtmlTag(tagName)
-  const attrs = buildAttributeAccessors(() => opening.getAttributes())
-
-  return {
-    getName: () => tagName,
-    getSourceFile: () => el.getSourceFile(),
-    isHtmlElement: () => htmlTag,
-    isComponent: () => !htmlTag,
-    ...attrs,
-    hasChildren: () => true,
-    getNode: () => el,
-    getStartLineNumber: () => el.getStartLineNumber(),
-  }
+  return jsxElementOf(el, opening.getTagNameNode().getText(), () => opening.getAttributes(), true)
 }
 
 /**
@@ -261,17 +248,33 @@ export function fromJsxElement(el: JsxElement): ArchJsxElement {
  */
 // eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function fromJsxSelfClosingElement(el: JsxSelfClosingElement): ArchJsxElement {
-  const tagName = el.getTagNameNode().getText()
-  const htmlTag = isHtmlTag(tagName)
-  const attrs = buildAttributeAccessors(() => el.getAttributes())
+  return jsxElementOf(el, el.getTagNameNode().getText(), () => el.getAttributes(), false)
+}
 
+/**
+ * The `ArchJsxElement` shape, from whichever node carries the tag.
+ *
+ * `<X>…</X>` and `<X />` differ in exactly two things — where the attributes
+ * hang, and whether children are possible — and the two constructors were
+ * otherwise byte-identical, which `no-copy-paste` reported at 91%. The rest is
+ * a definition, not a coincidence: `isComponent` is `!isHtmlElement` and must
+ * stay so, since an element that answered false to both would be excluded by
+ * every JSX rule at once and reported by none.
+ */
+function jsxElementOf(
+  el: JsxElement | JsxSelfClosingElement,
+  tagName: string,
+  attributes: () => JsxAttributeLike[],
+  hasChildren: boolean,
+): ArchJsxElement {
+  const htmlTag = isHtmlTag(tagName)
   return {
     getName: () => tagName,
     getSourceFile: () => el.getSourceFile(),
     isHtmlElement: () => htmlTag,
     isComponent: () => !htmlTag,
-    ...attrs,
-    hasChildren: () => false,
+    ...buildAttributeAccessors(attributes),
+    hasChildren: () => hasChildren,
     getNode: () => el,
     getStartLineNumber: () => el.getStartLineNumber(),
   }

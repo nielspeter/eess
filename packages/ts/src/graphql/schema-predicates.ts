@@ -20,27 +20,33 @@ export interface SchemaElement {
 }
 
 /**
+ * Filter to the FIELDS of one root type.
+ *
+ * `element.field !== undefined` is what makes this a field predicate rather
+ * than a type one: `getElements()` emits a type-level element per SDL type AND
+ * a field-level element per field, so without it `queries()` would also select
+ * the `Query` type itself — one extra subject that no field condition can say
+ * anything true about.
+ */
+function rootTypeFields(typeName: string, description: string): Predicate<SchemaElement> {
+  return {
+    description,
+    test: (element) => element.typeName === typeName && element.field !== undefined,
+  }
+}
+
+/**
  * Filter to only Query root type fields.
  */
 export function queries(): Predicate<SchemaElement> {
-  return {
-    description: 'are queries',
-    test(element: SchemaElement): boolean {
-      return element.typeName === 'Query' && element.field !== undefined
-    },
-  }
+  return rootTypeFields('Query', 'are queries')
 }
 
 /**
  * Filter to only Mutation root type fields.
  */
 export function mutations(): Predicate<SchemaElement> {
-  return {
-    description: 'are mutations',
-    test(element: SchemaElement): boolean {
-      return element.typeName === 'Mutation' && element.field !== undefined
-    },
-  }
+  return rootTypeFields('Mutation', 'are mutations')
 }
 
 /**

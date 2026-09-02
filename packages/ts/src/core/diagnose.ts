@@ -521,9 +521,7 @@ function zeroSubjectsFinding(rule: DiagnosableRule, name: string): DiagnosticFin
  * adequacy predicate it does not own.
  */
 function inertFinding(rule: DiagnosableRule, name: string): DiagnosticFinding | undefined {
-  const advice = rule.inertAdvice?.()
-  if (advice === undefined || advice === '') return undefined
-  return { kind: 'inert', rule: name, advice }
+  return adviceFinding('inert', name, rule.inertAdvice?.())
 }
 
 /** A deferred warning whose accepted list no longer covers everything it finds — plan 0090. */
@@ -531,9 +529,25 @@ function deferredWarningFinding(
   rule: DiagnosableRule,
   name: string,
 ): DiagnosticFinding | undefined {
-  const advice = rule.deferredWarningAdvice?.()
+  return adviceFinding('deferred-warning', name, rule.deferredWarningAdvice?.())
+}
+
+/**
+ * A finding that exists only if the family had something to say.
+ *
+ * `undefined` and `''` are the same answer — "this family declines to advise"
+ * — and treating them alike in ONE place is why an unimplemented hook and an
+ * implemented-but-silent one cannot diverge. A finding whose `advice` is the
+ * empty string renders as a heading with nothing under it, which reads to the
+ * author as a diagnosis that was cut off rather than one that was declined.
+ */
+function adviceFinding(
+  kind: 'inert' | 'deferred-warning',
+  name: string,
+  advice: string | undefined,
+): DiagnosticFinding | undefined {
   if (advice === undefined || advice === '') return undefined
-  return { kind: 'deferred-warning', rule: name, advice }
+  return { kind, rule: name, advice }
 }
 
 /**
