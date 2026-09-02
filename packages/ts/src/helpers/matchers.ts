@@ -63,6 +63,44 @@ function normalizeText(text: string): string {
 }
 
 /**
+ * One matcher over a node's text, string-exact or regex.
+ *
+ * `call`, `access` and `newExpr` were the same fourteen lines three times over
+ * — string branch, regex branch, both re-testing the node kind — which
+ * `no-copy-paste` reported as two clusters at 95% and 92%. What differs is the
+ * kind, the two label halves, and HOW the text is read, so `textOf` is a
+ * callback returning `undefined` for a node of the wrong kind: the guard and
+ * the extraction are one decision, and splitting them is how a matcher ends up
+ * testing one kind and reading another.
+ *
+ * `newExpr` passing raw `getText()` while the other two normalize optional
+ * chaining is a real difference, and it is now visible as one line at each
+ * call site rather than buried in the middle of a copy.
+ */
+function textMatcher(
+  pattern: string | RegExp,
+  spec: {
+    kind: SyntaxKind
+    exact: string
+    fuzzy: string
+    textOf: (node: Node) => string | undefined
+  },
+): ExpressionMatcher {
+  return {
+    description:
+      typeof pattern === 'string'
+        ? `${spec.exact} '${pattern}'`
+        : `${spec.fuzzy} ${String(pattern)}`,
+    syntaxKinds: [spec.kind],
+    matches(node: Node): boolean {
+      const text = spec.textOf(node)
+      if (text === undefined) return false
+      return typeof pattern === 'string' ? text === pattern : pattern.test(text)
+    },
+  }
+}
+
+/**
  * Match a CallExpression by function/method name.
  *
  * Matches against `CallExpression.getExpression().getText()` after
@@ -77,26 +115,13 @@ function normalizeText(text: string): string {
  * call(/^console\./)                  // matches console.log, console.warn, etc.
  */
 export function call(nameOrRegex: string | RegExp): ExpressionMatcher {
-  if (typeof nameOrRegex === 'string') {
-    return {
-      description: `call to '${nameOrRegex}'`,
-      syntaxKinds: [SyntaxKind.CallExpression],
-      matches(node: Node): boolean {
-        if (!Node.isCallExpression(node)) return false
-        const text = normalizeText(node.getExpression().getText())
-        return text === nameOrRegex
-      },
-    }
-  }
-  return {
-    description: `call matching ${String(nameOrRegex)}`,
-    syntaxKinds: [SyntaxKind.CallExpression],
-    matches(node: Node): boolean {
-      if (!Node.isCallExpression(node)) return false
-      const text = normalizeText(node.getExpression().getText())
-      return nameOrRegex.test(text)
-    },
-  }
+  return textMatcher(nameOrRegex, {
+    kind: SyntaxKind.CallExpression,
+    exact: 'call to',
+    fuzzy: 'call matching',
+    textOf: (node) =>
+      Node.isCallExpression(node) ? normalizeText(node.getExpression().getText()) : undefined,
+  })
 }
 
 /**
@@ -113,26 +138,13 @@ export function call(nameOrRegex: string | RegExp): ExpressionMatcher {
  * access(/^this\.db/)                 // matches this.db, this.db.query, etc.
  */
 export function access(chain: string | RegExp): ExpressionMatcher {
-  if (typeof chain === 'string') {
-    return {
-      description: `access to '${chain}'`,
-      syntaxKinds: [SyntaxKind.PropertyAccessExpression],
-      matches(node: Node): boolean {
-        if (!Node.isPropertyAccessExpression(node)) return false
-        const text = normalizeText(node.getText())
-        return text === chain
-      },
-    }
-  }
-  return {
-    description: `access matching ${String(chain)}`,
-    syntaxKinds: [SyntaxKind.PropertyAccessExpression],
-    matches(node: Node): boolean {
-      if (!Node.isPropertyAccessExpression(node)) return false
-      const text = normalizeText(node.getText())
-      return chain.test(text)
-    },
-  }
+  return textMatcher(chain, {
+    kind: SyntaxKind.PropertyAccessExpression,
+    exact: 'access to',
+    fuzzy: 'access matching',
+    textOf: (node) =>
+      Node.isPropertyAccessExpression(node) ? normalizeText(node.getText()) : undefined,
+  })
 }
 
 /**
@@ -149,26 +161,14 @@ export function access(chain: string | RegExp): ExpressionMatcher {
  * newExpr(/Error$/)                   // matches new Error, new DomainError, new TypeError, etc.
  */
 export function newExpr(nameOrRegex: string | RegExp): ExpressionMatcher {
-  if (typeof nameOrRegex === 'string') {
-    return {
-      description: `new '${nameOrRegex}'`,
-      syntaxKinds: [SyntaxKind.NewExpression],
-      matches(node: Node): boolean {
-        if (!Node.isNewExpression(node)) return false
-        const text = node.getExpression().getText()
-        return text === nameOrRegex
-      },
-    }
-  }
-  return {
-    description: `new matching ${String(nameOrRegex)}`,
-    syntaxKinds: [SyntaxKind.NewExpression],
-    matches(node: Node): boolean {
-      if (!Node.isNewExpression(node)) return false
-      const text = node.getExpression().getText()
-      return nameOrRegex.test(text)
-    },
-  }
+  return textMatcher(nameOrRegex, {
+    kind: SyntaxKind.NewExpression,
+    exact: 'new',
+    fuzzy: 'new matching',
+    // Deliberately NOT normalized: `new a?.B()` is not valid syntax, so there
+    // is no optional chaining to strip, and stripping would only mask a typo.
+    textOf: (node) => (Node.isNewExpression(node) ? node.getExpression().getText() : undefined),
+  })
 }
 
 /**
