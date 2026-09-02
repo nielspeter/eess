@@ -1,4 +1,5 @@
 import type { Predicate } from './predicate.js'
+import { combineGlobs, negateGlobs } from './glob-site.js'
 
 /**
  * A function that tests a value against a condition.
@@ -31,14 +32,36 @@ export function not<T, V>(input: Predicate<T> | Matcher<V>): Predicate<T> | Matc
   return {
     description: `not (${input.description})`,
     test: (element: T) => !input.test(element),
+    // Negation-normal-form push-down: `op` inverts as well as `polarity`.
+    // `not(unsatisfiable)` selects everything, so a negated site is
+    // over-selection rather than vacuity and can never be a fault — but a
+    // `not` nested inside the subtree flips it back, which is why this cannot
+    // just flip polarity. See `negateGlobs`.
+    globs: input.globs && negateGlobs(input.globs),
   }
 }
 
-function assertHomogeneous<T, V>(inputs: (Predicate<T> | Matcher<V>)[]): void {
+/**
+ * Every input to `and()`/`or()` must be the same kind.
+ *
+ * `eess-ts` carried a byte-identical copy — `no-copy-paste` reported it at
+ * 100%, with only the noun in the message differing — so the noun is now the
+ * parameter and the check has one owner.
+ *
+ * A `TypeError` and not a filtered result: mixing an object predicate with a
+ * matcher function silently drops one kind (the implementations below filter
+ * by `typeof`), so a rule composed that way would narrow by half of what its
+ * author wrote and pass on the rest. Refusing at composition time is the only
+ * point where the mistake is still visible.
+ */
+export function assertHomogeneous<T, V>(
+  inputs: (Predicate<T> | Matcher<V>)[],
+  matcherNoun = 'Matcher',
+): void {
   if (inputs.length === 0) return
   const firstIsFunction = typeof inputs[0] === 'function'
   if (inputs.some((i) => (typeof i === 'function') !== firstIsFunction)) {
-    throw new TypeError('Cannot mix Predicate objects and Matcher functions in and()/or()')
+    throw new TypeError(`Cannot mix Predicate objects and ${matcherNoun} functions in and()/or()`)
   }
 }
 
@@ -68,6 +91,11 @@ export function and<T, V>(...inputs: (Predicate<T> | Matcher<V>)[]): Predicate<T
   return {
     description: predicates.map((p) => p.description).join(' and '),
     test: (element: T) => predicates.every((p) => p.test(element)),
+    // A conjunction selects nothing as soon as ONE input does.
+    globs: combineGlobs(
+      'all',
+      predicates.map((p) => p.globs),
+    ),
   }
 }
 
@@ -96,5 +124,12 @@ export function or<T, V>(...inputs: (Predicate<T> | Matcher<V>)[]): Predicate<T>
   return {
     description: predicates.map((p) => p.description).join(' or '),
     test: (element: T) => predicates.some((p) => p.test(element)),
+    // A disjunction selects nothing only when EVERY input does. Inputs that
+    // declare no globs become retained opaque children rather than being
+    // dropped — dropping them here is what would red `or(deadGlob, byName)`.
+    globs: combineGlobs(
+      'any',
+      predicates.map((p) => p.globs),
+    ),
   }
 }

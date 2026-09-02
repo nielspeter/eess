@@ -1,6 +1,10 @@
 import type { Predicate } from '@nielspeter/eess'
 import type { TypeMatcher } from './type-matcher.js'
-import { combineGlobs, negateGlobs } from '@nielspeter/eess/internal'
+import {
+  combineGlobs,
+  negateGlobs,
+  assertHomogeneous as kernelAssertHomogeneous,
+} from '@nielspeter/eess/internal'
 
 /**
  * Negates a predicate or type matcher.
@@ -33,12 +37,9 @@ export function not<T>(input: Predicate<T> | TypeMatcher): Predicate<T> | TypeMa
   }
 }
 
+/** The kernel's, with this dialect's noun for the function kind. */
 function assertHomogeneous<T>(inputs: (Predicate<T> | TypeMatcher)[]): void {
-  if (inputs.length === 0) return
-  const firstIsFunction = typeof inputs[0] === 'function'
-  if (inputs.some((i) => (typeof i === 'function') !== firstIsFunction)) {
-    throw new TypeError('Cannot mix Predicate objects and TypeMatcher functions in and()/or()')
-  }
+  kernelAssertHomogeneous(inputs, 'TypeMatcher')
 }
 
 /**

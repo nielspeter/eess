@@ -119,3 +119,4 @@ export { evaluateConditions, conditionContextFrom } from './condition.js'
 // Assembling a rule's English description from what it declared. Family
 // plumbing: every dialect builder renders one, a consumer does not.
 export { ruleDescriptionOf, ruleDescriptionFrom } from './rule-description.js'
+export { assertHomogeneous } from './combinators.js'
