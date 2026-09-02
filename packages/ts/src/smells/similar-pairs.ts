@@ -100,6 +100,31 @@ export function findSimilarPairs(
       //
       // Measured on this repo: 10 of 173 pairs, every one of them noise.
       if (containsOther(a.fn, b.fn)) continue
+      // Bug 0230 — the PAIRWISE floor, where the two above are per-body.
+      // Plan 0103 asks "does this body carry enough vocabulary to be
+      // evidence?"; nothing asked "do these two carry any of the SAME
+      // vocabulary?". `computeSimilarity` cannot answer it and must not — it
+      // scores syntax kinds only, which is what makes it a type-2 clone score
+      // — so a pair could reach 1.00 on shape with an empty intersection.
+      // Shipped, on this repo: `asDeclared` against `InconsistentSiblings-
+      // Builder.scope`, two functions that each gather six of their own fields
+      // into a record and have not one identifier in common. "Extract the
+      // shared logic into one function" names something that does not exist.
+      //
+      // `=== 0`, never a threshold. Measured over all 89 pairs this repo
+      // produces: two share nothing, none share one or two, and the nearest
+      // real finding shares four. The gap is empty, so no tuned number is
+      // needed — and a non-zero floor would start suppressing copy-paste.
+      //
+      // Guarded by `minDistinct > 0`, and that is not a special case for a
+      // test. "These share no vocabulary" is evidence of unrelatedness only if
+      // there was vocabulary to share: two bodies that are pure control flow
+      // (`return true`) share their entire content, because the shape IS the
+      // content. Whether such a pair is worth reporting is the CALLER's
+      // decision, spelled `minDistinctVocabulary(0)`, and rejection 2 above
+      // has already applied it. Overriding it here would make that option
+      // silently mean something else.
+      if (minDistinct > 0 && sharedVocabulary(a.fingerprint, b.fingerprint) === 0) continue
       const similarity = computeSimilarity(a.fingerprint, b.fingerprint)
       if (similarity >= minSimilarity) {
         pairs.push({
@@ -114,4 +139,23 @@ export function findSimilarPairs(
   }
 
   return pairs
+}
+
+/**
+ * How many distinct identifiers/literals both bodies use.
+ *
+ * Reads `Fingerprint.texts`, which `computeSimilarity` deliberately ignores:
+ * the score is over syntax kinds so that a renamed copy still scores as a
+ * clone. That is right for scoring and wrong for deciding whether two bodies
+ * are related at all, which is what this answers.
+ */
+function sharedVocabulary(a: Fingerprint, b: Fingerprint): number {
+  const theirs = new Set<string>()
+  for (const text of b.texts) if (text !== undefined) theirs.add(text)
+  const counted = new Set<string>()
+  for (const text of a.texts) {
+    if (text === undefined || counted.has(text)) continue
+    if (theirs.has(text)) counted.add(text)
+  }
+  return counted.size
 }
