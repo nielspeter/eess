@@ -310,6 +310,30 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
   }
 
   /**
+   * Register a DUAL-USE method's condition or predicate, according to phase.
+   *
+   * Sixteen builder methods across four builders wrote this dispatch out —
+   * `no-copy-paste` reported them as two clusters at 100%. The dispatch is the
+   * only thing they share; the pair handed to it is what each method IS.
+   *
+   * Both sides are constructed eagerly rather than passed as thunks. Every one
+   * of the sixteen pairs is pure object construction — checked, none of the
+   * modules they come from (`conditions/structural`, `conditions/class`,
+   * `conditions/dependency`, `predicates/identity`, `predicates/module`)
+   * throws — so building the unused half costs an object and changes nothing.
+   * Thunks would buy laziness nobody needs at the price of two closures per
+   * call, and would hide the pair behind a lambda in every reader's way.
+   *
+   * A dual-use method is NOT the same as a predicate-only one. `areExported()`
+   * written after `.should()` still filters and is reported by the assertion
+   * gate as a misplaced predicate; a dual-use method written there asserts.
+   * That difference is a property of the method, so it stays at the method.
+   */
+  protected dualUse(condition: Condition<T>, predicate: Predicate<T>): this {
+    return this._phase === 'condition' ? this.addCondition(condition) : this.addPredicate(predicate)
+  }
+
+  /**
    * Register a condition. Called by concrete builder methods like
    * `.notContain()`, `.notExist()`, etc.
    */

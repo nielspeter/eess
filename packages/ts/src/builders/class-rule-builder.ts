@@ -96,11 +96,8 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
    * After `.should()`: assert matched classes have names matching the pattern.
    */
   haveNameMatching(pattern: RegExp | string): this {
-    if (this._phase === 'condition') {
-      const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern
-      return this.addCondition(conditionHaveNameMatching(regex))
-    }
-    return this.addPredicate(identityHaveNameMatching(pattern))
+    const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern
+    return this.dualUse(conditionHaveNameMatching(regex), identityHaveNameMatching(pattern))
   }
 
   /**
@@ -132,10 +129,7 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
    * After `.should()`: assert matched classes reside in a file matching the glob.
    */
   resideInFile(glob: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(conditionResideInFile(glob))
-    }
-    return this.addPredicate(predicateResideInFile(glob))
+    return this.dualUse(conditionResideInFile(glob), predicateResideInFile(glob))
   }
 
   /**
@@ -143,10 +137,7 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
    * After `.should()`: assert matched classes reside in a folder matching the glob.
    */
   resideInFolder(glob: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(conditionResideInFolder(glob))
-    }
-    return this.addPredicate(predicateResideInFolder(glob))
+    return this.dualUse(conditionResideInFolder(glob), predicateResideInFolder(glob))
   }
 
   /**
@@ -180,10 +171,7 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
    * After `.should()`: assert matched classes extend the given class.
    */
   extend(className: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(conditionExtend(className))
-    }
-    return this.addPredicate(predicateExtend(className))
+    return this.dualUse(conditionExtend(className), predicateExtend(className))
   }
 
   /**
@@ -191,10 +179,7 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
    * After `.should()`: assert matched classes implement the given interface.
    */
   implement(interfaceName: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(conditionImplement(interfaceName))
-    }
-    return this.addPredicate(predicateImplement(interfaceName))
+    return this.dualUse(conditionImplement(interfaceName), predicateImplement(interfaceName))
   }
 
   /**
@@ -238,10 +223,7 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
    * After `.should()`: assert matched classes have a method with the given name.
    */
   haveMethodNamed(name: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(conditionHaveMethodNamed(name))
-    }
-    return this.addPredicate(predicateHaveMethodNamed(name))
+    return this.dualUse(conditionHaveMethodNamed(name), predicateHaveMethodNamed(name))
   }
 
   /**
