@@ -865,6 +865,10 @@ describe('assertion classification of every exported builder', () => {
     // a real implementation, so the prototype walk finds 'RuleBuilder', never
     // the exempt default
     'RuleBuilder',
+    // the same, for the GraphQL pair: both accumulate conditions after
+    // `.should()` and zero is reachable, and both now inherit the hook from
+    // their own abstract root rather than each defining it
+    'GraphqlRuleBuilder',
   ]
   const ASSERTION_IS_STRUCTURAL: readonly string[] = [
     // pairwise similarity is the assertion; there is no state without it

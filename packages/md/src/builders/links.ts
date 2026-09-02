@@ -1,6 +1,6 @@
 import { RuleBuilder, type Predicate } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
-import { collectLinks, type MdLink } from '../model/links.js'
+import { collectLinks, type MdLink, type MdLinkRef } from '../model/links.js'
 import { stampedByDocument } from '../model/by-document.js'
 import { linkResolves, type LinkResolveOptions } from '../conditions/resolve.js'
 
@@ -23,7 +23,7 @@ const areExternal = (): Predicate<MdLink> => ({
  */
 export class LinkRuleBuilder extends RuleBuilder<MdLink, Corpus> {
   protected getElements(): MdLink[] {
-    return stampedByDocument(this.project, (doc) => collectLinks(doc.root, doc.text))
+    return stampedByDocument<MdLinkRef>(this.project, (doc) => collectLinks(doc.root, doc.text))
   }
 
   /** Filter to links that point within the repo (no scheme). */

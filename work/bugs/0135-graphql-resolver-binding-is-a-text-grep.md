@@ -50,9 +50,9 @@ consequences, each independently disqualifying:
    elements only (`:97`). A resolver for a field the schema no longer declares —
    the orphan that rots _after_ a field is deleted — is not detected by anything
    in this module.
-4. **Attribution points at the wrong file.** `packages/ts/src/graphql/schema-rule-builder.ts:187`
+4. **Attribution points at the wrong file.** `packages/ts/src/graphql/schema-rule-builder.ts:143`
    computes `const firstFile = this.loaded.documents[0]?.filePath` and stamps it
-   onto every element (`:202`, `:213`); all three conditions hard-code `line: 1`
+   onto every element (`:158`, `:169`); all three conditions hard-code `line: 1`
    (`schema-conditions.ts:32`, `:65`, `:118`). `loadSchemaFromGlob` is explicitly
    a multi-file loader (`schema-loader.ts:97-121`), so in its designed use case
    every violation reports line 1 of whichever `.graphql` file sorted first,

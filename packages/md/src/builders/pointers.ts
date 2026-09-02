@@ -1,6 +1,6 @@
 import { RuleBuilder, type Predicate } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
-import { extractPointers, type MdPointer } from '../model/pointers.js'
+import { extractPointers, type MdPointer, type MdPointerRef } from '../model/pointers.js'
 import { stampedByDocument } from '../model/by-document.js'
 import { pointerResolves, type PointerResolveOptions } from '../conditions/pointer-resolve.js'
 
@@ -21,7 +21,9 @@ const areFrozen = (): Predicate<MdPointer> => ({
  */
 export class PointerRuleBuilder extends RuleBuilder<MdPointer, Corpus> {
   protected getElements(): MdPointer[] {
-    return stampedByDocument(this.project, (doc) => extractPointers(doc.text, doc.root))
+    return stampedByDocument<MdPointerRef>(this.project, (doc) =>
+      extractPointers(doc.text, doc.root),
+    )
   }
 
   /** Filter to pointers in live documents (not in a frozen folder). */

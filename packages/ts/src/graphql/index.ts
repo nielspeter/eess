@@ -89,6 +89,7 @@ export function resolvers(p: ArchProject, glob: string): ResolverRuleBuilder {
 
 // --- Re-exports ---
 
+export { GraphqlRuleBuilder } from './graphql-rule-builder.js'
 export { SchemaRuleBuilder } from './schema-rule-builder.js'
 export { ResolverRuleBuilder } from './resolver-rule-builder.js'
 export { resolveFieldReturning } from './resolver-rule-builder.js'

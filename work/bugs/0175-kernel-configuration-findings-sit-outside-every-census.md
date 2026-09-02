@@ -26,7 +26,7 @@ nothing else.
 | `unmetExpectNonEmptyViolation` | `:78`                                       |
 | `zeroLoadedSourceViolation`    | `:105`                                      |
 | `expiredExpectEmptyViolation`  | `:130`                                      |
-| `assertionLessViolation`       | `packages/core/src/terminal-builder.ts:452` |
+| `assertionLessViolation`       | `packages/core/src/terminal-builder.ts:413` |
 | (preset dispatch)              | `packages/core/src/preset-dispatch.ts:121`  |
 
 They serve `eess-md`, `eess-mermaid`, `eess-gherkin` and `eess-crossvalidate` —
