@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — reproduced exactly; fix not attempted, because the obvious
-  one interacts with an existing fixture (see [Fix](#fix)).
+- **State:** Fixed — the pair landed: a `check:integrity` row that names a
+  leftover for what it is, and the scenario-6 tightening that stops it
+  answering for the raw-NUL guard. One residue is stated below and NOT fixed.
 - **Severity:** Medium — nothing is missed and nothing is silently green. The
   cost is misattribution: two gates go red for a file that `git status` cannot
   see, neither of them the gate that created it, and the natural reading is
@@ -111,7 +112,75 @@ The first half is wrong: it **does** have a startup sweep, at
 different reason — the sweep is on the wrong side of a ten-minute gate — but
 the stated cause is not the real one. Correcting it is part of this fix.
 
-## Fix
+## Fix — as built
+
+Both halves, in this order, because the second cannot be verified after the
+first: with the new rule in place `check:integrity` reds on scenario 6's probe
+for two reasons at once, so the tightening had to be proven while only the NUL
+reason existed.
+
+**1. Scenario 6 asserts the reason** (`bad-waived-gates.mjs`). It read
+`out.includes(probeName) && status !== 0`. It now also requires
+`` `${NUL_PROBE} contains` `` and `'raw NUL byte(s) (first at line'`.
+
+The first attempt at this asserted `'raw NUL byte'` alone, **and that was
+wrong** — the success summary ends "…free of raw NUL bytes", so the phrase is
+satisfied by the line that says the gate found nothing. Measured while writing
+it: with the guard sabotaged, that variable still read true. The assertion is
+now a phrase that occurs only in the finding. This is the same defect the
+scenario itself is about, committed in the fix for it.
+
+**2. `check:integrity` names a leftover** (`check-workspace-integrity.mjs`).
+Matching is by basename prefix — the same shape as the `.gitignore` rule — over
+`packages/*/src`, `docs`, `work`, `examples` and `scripts/nonvacuity`, so a
+probe planted somewhere new is caught without editing a list. The finding:
+
+```
+✗ leftover non-vacuity probe: packages/core/src/__nonvacuity_probe_generic_error__.ts
+  — a fixture under scripts/nonvacuity/ was killed before its cleanup ran.
+  Delete the file. It is gitignored (`**/__nonvacuity_probe*`), so `git status`
+  will not show it, and until it is gone other gates will report it as a defect
+  in your own code
+```
+
+Per the one-row-per-CHECK doctrine under `GATE_FOR`, the new check gets its own
+fixture (`integrity/leftover-probe`), its own row, and its own `GATE_FOR` entry.
+Its probe is deliberately innocuous — no NUL, no bare `Error`, no import — so
+the fixture cannot pass on some other check firing first. The OK summary gained
+its denominator: `N probe roots free of leftover fixtures`.
+
+Also corrected: `check-nonvacuity.mjs`'s docstring, which claimed the fixture
+has no startup sweep. It has one.
+
+## Residue — NOT fixed
+
+`check:integrity` is not in `check:fast`:
+
+```
+check:fast = check:release && check:corpus && check:spec && check:arch && check:family
+```
+
+So the fast loop — the one an agent actually runs, and the one where this bug
+was felt — still reports the phantom `check:arch` violation and never reaches
+the gate that can explain it. `npm run validate` and any direct
+`npm run check:integrity` do.
+
+Measured: `check:integrity` costs **0.17s** against `check:fast`'s 2.1s. Adding
+it, first in the chain so the leftover is named before `check:arch` reports the
+symptom, is a one-line change to `package.json`. It is left undone because
+widening what "fast" means is a decision about that loop's contract, not a
+consequence of this bug.
+
+## Superseded analysis
+
+The original filing recommended this pair and noted the fixture interaction. It
+also listed two cheaper options — un-ignoring the probe names, and sweeping in
+`check:fast`. Neither was taken. The un-ignore trades invisibility for the risk
+the ignore exists to prevent; the sweep would put test-harness knowledge inside
+a production gate, where this fix instead puts a finding that explains itself.
+
+The reasoning behind the original recommendation, kept because it is what a
+later reader needs to judge the choice:
 
 The obvious fix is a `check:integrity` row: it is already the workspace-hygiene
 gate, it is fast, and it would name the leftover with a remedy instead of
@@ -162,10 +231,20 @@ A fix must fail when:
 
 ## Verification
 
-- [ ] Red test: a planted leftover makes the chosen gate report it by name,
-      with a remedy that says "delete it", before the fix exists.
-- [ ] Scenario 6 asserts the NUL reason specifically, and reds when the NUL
-      guard alone is sabotaged.
-- [ ] `check-nonvacuity.mjs`'s docstring corrected: the fixture has a startup
-      sweep; the gap is that it is reachable only through the slowest gate.
-- [ ] Sabotage: deleting the new rule reds the first row.
+- [x] Red test: `integrity/leftover-probe` was written before the check existed
+      and failed with "never named the leftover probe and never gave the
+      leftover reason". Green after.
+- [x] Scenario 6 asserts the NUL reason specifically, and reds when the NUL
+      guard alone is sabotaged — verified by replacing `buf.indexOf(0)` with
+      `-1` and watching it report vacuity.
+- [x] `check-nonvacuity.mjs`'s docstring corrected.
+- [x] Sabotage: neutering the basename test in the new rule reds
+      `integrity/leftover-probe`.
+- [x] End-to-end: SIGKILL the `guardrails/generic-error` fixture mid-run, then
+      `check:integrity` names the survivor with the remedy above, while
+      `git status` still shows a clean tree.
+- [ ] `deferred→` the Residue section — `check:integrity` in `check:fast` is a
+      decision about that loop's contract, priced at 0.17s and left to the
+      maintainer.
+
+Deferred: the Residue section (one line in `package.json`, priced, not taken).

@@ -97,6 +97,7 @@ for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
 const PROBE_PATHS = [
   'packages/core/src/__nonvacuity_probe_nul__.ts',
   'packages/core/src/__nonvacuity_probe_generic_error__.ts',
+  'packages/core/src/__nonvacuity_probe_leftover__.ts',
   'examples/__nonvacuity_probe__.test.ts',
 ]
 
@@ -332,10 +333,28 @@ SCENARIOS['integrity/source-text'] = () => {
     Buffer.from('export const sep = `a\x00b`\n', 'utf8'),
     () => runCapture('check:integrity'),
   )
-  if (!nul.out.includes('__nonvacuity_probe_nul__') || nul.status === 0) {
+  // Assert the REASON, not just the exit code and the name. `check:integrity`
+  // runs several checks and one of them — the leftover-probe check below — reds
+  // on ANY `__nonvacuity_probe*` file, including this one. Asserting only "it
+  // exited non-zero naming the probe" would therefore stay green with the raw-NUL
+  // guard deleted, because the leftover check would answer for it: a fail-open
+  // inside the non-vacuity harness itself (bug 0231). The phrase below appears
+  // only in the NUL finding.
+  //
+  // The phrase must be unique to the FINDING. `'raw NUL byte'` is not: the
+  // success summary ends "…free of raw NUL bytes", so an assertion on that
+  // alone is satisfied by the line that says the gate found NOTHING. Measured
+  // while writing this: with the guard sabotaged the check printed its OK
+  // summary and this variable still read true. `<path> contains` appears only
+  // in the finding, and ties the name to the reason in one string.
+  const named = nul.out.includes('__nonvacuity_probe_nul__')
+  const gaveTheNulReason =
+    nul.out.includes(`${NUL_PROBE} contains`) && nul.out.includes('raw NUL byte(s) (first at line')
+  if (!named || !gaveTheNulReason || nul.status === 0) {
     vacuous(
-      `check:integrity exited ${nul.status} and ${nul.out.includes('__nonvacuity_probe_nul__') ? 'named' : 'never named'} ` +
-        `the raw-NUL probe — it must both SEE a source file that grep skips and FAIL on it`,
+      `check:integrity exited ${nul.status}, ${named ? 'named' : 'never named'} the raw-NUL probe ` +
+        `and ${gaveTheNulReason ? 'gave' : 'never gave'} the raw-NUL reason — it must SEE a source ` +
+        `file that grep skips, FAIL on it, and say THAT is why`,
     )
   }
 }
@@ -364,6 +383,40 @@ SCENARIOS['guardrails/generic-error'] = () => {
     vacuous(
       `check:guardrails exited ${generic.status} and ${generic.out.includes('__nonvacuity_probe_generic_error__') ? 'named' : 'never named'} ` +
         `the bare-Error probe — it must both SEE a generic throw in package source and FAIL on it`,
+    )
+  }
+}
+
+SCENARIOS['integrity/leftover-probe'] = () => {
+  // 8. check:integrity — a probe file left behind by a killed fixture.
+  //
+  // Bug 0231. Every probe in this file is removed by a `finally` and by the
+  // SIGINT/SIGTERM/SIGHUP handlers above, and swept at startup — all three
+  // measured. `SIGKILL` defeats all three, and `.gitignore:27`
+  // (`**/__nonvacuity_probe*`) then hides the survivor from `git status`, so
+  // `check:arch` and `check:guardrails` red on a file nothing can see and the
+  // reader blames their own last change. Measured: that is exactly what
+  // happened, and the failure was first attributed to an unrelated rebase.
+  //
+  // The probe here is DELIBERATELY innocuous — no NUL byte, no bare `Error`,
+  // no import. If it carried a defect, this fixture would pass on whichever
+  // other check fired first and prove nothing about the leftover rule. Its
+  // only property is its NAME, which is the whole subject.
+  const LEFTOVER_PROBE = 'packages/core/src/__nonvacuity_probe_leftover__.ts'
+  const leftover = withAddedFile(
+    LEFTOVER_PROBE,
+    'export const probe = 1\n',
+    () => runCapture('check:integrity'),
+  )
+  const named = leftover.out.includes('__nonvacuity_probe_leftover__')
+  // Unique to the finding, per scenario 6's lesson: a phrase that also occurs
+  // in the OK summary is satisfied by the line saying nothing was found.
+  const gaveTheReason = leftover.out.includes('leftover non-vacuity probe')
+  if (!named || !gaveTheReason || leftover.status === 0) {
+    vacuous(
+      `check:integrity exited ${leftover.status}, ${named ? 'named' : 'never named'} the leftover ` +
+        `probe and ${gaveTheReason ? 'gave' : 'never gave'} the leftover reason — a killed fixture's ` +
+        `probe must be reported by the gate that can name it, not by whichever rule it happens to trip`,
     )
   }
 }

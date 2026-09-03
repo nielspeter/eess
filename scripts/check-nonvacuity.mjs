@@ -132,11 +132,17 @@
  * finally block, and swept at startup so a prior crash can never leave one in
  * packages/core/src or scripts/nonvacuity/. The count used to be written out as
  * "four" and went stale the first time one was added; it is not written out any
- * more. One exception is real and worth knowing: `bad-waived-gates.mjs` plants
- * its own probes and has the finally but NOT the startup sweep, so a SIGKILL
- * mid-scenario leaves a file behind. Every such name starts with
- * `__nonvacuity_probe` so `.gitignore` catches it, and the leftovers are loud
- * rather than silent — the raw-NUL one reds `check:integrity` naming itself. Everything else is a committed
+ * more. `bad-waived-gates.mjs` plants its own probes and has the finally, the
+ * signal handlers AND a startup sweep (`bad-waived-gates.mjs:107`) — an earlier
+ * version of this paragraph said it had no sweep, which was wrong, though its
+ * conclusion held for a different reason. `SIGKILL` defeats all three, and the
+ * sweep that recovers from that is reachable only through THIS script, the
+ * slowest gate in the repo, so `check:fast` never reaches it. Every such name
+ * starts with `__nonvacuity_probe`, so `.gitignore` catches it — which also
+ * means `git status` shows a clean tree while other gates red on a file the
+ * reader cannot find. `check:integrity` now names a leftover for what it is
+ * (bug 0231); before that it was reported as a genuine defect by whichever rule
+ * it happened to trip. Everything else is a committed
  * fixture under scripts/nonvacuity/. Uses only node builtins + the workspace
  * packages.
  *
@@ -1420,6 +1426,13 @@ const gates = [
       ]),
   ],
   [
+    'integrity/leftover-probe',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'integrity/leftover-probe red on its own subject', [
+        'integrity/leftover-probe',
+      ]),
+  ],
+  [
     'guardrails/generic-error',
     () =>
       gateNode('bad-waived-gates.mjs', 'guardrails/generic-error red on its own subject', [
@@ -1558,7 +1571,12 @@ const GATE_FOR = {
   // it could be deleted silently. That is how the raw-NUL check nearly shipped
   // uncovered, and review pointed out the fixture's own comment diagnosed it
   // without fixing it. All four scenarios live in `bad-waived-gates.mjs`.
-  'check:integrity': ['integrity/phantom-dep', 'integrity/stale-output', 'integrity/source-text'],
+  'check:integrity': [
+    'integrity/phantom-dep',
+    'integrity/stale-output',
+    'integrity/source-text',
+    'integrity/leftover-probe',
+  ],
   'check:guardrails': ['guardrails/generic-error'],
   'check:examples': ['examples/does-not-compile'],
   'check:docs-code': ['docs-code/fence-does-not-compile'],
