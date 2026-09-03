@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — proven by inspection against the merged source; no red test
-  yet, which is the whole point of the record.
+- **State:** Draft — reproduced by sabotage and fixed; `/close` owes the move
+  to `fixed/` once `validate` is green and the change is reviewed.
 - **Severity:** High — **latent false green, in the suppression path.** Nothing
   is wrong today: the promotion is present and correct. What is missing is
   anything that would notice if it stopped. Delete twenty lines from
@@ -65,21 +65,33 @@ and that record is already in `fixed/` for the same mistake in ADR-008.
 
 ## Reproduction
 
-By inspection, decisive:
+**Measured by sabotage, 2026-09-03.** Delete the promotion loop at
+`packages/core/src/execute-rule.ts:170` and run the kernel suite:
 
-```bash
-grep -rln applyFilters packages/core/tests          # two files
-grep -c undocumented packages/core/tests/execute-rule.test.ts        # 0
-grep -c applyFilters packages/core/tests/exclusion-reason-and-nesting.test.ts  # 0
-```
+| kernel suite            | before the fix | with the promotion deleted |
+| ----------------------- | -------------- | -------------------------- |
+| tests                   | 206 pass       | **206 pass**               |
+| after this record's fix | 209 pass       | 208 pass, **1 fails**      |
 
-A running sabotage was attempted in an isolated `git worktree` and abandoned
-honestly rather than faked: vitest would not boot there, and the worktree's
-`node_modules` symlink resolved `@nielspeter/eess` to the **main** checkout —
-the measurement channel this repo has already been burned by. The kernel tests
-import by relative path (`../src/internal.js`), so a worktree sabotage would
-have been sound had the runner started; the grep above is the same proof without
-a channel that can lie.
+The one failure is the test this record adds. Nothing that existed before it
+noticed the deletion, which is the finding stated as an experiment rather than
+an inference.
+
+Consistent by inspection, and the reason the gap was invisible: two kernel tests
+call `applyFilters` (`execute-rule.test.ts`, `correspondence.test.ts`) and
+neither involves a reason-free directive, while
+`exclusion-reason-and-nesting.test.ts` — the file that looks like coverage, and
+the one ADR-012 cites — never called `applyFilters` at all.
+
+**A correction, because the first draft of this record blamed the wrong cause.**
+It said a worktree sabotage was attempted and that "vitest would not boot there".
+That was false. Vitest refused because the invocation passed `--reporter=basic`,
+which vitest 4 has no such reporter for and tried to load as a module — an error
+in the measurement, not in the worktree. The `node_modules` symlink observation
+was real but irrelevant here: the kernel tests import by relative path
+(`../src/internal.js`), so the sabotage would have been sound. Recorded rather
+than edited away, because a wrong reason for an abandoned measurement is exactly
+the shape this repo keeps catching.
 
 ## Root cause
 
@@ -94,9 +106,22 @@ line above a test that does not assert it.
 1. A kernel test driving `applyFilters` with a reason-free directive over a real
    finding, asserting the promoted violation by **rule id** and that it carries
    `bypassFilters` and `severity: 'error'` — not that a warning exists.
-2. A `check:nonvacuity` row so the assertion cannot be deleted silently. The
-   natural home is `GATE_FOR['check:arch']`'s kernel family, keyed on the
-   promoted finding's identity, per the harness's assert-the-rule-id doctrine.
+2. A `check:nonvacuity` row so the assertion cannot be deleted silently, keyed
+   on the promoted finding's identity per the harness's assert-the-rule-id
+   doctrine.
+
+   **Correction, 2026-09-03: this originally said the natural home is
+   `GATE_FOR['check:arch']`'s kernel family. That is wrong, and the fix
+   deliberately went elsewhere.** `check:arch` runs `eess-ts check`, which uses
+   **`eess-ts`'s own forked `applyFilters`** — so a row keyed there would
+   exercise the one implementation that was already covered and prove nothing
+   about the four dialects this record is about. The row is claimed by
+   `check:corpus` instead, whose `corpus/broken-links` rule reaches the kernel's
+   copy through `eess-md`. Recorded rather than edited away: a reader trusting
+   this section over the shipped row would look in the wrong bucket, and the
+   mistake is the same one the record's own Symptom describes — reasoning about
+   a shared clause without asking which engine actually runs it.
+
 3. Correct ADR-012's row at `:139`: cite the kernel test as the mechanism for
    the kernel's four dialects, and keep the `eess-ts` citation for the fork, or
    say plainly that the fork is covered separately. One clause, two engines,
@@ -104,13 +129,20 @@ line above a test that does not assert it.
 
 ## Verification
 
-- [ ] Red first: delete the promotion loop at `packages/core/src/execute-rule.ts:170`
-      and the new kernel test reds. Today the whole kernel suite stays green.
-- [ ] The non-vacuity row reds when the assertion is removed.
-- [ ] A reason-free waiver in an `eess-md` rule still produces the unsuppressable
-      finding — the dialect half of the claim, asserted once rather than assumed
-      from the kernel test.
-- [ ] ADR-012's row cites what actually covers each engine.
+- [x] Red first: with the promotion deleted, the kernel suite went from 209
+      passing to 208 passing and **1 failing** — the test this record adds, and
+      nothing else. Before the fix the same deletion left all 206 green.
+- [x] The non-vacuity fixture discriminates: sabotaged **and rebuilt**, it exits
+      0 reporting "Saw 0 violation(s)" — the silent green itself. The rebuild is
+      the point: the first attempt sabotaged source without rebuilding, the
+      fixture ran against stale `dist/` and reported OK, and that near-miss is
+      why this box names the step.
+- [x] A reason-free waiver in an `eess-md` rule produces the unsuppressable
+      finding — asserted end to end by the fixture, not assumed from the kernel
+      test.
+- [x] ADR-012's row names a mechanism per engine, and carries a dated correction
+      saying what it claimed before.
+- [ ] `npm run validate` green from a run that reached the last step.
 
 ## Related
 

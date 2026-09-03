@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { afterAll, describe, it, expect } from 'vitest'
 import { parseExclusionComments } from '../src/exclusion-comments.js'
+import { applyFilters } from '../src/internal.js'
+import type { ArchViolation } from '../src/violation.js'
 
 /**
  * Bug 0158 — two independent halves of the same grammar.
@@ -153,5 +158,94 @@ describe('a malformed -start occupies a frame and says so (review of ADR-011 bra
   it('it suppresses nothing', () => {
     const { exclusions } = parseExclusionComments(src, 'probe.ts')
     expect(exclusions.map((e) => e.ruleId)).toEqual(['rule-a'])
+  })
+})
+
+/**
+ * Bug 0238 — the half that keeps ADR-012 fail-closed, asserted in the kernel.
+ *
+ * ADR-012 changed a reason-free waiver from REFUSED to applied-then-promoted:
+ * the exemption takes effect, and `applyFilters` puts an unsuppressable finding
+ * in the suppressed violation's place. Step one suppresses; step two is the only
+ * thing that keeps the build honest.
+ *
+ * Everything above this line tests the parser — that the waiver applies and that
+ * a warning is produced. That is step ONE, the fail-open half. Until this block,
+ * no kernel test drove `applyFilters` with a reason-free directive at all, so
+ * deleting the promotion left the whole kernel suite green while `eess-md`,
+ * `eess-mermaid`, `eess-gherkin` and `eess-crossvalidate` — none of which fork
+ * the filter — silently suppressed real findings at exit 0. `eess-ts` has its own
+ * copy of this test against its own fork; that is why ADR-012's row could look
+ * gated while the four dialects it exists for were uncovered.
+ */
+describe('a reason-free waiver becomes an unsuppressable finding (kernel)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0238-'))
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  const RULE_ID = 'probe/no-eval'
+
+  /** Write a source file and return the violation a rule would have produced in it. */
+  const suppressed = (name: string, lines: string[]): ArchViolation => {
+    const file = path.join(dir, name)
+    fs.writeFileSync(file, lines.join('\n'))
+    return {
+      rule: 'no eval',
+      ruleId: RULE_ID,
+      element: 'x',
+      file,
+      line: 2,
+      message: 'eval is forbidden',
+    }
+  }
+
+  const run = (v: ArchViolation): ArchViolation[] =>
+    applyFilters([v], { metadata: { id: RULE_ID } })
+
+  it('applies the exemption and puts a configuration finding in its place', () => {
+    const out = run(suppressed('undocumented.ts', ['// eess-exclude probe/no-eval', 'const x = 1']))
+
+    // The exemption applied — the original finding is gone.
+    expect(out.filter((v) => v.bypassFilters !== true)).toHaveLength(0)
+
+    // …and exactly one unsuppressable finding took its place. Asserted by
+    // identity and severity, not by count alone: a promotion that produced the
+    // wrong rule id, or a warn-severity one, would satisfy a bare length check
+    // while failing to fail the build.
+    const config = out.filter((v) => v.bypassFilters === true)
+    expect(config).toHaveLength(1)
+    expect(config[0]?.ruleId).toBe(RULE_ID)
+    expect(config[0]?.severity).toBe('error')
+    expect(config[0]?.message).toContain('states no reason')
+    expect(config[0]?.file).toContain('undocumented.ts')
+    // ADR-009 rule 3: it says there is no escape hatch.
+    expect(config[0]?.suggestion).toContain('cannot be suppressed')
+    // ADR-009 rule 2, honestly: it does not claim to prevent anything.
+    expect(config[0]?.suggestion).toContain('raises the cost')
+  })
+
+  it('the remedy remediates: a reason clears the finding and keeps the exemption', () => {
+    // Rule 2's behavioural corollary. Applying the stated fix must clear the
+    // finding WITHOUT resurrecting the violation — otherwise "add a reason"
+    // trades one failure for another.
+    const out = run(
+      suppressed('documented.ts', [
+        '// eess-exclude probe/no-eval: deliberate, see 0238',
+        'const x = 1',
+      ]),
+    )
+
+    expect(out).toHaveLength(0)
+  })
+
+  it('CONTROL — an unwaived violation survives, so the two cases above are not vacuous', () => {
+    // Without this, a filter that dropped everything would satisfy both tests
+    // above: the first sees no plain violation, the second sees nothing at all.
+    const out = run(suppressed('unwaived.ts', ['// nothing here', 'const x = 1']))
+
+    expect(out).toHaveLength(1)
+    expect(out[0]?.bypassFilters).toBeUndefined()
+    expect(out[0]?.message).toBe('eval is forbidden')
   })
 })
