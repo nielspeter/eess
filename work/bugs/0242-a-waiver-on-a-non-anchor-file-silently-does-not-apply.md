@@ -70,9 +70,34 @@ Two directions, and they are not equivalent:
   "you wrote a waiver that did nothing" disclosure. Strictly more honest and
   strictly more noise.
 
-The second is more in keeping with ADR-009 rule 3's corollary, that a
-suppression should cost something visible. The first is what a user expects.
-**This wants a decision, not a patch**, which is why the record stops here.
+**They are not alternatives, and framing them as one was this record's error.**
+Corrected 2026-09-04 after the framing was challenged. They compose, and they
+answer different halves:
+
+- **Widening removes an arbitrariness, not a safeguard.** The waiver already
+  works — from the anchor file, which walk order picked. Making it work from any
+  file the finding names does not add an escape hatch, it makes an existing one
+  stop depending on the filesystem. ADR-009 rule 3's corollary warns against a
+  marker "an agent can stamp on any file to go green"; that is about adding
+  reach to a marker, and here the reach already exists at one arbitrary file.
+  And the capability is now present: `relatedFiles` shipped with
+  [0239](./fixed/0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md),
+  so `isExcludedByComment` can read it.
+- **Reporting the near-miss is owed regardless of the first.** A comment naming a
+  live rule that suppressed nothing _in its own file_ is a waiver the author
+  believes is working and is not. Nothing reports it today: `orphanExclusions`
+  skips any comment whose rule id is declared anywhere
+  (`packages/ts/src/core/orphan-exclusions.ts:226`), which asks whether the rule
+  exists, not whether the comment did anything. This is the same clause
+  [0233](./0233-an-exclusion-that-suppresses-every-violation-is-silent.md) states
+  for `.excluding()` — that a suppression which suppressed nothing is a finding
+  rather than a silence — one seam over, and the existing stale-exclusion
+  warning in `packages/core/src/silent-exclusion.ts` is its sibling.
+
+So the shape of the work is: do both, and sequence the second with 0233 since
+they are one clause at two seams. What is genuinely open is only the **severity**
+of the near-miss report — warning or unsuppressable finding — and 0233 has to
+answer that for its own case anyway.
 
 ## Verification
 

@@ -123,13 +123,38 @@ enough evidence to decide rather than keep filing.
       **condition**, and only the condition validates its arguments. The first
       version imported the predicate and failed for that reason alone. The test
       now imports the condition from its own module and says why.
-- [ ] **The general question is not answered here, deliberately.** Whether an
-      exported symbol may ship with no call site is now on its third instance
-      (0178, 0190, this), and `check:surface` verifies export-to-doc rather than
-      export-to-use. That is a decision about what this project gates, not a
-      defect in this fix, and answering it inside a bug about one symbol would
-      be the wrong place. `deferred→` the maintainer, who has the evidence to
-      decide now rather than see a fourth filing.
+- [x] **The general question is answerable, and this record was wrong to defer
+      it as policy.** Investigated 2026-09-04 after the framing was challenged.
+
+      `eess/no-unused-exports` already exists (`arch.internal.rules.ts:134`) and
+      already covers `packages/*/src`. It missed all three instances for one
+      precise reason: **a barrel re-export counts as a use.**
+      `presetConstructsNothingViolation` is referenced by exactly one file,
+      `packages/core/src/internal.ts`, which re-exports it — so the rule sees a
+      reference and passes, while nothing calls it.
+
+      That makes the question decidable, and the answer differs by entry point:
+
+      | surface | decidable? | why |
+      | --- | --- | --- |
+      | `@nielspeter/eess/internal` | **yes** | ADR-011 clause 2 makes the dialects its only legitimate consumers, all in this repo. Measured: `presetConstructsNothingViolation` and `deadGlobViolation` have **0** callers across all five dialects; `isArchConfigError` now has 3. |
+      | the public root `index.ts` | **no** | strangers call it; "no caller here" proves nothing. `check:surface`'s export-to-doc is the right instrument there, and bug 0220 owns its gap. |
+
+      So this is a writable rule with a precise scope — a symbol whose only
+      reference is the `/internal` barrel — not a question about what the
+      project gates. An adopter *can* reach `/internal` (the ADR-011 changeset
+      tells them how), so this is the boundary's own definition of dead rather
+      than proof of no caller anywhere; removing one is a break the changeset
+      names, which is the existing process.
+
+      **Owed:** a bug for that rule. Filing it is the next step, not a decision.
+
+- [x] Filed as [0243](../0243-a-barrel-re-export-counts-as-a-use.md) — the
+      shared predicate, with the census: of 89 `/internal` exports, 70 are used
+      by a dialect, 8 only inside core, 7 only by tests, and 4 by nothing at all.
+      The test-only seven are why the rule is harder than it looks: reddening
+      them would delete the seam `preset-dispatch.test.ts` uses to exercise the
+      very constructor bug 0190 is about.
 
 ## Related
 
