@@ -1264,6 +1264,19 @@ const gates = [
   ['diagram', gateDiagram],
   ['spec', gateSpec],
   ['crossval', () => gateNode('bad-crossval.mjs', 'crossval/diagram-completeness')],
+  // Bug 0238. Drives the KERNEL's suppress-then-promote path through `eess-md`,
+  // which does not fork `applyFilters` — as `-mermaid`, `-gherkin` and
+  // `-crossvalidate` do not. Claimed under `check:corpus` because that gate runs
+  // eess-md rules over this repo's corpus: if the promotion regressed, any
+  // reason-free waiver in a corpus document would silently suppress a real corpus
+  // finding and the gate would still print green. `eess-ts` has its own copy of
+  // the behaviour and its own test; this row is the four dialects' half, which
+  // nothing covered until now — the whole kernel suite stayed green with the
+  // promotion deleted.
+  [
+    'corpus/undocumented-waiver',
+    () => gateNode('bad-undocumented-waiver.mjs', 'promoted[states no reason]'),
+  ],
   ['crossval/gherkin-ts', () => gateNode('bad-gherkin-ts.mjs', 'crossval/scenario-tests-resolve')],
   ['crossval/md-ts', () => gateNode('bad-md-ts.mjs', 'crossval/adr-citations-resolve')],
   // Plan 0096: md↔gherkin/md↔mermaid dogfood bindings. Both presets share one
@@ -1543,6 +1556,7 @@ const GATE_FOR = {
     'crossval/md-mermaid',
   ],
   'check:corpus': [
+    'corpus/undocumented-waiver',
     'corpus/adr',
     'corpus/links/site',
     'corpus/links/repo-native',
