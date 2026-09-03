@@ -15,6 +15,10 @@
  * rather than 270, and most of them true duplicates rather than by-design
  * similarity. A rationale that cannot be checked is not a rationale.
  *
+ * That 84 is history, not the current count — it is what the first run found,
+ * and an extraction series has moved it since. The live number is the one the
+ * summary line prints.
+ *
  * A tool whose premise is "drift fails the build" cannot exempt itself from what
  * it sells. If a rule here is wrong, the rule gets fixed — not the exemption.
  *
@@ -53,14 +57,25 @@ const filesScanned = p.getSourceFiles().filter((sf) => matches(sf.getFilePath())
 
 // Every flag on. A preset dogfooded with half its rules off is the same
 // exemption in a smaller font.
-const violations = agentGuardrails(p, {
+// Every flag this run enables, in one place, so the summary's denominator and
+// the rules actually constructed cannot disagree (bug 0240).
+const OPTIONS = {
   src: SRC,
   noGenericErrors: true,
   noStubs: true,
   noEmptyBodies: true,
   noCopyPaste: true,
-  report: 'return',
-})
+}
+
+// The number of rules the preset ACTUALLY built for these options, asked of the
+// preset rather than written down beside it. The summary used to hard-code
+// `5 rules` while this call constructs four — a denominator no run produced, in
+// the one line a reader uses to tell a real run from a no-op. CLAUDE.md's
+// contract for these summaries is that a fast green is provably non-vacuous, so
+// the number has to come from the thing it describes.
+const ruleCount = agentGuardrails(p, { ...OPTIONS, report: 'builders' }).length
+
+const violations = agentGuardrails(p, { ...OPTIONS, report: 'return' })
 
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
@@ -90,9 +105,23 @@ for (const [rule, count] of [...byRule].sort((a, b) => b[1] - a[1])) {
 // only the exit code reads severity.
 //
 // The honest limit, stated because an unstated one reads as coverage: a warning
-// nobody acts on is barely dogfooding. The 84 copy-paste warnings below are real
-// duplication (measured — most are true positives, not by-design similarity), so
-// they are debt this repo carries in the open rather than a clean bill.
+// nobody acts on is barely dogfooding. The copy-paste warnings printed below are
+// real duplication (measured — most are true positives, not by-design
+// similarity), so they are debt this repo carries in the open rather than a
+// clean bill.
+//
+// Deliberately not pinned to a count. This comment said "the 84 copy-paste
+// warnings below" and the run printed 30, because an extraction series moved it
+// — the same drift CLAUDE.md records for its own gate-summary table and writes
+// as `N` for. The number is the run's to print on every invocation, and that
+// copy cannot go stale (bug 0240).
+//
+// What DOES need saying, and is now a fixture rather than a comment: this rule
+// warns, so `check:guardrails` does not fail on it. A detector that started
+// returning nothing would look exactly like the extraction series succeeding.
+// `guardrails/no-copy-paste` in `scripts/nonvacuity/bad-waived-gates.mjs` plants
+// a duplicated body and requires the gate to REPORT it, which is the only thing
+// that tells those two apart.
 const errors = violations.filter((v) => (v.severity ?? 'error') === 'error')
 const warnings = violations.length - errors.length
 
@@ -107,6 +136,6 @@ if (errors.length > 0) {
 }
 
 console.error(
-  `  ✓ guardrails (agentGuardrails) — 5 rules across ${String(filesScanned)} source files · 0 errors, ${String(warnings)} warning(s) (${elapsed()})`,
+  `  ✓ guardrails (agentGuardrails) — ${String(ruleCount)} rules across ${String(filesScanned)} source files · 0 errors, ${String(warnings)} warning(s) (${elapsed()})`,
 )
 console.error('')

@@ -99,6 +99,15 @@ const PROBE_PATHS = [
   'packages/core/src/__nonvacuity_probe_generic_error__.ts',
   'packages/core/src/__nonvacuity_probe_leftover__.ts',
   'examples/__nonvacuity_probe__.test.ts',
+  // Bug 0240's three guardrails probes. This list is hand-kept, and a scenario
+  // that plants a probe without adding it here loses the self-heal the comment
+  // above promises: `check:integrity` still NAMES the leftover, because its scan
+  // is prefix-based rather than a list, but the next run no longer clears it and
+  // a human has to. Adding a scenario means adding its path here — the omission
+  // is invisible until a SIGKILL, which is what bug 0231 measured.
+  'packages/core/src/__nonvacuity_probe_stub__.ts',
+  'packages/core/src/__nonvacuity_probe_empty__.ts',
+  'packages/core/src/__nonvacuity_probe_copy__.ts',
 ]
 
 function sweepProbes() {
@@ -370,7 +379,7 @@ SCENARIOS['guardrails/generic-error'] = () => {
   //
   // The probe is a real source file under `packages/*/src/**` because that is
   // the population the gate declares. Asserting the probe's NAME appears keeps
-  // it honest against the gate's other four rules, per scenario 4's lesson.
+  // it honest against the gate's other three rules, per scenario 4's lesson.
   const GENERIC_ERROR_PROBE = 'packages/core/src/__nonvacuity_probe_generic_error__.ts'
   const generic = withAddedFile(
     GENERIC_ERROR_PROBE,
@@ -383,6 +392,113 @@ SCENARIOS['guardrails/generic-error'] = () => {
     vacuous(
       `check:guardrails exited ${generic.status} and ${generic.out.includes('__nonvacuity_probe_generic_error__') ? 'named' : 'never named'} ` +
         `the bare-Error probe — it must both SEE a generic throw in package source and FAIL on it`,
+    )
+  }
+}
+
+SCENARIOS['guardrails/no-stubs'] = () => {
+  // Bug 0240. `check:guardrails` ran four rules behind ONE fixture row, so
+  // three of them could be emptied with the gate still green — the same
+  // one-row-per-multi-rule-gate trap `check:integrity` was split into four rows
+  // for on this very branch, left unapplied one gate over.
+  const PROBE = 'packages/core/src/__nonvacuity_probe_stub__.ts'
+  const r = withAddedFile(
+    PROBE,
+    'export function probeWithStub(items: string[]): number {\n' +
+      '  // TODO: implement the real aggregation\n' +
+      '  return items.length\n' +
+      '}\n',
+    () => runCapture('check:guardrails'),
+  )
+  // Both, and this is bug 0110's discipline: the probe NAME proves the gate saw
+  // the file, and the RULE ID proves the rule this row is named for is what
+  // objected — without it, any of the preset's other three rules firing on the
+  // probe would satisfy the row.
+  const named = r.out.includes('__nonvacuity_probe_stub__')
+  const ruled = r.out.includes('preset/agent/no-stubs')
+  if (!named || !ruled || r.status === 0) {
+    vacuous(
+      `check:guardrails exited ${r.status}, ${named ? 'named' : 'never named'} the stub probe and ` +
+        `${ruled ? 'named' : 'never named'} preset/agent/no-stubs — a deferred-work comment in ` +
+        `package source must fail this gate, by that rule`,
+    )
+  }
+}
+
+SCENARIOS['guardrails/no-empty-bodies'] = () => {
+  // Bug 0240, second of the three uncovered rules.
+  const PROBE = 'packages/core/src/__nonvacuity_probe_empty__.ts'
+  const r = withAddedFile(
+    PROBE,
+    'export function probeWithEmptyBody(): void {}\n',
+    () => runCapture('check:guardrails'),
+  )
+  const named = r.out.includes('__nonvacuity_probe_empty__')
+  const ruled = r.out.includes('preset/agent/no-empty-bodies')
+  if (!named || !ruled || r.status === 0) {
+    vacuous(
+      `check:guardrails exited ${r.status}, ${named ? 'named' : 'never named'} the empty-body ` +
+        `probe and ${ruled ? 'named' : 'never named'} preset/agent/no-empty-bodies — an empty ` +
+        `function body in package source must fail this gate, by that rule`,
+    )
+  }
+}
+
+SCENARIOS['guardrails/no-copy-paste'] = () => {
+  // Bug 0240, and the one that needed a different signal.
+  //
+  // `no-copy-paste` ships at WARN (bug 0169 settled that its weight is
+  // advisory), so `check:guardrails` does not fail on it — the exit code reads
+  // errors only. Every other scenario in this file keys on a non-zero exit, and
+  // keying on one here would assert the opposite of what the gate does.
+  //
+  // So the signal is the OUTPUT. That is exactly the case this row exists for:
+  // the extraction series' declared goal was to take this count from 84 to 30,
+  // so a detector that started returning `[]` would look identical to the series
+  // finishing successfully. Nothing else can tell those apart.
+  //
+  // Two near-identical bodies, and deliberately vocabulary-rich: the detector's
+  // default `minDistinctVocabulary` is 8, and a four-identifier probe is
+  // rejected before similarity is ever scored — measured while writing this.
+  const PROBE = 'packages/core/src/__nonvacuity_probe_copy__.ts'
+  const body = (name) =>
+    `export function ${name}(orders: string[], region: string): number {\n` +
+    '  let subtotal = 0\n' +
+    "  const prefix = 'order-'\n" +
+    '  for (const order of orders) {\n' +
+    '    if (order.startsWith(prefix) && region.length > 1) {\n' +
+    '      subtotal = subtotal + order.length + region.length\n' +
+    '    }\n' +
+    '  }\n' +
+    '  return subtotal\n' +
+    '}\n'
+  const r = withAddedFile(
+    PROBE,
+    `${body('probeCopyOne')}\n${body('probeCopyTwo')}`,
+    () => runCapture('check:guardrails'),
+  )
+  const named = r.out.includes('__nonvacuity_probe_copy__')
+  const ruled = r.out.includes('preset/agent/no-copy-paste')
+  // **Only `named` discriminates here, and saying so is the point.** This repo
+  // carries real copy-paste warnings of its own, so `preset/agent/no-copy-paste`
+  // appears in this gate's output on every clean run — the `ruled` conjunct is
+  // true whether or not the probe was seen, and it is kept for symmetry with the
+  // sibling rows and to catch a rename of the id, not because it proves the
+  // probe fired. The probe's NAME is what cannot appear unless this rule
+  // objected to it: the probe has no stub comment, no empty body and no generic
+  // throw, so none of the preset's other three rules can name it.
+  //
+  // Measured, not assumed: with `noCopyPaste` turned off, this scenario reports
+  // vacuous. The two sibling rows differ — `no-stubs` and `no-empty-bodies` find
+  // nothing on a clean run, so for them the rule id is load-bearing too.
+  //
+  // NOT an exit-code assertion, and the absence is the point — see above.
+  if (!named || !ruled) {
+    vacuous(
+      `check:guardrails ${named ? 'named' : 'never named'} the copy-paste probe and ` +
+        `${ruled ? 'named' : 'never named'} preset/agent/no-copy-paste — a duplicated body in ` +
+        `package source must still be REPORTED even though this rule warns rather than fails, or ` +
+        `"the count went to zero" and "the detector went silent" are the same observation`,
     )
   }
 }

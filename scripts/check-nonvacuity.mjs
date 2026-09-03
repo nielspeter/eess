@@ -1476,6 +1476,27 @@ const gates = [
       ]),
   ],
   [
+    'guardrails/no-stubs',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'guardrails/no-stubs red on its own subject', [
+        'guardrails/no-stubs',
+      ]),
+  ],
+  [
+    'guardrails/no-empty-bodies',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'guardrails/no-empty-bodies red on its own subject', [
+        'guardrails/no-empty-bodies',
+      ]),
+  ],
+  [
+    'guardrails/no-copy-paste',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'guardrails/no-copy-paste red on its own subject', [
+        'guardrails/no-copy-paste',
+      ]),
+  ],
+  [
     'surface/undocumented-export',
     () =>
       gateNode('bad-waived-gates.mjs', 'surface/undocumented-export red on its own subject', [
@@ -1616,7 +1637,15 @@ const GATE_FOR = {
     'integrity/source-text',
     'integrity/leftover-probe',
   ],
-  'check:guardrails': ['guardrails/generic-error'],
+  // Four rules, four rows (bug 0240). One row for the whole preset let three of
+  // them be emptied with the gate still green — the trap `GATE_FOR`'s own
+  // comment records for `check:integrity`, unapplied one gate over.
+  'check:guardrails': [
+    'guardrails/generic-error',
+    'guardrails/no-stubs',
+    'guardrails/no-empty-bodies',
+    'guardrails/no-copy-paste',
+  ],
   'check:examples': ['examples/does-not-compile'],
   'check:docs-code': ['docs-code/fence-does-not-compile'],
   // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
