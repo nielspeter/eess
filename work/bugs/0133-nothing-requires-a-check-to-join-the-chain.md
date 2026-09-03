@@ -72,7 +72,12 @@ check:arch`), not an alias. The waiver's reason should say the true thing.
 - [ ] The control asserts **which** failure fired, not merely that one did
       ([0127](./fixed/0127-nonvacuity-proves-a-condition-not-a-wired-rule.md)'s lesson,
       and the one 0129's two failed attempts kept missing).
-- [ ] `check:fast`'s waiver reason describes a subset chain, not an alias.
+- [x] `check:fast`'s waiver reason describes a subset chain, not an alias —
+      done in [0231](./fixed/0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)'s
+      change, which put `check:integrity` at the head of that chain and had to
+      restate it anyway. The reason now lists the members. **The rest of this
+      record is untouched** — the separate chain-membership waiver map is still
+      owed, and it is the finding.
 - [ ] `npm run validate` green.
 
 Deferred: none.

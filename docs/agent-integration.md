@@ -72,8 +72,8 @@ the same session that introduced it. In `.claude/settings.json`:
 main` to change the comparison branch), keeping the hook fast on large repos.
 A non-empty result lands in the agent's context as feedback; the agent fixes
 the violation using the `Fix:` line instead of waiting to fail in CI. In this
-repo the equivalent fast loop is `npm run check:fast` (spec + corpus + arch,
-skipping build and tests).
+repo the equivalent fast loop is `npm run check:fast` (integrity + release +
+corpus + spec + arch + family, skipping build and tests).
 
 ## 3. Standing instructions — the AGENTS.md sentinel block
 

@@ -152,24 +152,86 @@ its denominator: `N probe roots free of leftover fixtures`.
 Also corrected: `check-nonvacuity.mjs`'s docstring, which claimed the fixture
 has no startup sweep. It has one.
 
-## Residue — NOT fixed
+## 3. `check:integrity` joins `check:fast`, first in the chain
 
-`check:integrity` is not in `check:fast`:
+Filed initially as a residue and left to the maintainer, then taken. Without it
+the fix reached `validate` but not the loop where the bug was actually felt: the
+fast chain would still report the phantom `check:arch` violation and never reach
+the gate that can explain it.
 
 ```
-check:fast = check:release && check:corpus && check:spec && check:arch && check:family
+check:fast = check:integrity && check:release && check:corpus
+          && check:spec && check:arch && check:family
 ```
 
-So the fast loop — the one an agent actually runs, and the one where this bug
-was felt — still reports the phantom `check:arch` violation and never reaches
-the gate that can explain it. `npm run validate` and any direct
-`npm run check:integrity` do.
+**First, not appended.** The chain is `&&`, so leading with the gate that can
+NAME a leftover means the run stops at the explanation instead of continuing to
+the symptom. Demonstrated end-to-end with a probe planted:
 
-Measured: `check:integrity` costs **0.17s** against `check:fast`'s 2.1s. Adding
-it, first in the chain so the leftover is named before `check:arch` reports the
-symptom, is a one-line change to `package.json`. It is left undone because
-widening what "fast" means is a decision about that loop's contract, not a
-consequence of this bug.
+```
+$ git status --short
+(nothing)
+
+$ npm run check:fast
+Workspace integrity: 1 problem(s)
+  ✗ leftover non-vacuity probe: packages/core/src/__nonvacuity_probe_leftover_demo__.ts
+    — a fixture under scripts/nonvacuity/ was killed before its cleanup ran. …
+```
+
+The demo probe was not on `bad-waived-gates.mjs`'s `PROBE_PATHS`, which is the
+point: matching is by basename prefix, so a probe planted somewhere the list
+never predicted is still caught.
+
+Measured cost: `check:fast` went from 2.11s to 2.13s — inside the noise, because
+`check:integrity` is 0.17s of work that overlaps the npm startup already paid.
+
+Three descriptions of `check:fast` were stale BEFORE this change and are
+corrected with it — they all still said "corpus + spec + arch", omitting
+`check:release` and `check:family`, which joined earlier:
+
+| where                                  | was                                        |
+| -------------------------------------- | ------------------------------------------ |
+| `CLAUDE.md`                            | "just the spec and architecture gates"     |
+| `docs/agent-integration.md`            | "(spec + corpus + arch, skipping build …)" |
+| `check-nonvacuity.mjs`'s waiver reason | "an alias — runs corpus + spec + arch"     |
+
+The last of those is one of [bug 0133](../0133-nothing-requires-a-check-to-join-the-chain.md)'s
+open verification boxes — "`check:fast`'s waiver reason describes a subset chain,
+not an alias" — which this change satisfies. 0133's own fix (a separate
+chain-membership waiver map) is untouched and still owed.
+
+## 4. The message must not assert a cause it cannot know
+
+Found by measurement, in this fix, after it was written.
+
+The first version of the finding read _"a fixture under scripts/nonvacuity/ was
+killed before its cleanup ran. Delete the file."_ That is one of two
+possibilities, and the check cannot tell them apart: a probe is also present,
+legitimately, for the seconds a `check:nonvacuity` run has it planted.
+
+It happened immediately. A gate sweep run while a background `check:nonvacuity`
+was in flight reported `check:integrity FAIL` — and the remedy said to delete a
+file the running harness needed. Following it would have sabotaged the run.
+
+Adding `check:integrity` to `check:fast` widens that window from "whatever rule
+the probe happens to trip" to "deterministically, every time", so the message
+has to be honest about both branches. It now is:
+
+```
+✗ non-vacuity probe present: <path> — a fixture under scripts/nonvacuity/ plants
+  this file and removes it again. Either a `check:nonvacuity` run is IN FLIGHT,
+  in which case wait for it and do NOT delete the file (the run needs it) — or
+  one was killed before its cleanup ran, in which case delete it. …
+```
+
+This race is not new and not introduced here — [bug 0140](../0140-nonvacuity-corpus-probes-residual-gaps.md)
+records the same class for `check:fast` against `check:corpus`'s probes, where a
+racing run "can observe a probe". What is new is that the observation now has a
+name and both readings, instead of arriving as a violation in someone's own code.
+
+A sweep instead of a report would have been actively wrong here: it would delete
+the file a live run depends on, and turn a failing run into one that silently
+succeeds next time.
 
 ## Superseded analysis
 
@@ -212,7 +274,11 @@ Two cheaper options, both real:
   this repo on 2026-09-02 with three untracked proposals, and the rewrite to
   undo it was five commits deep.
 - **Sweep in `check:fast`.** Cheap and it covers the loop that matters, but it
-  puts knowledge of the test harness inside a production gate.
+  puts knowledge of the test harness inside a production gate. Not taken —
+  though `check:fast` did gain `check:integrity` (§3), which is the same reach
+  without the same coupling: the gate REPORTS the leftover, it does not delete
+  it. A sweep would make a failing run silently succeed on the next one, which
+  is the wrong direction for a fail-closed instrument.
 
 Recommended: the `check:integrity` row plus the scenario-6 tightening, since it
 is the only option that turns the symptom into a finding that says what is
@@ -243,8 +309,12 @@ A fix must fail when:
 - [x] End-to-end: SIGKILL the `guardrails/generic-error` fixture mid-run, then
       `check:integrity` names the survivor with the remedy above, while
       `git status` still shows a clean tree.
-- [ ] `deferred→` the Residue section — `check:integrity` in `check:fast` is a
-      decision about that loop's contract, priced at 0.17s and left to the
-      maintainer.
+- [x] `check:integrity` leads `check:fast`, so the loop where this was felt
+      names the leftover instead of reporting the symptom. Demonstrated with a
+      probe whose name was NOT on any list, proving the prefix match.
+- [x] The three stale `check:fast` descriptions corrected.
+- [x] The finding names both causes — a run in flight and a killed fixture —
+      after the first wording told a reader to delete a file a live harness
+      needed. Caught by a gate sweep racing a background run.
 
-Deferred: the Residue section (one line in `package.json`, priced, not taken).
+Deferred: none.

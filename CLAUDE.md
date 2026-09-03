@@ -179,10 +179,17 @@ Add `--format json` for a machine-readable stream, e.g.
 failing is not a blocker to route around; it is the repo telling you a spec and
 the code have drifted. Fix the drift (either side), then re-run.
 
-For a fast pre-commit / on-save loop, `npm run check:fast` runs just the spec and
-architecture gates (corpus + spec + arch), skipping build, tests, lint, and the
-slower gates — the "shift feedback left" tier. Run the full `npm run validate`
-before proposing a commit.
+For a fast pre-commit / on-save loop, `npm run check:fast` runs the workspace,
+release, spec and architecture gates (integrity + release + corpus + spec + arch
+
+- family), skipping build, tests, lint, and the slower gates — the "shift
+  feedback left" tier. Run the full `npm run validate` before proposing a commit.
+
+`check:integrity` leads the chain deliberately. It is the gate that can
+recognise a leftover non-vacuity probe — a file a killed fixture left behind,
+which `.gitignore` hides from `git status` — and name it for what it is. Without
+it first, `check:arch` reports that file as a defect in your own code and the
+reader goes looking for a change they never made (bug 0231).
 
 On success, **every** gate reports what it actually scanned — a denominator and
 (mostly) an elapsed time — so a fast green is provably non-vacuous rather than a

@@ -385,10 +385,13 @@ for (const root of probeRoots) {
   for (const file of files) {
     if (!basename(file).startsWith(PROBE_PREFIX)) continue
     problems.push(
-      `leftover non-vacuity probe: ${file.replace(ROOT + '/', '')} — a fixture under ` +
-        `scripts/nonvacuity/ was killed before its cleanup ran. Delete the file. It is ` +
-        `gitignored (\`**/${PROBE_PREFIX}*\`), so \`git status\` will not show it, and until ` +
-        `it is gone other gates will report it as a defect in your own code`,
+      `non-vacuity probe present: ${file.replace(ROOT + '/', '')} — a fixture under ` +
+        `scripts/nonvacuity/ plants this file and removes it again. Either a ` +
+        `\`check:nonvacuity\` run is IN FLIGHT, in which case wait for it and do NOT ` +
+        `delete the file (the run needs it) — or one was killed before its cleanup ran, ` +
+        `in which case delete it. It is gitignored (\`**/${PROBE_PREFIX}*\`), so ` +
+        `\`git status\` will not show it either way, and until it is gone other gates ` +
+        `will report it as a defect in your own code`,
     )
   }
 }

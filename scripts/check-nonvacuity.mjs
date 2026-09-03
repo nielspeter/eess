@@ -1485,7 +1485,9 @@ const gates = [
 // this list accepts: a check that cannot be shown to fail is worth less than no
 // check, and that argument does not stop applying at the harness.
 const NO_GATE_NEEDED = {
-  'check:fast': 'an alias — runs corpus + spec + arch, each gated on its own',
+  'check:fast':
+    'a subset chain — runs integrity + release + corpus + spec + arch + family, ' +
+    'each gated on its own and each in validate on its own',
   'check:nonvacuity': 'this harness',
 }
 // A check:* script may run several presets, and one gate row proves only the one

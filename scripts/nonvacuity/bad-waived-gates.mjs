@@ -411,7 +411,7 @@ SCENARIOS['integrity/leftover-probe'] = () => {
   const named = leftover.out.includes('__nonvacuity_probe_leftover__')
   // Unique to the finding, per scenario 6's lesson: a phrase that also occurs
   // in the OK summary is satisfied by the line saying nothing was found.
-  const gaveTheReason = leftover.out.includes('leftover non-vacuity probe')
+  const gaveTheReason = leftover.out.includes('non-vacuity probe present')
   if (!named || !gaveTheReason || leftover.status === 0) {
     vacuous(
       `check:integrity exited ${leftover.status}, ${named ? 'named' : 'never named'} the leftover ` +
