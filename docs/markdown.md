@@ -325,6 +325,83 @@ without resolving citations). It extends the kernel's `PresetBaseOptions`, so
 `overrides` can downgrade or disable its three rule ids individually
 (`adr/enforcement-declared`, `adr/valid-tiers`, `adr/citations-resolve`).
 
+### Citing something that is not a file or a test
+
+`adrEnforcement` resolves two citation forms in a Mechanism cell: a backticked
+file path, and an `it('…')` title. A team whose mechanism is a **named rule in
+its own architecture tool** — `` `acme/handlers-validate-input` ``, defined in
+its `arch.rules.ts` — cites neither, and the preset takes no plugin for it: what
+counts as a _live_ id is the team's fact, not the corpus's, and a plugin host
+would make an opinionated preset own overlap and ordering for twenty lines you
+can write. Those twenty lines are two primitives from above, joined: `rows()`
+gives you the Mechanism cells, and `correspondence()` binds what they cite to
+the set you hold.
+
+```typescript
+import { corpus, rows, correspondence, type MdRow } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['docs/adr/**'] })
+
+// Your citation form. The preset's two are a path and an it('…') title.
+const RULE_ID = /`(acme\/[a-z0-9-]+)`/g
+
+// Every Enforcement-table row, then one element per id a row cites — each
+// attributed to the row, so a stale citation reports the ADR and the line.
+const enforcementRows = rows(c, {
+  section: /^enforcement$/i,
+  columns: { mechanism: /mechanism/i },
+}).select({
+  label: 'enforcement row',
+  identify: (r) => ({ name: `${r.doc.relPath}:${r.line}`, file: r.doc.relPath, line: r.line }),
+})
+const cited = {
+  elements: enforcementRows.elements.flatMap((row) =>
+    [...row.get('mechanism').matchAll(RULE_ID)].flatMap((m) => {
+      const id = m[1]
+      return id === undefined ? [] : [{ id, row }]
+    }),
+  ),
+  label: 'cited rule id',
+  identify: (x: { id: string; row: MdRow }) => ({
+    name: x.id,
+    file: x.row.doc.relPath,
+    line: x.row.line,
+  }),
+}
+
+// The live set is yours to hold — what your rule tool reports, or a frozen
+// snapshot of it. Read it however you keep it; the correspondence only needs
+// the names.
+const liveIds: string[] = ['acme/handlers-validate-input', 'acme/no-cross-context-import']
+const live = {
+  elements: liveIds,
+  label: 'rule declared in arch.rules.ts',
+  identify: (id: string) => ({ name: id }),
+}
+
+// Both directions: a cited id that is not live, and a live id no ADR cites.
+correspondence({ left: cited, right: live })
+  .should()
+  .beComplete({ direction: 'both' })
+  .because(
+    'every rule id an ADR cites is live, and every live rule is the mechanism of some clause',
+  )
+  .check()
+```
+
+What makes this red when it is wrong, rather than quietly green: a
+correspondence counts **both** sides as its evidence, so a `RULE_ID` pattern
+that matches nothing over a non-empty live set is not a pass — every live id
+is then uncited, and `beComplete` reports each one — and an empty live set over
+cited ids reports every citation as unresolved. Only both sides empty examines
+nothing, and that is the configuration finding, not a tick.
+
+The reverse direction is the half the preset cannot give you. Its own checks
+are built on `haveTableRowsSatisfying`, which sees one row at a time and cannot
+know what is live and uncited. Reach for that when the forward check alone is
+what you mean; for the both-directions contract, the correspondence is the
+primitive.
+
 ## Ledger reconciliation
 
 `@nielspeter/eess-md/rules/ledger` ships a second opt-in preset,
