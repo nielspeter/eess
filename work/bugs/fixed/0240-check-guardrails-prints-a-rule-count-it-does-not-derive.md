@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — measured against the merged source and a live run of the
-  gate; no red test yet.
+- **State:** Fixed — the denominator is derived, all four rules have fixtures,
+  and each was sabotage-verified. `Deferred: none`.
 - **Severity:** High — the gate this repo added to dogfood the preset written
   for AI coding agents cannot be shown to fire for three of the four rules it
   runs, and its green line states a denominator that is a literal. CLAUDE.md's
@@ -75,20 +75,61 @@ and `peakSimilarity` can both be neutered with the whole suite staying green.
 
 ## Verification
 
-- [ ] Red first: delete a flag from the call and the summary's rule count
-      changes. Today it does not.
-- [ ] Each of the four rule ids has a fixture that reds when its detector is
-      emptied.
-- [ ] A planted duplicate pair produces a `no-copy-paste` finding, asserted by
-      id.
-- [ ] `check:nonvacuity` green with the new rows.
+- [x] The denominator responds: turning off one flag takes the summary from
+      `4 rules` to `3 rules`. Before the fix it said `5 rules` whatever the call
+      constructed — a number no run produced, in the one line a reader uses to
+      tell a real run from a no-op.
+- [x] Each of the four rule ids has its own row, and each reds when its own rule
+      is disabled — measured one at a time, so a row cannot be satisfied by a
+      sibling rule firing on the same probe.
+- [x] A planted duplicate pair produces a `no-copy-paste` finding, asserted by
+      **rule id and probe name**. That row deliberately does **not** assert a
+      non-zero exit: the rule warns, so the gate does not fail on it, and
+      asserting an exit would assert the opposite of what the gate does. The
+      output is the only signal separating "the count went to zero" from "the
+      detector went silent".
+- [x] The copy-paste probe needed eight distinct identifiers to be seen at all —
+      the detector's default `minDistinctVocabulary` is 8, and a first attempt
+      with four was rejected before similarity was ever scored. Measured while
+      writing the fixture, and recorded in it, because a probe that silently
+      fails to trigger is a fixture that proves nothing.
+- [x] Which assertion discriminates is stated per row, because it differs. This
+      repo carries real copy-paste warnings of its own, so that rule id appears
+      in the gate's output on every clean run — in that row the id check is
+      always true and only the probe NAME can fail. `no-stubs` and
+      `no-empty-bodies` find nothing on a clean run, so for them both halves are
+      load-bearing. Found while reviewing my own fixture; the sabotage had
+      already proved the row works, but the comment implied a conjunct was
+      carrying weight it was not.
+- [x] The three new probes are in the fixture's self-heal sweep list. Found by
+      review, and it was a real omission: a `SIGKILL` mid-scenario would have
+      left a probe behind that the next run no longer cleared. `check:integrity`
+      would still NAME it — its scan is prefix-based, not a list — so the
+      misattribution half of bug 0231 was never at risk; what was lost was the
+      auto-recovery the list's own comment promises. Verified by planting two
+      probes by hand and watching a run sweep them.
+- [x] Two stale pinned numbers removed while here, the same class of defect as
+      this record's subject: the script claimed "the 84 copy-paste warnings
+      below" where the run prints 30, and a fixture comment said the gate had
+      "four other rules". The live count is the run's to print, per CLAUDE.md's
+      own lesson about pinning numbers that drift.
+- [x] `npm run validate` green from a run that reached the last step. Ticked on
+      the second pass, and the first pass is worth recording: `check:ledger`
+      refused this record while **this very box** was open, because a record in
+      `fixed/` with an undisposed box is finished work the board still counts as
+      outstanding. The box asks whether validate is green and was the only thing
+      stopping it. Resolved by running the chain twice rather than by disposing
+      the box away — the first pass cleared every gate ahead of the ledger, this
+      tick closed the box, and the second pass ran the whole chain to
+      `check:surface`. Worth knowing for any record whose last box cites the run
+      that the record itself blocks.
 
 ## Related
 
-- [0231](./fixed/0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)
+- [0231](./0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)
   and 0232 — the same branch split `check:integrity` into four rows for the
   identical over-claim; this record is that lesson unapplied one gate over.
-- [0169](./0169-computesimilarity-ignores-call-targets-so-opposite-functions-read-as-duplicates.md)
+- [0169](../0169-computesimilarity-ignores-call-targets-so-opposite-functions-read-as-duplicates.md)
   — settled that `no-copy-paste` is advisory, which this record does not reopen.
-- [0239](./fixed/0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)
+- [0239](./0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)
   — the detector behind the warn half, with its own untested claims.
