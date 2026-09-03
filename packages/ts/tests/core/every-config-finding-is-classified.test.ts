@@ -86,6 +86,11 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'stated-only: the remedy defers to the error named above it, which is arbitrary — no single fix to apply',
   },
+  'src/cli/rule-file-findings.ts::ruleFileMisconfigured': {
+    remedy: 'own',
+    verified:
+      "behavioural: rule-file-findings.test.ts — `it('the remedy remediates: making the stated fix clears the finding')` drives the real thrower, asserts the finding names its subject, then applies the stated fix and asserts it no longer raises. Unlike its sibling `ruleFileFailure`, this producer knows WHAT was misconfigured, so its remedy names a specific call and can be proven rather than deferred.",
+  },
   'src/cli/rule-file-findings.ts::baselineNotApplied': {
     remedy: 'own',
     verified:
