@@ -98,6 +98,14 @@ function validateCitations(ctx: TableRowContext, corpus: Corpus): string[] {
  * resolve; a soft-tier clause declared as such passes.
  *
  * Emits per-rule ids so `overrides` can downgrade/disable individual checks.
+ *
+ * The citation check resolves two forms — a backticked file path and an
+ * `it('…')` title. A Mechanism cell that cites something else (a rule id in
+ * your own architecture tool, a CI job) is not resolved here, and this preset
+ * takes no plugin for it: what counts as a live id is your fact, not the
+ * corpus's. Compose that check from `rows()` + `correspondence()` against the
+ * set you hold — the worked recipe is "Citing something that is not a file or
+ * a test" on the `eess-md` docs page.
  */
 export function adrEnforcement(
   corpus: Corpus,

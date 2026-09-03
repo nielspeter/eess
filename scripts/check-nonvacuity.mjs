@@ -132,11 +132,17 @@
  * finally block, and swept at startup so a prior crash can never leave one in
  * packages/core/src or scripts/nonvacuity/. The count used to be written out as
  * "four" and went stale the first time one was added; it is not written out any
- * more. One exception is real and worth knowing: `bad-waived-gates.mjs` plants
- * its own probes and has the finally but NOT the startup sweep, so a SIGKILL
- * mid-scenario leaves a file behind. Every such name starts with
- * `__nonvacuity_probe` so `.gitignore` catches it, and the leftovers are loud
- * rather than silent — the raw-NUL one reds `check:integrity` naming itself. Everything else is a committed
+ * more. `bad-waived-gates.mjs` plants its own probes and has the finally, the
+ * signal handlers AND a startup sweep (`bad-waived-gates.mjs:107`) — an earlier
+ * version of this paragraph said it had no sweep, which was wrong, though its
+ * conclusion held for a different reason. `SIGKILL` defeats all three, and the
+ * sweep that recovers from that is reachable only through THIS script, the
+ * slowest gate in the repo, so `check:fast` never reaches it. Every such name
+ * starts with `__nonvacuity_probe`, so `.gitignore` catches it — which also
+ * means `git status` shows a clean tree while other gates red on a file the
+ * reader cannot find. `check:integrity` now names a leftover for what it is
+ * (bug 0231); before that it was reported as a genuine defect by whichever rule
+ * it happened to trip. Everything else is a committed
  * fixture under scripts/nonvacuity/. Uses only node builtins + the workspace
  * packages.
  *
@@ -1080,22 +1086,45 @@ function gateCorpusProposalImplementsDiscriminates() {
     'This plan implements nothing from proposal 9001; it is explicitly out of scope.\n'
   const declaredPlanMd =
     '# Non-vacuity probe plan\n\n## Status\n\n- **Implements:** proposal 9001\n'
+  // Bug 0232. This used to compare GLOBAL exit codes — `declared → code === 0`
+  // — which is a claim about the whole corpus, not about the probe. Any
+  // unrelated stale pointer anywhere made it false, and the harness then
+  // reported THIS gate as vacuous while the gate was working perfectly. Six
+  // sibling fixtures in this file already keep the clean-baseline arm out of
+  // the verdict for exactly that reason ("exit 1 alone is weak here — in-flight
+  // violations exist"); this one did not. Both directions are now assertions
+  // about the probe's own finding, so a dirty baseline is irrelevant.
+  const UNCITED = 'corpus/accepted-proposal-uncited'
+  const PROBE_FILE = '__nonvacuity_probe_9001-matched__'
   try {
     writeFileSync(PROBE_CORPUS_PROPOSAL_MATCHED, proposalMd)
     writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, proseOnlyPlanMd)
-    const proseRun = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
-    const proseStillRed = proseRun.code === 1
+    const prose = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
+    const proseFired = prose.code === 1 && firedOn(prose, UNCITED, PROBE_FILE, '9001')
 
     writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, declaredPlanMd)
-    const matchedRun = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
-    const matchedGoesGreen = matchedRun.code === 0
+    const declared = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
+    const declaredSilent = !firedOn(declared, UNCITED, PROBE_FILE, '9001')
 
-    const ok = proseStillRed && matchedGoesGreen
+    // `!firedOn(...)` ALONE would be fail-open: `violationsOf` returns [] for
+    // output it cannot parse, so a crashed run reads as "the finding is
+    // absent". Requiring the declared run to carry exactly one violation FEWER
+    // than the prose run closes that — a crash gives 0, not n-1 — and it says
+    // the stronger thing besides: the ONLY difference the declaration made was
+    // this finding. Both runs share whatever else the corpus is carrying, so
+    // the subtraction holds on a dirty baseline as well as a clean one.
+    const before = violationsOf(prose).length
+    const after = violationsOf(declared).length
+    const onlyThisChanged = before > 0 && after === before - 1
+
+    const ok = proseFired && declaredSilent && onlyThisChanged
     return {
       ok,
       detail:
-        `discriminates cited-in-prose from declared · prose-only exit ${proseRun.code} ` +
-        `(want 1), declared exit ${matchedRun.code} (want 0)`,
+        `discriminates cited-in-prose from declared · prose-only ${UNCITED} on the probe: ` +
+        `${proseFired ? 'fired' : 'DID NOT FIRE'} · declared: ${declaredSilent ? 'silent' : 'STILL FIRED'} ` +
+        `· violations ${String(before)} → ${String(after)} (want one fewer) · ` +
+        `declared exit ${declared.code} (informational — a dirty corpus is not this gate's business)`,
     }
   } finally {
     rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
@@ -1420,6 +1449,20 @@ const gates = [
       ]),
   ],
   [
+    'integrity/leftover-probe',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'integrity/leftover-probe red on its own subject', [
+        'integrity/leftover-probe',
+      ]),
+  ],
+  [
+    'guardrails/generic-error',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'guardrails/generic-error red on its own subject', [
+        'guardrails/generic-error',
+      ]),
+  ],
+  [
     'surface/undocumented-export',
     () =>
       gateNode('bad-waived-gates.mjs', 'surface/undocumented-export red on its own subject', [
@@ -1465,7 +1508,9 @@ const gates = [
 // this list accepts: a check that cannot be shown to fail is worth less than no
 // check, and that argument does not stop applying at the harness.
 const NO_GATE_NEEDED = {
-  'check:fast': 'an alias — runs corpus + spec + arch, each gated on its own',
+  'check:fast':
+    'a subset chain — runs integrity + release + corpus + spec + arch + family, ' +
+    'each gated on its own and each in validate on its own',
   'check:nonvacuity': 'this harness',
 }
 // A check:* script may run several presets, and one gate row proves only the one
@@ -1551,7 +1596,13 @@ const GATE_FOR = {
   // it could be deleted silently. That is how the raw-NUL check nearly shipped
   // uncovered, and review pointed out the fixture's own comment diagnosed it
   // without fixing it. All four scenarios live in `bad-waived-gates.mjs`.
-  'check:integrity': ['integrity/phantom-dep', 'integrity/stale-output', 'integrity/source-text'],
+  'check:integrity': [
+    'integrity/phantom-dep',
+    'integrity/stale-output',
+    'integrity/source-text',
+    'integrity/leftover-probe',
+  ],
+  'check:guardrails': ['guardrails/generic-error'],
   'check:examples': ['examples/does-not-compile'],
   'check:docs-code': ['docs-code/fence-does-not-compile'],
   // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which

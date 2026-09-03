@@ -10,9 +10,10 @@ import type { CheckOptions } from '@nielspeter/eess'
 import type { RuleMetadata } from '@nielspeter/eess'
 import type { RuleDescription } from '@nielspeter/eess'
 import type { SilentExclusion } from '@nielspeter/eess'
-import { isSilent } from '@nielspeter/eess/internal'
+import { recordExclusions } from '@nielspeter/eess/internal'
 import { executeCheck, executeWarn, applyFilters } from './execute-rule.js'
 import { shallowClone } from '@nielspeter/eess/internal'
+import { ruleDescriptionFrom } from '@nielspeter/eess/internal'
 
 /**
  * Declaring both emptiness assertions is a contradiction, and 0069's appendix
@@ -311,14 +312,9 @@ abstract class RuleDeclaration {
    */
   excluding(...patterns: (string | RegExp | SilentExclusion)[]): this {
     const next = this.copy()
-    for (const p of patterns) {
-      if (isSilent(p)) {
-        next._exclusions.push(p.pattern)
-        next._silentIndices.add(next._exclusions.length - 1)
-      } else {
-        next._exclusions.push(p)
-      }
-    }
+    // The kernel's — this was byte-identical to its `excluding`, and the two
+    // builders cannot share it by inheritance because the hierarchies differ.
+    recordExclusions(patterns, next._exclusions, next._silentIndices)
     return next
   }
 
@@ -327,14 +323,12 @@ abstract class RuleDeclaration {
    * Used by the `explain` CLI subcommand.
    */
   describeRule(): RuleDescription {
-    return {
+    return ruleDescriptionFrom({
+      metadata: this._metadata,
+      reason: this._reason,
       rule: this._metadata?.id ?? 'unnamed',
-      id: this._metadata?.id,
-      because: this._reason,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-      imperative: this._metadata?.imperative ?? this._reason,
-    }
+      imperativeFallback: this._reason,
+    })
   }
 
   /**

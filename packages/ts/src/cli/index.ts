@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util'
-import { isRecord } from '@nielspeter/eess/internal'
+import { isRecord, requireRuleFiles } from '@nielspeter/eess/internal'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -109,15 +109,6 @@ export function parseCliArgs(args: string[]): ParsedArgs {
 }
 
 /** Require rule files to be specified, printing an error and setting exit code if missing. */
-function requireRuleFiles(ruleFiles: string[]): boolean {
-  if (ruleFiles.length > 0) return true
-  console.error(
-    'Error: No rule files specified. Pass rule files as arguments or set them in config.',
-  )
-  process.exitCode = 1
-  return false
-}
-
 /** Handle the `check` subcommand. */
 async function handleCheck(
   ruleFiles: string[],
@@ -128,7 +119,7 @@ async function handleCheck(
   changed: boolean,
   base: string,
 ): Promise<void> {
-  if (!requireRuleFiles(ruleFiles)) return
+  if (!requireRuleFiles(ruleFiles, 'eess-ts.config.ts')) return
 
   if (values.watch === true) {
     const watchDirs = config.watchDirs ?? ['src']
@@ -167,7 +158,7 @@ async function handleCheck(
 
 /** Handle the `baseline` subcommand. */
 async function handleBaseline(ruleFiles: string[], output: string): Promise<void> {
-  if (!requireRuleFiles(ruleFiles)) return
+  if (!requireRuleFiles(ruleFiles, 'eess-ts.config.ts')) return
   const code = await runBaseline({ ruleFiles, output })
   if (code !== 0) process.exitCode = code
 }
@@ -204,7 +195,7 @@ async function handleExplain(
   markdown: boolean | undefined,
   format: string | undefined,
 ): Promise<void> {
-  if (!requireRuleFiles(ruleFiles)) return
+  if (!requireRuleFiles(ruleFiles, 'eess-ts.config.ts')) return
   await runExplain({ ruleFiles, markdown, format })
 }
 

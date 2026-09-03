@@ -9,6 +9,8 @@ import { formatViolationsJson } from './format-json.js'
 import { formatViolationsGitHub } from './format-github.js'
 import { reportViolations } from './report.js'
 import { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
+import type { ExclusionWarning } from './exclusion-comments.js'
+import { UNSUPPRESSABLE } from './unsuppressable.js'
 import { writeStderr } from './stderr.js'
 import { activeNotice } from './diff-disclosure.js'
 import { recordCommentSuppression } from './comment-suppression.js'
@@ -18,7 +20,7 @@ import { recordCommentSuppression } from './comment-suppression.js'
  * Shared across all builder types (RuleBuilder, SliceRuleBuilder,
  * SchemaRuleBuilder, ResolverRuleBuilder, PairFinalBuilder, SmellBuilder).
  */
-interface ExecuteRuleContext {
+export interface ExecuteRuleContext {
   reason?: string
   metadata?: RuleMetadata
   exclusions?: (string | RegExp)[]
@@ -121,11 +123,23 @@ export function applyFilters(
   // Matching is on ruleId, which the block above has just guaranteed is present.
   if (ctx.metadata?.id && result.length > 0) {
     const filePaths = new Set(result.map((v) => v.file))
+    const undocumented: ExclusionWarning[] = []
     const allComments = [...filePaths].flatMap((filePath) => {
       try {
         const sourceText = fs.readFileSync(filePath, 'utf-8')
         const parseResult = parseExclusionComments(sourceText, filePath)
         for (const warning of parseResult.warnings) {
+          // An undocumented exclusion is well-formed and APPLIES, so a stderr
+          // line would let a waiver nobody justified pass with exit 0. It
+          // becomes an unsuppressable finding below instead — ADR-009 rule 3's
+          // corollary, and bug 0039's design, which until ADR-012 only `eess-ts`
+          // implemented. The malformed shapes decline to create the exclusion at
+          // all, so the original violation still fires and the build is already
+          // red; stderr is the right weight for those.
+          if (warning.kind === 'undocumented') {
+            undocumented.push(warning)
+            continue
+          }
           writeStderr(`[eess] ${warning.message}`)
         }
         return parseResult.exclusions
@@ -145,6 +159,32 @@ export function applyFilters(
         const excluded = isExcludedByComment(v, allComments)
         if (excluded) recordCommentSuppression(ruleId, v.file)
         return !excluded
+      })
+    }
+
+    // The waiver applied; this takes the suppressed finding's place, so the
+    // author is told what to fix rather than shown the violation they waived.
+    //
+    // Unsuppressable, because a suppression mechanism that can suppress the
+    // complaint about itself is not a mechanism.
+    for (const warning of undocumented) {
+      result.push({
+        rule: ctx.metadata.id,
+        ruleId: ctx.metadata.id,
+        element: `${ctx.metadata.id}@${warning.file}:${String(warning.line)}`,
+        file: warning.file,
+        line: warning.line,
+        message:
+          `This exclusion states no reason, so nothing records why the rule is ` +
+          `waived here — and it is silently suppressing a real finding.`,
+        suggestion:
+          `Add a reason: // eess-exclude ${ctx.metadata.id}: <why>. ` +
+          `A reason is prose and nothing verifies it, so this raises the cost of a ` +
+          `suppression rather than preventing one — the audience is the reviewer ` +
+          `reading the diff. If the exemption is not justifiable, delete it and fix ` +
+          `the finding instead. ${UNSUPPRESSABLE}`,
+        severity: 'error',
+        bypassFilters: true,
       })
     }
   }

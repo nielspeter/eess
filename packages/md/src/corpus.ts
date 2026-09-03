@@ -1,5 +1,6 @@
-import { readFileSync, readdirSync } from 'node:fs'
-import { join, relative, sep } from 'node:path'
+import { walkFiles } from '@nielspeter/eess/internal'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfm } from 'micromark-extension-gfm'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
@@ -43,29 +44,6 @@ export interface Corpus {
 const DEFAULT_FROZEN = ['**/completed/**', '**/archived/**']
 const BUILTIN_IGNORE = ['node_modules', '.git', 'dist', 'coverage', '.output', '.nuxt', '.vercel']
 
-function toPosix(p: string): string {
-  return sep === '/' ? p : p.split(sep).join('/')
-}
-
-function walk(dir: string, root: string, ignoreDirs: Set<string>, acc: string[]): void {
-  let entries
-  try {
-    entries = readdirSync(dir, { withFileTypes: true })
-  } catch (err) {
-    void err // unreadable dir (permissions, dangling symlink) — deliberately skipped
-    return
-  }
-  for (const e of entries) {
-    const abs = join(dir, e.name)
-    if (e.isDirectory()) {
-      if (ignoreDirs.has(e.name)) continue
-      walk(abs, root, ignoreDirs, acc)
-    } else if (e.isFile()) {
-      acc.push(toPosix(relative(root, abs)))
-    }
-  }
-}
-
 /**
  * Load a markdown corpus. Walks `roots` from `cwd`, parses each `.md` file with
  * GFM enabled, and records frozen membership per file. The full repo file tree
@@ -76,7 +54,8 @@ export function corpus(options: CorpusOptions): Corpus {
   const ignoreDirs = new Set(BUILTIN_IGNORE)
 
   const allFiles: string[] = []
-  walk(root, root, ignoreDirs, allFiles)
+  const allFilesWalked = walkFiles(root, root, ignoreDirs)
+  allFiles.push(...allFilesWalked)
 
   const matchesRoot = picomatch([...options.roots])
   const matchesFrozen = picomatch([...(options.frozen ?? DEFAULT_FROZEN)])

@@ -19,7 +19,12 @@ export { RuleBuilder } from './rule-builder.js'
 export { TerminalBuilder } from './terminal-builder.js'
 export type { CollectResult } from './terminal-builder.js'
 export { assertsCardinality } from './cardinality.js'
-export { ArchRuleError, isArchRuleError } from './errors.js'
+export { ArchRuleError, isArchRuleError, ArchConfigError, isArchConfigError } from './errors.js'
+// On the ROOT, not `/internal`: `eess-ts` returns it from its public
+// `pathUniverse()`, and ADR-011 requires a public signature to be nameable
+// without reaching into family plumbing. `viewsFor` stays internal — no dialect
+// exposes it.
+export type { PathUniverse } from './path-universe.js'
 export type { RuleMetadata } from './rule-metadata.js'
 export type { RuleDescription } from './rule-description.js'
 
@@ -58,7 +63,13 @@ export type { RelationSpec, CorrespondenceOptions, KeyBy } from './correspondenc
 
 // Exclusions
 export { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
-export type { ExclusionComment, ExclusionWarning, ParseResult } from './exclusion-comments.js'
+export type {
+  ExclusionComment,
+  ExclusionWarning,
+  ParseResult,
+  MaskNonComment,
+  ParseExclusionOptions,
+} from './exclusion-comments.js'
 export { silent } from './silent-exclusion.js'
 export type { SilentExclusion } from './silent-exclusion.js'
 

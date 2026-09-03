@@ -1,7 +1,10 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import {
   type FunctionDeclaration,
   type VariableDeclaration,
   type MethodDeclaration,
+  type ArrowFunction,
+  type FunctionExpression,
   type SourceFile,
   type ParameterDeclaration,
   type Type,
@@ -65,6 +68,42 @@ export interface ArchFunction {
 }
 
 /**
+ * Wrap a callable node as an `ArchFunction`, taking its name from the caller.
+ *
+ * Four adapters wrote this object out by hand — `fromArrowExpression`,
+ * `fromFunctionExpression` and `fromMethodDeclaration` in
+ * `helpers/callback-extractor.ts`, plus the object-literal branch below —
+ * which `no-copy-paste` reported at 100%. Every field but the name reads the
+ * same way off any of the three node kinds, and `getName` is the caller's
+ * because only the caller knows: a callback argument is anonymous, a function
+ * expression may name itself, and an object-literal value is named by its
+ * property-key path.
+ *
+ * `isExported: false` and `getScope: 'public'` are facts about this shape
+ * rather than defaults: none of these nodes is a declaration that `export` can
+ * precede, and none carries an access modifier. Reading them off the node
+ * would return the enclosing declaration's answer, which is a different
+ * subject from the one the violation names.
+ */
+export function fromCallableNode(
+  node: ArrowFunction | FunctionExpression | MethodDeclaration,
+  getName: () => string | undefined,
+): ArchFunction {
+  return {
+    getName,
+    getSourceFile: () => node.getSourceFile(),
+    isExported: () => false,
+    isAsync: () => node.isAsync(),
+    getParameters: () => node.getParameters(),
+    getReturnType: () => node.getReturnType(),
+    getBody: () => node.getBody(),
+    getNode: () => node,
+    getScope: () => 'public',
+    getStartLineNumber: () => node.getStartLineNumber(),
+  }
+}
+
+/**
  * Create an ArchFunction from a FunctionDeclaration.
  */
 export function fromFunctionDeclaration(decl: FunctionDeclaration): ArchFunction {
@@ -92,7 +131,11 @@ export function fromFunctionInitializerDeclaration(decl: VariableDeclaration): A
   const arrow =
     decl.getInitializerIfKind(SyntaxKind.ArrowFunction) ??
     decl.getInitializerIfKind(SyntaxKind.FunctionExpression)
-  if (!arrow) throw new Error('Expected an arrow function or function expression initializer')
+  if (!arrow)
+    throw new ArchConfigError(
+      'fromFunctionInitializerDeclaration',
+      'Expected an arrow function or function expression initializer',
+    )
   return {
     getName: () => decl.getName(),
     getSourceFile: () => decl.getSourceFile(),
@@ -295,18 +338,7 @@ export function fromObjectLiteralFunction(
     NodeClass.isFunctionExpression(node) ||
     NodeClass.isMethodDeclaration(node)
   ) {
-    return {
-      getName: () => name,
-      getSourceFile: () => node.getSourceFile(),
-      isExported: () => false,
-      isAsync: () => node.isAsync(),
-      getParameters: () => node.getParameters(),
-      getReturnType: () => node.getReturnType(),
-      getBody: () => node.getBody(),
-      getNode: () => node,
-      getStartLineNumber: () => node.getStartLineNumber(),
-      getScope: () => 'public',
-    }
+    return fromCallableNode(node, () => name)
   }
   return undefined
 }

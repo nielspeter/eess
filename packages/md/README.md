@@ -134,6 +134,10 @@ of that, and **you don't need it to get value from `eess-md`** — links, pointe
 sections, and tables all validate through the generic primitives above. Reach for
 `adrEnforcement()` only if your ADRs follow the tier model; otherwise compose your
 own gate from `haveSection` / `haveTable` / `haveTableRowsSatisfying` / `resolve`.
+The same goes for a citation form the preset does not know — a rule id in your
+own architecture tool, cited in a Mechanism cell: `rows()` over that column into
+a `correspondence()` against the set you hold, both directions. The docs page's
+"Citing something that is not a file or a test" section is the worked recipe.
 
 ```typescript
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'

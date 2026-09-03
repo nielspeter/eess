@@ -5,6 +5,7 @@ import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
 import { collectCalls } from '../models/arch-call.js'
 import { createElementCache, SOLE_POPULATION } from '../core/element-cache.js'
+import { matchingElements } from '@nielspeter/eess/internal'
 
 /** One collection per project, shared by every rule built from it (plan 0075). */
 const cache = createElementCache<ArchCall>()
@@ -322,7 +323,7 @@ export class CallRuleBuilder extends RuleBuilder<ArchCall> {
    * Used by within() to extract callbacks from matched calls.
    */
   getMatchedCalls(): ArchCall[] {
-    return this.getElements().filter((archCall) => this._predicates.every((p) => p.test(archCall)))
+    return matchingElements(this.getElements(), this._predicates)
   }
 }
 

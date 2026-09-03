@@ -29,7 +29,12 @@ export {
 // Core — rule builder, error & metadata
 export { RuleBuilder } from './core/rule-builder.js'
 export { TerminalBuilder } from './core/terminal-builder.js'
-export { ArchRuleError, isArchRuleError } from '@nielspeter/eess'
+export {
+  ArchRuleError,
+  isArchRuleError,
+  ArchConfigError,
+  isArchConfigError,
+} from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'
 
@@ -353,6 +358,8 @@ export { DuplicateBodiesBuilder } from './smells/duplicate-bodies.js'
 export { InconsistentSiblingsBuilder } from './smells/inconsistent-siblings.js'
 export type { Fingerprint } from './smells/fingerprint.js'
 export { buildFingerprint, computeSimilarity } from './smells/fingerprint.js'
+export { variationBetween } from './smells/variation.js'
+export type { Variation, VariationAxis } from './smells/variation.js'
 
 // Cross-layer validation (plan 0022)
 export type { Layer, LayerPair } from './models/cross-layer.js'
@@ -527,6 +534,11 @@ export type { DiskSet, OnDisk } from './core/disk-set.js'
 export { diskSet } from './core/disk-set.js'
 export type { GlobFault } from './core/glob-diagnosis.js'
 export { pathUniverse } from './core/path-universe.js'
+// The type `pathUniverse` returns. It is the kernel's now — this package used to
+// declare a byte-identical copy — so it must be re-exported here or a standalone
+// eess-ts consumer could not name the return type without a second kernel
+// install (plan 0089's rule, and check:family enforces it).
+export type { PathUniverse } from '@nielspeter/eess'
 export { validateOverrides } from './presets/shared.js'
 export { STRICT_FAMILY_SIZE } from './tsconfig/strict-family.js'
 export type { StrictFamilyFlag } from './tsconfig/strict-family.js'

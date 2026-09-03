@@ -15,9 +15,23 @@ import { parseExclusionComments } from '../src/exclusion-comments.js'
 const parse = (lines: string[]) => parseExclusionComments(lines.join('\n'), 'probe.ts')
 
 describe('a waiver must state its reason', () => {
-  it('does not suppress when the directive carries no reason', () => {
+  // Until ADR-012 this asserted `toHaveLength(0)` — the kernel REFUSED a
+  // reason-free waiver, so the author saw the violation they were waiving and a
+  // line on stderr about their directive. `eess-ts` had always done the
+  // opposite (bug 0039) and it is the better design: apply the waiver, and let
+  // `execute-rule` replace the suppressed finding with an unsuppressable one
+  // naming the real fault. Unifying the two parsers made that the family's
+  // single answer, so the kernel adopted it and the other four dialects gained
+  // it. Both ways end red; this way tells the author what to fix.
+  it('applies the waiver, so execute-rule can replace the finding it hid', () => {
     const { exclusions } = parse(['// eess-exclude demo/no-eval', 'export const x = 1'])
-    expect(exclusions).toHaveLength(0)
+    expect(exclusions).toHaveLength(1)
+    expect(exclusions[0]?.reason).toBe('')
+  })
+
+  it('marks it undocumented, which is what makes the promotion possible', () => {
+    const { warnings } = parse(['// eess-exclude demo/no-eval', 'export const x = 1'])
+    expect(warnings.some((w) => w.kind === 'undocumented')).toBe(true)
   })
 
   it('reports the reasonless directive rather than passing over it', () => {
@@ -73,7 +87,7 @@ describe('a reason-free -start still occupies a frame (regression, review of ADR
   const src = [
     '// eess-exclude-start rule-a: outer', // 1
     'code', // 2
-    '// eess-exclude-start rule-b', // 3  <- no reason: refused, but it is still a frame
+    '// eess-exclude-start rule-b', // 3  <- no reason: applies, and is promotable
     'more', // 4
     '// eess-exclude-end', // 5  <- closes the REFUSED inner block
     'tail', // 6
@@ -86,10 +100,17 @@ describe('a reason-free -start still occupies a frame (regression, review of ADR
     expect(outer?.endLine).toBe(7)
   })
 
-  it('the reason-free block is still refused', () => {
+  // Was `toEqual(['rule-a'])` — the reason-free inner block was refused outright.
+  // ADR-012 unified the two parsers on eess-ts's answer: the waiver applies and
+  // `execute-rule` promotes the `undocumented` warning into an unsuppressable
+  // finding. What this test was really pinning — that a reason-free `-start`
+  // still occupies its own frame, so the inner `-end` cannot close the OUTER
+  // block (bug 0158's nesting half) — is unchanged and asserted above.
+  it('the reason-free block applies and is reported as undocumented', () => {
     const { exclusions, warnings } = parseExclusionComments(src, 'probe.ts')
-    expect(exclusions.map((e) => e.ruleId)).toEqual(['rule-a'])
+    expect(exclusions.map((e) => e.ruleId).sort()).toEqual(['rule-a', 'rule-b'])
     expect(warnings.some((w) => /Undocumented exclusion at probe\.ts:3/.test(w.message))).toBe(true)
+    expect(warnings.some((w) => w.kind === 'undocumented')).toBe(true)
   })
 
   it('a balanced file reports no unmatched -end', () => {

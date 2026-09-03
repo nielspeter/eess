@@ -1,5 +1,5 @@
-import { readdirSync } from 'node:fs'
-import { join, relative, sep } from 'node:path'
+import { walkFiles } from '@nielspeter/eess/internal'
+import { join } from 'node:path'
 import picomatch from 'picomatch'
 import type { Selection, ElementInfo } from '@nielspeter/eess'
 
@@ -43,29 +43,6 @@ const BUILTIN_IGNORE_DIRS = new Set([
   '.vercel',
 ])
 
-function toPosix(p: string): string {
-  return sep === '/' ? p : p.split(sep).join('/')
-}
-
-function walk(dir: string, root: string, acc: string[]): void {
-  let entries
-  try {
-    entries = readdirSync(dir, { withFileTypes: true })
-  } catch (err) {
-    void err // unreadable dir (permissions, dangling symlink) — deliberately skipped
-    return
-  }
-  for (const e of entries) {
-    const abs = join(dir, e.name)
-    if (e.isDirectory()) {
-      if (BUILTIN_IGNORE_DIRS.has(e.name)) continue
-      walk(abs, root, acc)
-    } else if (e.isFile()) {
-      acc.push(toPosix(relative(root, abs)))
-    }
-  }
-}
-
 /**
  * Turn a set of files into a `Selection` — the recurring "the code side is a
  * set of files" case (an ADR index binds to `adr/*.md`, a manifest binds to
@@ -86,7 +63,7 @@ function walk(dir: string, root: string, acc: string[]): void {
 export function files(opts: FilesOptions): Selection<FileEntry> {
   const root = opts.cwd ?? process.cwd()
   const all: string[] = []
-  walk(root, root, all)
+  all.push(...walkFiles(root, root, BUILTIN_IGNORE_DIRS))
 
   const globs = typeof opts.glob === 'string' ? [opts.glob] : [...opts.glob]
   const matchesGlob = picomatch(globs)

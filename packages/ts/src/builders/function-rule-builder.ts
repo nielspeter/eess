@@ -128,11 +128,11 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction> {
    * After `.should()`: assert matched functions have names matching the pattern.
    */
   haveNameMatching(pattern: RegExp | string): this {
-    if (this._phase === 'condition') {
-      const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern
-      return this.addCondition(fnConditionHaveNameMatching(regex))
-    }
-    return this.addPredicate(identityHaveNameMatching<ArchFunction>(pattern))
+    const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern
+    return this.dualUse(
+      fnConditionHaveNameMatching(regex),
+      identityHaveNameMatching<ArchFunction>(pattern),
+    )
   }
 
   /**
@@ -164,10 +164,7 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction> {
    * After `.should()`: assert functions reside in a file matching the glob.
    */
   resideInFile(glob: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(fnConditionResideInFile(glob))
-    }
-    return this.addPredicate(identityResideInFile<ArchFunction>(glob))
+    return this.dualUse(fnConditionResideInFile(glob), identityResideInFile<ArchFunction>(glob))
   }
 
   /**
@@ -175,10 +172,7 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction> {
    * After `.should()`: assert functions reside in a folder matching the glob.
    */
   resideInFolder(glob: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(fnConditionResideInFolder(glob))
-    }
-    return this.addPredicate(identityResideInFolder<ArchFunction>(glob))
+    return this.dualUse(fnConditionResideInFolder(glob), identityResideInFolder<ArchFunction>(glob))
   }
 
   /**

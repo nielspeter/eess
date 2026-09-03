@@ -1,4 +1,5 @@
 import type { Root, Nodes } from 'mdast'
+import { textOf } from './text-of.js'
 
 /** A GFM task-list item (`- [ ]` / `- [x]`) within a document. */
 export interface MdTaskItemRef {
@@ -8,12 +9,6 @@ export interface MdTaskItemRef {
   readonly text: string
   /** 1-based line of the `- [ ]` in the source document. */
   readonly line: number
-}
-
-function textOf(node: Nodes): string {
-  if ('value' in node && typeof node.value === 'string') return node.value
-  if ('children' in node) return node.children.map((c) => textOf(c)).join('')
-  return ''
 }
 
 /**

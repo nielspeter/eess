@@ -1,11 +1,4 @@
-import type { RuleDescription } from '@nielspeter/eess'
-import type { CollectResult } from '../core/terminal-builder.js'
-import type { ArchViolation } from '@nielspeter/eess'
-import type { Condition, ConditionContext } from '@nielspeter/eess'
-import { TerminalBuilder } from '../core/terminal-builder.js'
-import type { Predicate } from '@nielspeter/eess'
 import type { LoadedSchema, GraphQLObjectTypeLike, GraphQLTypeLike } from './schema-loader.js'
-import { selectionMemo } from '@nielspeter/eess/internal'
 import type { SchemaElement } from './schema-predicates.js'
 import {
   queries as queriesPredicate,
@@ -18,6 +11,7 @@ import {
   acceptArgs as acceptArgsCondition,
   haveMatchingResolver as haveMatchingResolverCondition,
 } from './schema-conditions.js'
+import { GraphqlRuleBuilder } from './graphql-rule-builder.js'
 
 /**
  * Structural type guard: check if a GraphQL type has `getFields()`.
@@ -47,12 +41,7 @@ function isObjectType(type: GraphQLTypeLike): type is GraphQLObjectTypeLike {
  *   .check()
  * ```
  */
-const selectionOf = selectionMemo<SchemaElement>()
-
-export class SchemaRuleBuilder extends TerminalBuilder {
-  private _predicates: Predicate<SchemaElement>[] = []
-  private _conditions: Condition<SchemaElement>[] = []
-
+export class SchemaRuleBuilder extends GraphqlRuleBuilder<SchemaElement> {
   constructor(private readonly loaded: LoadedSchema) {
     super()
   }
@@ -95,36 +84,6 @@ export class SchemaRuleBuilder extends TerminalBuilder {
     return next
   }
 
-  // --- Chain methods ---
-
-  /**
-   * Begin the predicate phase. Purely a readability marker.
-   */
-  that(): this {
-    return this
-  }
-
-  /**
-   * Add another predicate (AND).
-   */
-  and(): this {
-    return this
-  }
-
-  /**
-   * Begin the condition phase.
-   */
-  should(): this {
-    return this
-  }
-
-  /**
-   * Add another condition (AND).
-   */
-  andShould(): this {
-    return this
-  }
-
   // --- Condition methods ---
 
   /**
@@ -159,70 +118,6 @@ export class SchemaRuleBuilder extends TerminalBuilder {
   // --- Evaluation ---
 
   /**
-   * An independent copy, carrying both lists.
-   *
-   * This builder does not extend `RuleBuilder`, so it does not inherit that
-   * class's override — and neither `that()` nor `should()` forked here at all,
-   * which made the bug 0016 leak worse on this hierarchy than on the main one:
-   * a held `schema()` selection accumulated every predicate and condition of
-   * every rule derived from it. `docs/graphql.md` teaches exactly that shape.
-   */
-  protected override copy(): this {
-    const clone = super.copy()
-    clone._predicates = [...this._predicates]
-    clone._conditions = [...this._conditions]
-    return clone
-  }
-
-  /**
-   * Whether this rule states an assertion at all — the assertion gate's question.
-   *
-   * True once a condition has been added.
-   *
-   * Overrides the `TerminalBuilder` default (`true`), whose JSDoc carries the
-   * contract and the reason this is public rather than protected.
-   */
-  override assertsSomething(): boolean {
-    return this._conditions.length > 0
-  }
-
-  /**
-   * The remedy for this builder's assertion-less state, as one string.
-   *
-   * One channel, so `diagnose()`'s advice and the finding's own message cannot
-   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
-   * what this builder is missing.
-   */
-  override assertionAdvice(): string {
-    return (
-      'this rule has no condition, so it asserts nothing and can never fail. Add a ' +
-      'condition after .should(), e.g. haveFields(...) or acceptArgs(...).'
-    )
-  }
-
-  /** Named by id or description, not 'unnamed' (plan 0070 §4). */
-  override describeRule(): RuleDescription {
-    return {
-      ...super.describeRule(),
-      rule: this._metadata?.id ?? this.buildRuleDescription(),
-    }
-  }
-
-  /**
-   * The set the conditions receive — plan 0096, and the ONE method both readers
-   * call. See `ResolverRuleBuilder.selected()` for why sharing it is the point.
-   */
-  private selected(): SchemaElement[] {
-    return selectionOf(this, () =>
-      this.getElements().filter((element) =>
-        this._predicates.every((predicate) => predicate.test(element)),
-      ),
-    )
-  }
-
-  /** Units this rule examined — plan 0096. */
-
-  /**
    * This family counts schema types — the SDL types it selected.
    *
    * Plan 0099: `CollectResult.examined` is unit-typed per family (ADR-009 part
@@ -234,41 +129,15 @@ export class SchemaRuleBuilder extends TerminalBuilder {
     return 'schema types'
   }
 
-  /**
-   * How many units this rule actually examined — ADR-010's evidence that a pass
-   * was constructed rather than defaulted.
-   *
-   * The schema types this rule selected.
-   */
-  examinedUnits(): number {
-    return this.selected().length
+  protected override descriptionSubject(): string {
+    return 'schema'
   }
 
-  protected collectViolations(): CollectResult {
-    const filtered = this.selected()
-
-    if (filtered.length === 0) {
-      // Plan 0098: the early exit IS the zero-evidence case, stated rather than
-      // implied by an empty violation list.
-      return { violations: [], examined: 0 }
-    }
-
-    const context: ConditionContext = {
-      rule: this.buildRuleDescription(),
-      because: this._reason,
-      ruleId: this._metadata?.id,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-    }
-
-    const violations: ArchViolation[] = []
-    for (const condition of this._conditions) {
-      violations.push(...condition.evaluate(filtered, context))
-    }
-    return { violations, examined: filtered.length }
+  protected override conditionExamples(): string {
+    return 'haveFields(...) or acceptArgs(...)'
   }
 
-  private getElements(): SchemaElement[] {
+  protected override getElements(): SchemaElement[] {
     const elements: SchemaElement[] = []
     const typeMap = this.loaded.schema.getTypeMap()
     const firstFile = this.loaded.documents[0]?.filePath
@@ -303,14 +172,5 @@ export class SchemaRuleBuilder extends TerminalBuilder {
     }
 
     return elements
-  }
-
-  private buildRuleDescription(): string {
-    const predicateDesc = this._predicates.map((p) => p.description).join(' and ')
-    const conditionDesc = this._conditions.map((c) => c.description).join(' and ')
-    const parts: string[] = ['schema']
-    if (predicateDesc) parts.push(`that ${predicateDesc}`)
-    if (conditionDesc) parts.push(`should ${conditionDesc}`)
-    return parts.join(' ')
   }
 }

@@ -81,6 +81,34 @@ kernel's `finishPreset` has no such flag and neither does the kernel's own
 `executeCheck`, which still emits unconditionally — recorded as knowingly divergent
 and owned by [plan 0188](../work/plans/0188-unify-the-duplicated-engine-modules.md).
 
+### Amendment 2026-09-03 — the emitters take evidence (ADR-014)
+
+[ADR-014](./014-the-emitter-refuses-a-verdict-without-evidence.md), accepted
+2026-09-03, supersedes four statements above at the two emitters:
+
+- _"Preset return type is `ArchViolation[]`"_ — a preset, and `finishPreset`,
+  hand back the receipt: still an `ArchViolation[]`, now carrying `examined`,
+  `sourceEmpty?` and `declaredEmpty?` as its own properties, so `.length` keeps
+  working and an untyped consumer's exit line stays correct.
+- _"It never throws or filters"_ — never throws on violations; throws on a
+  configuration finding it produced itself, under `warn` and under a bare call,
+  because that finding is unsuppressable and those doors hand nothing back.
+- _"`throwIfViolations` is retained … for compatibility"_ — removed. An alias
+  that still takes a bare array is the hole ADR-014 closes, under another name.
+- _"Existing call sites are unaffected … the option is additive"_ (Consequences)
+  — true of this ADR's own change, and not of ADR-014's: every emitter call
+  changes, and the changeset names every dependent.
+
+The principle is untouched: a check detects, the caller decides how and whether
+to emit, and `reportViolations` still never throws on violations and never
+filters them. What narrows is what a caller may hand over — a value that says
+what was examined — and what widens is what comes back.
+
+**Decided, not yet enforced.** Until [plan 0235](../work/plans/0235-the-emitter-takes-a-receipt.md)
+lands, the code still matches the Decision as written above and the Enforcement
+rows below still describe it; this amendment records the ruling, and the plan
+turns it into the seam.
+
 ## Consequences
 
 - Embedders own reporting: no double render, and preset violations can be

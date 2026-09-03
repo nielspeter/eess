@@ -1,3 +1,4 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -129,13 +130,15 @@ function requireGraphQL(): GraphQLPackage {
       cause.code === 'MODULE_NOT_FOUND' &&
       /Cannot find module 'graphql'/.test(cause.message)
     if (notInstalled) {
-      throw new Error(
+      throw new ArchConfigError(
+        'requireGraphQL',
         '[eess-ts/graphql] The "graphql" package is required but not installed.\n' +
           'Install it with: npm install graphql',
         { cause },
       )
     }
-    throw new Error(
+    throw new ArchConfigError(
+      'requireGraphQL',
       `[eess-ts/graphql] The "graphql" package is installed but could not be loaded: ${
         cause instanceof Error ? cause.message : String(cause)
       }`,
@@ -160,7 +163,8 @@ export function loadSchemaFromGlob(rootDir: string, glob: string): LoadedSchema 
   const graphqlFiles = findGraphqlFiles(resolvedRoot, matcher)
 
   if (graphqlFiles.length === 0) {
-    throw new Error(
+    throw new ArchConfigError(
+      'loadSchemaFromGlob',
       `[eess-ts/graphql] No .graphql files found matching "${glob}" in ${resolvedRoot}`,
     )
   }

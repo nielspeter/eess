@@ -1,5 +1,7 @@
 import { assertionAdviceFor } from './assertion-advice.js'
 import type { Predicate } from './predicate.js'
+import { selectMatching, matchingElements } from './correspondence.js'
+import { recordPredicate } from './predicate.js'
 import type { Condition, ConditionContext } from './condition.js'
 import type { ArchViolation } from './violation.js'
 import type { RuleDescription } from './rule-description.js'
@@ -8,6 +10,8 @@ import type { DeclaredGlob, GlobNode } from './glob-site.js'
 import { countDeclaredGlobs, stampGlobs } from './glob-site.js'
 import { TerminalBuilder, type CollectResult, assertionLessViolation } from './terminal-builder.js'
 import { assertsCardinality as conditionAssertsCardinality } from './cardinality.js'
+import { ruleDescriptionOf, ruleDescriptionFrom } from './rule-description.js'
+import { conditionContextFrom } from './condition.js'
 
 /**
  * A declared glob's own label in a dead-glob finding — the predicate/
@@ -26,14 +30,37 @@ function describeOrigin(description: string, glob: DeclaredGlob, siteCount: numb
  * rather than a method body, to keep the class itself under this repo's own
  * 300-line class-length gate (`arch.internal.rules.ts`).
  */
-function declaredGlobsOf<T>(predicates: Predicate<T>[], conditions: Condition<T>[]): GlobNode[] {
+/**
+ * The globs a rule declares, stamped with where each came from.
+ *
+ * Exported (as family plumbing) so `eess-ts` can call it instead of keeping its
+ * own copy — they were 94% similar, and the difference was not cosmetic: only
+ * the eess-ts copy honoured `originLabel`. The kernel's `Predicate` has carried
+ * that field all along and this function ignored it, so a preset's label was
+ * dropped for `eess-md`, `eess-mermaid` and `eess-gherkin`. Found by unifying.
+ */
+export function declaredGlobsOf<T>(
+  // `readonly`, widened so a caller holding a frozen declaration can pass it
+  // without a copy. Strictly more permissive; the body only iterates.
+  predicates: readonly Predicate<T>[],
+  conditions: readonly Condition<T>[],
+): GlobNode[] {
   const trees: GlobNode[] = []
   for (const predicate of predicates) {
     if (predicate.globs) {
       const count = countDeclaredGlobs(predicate.globs)
       trees.push(
-        stampGlobs(predicate.globs, 'selector', (g) =>
-          describeOrigin(predicate.description, g, count),
+        stampGlobs(
+          predicate.globs,
+          'selector',
+          (g) =>
+            // A preset's `originLabel` names the option the user wrote rather
+            // than the calls it expanded into. Used VERBATIM, skipping
+            // `describeOrigin`: that appends `("glob")` to disambiguate a
+            // predicate holding several sites, and a label already names exactly
+            // one option and one glob — left in, the finding read
+            // `shared: "**/x/**" ("**/x/**")`.
+            predicate.originLabel ?? describeOrigin(predicate.description, g, count),
         ),
       )
     }
@@ -165,10 +192,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * @param opts.identify - map an element to its message metadata (name/file/line)
    */
   select(opts: { label: string; identify: (element: T) => ElementInfo }): Selection<T> {
-    const filtered = this.getElements().filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
-    )
-    return { elements: filtered, label: opts.label, identify: opts.identify }
+    return selectMatching(this.getElements(), this._predicates, opts)
   }
 
   /**
@@ -176,14 +200,11 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * Used by the `explain` CLI subcommand.
    */
   describeRule(): RuleDescription {
-    return {
+    return ruleDescriptionFrom({
+      metadata: this._metadata,
+      reason: this._reason,
       rule: this.buildRuleDescription(),
-      id: this._metadata?.id,
-      because: this._reason,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-      imperative: this._metadata?.imperative,
-    }
+    })
   }
 
   /**
@@ -268,12 +289,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    */
   protected addPredicate(predicate: Predicate<T>): this {
     const next = this.copy()
-    next._predicates.push(predicate)
-    // Bug 0155 state 2: a predicate-only method used after `.should()`. Dual-use
-    // methods dispatch to conditions in that phase and never reach here, so this
-    // is a filter written where an assertion was meant — the one state whose fix
-    // is "move it before .should()", not "add a condition".
-    if (next._phase === 'condition') next._misplaced.push(predicate.description)
+    recordPredicate(predicate, next._predicates, next._misplaced, next._phase)
     return next
   }
 
@@ -339,12 +355,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * Build the rule description from predicates and conditions.
    */
   private buildRuleDescription(): string {
-    const predicateDesc = this._predicates.map((p) => p.description).join(' and ')
-    const conditionDesc = this._conditions.map((c) => c.description).join(' and ')
-    const parts: string[] = []
-    if (predicateDesc) parts.push(`that ${predicateDesc}`)
-    if (conditionDesc) parts.push(`should ${conditionDesc}`)
-    return parts.join(' ')
+    return ruleDescriptionOf(this._predicates, this._conditions)
   }
 
   /**
@@ -365,9 +376,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    */
   protected collectViolations(): CollectResult {
     const allElements = this.getElements()
-    const filtered = allElements.filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
-    )
+    const filtered = matchingElements(allElements, this._predicates)
     const examined = filtered.length
 
     if (filtered.length === 0) {
@@ -410,12 +419,10 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
    * Call `super.buildConditionContext()` and spread the result.
    */
   protected buildConditionContext(): ConditionContext {
-    return {
+    return conditionContextFrom({
+      metadata: this._metadata,
+      reason: this._reason,
       rule: this.buildRuleDescription(),
-      because: this._reason,
-      ruleId: this._metadata?.id,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-    }
+    })
   }
 }

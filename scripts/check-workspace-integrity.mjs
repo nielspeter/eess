@@ -36,7 +36,7 @@
 
 import { builtinModules } from 'node:module'
 import { readFileSync, readdirSync, statSync, lstatSync, readlinkSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 const ROOT = process.cwd()
 const BUILTINS = new Set(builtinModules)
@@ -346,6 +346,56 @@ if (packagesWalked === 0) {
   )
 }
 
+// ---------- leftover non-vacuity probes ----------
+
+// Bug 0231. `scripts/nonvacuity/` plants real files inside the populations the
+// gates declare — it has to, or the probe would not be in the set under test.
+// Each one is removed by a `finally`, by SIGINT/SIGTERM/SIGHUP handlers, and by
+// a startup sweep; all three were measured, and `SIGKILL` defeats all three.
+//
+// What makes a survivor expensive is not that it survives. It is that
+// `.gitignore` carries `**/__nonvacuity_probe*` — correctly, so a probe cannot
+// be committed by accident — which also means `git status` shows a clean tree
+// while `check:arch` and `check:guardrails` red on a file the reader cannot
+// find. The recovery path (the startup sweep) sits behind `check:nonvacuity`,
+// the slowest gate in the repo, so the fast loop never reaches it.
+//
+// This check exists so the leftover is named by a gate that can say what it is,
+// instead of being reported as a genuine defect by whichever rule it trips.
+// Matching is by basename PREFIX, the same shape as the `.gitignore` rule, so a
+// probe added later is covered without editing a list here.
+const PROBE_PREFIX = '__nonvacuity_probe'
+const probeRoots = [
+  ...pkgDirs.map((d) => join(packagesDir, d, 'src')),
+  join(ROOT, 'docs'),
+  join(ROOT, 'work'),
+  join(ROOT, 'examples'),
+  join(ROOT, 'scripts', 'nonvacuity'),
+]
+let probeRootsWalked = 0
+for (const root of probeRoots) {
+  const files = []
+  walkAny(root, files)
+  // A root that does not exist contributes nothing and is not a finding: the
+  // list is deliberately wider than any single checkout needs, so that a probe
+  // planted somewhere new is caught rather than requiring this list to have
+  // predicted it. Only the roots that EXIST count toward the denominator.
+  if (files.length === 0) continue
+  probeRootsWalked += 1
+  for (const file of files) {
+    if (!basename(file).startsWith(PROBE_PREFIX)) continue
+    problems.push(
+      `non-vacuity probe present: ${file.replace(ROOT + '/', '')} — a fixture under ` +
+        `scripts/nonvacuity/ plants this file and removes it again. Either a ` +
+        `\`check:nonvacuity\` run is IN FLIGHT, in which case wait for it and do NOT ` +
+        `delete the file (the run needs it) — or one was killed before its cleanup ran, ` +
+        `in which case delete it. It is gitignored (\`**/${PROBE_PREFIX}*\`), so ` +
+        `\`git status\` will not show it either way, and until it is gone other gates ` +
+        `will report it as a defect in your own code`,
+    )
+  }
+}
+
 // ---------- report ----------
 
 if (problems.length > 0) {
@@ -357,5 +407,6 @@ if (problems.length > 0) {
 console.error(
   `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, ` +
     `all @nielspeter/eess* locally linked, every build cleans its dist/, ` +
-    `${nulScanned.length} source files across ${packagesWalked} packages free of raw NUL bytes.`,
+    `${nulScanned.length} source files across ${packagesWalked} packages free of raw NUL bytes, ` +
+    `${probeRootsWalked} probe roots free of leftover fixtures.`,
 )

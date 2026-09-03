@@ -17,7 +17,6 @@ export type { ApplyResult } from './apply-fixes.js'
 export type { Describable } from './rule-description.js'
 export type { OnDisk, DiskSet } from './disk-set.js'
 export type { Pair, MatchResult, MatchOptions } from './matching.js'
-export type { PathUniverse } from './path-universe.js'
 export { DECLARE_INSTEAD } from './unsuppressable.js'
 export { UNSUPPRESSABLE } from './unsuppressable.js'
 export { UNSUPPRESSABLE_MECHANISMS } from './unsuppressable.js'
@@ -72,3 +71,52 @@ export { toPortablePath } from './identity-root.js'
 export { viewsFor } from './path-universe.js'
 export { violationsEmittedCount } from './report.js'
 export { writeStderr } from './stderr.js'
+
+// Watch-mode scheduling and the watch loop, shared by every dialect CLI. Family
+// plumbing rather than public API (ADR-011): a consumer writing rules never
+// calls this; a dialect's `--watch` does. Unified here because the two copies
+// drifted and one of them kept a bug the other had fixed — see `watch.ts`.
+export { RunScheduler, watchAndRerun } from './watch.js'
+export type { WatchOptions } from './watch.js'
+
+// The dialect-independent halves of CLI config handling — finding the file,
+// validating what a loaded module claims, and classifying Node's module-format
+// refusal. Family plumbing (ADR-011): a consumer writing rules never calls
+// these; every dialect's CLI does, and did so from its own copy until now.
+export {
+  findConfigFile,
+  extractSharedConfig,
+  isModuleFormatRefusal,
+  requireRuleFiles,
+} from './cli-config.js'
+export type { SharedCliConfig } from './cli-config.js'
+
+// Recursive file discovery for the dialects that read a directory tree rather
+// than a TypeScript project (`eess-md`, `eess-crossvalidate`). Each carried its
+// own copy at 99% similarity.
+export { walkFiles, toPosix } from './file-walk.js'
+
+// The globs a rule declares, stamped with their origin. Family plumbing — a
+// dialect's own rule-declaration layer calls it; a consumer writing rules does not.
+export { declaredGlobsOf } from './rule-builder.js'
+
+// Recording exclusion patterns into a builder's state. Family plumbing: the
+// dialects' builders call it, a consumer writing rules does not.
+export { recordExclusions } from './silent-exclusion.js'
+
+// Applying a rule's predicates to its elements. Family plumbing: the dialects'
+// builders call it, a consumer writing rules does not.
+export { selectMatching, matchingElements } from './correspondence.js'
+
+// Recording a predicate on a builder, diagnosing one that arrived after
+// `.should()`. Family plumbing.
+export { recordPredicate } from './predicate.js'
+
+// Running a rule's conditions over its selected elements, carrying the evidence
+// count ADR-010 requires. Family plumbing: dialect builders call it.
+export { evaluateConditions, conditionContextFrom } from './condition.js'
+
+// Assembling a rule's English description from what it declared. Family
+// plumbing: every dialect builder renders one, a consumer does not.
+export { ruleDescriptionOf, ruleDescriptionFrom } from './rule-description.js'
+export { assertHomogeneous } from './combinators.js'

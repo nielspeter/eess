@@ -51,6 +51,7 @@ jobs:
       - run: npm run check:family
       # Dogfood: the shipped `recommended` preset over this repo, against its baseline.
       - run: npm run check:baseline
+      - run: npm run check:guardrails
       # Dogfood: eess-mermaid validates the kernel architecture diagram (plan 0060 charter).
       - run: npm run check:diagram
       # Dogfood: eess-crossvalidate — diagram↔code (both directions) + ADR↔test citations.

@@ -1,6 +1,10 @@
 import type { Predicate } from '@nielspeter/eess'
 import type { TypeMatcher } from './type-matcher.js'
-import { combineGlobs, negateGlobs } from '@nielspeter/eess/internal'
+import {
+  combineGlobs,
+  negateGlobs,
+  assertHomogeneous as kernelAssertHomogeneous,
+} from '@nielspeter/eess/internal'
 
 /**
  * Negates a predicate or type matcher.
@@ -33,12 +37,9 @@ export function not<T>(input: Predicate<T> | TypeMatcher): Predicate<T> | TypeMa
   }
 }
 
+/** The kernel's, with this dialect's noun for the function kind. */
 function assertHomogeneous<T>(inputs: (Predicate<T> | TypeMatcher)[]): void {
-  if (inputs.length === 0) return
-  const firstIsFunction = typeof inputs[0] === 'function'
-  if (inputs.some((i) => (typeof i === 'function') !== firstIsFunction)) {
-    throw new TypeError('Cannot mix Predicate objects and TypeMatcher functions in and()/or()')
-  }
+  kernelAssertHomogeneous(inputs, 'TypeMatcher')
 }
 
 /**
@@ -57,22 +58,7 @@ function assertHomogeneous<T>(inputs: (Predicate<T> | TypeMatcher)[]): void {
 export function and<T>(...predicates: Predicate<T>[]): Predicate<T>
 export function and(...matchers: TypeMatcher[]): TypeMatcher
 export function and<T>(...inputs: (Predicate<T> | TypeMatcher)[]): Predicate<T> | TypeMatcher {
-  assertHomogeneous(inputs)
-  if (typeof inputs[0] === 'function') {
-    const matchers = inputs.filter((input): input is TypeMatcher => typeof input === 'function')
-    const fn: TypeMatcher = (type) => matchers.every((m) => m(type))
-    return fn
-  }
-  const predicates = inputs.filter((input): input is Predicate<T> => typeof input !== 'function')
-  return {
-    description: predicates.map((p) => p.description).join(' and '),
-    test: (element: T) => predicates.every((p) => p.test(element)),
-    // A conjunction selects nothing as soon as ONE input does.
-    globs: combineGlobs(
-      'all',
-      predicates.map((p) => p.globs),
-    ),
-  }
+  return combine(inputs, 'all')
 }
 
 /**
@@ -91,20 +77,35 @@ export function and<T>(...inputs: (Predicate<T> | TypeMatcher)[]): Predicate<T> 
 export function or<T>(...predicates: Predicate<T>[]): Predicate<T>
 export function or(...matchers: TypeMatcher[]): TypeMatcher
 export function or<T>(...inputs: (Predicate<T> | TypeMatcher)[]): Predicate<T> | TypeMatcher {
+  return combine(inputs, 'any')
+}
+
+/**
+ * The body `and()` and `or()` share — see the kernel's `combine()`, which this
+ * mirrors for `TypeMatcher`. Three choices must agree (quantifier, joining
+ * word, glob node) and deriving all three from `op` is what makes a mismatch
+ * unreachable: pairing `some` with an `'all'` glob node reports a live selector
+ * as dead.
+ */
+function combine<T>(
+  inputs: (Predicate<T> | TypeMatcher)[],
+  op: 'all' | 'any',
+): Predicate<T> | TypeMatcher {
   assertHomogeneous(inputs)
+  const holds = <X>(xs: readonly X[], f: (x: X) => boolean): boolean =>
+    op === 'all' ? xs.every(f) : xs.some(f)
+
   if (typeof inputs[0] === 'function') {
     const matchers = inputs.filter((input): input is TypeMatcher => typeof input === 'function')
-    return (type) => matchers.some((m) => m(type))
+    const fn: TypeMatcher = (type) => holds(matchers, (m) => m(type))
+    return fn
   }
   const predicates = inputs.filter((input): input is Predicate<T> => typeof input !== 'function')
   return {
-    description: predicates.map((p) => p.description).join(' or '),
-    test: (element: T) => predicates.some((p) => p.test(element)),
-    // A disjunction selects nothing only when EVERY input does. Inputs that
-    // declare no globs become retained opaque children rather than being
-    // dropped — dropping them here is what would red `or(deadGlob, byName)`.
+    description: predicates.map((p) => p.description).join(op === 'all' ? ' and ' : ' or '),
+    test: (element: T) => holds(predicates, (p) => p.test(element)),
     globs: combineGlobs(
-      'any',
+      op,
       predicates.map((p) => p.globs),
     ),
   }

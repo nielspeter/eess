@@ -1,27 +1,6 @@
-import type {
-  Condition,
-  DeclaredGlob,
-  GlobNode,
-  Predicate,
-  RuleDescription,
-} from '@nielspeter/eess'
-import { countDeclaredGlobs, stampGlobs } from '@nielspeter/eess/internal'
-
-/**
- * Where a glob was written, for the message.
- *
- * The predicate's own description already names the API and the glob
- * (`reside in folder matching "**\/src/x/**"`), so the origin is that
- * description unless one predicate declared several globs — in which case the
- * glob is appended to tell them apart.
- */
-function describeOrigin(description: string, glob: DeclaredGlob, siteCount: number): string {
-  // Keyed on the COUNT, not on whether the description happens to contain the
-  // glob. A variadic predicate's description contains every one of its globs
-  // (`import from "**/a/**", "**/b/**"`), so a substring test collapsed the
-  // one case this exists to separate.
-  return siteCount > 1 ? `${description} ("${glob.glob}")` : description
-}
+import type { Condition, GlobNode, Predicate, RuleDescription } from '@nielspeter/eess'
+import { declaredGlobsOf } from '@nielspeter/eess/internal'
+import { ruleDescriptionOf, ruleDescriptionFrom } from '@nielspeter/eess/internal'
 
 /**
  * A rule as DECLARED — what was chained onto the builder, before anything runs.
@@ -77,12 +56,9 @@ function misplacedPredicateAdvice(declared: DeclaredRule): string {
  * Build the rule description from predicates and conditions.
  */
 export function buildRuleDescription(declared: DeclaredRule): string {
-  const predicateDesc = declared.predicates.map((p) => p.description).join(' and ')
-  const conditionDesc = declared.conditions.map((c) => c.description).join(' and ')
-  const parts: string[] = []
-  if (predicateDesc) parts.push(`that ${predicateDesc}`)
-  if (conditionDesc) parts.push(`should ${conditionDesc}`)
-  return parts.join(' ')
+  // The kernel's. This package's copy differed only in taking a `DeclaredRule`
+  // rather than the two lists.
+  return ruleDescriptionOf(declared.predicates, declared.conditions)
 }
 
 /**
@@ -109,37 +85,10 @@ function buildImperative(declared: DeclaredRule): string {
 
 /** The value behind `RuleBuilder.globs()`. */
 export function globsOf(declared: DeclaredRule): readonly GlobNode[] {
-  const trees: GlobNode[] = []
-  for (const predicate of declared.predicates) {
-    if (predicate.globs) {
-      const count = countDeclaredGlobs(predicate.globs)
-      trees.push(
-        stampGlobs(
-          predicate.globs,
-          'selector',
-          (g) =>
-            // A preset's `originLabel` names the option the user wrote rather
-            // than the calls it expanded into. Used VERBATIM, skipping
-            // `describeOrigin`: that appends `("glob")` to disambiguate a
-            // predicate holding several sites, and a label already names
-            // exactly one option and one glob — left in, the finding read
-            // `shared: "**/x/**" ("**/x/**")`.
-            predicate.originLabel ?? describeOrigin(predicate.description, g, count),
-        ),
-      )
-    }
-  }
-  for (const condition of declared.conditions) {
-    if (condition.globs) {
-      const count = countDeclaredGlobs(condition.globs)
-      trees.push(
-        stampGlobs(condition.globs, 'condition', (g) =>
-          describeOrigin(condition.description, g, count),
-        ),
-      )
-    }
-  }
-  return trees
+  // The kernel's, not a copy. This package carried a 94%-similar version whose
+  // one real difference — honouring `originLabel` — the kernel has now adopted,
+  // so there is nothing left here but the shape of the argument.
+  return declaredGlobsOf(declared.predicates, declared.conditions)
 }
 
 /** The value behind `RuleBuilder.assertionAdvice()`. */
@@ -161,12 +110,10 @@ export function assertionAdviceOf(declared: DeclaredRule): string {
 
 /** The value behind `RuleBuilder.describeRule()`. */
 export function describeRuleOf(declared: DeclaredRule): RuleDescription {
-  return {
+  return ruleDescriptionFrom({
+    metadata: declared.metadata,
+    reason: declared.reason,
     rule: buildRuleDescription(declared),
-    id: declared.metadata?.id,
-    because: declared.reason,
-    suggestion: declared.metadata?.suggestion,
-    docs: declared.metadata?.docs,
-    imperative: declared.metadata?.imperative ?? buildImperative(declared),
-  }
+    imperativeFallback: buildImperative(declared),
+  })
 }

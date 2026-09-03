@@ -229,11 +229,8 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration> {
    * After `.should()`: assert matched types have names matching the pattern.
    */
   haveNameMatching(pattern: RegExp | string): this {
-    if (this._phase === 'condition') {
-      const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern
-      return this.addCondition(conditionHaveNameMatching(regex))
-    }
-    return this.addPredicate(identityHaveNameMatching(pattern))
+    const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern
+    return this.dualUse(conditionHaveNameMatching(regex), identityHaveNameMatching(pattern))
   }
 
   /**
@@ -265,10 +262,7 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration> {
    * After `.should()`: assert types reside in a file matching the glob.
    */
   resideInFile(glob: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(conditionResideInFile(glob))
-    }
-    return this.addPredicate(identityResideInFile(glob))
+    return this.dualUse(conditionResideInFile(glob), identityResideInFile(glob))
   }
 
   /**
@@ -276,10 +270,7 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration> {
    * After `.should()`: assert types reside in a folder matching the glob.
    */
   resideInFolder(glob: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(conditionResideInFolder(glob))
-    }
-    return this.addPredicate(identityResideInFolder(glob))
+    return this.dualUse(conditionResideInFolder(glob), identityResideInFolder(glob))
   }
 }
 

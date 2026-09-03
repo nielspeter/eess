@@ -1,4 +1,5 @@
 import type { Predicate } from './predicate.js'
+import { combineGlobs, negateGlobs } from './glob-site.js'
 
 /**
  * A function that tests a value against a condition.
@@ -31,14 +32,36 @@ export function not<T, V>(input: Predicate<T> | Matcher<V>): Predicate<T> | Matc
   return {
     description: `not (${input.description})`,
     test: (element: T) => !input.test(element),
+    // Negation-normal-form push-down: `op` inverts as well as `polarity`.
+    // `not(unsatisfiable)` selects everything, so a negated site is
+    // over-selection rather than vacuity and can never be a fault — but a
+    // `not` nested inside the subtree flips it back, which is why this cannot
+    // just flip polarity. See `negateGlobs`.
+    globs: input.globs && negateGlobs(input.globs),
   }
 }
 
-function assertHomogeneous<T, V>(inputs: (Predicate<T> | Matcher<V>)[]): void {
+/**
+ * Every input to `and()`/`or()` must be the same kind.
+ *
+ * `eess-ts` carried a byte-identical copy — `no-copy-paste` reported it at
+ * 100%, with only the noun in the message differing — so the noun is now the
+ * parameter and the check has one owner.
+ *
+ * A `TypeError` and not a filtered result: mixing an object predicate with a
+ * matcher function silently drops one kind (the implementations below filter
+ * by `typeof`), so a rule composed that way would narrow by half of what its
+ * author wrote and pass on the rest. Refusing at composition time is the only
+ * point where the mistake is still visible.
+ */
+export function assertHomogeneous<T, V>(
+  inputs: (Predicate<T> | Matcher<V>)[],
+  matcherNoun = 'Matcher',
+): void {
   if (inputs.length === 0) return
   const firstIsFunction = typeof inputs[0] === 'function'
   if (inputs.some((i) => (typeof i === 'function') !== firstIsFunction)) {
-    throw new TypeError('Cannot mix Predicate objects and Matcher functions in and()/or()')
+    throw new TypeError(`Cannot mix Predicate objects and ${matcherNoun} functions in and()/or()`)
   }
 }
 
@@ -58,17 +81,7 @@ function assertHomogeneous<T, V>(inputs: (Predicate<T> | Matcher<V>)[]): void {
 export function and<T>(...predicates: Predicate<T>[]): Predicate<T>
 export function and<V>(...matchers: Matcher<V>[]): Matcher<V>
 export function and<T, V>(...inputs: (Predicate<T> | Matcher<V>)[]): Predicate<T> | Matcher<V> {
-  assertHomogeneous(inputs)
-  if (typeof inputs[0] === 'function') {
-    const matchers = inputs.filter((input): input is Matcher<V> => typeof input === 'function')
-    const fn: Matcher<V> = (value) => matchers.every((m) => m(value))
-    return fn
-  }
-  const predicates = inputs.filter((input): input is Predicate<T> => typeof input !== 'function')
-  return {
-    description: predicates.map((p) => p.description).join(' and '),
-    test: (element: T) => predicates.every((p) => p.test(element)),
-  }
+  return combine(inputs, 'all')
 }
 
 /**
@@ -87,14 +100,50 @@ export function and<T, V>(...inputs: (Predicate<T> | Matcher<V>)[]): Predicate<T
 export function or<T>(...predicates: Predicate<T>[]): Predicate<T>
 export function or<V>(...matchers: Matcher<V>[]): Matcher<V>
 export function or<T, V>(...inputs: (Predicate<T> | Matcher<V>)[]): Predicate<T> | Matcher<V> {
+  return combine(inputs, 'any')
+}
+
+/**
+ * The body `and()` and `or()` share, with the quantifier as its one parameter.
+ *
+ * They were the same fifteen lines twice — `no-copy-paste` reported them at
+ * 98%, across both packages — but the reason to share them is that **three
+ * choices have to agree and nothing was making them**:
+ *
+ * | `op`    | quantifier | joined with | glob node |
+ * | ------- | ---------- | ----------- | --------- |
+ * | `'all'` | `every`    | `' and '`   | `'all'`   |
+ * | `'any'` | `some`     | `' or '`    | `'any'`   |
+ *
+ * A conjunction selects nothing as soon as ONE input does; a disjunction only
+ * when EVERY input does. Pairing `some` with a `'all'` glob node — one edit
+ * away, in two files, when they were written out separately — reports a live
+ * selector as dead, which is a configuration finding against a rule that is
+ * fine. Deriving all three from `op` is what makes that unreachable.
+ *
+ * Inputs that declare no globs become retained opaque children rather than
+ * being dropped: dropping them is what would red `or(deadGlob, byName)`.
+ */
+function combine<T, V>(
+  inputs: (Predicate<T> | Matcher<V>)[],
+  op: 'all' | 'any',
+): Predicate<T> | Matcher<V> {
   assertHomogeneous(inputs)
+  const holds = <X>(xs: readonly X[], f: (x: X) => boolean): boolean =>
+    op === 'all' ? xs.every(f) : xs.some(f)
+
   if (typeof inputs[0] === 'function') {
     const matchers = inputs.filter((input): input is Matcher<V> => typeof input === 'function')
-    return (value) => matchers.some((m) => m(value))
+    const fn: Matcher<V> = (value) => holds(matchers, (m) => m(value))
+    return fn
   }
   const predicates = inputs.filter((input): input is Predicate<T> => typeof input !== 'function')
   return {
-    description: predicates.map((p) => p.description).join(' or '),
-    test: (element: T) => predicates.some((p) => p.test(element)),
+    description: predicates.map((p) => p.description).join(op === 'all' ? ' and ' : ' or '),
+    test: (element: T) => holds(predicates, (p) => p.test(element)),
+    globs: combineGlobs(
+      op,
+      predicates.map((p) => p.globs),
+    ),
   }
 }

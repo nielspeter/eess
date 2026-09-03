@@ -1,3 +1,4 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import { Node } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
@@ -187,7 +188,10 @@ function getObjectLiteralPropertyNames(node: Node): Set<string> {
  */
 export function haveArgumentWithProperty(...names: string[]): Condition<ArchCall> {
   if (names.length === 0) {
-    throw new Error('haveArgumentWithProperty requires at least one property name')
+    throw new ArchConfigError(
+      'haveArgumentWithProperty',
+      'haveArgumentWithProperty requires at least one property name',
+    )
   }
   const quotedNames = names.map((n) => `"${n}"`).join(', ')
   const description =
@@ -235,7 +239,10 @@ export function haveArgumentWithProperty(...names: string[]): Condition<ArchCall
  */
 export function notHaveArgumentWithProperty(...names: string[]): Condition<ArchCall> {
   if (names.length === 0) {
-    throw new Error('notHaveArgumentWithProperty requires at least one property name')
+    throw new ArchConfigError(
+      'notHaveArgumentWithProperty',
+      'notHaveArgumentWithProperty requires at least one property name',
+    )
   }
   const quotedNames = names.map((n) => `"${n}"`).join(', ')
   const description =

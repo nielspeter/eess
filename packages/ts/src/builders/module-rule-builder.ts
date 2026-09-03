@@ -88,10 +88,10 @@ export class ModuleRuleBuilder extends RuleBuilder<SourceFile> {
    * Matched against the absolute file path.
    */
   resideInFile(glob: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(resideInFileCondition<SourceFile>(glob))
-    }
-    return this.addPredicate(resideInFilePredicate<SourceFile>(glob))
+    return this.dualUse(
+      resideInFileCondition<SourceFile>(glob),
+      resideInFilePredicate<SourceFile>(glob),
+    )
   }
 
   /**
@@ -100,10 +100,10 @@ export class ModuleRuleBuilder extends RuleBuilder<SourceFile> {
    * Matched against the directory portion of the absolute file path.
    */
   resideInFolder(glob: string): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(resideInFolderCondition<SourceFile>(glob))
-    }
-    return this.addPredicate(resideInFolderPredicate<SourceFile>(glob))
+    return this.dualUse(
+      resideInFolderCondition<SourceFile>(glob),
+      resideInFolderPredicate<SourceFile>(glob),
+    )
   }
 
   // --- Module-specific predicates (from predicates/module.ts) ---
@@ -129,10 +129,7 @@ export class ModuleRuleBuilder extends RuleBuilder<SourceFile> {
    * After `.should()`: assert that no import resolves to a matching glob.
    */
   notImportFrom(...globs: string[]): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(notImportFromCondition(...globs))
-    }
-    return this.addPredicate(notImportFromPredicate(...globs))
+    return this.dualUse(notImportFromCondition(...globs), notImportFromPredicate(...globs))
   }
 
   /**
@@ -141,10 +138,10 @@ export class ModuleRuleBuilder extends RuleBuilder<SourceFile> {
    * With options to control type-import handling.
    */
   notImportFromWithOptions(globs: string[], options: ImportOptions): this {
-    if (this._phase === 'condition') {
-      return this.addCondition(notImportFromCondition(globs, options))
-    }
-    return this.addPredicate(notImportFromPredicate(globs, options))
+    return this.dualUse(
+      notImportFromCondition(globs, options),
+      notImportFromPredicate(globs, options),
+    )
   }
 
   /**

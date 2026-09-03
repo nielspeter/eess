@@ -616,18 +616,31 @@ function namesOf(kind: ModuleEdgeKind, parent: Node): readonly string[] {
  * findings are NOT absorbed by an existing `import` entry for the same module.
  */
 export function edgeVerb(kind: ModuleEdgeKind): string {
-  switch (kind) {
-    case 'import':
-      return 'imports'
-    case 'reexport':
-      return 're-exports'
-    case 'dynamic':
-      return 'dynamically imports'
-    case 'type-expression':
-      return 'references the type from'
-    case 'require':
-      return 'requires'
-  }
+  return EDGE_WORDS[kind].verb
+}
+
+/**
+ * Both words for every edge kind, in one table.
+ *
+ * They were two exhaustive switches over the same union — `no-copy-paste`
+ * reported them at 100% — and keeping them apart is what lets a new kind be
+ * added with a verb and no noun phrase, which compiles: the `Record` makes
+ * that a type error instead, so a kind cannot be half-described.
+ *
+ * `import`'s verb must stay byte-identical. Every existing baselined
+ * dependency finding hashes its message, so changing that one string silently
+ * invalidates them all; the other kinds get distinct verbs precisely so their
+ * findings are NOT absorbed by an existing `import` entry for the same module.
+ */
+const EDGE_WORDS: Record<ModuleEdgeKind, { verb: string; valuePhrase: string }> = {
+  import: { verb: 'imports', valuePhrase: 'a value import from' },
+  reexport: { verb: 're-exports', valuePhrase: 'a runtime re-export of' },
+  dynamic: { verb: 'dynamically imports', valuePhrase: 'a dynamic import of' },
+  'type-expression': {
+    verb: 'references the type from',
+    valuePhrase: 'a type reference to',
+  },
+  require: { verb: 'requires', valuePhrase: 'a require call for' },
 }
 
 /**
@@ -640,18 +653,7 @@ export function edgeVerb(kind: ModuleEdgeKind): string {
  * {@link edgeTypeOnlyRemedy}.
  */
 export function edgeValuePhrase(kind: ModuleEdgeKind): string {
-  switch (kind) {
-    case 'import':
-      return 'a value import from'
-    case 'reexport':
-      return 'a runtime re-export of'
-    case 'dynamic':
-      return 'a dynamic import of'
-    case 'type-expression':
-      return 'a type reference to'
-    case 'require':
-      return 'a require call for'
-  }
+  return EDGE_WORDS[kind].valuePhrase
 }
 
 /**

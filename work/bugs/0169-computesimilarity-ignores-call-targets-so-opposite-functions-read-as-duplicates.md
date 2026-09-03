@@ -3,8 +3,12 @@
 ## Status
 
 - **State:** Draft — **the symptom below is confirmed; the fix prescribed below was
-  built, reviewed, measured wrong, and reverted.** See the correction at the end.
+  built, reviewed, measured wrong, and reverted.** See the correction at the end,
+  and then the 2026-08-31 addendum, which reports this reaching a real adopter and
+  measures the obvious second attempt failing the same way as the first.
 - **Found:** 2026-08-19, auditing the code-quality rules eess ships.
+- **Confirmed externally:** 2026-08-31, by an adopter project (not this repo)
+  whose team independently traced it to `computeSimilarity`.
 
 ## Symptom
 
@@ -160,3 +164,380 @@ A same-named test failing for a new reason was invisible to it too.
 - Carry fixtures for every rejected alternative. The reverted version argued for
   `min` over product and mean in its docstring, citing exact numbers, with no
   test pinning any of them — all three sabotages stayed green.
+
+## Addendum, 2026-08-31 — it reached an adopter, and the obvious fix fails too
+
+### It is not a theoretical false positive any more
+
+An adopter project hit this on two type guards for two different types with
+different field sets, and their engineer traced it correctly and unaided — to
+`computeSimilarity` being LCS over node kinds and `buildFingerprint`'s own
+docstring promising to ignore identifiers. Their conclusion: _"detector precision
+limitation, not real duplication... there is nothing to consolidate here."_
+
+They were right, and they were also being generous. Their reading was that the
+detector "cannot tell `fieldNameA` from `field_name_a`" — near-identical spellings.
+It is worse: it cannot tell **any** two names apart. Reduced to a fixture with
+deliberately disjoint vocabulary — two guards sharing not one field name:
+
+```
+vocabulary A: value, harbour, 'string', length, 0, lantern, meridian, quarry, tessellate
+vocabulary B: value, cobblestone, 'string', length, 0, driftwood, ferrous, gantry, juniper
+shared      : value, 'string', length, 0        <- only the scaffolding
+
+structural similarity (what the rule uses):  1.00
+vocabulary overlap (Jaccard, never read)  :  0.29
+```
+
+100%, on bodies with 29% vocabulary in common. The cost lands on the adopter as
+an investigation: a senior engineer read both guards in full, reasoned about
+their type contracts, and wrote up a defence — to dismiss a finding the tool
+should not have made. That is the real price of a false positive in an
+agent-facing tool, and it is why this is not merely cosmetic.
+
+### The fix this record proposes cannot reach that case
+
+Both bodies make **zero calls**:
+
+```
+calls in A: []
+calls in B: []
+```
+
+Call-target overlap is undefined for them, so the pair falls back to the
+structural score unchanged. This record's own Residual already says so — _"Six
+pairs in this corpus make no calls at all and fall back to the structural score
+unchanged"_ — but it files that as a rounding error. The adopter's case IS that
+residual, and a type guard, a validator, a mapper, a reducer over property
+accesses are all call-free by nature. The residual is a whole genre.
+
+### The obvious alternative fails on the same rock
+
+`buildFingerprint` builds a `Set` of distinct identifier/literal texts and keeps
+only its `.size` (as `distinctVocabulary`, used as a floor). The set itself — the
+body's actual vocabulary — is discarded. Comparing those sets is the natural
+second axis for call-free bodies, so it was measured before being written down
+here, against the pairs this record names, with the same `min(structural, second)`
+shape the first attempt used:
+
+| pair                                   | structural | vocab overlap | wanted             | got            |
+| -------------------------------------- | ---------- | ------------- | ------------------ | -------------- |
+| `classContain` ~ `functionContain`     | 0.962      | **0.500**     | must SURVIVE       | **eliminated** |
+| `haveStereotype` ~ `notHaveStereotype` | 0.974      | **1.000**     | must be ELIMINATED | **survives**   |
+| `watchAndRerun` (ts ~ mermaid)         | 0.979      | 0.891         | must survive       | survives       |
+| `check` ~ `warn`                       | 1.000      | 0.833         | must be eliminated | eliminated     |
+| `and` ~ `or`                           | 0.921      | 0.800         | must be eliminated | eliminated     |
+
+Corpus-wide: 169 pairs at structural ≥ 0.85 become 40 under the conjunction.
+
+**It fails in both directions, on two of the five named pairs.** It kills
+`classContain` ~ `functionContain` — the pinned genuine duplicate — _exactly as
+call-target overlap did_, for exactly the same reason: `min()` hands the second
+axis a veto over a strong structural match. And it keeps
+`haveStereotype` ~ `notHaveStereotype` at vocabulary 1.000, because logical
+negations of one another share every identifier they use. Vocabulary cannot see a
+`!`.
+
+So this is a negative result, and it is the useful kind: **the shape is wrong, not
+the axis.** Two different second axes, chosen for different reasons, both break the
+same pinned pair the same way. Anyone reaching for a third axis under `min()`
+should expect the same outcome.
+
+### What this changes about the fix
+
+Nothing in _"What a real fix has to do"_ below is retracted; the second bullet is
+now measured rather than argued, and it is the binding one. Adding to it:
+
+- **A call-free body is a first-class case, not a residual.** Any candidate must
+  be measured against the guards fixture above, where every call-based signal is
+  empty by construction.
+- **`min()` is disqualified as the combining shape** — twice, independently.
+  Whatever the second axis, it cannot hold a veto. A floor that only rejects when
+  the structural score is _itself_ marginal, or a weighting that cannot pull a
+  1.00 below threshold on its own, are the shapes left unmeasured.
+- **`haveStereotype` ~ `notHaveStereotype` needs an axis that can see negation.**
+  Neither calls nor vocabulary can. That may mean the honest answer for this pair
+  is that no cheap fingerprint distinguishes it, and the detector should say so.
+
+Nothing was changed in `packages/ts/src` for this addendum. The record stays
+Draft, the symptom stays unfixed, and the measurement scripts were throwaway.
+
+## Correction, 2026-08-31 (same day, later) — I read the bodies, and the premise is wrong
+
+The addendum above is sound where it measures the ALGORITHM (disjoint vocabulary
+scores 1.00; `min()` is disqualified as a combining shape; a call-free body is a
+genre). It is wrong where it accepts this record's framing of what the findings
+MEAN, and so is this record's opening claim. Both were reached by reading
+function **names** and inferring; neither had read the bodies.
+
+Read, five of them:
+
+**`check` ~ `warn`, 100%** — this record calls it the headline false positive:
+_"`check` throws and `warn` does not... not duplicates under any reading — the
+remedy the finding suggests (consolidate them) would be a defect."_ The bodies:
+
+```ts
+check(options?: CheckOptions): void {
+  executeCheck(this.evidencedViolations(), { reason: …, metadata: …, exclusions: …, silentIndices: … }, options)
+}
+warn(options?: CheckOptions): void {
+  executeWarn (this.evidencedViolations(), { reason: …, metadata: …, exclusions: …, silentIndices: … }, options)
+}
+```
+
+Byte-identical but for one call target. Their kind histograms are **identical** —
+measured, zero differing kinds. This is a textbook type-2 clone and consolidating
+it (one private `run(mode, options)`) is a strict improvement, not a defect.
+`check` does not throw; `executeCheck` does. The record read the method names and
+attributed the callee's behaviour to the caller.
+
+**The `evaluate` family, 33 pairs — the class dismissed as "the DSL's shape".**
+`maxCyclomaticComplexity` ~ `maxParameters` in `packages/ts/src/rules/metrics.ts`
+are the same loop over the same members pushing the same `metricViolation`,
+differing in the measure (`cyclomaticComplexity(member.getBody())` vs
+`member.getParameters().length`), one metric name and one message. That is
+parameterisable duplication, not an interface obligation.
+
+**`functionContain` ~ `mustMatchName`, 88%** — the least duplicate-looking pair in
+a random sample of eight: different files, different names, different element
+types. Still the same `Condition<T>` body — accumulate, loop, negated test, push a
+constructed violation. Weaker: consolidating costs generics over three axes, so
+reasonable people differ. Borderline, not false.
+
+**`isExcludedByComment` core ~ ts, 100%** — literal duplication, and following it
+found [bug 0227](./0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md), a
+live defect nine days old. A true positive that paid for itself.
+
+### What this changes
+
+**The score is largely right; the triage was wrong.** These findings are real
+structural duplication, on a spectrum from "obviously extract this" (`check` ~
+`warn`, one axis) to "you could, but the abstraction may cost more than it saves"
+(`functionContain` ~ `mustMatchName`, three axes). That is not a precision
+problem. The detector reports _structural duplication_; the reader wants
+_actionable duplication_; only the second is a judgement call, and the tool has
+never been asked for it.
+
+An earlier version of this addendum put the corpus at "~15% precision, 85%
+noise". **Retracted** — it was computed by bucketing on function names, and every
+body it bucketed as noise and then actually read turned out to be duplicated.
+
+**One genuine algorithm defect survives the correction.**
+`haveStereotype` ~ `notHaveStereotype` at 0.974 is real: a `!` is one token that
+INVERTS the meaning, while an identifier rename is zero tokens, so LCS ranks the
+negation as more similar than the rename. Measured fix — reject a pair whose
+counts of polarity-inverting kinds differ:
+
+```
+haveStereotype ~ notHaveStereotype   0.974  rejected  (not: 1 v 0)
+classContain ~ functionContain       0.962  reported  (no difference)
+```
+
+The pinned genuine duplicate survives, which neither call-overlap nor
+vocabulary-overlap managed. **But the veto set must be polarity only.** Tested
+with a wider signature including comparison operators, `watchAndRerun` (ts ~
+mermaid, a literal copy-paste) was rejected on `strictEq: 1 v 0` — the veto
+problem again, one rung down. `===` is what a copy-paste legitimately tweaks; `!`
+is not.
+
+### The fix that follows
+
+Not a better score. **Report the axes of variation, not just the percentage.**
+The tool already computes enough to say _what differs_ — `check` ~ `warn` differ
+in one call target; the adopter's two guards differ in five property names; the
+metrics pair differs in a measure, a name and a message. Those three are the same
+number on screen today and three different verdicts in a reader's head.
+
+That is also precisely the cost the adopter paid: a senior engineer read both
+functions to discover the variation was a field list. The finding was not wrong —
+it was unactionable, and being unactionable is what taught them to distrust it.
+
+Concretely, and still unbuilt:
+
+1. Add the polarity veto (measured above; needs the fixtures this record's
+   correction demands, including one pinning that comparison operators must NOT
+   veto).
+2. Emit the varying axes in the message.
+3. Leave the score alone.
+4. Keep it `.warn()`.
+
+## Measured at scale, 2026-08-31 — a ~5,600-file production monorepo
+
+Everything above was measured on eess itself, which is small and unusual (a
+fluent DSL, high structural regularity by design). Run against an unrelated
+production TypeScript monorepo — ~5,600 source files, 1,079 loaded, 3,810
+function bodies past the shipped filters:
+
+```
+FINDINGS AT SHIPPED DEFAULTS: 4770     (899 at 100%)
+distinct functions involved : 1681     — 44% of every qualifying body
+elapsed (comparison only)   : 55s
+```
+
+**More findings than the functions that produced them.** No one reads that, and
+the reason is not precision.
+
+### Failure 1 — pairs, where the observation is a cluster
+
+Taking connected components over the similarity graph:
+
+```
+407 clusters  ->  4,770 pair findings          (11.7x inflation)
+top 8 clusters alone      ->  2,338 findings   (49% of the output)
+largest cluster: 89 members -> 398 findings
+one cluster of 53 members   -> 436 findings
+```
+
+A group of N mutually-similar functions emits N²/2 findings carrying one
+observation. The worst single function is reported **29 times**. Even if every
+finding is true — and after the correction above, many are — the output is
+inflated an order of magnitude over the actionable unit, which is "these 89
+functions share a shape", not 398 lines of pairs.
+
+### Failure 2 — the one identifier that matters is the one discarded
+
+`buildFingerprint` ignores identifiers, which is correct for the BODY: that is
+what makes it a type-2 clone detector. It also ignores the function's own
+**name**, and that is where the signal was. Bucketing all 4,770:
+
+| bucket                         | findings | share | reading                                      |
+| ------------------------------ | -------- | ----- | -------------------------------------------- |
+| different file, different name | 2,683    | 56.2% | convergent idiom — usually NOT actionable    |
+| same class                     | 974      | 20.4% | siblings — usually consolidatable            |
+| different file, **same** name  | 649      | 13.6% | a COPY of one function — the valuable bucket |
+| same file, different class     | 464      | 9.7%  | co-located — worth a look                    |
+
+Both of these scored **100%**:
+
+- `timestampPrefix` in `generate.ts` and in `scaffold.ts` — same name, two files.
+  A literal copy-paste. Actionable.
+- `getPersonalAccessToken` ~ `getOrganization` — two SDK wrapper methods with the
+  same shape and nothing else in common. Not actionable under any reading.
+
+Same score, opposite verdicts, and the thing that separates them costs nothing to
+compute. It is also how the valuable finding in eess was reached:
+`isExcludedByComment` present in two packages under the same name led to
+[bug 0227](./0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md).
+
+**Caution against over-fitting this.** Same-class siblings (20.4%) are frequently
+the most consolidatable of all — one repository in the corpus above has six
+`exists*` methods differing only in a table name and a where-clause set. So name
+identity is a RANKING signal, not a filter: dropping the different-name bucket
+would discard real same-class duplication, and dropping cross-file would have
+discarded bug 0227.
+
+### What the fix is, after all of this
+
+Still not a better score. In priority order, all measured, none built:
+
+1. **Cluster, don't enumerate.** 407 units instead of 4,770 lines — the single
+   biggest legibility win, and it changes no score.
+2. **Rank by declaration-name identity**, cross-file same-name first. Cheap,
+   already available, and it surfaces the copies.
+3. **Report the axes of variation** (from the correction above) so a reader can
+   tell one varying call target from five varying property names.
+4. **Polarity veto** for the negation defect — the only genuine algorithm bug
+   that survived scrutiny.
+
+Items 1–3 are presentation. That is the honest headline: the detector's problem
+at scale is overwhelmingly what it SAYS, not what it scores.
+
+## Built, 2026-08-31 — items 1 to 3. The score is untouched.
+
+Presentation only, exactly as the analysis above concluded. No pair is dropped,
+no threshold moved, `computeSimilarity` unchanged.
+
+|                                    | before         | after           |
+| ---------------------------------- | -------------- | --------------- |
+| production monorepo (~5,600 files) | 4,770 findings | **407** (11.7x) |
+| this repo                          | 220            | **93**          |
+
+**1. Clusters, not pairs** (`smells/clusters.ts`). Connected components over the
+similarity graph. A two-member cluster IS the pair, so it keeps the message and
+the baseline identity that already shipped; only three-or-more collapses, which
+is where the inflation lived.
+
+**2. Ranked by declaration-name identity.** A copy of one function into another
+file sorts first. `.groupByFolder()` still wins when asked for.
+
+**3. Findings say what varies** (`smells/variation.ts`). The LCS alignment
+`computeSimilarity` computes and discards is reused to compare texts at aligned
+positions. A systematic rename is ONE axis however often it occurs.
+
+```
+isExcludedByComment (core) is 100% similar to isExcludedByComment (ts)
+  - identical text: a literal copy
+assertHomogeneous   (core) is 100% similar to assertHomogeneous   (ts)
+  - 1 varying axis: '...Matcher functions...' -> '...TypeMatcher functions...'
+functionContain is 85% similar to haveOnlyReadonlyProperties
+  - 12 varying axes: fn -> element, ArchFunction -> PropertyBearingNode, +9 more
+```
+
+**Not built: the polarity veto.** It is the only genuine algorithm defect left
+and it changes the score, which is the class of change this record already had
+reverted once. It needs the fixture set the correction above demands — including
+one pinning that comparison operators must NOT veto — and that is its own piece
+of work.
+
+### What the build cost, recorded because it is the interesting part
+
+- **The repo's own architecture rules rejected the first two shapes** — a method
+  at 49 lines against a 30 limit, then the class at 187 against 150 — which is
+  what produced `smells/duplicate-report.ts`. The rules were right both times.
+- **`no-unused-exports` forced a real decision** rather than a hiding: either
+  `variationBetween` is public API or the types come off the export. It is
+  public now, beside `computeSimilarity`, which is where it belongs.
+- **The NUL guard from [0099](./fixed/0099-nul-bytes-make-md-gherkin-unsearchable.md)
+  caught the author of the NUL guard.** `variation.ts` used a raw `0x00` as a
+  composite-key separator — the identical instinct, the identical mistake, six
+  hours after filing two bugs about it. Caught before it could be committed. That
+  is the fifth instance of the class and the first the mechanism stopped.
+- **The identity collision guard caught a real regression.** Clustering anchors a
+  finding at ONE member, so `routeB.handler` stopped appearing as an `element`
+  and `baseline-portability.test.ts` went red. The fixture was three
+  byte-identical bodies — one cluster, one finding, and a collision guard that
+  sees one finding has no teeth. Rebuilt as three shapes across two clusters, so
+  the two same-named keys are now two separate findings whose identities must not
+  merge. That is a sharper test of the original bug than the fixture it replaced.
+
+## Re-run on both corpora after the build, 2026-08-31
+
+The build above was measured mid-flight. Re-run end to end through the shipped
+builder, on the committed source:
+
+|                                                                             | before | after   |
+| --------------------------------------------------------------------------- | ------ | ------- |
+| this repo                                                                   | 220    | **93**  |
+| production monorepo, root tsconfig (adds `scripts/`, `examples/`, `tests/`) | —      | **527** |
+
+On this repo the **top 12 findings are all cross-package copies** — the ranking
+surfaces the kernel/dialect duplication first, including the `exclusion-comments`
+pair that led to [bug 0227](./0227-eess-ts-is-silent-on-a-malformed-exclusion-start.md).
+34 are literal copies, 14 vary in one axis, 31 are clusters of three or more.
+
+The wider corpus opens with exactly what it should:
+
+```
+walk            (scripts/graph-fix-stale-links.ts) is 100% similar to walk (scripts/graph-render.ts) — identical text: a literal copy
+bootstrap       (apps/admin-ui/src/main.tsx)       is 100% similar to bootstrap (apps/identity-gateway-ui/src/main.tsx) — identical text: a literal copy
+timestampPrefix (packages/migrations/src/generate.ts) is 100% similar to timestampPrefix (…/scaffold.ts) — identical text: a literal copy
+seed            (examples/nextjs-blog/seed/seed.ts) is up to 100% similar to 2 other bodies …
+```
+
+### The re-run found two defects the mid-flight measurement had missed
+
+**Mine, and it defeated the whole point.** 527 findings rendered as **658
+lines**. A varying "identifier" can be a string literal and a string literal can
+be a forty-line SQL query in a template, so axis texts carried their own newlines
+straight into the message. Fixed: axis texts are whitespace-collapsed and elided
+at 32 characters — collapsed BEFORE truncating, so a multi-line literal is not
+cut at its first newline and silently presented as the whole text. Re-measured:
+527 findings, 527 lines, zero continuation lines. Pinned by a test.
+
+**Pre-existing** — [bug 0228](./0228-ignoretests-does-not-match-tsx-so-react-tests-are-never-ignored.md).
+`.ignoreTests()` globs `**/*.test.ts`, `**/*.spec.ts`, `**/__tests__/**` and no
+`.tsx`, so in a React codebase it ignores nothing. Measured: 6 findings from
+`.test.tsx` files with the flag explicitly set. `smells.siblingFiles()` carries a
+duplicate of the same constant and the same hole.
+
+Both are the argument for re-running rather than trusting a mid-build number.

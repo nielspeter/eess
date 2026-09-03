@@ -14,11 +14,18 @@
  * minimum that survives refactors of the bespoke layer. The one overlap
  * (no-eval, both green) is belt-and-suspenders on purpose.
  *
- * `agentGuardrails` is deliberately NOT wired here: on this repo its rules fire
- * on legitimate, intentional style (18 `throw new Error`, 270 by-design-similar
- * rule-wrapper bodies) — a hard gate would be red-on-legitimate-style, and its
- * only green config is vacuous. Its coverage is its fixture unit tests. See
- * work/dogfood-coverage.md.
+ * `agentGuardrails` has its own gate now — `check:guardrails`. It used to be
+ * exempted here, on a rationale written in this comment: that its rules fired
+ * "on legitimate, intentional style (18 `throw new Error`, 270 by-design-similar
+ * rule-wrapper bodies)".
+ *
+ * That rationale was self-sealing — it was the reason not to run the preset, so
+ * nothing ever tested it — and it did not survive being tested. The 270 was 84,
+ * most of those are true duplicates rather than by-design similarity, and all 17
+ * bare `Error`s were a real finding: the caller the rule describes is
+ * `rule-file-findings.ts`, in this package, which branches on error type and had
+ * no way to tell a misconfigured rule from a crash. They are `ArchConfigError`
+ * now, and that class exists because the preset asked for it.
  *
  * Always reports the files it scanned so a green is provably non-vacuous.
  * Exits non-zero on any error-severity violation. Run: `npm run check:baseline`.

@@ -8,6 +8,8 @@ import {
   maxMethods,
   maxParameters,
 } from '../../src/rules/metrics.js'
+import { maxFunctionLines } from '../../src/rules/metrics-function.js'
+import { collectFunctions } from '../../src/models/arch-function.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/metrics')
 const project = new Project({ tsConfigFilePath: path.join(fixturesDir, 'tsconfig.json') })
@@ -222,5 +224,21 @@ describe('every metric finding carries the unit its ratchet is denominated in', 
     // reason a unit exists. Pinned by value, not merely "defined".
     const [violation] = maxClassLines(1).evaluate([cls], context)
     expect(violation?.measuredUnit).toBe('code-lines')
+  })
+
+  it('and names it for the member and function line metrics too', () => {
+    // The other two `lines` producers. Only `maxClassLines` was pinned BY VALUE,
+    // so deleting `unit: 'code-lines'` from either of these left the suite green
+    // — the unit silently fell back to the metric name `lines`, which is
+    // precisely the baseline comparison bug 0171 exists to refuse. Found when
+    // both were folded onto shared ceilings and the sabotage did not red.
+    const [method] = maxMethodLines(1).evaluate([cls], context)
+    expect(method?.measuredUnit).toBe('code-lines')
+
+    const [fn] = maxFunctionLines(1).evaluate(
+      collectFunctions(findClass('ComplexService').getSourceFile()),
+      context,
+    )
+    expect(fn?.measuredUnit).toBe('code-lines')
   })
 })

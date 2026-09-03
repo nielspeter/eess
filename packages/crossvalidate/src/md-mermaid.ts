@@ -8,6 +8,7 @@ import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { diagram, classes as mmdClasses } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
+import { identifyTsClass } from './shared.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset } from '@nielspeter/eess'
@@ -101,17 +102,10 @@ export function embeddedDiagramsMatchCode(
   const scope = options.scope ?? '**/src/**'
   const direction = options.completeness ?? 'left-to-right'
 
-  const right = tsClasses(project)
-    .that()
-    .resideInFolder(scope)
-    .select({
-      label: 'TS class',
-      identify: (c) => ({
-        name: c.getName() ?? '<anonymous>',
-        file: c.getSourceFile().getFilePath(),
-        line: c.getStartLineNumber(),
-      }),
-    })
+  const right = tsClasses(project).that().resideInFolder(scope).select({
+    label: 'TS class',
+    identify: identifyTsClass,
+  })
 
   const violations: ArchViolation[] = []
   for (const doc of corpus.documents()) {

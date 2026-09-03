@@ -6,6 +6,9 @@ import { SmellBuilder } from './smell-builder.js'
 import { collectFunctions } from '../models/arch-function.js'
 import { fingerprintAll, findSimilarPairs } from './similar-pairs.js'
 import type { SimilarPair } from './similar-pairs.js'
+import { clusterViolation, varianceSummary } from './duplicate-report.js'
+import { clusterPairs, clusterRank } from './clusters.js'
+import type { SimilarCluster } from './clusters.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { ArchFunction } from '../models/arch-function.js'
@@ -71,7 +74,7 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
     const functions = this.selected()
     const fingerprinted = fingerprintAll(functions)
     const pairs = findSimilarPairs(fingerprinted, this._minSimilarity, this._minDistinctVocabulary)
-    return this.buildViolations(pairs)
+    return this.buildClusterViolations(pairs)
   }
 
   protected describe(): string {
@@ -205,11 +208,61 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
     })
   }
 
-  private buildViolations(pairs: SimilarPair[]): ArchViolation[] {
+  /**
+   * One violation per CLUSTER of mutually-similar bodies, not per pair.
+   *
+   * A pair is the wrong unit and it is not a close call. Measured on a
+   * ~5,600-file production monorepo: 407 clusters emitted **4,770** pair
+   * findings — more findings than the 3,810 bodies that produced them. The
+   * eight largest clusters were 49% of the output, one cluster of 89 members
+   * emitted 398 lines, and the worst single function was named 29 times. Every
+   * one of those can be TRUE and the report is still unreadable, because N
+   * mutually-similar bodies carry one observation and emit N^2/2 lines of it.
+   *
+   * Two-member clusters — the common case — keep the exact message and identity
+   * they had before, so existing baselines for them are untouched. Only a group
+   * of three or more collapses, which is where the inflation lives.
+   */
+  /**
+   * Report order.
+   *
+   * Rank is presentation only — no pair is dropped and no score changes. At four
+   * thousand findings the ORDER is the product: what a reader sees first decides
+   * whether they read at all. `.groupByFolder()` still wins when asked for.
+   */
+  private orderedClusters(clusters: SimilarCluster[]): SimilarCluster[] {
+    const folderOf = (c: SimilarCluster): string =>
+      path.dirname(c.members[0]?.getSourceFile().getFilePath() ?? '')
+    if (this._groupByFolder) {
+      return [...clusters].sort((x, y) => folderOf(x).localeCompare(folderOf(y)))
+    }
+    return [...clusters].sort((x, y) => clusterRank(y) - clusterRank(x))
+  }
+
+  private buildClusterViolations(pairs: SimilarPair[]): ArchViolation[] {
+    const violations: ArchViolation[] = []
+    for (const cluster of this.orderedClusters(clusterPairs(pairs))) {
+      // A two-member cluster IS the pair, so it keeps the message and the
+      // baseline identity that already shipped. Only three-or-more collapses,
+      // which is where the inflation lives.
+      if (cluster.members.length <= 2) {
+        violations.push(...this.buildViolations(cluster.pairs))
+        continue
+      }
+      const violation = clusterViolation(cluster, {
+        rule: this.describe(),
+        because: this._reason,
+      })
+      if (violation) violations.push(violation)
+    }
+    return violations
+  }
+
+  private buildViolations(pairs: readonly SimilarPair[]): ArchViolation[] {
     const ruleDescription = this.describe()
     const violations: ArchViolation[] = []
 
-    for (const pair of this.orderedPairs(pairs)) {
+    for (const pair of this.orderedPairs([...pairs])) {
       const nameA = pair.a.getName() ?? '<anonymous>'
       const fileA = pair.a.getSourceFile().getFilePath()
       const lineA = pair.a.getStartLineNumber()
@@ -225,7 +278,7 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
         element: nameA,
         file: fileA,
         line: lineA,
-        message: `${nameA} (${fileA}:${String(lineA)}) is ${String(pct)}% similar to ${nameB} (${fileB}:${String(lineB)})`,
+        message: `${nameA} (${fileA}:${String(lineA)}) is ${String(pct)}% similar to ${nameB} (${fileB}:${String(lineB)})${varianceSummary(pair)}`,
         // Which endpoint is "a" comes from the source-file walk order, which is
         // a property of the filesystem: the same pair reports A→B on one
         // machine and B→A on another, and the reported message alone would

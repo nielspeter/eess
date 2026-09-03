@@ -14,10 +14,11 @@
 
 ## Symptom
 
-`validate` is nineteen `&&`-joined steps. `format:check` is step 18; `test` is
-step 19. An unformatted file anywhere prettier looks — including a scratch
-directory nobody intended to check — stops the chain at 18, and **the suite never
-runs**.
+`validate` is a single `&&`-joined chain — nineteen steps when this was filed,
+**twenty-four** as of 2026-09-03, which is itself part of the point: the chain
+grows and the hazard grows with it. `format:check` was step 18; `test` step 19.
+An unformatted file anywhere prettier looks — including a scratch directory
+nobody intended to check — stops the chain there, and **the suite never runs**.
 
 What the operator sees is seventeen steps' worth of ✓ summaries, each one
 truthful, followed by a prettier warning:
@@ -48,6 +49,48 @@ printf 'x   =1\n' > packages/core/src/__unformatted__.ts
 npm run validate; echo "exit=$?"      # → exit=1, no test output, 17 green summaries
 rm packages/core/src/__unformatted__.ts
 ```
+
+## Second instance — 2026-09-03, and worse than the first
+
+The first consequence was that `test` did not run for a session. The tests were
+fine; the claim about them was unearned. This one is worse, because what got
+hidden was a **fail-closed census** — the thing that exists to notice nobody is
+looking.
+
+`npm run validate` was run on this branch. It stopped at step **10 of 24**,
+`check:corpus`, on three untracked proposals carrying stale pointers. Steps 11
+through 24 did not execute, and nothing said so. Running them by hand:
+
+| steps  | result                                                                                                                                                |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 11–14  | ledger · spec · numbers · vacuity — green                                                                                                             |
+| 15     | `check:nonvacuity` — red, downstream of the same corpus state (see [0232](./fixed/0232-a-nonvacuity-fixture-blames-the-gate-for-a-dirty-baseline.md)) |
+| 16–22  | typecheck · examples · docs-code · review-harness · lint · format:check · test — green                                                                |
+| **23** | **`test:matrix` — RED, four published exports unclassified**                                                                                          |
+| 24     | surface — green                                                                                                                                       |
+
+Three of those four — `.:ArchConfigError`, `.:isArchConfigError`,
+`.:variationBetween` — had been unclassified **since earlier on the same
+branch**. The vacuity matrix asserts that every published export is classified,
+which is precisely a "has anyone looked at this?" check, and it had been failing
+silently for the length of the branch.
+
+Two layers of invisibility stacked, and the record's own "Why it matters" section
+predicted the first:
+
+1. **The chain.** `test:matrix` is step 23 of 24. Anything red earlier hides it,
+   and something was.
+2. **The runner.** `test:matrix` uses its own vitest config
+   (`vitest.matrix.config.ts`), so `npm run test` is green without ever loading
+   it. `vacuity-classification.ts` already carried a comment about this from
+   2026-08-24 — "a full local green said nothing about it" — written when
+   `test:matrix` was not yet in `validate` at all. It has since joined, and the
+   comment went stale while the hazard stayed.
+
+That is the argument for the runner in the Fix below, sharpened: a chain that
+cannot say _"stopped at step 10 of 24; 14 steps did not run"_ does not merely
+overstate a green — it lets a census that exists to catch unlooked-at things go
+unlooked at.
 
 ## Root cause
 
@@ -120,7 +163,14 @@ should be argued on its own.
       beside it — a hand-maintained denominator is the thing this record is about
       ([0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)'s
       lesson: the list and the claim must not be able to drift apart).
-- [ ] `check:fast` gets the same treatment or is explicitly exempted.
-- [ ] `npm run validate` green — and this time from a run that reached step 19.
+- [ ] `check:fast` gets the same treatment or is explicitly exempted. It is now
+      a six-step chain of its own (`check:integrity` joined at the head on
+      2026-09-03, per [0231](./fixed/0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)),
+      so it truncates the same way.
+- [ ] `npm run validate` green — and this time from a run that reached the last
+      step, whatever its number is by then. **Not achievable today** for a
+      reason worth stating: the chain stops at `check:corpus` on work-in-progress
+      that is not this record's to fix, which is itself an argument for reporting
+      truncation rather than requiring a clean run to notice it.
 
 Deferred: none.

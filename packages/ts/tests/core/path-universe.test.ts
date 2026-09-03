@@ -9,7 +9,10 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
-import { pathUniverse, viewsFor } from '../../src/core/path-universe.js'
+import { pathUniverse } from '../../src/core/path-universe.js'
+// `viewsFor` is the kernel's — this dialect no longer declares a second copy,
+// and ADR-011 clause 2 forbids it from forwarding one either.
+import { viewsFor } from '@nielspeter/eess/internal'
 import type { ArchProject } from '../../src/core/project.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/nested-slices')

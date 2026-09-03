@@ -5,6 +5,62 @@ import { cyclomaticComplexity, linesOfCode } from '../helpers/complexity.js'
 import { metricViolation } from '../core/metric-violation.js'
 
 /**
+ * A ceiling on one measurement of every function.
+ *
+ * `maxFunctionComplexity`, `maxFunctionLines` and `maxFunctionParameters` were
+ * the same walk three times over — `no-copy-paste` reported them at 96% — and
+ * `rules/metrics.ts` carries the class-member twin of this helper.
+ *
+ * `name` is derived ONCE and used for the message and the identity alike. Two
+ * expressions that agree in every branch but one is how bug 0068 happened:
+ * `fn.getName() ?? '<anonymous>'` beside a bare `fn.getName()` disagree for an
+ * anonymous function, which would have reproduced that defect inside its own
+ * fix. One derivation in one place is what makes them unable to disagree.
+ *
+ * `unit` is threaded rather than derived from `metric`: `lines` kept its name
+ * when `linesOfCode` stopped counting comments, and the baseline refuses to
+ * compare across a unit change precisely so that silent loosening cannot
+ * happen again (bug 0171).
+ */
+function functionCeiling(
+  threshold: number,
+  spec: {
+    description: string
+    metric: string
+    unit?: string
+    measure: (fn: ArchFunction) => number
+    message: (name: string, measured: number) => string
+  },
+): Condition<ArchFunction> {
+  return {
+    description: spec.description,
+    evaluate(elements: ArchFunction[], context: ConditionContext): ArchViolation[] {
+      const violations: ArchViolation[] = []
+      for (const fn of elements) {
+        const value = spec.measure(fn)
+        if (value <= threshold) continue
+        const name = fn.getName() ?? '<anonymous>'
+        violations.push(
+          metricViolation(
+            fn.getNode(),
+            {
+              metric: spec.metric,
+              ...(spec.unit === undefined ? {} : { unit: spec.unit }),
+              // Long-hand, not `measured,` — see the note in `rules/metrics.ts`.
+              measured: value,
+              message: spec.message(name, value),
+              qualifiedName: name,
+            },
+            context,
+          ),
+        )
+      }
+      return violations
+    },
+  }
+}
+
+/**
  * Function must not exceed the given cyclomatic complexity.
  *
  * Uses fn.getBody() which returns the body Node for all function
@@ -20,36 +76,13 @@ import { metricViolation } from '../core/metric-violation.js'
  * ```
  */
 export function maxFunctionComplexity(threshold: number): Condition<ArchFunction> {
-  return {
+  return functionCeiling(threshold, {
     description: `have cyclomatic complexity <= ${String(threshold)}`,
-    evaluate(elements: ArchFunction[], context: ConditionContext): ArchViolation[] {
-      const violations: ArchViolation[] = []
-      for (const fn of elements) {
-        const cc = cyclomaticComplexity(fn.getBody())
-        if (cc > threshold) {
-          // ONE derivation, used for the message and the identity alike. Two
-          // expressions that agree in every branch but one is how bug 0068
-          // happened: `fn.getName() ?? '<anonymous>'` beside a bare
-          // `fn.getName()` disagree for an anonymous function, which would have
-          // reproduced the same defect inside its own fix.
-          const name = fn.getName() ?? '<anonymous>'
-          violations.push(
-            metricViolation(
-              fn.getNode(),
-              {
-                metric: 'complexity',
-                measured: cc,
-                message: `${name} has cyclomatic complexity ${String(cc)} (max: ${String(threshold)})`,
-                qualifiedName: name,
-              },
-              context,
-            ),
-          )
-        }
-      }
-      return violations
-    },
-  }
+    metric: 'complexity',
+    measure: (fn) => cyclomaticComplexity(fn.getBody()),
+    message: (name, cc) =>
+      `${name} has cyclomatic complexity ${String(cc)} (max: ${String(threshold)})`,
+  })
 }
 
 /**
@@ -64,34 +97,15 @@ export function maxFunctionComplexity(threshold: number): Condition<ArchFunction
  * ```
  */
 export function maxFunctionLines(threshold: number): Condition<ArchFunction> {
-  return {
+  return functionCeiling(threshold, {
     description: `have no more than ${String(threshold)} code lines`,
-    evaluate(elements: ArchFunction[], context: ConditionContext): ArchViolation[] {
-      const violations: ArchViolation[] = []
-      for (const fn of elements) {
-        const loc = linesOfCode(fn.getNode())
-        if (loc > threshold) {
-          const name = fn.getName() ?? '<anonymous>' // one derivation — see maxFunctionComplexity
-          violations.push(
-            metricViolation(
-              fn.getNode(),
-              {
-                metric: 'lines',
-                // `code-lines` since bug 0170 — the metric kept its name when it stopped
-                // counting comments, and the baseline must not compare across that.
-                unit: 'code-lines',
-                measured: loc,
-                message: `${name} has ${String(loc)} code lines (max: ${String(threshold)})`,
-                qualifiedName: name,
-              },
-              context,
-            ),
-          )
-        }
-      }
-      return violations
-    },
-  }
+    metric: 'lines',
+    // `code-lines` since bug 0170 — the metric kept its name when it stopped
+    // counting comments, and the baseline must not compare across that.
+    unit: 'code-lines',
+    measure: (fn) => linesOfCode(fn.getNode()),
+    message: (name, loc) => `${name} has ${String(loc)} code lines (max: ${String(threshold)})`,
+  })
 }
 
 /**
@@ -109,29 +123,11 @@ export function maxFunctionLines(threshold: number): Condition<ArchFunction> {
  * ```
  */
 export function maxFunctionParameters(threshold: number): Condition<ArchFunction> {
-  return {
+  return functionCeiling(threshold, {
     description: `have no more than ${String(threshold)} parameters`,
-    evaluate(elements: ArchFunction[], context: ConditionContext): ArchViolation[] {
-      const violations: ArchViolation[] = []
-      for (const fn of elements) {
-        const params = fn.getParameters().length
-        if (params > threshold) {
-          const name = fn.getName() ?? '<anonymous>' // one derivation — see maxFunctionComplexity
-          violations.push(
-            metricViolation(
-              fn.getNode(),
-              {
-                metric: 'parameters',
-                measured: params,
-                message: `${name} has ${String(params)} parameters (max: ${String(threshold)}) — use an options object`,
-                qualifiedName: name,
-              },
-              context,
-            ),
-          )
-        }
-      }
-      return violations
-    },
-  }
+    metric: 'parameters',
+    measure: (fn) => fn.getParameters().length,
+    message: (name, params) =>
+      `${name} has ${String(params)} parameters (max: ${String(threshold)}) — use an options object`,
+  })
 }

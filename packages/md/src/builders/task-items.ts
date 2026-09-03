@@ -2,6 +2,7 @@ import { RuleBuilder, type Predicate } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
 import { collectTaskItems, type MdTaskItemRef } from '../model/task-items.js'
+import { stampedByDocument } from '../model/by-document.js'
 
 /** A task-item element: a task-list item plus its containing document. */
 export interface MdTaskItem extends MdTaskItemRef {
@@ -22,9 +23,7 @@ const areChecked = (): Predicate<MdTaskItem> => ({
  */
 export class TaskItemRuleBuilder extends RuleBuilder<MdTaskItem, Corpus> {
   protected getElements(): MdTaskItem[] {
-    return this.project
-      .documents()
-      .flatMap((doc) => collectTaskItems(doc.root).map((t) => ({ ...t, doc })))
+    return stampedByDocument(this.project, (doc) => collectTaskItems(doc.root))
   }
 
   /** Filter to open boxes (`- [ ]`). */

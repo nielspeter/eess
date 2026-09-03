@@ -2,7 +2,12 @@
 
 ## Status
 
-- **State:** Draft — the two decisions it turns on are stated but not made.
+- **State:** Draft — **both decisions are now made**, as
+  [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) (the lexer)
+  and [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) (the
+  project). ADR-012 is also BUILT: the exclusion-comment parsers are unified and
+  `eess-ts`'s copy is 426 lines shorter. What remains of this plan is ADR-013's
+  build — the two builders — and the CLI/helper slice already landed.
 - **Priority:** **High** — raised 2026-08-21. This read "Medium — nothing is
   broken today", and that was falsified within the same PR: `packages/core`'s
   `RuleBuilder.fork()` still cleared its condition list, so
@@ -51,8 +56,9 @@ Medium rather than High.
 
 ## Why it is worth doing anyway — two measured consequences
 
-**A fix lands on one copy and nothing notices.** Two demonstrated cases now, not
-one — and the second is worse, because it was live rather than latent.
+**A fix lands on one copy and nothing notices.** Three demonstrated cases now —
+and the third is the freshest, which is the argument this section most needed:
+the hazard is not historical, it fired again nine days ago.
 
 **Bug 0156, the kernel half.** `fork()` cleared conditions in `packages/core`
 long after `packages/ts` stopped doing so. Three dialects and three of this
@@ -65,6 +71,22 @@ copy and is wired end to end on the eess-ts path, while the kernel's
 `executeWarn` still reports unconditionally — the exact line that bug cites. It
 went half-fixed and no record said so until 2026-08-21.
 
+**Bug 0227**, 2026-08-31, the newest. PR #88 fixed bug 0158 in
+`packages/core/src/exclusion-comments.ts` — a reason-free `eess-exclude-start`
+now reports against the `-start`. `packages/ts/src/core/exclusion-comments.ts`
+never got it, so the dialect adopters install is **silent** on a bare `-start`
+and blames the `-end` line for a fault on the `-start`. Nothing suppresses
+wrongly, so no gate could notice; the divergence was found by running
+`smells.duplicateBodies()` over this repo a week later, which is not a mechanism.
+
+That case also carries a warning for this plan's own method. Comparing the two
+copies by TEXT gives a wrong answer: grepping for bug numbers and fix keywords
+says eess-ts is missing bug 0154's string-literal protection too. It is not —
+eess-ts uses ts-morph's real lexer where the kernel had to hand-roll masking to
+stay ts-morph-free. Same protection, different mechanism, zero shared
+vocabulary. Any audit of what has and has not travelled between these copies has
+to be behavioural.
+
 **One hazard is held shut by a containment, not a fix.** 0165 Phase 2 names it:
 module-level state in `execute-rule.ts` read by one copy and written by the
 other. `src/cli/import-rule-module.ts` keeps it from firing by loading rule files
@@ -76,13 +98,32 @@ latent; neither is a reason to leave two copies.
 
 ## The two decisions — ADRs, not phases
 
-**1. A project abstraction for the kernel.** The kernel has _no_ project concept
+**1. A project abstraction for the kernel — SETTLED, and the framing here was
+wrong.** [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)
+measured it: the entire `ArchProject` surface the kernel would need is
+`getSourceFiles()` and `tsConfigPath` — one boolean and one string, both reached
+through a single call. So the kernel gains no project concept at all; it takes
+the emptiness FACT the dialect materialises, which is `PathUniverse`'s existing
+seam applied a second time. The warning below — that giving the kernel a project
+"constrains all five dialects forever" — is right, and is exactly why the answer
+is not to give it one.
+
+The original text, kept because the measurement is what refuted it:
+The kernel has _no_ project concept
 (`PathUniverse` is its pure stand-in). Giving it one constrains all five dialects
 forever. Re-measured for this plan, the coupling is thinner than 0165 recorded:
 the ts `terminal-builder` touches `ArchProject` in **3** places — `import type`,
 `getProject()`, `zeroSubjectsViolation(project)` — not 5.
 
-**2. A pluggable tokenizer for `exclusion-comments`.** The copied version blanks
+**2. A pluggable tokenizer for `exclusion-comments` — SETTLED and BUILT** as
+[ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md). The kernel
+owns one parser and takes the masker as an optional capability, composed so an
+injected one can only blank more. Unifying it surfaced three divergences the
+copies had hidden — a missing `kind` discriminator, a disagreement about what a
+reason-free waiver does, and an `already open` warning only `eess-ts` had. All
+three are recorded in that ADR rather than absorbed.
+
+The original text: The copied version blanks
 string literals with a real ts-morph tokenizer (bug 0154's fix); the kernel's
 does a regex scan. The other four dialects have no TS AST, so the kernel needs an
 injection point rather than a choice between the two.
@@ -139,3 +180,67 @@ gate must red.
 - [ ] Phase 3 — the anti-re-fork gate, sabotage-proven
 
 Deferred: none.
+
+## Measured inventory, 2026-08-31 — and it is now on every `validate` run
+
+This plan argued its case from two incidents and a reading of the tree. There is
+now a standing measurement, because eess started dogfooding its own
+`agentGuardrails` preset (`check:guardrails`, added the same day). Its
+`no-copy-paste` rule reports **84 warnings** across `packages/*/src/**`:
+
+|                     | count  |
+| ------------------- | ------ |
+| cross-package pairs | **21** |
+| within one package  | 63     |
+
+The 21 are this plan's subject, and ten of them are **byte-identical**:
+
+```
+100%  assertHomogeneous        core ~ ts
+100%  parseRuleIdsAndReason    core ~ ts
+100%  isExcludedByComment      core ~ ts
+100%  viewsFor                 core ~ ts
+100%  validateOverrides        core ~ ts
+100%  RuleBuilder.select       core ~ ts
+100%  TerminalBuilder.excluding core ~ RuleDeclaration.excluding (ts)
+ 97%  DiffFilter.filterToChanged core ~ ts
+```
+
+Plus a second cluster this plan's title does not cover but its argument does —
+the **CLI**, duplicated mermaid↔ts rather than core↔ts:
+
+```
+100%  requireRuleFiles         mermaid ~ ts
+100%  findConfigFile           mermaid ~ ts
+100%  RunScheduler.schedule    mermaid ~ ts
+ 98%  RunScheduler.executeRun  mermaid ~ ts
+ 98%  watchAndRerun            mermaid ~ ts
+ 99%  walk                     crossvalidate ~ md
+```
+
+`watchAndRerun` is the pair bug 0169's correction names as a literal copy-paste
+differing in two tokens. None of these has a decision blocking it — they are not
+waiting on this plan's two ADRs, which are about the kernel gaining a project
+abstraction and a pluggable tokenizer. **A CLI-and-helpers slice could ship
+before either decision is made.**
+
+### Why the number is trustworthy now, and was not before
+
+The count used to be quoted as **270** by-design-similar rule-wrapper bodies, in
+`check-baseline.mjs`'s written rationale for not running the preset at all. Both
+halves were wrong: it is 84, and they are largely true duplicates rather than
+by-design similarity (bug 0169's correction of 2026-08-31 read the bodies —
+`check` ~ `warn` differs in one call target, the metrics conditions differ in a
+measure and a message). The rationale was self-sealing: it was the reason not to
+run the preset, so nothing tested it.
+
+### What changed structurally
+
+The debt is no longer argued, it is **printed on every `validate` run** with this
+plan named as its owner. That is the difference between a deferral and an
+exemption — and this plan's own thesis is that a deferral nothing measures is how
+`fork()`, `setCallerAggregatesReports` and bug 0227 each survived.
+
+Deciding not to fold this plan into the PR that produced the measurement was
+deliberate: its two prerequisites are ADR-shaped, and this plan already says
+"neither is this plan's to settle by writing code."

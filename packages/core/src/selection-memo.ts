@@ -40,9 +40,7 @@ import { registerCacheReset } from './cache-registry.js'
  * const selectionOf = selectionMemo<ArchFunction>()
  *
  * private selected(): ArchFunction[] {
- *   return selectionOf(this, () =>
- *     this.getElements().filter((e) => this._predicates.every((p) => p.test(e))),
- *   )
+ *   return selectionOf(this, () => matchingElements(this.getElements(), this._predicates))
  * }
  */
 export function selectionMemo<T>(): (owner: object, compute: () => T[]) => T[] {

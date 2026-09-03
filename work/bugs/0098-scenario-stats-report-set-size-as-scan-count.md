@@ -75,7 +75,7 @@ console.error(`  scenario↔test — ${s.citations} citations across ${s.scenari
 
 That is an honest summary. The trap is that the record is also documented as
 serving non-vacuity, and only one of its fields can. `tableErStats`
-(`packages/crossvalidate/src/md-mermaid-er.ts:176-195`) is the counter-example
+(`packages/crossvalidate/src/md-mermaid-er.ts:172-193`) is the counter-example
 that shows the right shape: all three of its fields (`docs`, `entities`,
 `attributes`) count what the scan actually walked.
 

@@ -43,7 +43,16 @@ class ArchRuleError {
   <<kernel>>
 }
 
+class ArchConfigError {
+  <<kernel>>
+}
+
+class RunScheduler {
+  <<kernel>>
+}
+
 TerminalBuilder <|-- CorrespondenceBuilder
 RuleBuilder ..> ArchRuleError : throws
 TerminalBuilder ..> ArchRuleError : throws
+RuleBuilder ..> ArchConfigError : throws
 ```

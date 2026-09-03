@@ -22,6 +22,18 @@ const TEXT_KINDS = new Set<SyntaxKind>([
 export interface Fingerprint {
   /** Ordered sequence of syntax node kinds in the body */
   readonly kinds: readonly SyntaxKind[]
+  /**
+   * Ordered, index-parallel to {@link kinds}: the node's text where it carries
+   * one, `undefined` otherwise.
+   *
+   * `computeSimilarity` does not read this and must not — ignoring identifiers
+   * is what makes the score a type-2 clone score. It exists so a caller can ask
+   * the SEPARATE question, of a pair already reported, "at the positions these
+   * two bodies align, do they say the same words?" — which is what tells a
+   * reader whether one call target varies or nine property names do. See
+   * `variation.ts`.
+   */
+  readonly texts: readonly (string | undefined)[]
   /** Normalized call targets (e.g. ['parseInt', 'this.extractCount']) */
   readonly calls: readonly string[]
   /** Total AST node count (for line-count filtering) */
@@ -42,6 +54,7 @@ export interface Fingerprint {
  */
 export function buildFingerprint(body: Node): Fingerprint {
   const kinds: SyntaxKind[] = []
+  const texts: (string | undefined)[] = []
   const calls: string[] = []
   const distinct = new Set<string>()
 
@@ -52,11 +65,15 @@ export function buildFingerprint(body: Node): Fingerprint {
       calls.push(node.getExpression().getText().replace(/\?\./g, '.'))
     }
     if (TEXT_KINDS.has(kind)) {
-      distinct.add(node.getText())
+      const text = node.getText()
+      texts.push(text)
+      distinct.add(text)
+    } else {
+      texts.push(undefined)
     }
   }
 
-  return { kinds, calls, nodeCount: kinds.length, distinctVocabulary: distinct.size }
+  return { kinds, texts, calls, nodeCount: kinds.length, distinctVocabulary: distinct.size }
 }
 
 /**

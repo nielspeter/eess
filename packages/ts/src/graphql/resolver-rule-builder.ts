@@ -1,23 +1,18 @@
-import type { RuleDescription } from '@nielspeter/eess'
-import type { CollectResult } from '../core/terminal-builder.js'
 import type { SourceFile } from 'ts-morph'
-import type { ArchViolation } from '@nielspeter/eess'
-import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { GlobNode } from '@nielspeter/eess'
 import { stampGlobs } from '@nielspeter/eess/internal'
 import { globAnyOf } from '@nielspeter/eess'
-import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { collectFunctions } from '../models/arch-function.js'
-import { selectionMemo } from '@nielspeter/eess/internal'
 import {
   functionContain,
   functionNotContain,
   functionUseInsteadOf,
 } from '../conditions/body-analysis-function.js'
+import { GraphqlRuleBuilder } from './graphql-rule-builder.js'
 
 /**
  * Predicate: filter to resolver functions for fields returning types matching the pattern.
@@ -59,12 +54,7 @@ export function resolveFieldReturning(pattern: RegExp | string): Predicate<ArchF
  *   .check()
  * ```
  */
-const selectionOf = selectionMemo<ArchFunction>()
-
-export class ResolverRuleBuilder extends TerminalBuilder {
-  private _predicates: Predicate<ArchFunction>[] = []
-  private _conditions: Condition<ArchFunction>[] = []
-
+export class ResolverRuleBuilder extends GraphqlRuleBuilder<ArchFunction> {
   /**
    * @param sourceFiles - The resolver files, already filtered by `resolvers()`.
    * @param glob - The glob they were filtered by, for diagnostics only.
@@ -124,36 +114,6 @@ export class ResolverRuleBuilder extends TerminalBuilder {
     return next
   }
 
-  // --- Chain methods ---
-
-  /**
-   * Begin the predicate phase. Purely a readability marker.
-   */
-  that(): this {
-    return this
-  }
-
-  /**
-   * Add another predicate (AND).
-   */
-  and(): this {
-    return this
-  }
-
-  /**
-   * Begin the condition phase.
-   */
-  should(): this {
-    return this
-  }
-
-  /**
-   * Add another condition (AND).
-   */
-  andShould(): this {
-    return this
-  }
-
   // --- Condition methods (reuse body analysis) ---
 
   /**
@@ -186,79 +146,6 @@ export class ResolverRuleBuilder extends TerminalBuilder {
   // --- Evaluation ---
 
   /**
-   * An independent copy, carrying both lists.
-   *
-   * This builder does not extend `RuleBuilder`, so it does not inherit that
-   * class's override — and neither `that()` nor `should()` forked here at all,
-   * which made the bug 0016 leak worse on this hierarchy than on the main one:
-   * a held `schema()` selection accumulated every predicate and condition of
-   * every rule derived from it. `docs/graphql.md` teaches exactly that shape.
-   */
-  protected override copy(): this {
-    const clone = super.copy()
-    clone._predicates = [...this._predicates]
-    clone._conditions = [...this._conditions]
-    return clone
-  }
-
-  /**
-   * Whether this rule states an assertion at all — the assertion gate's question.
-   *
-   * True once a condition has been added.
-   *
-   * Overrides the `TerminalBuilder` default (`true`), whose JSDoc carries the
-   * contract and the reason this is public rather than protected.
-   */
-  override assertsSomething(): boolean {
-    return this._conditions.length > 0
-  }
-
-  /**
-   * The remedy for this builder's assertion-less state, as one string.
-   *
-   * One channel, so `diagnose()`'s advice and the finding's own message cannot
-   * disagree. Overrides `TerminalBuilder`'s generic text with wording specific to
-   * what this builder is missing.
-   */
-  override assertionAdvice(): string {
-    return (
-      'this rule has no condition, so it asserts nothing and can never fail. Add a ' +
-      'condition after .should(), e.g. contain(...), notContain(...) or useInsteadOf(...).'
-    )
-  }
-
-  /** Named by id or description, not 'unnamed' (plan 0070 §4). */
-  override describeRule(): RuleDescription {
-    return {
-      ...super.describeRule(),
-      rule: this._metadata?.id ?? this.buildRuleDescription(),
-    }
-  }
-
-  /**
-   * The set the conditions receive — plan 0096, and the ONE method both readers
-   * call.
-   *
-   * The first attempt at 0096 let `collectViolations()` and the evidence
-   * accessor derive this separately, and they disagreed inside one commit: this
-   * builder counted PRE-predicate while its sibling `SchemaRuleBuilder` counted
-   * post. Measured, a chain whose `.that()` selected nothing reported 14 units
-   * examined, handed its conditions 0, and passed green with `diagnose()`
-   * silent — the fail-open cell ADR-009 exists to close, inside the wave that
-   * closes it. Sharing the method is what makes "the preview derives from the
-   * same computation the gate uses" structural rather than a claim.
-   */
-  private selected(): ArchFunction[] {
-    return selectionOf(this, () =>
-      this.getElements().filter((element) =>
-        this._predicates.every((predicate) => predicate.test(element)),
-      ),
-    )
-  }
-
-  /** Units this rule examined — plan 0096. The selection, not what precedes it. */
-
-  /**
    * This family counts resolvers — the resolver functions it selected.
    *
    * Plan 0099: `CollectResult.examined` is unit-typed per family (ADR-009 part
@@ -270,41 +157,15 @@ export class ResolverRuleBuilder extends TerminalBuilder {
     return 'resolvers'
   }
 
-  /**
-   * How many units this rule actually examined — ADR-010's evidence that a pass
-   * was constructed rather than defaulted.
-   *
-   * The resolvers this rule selected.
-   */
-  examinedUnits(): number {
-    return this.selected().length
+  protected override descriptionSubject(): string {
+    return 'resolvers'
   }
 
-  protected collectViolations(): CollectResult {
-    const filtered = this.selected()
-
-    if (filtered.length === 0) {
-      // Plan 0098: the early exit IS the zero-evidence case, stated rather than
-      // implied by an empty violation list.
-      return { violations: [], examined: 0 }
-    }
-
-    const context: ConditionContext = {
-      rule: this.buildRuleDescription(),
-      because: this._reason,
-      ruleId: this._metadata?.id,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-    }
-
-    const violations: ArchViolation[] = []
-    for (const condition of this._conditions) {
-      violations.push(...condition.evaluate(filtered, context))
-    }
-    return { violations, examined: filtered.length }
+  protected override conditionExamples(): string {
+    return 'contain(...), notContain(...) or useInsteadOf(...)'
   }
 
-  private getElements(): ArchFunction[] {
+  protected override getElements(): ArchFunction[] {
     // Object-literal collection is opt-in for `functions()`, where turning it on
     // by default would flood every rule with inline callbacks. Here it is the
     // opposite: a GraphQL resolver map IS an object literal
@@ -316,14 +177,5 @@ export class ResolverRuleBuilder extends TerminalBuilder {
     return this.sourceFiles.flatMap((sf) =>
       collectFunctions(sf, { includeObjectLiteralFunctions: true }),
     )
-  }
-
-  private buildRuleDescription(): string {
-    const predicateDesc = this._predicates.map((p) => p.description).join(' and ')
-    const conditionDesc = this._conditions.map((c) => c.description).join(' and ')
-    const parts: string[] = ['resolvers']
-    if (predicateDesc) parts.push(`that ${predicateDesc}`)
-    if (conditionDesc) parts.push(`should ${conditionDesc}`)
-    return parts.join(' ')
   }
 }

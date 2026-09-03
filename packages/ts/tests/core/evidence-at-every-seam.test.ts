@@ -413,8 +413,15 @@ describe('classification of the evidence hooks (plan 0096)', () => {
     'DuplicateBodiesBuilder', // post-minLines, post-glob
     'InconsistentSiblingsBuilder', // folders of >= 2, not files
     'CrossProjectBuilder', // materialized sides, and it has no project
-    'SchemaRuleBuilder', // post-predicate fields; no project either
-    'ResolverRuleBuilder', // post-predicate resolvers
+    // The GraphQL seam, once written twice. `SchemaRuleBuilder` and
+    // `ResolverRuleBuilder` are NOT listed for the same reason `RuleBuilder`'s
+    // subclasses are not: they inherit a real implementation from their own
+    // abstract root, which counts post-predicate over the elements each of them
+    // supplies. Naming the root is what this census asks for — that the hook be
+    // defined somewhere the family owns, not inherited from generic machinery —
+    // and one definition is strictly stronger than two, since the two copies it
+    // replaced had already disagreed about this very count (plan 0096).
+    'GraphqlRuleBuilder', // post-predicate schema types / resolvers; no project either
     // Plan 0098 — the seam's return type forced these. `RuleBuilder` is the
     // abstract root, so its subclasses correctly INHERIT a real implementation
     // and the walk finds 'RuleBuilder' rather than a missing hook.

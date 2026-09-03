@@ -1,3 +1,5 @@
+import { selectMatching, recordPredicate, matchingElements } from '@nielspeter/eess/internal'
+import { conditionContextFrom } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import {
   assertionAdviceOf,
@@ -140,10 +142,9 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    * @param opts.identify - map an element to its message metadata (name/file/line)
    */
   select(opts: { label: string; identify: (element: T) => ElementInfo }): Selection<T> {
-    const filtered = this.getElements().filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
-    )
-    return { elements: filtered, label: opts.label, identify: opts.identify }
+    // The kernel's — this was byte-identical, and the hierarchies differ, so a
+    // free function is the only way the two builders can share it.
+    return selectMatching(this.getElements(), this._predicates, opts)
   }
 
   /** This rule as declared — the input every description and advice reads. */
@@ -303,15 +304,33 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    */
   protected addPredicate(predicate: Predicate<T>): this {
     const next = this.copy()
-    next._predicates.push(predicate)
-    // A predicate-only method used after `.should()` (dual-use methods
-    // dispatch to conditions in that phase and never land here). Recorded so
-    // the assertion-less remedy can say "move it before .should()" — the one
-    // state whose fix is not "add a condition" (plan 0070, state 2).
-    if (next._phase === 'condition') {
-      next._misplaced.push(predicate.description)
-    }
+    // The kernel's. The two copies differed only in comment wording and braces.
+    recordPredicate(predicate, next._predicates, next._misplaced, next._phase)
     return next
+  }
+
+  /**
+   * Register a DUAL-USE method's condition or predicate, according to phase.
+   *
+   * Sixteen builder methods across four builders wrote this dispatch out —
+   * `no-copy-paste` reported them as two clusters at 100%. The dispatch is the
+   * only thing they share; the pair handed to it is what each method IS.
+   *
+   * Both sides are constructed eagerly rather than passed as thunks. Every one
+   * of the sixteen pairs is pure object construction — checked, none of the
+   * modules they come from (`conditions/structural`, `conditions/class`,
+   * `conditions/dependency`, `predicates/identity`, `predicates/module`)
+   * throws — so building the unused half costs an object and changes nothing.
+   * Thunks would buy laziness nobody needs at the price of two closures per
+   * call, and would hide the pair behind a lambda in every reader's way.
+   *
+   * A dual-use method is NOT the same as a predicate-only one. `areExported()`
+   * written after `.should()` still filters and is reported by the assertion
+   * gate as a misplaced predicate; a dual-use method written there asserts.
+   * That difference is a property of the method, so it stays at the method.
+   */
+  protected dualUse(condition: Condition<T>, predicate: Predicate<T>): this {
+    return this._phase === 'condition' ? this.addCondition(condition) : this.addPredicate(predicate)
   }
 
   /**
@@ -384,9 +403,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    */
   protected filterElements(): T[] {
     // AND semantics — every predicate must match.
-    return this.getElements().filter((element) =>
-      this._predicates.every((predicate) => predicate.test(element)),
-    )
+    return matchingElements(this.getElements(), this._predicates)
   }
 
   /**
@@ -489,12 +506,10 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
    * Call `super.buildConditionContext()` and spread the result.
    */
   protected buildConditionContext(): ConditionContext {
-    return {
+    return conditionContextFrom({
+      metadata: this._metadata,
+      reason: this._reason,
       rule: buildRuleDescription(this.asDeclared()),
-      because: this._reason,
-      ruleId: this._metadata?.id,
-      suggestion: this._metadata?.suggestion,
-      docs: this._metadata?.docs,
-    }
+    })
   }
 }

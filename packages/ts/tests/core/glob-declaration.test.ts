@@ -80,6 +80,11 @@ const TAKES_NO_GLOB = [
   'SchemaRuleBuilder',
   // Abstract; its concrete subclasses are in the list above.
   'SmellBuilder',
+  // Abstract, and it holds no glob of its own: whether a GraphQL family takes
+  // one is the subclass's business, and its two subclasses land in DIFFERENT
+  // lists — `ResolverRuleBuilder` declares the discovery glob above,
+  // `SchemaRuleBuilder` takes none for the reason recorded here.
+  'GraphqlRuleBuilder',
   // The intermediate step of the crossLayer chain. It is the only one of the
   // two exported: PairFinalBuilder, which holds the layers and does declare
   // them, is reachable only through the chain, so it is covered

@@ -1,3 +1,4 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import type { Predicate } from '@nielspeter/eess'
 import type { ArchJsxElement } from '../models/arch-jsx-element.js'
 
@@ -11,7 +12,8 @@ import type { ArchJsxElement } from '../models/arch-jsx-element.js'
  */
 export function areHtmlElements(...tags: string[]): Predicate<ArchJsxElement> {
   if (tags.length === 0) {
-    throw new Error(
+    throw new ArchConfigError(
+      'areHtmlElements',
       'areHtmlElements() requires at least one tag name. ' +
         'Use areHtmlElements(...STANDARD_HTML_TAGS) for all standard HTML elements.',
     )

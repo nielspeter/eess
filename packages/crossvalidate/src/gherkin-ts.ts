@@ -1,4 +1,5 @@
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
+import { resolveFeature, violationsFor } from './shared.js'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
 import path from 'node:path'
@@ -95,21 +96,12 @@ function itTitles(project: ArchProject): TestCitationSite[] {
 }
 
 /** Resolve a cited path against the set: exact relPath, or unique `/`-boundary suffix. */
-function resolveFeature(path: string, set: FeatureSet): readonly string[] {
-  const all = set.features().map((f) => f.relPath)
-  if (all.includes(path)) return [path]
-  return all.filter((rel) => rel.endsWith(`/${path}`))
-}
 
-const v = (site: TestCitationSite, message: string, because: string): ArchViolation => ({
-  rule: RULE,
-  ruleId: 'crossval/scenario-tests-resolve',
+const v = violationsFor<TestCitationSite>(RULE, 'crossval/scenario-tests-resolve', (site) => ({
   element: `${site.file}:${site.line}`,
   file: site.file,
   line: site.line,
-  message,
-  because,
-})
+}))
 
 /**
  * Cross-validate that every scenario citation in the *test* AST resolves against
@@ -176,15 +168,11 @@ export function scenarioTestsResolve(
 
 const COVER_RULE = 'every scenario should be proven by a citing test'
 
-const sv = (scenario: GherkinScenario, message: string, because: string): ArchViolation => ({
-  rule: COVER_RULE,
-  ruleId: 'crossval/scenarios-covered',
-  element: `${scenario.relPath} › ${scenario.title}`,
-  file: scenario.file,
-  line: scenario.line,
-  message,
-  because,
-})
+const sv = violationsFor<GherkinScenario>(COVER_RULE, 'crossval/scenarios-covered', (s) => ({
+  element: `${s.relPath} › ${s.title}`,
+  file: s.file,
+  line: s.line,
+}))
 
 /**
  * Every test citation, keyed by the scenario it cites (`relPath title`) —

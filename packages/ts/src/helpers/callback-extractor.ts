@@ -1,6 +1,6 @@
 import { type CallExpression, Node, SyntaxKind } from 'ts-morph'
 import type { ArchFunction } from '../models/arch-function.js'
-import { fromObjectLiteralFunction } from '../models/arch-function.js'
+import { fromObjectLiteralFunction, fromCallableNode } from '../models/arch-function.js'
 import { collectObjectLiteralFunctions } from '../core/object-literal-functions.js'
 
 /**
@@ -133,19 +133,8 @@ function extractInlineFunction(
  * The name is synthesized from the call site context.
  */
 function fromArrowExpression(node: Node): ArchFunction {
-  const arrow = node.asKindOrThrow(SyntaxKind.ArrowFunction)
-  return {
-    getName: () => undefined, // anonymous --- name derived from context
-    getSourceFile: () => arrow.getSourceFile(),
-    isExported: () => false, // callbacks are never exported
-    isAsync: () => arrow.isAsync(),
-    getParameters: () => arrow.getParameters(),
-    getReturnType: () => arrow.getReturnType(),
-    getBody: () => arrow.getBody(),
-    getNode: () => arrow,
-    getStartLineNumber: () => arrow.getStartLineNumber(),
-    getScope: () => 'public',
-  }
+  // Anonymous — the name is derived from the call site by the caller.
+  return fromCallableNode(node.asKindOrThrow(SyntaxKind.ArrowFunction), () => undefined)
 }
 
 /**
@@ -153,18 +142,8 @@ function fromArrowExpression(node: Node): ArchFunction {
  */
 function fromFunctionExpression(node: Node): ArchFunction {
   const funcExpr = node.asKindOrThrow(SyntaxKind.FunctionExpression)
-  return {
-    getName: () => funcExpr.getName(), // may have a name: `function handler() {}`
-    getSourceFile: () => funcExpr.getSourceFile(),
-    isExported: () => false,
-    isAsync: () => funcExpr.isAsync(),
-    getParameters: () => funcExpr.getParameters(),
-    getReturnType: () => funcExpr.getReturnType(),
-    getBody: () => funcExpr.getBody(),
-    getNode: () => funcExpr,
-    getStartLineNumber: () => funcExpr.getStartLineNumber(),
-    getScope: () => 'public',
-  }
+  // May name itself: `function handler() {}` passed as an argument.
+  return fromCallableNode(funcExpr, () => funcExpr.getName())
 }
 
 /**
@@ -173,16 +152,5 @@ function fromFunctionExpression(node: Node): ArchFunction {
  */
 function fromMethodDeclaration(node: Node): ArchFunction {
   const method = node.asKindOrThrow(SyntaxKind.MethodDeclaration)
-  return {
-    getName: () => method.getName(),
-    getSourceFile: () => method.getSourceFile(),
-    isExported: () => false,
-    isAsync: () => method.isAsync(),
-    getParameters: () => method.getParameters(),
-    getReturnType: () => method.getReturnType(),
-    getBody: () => method.getBody(),
-    getNode: () => method,
-    getStartLineNumber: () => method.getStartLineNumber(),
-    getScope: () => 'public',
-  }
+  return fromCallableNode(method, () => method.getName())
 }

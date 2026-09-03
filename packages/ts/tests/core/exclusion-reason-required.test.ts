@@ -26,20 +26,29 @@ import * as kernelParser from '@nielspeter/eess'
  * break `exclusion-comments-reach-every-condition.test.ts`, which pins the
  * eess-ts contract deliberately.
  */
-describe('reason-free waivers: two parsers, two fail-closed answers', () => {
+describe('reason-free waivers: one parser, one answer (ADR-012)', () => {
   const single = ['// eess-exclude demo/no-eval', 'const x = 1'].join('\n')
 
-  it('the kernel refuses the waiver outright', () => {
+  // This block used to pin the two parsers DISAGREEING — the kernel refused the
+  // waiver, eess-ts kept it and relied on `execute-rule` to promote the warning.
+  // Its own docstring said resolving that "would be a decision about which
+  // mechanism the family wants, not a bug fix". ADR-012 made the decision when
+  // the parsers were unified: eess-ts's design wins, because it tells the author
+  // their waiver needs a reason rather than showing them the violation they were
+  // waiving. The other four dialects gained it, and the kernel's `execute-rule`
+  // gained the promotion that makes it safe.
+  it("the waiver applies, and a promotable warning takes the finding's place", () => {
     const { exclusions, warnings } = kernelParser.parseExclusionComments(single, 'probe.ts')
-    expect(exclusions).toEqual([])
-    expect(warnings.length).toBeGreaterThan(0)
-  })
-
-  it('eess-ts keeps the waiver and warns, for execute-rule to promote', () => {
-    const { exclusions, warnings } = tsParser.parseExclusionComments(single, 'probe.ts')
     expect(exclusions.map((e) => e.ruleId)).toEqual(['demo/no-eval'])
     expect(exclusions[0]?.reason).toBe('')
-    expect(warnings.some((w) => /Undocumented exclusion/.test(w.message))).toBe(true)
+    expect(warnings.some((w) => w.kind === 'undocumented')).toBe(true)
+  })
+
+  it('eess-ts gives the same answer, because it is now the same parser', () => {
+    const kernel = kernelParser.parseExclusionComments(single, 'probe.ts')
+    const ts = tsParser.parseExclusionComments(single, 'probe.ts')
+    expect(ts.exclusions.map((e) => e.ruleId)).toEqual(kernel.exclusions.map((e) => e.ruleId))
+    expect(ts.warnings.map((w) => w.kind)).toEqual(kernel.warnings.map((w) => w.kind))
   })
 
   it('both agree a waiver WITH a reason suppresses', () => {

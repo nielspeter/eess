@@ -2,7 +2,7 @@ import picomatch from 'picomatch'
 import type { GlobLeaf, GlobNode, GlobSite } from '@nielspeter/eess'
 import { isGlobNode, isOpaqueGlob } from '@nielspeter/eess/internal'
 import type { PathUniverse } from './path-universe.js'
-import { viewsFor } from './path-universe.js'
+import { viewsFor } from '@nielspeter/eess/internal'
 import { syntacticFault } from './glob-diagnosis.js'
 
 /**
