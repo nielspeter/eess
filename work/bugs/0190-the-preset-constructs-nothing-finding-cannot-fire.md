@@ -119,13 +119,12 @@ available at that seam. It changes two things:
    at a granularity that works.
 
 **The decision now exists as [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)**
-(Proposed, 2026-09-03), which takes option 2 in the container's shape — the
+(Accepted 2026-09-03), which takes option 2 in the container's shape — the
 receipt as a **required field** on the emitter, not a minted registry, so
 ADR-010 §2's cap is untouched — and names this record's red test as one of its
 Enforcement rows. The preset-specific remedy this constructor carries stays with
 the preset plumbing that knows it is a preset (ADR-014 §4); the kernel emitter
-names the hand-assembler's remedy instead. This record stays
-open until that ADR is accepted and the finding is producible or gone.
+names the hand-assembler's remedy instead. This record stays open until plan 0235 lands and the finding is producible or gone.
 
 Also relevant, and not this record's to decide: 009's review found the seam move
 collides with two binding texts — ADR-010:136 (_"nothing may add a fourth"_

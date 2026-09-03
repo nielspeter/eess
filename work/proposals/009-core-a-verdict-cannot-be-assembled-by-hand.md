@@ -310,9 +310,9 @@ A third, weaker: ADR-011 §1, since A changes the contract of two root symbols a
 
 The decision A actually asks for is one sentence: **the emission seam, not only the terminal seam, requires evidence — a verdict handed to `reportViolations`/`finishPreset` must carry proof it was examined.** ADR-010 §2 binds _"every published family's terminal path — `.check()` / `.warn()`"_ and is silent on the preset/reporter path, which is exactly why the gap this proposal found is reachable. That silence is the finding, and closing it is an ADR — call it 014 — with a plan under it. This does not change the ruling; it sharpens what "take A back to design" means.
 
-That ADR is now drafted:
+That ADR is now accepted:
 [ADR-014 — the emitter refuses a verdict without evidence](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
-(Proposed). Ask A's `Held` row unholds on its acceptance.
+(Accepted 2026-09-03). Ask A's row reads `Accepted, reshaped` → plan 0235; the redesign it owed is ADR-014 §1–§2, which takes the receipt as a required field rather than a mint.
 
 ### Disposition, per ask
 

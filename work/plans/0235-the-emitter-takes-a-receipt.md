@@ -3,8 +3,8 @@
 ## Status
 
 - **State:** Draft — the decision is made ([ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md),
-  Proposed); this is its build. Not Ready until ADR-014 is accepted — a plan
-  built on a Proposed ADR has a floor that can move.
+  Accepted 2026-09-03); this is its build. Eligible for the freeze now that the
+  floor cannot move; stays Draft until it goes through `/plan-ready`.
 - **Priority:** High — the ROADMAP's own definition: closes a gap between what
   eess claims and what it checks. ADR-010 says an evidence-free pass is
   unrepresentable; at the emitter it is one line, measured in the field as

@@ -2,15 +2,19 @@
 
 ## Status
 
-**Proposed** — 2026-09-03.
+**Accepted** — 2026-09-03.
 
-Drafted from the review of
+Drafted the same day from the review of
 [proposal 009](../work/proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md),
-whose Problem section every review lens accepted and whose mechanism none did.
-Extends [ADR-010](./010-a-pass-is-constructed-from-evidence.md) by one seam;
-amends the implementation, not the principle, of
-[ADR-008](./008-caller-owns-reporting.md). Acceptance is the maintainer's decision;
-this document records what is being decided and what it costs.
+whose Problem section every review lens accepted and whose mechanism none did,
+and accepted after a consistency check against ADRs 008, 009, 010, 011 and 013
+and the manifesto, which amended §1, §4, §5 and §6 before acceptance. Extends
+[ADR-010](./010-a-pass-is-constructed-from-evidence.md) by one seam; amends the
+implementation, not the principle, of
+[ADR-008](./008-caller-owns-reporting.md), which carries the amendment. Every
+Enforcement row below is `pending` and owned by
+[plan 0235](../work/plans/0235-the-emitter-takes-a-receipt.md): decided is not
+enforced, and this document claims nothing the build has not yet made true.
 
 ## Context
 
@@ -134,10 +138,16 @@ cannot see the builder list; the answer is not to show it the list.
 
 Stated as the honest ceiling: this closes **correctness**, not **forgery**. A
 supplied `examined: 500` over a loop that skipped everything is still a green
-lie. That is a strictly better position than today's — where `[]` is
-indistinguishable by construction, with nobody lying — and it is the position
-ADR-010 already occupies at the terminal, where `examined` is a number a family
-computes and a family could compute wrongly.
+lie. So is the honest version, and it is the one to expect from the consumer
+this ADR is for: a count taken at the wrong place — `documents.length` before
+the loop's own `continue` — is not a lie, it is the same mistake one line
+earlier, and the required field cannot tell it from the right number. §1 says
+where to count; only a fixture that breaks the loop and expects red proves the
+count means anything, which is what this repo's non-vacuity harness is for its
+own gates and what an adopter owes theirs. That is a strictly better position
+than today's — where `[]` is indistinguishable by construction, with nobody
+lying — and it is the position ADR-010 already occupies at the terminal, where
+`examined` is a number a family computes and a family could compute wrongly.
 
 ### 3. Hand-assembly stays legal; an evidence-free verdict does not
 
@@ -279,8 +289,8 @@ amendment section saying so on the day this is accepted, in the form its
   `expectEmpty` to their rules thread it to the emitter too; a script author has
   it as an option. ADR-010 §3's precedence — an empty source outranks any token —
   applies unchanged.
-- **What it does not do.** It does not detect a wrong `examined`. It does not
-  reach a caller who never calls an emitter — one who formats and exits on its
+- **What it does not do.** It does not detect a wrong `examined`, lied or
+  honestly miscounted (§2). It does not reach a caller who never calls an emitter — one who formats and exits on its
   own; ADR-010 §2 names the same weakness for a verdict factory nothing forces a
   terminal to call, and here it is the ceiling. Only the guardrail rule (Ask C)
   sees that caller, which is why this ADR does not replace it: it catches both
