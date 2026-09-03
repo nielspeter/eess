@@ -206,8 +206,11 @@ export const NO_CORPUS: readonly string[] = [
 // eess-ts's barrel re-exporting 37 internal helpers, and their classification rows
 // outlived the exports. The matrix asserts BOTH directions — an unclassified export
 // and a classified name nobody publishes — and the reverse direction is what caught
-// them. Worth noting where it was caught: `npm run test:matrix` runs in CI and is
-// NOT part of `npm run validate`, so a full local green said nothing about it.
+// them. Worth noting where it was caught: `npm run test:matrix` runs in its own
+// vitest config, so `npm run test` is green without it. It has since joined
+// `npm run validate` (and CI), but validate is a single `&&` chain and this is
+// its second-to-last step — any earlier gate that reds means a local run never
+// arrives here at all. That is how the 2026-09-03 rows below went unnoticed.
 export const NOT_CHECKS: readonly string[] = [
   // ── Added PR #72: 53 of these had drifted out of the matrix during the engine
   //    fold and 16 arrived with it. None was noticed, because `tests/matrix/` was
@@ -541,4 +544,16 @@ export const NOT_CHECKS: readonly string[] = [
   '.:withStringArg',
   '.:within',
   '.:workspace',
+  // ── Added 2026-09-03. Three of these four had been unclassified since earlier
+  //    on this branch and nothing said so: `test:matrix` runs in its own vitest
+  //    config, so `npm run test` is green without it, and `validate` — which does
+  //    include it — stops long before reaching it whenever any earlier gate reds.
+  //    It was found by running validate's remaining steps by hand after the chain
+  //    stopped at `check:corpus`.
+  //
+  //    Each is a class, a guard or a helper — nothing you can call `.check()` on.
+  './graphql:GraphqlRuleBuilder', // abstract base of the two GraphQL builders, both already here
+  '.:ArchConfigError', // an error type: thrown when a RULE is misconfigured, not a check
+  '.:isArchConfigError', // its type guard
+  '.:variationBetween', // returns the axes two bodies differ on; a measurement, not an assertion
 ]
