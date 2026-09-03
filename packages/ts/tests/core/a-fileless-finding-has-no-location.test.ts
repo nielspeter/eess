@@ -115,6 +115,7 @@ describe('a fileless finding renders no location (bug 0047)', () => {
         'measured',
         'message',
         'rule',
+        'relatedFiles',
         'ruleId',
         'severity',
         'suggestion',

@@ -90,5 +90,5 @@ and `peakSimilarity` can both be neutered with the whole suite staying green.
   identical over-claim; this record is that lesson unapplied one gate over.
 - [0169](./0169-computesimilarity-ignores-call-targets-so-opposite-functions-read-as-duplicates.md)
   — settled that `no-copy-paste` is advisory, which this record does not reopen.
-- [0239](./0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)
+- [0239](./fixed/0239-a-cluster-finding-carries-one-file-so-diff-aware-drops-the-rest.md)
   — the detector behind the warn half, with its own untested claims.

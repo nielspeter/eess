@@ -58,6 +58,17 @@ export interface ArchJsonViolation {
   readonly docs: string | null
   readonly codeFrame: string | null
   readonly measured: number | null
+  /**
+   * Other files this one finding concerns, or `null` when it concerns only its
+   * own (bug 0239).
+   *
+   * A finding about a RELATIONSHIP — two duplicate bodies, a cluster of them —
+   * is reported at one file and is about several. A consumer that filters by
+   * `file` alone will hide it from whoever edited any of the others, which is
+   * the bug this field exists to stop being reproduced downstream. If you
+   * filter, read this too.
+   */
+  readonly relatedFiles: readonly string[] | null
 }
 
 /** One finding removed by an inline `// eess-exclude` comment. */
@@ -174,6 +185,13 @@ export function formatViolationsJson(
       // the number has to regex it back out of the message — which is the
       // fragility bug 0012 was filed about.
       measured: v.measured ?? null,
+      // Bug 0239. A finding about a relationship concerns several files and is
+      // reported at one of them; a consumer that filters by `file` needs the
+      // rest or it reproduces the very bug this field was added to fix. This is
+      // the documented agent-actionable stream, so omitting it would make the
+      // changeset's own advice — "read `relatedFiles` too" — impossible to
+      // follow through the interface CLAUDE.md points agents at.
+      relatedFiles: v.relatedFiles ?? null,
     })),
   }
   return JSON.stringify(output, null, 2)
