@@ -1086,22 +1086,45 @@ function gateCorpusProposalImplementsDiscriminates() {
     'This plan implements nothing from proposal 9001; it is explicitly out of scope.\n'
   const declaredPlanMd =
     '# Non-vacuity probe plan\n\n## Status\n\n- **Implements:** proposal 9001\n'
+  // Bug 0232. This used to compare GLOBAL exit codes — `declared → code === 0`
+  // — which is a claim about the whole corpus, not about the probe. Any
+  // unrelated stale pointer anywhere made it false, and the harness then
+  // reported THIS gate as vacuous while the gate was working perfectly. Six
+  // sibling fixtures in this file already keep the clean-baseline arm out of
+  // the verdict for exactly that reason ("exit 1 alone is weak here — in-flight
+  // violations exist"); this one did not. Both directions are now assertions
+  // about the probe's own finding, so a dirty baseline is irrelevant.
+  const UNCITED = 'corpus/accepted-proposal-uncited'
+  const PROBE_FILE = '__nonvacuity_probe_9001-matched__'
   try {
     writeFileSync(PROBE_CORPUS_PROPOSAL_MATCHED, proposalMd)
     writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, proseOnlyPlanMd)
-    const proseRun = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
-    const proseStillRed = proseRun.code === 1
+    const prose = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
+    const proseFired = prose.code === 1 && firedOn(prose, UNCITED, PROBE_FILE, '9001')
 
     writeFileSync(PROBE_CORPUS_PLAN_IMPLEMENTS, declaredPlanMd)
-    const matchedRun = sh(process.execPath, [join('scripts', 'check-corpus.mjs')])
-    const matchedGoesGreen = matchedRun.code === 0
+    const declared = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
+    const declaredSilent = !firedOn(declared, UNCITED, PROBE_FILE, '9001')
 
-    const ok = proseStillRed && matchedGoesGreen
+    // `!firedOn(...)` ALONE would be fail-open: `violationsOf` returns [] for
+    // output it cannot parse, so a crashed run reads as "the finding is
+    // absent". Requiring the declared run to carry exactly one violation FEWER
+    // than the prose run closes that — a crash gives 0, not n-1 — and it says
+    // the stronger thing besides: the ONLY difference the declaration made was
+    // this finding. Both runs share whatever else the corpus is carrying, so
+    // the subtraction holds on a dirty baseline as well as a clean one.
+    const before = violationsOf(prose).length
+    const after = violationsOf(declared).length
+    const onlyThisChanged = before > 0 && after === before - 1
+
+    const ok = proseFired && declaredSilent && onlyThisChanged
     return {
       ok,
       detail:
-        `discriminates cited-in-prose from declared · prose-only exit ${proseRun.code} ` +
-        `(want 1), declared exit ${matchedRun.code} (want 0)`,
+        `discriminates cited-in-prose from declared · prose-only ${UNCITED} on the probe: ` +
+        `${proseFired ? 'fired' : 'DID NOT FIRE'} · declared: ${declaredSilent ? 'silent' : 'STILL FIRED'} ` +
+        `· violations ${String(before)} → ${String(after)} (want one fewer) · ` +
+        `declared exit ${declared.code} (informational — a dirty corpus is not this gate's business)`,
     }
   } finally {
     rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })

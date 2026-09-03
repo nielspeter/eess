@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — reproduced; the correct pattern already exists six times in
-  the same file, so the fix is to follow it.
+- **State:** Fixed — both directions are now assertions about the probe's own
+  finding, following the pattern six sibling fixtures already use.
 - **Severity:** Medium — no false green: the fixture reds, which is safe. The
   cost is that it reds with the **wrong diagnosis**. `check:nonvacuity` reports
   `did not fail on violating input` — "this gate is vacuous" — when the truth is
@@ -24,7 +24,7 @@ prose-only exit 1 (want 1), declared exit 1 (want 0)
 
 Read plainly, that says the gate cannot tell a prose mention of a proposal from
 a declared `**Implements:**` line — a real and serious defect, and the exact
-thing [bug 0141](./fixed/0141-no-check-binds-accepted-proposals-to-plans.md)
+thing [bug 0141](./0141-no-check-binds-accepted-proposals-to-plans.md)
 built this fixture to prevent.
 
 It is not what happened. The gate discriminates correctly. What was true is that
@@ -77,14 +77,47 @@ const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean
 
 Their own comments say why, in as many words: _"Exit 1 alone is weak here
 (in-flight violations exist), so require the rule to have fired ON THE PROBE"_ —
-which is [bug 0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)'s
+which is [bug 0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md)'s
 lesson. `gateBoardRewrite` and `gateProposalProbe`, two helpers in the same file
 and used by most of the corpus rows, both use `firedOn(...)` for exactly this.
 
 One fixture makes a global-baseline assertion load-bearing, in a file where its
 siblings are documented not to.
 
-## Fix
+## Fix — as built
+
+Both directions now assert the probe's own finding. `proseStillRed`/
+`matchedGoesGreen` are gone; nothing in the verdict mentions the rest of the
+corpus.
+
+```js
+const prose = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
+const proseFired = prose.code === 1 && firedOn(prose, UNCITED, PROBE_FILE, '9001')
+
+const declared = sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json'])
+const declaredSilent = !firedOn(declared, UNCITED, PROBE_FILE, '9001')
+
+const before = violationsOf(prose).length
+const after = violationsOf(declared).length
+const onlyThisChanged = before > 0 && after === before - 1
+
+const ok = proseFired && declaredSilent && onlyThisChanged
+```
+
+**`onlyThisChanged` is not decoration, and the fix is wrong without it.**
+`!firedOn(...)` alone is fail-open: `violationsOf` returns `[]` for output it
+cannot parse (`check-nonvacuity.mjs:313`), so a run that CRASHED reads as "the
+finding is absent" and the fixture goes green. Requiring exactly one violation
+fewer closes that — a crash gives 0, not n−1 — and says the stronger thing
+besides: the only difference the declaration made was this finding. Both runs
+carry whatever else the corpus is carrying, so the subtraction holds on a dirty
+baseline as much as a clean one.
+
+The declared run's exit code survives in the `detail` string, labelled
+_informational — a dirty corpus is not this gate's business_, matching the six
+siblings.
+
+### Original reasoning
 
 Assert the probe's own identity in both directions, not the global exit code.
 The property under test is per-finding and already expressible with `firedOn`:
@@ -116,23 +149,39 @@ A fix must fail when:
 
 ## Verification
 
-- [ ] Red test: a stale pointer planted in an unrelated corpus file leaves this
-      fixture green. Fails today.
-- [ ] The discrimination itself still reds when the parser is loosened to the
-      prose regex named above.
-- [ ] The fixture asserts `firedOn(...)` in both directions rather than a global
-      exit code.
-- [ ] `check:nonvacuity` green on a corpus with an unrelated violation present.
+- [x] Red test: the live corpus was already dirty — three untracked proposals —
+      so the failing state needed no construction. Before: the fixture reported
+      the gate vacuous. After: `OK: true` with `declaredExit: 1`, which is the
+      exact condition that used to fail it.
+- [x] The discrimination still reds when the parser is loosened to
+      `/[Ii]mplements[^\n]*?proposal\s+(\d+)/` — the vulnerability the fixture's
+      own comment names. Measured: `proseFired` flips to `false`, because the
+      prose mention is then read as a declaration and
+      `corpus/accepted-proposal-uncited` stops firing. That is the
+      discrimination failing, and the fixture says so.
+      (A first attempt at this sabotage kept `LABEL_PREFIX` and so broke a
+      DIFFERENT thing — the declared form stopped parsing. The fixture reddened
+      either way, but only the anchorless regex reproduces the named defect;
+      recorded because "it went red" was not yet evidence of the right cause.)
+- [x] The fixture asserts `firedOn(...)` in both directions rather than a global
+      exit code, plus the `n → n−1` liveness check above.
+- [x] `check:nonvacuity` green on a corpus with unrelated violations present.
+      Incidental confirmation: across two verification runs the totals moved
+      `8 → 7` and then `9 → 8`, because a background harness run was planting
+      its own probes at the same time. The verdict held both times, which is the
+      baseline-independence this record is about.
+
+Deferred: none.
 
 ## Related
 
-- [0110](./fixed/0110-nonvacuity-gates-do-not-assert-which-rule-fired.md) — the
+- [0110](./0110-nonvacuity-gates-do-not-assert-which-rule-fired.md) — the
   same lesson one level down: assert which rule fired, not that something did.
   This record is that lesson applied to the _clean_ direction rather than the
   dirty one.
-- [0231](./fixed/0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)
+- [0231](./0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)
   — the same failure class in a different instrument: a finding that names a
   cause it has not established, sending the reader to the wrong fix.
-- [0126](./0126-validate-cannot-say-it-stopped-short.md) — how this one was
+- [0126](../0126-validate-cannot-say-it-stopped-short.md) — how this one was
   reached: `validate` stopped at `check:corpus`, and the steps behind it had to
   be run by hand.

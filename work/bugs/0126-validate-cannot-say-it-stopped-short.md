@@ -61,13 +61,13 @@ looking.
 `check:corpus`, on three untracked proposals carrying stale pointers. Steps 11
 through 24 did not execute, and nothing said so. Running them by hand:
 
-| steps  | result                                                                                                                                          |
-| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 11–14  | ledger · spec · numbers · vacuity — green                                                                                                       |
-| 15     | `check:nonvacuity` — red, downstream of the same corpus state (see [0232](./0232-a-nonvacuity-fixture-blames-the-gate-for-a-dirty-baseline.md)) |
-| 16–22  | typecheck · examples · docs-code · review-harness · lint · format:check · test — green                                                          |
-| **23** | **`test:matrix` — RED, four published exports unclassified**                                                                                    |
-| 24     | surface — green                                                                                                                                 |
+| steps  | result                                                                                                                                                |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 11–14  | ledger · spec · numbers · vacuity — green                                                                                                             |
+| 15     | `check:nonvacuity` — red, downstream of the same corpus state (see [0232](./fixed/0232-a-nonvacuity-fixture-blames-the-gate-for-a-dirty-baseline.md)) |
+| 16–22  | typecheck · examples · docs-code · review-harness · lint · format:check · test — green                                                                |
+| **23** | **`test:matrix` — RED, four published exports unclassified**                                                                                          |
+| 24     | surface — green                                                                                                                                       |
 
 Three of those four — `.:ArchConfigError`, `.:isArchConfigError`,
 `.:variationBetween` — had been unclassified **since earlier on the same
