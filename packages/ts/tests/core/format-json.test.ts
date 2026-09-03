@@ -44,6 +44,10 @@ describe('formatViolationsJson', () => {
           docs: null,
           codeFrame: null,
           measured: null,
+          // Bug 0239. `null` for an ordinary single-file finding; a duplicate
+          // body names the other files it concerns, so a consumer that filters
+          // by `file` does not hide it from whoever edited one of them.
+          relatedFiles: null,
         },
       ],
     })

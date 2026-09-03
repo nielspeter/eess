@@ -81,6 +81,21 @@ export function varianceSummary(pair: SimilarPair | undefined): string {
   return ` — ${String(variation.axes.length)} varying ${noun}: ${shown}${rest > 0 ? `, +${String(rest)} more` : ''}`
 }
 
+/**
+ * The files a finding concerns besides the one it is reported at.
+ *
+ * `relatedFiles` means the OTHERS: `file` is already the finding's own, and
+ * repeating it would make the field's own meaning ambiguous to any consumer
+ * that reads the two together. Sorted so the value does not depend on source
+ * walk order, and `undefined` rather than `[]` when a duplicate sits entirely
+ * within one file — an empty array reads as "checked, none", which is true, but
+ * omitting it keeps a single-file finding byte-identical to what shipped.
+ */
+export function otherFiles(own: string, all: readonly string[]): string[] | undefined {
+  const rest = [...new Set(all)].filter((f) => f !== own).sort()
+  return rest.length > 0 ? rest : undefined
+}
+
 /** The single finding standing for a group of three or more similar bodies. */
 export function clusterViolation(
   cluster: SimilarCluster,
@@ -100,6 +115,15 @@ export function clusterViolation(
     element: anchor.getName() ?? '<anonymous>',
     file: anchor.getSourceFile().getFilePath(),
     line: anchor.getStartLineNumber(),
+    // Every member's file, so `--changed` keeps this finding for whichever
+    // member a developer actually edited (bug 0239). The anchor is walk order,
+    // so without this, which member could see the finding was decided by the
+    // filesystem. De-duplicated: several members commonly share one file, and a
+    // repeated path would say nothing extra to a set-based filter.
+    relatedFiles: otherFiles(
+      anchor.getSourceFile().getFilePath(),
+      cluster.members.map((fn) => fn.getSourceFile().getFilePath()),
+    ),
     message:
       `${locate(anchor)} is up to ${String(pct)}% similar to ` +
       `${String(others.length)} other bodies: ${shown}${rest > 0 ? `, +${String(rest)} more` : ''}` +

@@ -66,7 +66,10 @@ describe('clustered reporting', () => {
     expect(violations).toHaveLength(1)
     expect(violations[0]!.message).toContain('5 other bodies')
     // It still says how alike they are, and still anchors to a real element.
-    expect(violations[0]!.message).toMatch(/\d+% similar/)
+    // The VALUE, not the shape: `toMatch(/\d+% similar/)` is satisfied by
+    // "0% similar", so hard-coding `peakSimilarity` to zero used to pass this
+    // whole file (bug 0239's review measured it).
+    expect(violations[0]!.message).toContain('100% similar')
     expect(violations[0]!.line).toBeGreaterThan(0)
   })
 
@@ -141,5 +144,68 @@ export function timestampPrefixB(now: Date): string {
     )
     expect(violations).toHaveLength(1)
     expect(violations[0]!.message).toContain('identical text: a literal copy')
+  })
+})
+
+/**
+ * Bug 0239's second half — the ranking, asserted.
+ *
+ * `clusterRank` decides what a reader sees first, which at four thousand
+ * findings IS the product. It was reachable only through report order and
+ * nothing asserted that order, so `return 0` at the top of the function left
+ * every test in this file green.
+ *
+ * The trap this closes, and the reason the file names below are deliberate: the
+ * sort is stable, so with a constant rank the clusters keep their natural walk
+ * order. A test whose high-ranking family already sorts first would pass under
+ * exactly the sabotage it exists to catch. So the COPY family is named to sort
+ * LAST alphabetically — ranking has to move it to satisfy this.
+ */
+describe('report order puts the most actionable cluster first', () => {
+  /** One shape, summing lengths. Same name in every file: a copy. */
+  const copied = `
+export function tally(items: string[]): number {
+  let total = 0
+  for (const each of items) {
+    total = total + each.length
+  }
+  return total
+}`
+
+  /** A different shape, so it clusters separately. Different name per file. */
+  const idiom = (n: string): string => `
+export function ${n}(rows: string[]): string[] {
+  const out: string[] = []
+  for (const row of rows) {
+    if (row.length > 2) out.push(row.trim())
+  }
+  return out
+}`
+
+  it('ranks a cross-file copy above a cross-file shared idiom', () => {
+    const violations = withProject(
+      {
+        // Sorts first, ranks last. If ranking stops working, this one leads.
+        'aaa-idiom-one.ts': idiom('alpha'),
+        'aab-idiom-two.ts': idiom('bravo'),
+        'aac-idiom-three.ts': idiom('charlie'),
+        // Sorts last, ranks first: same name in three files is a literal copy.
+        'zza-copy-one.ts': copied,
+        'zzb-copy-two.ts': copied,
+        'zzc-copy-three.ts': copied,
+      },
+      (tsconfig) =>
+        smells
+          .duplicateBodies(project(tsconfig))
+          .minDistinctVocabulary(0)
+          .rule({ id: 'smells/rank' })
+          .violations(),
+    )
+
+    // Two distinct shapes, so two clusters — asserted, because if they merged
+    // into one the ordering claim below would be vacuous.
+    expect(violations).toHaveLength(2)
+    expect(violations[0]!.element).toBe('tally')
+    expect(violations[1]!.element).not.toBe('tally')
   })
 })

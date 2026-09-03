@@ -35,6 +35,27 @@ export interface ArchViolation {
   file: string
   /** Line number where the violating element starts */
   line: number
+  /**
+   * Other files this one finding concerns, when it concerns more than one.
+   *
+   * A finding carries a single `file`, which is where it is REPORTED. Some
+   * findings are about a relationship — two bodies that duplicate each other,
+   * a cluster of them — and for those, one path cannot say what the finding is
+   * about. Anything that filters by file must see the rest, or it hides the
+   * finding from the very person who caused it.
+   *
+   * Bug 0239 is the measured case: a duplicate-body finding anchors on whichever
+   * member the source walk reached first, so a developer who pasted a body into
+   * a second file ran `--changed` and was told nothing — the finding sat on the
+   * file they had not touched, and which file that was came down to how the OS
+   * enumerated a directory.
+   *
+   * Optional, and additive. A single-file finding omits it and every existing
+   * producer keeps compiling; a consumer that ignores it behaves exactly as
+   * before. `file` remains where the finding is reported, so messages, editors
+   * and baselines are unaffected.
+   */
+  relatedFiles?: readonly string[]
   /** Human-readable description of what went wrong */
   message: string
   /**

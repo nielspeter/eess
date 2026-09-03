@@ -6,7 +6,7 @@ import { SmellBuilder } from './smell-builder.js'
 import { collectFunctions } from '../models/arch-function.js'
 import { fingerprintAll, findSimilarPairs } from './similar-pairs.js'
 import type { SimilarPair } from './similar-pairs.js'
-import { clusterViolation, varianceSummary } from './duplicate-report.js'
+import { clusterViolation, otherFiles, varianceSummary } from './duplicate-report.js'
 import { clusterPairs, clusterRank } from './clusters.js'
 import type { SimilarCluster } from './clusters.js'
 import type { ArchViolation } from '@nielspeter/eess'
@@ -278,6 +278,12 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
         element: nameA,
         file: fileA,
         line: lineA,
+        // Both endpoints (bug 0239). A two-body duplicate is the COMMON case —
+        // copy a function into one new file — and it had the same defect as a
+        // cluster: anchored on `a`, which is walk order, so the new file was the
+        // one that could not see it. Sorted and de-duplicated so a same-file
+        // pair names its one file rather than repeating it.
+        relatedFiles: otherFiles(fileA, [fileA, fileB]),
         message: `${nameA} (${fileA}:${String(lineA)}) is ${String(pct)}% similar to ${nameB} (${fileB}:${String(lineB)})${varianceSummary(pair)}`,
         // Which endpoint is "a" comes from the source-file walk order, which is
         // a property of the filesystem: the same pair reports A→B on one

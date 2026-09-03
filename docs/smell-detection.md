@@ -13,7 +13,15 @@ Smell detectors do not use the `.that().should()` chain grammar. Instead, they h
 
 ## `smells.duplicateBodies()`
 
-Detects functions with structurally similar bodies using AST fingerprinting. Two functions are flagged when their AST similarity exceeds a threshold (default: 85%).
+Detects functions with structurally similar bodies using AST fingerprinting. Identifiers are ignored by design — that is what makes this a type-2 clone score, and what lets it see a body that was copied and renamed.
+
+**What it reports is a group, not a pair.** Bodies that are all similar to each other are one observation, so a family of six is one finding rather than the fifteen pairs it contains. A two-body duplicate reports as it always did. Each finding names the other files it concerns, so a `--changed` run still shows it to whoever edited _any_ member, not only the one it happens to be reported at.
+
+**Findings are ordered, not filtered.** The same function copied into another file ranks above two unrelated functions that merely converge on a shared idiom — the score cannot tell those apart, and the names can. Nothing is dropped by ranking; it decides only what you read first.
+
+**Each finding says what varies** between the bodies: one differing call target is a parameter extraction, nine differing property names is a shared idiom, and those score identically without it.
+
+**Two rejections keep the output honest.** A body is never compared with a body nested inside it — "extract the shared logic" is impossible when one contains the other. And a pair that shares no identifier or literal at all is rejected, because a perfect shape match with nothing in common names a refactor that does not exist.
 
 ```typescript
 import { project, smells } from '@nielspeter/eess-ts'

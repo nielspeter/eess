@@ -45,7 +45,17 @@ export class DiffFilter {
     // was false for the most realistic adoption path — a rule whose instrument
     // silently broke reported nothing at all under `--changed`, with no
     // diagnostic that anything had been hidden.
-    return violations.filter((v) => v.bypassFilters === true || files.has(v.file))
+    // `relatedFiles` (bug 0239): a finding about a RELATIONSHIP concerns several
+    // files and can only be reported at one of them. Keeping it when any of them
+    // changed is what makes `--changed` honest for it — the alternative measured
+    // in 0239 was that the developer who introduced a duplicate saw nothing,
+    // because the finding was anchored on the file they had not edited.
+    return violations.filter(
+      (v) =>
+        v.bypassFilters === true ||
+        files.has(v.file) ||
+        (v.relatedFiles?.some((f) => files.has(f)) ?? false),
+    )
   }
 
   /** Number of changed files detected, or -1 if diff unavailable */
