@@ -84,11 +84,15 @@ and owned by [plan 0188](../work/plans/0188-unify-the-duplicated-engine-modules.
 ### Amendment 2026-09-03 — the emitters take evidence (ADR-014)
 
 [ADR-014](./014-the-emitter-refuses-a-verdict-without-evidence.md), accepted
-2026-09-03, supersedes three statements above at the two emitters:
+2026-09-03, supersedes four statements above at the two emitters:
 
 - _"Preset return type is `ArchViolation[]`"_ — a preset, and `finishPreset`,
-  hand back the receipt `{ violations, examined }` that every terminal already
-  produces. The violations are still there, one field deeper.
+  hand back the receipt: still an `ArchViolation[]`, now carrying `examined`,
+  `sourceEmpty?` and `declaredEmpty?` as its own properties, so `.length` keeps
+  working and an untyped consumer's exit line stays correct.
+- _"It never throws or filters"_ — never throws on violations; throws on a
+  configuration finding it produced itself, under `warn` and under a bare call,
+  because that finding is unsuppressable and those doors hand nothing back.
 - _"`throwIfViolations` is retained … for compatibility"_ — removed. An alias
   that still takes a bare array is the hole ADR-014 closes, under another name.
 - _"Existing call sites are unaffected … the option is additive"_ (Consequences)
