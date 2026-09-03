@@ -1,5 +1,6 @@
 import type { ArchViolation } from '@nielspeter/eess'
-import { isArchRuleError } from '@nielspeter/eess'
+import { isArchRuleError, isArchConfigError } from '@nielspeter/eess'
+import type { ArchConfigError } from '@nielspeter/eess'
 import { basename } from 'node:path'
 
 /**
@@ -105,7 +106,71 @@ export function failureOrViolations(
   error: unknown,
   ruleFiles: number,
 ): ArchViolation[] {
-  return isArchRuleError(error) ? error.violations : [ruleFileFailure(file, error, ruleFiles)]
+  if (isArchRuleError(error)) return error.violations
+  // Bug 0241. `ArchConfigError` knows WHAT was misconfigured, so it is the one
+  // error here that can carry a specific remedy without guessing — which is the
+  // whole reason the type exists, and it shipped with 17 throw sites and nothing
+  // reading it. Ordered after the rule-error branch, never before: a rule file
+  // that self-executes a failing check reports its own findings.
+  if (isArchConfigError(error)) return [ruleFileMisconfigured(file, error, ruleFiles)]
+  return [ruleFileFailure(file, error, ruleFiles)]
+}
+
+/**
+ * A rule file misconfigured something eess offers, and eess knows which thing.
+ *
+ * The sibling `ruleFileFailure` is deliberately vague because it answers for any
+ * error a rule file can raise, and naming one cause for all of them is ADR-009
+ * rule 2's defect. This one is the opposite case and gets the opposite
+ * treatment: the thrower named its subject — `havePropertyNamed`,
+ * `requireGraphQL`, `workspace` — so the remedy can point at the call instead of
+ * hedging about what the message might mean.
+ *
+ * The distinction is for the reader this project actually ships to. "Your rule
+ * file is wrong, fix the argument" and "eess crashed" ask an agent for opposite
+ * next actions, and before this they rendered identically.
+ *
+ * NOT exported, unlike its sibling `ruleFileFailure`. Nothing outside this
+ * module calls it — `failureOrViolations` is the seam, and the tests drive it
+ * through that. Exporting it anyway would have added a fourth instance of the
+ * exact shape bug 0241 is about, in the fix for bug 0241; `check:arch`'s
+ * no-unused-exports rule said so before this comment existed.
+ */
+function ruleFileMisconfigured(
+  file: string,
+  error: ArchConfigError,
+  ruleFiles: number,
+): ArchViolation {
+  const others = ruleFiles > 1 ? ' The other rule files in this run were still checked.' : ''
+  // The cause, when it adds something. `schema-loader.ts` throws the same
+  // subject for "the graphql package is not installed" and "it is installed but
+  // failed to load", and only the cause separates them — its own fix records
+  // that discarding it "used to be reported as 'not installed' too, discarding
+  // the one line that would have told the reader what actually happened".
+  // Nothing rendered `cause` before this, so that line was reaching nobody.
+  const cause = error.cause instanceof Error ? error.cause.message : undefined
+  const detail =
+    cause !== undefined && !error.message.includes(cause)
+      ? `${error.message} (${cause})`
+      : error.message
+  return {
+    // The subject, not the file's basename: the thing to open is the CALL. The
+    // file is already in `file`, and the generic path uses the basename there.
+    rule: 'eess-ts: rule file',
+    element: error.subject,
+    file,
+    line: 1,
+    message:
+      `${error.subject} is misconfigured in this rule file, so its rules enforced nothing in ` +
+      `this run: ${detail}${others}`,
+    // Specific, because this error earned it. `ruleFileFailure`'s remedy has to
+    // hedge ("if it names a builder method…"); this one does not, and asserting
+    // that it does not is how the two stay distinguishable.
+    suggestion:
+      `Fix the call to ${error.subject} in this rule file. This is a fault in how the rule was ` +
+      `configured, not a finding about the code under test — editing the code cannot clear it.`,
+    bypassFilters: true,
+  }
 }
 
 /**
