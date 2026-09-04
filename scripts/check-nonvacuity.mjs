@@ -1462,6 +1462,13 @@ const gates = [
       ]),
   ],
   [
+    'integrity/source-text-utf8',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'integrity/source-text-utf8 red on its own subject', [
+        'integrity/source-text-utf8',
+      ]),
+  ],
+  [
     'integrity/leftover-probe',
     () =>
       gateNode('bad-waived-gates.mjs', 'integrity/leftover-probe red on its own subject', [
@@ -1630,11 +1637,16 @@ const GATE_FOR = {
   // `gateCoverage()` counted the script as accounted for while any check inside
   // it could be deleted silently. That is how the raw-NUL check nearly shipped
   // uncovered, and review pointed out the fixture's own comment diagnosed it
-  // without fixing it. All four scenarios live in `bad-waived-gates.mjs`.
+  // without fixing it. All five scenarios live in `bad-waived-gates.mjs`.
   'check:integrity': [
     'integrity/phantom-dep',
     'integrity/stale-output',
     'integrity/source-text',
+    // The quiet half of the same check, its own row for the same reason the
+    // others are separate rows: a NUL and invalid UTF-8 are different findings
+    // with different remedies, and one row for both would let either be deleted
+    // with the gate still green (bug 0247).
+    'integrity/source-text-utf8',
     'integrity/leftover-probe',
   ],
   // Four rules, four rows (bug 0240). One row for the whole preset let three of
@@ -1765,6 +1777,40 @@ function gateCoverage() {
       problems.push(`gate "${n}" is in the list but no check:* claims it`)
     }
   }
+  // And the inverse of the row above, which had no check at all until bug 0247.
+  //
+  // `bad-waived-gates.mjs` answers for several gates by scenario name, selected
+  // via argv. A scenario ADDED to that file without a matching `gates` row is
+  // never run — and nothing said so. Measured: 0247's scenario shipped that way,
+  // passed when invoked by hand, and `check:nonvacuity` reported the same 69
+  // fixtures as before. It was noticed only because the number failed to move.
+  //
+  // Read from the SOURCE rather than by importing the fixture, which would run
+  // its startup probe sweep as a side effect. Same technique as the
+  // `corpus/*` rule-id sweep below, for the same reason: the declaration is the
+  // thing to compare against, and a list maintained beside it can drift.
+  const waivedGatesSource = readFileSync(
+    join(repoRoot, 'scripts', 'nonvacuity', 'bad-waived-gates.mjs'),
+    'utf8',
+  )
+  const declaredScenarios = [
+    ...new Set([...waivedGatesSource.matchAll(/^SCENARIOS\['([^']+)'\]\s*=/gm)].map((m) => m[1])),
+  ]
+  if (declaredScenarios.length === 0) {
+    problems.push(
+      'bad-waived-gates.mjs declares no SCENARIOS this check could see — the pattern ' +
+        'it scans for has drifted, so this check is asserting nothing',
+    )
+  }
+  for (const scenario of declaredScenarios) {
+    if (!names.has(scenario)) {
+      problems.push(
+        `bad-waived-gates.mjs declares scenario "${scenario}" but no gate row runs it — ` +
+          `add one to \`gates\`, or the scenario is dead code that reads as coverage`,
+      )
+    }
+  }
+
   const waived = Object.keys(NO_GATE_NEEDED).filter((k) => checks.includes(k)).length
   return {
     ok: problems.length === 0,

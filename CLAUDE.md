@@ -237,7 +237,7 @@ that answers vacuity for a rule is `examined` (ADR-010), which the floor reads a
 no CLI currently prints. **That half of [bug 0174](./work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)
 is still open**, and it is the half that matters: a green `check:arch` with a
 denominator is evidence that its rules were _declared_, not that any of them
-examined anything. For that, run the suite, `check:nonvacuity` (43 fixtures), or
+examined anything. For that, run the suite, `check:nonvacuity` (70 fixtures at the time of writing — the gate prints the live count, and this one has been stale before), or
 `check:vacuity`.
 
 These summaries print to **stderr in terminal format only**, so `--format json` /

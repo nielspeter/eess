@@ -2,10 +2,16 @@
 /**
  * Workspace integrity guardrails for the eess monorepo (plan 0051, Phase 1).
  *
- * Four checks. The first two are npm-workspace failure modes, which is what this
- * script was created for; the last two are workspace-wide invariants that need
- * the same per-package walk and would otherwise each need their own script.
- * (Review called the drift out: the header said "two" and listed four.)
+ * FIVE checks, emitting six finding classes. The first two are npm-workspace
+ * failure modes, which is what this script was created for; the rest are
+ * workspace-wide invariants that need the same per-package walk and would
+ * otherwise each need their own script.
+ *
+ * This count has now drifted twice. The header once said "two" and listed four,
+ * review called it out, and the sentence recording that correction then survived
+ * unchanged while a fifth check and a sixth finding class were added under it —
+ * so the note about the drift became an instance of it. If you add a check here,
+ * the number is the first thing to change.
  *
  *  1. Phantom dependencies — hoisting lets a package `import` a package that only
  *     a sibling declares; it works in the workspace but breaks on a standalone
@@ -25,10 +31,16 @@
  *     source file leaves its `.js`/`.d.ts` in the gitignored `dist/` forever.
  *     Every package must clean `dist` before it builds.
  *
- *  4. Source that stopped being text — one raw `0x00` byte makes grep, rg and
- *     `git diff` treat a whole source file as binary and skip it SILENTLY, so a
- *     survey reads "not found" where the answer is. Bug 0099 / bug 0144, the
- *     same defect found twice because neither filing left a guard behind.
+ *  4. Source that stopped being text, in either of two ways — one raw `0x00`
+ *     byte makes grep, rg and `git diff` treat a source file as binary and skip
+ *     it SILENTLY (bug 0099 / bug 0144, the same defect found twice because
+ *     neither filing left a guard behind); and a file that is not valid UTF-8
+ *     makes grep exit 1 with NO output at all, which is quieter still (bug 0247).
+ *     Either way a survey reads "not found" where the answer is.
+ *
+ *  5. A leftover non-vacuity probe — a file a killed fixture left behind, which
+ *     `.gitignore` hides from `git status`, named here rather than reported as a
+ *     defect by whichever gate trips over it (bug 0231).
  *
  * Exits non-zero on any violation. Zero dependencies — node builtins only.
  * Run: `npm run check:integrity`.
@@ -37,6 +49,7 @@
 import { builtinModules } from 'node:module'
 import { readFileSync, readdirSync, statSync, lstatSync, readlinkSync } from 'node:fs'
 import { basename, join } from 'node:path'
+import { invalidUtf8At } from './lib/source-text.mjs'
 
 const ROOT = process.cwd()
 const BUILTINS = new Set(builtinModules)
@@ -281,11 +294,25 @@ for (const dir of pkgDirs) {
 // two records saying it was understood: exactly the state ADR-009 calls worse
 // than no check, because the record reads as coverage.
 //
-// Scope is `packages/*/src/**/*.ts` — the population the survey discipline
-// names and both incidents hit. It is deliberately NOT the whole repo: the
-// non-vacuity fixtures under `scripts/nonvacuity/` carry deliberately corrupt
-// payloads, and a guard that reds on its own test data teaches people to
-// disable it.
+// Scope is every file under `packages/*/src/**` — the population the survey discipline
+// names and both incidents hit. It is deliberately NOT the whole repo — but the
+// reason written here was measured and found false, so it is corrected rather
+// than repeated. It used to say the fixtures under `scripts/nonvacuity/` "carry
+// deliberately corrupt payloads, and a guard that reds on its own test data
+// teaches people to disable it". Enforcement review of bug 0247 scanned the
+// entire repo: ZERO files carry a NUL or invalid UTF-8, `scripts/nonvacuity/`
+// included — the fixtures plant their payloads through `Buffer.from(...)` INTO
+// `packages/core/src`, and say so in their own comments, precisely so they stay
+// greppable.
+//
+// So the narrow scope costs no findings today and is not protecting what the old
+// comment claimed. What it does leave uncovered is real and worth naming: about
+// 1,360 text files — `packages/*/tests` (790), `work/` (204, the record corpus
+// every reviewer greps), `scripts/` (79, these gates), and the root `*.rules.ts`
+// files. A latin-1 byte in any of them is exactly as invisible to grep and has no
+// guard at all. Widening is a decision with consequences (a future fixture may
+// legitimately need a bad byte), so it is filed as bug 0248 rather than taken
+// here.
 
 // `walkTs` filters to `.ts`, which is right for the phantom-dep check (only a
 // compiled module can carry a runtime import) and WRONG here. Review measured
@@ -295,7 +322,7 @@ for (const dir of pkgDirs) {
 // nothing looked missing. Text tooling does not care about extensions, so
 // neither does this walk. `.tsx`/`.mts`/`.cts` are covered by the same change
 // rather than by a list that needs extending.
-const nulScanned = []
+const sourceScanned = []
 let packagesWalked = 0
 for (const dir of pkgDirs) {
   const files = []
@@ -316,22 +343,66 @@ for (const dir of pkgDirs) {
   }
   packagesWalked += 1
   for (const file of files) {
-    nulScanned.push(file)
+    sourceScanned.push(file)
     // Read as a Buffer, not utf8: the point is the raw byte, and a decode step
     // is one more place for the thing being measured to be normalised away.
     const buf = readFileSync(file)
+
+    // Two `if`s over ONE buffer, not two loops over one list. An earlier version
+    // of this change split them and justified it by "a reader given both
+    // findings for one byte would fix the wrong one" — which is impossible. A
+    // raw NUL is VALID UTF-8 (`U+0000` encodes as `0x00`), so no single byte can
+    // produce both findings, and nothing suppressed either anyway. Architecture
+    // review caught the comment asserting a mechanism that was not there, which
+    // is the failure this file's own history is about (bugs 0099/0144, above).
+    //
+    // It also read every file twice. This reads each one once, and an early
+    // `continue` on the NUL branch would have skipped the UTF-8 check for every
+    // clean file — the shape that made the split look necessary.
     const first = buf.indexOf(0)
-    if (first === -1) continue
-    let count = 0
-    for (let i = first; i !== -1; i = buf.indexOf(0, i + 1)) count += 1
-    const line = buf.subarray(0, first).toString('utf8').split('\n').length
-    problems.push(
-      `source text: ${file.replace(ROOT + '/', '')} contains ${count} raw NUL ` +
-        `byte(s) (first at line ${line}), so grep/rg skip this file silently and ` +
-        `git diff renders it as binary — replace the raw byte with an escape its ` +
-        `own syntax provides (in TS/JS, the two-character "\\0"; the runtime ` +
-        `string is identical)`,
-    )
+    if (first !== -1) {
+      let count = 0
+      for (let i = first; i !== -1; i = buf.indexOf(0, i + 1)) count += 1
+      const line = buf.subarray(0, first).toString('utf8').split('\n').length
+      problems.push(
+        `source text: ${file.replace(ROOT + '/', '')} contains ${count} raw NUL ` +
+          `byte(s) (first at line ${line}), so grep/rg skip this file silently and ` +
+          `git diff renders it as binary — replace the raw byte with an escape its ` +
+          `own syntax provides (in TS/JS, the two-character "\\0"; the runtime ` +
+          `string is identical)`,
+      )
+    }
+
+    // A tension worth naming, because the obvious fix is wrong (enforcement
+    // review of bug 0247). A leftover `__nonvacuity_probe*` file now trips this
+    // scan BEFORE the leftover-probe check below names it, so a reader gets
+    // "re-encode as UTF-8" above "delete it" — the inverse of bug 0231's stated
+    // purpose, which is that a leftover is named for what it is rather than
+    // reported as a genuine defect by whichever rule it trips.
+    //
+    // Skipping probe-prefixed files here would fix the reading order and break
+    // both `integrity/source-text` scenarios, whose probes carry that exact
+    // prefix and rely on this scan seeing them. Left as-is deliberately: the
+    // finding is correct, only its position is unhelpful, and re-ordering the
+    // gate's checks is bug 0231's design to revisit rather than this one's.
+
+    // The other way a file stops being text, and the quieter one.
+    const bad = invalidUtf8At(buf)
+    if (bad !== -1) {
+      const badLine = buf.subarray(0, bad).toString('utf8').split('\n').length
+      const byte = `0x${buf[bad].toString(16).padStart(2, '0')}`
+      problems.push(
+        `source text: ${file.replace(ROOT + '/', '')} is not valid UTF-8 — first ` +
+          `invalid sequence starts at byte ${byte}, offset ${bad} (line ${badLine}). ` +
+          `grep skips a file like this with NO output, NO warning and exit 1, and ` +
+          `git diff renders it as binary — so a search that missed it reads exactly ` +
+          `like a search that found nothing in it. Quieter than a NUL, which at ` +
+          `least announces itself. (ripgrep is the exception: it decodes lossily ` +
+          `and still finds matches, so "rg found it" is not evidence the file is ` +
+          `fine.) Re-encode as UTF-8, or write the character as an escape its own ` +
+          `syntax provides`,
+      )
+    }
   }
 }
 
@@ -407,6 +478,6 @@ if (problems.length > 0) {
 console.error(
   `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, ` +
     `all @nielspeter/eess* locally linked, every build cleans its dist/, ` +
-    `${nulScanned.length} source files across ${packagesWalked} packages free of raw NUL bytes, ` +
+    `${sourceScanned.length} source files across ${packagesWalked} packages valid UTF-8 and free of raw NUL bytes, ` +
     `${probeRootsWalked} probe roots free of leftover fixtures.`,
 )
