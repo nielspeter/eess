@@ -68,7 +68,10 @@ its own supersession and was never revisited, because nothing required it to be.
 The related omission was that `work/proposals/` had **no README and no board** at
 all, so the lane a reviewed proposal lived in had no documented lifecycle — which
 is how an inbound proposal came to sit in it with no provenance field until
-[002](../proposals/002-comment-embedded-links.md) was reviewed.
+[002](../proposals/002-comment-embedded-links.md) was reviewed. **The board half
+is closed; the README half is not** — `work/proposals/` still has no README, and
+this record's own deferral below still carries it. The past tense above covers
+the board only.
 
 > **This record drifted too, and the correction is the point.** `PROPOSALS.md`
 > has existed since 2026-08-13 — the day after this was filed — so the table
@@ -102,12 +105,31 @@ pass as a known state — the precision this gate exists for."_ The one-screen m
 teaches exactly the union the gate was built to refuse. A newcomer who closes a
 bug as `Done` per this table gets a red gate the map cannot explain.
 
-**The dogfood is also worse than the product.** `kit/templates/work/README.md` —
-what eess _exports_ as its portable working method — lists two lanes including
-`bugs/`, and gives the plan vocabulary correctly, `Open` included. The repo's own
-copy lists one lane and calls the bugs lane "cargo-cult". The two files have
-diverged into structurally different documents, so a fix to either will not
-propagate and nothing binds them.
+**The dogfood is worse than the product on lanes — and the product is no better
+on state tokens.** `kit/templates/work/README.md`, what eess _exports_ as its
+portable working method, lists two lanes including `bugs/`, where the repo's own
+copy lists one and calls the bugs lane "cargo-cult". The two files have diverged
+into structurally different documents, so a fix to either will not propagate and
+nothing binds them.
+
+**But on the axis this section is about, the kit is not the reference — measured,
+and correcting this record's own first framing, which credited it with getting
+the vocabulary right:**
+
+- `kit/templates/work/README.md` teaches ONE union vocabulary for every item,
+  `Draft / Ready / Open / Done / Won't-do` — the same union defect described
+  above. A bug closed as `Done` per the kit is refused by the bugs lane exactly
+  as it is per the repo's map.
+- `kit/templates/plan.md` says `Draft · Ready · Done · Won't-do`, **omitting
+  `Open`** — so the kit contradicts itself.
+- `kit/skills/close/SKILL.md` gives `**State:** Done` (or `Won't-do`) for every
+  lane.
+- **`Fixed` appears zero times across all three.** The exported method never
+  teaches the bugs lane's terminal token at all.
+
+So fixing only the repo's copy leaves the exported method teaching the union, and
+anyone taking the kit as the reference inherits the defect. Whatever binding is
+built for the map is owed to the kit's copy too.
 
 **A third binding, higher-value than this record's original two and proposed by
 nobody until now:** bind the map's state-token table to `check-ledger.mjs`'s
@@ -144,7 +166,22 @@ currently the least-gated document in a corpus whose thesis is that specs are
 checked, and it is a spec — this is the dogfooding gap, not just a stale
 paragraph.
 
-**3 — Not in scope here:** giving `work/proposals/` its own README and
+**3 — Correct the close convention, and bind THAT too.** Added 2026-09-04, and
+this is the larger half of the record: the State-token table teaches one union
+vocabulary where `check-ledger.mjs` declares three disjoint ones. Replace it with
+the three, and bind the table to `LANES` the same way item 2 binds the Lanes
+table to the directories — so the map cannot again teach a token the gate
+rejects. Without this item, a reader could implement items 1 and 2, tick every
+box below, and close this record with the half it calls larger unbuilt.
+
+**4 — The kit's copy is owed the same fix.** `kit/templates/work/README.md`,
+`kit/templates/plan.md` and `kit/skills/close/SKILL.md` all teach the union, and
+none mentions `Fixed`. Fixing only this repo's map leaves the exported method
+wrong. Whether the kit can carry lane-specific vocabularies at all — a fresh
+`kit/`-bootstrapped project starts with one lane — is the open question inside
+this item, not a detail of it.
+
+**5 — Not in scope here:** giving `work/proposals/` its own README and
 lifecycle. That is a convention to decide, not a defect to fix — see _Deferred_.
 
 No changeset — corpus documentation only.
@@ -155,7 +192,14 @@ No changeset — corpus documentation only.
       `proposals/` and `spikes/` are unlisted, and passes once rows exist.
 - [ ] The reverse direction goes red too: add a row for a directory that does
       not exist and the gate fails.
-- [ ] `check:corpus` reports the new rule in its per-check counts, so the
+- [ ] **The State-token table carries all three lane vocabularies**, and is bound
+      to `LANES` — a token taught here that the gate would reject fails
+      `check:corpus`. Item 3; without this box the record closes with its larger
+      half unbuilt.
+- [ ] **The kit's three copies teach the same thing this repo's map does**, or
+      the record says explicitly why a portable kit cannot carry lane-specific
+      vocabularies. Item 4.
+- [ ] `check:corpus` reports the new rules in its per-check counts, so each
       binding is visibly non-vacuous rather than a silently-zero rule.
 - [ ] `npm run validate` green.
 

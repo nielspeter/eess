@@ -43,8 +43,9 @@ about the code, and about itself"**. Everything below is a way that fails.
   `it()` titles existing and unique.
 - **Corrections kept, not tidied away.** When a record's own framing was wrong,
   the correction belongs _in_ the record, dated. A record that quietly edits its
-  history teaches the next reader nothing — and this repo has paid for the same
-  finding being re-derived twice more than once.
+  history teaches the next reader nothing — and this repo has paid for that: bugs
+  0099 and 0144 are the same NUL-byte defect, filed two days apart by two
+  reviewers who each re-derived it because neither filing left a guard behind.
 
 **Scope note.** Records under `work/`, `adr/` and `docs/` are your subject even
 when the diff is mostly code — a fix that ships with a record claiming something

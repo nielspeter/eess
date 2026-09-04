@@ -75,9 +75,15 @@ own work:
   Added for [bug 0250](../../../work/bugs/fixed/0250-the-review-roster-has-no-working-method-lens.md).
   Before it, a grep of all six personas for that vocabulary returned three
   incidental hits and zero owners — while findings of exactly this class kept
-  arriving, caught by whichever reviewer happened to look outside its brief. The
-  roster is gated in both directions, so an unowned lens is a hole in a contract,
-  not a gap in a convention.
+  arriving, caught by whichever reviewer happened to look outside its brief.
+
+  **What is actually gated, precisely.** `check:review-harness` hard-requires both
+  `reviewer-enforcement` and `reviewer-method` by name, on disk and in this
+  roster, so neither can be removed — the method clause exists because that
+  persona's own first review found the hole: the roster check is a
+  correspondence, so deleting an agent _and_ its row together used to leave the
+  gate green at six. **Nothing checks that a review actually RAN either persona.**
+  The gate holds the roster; honouring the mandate is the coordinator's.
 
 When reviewing this repo's own plans or gate code, run `all` (or at minimum
 `architect enforcement method`).
