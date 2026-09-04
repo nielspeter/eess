@@ -206,6 +206,13 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
 const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
+// Directly under `work/`, NOT inside a lane (bug 0249). The repo-native link
+// probe above lives in `work/bugs/`, which was a root before that fix — so it
+// proves the repo-native branch is wired and says nothing about whether the
+// widened root is. Revert `ROOTS` to the three lane globs and this is the row
+// that reds; every other corpus row stays green, which is exactly how the gap
+// went unnoticed for as long as it did.
+const PROBE_CORPUS_WORK_ROOT = join(repoRoot, 'work', '__nonvacuity_probe_work_root__.md')
 // Plan 0216's board↔file Ruling rule needs BOTH halves of a disagreement: a
 // proposal file with a Ruling, and a board row claiming a different one. So the
 // probe is a planted proposal plus an appended board row — not a mutation of a
@@ -462,6 +469,7 @@ rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
 rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
 rmSync(PROBE_CORPUS_POINTER, { force: true })
+rmSync(PROBE_CORPUS_WORK_ROOT, { force: true })
 rmSync(PROBE_CORPUS_BOARD_PROPOSAL, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_DUP, { force: true })
 rmSync(PROBE_CORPUS_PROMOTED, { force: true })
@@ -758,6 +766,23 @@ function gateCorpusPointers() {
     '# Non-vacuity probe\n\nA live claim about code that does not exist: `src/__nonvacuity_does_not_exist__.ts:12`\n',
     'corpus/pointers-resolve',
     'docs/__nonvacuity_probe_pointer__.md',
+  )
+}
+
+/**
+ * The widened corpus root (bug 0249) actually covers `work/` itself.
+ *
+ * Before that fix, seven documents — `work/README.md` among them — sat outside
+ * every root, and the gate's summary was byte-identical with and without them.
+ * A count nobody compares is not a check, so this plants a broken link where
+ * only the widened root can see it.
+ */
+function gateCorpusWorkRoot() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_WORK_ROOT,
+    CORPUS_PROBE_LINK_MD,
+    'corpus/broken-links',
+    'work/__nonvacuity_probe_work_root__.md',
   )
 }
 
@@ -1352,6 +1377,7 @@ const gates = [
   // prove the other region's spread is still wired.
   ['corpus/links/site', gateCorpusLinksSite],
   ['corpus/links/repo-native', gateCorpusLinksRepoNative],
+  ['corpus/links/work-root', gateCorpusWorkRoot],
   // Bug 0086's review round: check-corpus.mjs's directory-link routing
   // (which region gets resolveDirectories) must fail closed on an
   // unclassified root and default-deny an unrecognised one — both were
@@ -1588,6 +1614,7 @@ const GATE_FOR = {
     'corpus/adr',
     'corpus/links/site',
     'corpus/links/repo-native',
+    'corpus/links/work-root',
     'corpus/link-routing',
     'corpus/pointers',
     'corpus/proposal-plan-linkage',

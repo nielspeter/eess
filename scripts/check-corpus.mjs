@@ -40,7 +40,26 @@ import {
 
 // `fixed/` is the bugs lane's own done-folder (bug 0086) — frozen alongside
 // the others so bug history is reported, not gated against today's code.
-const ROOTS = ['work/plans/**', 'work/proposals/**', 'work/bugs/**', 'adr/**', 'docs/**']
+// `work/**`, not three lane globs (bug 0249).
+//
+// The lane list was written when three lanes were all `work/` held, and the
+// corpus grew past it silently: seven documents sat outside every root,
+// **including `work/README.md` — the corpus's own one-screen map**. Measured
+// before the change: the gate's summary was byte-identical with and without
+// them.
+//
+// A whole-directory root makes the default COVERED rather than uncovered, so the
+// next directory someone adds is checked without anyone remembering to add it
+// here. That is the fail-closed direction, and it is why this is not four more
+// globs.
+//
+// No classification decision was required and none should be inferred: `work/`
+// is already in `REPO_NATIVE_ROOTS`, so every glob under it inherits the
+// repo-native profile. An earlier draft of 0249 claimed `unclassifiedRoots()`
+// would refuse an unclassified addition and that strict was the likely answer —
+// both measured false. Strict is the VitePress-site profile; prescribing it here
+// would make `work/` the only region where a real directory link reds.
+const ROOTS = ['work/**', 'adr/**', 'docs/**']
 const SITE_ROOTS = ['docs/']
 
 // Every root must be explicitly classified for link-resolution routing (see
@@ -66,7 +85,25 @@ const elapsed = () => {
 
 const c = corpus({
   roots: ROOTS,
-  frozen: ['**/completed/**', '**/wont-do/**', '**/fixed/**', '**/archived/**'],
+  // `work/spikes/**` joins the terminal folders (bug 0249). A spike CONCLUDES —
+  // its record is a dated report of what was measured, not a work item — so the
+  // frozen contract is right for it: links must still resolve, and its pointers
+  // are not held to today's line numbers.
+  //
+  // **Measured while adding this, and it corrects the contract's own wording.**
+  // `work/README.md` and the summary line both said frozen folders' drift is
+  // "reported, never gated". The pointer rule selects `.areLive()`, so a frozen
+  // document's pointers are not examined at all — nothing is reported. Gated is
+  // right; reported was never true. The summary now says what happens, and the
+  // gap is filed as bug 0253. Spike 0001's
+  // conclusion is dated 2026-08-08 against ts-archunit 0.58.0 and cites upstream
+  // paths; gating those as live pointers would demand it be kept current, which
+  // is the opposite of what a terminal record is for.
+  //
+  // This is also what dissolves the suffix-resolution trap for that population:
+  // a foreign-repo pointer in a frozen document is reported, not fatal. The trap
+  // itself is unchanged for live documents — see the sanction comment below.
+  frozen: ['**/completed/**', '**/wont-do/**', '**/fixed/**', '**/archived/**', 'work/spikes/**'],
 })
 const relTo = (file) =>
   file.startsWith(c.root) ? file.slice(c.root.length).replace(/^[/\\]/, '') : file
@@ -775,7 +812,7 @@ line('roots', ROOTS.join(', '))
 console.error('')
 line(
   'documents',
-  `${liveDocs.length} live · ${frozenCount} frozen (history — reported, never gated)`,
+  `${liveDocs.length} live · ${frozenCount} frozen (history — links gated, pointers not examined)`,
 )
 line(
   'links',

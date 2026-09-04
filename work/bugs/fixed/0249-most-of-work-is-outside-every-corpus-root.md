@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — measured, rescoped twice by review, not fixed.
+- **State:** Fixed — `work/**` is a corpus root, concluded spikes are frozen, and
+  a fixture reds if the root is narrowed again. Closed in the PR that fixed it.
+  `Deferred: work/README.md's content → 0108 and 0251`.
 - **Severity:** Medium — **a region of the corpus no link or pointer check
   reads.** Nothing is broken today. What is missing is anything that would notice
   when it breaks — and one of the seven documents already makes a false claim
@@ -62,8 +64,8 @@ three declared lanes, 141 bug records, 9 proposals, and `proposals/` unmentioned
 
 That is the shape this repo keeps paying for — a document readers trust, bound to
 nothing — and it is the third instance filed in two days
-([0244](./0244-the-board-status-cell-is-bound-to-nothing.md),
-[0248](./0248-the-source-text-guard-covers-a-sixth-of-the-repo.md)).
+([0244](../0244-the-board-status-cell-is-bound-to-nothing.md),
+[0248](../0248-the-source-text-guard-covers-a-sixth-of-the-repo.md)).
 
 ## Root cause
 
@@ -117,7 +119,7 @@ rather than requiring it to be solved first.
    may be the whole answer.
 4. Fix `work/README.md` while it is finally being checked; it under-declares the
    lane model it is the map for. **That drift is already filed as
-   [0108](./0108-work-readme-lanes-table-lists-one-lane.md)** (2026-08-12), which
+   [0108](../0108-work-readme-lanes-table-lists-one-lane.md)** (2026-08-12), which
    this record failed to name when it was written — found by the working-method
    reviewer on its first run. The two are ordered: 0108's own fix binds the map's
    Lanes table with `rows()` + `correspondence()`, and a rule authored today would
@@ -134,19 +136,53 @@ honest box disposition at close, not document lifecycles.
 
 ## Verification
 
-- [ ] Red first: a broken link planted in each newly-covered region is reported.
-- [ ] **The pointer fixture is a foreign-repo path that SUFFIX-MATCHES a local
-      file** — not a contrived out-of-range line number, which reds while the real
-      case stays green.
-- [ ] A frozen spike's stale pointer is _reported and not fatal_; its broken link
-      still fails.
-- [ ] The document count moves. State the invariance, not the integer — this
-      record already pinned one that was stale within a commit.
+- [x] **Red first, and the break class is the widening itself.** A new
+      `check:nonvacuity` row plants a broken link at `work/__nonvacuity_probe_work_root__.md`
+      — directly under `work/`, where only the widened root can see it. The
+      existing repo-native probe lives in `work/bugs/`, a lane that was already a
+      root, so it proved nothing about this. Measured: revert `ROOTS` to the three
+      lane globs and the row reports
+      `FAILED (did not fail on violating input) · json exit 0, terminal exit 0`,
+      while every other corpus row stays green — which is precisely how the gap
+      survived as long as it did. 71 fixtures now, from 70.
+- [x] **The widening found a real defect on its first run**, which is the evidence
+      the region was unchecked rather than merely unlisted: a stale pointer in
+      `work/dogfood-coverage.md`, a dated Phase-0 audit. Doubly stale — the path
+      predates the `packages/` restructuring, and the line it named is now a type
+      field rather than the cast it claimed. Fixed by removing the pointer shape
+      from an illustrative example, not by sanctioning it: the number added
+      nothing and was wrong.
+- [x] **A frozen spike behaves as the contract's gating half promises.** Measured
+      with a planted probe under `work/spikes/`: a stale pointer is **not fatal**
+      (exit 0) and a broken link in the same document **still fails**.
+- [~] `done-otherwise` — **the contract's other half turned out to be false, and
+  that is now its own record.** This box was written expecting frozen drift to
+  be _reported_. It is not reported; frozen documents' pointers select
+  `.areLive()` and are never examined. The gate's summary said
+  "reported, never gated" on every run and now says
+  "links gated, pointers not examined". Filed as
+  [0253](../0253-frozen-drift-is-not-reported-only-unexamined.md).
+- [~] `dropped-on-purpose` — **the foreign-repo pointer fixture.** This box asked
+  for a fixture using a foreign path that suffix-matches a local file, on the
+  assumption that live documents would carry upstream citations. Freezing
+  concluded spikes removed that population: the documents most likely to cite
+  another repo are now the ones whose pointers are not gated. The suffix trap
+  is unchanged for live documents and is still real — it is described in this
+  record's own body for whoever meets it — but building a fixture for a case
+  this fix no longer creates would be coverage theatre.
+- [x] **The document count moves**: 168 live → 172 live, 1166 links → 1201, 456
+      pointers → 466, and 88 frozen → 91. Stated as a delta rather than pinned,
+      per this record's own earlier correction.
+- [~] `deferred→`[0108](../0108-work-readme-lanes-table-lists-one-lane.md) and
+  [0251](../0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md)
+  — **fixing `work/README.md`'s content.** This record's Fix listed it as step 4. It is not this record's to do: the map's two defects each have an owner,
+  both were blocked on exactly this root gap, and both are now unblocked. That
+  is the whole of what this fix owed them.
 
 ## Related
 
-- [0248](./0248-the-source-text-guard-covers-a-sixth-of-the-repo.md) — the same
+- [0248](../0248-the-source-text-guard-covers-a-sixth-of-the-repo.md) — the same
   question one gate over, and filed a day earlier: a population a check does not
   cover, where widening is a decision rather than a line.
-- [0244](./0244-the-board-status-cell-is-bound-to-nothing.md) — the same shape a
+- [0244](../0244-the-board-status-cell-is-bound-to-nothing.md) — the same shape a
   third time: an artifact readers trust, bound to nothing.

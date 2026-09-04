@@ -101,7 +101,7 @@ this record does not.
 > `work/README.md` is outside every `check:corpus` root, so a correspondence
 > authored today examines **zero** rows and reports green — a vacuous gate, which
 > is the defect this repo exists to prevent. Sequence behind
-> [0249](./0249-most-of-work-is-outside-every-corpus-root.md), which owns the root
+> [0249](./fixed/0249-most-of-work-is-outside-every-corpus-root.md), which owns the root
 > gap. Neither record named the other until the working-method reviewer did.
 
 ## Fix

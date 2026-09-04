@@ -46,7 +46,7 @@ reviewer reaching outside it or by the author:
 - hand-written counts gone stale **inside the comment warning about stale counts**
 - a record's code pointer staling in the commit that wrote it
 - a CONTROL justified by a claim measurement refuted
-- [0249](../0249-most-of-work-is-outside-every-corpus-root.md) shipping a title
+- [0249](./0249-most-of-work-is-outside-every-corpus-root.md) shipping a title
   that was wrong by half, and a root cause false in the fail-open direction
 
 Every one is a method finding. They were caught — and that is the point: they
@@ -148,7 +148,7 @@ detected as expected — foreign-project token`). **It proves less than an
       the fixture actually shows.
 - [x] A method finding is re-run against the new owner and caught **by its brief,
       not by initiative**. Run on `work/README.md` — the corpus map
-      [0249](../0249-most-of-work-is-outside-every-corpus-root.md) had already
+      [0249](./0249-most-of-work-is-outside-every-corpus-root.md) had already
       flagged as wrong — with no hint of what to look for. Three of its findings
       are named below because no existing persona would have been assigned to
       any of them; the rest are drift in the same document, now carried by
@@ -252,5 +252,5 @@ property — it cannot be otherwise, because a prompt cannot be unit-tested.
 
 - [0244](../0244-the-board-status-cell-is-bound-to-nothing.md) ·
   [0248](../0248-the-source-text-guard-covers-a-sixth-of-the-repo.md) ·
-  [0249](../0249-most-of-work-is-outside-every-corpus-root.md) — three findings of
+  [0249](./0249-most-of-work-is-outside-every-corpus-root.md) — three findings of
   this class in two days, which is what made the gap visible.
