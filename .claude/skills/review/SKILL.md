@@ -1,7 +1,7 @@
 ---
 name: reviewer
-description: 'Review code or plans with expert personas. Runs individual or multiple reviewers in parallel. Personas: architect, customer, devops, product, testing, enforcement.'
-argument-hint: '[all | architect | customer | devops | product | testing | enforcement ...] [--diff | --branch | --plan]'
+description: 'Review code or plans with expert personas. Runs individual or multiple reviewers in parallel. Personas: architect, customer, devops, product, testing, enforcement, method.'
+argument-hint: '[all | architect | customer | devops | product | testing | enforcement | method ...] [--diff | --branch | --plan]'
 ---
 
 # Expert Review
@@ -57,13 +57,53 @@ From `$ARGUMENTS`, extract:
 | `product`      | `reviewer-product`     | `pm`         |
 | `testing`      | `reviewer-testing`     | `qa`, `test` |
 | `enforcement`  | `reviewer-enforcement` | `enf`        |
+| `method`       | `reviewer-method`      | `meth`       |
 | `all` or empty | (every option above)   |              |
 
-This is an **eess repo** — the enforcement persona (`reviewer-enforcement`) is the
-fail-closed lens from the manifesto + ADR-008/009, and is **not optional for
-reviews of this repo's own code or plans**: a review of a gate, rule, ADR, or plan
-that ships a way to fail a build must have it. When reviewing this repo's own
-plans or gate code, run `all` (or at minimum `architect product enforcement`).
+This is an **eess repo**, and two personas are not optional for reviews of its
+own work:
+
+- **`reviewer-enforcement`** — the fail-closed lens from the manifesto +
+  **ADR-009** (agent-first failure surfaces) and **ADR-010** (a pass is
+  constructed from evidence). A review of a gate, rule, ADR, or plan that ships a
+  way to fail a build must have it.
+
+  _Cited correctly here after architecture review caught the diff carrying the
+  wrong numbers forward._ "ADR-008/009" is ts-archunit's numbering, imported with
+  the port; in this repo ADR-008 is **caller owns reporting**, and ADR-010 — the
+  vacuity ADR this lens is mostly about — was missing from the citation entirely.
+  The same off-by-one still sits in three persona files and one gate message,
+  which is its own small cleanup.
+
+- **`reviewer-method`** — the lens over the RECORD rather than the code: was a
+  stated number measured or asserted, does a comment claim a mechanism that
+  exists, does the board agree with the record, did the close ride the PR that
+  fixed it. **Mandatory whenever the change touches `work/`, `adr/` or `docs/`**,
+  which for this repo is nearly always.
+
+  Added for [bug 0250](../../../work/bugs/fixed/0250-the-review-roster-has-no-working-method-lens.md).
+  Before it, a grep of all six personas for that vocabulary returned three
+  incidental hits and zero owners — while findings of exactly this class kept
+  arriving, caught by whichever reviewer happened to look outside its brief.
+
+  **What is actually gated, precisely.** `check:review-harness` hard-requires both
+  `reviewer-enforcement` and `reviewer-method` by name, on disk and in this
+  roster, so neither can be removed — the method clause exists because that
+  persona's own first review found the hole: the roster check is a
+  correspondence, so deleting an agent _and_ its row together used to leave the
+  gate green at six. **Nothing checks that a review actually RAN either persona.**
+  The gate holds the roster; honouring the mandate is the coordinator's.
+
+When reviewing this repo's own plans or gate code, **run `all`**. If that is not
+possible, the floor is `architect product enforcement method` — four of seven,
+which is itself the argument for just running `all`.
+
+_`product` is on that list deliberately._ An earlier version of this change
+dropped it while adding `method`, unremarked — an unrecorded reduction in minimum
+coverage inside a change about adding coverage, caught by architecture review.
+For a gate or plan review `reviewer-product` owns three things no other persona
+does: kernel-vs-dialect placement as a **product** decision, standalone
+sufficiency for an adopter, and which packages move — additive or breaking.
 
 **Review mode** (default: `--diff`):
 
@@ -183,7 +223,7 @@ After all agents return, write a synthesis:
 
 ### Review Summary
 
-For each persona, show a one-line verdict (e.g. "Architect: 0 critical, 2 important, 1 minor"). If a persona abstained, show "Abstained — no relevant concerns". If a persona's report was unrecoverable, show "no report received" — never omit the row. The **enforcement** row is mandatory for reviews of this repo's own gates/plans (a review of a gate without the enforcement lens is incomplete).
+For each persona, show a one-line verdict (e.g. "Architect: 0 critical, 2 important, 1 minor"). If a persona abstained, show "Abstained — no relevant concerns". If a persona's report was unrecoverable, show "no report received" — never omit the row. The **enforcement** row is mandatory for reviews of this repo's own gates/plans (a review of a gate without the enforcement lens is incomplete), and the **method** row is mandatory whenever the change touches `work/`, `adr/` or `docs/` (a review that read the code and not the record it ships with is incomplete the other way).
 
 ### Critical Issues (must address)
 

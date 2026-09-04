@@ -4,7 +4,10 @@
 
 - **State:** Draft — confirmed against the directory tree; no red test written
   yet.
-- **Severity:** Low — documentation drift, no runtime effect. Filed rather than
+- **Severity:** Medium — raised from Low on 2026-09-04. "Documentation drift, no
+  runtime effect" is true of the paragraph and false of the consequence: a
+  newcomer following this map writes records the gate refuses (see the State-token
+  finding below). Filed rather than
   silently corrected because the document's stated job is to be the map a fresh
   agent reads first, and because the claim is mechanically bindable (see _Fix_).
 - **Origin:** self-found · reviewing inbound proposal 002, when the proposals
@@ -30,12 +33,12 @@ followed by:
 
 `work/` currently contains **four** numbered or boarded lanes:
 
-| Directory         | Exists | Board                   | Documented in the table |
-| ----------------- | ------ | ----------------------- | ----------------------- |
-| `work/plans/`     | yes    | `work/plans/ROADMAP.md` | yes                     |
-| `work/bugs/`      | yes    | `work/bugs/BUGS.md`     | **no**                  |
-| `work/proposals/` | yes    | none                    | **no**                  |
-| `work/spikes/`    | yes    | none                    | **no**                  |
+| Directory         | Exists | Board                         | Documented in the table |
+| ----------------- | ------ | ----------------------------- | ----------------------- |
+| `work/plans/`     | yes    | `work/plans/ROADMAP.md`       | yes                     |
+| `work/bugs/`      | yes    | `work/bugs/BUGS.md`           | **no**                  |
+| `work/proposals/` | yes    | `work/proposals/PROPOSALS.md` | **no**                  |
+| `work/spikes/`    | yes    | none                          | **no**                  |
 
 The bugs lane has a full board, a severity scale, a record template, and its own
 terminal folder (`work/bugs/fixed/`). The prose does not merely omit it — it
@@ -62,10 +65,44 @@ the work called for them — and each addition was exactly the event the sentenc
 anticipated ("appear only when the work calls for them"). The sentence describes
 its own supersession and was never revisited, because nothing required it to be.
 
-The related omission is that `work/proposals/` has **no README and no board** at
-all, so the lane a reviewed proposal lives in has no documented lifecycle —
-which is how an inbound proposal came to sit in it with no provenance field
-until [002](../proposals/002-comment-embedded-links.md) was reviewed.
+The related omission was that `work/proposals/` had **no README and no board** at
+all, so the lane a reviewed proposal lived in had no documented lifecycle — which
+is how an inbound proposal came to sit in it with no provenance field until
+[002](../proposals/002-comment-embedded-links.md) was reviewed. **The board half
+is closed; the README half is not** — `work/proposals/` still has no README, and
+this record's own deferral below still carries it. The past tense above covers
+the board only.
+
+> **This record drifted too, and the correction is the point.** `PROPOSALS.md`
+> has existed since 2026-08-13 — the day after this was filed — so the table
+> above claimed "none" for 23 days. A Draft bug left open long enough to need its
+> own re-measurement is a signal about the ranking, not about the bug; that is why
+> the severity moved. Found by the working-method reviewer on its first run
+> ([0250](./fixed/0250-the-review-roster-has-no-working-method-lens.md)).
+
+## A second defect in the same document, split out
+
+The **State-token** table beneath the Lanes table teaches one union vocabulary
+where `check-ledger.mjs` declares three disjoint ones — a bigger problem than this
+record's, and a different one.
+
+An earlier version of this work widened 0108 to carry it. Architecture review
+called that wrong: _split, don't widen_. The two share a filename and nothing
+else — different table, different binding target (`LANES`, not the directory
+tree), different prerequisites — and bundled, the record is closable in neither
+half, the constraint this repo already applies to plan phases. It is
+[0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md).
+
+Both are blocked on the same root gap, and 0251 carries a second prerequisite
+this record does not.
+
+> **Blocked, noted 2026-09-04.** This record's fix binds the Lanes table to the
+> real directories with `rows()` + `correspondence()`. That rule cannot work yet:
+> `work/README.md` is outside every `check:corpus` root, so a correspondence
+> authored today examines **zero** rows and reports green — a vacuous gate, which
+> is the defect this repo exists to prevent. Sequence behind
+> [0249](./0249-most-of-work-is-outside-every-corpus-root.md), which owns the root
+> gap. Neither record named the other until the working-method reviewer did.
 
 ## Fix
 
