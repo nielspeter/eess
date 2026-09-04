@@ -151,7 +151,7 @@ forked copy of the filter. So the clause was `gated` on the one dialect that doe
 not depend on the kernel's implementation, and unproven for the four that do.
 
 Measured when it was found: deleting the promotion left the entire kernel suite
-green, 206 tests passing. [Bug 0238](../work/bugs/0238-the-kernels-reason-free-waiver-promotion-is-untested.md)
+green, 206 tests passing. [Bug 0238](../work/bugs/fixed/0238-the-kernels-reason-free-waiver-promotion-is-untested.md)
 records it and its fix; the row now names a mechanism per engine. This is
 [bug 0189](../work/bugs/fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)'s
 shape a second time — a row green over a different path than the clause it

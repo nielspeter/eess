@@ -48,6 +48,31 @@ away: in a record whose whole subject is a status nothing checks, two unchecked
 numbers in the record itself are the same defect one level down, and that is the
 most useful thing this record has to say about itself.
 
+## What this mechanism would NOT have caught — bug 0238
+
+Found closing [0238](./fixed/0238-the-kernels-reason-free-waiver-promotion-is-untested.md)
+the day after this record was written, and it bounds the fix rather than
+extending it.
+
+0238's fix merged in PR #92 and its record stayed `Draft` in `work/bugs/` for a
+day, with a board row that said `Draft` too. That looks like a ninth instance of
+this record's defect. **It is not**, and the difference is the whole point: here
+the board and the record **agreed with each other**, and both were wrong about
+reality. Every case measured above is a board row disagreeing with its own
+record.
+
+So a correspondence between board and record — the mechanism this record
+proposes — reports 0238 as perfectly consistent. It would have been green over a
+fix that had already shipped.
+
+The state nobody holds is "merged, but not closed", and it is not mechanically
+knowable while a verification box legitimately remains open — 0238's `validate`
+box was genuinely open, which is precisely why `findFinishedNotClosed` stayed
+quiet and was right to. Whoever builds this record's fix should say plainly in
+the rule's own description that it binds the board to the record and **not** the
+record to reality, so the next reader does not mistake a green board check for
+a closed-work check.
+
 ## Why no gate saw it
 
 `check:ledger` reads the records and **excludes the boards by construction.**
@@ -84,7 +109,7 @@ It is also the shape this repo keeps catching in its own instruments: an
 exclusion added for a good reason (`boardFiles`), never revisited, and the thing
 it excluded left unchecked by anything else. Same as
 [0189](./fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)
-and [0238](./0238-the-kernels-reason-free-waiver-promotion-is-untested.md):
+and [0238](./fixed/0238-the-kernels-reason-free-waiver-promotion-is-untested.md):
 the check moved and the coverage did not follow.
 
 ## Reproduction
