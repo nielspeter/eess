@@ -4,7 +4,10 @@
 
 - **State:** Draft — confirmed against the directory tree; no red test written
   yet.
-- **Severity:** Low — documentation drift, no runtime effect. Filed rather than
+- **Severity:** Medium — raised from Low on 2026-09-04. "Documentation drift, no
+  runtime effect" is true of the paragraph and false of the consequence: a
+  newcomer following this map writes records the gate refuses (see the State-token
+  finding below). Filed rather than
   silently corrected because the document's stated job is to be the map a fresh
   agent reads first, and because the claim is mechanically bindable (see _Fix_).
 - **Origin:** self-found · reviewing inbound proposal 002, when the proposals
@@ -30,12 +33,12 @@ followed by:
 
 `work/` currently contains **four** numbered or boarded lanes:
 
-| Directory         | Exists | Board                   | Documented in the table |
-| ----------------- | ------ | ----------------------- | ----------------------- |
-| `work/plans/`     | yes    | `work/plans/ROADMAP.md` | yes                     |
-| `work/bugs/`      | yes    | `work/bugs/BUGS.md`     | **no**                  |
-| `work/proposals/` | yes    | none                    | **no**                  |
-| `work/spikes/`    | yes    | none                    | **no**                  |
+| Directory         | Exists | Board                         | Documented in the table |
+| ----------------- | ------ | ----------------------------- | ----------------------- |
+| `work/plans/`     | yes    | `work/plans/ROADMAP.md`       | yes                     |
+| `work/bugs/`      | yes    | `work/bugs/BUGS.md`           | **no**                  |
+| `work/proposals/` | yes    | `work/proposals/PROPOSALS.md` | **no**                  |
+| `work/spikes/`    | yes    | none                          | **no**                  |
 
 The bugs lane has a full board, a severity scale, a record template, and its own
 terminal folder (`work/bugs/fixed/`). The prose does not merely omit it — it
@@ -62,10 +65,55 @@ the work called for them — and each addition was exactly the event the sentenc
 anticipated ("appear only when the work calls for them"). The sentence describes
 its own supersession and was never revisited, because nothing required it to be.
 
-The related omission is that `work/proposals/` has **no README and no board** at
-all, so the lane a reviewed proposal lives in has no documented lifecycle —
-which is how an inbound proposal came to sit in it with no provenance field
-until [002](../proposals/002-comment-embedded-links.md) was reviewed.
+The related omission was that `work/proposals/` had **no README and no board** at
+all, so the lane a reviewed proposal lived in had no documented lifecycle — which
+is how an inbound proposal came to sit in it with no provenance field until
+[002](../proposals/002-comment-embedded-links.md) was reviewed.
+
+> **This record drifted too, and the correction is the point.** `PROPOSALS.md`
+> has existed since 2026-08-13 — the day after this was filed — so the table
+> above claimed "none" for 23 days. A Draft bug left open long enough to need its
+> own re-measurement is a signal about the ranking, not about the bug; that is why
+> the severity moved. Found by the working-method reviewer on its first run
+> ([0250](./fixed/0250-the-review-roster-has-no-working-method-lens.md)).
+
+## The larger half, found 2026-09-04: the close convention is wrong, not just the lanes
+
+This record was filed about the **Lanes** table. The **State-token** table beneath
+it is wrong in a way that costs more, and neither this record nor
+[0249](./0249-most-of-work-is-outside-every-corpus-root.md) covered it.
+
+`work/README.md` presents one four-token vocabulary — `Draft` / `Ready` / `Done` /
+`Won't-do` — as _the_ close convention. `scripts/check-ledger.mjs` declares three
+deliberately **disjoint** ones:
+
+| lane      | states                                            | terminal           |
+| --------- | ------------------------------------------------- | ------------------ |
+| plans     | Draft, Ready, **Open**, Done, Won't-do            | Done, Won't-do     |
+| bugs      | Draft, Ready, **Fixed**, **Rejected**, **Parked** | Fixed, Rejected    |
+| proposals | Draft, **Promoted**, **Rejected**                 | Promoted, Rejected |
+
+Measured across `work/`: dozens of records carry `Fixed`, three carry `Promoted`,
+two carry `Parked`. **None of the three appears in the map.**
+
+And the separation is load-bearing, not incidental — the gate's own comment says
+so: _"They are scanned separately because a union would let a plan marked `Fixed`
+pass as a known state — the precision this gate exists for."_ The one-screen map
+teaches exactly the union the gate was built to refuse. A newcomer who closes a
+bug as `Done` per this table gets a red gate the map cannot explain.
+
+**The dogfood is also worse than the product.** `kit/templates/work/README.md` —
+what eess _exports_ as its portable working method — lists two lanes including
+`bugs/`, and gives the plan vocabulary correctly, `Open` included. The repo's own
+copy lists one lane and calls the bugs lane "cargo-cult". The two files have
+diverged into structurally different documents, so a fix to either will not
+propagate and nothing binds them.
+
+**A third binding, higher-value than this record's original two and proposed by
+nobody until now:** bind the map's state-token table to `check-ledger.mjs`'s
+`LANES` vocabularies, so the map cannot again teach a token the gate rejects.
+That is the difference between fixing today's text and making tomorrow's drift
+impossible.
 
 > **Blocked, noted 2026-09-04.** This record's fix binds the Lanes table to the
 > real directories with `rows()` + `correspondence()`. That rule cannot work yet:
