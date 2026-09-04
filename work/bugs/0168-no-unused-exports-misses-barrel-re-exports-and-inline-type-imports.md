@@ -12,11 +12,25 @@
 `eess/no-unused-exports` reports three symbols as unused that are demonstrably
 used, two of them from the package's own public barrel:
 
-| Symbol                      | Actually used by                                                      |
-| --------------------------- | --------------------------------------------------------------------- |
-| `FunctionCollectionOptions` | `src/index.ts:147` **and** `src/builders/function-rule-builder.ts:13` |
-| `ObjectLiteralFunction`     | `src/index.ts:150`                                                    |
-| `resetStderrGuardForTests`  | `src/index.ts:147`                                                    |
+| Symbol                      | Actually used by                                                                  |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| `FunctionCollectionOptions` | `packages/ts/src/index.ts:155` **and** `src/builders/function-rule-builder.ts:13` |
+| `ObjectLiteralFunction`     | `packages/ts/src/index.ts:156`                                                    |
+| `resetStderrGuardForTests`  | gone from the barrel since filing — see the note below                            |
+
+**Two corrections, 2026-09-04, both surfaced by [bug 0254](./fixed/0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md).**
+The three citations above were written as a bare `src/index.ts`, which
+suffix-matches five barrels in this workspace. Because an ambiguous pointer was
+skipped rather than reported, nothing checked them, and both line numbers had
+drifted (147 → 155, 150 → 156) without the gate noticing. They now carry the
+package.
+
+The third row is the substantive one: **`resetStderrGuardForTests` no longer
+exists anywhere under `packages/ts/src`.** The symbol this record cites as an
+example of a barrel-only export has been removed since filing, so that row is
+evidence about code that is gone. The remaining two still demonstrate the defect;
+whoever fixes this record should re-derive the example set rather than trust the
+list above.
 
 Measured: deleting `export` from any of them makes `npm run typecheck` fail with
 `TS2459` naming those exact call sites. The export is load-bearing; the rule says

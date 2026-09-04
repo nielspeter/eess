@@ -93,6 +93,6 @@ table.
 - [0249](./fixed/0249-most-of-work-is-outside-every-corpus-root.md) — hit this
   while removing a pointer from `work/dogfood-coverage.md`; the removal split the
   table, which review caught and the commit repaired.
-- [0254](./0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md) —
+- [0254](./fixed/0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md) —
   many of the pointers an author would want to sanction are bare filenames in
   tables, which is where this does not work.

@@ -164,7 +164,7 @@ honest box disposition at close, not document lifecycles.
   "reported, never gated" on every run and now says
   "links gated, pointers not examined". Filed as
   [0253](../0253-frozen-drift-is-not-reported-only-unexamined.md).
-- [~] `deferred→`[0254](../0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md)
+- [~] `deferred→`[0254](./0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md)
   — **the foreign-repo pointer fixture.** This box asked for a fixture using a
   foreign path that suffix-matches a local file. It was first disposed
   `dropped-on-purpose`, arguing that freezing concluded spikes removed the

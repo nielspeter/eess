@@ -25,7 +25,7 @@ if (deadGlob !== undefined) return [...violations, deadGlobViolation(this.facts(
 const deadGlob = sourceEmpty ? undefined : this.deadGlobDiagnosis()
 ```
 
-and `deadGlobDiagnosis()` is declared once, at `rule-builder.ts:259`, returning
+and `deadGlobDiagnosis()` is declared once, at `packages/core/src/rule-builder.ts:280`, returning
 `undefined`:
 
 ```

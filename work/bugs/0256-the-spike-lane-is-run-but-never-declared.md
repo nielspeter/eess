@@ -68,7 +68,7 @@ freezing. Either way the argument should exist somewhere.
 (The line was drawn from the wrong premise the first time. 0249's disposition
 claimed freezing spikes removed the foreign-pointer population; measured, that
 population was already empty — see
-[0254](./0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md).)
+[0254](./fixed/0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md).)
 
 ## Why it matters
 

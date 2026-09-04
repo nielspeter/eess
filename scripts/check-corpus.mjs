@@ -206,13 +206,28 @@ const pointerRule = pointers(c)
   .rule({ id: 'corpus/pointers-resolve' })
 const pointersChecked = pointerRule.select({ label: 'pointer', ...anon }).elements.length
 const stale = pointerRule.violations()
-const brokenPointers = stale.filter((v) => v.message.startsWith('broken code pointer'))
-const stalePointers = stale.length - brokenPointers.length
+// Three classes, counted by what each violation says. Written as a table
+// rather than "broken vs everything else": the first version of this split had
+// two buckets, and when bug 0254 added the third class the gate printed
+// "16 stale (line past end)" over sixteen AMBIGUOUS pointers — the same
+// mislabelling this split was added to remove, one class later. A `rest`
+// bucket keeps a fourth class from ever being silently absorbed again.
+const POINTER_CLASSES = [
+  ['broken', 'broken code pointer', 'no such file'],
+  ['stale', 'stale code pointer', 'line past end'],
+  ['ambiguous', 'ambiguous code pointer', 'matches several files'],
+]
 const pointerSummary = () => {
   if (stale.length === 0) return '✓ all ground in code'
   const parts = []
-  if (brokenPointers.length > 0) parts.push(`${brokenPointers.length} broken (no such file)`)
-  if (stalePointers > 0) parts.push(`${stalePointers} stale (line past end)`)
+  let classified = 0
+  for (const [label, prefix, gloss] of POINTER_CLASSES) {
+    const n = stale.filter((v) => v.message.startsWith(prefix)).length
+    classified += n
+    if (n > 0) parts.push(`${n} ${label} (${gloss})`)
+  }
+  const rest = stale.length - classified
+  if (rest > 0) parts.push(`${rest} unclassified — add its class to POINTER_CLASSES`)
   return `✗ ${parts.join(' · ')}`
 }
 

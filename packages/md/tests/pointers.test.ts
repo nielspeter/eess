@@ -6,19 +6,27 @@ import { corpus, pointers } from '../src/index.js'
 const fixtureRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/corpus')
 
 describe('pointers()', () => {
-  it('resolve() flags broken and stale live pointers, not ok/ambiguous/fenced', () => {
+  it('resolve() flags broken, stale and ambiguous live pointers, not ok/fenced', () => {
     const c = corpus({ roots: ['docs/pointers.md'], cwd: fixtureRoot })
     const v = pointers(c).that().areLive().should().resolve().violations()
     const messages = v.map((x) => x.message).join('\n')
 
-    // exactly the broken (missing.ts) and stale (app.ts:99) pointers
-    expect(v).toHaveLength(2)
+    // Three classes, each asserted by its own message rather than by a count:
+    // a version that emitted three copies of one class would satisfy a bare
+    // `toHaveLength(3)`.
+    //
+    // `dup.ts` moved from the not-flagged list to here in bug 0254 — it used to
+    // be skipped silently while still counting toward the caller's denominator.
+    expect(v).toHaveLength(3)
     expect(messages).toMatch(/broken code pointer.*missing\.ts/s)
     expect(messages).toMatch(/stale code pointer.*app\.ts.*line 99/s)
+    expect(messages).toMatch(/ambiguous code pointer.*dup\.ts/s)
 
-    // NOT flagged: ok full path, ok bare basename, ambiguous, fenced
+    // Still NOT flagged: ok full path, ok bare basename, fenced. These are the
+    // assertions that keep the fix from being "flag everything" — without them
+    // a condition that violated on every pointer would pass the three above.
     expect(messages).not.toMatch(/:3\b/) // ok full path
-    expect(messages).not.toMatch(/dup\.ts/) // ambiguous → report-only
+    expect(messages).not.toMatch(/`app\.ts:2`/) // ok bare basename
     expect(messages).not.toMatch(/:1000/) // fenced → ignored
   })
 
@@ -47,13 +55,55 @@ describe('pointers() — path-suffix resolution', () => {
   const suffixRoot = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/suffix')
   const c = () => corpus({ roots: ['doc.md'], cwd: suffixRoot })
 
-  it('resolves a unique partial path and skips an ambiguous one; only the missing path is broken', () => {
+  it('resolves a unique partial path; the ambiguous and the missing both report', () => {
     const v = pointers(c()).that().areLive().should().resolve().violations()
     // admin/index.vue → app/pages/admin/index.vue (unique suffix) resolves.
-    // dup/x.ts → a/dup/x.ts AND b/dup/x.ts (ambiguous) → skipped, never failed.
+    // dup/x.ts → a/dup/x.ts AND b/dup/x.ts → ambiguous, reported (bug 0254).
     // ghost/missing.ts → nothing ends with it → broken.
-    expect(v).toHaveLength(1)
-    expect(v[0]?.message).toMatch(/broken.*ghost\/missing\.ts/s)
+    //
+    // Asserted as a set of classes, so a regression that reported the ambiguous
+    // one AS broken — losing the candidate list and the remedy with it — fails
+    // here rather than passing on the count.
+    expect(v).toHaveLength(2)
+    const messages = v.map((x) => x.message)
+    expect(messages.filter((m) => /^broken/.test(m))).toHaveLength(1)
+    expect(messages.filter((m) => /^ambiguous/.test(m))).toHaveLength(1)
+    expect(messages.join('\n')).toMatch(/broken.*ghost\/missing\.ts/s)
+  })
+
+  it('an ambiguous suffix is a violation naming every candidate (bug 0254)', () => {
+    const v = pointers(c()).that().areLive().should().resolve().violations()
+    const ambiguous = v.filter((x) => x.message.includes('ambiguous'))
+    expect(ambiguous).toHaveLength(1)
+
+    // The candidates by name, not a count of them: a message saying "2 files"
+    // and nothing else leaves the author with the same problem they started
+    // with, and would satisfy a bare length assertion.
+    expect(ambiguous[0]?.message).toMatch(/a\/dup\/x\.ts/)
+    expect(ambiguous[0]?.message).toMatch(/b\/dup\/x\.ts/)
+    expect(ambiguous[0]?.message).toMatch(/dup\/x\.ts:2/)
+  })
+
+  it('the ambiguous violation carries the remedy, and no autofix', () => {
+    const v = pointers(c()).that().areLive().should().resolve().violations()
+    const ambiguous = v.find((x) => x.message.includes('ambiguous'))
+
+    // ADR-009: the failure surface is the instruction. The remedy rides in the
+    // message rather than `because`, because `because` is rule-level and the
+    // caller's to set (ADR-008) — one rule covers broken, stale AND ambiguous,
+    // which need different remedies. The message is the per-violation field.
+    expect(ambiguous?.message).toMatch(/longer suffix/)
+
+    // No autofix: the whole point is that the repair is NOT deterministic.
+    // A fix here would rewrite the pointer to whichever candidate sorted first.
+    expect(ambiguous?.fix).toBeUndefined()
+  })
+
+  it('CONTROL — the unique suffix still resolves, so this is not "flag everything"', () => {
+    // Without this, a change that violated on every suffix match would satisfy
+    // both tests above. `admin/index.vue` has exactly one candidate.
+    const v = pointers(c()).that().areLive().should().resolve().violations()
+    expect(v.map((x) => x.message).join('\n')).not.toMatch(/admin\/index\.vue/)
   })
 
   it('exact mode requires the full path — a shortened-but-unique pointer is broken', () => {

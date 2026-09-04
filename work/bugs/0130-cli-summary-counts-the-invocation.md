@@ -63,7 +63,7 @@ alone.** [0088](../plans/completed/0088-fold-ts-archunit-into-eess.md) Phase 3/4
 `evidencedViolations()` (`:250`). But the **public** surface `check.ts` calls,
 `violations()` (`:162`), discards it — it calls `evidencedViolations()`,
 filters the result, and returns bare `ArchViolation[]`, with `examined` computed
-and then thrown away at that exact call site. `check.ts:153` (verified live,
+and then thrown away at that exact call site. `packages/ts/src/cli/commands/check.ts:260` (re-verified 2026-09-04,
 unchanged) still builds its summary from `ruleCount`/`args.ruleFiles.length` —
 invocation counts, not examined units. The denominator this bug wants is no
 longer blocked on a kernel seam that doesn't exist; it is blocked on nothing —

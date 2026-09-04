@@ -255,7 +255,7 @@ bypasses eess entirely has not misused eess; they have not used it, and that is 
   minting (they have different audiences under ADR-008), or a documented `remint(v, from)` exists for
   the harness case. A symbol property would spread with `...` — and be forgeable, which
   `cardinality.ts` already rejected. Design taste; the evidence here does not settle it.
-- **Where the mint sits.** `applyFilters` (`execute-rule.ts:114`) is where `ruleId` is stamped, but
+- **Where the mint sits.** `applyFilters` (`packages/core/src/execute-rule.ts:114`) is where `ruleId` is stamped, but
   ADR-010's terminal (`TerminalBuilder.evidencedViolations()`) is where evidence is decided; the mint
   belongs wherever a violation is last touched by kernel code before any caller can hold it.
 - **The stale docstring** at `scripts/vacuity-matrix.mjs:213`. Whether that is a bug against the
