@@ -6,7 +6,7 @@ import { SmellBuilder } from './smell-builder.js'
 import { collectFunctions } from '../models/arch-function.js'
 import { fingerprintAll, findSimilarPairs } from './similar-pairs.js'
 import type { SimilarPair } from './similar-pairs.js'
-import { clusterViolation, otherFiles, varianceSummary } from './duplicate-report.js'
+import { anchorFile, clusterViolation, pairViolation } from './duplicate-report.js'
 import { clusterPairs, clusterRank } from './clusters.js'
 import type { SimilarCluster } from './clusters.js'
 import type { ArchViolation } from '@nielspeter/eess'
@@ -193,19 +193,35 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
 
   /** Build violations from similar pairs. */
   /**
-   * Report order: by folder when `.groupByFolder()` asked for it, otherwise the
-   * order the pairs were found in.
+   * Report order for pairs — which, measured, never has anything to order.
    *
-   * Extracted from {@link buildViolations} so that method is the violation
-   * shape and nothing else — presentation order is a separate decision.
+   * Extracted from {@link buildViolations} so that method is the violation shape
+   * and nothing else. Enforcement review of bug 0242 read this as a live defect
+   * (keyed on `a`, i.e. walk order, while the finding reports at the anchor).
+   * Probing it says otherwise: {@link buildViolations} is reached only from
+   * {@link buildClusterViolations} for a cluster of two or fewer members, and
+   * such a cluster carries exactly one pair. Instrumented to throw on more than
+   * one, the whole `packages/ts` suite (3604 tests) produced **zero** hits.
+   *
+   * So this cannot reorder anything today, and {@link orderedClusters} is what
+   * actually orders the output. The key is corrected anyway — being right if
+   * this ever becomes reachable costs one expression — but the correction fixes
+   * no observable behaviour, and saying otherwise would be the kind of unmeasured
+   * claim this repo keeps catching.
    */
   private orderedPairs(pairs: SimilarPair[]): SimilarPair[] {
     if (!this._groupByFolder) return pairs
-    return [...pairs].sort((x, y) => {
-      const folderA = path.dirname(x.a.getSourceFile().getFilePath())
-      const folderB = path.dirname(y.a.getSourceFile().getFilePath())
-      return folderA.localeCompare(folderB)
-    })
+    // Keyed on the ANCHOR's folder, not on `a`'s. Which endpoint is `a` is the
+    // source walk; the anchor is where the finding says it is (bug 0242). While
+    // those agreed this was invisible, and after the anchor moved a finding
+    // reported in one folder would sort into another folder's group — the one
+    // thing this option exists to prevent.
+    const keyed = pairs.map((pair) => ({
+      pair,
+      folder: path.dirname(anchorFile([pair.a, pair.b])),
+    }))
+    keyed.sort((x, y) => (x.folder < y.folder ? -1 : x.folder > y.folder ? 1 : 0))
+    return keyed.map((k) => k.pair)
   }
 
   /**
@@ -231,12 +247,33 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
    * whether they read at all. `.groupByFolder()` still wins when asked for.
    */
   private orderedClusters(clusters: SimilarCluster[]): SimilarCluster[] {
-    const folderOf = (c: SimilarCluster): string =>
-      path.dirname(c.members[0]?.getSourceFile().getFilePath() ?? '')
-    if (this._groupByFolder) {
-      return [...clusters].sort((x, y) => folderOf(x).localeCompare(folderOf(y)))
-    }
-    return [...clusters].sort((x, y) => clusterRank(y) - clusterRank(x))
+    // Decorated once, then sorted. `anchorFile` asks ts-morph for a path and a
+    // line per member, and a comparator runs O(n log n) times — on the 407
+    // clusters this module's own comments measure, computing it inside the
+    // comparator is tens of thousands of avoidable calls.
+    const keyed = clusters.map((cluster) => {
+      // The ANCHOR's folder, not `members[0]`'s: `members[0]` is the source walk
+      // and the finding is reported at the path-then-line minimum (bug 0242), so
+      // grouping on the walk would file a finding under a folder it is not
+      // reported in — the one thing `.groupByFolder()` exists to prevent.
+      const anchor = anchorFile(cluster.members)
+      return { cluster, anchor, folder: path.dirname(anchor), rank: clusterRank(cluster) }
+    })
+    // Plain `<`, not `localeCompare`: the latter's result depends on the
+    // runtime's ICU build and default locale, which is this record's own failure
+    // class — a report that reads differently on two machines — in the
+    // expression fixing it. `comparePositions` next door uses `<` too.
+    const text = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0)
+    keyed.sort((x, y) => {
+      const primary = this._groupByFolder ? text(x.folder, y.folder) : y.rank - x.rank
+      // The tie-break is what makes the SEQUENCE deterministic, and without it
+      // the default path had none: `clusterRank` returns one of four values over
+      // hundreds of clusters, and `Array#sort` is stable, so equal ranks kept
+      // walk order. Found by architecture review of bug 0242's fix; the branch
+      // had disclosed it in a test comment and nowhere else.
+      return primary !== 0 ? primary : text(x.anchor, y.anchor)
+    })
+    return keyed.map((k) => k.cluster)
   }
 
   private buildClusterViolations(pairs: SimilarPair[]): ArchViolation[] {
@@ -249,62 +286,13 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
         violations.push(...this.buildViolations(cluster.pairs))
         continue
       }
-      const violation = clusterViolation(cluster, {
-        rule: this.describe(),
-        because: this._reason,
-      })
-      if (violation) violations.push(violation)
+      violations.push(clusterViolation(cluster, { rule: this.describe(), because: this._reason }))
     }
     return violations
   }
 
   private buildViolations(pairs: readonly SimilarPair[]): ArchViolation[] {
-    const ruleDescription = this.describe()
-    const violations: ArchViolation[] = []
-
-    for (const pair of this.orderedPairs([...pairs])) {
-      const nameA = pair.a.getName() ?? '<anonymous>'
-      const fileA = pair.a.getSourceFile().getFilePath()
-      const lineA = pair.a.getStartLineNumber()
-
-      const nameB = pair.b.getName() ?? '<anonymous>'
-      const fileB = pair.b.getSourceFile().getFilePath()
-      const lineB = pair.b.getStartLineNumber()
-
-      const pct = Math.round(pair.similarity * 100)
-
-      violations.push({
-        rule: ruleDescription,
-        element: nameA,
-        file: fileA,
-        line: lineA,
-        // Both endpoints (bug 0239). A two-body duplicate is the COMMON case —
-        // copy a function into one new file — and it had the same defect as a
-        // cluster: anchored on `a`, which is walk order, so the new file was the
-        // one that could not see it. Sorted and de-duplicated so a same-file
-        // pair names its one file rather than repeating it.
-        relatedFiles: otherFiles(fileA, [fileA, fileB]),
-        message: `${nameA} (${fileA}:${String(lineA)}) is ${String(pct)}% similar to ${nameB} (${fileB}:${String(lineB)})${varianceSummary(pair)}`,
-        // Which endpoint is "a" comes from the source-file walk order, which is
-        // a property of the filesystem: the same pair reports A→B on one
-        // machine and B→A on another, and the reported message alone would
-        // give them different identities. Sort the endpoints so the pair reads
-        // the same either way. Qualified by path — a bare function name is not
-        // unique across files — and without the similarity percentage, which
-        // drifts as either body is edited.
-        //
-        // Limitation: two anonymous functions in one file share an endpoint
-        // (`<file>#<anonymous>`) and so share an identity. Nothing stable
-        // distinguishes them — a line number would, and that is the coordinate
-        // dependence being removed. Measured at 0 collisions over 1006 findings
-        // on a real codebase; the collision guard in
-        // `tests/integration/baseline-portability.test.ts` is what would catch
-        // it becoming common.
-        identity: `duplicate-pair::${[`${fileA}#${nameA}`, `${fileB}#${nameB}`].sort().join('::')}`,
-        because: this._reason,
-      })
-    }
-
-    return violations
+    const context = { rule: this.describe(), because: this._reason }
+    return this.orderedPairs([...pairs]).map((pair) => pairViolation(pair, context))
   }
 }

@@ -16,6 +16,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { Project } from 'ts-morph'
+import type { SourceFile } from 'ts-morph'
 import { smells } from '../../src/smells/index.js'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { slices } from '../../src/builders/slice-rule-builder.js'
@@ -62,6 +63,38 @@ afterEach(() => {
 interface Layout {
   root: string
   project: ArchProject
+  /** How many times the detector asked this layout for its source files. */
+  reads: () => number
+}
+
+/**
+ * A `Layout` whose source-file enumeration is counted.
+ *
+ * The count exists so a test can assert the detector CONSUMED this enumeration
+ * rather than reaching past it to `_project.getSourceFiles()`. Without it a
+ * reversed-walk test asserts only that the fixture built a reversed array — its
+ * own input — which is the circularity ADR-009 rule 5 is about. Found by testing
+ * review of bug 0242.
+ *
+ * One helper rather than a field each layout fills in, so `reads` cannot be
+ * stubbed to a constant on a layout that never wires it up.
+ */
+function layoutOf(root: string, tsConfigPath: string, order: (p: Project) => SourceFile[]): Layout {
+  const tsMorphProject = new Project({ tsConfigFilePath: tsConfigPath })
+  const ordered = order(tsMorphProject)
+  let reads = 0
+  return {
+    root,
+    reads: () => reads,
+    project: {
+      tsConfigPath,
+      _project: tsMorphProject,
+      getSourceFiles: () => {
+        reads += 1
+        return ordered
+      },
+    },
+  }
 }
 
 interface MaterializeOptions {
@@ -109,14 +142,10 @@ function materialize(prefix: string, nesting: string[], options: MaterializeOpti
     fs.writeFileSync(target, contents)
   }
 
-  const tsConfigPath = path.join(root, 'tsconfig.json')
-  const tsMorphProject = new Project({ tsConfigFilePath: tsConfigPath })
-  const sourceFiles = tsMorphProject.getSourceFiles()
-  const ordered = options.reverseWalk === true ? [...sourceFiles].reverse() : sourceFiles
-  return {
-    root,
-    project: { tsConfigPath, _project: tsMorphProject, getSourceFiles: () => ordered },
-  }
+  return layoutOf(root, path.join(root, 'tsconfig.json'), (p) => {
+    const files = p.getSourceFiles()
+    return options.reverseWalk === true ? [...files].reverse() : files
+  })
 }
 
 function duplicateFindings(project: ArchProject): ArchViolation[] {
@@ -262,9 +291,62 @@ describe('violation identity is stable under unrelated change (bug 0010)', () =>
 
     expect(forwardFindings.length).toBeGreaterThan(0)
     expect(reverseFindings.length).toBe(forwardFindings.length)
-    // The orientation really does flip — otherwise this passes for the boring
-    // reason and guards nothing.
-    expect(reverseFindings.map((v) => v.element)).not.toEqual(forwardFindings.map((v) => v.element))
+
+    // The reversal really took effect — asserted at its SOURCE, the enumeration
+    // handed to the detector, rather than at the finding.
+    //
+    // It used to be asserted at the finding: `element` flipped A→B to B→A, and
+    // that flip was read as proof the walk had turned around. Bug 0242 removed
+    // the flip — the anchor is chosen by path then line now, not by walk order —
+    // so the old control would fail here for exactly the right reason. Reading
+    // the order directly proves the same precondition and cannot go stale the
+    // next time the reporting side changes.
+    // Two halves, and the second is the one that makes this non-circular.
+    //
+    // (a) the two layouts really enumerate in opposite orders, and
+    // (b) the DETECTOR really asked for that enumeration. Without (b) this
+    //     asserts only that the fixture built a reversed array — its own input.
+    //     Measured: bypass the injection (`this.project._project.getSourceFiles()`
+    //     inside the builder) and (a) alone stays green while no reversed walk
+    //     ever reaches the detector. Found by testing review of bug 0242.
+    //
+    // What the pair still does NOT prove: that the detector HONOURED the order
+    // rather than re-sorting it after reading. That mutation keeps both halves
+    // green, and no end-to-end derivation can close it — the fix exists to
+    // remove every observable that varies with walk order. The ordering rule's
+    // primary guard is therefore the pure-data test in
+    // `tests/smells/anchor-determinism.test.ts`; this one guards the wiring.
+    expect(forward.reads(), 'the detector never read the injected enumeration').toBeGreaterThan(0)
+    expect(reverse.reads(), 'the detector never read the injected enumeration').toBeGreaterThan(0)
+    const walkOrder = (layout: Layout): string[] =>
+      layout.project.getSourceFiles().map((f) => f.getBaseName())
+    expect(walkOrder(forward).length).toBeGreaterThan(1)
+    expect(walkOrder(reverse)).toEqual([...walkOrder(forward)].reverse())
+
+    // And the finding does NOT move with it (bug 0242). The stronger claim, and
+    // the one the old control's mere removal would have lost: not only does the
+    // identity hash survive the reversal, the reported subject is the same body
+    // — so a `// eess-exclude` an author commits against it keeps suppressing on
+    // a machine that walks the two files the other way round.
+    // Sorted on both sides: the claim is "the same subjects", and the SEQUENCE of
+    // findings is ordered by cluster rank with a stable sort, so equal-ranked
+    // findings keep walk order. This fixture yields one finding today, which
+    // would make an order-sensitive assertion pass for a reason that evaporates
+    // the day it yields two.
+    //
+    // Asserted on `file` and `line`, not on `element`. Those two fields are the
+    // entire subject of this bug — `isExcludedByComment` keys a single-line
+    // waiver on the violation's file AND on `line === comment.line + 1` — and a
+    // name is only a proxy for them. Measured: take `line` from the wrong
+    // endpoint and an element-only assertion stays green across all 3600 tests.
+    // Found by testing review of bug 0242.
+    //
+    // Root-relative, because the two layouts sit at different absolute paths by
+    // construction; sorted, because the SEQUENCE of findings is cluster-rank
+    // ordered with a stable sort and this fixture yields one finding today.
+    const sites = (findings: ArchViolation[], root: string): string[] =>
+      findings.map((v) => `${path.relative(root, v.file)}:${String(v.line)}:${v.element}`).sort()
+    expect(sites(reverseFindings, reverse.root)).toEqual(sites(forwardFindings, forward.root))
 
     const forwardIds = identitiesOf(forwardFindings, forward.root)
     const reverseIds = identitiesOf(reverseFindings, reverse.root)
@@ -317,16 +399,7 @@ describe('violation identity is stable under unrelated change (bug 0010)', () =>
       fs.writeFileSync(path.join(tmp, 'package.json'), '{"name":"fixture"}')
       fs.writeFileSync(path.join(tmp, 'tsconfig.json'), tsconfig)
       fs.writeFileSync(path.join(tmp, 'a.ts'), prefix + body)
-      const tsConfigPath = path.join(tmp, 'tsconfig.json')
-      const tsMorphProject = new Project({ tsConfigFilePath: tsConfigPath })
-      return {
-        root: tmp,
-        project: {
-          tsConfigPath,
-          _project: tsMorphProject,
-          getSourceFiles: () => tsMorphProject.getSourceFiles(),
-        },
-      }
+      return layoutOf(tmp, path.join(tmp, 'tsconfig.json'), (p) => p.getSourceFiles())
     }
     const findings = (layout: Layout): ArchViolation[] =>
       modules(layout.project).should().notContain(call('console.log')).violations()
@@ -438,16 +511,7 @@ app.get('/x', () => {
         }),
       )
       fs.writeFileSync(path.join(tmp, 'a.ts'), prefix + body)
-      const tsConfigPath = path.join(tmp, 'tsconfig.json')
-      const tsMorphProject = new Project({ tsConfigFilePath: tsConfigPath })
-      return {
-        root: tmp,
-        project: {
-          tsConfigPath,
-          _project: tsMorphProject,
-          getSourceFiles: () => tsMorphProject.getSourceFiles(),
-        },
-      }
+      return layoutOf(tmp, path.join(tmp, 'tsconfig.json'), (p) => p.getSourceFiles())
     }
 
     const families: Array<[string, (l: Layout) => ArchViolation[]]> = [
@@ -523,16 +587,7 @@ export function b(): void {
         }),
       )
       fs.writeFileSync(path.join(tmp, 'a.ts'), source)
-      const tsConfigPath = path.join(tmp, 'tsconfig.json')
-      const tsMorphProject = new Project({ tsConfigFilePath: tsConfigPath })
-      return {
-        root: tmp,
-        project: {
-          tsConfigPath,
-          _project: tsMorphProject,
-          getSourceFiles: () => tsMorphProject.getSourceFiles(),
-        },
-      }
+      return layoutOf(tmp, path.join(tmp, 'tsconfig.json'), (p) => p.getSourceFiles())
     }
 
     const idsIn = (layout: Layout, fnName: string): string[] =>

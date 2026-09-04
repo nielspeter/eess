@@ -28,6 +28,30 @@ correspondence whose **right** side declares a relation absent from its left
 counterpart, assert one violation under `direction: 'right-to-left'`, and get
 `[]`.
 
+## Why ADR-010's guard does not catch it
+
+Added 2026-09-04, from architecture review of bug 0242's fix. Worth stating
+because the natural assumption is that the evidence requirement already covers
+this, and it does not.
+
+`CorrespondenceBuilder` computes its evidence as the two sides' element counts:
+
+```ts
+const examined = this.opts.left.elements.length + this.opts.right.elements.length
+```
+
+That number is a property of the SELECTIONS, not of the checks. So a
+`preserveRelations({ direction: 'right-to-left' })` over two populated sides
+reports `{ violations: [], examined: <non-zero> }` — a pass constructed from a
+real denominator, which is exactly the shape ADR-010 accepts. The vacuity floor
+sees a healthy check.
+
+This is the distinction ADR-010 draws and this case sits on the wrong side of:
+`examined` proves that elements were SELECTED, not that any predicate ran over
+them. A check that inspects nothing while its selections are full is invisible to
+it. Anyone extending the evidence requirement to correspondence should read this
+record first.
+
 ## Root cause
 
 `packages/core/src/correspondence.ts` has two check implementations that both

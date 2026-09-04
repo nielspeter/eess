@@ -1010,8 +1010,17 @@ describe('smell builder options — inFolder, ignorePaths, ignoreTests, groupByF
     }).toThrow(ArchRuleError)
   })
 
-  it('groupByFolder produces violations sorted by directory', () => {
-    // groupByFolder changes output ordering — still produces violations
+  it('groupByFolder still reports, so the option does not silence the rule', () => {
+    // Retitled after review of bug 0242. It used to be called "groupByFolder
+    // produces violations sorted by directory" and asserted only that `check()`
+    // throws — delete the sort entirely and it stayed green, so the property in
+    // its own title had no instrument. The fixture here is one flat folder, so
+    // it could not have had one.
+    //
+    // Sortedness now lives in `tests/smells/anchor-determinism.test.ts` ·
+    // `it('the reported folders come out in order, whichever way the walk runs')`,
+    // over a four-file layout across four folders and a deliberately reversed
+    // walk. What is left here is the narrower claim this body actually makes.
     expect(() => {
       smells.duplicateBodies(p).groupByFolder().withMinSimilarity(0.7).minLines(5).check()
     }).toThrow(ArchRuleError)

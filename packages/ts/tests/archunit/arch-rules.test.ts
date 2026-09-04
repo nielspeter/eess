@@ -1249,17 +1249,29 @@ it('VACUITY: the orphan check really reads our directives', () => {
   // nobody reads — the count-not-identity failure the comment above rejects. Both
   // sets are still exact, so deleting any one directive is visible here.
   //
-  // Counted at this commit: 18 `eess/no-unused-exports` directives across the 13
-  // files listed below, and 2 / 2 / 1 for the other three ids. The lists below are
-  // FILES, not directives — one file may carry several. An earlier version of this
-  // comment said 34 and 36; both were stale, which is the same defect as a stale
-  // measurement and is why the numbers now name what they counted.
+  // Counted at this commit: **22 directives in total** — `eess/no-unused-exports`
+  // 19 across 14 files, `adr005/no-as-cast-module` 2 across 2,
+  // `eess/adr005-no-type-assertions` 2 across 2, `eess/max-parameters` 1 across 1.
+  // The lists below are FILES, not directives — one file may carry several.
+  //
+  // These numbers have now gone stale twice, and the first correction of them
+  // was itself wrong. An earlier version said 34 and 36; the version after it
+  // said "18 across 13 files, and 2 / 2 / 1 for the other three ids". Measured
+  // at HEAD that was 17 across 13 — over by one when written — and after bug
+  // 0242 it is 19 across 14, so the same claim is now UNDER by one. The
+  // correction that replaced it said "off by two", which is the count of
+  // directives added, not the size of either error. That is the same defect the
+  // paragraph itself warns
+  // about, committed inside the warning — which is the argument for deriving
+  // these counts instead of writing them down. The assertions below are exact and
+  // machine-checked; this prose is not, and a reader should trust the code.
   //
   // **This row proves PRESENCE, not that a waiver is load-bearing**, and that gap
   // is real: `core/terminal-builder.ts` sat in this list while its only directive
   // covered a blank line, because the file still contained *a* directive. The
   // load-bearing check is the next `it`, and it runs only `adr005/no-as-cast-module`
-  // — so 18 of these 20 waivers have no proof they suppress anything. Tracked as
+  // — so 20 of these 22 directives have no proof they suppress anything, and bug
+  // 0242 added 2 of the 20 without being able to close the gap. Tracked as
   // [bug 0177](../../../../work/bugs/0177-the-load-bearing-waiver-check-covers-one-rule-of-four.md).
   const waiverFiles = (ruleId: string): string[] =>
     readdirRecursive(path.resolve('src'))
@@ -1327,6 +1339,7 @@ it('VACUITY: the orphan check really reads our directives', () => {
     'helpers/matchers.ts',
     'models/arch-function.ts',
     'models/arch-jsx-element.ts',
+    'smells/duplicate-report.ts',
   ])
 })
 
