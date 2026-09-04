@@ -1462,6 +1462,13 @@ const gates = [
       ]),
   ],
   [
+    'integrity/source-text-utf8',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'integrity/source-text-utf8 red on its own subject', [
+        'integrity/source-text-utf8',
+      ]),
+  ],
+  [
     'integrity/leftover-probe',
     () =>
       gateNode('bad-waived-gates.mjs', 'integrity/leftover-probe red on its own subject', [
@@ -1630,11 +1637,16 @@ const GATE_FOR = {
   // `gateCoverage()` counted the script as accounted for while any check inside
   // it could be deleted silently. That is how the raw-NUL check nearly shipped
   // uncovered, and review pointed out the fixture's own comment diagnosed it
-  // without fixing it. All four scenarios live in `bad-waived-gates.mjs`.
+  // without fixing it. All five scenarios live in `bad-waived-gates.mjs`.
   'check:integrity': [
     'integrity/phantom-dep',
     'integrity/stale-output',
     'integrity/source-text',
+    // The quiet half of the same check, its own row for the same reason the
+    // others are separate rows: a NUL and invalid UTF-8 are different findings
+    // with different remedies, and one row for both would let either be deleted
+    // with the gate still green (bug 0247).
+    'integrity/source-text-utf8',
     'integrity/leftover-probe',
   ],
   // Four rules, four rows (bug 0240). One row for the whole preset let three of

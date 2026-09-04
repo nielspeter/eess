@@ -96,6 +96,7 @@ for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
  * leave one behind, and again on a handled signal. */
 const PROBE_PATHS = [
   'packages/core/src/__nonvacuity_probe_nul__.ts',
+  'packages/core/src/__nonvacuity_probe_utf8__.ts',
   'packages/core/src/__nonvacuity_probe_generic_error__.ts',
   'packages/core/src/__nonvacuity_probe_leftover__.ts',
   'examples/__nonvacuity_probe__.test.ts',
@@ -368,6 +369,55 @@ SCENARIOS['integrity/source-text'] = () => {
   }
 }
 
+
+SCENARIOS['integrity/source-text-utf8'] = () => {
+  // The QUIETER half of "source that stopped being text", and its own scenario
+  // rather than another assertion inside `integrity/source-text` — the two are
+  // separate findings with separate remedies, and a reader given both for one
+  // byte would fix the wrong one.
+  //
+  // Bug 0247. A NUL announces itself: `file(1)` says `data`, grep says
+  // "Binary file … matches". A stray latin-1 byte makes grep exit 1 with NO
+  // output and NO warning, so a sweep that skipped the file reads exactly like
+  // one that found nothing in it — and this repo's entire survey discipline
+  // ("grep `packages/*/src`, always") rests on that not happening.
+  //
+  // The probe's own source is written with an escape and the raw byte is planted
+  // through a Buffer, for the reason the NUL scenario gives: writing the bad byte
+  // into THIS file would make the fixture itself unsearchable, and the guard it
+  // tests would red on it.
+  const UTF8_PROBE = 'packages/core/src/__nonvacuity_probe_utf8__.ts'
+  const bad = withAddedFile(
+    UTF8_PROBE,
+    Buffer.concat([
+      Buffer.from('export const label = `latin-1 ', 'utf8'),
+      // 0xE9 alone is a lead byte with no continuation — invalid UTF-8, and the
+      // exact shape a file re-saved in latin-1 acquires.
+      Buffer.from([0xe9]),
+      Buffer.from('`\n', 'utf8'),
+    ]),
+    () => runCapture('check:integrity'),
+  )
+  // Assert the REASON, not the exit code and name alone. `check:integrity` runs
+  // several checks and the leftover-probe one reds on ANY `__nonvacuity_probe*`
+  // file, including this one — so "exited non-zero naming the probe" would stay
+  // green with the UTF-8 guard deleted, because a different check would answer
+  // for it. That is a fail-open inside the non-vacuity harness itself (bug 0231),
+  // and the NUL scenario above records it in the same words.
+  //
+  // `is not valid UTF-8` appears only in the finding: the success summary reads
+  // "… valid UTF-8 and free of raw NUL bytes", which does NOT contain it.
+  const named = bad.out.includes('__nonvacuity_probe_utf8__')
+  const gaveTheUtf8Reason =
+    bad.out.includes(`${UTF8_PROBE} is not valid UTF-8`) && bad.out.includes('first bad byte 0x')
+  if (!named || !gaveTheUtf8Reason || bad.status === 0) {
+    vacuous(
+      `check:integrity exited ${bad.status}, ${named ? 'named' : 'never named'} the invalid-UTF-8 ` +
+        `probe and ${gaveTheUtf8Reason ? 'gave' : 'never gave'} the UTF-8 reason — it must SEE a ` +
+        `source file grep silently skips, FAIL on it, and say THAT is why`,
+    )
+  }
+}
 
 SCENARIOS['guardrails/generic-error'] = () => {
   // 7. check:guardrails — a bare `throw new Error` in package source.

@@ -295,6 +295,63 @@ for (const dir of pkgDirs) {
 // nothing looked missing. Text tooling does not care about extensions, so
 // neither does this walk. `.tsx`/`.mts`/`.cts` are covered by the same change
 // rather than by a list that needs extending.
+/**
+ * Byte offset of the first invalid UTF-8 sequence, or -1.
+ *
+ * The QUIETER half of "source that stopped being text", and the reason this
+ * check is not only about NUL. A NUL announces itself — `file(1)` says `data`
+ * and grep says `Binary file … matches`. A stray latin-1 byte makes grep exit 1
+ * with **no output and no warning at all**, so a sweep that skipped the file is
+ * indistinguishable from one that found nothing in it (bug 0247, measured: one
+ * appended byte made `grep -c` for a symbol the file declares print nothing,
+ * while this very gate reported the workspace clean).
+ *
+ * Hand-rolled rather than `TextDecoder(…, { fatal: true })` because that throws
+ * without saying WHERE, and a finding without a line number sends a reader
+ * hunting through a file their tools have stopped reading. Same single pass,
+ * same acceptance: over-long forms, surrogates and out-of-range lead bytes are
+ * all rejected, which is what `fatal: true` means.
+ */
+function firstInvalidUtf8(buf) {
+  let i = 0
+  while (i < buf.length) {
+    const b = buf[i]
+    if (b < 0x80) {
+      i += 1
+      continue
+    }
+    let need = 0
+    let lo = 0x80
+    let hi = 0xbf
+    if (b >= 0xc2 && b <= 0xdf) need = 1
+    else if (b === 0xe0) {
+      need = 2
+      lo = 0xa0
+    } else if (b >= 0xe1 && b <= 0xec) need = 2
+    else if (b === 0xed) {
+      need = 2
+      hi = 0x9f
+    } else if (b >= 0xee && b <= 0xef) need = 2
+    else if (b === 0xf0) {
+      need = 3
+      lo = 0x90
+    } else if (b >= 0xf1 && b <= 0xf3) need = 3
+    else if (b === 0xf4) {
+      need = 3
+      hi = 0x8f
+    } else return i
+    if (i + need >= buf.length) return i
+    for (let k = 1; k <= need; k += 1) {
+      const c = buf[i + k]
+      const min = k === 1 ? lo : 0x80
+      const max = k === 1 ? hi : 0xbf
+      if (c < min || c > max) return i
+    }
+    i += need + 1
+  }
+  return -1
+}
+
 const nulScanned = []
 let packagesWalked = 0
 for (const dir of pkgDirs) {
@@ -333,6 +390,26 @@ for (const dir of pkgDirs) {
         `string is identical)`,
     )
   }
+}
+
+// The same population, the same Buffer, the other way a file stops being text.
+// Separate loop rather than a second branch inside the one above, because a file
+// with a NUL should report THAT — its escape-the-byte remedy is specific — and a
+// reader given both findings for one byte would fix the wrong one.
+for (const file of nulScanned) {
+  const buf = readFileSync(file)
+  const at = firstInvalidUtf8(buf)
+  if (at === -1) continue
+  const line = buf.subarray(0, at).toString('utf8').split('\n').length
+  const byte = `0x${buf[at].toString(16).padStart(2, '0')}`
+  problems.push(
+    `source text: ${file.replace(ROOT + '/', '')} is not valid UTF-8 — first bad ` +
+      `byte ${byte} at offset ${at} (line ${line}). grep and rg skip a file like ` +
+      `this with NO output, NO warning and exit 1, so a search that missed it ` +
+      `reads exactly like a search that found nothing — quieter than a NUL, which ` +
+      `at least announces itself. Re-encode the file as UTF-8, or write the ` +
+      `character as an escape its own syntax provides`,
+  )
 }
 
 // Run-level backstop beneath the per-package one above: if `pkgDirs` itself
@@ -407,6 +484,6 @@ if (problems.length > 0) {
 console.error(
   `Workspace integrity: OK — ${pkgDirs.length} packages, no phantom deps, ` +
     `all @nielspeter/eess* locally linked, every build cleans its dist/, ` +
-    `${nulScanned.length} source files across ${packagesWalked} packages free of raw NUL bytes, ` +
+    `${nulScanned.length} source files across ${packagesWalked} packages valid UTF-8 and free of raw NUL bytes, ` +
     `${probeRootsWalked} probe roots free of leftover fixtures.`,
 )
