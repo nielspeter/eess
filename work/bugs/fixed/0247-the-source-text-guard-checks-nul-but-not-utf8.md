@@ -24,7 +24,7 @@
 ```
 
 It reads each file as a Buffer and looks for `0x00`
-(`scripts/check-workspace-integrity.mjs:320`). That is the **loud** half: a NUL
+(`scripts/check-workspace-integrity.mjs:425`). That is the **loud** half: a NUL
 makes `file(1)` say `data` and `grep` say `Binary file … matches` — a visible
 refusal a reader can act on.
 
@@ -125,7 +125,7 @@ UTF-8 half did not arrive at all.
       `gate coverage — OK`.
 - [x] `npm run validate` green from a run that reached the last step.
 
-## A near-miss worth recording: the scenario the harness never ran
+## A near-miss, and the mechanism that now prevents it
 
 The first version of this fix added the scenario to `bad-waived-gates.mjs` and
 stopped there. It passed when invoked by hand — and `check:nonvacuity` still
@@ -133,38 +133,71 @@ reported **69** fixtures, exactly as before, because the harness runs an explici
 `gateNode(...)` row per scenario and nothing had registered one.
 
 So the guard had a test, the test passed, and the gate that exists to prove tests
-fire could not see it. Two edits closed it: the `GATE_FOR` row, and the
-`check:integrity` claim list — and the harness's own coverage check caught the
-second (`gate "integrity/source-text-utf8" is in the list but no check:* claims
-it`), which is that check earning its place.
+fire could not see it.
 
-This is the same hand-kept-list class as the `PROBE_PATHS` sweep in
-`bad-waived-gates.mjs`, which bug 0242's work also had to be reminded about. Two
-lists, both hand-kept, both silently tolerant of an omission. Worth its own
-record if it happens a third time; noted here rather than filed, because two
-instances is a pattern and not yet a mechanism.
+**This record originally stopped at "two instances is a pattern and not yet a
+mechanism" and declined to build one.** Both reviews rejected that, from the same
+observation: the mechanism already existed one screen away. `gateCoverage()`
+catches a gate row no `check:*` claims, and `check-nonvacuity.mjs` already reads
+`check-corpus.mjs`'s SOURCE to assert every rule id it can emit has a fixture. The
+same technique over `SCENARIOS\['…'\]` closes the inverse.
 
-## The gate caught me ticking a box before it was true
+It is built. Sabotage-verified in both directions:
 
-Worth one paragraph, because it is this record's own subject one level up.
+| sabotage                                          | result                                                                                                                  |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| a scenario declared with no `gates` row           | `declares scenario "integrity/unregistered-probe" but no gate row runs it`                                              |
+| the scan pattern drifts so the check sees nothing | `declares no SCENARIOS this check could see — the pattern it scans for has drifted, so this check is asserting nothing` |
 
-The `npm run validate` box was ticked while writing the Verification section,
-before that run had happened. `check:ledger`'s `findFinishedNotClosed` then red:
+The second row is the ADR-010 half: a check that can silently examine zero things
+is the defect, not just a check that misses one thing.
 
-```
-work/bugs/0247-…md:5  ledger/finished-not-closed
-  every one of this record's 5 ledger box(es) is ticked and none is open,
-  but State is "Draft" — so the board counts finished work as outstanding.
-```
+`PROBE_PATHS` remains hand-kept and unguarded. Named here rather than fixed,
+because it is a different list with a different failure mode, and this change is
+already large.
 
-It is the same rule that stayed quiet on
-[0238](./0238-the-kernels-reason-free-waiver-promotion-is-untested.md) an hour
-earlier, and correctly so — that record had one genuinely open box. Here every
-box was ticked, so the rule had something to say and said it.
+## The unit test, and the one I wrote wrong first
 
-The fix was to close the record in this PR rather than to un-tick the box: the
-work IS done, and a same-PR close is what this project requires. But the tick
-preceded the evidence, which is exactly the habit the box exists to prevent.
+Testing review's matrix was the sharpest artifact of the round: eight sabotages
+of the validator, **six of which left the scenario green**. Its argument for a
+unit test was that this is the first hand-rolled _algorithm_ under `scripts/` —
+the other checks are structural sweeps whose behaviour is only observable end to
+end, while this one is a pure function of bytes whose end-to-end probe reaches
+one of six branches.
+
+`firstInvalidUtf8` and `invalidUtf8At` moved to `scripts/lib/source-text.mjs`
+with `scripts/lib/source-text.test.mjs` beside them, run by `node --test` from
+`check:integrity` — the convention `scripts/lib/family-re-exports.test.mjs` set
+and `check:family` already wires.
+
+**The first version of that test caught three of the eight rows and looked like
+it caught all eight.** Its class assertions went through `invalidUtf8At`, which
+delegates the verdict to `TextDecoder` and is therefore right _whatever the
+scanner does_ — so accepting an `F0` overlong, accepting past `U+10FFFF`, and
+never reporting truncation all stayed green against a test written to catch
+exactly them. Caught by running the matrix instead of assuming it, which is the
+only reason it did not ship.
+
+Fixed by asserting the scanner directly as well as the verdict. The whole matrix
+now:
+
+| sabotage of the validator             | caught by                       |
+| ------------------------------------- | ------------------------------- |
+| scanner always returns `-1`           | unit test                       |
+| accept surrogates (`ED` clamp)        | unit test                       |
+| accept `E0` overlongs                 | unit test                       |
+| accept `F0` overlongs                 | unit test                       |
+| accept beyond `U+10FFFF` (`F4` clamp) | unit test                       |
+| skip unknown lead bytes               | unit test                       |
+| never report truncation               | unit test                       |
+| drop the `0xC2` floor                 | unit test                       |
+| delete the UTF-8 finding entirely     | non-vacuity scenario            |
+| suppress the NUL finding              | the NUL scenario, independently |
+
+And the delegation means none of the first eight can let a bad file through any
+more — re-running review's own sabotage, the gate still rejects an overlong, a
+surrogate and an out-of-range lead. They are caught because a wrong offset is
+still a wrong finding, not because the verdict depends on them.
 
 ## What became of the branch this came from
 
@@ -194,6 +227,65 @@ unpushed month-old branch deserves the answer without redoing the triage.
 was not its headline fix — that had already arrived by another route — but a
 _second_ guard mentioned in passing in its commit message. A branch triaged by
 its title would have been deleted with that still unlanded.
+
+## What review found — the guard was right, the reasoning around it was not
+
+Three reviewers ran against the committed fix. **None found a defect in the
+validator.** Two differential-tested it independently against
+`TextDecoder('utf-8', { fatal: true })` — 8.1M and 16.7M+ inputs, covering
+overlong forms, surrogates, `0xF5`–`0xFF`, stray continuations and
+truncation-at-EOF — with **zero disagreements**, matching a third run of 1.4M
+done here. What they found instead was a set of claims that outran their
+mechanism, which is the more useful finding.
+
+**The correctness nobody could check.** The validator was right; nothing in the
+repo knew it. The shipped probe exercised one byte pattern out of the five the
+code's own comment claimed to reject. Enforcement measured the consequence:
+replace the lead-byte table with the naive form — dropping the `0xC2` floor and
+the overlong, surrogate and range clamps — and the scenario stayed **green**
+while the guard accepted `C0 AF`, `E0 80 80`, `ED A0 80` and `F5 80 80 80`. A
+table simplification made in good faith would have reopened the bug with every
+gate green.
+
+The fix is architecture review's, and it removes the risk class rather than
+patching it: **`TextDecoder` decides validity; the hand-rolled walk only
+locates.** Re-running the exact sabotage now, the gate still rejects both an
+overlong and a surrogate file. A bug in the walk can misreport a line number; it
+can no longer decide whether a file is text. The three payloads are in the
+scenario anyway, because the classes are what the finding names.
+
+**A claim about `rg` that was false.** The finding said _"grep and rg skip a file
+like this"_. Enforcement measured ripgrep 14.1.1: it does **not** skip a file for
+invalid UTF-8 — its binary detection is NUL-based, and it decodes lossily and
+searches. A reader who checked with `rg` would have seen the file searched fine
+and concluded the gate was crying wolf. The message now says `grep`, and says
+explicitly that `rg` finding it is not evidence the file is fine.
+
+**A rationale for a mechanism that could not exist.** The two scan loops were
+justified by _"a reader given both findings for one byte would fix the wrong
+one"_. A raw NUL is **valid UTF-8** — `U+0000` encodes as `0x00` — so no single
+byte can produce both findings, and no suppression existed anyway. Architecture
+review caught it; the loops are merged, one read per file, and the early
+`continue` that made the split look necessary is gone. This record's own Fix
+section had said "in the same loop", which is not what shipped — that is now
+true.
+
+**A scope rationale that measurement contradicts.** The scan excludes everything
+outside `packages/*/src`, on the written reason that the non-vacuity fixtures
+carry corrupt payloads. Enforcement scanned the whole repo: **zero files carry
+either defect, fixtures included** — they plant through `Buffer.from(...)` into
+`packages/core/src` precisely so they stay greppable. The comment is corrected,
+and the uncovered population (1,239 text files) is filed as
+[0248](../0248-the-source-text-guard-covers-a-sixth-of-the-repo.md) rather than
+widened here, because widening is a decision with consequences.
+
+**And this record's own code pointer went stale in the commit that wrote it.** It
+cited `check-workspace-integrity.mjs:320` for the NUL scan; the fix moved that
+line. `check:corpus` reported green because the pointer rule asserts the line
+EXISTS, not what it says — a record about a gate that reports green over a
+property it does not check, shipping a pointer that a gate reports green over
+without checking. Corrected to `:425`; the structural gap is real and belongs to
+whoever picks up the pointer rule.
 
 ## Related
 
