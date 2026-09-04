@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import type { Condition } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdPointer } from '../model/pointers.js'
-import { mdViolation } from '../model/violation.js'
+import { mdViolation, type ArchViolation } from '../model/violation.js'
 
 /** Result of a unique-path-suffix lookup. */
 type SuffixMatch =
@@ -18,7 +18,9 @@ export interface PointerResolveOptions {
    *   path *ends with* the pointer path on a `/` boundary. Bare basenames are the
    *   single-segment case, so `index.vue` and `admin/index.vue` resolve by the
    *   same rule. Multiple matches → ambiguous, which is a violation naming the
-   *   candidates (bug 0254); `externalRoots` still get a chance first.
+   *   candidates (bug 0254). `externalRoots` are tried first and win if the
+   *   pointer grounds there; if they do not resolve it — including when none is
+   *   present on disk — the ambiguity is reported rather than skipped.
    * - `exact` — a pointer must be the exact repo-relative path; no suffix or
    *   basename leniency. Choose this when pointers are required to carry full
    *   paths (e.g. the external repo's `spec-check.ts` strictness).
@@ -123,6 +125,15 @@ export function pointerResolves(
         // It falls through to the null-target path instead of returning here,
         // so a corpus with `externalRoots` still gets to resolve it there — an
         // in-repo ambiguity is not evidence about an external checkout.
+        //
+        // **That fall-through has to be complete, and the first version was not.**
+        // Review found both exits from the external-roots block swallowing the
+        // ambiguity: no root present on disk returned `[]` (the same silent skip
+        // this bug exists to close, through a door the fix left open), and a
+        // present-but-no-match returned "not in the repo" — false, since the
+        // pointer is in the repo twice, and it discards the candidates and the
+        // remedy. `ambiguousViolation()` below is now the fallback on every exit
+        // that would otherwise skip or misreport.
         let ambiguousWith: readonly string[] = []
         if (corpus.fileIndex.has(wanted)) {
           // Exact repo-relative path — preferred in both modes.
@@ -133,10 +144,38 @@ export function pointerResolves(
           targetRel = m.kind === 'unique' ? m.file : null
         }
 
+        /**
+         * The ambiguous finding, built once and used at every exit that would
+         * otherwise skip or misclassify it. `searched` names the external roots
+         * when there were any, so the reader can see the pointer was not simply
+         * unexamined.
+         */
+        const ambiguousViolation = (searched: readonly string[] = []): ArchViolation[] => [
+          mdViolation({
+            element: `${p.doc.relPath} → ${p.raw}`,
+            file: p.doc.file,
+            line: p.line,
+            message:
+              `ambiguous code pointer: "${p.raw}" matches ${ambiguousWith.length} files ` +
+              `(${ambiguousWith.join(', ')}) — cite a longer suffix so it names one` +
+              (searched.length > 0
+                ? `; also not under external root(s) ${searched.join(', ')}`
+                : ''),
+            sourceText: p.doc.text,
+            context: ctx,
+          }),
+        ]
+
         if (targetRel === null && externalRoots.length > 0) {
           // Not in-repo, external roots configured (plan 0069 Phase 5).
           const present = presentExternalRoots(externalRoots)
-          if (present.length === 0) return [] // skipped, not passed — caller reports the scope
+          if (present.length === 0) {
+            // The documented skip (plan 0069) is for a pointer whose only hope
+            // was an absent checkout. An ambiguous one already failed in-repo,
+            // and that has nothing to do with the missing root.
+            if (ambiguousWith.length > 0) return ambiguousViolation()
+            return [] // skipped, not passed — caller reports the scope
+          }
           for (const rootDir of present) {
             const abs = join(rootDir, wanted)
             let external: number
@@ -160,6 +199,7 @@ export function pointerResolves(
             }
             return [] // grounds in the external root
           }
+          if (ambiguousWith.length > 0) return ambiguousViolation(present)
           return [
             mdViolation({
               element: `${p.doc.relPath} → ${p.raw}`,
@@ -178,16 +218,7 @@ export function pointerResolves(
           // was meant, and a deterministic rewrite would pick whichever sorted
           // first and call it fixed. Message carries the remedy because
           // `because` is rule-level and one rule covers all three classes.
-          return [
-            mdViolation({
-              element: `${p.doc.relPath} → ${p.raw}`,
-              file: p.doc.file,
-              line: p.line,
-              message: `ambiguous code pointer: "${p.raw}" matches ${ambiguousWith.length} files (${ambiguousWith.join(', ')}) — cite a longer suffix so it names one`,
-              sourceText: p.doc.text,
-              context: ctx,
-            }),
-          ]
+          return ambiguousViolation()
         }
 
         if (targetRel === null) {

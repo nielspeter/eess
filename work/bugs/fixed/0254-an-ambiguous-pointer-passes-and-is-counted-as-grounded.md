@@ -134,16 +134,16 @@ rule-level and one rule covers all three classes, which need different remedies.
 ## What the sixteen turned out to be
 
 Resolving them is where the fix earned its keep — **the ambiguity was hiding
-staleness**. Two pointers named a line that does not say what the document
+staleness**. Three pointers named a line that does not say what the document
 claimed, and could not have failed while ambiguous:
 
-| document             | was                                      | is                                                                                                    |
-| -------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `adr/010-…md`        | a bare `terminal-builder.ts` at line 467 | `packages/core/src/terminal-builder.ts:344` — core has 447 lines, so the cited line did not exist     |
-| `work/bugs/0178-…md` | a bare `rule-builder.ts` at 259          | `packages/core/src/rule-builder.ts:280` — `deadGlobDiagnosis()` had moved 21 lines                    |
-| `work/bugs/0130-…md` | a bare `check.ts` at 153                 | `packages/ts/src/cli/commands/check.ts:260`, and the record's "verified live, unchanged" was not true |
+| document             | was                                      | is                                                                                                                                                                                                                                                 |
+| -------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `adr/010-…md`        | a bare `terminal-builder.ts` at line 467 | `packages/core/src/terminal-builder.ts:344` — the file is 447 lines by the gate's own arithmetic (`split('\n').length`, which counts the empty element after the trailing newline; `wc -l` says 446), so line 467 did not exist under either count |
+| `work/bugs/0178-…md` | a bare `rule-builder.ts` at 259          | `packages/core/src/rule-builder.ts:280` — `deadGlobDiagnosis()` had moved 21 lines                                                                                                                                                                 |
+| `work/bugs/0130-…md` | a bare `check.ts` at 153                 | `packages/ts/src/cli/commands/check.ts:260`, and the record's "verified live, unchanged" was not true                                                                                                                                              |
 
-A third finding is substantive rather than positional:
+A fourth finding is substantive rather than positional:
 **`resetStderrGuardForTests`, which [0168](../0168-no-unused-exports-misses-barrel-re-exports-and-inline-type-imports.md)
 cites as an example of a barrel-only export, no longer exists anywhere under
 `packages/ts/src`.** That record now says so; its example set needs re-deriving
@@ -156,6 +156,44 @@ repointing them at today's code would falsify the measurement the audit exists t
 preserve. Sanctioned as a region, because a directive inside a table cell is inert
 ([0255](../0255-an-exclusion-directive-inside-a-table-cell-is-inert.md)). Verified
 narrow: a pointer immediately after the sanctioned region still reds.
+
+## What review found, and what the first fix got wrong
+
+Seven lenses reviewed the fix. Three of them independently found the same defect,
+and it was the fix's own claim:
+
+**The fix shut the front door and left a side door open.** `externalRoots` are
+consulted before the new ambiguous branch, and every exit from that block
+returned. So with `externalRoots` configured, an ambiguous pointer either
+returned `[]` when no root was present on disk — **the identical silent skip this
+record exists to close** — or was reported as `broken code pointer: … not in the
+repo`, which is false, since the pointer is in the repo twice, and which throws
+away the candidates and the remedy.
+
+The changeset, the code comment and the JSDoc all asserted the opposite as a
+settled fact. The enforcement lens measured why that survived: it inverted the
+stated precedence and **all 116 `eess-md` tests still passed** — the claim had
+never had a test. Three tests now cover the three cases, and both repairs are
+sabotage-measured: each mutation fails exactly the test that covers it.
+
+**The escape hatch the changeset offered did not work.** An `eess-exclude`
+comment matches a violation by rule id, and a chain that never calls
+`.rule({ id })` has none — so the sanction is silently inert, which is the shape
+[0255](../0255-an-exclusion-directive-inside-a-table-cell-is-inert.md) is about,
+reached by a second route. The prerequisite was documented once, in a kernel doc
+the changeset did not link. It is now stated where the recipe is given.
+
+**Three smaller things, each the same species as the bug:** the README — the doc
+a stranger reads first — still described the old behaviour; an assertion added in
+this very fix used backticks where the message uses double quotes and so could
+never fail; and the count in the Verification box below was pinned and wrong, then
+its first correction itemised the delta and was wrong again.
+
+The parts that held up under independent measurement: all sixteen repaired
+pointers were hand-verified against real code rather than accepted as gate-green;
+the fold-audit sanctions were judged legitimate historical carve-outs rather than
+coverage suppression; and the non-vacuity row catches both the original
+regression and a reclassification into `broken`.
 
 ## Verification
 
@@ -173,12 +211,42 @@ narrow: a pointer immediately after the sanctioned region still reds.
       the id fired. **Sabotage-measured:** restoring the `return []` takes both
       the json and terminal runs to exit 0, so the row reds. 73 → 74 fixtures.
 - [x] The sixteen are resolved (13) or sanctioned (3), and re-measured rather
-      than assumed: `pointers 464 live · ✓ all ground in code`. The count moved
-      from 465 because repairing 0168's table replaced a pointer with prose.
+      than assumed — by re-running the gate, not by arithmetic on a remembered
+      number.
+
+      **This box pinned `464` and was wrong; the committed tree prints `463`.**
+      Review caught it. The first correction then tried to itemise the delta and
+      was also wrong — it attributed one pointer to this record leaving the live
+      set when the record carries five (measured at the commit in question, not
+      at the tip). **The reviewer who caught the pin then itemised it too, and
+      also miscounted that same term — as two.** Three attempts at one small
+      piece of arithmetic, three different answers, by two parties who were both
+      being careful. The itemisation is dropped rather than attempted a fourth
+      time.
+
+      **The invariance, which is what the box should have said from the start:**
+      the live pointer count falls whenever a document leaves the live set or a
+      citation stops being a pointer, and `check:corpus` prints the current
+      figure on every run. That sentence cannot go stale. A pinned integer in a
+      record that is itself about to move into `fixed/` — changing the very count
+      it pins — cannot help but. `work/bugs/fixed/0249…` records the identical
+      lesson from the previous round; writing it down did not stop me repeating
+      it, which is worth more than the number was.
+
 - [x] No JSDoc claims a report that is not built — the "reported, never failed"
       docblock and the `paths` option's own wording both corrected.
-- [x] `docs/markdown.md` describes the rule, so the next person meets it in the
-      guide rather than in a red build.
+- [x] `docs/markdown.md` **and `packages/md/README.md`** describe the rule, so
+      the next person meets it in the guide rather than in a red build. The
+      README was missed first time and caught by two lenses.
+- [x] The `externalRoots` precedence is _tested_, not merely stated: three cases
+      (absent roots, present-but-no-match, resolves-externally) with a CONTROL,
+      each sabotage-measured. The two non-resolving exits used to skip silently
+      and to report a false "not in the repo".
+- [x] The exclusion recipe in the changeset names its `.rule({ id })`
+      prerequisite, so the sanction it offers is not silently inert.
+- [x] The summary classifier is extracted to `scripts/lib/pointer-classes.mjs`
+      with its own tests, because its labels have now been wrong twice and could
+      not be tested in place.
 - [x] The gate's pointer summary learned the third class. It had two buckets and
       printed "16 stale (line past end)" over sixteen ambiguous ones — the same
       mislabelling the split was added to remove, one class later. It is now a

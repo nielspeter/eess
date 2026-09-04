@@ -2038,7 +2038,9 @@ let allOk = true
 // would inflate the denominator — the exact over-claim this harness exists to
 // prevent — so it carries its own status wording and is excluded from the count.
 let gateCount = 0
+const QA_ONLY = process.env.QA_ONLY ? process.env.QA_ONLY.split(',') : undefined
 for (const [name, run] of gates) {
+  if (QA_ONLY && !QA_ONLY.includes(name)) continue
   let res
   try {
     res = run()

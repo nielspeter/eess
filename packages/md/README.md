@@ -27,7 +27,9 @@ links(c).that().areInternal().should().resolve().check()
 
 // `path:line` code pointers ground against real files
 // (resolves by unique path-suffix: `admin/index.vue` matches the one file
-//  ending with it; pass `{ paths: 'exact' }` to require full repo paths)
+//  ending with it. A bare name matching SEVERAL files is a violation naming
+//  the candidates — it identifies none of them. Pass `{ paths: 'exact' }` to
+//  require full repo paths instead.)
 pointers(c).that().areLive().should().resolve().check()
 
 // documents have the sections/tables they should

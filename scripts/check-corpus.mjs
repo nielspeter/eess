@@ -42,6 +42,8 @@ import {
   proposalNumberFromPath,
 } from './lib/proposal-ruling.mjs'
 import { nonTerminalFreezes, frozenScopeRefusal } from './lib/frozen-scope.mjs'
+// Extracted so the labels can be tested — they have been wrong twice in place.
+import { pointerSummary } from './lib/pointer-classes.mjs'
 
 // `fixed/` is the bugs lane's own done-folder (bug 0086) — frozen alongside
 // the others so bug history is not held to today's code (its pointers are not
@@ -206,30 +208,6 @@ const pointerRule = pointers(c)
   .rule({ id: 'corpus/pointers-resolve' })
 const pointersChecked = pointerRule.select({ label: 'pointer', ...anon }).elements.length
 const stale = pointerRule.violations()
-// Three classes, counted by what each violation says. Written as a table
-// rather than "broken vs everything else": the first version of this split had
-// two buckets, and when bug 0254 added the third class the gate printed
-// "16 stale (line past end)" over sixteen AMBIGUOUS pointers — the same
-// mislabelling this split was added to remove, one class later. A `rest`
-// bucket keeps a fourth class from ever being silently absorbed again.
-const POINTER_CLASSES = [
-  ['broken', 'broken code pointer', 'no such file'],
-  ['stale', 'stale code pointer', 'line past end'],
-  ['ambiguous', 'ambiguous code pointer', 'matches several files'],
-]
-const pointerSummary = () => {
-  if (stale.length === 0) return '✓ all ground in code'
-  const parts = []
-  let classified = 0
-  for (const [label, prefix, gloss] of POINTER_CLASSES) {
-    const n = stale.filter((v) => v.message.startsWith(prefix)).length
-    classified += n
-    if (n > 0) parts.push(`${n} ${label} (${gloss})`)
-  }
-  const rest = stale.length - classified
-  if (rest > 0) parts.push(`${rest} unclassified — add its class to POINTER_CLASSES`)
-  return `✗ ${parts.join(' · ')}`
-}
 
 // dir MUST be set: the preset default is 'docs/adr/**'; ours live at /adr.
 // report: 'return' — the preset emits nothing; this script owns reporting
@@ -875,7 +853,7 @@ line(
   // "stale" sends the reader to check a line number in a file that does not
   // exist — review hit exactly that confusion on this change. The two are
   // different repairs: broken needs the path fixed, stale needs the line.
-  `${pointersChecked} live · ${pointerSummary()}`,
+  `${pointersChecked} live · ${pointerSummary(stale.map((v) => v.message))}`,
 )
 line(
   'ADRs',

@@ -29,17 +29,39 @@ ambiguous citation as a violation with the same remedy.
 **Why this is marked breaking on a `0.x` minor rather than a patch:** it can turn
 a green build red without the consumer changing a line. If your corpus has bare
 filenames that match several files, `check()` will now fail on them. Three ways
-out, in order of preference: cite a longer suffix (the message tells you the
-candidates); sanction the region with
-`<!-- eess-exclude-start <rule-id>: reason -->` where the citation is
-deliberately historical; or move that rule to `.warn()` while you work through
-them.
+out, in order of preference:
+
+1. **Cite a longer suffix** — the message names the candidates, so the shortest
+   disambiguating prefix is visible without opening either file.
+2. **Sanction the region** where the citation is deliberately historical:
+   `<!-- eess-exclude-start <rule-id>: reason -->` … `<!-- eess-exclude-end -->`.
+   **This requires `.rule({ id })` on the chain**, because an exclusion comment
+   matches a violation by rule id and a chain without `.rule()` has none — the
+   comment is then silently inert, with no diagnostic. So
+   `pointers(c).that().areLive().should().resolve().check()` (the form this
+   README shows) must become
+   `pointers(c).that().areLive().should().resolve().rule({ id: 'my/pointers' }).check()`
+   before any sanction takes effect. This prerequisite is not new, but it was
+   only ever written down in `docs/violation-reporting.md`, far from the place
+   you need it.
+3. **Move that rule to `.warn()`** while you work through them — reports without
+   touching the exit code.
 
 No autofix is attached, deliberately — choosing among the candidates is a
 judgement, and a deterministic rewrite would pick whichever sorted first.
-`exact` mode is unaffected (it never consulted suffix matching), and a corpus
-with `externalRoots` still gets to resolve there first: an in-repo ambiguity is
-not evidence about an external checkout.
+`exact` mode is unaffected — it never consulted suffix matching, so it cannot
+produce an ambiguity.
 
-`@nielspeter/eess-crossvalidate` is named here because it depends on `eess-md`;
-its own behaviour is unchanged.
+With `externalRoots` configured, a root that **resolves** the pointer still wins:
+an in-repo ambiguity is not evidence about an external checkout. If the roots do
+not resolve it — including when none of them is present on disk — the ambiguity
+is reported, naming the roots that were searched. Those two exits used to skip
+silently and to report a false `not in the repo` respectively; both are fixed
+here and both now have tests.
+
+`@nielspeter/eess-crossvalidate` is named as a courtesy, not because the gate
+required it: its dependency on `eess-md` is an **optional peer**, and every
+import is `import type`, so `check:release`'s dependents graph (which is scoped
+to real `dependencies`) never asked for it. Its own ambiguous-citation handling
+is separate, pre-existing code. **Nothing about its behaviour changes** — if you
+use crossvalidate, there is nothing here to migrate.

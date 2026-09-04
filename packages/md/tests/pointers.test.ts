@@ -26,7 +26,11 @@ describe('pointers()', () => {
     // assertions that keep the fix from being "flag everything" — without them
     // a condition that violated on every pointer would pass the three above.
     expect(messages).not.toMatch(/:3\b/) // ok full path
-    expect(messages).not.toMatch(/`app\.ts:2`/) // ok bare basename
+    // Double quotes, not backticks: every message quotes the raw pointer as
+    // `"app.ts:2"`. The first version of this line used backticks and therefore
+    // could never match, passing whatever the code did — a vacuous assertion in
+    // a test about vacuity, found in review.
+    expect(messages).not.toMatch(/"app\.ts:2"/) // ok bare basename
     expect(messages).not.toMatch(/:1000/) // fenced → ignored
   })
 
