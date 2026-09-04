@@ -80,62 +80,21 @@ the board only.
 > the severity moved. Found by the working-method reviewer on its first run
 > ([0250](./fixed/0250-the-review-roster-has-no-working-method-lens.md)).
 
-## The larger half, found 2026-09-04: the close convention is wrong, not just the lanes
+## A second defect in the same document, split out
 
-This record was filed about the **Lanes** table. The **State-token** table beneath
-it is wrong in a way that costs more, and neither this record nor
-[0249](./0249-most-of-work-is-outside-every-corpus-root.md) covered it.
+The **State-token** table beneath the Lanes table teaches one union vocabulary
+where `check-ledger.mjs` declares three disjoint ones — a bigger problem than this
+record's, and a different one.
 
-`work/README.md` presents one four-token vocabulary — `Draft` / `Ready` / `Done` /
-`Won't-do` — as _the_ close convention. `scripts/check-ledger.mjs` declares three
-deliberately **disjoint** ones:
+An earlier version of this work widened 0108 to carry it. Architecture review
+called that wrong: _split, don't widen_. The two share a filename and nothing
+else — different table, different binding target (`LANES`, not the directory
+tree), different prerequisites — and bundled, the record is closable in neither
+half, the constraint this repo already applies to plan phases. It is
+[0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md).
 
-| lane      | states                                            | terminal           |
-| --------- | ------------------------------------------------- | ------------------ |
-| plans     | Draft, Ready, **Open**, Done, Won't-do            | Done, Won't-do     |
-| bugs      | Draft, Ready, **Fixed**, **Rejected**, **Parked** | Fixed, Rejected    |
-| proposals | Draft, **Promoted**, **Rejected**                 | Promoted, Rejected |
-
-Measured across `work/`: dozens of records carry `Fixed`, three carry `Promoted`,
-two carry `Parked`. **None of the three appears in the map.**
-
-And the separation is load-bearing, not incidental — the gate's own comment says
-so: _"They are scanned separately because a union would let a plan marked `Fixed`
-pass as a known state — the precision this gate exists for."_ The one-screen map
-teaches exactly the union the gate was built to refuse. A newcomer who closes a
-bug as `Done` per this table gets a red gate the map cannot explain.
-
-**The dogfood is worse than the product on lanes — and the product is no better
-on state tokens.** `kit/templates/work/README.md`, what eess _exports_ as its
-portable working method, lists two lanes including `bugs/`, where the repo's own
-copy lists one and calls the bugs lane "cargo-cult". The two files have diverged
-into structurally different documents, so a fix to either will not propagate and
-nothing binds them.
-
-**But on the axis this section is about, the kit is not the reference — measured,
-and correcting this record's own first framing, which credited it with getting
-the vocabulary right:**
-
-- `kit/templates/work/README.md` teaches ONE union vocabulary for every item,
-  `Draft / Ready / Open / Done / Won't-do` — the same union defect described
-  above. A bug closed as `Done` per the kit is refused by the bugs lane exactly
-  as it is per the repo's map.
-- `kit/templates/plan.md` says `Draft · Ready · Done · Won't-do`, **omitting
-  `Open`** — so the kit contradicts itself.
-- `kit/skills/close/SKILL.md` gives `**State:** Done` (or `Won't-do`) for every
-  lane.
-- **`Fixed` appears zero times across all three.** The exported method never
-  teaches the bugs lane's terminal token at all.
-
-So fixing only the repo's copy leaves the exported method teaching the union, and
-anyone taking the kit as the reference inherits the defect. Whatever binding is
-built for the map is owed to the kit's copy too.
-
-**A third binding, higher-value than this record's original two and proposed by
-nobody until now:** bind the map's state-token table to `check-ledger.mjs`'s
-`LANES` vocabularies, so the map cannot again teach a token the gate rejects.
-That is the difference between fixing today's text and making tomorrow's drift
-impossible.
+Both are blocked on the same root gap, and 0251 carries a second prerequisite
+this record does not.
 
 > **Blocked, noted 2026-09-04.** This record's fix binds the Lanes table to the
 > real directories with `rows()` + `correspondence()`. That rule cannot work yet:
@@ -166,22 +125,7 @@ currently the least-gated document in a corpus whose thesis is that specs are
 checked, and it is a spec — this is the dogfooding gap, not just a stale
 paragraph.
 
-**3 — Correct the close convention, and bind THAT too.** Added 2026-09-04, and
-this is the larger half of the record: the State-token table teaches one union
-vocabulary where `check-ledger.mjs` declares three disjoint ones. Replace it with
-the three, and bind the table to `LANES` the same way item 2 binds the Lanes
-table to the directories — so the map cannot again teach a token the gate
-rejects. Without this item, a reader could implement items 1 and 2, tick every
-box below, and close this record with the half it calls larger unbuilt.
-
-**4 — The kit's copy is owed the same fix.** `kit/templates/work/README.md`,
-`kit/templates/plan.md` and `kit/skills/close/SKILL.md` all teach the union, and
-none mentions `Fixed`. Fixing only this repo's map leaves the exported method
-wrong. Whether the kit can carry lane-specific vocabularies at all — a fresh
-`kit/`-bootstrapped project starts with one lane — is the open question inside
-this item, not a detail of it.
-
-**5 — Not in scope here:** giving `work/proposals/` its own README and
+**3 — Not in scope here:** giving `work/proposals/` its own README and
 lifecycle. That is a convention to decide, not a defect to fix — see _Deferred_.
 
 No changeset — corpus documentation only.
@@ -192,14 +136,7 @@ No changeset — corpus documentation only.
       `proposals/` and `spikes/` are unlisted, and passes once rows exist.
 - [ ] The reverse direction goes red too: add a row for a directory that does
       not exist and the gate fails.
-- [ ] **The State-token table carries all three lane vocabularies**, and is bound
-      to `LANES` — a token taught here that the gate would reject fails
-      `check:corpus`. Item 3; without this box the record closes with its larger
-      half unbuilt.
-- [ ] **The kit's three copies teach the same thing this repo's map does**, or
-      the record says explicitly why a portable kit cannot carry lane-specific
-      vocabularies. Item 4.
-- [ ] `check:corpus` reports the new rules in its per-check counts, so each
+- [ ] `check:corpus` reports the new rule in its per-check counts, so the
       binding is visibly non-vacuous rather than a silently-zero rule.
 - [ ] `npm run validate` green.
 

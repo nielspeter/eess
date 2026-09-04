@@ -86,11 +86,31 @@ with three real options:
 
 **Not option 2 (fold it into `enforcement`).** That lens is the one the skill
 declares mandatory and forbids omitting, and its question is about _mechanisms_:
-can this go red, is the break class named, is the tier honest. Method findings ask
-the same question of _records_: was that number measured, does that comment
-describe a mechanism that exists, does the board agree with the record. Related,
-but loading both onto one persona is how a mandatory lens gets quietly weaker —
-and enforcement's brief is already the longest of the six.
+can this go red, is the break class named, is the tier honest.
+
+**The reason given here first was weak, and architecture review said so.** It
+argued from brief length — "enforcement's brief is already the longest" — which is
+an argument about a file, not a lens. It also dismissed option 2 in a form it need
+not take: not "load method onto enforcement" but "add four lines extending _is the
+claim honest_ from mechanisms to the records describing them", which is what a
+bullet is for.
+
+The reason that survives is about **investigation, not taxonomy**. Enforcement
+reads code and asks whether it can go red. Method reads prose and _re-runs its
+measurements_ — its highest-value instruction is literally "run the command, read
+the gate's real output, and say what it printed", aimed at documents. Different
+tool sequences over different subjects. Folding them puts two investigations on
+one agent's budget, and the mandatory one loses.
+
+**And the evidence half of this record's original argument does not survive at
+all.** It listed six findings of this class and called them caught "by luck of who
+was looking". Six for six is not luck — it is the panel working. If enforcement
+and architecture reliably step outside their briefs to catch method defects, the
+honest reading is that briefs are emphasis rather than fences, and a seventh does
+not make the other six stop. The cost of a persona is certain; the marginal catch
+was inferred. What justifies the seventh is the different investigation above —
+and, as it turned out, its first two runs finding a hole in its own mandate, an
+unmeasurable claim in its own brief, and a record neither existing bug had named.
 
 **Not option 3 (declare it unowned).** The record argued an explicit non-owner
 beats a silent one, and that is true — but it is a fallback, not a fix. This

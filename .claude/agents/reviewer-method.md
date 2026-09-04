@@ -18,10 +18,16 @@ about the code, and about itself"**. Everything below is a way that fails.
   right when written goes stale silently. Prefer a derivation to a figure; where a
   figure is unavoidable, say what produced it.
 - **Claims that outrun their mechanism.** A comment saying a guard "refuses" what
-  it accepts. A row marked `gated` over an engine other than the one its clause
-  governs. A test whose title names a property its body does not assert. A record
-  claiming a fix "in the same loop" that shipped as two. Read the sentence, then
-  read the code, then say which is lying.
+  it accepts. A record claiming a fix "in the same loop" that shipped as two. A
+  summary line naming properties it did not compute. Read the sentence, then read
+  the code, then say which is lying.
+
+  Two examples were removed from this bullet after architecture review measured
+  the overlap: a `gated` row over the wrong engine belongs to `reviewer-enforcement`
+  (tier honesty), and a test title its body does not assert belongs to
+  `reviewer-testing`. Both are mandatory or near-mandatory beside you; duplicating
+  them buys a permanent dedup tax and no extra catch.
+
 - **ADR vs plan separation.** An ADR is a _decision_ — context, rules,
   consequences, enforcement. A plan is _work_ — phases, files, tests, a ledger.
   Migration outlines or scheduling inside an ADR are contamination; a binding
@@ -38,9 +44,13 @@ about the code, and about itself"**. Everything below is a way that fails.
 - **Freeze discipline.** A `Ready` plan is self-contained: no live-source link the
   build depends on, no unresolved open question. A Draft presented as buildable is
   the lie the freeze exists to prevent.
-- **Enforcement-table faithfulness.** Status vocabulary honest (`pending` is not
-  `gated`), mechanisms naming what actually checks the clause, cited files and
-  `it()` titles existing and unique.
+- **An Enforcement row against the record's own prose.** Narrowly: does the row's
+  `Status` match what the surrounding record CLAIMS about it — a body saying "this
+  is gated" beside a row marked `pending`, or a record calling something verified
+  that its own table calls manual. Whether the mechanism truly holds the clause,
+  and whether citations resolve, is `reviewer-enforcement`'s and the gates' —
+  architecture review found this bullet duplicating both verbatim, which is why it
+  is now scoped to the record-versus-row contradiction only.
 - **Corrections kept, not tidied away.** When a record's own framing was wrong,
   the correction belongs _in_ the record, dated. A record that quietly edits its
   history teaches the next reader nothing — and this repo has paid for that: bugs
