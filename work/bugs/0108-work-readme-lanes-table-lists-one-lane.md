@@ -96,13 +96,21 @@ half, the constraint this repo already applies to plan phases. It is
 Both are blocked on the same root gap, and 0251 carries a second prerequisite
 this record does not.
 
-> **Blocked, noted 2026-09-04.** This record's fix binds the Lanes table to the
-> real directories with `rows()` + `correspondence()`. That rule cannot work yet:
-> `work/README.md` is outside every `check:corpus` root, so a correspondence
-> authored today examines **zero** rows and reports green — a vacuous gate, which
-> is the defect this repo exists to prevent. Sequence behind
-> [0249](./0249-most-of-work-is-outside-every-corpus-root.md), which owns the root
-> gap. Neither record named the other until the working-method reviewer did.
+> **Unblocked 2026-09-04.** This record's fix binds the Lanes table to the real
+> directories with `rows()` + `correspondence()`. It was blocked because
+> `work/README.md` sat outside every `check:corpus` root, so a correspondence
+> authored then would have examined **zero** rows and reported green — a vacuous
+> gate, the defect this repo exists to prevent.
+>
+> [0249](./fixed/0249-most-of-work-is-outside-every-corpus-root.md) widened the
+> roots to `work/**`; `work/README.md` is now a live corpus document, so the rule
+> this record calls for would examine real rows. **The prerequisite is met and
+> nothing else about this record changed.** Neither record named the other until
+> the working-method reviewer did.
+>
+> One addition that arrived with the unblocking:
+> [0256](./0256-the-spike-lane-is-run-but-never-declared.md) needs the `spikes/`
+> row this record's Fix already calls for, and defines what the lane means.
 
 ## Fix
 

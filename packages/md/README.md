@@ -19,7 +19,7 @@ import { corpus, docs, links, pointers } from '@nielspeter/eess-md'
 
 const c = corpus({
   roots: ['docs/**'],
-  frozen: ['**/completed/**', '**/archived/**'], // historical records: reported, never failed
+  frozen: ['**/completed/**', '**/archived/**'], // historical: links still checked, pointers not
 })
 
 // markdown-to-markdown links resolve

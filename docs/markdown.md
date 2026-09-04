@@ -17,7 +17,7 @@ import { corpus, links, pointers } from '@nielspeter/eess-md'
 
 const c = corpus({
   roots: ['docs/**'],
-  frozen: ['**/completed/**', '**/archived/**'], // historical records: reported, never failed
+  frozen: ['**/completed/**', '**/archived/**'], // historical: links still checked, pointers not
 })
 
 // markdown-to-markdown links resolve
@@ -91,7 +91,7 @@ Two things worth knowing:
 
 - **Links** — internal cross-links between markdown files resolve to real targets. Static-site conventions are supported (extensionless links, `index.md` directories, a site root) via options on `.resolve()`.
 - **Pointers** — inline `path:line` references (the code pointers you scatter through plans and ADRs) point at files that exist, at lines that exist. Liveness is fence-aware, so example pointers inside code blocks aren't treated as live claims.
-- **Frozen roots** — completed/archived docs describe the world as it was; drift in them is reported but never fails the build.
+- **Frozen roots** — completed/archived docs describe the world as it was. Their links are still gated; their pointers are not examined at all, so pointer drift in them is neither reported nor fatal. To get a report, select them explicitly: `pointers(c).that().areFrozen().should().resolve().warn()`.
 
 ## Documents, links, pointers, and task items
 

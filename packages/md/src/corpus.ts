@@ -14,9 +14,16 @@ export interface CorpusOptions {
   /** Globs (repo-relative, POSIX) selecting the markdown files to load, e.g. `['docs/**']`. */
   readonly roots: readonly string[]
   /**
-   * Globs marking frozen folders — historical records whose drift is reported
-   * but never failed. Defaults to the near-universal `completed`/`archived`;
-   * extend for your project's lifecycle folders (`delivered`, `wont-do`, …).
+   * Globs marking frozen folders — historical records held to their own time
+   * rather than to today's code.
+   *
+   * What this actually does, stated after the previous wording was measured
+   * false (bug 0253): a frozen document's LINKS are still checked, and its code
+   * pointers are excluded from `pointers().areLive()` — so they are not examined
+   * at all. They are not "reported but never failed"; nothing reports them.
+   *
+   * Defaults to the near-universal `completed`/`archived`; extend for your
+   * project's lifecycle folders (`delivered`, `wont-do`, …).
    */
   readonly frozen?: readonly string[]
   /**

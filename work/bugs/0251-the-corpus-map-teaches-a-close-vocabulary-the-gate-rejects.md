@@ -16,11 +16,11 @@
 0108 is about the **Lanes** table listing one lane where four exist. This is the
 **State-token** table beneath it. They share a filename and nothing else:
 
-|                | 0108                                                        | this record                          |
-| -------------- | ----------------------------------------------------------- | ------------------------------------ |
-| wrong table    | Lanes                                                       | State tokens                         |
-| binding needed | table ↔ real directories                                    | table ↔ `check-ledger.mjs`'s `LANES` |
-| blocked on     | [0249](./0249-most-of-work-is-outside-every-corpus-root.md) | 0249 **and** a refactor (below)      |
+|                | 0108                      | this record                          |
+| -------------- | ------------------------- | ------------------------------------ |
+| wrong table    | Lanes                     | State tokens                         |
+| binding needed | table ↔ real directories  | table ↔ `check-ledger.mjs`'s `LANES` |
+| blocked on     | ~~0249~~ — met 2026-09-04 | the `LANES` refactor (below)         |
 
 Architecture review's call was _split, don't widen_: bundled, the record is
 closable in neither half — the constraint this repo already applies to plan
@@ -65,9 +65,10 @@ Fixing only this repo's copy leaves the exported method wrong.
 
 ## Two prerequisites, one of which is code
 
-1. **`work/README.md` must be inside a `check:corpus` root** —
-   [0249](./0249-most-of-work-is-outside-every-corpus-root.md). Until then a
-   binding rule examines zero rows and reports green.
+1. ~~**`work/README.md` must be inside a `check:corpus` root**~~ — **met
+   2026-09-04.** [0249](./fixed/0249-most-of-work-is-outside-every-corpus-root.md)
+   widened the roots to `work/**`, so the document is live and a binding rule
+   would examine real rows rather than reporting green over zero.
 2. **`LANES` is not importable, and adding `export` will not fix it.**
    `scripts/check-ledger.mjs:49` declares it as a bare `const` in a module with
    top-level side effects — it runs the whole scan at `:84`, walks `work/` at
@@ -105,7 +106,7 @@ Fixing only this repo's copy leaves the exported method wrong.
 
 - [0108](./0108-work-readme-lanes-table-lists-one-lane.md) — the other half of the
   same document, split from this on review's advice.
-- [0249](./0249-most-of-work-is-outside-every-corpus-root.md) — the root gap both
-  halves are blocked on.
+- [0249](./fixed/0249-most-of-work-is-outside-every-corpus-root.md) — the root gap
+  both halves were blocked on, closed 2026-09-04.
 - [0250](./fixed/0250-the-review-roster-has-no-working-method-lens.md) — the lens
   whose first run found this.

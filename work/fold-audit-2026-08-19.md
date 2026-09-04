@@ -6,15 +6,20 @@
 necessarily code-reading — a gate's root list, an export's presence, a
 documented divergence — and the manifest's note column says which.
 
-> **This file is not link-checked.** `scripts/check-corpus.mjs`'s `ROOTS` are
-> `work/plans/**`, `work/proposals/**`, `work/bugs/**`, `adr/**`, `docs/**` —
-> `work/*.md` matches none of them, so this record's links and `path:line`
-> citations are unverified while `check:corpus` reports a confident green.
-> `work/dogfood-coverage.md` and `work/research-external-signals-2026-07.md`
-> are in the same position. Noted here rather than silently, because this
-> record's own backlog files the identical gap against the repo's front-door
-> docs (upstream 0046) — adding itself to the unchecked set without saying so
-> would be the thing it criticises. **Citations below are package-relative
+> **This file IS link-checked, as of 2026-09-04.** It used to say the opposite,
+> and the note is kept rather than deleted because the note is what got it fixed.
+> It read: _"`scripts/check-corpus.mjs`'s `ROOTS` are `work/plans/**`,
+> `work/proposals/**`, `work/bugs/**`, `adr/**`, `docs/**` — `work/*.md` matches
+> none of them, so this record's links and `path:line` citations are unverified
+> while `check:corpus` reports a confident green"_, and closed by saying that
+> shorthand was _"another reason this file should join a checked root"_.
+>
+> `ROOTS` is now `work/**`
+> ([bug 0249](./bugs/fixed/0249-most-of-work-is-outside-every-corpus-root.md)),
+> so this document's links resolve or the build fails. `work/dogfood-coverage.md`
+> and `work/research-external-signals-2026-07.md` came in with it. A record that
+> declared its own blind spot instead of hiding it is the reason the blind spot
+> was findable at all. **Citations below are package-relative
 > where a file is named inside a package** (`smells/duplicate-bodies.ts:125`
 > means `packages/ts/src/smells/duplicate-bodies.ts:125`); that shorthand is
 > another reason this file should join a checked root.

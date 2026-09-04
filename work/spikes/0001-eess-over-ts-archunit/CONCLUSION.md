@@ -23,7 +23,7 @@
 >
 > The collision that will actually catch someone: **this repo's bug 0086 is the
 > corpus-link-routing bug** cited throughout `scripts/check-corpus.mjs` — the file
-> [bug 0249](../../bugs/0249-most-of-work-is-outside-every-corpus-root.md) is
+> [bug 0249](../../bugs/fixed/0249-most-of-work-is-outside-every-corpus-root.md) is
 > about. A reader following that thread meets two different bug 0086s. The
 > NUL-bytes work this record calls "0086" landed here as
 > [0099](../../bugs/fixed/0099-nul-bytes-make-md-gherkin-unsearchable.md) and
