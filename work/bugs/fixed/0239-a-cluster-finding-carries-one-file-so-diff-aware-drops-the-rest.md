@@ -178,5 +178,5 @@ and the review confirmed it; this is not a blanket criticism of the arc's tests.
 
 - [0169](../0169-computesimilarity-ignores-call-targets-so-opposite-functions-read-as-duplicates.md) — the record
   this whole branch was named for, and the arc's origin.
-- [0238](../0238-the-kernels-reason-free-waiver-promotion-is-untested.md) — sibling
+- [0238](./0238-the-kernels-reason-free-waiver-promotion-is-untested.md) — sibling
   finding from the same post-merge review round.

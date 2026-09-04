@@ -2,8 +2,10 @@
 
 ## Status
 
-- **State:** Draft — reproduced by sabotage and fixed; `/close` owes the move
-  to `fixed/` once `validate` is green and the change is reviewed.
+- **State:** Fixed — reproduced by sabotage, fixed, reviewed and merged in
+  PR #92 on 2026-09-03. Closed 2026-09-04, a day late and in a separate PR;
+  see the closing note below, which is the part worth reading.
+  `Deferred: none`.
 - **Severity:** High — **latent false green, in the suppression path.** Nothing
   is wrong today: the promotion is present and correct. What is missing is
   anything that would notice if it stopped. Delete twenty lines from
@@ -19,7 +21,7 @@
 
 ## Symptom
 
-[ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) changed what
+[ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) changed what
 a **reason-free** exclusion directive does in the kernel. Before, the parser
 **refused** it: the waiver did not apply, the finding still fired, and the
 author saw red. `packages/core/src/exclusion-comments.ts:311` records the
@@ -142,16 +144,60 @@ line above a test that does not assert it.
       test.
 - [x] ADR-012's row names a mechanism per engine, and carries a dated correction
       saying what it claimed before.
-- [ ] `npm run validate` green from a run that reached the last step.
+- [x] `npm run validate` green from a run that reached the last step. Re-run at
+      close on `main` + this branch, and the two sabotages above re-measured on
+      the merged code rather than trusted from the record — see the note below.
+
+## Closing note: this record shipped without its close, and that is the finding
+
+The fix merged in **PR #92 on 2026-09-03**. This record stayed `Draft` in
+`work/bugs/` for a day, with its board row saying `Draft` about work that was
+already on `main`.
+
+**That breaks this project's own rule** — a plan or bug closes in the same PR as
+its fix, never as a separate post-merge one — and it is the rule I have been
+corrected on before. So the close is now itself a separate PR, which is the
+second-best outcome and the only one still available. Recorded rather than
+quietly tidied, because a record that closes silently a day late teaches the next
+reader nothing.
+
+**Why no gate caught it.** `check:ledger`'s `findFinishedNotClosed` reports a
+record whose ledger is fully ticked while its `State` is still open. This one had
+one genuinely open box — the `validate` line — so the rule stayed quiet, exactly
+as designed. Its narrowness is deliberate and documented
+(`scripts/lib/finished-not-closed.mjs`): a record with any open box is "in
+progress", because the false positive costs more than the miss. That judgment is
+still right; what it means is that **"merged but not closed" is not a mechanically
+detectable state** while a verification box legitimately remains open, and the
+discipline has to hold it.
+
+**The board said `Draft` too**, and nothing binds that either — filed while
+closing bug 0242 as
+[0244](../0244-the-board-status-cell-is-bound-to-nothing.md). This record was one
+of the rows that made 0244's case.
+
+**Re-verified at close rather than taken from the record**, because a day-old
+claim about a merged tree is exactly the kind that goes stale:
+
+- Deleting the promotion loop in `packages/core/src/execute-rule.ts` reds the
+  kernel suite from 209 passing to 208 passing and **1 failing** — the test this
+  record added, and nothing else.
+- The non-vacuity fixture, sabotaged **and rebuilt**, prints
+  `FAIL — … Saw 0 violation(s), none of them the promotion` and exits 0 where the
+  harness requires 1. On clean source it exits 1, which is the harness's
+  "the gate fired" contract. The rebuild is the step: `dist/` is what the fixture
+  reads.
+- ADR-012's clause row names three mechanisms, one per engine, and carries its
+  dated correction.
 
 ## Related
 
-- [ADR-012](../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) — the
+- [ADR-012](../../../adr/012-the-kernel-borrows-a-lexer-it-cannot-own.md) — the
   decision whose compensating half this record protects.
-- [0189](./fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)
+- [0189](./0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)
   — the same shape in ADR-008: a row `gated` over an engine other than the one
   its clause governs, green for a full release cycle while the clause was
   violated.
-- [plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md) — owns the
+- [plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md) — owns the
   two `applyFilters` copies. Until it lands, any clause about filter behaviour
   needs a citation per engine, which is this record's third fix item.
