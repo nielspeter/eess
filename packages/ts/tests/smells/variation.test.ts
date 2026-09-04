@@ -138,4 +138,34 @@ describe('message rendering', () => {
     expect(summary).not.toContain('\n')
     expect(summary).toContain('…')
   })
+
+  it('says a pair was too large to diff rather than that it differs in nothing', async () => {
+    // ADR-010 at the rendering layer. `variationBetween` already refuses to
+    // invent axes for an unaligned pair — asserted above — but the caller that
+    // turns that refusal into words was uncovered, and it is the half a reader
+    // sees. An empty `axes` reaching the default branch renders "identical text:
+    // a literal copy", which is the opposite of the truth in the direction that
+    // costs most: it tells an author two bodies are a copy when the tool in fact
+    // declined to compare them.
+    const { varianceSummary } = await import('../../src/smells/duplicate-report.js')
+    const huge = {
+      kinds: new Array<SyntaxKind>(2000).fill(SyntaxKind.Identifier),
+      texts: new Array<string | undefined>(2000).fill('x'),
+      calls: [],
+      nodeCount: 2000,
+      distinctVocabulary: 1,
+    }
+    const summary = varianceSummary({
+      a: undefined as never,
+      b: undefined as never,
+      similarity: 1,
+      fingerprintA: huge,
+      fingerprintB: huge,
+    })
+    expect(summary).toBe(' — too large to diff')
+    // Named, not merely "not the copy string": asserting the exact text is what
+    // stops this passing on a future branch that also avoids the copy wording
+    // while still saying nothing useful.
+    expect(summary).not.toContain('literal copy')
+  })
 })

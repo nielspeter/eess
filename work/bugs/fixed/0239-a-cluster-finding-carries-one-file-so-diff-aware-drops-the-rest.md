@@ -7,7 +7,7 @@
   sabotage claims and found two things this record now carries: the JSON stream
   dropped the new field, and the volume citation was an inert number.
   `Deferred: none` — the one thing left undone is a sibling in the suppression
-  path, filed as [0242](../0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md)
+  path, filed as [0242](./0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md)
   rather than carried here as an open box.
 - **Severity:** High — **false green on the most realistic adoption path.** A
   developer copies a body into a second file, runs the gate with `--changed`,
@@ -100,7 +100,7 @@ so they were never affected. Two sibling mechanisms still match on the finding's
 own file alone — `.excluding()` patterns and comment suppression — and both fail
 in the safe direction, reporting something the author tried to waive rather than
 hiding something real. The suppression half is filed as
-[0242](../0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md).
+[0242](./0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md).
 
 ## What else this arc left unasserted
 

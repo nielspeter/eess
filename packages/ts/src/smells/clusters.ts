@@ -1,10 +1,33 @@
+import { ArchConfigError } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
 import type { SimilarPair } from './similar-pairs.js'
 
+/**
+ * At least two bodies — a cluster is built from a pair, so it can never hold
+ * fewer.
+ *
+ * Typed rather than asserted so `clusterViolation` can be TOTAL. It used to
+ * return `ArchViolation | undefined` on a lookup that cannot fail, and the
+ * caller dropped that with `if (violation)` — a finding vanishing with no
+ * diagnostic. Architecture review of bug 0242 pointed out that the file
+ * rejected exactly that shape for `pairViolation` one screen above, with the
+ * argument that applies here word for word: unreachable today is not a defence,
+ * the type is what stops it becoming reachable.
+ */
+type NonEmptyMembers = readonly [ArchFunction, ArchFunction, ...ArchFunction[]]
+
 /** A group of bodies that are mutually reachable through reported similarity. */
 export interface SimilarCluster {
-  /** Members, in first-seen order; the first is what the violation anchors to. */
-  readonly members: readonly ArchFunction[]
+  /**
+   * Members, in first-seen order — i.e. the source walk's, which is a property
+   * of the filesystem.
+   *
+   * The first is NOT what the violation anchors to; it was until bug 0242, and
+   * this comment said so for as long. `clusterViolation` picks the anchor by
+   * path then line, and sorts the members it shows, precisely so neither depends
+   * on this order.
+   */
+  readonly members: NonEmptyMembers
   /** The pairs that put these members in one group. */
   readonly pairs: readonly SimilarPair[]
   /** Highest similarity among {@link pairs}. */
@@ -63,11 +86,33 @@ export function clusterPairs(pairs: readonly SimilarPair[]): SimilarCluster[] {
     }
   }
 
-  return [...byRoot.values()].map((entry) => ({
-    members: entry.members,
-    pairs: entry.pairs,
-    peakSimilarity: entry.pairs.reduce((best, p) => Math.max(best, p.similarity), 0),
-  }))
+  // Narrowed here, at the one place clusters are constructed, rather than at
+  // every place they are read. An entry exists only because a pair created it,
+  // and both of that pair's ends are pushed, so `members` always holds at least
+  // two — but the compiler cannot see that through `push`. A cluster that
+  // somehow held fewer is a broken invariant in THIS function, and dropping it
+  // silently at emission is what the type change exists to prevent, so it is
+  // reported as a configuration finding rather than filtered away.
+  return [...byRoot.values()].map((entry) => {
+    const [first, second, ...rest] = entry.members
+    if (!first || !second) {
+      throw new ArchConfigError(
+        'duplicateBodies',
+        'a similarity cluster was built with fewer than two members, which cannot happen: ' +
+          'every cluster is created from a pair and both of its ends are recorded. ' +
+          'This is a defect in clusterPairs, not in the code being analysed.',
+      )
+    }
+    // Annotated, never cast (ADR-005): the annotation makes the compiler CHECK
+    // the literal is a valid `NonEmptyMembers`, where a cast would only assert
+    // it.
+    const members: NonEmptyMembers = [first, second, ...rest]
+    return {
+      members,
+      pairs: entry.pairs,
+      peakSimilarity: entry.pairs.reduce((best, p) => Math.max(best, p.similarity), 0),
+    }
+  })
 }
 
 /**

@@ -12,10 +12,22 @@ import {
   commentSuppressions,
   commentSuppressionNotice,
 } from '@nielspeter/eess/internal'
-import { project, functions, call } from '../../src/index.js'
+import fs from 'node:fs'
+import os from 'node:os'
+import { project, functions, call, smells } from '../../src/index.js'
 import { functionNotContain } from '../../src/conditions/body-analysis-function.js'
 import { applyFilters } from '../../src/core/execute-rule.js'
 import type { ArchViolation } from '@nielspeter/eess'
+
+/** Temp fixture roots, removed after each test. */
+const created: string[] = []
+
+afterEach(() => {
+  while (created.length > 0) {
+    const dir = created.pop()
+    if (dir !== undefined && fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
 
 /**
  * End-to-end coverage for inline exclusion comments
@@ -199,5 +211,107 @@ describe('a file whose exclusion comments could not be read', () => {
     applyFilters([violationIn(process.cwd())], { metadata: { id: 'test-rule' } })
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('could not read'))
     expect(warn).toHaveBeenCalledWith(expect.stringContaining(process.cwd()))
+  })
+})
+
+/**
+ * Bug 0242's headline claim, asserted on the mechanism rather than on a proxy.
+ *
+ * Every other test for that fix reads a violation's fields. This one commits the
+ * `// eess-exclude` an author would actually write and asks the only question
+ * that matters: does it still suppress when the filesystem hands the detector
+ * its files in the other order?
+ *
+ * Before the fix a duplicate was reported at whichever member the walk reached
+ * first, so this directive suppressed on one machine and not the other — a green
+ * build going red with no change on either side. Added after testing review
+ * observed that the record's headline was the one thing nothing tested.
+ */
+describe('a committed duplicate waiver survives a reversed file walk (bug 0242)', () => {
+  const DUP_ID = 'smells/duplicate-waiver'
+
+  const body = (name: string): string =>
+    `export function ${name}(items: string[]): number {\n` +
+    `  let sum = 0\n` +
+    `  for (const each of items) {\n` +
+    `    sum = sum + each.length\n` +
+    `  }\n` +
+    `  return sum\n` +
+    `}\n`
+
+  /** A two-file duplicate; `waiveIn` names the file that carries the directive. */
+  const build = (waiveIn: 'a' | 'b' | 'none'): string => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0242-waiver-'))
+    created.push(dir)
+    const directive = `// eess-exclude ${DUP_ID}: duplicate accepted for this test\n`
+    fs.writeFileSync(path.join(dir, 'a.ts'), (waiveIn === 'a' ? directive : '') + body('alphaFn'))
+    fs.writeFileSync(path.join(dir, 'b.ts'), (waiveIn === 'b' ? directive : '') + body('bravoFn'))
+    fs.writeFileSync(
+      path.join(dir, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: { strict: true, target: 'ES2022', module: 'ESNext' },
+        include: ['*.ts'],
+      }),
+    )
+    return path.join(dir, 'tsconfig.json')
+  }
+
+  const run = (tsconfig: string, reverse: boolean): void => {
+    resetCommentSuppression()
+    const base = project(tsconfig)
+    const walked = reverse
+      ? { ...base, getSourceFiles: () => [...base.getSourceFiles()].reverse() }
+      : base
+    smells.duplicateBodies(walked).minDistinctVocabulary(0).minLines(2).rule({ id: DUP_ID }).check()
+  }
+
+  /** Which file's directive did the suppressing, by name — not merely "no throw". */
+  const silencedIn = (): string[] =>
+    commentSuppressions()
+      .filter((entry) => entry.ruleId === DUP_ID)
+      .map((entry) => entry.file.split('/').pop() ?? '')
+      .sort()
+
+  it('the waiver on the anchor file suppresses in BOTH walk directions', () => {
+    const tsconfig = build('a')
+    expect(() => {
+      run(tsconfig, false)
+    }).not.toThrow()
+    // WHICH directive did the suppressing, not merely that nothing threw.
+    // `not.toThrow()` cannot tell "the waiver silenced the one intended finding"
+    // from "the waiver silenced everything" — bug 0233's open class, and this
+    // file already imports the channel that answers it.
+    expect(silencedIn()).toEqual(['a.ts'])
+
+    // The half that was broken: reversed, the finding used to be reported at
+    // `b.ts`, so this directive stopped applying and the build went red.
+    expect(() => {
+      run(tsconfig, true)
+    }).not.toThrow()
+    expect(silencedIn(), 'the reversed walk suppressed via a different file').toEqual(['a.ts'])
+  })
+
+  it('CONTROL — with no waiver at all the rule reds in both directions', () => {
+    // Without this, a rule that found nothing would satisfy the test above.
+    const tsconfig = build('none')
+    expect(() => {
+      run(tsconfig, false)
+    }).toThrow(ArchRuleError)
+    expect(() => {
+      run(tsconfig, true)
+    }).toThrow(ArchRuleError)
+  })
+
+  it('CONTROL — a waiver on the NON-anchor file suppresses in neither direction', () => {
+    // The converse, and the reason the anchor has to be deterministic at all: a
+    // directive is bound to one location, so exactly one of the two files can
+    // carry it. If `b.ts` also worked, the anchor would not be deciding anything.
+    const tsconfig = build('b')
+    expect(() => {
+      run(tsconfig, false)
+    }).toThrow(ArchRuleError)
+    expect(() => {
+      run(tsconfig, true)
+    }).toThrow(ArchRuleError)
   })
 })
