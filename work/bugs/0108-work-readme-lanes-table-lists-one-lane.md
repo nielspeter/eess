@@ -67,6 +67,14 @@ all, so the lane a reviewed proposal lives in has no documented lifecycle —
 which is how an inbound proposal came to sit in it with no provenance field
 until [002](../proposals/002-comment-embedded-links.md) was reviewed.
 
+> **Blocked, noted 2026-09-04.** This record's fix binds the Lanes table to the
+> real directories with `rows()` + `correspondence()`. That rule cannot work yet:
+> `work/README.md` is outside every `check:corpus` root, so a correspondence
+> authored today examines **zero** rows and reports green — a vacuous gate, which
+> is the defect this repo exists to prevent. Sequence behind
+> [0249](./0249-most-of-work-is-outside-every-corpus-root.md), which owns the root
+> gap. Neither record named the other until the working-method reviewer did.
+
 ## Fix
 
 **1 — Tell the truth in the table.** Add rows for `bugs/` (board `BUGS.md`,

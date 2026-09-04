@@ -1,7 +1,7 @@
 ---
 name: reviewer
-description: 'Review code or plans with expert personas. Runs individual or multiple reviewers in parallel. Personas: architect, customer, devops, product, testing, enforcement.'
-argument-hint: '[all | architect | customer | devops | product | testing | enforcement ...] [--diff | --branch | --plan]'
+description: 'Review code or plans with expert personas. Runs individual or multiple reviewers in parallel. Personas: architect, customer, devops, product, testing, enforcement, method.'
+argument-hint: '[all | architect | customer | devops | product | testing | enforcement | method ...] [--diff | --branch | --plan]'
 ---
 
 # Expert Review
@@ -57,13 +57,30 @@ From `$ARGUMENTS`, extract:
 | `product`      | `reviewer-product`     | `pm`         |
 | `testing`      | `reviewer-testing`     | `qa`, `test` |
 | `enforcement`  | `reviewer-enforcement` | `enf`        |
+| `method`       | `reviewer-method`      | `meth`       |
 | `all` or empty | (every option above)   |              |
 
-This is an **eess repo** — the enforcement persona (`reviewer-enforcement`) is the
-fail-closed lens from the manifesto + ADR-008/009, and is **not optional for
-reviews of this repo's own code or plans**: a review of a gate, rule, ADR, or plan
-that ships a way to fail a build must have it. When reviewing this repo's own
-plans or gate code, run `all` (or at minimum `architect product enforcement`).
+This is an **eess repo**, and two personas are not optional for reviews of its
+own work:
+
+- **`reviewer-enforcement`** — the fail-closed lens from the manifesto +
+  ADR-008/009. A review of a gate, rule, ADR, or plan that ships a way to fail a
+  build must have it.
+- **`reviewer-method`** — the lens over the RECORD rather than the code: was a
+  stated number measured or asserted, does a comment claim a mechanism that
+  exists, does the board agree with the record, did the close ride the PR that
+  fixed it. **Mandatory whenever the change touches `work/`, `adr/` or `docs/`**,
+  which for this repo is nearly always.
+
+  Added for [bug 0250](../../../work/bugs/fixed/0250-the-review-roster-has-no-working-method-lens.md).
+  Before it, a grep of all six personas for that vocabulary returned three
+  incidental hits and zero owners — while findings of exactly this class kept
+  arriving, caught by whichever reviewer happened to look outside its brief. The
+  roster is gated in both directions, so an unowned lens is a hole in a contract,
+  not a gap in a convention.
+
+When reviewing this repo's own plans or gate code, run `all` (or at minimum
+`architect enforcement method`).
 
 **Review mode** (default: `--diff`):
 
@@ -183,7 +200,7 @@ After all agents return, write a synthesis:
 
 ### Review Summary
 
-For each persona, show a one-line verdict (e.g. "Architect: 0 critical, 2 important, 1 minor"). If a persona abstained, show "Abstained — no relevant concerns". If a persona's report was unrecoverable, show "no report received" — never omit the row. The **enforcement** row is mandatory for reviews of this repo's own gates/plans (a review of a gate without the enforcement lens is incomplete).
+For each persona, show a one-line verdict (e.g. "Architect: 0 critical, 2 important, 1 minor"). If a persona abstained, show "Abstained — no relevant concerns". If a persona's report was unrecoverable, show "no report received" — never omit the row. The **enforcement** row is mandatory for reviews of this repo's own gates/plans (a review of a gate without the enforcement lens is incomplete), and the **method** row is mandatory whenever the change touches `work/`, `adr/` or `docs/` (a review that read the code and not the record it ships with is incomplete the other way).
 
 ### Critical Issues (must address)
 

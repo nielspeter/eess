@@ -116,7 +116,13 @@ rather than requiring it to be solved first.
    the inline `<!-- eess-exclude corpus/pointers-resolve: … -->` already exists and
    may be the whole answer.
 4. Fix `work/README.md` while it is finally being checked; it under-declares the
-   lane model it is the map for.
+   lane model it is the map for. **That drift is already filed as
+   [0108](./0108-work-readme-lanes-table-lists-one-lane.md)** (2026-08-12), which
+   this record failed to name when it was written — found by the working-method
+   reviewer on its first run. The two are ordered: 0108's own fix binds the map's
+   Lanes table with `rows()` + `correspondence()`, and a rule authored today would
+   examine **zero** rows and report green, because `work/README.md` is not in any
+   corpus root. **0108 is blocked by this record.**
 5. A `check:nonvacuity` row, or the widening is a claim rather than a check.
 
 **Not proposed: making `work/spikes/` a ledger lane.** The first draft asked the
