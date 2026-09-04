@@ -4,7 +4,8 @@
 
 - **State:** Fixed — `work/**` is a corpus root, concluded spikes are frozen, and
   a fixture reds if the root is narrowed again. Closed in the PR that fixed it.
-  `Deferred: work/README.md's content → 0108 and 0251`.
+  `Deferred: work/README.md's content → 0108 and 0251; the ambiguous-pointer
+fixture → 0254`.
 - **Severity:** Medium — **a region of the corpus no link or pointer check
   reads.** Nothing is broken today. What is missing is anything that would notice
   when it breaks — and one of the seven documents already makes a false claim
@@ -15,7 +16,7 @@
 
 ## Symptom
 
-`check:corpus` declares its roots explicitly (`scripts/check-corpus.mjs:43`):
+`check:corpus` declares its roots explicitly (`scripts/check-corpus.mjs:68`):
 
 ```js
 const ROOTS = ['work/plans/**', 'work/proposals/**', 'work/bugs/**', 'adr/**', 'docs/**']
@@ -60,7 +61,8 @@ picked it up: they would have gone looking for a ledger fix that is not needed.
 first — and nothing checks its links. It is also **already wrong**: it declares
 one lane (`plans/`) and says `bugs/`, `refinement/` and `support/` "appear only
 when the work calls for them; until then they'd be cargo-cult". Live reality is
-three declared lanes, 141 bug records, 9 proposals, and `proposals/` unmentioned.
+three declared lanes, a bug lane of well over a hundred records, 9 proposals,
+and `proposals/` unmentioned.
 
 That is the shape this repo keeps paying for — a document readers trust, bound to
 nothing — and it is the third instance filed in two days
@@ -95,7 +97,7 @@ pointer is not merely unchecked today; once the root is added it is checked and
 Spike records are the documents most likely to carry upstream pointers, because a
 spike exists to evaluate someone else's code.
 
-## Fix (not built)
+## Fix
 
 **The mechanism already exists, and the first draft of this record missed it.**
 `check:corpus` freezes `['**/completed/**', '**/wont-do/**', '**/fixed/**',
@@ -162,22 +164,64 @@ honest box disposition at close, not document lifecycles.
   "reported, never gated" on every run and now says
   "links gated, pointers not examined". Filed as
   [0253](../0253-frozen-drift-is-not-reported-only-unexamined.md).
-- [~] `dropped-on-purpose` — **the foreign-repo pointer fixture.** This box asked
-  for a fixture using a foreign path that suffix-matches a local file, on the
-  assumption that live documents would carry upstream citations. Freezing
-  concluded spikes removed that population: the documents most likely to cite
-  another repo are now the ones whose pointers are not gated. The suffix trap
-  is unchanged for live documents and is still real — it is described in this
-  record's own body for whoever meets it — but building a fixture for a case
-  this fix no longer creates would be coverage theatre.
-- [x] **The document count moves**: 168 live → 172 live, 1166 links → 1201, 456
-      pointers → 466, and 88 frozen → 91. Stated as a delta rather than pinned,
-      per this record's own earlier correction.
+- [~] `deferred→`[0254](../0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md)
+  — **the foreign-repo pointer fixture.** This box asked for a fixture using a
+  foreign path that suffix-matches a local file. It was first disposed
+  `dropped-on-purpose`, arguing that freezing concluded spikes removed the
+  population that would carry upstream citations. **Review measured that premise
+  false in both directions, and it is the sharpest correction this record owes.**
+
+  `work/spikes/` contains **zero** `path:line` pointers — 659 pointers corpus-wide
+  with nothing frozen, none of them in a spike — so the freeze removed an empty
+  set. Meanwhile the same widening _admitted_ the case: `work/fold-audit-2026-08-19.md`
+  declares a bare-basename pointer convention and carries six pointers that
+  suffix-match two files each. Corpus-wide, **16 of 463 live pointers are
+  ambiguous**, and `packages/md/src/conditions/pointer-resolve.ts:118` returns an
+  empty array for them, commented "reported elsewhere, never failed" — there is
+  no elsewhere, which the review confirmed by grep. They are counted inside the
+  summary's `✓ all ground in code`.
+
+  `dropped-on-purpose` requires the case not to exist. It exists sixteen times,
+  six of them created by this commit, and it is a pass constructed from no
+  evidence — ADR-010's own subject. That is 0254's, not this record's, but the
+  disposition had to stop claiming the population was gone.
+
+- [x] **The document count moves, and the gate prints it on every run.** Stated
+      as the invariance, which is what this box asked for in its draft
+      ("state the invariance, not the integer") and what its first disposition
+      did not do: it wrote eight pinned integers and cited the instruction
+      against pinning as authority for them. **Three of the four "after" figures
+      were already stale in the commit that shipped them** — review measured 92
+      frozen (not 91), 1211 links (not 1201), 463 pointers (not 466) — because
+      the box was measured before this record moved itself into `fixed/` and
+      before 0253 was filed. A delta between two pinned endpoints is two pinned
+      numbers. The one figure worth keeping is the size of the population this
+      fix covered, **7 documents (4 live + 3 frozen)**, because that is a
+      property of the change and not of the corpus's current size.
 - [~] `deferred→`[0108](../0108-work-readme-lanes-table-lists-one-lane.md) and
   [0251](../0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md)
   — **fixing `work/README.md`'s content.** This record's Fix listed it as step 4. It is not this record's to do: the map's two defects each have an owner,
   both were blocked on exactly this root gap, and both are now unblocked. That
   is the whole of what this fix owed them.
+
+## What this does not cover
+
+`work/**` closes `work/`. It does not close the repo. **187 of 451 tracked
+`.md` files are still outside every root** — 97 under `packages/`, 30 under
+`scripts/`, 18 changesets, 17 under `.claude/`, and **14 under `kit/`**, the
+portable method kit this repo ships to adopters. `kit/` is the one that matters
+for this record's own thesis: 0251 says the kit carries the same defects as
+`work/README.md`, so the artifact most likely to teach a stranger a wrong
+convention is in the population this fix did not reach. Named here because the
+title says "work is inside the corpus" and a reader in a hurry will round that
+up. [0248](../0248-the-source-text-guard-covers-a-sixth-of-the-repo.md) is the
+same question one gate over.
+
+Two smaller exceptions inside `work/` itself, both measured: picomatch's default
+`dot: false` means a `work/.hidden/` directory does not match `work/**`, and the
+kernel's built-in ignore set skips any `dist`/`coverage`/`node_modules`
+directory under it — which is what keeps the vendored `node_modules` inside
+spike 0001 out of the corpus, so it is wanted here rather than merely tolerated.
 
 ## Related
 

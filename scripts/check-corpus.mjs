@@ -2,8 +2,9 @@
 /**
  * Dogfood: validate this repo's own engineering-corpus markdown with eess-md.
  *
- * The corpus (work/plans, work/proposals, work/bugs, adr/, docs/) must stay
- * honest:
+ * The corpus (`work/**`, `adr/**`, `docs/**` — the whole of `work/`, not a list
+ * of its lanes, so a directory added tomorrow is covered by default; bug 0249)
+ * must stay honest:
  *  - internal cross-links resolve (safety net for doc moves) — including a
  *    link to a directory that exists (bug 0086), everywhere except docs/,
  *    where a bare directory is not a page the VitePress site would serve;
@@ -15,8 +16,11 @@
  * Always reports what it scanned (documents, per-check counts, elapsed time) so
  * a fast green is provably non-vacuous, not a silent no-op.
  *
- * `**‍/completed/**`, `**‍/wont-do/**`, `**‍/fixed/**`, `**‍/archived/**` are
- * frozen (historical). Exits non-zero on a live violation. Run:
+ * Terminal folders — `completed/`, `wont-do/`, `fixed/`, `archived/`, plus
+ * `work/spikes/` — are frozen: their links are still gated, their pointers are
+ * not examined at all (bug 0253; the constant is `FROZEN` below, and what may
+ * legitimately go in it is enforced by `scripts/lib/frozen-scope.mjs`, not by
+ * this sentence). Exits non-zero on a live violation. Run:
  * `npm run check:corpus`.
  */
 import { resolve } from 'node:path'
@@ -37,9 +41,11 @@ import {
   operativeRulingLine,
   proposalNumberFromPath,
 } from './lib/proposal-ruling.mjs'
+import { nonTerminalFreezes, frozenScopeRefusal } from './lib/frozen-scope.mjs'
 
 // `fixed/` is the bugs lane's own done-folder (bug 0086) — frozen alongside
-// the others so bug history is reported, not gated against today's code.
+// the others so bug history is not held to today's code (its pointers are not
+// examined; its links still are — see bug 0253 for why "reported" was wrong).
 // `work/**`, not three lane globs (bug 0249).
 //
 // The lane list was written when three lanes were all `work/` held, and the
@@ -83,27 +89,48 @@ const elapsed = () => {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
 }
 
+// `work/spikes/**` joins the terminal folders (bug 0249). A spike CONCLUDES —
+// its record is a dated report of what was measured, not a work item — so the
+// frozen contract is right for it: links must still resolve, and its pointers
+// are not held to today's line numbers.
+//
+// **Measured while adding this, and it corrects the contract's own wording.**
+// `work/README.md` and the summary line both said frozen folders' drift is
+// "reported, never gated". The pointer rule selects `.areLive()`, so a frozen
+// document's pointers are not examined at all — nothing is reported. Gated is
+// right; reported was never true. The summary now says what happens, and the
+// gap is filed as bug 0253. Spike 0001's
+// conclusion is dated 2026-08-08 against ts-archunit 0.58.0 and cites upstream
+// paths; gating those as live pointers would demand it be kept current, which
+// is the opposite of what a terminal record is for.
+//
+// This is also what dissolves the suffix-resolution trap for that population:
+// a foreign-repo pointer in a frozen document is not examined at all. The trap
+// itself is unchanged for live documents — see the sanction comment below.
+const FROZEN = [
+  '**/completed/**',
+  '**/wont-do/**',
+  '**/fixed/**',
+  '**/archived/**',
+  'work/spikes/**',
+]
+
+// `frozen` is this gate's only subtraction, and until bug 0249's review nothing
+// checked what it took. Appending `'work/**'` here drops live pointers from 463
+// to 18 and still exits 0 — and the `work/`-rooted broken-link probe does not
+// notice, because a frozen document's links are still gated. Same refuse-to-run
+// shape as `unclassifiedRoots` above, and for the same reason: a corpus gate
+// that silently examines 4% of what it claims is worse than one that will not
+// start. See scripts/lib/frozen-scope.mjs.
+const overBroadFreezes = nonTerminalFreezes(FROZEN)
+if (overBroadFreezes.length > 0) {
+  console.error(frozenScopeRefusal(overBroadFreezes))
+  process.exit(1)
+}
+
 const c = corpus({
   roots: ROOTS,
-  // `work/spikes/**` joins the terminal folders (bug 0249). A spike CONCLUDES —
-  // its record is a dated report of what was measured, not a work item — so the
-  // frozen contract is right for it: links must still resolve, and its pointers
-  // are not held to today's line numbers.
-  //
-  // **Measured while adding this, and it corrects the contract's own wording.**
-  // `work/README.md` and the summary line both said frozen folders' drift is
-  // "reported, never gated". The pointer rule selects `.areLive()`, so a frozen
-  // document's pointers are not examined at all — nothing is reported. Gated is
-  // right; reported was never true. The summary now says what happens, and the
-  // gap is filed as bug 0253. Spike 0001's
-  // conclusion is dated 2026-08-08 against ts-archunit 0.58.0 and cites upstream
-  // paths; gating those as live pointers would demand it be kept current, which
-  // is the opposite of what a terminal record is for.
-  //
-  // This is also what dissolves the suffix-resolution trap for that population:
-  // a foreign-repo pointer in a frozen document is reported, not fatal. The trap
-  // itself is unchanged for live documents — see the sanction comment below.
-  frozen: ['**/completed/**', '**/wont-do/**', '**/fixed/**', '**/archived/**', 'work/spikes/**'],
+  frozen: FROZEN,
 })
 const relTo = (file) =>
   file.startsWith(c.root) ? file.slice(c.root.length).replace(/^[/\\]/, '') : file
@@ -179,6 +206,15 @@ const pointerRule = pointers(c)
   .rule({ id: 'corpus/pointers-resolve' })
 const pointersChecked = pointerRule.select({ label: 'pointer', ...anon }).elements.length
 const stale = pointerRule.violations()
+const brokenPointers = stale.filter((v) => v.message.startsWith('broken code pointer'))
+const stalePointers = stale.length - brokenPointers.length
+const pointerSummary = () => {
+  if (stale.length === 0) return '✓ all ground in code'
+  const parts = []
+  if (brokenPointers.length > 0) parts.push(`${brokenPointers.length} broken (no such file)`)
+  if (stalePointers > 0) parts.push(`${stalePointers} stale (line past end)`)
+  return `✗ ${parts.join(' · ')}`
+}
 
 // dir MUST be set: the preset default is 'docs/adr/**'; ours live at /adr.
 // report: 'return' — the preset emits nothing; this script owns reporting
@@ -812,7 +848,7 @@ line('roots', ROOTS.join(', '))
 console.error('')
 line(
   'documents',
-  `${liveDocs.length} live · ${frozenCount} frozen (history — links gated, pointers not examined)`,
+  `${liveDocs.length} live · ${frozenCount} frozen (history — broken links still fail; pointers unchecked)`,
 )
 line(
   'links',
@@ -820,7 +856,11 @@ line(
 )
 line(
   'pointers',
-  `${pointersChecked} live · ${stale.length === 0 ? '✓ all ground in code' : `✗ ${stale.length} stale`}`,
+  // Split by what the violation actually says. Calling a *broken* pointer
+  // "stale" sends the reader to check a line number in a file that does not
+  // exist — review hit exactly that confusion on this change. The two are
+  // different repairs: broken needs the path fixed, stale needs the line.
+  `${pointersChecked} live · ${pointerSummary()}`,
 )
 line(
   'ADRs',

@@ -28,7 +28,7 @@
     "check:guardrails": "node scripts/check-guardrails.mjs",
     "check:diagram": "eess-mermaid check mermaid.rules.ts",
     "check:crossval": "node scripts/check-crossval.mjs",
-    "check:corpus": "node scripts/check-corpus.mjs",
+    "check:corpus": "node scripts/check-corpus.mjs && node --test scripts/lib/frozen-scope.test.mjs",
     "check:spec": "eess-ts check spec.rules.ts",
     "changeset": "changeset",
     "version-packages": "changeset version",

@@ -7,7 +7,10 @@
 - **Severity:** Low — **an over-claim, not a false green.** Nothing is wrongly
   passing: frozen pointers are meant not to fail, and they do not. What is untrue
   is the second half of the promise — a reader is told drift in history is
-  surfaced for them, and it never is.
+  surfaced for them, and it never is. Low survives review, which measured the
+  gating half working in both directions. What review changed is the _scope_:
+  three of the six copies were in the published packages, so this was never only
+  an internal-map problem.
 - **Origin:** self-found · fixing [0249](./fixed/0249-most-of-work-is-outside-every-corpus-root.md),
   which freezes `work/spikes/**` and leans on the frozen contract to justify it.
   Verifying that the contract holds is what showed half of it does not.
@@ -51,34 +54,72 @@ run. Bug 0250's whole subject is that this class had no owner.
 
 ## What is corrected already, and what is not
 
-Corrected in the change that found it:
+**This section was wrong when first written, and the way it was wrong is the
+record's own subject.** It scoped the false sentence to three internal places.
+Review grepped and found six live copies, **three of them in the published
+packages** — the surface an adopter reads, not this repo's internal map. A record
+about a claim outrunning its mechanism had not measured its own claim's
+footprint.
 
-- the summary line now reads `N frozen (history — links gated, pointers not
+Corrected in the change that found it (all in one commit):
+
+- the gate's summary line, now `N frozen (history — links gated, pointers not
 examined)`;
-- a comment added by 0249's fix had repeated the old wording verbatim and is
-  fixed with it.
+- the comment 0249's fix had added repeating the old wording verbatim;
+- `packages/md/src/corpus.ts` — the JSDoc on the public `CorpusOptions.frozen`,
+  which is what an adopter hovers in an IDE;
+- `packages/md/src/model/document.ts` — the JSDoc on `MdDocument.frozen`;
+- `packages/md/README.md` — where the promise and its refutation sat four lines
+  apart in one copy-pasteable block;
+- `docs/markdown.md` — both instances, in the published dialect guide.
 
-**Not corrected:** `work/README.md` still carries the original sentence. That is
-deliberate — the document is the subject of
+**Not corrected: `work/README.md:51`, and this record owns it.** An earlier
+version of this section deferred that line to
 [0108](./0108-work-readme-lanes-table-lists-one-lane.md) and
-[0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md),
-both blocked, and editing one sentence of a map two records already own would
-scatter the fix. Whoever takes those takes this line with them.
+[0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md) on
+the grounds that they own the document. Review checked: **neither record mentions
+the frozen contract at all.** Fix 0108 and 0251 exactly as written and the
+sentence still stands, with nothing open on it — a deferral to a home that does
+not hold it, which is the silent-deferral failure `/close` exists to prevent. It
+is listed under this record's own Fix instead, below. The reason to leave it
+uncorrected for now is unchanged and narrow: whichever fix option is chosen
+decides what the sentence should say.
 
-## Fix (not built) — two honest options
+## Fix (not built) — two options, and option 1 is one line
 
-1. **Make the promise true.** Evaluate pointers in frozen documents and report
-   them as informational, never as violations. The rule already exists; it needs
+1. **Make the promise true.** An earlier version of this record said this "needs
    a second selection (`.areFrozen()`, or the inverse filter) and a report
-   channel that does not touch the exit code. This is the option that keeps the
-   contract's words.
-2. **Drop the promise.** Say frozen folders' pointers are not checked, in
-   `work/README.md` and in the working-method doc, and delete the expectation.
-   Cheaper, and defensible: nobody has missed the report in the time it has been
-   absent.
+   channel that does not touch the exit code," and closed with "choosing is the
+   work." **Both halves already ship.** `.areFrozen()` is a public predicate on
+   the pointer builder and `.warn()` is a terminal on every builder. The whole of
+   option 1 is:
 
-Option 1 is more useful; option 2 is more honest about what anyone will actually
-build. Choosing is the work.
+   ```typescript
+   pointers(c).that().areFrozen().should().resolve().warn()
+   ```
+
+   **Measured 2026-09-04:** that line selects 197 frozen pointers and reports
+   **3** real findings — a citation into a patched dependency's `validator.js`
+   that no longer exists, and two pointers into
+   `packages/ts/src/graphql/resolver-rule-builder.ts` naming a line past its end
+   — with the exit code untouched. So the report the contract promised is
+   available today and would have said something true on its first run.
+
+   That reframes this record from a design choice into a ten-minute job, and
+   relocates the finding: **the capability is exported, JSDoc'd and
+   undiscoverable.** `.areFrozen()` appears zero times in `packages/md/README.md`
+   and zero times in `docs/` — which is exactly why a shipped primitive read as
+   missing API to the person who filed this. The docs gap is the defect worth
+   carrying forward.
+
+2. **Drop the promise.** Say frozen folders' pointers are not checked, and delete
+   the expectation. Cheaper, and defensible — nobody has missed the report in the
+   time it has been absent — but it is now the strictly worse option, since the
+   thing being dropped costs one line and finds three real defects.
+
+Also owed either way: **`work/README.md:51`**, the last uncorrected copy of the
+sentence (see above — it is this record's, not 0108's or 0251's), and a
+`docs/markdown.md` mention of `.areFrozen()` so the primitive is findable.
 
 ## Verification
 
@@ -87,6 +128,10 @@ build. Choosing is the work.
 - [ ] If option 1: a stale pointer in a frozen folder appears in the output and
       the exit code stays 0 — both asserted, since the pair is the whole point.
 - [ ] If option 1: a `check:nonvacuity` row, or the report is a claim again.
+- [ ] `work/README.md:51` says what the gate does — this record's, not deferred
+      to a home that never held it.
+- [ ] `.areFrozen()` appears in `packages/md/README.md` or `docs/markdown.md`, so
+      the next person to want this report finds it instead of filing for it.
 
 ## Related
 

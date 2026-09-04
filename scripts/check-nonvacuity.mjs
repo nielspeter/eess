@@ -150,7 +150,7 @@
  * the `validate` chain). Exits 0 iff every fixture fired on its violating input.
  */
 import { spawnSync } from 'node:child_process'
-import { writeFileSync, rmSync, readFileSync, readdirSync } from 'node:fs'
+import { writeFileSync, rmSync, readFileSync, readdirSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -213,6 +213,21 @@ const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer_
 // that reds; every other corpus row stays green, which is exactly how the gap
 // went unnoticed for as long as it did.
 const PROBE_CORPUS_WORK_ROOT = join(repoRoot, 'work', '__nonvacuity_probe_work_root__.md')
+// NESTED one directory down, on purpose. A probe sitting directly under `work/`
+// is still matched by `work/*`, so narrowing the root to `['work/*', …lanes]`
+// leaves the flat link probe firing and its row green while every future nested
+// directory silently leaves the corpus — measured. Recursive default-coverage is
+// the property the widening was argued for, so the probe has to sit where only
+// `**` reaches.
+const PROBE_CORPUS_WORK_POINTER_DIR = join(repoRoot, 'work', '__nonvacuity_probe_nested__')
+const PROBE_CORPUS_WORK_POINTER = join(PROBE_CORPUS_WORK_POINTER_DIR, 'pointer.md')
+// A COPY of the real gate with one const widened — not a document probe. The
+// frozen list is a hard-coded config, so nothing a probe file can contain will
+// exercise the guard that reads it; running a mutated copy of the script from
+// its own directory keeps `./lib/*` resolution and the cwd-derived corpus root
+// byte-identical, so what runs is the production body and not a re-creation of
+// it (bug 0127's rule).
+const PROBE_CORPUS_FROZEN_SCRIPT = join(repoRoot, 'scripts', '__nonvacuity_probe_frozen__.mjs')
 // Plan 0216's board↔file Ruling rule needs BOTH halves of a disagreement: a
 // proposal file with a Ruling, and a board row claiming a different one. So the
 // probe is a planted proposal plus an appended board row — not a mutation of a
@@ -368,6 +383,24 @@ function withProbe(path, contents, fn) {
     return fn()
   } finally {
     rmSync(path, { force: true })
+  }
+}
+
+/**
+ * `withProbe` for a probe that must live in a directory of its own — the nested
+ * corpus probe, whose whole point is sitting where a non-recursive root cannot
+ * reach. Removes the directory, not just the file, so a killed run leaves no
+ * empty `work/__nonvacuity_probe_nested__/` behind for `check:arch` to puzzle
+ * over. The basename still carries the `__nonvacuity_probe` prefix that
+ * `.gitignore` and `check:integrity`'s leftover-probe recovery key on (bug 0231).
+ */
+function withProbeDir(dir, path, contents, fn) {
+  try {
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(path, contents)
+    return fn()
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
   }
 }
 
@@ -784,6 +817,77 @@ function gateCorpusWorkRoot() {
     'corpus/broken-links',
     'work/__nonvacuity_probe_work_root__.md',
   )
+}
+
+/**
+ * The widened root is LIVE, not merely present — the half a link probe cannot see.
+ *
+ * `gateCorpusWorkRoot` above plants a broken LINK in `work/`, which proves the
+ * root reaches there. It does not prove the region's pointers are examined:
+ * a frozen document's links are still gated, so appending `'work/**'` to the
+ * frozen list leaves that probe green while live pointers drop from 463 to 18.
+ * Measured on this tree, both directions. A pointer is the only element type
+ * whose selector (`.areLive()`) reads the frozen flag, so this is the probe
+ * that tells "in the corpus" from "actually examined".
+ */
+function gateCorpusWorkPointer() {
+  const { json, terminal } = withProbeDir(
+    PROBE_CORPUS_WORK_POINTER_DIR,
+    PROBE_CORPUS_WORK_POINTER,
+    '# Non-vacuity probe\n\nA live claim about code that does not exist: `src/__nonvacuity_does_not_exist__.ts:12`\n',
+    () => ({
+      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+    }),
+  )
+  const file = 'work/__nonvacuity_probe_nested__/pointer.md'
+  const ok =
+    json.code === 1 && firedOn(json, 'corpus/pointers-resolve', file) && terminal.code === 1
+  return {
+    ok,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code} (corpus/pointers-resolve, ${file})`,
+  }
+}
+
+/**
+ * The frozen-scope refusal is wired into the gate, not just into its unit test.
+ *
+ * `scripts/lib/frozen-scope.test.mjs` proves `nonTerminalFreezes` classifies
+ * correctly. It cannot prove `check-corpus.mjs` calls it — delete the four-line
+ * `if (overBroadFreezes.length > 0)` block and every one of those seven tests
+ * stays green while the gate happily freezes `work/**`. That is bug 0127's
+ * finding exactly, so this runs the real script body.
+ *
+ * The mutation is applied to a copy rather than to the tracked file: the other
+ * script-level sabotages here restore in a `finally`, which a SIGKILL skips,
+ * and the file this one would edit is the corpus gate itself. A copy that dies
+ * unrestored is an untracked, `.gitignore`-matched, `check:integrity`-named
+ * leftover; a half-restored `check-corpus.mjs` is a corrupted gate.
+ *
+ * Asserts the refusal TEXT, not just the exit code: `check-corpus.mjs` exits 1
+ * for any violation at all, so a copy that reddened because the mutation broke
+ * something unrelated would satisfy a bare exit check and prove nothing.
+ */
+function gateCorpusFrozenScope() {
+  const original = readFileSync(join(repoRoot, 'scripts', 'check-corpus.mjs'), 'utf8')
+  const mutated = original.replace("  'work/spikes/**',\n]", "  'work/spikes/**',\n  'work/**',\n]")
+  if (mutated === original) {
+    return {
+      ok: false,
+      detail:
+        'frozen-scope: the FROZEN list no longer matches the sabotage pattern — the fixture ' +
+        'would have run the gate against pristine config and called it covered',
+    }
+  }
+  const { code, stdout, stderr } = withProbe(PROBE_CORPUS_FROZEN_SCRIPT, mutated, () =>
+    sh(process.execPath, [join('scripts', '__nonvacuity_probe_frozen__.mjs')]),
+  )
+  const said = `${stdout}${stderr}`
+  const named = said.includes('work/**') && said.includes('does not name a terminal folder')
+  return {
+    ok: code === 1 && named,
+    detail: `frozen += 'work/**' → exit ${code}, refusal named the glob: ${named}`,
+  }
 }
 
 // Plan 0142 (closing bug 0141): an accepted proposal with no plan declaring
@@ -1389,6 +1493,15 @@ const gates = [
   // Bug 0127: converted from a rebuilt-rule fixture to driving the
   // production script, matching the links gates above.
   ['corpus/pointers', gateCorpusPointers],
+  // Bug 0249's review, I3: the `work/**` root probe above is a LINK probe, and
+  // links are gated in frozen documents too — so it stays green through the one
+  // mutation that stops examining the region's 445 pointers. A pointer probe in
+  // the widened root is what separates "reachable" from "examined".
+  ['corpus/pointers/work-root', gateCorpusWorkPointer],
+  // Bug 0249's review, I2: `frozen` is the gate's only subtraction and had no
+  // guard. Runs a copy of the real script with the list widened — the unit test
+  // proves the classifier, only this proves the gate calls it.
+  ['corpus/frozen-scope', gateCorpusFrozenScope],
   // Plan 0142 (closing bug 0141): proposal→plan linkage, built on the
   // gateCorpusProbe shape from day one.
   ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
@@ -1617,6 +1730,8 @@ const GATE_FOR = {
     'corpus/links/work-root',
     'corpus/link-routing',
     'corpus/pointers',
+    'corpus/pointers/work-root',
+    'corpus/frozen-scope',
     'corpus/proposal-plan-linkage',
     'corpus/proposal-ruling-unparseable',
     'corpus/proposal-board-ruling',

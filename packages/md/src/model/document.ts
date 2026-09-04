@@ -54,7 +54,7 @@ export interface MdDocument {
   readonly file: string
   /** Repo-relative path (POSIX separators), e.g. `docs/adr/0001-x.md` */
   readonly relPath: string
-  /** In a frozen folder — historical record; drift is reported, never failed */
+  /** In a frozen folder — historical record; links still checked, pointers not examined (bug 0253) */
   readonly frozen: boolean
   /** Raw source text */
   readonly text: string
