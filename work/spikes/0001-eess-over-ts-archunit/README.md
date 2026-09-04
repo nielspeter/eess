@@ -1,3 +1,22 @@
+<!-- Landed 2026-09-04 alongside CONCLUSION.md. Verbatim; this note is the only addition. -->
+
+> **Landing note — 2026-09-04.** Landed from the deleted branch
+> `spike/eess-over-ts-archunit` (tip `e9fe6bbcd70abafe57f287c06de84887bdff19fd`),
+> together with [CONCLUSION.md](./CONCLUSION.md). See that file's note for why,
+> and for the numbering caveats — they apply here too.
+>
+> **Two claims below no longer hold, and are left in place rather than edited.**
+>
+> - _"Run it: `npm install && npm run spike`"_ — the runnable artifacts
+>   (`package.json`, `run.ts`, `spec.mmd`, `diagram-dialect.ts`, `tsconfig.json`)
+>   stayed on the source branch and are **not** here. They were left behind
+>   deliberately: the conclusion's own "Honest limits" section says `run.ts` is a
+>   demonstration nothing runs, and its `file:` dependency made it
+>   non-reproducible anyway. Nothing in this directory is executable.
+> - _"plan 0084"_ — no plan 0084 exists in this repo; 0084 is a **bug**
+>   (`work/bugs/0084-preserve-relations-right-to-left.md`). The number is from the
+>   source branch's own allocation, which predates a renumbering.
+
 # Spike 0001: can eess dialects run on ts-archunit's published core?
 
 > **This spike is closed — see [CONCLUSION.md](./CONCLUSION.md)** for the verdict,

@@ -22,15 +22,26 @@
 const ROOTS = ['work/plans/**', 'work/proposals/**', 'work/bugs/**', 'adr/**', 'docs/**']
 ```
 
-`work/spikes/**` is not among them. Measured 2026-09-04: adding two documents to
-`work/spikes/0001-eess-over-ts-archunit/` left the summary at **1630 checks
-across 165 documents** — byte-identical with and without them. Their links and
-`path:line` pointers are unchecked.
+`work/spikes/**` is not among them. Measured 2026-09-04: the gate's summary is
+**byte-identical with and without** the two documents under
+`work/spikes/0001-eess-over-ts-archunit/` — same check count, same document count.
+Their links and `path:line` pointers are unchecked.
+
+The invariance is the finding, not the integer. An earlier draft pinned "1630
+across 165", accurate when measured and wrong by the time this record and its
+board row existed — the drift `CLAUDE.md` warns about, committed inside a record
+about unchecked claims.
 
 `check:ledger` reaches the same directory and also declines: `work/spikes` is not
 one of its three `LANES`, and `findUncoveredLanes` passes it only because it is
-_records-free_ in that gate's sense — no `**State:**` token in any file. The
-moment a spike record carries one, that check reports an uncovered lane.
+_records-free_ in that gate's sense — no readable `**State:**` token.
+
+**Where that token has to sit, measured**, because testing the claim the obvious
+way gives the wrong answer: a `**State:**` line appended at the BOTTOM of a spike
+record produces no finding at all. `ledgerStats` reads the preamble-plus-first-
+section region (bug 0119), so only a token in a record's header triggers
+`ledger/uncovered-lane`. Enforcement review measured both ways. Anyone checking
+this claim by appending a line to the end will conclude it is wrong.
 
 So the directory sits in a gap between two gates: too much of a record lane to be
 nothing, too little to be scanned.
@@ -49,36 +60,77 @@ design, and the record landed today is the first with an external reference in i
 ## Root cause
 
 Not an oversight in the roots list — a directory that grew records after the list
-was written. `work/spikes/` predates the corpus gate's current shape, and the
-gate's own comment (`scripts/check-corpus.mjs:45`) says why a root cannot simply
-be appended:
+was written. `work/spikes/` predates the corpus gate's current shape.
 
-> Every root must be explicitly classified for link-resolution routing … a new
-> root nobody classified is exactly the gap bug 0086's review round found: it
-> silently fell into the loose (`resolveDirectories`) profile by default, a false
-> green waiting to happen.
+**A correction, because the first draft of this record got the next part wrong in
+the fail-open direction.** It said the fix "is a classification decision, not a
+one-line addition", quoted the gate's warning that an unclassified root "silently
+fell into the loose (`resolveDirectories`) profile by default", and concluded that
+`unclassifiedRoots()` "already refuses an unclassified root, which is that guard
+working."
 
-So the fix is a classification decision, not a one-line addition — and
-`unclassifiedRoots()` already refuses an unclassified root, which is that guard
-working.
+**It does not refuse.** `unclassifiedRoots` classifies by TOP-LEVEL segment, and
+`work/` is already in `REPO_NATIVE_ROOTS`
+(`scripts/lib/corpus-link-routing.mjs:23`) — so `work/spikes/**` is classified the
+moment it is added and the guard has nothing to say. Measured by enforcement
+review and reproduced: adding it to `ROOTS` runs clean, reporting 0 violations
+over a larger document count. A reader trusting the first draft would have added
+the root believing a guard had their back.
+
+## The trap that makes this more than a widening
+
+Widening the root **produces a false green on the very pointer that produced this
+record.** `check:corpus` resolves a code pointer by path **suffix**, so
+ts-archunit's `src/core/rule-builder.ts` matches this repo's
+`packages/ts/src/core/rule-builder.ts` and is reported as grounded. A foreign-repo
+pointer is not merely unchecked today; once the root is added it is checked and
+**blessed against the wrong file**.
+
+That is strictly worse for a reader than no gate at all, and it is the shape spike
+records are most likely to carry — a spike exists to evaluate someone else's code.
 
 ## Fix (not built)
 
-1. Classify `work/spikes/**` in `scripts/lib/corpus-link-routing.mjs` and add it
-   to `ROOTS`. Spike records point at code and at other records, so the strict
-   profile is the likely answer — but that is the decision, and it should be made
-   rather than defaulted.
-2. Decide whether `work/spikes/` is a ledger lane. A spike concludes; a concluded
-   spike is arguably a terminal state. If it becomes a lane it needs its own
-   vocabulary (`Concluded`? `Abandoned`?), and if it does not, say so where
-   `LANES` is declared so the next reader does not re-open the question.
-3. A `check:nonvacuity` row, or the widening is a claim rather than a check.
+1. **Choose the routing profile deliberately**, knowing nothing will stop you
+   choosing wrong: `work/spikes/**` inherits `work/`'s repo-native classification,
+   so adding it to `ROOTS` is accepted silently.
+
+   **And the obvious answer is the wrong one.** An earlier draft of this record
+   said "the strict profile is the likely answer". Architecture review showed that
+   is backwards: `work/` is **repo-native** — GitHub-rendered, where a link to a
+   directory resolves — while strict is the VitePress-_site_ profile. Prescribing
+   strict here would make `work/spikes` the only region of `work/` where a real
+   directory link reds, and it would need a carve-out inside `isRepoNativeLink`'s
+   prefix match to take effect at all. Repo-native is almost certainly right; what
+   this record asks is that it be chosen rather than inherited.
+
+2. **Handle foreign-repo pointers before widening, or the widening makes things
+   worse.** Either teach the pointer rule to distinguish a suffix match from a
+   real one, or give spike records a sanctioned way to cite upstream code — the
+   inline `<!-- eess-exclude corpus/pointers-resolve: … -->` already exists and
+   may be the whole answer.
+
+   One mechanical detail worth knowing before writing either: `extractPointers`
+   excludes **fenced** blocks but keeps **inline** code, so quoting a pointer to
+   discuss it — as this record's own sibling landing note first did — creates a
+   live pointer. Fencing the quote makes it inert.
+
+3. **Decide whether `work/spikes/` is a ledger lane.** A spike concludes, and a
+   concluded spike is arguably terminal. If it becomes a lane it needs its own
+   vocabulary; if not, say so where `LANES` is declared so the next reader does
+   not re-open the question.
+4. A `check:nonvacuity` row, or the widening is a claim rather than a check.
 
 ## Verification
 
-- [ ] Red first: a broken link and a stale pointer planted in a spike record are
-      both reported.
-- [ ] The document count moves — the current 165 is the evidence it does not now.
+- [ ] Red first: a broken link planted in a spike record is reported.
+- [ ] **The pointer fixture is a foreign-repo path that SUFFIX-MATCHES a local
+      file** — not a contrived out-of-range line number. Enforcement review's
+      finding: an out-of-range pointer reds while the real case (a valid line in a
+      file that suffix-matches) stays green, so a fixture written to the obvious
+      wording would pass without covering this bug.
+- [ ] The document count moves. State the invariance, not the integer — this
+      record already pinned a number that was stale within one commit.
 - [ ] `check:ledger` either claims the lane or records why it does not.
 
 ## Related

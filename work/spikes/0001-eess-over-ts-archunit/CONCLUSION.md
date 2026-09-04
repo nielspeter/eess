@@ -1,33 +1,58 @@
-<!-- Landed 2026-09-04, unchanged except where this note says otherwise. -->
+<!-- Landed 2026-09-04. The record below is verbatim; see the note for the one exception. -->
 
 > **Landing note — 2026-09-04.** This record and its README lived only on the
-> unpushed local branch `spike/eess-over-ts-archunit` for four weeks. The file
-> below calls itself "the spike's terminal record", and a terminal record that
-> exists on one laptop is one disk failure from gone — so it is landed here, in
-> the corpus, where terminal records belong.
+> unpushed local branch `spike/eess-over-ts-archunit` for 27 days. The file below
+> calls itself "the spike's terminal record", and a terminal record that exists on
+> one laptop is one disk failure from gone — so it is landed here, in the corpus,
+> where terminal records belong.
 >
 > Landing it is **not** a proposal to act on it. The conclusion's own framing
 > stands: the branch was never proposed for merge, and nothing here obliges
 > anyone. Read the date — the blockers below were measured against ts-archunit
 > 0.58.0 on 2026-08-08 and have not been re-checked since.
 >
-> **One edit, disclosed.** The upstream reference in "What blocks it" was written
-> as `` `src/core/rule-builder.ts:50` `` — a `path:line` shape that reads as a
-> pointer into THIS repo, where that path does not exist. It refers to
-> ts-archunit's source, so it now names ts-archunit's file and line. Same
-> information; it no longer claims to be local.
+> **The numbers below are from before a renumbering and do NOT mean what they say
+> here.** Each is a live artifact in this repo about something else entirely:
 >
-> That edit was made expecting `check:corpus` to reject the original. **It would
-> not have**: `work/spikes/**` is not one of that gate's roots, so nothing in this
-> directory has its links or pointers checked at all — verified by removing both
-> files and watching the check count stay at 1630 across 165 documents. The edit
-> stands because the pointer was misleading either way; the gap it exposed is
-> filed as [bug 0249](../../bugs/0249-work-spikes-is-a-record-lane-no-gate-reads.md).
+> | this record says                              | this repo's live artifact                                     |
+> | --------------------------------------------- | ------------------------------------------------------------- |
+> | ADR-009, "adopt ts-archunit, retire the fork" | `adr/009-agent-first-failure-surfaces.md`                     |
+> | plan 0084, plan 0085                          | no such plans; 0084 and 0085 are **bugs**                     |
+> | bug 0086, "NUL bytes in published dist"       | `work/bugs/fixed/0086-links-to-directories-do-not-resolve.md` |
+> | bug 0087, "gates can be silently unwired"     | `work/bugs/0087-frontmatter-parsed-as-setext-heading.md`      |
 >
-> Nothing else in either file was touched, and the branch's other contents (the
-> runnable spike, two reviewer personas, plans 0084/0085 and an alternate ADR-009
-> from before a renumbering) were deliberately left behind — they would collide
-> with this repo's live numbering, and none is a terminal record.
+> The collision that will actually catch someone: **this repo's bug 0086 is the
+> corpus-link-routing bug** cited throughout `scripts/check-corpus.mjs` — the file
+> [bug 0249](../../bugs/0249-work-spikes-is-a-record-lane-no-gate-reads.md) is
+> about. A reader following that thread meets two different bug 0086s. The
+> NUL-bytes work this record calls "0086" landed here as
+> [0099](../../bugs/fixed/0099-nul-bytes-make-md-gherkin-unsearchable.md) and
+> [0144](../../bugs/fixed/0144-md-gherkin-nul-bytes-break-grep.md).
+>
+> **Do not spot-check this.** The record's bug 0074 citation IS correct here — it
+> is the jiti config-loader bug, same number, same subject. So one sample can
+> return a true positive and buy false confidence in the rest. Architecture review
+> found that, and it is why the table above is exhaustive rather than illustrative:
+> 0074 is the only citation verified to survive the renumbering.
+>
+> **Where the artifacts this record cites now live.** "This branch" is deleted.
+> Its tip was `e9fe6bbcd70abafe57f287c06de84887bdff19fd`, reachable from one
+> machine's reflog until roughly 2026-11-06 and nowhere else. The runnable spike,
+> two reviewer personas, those plans and that ADR were all left behind
+> deliberately — they collide with live numbering and none is a terminal record —
+> but the citations to them below are, from today, dangling. Naming the SHA is the
+> most this landing can do about that.
+>
+> **One edit, disclosed.** The reference in "What blocks it" pointed at
+> ts-archunit's own source and was written in this repo's `path:line` pointer
+> shape. It now names ts-archunit's file and line in prose instead.
+>
+> The first version of this note gave the wrong reason — it said the path "does
+> not exist" here. It effectively does: this repo's corpus gate resolves a pointer
+> by path **suffix**, so that reference matches `packages/ts/src/core/rule-builder.ts`
+> and would be reported as grounded. That is worse than not existing, because a
+> gate would bless a claim about the wrong file. Enforcement review measured it,
+> and it is why the shape is broken here rather than merely relocated.
 
 # Spike 0001 — conclusion
 
