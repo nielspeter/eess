@@ -52,6 +52,26 @@ describe('pathSuffixIndex', () => {
     expect(index('b/a/x.ts').resolve('a/x.ts').kind).toBe('unique')
   })
 
+  it('a duplicated path is one file, not an ambiguity with itself', () => {
+    // The parameter is an `Iterable<string>`, and nothing in the type says the
+    // caller deduplicated. Before this, a repeated path came back as
+    // `ambiguous` with the same file listed twice — one file reported as
+    // ambiguous with itself, and a finding an author could not act on.
+    // Unreachable through today's two callers, which is why it would have
+    // waited for the third.
+    const m = pathSuffixIndex(['a/x.ts', 'a/x.ts']).resolve('x.ts')
+    expect(m.kind).toBe('unique')
+    expect(m.kind === 'unique' && m.file).toBe('a/x.ts')
+  })
+
+  it('a real ambiguity still survives deduplication', () => {
+    // The control for the line above: collapsing duplicates must not collapse
+    // two genuinely different files that share a tail.
+    const m = pathSuffixIndex(['a/x.ts', 'a/x.ts', 'b/x.ts']).resolve('x.ts')
+    expect(m.kind).toBe('ambiguous')
+    expect(m.kind === 'ambiguous' && [...m.files]).toEqual(['a/x.ts', 'b/x.ts'])
+  })
+
   it('nothing matching is none, distinct from ambiguous', () => {
     expect(index('a/x.ts').resolve('nowhere/y.ts').kind).toBe('none')
   })

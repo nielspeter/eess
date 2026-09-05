@@ -49,13 +49,42 @@ if (featureCount === 0) {
 }
 
 const fired = violations.filter((v) => v.ruleId === RULE)
-if (fired.length > 0) {
+
+// **Each CLASS the fixture plants, not just the rule id (bug 0257's review).**
+// This used to assert `fired.length > 0` alone. The fixture plants three
+// distinct faults — a dangling path, an ambiguous suffix, and a missing
+// scenario title — and they all carry the same rule id, so a regression
+// confined to ONE of them left the gate green: the other two kept the count
+// non-zero. Measured, on the change that shared the suffix resolver between
+// dialects — collapsing an ambiguity to its first candidate reddened
+// `corpus/pointers/ambiguous` on the md side and left this row OK.
+//
+// The md side's own `gateCorpusPointerAmbiguous` had this discipline already
+// ("classed ambiguous, named both candidates"); this row did not, so the two
+// callers of one resolver had unequal proof.
+const CLASSES = [
+  ['dangling', /no such feature file/],
+  ['ambiguous', /ambiguous, matches \d+ feature files/],
+  ['missing scenario', /no such scenario in that feature file/],
+]
+const missing = CLASSES.filter(([, re]) => !fired.some((v) => re.test(v.message))).map(([n]) => n)
+
+if (fired.length > 0 && missing.length === 0) {
   console.error(
-    `bad-gherkin-ts: dangling citation detected as expected — ${RULE}, ` +
+    `bad-gherkin-ts: all ${String(CLASSES.length)} citation faults detected as expected — ${RULE}, ` +
       `${fired.length} of ${violations.length} violation(s) across ${featureCount} feature file(s)`,
   )
   for (const v of fired) console.error(`  x ${v.message.split('\n')[0]}`)
   process.exit(1)
+}
+
+if (fired.length > 0) {
+  console.error(
+    `bad-gherkin-ts: ${RULE} fired, but not for ${missing.join(' / ')} — a regression ` +
+      `confined to that class would hide behind the classes that still fire`,
+  )
+  for (const v of fired) console.error(`  x ${v.message.split('\n')[0]}`)
+  process.exit(0)
 }
 
 const seen = [...new Set(violations.map((v) => v.ruleId))].join(', ') || 'none'

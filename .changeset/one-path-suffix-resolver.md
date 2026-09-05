@@ -18,7 +18,9 @@ both dialects call it. It is pure string work over a list of paths — no
 makes for living there.
 
 **No behaviour changes.** Both dialects' existing tests pass unchanged (119 and
-92, none edited), and the messages were already identical. `eess-crossvalidate`'s
+89, none edited — no test file under either package is in the diff), and the
+messages were already identical. Confirmed independently by differential fuzzing
+old against new over 20,000 generated citations. `eess-crossvalidate`'s
 internal `resolveFeature` is deleted; it was not reachable through the package's
 `exports` map, so nothing an adopter could import has moved.
 

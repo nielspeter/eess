@@ -107,29 +107,86 @@ resolves any repo file, and `eess-md` additionally supports `exact` mode and
 ## Verification
 
 - [x] One implementation, called by both dialects. **`resolveFeature` is deleted**
-      — `grep resolveFeature packages/*/src` returns nothing but this record's
-      own history. `eess-md`'s `uniqueSuffix()` and its basename index are gone
-      with it.
-- [x] Both dialects' existing tests pass **unchanged**: `eess-md` 119,
-      `eess-crossvalidate` 92, no test edited. An extraction that needed its
-      callers' tests rewritten would not be behaviour-preserving.
+      — no export, no call site, verified by reading both former callers.
+      `eess-md`'s `uniqueSuffix()` and its basename index are gone with it.
+
+      An earlier version of this box cited `grep resolveFeature packages/*/src`
+      as "returns nothing". It does not: without `-r` it errors on directories,
+      and with `-r` it returns two hits — doc comments in `path-suffix.ts` and
+      `shared.ts` that name the old identifier while explaining what replaced it.
+      The substance held; the cited command did not do what the box said, which
+      is the same defect as a pinned count nobody re-ran.
+
+- [x] Both dialects' existing tests pass **unchanged**, and no test file under
+      either package appears in the diff — an extraction that needed its callers'
+      tests rewritten would not be behaviour-preserving. Measured with each
+      package's own test script, which is the authoritative denominator:
+      `eess-md` **119**, `eess-crossvalidate` **89**.
+
+      **This box first said 92, and the wrong number reached three artifacts**
+      (record, commit message, changeset) before review caught it. It came from
+      `npx vitest run packages/crossvalidate` at the repo root, whose include is
+      wider than the package's own — 10 files/92 there, 9 files/89 under
+      `npm run test -w @nielspeter/eess-crossvalidate`. Copying a number forward
+      until repetition makes it look corroborated is the failure this method
+      exists to catch, and this is an instance of it.
+
 - [x] A sabotage of the shared primitive reds **both** dialects: returning only
-      the first candidate of an ambiguity fails 2 tests in `eess-md`, 2 in
-      `eess-crossvalidate`, and 1 in the kernel. That is the evidence both really
-      call it, rather than still carrying their own copies.
+      the first candidate of an ambiguity fails **6 tests across 2 files** in
+      `eess-md`, **4 across 2 files** in `eess-crossvalidate`, and 1 in the
+      kernel. That is the evidence both really call it, rather than still
+      carrying their own copies.
+
+      This box first said "2 and 2" — file counts, written where a reader takes
+      test counts. Three lenses reproduced the sabotage and all three reported
+      the larger figures; the evidence is stronger than the claim was, which is
+      the harmless direction to be wrong in and still worth correcting.
+
 - [x] The ambiguity messages already agreed — bug 0254 converged `eess-md`'s
       wording on `eess-crossvalidate`'s, which is what made this duplication
       visible in the first place. Nothing had to change.
-- [x] 8 kernel tests over the primitive, covering the cases the callers depend
-      on: exact beating an ambiguity it is part of, the `/` boundary, and every
-      candidate coming back rather than the first.
+- [x] 10 kernel tests over the primitive, covering the cases the callers depend
+      on: exact beating an ambiguity it is part of, the `/` boundary from both
+      directions, and every candidate coming back rather than the first.
+- [x] **A duplicated input path is one file, not an ambiguity with itself.**
+      Differential fuzzing over 20,000 generated cases found exactly one class of
+      disagreement with the implementations this replaced: `all` was a `Set` but
+      the per-segment lists pushed every element, so a repeated path resolved as
+      `ambiguous` naming the same file twice. Unreachable through today's two
+      callers — both hand it a set or a filesystem walk — which is precisely why
+      it would have waited for the third. The parameter is an `Iterable<string>`
+      and nothing in the type says the caller deduplicated, so the primitive does
+      it. Pinned in both directions: a duplicate collapses, a real ambiguity
+      survives.
+- [x] **Both dialects' non-vacuity rows red on the same regression.** They did
+      not before: `corpus/pointers/ambiguous` asserted the ambiguous class
+      specifically, while `crossval/gherkin-ts` asserted only that _some_
+      violation with its rule id fired — and its fixture plants three fault
+      classes under one id, so a regression confined to the ambiguous one hid
+      behind the other two. Measured: collapsing an ambiguity reddened the md row
+      and left the crossvalidate row green. The fixture now asserts each class by
+      its message, and both rows red together.
 
-**One measurement worth recording, because it reads as a gap and is not.**
-Breaking the `/` boundary — so a suffix matches as a bare substring — reds the
-kernel's tests and **neither dialect's**. Before this change neither dialect
-tested that property either; now it is tested once, where the code lives.
-Requiring both callers to re-assert it would rebuild the duplication in the
-tests, which is the thing this record is about.
+**One measurement worth recording, because it reads as a gap and is not — and
+the first version of this paragraph under-argued it.** Breaking the `/` boundary
+— so a suffix matches as a bare substring — reds the kernel's tests and
+**neither dialect's**. Before this change neither dialect tested that property
+either; now it is tested once, where the code lives, and re-asserting it in both
+callers would rebuild the duplication in the tests.
+
+Enforcement review pushed on whether that is enough, and the answer is better
+than the original argument. The broken filter's match set is always a
+**superset** of the correct one, so a boundary regression can only move
+`unique → ambiguous` or `none → ambiguous` — both loud, because ambiguous is a
+violation in both dialects — **except** in one shape: when the correct answer is
+`none` and the superset gains exactly one match, which yields a wrongly-confident
+`unique`. That is the "blessed against the wrong file" hazard
+[0254](./0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md) was
+filed over, and it is the one shape that needs a witness.
+
+It has one: `index('src/prefix-x.ts').resolve('x.ts')` expects `none`, and under
+a broken boundary returns exactly that wrongly-confident `unique`. So the silent
+case is the case the kernel test asserts.
 
 Deferred: none.
 

@@ -32,7 +32,7 @@ export type PathSuffixMatch =
   /** Nothing matches. */
   | { readonly kind: 'none' }
 
-/** A prepared path set. Build once, resolve many. */
+/** A prepared path set. Build once, resolve many. Duplicate inputs collapse. */
 export interface PathSuffixIndex {
   resolve(wanted: string): PathSuffixMatch
 }
@@ -46,10 +46,18 @@ export interface PathSuffixIndex {
  * front rather than being a plain two-argument function.
  */
 export function pathSuffixIndex(paths: Iterable<string>): PathSuffixIndex {
-  const all = new Set<string>()
+  // Deduplicated on entry, not assumed deduplicated. `all` was always a `Set`,
+  // but the per-segment lists used to push every element of the iterable — so a
+  // path appearing twice came back as `{ kind: 'ambiguous', files: [x, x] }`:
+  // one file reported as ambiguous with itself. Unreachable through today's two
+  // callers (both hand it a set or a filesystem walk), which is exactly why it
+  // would have waited for the third — the parameter is an `Iterable<string>`
+  // and nothing in the type says the caller must have deduplicated. Found by
+  // differential fuzzing across 20,000 cases; it was the only class of
+  // disagreement with the implementations this replaced.
+  const all = new Set<string>(paths)
   const byLastSegment = new Map<string, string[]>()
-  for (const rel of paths) {
-    all.add(rel)
+  for (const rel of all) {
     const seg = rel.slice(rel.lastIndexOf('/') + 1)
     const list = byLastSegment.get(seg)
     if (list) list.push(rel)
