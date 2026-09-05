@@ -2,11 +2,19 @@
 
 ## Status
 
-- **State:** Draft — **the freeze was refused on 2026-09-03.** Six review lenses
-  reached "do not build as written" independently. _Decisions, taken_ below now
-  answers what that review opened. ADR-014 was amended the same day with every
-  change Phase 0 owed it; what stands between this and `/plan-ready` is the
-  freeze itself. [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
+- **State:** Ready — frozen 2026-09-05. The freeze was refused once on
+  2026-09-03, when six review lenses reached "do not build as written"
+  independently; _Decisions, taken_ below answers what that review opened, and
+  ADR-014 was amended the same day with every change Phase 0 owed it.
+  **The 2026-09-05 freeze refused a second time, and this is what it caught:**
+  the migration census was pinned to ~40 `file:line` citations, and 8 of 15
+  sampled had staled within two days — `check-corpus.mjs` grew 232 lines and
+  `check-nonvacuity.mjs` 497 in that window, and `check:corpus` stayed green over
+  every one of them, because the pointer gate proves a line exists, not that it
+  still says what was claimed (bug 0253's class). The census, and every
+  load-bearing citation behind D1, D2b and D7, is now recorded **by value** —
+  keyed to an exported symbol or a greppable expression, not a line. Phases and
+  decisions are unchanged; only the way the plan names things moved. [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
   (Accepted 2026-09-03) is not in question; this document was the sketch of its
   build and it under-scoped the work.
 - **Priority:** High — the ROADMAP's own definition: closes a gap between what
@@ -82,7 +90,7 @@ Two consequences that resolve arguments this plan was having with itself:
 
 **The worst of it, and the reason this is not a paperwork revision.** Migrating
 exactly as Phase 3 instructed would make this repo's own ADR gate permanently,
-silently green. `scripts/check-corpus.mjs:149-150` binds
+silently green. `scripts/check-corpus.mjs` binds
 `adrEnforcement(c, { dir: 'adr/**', report: 'return' })` and then reads
 `.length` on it. Once that value is a receipt the read is `undefined`,
 `undefined > 0` is `false`, and `adrError` is false forever — so `:790` prints
@@ -126,7 +134,7 @@ examined, or a mechanism that claims coverage it does not have.
    claim and the plan has built a type, not a check. → **the success criteria**
 5. **The finding may be unfireable again** (enforcement). A declared-empty or
    cardinality-exempt rule hands up an empty list with zero examined
-   (`packages/core/src/terminal-builder.ts:258-277`), byte-identical to a vacuous
+   (`evidencedViolations()` in `packages/core/src/terminal-builder.ts`), byte-identical to a vacuous
    one. Choose "don't fire" and `presetConstructsNothingViolation` is
    unreachable exactly as bug 0190 found it, one seam further along, while this
    plan claims 0190 closes. A finding that cannot fire is coverage that is not
@@ -137,11 +145,11 @@ examined, or a mechanism that claims coverage it does not have.
    nothing to key on and `gateNode`'s `mustSay` has no stable string — resolved
    in Phase 0 by keying on the finding that has one. The new
    non-vacuity row cannot be registered either: `gateCoverage()` fails closed on
-   any row no `check:*` claims (`scripts/check-nonvacuity.mjs:1719`). And the
+   any row no `check:*` claims (`gateCoverage()` in `scripts/check-nonvacuity.mjs`). And the
    bare-array test needs an ADR-005-legal JS-interop boundary the plan never
    declares.
 7. **Deleting `throwIfViolations` disarms a live probe, silently** (three
-   lenses). `scripts/check-nonvacuity.mjs:629` injects it as the violating
+   lenses). `scripts/check-nonvacuity.mjs` injects it (grep `throwIfViolations`) as the violating
    payload for the family re-export probe, and that fixture's own comment records
    the identical accident when ADR-011 moved its predecessor: it "turned this
    fixture's violating input into a legal one and the probe green-for-nothing".
@@ -153,7 +161,7 @@ examined, or a mechanism that claims coverage it does not have.
    `undefined > 0`, false forever. This is not the acceptable kind of breakage.
    A JavaScript adopter should break **loudly** or not at all. → **D2**
 9. **A summed receipt is blind to one dead check** (round two: enforcement,
-   testing, devops, independently). `scripts/check-corpus.mjs:749-763` folds
+   testing, devops, independently). `scripts/check-corpus.mjs`'s `const all = [ … ]` aggregation folds
    nine hand-assembled checks and three builder-backed rules into one emitter
    call; `check-ledger.mjs:154-159` folds three. One dead loop among nine leaves
    the sum positive and the exit zero. That is the measured field failure —
@@ -163,7 +171,7 @@ examined, or a mechanism that claims coverage it does not have.
 10. **`report: 'warn'` prints the finding and exits zero** (round two:
     enforcement). `packages/core/src/report.ts:81-87` never throws under
     `warn`, while the terminal precedent escalates an unsuppressable finding to
-    a throw even under warn (`packages/core/src/execute-rule.ts:255-257`) and
+    a throw even under warn (`executeWarn`'s `throw new ArchRuleError(escalated, …)`) and
     the finding's own text promises "not by .warn()"
     (`packages/core/src/unsuppressable.ts:34`). → **D2b**
 11. **The flagship CLI and the test-file terminal accept a hand-rolled builder
@@ -184,9 +192,9 @@ Real, and none of them outranks pile one. Recorded so the build does not
 rediscover them.
 
 12. **`examinedUnits()` does not exist outside `packages/ts`** (four lenses). The
-    kernel keeps `collectViolations()` protected abstract
-    (`packages/core/src/terminal-builder.ts:344`) and `evidencedViolations()`
-    private (`:258`); the public `violations()` (`:194`) discards the count.
+    kernel keeps `collectViolations()` protected abstract and
+    `evidencedViolations()` private (both `packages/core/src/terminal-builder.ts`);
+    the public `violations()` beside them discards the count.
     `RuleBuilderLike` declares one member
     (`packages/core/src/rule-builder-like.ts:9`). eess-md's builders are kernel
     builders and are exactly what `dispatchRule` receives. This is work, not a
@@ -251,9 +259,9 @@ optional again by another route. `violations()` is documented adopter API
 (`docs/api-reference.md:47`) and this is the largest break in the change, which
 is the point — it is the only shape with no bypass. It also removes the
 double-run objection, since `evidencedViolations()`
-(`packages/core/src/terminal-builder.ts:258`) already computes violations and
-evidence in one pass, and it makes `RuleBuilderLike`'s single member
-(`packages/core/src/rule-builder-like.ts:9`) carry the evidence without adding a
+(`packages/core/src/terminal-builder.ts`, the method `violations()` and
+`check()` both call) already computes violations and evidence in one pass, and it makes `RuleBuilderLike`'s single member
+(`violations` in `packages/core/src/rule-builder-like.ts`) carry the evidence without adding a
 second member anyone could omit. (`packages/mermaid/src/cli/load-rules.ts:5`
 declares a `RuleBuilderLike` of its own, but with `check` and `describeRule`,
 not `violations` — nothing there moves.) An adopter's hand-rolled rule file stops
@@ -290,8 +298,8 @@ working and correct, where a plain object turns every untyped consumer green.
 `warn`, and under a bare `reportViolations`, nothing is handed back that a
 caller must act on, so a printed unsuppressable finding above a zero exit is the
 lie by another name. The emitter escalates a `bypassFilters` finding to a throw
-in those modes, exactly as `executeWarn` already does at
-`packages/core/src/execute-rule.ts:255-257`, and as the finding's own text
+in those modes, exactly as `executeWarn` already does
+(`packages/core/src/execute-rule.ts`, its `throw new ArchRuleError(escalated, …)`), and as the finding's own text
 promises. This amends ADR-008's "never throws" to "never throws on violations;
 throws on a configuration finding it produced itself", and ADR-014 §5 and §6,
 which currently codify the printed line.
@@ -311,15 +319,16 @@ guess.** "Don't fire" makes `presetConstructsNothingViolation` unreachable
 exactly as bug 0190 found it, one seam further along, while this plan claims
 0190 closes. That is the lie. So the receipt carries the declaration beside
 `sourceEmpty` — the terminal already knows, at
-`packages/core/src/terminal-builder.ts:258-277`, and currently discards it. With
+`evidencedViolations()` in `packages/core/src/terminal-builder.ts`, and currently discards it. With
 the fact on the receipt the emitter distinguishes "examined nothing and said so"
 from "examined nothing", and neither lies nor false-positives. This is the same
 move ADR-013 made: give the seam the fact, not the machinery to infer it. The
 field is `declaredEmpty?: true` on the receipt, and it carries ADR-010 §3's
 expiry with it: a receipt declared empty that arrives with `examined > 0` is
 the expired-declaration finding, the emitter's mirror of what the terminal
-already produces for its own rules at `packages/core/src/terminal-builder.ts:275`.
-`assertsCardinality()` (`:265`) sets the same flag: a `.notExist()` over zero
+already produces for its own rules (`deadGlobViolation` in
+`packages/core/src/terminal-builder.ts`).
+`assertsCardinality()` sets the same flag: a `.notExist()` over zero
 subjects is a declaration by construction, and without the flag every such rule
 inside a preset would be a false red at the emitter.
 
@@ -391,7 +400,7 @@ of five. Phase 0 decides between them.
 
 | site                                                                                                    | what it holds at the emitter                                                           | the receipt it can hand over                                               |
 | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| kernel `executeCheck` (`packages/core/src/execute-rule.ts:217`)                                         | the filtered array of an already-gated terminal                                        | the terminal's own `examined`, threaded one call further                   |
+| kernel `executeCheck` (`packages/core/src/execute-rule.ts`)                                             | the filtered array of an already-gated terminal                                        | the terminal's own `examined`, threaded one call further                   |
 | kernel `finishPreset` → `reportViolations` (`packages/core/src/report.ts:83`)                           | whatever the caller passed                                                             | the same receipt, forwarded                                                |
 | kernel `dispatchRule` (`packages/core/src/preset-dispatch.ts:37`)                                       | `builder.rule(meta).violations()`, from a builder with **no public evidence accessor** | blocked on D1                                                              |
 | kernel `throwIfViolations` (`packages/core/src/preset-dispatch.ts:137`)                                 | a bare array forwarded to `finishPreset`                                               | nothing: removed, see the deletion list below                              |
@@ -404,7 +413,8 @@ of five. Phase 0 decides between them.
 | three scripts hand-assembling (`check-corpus.mjs:764`, `check-ledger.mjs:166`, `check-release.mjs:377`) | a hand-assembled array — **and each call is inside the `--format json` branch only**   | the units its assertions ran over, subject to D2                           |
 
 Not a migration site, and worth stating so nobody "fixes" it: the
-undocumented-exclusion push at `packages/core/src/execute-rule.ts:171` builds a
+undocumented-exclusion push (`packages/core/src/execute-rule.ts`, its
+`const undocumented: ExclusionWarning[]` accumulator) builds a
 literal **inside `applyFilters`** — pipeline output, evidenced by the terminal
 that called it.
 
@@ -420,12 +430,12 @@ other's wrong. This plan must pick one, not offer "either" as Phase 3 did.
 The break is on the return type. Every reader of a preset's `report: 'return'`
 result is a migration site, and the table above lists none of them.
 
-| population                                               | count | note                                                                                     |
-| -------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------- |
-| `report: 'return'` sites in `packages/*/tests`           | 14    | across five files; none inventoried anywhere in this plan                                |
-| non-vacuity fixtures reading a preset return as an array | 5     | `bad-adr.mjs`, `bad-ledger.mjs`, `bad-ledger-dead-selector.mjs`, and two more            |
-| gate-script return reads                                 | many  | enumerated under Phase 4, not counted; including the fail-open at `check-corpus.mjs:150` |
-| documentation teaching the array return                  | 4     | `docs/presets.md:22`, `packages/ts/README.md:185`, `docs/markdown.md:441` and `:455`     |
+| population                                               | count | note                                                                                                                                                                                                                         |
+| -------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `report: 'return'` sites in `packages/*/tests`           | 14    | across five files; none inventoried anywhere in this plan                                                                                                                                                                    |
+| non-vacuity fixtures reading a preset return as an array | 5     | `bad-adr.mjs`, `bad-ledger.mjs`, `bad-ledger-dead-selector.mjs`, and two more                                                                                                                                                |
+| gate-script return reads                                 | many  | enumerated under Phase 4, not counted; including the fail-open at `check-corpus.mjs:150`                                                                                                                                     |
+| documentation teaching the array return                  | 4     | `docs/presets.md` and `packages/ts/README.md` (both the `report: 'return'` row of the delivery table); `docs/markdown.md`'s `ArchViolation[]` sentence and its `pass report: 'return' to get the array instead` code comment |
 
 **This side has no guard, and it fails green.** ADR-014's runtime guard covers
 the **input**. On the output, `if (violations.length > 0)` becomes
@@ -439,7 +449,7 @@ carrying `examined`, so `.length` keeps working rather than reading `undefined`.
 `docs/api-reference.md:567`; `packages/ts/src/index.ts:489`;
 `packages/ts/src/presets/index.ts:24`;
 `packages/ts/tests/matrix/vacuity-classification.ts:226` and `:238`; and
-`scripts/check-nonvacuity.mjs:629`, which injects
+`scripts/check-nonvacuity.mjs`'s family re-export probe (grep `throwIfViolations`), which injects
 `import { throwIfViolations } from '@nielspeter/eess'` as the violating payload
 for the family re-export probe. That fixture's own comment records the identical
 accident once already, when ADR-011 moved its predecessor behind `/internal`
@@ -502,7 +512,7 @@ Unchanged in intent; three prerequisites from the review:
   new generic finding its own, before any fixture is written (Phase 0).
 - The two non-vacuity rows have homes before they are written: the kernel-emitter
   probe under `check:vacuity` (`GATE_FOR` maps it to `vacuity-matrix`,
-  `scripts/check-nonvacuity.mjs:1535`, and probing an exported emitter with an
+  the `vacuity-matrix` row in `GATE_FOR`, and probing an exported emitter with an
   evidence-free value is exactly what that matrix exists for), and the
   production-script row under `check:corpus`. Neither is a kernel behaviour
   orphaned from every `check:*`, and neither goes into `INSTRUMENTS`, which is
@@ -542,8 +552,8 @@ emptied corpus fires the terminal's own `sourceEmpty` under a different rule id
 and proves nothing about the emitter.
 
 Also owed: two cases for `violationsEmittedCount()`
-(`packages/core/src/report.ts:51-57`), which `packages/ts/src/core/execute-rule.ts:508`
-reads as a delta. A healthy receipt with no violations must not move it; the
+(`packages/core/src/report.ts`), which `packages/ts/src/core/execute-rule.ts`
+reads as a delta (it imports the symbol). A healthy receipt with no violations must not move it; the
 synthesised finding must.
 
 ### Phase 2 — the retype
@@ -569,8 +579,8 @@ As D1, D2, D4, D5 and D6 decide it. The parts the review left standing:
   `sourceEmpty` / `declaredEmpty` precedence — four emitters restating one rule
   and disagreeing, which is [bug 0205](../bugs/0205-four-emitters-restate-the-suppression-rule-and-disagree.md)'s
   class. The constructor stamps a **fresh** array: `applyFilters`
-  (`packages/core/src/execute-rule.ts:46`) returns the same reference when no
-  exclusion applies, and stamping onto it would mutate whatever a family
+  (exported from `packages/core/src/execute-rule.ts`) returns the same reference
+  when no exclusion applies, and stamping onto it would mutate whatever a family
   memoized;
 - **`formatViolationsJson` carries `examined` by hand**, one line, because
   `JSON.stringify` drops an array's own properties. Otherwise `--format json`
@@ -624,18 +634,71 @@ site and say what number it handed over and why that number is honest.
 
 ### Phase 4 — the return consumers (new)
 
-The census above, migrated: nine gate-script reads, five harness fixtures,
-fourteen test sites, four documentation teachings. `scripts/check-corpus.mjs:150`
-is the one that fails **open** and is the reason this phase exists.
+**The census is recorded by value, not by line — and that is a correction this
+plan owed itself.** The first version pinned ~40 `file:line` citations as the
+migration list. Re-checked at the freeze, **8 of 15 sampled had staled in two
+days**: `check-corpus.mjs:150` was `const adrError = adrViolations.length…` and
+is now `const FROZEN = [`; `check-ledger.mjs:167` was the `process.exit` and is
+now `const repoRoot = process.cwd()`. `check-corpus.mjs` grew 232 lines and
+`check-nonvacuity.mjs` 497 in that window. `check:corpus` stayed green over all
+of it, because the pointer gate proves a line **exists**, not that it still says
+what was claimed (bug 0253's class).
 
-**Enumerate, do not count.** The gate-script reads, from the diff rather than
-memory: `check-baseline.mjs:70`, `:74`, `:77`; `check-guardrails.mjs:69`, `:73`,
-`:96`, `:97`; `check-corpus.mjs:150` and `:848`; `check-ledger.mjs:154`, `:167`,
-`:202-228`; `check-release.mjs:378`, `:408-411`, `:432`, `:442`, `:459-473`.
-Plus `.violations()` consumers the first census missed:
-`scripts/check-corpus.mjs:130-144`, `scripts/release-gate.mjs:553-554`,
-`docs/api-reference.md:47` and `packages/core/README.md:52`, both of which
-teach the old return type.
+A line number is a pointer, and the freeze's rule is _record by value_. So each
+site below is named by the expression an implementer greps for. Line numbers are
+deliberately absent: `rg` the expression.
+
+**A. Preset `report: 'return'` reads** — four, each the one call in its script:
+
+| script                         | the call                                                                            |
+| ------------------------------ | ----------------------------------------------------------------------------------- |
+| `scripts/check-baseline.mjs`   | `recommended(p, { include: INCLUDE, report: 'return' })`                            |
+| `scripts/check-guardrails.mjs` | `agentGuardrails(p, { ...OPTIONS, report: 'return' })`                              |
+| `scripts/check-ledger.mjs`     | `honestyAtClose(c, { ...opts, report: 'return' })`, inside the per-lane `scans` map |
+| `scripts/check-corpus.mjs`     | `adrEnforcement(c, { dir: 'adr/**', report: 'return' })`                            |
+
+**B. `.violations()` consumers outside `packages/`** — six, by receiver:
+
+| script                     | receivers                                                          |
+| -------------------------- | ------------------------------------------------------------------ |
+| `scripts/check-corpus.mjs` | `linkRule`, `repoLinkRule`, `pointerRule`, `lanesMatchDirectories` |
+| `scripts/release-gate.mjs` | `needsChangeset`, `namesRealPackage`                               |
+
+`check-corpus.mjs`'s is the read that fails **open** and is the reason this phase
+exists: its `const all = [ … ]` aggregation feeds `reportViolations(all, …)`, and
+an emptied contributor is indistinguishable from a clean one.
+
+**C. Emitter call sites** — seven in `scripts/`, twelve in `packages/`. The
+package ones key to their exported function and so cannot drift:
+
+- kernel: `finishPreset` and the `reportViolations` inside it (`packages/core/src/report.ts`);
+  `throwIfViolations` (`preset-dispatch.ts`); `executeCheck` (`execute-rule.ts`)
+- `eess-ts`: `deliver` (`packages/ts/src/presets/shared.ts`)
+- `eess-md`: `honestyAtClose` (`rules/ledger.ts`), `adrEnforcement` (`rules/adr.ts`)
+- `eess-crossvalidate`: `tableErAgree`, `embeddedDiagramsMatchCode`,
+  `scenarioCitationsResolve`, and `gherkin-ts.ts`'s three —
+  `scenarioTestsResolve`, `scenariosCovered`, `scenarioExemptionsCurrent`
+
+The seven script sites are each `reportViolations(<var>, { format })` under the
+`--format` branch, plus the bare `reportViolations(violations)` in
+`check-baseline.mjs` and `check-guardrails.mjs`, and every one is followed by
+`process.exit(<var>.length > 0 ? 1 : 0)` — the exit expression that must become
+the receipt's, per D2.
+
+**D. Documentation teaching the old return type**: `docs/api-reference.md`'s
+`violations()` entry and `packages/core/README.md`'s equivalent. Grep both for
+`violations()` rather than a line.
+
+**How to keep this honest at build time.** Re-run the enumeration rather than
+trusting this table — it is a snapshot, and the last one rotted in two days:
+
+```bash
+rg -n "report: 'return'" scripts/*.mjs
+rg -n "\.violations\(\)" scripts/*.mjs *.rules.ts
+rg -n "reportViolations\(|finishPreset\(" scripts packages/*/src
+```
+
+If a command's output disagrees with the table, the output is right.
 
 D1 has its own consumer population, and it is larger: `.violations()` is called
 at roughly 690 sites across 90 test files, 38 in `packages/*/src`, and a handful
@@ -650,8 +713,8 @@ Two non-vacuity rows, in two homes. The kernel-emitter probe — a hand-assemble
 evidence-free value at `finishPreset` — under `check:vacuity`, beside the
 vacuity-matrix probe it is a sibling of. And a **production-script** row under
 `check:corpus`: the harness today drives `bad-adr.mjs` for ADRs
-(`scripts/check-nonvacuity.mjs:1290`) and never the real `check-corpus.mjs`,
-which is exactly why the fail-open at `check-corpus.mjs:150` had nothing to
+(its `bad-adr` fixture) and never the real `check-corpus.mjs`,
+which is exactly why that fail-open had nothing to
 catch it; the new row runs the production script with a `continue` planted in
 one check's loop and asserts the emitter's rule id. Then the `WeakSet` rule; the
 vacuity-matrix comment; the rule row written for the scope it truly covers, per
@@ -666,7 +729,7 @@ Three fixture details that decide whether the rows above prove anything. The
 `check:vacuity` home is honest only if `scripts/vacuity-matrix.mjs` actually
 hands `finishPreset` an evidence-free value — its probes today call presets
 bare and read the thrown error (`:191-234`) — so that probe is added, not
-assumed. The repointed family probe payload at `scripts/check-nonvacuity.mjs:629`
+assumed. The repointed family probe payload in `scripts/check-nonvacuity.mjs`
 names a **live** root symbol `eess-md` does not re-export (`reportViolations`
 qualifies), with a clean-direction assertion that the payload resolves in the
 kernel, because the rule reads specifiers (`scripts/lib/family-re-exports.mjs:84-100`)
@@ -726,9 +789,9 @@ are the plan. Everything under them is bookkeeping.
   dogfood rule's declared scope must select a non-zero number of modules, or the
   row is not `gated`. ADR-014's Enforcement table is the last place a false green
   may live.
-- **The removed alias's probe still discriminates.** Repoint
-  `scripts/check-nonvacuity.mjs:629` and prove the fixture still fails on a real
-  violation, rather than firing on a symbol that no longer exists.
+- **The removed alias's probe still discriminates.** Repoint the alias probe in
+  `scripts/check-nonvacuity.mjs` (grep the removed alias's name) and prove the
+  fixture still fails on a real violation, rather than firing on a symbol that no longer exists.
 
 Then the bookkeeping: every emitter call and every return consumer migrated,
 each number the count its own assertions ran over and never what it loaded; a
