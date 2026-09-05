@@ -235,6 +235,53 @@ describe('inline exclusion comments — end-to-end (condition → applyFilters �
     expect(lines.join('')).not.toMatch(/excluded-far\.ts:\d+ suppressed nothing/)
   })
 
+  it('(d6) an id-less rule is named by its own sentence, through the real DSL', () => {
+    // Two gaps in one test, both named by review of the previous commit.
+    //
+    // First: `eess-ts`'s share of this feature was verified only by AGREEING
+    // with the kernel via `engine/applyfilters-parity`. That gate compares the
+    // two copies to each other, not to a specification — a bug landed in both
+    // at once passes it, which review demonstrated by mutating both identically
+    // and watching the gate stay green.
+    //
+    // Second: every other test for this drives `applyFilters` with a hand-built
+    // context, so nothing proved a real chain threads its own description into
+    // the diagnostic. This one uses no `.rule({ id })` and no `.because()` — the
+    // shape an early adopter actually writes — and asserts the sentence the
+    // builder composes for itself.
+    const lines: string[] = []
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      lines.push(String(chunk))
+      return true
+    })
+    try {
+      expect(() =>
+        functions(project(tsconfigPath))
+          .that()
+          .resideInFile('**/excluded-single.ts')
+          .should()
+          .notContain(call('forbiddenFn'))
+          .check(),
+      ).toThrow(ArchRuleError)
+    } finally {
+      spy.mockRestore()
+    }
+    const stderr = lines.join('')
+    expect(stderr).toMatch(/declares no id/)
+    // The rule's own sentence, not a placeholder — asserted on its content so a
+    // regression to `unnamed` or to an empty label fails here.
+    //
+    // Note the escaped quotes: a `resideInFile` rule's own description quotes
+    // its glob, so an ORDINARY rule already contains the delimiter. The escaping
+    // added alongside this test is not a hypothetical guard against exotic
+    // `.because()` prose — it fires on the first real chain anyone writes, and
+    // the first version of this assertion failed because `[^"]*` could not span
+    // it.
+    expect(stderr).toMatch(/This rule \(".*should not contain call.*"\) declares no id/)
+    expect(stderr).toMatch(/\\"\*\*\/excluded-single\.ts\\"/)
+    expect(stderr).not.toMatch(/\("unnamed"\)/)
+  })
+
   it('the same regression holds through .satisfy(<non-stamping condition>)', () => {
     // .satisfy() is the generic path the rules-family presets use. Passing a
     // body-analysis (non-stamping) condition through it must be excludable too.

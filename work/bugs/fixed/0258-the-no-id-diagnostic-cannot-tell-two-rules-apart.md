@@ -101,6 +101,39 @@ tells a reader nothing, so it counts as absent.
 `engine/applyfilters-parity` will fail the build if only one changes — which is
 what that gate is for.
 
+## What the round-2 review added
+
+Five lenses reviewed the `.because()`-only version. Two independently found the
+premise false — recorded above — and the rest found edge cases the fix's own
+control was supposed to forbid.
+
+**`.because('')` rendered `("")`.** The guard tested `undefined`, and the
+signature is `string` with nothing validating it — so the empty parenthetical the
+anonymous control explicitly forbids was reachable through a different door.
+Round 2's `label === ''` check had already closed it; nothing tested it. Now two
+tests do, one for empty and one for whitespace-only.
+
+**`.trim()` had no test that could fail.** Review mutated it away and all 15
+tests stayed green: the multi-line case collapses interior whitespace and has
+none at the edges. Pinned now, and sabotage-measured.
+
+**A quote in the label garbled it**, and this is the finding that turned out to
+matter most. `ignore the "legacy" path` rendered three quotes before the closing
+paren with no way to see where the label ended. Escaped now — and the end-to-end
+test proves it is not an exotic case: a plain `resideInFile` rule's own sentence
+quotes its glob, so **the first real chain anyone writes already contains the
+delimiter**. The first version of that test's assertion failed for exactly this
+reason.
+
+**The ts copy was verified only by resemblance.** Enforcement demonstrated the
+limit of the parity gate by mutating both copies identically and watching it stay
+green — parity compares the copies to each other, not to a specification. And
+every test drove `applyFilters` with a hand-built context, so nothing proved a
+real chain threads its own description through. One ts test now does both: a real
+`functions(...)` chain with no `.rule({ id })` and no `.because()`, asserting the
+sentence the builder composes for itself. Sabotage-measured against the
+reason-only regression.
+
 ## Verification
 
 - [x] Two id-less chains over one file produce two distinguishable lines —
@@ -128,6 +161,13 @@ what that gate is for.
       landing either round in the kernel alone makes the copies diverge and reds
       the gate, printing both versions of the line. That is the mechanism built in
       0255's third round doing its job on the next bug.
+- [x] The label's edge cases are pinned and sabotage-measured: padding trimmed,
+      an empty or whitespace-only reason treated as no name, and a quote escaped
+      so the label still has an end. Dropping any of the three reds a named test.
+- [x] `eess-ts` has a test of its own, not just agreement with the kernel — a
+      real DSL chain, no `.rule({ id })`, no `.because()`, asserting the sentence
+      the builder composes. Parity compares the copies to each other; this
+      compares one of them to what it should say.
 - [x] Every assertion is against the string the implementation emits, checked by
       running it. Four assertions on 0255's branch were written against text that
       was never printed; that record keeps the tally.

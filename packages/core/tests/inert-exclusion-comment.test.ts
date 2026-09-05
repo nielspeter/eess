@@ -271,6 +271,47 @@ describe('a directive that cannot apply is reported (bug 0255)', () => {
     expect(stderr).toMatch(/"no eval in handlers"/)
   })
 
+  it('a reason with padding is trimmed — asserted, not assumed', () => {
+    // Review mutated `.trim()` away and all 15 tests stayed green: the
+    // multi-line case collapses interior whitespace but has none at the edges,
+    // so nothing exercised the trim. A test that cannot fail for the code it
+    // names is the class this branch has now recorded five times.
+    const file = write('padded.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], { reason: '   padded   ' })
+    expect(stderr).toMatch(/\("padded"\)/)
+  })
+
+  it('an empty reason is no name at all, not an empty parenthetical', () => {
+    // `.because('')` type-checks — the signature is `string`, and nothing
+    // validates it. Guarding on `undefined` alone rendered `("")`, which is
+    // exactly the shape the anonymous control forbids, reached by a different
+    // door. Two lenses found this independently on the previous commit.
+    const file = write('empty-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], { reason: '' })
+    expect(stderr).toMatch(/This rule declares no id/)
+    expect(stderr).not.toMatch(/\(""\)/)
+  })
+
+  it('a whitespace-only reason is also no name', () => {
+    // The other half of the same door: `.because('   ')` collapses to empty
+    // after trimming, and must be treated as absent rather than rendered.
+    const file = write('blank-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], { reason: '   ' })
+    expect(stderr).toMatch(/This rule declares no id/)
+  })
+
+  it('a quote inside the label is escaped, so the label still has an end', () => {
+    // `.because()` takes arbitrary prose and a quoted term is plausible. Before
+    // this, `ignore the "legacy" path` rendered three quotes before the closing
+    // paren and a reader could not tell where the label stopped. Escaping keeps
+    // the author's words exact where replacing them would not.
+    const file = write('quoted.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {
+      reason: 'ignore the "legacy" path',
+    })
+    expect(stderr).toMatch(/\("ignore the \\"legacy\\" path"\)/)
+  })
+
   it('the no-id report is one line per file, not one per directive', () => {
     // Two id-less rules over a shared file already print once each; printing
     // once per directive on top of that is noise the sibling branch avoids by

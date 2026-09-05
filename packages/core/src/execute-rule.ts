@@ -268,7 +268,12 @@ export function applyFilters(
       // naming a rule "unnamed" tells the reader nothing, so it counts as absent
       // and the reason takes over. Whitespace is collapsed either way: both are
       // prose that may wrap, and this report is one line per file.
-      const oneLine = (t: string): string => t.replace(/\s+/g, ' ').trim()
+      // Collapse to one line, and escape the delimiter. A `.because()` reason is
+      // arbitrary prose, so one containing a quoted term rendered as
+      // `("ignore the "legacy" path")` — three quotes before the paren, and no
+      // way for a reader to see where the label ends. Escaping keeps the
+      // author's words exact where replacing them would not.
+      const oneLine = (t: string): string => t.replace(/\s+/g, ' ').trim().replace(/"/g, '\\"')
       const described = ctx.describe?.()
       const label =
         described !== undefined && described !== 'unnamed' && described !== ''
