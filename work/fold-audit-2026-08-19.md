@@ -74,7 +74,8 @@ counterparts do not. The kernel was deliberately re-architected.
 _verbatim file copy_, over upstream's own module graph. A fix is a diff, not a
 file — and `packages/core` itself records doing exactly what the taint number
 calls impossible: splitting a pure part out of a ts-morph-blocked file
-(`project-relative.ts:6-9`, `path-universe.ts:6`, `glob-site.ts:9` all say so
+(`packages/core/src/project-relative.ts:6-9`, `packages/core/src/path-universe.ts:6`,
+`glob-site.ts:9` all say so
 in their own docstrings). So:
 
 - **verbatim file copy** into the kernel: genuinely unavailable;
@@ -216,7 +217,7 @@ gap and not a decision.
 Worth recording so they are not "fixed" by a later reader:
 
 - **upstream 0015.** eess routes the untested-allowlist notice to stderr only
-  (`cli/commands/check.ts:131-139`: _"a `--format json` consumer's document
+  (`packages/ts/src/cli/commands/check.ts:131-139`: _"a `--format json` consumer's document
   stays machine-clean"_). Upstream put it on stdout precisely because _"an
   agent parses stdout, so a stderr-only notice would have been invisible."_
   This is not a style preference but an **ADR-008-vs-ADR-009 collision**:
@@ -287,6 +288,8 @@ versioned locally but unreleased behind [plan
 Each filed bug's defect line was checked against `810808b` — the `v0.2.3`
 release commit, i.e. the tree those published versions were cut from:
 
+<!-- eess-exclude-start corpus/pointers-resolve: dated citations against commit 810808b, the v0.2.3 release tree. These record where each defect stood in ANOTHER tree on 2026-08-19; repointing them at today's code would falsify the measurement the audit exists to preserve. Sanctioned as a region rather than per row because a directive inside a table cell is inert (bug 0255). -->
+
 | bug  | severity | in the published tree? | evidence                                                                                           |
 | ---- | -------- | ---------------------- | -------------------------------------------------------------------------------------------------- |
 | 0154 | High     | **yes**                | `exclusion-comments.ts` identical line-scan                                                        |
@@ -296,6 +299,8 @@ release commit, i.e. the tree those published versions were cut from:
 | 0158 | High     | **yes**                | reason-free directive path unchanged                                                               |
 | 0159 | High     | **partly**             | `reverse-dependency.ts` has zero `identity` mentions; the `duplicate-pair::` collision is fold-era |
 | 0160 | Medium   | **yes**                | `within.ts:2` value-import                                                                         |
+
+<!-- eess-exclude-end -->
 
 > **Correction, recorded rather than quietly fixed.** The first version of this
 > section claimed "most of what is listed here is in the unpublished `0.3.0`"
@@ -315,6 +320,8 @@ question worth asking, and it is a call for the maintainer, not this record.
 
 The audit's denominator, made countable. `P` = PRESENT · `p` = PARTIAL ·
 `M` = MISSING · `-` = N/A. "src" is which pass produced the verdict.
+
+<!-- eess-exclude-start corpus/pointers-resolve: the same dated sweep, one row per audited id. Same reason as the table above. -->
 
 | id    | v   | src    | note                                                              |
 | ----- | --- | ------ | ----------------------------------------------------------------- |
@@ -390,6 +397,8 @@ The audit's denominator, made countable. `P` = PRESENT · `p` = PARTIAL ·
 | 0073  | P   | sweep  | fixed at the root; `SmellBuilder` inherits the gate               |
 | 0076  | P   | sweep  | `distinctVocabulary` pre-filter                                   |
 | 0080  | p   | sweep  | loader indirection present; `isolate: true` pin absent            |
+
+<!-- eess-exclude-end -->
 
 **Counts:** P 43 · p 15 · M 11 · - 3 · **total 72**.
 

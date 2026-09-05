@@ -42,6 +42,8 @@ import {
   proposalNumberFromPath,
 } from './lib/proposal-ruling.mjs'
 import { nonTerminalFreezes, frozenScopeRefusal } from './lib/frozen-scope.mjs'
+// Extracted so the labels can be tested — they have been wrong twice in place.
+import { pointerSummary } from './lib/pointer-classes.mjs'
 
 // `fixed/` is the bugs lane's own done-folder (bug 0086) — frozen alongside
 // the others so bug history is not held to today's code (its pointers are not
@@ -206,15 +208,6 @@ const pointerRule = pointers(c)
   .rule({ id: 'corpus/pointers-resolve' })
 const pointersChecked = pointerRule.select({ label: 'pointer', ...anon }).elements.length
 const stale = pointerRule.violations()
-const brokenPointers = stale.filter((v) => v.message.startsWith('broken code pointer'))
-const stalePointers = stale.length - brokenPointers.length
-const pointerSummary = () => {
-  if (stale.length === 0) return '✓ all ground in code'
-  const parts = []
-  if (brokenPointers.length > 0) parts.push(`${brokenPointers.length} broken (no such file)`)
-  if (stalePointers > 0) parts.push(`${stalePointers} stale (line past end)`)
-  return `✗ ${parts.join(' · ')}`
-}
 
 // dir MUST be set: the preset default is 'docs/adr/**'; ours live at /adr.
 // report: 'return' — the preset emits nothing; this script owns reporting
@@ -860,7 +853,7 @@ line(
   // "stale" sends the reader to check a line number in a file that does not
   // exist — review hit exactly that confusion on this change. The two are
   // different repairs: broken needs the path fixed, stale needs the line.
-  `${pointersChecked} live · ${pointerSummary()}`,
+  `${pointersChecked} live · ${pointerSummary(stale.map((v) => v.message))}`,
 )
 line(
   'ADRs',

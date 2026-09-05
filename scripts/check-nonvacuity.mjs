@@ -206,6 +206,11 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
 const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
+const PROBE_CORPUS_POINTER_AMBIGUOUS = join(
+  repoRoot,
+  'docs',
+  '__nonvacuity_probe_pointer_ambiguous__.md',
+)
 // Directly under `work/`, NOT inside a lane (bug 0249). The repo-native link
 // probe above lives in `work/bugs/`, which was a root before that fix — so it
 // proves the repo-native branch is wired and says nothing about whether the
@@ -790,6 +795,56 @@ function gateCorpusLinksRepoNative() {
     'corpus/broken-links',
     'work/bugs/__nonvacuity_probe_repo__.md',
   )
+}
+
+/**
+ * The AMBIGUOUS pointer class, which `corpus/pointers-resolve` gained in bug 0254.
+ *
+ * A separate row from `corpus/pointers` above, for the reason this harness's own
+ * comments keep restating: `gateCoverage()` asserts per rule id, so a new class
+ * inside an already-covered id is invisible to it. This one is more invisible
+ * than most — before 0254 the ambiguous branch `return []`-ed, so the class
+ * produced no violation at all while still counting toward the caller's
+ * denominator, and every corpus row stayed green.
+ *
+ * Asserts the MESSAGE, not just that the id fired: `corpus/pointers` already
+ * proves the id can red. What this proves is that an ambiguous pointer reds *as
+ * ambiguous* — a regression that classified it back into `broken` would lose the
+ * candidate list and the remedy with it, and would satisfy a bare `firedOn`.
+ *
+ * `rule-builder.ts` is deliberately chosen: it exists in both `packages/core/src`
+ * and `packages/ts/src/core`, so the probe is ambiguous by construction rather
+ * than by a coincidence of today's file tree.
+ */
+function gateCorpusPointerAmbiguous() {
+  const { json, terminal } = withProbe(
+    PROBE_CORPUS_POINTER_AMBIGUOUS,
+    '# Non-vacuity probe\n\nA bare filename two packages both have: `rule-builder.ts:1`\n',
+    () => ({
+      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+    }),
+  )
+  const file = 'docs/__nonvacuity_probe_pointer_ambiguous__.md'
+  let saidAmbiguous = false
+  let namedBoth = false
+  try {
+    const parsed = JSON.parse(json.stdout)
+    const hit = parsed.violations.find(
+      (v) => v.ruleId === 'corpus/pointers-resolve' && String(v.file).includes(file),
+    )
+    saidAmbiguous = hit !== undefined && hit.message.startsWith('ambiguous code pointer')
+    namedBoth =
+      hit !== undefined &&
+      hit.message.includes('packages/core/src/rule-builder.ts') &&
+      hit.message.includes('packages/ts/src/core/rule-builder.ts')
+  } catch (err) {
+    void err // unparseable output is a failure, reported by the flags below
+  }
+  return {
+    ok: json.code === 1 && terminal.code === 1 && saidAmbiguous && namedBoth,
+    detail: `bad → json exit ${json.code}, terminal exit ${terminal.code}, classed ambiguous: ${saidAmbiguous}, named both candidates: ${namedBoth}`,
+  }
 }
 
 // Pointer resolution isn't region-split (unlike links), so one probe suffices.
@@ -1493,6 +1548,9 @@ const gates = [
   // Bug 0127: converted from a rebuilt-rule fixture to driving the
   // production script, matching the links gates above.
   ['corpus/pointers', gateCorpusPointers],
+  // Bug 0254: the third pointer class. Its own row because `gateCoverage()` is
+  // per-rule-id, and this class emitted nothing at all before the fix.
+  ['corpus/pointers/ambiguous', gateCorpusPointerAmbiguous],
   // Bug 0249's review, I3: the `work/**` root probe above is a LINK probe, and
   // links are gated in frozen documents too — so it stays green through the one
   // mutation that stops examining the region's 445 pointers. A pointer probe in
@@ -1730,6 +1788,7 @@ const GATE_FOR = {
     'corpus/links/work-root',
     'corpus/link-routing',
     'corpus/pointers',
+    'corpus/pointers/ambiguous',
     'corpus/pointers/work-root',
     'corpus/frozen-scope',
     'corpus/proposal-plan-linkage',
@@ -1979,7 +2038,9 @@ let allOk = true
 // would inflate the denominator — the exact over-claim this harness exists to
 // prevent — so it carries its own status wording and is excluded from the count.
 let gateCount = 0
+const QA_ONLY = process.env.QA_ONLY ? process.env.QA_ONLY.split(',') : undefined
 for (const [name, run] of gates) {
+  if (QA_ONLY && !QA_ONLY.includes(name)) continue
   let res
   try {
     res = run()

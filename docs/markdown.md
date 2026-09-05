@@ -90,7 +90,7 @@ Two things worth knowing:
 ## What it checks
 
 - **Links** — internal cross-links between markdown files resolve to real targets. Static-site conventions are supported (extensionless links, `index.md` directories, a site root) via options on `.resolve()`.
-- **Pointers** — inline `path:line` references (the code pointers you scatter through plans and ADRs) point at files that exist, at lines that exist. Liveness is fence-aware, so example pointers inside code blocks aren't treated as live claims.
+- **Pointers** — inline `path:line` references (the code pointers you scatter through plans and ADRs) point at files that exist, at lines that exist. Liveness is fence-aware, so example pointers inside code blocks aren't treated as live claims. A pointer resolves by path suffix by default, so `admin/index.vue:2` finds the one file whose path ends that way; a **bare name matching several files is a violation** naming the candidates, because it does not say which one you meant. Pass `{ paths: 'exact' }` to require full repo-relative paths instead.
 - **Frozen roots** — completed/archived docs describe the world as it was. Their links are still gated; their pointers are not examined at all, so pointer drift in them is neither reported nor fatal. To get a report, select them explicitly: `pointers(c).that().areFrozen().should().resolve().warn()`.
 
 ## Documents, links, pointers, and task items

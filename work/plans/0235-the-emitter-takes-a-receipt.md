@@ -194,7 +194,7 @@ rediscover them.
 13. **An all-off preset becomes an unsuppressable red** (architect, product).
     `packages/core/src/preset-dispatch.ts:49` and
     `packages/ts/src/presets/shared.ts:59` return `[]` for `'off'`, and the ruling
-    at `shared.ts:283-292` calls that "a permanent, legitimate decision, not a
+    at `packages/ts/src/presets/shared.ts:283-292` calls that "a permanent, legitimate decision, not a
     suppression. Silent." It stays on the list only because a finding an adopter
     cannot legitimately answer trains them to switch the gate off, and an
     switched-off gate is a meaningless green. → **D5**
@@ -228,8 +228,8 @@ so the next reader knows the table was wrong once:
 Stale pointers, all of which `check:corpus` passes because it resolves that a
 line exists, not that it says what was claimed: `adr.ts:148` is
 `packages/md/src/rules/adr.ts:156`; the `callerAggregates` bypass is
-`packages/ts/src/presets/shared.ts:445-448`, not 441-444; `shared.ts:427` is
-`deliver()`'s flatMap, its declaration is `:419`.
+`packages/ts/src/presets/shared.ts:445-448`, not 441-444; `packages/ts/src/presets/shared.ts:427`
+is `deliver()`'s flatMap, its declaration is `:419`.
 
 **One correction was owed outside this plan, and is made.** ADR-014's
 Enforcement row claimed `check:family` "sees the removal" of `throwIfViolations`.
@@ -563,7 +563,8 @@ As D1, D2, D4, D5 and D6 decide it. The parts the review left standing:
 - **one constructor and one merge, exported by the kernel and re-exported by
   every dialect** so `check:family` stays green. `push(...)`, spread, `filter`
   and `flatMap` all return bare arrays, and `adr.ts:139-153`, `ledger.ts:580`,
-  `shared.ts:427` and `preset-dispatch.ts:62` all do one of them today. Without
+  `packages/ts/src/presets/shared.ts:427` and `preset-dispatch.ts:62` all do one of
+  them today. Without
   a shared merge, each dialect hand-rolls the `examined` sum and the
   `sourceEmpty` / `declaredEmpty` precedence — four emitters restating one rule
   and disagreeing, which is [bug 0205](../bugs/0205-four-emitters-restate-the-suppression-rule-and-disagree.md)'s
