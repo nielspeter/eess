@@ -247,12 +247,12 @@ previously silent (bug 0255):
   id: from inside one rule's run there is no way to know whether a directive's id
   already belongs to another, working rule, and prescribing it would collide the
   two. Give the rule whatever id you meant.
-- **Out of reach.** A single-line directive covers only the _next_ line. Inside a
-  markdown table every cell is on one physical line, so an in-cell directive
-  covers the next row rather than the pointer beside it. eess prints which
-  directive suppressed nothing, and points at `eess-exclude-start`/`-end` for a
-  region — noting that wrapping a whole table waives the rule for every row in
-  it, which is coarser than the row you meant.
+- **Out of reach.** A single-line directive covers only the _next_ line, so a
+  directive that is not immediately above the finding covers nothing. eess prints
+  which directive suppressed nothing and points at `eess-exclude-start`/`-end`
+  for a region. (What "the next line" means in a format where one physical line
+  holds several logical ones — a markdown table row, say — is the dialect's
+  business, not this page's: see [Markdown](./markdown.md).)
 
 Both are stderr diagnostics, not findings: the violation the directive failed to
 cover is already firing, so the build is red and the author is looking at it —

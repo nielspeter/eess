@@ -188,6 +188,17 @@ export function applyFilters(
       // mechanism has warned about a stale pattern since bug 0044; the comment
       // form never did, which is bug 0255.
       //
+      // **The wording is domain-neutral on purpose.** The first version explained
+      // the next-line scope in terms of markdown table rows, because that is the
+      // corpus bug 0255 was filed against. This function is the kernel's, and
+      // `eess-mermaid` and `eess-gherkin` run it unforked — so a stale directive
+      // in a `.mmd` or `.feature` file was told it sat "inside a markdown table".
+      // Review caught it, and caught the tell: the hand-port into `eess-ts`
+      // silently dropped the table clause because it made no sense there, which
+      // is the evidence it never belonged at the shared layer. The table nuance
+      // now lives in `docs/markdown.md`, where the dialect that has tables is
+      // documented.
+      //
       // Scoped to this rule's id on purpose: a file may carry directives for many
       // rules, and one naming another rule matched nothing here for a good
       // reason. Without that scope this would fire once per unrelated directive
@@ -197,10 +208,8 @@ export function applyFilters(
         writeStderr(
           `[eess] Exclusion comment for '${ruleId}' at ${c.file}:${String(c.line)} ` +
             `suppressed nothing. It may be stale, or out of reach: a single-line ` +
-            `directive covers only the NEXT line, which inside a markdown table ` +
-            `is the next row. eess-exclude-start/-end covers a region instead — ` +
-            `note that wrapping a whole table waives this rule for every row in it, ` +
-            `which is coarser than the one row you meant.`,
+            `directive covers only the NEXT line. eess-exclude-start/-end covers a ` +
+            `region instead.`,
         )
       }
     } else if (allComments.length > 0) {

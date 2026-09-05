@@ -1614,6 +1614,16 @@ const gates = [
     'corpus/exclusion-inert/no-id',
     () => gateNode('bad-inert-exclusion-no-id.mjs', 'exclusion/no-rule-id-is-reported'),
   ],
+  // The two `applyFilters` copies must answer alike. Bug 0255 is the fourth
+  // recorded incident of a fix landing on one copy (plan 0188), and reviewing
+  // its own fix found the same defect twice more: the ts copy missed both
+  // diagnostics, then its wording diverged once hand-ported. Per-bug porting
+  // failed three times on one bug, so this makes a divergence fail the build.
+  // Measured against all three real defects.
+  [
+    'engine/applyfilters-parity',
+    () => gateNode('bad-applyfilters-parity.mjs', 'engine/applyfilters-parity'),
+  ],
   // Bug 0249's review, I3: the `work/**` root probe above is a LINK probe, and
   // links are gated in frozen documents too — so it stays green through the one
   // mutation that stops examining the region's 445 pointers. A pointer probe in
@@ -1823,7 +1833,14 @@ const NO_GATE_NEEDED = {
 // presets still uncovered.
 const GATE_FOR = {
   // `eess-ts check arch.rules.ts arch.internal.rules.ts` — two rule files, two rows.
-  'check:arch': ['arch (root rules)', 'internal arch'],
+  //
+  // `engine/applyfilters-parity` is claimed here because `check:arch` is the gate
+  // that runs `eess-ts`'s FORK of `applyFilters` — the copy that has now been
+  // missed three times on one bug (0255, and plan 0188's three earlier
+  // incidents). It equally guards the kernel copy every other check runs, so the
+  // claim is narrower than the gate; it is filed under the script whose engine
+  // would otherwise have no witness that it still matches the kernel's.
+  'check:arch': ['arch (root rules)', 'internal arch', 'engine/applyfilters-parity'],
   'check:family': [
     'family re-export (index)',
     'family re-export (crossvalidate)',

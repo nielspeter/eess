@@ -15,8 +15,10 @@ nothing else:
   the file was not even parsed. Found by an adopter review whose own docs had
   just recommended this exact sanction.
 - **The directive is out of reach.** A single-line directive covers the _next_
-  line. Inside a markdown table every cell is one physical line, so an in-cell
-  directive covers the next row, never the finding beside it.
+  line, so one that is not immediately above the finding covers nothing. (What
+  "the next line" means where a single physical line holds several logical ones —
+  a markdown table row, say — is documented per dialect; the diagnostic itself
+  stays domain-neutral, because the kernel emits it for every dialect.)
 
 Both now print a stderr diagnostic naming the file and line. Neither is a
 finding: the violation is already firing, so the build is red and the author is
@@ -44,8 +46,14 @@ It carries its own copy of `applyFilters` (`packages/ts/src/core/execute-rule.ts
 would have reached `eess-md`, `eess-mermaid` and `eess-gherkin` while leaving the
 dialect most people install exactly as silent as before. Review caught the first
 version doing precisely that, with a changeset that said "eess now prints…" —
-and found an `eess-ts` test still certifying the old behaviour. Both diagnostics
-now exist in both copies, with the ts side's own test.
+and found an `eess-ts` test still certifying the old behaviour.
+
+Both diagnostics now exist in both copies, **print identical text**, and a gate
+holds them to it: `engine/applyfilters-parity` runs the same scenarios through
+both and fails on any divergence. That exists because hand-porting failed three
+times on this one bug — the copy was missed, then its wording drifted once
+ported, then its coverage was never written. Each half has its own test on each
+side now, too.
 
 `orphanExclusions`'s docstring is corrected alongside: it documented this gap as
 one it could not close and priced it at "a parse per file per rule". The fix came

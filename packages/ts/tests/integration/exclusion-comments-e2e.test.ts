@@ -141,6 +141,65 @@ describe('inline exclusion comments — end-to-end (condition → applyFilters �
     expect(stderr).not.toMatch(/\.rule\(\{ id: '[a-z]/) // no borrowed id prescribed
   })
 
+  it('(d3) …and eess-ts reports a directive that suppressed nothing (bug 0255)', () => {
+    // The id-scoped half. Review measured that the ts copy had NO test for it:
+    // deleting the whole reporting block, or the `spent` tracking that decides
+    // which directives did work, left the entire packages/ts suite green. The
+    // parity fixture (`engine/applyfilters-parity`) is the structural guard;
+    // this names the property in the dialect's own suite so a reader of this
+    // file can see it is covered.
+    //
+    // `excluded-far.ts` carries a directive that is not immediately above the
+    // finding, so it can never reach it — the TypeScript shape of the same
+    // fault a markdown table cell produces.
+    const lines: string[] = []
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      lines.push(String(chunk))
+      return true
+    })
+    try {
+      expect(() =>
+        functions(project(tsconfigPath))
+          .that()
+          .resideInFile('**/excluded-far.ts')
+          .should()
+          .notContain(call('forbiddenFn'))
+          .rule({ id: 'demo/no-forbidden' })
+          .check(),
+      ).toThrow(ArchRuleError)
+    } finally {
+      spy.mockRestore()
+    }
+    const stderr = lines.join('')
+    expect(stderr).toMatch(/suppressed nothing/)
+    expect(stderr).toMatch(/demo\/no-forbidden/)
+  })
+
+  it('(d4) …and a WORKING directive is not falsely reported (the spent-tracking guard)', () => {
+    // The mutation review proved nothing in packages/ts could catch: deleting
+    // the `spent` bookkeeping makes every directive that DOES suppress also get
+    // reported as having suppressed nothing. A positive assertion on the
+    // message cannot see that — the mutation adds output — so this asserts the
+    // absence, on the fixture whose directive works.
+    const lines: string[] = []
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      lines.push(String(chunk))
+      return true
+    })
+    try {
+      functions(project(tsconfigPath))
+        .that()
+        .resideInFile('**/excluded-single.ts')
+        .should()
+        .notContain(call('forbiddenFn'))
+        .rule({ id: 'test/no-forbidden-call' })
+        .check() // passes: the directive suppresses the only finding
+    } finally {
+      spy.mockRestore()
+    }
+    expect(lines.join('')).not.toMatch(/suppressed nothing/)
+  })
+
   it('the same regression holds through .satisfy(<non-stamping condition>)', () => {
     // .satisfy() is the generic path the rules-family presets use. Passing a
     // body-analysis (non-stamping) condition through it must be excludable too.

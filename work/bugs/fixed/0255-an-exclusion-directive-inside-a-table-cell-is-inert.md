@@ -209,6 +209,39 @@ text and passed under the very mutation it existed to catch. Tightened to the
 literal the warning emits. That is four across four commits, and the only one
 found before review — which is the direction it needs to keep moving.
 
+## The third round, and the thing that finally got built
+
+The fix for the missing port produced two more defects, both found by reading the
+two copies side by side — the reading nothing automated.
+
+**The kernel's message spoke markdown.** It explained the next-line scope in terms
+of table rows and warned that "wrapping a whole table waives this rule for every
+row in it". The kernel's `applyFilters` is what `eess-mermaid` and `eess-gherkin`
+run unforked, and neither has tables — so a stale directive in a `.mmd` or
+`.feature` file was told it sat inside one. Architecture and product found it
+independently, and both spotted the same tell: the hand-port into `eess-ts` had
+silently dropped the table clause because it made no sense there. That drop was
+the evidence it never belonged at the shared layer. The wording is now
+domain-neutral and byte-identical in both copies; the table nuance moved to
+`docs/markdown.md` — which, review noted, had not mentioned `eess-exclude` at all.
+
+**The port copied code and not coverage.** Enforcement mutated the ts copy three
+ways — deleting the `spent` tracking, deleting the whole out-of-reach report, and
+un-grouping the no-id report — and the entire `packages/ts` suite stayed green for
+all three, while this record's checklist claimed both copies had "each ... its own
+test".
+
+**So the answer stopped being another port.** Per-bug porting had failed three
+times on one bug: the ts copy missed both diagnostics, then its wording diverged
+once ported, then its coverage was never written. `engine/applyfilters-parity`
+runs identical scenarios through both copies and fails the build when what they
+print diverges. It does not unify them — that is
+[plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md)'s job — it
+converts a defect that needed a human reading two files into one a gate catches.
+Measured against all three real defects. Its limit is stated in the fixture: it
+compares the scenarios it runs, and the copies could still differ where it does
+not look. That is a floor, and there was none.
+
 ## Verification
 
 - [x] A directive that applies to no violation is reported, with its file, line
@@ -236,10 +269,18 @@ found before review — which is the direction it needs to keep moving.
       third is in the record above.
 - [x] `packages/ts/src/core/orphan-exclusions.ts` no longer claims a gap this
       closed, and says what it still uniquely covers.
-- [x] **Both copies of `applyFilters` carry both diagnostics** — the kernel's and
-      `eess-ts`'s fork — each with its own test, and the ts test that certified
-      the old behaviour says what changed. A fix in one copy only is this repo's
-      named recurring defect (plan 0188); it would have been the fourth.
+- [x] **Both copies of `applyFilters` carry both diagnostics, print the same
+      words, and are held to that by a gate.** An earlier version of this box
+      claimed "each with its own test" and was false: only the no-id half had a
+      ts test, and review's mutations of the ts copy's other half left the whole
+      `packages/ts` suite green. Both halves now have ts tests, each
+      sabotage-measured, and `engine/applyfilters-parity` runs identical
+      scenarios through both copies and fails on any divergence in what they
+      print. The ts test that certified the old behaviour says what changed.
+- [x] The kernel's diagnostics say nothing dialect-specific. The markdown-table
+      nuance lives in `docs/markdown.md`, and `docs/violation-reporting.md` —
+      filed under the eess-ts guide — no longer documents a scenario that
+      dialect cannot have.
 - [x] `check:integrity` names a leftover probe **directory**, not only a probe
       file. Measured both ways: clean exits 0, a planted directory exits 1 and is
       named.
