@@ -1,4 +1,9 @@
-# Bug 0255: an exclusion directive inside a table cell is silently inert
+# Bug 0255: an exclusion comment that cannot apply is silently inert
+
+> Filed as "an exclusion directive inside a table cell is silently inert", which
+> named one of the two causes. Retitled when the second — a rule chain with no
+> `.rule({ id })`, inert everywhere, not just in tables — was accepted into the
+> same record, so the title matches what a reader will find here.
 
 ## Status
 
@@ -74,8 +79,10 @@ So `pointers(c).that().areLive().should().resolve().check()` — the form
 than the table case: the whole exclusion scan was gated on having an id, so the
 file was not even parsed. Nothing could have noticed.
 
-That one is _provably_ inert rather than merely unmatched, which is why it gets a
-remedy naming the exact call to add rather than a hedge.
+That one is _provably_ inert rather than merely unmatched — not just unmatched
+this run. The first version took that as licence to name the exact call to add,
+using the directive's own rule id. Review measured the harm and it was reverted;
+see the round below. The shipped report names a placeholder, never a live id.
 
 ## Fix
 
@@ -86,11 +93,14 @@ one the chain form already had — no new syntax, no scope change.
 
 Two reports, both stderr:
 
-- **No rule id** — names the directive's file and line and the exact
-  `.rule({ id: '...' })` to add.
+- **No rule id** — names the file and the directive lines found there, once per
+  file, and says to give the rule an id. It names **no specific id**: a directive
+  in the file may belong to another, working rule, and prescribing that id would
+  collide the two. (The first version did prescribe it. See the rounds below.)
 - **Suppressed nothing** — names the directive and says why it may be out of
-  reach (next-line scope; inside a table that is the next row), pointing at
-  `eess-exclude-start`/`-end` for a region.
+  reach (next-line scope), pointing at `eess-exclude-start`/`-end` for a region.
+  The wording is domain-neutral: the kernel emits it for every dialect, and what
+  "the next line" means in a table is `docs/markdown.md`'s to say.
 
 Scoped to the running rule's own id, so a file carrying directives for several
 rules does not report each one once per rule.
@@ -142,8 +152,8 @@ warnings against legitimately-working directives in this repo's own corpus.
 **Then the same mistake a third time, found by my own sabotage run.** The CONTROL
 for "a directive for a different rule is not reported" grepped for the _other_
 rule's id — but the report names the _running_ rule, so that string never appears
-even when the scoping is removed. Three commits, three assertions written against
-strings the implementation does not emit. The pattern is always the same, and
+even when the scoping is removed. That is a third assertion written against a
+string the implementation does not emit. The pattern is always the same, and
 noticing it is worth more than the three fixes.
 
 **The fixture covered one cause of two.** Deleting the entire no-id block left
@@ -206,8 +216,15 @@ the first attempt changed the shared one and broke the source-text scan with
 
 The test added for the reason-free case asserted `/reason/i`, which matched other
 text and passed under the very mutation it existed to catch. Tightened to the
-literal the warning emits. That is four across four commits, and the only one
-found before review — which is the direction it needs to keep moving.
+literal the warning emits.
+
+**The count, stated properly, because the first attempt at it was itself a
+miscount.** Four vacuous assertions in total, and they are not one per commit:
+one shipped in bug 0254's branch (a backtick where the message uses quotes); two
+shipped together in this branch's first commit; the fourth never shipped at all —
+my own sabotage caught it before it was committed. Review caught the first three;
+I caught the fourth. That last part is the direction it needs to keep moving, and
+it is the only part of this paragraph worth remembering.
 
 ## The third round, and the thing that finally got built
 
