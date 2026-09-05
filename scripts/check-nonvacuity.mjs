@@ -850,7 +850,13 @@ function gateCorpusInertExclusion() {
     }),
   )
   const said = `${terminal.stdout}${terminal.stderr}`
-  const warned = said.includes('suppressed nothing') && said.includes('corpus/pointers-resolve')
+  // The FILE, not just the rule id: `check-corpus.mjs` prints
+  // `corpus/pointers-resolve` in its own violation output regardless, so that
+  // half of the old assertion was true whether or not the diagnostic fired
+  // (review's finding). The probe's path appears only in the diagnostic.
+  const warned =
+    said.includes('suppressed nothing') &&
+    said.includes('work/__nonvacuity_probe_inert_excl__/table.md')
   const stillFires = firedOn(
     json,
     'corpus/pointers-resolve',
@@ -1600,6 +1606,14 @@ const gates = [
   // Bug 0255: a directive that cannot apply now says so. Its own row because the
   // report is a stderr diagnostic, which no rule-id-based fixture can see.
   ['corpus/exclusion-inert', gateCorpusInertExclusion],
+  // The other half of 0255. A separate row because the production script cannot
+  // exercise it — every gate here calls `.rule({ id })`, so there is no id-less
+  // caller to plant a probe against. Enforcement review measured the hole:
+  // deleting the whole no-id block left the row above green.
+  [
+    'corpus/exclusion-inert/no-id',
+    () => gateNode('bad-inert-exclusion-no-id.mjs', 'exclusion/no-rule-id-is-reported'),
+  ],
   // Bug 0249's review, I3: the `work/**` root probe above is a LINK probe, and
   // links are gated in frozen documents too — so it stays green through the one
   // mutation that stops examining the region's 445 pointers. A pointer probe in
@@ -1839,6 +1853,7 @@ const GATE_FOR = {
     'corpus/pointers',
     'corpus/pointers/ambiguous',
     'corpus/exclusion-inert',
+    'corpus/exclusion-inert/no-id',
     'corpus/pointers/work-root',
     'corpus/frozen-scope',
     'corpus/proposal-plan-linkage',

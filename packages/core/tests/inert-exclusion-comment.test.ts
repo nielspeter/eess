@@ -111,7 +111,89 @@ describe('a directive that cannot apply is reported (bug 0255)', () => {
     const { kept, stderr } = stderrFrom([violation(file, 2)], { metadata: { id: 'demo/rule' } })
 
     expect(kept).toHaveLength(0) // suppressed, as intended
-    expect(stderr).not.toMatch(/never applied|declares no id|matched zero/i)
+
+    // Asserted against the string the implementation ACTUALLY emits. The first
+    // version of this line listed three phrases — "never applied", "declares no
+    // id", "matched zero" — of which the working-directive report emits none, so
+    // it could not fail for the mutation it exists to catch. Review proved it:
+    // deleting the `spent` tracking made every working directive report
+    // "suppressed nothing" and all six tests stayed green. Same vacuous-regex
+    // class as the backtick assertion bug 0254 had to fix one commit earlier.
+    expect(stderr).not.toMatch(/suppressed nothing/)
+  })
+
+  it('a working directive is not reported — the spent-tracking regression, pinned', () => {
+    // The mutation the CONTROL above missed, made its own test so the property
+    // has a witness that names it. Two directives, both of which DO suppress:
+    // without `spent` tracking each would be reported as having suppressed
+    // nothing, because the loop cannot tell which comment did the work.
+    const file = write('two-working.md', [
+      '<!-- eess-exclude demo/rule: first -->',
+      'first violation here',
+      '<!-- eess-exclude demo/rule: second -->',
+      'second violation here',
+    ])
+    const { kept, stderr } = stderrFrom([violation(file, 2), violation(file, 4)], {
+      metadata: { id: 'demo/rule' },
+    })
+
+    expect(kept).toHaveLength(0) // both suppressed
+    expect(stderr).not.toMatch(/suppressed nothing/)
+  })
+
+  it('one working and one inert directive: only the inert one is named', () => {
+    // The discriminating case. A file-level "did any comment suppress anything"
+    // check would stay silent here, and a per-comment check with no `spent` set
+    // would report both. Only correct bookkeeping names exactly one, and the
+    // assertion is on WHICH line, not on a count.
+    const file = write('mixed.md', [
+      '<!-- eess-exclude demo/rule: this one works -->',
+      'the violation is here',
+      '<!-- eess-exclude demo/rule: this one reaches nothing -->',
+      'a line with no violation on it',
+    ])
+    const { kept, stderr } = stderrFrom([violation(file, 2)], { metadata: { id: 'demo/rule' } })
+
+    expect(kept).toHaveLength(0)
+    const reported = [...stderr.matchAll(/mixed\.md:(\d+) suppressed nothing/g)].map((m) => m[1])
+    expect(reported).toEqual(['3'])
+  })
+
+  it('the no-id report never prescribes an id that may belong to another rule', () => {
+    // Review reproduced real harm here: the first version named each comment's
+    // own rule id and told the reader to add `.rule({ id: <that id> })`. From
+    // inside one rule's execution there is no way to know that id is unclaimed —
+    // and in the reproduction it was actively in use by a working rule, so the
+    // advice would have collided two rules onto one id.
+    const file = write('borrowed-id.md', [
+      '<!-- eess-exclude other/rule: works for another rule entirely -->',
+      'the violation is here',
+    ])
+    const { stderr } = stderrFrom([violation(file, 2)], {})
+
+    // It still reports — the directive genuinely cannot apply, which is the
+    // whole point of bug 0255.
+    expect(stderr).toMatch(/borrowed-id\.md/)
+    expect(stderr).toMatch(/declares no id/)
+    // But it must not hand the author someone else's id to claim.
+    expect(stderr).not.toMatch(/\.rule\(\{ id: 'other\/rule' \}\)/)
+  })
+
+  it('the no-id report is one line per file, not one per directive', () => {
+    // Two id-less rules over a shared file already print once each; printing
+    // once per directive on top of that is noise the sibling branch avoids by
+    // scoping. Asserted by counting the lines, since that is the property.
+    const file = write('many-directives.md', [
+      '<!-- eess-exclude a/one: reason -->',
+      'x',
+      '<!-- eess-exclude b/two: reason -->',
+      'the violation is here',
+    ])
+    const { stderr } = stderrFrom([violation(file, 4)], {})
+
+    expect(stderr.split('\n').filter((l) => l.includes('declares no id'))).toHaveLength(1)
+    // Both directives' lines are still named, so nothing is hidden by the merge.
+    expect(stderr).toMatch(/lines 1, 3/)
   })
 
   it('CONTROL — a clean file is never parsed, so a defensive region cannot be reported', () => {
@@ -161,6 +243,13 @@ describe('a directive that cannot apply is reported (bug 0255)', () => {
     ])
     const { stderr } = stderrFrom([violation(file, 2)], { metadata: { id: 'demo/rule' } })
 
-    expect(stderr).not.toMatch(/other\/rule/)
+    // Asserted on the FILE AND LINE, not on the other rule's id. The report
+    // names the RUNNING rule ("Exclusion comment for 'demo/rule' at …"), so
+    // `other/rule` never appears in it even when the scoping is removed — a
+    // regex looking for that string cannot fail. Found by sabotage: dropping the
+    // `c.ruleId !== ruleId` filter left this test green. That is the third
+    // vacuous-regex assertion in three commits, and the pattern is always the
+    // same — asserting on a string the implementation does not emit.
+    expect(stderr).not.toMatch(/other-rule\.md:1 suppressed nothing/)
   })
 })

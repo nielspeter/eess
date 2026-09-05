@@ -1,5 +1,6 @@
 ---
 '@nielspeter/eess': minor
+'@nielspeter/eess-ts': patch
 ---
 
 Report an exclusion comment that cannot apply, instead of leaving it silently inert
@@ -17,10 +18,16 @@ nothing else:
   line. Inside a markdown table every cell is one physical line, so an in-cell
   directive covers the next row, never the finding beside it.
 
-Both now print a stderr diagnostic naming the file, the line, and what to do —
-the `.rule({ id: '...' })` call to add, or `eess-exclude-start`/`-end` for a
-region. Neither is a finding: the violation is already firing, so the build is
-red and the author is looking at it.
+Both now print a stderr diagnostic naming the file and line. Neither is a
+finding: the violation is already firing, so the build is red and the author is
+looking at it.
+
+The two are **not** symmetric, and the difference matters. The out-of-reach case
+knows the directive is this rule's — it matches on id — so it can name the
+region primitive as the fix. The no-id case cannot: a directive in the file may
+belong to another, working rule, and from inside one rule's run there is no way
+to tell. So it states the fact and leaves the id to you, rather than prescribing
+one that might already be claimed.
 
 **No behaviour changes for a directive that works.** Nothing new is suppressed or
 un-suppressed, and no exit code moves. The one visible change beyond the
@@ -30,3 +37,11 @@ this at all.
 
 A directive in a file with no violations is still never read, so a defensive
 region over clean code costs nothing and is not reported.
+
+`@nielspeter/eess-ts` takes a patch for a documentation correction only:
+`orphanExclusions` documented this exact gap as one it could not close, and
+estimated the cost at "a parse per file per rule". The kernel closed it more
+cheaply than that, so the docstring was left claiming a gap that no longer
+exists. It now says what that module still uniquely covers — a directive in a
+file that produced no violation, which the enforcement path never reads. No
+behaviour change.

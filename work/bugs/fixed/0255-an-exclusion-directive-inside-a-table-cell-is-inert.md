@@ -116,14 +116,66 @@ than by a special case. The other side of that line is reported: a region
 covering nothing in a file that did fail is a stale sanction, by the same
 reasoning as a stale `.excluding()` pattern.
 
+## What review found
+
+Seven lenses. Two Criticals, both real, and both in the half of the fix that was
+added late.
+
+**The no-id report was unscoped, and its advice was actively harmful.** It named
+each directive's own rule id and told the reader to add `.rule({ id: <that id> })`
+— but from inside one rule's run there is no way to know that id is unclaimed.
+Product and enforcement independently reproduced the same case: a directive
+correctly waiving `other/rule`, in a file where an id-less rule also fired,
+produced advice to claim `other/rule` for the id-less rule. Nothing enforces id
+uniqueness, so following it would collide two rules onto one id. The sibling
+branch had a scoping filter _and_ a CONTROL test; this one had neither, and the
+asymmetry had no witness. It now states the fact, once per file, and prescribes
+no id.
+
+**The core of the fix had no test, and the CONTROL written to guard it was
+vacuous.** Deleting the `spent` tracking makes every _working_ directive report
+"suppressed nothing" — and all six tests stayed green, because the CONTROL's
+regex looked for "never applied", "declares no id" and "matched zero", none of
+which that report emits. Testing measured it: the mutation produced two bogus
+warnings against legitimately-working directives in this repo's own corpus.
+
+**Then the same mistake a third time, found by my own sabotage run.** The CONTROL
+for "a directive for a different rule is not reported" grepped for the _other_
+rule's id — but the report names the _running_ rule, so that string never appears
+even when the scoping is removed. Three commits, three assertions written against
+strings the implementation does not emit. The pattern is always the same, and
+noticing it is worth more than the three fixes.
+
+**The fixture covered one cause of two.** Deleting the entire no-id block left
+`corpus/exclusion-inert` green — on the cause this record calls the worse one.
+`corpus/exclusion-inert/no-id` now covers it, and is honest that it is
+module-level: every gate here calls `.rule({ id })`, so there is no id-less
+production caller to probe.
+
+**One Critical rejected.** Method reported the fixture count as 76 → 77 rather
+than 74 → 75, measured from `gates.length`. That array includes two self-check
+rows the harness deliberately excludes from its denominator — its own comment
+says counting them "would inflate the denominator — the exact over-claim this
+harness exists to prevent". The printed figure is the harness's self-report and
+is what the record cites.
+
+Also from review: `packages/ts/src/core/orphan-exclusions.ts` documented this
+exact gap as one it could not close and estimated the cost at "a parse per file
+per rule"; the fix came in under that estimate and left the docstring claiming a
+gap that no longer exists. Corrected, and narrowed to what that module still
+uniquely covers — a directive in a file that produced no violation, which the
+enforcement path structurally never reads.
+
 ## Verification
 
 - [x] A directive that applies to no violation is reported, with its file, line
       and rule id — asserted on all three, not on the presence of any warning.
 - [x] Asserted on a directive inside a table cell specifically: the
       `check:nonvacuity` row plants exactly that shape.
-- [x] `check:nonvacuity` row `corpus/exclusion-inert` over the production script
-      (74 → 75). It asserts **both** halves — the diagnostic is printed _and_ the
+- [x] `check:nonvacuity` rows `corpus/exclusion-inert` (production script) and
+      `corpus/exclusion-inert/no-id` (module-level, because no gate here runs
+      without an id). Two rows because review measured that one covered one
+      cause: deleting the whole no-id block left the first row green. It asserts **both** halves — the diagnostic is printed _and_ the
       violation still fires — because a change that made the in-cell directive
       genuinely suppress would satisfy a diagnostic-only check by accident.
       Sabotage-measured: dropping the report takes the diagnostic count to 0.
@@ -132,9 +184,15 @@ reasoning as a stale `.excluding()` pattern.
       parsed — and is asserted rather than assumed, alongside a test pinning the
       other side of the boundary (a stale region in a file that _did_ fail is
       reported, on purpose).
-- [x] The second cause found in review — no `.rule({ id })` — is reported with
-      the exact call to add, and `docs/violation-reporting.md` now documents both
-      causes where the prerequisite is stated.
+- [x] The second cause — no `.rule({ id })` — is reported **without prescribing
+      an id**, because a directive in the file may belong to another working
+      rule. Pinned by a test that asserts the borrowed id is absent while the
+      report still fires, and by the fixture, which fails if either half breaks.
+- [x] Every assertion is against a string the implementation actually emits.
+      Three were not, across three commits; the sabotage matrix that found the
+      third is in the record above.
+- [x] `packages/ts/src/core/orphan-exclusions.ts` no longer claims a gap this
+      closed, and says what it still uniquely covers.
 
 Deferred: none.
 

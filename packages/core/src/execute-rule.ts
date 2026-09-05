@@ -198,18 +198,41 @@ export function applyFilters(
           `[eess] Exclusion comment for '${ruleId}' at ${c.file}:${String(c.line)} ` +
             `suppressed nothing. It may be stale, or out of reach: a single-line ` +
             `directive covers only the NEXT line, which inside a markdown table ` +
-            `is the next row. Use eess-exclude-start/-end to cover a region.`,
+            `is the next row. eess-exclude-start/-end covers a region instead — ` +
+            `note that wrapping a whole table waives this rule for every row in it, ` +
+            `which is coarser than the one row you meant.`,
         )
       }
     } else if (allComments.length > 0) {
       // No rule id, so no comment here can ever match: `isExcludedByComment`
-      // refuses without one. Provably inert rather than merely unmatched, which
-      // is why this names the remedy instead of hedging.
+      // refuses without one.
+      //
+      // **This branch cannot say whose directive it is looking at, and the first
+      // version pretended otherwise.** It named each comment's own rule id and
+      // told the reader to add `.rule({ id: <that id> })` — but from inside one
+      // rule's execution there is no way to know whether that id already belongs
+      // to a different, working rule. Review reproduced the harm: a directive
+      // correctly waiving `other/rule` in a file where an id-less rule also
+      // fired produced advice to claim `other/rule` for the id-less one, which
+      // nothing prevents and which would collide two rules on one id.
+      //
+      // So it states the fact and leaves the id to the author. One line per
+      // file, not per comment, for the same reason its sibling scopes by id: a
+      // file may carry directives for many rules and none of them is evidence
+      // about this one.
+      const byFile = new Map<string, number[]>()
       for (const c of allComments) {
+        const lines = byFile.get(c.file)
+        if (lines) lines.push(c.line)
+        else byFile.set(c.file, [c.line])
+      }
+      for (const [file, lines] of byFile) {
+        const where = lines.length === 1 ? `line ${String(lines[0])}` : `lines ${lines.join(', ')}`
         writeStderr(
-          `[eess] Exclusion comment at ${c.file}:${String(c.line)} names ` +
-            `'${c.ruleId}', but this rule declares no id, so nothing can match it. ` +
-            `Add .rule({ id: '${c.ruleId}' }) to the chain for the directive to apply.`,
+          `[eess] This rule declares no id, so no exclusion comment can apply to it — ` +
+            `a comment matches a violation by rule id. ${file} has a directive at ${where}. ` +
+            `If one was meant for this rule, give the rule an id with .rule({ id: '<your-id>' }); ` +
+            `directives naming other rules are not this rule's to honour.`,
         )
       }
     }
