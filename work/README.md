@@ -8,14 +8,32 @@ architecture decisions in `adr/` (kept at the repo root by convention). eess fol
 
 ## Lanes
 
-| Folder              | What                 | Board                              | Terminal (frozen) subfolders |
-| ------------------- | -------------------- | ---------------------------------- | ---------------------------- |
-| [`plans/`](./plans) | Implementation plans | [`ROADMAP.md`](./plans/ROADMAP.md) | `completed/`, `wont-do/`     |
+| Lane                        | What                                          | Board                                      | Terminal (frozen) subfolders |
+| --------------------------- | --------------------------------------------- | ------------------------------------------ | ---------------------------- |
+| [`plans/`](./plans)         | Implementation plans                          | [`ROADMAP.md`](./plans/ROADMAP.md)         | `completed/`, `wont-do/`     |
+| [`bugs/`](./bugs)           | Concrete defects in the code                  | [`BUGS.md`](./bugs/BUGS.md)                | `fixed/`, `wont-do/`         |
+| [`proposals/`](./proposals) | Design under debate, before it becomes a plan | [`PROPOSALS.md`](./proposals/PROPOSALS.md) | `promoted/`, `declined/`     |
+| [`spikes/`](./spikes)       | Dated measurements of something we don't own  | none — a spike is terminal when written    | the whole lane               |
 
-eess is a **solo-greenfield** instance — one lane. The `bugs/`, `refinement/`, and
-`support/` lanes (with `fixed/` · `promoted/` · `delivered/` done-folders) are the
-same skeleton and appear only when the work calls for them; until then they'd be
-cargo-cult.
+**The `Lane` column is checked.** `check:corpus` binds it to the real directories
+under `work/`: a lane added without a row fails the build, and so does a row
+naming a directory that does not exist. It used to list one lane and call the rest
+cargo-cult while four existed — see
+[bug 0108](./bugs/fixed/0108-work-readme-lanes-table-lists-one-lane.md).
+
+The other three columns are prose, not claims a gate has checked. The terminal
+subfolders in particular are **conventions, created when a lane first needs one**:
+`plans/wont-do/`, `bugs/wont-do/` and `proposals/declined/` are named here and do
+not exist on disk yet. Read the column as where a thing goes, not as what is
+there.
+
+Further lanes — `refinement/` (volatile pre-plan discovery), `support/` (customer
+cases) — are the same skeleton and appear only when the work calls for them. They
+take numbers from the **same sequence as every other lane**
+([0107](./bugs/fixed/0107-number-allocation-scans-one-lane.md)), so a plan and a
+bug never collide. `spikes/` is the one with a different shape: its records
+_conclude_ rather than close, so it has no board and no done-folder, and the whole
+lane is frozen ([0256](./bugs/fixed/0256-the-spike-lane-is-run-but-never-declared.md)).
 
 ## Close convention (honesty at close)
 

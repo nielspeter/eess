@@ -13,11 +13,10 @@
  * Reports the denominator (done-items scanned) so a green is provably non-vacuous.
  * Exits non-zero on any finding. Run: `npm run check:ledger`.
  */
-import { readdirSync } from 'node:fs'
 import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 import { reportViolations } from '@nielspeter/eess'
-import { findUncoveredLanes, findLaneDoneVacuity } from './lib/lane-coverage.mjs'
+import { findUncoveredLanes, findLaneDoneVacuity, laneDirectories } from './lib/lane-coverage.mjs'
 import { PROPOSAL_DONE_FOLDERS } from './lib/proposal-ruling.mjs'
 import { findFinishedNotClosed } from './lib/finished-not-closed.mjs'
 
@@ -105,12 +104,10 @@ const scans = LANES.map((lane) => {
 // records-free directory (work/spikes/, today) is not a finding.
 const claimedTopSegments = new Set(LANES.flatMap((l) => l.roots.map((r) => r.split('/')[1])))
 const uncoveredLaneViolations = findUncoveredLanes('work', claimedTopSegments)
-// Second, cheap readdirSync — purely for the summary's denominator. The
-// judgment (does a directory carry records) stays inside findUncoveredLanes;
-// this does not re-derive it, it only counts what's already on disk.
-const workDirCount = readdirSync('work', { withFileTypes: true }).filter((e) =>
-  e.isDirectory(),
-).length
+// Purely for the summary's denominator. The judgment (does a directory carry
+// records) stays inside findUncoveredLanes; this only counts what's on disk,
+// through the same shared enumeration both gates now use.
+const workDirCount = laneDirectories('work').length
 
 // This repo's own corpus has carried done-items in every lane with a real
 // terminalStates vocabulary for its entire history — a lane reporting 0 is

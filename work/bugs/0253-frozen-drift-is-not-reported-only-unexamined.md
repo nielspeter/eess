@@ -73,9 +73,9 @@ examined)`;
   apart in one copy-pasteable block;
 - `docs/markdown.md` — both instances, in the published dialect guide.
 
-**Not corrected: `work/README.md:51`, and this record owns it.** An earlier
+**Not corrected: `work/README.md:69`, and this record owns it.** An earlier
 version of this section deferred that line to
-[0108](./0108-work-readme-lanes-table-lists-one-lane.md) and
+[0108](./fixed/0108-work-readme-lanes-table-lists-one-lane.md) and
 [0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md) on
 the grounds that they own the document. Review checked: **neither record mentions
 the frozen contract at all.** Fix 0108 and 0251 exactly as written and the
@@ -117,7 +117,7 @@ decides what the sentence should say.
    time it has been absent — but it is now the strictly worse option, since the
    thing being dropped costs one line and finds three real defects.
 
-Also owed either way: **`work/README.md:51`**, the last uncorrected copy of the
+Also owed either way: **`work/README.md:69`**, the last uncorrected copy of the
 sentence (see above — it is this record's, not 0108's or 0251's), and a
 `docs/markdown.md` mention of `.areFrozen()` so the primitive is findable.
 
@@ -128,7 +128,7 @@ sentence (see above — it is this record's, not 0108's or 0251's), and a
 - [ ] If option 1: a stale pointer in a frozen folder appears in the output and
       the exit code stays 0 — both asserted, since the pair is the whole point.
 - [ ] If option 1: a `check:nonvacuity` row, or the report is a claim again.
-- [ ] `work/README.md:51` says what the gate does — this record's, not deferred
+- [ ] `work/README.md:69` says what the gate does — this record's, not deferred
       to a home that never held it.
 - [ ] `.areFrozen()` appears in `packages/md/README.md` or `docs/markdown.md`, so
       the next person to want this report finds it instead of filing for it.
@@ -138,5 +138,5 @@ sentence (see above — it is this record's, not 0108's or 0251's), and a
 - [0249](./fixed/0249-most-of-work-is-outside-every-corpus-root.md) — freezes
   `work/spikes/**` and depends on the gating half of this contract, which holds.
 - [0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md) ·
-  [0108](./0108-work-readme-lanes-table-lists-one-lane.md) — the other two
+  [0108](./fixed/0108-work-readme-lanes-table-lists-one-lane.md) — the other two
   defects in `work/README.md`, which own the sentence this record leaves in place.

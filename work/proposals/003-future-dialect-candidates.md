@@ -220,7 +220,7 @@ existing `mermaid-ts`, and ship no new subpath.
   design under debate that becomes a plan or is declined; this has no ask, no
   design, and **no terminal state** — it can be neither accepted nor declined.
   `work/proposals/` has no board, and `check:ledger` does not scan it (bugs
-  [0108](../bugs/0108-work-readme-lanes-table-lists-one-lane.md),
+  [0108](../bugs/fixed/0108-work-readme-lanes-table-lists-one-lane.md),
   [0121](../bugs/fixed/0121-ledger-reads-two-of-four-lanes.md)). Either move the
   content to a ROADMAP "Candidates — not scheduled" section, or give it a `State:`
   that says explicitly it never becomes a plan. Author's call; both are defensible.

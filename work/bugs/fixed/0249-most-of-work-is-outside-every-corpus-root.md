@@ -121,7 +121,7 @@ rather than requiring it to be solved first.
    may be the whole answer.
 4. Fix `work/README.md` while it is finally being checked; it under-declares the
    lane model it is the map for. **That drift is already filed as
-   [0108](../0108-work-readme-lanes-table-lists-one-lane.md)** (2026-08-12), which
+   [0108](./0108-work-readme-lanes-table-lists-one-lane.md)** (2026-08-12), which
    this record failed to name when it was written — found by the working-method
    reviewer on its first run. The two are ordered: 0108's own fix binds the map's
    Lanes table with `rows()` + `correspondence()`, and a rule authored today would
@@ -198,7 +198,7 @@ honest box disposition at close, not document lifecycles.
       numbers. The one figure worth keeping is the size of the population this
       fix covered, **7 documents (4 live + 3 frozen)**, because that is a
       property of the change and not of the corpus's current size.
-- [~] `deferred→`[0108](../0108-work-readme-lanes-table-lists-one-lane.md) and
+- [~] `deferred→`[0108](./0108-work-readme-lanes-table-lists-one-lane.md) and
   [0251](../0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md)
   — **fixing `work/README.md`'s content.** This record's Fix listed it as step 4. It is not this record's to do: the map's two defects each have an owner,
   both were blocked on exactly this root gap, and both are now unblocked. That

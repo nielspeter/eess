@@ -127,7 +127,7 @@ when the diff is mostly code.
 
 **One line was DROPPED, and it is the most interesting edit in the file.** The old
 brief told the reviewer to check "State tokens used correctly (Draft/Ready/Done)"
-— which is the union defect [0108](../0108-work-readme-lanes-table-lists-one-lane.md)
+— which is the union defect [0108](./0108-work-readme-lanes-table-lists-one-lane.md)
 documents, sitting inside the persona meant to catch it. Removing it was right;
 not noticing it was worth noticing, and the persona's own first review of this
 change is what surfaced it.
@@ -152,7 +152,7 @@ detected as expected — foreign-project token`). **It proves less than an
       flagged as wrong — with no hint of what to look for. Three of its findings
       are named below because no existing persona would have been assigned to
       any of them; the rest are drift in the same document, now carried by
-      [0108](../0108-work-readme-lanes-table-lists-one-lane.md), which owns that
+      [0108](./0108-work-readme-lanes-table-lists-one-lane.md), which owns that
       map. (An earlier draft reported "nine findings, two critical" and named
       three — a count with no artifact behind six of them, in a record closed
       `Deferred: none`. Its own reviewer called that out.)
@@ -168,7 +168,7 @@ detected as expected — foreign-project token`). **It proves less than an
         `bugs/`; the repo's own copy lists one and calls the bugs lane
         "cargo-cult". The two files have diverged structurally, so a fix to
         either will not propagate.
-      - **It found a record I missed.** [Bug 0108](../0108-work-readme-lanes-table-lists-one-lane.md)
+      - **It found a record I missed.** [Bug 0108](./0108-work-readme-lanes-table-lists-one-lane.md)
         has covered the README lane drift since 2026-08-12. I filed 0249 with
         "fix `work/README.md`" as a remedy step and never checked whether it was
         already filed — and 0108's own fix is blocked by 0249's root gap, with

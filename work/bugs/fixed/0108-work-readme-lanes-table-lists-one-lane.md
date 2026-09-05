@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — confirmed against the directory tree; no red test written
-  yet.
+- **State:** Fixed — the table names all four lanes, and `check:corpus` binds the
+  `Folder` column to the real directories so it cannot drift again in either
+  direction.
 - **Severity:** Medium — raised from Low on 2026-09-04. "Documentation drift, no
   runtime effect" is true of the paragraph and false of the consequence: a
   newcomer following this map writes records the gate refuses (see the State-token
@@ -68,7 +69,7 @@ its own supersession and was never revisited, because nothing required it to be.
 The related omission was that `work/proposals/` had **no README and no board** at
 all, so the lane a reviewed proposal lived in had no documented lifecycle — which
 is how an inbound proposal came to sit in it with no provenance field until
-[002](../proposals/002-comment-embedded-links.md) was reviewed. **The board half
+[002](../../proposals/002-comment-embedded-links.md) was reviewed. **The board half
 is closed; the README half is not** — `work/proposals/` still has no README, and
 this record's own deferral below still carries it. The past tense above covers
 the board only.
@@ -78,7 +79,7 @@ the board only.
 > above claimed "none" for 23 days. A Draft bug left open long enough to need its
 > own re-measurement is a signal about the ranking, not about the bug; that is why
 > the severity moved. Found by the working-method reviewer on its first run
-> ([0250](./fixed/0250-the-review-roster-has-no-working-method-lens.md)).
+> ([0250](./0250-the-review-roster-has-no-working-method-lens.md)).
 
 ## A second defect in the same document, split out
 
@@ -91,7 +92,7 @@ called that wrong: _split, don't widen_. The two share a filename and nothing
 else — different table, different binding target (`LANES`, not the directory
 tree), different prerequisites — and bundled, the record is closable in neither
 half, the constraint this repo already applies to plan phases. It is
-[0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md).
+[0251](../0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md).
 
 Both are blocked on the same root gap, and 0251 carries a second prerequisite
 this record does not.
@@ -102,26 +103,26 @@ this record does not.
 > authored then would have examined **zero** rows and reported green — a vacuous
 > gate, the defect this repo exists to prevent.
 >
-> [0249](./fixed/0249-most-of-work-is-outside-every-corpus-root.md) widened the
+> [0249](./0249-most-of-work-is-outside-every-corpus-root.md) widened the
 > roots to `work/**`; `work/README.md` is now a live corpus document, so the rule
 > this record calls for would examine real rows. **The prerequisite is met and
 > nothing else about this record changed.** Neither record named the other until
 > the working-method reviewer did.
 >
 > One addition that arrived with the unblocking:
-> [0256](./fixed/0256-the-spike-lane-is-run-but-never-declared.md) needs the `spikes/`
+> [0256](./0256-the-spike-lane-is-run-but-never-declared.md) needs the `spikes/`
 > row this record's Fix already calls for, and defines what the lane means.
 
 ## Fix
 
-**1 — Tell the truth in the table.** Add rows for `bugs/` (board `BUGS.md`,
+**1 — Tell the truth in the table.** _(done)_ Add rows for `bugs/` (board `BUGS.md`,
 terminal `fixed/`), `proposals/`, and `spikes/`. Replace the solo-greenfield
 sentence with what is now true: which lanes exist, and that further lanes join
 the same skeleton and the same number sequence (see
-[0107](./fixed/0107-number-allocation-scans-one-lane.md)) when the work calls for
+[0107](./0107-number-allocation-scans-one-lane.md)) when the work calls for
 them.
 
-**2 — Bind it, so it cannot drift again.** This is a markdown table making a
+**2 — Bind it, so it cannot drift again.** _(done)_ This is a markdown table making a
 checkable claim about directories, which is precisely the case `eess-md`'s
 `rows()` plus the kernel's `correspondence()` exist for — the pattern the md
 README already documents. One rule binds the Lanes table's `Folder` column to
@@ -136,23 +137,61 @@ paragraph.
 **3 — Not in scope here:** giving `work/proposals/` its own README and
 lifecycle. That is a convention to decide, not a defect to fix — see _Deferred_.
 
-No changeset — corpus documentation only.
+No changeset — no `packages/` directory changed (`check:release`: 0 changed of
+6 workspace packages). Not "documentation only": this ships gate code in
+`scripts/`, which no package publishes.
 
 ## Verification
 
-- [ ] Red test written first: the Lanes-table binding fails while `bugs/`,
-      `proposals/` and `spikes/` are unlisted, and passes once rows exist.
-- [ ] The reverse direction goes red too: add a row for a directory that does
-      not exist and the gate fails.
-- [ ] `check:corpus` reports the new rule in its per-check counts, so the
-      binding is visibly non-vacuous rather than a silently-zero rule.
-- [ ] `npm run validate` green.
+- [x] **Red first.** The binding was written before the table was touched, and
+      reported exactly the three lanes this record names:
+
+      ```
+      lanes     1 row(s) · 4 directories · ✗ 3 finding(s)
+        work/README.md:1  work/bugs/ exists but the Lanes table does not list it
+        work/README.md:1  work/proposals/ exists but the Lanes table does not list it
+        work/README.md:1  work/spikes/ exists but the Lanes table does not list it
+      ```
+
+      Green once the rows exist: `4 row(s) · 4 directories · ✓ the map lists
+      every lane`.
+
+- [x] The reverse direction reds too — a row for `ghosts/` gives
+      `the Lanes table lists "ghosts/", which is not a directory under work/`,
+      at the row's own line.
+- [x] `check:corpus` prints a `lanes` line with both denominators (rows and
+      directories) beside its siblings, and the row count feeds `totalChecked`
+      — so a table emptied to zero rows is visible rather than a silent pass.
+- [x] Both directions have a `check:nonvacuity` row over the production script,
+      because the rule emits two ids and the harness's own `rule-id coverage`
+      self-check requires a fixture per id. The unlisted-lane fixture plants a
+      directory; the unresolved-row fixture mutates `work/README.md` itself and
+      restores it, since the fault _is_ a row in that one named table and no
+      probe document can stand in for it.
+- [x] `npm run validate` green.
+
+**One thing the binding decides that the record did not.** Ground truth is
+**every top-level directory** under `work/`, not "every directory that looks like
+a lane". A cleverer test existed — `check-ledger.mjs` decides lane-ness by whether
+a directory carries `State:`-shaped records — and it is the wrong one here:
+`work/spikes/` carries none, because a spike concludes rather than closes
+([0256](./0256-the-spike-lane-is-run-but-never-declared.md)). That test
+would have exempted the very lane whose absence from this map was the last thing
+anyone noticed. A directory the map does not mention is the gap, whatever is in
+it; if a non-lane directory ever appears, the answer is a row saying what it is,
+not an exemption.
 
 Deferred:
 
 - **A README and lifecycle for `work/proposals/`** — what states a proposal
   moves through, whether it has a board, and where a ruled proposal goes when
   it is neither accepted nor rejected. Proposal 002 is the first record to need
-  it. That is a convention decision, not a defect; re-homed to the working-method
-  docs (`docs/working-method.md`) rather than resolved here, so this bug closes
-  with its own PR.
+  it. That is a convention decision, not a defect, so it is not resolved here.
+  deferred→[plan 0259](../../plans/0259-a-lifecycle-for-the-proposals-lane.md).
+
+  **Corrected after review.** This deferral originally read "re-homed to the
+  working-method docs (`docs/working-method.md`)". Review measured that file:
+  zero occurrences of "proposal". Naming a filename is not naming an owner —
+  the item would have sat in a frozen record, on no board, with no number, which
+  is precisely the silent deferral `/close` exists to prevent. Plan 0259 is the
+  home, authored in the review round rather than promised.
