@@ -14,6 +14,7 @@ import { formatViolationsJson } from '@nielspeter/eess'
 import { activeNotice } from '@nielspeter/eess/internal'
 import { formatViolationsGitHub } from '@nielspeter/eess'
 import { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
+import type { ExclusionComment } from './exclusion-comments.js'
 import type { ExclusionWarning } from './exclusion-comments.js'
 import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import { recordCommentSuppression } from '@nielspeter/eess/internal'
@@ -239,8 +240,17 @@ export function applyFilters(
     })
   }
 
-  // Scan source files for inline exclusion comments (when rule has an ID)
-  if (ctx.metadata?.id && result.length > 0) {
+  // Scan source files for inline exclusion comments.
+  //
+  // **Not gated on `ctx.metadata?.id` (bug 0255).** A comment matches by rule
+  // id, so a chain without `.rule({ id })` can never honour one — and while the
+  // scan was gated on the id, the file was not even parsed, so nothing could
+  // say so. This is the second of the two copies: the kernel's got the same
+  // change, and review caught that landing it in one and claiming "eess now
+  // prints…" was a false green for the dialect adopters actually install
+  // (plan 0188 tracks the duplication itself; this is not the commit that
+  // fixes it, but it is not the commit that widens it either).
+  if (result.length > 0) {
     const undocumented: ExclusionWarning[] = []
     const filePaths = new Set(result.map((v) => v.file))
     const allComments = [...filePaths].flatMap((filePath) => {
@@ -270,7 +280,10 @@ export function applyFilters(
           // The malformed shapes are different — two of the three decline to
           // create the exclusion at all, so the original violation still fires
           // and the build is already red. A line on stderr is right for those.
-          if (warning.kind === 'undocumented') {
+          if (warning.kind === 'undocumented' && ctx.metadata?.id !== undefined) {
+            // The promotion below is keyed on the rule id; without one there is
+            // nothing to key it on, and the directive is inert anyway — which
+            // the inert report states, with a remedy. So it falls to stderr.
             undocumented.push(warning)
             continue
           }
@@ -293,7 +306,8 @@ export function applyFilters(
       }
     })
 
-    if (allComments.length > 0) {
+    const ruleIdForComments = ctx.metadata?.id
+    if (allComments.length > 0 && ruleIdForComments !== undefined) {
       // `v.bypassFilters` explicitly, not by accident. These findings are
       // immune today only because they carry `file: ''`, which the guard above
       // returns no exclusions for, so `comment.file === ''` can never hold.
@@ -303,14 +317,52 @@ export function applyFilters(
       // `// eess-exclude` comments ARE parsed. Without the first clause
       // a comment in a rule file would silence the finding that says the rule
       // enforces nothing. Pinned by tests/helpers/exclusion-comments.ts.
+      // Which comments actually did something, so the ones that did nothing can
+      // be named. Reuses `isExcludedByComment` one comment at a time rather than
+      // re-deriving the match, so it cannot drift from the real rule.
+      const spent = new Set<ExclusionComment>()
       result = result.filter((v) => {
         if (v.bypassFilters === true) return true
         if (!isExcludedByComment(v, allComments)) return true
         // Disclose it. Silently dropping is what made this the only filter in
         // the pipeline a reader could not see — see `comment-suppression.ts`.
         recordCommentSuppression(v.ruleId ?? ctx.metadata?.id ?? '(unnamed rule)', v.file)
+        for (const c of allComments) if (isExcludedByComment(v, [c])) spent.add(c)
         return false
       })
+
+      // A directive naming THIS rule that suppressed nothing — the same shape
+      // and weight as the `.excluding()` "Unused exclusion" line above.
+      for (const c of allComments) {
+        if (c.ruleId !== ruleIdForComments || spent.has(c)) continue
+        writeStderr(
+          `[eess] Exclusion comment for '${ruleIdForComments}' at ${c.file}:${String(c.line)} ` +
+            `suppressed nothing. It may be stale, or out of reach: a single-line ` +
+            `directive covers only the NEXT line. eess-exclude-start/-end covers a ` +
+            `region instead.`,
+        )
+      }
+    } else if (allComments.length > 0) {
+      // No rule id, so nothing here can match. It states the fact and names no
+      // id: a directive in this file may belong to another, working rule, and
+      // from inside one rule's run there is no way to tell (review reproduced
+      // the harm of guessing — it produced advice to collide two rules on one
+      // id). One line per file, not per comment.
+      const byFile = new Map<string, number[]>()
+      for (const c of allComments) {
+        const lines = byFile.get(c.file)
+        if (lines) lines.push(c.line)
+        else byFile.set(c.file, [c.line])
+      }
+      for (const [file, lines] of byFile) {
+        const where = lines.length === 1 ? `line ${String(lines[0])}` : `lines ${lines.join(', ')}`
+        writeStderr(
+          `[eess] This rule declares no id, so no exclusion comment can apply to it — ` +
+            `a comment matches a violation by rule id. ${file} has a directive at ${where}. ` +
+            `If one was meant for this rule, give the rule an id with .rule({ id: '<your-id>' }); ` +
+            `directives naming other rules are not this rule's to honour.`,
+        )
+      }
     }
 
     // The exemption stands; what fails is the missing justification. That is
@@ -322,18 +374,24 @@ export function applyFilters(
     //
     // Unsuppressable, because a suppression mechanism that can suppress the
     // complaint about itself is not a mechanism.
+    //
+    // `undocumented` is only populated when the rule HAS an id (the push above
+    // is guarded on it), so this loop is unreachable without one — the local
+    // re-binding is what tells the compiler that, after bug 0255 removed the
+    // outer `ctx.metadata?.id` gate.
     for (const warning of undocumented) {
+      if (ruleIdForComments === undefined) continue
       result.push({
-        rule: ctx.metadata.id,
-        ruleId: ctx.metadata.id,
-        element: `${ctx.metadata.id}@${warning.file}:${String(warning.line)}`,
+        rule: ruleIdForComments,
+        ruleId: ruleIdForComments,
+        element: `${ruleIdForComments}@${warning.file}:${String(warning.line)}`,
         file: warning.file,
         line: warning.line,
         message:
           `This exclusion states no reason, so nothing records why the rule is ` +
           `waived here — and it is silently suppressing a real finding.`,
         suggestion:
-          `Add a reason: // eess-exclude ${ctx.metadata.id}: <why>. ` +
+          `Add a reason: // eess-exclude ${ruleIdForComments}: <why>. ` +
           `A reason is prose and nothing verifies it, so this raises the cost of a ` +
           `suppression rather than preventing one — the audience is the reviewer ` +
           `reading the diff. If the exemption is not justifiable, delete it and fix ` +

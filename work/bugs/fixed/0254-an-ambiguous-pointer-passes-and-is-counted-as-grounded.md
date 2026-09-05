@@ -154,7 +154,7 @@ repointed. They are dated citations against commit `810808b`, the v0.2.3 release
 tree — they record where a defect stood in _another_ tree on 2026-08-19, so
 repointing them at today's code would falsify the measurement the audit exists to
 preserve. Sanctioned as a region, because a directive inside a table cell is inert
-([0255](../0255-an-exclusion-directive-inside-a-table-cell-is-inert.md)). Verified
+([0255](./0255-an-exclusion-comment-that-cannot-apply-is-inert.md)). Verified
 narrow: a pointer immediately after the sanctioned region still reds.
 
 ## What review found, and what the first fix got wrong
@@ -179,7 +179,7 @@ sabotage-measured: each mutation fails exactly the test that covers it.
 **The escape hatch the changeset offered did not work.** An `eess-exclude`
 comment matches a violation by rule id, and a chain that never calls
 `.rule({ id })` has none — so the sanction is silently inert, which is the shape
-[0255](../0255-an-exclusion-directive-inside-a-table-cell-is-inert.md) is about,
+[0255](./0255-an-exclusion-comment-that-cannot-apply-is-inert.md) is about,
 reached by a second route. The prerequisite was documented once, in a kernel doc
 the changeset did not link. It is now stated where the recipe is given.
 
@@ -262,6 +262,6 @@ Deferred: none.
   `dropped-on-purpose` premise false.
 - [0253](../0253-frozen-drift-is-not-reported-only-unexamined.md) — the sibling
   false claim in the same file; an over-claim where this one is a false green.
-- [0255](../0255-an-exclusion-directive-inside-a-table-cell-is-inert.md) — the
+- [0255](./0255-an-exclusion-comment-that-cannot-apply-is-inert.md) — the
   sanction an author would reach for on a pointer like these does not work where
   most of them live.

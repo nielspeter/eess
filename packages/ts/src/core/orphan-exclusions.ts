@@ -32,12 +32,22 @@
  * Same shape as `checkAll` versus a per-rule `.check()`, which this project
  * already documents: some facts are only true at the run boundary.
  *
- * ## What it does not catch
+ * ## What it does not catch — narrowed 2026-09-05
  *
- * A directive whose rule id is **correct** but whose placement is wrong — the
- * other half of bug 0044. Catching that needs the enforcement path to know which
- * violations a comment failed to cover, which is option 1 in that bug and costs a
- * parse per file per rule. Stated here rather than left to be discovered.
+ * This used to say it did not catch *"a directive whose rule id is correct but
+ * whose placement is wrong — the other half of bug 0044"*, and that option 1
+ * would cost a parse per file per rule. **Bug 0255 built it**, cheaper than that
+ * estimate: `applyFilters` already parses the violating files, so tracking which
+ * comments actually suppressed something is free, and one that suppressed
+ * nothing is reported on stderr from the enforcement path. That covers the
+ * misplaced-but-correct-id case, and the id-less case besides.
+ *
+ * What is left to this module is the case the enforcement path structurally
+ * cannot see: a directive in a file that produced **no** violation. Comments are
+ * only read where something already failed — the gate that keeps the cost
+ * bounded — so a directive naming a renamed or deleted rule id sits in a clean
+ * file forever, unread. That is what `doctor` is for, and it is why this reads
+ * the whole project rather than one rule's violating files.
  */
 import { parseExclusionComments } from './exclusion-comments.js'
 import type { ArchProject } from './project.js'

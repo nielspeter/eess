@@ -238,6 +238,28 @@ doSomething()
 Requires a `.rule({ id })` -- exclusion comments reference the rule by ID.
 Requires a reason -- undocumented exclusions are flagged as warnings.
 
+**A directive that cannot apply says so.** Two ways one goes inert, both of them
+previously silent (bug 0255):
+
+- **No rule id on the chain.** A comment matches by rule id, so a chain without
+  `.rule({ id })` has nothing to match. eess prints the file and the directive
+  lines it found there, once per file. It deliberately does **not** suggest an
+  id: from inside one rule's run there is no way to know whether a directive's id
+  already belongs to another, working rule, and prescribing it would collide the
+  two. Give the rule whatever id you meant.
+- **Out of reach.** A single-line directive covers only the _next_ line, so a
+  directive that is not immediately above the finding covers nothing. eess prints
+  which directive suppressed nothing and points at `eess-exclude-start`/`-end`
+  for a region. (What "the next line" means in a format where one physical line
+  holds several logical ones — a markdown table row, say — is the dialect's
+  business, not this page's: see [Markdown](./markdown.md).)
+
+Both are stderr diagnostics, not findings: the violation the directive failed to
+cover is already firing, so the build is red and the author is looking at it —
+the diagnostic explains why their waiver did nothing. Directives are only read in
+files that already produced a violation, so a sanction sitting in a clean file is
+not reported (and costs nothing).
+
 ### Exclusions vs Baseline
 
 | Mechanism       | Purpose                               | Where defined               |

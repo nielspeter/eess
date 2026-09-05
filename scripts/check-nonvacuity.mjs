@@ -206,6 +206,8 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
 const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
+const PROBE_CORPUS_INERT_EXCLUSION_DIR = join(repoRoot, 'work', '__nonvacuity_probe_inert_excl__')
+const PROBE_CORPUS_INERT_EXCLUSION = join(PROBE_CORPUS_INERT_EXCLUSION_DIR, 'table.md')
 const PROBE_CORPUS_POINTER_AMBIGUOUS = join(
   repoRoot,
   'docs',
@@ -816,6 +818,56 @@ function gateCorpusLinksRepoNative() {
  * and `packages/ts/src/core`, so the probe is ambiguous by construction rather
  * than by a coincidence of today's file tree.
  */
+/**
+ * An exclusion directive that cannot apply is reported (bug 0255).
+ *
+ * The directive below is well-formed, correctly spelled, names a real rule id —
+ * and sits inside a GFM table cell, where the next-line scope can never reach
+ * the pointer beside it. Before the fix the author saw the violation still
+ * firing and nothing else at all.
+ *
+ * This asserts the DIAGNOSTIC, and separately that the violation still fires.
+ * Both halves matter: a change that made the in-cell directive actually suppress
+ * would remove the violation and satisfy a diagnostic-only check by accident,
+ * and one that dropped the diagnostic would satisfy a violation-only check. The
+ * pair is what pins the behaviour.
+ *
+ * `firedOn` cannot express this — the report is a stderr line, not a violation —
+ * so this reads the terminal run's stderr directly.
+ */
+function gateCorpusInertExclusion() {
+  const { json, terminal } = withProbeDir(
+    PROBE_CORPUS_INERT_EXCLUSION_DIR,
+    PROBE_CORPUS_INERT_EXCLUSION,
+    '# Non-vacuity probe\n\n' +
+      '| Rule | Raw | Disposition |\n' +
+      '| ---- | --- | ----------- |\n' +
+      '| a | `src/__nonvacuity_does_not_exist__.ts:12` ' +
+      '<!-- eess-exclude corpus/pointers-resolve: in a table cell, so it cannot reach --> | x |\n',
+    () => ({
+      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+    }),
+  )
+  const said = `${terminal.stdout}${terminal.stderr}`
+  // The FILE, not just the rule id: `check-corpus.mjs` prints
+  // `corpus/pointers-resolve` in its own violation output regardless, so that
+  // half of the old assertion was true whether or not the diagnostic fired
+  // (review's finding). The probe's path appears only in the diagnostic.
+  const warned =
+    said.includes('suppressed nothing') &&
+    said.includes('work/__nonvacuity_probe_inert_excl__/table.md')
+  const stillFires = firedOn(
+    json,
+    'corpus/pointers-resolve',
+    'work/__nonvacuity_probe_inert_excl__/table.md',
+  )
+  return {
+    ok: terminal.code === 1 && warned && stillFires,
+    detail: `inert in-cell directive → exit ${terminal.code}, diagnostic printed: ${warned}, violation still fires: ${stillFires}`,
+  }
+}
+
 function gateCorpusPointerAmbiguous() {
   const { json, terminal } = withProbe(
     PROBE_CORPUS_POINTER_AMBIGUOUS,
@@ -1551,6 +1603,27 @@ const gates = [
   // Bug 0254: the third pointer class. Its own row because `gateCoverage()` is
   // per-rule-id, and this class emitted nothing at all before the fix.
   ['corpus/pointers/ambiguous', gateCorpusPointerAmbiguous],
+  // Bug 0255: a directive that cannot apply now says so. Its own row because the
+  // report is a stderr diagnostic, which no rule-id-based fixture can see.
+  ['corpus/exclusion-inert', gateCorpusInertExclusion],
+  // The other half of 0255. A separate row because the production script cannot
+  // exercise it — every gate here calls `.rule({ id })`, so there is no id-less
+  // caller to plant a probe against. Enforcement review measured the hole:
+  // deleting the whole no-id block left the row above green.
+  [
+    'corpus/exclusion-inert/no-id',
+    () => gateNode('bad-inert-exclusion-no-id.mjs', 'exclusion/no-rule-id-is-reported'),
+  ],
+  // The two `applyFilters` copies must answer alike. Bug 0255 is the fourth
+  // recorded incident of a fix landing on one copy (plan 0188), and reviewing
+  // its own fix found the same defect twice more: the ts copy missed both
+  // diagnostics, then its wording diverged once hand-ported. Per-bug porting
+  // failed three times on one bug, so this makes a divergence fail the build.
+  // Measured against all three real defects.
+  [
+    'engine/applyfilters-parity',
+    () => gateNode('bad-applyfilters-parity.mjs', 'engine/applyfilters-parity'),
+  ],
   // Bug 0249's review, I3: the `work/**` root probe above is a LINK probe, and
   // links are gated in frozen documents too — so it stays green through the one
   // mutation that stops examining the region's 445 pointers. A pointer probe in
@@ -1760,7 +1833,14 @@ const NO_GATE_NEEDED = {
 // presets still uncovered.
 const GATE_FOR = {
   // `eess-ts check arch.rules.ts arch.internal.rules.ts` — two rule files, two rows.
-  'check:arch': ['arch (root rules)', 'internal arch'],
+  //
+  // `engine/applyfilters-parity` is claimed here because `check:arch` is the gate
+  // that runs `eess-ts`'s FORK of `applyFilters` — the copy that has now been
+  // missed three times on one bug (0255, and plan 0188's three earlier
+  // incidents). It equally guards the kernel copy every other check runs, so the
+  // claim is narrower than the gate; it is filed under the script whose engine
+  // would otherwise have no witness that it still matches the kernel's.
+  'check:arch': ['arch (root rules)', 'internal arch', 'engine/applyfilters-parity'],
   'check:family': [
     'family re-export (index)',
     'family re-export (crossvalidate)',
@@ -1789,6 +1869,8 @@ const GATE_FOR = {
     'corpus/link-routing',
     'corpus/pointers',
     'corpus/pointers/ambiguous',
+    'corpus/exclusion-inert',
+    'corpus/exclusion-inert/no-id',
     'corpus/pointers/work-root',
     'corpus/frozen-scope',
     'corpus/proposal-plan-linkage',
