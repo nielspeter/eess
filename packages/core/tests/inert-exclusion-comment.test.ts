@@ -179,6 +179,139 @@ describe('a directive that cannot apply is reported (bug 0255)', () => {
     expect(stderr).not.toMatch(/\.rule\(\{ id: 'other\/rule' \}\)/)
   })
 
+  it('a rule with NO reason is still named, by its own description (bug 0258 round 2)', () => {
+    // The floor. `.because()` is optional prose, and the chains this diagnostic
+    // targets — early-adopter rules nobody has given an id yet — often have
+    // neither. A rule's own description is always there: every builder
+    // implements `describeRule()`, and the kernel already names an id-less rule
+    // that way for its assertion-less finding. Review measured that the first
+    // fix's premise ("no description is reachable") was false.
+    const file = write('described.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {
+      describe: () => 'that extend Base should not import Legacy',
+    })
+    expect(stderr).toMatch(
+      /This rule \("that extend Base should not import Legacy"\) declares no id/,
+    )
+  })
+
+  it('the description wins over the reason — it is the one always present', () => {
+    // Both available: the description identifies the rule, the reason explains
+    // it. Naming by the description keeps the line short and the discriminator
+    // unconditional; the reason is not a substitute for it.
+    const file = write('both.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {
+      reason: 'no eval in handlers',
+      describe: () => 'that extend Base should not import Legacy',
+    })
+    expect(stderr).toMatch(/\("that extend Base should not import Legacy"\)/)
+  })
+
+  it("a description of 'unnamed' is no discriminator, so the reason is used instead", () => {
+    // `TerminalBuilder`'s own `describeRule()` falls back to 'unnamed' for a
+    // rule with no id. Naming a rule "unnamed" tells the reader nothing, so it
+    // is treated as absent and the reason takes over.
+    const file = write('unnamed.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {
+      reason: 'no eval in handlers',
+      describe: () => 'unnamed',
+    })
+    expect(stderr).toMatch(/\("no eval in handlers"\)/)
+    // The LABEL is not "unnamed" — asserted on the parenthetical, not on the
+    // whole line, because the fixture's own filename contains that word and a
+    // bare /unnamed/ fails for the wrong reason. Over-broad in the other
+    // direction from the four vacuous regexes this file already records.
+    expect(stderr).not.toMatch(/\("unnamed"\)/)
+  })
+
+  it('a rule with a .because() reason is named by it (bug 0258)', () => {
+    // An id-less rule has no id to name, so several id-less chains over one file
+    // printed byte-identical lines and a reader could not tell which chain
+    // needed the id. `.because()` is available on an id-less rule — the reason
+    // is stamped onto violations before this scan runs — so it is a
+    // discriminator that already exists rather than one to invent.
+    const file = write('with-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {
+      reason: 'no eval in handlers',
+    })
+    expect(stderr).toMatch(/This rule \("no eval in handlers"\) declares no id/)
+  })
+
+  it('two id-less rules over one file are now distinguishable', () => {
+    // The symptom, asserted directly: the same file, two chains, two reasons.
+    // Before this the two lines were byte-identical.
+    const file = write('two-chains.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const first = stderrFrom([violation(file, 2)], { reason: 'no eval in handlers' }).stderr
+    const second = stderrFrom([violation(file, 2)], { reason: 'no fs in the browser' }).stderr
+    expect(first).not.toBe(second)
+    expect(first).toMatch(/no eval in handlers/)
+    expect(second).toMatch(/no fs in the browser/)
+  })
+
+  it('a rule with neither id nor reason is genuinely anonymous, and says so plainly', () => {
+    // The control. A chain with no reason has nothing to name it by, and the
+    // message must stay exactly as it was rather than growing an empty
+    // parenthetical. Without this, a change that always emitted `("")` would
+    // satisfy both tests above.
+    const file = write('no-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {})
+    expect(stderr).toMatch(/This rule declares no id/)
+    expect(stderr).not.toMatch(/\(\s*"/)
+  })
+
+  it('a multi-line reason stays on one line, so the report keeps its shape', () => {
+    // `.because()` takes prose and prose can wrap. The no-id report is
+    // deliberately one line per file; a reason with a newline in it would break
+    // that and make the output unparseable by eye.
+    const file = write('wrapped-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {
+      reason: 'no eval\n   in handlers',
+    })
+    expect(stderr.trimEnd().split('\n')).toHaveLength(1)
+    expect(stderr).toMatch(/"no eval in handlers"/)
+  })
+
+  it('a reason with padding is trimmed — asserted, not assumed', () => {
+    // Review mutated `.trim()` away and all 15 tests stayed green: the
+    // multi-line case collapses interior whitespace but has none at the edges,
+    // so nothing exercised the trim. A test that cannot fail for the code it
+    // names is the class this branch has now recorded five times.
+    const file = write('padded.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], { reason: '   padded   ' })
+    expect(stderr).toMatch(/\("padded"\)/)
+  })
+
+  it('an empty reason is no name at all, not an empty parenthetical', () => {
+    // `.because('')` type-checks — the signature is `string`, and nothing
+    // validates it. Guarding on `undefined` alone rendered `("")`, which is
+    // exactly the shape the anonymous control forbids, reached by a different
+    // door. Two lenses found this independently on the previous commit.
+    const file = write('empty-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], { reason: '' })
+    expect(stderr).toMatch(/This rule declares no id/)
+    expect(stderr).not.toMatch(/\(""\)/)
+  })
+
+  it('a whitespace-only reason is also no name', () => {
+    // The other half of the same door: `.because('   ')` collapses to empty
+    // after trimming, and must be treated as absent rather than rendered.
+    const file = write('blank-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], { reason: '   ' })
+    expect(stderr).toMatch(/This rule declares no id/)
+  })
+
+  it('a quote inside the label is escaped, so the label still has an end', () => {
+    // `.because()` takes arbitrary prose and a quoted term is plausible. Before
+    // this, `ignore the "legacy" path` rendered three quotes before the closing
+    // paren and a reader could not tell where the label stopped. Escaping keeps
+    // the author's words exact where replacing them would not.
+    const file = write('quoted.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {
+      reason: 'ignore the "legacy" path',
+    })
+    expect(stderr).toMatch(/\("ignore the \\"legacy\\" path"\)/)
+  })
+
   it('the no-id report is one line per file, not one per directive', () => {
     // Two id-less rules over a shared file already print once each; printing
     // once per directive on top of that is noise the sibling branch avoids by

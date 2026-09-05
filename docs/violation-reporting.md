@@ -247,6 +247,13 @@ previously silent (bug 0255):
   id: from inside one rule's run there is no way to know whether a directive's id
   already belongs to another, working rule, and prescribing it would collide the
   two. Give the rule whatever id you meant.
+
+  The message names the rule by its own sentence — `This rule ("that extend Base
+should not import Legacy") declares no id …` — so several id-less chains over one
+  file stay distinguishable with nothing for you to add. If a builder has no
+  sentence to give, a `.because()` reason is used instead; `.because()` works
+  without `.rule({ id })`.
+
 - **Out of reach.** A single-line directive covers only the _next_ line, so a
   directive that is not immediately above the finding covers nothing. eess prints
   which directive suppressed nothing and points at `eess-exclude-start`/`-end`

@@ -756,12 +756,18 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     metadata?: RuleMetadata
     exclusions: (string | RegExp)[]
     silentIndices: Set<number>
+    describe: () => string
   } {
     return {
       reason: this._reason,
       metadata: this._metadata,
       exclusions: this._exclusions,
       silentIndices: this._silentIndices,
+      // Bug 0258 round 2: an id-less rule still has a sentence, and every
+      // builder already implements `describeRule()`. Deferred, because this
+      // runs on every terminal call and is read only when an id-less rule meets
+      // an exclusion comment it cannot honour.
+      describe: () => this.describeRule().rule,
     }
   }
 
