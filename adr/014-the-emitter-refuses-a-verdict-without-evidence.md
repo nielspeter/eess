@@ -178,14 +178,32 @@ ADR-010 §3's declared-empty grammar reaches the emitter **on the receipt**, as
 carry per-rule declarations, and the terminal already holds the fact at the
 moment it decides not to fire (`packages/core/src/terminal-builder.ts:258-277`)
 and today discards it. A cardinality-exempt rule sets the same flag: `.notExist()`
-over zero subjects is a declaration by construction. The kernel's `dispatchRule`
-mints it for a rule explicitly turned off, and `eess-ts`'s preset plumbing is
-handed the fact rather than inferring it from an empty builder list, so a preset
-every rule of which was disabled is declared, not red — the standing ruling that
-all-off is a permanent, legitimate decision holds in every dialect. The grammar's
-expiry comes with it: a receipt declared empty that arrives with `examined > 0`
-is the expired-declaration finding at the emitter, the mirror of what the
-terminal produces for its own rules.
+over zero subjects is a declaration by construction. The grammar's expiry comes
+with it: a receipt declared empty that arrives with `examined > 0` is the
+expired-declaration finding at the emitter, the mirror of what the terminal
+produces for its own rules.
+
+**A declaration is one a caller made over a live instrument — never one eess
+infers from a configuration.** `expectEmpty` is an assertion whose author can be
+wrong and which reddens the day a unit is examined. `overrides: { id: 'off' }` is
+an instruction, and it is byte-identical whether the author meant "I have scoped
+this out" or "I turned this off to stop a finding." eess is not positioned to
+tell those apart, so by ADR-013's rule it must not decide: the party that knows
+hands the fact over, or there is no fact.
+
+**A preset that constructed zero rules is therefore a configuration finding, not
+a declaration** — and this is the terminal's own precedence one level up, not a
+new ruling. `sourceEmpty` already governs the identical shape: nothing was loaded
+before any predicate ran, so there is no selection to widen and no assertion that
+can expire, and §3's own grammar cannot rescue it. Measured against the shipped
+kernel: `.expectEmpty()` over a `sourceEmpty` instrument yields the
+configuration finding, while `.expectEmpty()` over a loaded project whose
+selection narrowed to zero is green. Zero rules constructed is `sourceEmpty` at
+the preset seam — no instrument was ever built — so it takes the same answer.
+All-off remains a legitimate thing to intend; what it is not is a thing eess may
+certify on the author's behalf. The reachable remedies are the ones ADR-010 §3
+already names: declare the rules empty while leaving them on, so the declaration
+expires, or remove a call that enforces nothing.
 
 ### 4. The finding is about a pass, and it names its cause
 
@@ -286,6 +304,42 @@ above a zero exit; and a summed receipt was blind to one dead check among nine.
 decision's principle is unchanged; four places where it could still lie green
 are closed. Recorded here rather than edited away, per this repo's own rule
 about corrections.
+
+### Amendment 2026-09-05 — the all-off preset, after plan 0235's Phase 0 stopped on it
+
+Accepted on 2026-09-03 with the sentence "a preset every rule of which was
+disabled is declared, not red — the standing ruling that all-off is a permanent,
+legitimate decision holds in every dialect", and with `dispatchRule` named as the
+mint. Building plan 0235's Phase 0 measured three things against the source that
+the sentence does not survive.
+
+**The mint named does not reach the presets it was named for.** No `eess-ts`
+preset calls `dispatchRule` — measured, zero call sites; only `eess-md`'s
+`adrEnforcement` does. `recommended` handles `'off'` itself with a `continue`.
+The clause's other half — the preset plumbing is handed the fact — was therefore
+carrying the whole ruling alone.
+
+**The declaration it would mint is one the codebase forbids a user to write.**
+`declaredEmptyFindings` reports an `expectEmpty` id naming a rule set to `'off'`,
+and says why: "`'off'` deleted the rule, so the declaration about it is dead." An
+author may not declare an off rule empty. Minting that same declaration for them,
+for every rule at once, is the inverse of a rule the gate already enforces.
+
+**And the shipped terminal already rules on the shape.** `.expectEmpty()` over a
+`sourceEmpty` instrument returns the configuration finding; over a loaded project
+with an empty selection it returns nothing. Zero rules constructed is the first
+of those, one level up. The ruling was available in the code and this ADR
+contradicted it.
+
+§3 is rewritten above: a declaration is one a caller made over a live instrument,
+and a preset that constructed zero rules is a configuration finding. The
+principle is unchanged — all-off stays a legitimate intent — and what closes is
+eess certifying that intent on the author's behalf from a config file it read.
+Bug 0261 is the measured instance: `recommended()` with every rule `'off'`
+returns `[]` today, carrying neither a finding nor a declaration.
+
+Recorded here rather than edited away, per this repo's own rule about
+corrections.
 
 ## Alternatives rejected
 

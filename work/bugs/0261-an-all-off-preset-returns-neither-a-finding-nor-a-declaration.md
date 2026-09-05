@@ -56,44 +56,83 @@ Measured across the five `eess-ts` presets:
 names an id the preset did not construct. With no `expectEmpty`, it returns `[]`
 and says nothing.
 
-## What the right answer is, and what it is not
+## What the right answer is — settled by experiment, not preference
 
-**Not a violation.** [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
-§3 rules that "a preset every rule of which was disabled is declared, not red —
-the standing ruling that all-off is a permanent, legitimate decision holds in
-every dialect", and `UNSUPPRESSABLE` says `overrides: { id: 'off' }` "is not a
-suppression, it is a permanent decision that never expires". Turning the preset
-off deliberately is allowed.
+**A configuration finding.** Not because all-off is an illegitimate thing to
+intend, but because eess has no standing to certify an intent nobody expressed.
 
-**The defect is that the receipt does not SAY so.** Under ADR-014 §3 an all-off
-preset should arrive carrying `declaredEmpty`; today it arrives carrying
-nothing, which is indistinguishable from a preset that ran and found nothing.
-A pass constructed from a declaration is legitimate; a pass constructed from
-silence is the thing ADR-010 forbids.
+This was tested rather than argued. The kernel already rules on the identical
+shape one level down, and the two cases discriminate:
 
-So this is not "make all-off red". It is "make all-off _declared_" — and until
-the receipt exists there is nowhere to put the declaration, which is why the fix
-is sequenced against plan 0235 rather than taken alone.
+| case                                                                   | result                                                                            |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `.expectEmpty()` over a **dead instrument** (`sourceEmpty`)            | **1 violation** — "this rule's source loaded zero units before any selection ran" |
+| `.expectEmpty()` over a **loaded** project, selection narrowed to zero | **0 violations, green**                                                           |
+
+A declaration legitimises an empty _selection_; it cannot rescue a dead
+_instrument_. The terminal says why in its own words: "there is no selection to
+widen, and a `.notExist()`-shaped condition 'passing' against an instrument that
+never loaded anything is not evidence of anything."
+
+A preset that constructed zero rules is the second row, one level up: nothing was
+built, so there is no selection to widen and no assertion that can ever expire.
+`examined` is structurally 0 forever, so the expiry property that justifies a
+declaration never engages.
+
+Two further facts, both measured, close the alternative:
+
+- **No `eess-ts` preset calls `dispatchRule`** — zero call sites; only
+  `eess-md`'s `adrEnforcement` does. So the mint ADR-014 §3 originally named for
+  this case cannot reach `recommended` or `layeredArchitecture` at all.
+- **The codebase forbids a user to write the declaration eess would mint.**
+  `declaredEmptyFindings` reports an `expectEmpty` id naming an `'off'` rule:
+  "`'off'` deleted the rule, so the declaration about it is dead."
+
+[ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3 was
+amended 2026-09-05 accordingly: a declaration is one a caller made over a live
+instrument, never one eess infers from a configuration.
+
+**A correction recorded rather than edited away.** The first version of this
+record argued the opposite — that all-off should be marked `declaredEmpty` and
+the defect was only that the receipt failed to say so. That rested on reading
+ADR-014 §3 as written and on misreading the `UNSUPPRESSABLE` sentence's "a
+permanent decision that never expires" as a blessing. In ADR-010 §3's grammar
+"never expires" is the diagnostic, not the endorsement: a declaration whose
+expiry can never engage asserts nothing.
 
 ## Fix
 
-Not decided; two shapes, and the choice interacts with plan 0235.
+The finding is the preset-seam analogue of `sourceEmpty`, and its message is the
+existing one raised a level: the preset constructed zero rules before any rule
+ran. No new vocabulary.
 
-1. **Sequenced into [plan 0235](../plans/0235-the-emitter-takes-a-receipt.md).**
-   ADR-014 §3 already specifies the mechanism: `dispatchRule` mints
-   `declaredEmpty` for a rule explicitly turned off, and the preset plumbing is
-   handed the fact rather than inferring it. `recommended` and
-   `layeredArchitecture` join the census as call sites that must pass it. This
-   is the honest home — the declaration has nowhere to live until the receipt
-   does.
-2. **A standalone guard first**, if 0235 slips: a `declaredEmpty`-shaped finding
-   from `deliver()` on the all-off fact, carrying no receipt. Cheaper, and
-   throws away work when 0235 lands.
+Sequenced into [plan 0235](../plans/0235-the-emitter-takes-a-receipt.md), because
+the receipt is where the evidence lives and a standalone guard would build a
+parallel floor that 0235 then replaces. `recommended` and `layeredArchitecture`
+join the census as call sites passing the fact.
 
 Plan 0235's Phase 0 must NOT route these two presets through `assertEnabled`:
-that produces a violation, and its message ("every rule it can build sits behind
-an optional flag, and none was set") is false of both — their rules are on by
-default. That correction is recorded in 0235's Phase 0.
+that finding's message ("every rule it can build sits behind an optional flag,
+and none was set") is false of both — their rules are on by default. Two causes,
+two messages. That correction is recorded in 0235's Phase 0.
+
+**The reachable remedies for an author who means it** are the ones ADR-010 §3
+already names: leave the rules on and declare them empty, so the declaration
+expires the day it stops being true; or remove a call that enforces nothing.
+
+## Reach — it is not an `eess-ts` problem
+
+Measured: `adrEnforcement` (`eess-md`) with `adr/enforcement-declared`,
+`adr/valid-tiers` and `adr/citations-resolve` all overridden `'off'` returns
+`[]`. The same silent green, in a second dialect, reached through
+`dispatchRule` rather than through a preset's own loop.
+
+That settles placement. `deliver()` is `eess-ts`-only and not exported, and
+`eess-md` and `eess-crossvalidate` reach `finishPreset` with no `deliver()` in
+between (plan 0235's D6 states this). A `deliver()`-scoped guard would cover the
+five `eess-ts` presets and leave `adrEnforcement`, `honestyAtClose` and
+crossvalidate's six emitting green over zero constructed checks. The finding
+belongs at the seam both dialects share.
 
 ## Verification
 

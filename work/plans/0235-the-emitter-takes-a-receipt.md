@@ -545,6 +545,22 @@ returns `[]` — no violation, and no declaration either. Under ADR-014 §3 it
 should carry `declaredEmpty`; it carries nothing. That is a silent green under
 either ruling, and it is filed as its own bug rather than absorbed here.
 
+**Placement settled by experiment, 2026-09-05: the all-off finding is the
+kernel's, not `deliver()`'s.** D5 gives `deliver()` a half of this. Measured:
+`adrEnforcement` (`eess-md`) with its three rule ids overridden `'off'` returns
+`[]` — the identical silent green, in a dialect `deliver()` cannot reach, because
+`deliver()` is not exported and `eess-md` reaches `finishPreset` with no
+`deliver()` in between. D6 already states that reason; this is the case that
+makes it load-bearing rather than defensive. A `deliver()`-only guard would cover
+five `eess-ts` presets and leave `adrEnforcement`, `honestyAtClose` and
+`eess-crossvalidate`'s six emitting green over zero constructed checks.
+
+The seam that both dialects pass through is `dispatchRule` (which owns the
+`'off'` branch, one rule at a time) plus the merge (which is the only thing that
+can see that _every_ contributing member was off). Per-rule marking, whole-receipt
+ruling — which is D7's territory, and is why "zero members is zero examined"
+needed pinning by a test.
+
 **Bug 0206's direction is picked: the receipt rides the throw.** `deliver()`'s
 aggregating branch keeps throwing without emitting, and the `ArchRuleError` it
 throws carries the receipt with the finding already in it. The alternative,
