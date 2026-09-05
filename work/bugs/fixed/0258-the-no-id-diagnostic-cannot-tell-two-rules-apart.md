@@ -2,12 +2,13 @@
 
 ## Status
 
-- **State:** Draft — measured, not built.
+- **State:** Fixed — the reason names the rule when there is one; a rule with
+  neither id nor reason is genuinely anonymous and says so plainly.
 - **Severity:** Low — nothing is wrong, and the advice is correct. It is filed
   because the diagnostic's whole purpose is to end a silence, and in the shape it
   most often appears it substitutes a different confusion for it.
 - **Origin:** self-found · adopter and product review of
-  [0255](./fixed/0255-an-exclusion-comment-that-cannot-apply-is-inert.md), which
+  [0255](./0255-an-exclusion-comment-that-cannot-apply-is-inert.md), which
   built the diagnostic. Both lenses hit it independently, from an installed
   package rather than from the source.
 - **Reported:** 2026-09-05
@@ -44,7 +45,7 @@ It is filed because the diagnostic replaced a silence with a repetition, and a
 repetition that carries no discriminator is a weaker fix than it looks. The
 message is right; the _identity_ is missing.
 
-## Fix (not built)
+## Fix
 
 **`.because()` is available on an id-less rule** — the kernel's own comment in
 `packages/core/src/execute-rule.ts` says so, and the reason is stamped onto
@@ -61,28 +62,48 @@ anonymous and the message stays as it is.
 Deduplication is the other half and is separable: identical lines could collapse
 per `(file, line)` within one process. `writeStderr` has no cache today
 (deliberately — it is a bare guarded write), so that is a real decision rather
-than a tweak, and it belongs with whoever takes this.
+than a tweak. **Not taken here, and it is now a smaller problem than it was:**
+the lines that used to be identical are distinguishable, so what remains is
+repetition an author can read rather than repetition they cannot tell apart.
+Whoever wants a cache should want it for its own reasons.
+
+**One thing checked before building, because the record assumed it.** `.because()`
+is the only discriminator `applyFilters` can reach: `ExecuteRuleContext` carries
+`reason`, `metadata`, `exclusions` and `silentIndices` — no rule description. A
+description would mean a new field threaded through both copies and every
+dialect's builder, which is a wider change than this earns.
 
 **Both copies.** `applyFilters` exists twice
-([plan 0188](../plans/0188-unify-the-duplicated-engine-modules.md)), and
+([plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md)), and
 `engine/applyfilters-parity` will fail the build if only one changes — which is
 what that gate is for.
 
 ## Verification
 
-- [ ] Two id-less chains with different `.because()` reasons over one file
-      produce two distinguishable lines.
-- [ ] A chain with neither id nor reason still gets the current message, and it
-      is asserted rather than assumed.
-- [ ] Both copies change together — `engine/applyfilters-parity` stays green,
-      which is the evidence, not a separate claim.
-- [ ] Asserted on the emitted string, not on a paraphrase of it. Four assertions
-      on 0255's branch were written against text the implementation never
-      printed; that record has the tally.
+- [x] Two id-less chains with different `.because()` reasons over one file
+      produce two distinguishable lines — asserted by comparing the two outputs
+      to each other, not just by matching each one.
+- [x] A chain with neither id nor reason gets the message unchanged, asserted
+      including the absence of an empty `("")` parenthetical. Without that, a
+      change that always emitted one would satisfy the tests above.
+- [x] A reason that wraps stays on one line. `.because()` takes prose, and this
+      report is one line per file; whitespace is collapsed rather than trusted.
+- [x] **Both copies changed together, and the gate proves it rather than the
+      record claiming it.** `engine/applyfilters-parity` gained two scenarios for
+      the new branch — a fixed scenario list is the whole of what parity
+      compares, so a new branch without one is untested by it. **Measured:**
+      landing the fix in the kernel alone makes the copies diverge and reds the
+      gate, printing both versions of the line. That is the mechanism built in
+      0255's third round doing its job on the next bug.
+- [x] Every assertion is against the string the implementation emits, checked by
+      running it. Four assertions on 0255's branch were written against text that
+      was never printed; that record keeps the tally.
+
+Deferred: none.
 
 ## Related
 
-- [0255](./fixed/0255-an-exclusion-comment-that-cannot-apply-is-inert.md) — built
+- [0255](./0255-an-exclusion-comment-that-cannot-apply-is-inert.md) — built
   the diagnostic this narrows.
-- [0188](../plans/0188-unify-the-duplicated-engine-modules.md) — why any fix here
+- [0188](../../plans/0188-unify-the-duplicated-engine-modules.md) — why any fix here
   is two edits, and what will catch it if it is only one.

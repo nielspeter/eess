@@ -354,10 +354,20 @@ export function applyFilters(
         if (lines) lines.push(c.line)
         else byFile.set(c.file, [c.line])
       }
+      // Name the rule by its `.because()` reason when it has one (bug 0258).
+      // An id-less rule has no id to name, so several id-less chains over one
+      // file printed byte-identical lines and a reader could not tell which
+      // chain needed the id. The reason is a discriminator that already exists:
+      // `.because()` works without `.rule({ id })`, and `ctx.reason` is stamped
+      // onto violations a few lines above this. Whitespace is collapsed because
+      // the reason is prose and may wrap, and this report is deliberately one
+      // line per file. A rule with neither id nor reason is genuinely anonymous
+      // and the message stays exactly as it was.
+      const named = ctx.reason === undefined ? '' : ` ("${ctx.reason.replace(/\s+/g, ' ').trim()}")`
       for (const [file, lines] of byFile) {
         const where = lines.length === 1 ? `line ${String(lines[0])}` : `lines ${lines.join(', ')}`
         writeStderr(
-          `[eess] This rule declares no id, so no exclusion comment can apply to it — ` +
+          `[eess] This rule${named} declares no id, so no exclusion comment can apply to it — ` +
             `a comment matches a violation by rule id. ${file} has a directive at ${where}. ` +
             `If one was meant for this rule, give the rule an id with .rule({ id: '<your-id>' }); ` +
             `directives naming other rules are not this rule's to honour.`,

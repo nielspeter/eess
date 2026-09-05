@@ -247,6 +247,12 @@ previously silent (bug 0255):
   id: from inside one rule's run there is no way to know whether a directive's id
   already belongs to another, working rule, and prescribing it would collide the
   two. Give the rule whatever id you meant.
+
+  If the rule has a `.because()` reason, the message names it — `This rule ("no
+eval in handlers") declares no id …` — so several id-less chains over one file
+  stay distinguishable. `.because()` works without `.rule({ id })`, which is what
+  makes it usable here.
+
 - **Out of reach.** A single-line directive covers only the _next_ line, so a
   directive that is not immediately above the finding covers nothing. eess prints
   which directive suppressed nothing and points at `eess-exclude-start`/`-end`

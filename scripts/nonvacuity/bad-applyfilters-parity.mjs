@@ -66,6 +66,11 @@ const SCENARIOS = [
   ['no rule id at all', ['<!-- eess-exclude demo/rule: reason -->', 'x'], [2], {}],
   ['no rule id, several directives in one file', ['<!-- eess-exclude a/one: r -->', 'y', '<!-- eess-exclude b/two: r -->', 'x'], [4], {}],
   ['no rule id, reason-free directive', ['<!-- eess-exclude demo/rule -->', 'x'], [2], {}],
+  // Bug 0258: the reason names an otherwise-anonymous rule. A new branch needs a
+  // new scenario or this gate does not reach it — the SCENARIOS list is the
+  // whole of what parity compares.
+  ['no rule id, but a .because() reason', ['<!-- eess-exclude a/one: r -->', 'x'], [2], { reason: 'no eval in handlers' }],
+  ['no rule id, a reason that wraps', ['<!-- eess-exclude a/one: r -->', 'x'], [2], { reason: 'no eval\n   in handlers' }],
 ]
 
 let divergences = []

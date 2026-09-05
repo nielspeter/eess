@@ -179,6 +179,53 @@ describe('a directive that cannot apply is reported (bug 0255)', () => {
     expect(stderr).not.toMatch(/\.rule\(\{ id: 'other\/rule' \}\)/)
   })
 
+  it('a rule with a .because() reason is named by it (bug 0258)', () => {
+    // An id-less rule has no id to name, so several id-less chains over one file
+    // printed byte-identical lines and a reader could not tell which chain
+    // needed the id. `.because()` is available on an id-less rule — the reason
+    // is stamped onto violations before this scan runs — so it is a
+    // discriminator that already exists rather than one to invent.
+    const file = write('with-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {
+      reason: 'no eval in handlers',
+    })
+    expect(stderr).toMatch(/This rule \("no eval in handlers"\) declares no id/)
+  })
+
+  it('two id-less rules over one file are now distinguishable', () => {
+    // The symptom, asserted directly: the same file, two chains, two reasons.
+    // Before this the two lines were byte-identical.
+    const file = write('two-chains.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const first = stderrFrom([violation(file, 2)], { reason: 'no eval in handlers' }).stderr
+    const second = stderrFrom([violation(file, 2)], { reason: 'no fs in the browser' }).stderr
+    expect(first).not.toBe(second)
+    expect(first).toMatch(/no eval in handlers/)
+    expect(second).toMatch(/no fs in the browser/)
+  })
+
+  it('a rule with neither id nor reason is genuinely anonymous, and says so plainly', () => {
+    // The control. A chain with no reason has nothing to name it by, and the
+    // message must stay exactly as it was rather than growing an empty
+    // parenthetical. Without this, a change that always emitted `("")` would
+    // satisfy both tests above.
+    const file = write('no-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {})
+    expect(stderr).toMatch(/This rule declares no id/)
+    expect(stderr).not.toMatch(/\(\s*"/)
+  })
+
+  it('a multi-line reason stays on one line, so the report keeps its shape', () => {
+    // `.because()` takes prose and prose can wrap. The no-id report is
+    // deliberately one line per file; a reason with a newline in it would break
+    // that and make the output unparseable by eye.
+    const file = write('wrapped-reason.md', ['<!-- eess-exclude a/one: r -->', 'x'])
+    const { stderr } = stderrFrom([violation(file, 2)], {
+      reason: 'no eval\n   in handlers',
+    })
+    expect(stderr.trimEnd().split('\n')).toHaveLength(1)
+    expect(stderr).toMatch(/"no eval in handlers"/)
+  })
+
   it('the no-id report is one line per file, not one per directive', () => {
     // Two id-less rules over a shared file already print once each; printing
     // once per directive on top of that is noise the sibling branch avoids by
