@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft — split out of [0108](./0108-work-readme-lanes-table-lists-one-lane.md)
+- **State:** Draft — split out of [0108](./fixed/0108-work-readme-lanes-table-lists-one-lane.md)
   on architecture review's advice; measured, not fixed.
 - **Severity:** Medium — **the map teaches exactly what the gate was built to
   refuse.** A newcomer following it closes a bug as `Done` and gets a red
@@ -104,7 +104,7 @@ Fixing only this repo's copy leaves the exported method wrong.
 
 ## Related
 
-- [0108](./0108-work-readme-lanes-table-lists-one-lane.md) — the other half of the
+- [0108](./fixed/0108-work-readme-lanes-table-lists-one-lane.md) — the other half of the
   same document, split from this on review's advice.
 - [0249](./fixed/0249-most-of-work-is-outside-every-corpus-root.md) — the root gap
   both halves were blocked on, closed 2026-09-04.

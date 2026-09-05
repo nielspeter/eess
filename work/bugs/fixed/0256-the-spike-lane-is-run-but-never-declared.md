@@ -37,7 +37,7 @@ argued from that claim.
 
 The word "spike" appears **zero times** in `work/README.md` — the corpus's own
 map, whose Lanes table is the subject of
-[0108](../0108-work-readme-lanes-table-lists-one-lane.md) — and zero times in
+[0108](./0108-work-readme-lanes-table-lists-one-lane.md) — and zero times in
 `docs/working-method.md`. There is no `/spike` skill beside `/plan`, `/bug`,
 `/close`, `/refine` and `/case`.
 
@@ -127,7 +127,7 @@ about.
 
 - [x] `docs/working-method.md` describes the spike lane and what freezing means
       for it, in the lanes list where a reader looks for what a lane is.
-- [~] `deferred→`[0108](../0108-work-readme-lanes-table-lists-one-lane.md) —
+- [~] `deferred→`[0108](./0108-work-readme-lanes-table-lists-one-lane.md) —
   **the corpus map's Lanes row.** Not a dodge, and not the same defect: 0108
   owns that table, its Fix already names the `spikes/` row, and its second
   half binds the table to the real directories with `rows()` +
@@ -178,7 +178,7 @@ hand-defusing exactly that hazard.
 `TERMINAL_FOLDER_NAMES`, the `frozen` glob, and the method doc's lane list — and
 that is a choice rather than an oversight, stated because the record otherwise
 said nothing. A `rows()`/`correspondence()` binding of the kind
-[0108](../0108-work-readme-lanes-table-lists-one-lane.md) is building for the
+[0108](./0108-work-readme-lanes-table-lists-one-lane.md) is building for the
 Lanes table binds a _table_ to _directories_; there is no table here, and
 inventing one to have something to bind would be ceremony.
 
@@ -196,7 +196,7 @@ Deferred: the corpus map's Lanes row → 0108.
   lane and argued it from a word the glob does not carry.
 - [0252](../0252-the-kit-names-a-reviewer-it-does-not-ship.md) — the same
   repo/kit divergence, in the other direction.
-- [0108](../0108-work-readme-lanes-table-lists-one-lane.md) — owns the Lanes
+- [0108](./0108-work-readme-lanes-table-lists-one-lane.md) — owns the Lanes
   table this needs a row in.
 - [0250](./0250-the-review-roster-has-no-working-method-lens.md) — the
   lens that found this, and the record that argued the lens was missing.

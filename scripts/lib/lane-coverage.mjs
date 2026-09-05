@@ -43,23 +43,40 @@ import { ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 export const UNCOVERED_LANE_RULE = 'ledger/uncovered-lane'
 
 /**
+ * The lane directories under a work root, sorted — the one enumeration of
+ * "what lanes exist on disk", shared by every caller that needs it.
+ *
+ * Extracted because three callers had grown their own copy of this readdir
+ * (`findUncoveredLanes` below, `check-ledger.mjs`'s summary denominator, and
+ * `check-corpus.mjs`'s Lanes-table binding from bug 0108). The symlink
+ * limitation in this file's header docblock applies to all of them, which is
+ * the other reason it belongs here: the caveat travels with the code.
+ *
+ * @param {string} workRoot - repo-relative root to enumerate subdirectories of
+ * @returns {string[]} directory names, sorted; empty if `workRoot` is absent
+ */
+export function laneDirectories(workRoot) {
+  try {
+    return readdirSync(workRoot, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+      .sort()
+  } catch {
+    return [] // workRoot doesn't exist — nothing to enumerate
+  }
+}
+
+/**
  * @param {string} workRoot - repo-relative root to enumerate subdirectories of
  * @param {ReadonlySet<string>} claimedTopSegments - directory names already
  *   scanned by a declared `LANES` entry
  * @returns {import('@nielspeter/eess').ArchViolation[]}
  */
 export function findUncoveredLanes(workRoot, claimedTopSegments) {
-  let entries
-  try {
-    entries = readdirSync(workRoot, { withFileTypes: true })
-  } catch {
-    return [] // workRoot doesn't exist — nothing to enumerate
-  }
-
   const violations = []
-  for (const entry of entries) {
-    if (!entry.isDirectory() || claimedTopSegments.has(entry.name)) continue
-    const dirRel = `${workRoot}/${entry.name}`
+  for (const name of laneDirectories(workRoot)) {
+    if (claimedTopSegments.has(name)) continue
+    const dirRel = `${workRoot}/${name}`
     const c = corpus({ roots: [`${dirRel}/**`] })
     const stats = ledgerStats(c, { states: [], terminalStates: [] })
     const records = stats.withReadableState + stats.unreadableState

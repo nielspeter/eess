@@ -206,6 +206,12 @@ const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
 const PROBE_CORPUS_LINK_SITE = join(repoRoot, 'docs', '__nonvacuity_probe_site__.md')
 const PROBE_CORPUS_LINK_REPO = join(repoRoot, 'work', 'bugs', '__nonvacuity_probe_repo__.md')
 const PROBE_CORPUS_POINTER = join(repoRoot, 'docs', '__nonvacuity_probe_pointer__.md')
+// Bug 0108's Lanes binding. The forward direction plants a DIRECTORY (a lane the
+// map does not list); the reverse needs a row naming a directory that is absent,
+// which means editing `work/README.md` itself — a real file, so it is mutated and
+// restored rather than probed.
+const PROBE_LANE_DIR = join(repoRoot, 'work', '__nonvacuity_probe_lane__')
+const PROBE_LANE_FILE = join(PROBE_LANE_DIR, 'placeholder.md')
 const PROBE_CORPUS_INERT_EXCLUSION_DIR = join(repoRoot, 'work', '__nonvacuity_probe_inert_excl__')
 const PROBE_CORPUS_INERT_EXCLUSION = join(PROBE_CORPUS_INERT_EXCLUSION_DIR, 'table.md')
 const PROBE_CORPUS_POINTER_AMBIGUOUS = join(
@@ -834,7 +840,115 @@ function gateCorpusLinksRepoNative() {
  *
  * `firedOn` cannot express this — the report is a stderr line, not a violation —
  * so this reads the terminal run's stderr directly.
+ *
+ * (The doc block above belongs to `gateCorpusInertExclusion`, which follows the
+ * two lane fixtures below. Review caught it documenting the wrong function after
+ * the lane fixtures were inserted between a comment and its subject.)
  */
+/**
+ * The Lanes table lists every directory under `work/` (bug 0108).
+ *
+ * Forward direction: a lane the map does not mention. This is the one that
+ * actually happened — the table listed `plans/` alone while `bugs/`,
+ * `proposals/` and `spikes/` existed, and nothing noticed for a month.
+ */
+function gateCorpusLaneMissingRow() {
+  const { json, terminal } = withProbeDir(
+    PROBE_LANE_DIR,
+    PROBE_LANE_FILE,
+    '# a lane the map does not list\n',
+    () => ({
+      json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+      terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+    }),
+  )
+  const ok =
+    json.code === 1 &&
+    terminal.code === 1 &&
+    firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
+  return {
+    ok,
+    detail: `unlisted lane → json exit ${json.code}, terminal exit ${terminal.code} (corpus/lanes-match-directories, forward)`,
+  }
+}
+
+/**
+ * The other direction: a row naming a directory that is not there.
+ *
+ * Mutates the real `work/README.md` and restores it, because the fault IS a row
+ * in that file and no probe document can stand in for it — the rule reads one
+ * named table in one named document.
+ */
+function gateCorpusLaneRowUnresolved() {
+  const readme = join(repoRoot, 'work', 'README.md')
+  // Injected INTO the table, not prepended to the file: `matchTableRows` reads a
+  // GFM table, and a row above the document's first heading is just a paragraph.
+  // `withMutatedFile` prepends, which is why this uses the rewrite form — and it
+  // throws on a no-op rewrite, so a table whose shape drifts fails loudly here
+  // instead of quietly testing nothing.
+  const rewrite = (text) =>
+    text.replace(
+      /^\| \[`spikes\/`\]/m,
+      '| [`__nonvacuity_probe_ghost__/`](./x) | probe | none | none |\n| [`spikes/`]',
+    )
+  const { json, terminal } = withRewrittenFile(readme, rewrite, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const ok =
+    json.code === 1 &&
+    terminal.code === 1 &&
+    firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
+  return {
+    ok,
+    detail: `row for an absent lane → json exit ${json.code}, terminal exit ${terminal.code} (corpus/lanes-match-directories, reverse)`,
+  }
+}
+
+/**
+ * The decoy table (bug 0108, found in review).
+ *
+ * The first version of this rule matched table rows WITHOUT a `section:` scope,
+ * and `rows()` draws from every matching table. Review measured the hole: empty
+ * the Lanes table, put a decoy table carrying a `Lane` column anywhere else in
+ * the document, and the gate printed `4 row(s) · 4 directories · ✓ the map lists
+ * every lane` over a map listing nothing — exit 0. The board rule two hundred
+ * lines above had already had the identical hole measured and closed with
+ * `section: /^Board$/`; this rule reproduced it.
+ *
+ * This asserts the RUNG, not just the red: with the section scope in place the
+ * decoy contributes nothing, so the correspondence sees zero rows and the
+ * `corpus/lane-table-unreadable` guard must name the unreadable table. A
+ * regression that dropped `section:` would go green here (the decoy would
+ * satisfy the join), and one that dropped the vacuity rung would red with four
+ * `lanes-match-directories` findings blaming the directories instead — so the
+ * fixture pins both halves, and the id it asserts is the one that distinguishes
+ * them.
+ */
+function gateCorpusLaneDecoyTable() {
+  const readme = join(repoRoot, 'work', 'README.md')
+  // Strip every lane row, then append a decoy table under its own heading.
+  const rewrite = (text) => {
+    const gutted = text.replace(/^\| \[`[a-z]+\/`\].*\n/gm, '')
+    return `${gutted}\n## __nonvacuity_probe_scratch__\n\n| Lane | Note |\n| ---- | ---- |\n| plans | x |\n| bugs | x |\n| proposals | x |\n| spikes | x |\n`
+  }
+  const { json, terminal } = withRewrittenFile(readme, rewrite, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const namedTheInstrument = firedOn(json, 'corpus/lane-table-unreadable', 'work/README.md')
+  // The decoy must NOT have been read as the map: if it had, the join would be
+  // satisfied and this id would never fire.
+  const blamedNoDirectory = !firedOn(json, 'corpus/lanes-match-directories', 'work/README.md')
+  const ok = json.code === 1 && terminal.code === 1 && namedTheInstrument && blamedNoDirectory
+  return {
+    ok,
+    detail:
+      `decoy Lane table + emptied map → json exit ${json.code}, terminal exit ${terminal.code}, ` +
+      `named the unreadable table: ${namedTheInstrument}, blamed no directory: ${blamedNoDirectory}`,
+  }
+}
+
 function gateCorpusInertExclusion() {
   const { json, terminal } = withProbeDir(
     PROBE_CORPUS_INERT_EXCLUSION_DIR,
@@ -1605,6 +1719,12 @@ const gates = [
   ['corpus/pointers/ambiguous', gateCorpusPointerAmbiguous],
   // Bug 0255: a directive that cannot apply now says so. Its own row because the
   // report is a stderr diagnostic, which no rule-id-based fixture can see.
+  // Bug 0108: the map's Lanes table is bound to the real directories. Two rows,
+  // one per direction — the rule emits two ids and `rule-id coverage` requires
+  // each to be asserted by a fixture.
+  ['corpus/lanes-match-directories/missing-row', gateCorpusLaneMissingRow],
+  ['corpus/lanes-match-directories/row-unresolved', gateCorpusLaneRowUnresolved],
+  ['corpus/lane-table-unreadable/decoy', gateCorpusLaneDecoyTable],
   ['corpus/exclusion-inert', gateCorpusInertExclusion],
   // The other half of 0255. A separate row because the production script cannot
   // exercise it — every gate here calls `.rule({ id })`, so there is no id-less
@@ -1869,6 +1989,9 @@ const GATE_FOR = {
     'corpus/link-routing',
     'corpus/pointers',
     'corpus/pointers/ambiguous',
+    'corpus/lanes-match-directories/missing-row',
+    'corpus/lanes-match-directories/row-unresolved',
+    'corpus/lane-table-unreadable/decoy',
     'corpus/exclusion-inert',
     'corpus/exclusion-inert/no-id',
     'corpus/pointers/work-root',

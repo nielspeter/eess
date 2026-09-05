@@ -273,7 +273,7 @@ Recorded rather than left to be rediscovered:
   keying on prose is the false-positive machine bug 0110 warns about. Open, not folded into
   a closed plan.
 - **The `work/` README lanes table lists one lane** — bug
-  [0108](../bugs/0108-work-readme-lanes-table-lists-one-lane.md). This board does
+  [0108](../bugs/fixed/0108-work-readme-lanes-table-lists-one-lane.md). This board does
   not fix that; it gives the lane something to point at.
 
 ## What the gates check

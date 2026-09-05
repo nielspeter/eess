@@ -23,8 +23,16 @@
  * this sentence). Exits non-zero on a live violation. Run:
  * `npm run check:corpus`.
  */
-import { resolve } from 'node:path'
-import { corpus, docs, links, matchTableRows, pointers } from '@nielspeter/eess-md'
+import { join, resolve } from 'node:path'
+import {
+  corpus,
+  correspondence,
+  docs,
+  links,
+  matchTableRows,
+  pointers,
+  rows,
+} from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
 import { definePredicate, reportViolations } from '@nielspeter/eess'
 import { matchSelections } from '@nielspeter/eess/internal'
@@ -42,6 +50,7 @@ import {
   proposalNumberFromPath,
 } from './lib/proposal-ruling.mjs'
 import { nonTerminalFreezes, frozenScopeRefusal } from './lib/frozen-scope.mjs'
+import { laneDirectories } from './lib/lane-coverage.mjs'
 // Extracted so the labels can be tested — they have been wrong twice in place.
 import { pointerSummary } from './lib/pointer-classes.mjs'
 
@@ -838,6 +847,115 @@ const docsOnlyOwnerViolations = docsOnlyProposals.flatMap((d) => {
   ]
 })
 
+// ─── work/README.md's Lanes table ↔ the real directories under work/ ─────────
+//
+// Bug 0108: the repo's own one-screen map listed ONE lane and called the rest
+// cargo-cult while four existed. That is a markdown table making a checkable
+// claim about directories — the case `rows()` + a correspondence exist for, and
+// the pattern `spec.rules.ts` already uses for the README packages table and the
+// CLAUDE.md ADR index. The map was the least-gated document in a corpus whose
+// thesis is that specs are checked, and it IS a spec.
+//
+// **Ground truth is every top-level directory**, not "every directory that looks
+// like a lane". A cleverer test was available — `check-ledger.mjs` decides
+// lane-ness by whether a directory carries `State:`-shaped records — and it is
+// the wrong one here: `work/spikes/` carries none (a spike concludes, it does not
+// close; bug 0256), so that test would exempt the very lane whose absence from
+// this map was the last thing anyone noticed. A directory the map does not
+// mention is exactly the gap, whatever is in it.
+//
+// `section:` is load-bearing, not decoration. `rows()` draws from every table
+// that matches, so without it ANY table carrying a `Lane` column contributes —
+// review measured an emptied Lanes table plus a decoy table elsewhere printing
+// "the map lists every lane" over zero real rows, exit 0. That is the identical
+// hole the board rule above (`section: /^Board$/`) records being measured and
+// closed; this rule reproduced it and now carries the same guard, plus a
+// fixture that reds on exactly that sabotage.
+//
+// The corpus is scoped to the one document that carries the map, for the same
+// reason: `rows()` has no per-document filter, and lane-ness is a claim this
+// file makes, not a shape any document may assert.
+const laneDirs = laneDirectories(join(c.root, 'work'))
+const lanesCorpus = corpus({ roots: ['work/README.md'] })
+
+/** "`plans/`" → "plans". The parser hands the cell over with its link stripped. */
+const laneName = (cell) =>
+  String(cell ?? '')
+    .replace(/`/g, '')
+    .replace(/\/+$/, '')
+    .trim()
+
+const laneRowSelection = rows(lanesCorpus, {
+  section: /^Lanes$/,
+  columns: { lane: /^Lane$/ },
+}).select({
+  label: 'Lanes table row',
+  identify: (r) => ({ name: laneName(r.get('lane')), file: r.doc.relPath, line: r.line }),
+})
+const laneRows = laneRowSelection.elements
+// A directory has no line of its own to report; point at the table it is
+// missing from, not at the document's first line.
+const laneTableLine = laneRows[0]?.line ?? 1
+
+const lanesMatchDirectories = correspondence({
+  left: laneRowSelection,
+  right: {
+    elements: laneDirs,
+    label: 'work/ lane directory',
+    identify: (d) => ({ name: d, file: 'work/README.md', line: laneTableLine }),
+  },
+  keyBy: { left: (r) => laneName(r.get('lane')), right: (d) => d },
+  suggest: {
+    left: (info) => `remove the row, or create work/${info.name}/ if the lane is real`,
+    right: (info) =>
+      `add a row for \`${info.name}/\` naming its board and its terminal subfolders, ` +
+      `or remove work/${info.name}/ if it is not a lane`,
+  },
+})
+  .should()
+  .beComplete({ direction: 'both' })
+  .because(
+    'work/README.md is the map a fresh agent reads first: a lane missing from it is a ' +
+      'lane nobody is told about, and a row naming nothing sends a reader to a ' +
+      'directory that does not exist',
+  )
+  .rule({ id: 'corpus/lanes-match-directories' })
+
+const lanesDoc = allDocs.find((d) => d.relPath === 'work/README.md')
+
+// The rung the two-sided join cannot express (ADR-010, and the same ladder the
+// board rule carries). Zero rows makes EVERY directory unmatched, so the
+// correspondence would report N "add a row" findings against a table that
+// already has them — a remedy that cannot work, and which duplicates every row
+// if followed. Name the instrument, not the subject.
+const laneViolations =
+  laneRows.length === 0 && laneDirs.length > 0
+    ? [
+        {
+          rule: 'correspondence',
+          ruleId: 'corpus/lane-table-unreadable',
+          element: 'work/README.md',
+          file: lanesDoc?.file ?? resolve(c.root, 'work/README.md'),
+          line: 1,
+          message:
+            lanesDoc === undefined
+              ? `work/README.md is not in the corpus, so none of the ${laneDirs.length} ` +
+                'directories under work/ was checked against the map — the map is the ' +
+                'document, and it is gone'
+              : 'the Lanes table matched no rows: no table under a `## Lanes` heading has a ' +
+                `\`Lane\` column, so none of the ${laneDirs.length} directories under work/ ` +
+                'was checked against the map',
+          suggestion:
+            lanesDoc === undefined
+              ? 'restore work/README.md, or — if the map genuinely moved — repoint this rule ' +
+                'and `ROOTS` at its new home together.'
+              : 'restore the `## Lanes` heading and the `Lane` column header — the lane rows ' +
+                'themselves may be intact; this rule could not see them to check.',
+          codeFrame: undefined,
+        },
+      ]
+    : lanesMatchDirectories.violations()
+
 // --format json/github — emit all violations machine-readable, then exit (plan 0070).
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
@@ -855,6 +973,7 @@ if (format === 'json' || format === 'github') {
     ...acceptedDenominatorViolations,
     ...criteriaViolations,
     ...docsOnlyOwnerViolations,
+    ...laneViolations,
   ]
   reportViolations(all, { format })
   process.exit(all.length > 0 ? 1 : 0)
@@ -887,6 +1006,14 @@ line(
 line(
   'ADRs',
   `${adrDocs.length} enforced · ${adrError ? '✗ invalid' : '✓ tables + citations resolve'}`,
+)
+line(
+  'lanes',
+  `${laneRows.length} row(s) · ${laneDirs.length} directories · ${
+    laneViolations.length === 0
+      ? '✓ the map lists every lane'
+      : `✗ ${laneViolations.length} finding(s)`
+  }`,
 )
 const proposalDocsCount = liveDocs.filter(isProposalDoc).length
 const planDocsCount = liveDocs.filter(isPlanDoc).length
@@ -931,6 +1058,7 @@ const problems = [
   ...unparseableRulingViolations,
   ...unparseableImplementsViolations,
   ...danglingImplementsViolations,
+  ...laneViolations,
 ]
 if (problems.length > 0) {
   console.error('')
@@ -948,7 +1076,12 @@ if (adrError) {
 }
 
 const totalChecked =
-  linksChecked + pointersChecked + adrDocs.length + proposalDocsCount + planDocsCount
+  linksChecked +
+  pointersChecked +
+  adrDocs.length +
+  proposalDocsCount +
+  planDocsCount +
+  laneRows.length
 const failed = problems.length > 0 || adrError
 console.error('')
 if (!failed) {
