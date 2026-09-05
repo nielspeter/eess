@@ -166,6 +166,49 @@ gap that no longer exists. Corrected, and narrowed to what that module still
 uniquely covers — a directive in a file that produced no violation, which the
 enforcement path structurally never reads.
 
+### The Critical that came last, and mattered most
+
+Architecture and devops, independently: **the fix never reached `eess-ts`.**
+`packages/ts/src/core/execute-rule.ts` is a full independent fork of the kernel's
+`applyFilters` — `terminal-builder.ts` imports from the local copy, not from
+`@nielspeter/eess` — and it still carried `if (ctx.metadata?.id && result.length > 0)`
+verbatim. Zero hits for either new diagnostic. There was even a passing test in
+that package certifying the old behaviour, with a comment reading "applyFilters
+never stamps or scans".
+
+So the fix was real for `eess-md`, `eess-mermaid` and `eess-gherkin`, and absent
+from the dialect adopters actually install — while the commit message, the
+changeset and `docs/violation-reporting.md` all said "eess now prints…" with no
+scoping. A false green on this record's own terms.
+
+This is a named, recurring defect class, not bad luck:
+[plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md) lists
+`execute-rule` among 27 duplicated modules and records three prior incidents of
+a fix landing on one copy while nothing noticed; ADR-012 documents the same
+shape one layer down. `check:family`, `check:arch` and `check:nonvacuity` all
+pass either way — they check re-exports and one-sided behaviour, not cross-copy
+parity, exactly as 0188 warns. **This would have been the fourth incident.** Both
+diagnostics are now in both copies, the ts side has its own test, and its stale
+comment says what changed.
+
+### And one the probe itself reopened
+
+Devops: `check:integrity`'s leftover-probe sweep matches on **file** basename,
+but `withProbeDir` puts the prefix on the **directory**. Measured: two leftover
+probe directories present, `check:integrity` exit 0, `git status` silent because
+`.gitignore` covers them — [bug 0231](./0231-a-killed-nonvacuity-run-leaves-an-invisible-probe-that-reds-other-gates.md)'s
+blind spot, reopened by the fixtures that adopted `withProbeDir` (including one
+already on `main`). The sweep now walks directories too, through its own walker:
+the first attempt changed the shared one and broke the source-text scan with
+`EISDIR`, which is why there are two.
+
+### A fourth vacuous assertion, caught by sabotage rather than by review
+
+The test added for the reason-free case asserted `/reason/i`, which matched other
+text and passed under the very mutation it existed to catch. Tightened to the
+literal the warning emits. That is four across four commits, and the only one
+found before review — which is the direction it needs to keep moving.
+
 ## Verification
 
 - [x] A directive that applies to no violation is reported, with its file, line
@@ -193,6 +236,13 @@ enforcement path structurally never reads.
       third is in the record above.
 - [x] `packages/ts/src/core/orphan-exclusions.ts` no longer claims a gap this
       closed, and says what it still uniquely covers.
+- [x] **Both copies of `applyFilters` carry both diagnostics** — the kernel's and
+      `eess-ts`'s fork — each with its own test, and the ts test that certified
+      the old behaviour says what changed. A fix in one copy only is this repo's
+      named recurring defect (plan 0188); it would have been the fourth.
+- [x] `check:integrity` names a leftover probe **directory**, not only a probe
+      file. Measured both ways: clean exits 0, a planted directory exits 1 and is
+      named.
 
 Deferred: none.
 

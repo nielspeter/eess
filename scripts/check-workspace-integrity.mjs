@@ -444,9 +444,37 @@ const probeRoots = [
   join(ROOT, 'scripts', 'nonvacuity'),
 ]
 let probeRootsWalked = 0
+/**
+ * Every path under `dir` — files AND directories.
+ *
+ * Separate from `walkAny`, which is shared with the source-text scan and
+ * `readFileSync`s everything it returns (handing it a directory throws EISDIR —
+ * measured, when the first version of this fix changed the shared helper).
+ *
+ * Directories matter here because a probe may put the prefix on its FOLDER
+ * rather than its file — `work/__nonvacuity_probe_nested__/pointer.md`,
+ * `work/__nonvacuity_probe_inert_excl__/table.md`. Those escaped this sweep
+ * entirely while `.gitignore` hid them from `git status`: bug 0231's blind spot,
+ * reopened by the fixtures that adopted `withProbeDir`. Measured before the fix:
+ * two such directories present, `check:integrity` exit 0.
+ */
+function walkPaths(dir, acc) {
+  let entries
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return
+  }
+  for (const e of entries) {
+    const p = join(dir, e.name)
+    acc.push(p)
+    if (e.isDirectory()) walkPaths(p, acc)
+  }
+}
+
 for (const root of probeRoots) {
   const files = []
-  walkAny(root, files)
+  walkPaths(root, files)
   // A root that does not exist contributes nothing and is not a finding: the
   // list is deliberately wider than any single checkout needs, so that a probe
   // planted somewhere new is caught rather than requiring this list to have

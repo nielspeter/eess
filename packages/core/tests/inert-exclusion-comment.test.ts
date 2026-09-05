@@ -196,6 +196,25 @@ describe('a directive that cannot apply is reported (bug 0255)', () => {
     expect(stderr).toMatch(/lines 1, 3/)
   })
 
+  it('a reason-free directive under a rule with no id still reports BOTH faults', () => {
+    // The guard at the `undocumented` branch is load-bearing and was unpinned:
+    // review removed it and all tests stayed green. Without an id there is
+    // nothing to key the unsuppressable promotion on, so the undocumented
+    // warning must fall through to stderr — and the inert report must still
+    // fire. Two different faults, two lines, neither swallowing the other.
+    const file = write('no-id-no-reason.md', [
+      '<!-- eess-exclude demo/rule -->', // no colon, no reason
+      'the violation is here',
+    ])
+    const { kept, stderr } = stderrFrom([violation(file, 2)], {})
+
+    expect(kept).toHaveLength(1) // no id, so nothing is suppressed
+    expect(stderr).toMatch(/declares no id/) // the inert report
+    // The literal the warning emits, not a loose /reason/i — that matched other
+    // text and passed under the very mutation this test exists to catch.
+    expect(stderr).toMatch(/Undocumented exclusion/)
+  })
+
   it('CONTROL — a clean file is never parsed, so a defensive region cannot be reported', () => {
     // The requirement bug 0255 wrote for itself: the report must not fire on an
     // `eess-exclude-start`/`-end` region that legitimately covers a

@@ -1,6 +1,6 @@
 ---
 '@nielspeter/eess': minor
-'@nielspeter/eess-ts': patch
+'@nielspeter/eess-ts': minor
 ---
 
 Report an exclusion comment that cannot apply, instead of leaving it silently inert
@@ -38,10 +38,17 @@ this at all.
 A directive in a file with no violations is still never read, so a defensive
 region over clean code costs nothing and is not reported.
 
-`@nielspeter/eess-ts` takes a patch for a documentation correction only:
-`orphanExclusions` documented this exact gap as one it could not close, and
-estimated the cost at "a parse per file per rule". The kernel closed it more
-cheaply than that, so the docstring was left claiming a gap that no longer
+**`@nielspeter/eess-ts` gets the same change, and that is not incidental.**
+It carries its own copy of `applyFilters` (`packages/ts/src/core/execute-rule.ts`
+— an independent fork, tracked by plan 0188), so a fix landing only in the kernel
+would have reached `eess-md`, `eess-mermaid` and `eess-gherkin` while leaving the
+dialect most people install exactly as silent as before. Review caught the first
+version doing precisely that, with a changeset that said "eess now prints…" —
+and found an `eess-ts` test still certifying the old behaviour. Both diagnostics
+now exist in both copies, with the ts side's own test.
+
+`orphanExclusions`'s docstring is corrected alongside: it documented this gap as
+one it could not close and priced it at "a parse per file per rule". The fix came
+in under that estimate, leaving the docstring claiming a gap that no longer
 exists. It now says what that module still uniquely covers — a directive in a
-file that produced no violation, which the enforcement path never reads. No
-behaviour change.
+file that produced no violation, which the enforcement path never reads.

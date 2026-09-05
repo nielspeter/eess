@@ -94,8 +94,15 @@ describe('inline exclusion comments — end-to-end (condition → applyFilters �
   })
 
   it('(d) a rule with NO id cannot be excluded by comment (the id is load-bearing)', () => {
-    // Without .rule({ id }) there is no ctx.metadata.id, so applyFilters never
-    // stamps or scans — the comment has no id to match against.
+    // Without .rule({ id }) there is no ctx.metadata.id, so the comment has no
+    // id to match against and the violation stands.
+    //
+    // The comment here used to add "applyFilters never stamps or scans", and
+    // bug 0255 made the second half false: it now DOES scan, precisely so it
+    // can say why the directive did nothing. What is load-bearing — and what
+    // this test pins — is that the violation still fires. Review found this
+    // test certifying the old wording on a branch that had changed it, because
+    // the fix landed in the kernel's copy of `applyFilters` and not this one.
     expect(() =>
       functions(project(tsconfigPath))
         .that()
@@ -104,6 +111,34 @@ describe('inline exclusion comments — end-to-end (condition → applyFilters �
         .notContain(call('forbiddenFn'))
         .check(),
     ).toThrow(ArchRuleError)
+  })
+
+  it('(d2) …and eess-ts says WHY the directive did nothing (bug 0255)', () => {
+    // The half that was missing from this dialect entirely. Without it an
+    // adopter of eess-ts — the dialect most people install — got the same
+    // silence bug 0255 was filed about, while the changeset said "eess now
+    // prints…". Asserted on stderr because that is the channel, and on the
+    // absence of a borrowed id because prescribing one collides two rules.
+    const lines: string[] = []
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      lines.push(String(chunk))
+      return true
+    })
+    try {
+      expect(() =>
+        functions(project(tsconfigPath))
+          .that()
+          .resideInFile('**/excluded-single.ts')
+          .should()
+          .notContain(call('forbiddenFn'))
+          .check(),
+      ).toThrow(ArchRuleError)
+    } finally {
+      spy.mockRestore()
+    }
+    const stderr = lines.join('')
+    expect(stderr).toMatch(/declares no id/)
+    expect(stderr).not.toMatch(/\.rule\(\{ id: '[a-z]/) // no borrowed id prescribed
   })
 
   it('the same regression holds through .satisfy(<non-stamping condition>)', () => {
