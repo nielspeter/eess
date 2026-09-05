@@ -109,7 +109,7 @@ this record does not.
 > the working-method reviewer did.
 >
 > One addition that arrived with the unblocking:
-> [0256](./0256-the-spike-lane-is-run-but-never-declared.md) needs the `spikes/`
+> [0256](./fixed/0256-the-spike-lane-is-run-but-never-declared.md) needs the `spikes/`
 > row this record's Fix already calls for, and defines what the lane means.
 
 ## Fix

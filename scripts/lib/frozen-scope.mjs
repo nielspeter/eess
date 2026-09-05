@@ -18,7 +18,12 @@
  * The doctrine `frozen` actually encodes is narrow and already written down at
  * its call site: **a document is frozen because it sits in a terminal folder** —
  * a record that concluded (`completed/`, `wont-do/`, `fixed/`, `archived/`) or a
- * spike, whose dated report is not held to today's line numbers. Every glob in
+ * spike, whose dated report is not held to today's line numbers. That sentence
+ * distinguishes the two correctly; the other three uses of "concluded" in this
+ * file did not — they applied it to everything in `TERMINAL_FOLDER_NAMES`,
+ * `spikes` included, which bug 0256 retired. They say "terminal" now. Bug 0256's
+ * first pass checked this line, found it clean, and reported the file as needing
+ * no change without reading the other three. Every glob in
  * the list today is that doctrine spelled as a path. Nothing enforced it, so the
  * doctrine was a comment and the list was free.
  *
@@ -31,7 +36,7 @@
 
 /**
  * The names that make a folder terminal. Adding to this list is the deliberate,
- * reviewable act of declaring a new kind of concluded record — which is the
+ * reviewable act of declaring a new kind of terminal record — which is the
  * point: it moves "freeze a lane" from an unremarkable glob edit to a change
  * that names what it is doing.
  */
@@ -71,10 +76,10 @@ export function nonTerminalFreezes(frozenGlobs) {
 export function frozenScopeRefusal(offenders) {
   return (
     `check:corpus: ${offenders.join(', ')} in \`frozen\` does not name a terminal folder ` +
-    `(${TERMINAL_FOLDER_NAMES.join(', ')}). Freezing is for records that concluded — a glob ` +
+    `(${TERMINAL_FOLDER_NAMES.join(', ')}). Freezing is for terminal records — a glob ` +
     `over a live lane silently stops examining its pointers while the gate still exits 0 ` +
     `(measured: \`work/**\` takes live pointers from 463 to 18, green). If this really is a ` +
-    `new kind of concluded record, add its folder name to TERMINAL_FOLDER_NAMES in ` +
+    `new kind of terminal record, add its folder name to TERMINAL_FOLDER_NAMES in ` +
     `scripts/lib/frozen-scope.mjs and say so there.`
   )
 }

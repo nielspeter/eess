@@ -27,7 +27,16 @@ neutral tokens (`State:`, the disposition tokens); they ignore the prose.
 - **Plan lane** — `/plan` (author, stops at Draft) → `/plan-ready` (the freeze) →
   `/plan-build` (build a Ready plan). Bare root authors; suffixes are later stages.
 - **Bug lane** — `/bug` (author + fix, red test first).
-- **Universal** — `/close` (close any item honestly; one ritual, every lane).
+- **Universal** — `/close` (close any item honestly; one ritual, every lane that
+  _closes_ — see the spikes carve-out below).
+- **No skill, by design** — the **spikes** lane. A spike is one record written
+  after measuring; it _concludes_ rather than closing, so there is no ledger to
+  reconcile and `/close` does not apply. A skill would be ceremony around a
+  single act. Two things it would otherwise have told you, so they are here
+  instead: **take the next free number** from the shared sequence
+  (`npm run next-number` — one sequence across every lane, so a spike and a plan
+  never collide), and write it at `work/spikes/NNNN-slug.md`, or as a directory
+  when the investigation has more than one document to leave behind.
 - **Optional** — `/refine` (volatile pre-plan lane), `/case` (support). Add only
   when a design tool + more people, or real users, actually enter.
 

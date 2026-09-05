@@ -91,10 +91,42 @@ const elapsed = () => {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
 }
 
-// `work/spikes/**` joins the terminal folders (bug 0249). A spike CONCLUDES —
-// its record is a dated report of what was measured, not a work item — so the
-// frozen contract is right for it: links must still resolve, and its pointers
-// are not held to today's line numbers.
+// `work/spikes/**` joins the terminal folders (bug 0249). The whole lane, not
+// "concluded spikes" — the qualifier this comment used to carry was held by
+// nothing, since the glob cannot see conclusion, and bug 0256 found the gap.
+//
+// It turns out the qualifier was also unnecessary. **A spike is terminal from
+// its first commit**: it is one document saying what was measured, against what,
+// on what date. There is no in-flight state in which the record exists but is
+// not yet a report, so there is nothing for "concluded" to exclude.
+//
+// **The freeze is prospective, and saying so is the whole point.** An earlier
+// version of this comment justified it by claiming spikes cite code this repo
+// does not own. Measured: `work/spikes/` contains **zero** `path:line` pointers
+// (648 corpus-wide, none in a spike), so the freeze suppresses nothing today —
+// deleting this glob entry would change no violations. That is the same shape as
+// the "concluded" qualifier it replaced: a justification the corpus does not
+// bear out.
+//
+// What it is actually for is visible in spike 0001's own landing note, which
+// records rewriting its single `path:line` citation into prose **so this
+// mechanism would not catch it**. The population is empty because it was emptied
+// by hand. And the hazard it was defusing was real: that citation pointed into
+// another project's source and would have SUFFIX-MATCHED a local file, so the
+// gate would have blessed it against the wrong one — bug 0254's hazard exactly.
+// Freezing dissolves that for this lane, because a frozen document's pointers
+// are not examined at all; the trap is unchanged for live documents (see the
+// sanction comment below).
+//
+// So the freeze exists so the next spike need not hand-defuse anything: a dated
+// report about something this build does not own cannot be held to today's line
+// numbers without demanding the record be edited to stay green, which is the
+// opposite of what a dated measurement is for.
+//
+// (Spike 0002 names a commit, `b4084c9`; spike 0001 names versions, 0.57.0 and
+// 0.58.0. An earlier version of this comment said both named a commit.)
+//
+// See `docs/working-method.md`'s lane list for what a spike is.
 //
 // **Measured while adding this, and it corrects the contract's own wording.**
 // `work/README.md` and the summary line both said frozen folders' drift is
@@ -106,9 +138,6 @@ const elapsed = () => {
 // paths; gating those as live pointers would demand it be kept current, which
 // is the opposite of what a terminal record is for.
 //
-// This is also what dissolves the suffix-resolution trap for that population:
-// a foreign-repo pointer in a frozen document is not examined at all. The trap
-// itself is unchanged for live documents — see the sanction comment below.
 const FROZEN = [
   '**/completed/**',
   '**/wont-do/**',

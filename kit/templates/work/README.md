@@ -12,9 +12,18 @@ one-screen map.
 | [`plans/`](plans/ROADMAP.md) | **ROADMAP.md** | buildable implementation plans | `plans/completed/` |
 | [`bugs/`](bugs/BUGS.md)      | **BUGS.md**    | concrete code defects          | `bugs/fixed/`      |
 
-The **refinement** lane (volatile pre-plan discovery) and the **support** lane
-(customer cases) are not seeded here — add them only when a design tool + more
-people, or real users, actually enter. Until then they'd be cargo-cult.
+The **refinement** lane (volatile pre-plan discovery), the **support** lane
+(customer cases) and the **spikes** lane (dated measurements of something outside
+this repo) are not seeded here — add them only when a design tool + more people,
+real users, or a genuine outside question actually enter. Until then they'd be
+cargo-cult.
+
+A spikes lane is the one with a different shape: its records **conclude rather
+than close**, so it has no board and no done-folder — a spike is terminal the day
+it is written, and takes its number from the same shared sequence as every other
+lane. If you have wired up `check:corpus`, freeze it: pass `work/spikes/**` to
+`corpus({ frozen: [...] })` from `@nielspeter/eess-md`, so a spike citing another
+project's code at a version is not held to your build's line numbers.
 
 ## Conventions
 
