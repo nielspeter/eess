@@ -104,9 +104,45 @@ differ where they should: crossvalidate resolves `.feature` files and `eess-md`
 resolves any repo file, and `eess-md` additionally supports `exact` mode and
 `externalRoots`. The primitive is the classification, not the policy.
 
+## A third site, examined and deliberately left
+
+Architecture review found `packages/md/src/conditions/resolve.ts:120-126` building
+the same six-line basename index this commit deleted from `pointer-resolve.ts`,
+and asked — fairly — whether "one path-suffix resolver, not two" is true while a
+third bespoke index sits one file over in the same package. The commit's own
+grep looked for `resolveFeature` and `uniqueSuffix()` by name, so it reported
+clean without ever looking there.
+
+**The index loop is duplicated. The resolution is not, and folding it in would be
+a defect.** `movedLinkFix` matches on **basename equality only** — it never tests
+a `/`-boundary suffix — and refuses to offer a fix unless exactly one file
+matches. `pathSuffixIndex` resolves exact-then-suffix, and exact wins outright.
+Measured on a corpus holding both `x.md` and `a/x.md`:
+
+|                                  | answer for `x.md`                            |
+| -------------------------------- | -------------------------------------------- |
+| `movedLinkFix` today             | **no fix** — two basename matches, ambiguous |
+| `pathSuffixIndex(...).resolve()` | `exact` → **rewrite the link to `x.md`**     |
+
+That difference is the whole point. `movedLinkFix` produces an **autofix**, which
+edits the author's file, and this family's autofix rule is that the repair must be
+unique or there is no repair. Swapping in a resolver whose exact branch wins
+outright would turn a correct refusal into a confident rewrite to whichever file
+happens to sit at the repo root — the opposite of the direction an autofix should
+err in.
+
+So the third site stays, and the shared thing is six lines of `Map` building with
+different semantics on either side of it. Extracting _that_ would be a second
+primitive, not this one. The title's "not two" is about the resolver; the index
+loop is not the resolver, and this paragraph exists so the next reader does not
+have to re-derive why the obvious fold was not done.
+
 ## Verification
 
-- [x] One implementation, called by both dialects. **`resolveFeature` is deleted**
+- [x] One implementation of the _resolver_, called by both dialects. A third
+      basename index survives in `resolve.ts`; it is examined above and left on
+      purpose, because its resolution is a different rule and folding this one in
+      would change an autofix from refusing to rewriting. **`resolveFeature` is deleted**
       — no export, no call site, verified by reading both former callers.
       `eess-md`'s `uniqueSuffix()` and its basename index are gone with it.
 
