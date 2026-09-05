@@ -91,10 +91,20 @@ const elapsed = () => {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
 }
 
-// `work/spikes/**` joins the terminal folders (bug 0249). A spike CONCLUDES —
-// its record is a dated report of what was measured, not a work item — so the
-// frozen contract is right for it: links must still resolve, and its pointers
-// are not held to today's line numbers.
+// `work/spikes/**` joins the terminal folders (bug 0249). The whole lane, not
+// "concluded spikes" — the qualifier this comment used to carry was held by
+// nothing, since the glob cannot see conclusion, and bug 0256 found the gap.
+//
+// It turns out the qualifier was also unnecessary. **A spike is terminal from
+// its first commit**: it is one document saying what was measured, against what,
+// on what date. There is no in-flight state in which the record exists but is
+// not yet a report, so there is nothing for "concluded" to exclude.
+//
+// The reason to freeze it is sharper than conclusion anyway: a spike cites code
+// this repository does not own — both of this repo's spikes measure another
+// checkout at a named commit — so holding those citations to today's line
+// numbers would demand the record be edited to stay green, which is the opposite
+// of what a dated measurement is for. See `docs/working-method.md`'s lane list.
 //
 // **Measured while adding this, and it corrects the contract's own wording.**
 // `work/README.md` and the summary line both said frozen folders' drift is

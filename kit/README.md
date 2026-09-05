@@ -28,6 +28,11 @@ neutral tokens (`State:`, the disposition tokens); they ignore the prose.
   `/plan-build` (build a Ready plan). Bare root authors; suffixes are later stages.
 - **Bug lane** — `/bug` (author + fix, red test first).
 - **Universal** — `/close` (close any item honestly; one ritual, every lane).
+- **No skill, by design** — the **spikes** lane. A spike is one document written
+  after measuring something outside the repo; there is no sequence to walk, no
+  ledger to reconcile and no close ritual, so a skill would be ceremony around a
+  single act. The lane is described in the working method and named in the
+  corpus template; it is not scaffolded.
 - **Optional** — `/refine` (volatile pre-plan lane), `/case` (support). Add only
   when a design tool + more people, or real users, actually enter.
 
