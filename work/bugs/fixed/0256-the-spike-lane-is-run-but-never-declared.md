@@ -166,6 +166,14 @@ about.
       directory of two files, so the written rule was narrower than the corpus it
       claims to describe.
 
+**One justification, not two.** The gate's comment had ended up stating the
+freeze's reason twice — the paragraph this record added, and an older one from
+[0253](../0253-frozen-drift-is-not-reported-only-unexamined.md)'s fix about the
+suffix-resolution trap. Two accounts of one mechanism, written by different edits,
+is the shape this record diagnoses elsewhere; they are one paragraph now, and the
+trap connection is the stronger for sitting beside the note about spike 0001
+hand-defusing exactly that hazard.
+
 **No mechanism binds the three statements about this lane** —
 `TERMINAL_FOLDER_NAMES`, the `frozen` glob, and the method doc's lane list — and
 that is a choice rather than an oversight, stated because the record otherwise

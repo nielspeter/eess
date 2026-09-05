@@ -111,9 +111,16 @@ const elapsed = () => {
 // What it is actually for is visible in spike 0001's own landing note, which
 // records rewriting its single `path:line` citation into prose **so this
 // mechanism would not catch it**. The population is empty because it was emptied
-// by hand. The freeze exists so the next spike need not do that: a dated report
-// citing another project's code at a version or commit cannot be held to today's
-// line numbers without demanding the record be edited to stay green, which is the
+// by hand. And the hazard it was defusing was real: that citation pointed into
+// another project's source and would have SUFFIX-MATCHED a local file, so the
+// gate would have blessed it against the wrong one — bug 0254's hazard exactly.
+// Freezing dissolves that for this lane, because a frozen document's pointers
+// are not examined at all; the trap is unchanged for live documents (see the
+// sanction comment below).
+//
+// So the freeze exists so the next spike need not hand-defuse anything: a dated
+// report about something this build does not own cannot be held to today's line
+// numbers without demanding the record be edited to stay green, which is the
 // opposite of what a dated measurement is for.
 //
 // (Spike 0002 names a commit, `b4084c9`; spike 0001 names versions, 0.57.0 and
@@ -131,9 +138,6 @@ const elapsed = () => {
 // paths; gating those as live pointers would demand it be kept current, which
 // is the opposite of what a terminal record is for.
 //
-// This is also what dissolves the suffix-resolution trap for that population:
-// a foreign-repo pointer in a frozen document is not examined at all. The trap
-// itself is unchanged for live documents — see the sanction comment below.
 const FROZEN = [
   '**/completed/**',
   '**/wont-do/**',
