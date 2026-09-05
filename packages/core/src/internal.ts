@@ -69,6 +69,9 @@ export { subjectOf } from './violation.js'
 export { suppressionNotice, activeNotice, resetDiffDisclosureForTests } from './diff-disclosure.js'
 export { toPortablePath } from './identity-root.js'
 export { viewsFor } from './path-universe.js'
+// Bug 0257: one suffix resolver, called by eess-md and eess-crossvalidate.
+export { pathSuffixIndex } from './path-suffix.js'
+export type { PathSuffixIndex, PathSuffixMatch } from './path-suffix.js'
 export { violationsEmittedCount } from './report.js'
 export { writeStderr } from './stderr.js'
 

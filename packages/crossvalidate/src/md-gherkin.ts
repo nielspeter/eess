@@ -1,5 +1,5 @@
 import picomatch from 'picomatch'
-import { resolveFeature, violationsFor } from './shared.js'
+import { featurePaths, violationsFor } from './shared.js'
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
@@ -107,9 +107,10 @@ export function scenarioCitationsResolve(
   const scenarioKeys = new Set(set.scenarios().map((s) => `${s.relPath}\0${s.title}`))
   const violations: ArchViolation[] = []
 
+  const paths = featurePaths(set)
   for (const c of citations) {
-    const resolved = resolveFeature(c.path, set)
-    if (resolved.length === 0) {
+    const resolved = paths.resolve(c.path)
+    if (resolved.kind === 'none') {
       violations.push(
         v(
           c,
@@ -119,18 +120,19 @@ export function scenarioCitationsResolve(
       )
       continue
     }
-    if (resolved.length > 1) {
+    if (resolved.kind === 'ambiguous') {
       violations.push(
         v(
           c,
-          `cites \`${c.path}\` — ambiguous, matches ${resolved.length} feature files (${resolved.join(', ')})`,
+          `cites \`${c.path}\` — ambiguous, matches ${String(resolved.files.length)} feature files (${resolved.files.join(', ')})`,
           'an ambiguous citation cannot be mechanically resolved; cite a longer suffix',
         ),
       )
       continue
     }
-    const rel = resolved[0]
-    if (c.title !== undefined && rel !== undefined && !scenarioKeys.has(`${rel}\0${c.title}`)) {
+    // `none` and `ambiguous` already returned above, so this is exact or unique.
+    const rel = resolved.file
+    if (c.title !== undefined && !scenarioKeys.has(`${rel}\0${c.title}`)) {
       violations.push(
         v(
           c,

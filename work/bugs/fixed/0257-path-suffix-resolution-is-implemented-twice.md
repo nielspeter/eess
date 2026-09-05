@@ -2,12 +2,13 @@
 
 ## Status
 
-- **State:** Draft — a duplication finding, not a defect. Nothing is wrong today.
+- **State:** Fixed — one resolver in the kernel, called by both dialects; the
+  second copy is deleted, not left beside it.
 - **Severity:** Low — both implementations are correct and tested. It is filed
   because the second one was just _widened_ rather than converged, and the next
   dialect that needs the algorithm will be the third.
 - **Origin:** self-found · architect review of
-  [0254](./fixed/0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md),
+  [0254](./0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md),
   which added the ambiguous class to `eess-md` by hand-writing logic
   `eess-crossvalidate` already had.
 - **Reported:** 2026-09-05
@@ -45,7 +46,7 @@ longer suffix so it names one`
 0254's record used crossvalidate's behaviour as its design justification — _"the
 family already knows the right answer"_ — and then re-implemented that answer in
 the second dialect instead of extracting it. That is the pattern
-[`review-proposal`](../../.claude/skills/review-proposal/SKILL.md) names as the
+[`review-proposal`](../../../.claude/skills/review-proposal/SKILL.md) names as the
 #1 failure mode, committed in a fix whose own argument was the precedent.
 
 It is Low because the duplication predates 0254 (the exact/unique/none paths were
@@ -56,7 +57,31 @@ two places is where a divergence starts costing something — one dialect gains 
 `--suggest-suffix` autofix or a case-insensitive mode and the other silently does
 not.
 
-## Fix (not built)
+## Fix
+
+`packages/core/src/path-suffix.ts` — `pathSuffixIndex(paths)`, returning
+`exact` / `unique` / `ambiguous` / `none` with the candidates.
+
+**Placement: the kernel, behind `/internal`.** It is pure string work over a list
+of paths — no `ArchProject`, no ts-morph, nothing dialect-shaped — which is
+exactly `path-universe.ts`'s own argument for living there, and satisfies
+[ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s test: the
+kernel takes the _fact_ (a list of paths), not the project that produced it. It is
+family plumbing rather than public API, so `internal.ts` exports it (ADR-011).
+
+**An index rather than a two-argument function**, because `eess-md` resolves
+hundreds of citations against thousands of paths and had built a last-segment
+index for exactly that reason. `eess-crossvalidate` gains it: `resolveFeature`
+rebuilt its path list on every citation, and `featurePaths(set)` is now built once
+per binding.
+
+**What each caller kept.** The policy, which genuinely differs: whether a `none`
+is broken, whether an `ambiguous` fails or warns, when to consult external roots,
+what the message says. The primitive answers one question — _which path did they
+mean?_ — and the ambiguity messages already agreed after bug 0254, so nothing had
+to converge.
+
+### The original text, kept
 
 Extract one primitive — _resolve a path against a set of repo-relative paths,
 returning exact / unique / ambiguous with the candidates_ — and have both
@@ -65,7 +90,7 @@ rather than a patch:
 
 - **`packages/core`** if it is genuinely dialect-independent. It is pure string
   work over a path set, needs no `ArchProject` and no ts-morph, and
-  [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s test —
+  [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md)'s test —
   does the kernel take the _fact_ rather than the project? — is satisfied: the
   fact is a list of paths.
 - **A shared helper in one dialect** if the kernel should not grow a
@@ -81,18 +106,37 @@ resolves any repo file, and `eess-md` additionally supports `exact` mode and
 
 ## Verification
 
-- [ ] One implementation, called by both dialects; the second copy is deleted,
-      not left beside the shared one.
-- [ ] Both dialects' existing tests still pass unchanged — the extraction is
-      behaviour-preserving or it is not an extraction.
-- [ ] A sabotage of the shared primitive reds tests in **both** dialects, which
-      is the evidence that both really call it.
-- [ ] The ambiguity messages agree, or the record says why they should not.
+- [x] One implementation, called by both dialects. **`resolveFeature` is deleted**
+      — `grep resolveFeature packages/*/src` returns nothing but this record's
+      own history. `eess-md`'s `uniqueSuffix()` and its basename index are gone
+      with it.
+- [x] Both dialects' existing tests pass **unchanged**: `eess-md` 119,
+      `eess-crossvalidate` 92, no test edited. An extraction that needed its
+      callers' tests rewritten would not be behaviour-preserving.
+- [x] A sabotage of the shared primitive reds **both** dialects: returning only
+      the first candidate of an ambiguity fails 2 tests in `eess-md`, 2 in
+      `eess-crossvalidate`, and 1 in the kernel. That is the evidence both really
+      call it, rather than still carrying their own copies.
+- [x] The ambiguity messages already agreed — bug 0254 converged `eess-md`'s
+      wording on `eess-crossvalidate`'s, which is what made this duplication
+      visible in the first place. Nothing had to change.
+- [x] 8 kernel tests over the primitive, covering the cases the callers depend
+      on: exact beating an ambiguity it is part of, the `/` boundary, and every
+      candidate coming back rather than the first.
+
+**One measurement worth recording, because it reads as a gap and is not.**
+Breaking the `/` boundary — so a suffix matches as a bare substring — reds the
+kernel's tests and **neither dialect's**. Before this change neither dialect
+tested that property either; now it is tested once, where the code lives.
+Requiring both callers to re-assert it would rebuild the duplication in the
+tests, which is the thing this record is about.
+
+Deferred: none.
 
 ## Related
 
-- [0254](./fixed/0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md)
+- [0254](./0254-an-ambiguous-pointer-passes-and-is-counted-as-grounded.md)
   — added the third shared concept, and cited the other implementation as its
   own justification for doing so.
-- [ADR-013](../../adr/013-the-kernel-takes-the-fact-not-the-project.md) — the
+- [ADR-013](../../../adr/013-the-kernel-takes-the-fact-not-the-project.md) — the
   test for whether this belongs in the kernel.

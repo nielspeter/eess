@@ -1,5 +1,5 @@
 import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
-import { resolveFeature, violationsFor } from './shared.js'
+import { featurePaths, violationsFor } from './shared.js'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
 import path from 'node:path'
@@ -127,11 +127,12 @@ export function scenarioTestsResolve(
   const scenarioKeys = new Set(set.scenarios().map((s) => `${s.relPath} ${s.title}`))
   const violations: ArchViolation[] = []
 
+  const paths = featurePaths(set)
   for (const site of itTitles(project)) {
     const cite = extract(site.title)
     if (cite === undefined) continue // not a scenario-citing test
-    const resolved = resolveFeature(cite.path, set)
-    if (resolved.length === 0) {
+    const resolved = paths.resolve(cite.path)
+    if (resolved.kind === 'none') {
       violations.push(
         v(
           site,
@@ -141,18 +142,19 @@ export function scenarioTestsResolve(
       )
       continue
     }
-    if (resolved.length > 1) {
+    if (resolved.kind === 'ambiguous') {
       violations.push(
         v(
           site,
-          `cites \`${cite.path}\` — ambiguous, matches ${resolved.length} feature files (${resolved.join(', ')})`,
+          `cites \`${cite.path}\` — ambiguous, matches ${String(resolved.files.length)} feature files (${resolved.files.join(', ')})`,
           'an ambiguous citation cannot be mechanically resolved; cite a longer suffix',
         ),
       )
       continue
     }
-    const rel = resolved[0]
-    if (rel !== undefined && !scenarioKeys.has(`${rel} ${cite.title}`)) {
+    // `none` and `ambiguous` already returned above, so this is exact or unique.
+    const rel = resolved.file
+    if (!scenarioKeys.has(`${rel} ${cite.title}`)) {
       violations.push(
         v(
           site,
@@ -189,11 +191,14 @@ export function citedScenarioSites(
   extract: TestCitationExtractor,
 ): Map<string, TestCitationSite> {
   const sites = new Map<string, TestCitationSite>()
+  const paths = featurePaths(set)
   for (const site of itTitles(project)) {
     const cite = extract(site.title)
     if (cite === undefined) continue
-    const resolved = resolveFeature(cite.path, set)
-    const rel = resolved.length === 1 ? resolved[0] : undefined
+    const resolved = paths.resolve(cite.path)
+    // Unambiguous only: `exact` and `unique` both name one file; `ambiguous`
+    // and `none` name none, and this map is keyed on a real path.
+    const rel = resolved.kind === 'exact' || resolved.kind === 'unique' ? resolved.file : undefined
     if (rel !== undefined) sites.set(`${rel} ${cite.title}`, site)
   }
   return sites
