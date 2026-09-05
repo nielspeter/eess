@@ -1,5 +1,6 @@
 import type { ClassDeclaration } from 'ts-morph'
 import type { ArchViolation, ElementInfo } from '@nielspeter/eess'
+import { pathSuffixIndex, type PathSuffixIndex } from '@nielspeter/eess/internal'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
@@ -34,20 +35,24 @@ export function identifyTsClass(c: ClassDeclaration): ElementInfo {
 }
 
 /**
- * The feature files a cited path refers to.
+ * A prepared index of the set's feature paths, for resolving citations.
  *
  * An exact `relPath` wins outright. Otherwise the citation is treated as a
  * SUFFIX — `login.feature` matches `specs/auth/login.feature` — so a document
- * can cite a feature without repeating the corpus root it already declared.
+ * can cite a feature without repeating the corpus root it already declared. An
+ * ambiguous citation comes back with every candidate, so the caller reports it
+ * as ambiguous instead of silently resolving to whichever file the walk reached
+ * first.
  *
- * Returns every match rather than the first, so an ambiguous citation is
- * reported as ambiguous by the caller instead of being silently resolved to
- * whichever file the walk happened to reach first.
+ * **Bug 0257: the resolution itself is the kernel's now.** This used to be
+ * `resolveFeature(path, set)` with its own copy of the algorithm —
+ * `eess-md`'s `pointer-resolve.ts` had the same one, down to the exact-wins
+ * precedence and the "cite a longer suffix" remedy. What remains here is the
+ * binding: which paths go in. Built once per binding rather than rebuilt per
+ * citation, which the old two-argument shape forced.
  */
-export function resolveFeature(path: string, set: FeatureSet): readonly string[] {
-  const all = set.features().map((f) => f.relPath)
-  if (all.includes(path)) return [path]
-  return all.filter((rel) => rel.endsWith(`/${path}`))
+export function featurePaths(set: FeatureSet): PathSuffixIndex {
+  return pathSuffixIndex(set.features().map((f) => f.relPath))
 }
 
 /**

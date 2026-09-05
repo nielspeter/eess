@@ -1,15 +1,10 @@
 import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Condition } from '@nielspeter/eess'
+import { pathSuffixIndex } from '@nielspeter/eess/internal'
 import type { Corpus } from '../corpus.js'
 import type { MdPointer } from '../model/pointers.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
-
-/** Result of a unique-path-suffix lookup. */
-type SuffixMatch =
-  | { readonly kind: 'unique'; readonly file: string }
-  | { readonly kind: 'ambiguous'; readonly files: readonly string[] }
-  | { readonly kind: 'none' }
 
 /** How a pointer path resolves against the repo file index. */
 export interface PointerResolveOptions {
@@ -79,13 +74,13 @@ export function pointerResolves(
 ): Condition<MdPointer> {
   const mode = options.paths ?? 'suffix'
   const externalRoots = options.externalRoots ?? []
-  const byBasename = new Map<string, string[]>()
-  for (const rel of corpus.fileIndex) {
-    const base = rel.slice(rel.lastIndexOf('/') + 1)
-    const list = byBasename.get(base)
-    if (list) list.push(rel)
-    else byBasename.set(base, [rel])
-  }
+  // Bug 0257: one resolver, shared with `eess-crossvalidate`. This file used to
+  // carry its own basename index and its own three-way match type; both were the
+  // kernel's `pathSuffixIndex` written a second time, down to the exact-wins
+  // precedence. What stays here is the POLICY — what a `none` means, whether an
+  // `ambiguous` fails, when to consult external roots — which is genuinely this
+  // dialect's and differs from crossvalidate's.
+  const paths = pathSuffixIndex(corpus.fileIndex)
 
   const lineCountCache = new Map<string, number>()
   const lineCount = (rel: string): number => {
@@ -101,18 +96,7 @@ export function pointerResolves(
     evaluate: (pointers, ctx) =>
       pointers.flatMap((p) => {
         const wanted = p.path.replace(/^\.?\//, '')
-        // The unique file whose path ends with `wanted` (on a / boundary).
-        // Narrow by last segment, then confirm the full suffix.
-        const uniqueSuffix = (): SuffixMatch => {
-          const lastSeg = wanted.slice(wanted.lastIndexOf('/') + 1)
-          const matches = (byBasename.get(lastSeg) ?? []).filter(
-            (f) => f === wanted || f.endsWith('/' + wanted),
-          )
-          const only = matches[0]
-          if (matches.length === 1 && only !== undefined) return { kind: 'unique', file: only }
-          if (matches.length > 1) return { kind: 'ambiguous', files: matches }
-          return { kind: 'none' }
-        }
+        const match = paths.resolve(wanted)
 
         let targetRel: string | null = null
         // Bug 0254: an ambiguous suffix used to `return []` here, commented
@@ -135,13 +119,13 @@ export function pointerResolves(
         // remedy. `ambiguousViolation()` below is now the fallback on every exit
         // that would otherwise skip or misreport.
         let ambiguousWith: readonly string[] = []
-        if (corpus.fileIndex.has(wanted)) {
-          // Exact repo-relative path — preferred in both modes.
-          targetRel = wanted
+        if (match.kind === 'exact') {
+          // Exact repo-relative path — preferred in both modes, and it beats an
+          // ambiguity it is itself part of.
+          targetRel = match.file
         } else if (mode === 'suffix') {
-          const m = uniqueSuffix()
-          if (m.kind === 'ambiguous') ambiguousWith = m.files
-          targetRel = m.kind === 'unique' ? m.file : null
+          if (match.kind === 'ambiguous') ambiguousWith = match.files
+          targetRel = match.kind === 'unique' ? match.file : null
         }
 
         /**
@@ -225,15 +209,14 @@ export function pointerResolves(
           // Broken. If exactly one file uniquely resolves the shortened path, the
           // repair is deterministic — attach an autofix that expands it to the
           // full repo-relative path (plan 0066). Ambiguous → no fix.
-          const m = uniqueSuffix()
           const fix =
-            m.kind === 'unique' && m.file !== wanted
+            match.kind === 'unique' && match.file !== wanted
               ? {
                   file: p.doc.file,
                   start: p.pathStart,
                   end: p.pathEnd,
-                  replacement: m.file,
-                  describe: `rewrite pointer "${p.path}" → "${m.file}"`,
+                  replacement: match.file,
+                  describe: `rewrite pointer "${p.path}" → "${match.file}"`,
                 }
               : undefined
           return [
