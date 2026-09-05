@@ -67,11 +67,34 @@ the lines that used to be identical are distinguishable, so what remains is
 repetition an author can read rather than repetition they cannot tell apart.
 Whoever wants a cache should want it for its own reasons.
 
-**One thing checked before building, because the record assumed it.** `.because()`
-is the only discriminator `applyFilters` can reach: `ExecuteRuleContext` carries
-`reason`, `metadata`, `exclusions` and `silentIndices` — no rule description. A
-description would mean a new field threaded through both copies and every
-dialect's builder, which is a wider change than this earns.
+**The first fix took `.because()` alone, on a premise review measured false.**
+That paragraph said: _"`.because()` is the only discriminator `applyFilters` can
+reach — `ExecuteRuleContext` carries no rule description, and threading one
+through would mean a new field in both copies and every dialect's builder, wider
+than this earns."_
+
+Wrong on both halves, and the evidence was three files away:
+
+- **Every builder already implements `describeRule()`** (`rule-description.ts`
+  defines it as the one owner of a rule's self-description), and `filterContext()`
+  — the method that builds `ExecuteRuleContext` — is on the same class. So it is
+  `this.describeRule().rule`, not a new field in any dialect's builder. `eess-md`,
+  `-mermaid` and `-gherkin` inherit it and needed no plumbing at all.
+- **The kernel already names an id-less rule this way**, a couple of hundred lines
+  above the change, for its assertion-less finding:
+  `this._metadata?.id ?? (this.buildRuleDescription() || 'unnamed')`.
+
+And it mattered, not just as a wrong reason for a right answer. `.because()` is
+optional prose, and the chains this diagnostic targets — early-adopter rules
+nobody has given an id yet — often have neither an id nor a reason. Measured on a
+real id-less chain, `describeRule().rule` is
+`"that are live (not in a frozen folder) should resolve to a real file and line"`
+— a discriminator that is always there and needs no author action. The first fix
+was a weaker floor for the same two-file cost.
+
+So the rule's own sentence is the name, and `.because()` is the fallback when a
+builder's own `describeRule()` returns `'unnamed'` — naming a rule "unnamed"
+tells a reader nothing, so it counts as absent.
 
 **Both copies.** `applyFilters` exists twice
 ([plan 0188](../../plans/0188-unify-the-duplicated-engine-modules.md)), and
@@ -80,20 +103,30 @@ what that gate is for.
 
 ## Verification
 
-- [x] Two id-less chains with different `.because()` reasons over one file
-      produce two distinguishable lines — asserted by comparing the two outputs
-      to each other, not just by matching each one.
-- [x] A chain with neither id nor reason gets the message unchanged, asserted
+- [x] Two id-less chains over one file produce two distinguishable lines —
+      asserted by comparing the two outputs to each other, not just by matching
+      each one. **Distinguishable without the author having done anything**: the
+      rule's own sentence names it, and `.because()` only takes over when a
+      builder reports `'unnamed'`.
+- [x] A chain with nothing to name it by gets the message unchanged, asserted
       including the absence of an empty `("")` parenthetical. Without that, a
-      change that always emitted one would satisfy the tests above.
+      change that always emitted one would satisfy the tests above. That case is
+      now rarer than the first fix assumed — it needs a builder whose own
+      `describeRule()` says `'unnamed'` AND no reason.
+- [x] `'unnamed'` is treated as absent, asserted on the **parenthetical** rather
+      than the whole line: the fixture's own filename contains that word, and a
+      bare `/unnamed/` failed for the wrong reason. Over-broad in the opposite
+      direction from the four vacuous regexes 0255's record tallies, and the same
+      lesson.
 - [x] A reason that wraps stays on one line. `.because()` takes prose, and this
       report is one line per file; whitespace is collapsed rather than trusted.
 - [x] **Both copies changed together, and the gate proves it rather than the
       record claiming it.** `engine/applyfilters-parity` gained two scenarios for
       the new branch — a fixed scenario list is the whole of what parity
-      compares, so a new branch without one is untested by it. **Measured:**
-      landing the fix in the kernel alone makes the copies diverge and reds the
-      gate, printing both versions of the line. That is the mechanism built in
+      compares, so a new branch without one is untested by it — **11 scenarios
+      now**, three of them for the description branch. **Measured twice:**
+      landing either round in the kernel alone makes the copies diverge and reds
+      the gate, printing both versions of the line. That is the mechanism built in
       0255's third round doing its job on the next bug.
 - [x] Every assertion is against the string the implementation emits, checked by
       running it. Four assertions on 0255's branch were written against text that

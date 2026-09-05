@@ -28,6 +28,14 @@ import type { EdgeCoverage } from '@nielspeter/eess'
  */
 interface ExecuteRuleContext {
   reason?: string
+  /**
+   * This rule's own sentence, deferred (bug 0258).
+   *
+   * A thunk rather than a string because `filterContext()` runs on every
+   * terminal call and this is only read when an id-less rule turns out to have
+   * an exclusion comment it cannot honour.
+   */
+  describe?: () => string
   metadata?: RuleMetadata
   exclusions?: (string | RegExp)[]
   silentIndices?: Set<number>
@@ -354,16 +362,29 @@ export function applyFilters(
         if (lines) lines.push(c.line)
         else byFile.set(c.file, [c.line])
       }
-      // Name the rule by its `.because()` reason when it has one (bug 0258).
-      // An id-less rule has no id to name, so several id-less chains over one
-      // file printed byte-identical lines and a reader could not tell which
-      // chain needed the id. The reason is a discriminator that already exists:
-      // `.because()` works without `.rule({ id })`, and `ctx.reason` is stamped
-      // onto violations a few lines above this. Whitespace is collapsed because
-      // the reason is prose and may wrap, and this report is deliberately one
-      // line per file. A rule with neither id nor reason is genuinely anonymous
-      // and the message stays exactly as it was.
-      const named = ctx.reason === undefined ? '' : ` ("${ctx.reason.replace(/\s+/g, ' ').trim()}")`
+      // Name the rule, preferring its own sentence over its reason (bug 0258).
+      //
+      // The first version used `.because()` alone, on the premise that no rule
+      // description was reachable here. Review measured that false: every
+      // builder implements `describeRule()`, `filterContext()` is a method on
+      // the class that has it, and the kernel already names an id-less rule this
+      // way for its assertion-less finding. `.because()` is optional prose — the
+      // chains this diagnostic targets often have neither an id nor a reason —
+      // so leaning on it alone was a weaker floor for the same cost.
+      //
+      // `'unnamed'` is `TerminalBuilder`'s own fallback for a rule with no id;
+      // naming a rule "unnamed" tells the reader nothing, so it counts as absent
+      // and the reason takes over. Whitespace is collapsed either way: both are
+      // prose that may wrap, and this report is one line per file.
+      const oneLine = (t: string): string => t.replace(/\s+/g, ' ').trim()
+      const described = ctx.describe?.()
+      const label =
+        described !== undefined && described !== 'unnamed' && described !== ''
+          ? oneLine(described)
+          : ctx.reason === undefined
+            ? undefined
+            : oneLine(ctx.reason)
+      const named = label === undefined || label === '' ? '' : ` ("${label}")`
       for (const [file, lines] of byFile) {
         const where = lines.length === 1 ? `line ${String(lines[0])}` : `lines ${lines.join(', ')}`
         writeStderr(

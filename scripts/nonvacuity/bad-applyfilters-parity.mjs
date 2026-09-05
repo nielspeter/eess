@@ -71,6 +71,12 @@ const SCENARIOS = [
   // whole of what parity compares.
   ['no rule id, but a .because() reason', ['<!-- eess-exclude a/one: r -->', 'x'], [2], { reason: 'no eval in handlers' }],
   ['no rule id, a reason that wraps', ['<!-- eess-exclude a/one: r -->', 'x'], [2], { reason: 'no eval\n   in handlers' }],
+  // Bug 0258 round 2: the rule's own sentence outranks its reason. Both
+  // scenarios are needed — one proves the description is used, the other proves
+  // 'unnamed' is treated as absent so the reason takes over.
+  ['no rule id, named by its own description', ['<!-- eess-exclude a/one: r -->', 'x'], [2], { describe: () => 'that extend Base should not import Legacy' }],
+  ['no rule id, description and reason both present', ['<!-- eess-exclude a/one: r -->', 'x'], [2], { reason: 'no eval in handlers', describe: () => 'that extend Base should not import Legacy' }],
+  ["no rule id, description is 'unnamed'", ['<!-- eess-exclude a/one: r -->', 'x'], [2], { reason: 'no eval in handlers', describe: () => 'unnamed' }],
 ]
 
 let divergences = []

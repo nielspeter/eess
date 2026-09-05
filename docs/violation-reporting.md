@@ -248,10 +248,11 @@ previously silent (bug 0255):
   already belongs to another, working rule, and prescribing it would collide the
   two. Give the rule whatever id you meant.
 
-  If the rule has a `.because()` reason, the message names it — `This rule ("no
-eval in handlers") declares no id …` — so several id-less chains over one file
-  stay distinguishable. `.because()` works without `.rule({ id })`, which is what
-  makes it usable here.
+  The message names the rule by its own sentence — `This rule ("that extend Base
+should not import Legacy") declares no id …` — so several id-less chains over one
+  file stay distinguishable with nothing for you to add. If a builder has no
+  sentence to give, a `.because()` reason is used instead; `.because()` works
+  without `.rule({ id })`.
 
 - **Out of reach.** A single-line directive covers only the _next_ line, so a
   directive that is not immediately above the finding covers nothing. eess prints

@@ -10,17 +10,18 @@ so. But an id-less rule has no id to name, so several such chains over one file
 printed byte-identical lines — three chains, three identical warnings, and no way
 to tell which one needed the id without re-reading the rule file and counting.
 
-`.because()` works without `.rule({ id })`, and its reason is already stamped
-onto violations before the exclusion scan runs. So the message names the rule by
-it when there is one:
+Every rule already knows how to describe itself — `describeRule()` is on the
+builder that constructs the filter context — so the message names it by its own
+sentence, with no author action required:
 
 ```
-[eess] This rule ("no eval in handlers") declares no id, so no exclusion
-comment can apply to it — …
+[eess] This rule ("that extend Base should not import Legacy") declares no id,
+so no exclusion comment can apply to it — …
 ```
 
-A rule with neither an id nor a reason is genuinely anonymous, and its message is
-unchanged. Whitespace in the reason is collapsed, because the reason is prose and
+If a builder has no sentence to give (its `describeRule()` reports `unnamed`), a
+`.because()` reason is used instead; `.because()` works without `.rule({ id })`.
+A rule with neither is genuinely anonymous, and its message is unchanged. Whitespace in the reason is collapsed, because the reason is prose and
 may wrap while this report is deliberately one line per file.
 
 Diagnostic text only — nothing is suppressed differently and no exit code moves.
