@@ -498,6 +498,53 @@ raised in the same changeset: it reads a dialect builder's `.violations()`
 (`packages/crossvalidate/src/md-mermaid.ts:153`), and an old dialect under an
 unbounded floor would hand it a bare array.
 
+**BUILD FINDING, 2026-09-05 — D5's premise is measured false, and Phase 0's
+remedy is wrong for two presets. D5's ruling itself stands.**
+
+D5 states the invariant "all five presets guard with `assertDiscovered` or
+`assertEnabled` first, an invariant held by callers that a sixth preset would
+break silently." Measured at build time:
+
+| preset                | guard              |
+| --------------------- | ------------------ |
+| `agentGuardrails`     | `assertEnabled`    |
+| `dataLayerIsolation`  | `assertEnabled`    |
+| `strictBoundaries`    | `assertDiscovered` |
+| `layeredArchitecture` | **none**           |
+| `recommended`         | **none**           |
+
+Three of five. The sixth preset D5 worries about is already here, twice — which
+strengthens D5's conclusion (pass the fact, never infer it) rather than
+weakening it: inference was never safe.
+
+**Phase 0's remedy is wrong for those two.** It says "route all five presets
+through `assertEnabled`". `assertEnabled` produces a `bypassFilters`
+**violation**, and its message reads "every rule it can build sits behind an
+optional flag, and none was set" — false of `recommended` and
+`layeredArchitecture`, whose rules are on by default. More importantly,
+[ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3
+rules that "a preset every rule of which was disabled is declared, not red — the
+standing ruling that all-off is a permanent, legitimate decision holds in every
+dialect." Routing these two to `assertEnabled` would redden exactly what the law
+rules legitimate. They need the **declaration** path: `dispatchRule` minting
+`declaredEmpty` per off rule, summed onto the receipt.
+
+**A correction recorded rather than quietly fixed.** The first version of this
+note argued the opposite — that shipped code contradicted D5 and the ruling
+should be reversed — citing `declaredEmptyFindings`'s "check … whether every
+rule was set to 'off'. Fix that first" and the `UNSUPPRESSABLE` sentence. Both
+were misread. The first is advice inside a finding that only fires when
+`expectEmpty` names an unbound id, not a general ruling on all-off. The second
+says `'off'` "is not a suppression, it is a permanent decision that never
+expires" — which _supports_ D5; the cautionary comment above it was presented as
+the ruling. D5 is not reversed.
+
+**What is real and survives, measured against the shipped source:**
+`recommended(p, { report: 'return', overrides: { …all four rule ids: 'off' } })`
+returns `[]` — no violation, and no declaration either. Under ADR-014 §3 it
+should carry `declaredEmpty`; it carries nothing. That is a silent green under
+either ruling, and it is filed as its own bug rather than absorbed here.
+
 **Bug 0206's direction is picked: the receipt rides the throw.** `deliver()`'s
 aggregating branch keeps throwing without emitting, and the `ArchRuleError` it
 throws carries the receipt with the finding already in it. The alternative,
