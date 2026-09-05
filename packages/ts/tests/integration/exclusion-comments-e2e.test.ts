@@ -200,6 +200,41 @@ describe('inline exclusion comments — end-to-end (condition → applyFilters �
     expect(lines.join('')).not.toMatch(/suppressed nothing/)
   })
 
+  it("(d5) …and another rule's directive is not reported as this rule's problem", () => {
+    // The third ts mutation review named, and the one neither ts test caught:
+    // dropping the `c.ruleId !== ruleIdForComments` filter makes the report fire
+    // for directives belonging to other rules. The parity fixture catches it
+    // structurally (the kernel still scopes, so the copies diverge); this names
+    // the property in the dialect's own suite so it does not depend on the other
+    // copy staying correct.
+    //
+    // `excluded-far.ts` carries a directive for `demo/no-forbidden`. Running a
+    // DIFFERENT id over the same file must report nothing about it.
+    const lines: string[] = []
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      lines.push(String(chunk))
+      return true
+    })
+    try {
+      expect(() =>
+        functions(project(tsconfigPath))
+          .that()
+          .resideInFile('**/excluded-far.ts')
+          .should()
+          .notContain(call('forbiddenFn'))
+          .rule({ id: 'some/other-rule' })
+          .check(),
+      ).toThrow(ArchRuleError)
+    } finally {
+      spy.mockRestore()
+    }
+    // Asserted on the file and the report phrase, not on the other rule's id —
+    // the message names the RUNNING rule, so that id never appears in it and a
+    // regex looking for it could not fail. That mistake has been made four times
+    // on this branch; this is the shape that does not repeat it.
+    expect(lines.join('')).not.toMatch(/excluded-far\.ts:\d+ suppressed nothing/)
+  })
+
   it('the same regression holds through .satisfy(<non-stamping condition>)', () => {
     // .satisfy() is the generic path the rules-family presets use. Passing a
     // body-analysis (non-stamping) condition through it must be excludable too.
