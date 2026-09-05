@@ -9,6 +9,7 @@ import { formatViolationsJson } from './format-json.js'
 import { formatViolationsGitHub } from './format-github.js'
 import { reportViolations } from './report.js'
 import { parseExclusionComments, isExcludedByComment } from './exclusion-comments.js'
+import type { ExclusionComment } from './exclusion-comments.js'
 import type { ExclusionWarning } from './exclusion-comments.js'
 import { UNSUPPRESSABLE } from './unsuppressable.js'
 import { writeStderr } from './stderr.js'
@@ -119,9 +120,19 @@ export function applyFilters(
     }
   }
 
-  // Scan source files for inline exclusion comments (when rule has an ID).
-  // Matching is on ruleId, which the block above has just guaranteed is present.
-  if (ctx.metadata?.id && result.length > 0) {
+  // Scan source files for inline exclusion comments.
+  //
+  // **Not gated on `ctx.metadata?.id` any more (bug 0255).** It used to be, and
+  // that made the worst case of an inert directive the quietest: with no
+  // `.rule({ id })` a comment can never match — `isExcludedByComment` returns
+  // false without a `ruleId` — and because the block was skipped, the file was
+  // never even parsed, so nothing could notice. An adopter following the
+  // documented sanction recipe got the same red build and no explanation.
+  //
+  // The cost is bounded the same way it always was: only files that already
+  // produced a violation are read. A rule with no id now pays one parse per
+  // violating file to be able to say why the sanction did nothing.
+  if (result.length > 0) {
     const filePaths = new Set(result.map((v) => v.file))
     const undocumented: ExclusionWarning[] = []
     const allComments = [...filePaths].flatMap((filePath) => {
@@ -136,7 +147,11 @@ export function applyFilters(
           // implemented. The malformed shapes decline to create the exclusion at
           // all, so the original violation still fires and the build is already
           // red; stderr is the right weight for those.
-          if (warning.kind === 'undocumented') {
+          if (warning.kind === 'undocumented' && ctx.metadata?.id !== undefined) {
+            // The promotion below builds an unsuppressable finding keyed on the
+            // rule id. Without one there is nothing to key it on — and the
+            // directive is inert anyway, which the inert report says with a
+            // remedy the author can act on. So it falls through to stderr.
             undocumented.push(warning)
             continue
           }
@@ -152,14 +167,51 @@ export function applyFilters(
       }
     })
 
-    if (allComments.length > 0) {
-      const ruleId = ctx.metadata.id
+    const ruleId = ctx.metadata?.id
+    if (allComments.length > 0 && ruleId !== undefined) {
+      // Which comments actually did something, so the ones that did nothing can
+      // be named. Reuses `isExcludedByComment` one comment at a time rather than
+      // re-deriving the match, so this can never drift from the real rule.
+      const spent = new Set<ExclusionComment>()
       result = result.filter((v) => {
         if (v.bypassFilters === true) return true
         const excluded = isExcludedByComment(v, allComments)
-        if (excluded) recordCommentSuppression(ruleId, v.file)
+        if (excluded) {
+          recordCommentSuppression(ruleId, v.file)
+          for (const c of allComments) if (isExcludedByComment(v, [c])) spent.add(c)
+        }
         return !excluded
       })
+
+      // A directive naming THIS rule that suppressed nothing. Same shape and the
+      // same weight as the `.excluding()` "Unused exclusion" line above — that
+      // mechanism has warned about a stale pattern since bug 0044; the comment
+      // form never did, which is bug 0255.
+      //
+      // Scoped to this rule's id on purpose: a file may carry directives for many
+      // rules, and one naming another rule matched nothing here for a good
+      // reason. Without that scope this would fire once per unrelated directive
+      // per rule.
+      for (const c of allComments) {
+        if (c.ruleId !== ruleId || spent.has(c)) continue
+        writeStderr(
+          `[eess] Exclusion comment for '${ruleId}' at ${c.file}:${String(c.line)} ` +
+            `suppressed nothing. It may be stale, or out of reach: a single-line ` +
+            `directive covers only the NEXT line, which inside a markdown table ` +
+            `is the next row. Use eess-exclude-start/-end to cover a region.`,
+        )
+      }
+    } else if (allComments.length > 0) {
+      // No rule id, so no comment here can ever match: `isExcludedByComment`
+      // refuses without one. Provably inert rather than merely unmatched, which
+      // is why this names the remedy instead of hedging.
+      for (const c of allComments) {
+        writeStderr(
+          `[eess] Exclusion comment at ${c.file}:${String(c.line)} names ` +
+            `'${c.ruleId}', but this rule declares no id, so nothing can match it. ` +
+            `Add .rule({ id: '${c.ruleId}' }) to the chain for the directive to apply.`,
+        )
+      }
     }
 
     // The waiver applied; this takes the suppressed finding's place, so the
@@ -167,18 +219,24 @@ export function applyFilters(
     //
     // Unsuppressable, because a suppression mechanism that can suppress the
     // complaint about itself is not a mechanism.
+    //
+    // `undocumented` is only ever populated when the rule HAS an id (the push
+    // above is guarded on it), so this loop is unreachable without one — the
+    // local re-binding is what tells the compiler that after bug 0255 removed
+    // the outer `ctx.metadata?.id` gate.
     for (const warning of undocumented) {
+      if (ruleId === undefined) continue
       result.push({
-        rule: ctx.metadata.id,
-        ruleId: ctx.metadata.id,
-        element: `${ctx.metadata.id}@${warning.file}:${String(warning.line)}`,
+        rule: ruleId,
+        ruleId,
+        element: `${ruleId}@${warning.file}:${String(warning.line)}`,
         file: warning.file,
         line: warning.line,
         message:
           `This exclusion states no reason, so nothing records why the rule is ` +
           `waived here — and it is silently suppressing a real finding.`,
         suggestion:
-          `Add a reason: // eess-exclude ${ctx.metadata.id}: <why>. ` +
+          `Add a reason: // eess-exclude ${ruleId}: <why>. ` +
           `A reason is prose and nothing verifies it, so this raises the cost of a ` +
           `suppression rather than preventing one — the audience is the reviewer ` +
           `reading the diff. If the exemption is not justifiable, delete it and fix ` +
