@@ -20,8 +20,10 @@ cargo-cult.
 
 A spikes lane is the one with a different shape: its records **conclude rather
 than close**, so it has no board and no done-folder — a spike is terminal the day
-it is written. Freeze it if your corpus gates code pointers, because a spike
-cites code you do not control.
+it is written, and takes its number from the same shared sequence as every other
+lane. If you have wired up `check:corpus`, freeze it: pass `work/spikes/**` to
+`corpus({ frozen: [...] })` from `@nielspeter/eess-md`, so a spike citing another
+project's code at a version is not held to your build's line numbers.
 
 ## Conventions
 

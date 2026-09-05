@@ -89,18 +89,29 @@ Support and ADR: a dated measurement of something the build does not own, which
 **concludes rather than closes** — no ledger to reconcile, no disposition to
 write, because it was never a list of work.
 
-**2 — The "concluded" qualifier is dropped, and the answer was neither option
-this record offered.** Both spikes in this repo settle it: 0002 is _"Measured
-2026-08-14 against `ts-archunit` commit `b4084c9`"_, and 0001 is a terminal
-record with a landing note. **A spike is terminal from its first commit** — there
-is no in-flight state in which the record exists but is not yet a report, so
-there was nothing for "concluded" to exclude. Narrowing the glob to conclusion
-would have been mechanism for a distinction that does not exist.
+**2 — The "concluded" qualifier is dropped.** That is **option (b) of the two
+this record offered**, not a third answer; an earlier version of this section
+claimed "neither option", which overstated it. What is new is the justification,
+not the mechanical outcome.
 
-The real reason to freeze the lane is sharper than conclusion, and the gate's
-comment now says it: a spike cites code this repository does not own, so holding
-those citations to today's line numbers would demand the record be edited to stay
-green — the opposite of what a dated measurement is for.
+A spike is terminal from its first commit — 0002 measures `ts-archunit` at commit
+`b4084c9`, 0001 at versions 0.57.0 and 0.58.0. **That is an observation about two
+records, not a guarantee**, and the method doc no longer states it as an absolute:
+nothing prevents someone committing a spike across several passes, and the
+unconditional glob would stop examining that document's pointers for its whole
+life. Convention, not mechanism — worth knowing rather than asserting away.
+
+**The replacement justification was wrong too, and review caught it.** It said a
+spike cites code this repo does not own. Measured: `work/spikes/` contains **zero**
+`path:line` pointers — 648 corpus-wide, none in a spike — so the freeze suppresses
+nothing today, and deleting the glob entry would change no violations. That is the
+same shape as the qualifier it replaced: a reason the corpus does not bear out.
+
+What the freeze is actually for is in spike 0001's own landing note, which records
+rewriting its single `path:line` citation into prose **so this mechanism would not
+catch it**. The population is empty because it was emptied by hand. The freeze is
+**prospective** — so the next spike need not do that — and the gate's comment now
+says exactly that, with the measurement.
 
 **3 — `kit/` names the lane and says why it ships neither the folder nor a
 skill.** The template README lists it alongside refinement and support as a lane
@@ -128,13 +139,46 @@ about.
   and it was already blocked on nothing.
 - [x] The gap between "concluded spikes" and `work/spikes/**` is closed by
       dropping the qualifier, and the gate's comment says which direction and
-      why. `scripts/lib/frozen-scope.mjs`'s doctrine already read correctly
-      ("a record that concluded … or a spike") and needed no change — checked
-      rather than assumed.
+      why, and that the freeze is prospective rather than currently load-bearing.
+- [x] `scripts/lib/frozen-scope.mjs` says "terminal", not "concluded". **An
+      earlier version of this box said that file "already read correctly and
+      needed no change — checked rather than assumed", having checked one
+      occurrence of four.** The other three applied "concluded" to everything in
+      `TERMINAL_FOLDER_NAMES`, `spikes` included — and one is the **runtime
+      refusal text**, so a maintainer tripping the guard would have been told, in
+      the words this record retired, that freezing is for "records that
+      concluded". Corrected; the one line that did read correctly now says why it
+      differs.
 - [x] `kit/` declares the lane out of scope in both places that matter: the
       template README names it beside the other unseeded lanes, and `kit/README.md`
       says why no `/spike` skill exists. Both state a reason rather than omitting
       it, which is 0252's actual complaint.
+- [x] **The "no skill" decision does not silently drop what a skill would have
+      carried.** Review found it had: every other lane's skill tells the author to
+      take the next free number from the shared sequence and where to put the
+      file, and nothing replaced that. Both are stated where the decision is.
+- [x] `kit/README.md` no longer contradicts itself four lines apart — `/close`
+      was "one ritual, every lane" beside a spikes lane with no close ritual.
+- [x] The kit says how to freeze, not just to freeze: `corpus({ frozen: [...] })`
+      from `@nielspeter/eess-md`. An adopter who followed the template's own
+      advice to wire up `check:corpus` previously met a verb with no object.
+- [x] "One record", not "one document" — this repo's own spike 0001 is a
+      directory of two files, so the written rule was narrower than the corpus it
+      claims to describe.
+
+**No mechanism binds the three statements about this lane** —
+`TERMINAL_FOLDER_NAMES`, the `frozen` glob, and the method doc's lane list — and
+that is a choice rather than an oversight, stated because the record otherwise
+said nothing. A `rows()`/`correspondence()` binding of the kind
+[0108](../0108-work-readme-lanes-table-lists-one-lane.md) is building for the
+Lanes table binds a _table_ to _directories_; there is no table here, and
+inventing one to have something to bind would be ceremony.
+
+**`kit/` is outside every `check:corpus` root**, so none of the prose added there
+is link-checked — the population [0249](./0249-most-of-work-is-outside-every-corpus-root.md)
+measured at 187 of 451 tracked `.md` files, naming `kit/` as the one that matters
+most. That is 0249's to close, not this record's, but adding unchecked prose to it
+without saying so would have been the quieter version of the same problem.
 
 Deferred: the corpus map's Lanes row → 0108.
 

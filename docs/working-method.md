@@ -105,24 +105,13 @@ useful; none is mandatory, and a piece of work needn't pass through all of them:
 - **Support** _(reach for it when real people report things)_ — customer-facing
   _cases_ (distinct from the engineering _defect_ a case might spawn), with raw
   evidence kept by pointer.
-- **Spike** _(reach for it when the question is "what is actually true out
-  there?")_ — a dated measurement of something the build does not own: another
-  repository, a dependency's real behaviour, a version's real numbers. A spike
-  **concludes rather than closes**. It has no ledger to reconcile and no
-  disposition to write, because it was never a list of work — it is one document
-  saying what was measured, against what, on what date, and a reader trusts it
-  _as of that date_ or not at all.
-
-  That is also why a spike is **frozen where other lanes are not**: its citations
-  point at code this repository does not control and cannot keep current, so
-  holding them to today's line numbers would demand the record be edited to stay
-  green — the opposite of what a dated measurement is for. The whole lane is
-  frozen from the first commit, not on some later act of concluding; there is no
-  in-flight state in which the record is not yet a report.
-
-- **Decision record (ADR)** — a binding choice worth citing later. These are rarely
-  _chosen_ up front; they **surface during planning** ("what must we decide before
-  we can build this?"), and the agent writes them.
+- **Spike** _(reach for it when the question is "what is actually true?")_ — a
+  timeboxed investigation, written up as a dated record of what was measured,
+  against what, on what date. A spike **concludes rather than closes**: there is
+  no ledger to reconcile and no disposition to write, because it was never a list
+  of work. Freeze the lane if your corpus gates code pointers — a spike that
+  cites another project's code at a version cannot be held to today's line
+  numbers without editing the record to stay green.
 
 A common flow — offered as a default, not a law — is _refinement → plan → build →
 bug_, with support feeding either side. Use it when it fits; ignore it when it

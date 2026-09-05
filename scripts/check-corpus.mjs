@@ -100,11 +100,26 @@ const elapsed = () => {
 // on what date. There is no in-flight state in which the record exists but is
 // not yet a report, so there is nothing for "concluded" to exclude.
 //
-// The reason to freeze it is sharper than conclusion anyway: a spike cites code
-// this repository does not own — both of this repo's spikes measure another
-// checkout at a named commit — so holding those citations to today's line
-// numbers would demand the record be edited to stay green, which is the opposite
-// of what a dated measurement is for. See `docs/working-method.md`'s lane list.
+// **The freeze is prospective, and saying so is the whole point.** An earlier
+// version of this comment justified it by claiming spikes cite code this repo
+// does not own. Measured: `work/spikes/` contains **zero** `path:line` pointers
+// (648 corpus-wide, none in a spike), so the freeze suppresses nothing today —
+// deleting this glob entry would change no violations. That is the same shape as
+// the "concluded" qualifier it replaced: a justification the corpus does not
+// bear out.
+//
+// What it is actually for is visible in spike 0001's own landing note, which
+// records rewriting its single `path:line` citation into prose **so this
+// mechanism would not catch it**. The population is empty because it was emptied
+// by hand. The freeze exists so the next spike need not do that: a dated report
+// citing another project's code at a version or commit cannot be held to today's
+// line numbers without demanding the record be edited to stay green, which is the
+// opposite of what a dated measurement is for.
+//
+// (Spike 0002 names a commit, `b4084c9`; spike 0001 names versions, 0.57.0 and
+// 0.58.0. An earlier version of this comment said both named a commit.)
+//
+// See `docs/working-method.md`'s lane list for what a spike is.
 //
 // **Measured while adding this, and it corrects the contract's own wording.**
 // `work/README.md` and the summary line both said frozen folders' drift is
