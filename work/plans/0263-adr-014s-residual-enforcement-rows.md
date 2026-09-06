@@ -2,11 +2,28 @@
 
 ## Status
 
-- **State:** Draft — the named home for what
+- **State:** Ready — frozen 2026-09-06. **The freeze found two things, one a
+  false premise this plan inherited from ADR-014's own table and repeated
+  without measuring** — written the day before, by me, which is the mistake this
+  ADR is about, made about the ADR:
+  1. **Phase 4's premise was wrong.** `cardinality.ts` is not the sole `WeakSet`
+     registry home; `owns-empty-discovery.ts` is a second, and says so in its own
+     comment. The rule as written would have reddened on legitimate kernel code
+     on first run. Corrected here and in the ADR row.
+  2. **Phase 2 is bigger than "write a fixture".** `checkAll` aggregates with
+     `flatMap` and delivers through `writeReport`, so it never reaches the
+     evidence gate — the receipt's `examined` is discarded at that seam. The
+     phase now names the wiring and the two contracts that constrain it.
+
+  Verified and holding: `throwIfViolations` still exported from both roots; all
+  five `pending` rows name this plan; `emitter/one-dead-check` exists while
+  `check:ledger` and `check:release` have no counterpart; `check-release.mjs`'s
+  `noDiff` branch is real. Originally: the named home for what
   [plan 0235](./completed/0235-the-emitter-takes-a-receipt.md) built the contract
   for and did not gate. Created at 0235's close so the deferral has somewhere to
   go: five `pending` rows in a binding ADR that named a plan about to become a
   completed one is the orphan shape `/close` exists to refuse.
+
 - **Priority:** Medium — every clause here is already **true of the code**; what
   is missing is the mechanism that would notice if it stopped being true. That is
   a weaker emergency than a false green, and a real one:
@@ -37,7 +54,7 @@ honest consequence is that nothing would notice their regression:
 | `throwIfViolations` is not exported                                        | It **is** still exported from `packages/core/src/index.ts` and `packages/ts/src/index.ts` — the clause is simply not satisfied | n/a; this one is undone work, not unwatched work                                                                     |
 | A rule file exporting an evidence-free builder reds the CLI and `checkAll` | It does — `checkAll` routes through the kernel merge and the CLI through the emitter                                           | a future refactor that hands the CLI a bare array again, which is exactly the shape 0206 had                         |
 | The finding names its cause, and the remedy remediates                     | Each of the four causes has its own id and message                                                                             | a message edited into uselessness, or a remedy that does not clear the finding it is printed beside (ADR-009 rule 2) |
-| No new kernel registry is added                                            | `packages/core/src/cardinality.ts` is still the only `WeakSet` home                                                            | a second registry added under `packages/core/src`, which is the device ADR-014 §2 chose the required field over      |
+| No new kernel registry is added                                            | **TWO** `WeakSet` registries exist, not one — see Phase 4's freeze correction                                                  | a second registry added under `packages/core/src`, which is the device ADR-014 §2 chose the required field over      |
 | Every hand-assembled check in this repo supplies evidence                  | `check:corpus` proves it end to end (`emitter/one-dead-check`)                                                                 | the same dead-check fail-open in `check:ledger` or `check:release`, neither of which has a break-the-loop fixture    |
 
 The middle three share a shape worth naming: **the clause is enforced by a
@@ -66,10 +83,24 @@ declaration works, filed under a row about dead checks.
 
 ## Phase 2 — the rule-file fixture and `checkAll`
 
-A non-vacuity fixture whose rule file exports a builder whose `violations()`
-returns a bare `[]`, asserted to red `eess-ts check`; and a test that `checkAll`
-over the same throws. Both are one file each, and the second is the regression
-guard for bug 0206's exact shape at a different door.
+**Measured at the freeze: `checkAll` is not merely unfixtured, it is outside the
+contract.** `packages/ts/src/core/check-all.ts` aggregates with
+`dedupeConfigFindings(rules.flatMap((rule) => rule.violations()))` and delivers
+through `writeReport`, never `finishPreset` or `reportViolations`. A `flatMap`
+over receipts produces a bare array — every `examined` on the floor — so the
+evidence gate is never reached, and a rule file exporting an evidence-free
+builder passes through `checkAll` silently today. That is why the row is
+`pending` rather than `warn`, and it makes this phase a wiring job, not only a
+fixture:
+
+1. Route `checkAll`'s aggregation through `mergeCollectResults` so the receipt
+   survives, and its delivery through the gate. The severity split at the bottom
+   (`ridesTheThrow`) and bug 0203's suppression contract must both survive the
+   change — they are why this was not done inside 0235.
+2. A non-vacuity fixture whose rule file exports a builder whose `violations()`
+   returns a bare `[]`, asserted to red `eess-ts check` by rule id.
+3. A test that `checkAll` over the same throws — the regression guard for bug
+   0206's shape at a different door.
 
 ## Phase 3 — the remedy-remediates fixtures
 
@@ -80,11 +111,37 @@ assertion is ADR-009 rule 2's behavioural corollary and is the half nobody
 writes — a message can name a remedy that does not work, and only this shape
 catches it.
 
-## Phase 4 — the no-second-registry rule
+## Phase 4 — the no-third-registry rule
 
-One rule in `arch.internal.rules.ts`: no module under `packages/core/src` other
-than `cardinality.ts` constructs a `WeakSet`. Tier 1, and it must declare a
-non-zero denominator or the row is not `gated` — 0235's own success criterion.
+**Corrected at the freeze, 2026-09-06, and this is the phase's whole lesson.**
+This plan said "no module under `packages/core/src` other than `cardinality.ts`
+constructs a `WeakSet`", inherited verbatim from ADR-014's row, which said
+`cardinality.ts` was "the sole home". Measured, it is not:
+
+| file                                        | registry                | audience                             |
+| ------------------------------------------- | ----------------------- | ------------------------------------ |
+| `packages/core/src/cardinality.ts`          | `CARDINALITY_ASSERTERS` | conditions that assert cardinality   |
+| `packages/core/src/owns-empty-discovery.ts` | `OWNERS`                | conditions reporting their own empty |
+
+`owns-empty-discovery.ts`'s own comment says it outright — _"the two markers
+share it"_ — so the fact was documented in the code the whole time and wrong in
+the ADR. **The rule as originally written would have reddened on legitimate
+existing kernel code on its first run**, and the author would have weakened it or
+exempted it: a mechanism that fires on the thing it protects teaches people to
+switch it off (ADR-009 rule 1).
+
+So: one rule in `arch.internal.rules.ts` asserting that no module under
+`packages/core/src` **other than those two** constructs a `WeakSet`. ADR-010 §2's
+clause is "nothing may add a fourth"; this rule is what makes it enforceable
+rather than prose.
+
+**Scoped to `WeakSet` deliberately.** `packages/core/src/selection-memo.ts`
+constructs two `WeakMap`s, and they are a memo cache, not a suppression registry.
+The rule must not catch them, and this sentence exists so nobody later "fixes"
+the rule to include `WeakMap` and reds the cache.
+
+Tier 1, and it must declare a non-zero denominator or the row is not `gated` —
+0235's own success criterion.
 
 ## Phase 5 — `throwIfViolations` leaves the public surface
 
