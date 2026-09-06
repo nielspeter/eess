@@ -19,7 +19,7 @@
 ## Symptom
 
 `presetConstructsNothingViolation`
-([`packages/core/src/preset-dispatch.ts:106`](../../packages/core/src/preset-dispatch.ts))
+([`packages/core/src/preset-dispatch.ts`](../../packages/core/src/preset-dispatch.ts) — **deleted 2026-09-06**, see plan 0235 Phase 0)
 cannot be produced by anything this repo ships. An adopter whose preset
 constructs zero rules gets no finding.
 
@@ -30,7 +30,7 @@ build output:
 
 | site                                                             | kind                                             |
 | ---------------------------------------------------------------- | ------------------------------------------------ |
-| `packages/core/src/preset-dispatch.ts:106`                       | the definition                                   |
+| `packages/core/src/preset-dispatch.ts` (deleted 2026-09-06)      | the definition                                   |
 | `packages/core/src/index.ts:52` · `packages/ts/src/index.ts:508` | barrel re-exports                                |
 | `packages/core/src/preset-dispatch.ts:58`                        | a comment naming it as an example                |
 | `packages/core/tests/preset-dispatch.test.ts:68`                 | a comment naming it as an example                |

@@ -140,8 +140,8 @@ examined, or a mechanism that claims coverage it does not have.
    plan claims 0190 closes. A finding that cannot fire is coverage that is not
    there. → **D4**
 6. **Phase 1's own assertions cannot be written**, so its fixtures could pass
-   vacuously. `presetConstructsNothingViolation` carries **no `ruleId`**
-   (`packages/core/src/preset-dispatch.ts:119-127`), so "assert the rule id" has
+   vacuously. `presetConstructsNothingViolation` carried **no `ruleId`**
+   (`packages/core/src/preset-dispatch.ts`, deleted in Phase 0), so "assert the rule id" has
    nothing to key on and `gateNode`'s `mustSay` has no stable string — resolved
    in Phase 0 by keying on the finding that has one. The new
    non-vacuity row cannot be registered either: `gateCoverage()` fails closed on
@@ -392,8 +392,8 @@ gains nothing, so there is no collision with eess-ts's
 ## What exists, measured (corrected)
 
 **The kernel's finding is dead and the dialect's is alive.**
-`presetConstructsNothingViolation` (`packages/core/src/preset-dispatch.ts:111`)
-has no call site and no `ruleId` — bug 0190's whole subject. `assertEnabled`
+`presetConstructsNothingViolation` (`packages/core/src/preset-dispatch.ts`,
+deleted in Phase 0) had no call site and no `ruleId` — bug 0190's whole subject. `assertEnabled`
 (`packages/ts/src/presets/shared.ts:299`) is the finding that actually fires for
 a preset that constructed nothing, with an id, and it is wired into two presets
 of five. Phase 0 decides between them.
@@ -403,7 +403,7 @@ of five. Phase 0 decides between them.
 | kernel `executeCheck` (`packages/core/src/execute-rule.ts`)                                             | the filtered array of an already-gated terminal                                        | the terminal's own `examined`, threaded one call further                   |
 | kernel `finishPreset` → `reportViolations` (`packages/core/src/report.ts:83`)                           | whatever the caller passed                                                             | the same receipt, forwarded                                                |
 | kernel `dispatchRule` (`packages/core/src/preset-dispatch.ts:37`)                                       | `builder.rule(meta).violations()`, from a builder with **no public evidence accessor** | blocked on D1                                                              |
-| kernel `throwIfViolations` (`packages/core/src/preset-dispatch.ts:137`)                                 | a bare array forwarded to `finishPreset`                                               | nothing: removed, see the deletion list below                              |
+| kernel `throwIfViolations` (`packages/core/src/preset-dispatch.ts`)                                     | a bare array forwarded to `finishPreset`                                               | nothing: removed, see the deletion list below                              |
 | `eess-ts` `deliver()` (`packages/ts/src/presets/shared.ts:419`)                                         | `RuleBuilderLike[]`, an interface with one member                                      | blocked on D1                                                              |
 | the four synthetic builders in `shared.ts` (`:127`, `:199`, `:265`, `:321`)                             | a `RuleBuilderLike` with no evidence                                                   | `1` each — they examined the preset's own configuration                    |
 | six `eess-crossvalidate` presets (`md-gherkin.ts:144`, `gherkin-ts.ts:166`, `:244`, `:312`, and two)    | a hand-assembled array over what it iterated                                           | the count it iterated; each already exports a stats function               |
@@ -471,7 +471,7 @@ silent green behind each. ADR-008's amendment section and the CLAUDE.md index
 row moved with it. The plan no longer contradicts the law it builds.
 
 **Bug 0190 closes as "gone", not "producible".** `presetConstructsNothingViolation`
-(`packages/core/src/preset-dispatch.ts:111`) takes `(presetName, optionsHint)`,
+(`packages/core/src/preset-dispatch.ts`, deleted in Phase 0) took `(presetName, optionsHint)`,
 which D6 forbids the kernel emitter from ever naming, so the kernel cannot be its
 producer. The dialect already has the producer: `assertEnabled`
 (`packages/ts/src/presets/shared.ts:299`) builds the preset-shaped finding with
@@ -881,13 +881,25 @@ which is why that rule is a companion and not a footnote.
 
 ## Progress ledger
 
-- [ ] Phase 0 — ADR amendments done 2026-09-03; still owed here: the changeset in, five dialects at minor; the kernel constructor deleted, `assertEnabled` wired into all five presets
+- [x] Phase 0 — ADR amendments done 2026-09-03, and ADR-014 §3 amended again
+      2026-09-05 (a declaration is made, never inferred). Kernel constructor
+      `presetConstructsNothingViolation` **deleted** with its `/internal` export —
+      measured first: its only occurrence in the workspace was its own definition.
+      Changeset in, six packages, the kernel break naming all five dialects at
+      minor. **`assertEnabled` is NOT wired into all five presets** — that
+      instruction is superseded: the all-off case is the kernel's finding, not a
+      preset guard, and `assertEnabled`'s message is false of `recommended` and
+      `layeredArchitecture` (see the build findings above). It stays with the two
+      flag-gated presets, unchanged.
 - [ ] Phase 1 — the red tests written and measured red, keyed on real ids; the contradicted test removed
 - [ ] Phase 2 — the retype
 - [ ] Phase 3 — call sites migrated; 0206's branch fixed one way, sequenced against 0205
 - [ ] Phase 4 — return consumers migrated; the `check-corpus` fail-open proven closed
 - [ ] Phase 5 — the gates; ADR-014 `gated` and its `check:family` row corrected; changeset names all five dialects
-- [ ] `/close` — 0190 and 0206 moved to `fixed/` in this PR
+- [ ] `/close` — 0190, 0206 and 0261 moved to `fixed/` in this PR. **0190 does
+      not close on the deletion alone**: deleting an unreachable finding without
+      its replacement leaves the gap, which is 0261's measurement. It closes when
+      the kernel's generic finding exists.
 
 Deferred: none — **and the break-the-loop fixtures must keep that true, or name a
 home. `Deferred: none` beside an unwritten fixture is the lie this plan is about.**

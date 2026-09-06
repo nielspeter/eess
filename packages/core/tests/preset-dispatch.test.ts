@@ -65,7 +65,8 @@ describe('dispatchRule() metadata form (plan 0071 Phase 1)', () => {
   })
 
   // Plan 0147 (severityFor, reconciled against ts-archunit): a `bypassFilters`
-  // config finding (e.g. `presetConstructsNothingViolation`) is UNSUPPRESSABLE
+  // config finding (a zero-examined rule, a preset that constructed nothing)
+  // is UNSUPPRESSABLE
   // by its own text — a per-rule `overrides: { id: 'warn' }` downgrading that
   // finding's severity must still surface it for the preset's aggregated
   // throw, even though `dispatchRule` still reports it to stderr as a warning

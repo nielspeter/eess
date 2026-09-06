@@ -47,7 +47,6 @@ export { isSilent } from './silent-exclusion.js'
 export { marksAssertsCardinality } from './cardinality.js'
 export { marksOwnEmptyDiscovery, ownsEmptyDiscovery } from './owns-empty-discovery.js'
 export { matchSelections } from './matching.js'
-export { presetConstructsNothingViolation } from './preset-dispatch.js'
 export {
   recordEdgeCoverage,
   untestedRules,

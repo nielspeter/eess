@@ -210,8 +210,12 @@ const BUILDER_PROBES = {
  * green with the regression fully reintroduced. Found by the enforcement review.
  *
  * A preset that constructs NOTHING still scores `fail-open` here, correctly:
- * `finishPreset([], …)` has nothing to throw about. That is
- * `presetConstructsNothingViolation`'s case and it must stay detectable.
+ * `finishPreset([], …)` has nothing to throw about. That case had a kernel
+ * constructor, `presetConstructsNothingViolation`, which never had a call site
+ * anywhere — bug 0190, and it is deleted rather than wired, because ADR-014 §3
+ * makes the emitter itself refuse an evidence-free verdict. The case must stay
+ * detectable here until that lands; after it, this probe's subject is the
+ * emitter's own finding.
  *
  * One explicit-mode probe is kept below so `report: 'throw'` does not become
  * untested by moving the others onto the default.
