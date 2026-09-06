@@ -22,6 +22,7 @@ import {
   EMITTER_NO_RECEIPT,
   EMITTER_PASS_WITHOUT_EVIDENCE,
   EMITTER_EXPIRED_DECLARATION,
+  EMITTER_CONTRADICTORY_EVIDENCE,
 } from '../src/emitter-findings.js'
 import { collectResult, mergeCollectResults } from '../src/collect-result.js'
 import type { ArchViolation } from '../src/violation.js'
@@ -165,6 +166,63 @@ describe('a declaration that has expired (ADR-014 §3)', () => {
   })
 })
 
+describe('a notRun that contradicts its own evidence (ADR-014 §3)', () => {
+  // **Why this suite exists.** `notRun` shipped as the one suppressing flag in
+  // the evidence vocabulary with nothing that could contradict it — found by an
+  // enforcement review of this PR, not by its author. It is the flag that
+  // exempts a member from the merge's dead filter, so an unfalsifiable one is a
+  // mute button, which is precisely what ADR-014 §3's amendment refuses.
+  it('marked never-run, yet examined something, is the contradiction finding', () => {
+    const lying = collectResult([], { examined: 4, notRun: true })
+    const result = finishPreset(lying, { report: 'return' })
+    expect(ids(result)).toContain(EMITTER_CONTRADICTORY_EVIDENCE)
+  })
+
+  it('marked never-run, yet carrying a violation, is the contradiction finding', () => {
+    // The half `examined` alone does not cover: a rule that did not run cannot
+    // have produced a finding either.
+    const lying = collectResult([finding('some/real-rule')], { examined: 0, notRun: true })
+    const result = finishPreset(lying, { report: 'return' })
+    expect(ids(result)).toContain(EMITTER_CONTRADICTORY_EVIDENCE)
+  })
+
+  it('names both numbers, because which half contradicted the flag is the fix', () => {
+    const lying = collectResult([finding('a'), finding('b')], { examined: 9, notRun: true })
+    const found = finishPreset(lying, { report: 'return' }).find(
+      (v) => v.ruleId === EMITTER_CONTRADICTORY_EVIDENCE,
+    )
+    expect(found?.message).toContain('9')
+    expect(found?.message).toContain('2')
+  })
+
+  it('CONTROL — a genuine notRun (zero examined, nothing found) stays green', () => {
+    // The state `dispatchRule`'s `'off'` branch produces on every disabled rule.
+    // If this reddened, every preset with one rule turned off would red, and the
+    // remedy would be to stop marking notRun — trained suppression, ADR-009 §1.
+    const honest = collectResult([], { examined: 0, notRun: true })
+    const result = finishPreset(honest, { report: 'return' })
+    expect(ids(result)).not.toContain(EMITTER_CONTRADICTORY_EVIDENCE)
+  })
+
+  it('a contradictory MEMBER is caught by the merge, which the gate cannot see', () => {
+    // The merged receipt carries no `notRun`, so this is the only door where a
+    // lying member is visible at all.
+    const lying = collectResult([], { examined: 7, notRun: true })
+    const healthy = collectResult([], { examined: 100 })
+    const result = finishPreset(mergeCollectResults([lying, healthy]), { report: 'return' })
+    expect(ids(result)).toContain(EMITTER_CONTRADICTORY_EVIDENCE)
+  })
+
+  it('CONTROL — an honest notRun member beside a healthy one stays green', () => {
+    // Bug 0261's shape: one disabled rule must not red a preset whose others
+    // examined plenty.
+    const off = collectResult([], { examined: 0, notRun: true })
+    const healthy = collectResult([], { examined: 100 })
+    const result = finishPreset(mergeCollectResults([off, healthy]), { report: 'return' })
+    expect(result).toHaveLength(0)
+  })
+})
+
 describe('the finding leaves by every door (ADR-014 §5)', () => {
   it('rides the throw under the default throw mode', () => {
     vi.spyOn(process.stderr, 'write').mockReturnValue(true)
@@ -186,6 +244,17 @@ describe('the finding leaves by every door (ADR-014 §5)', () => {
   it('THROWS under a bare reportViolations, which hands nothing back to act on', () => {
     vi.spyOn(process.stderr, 'write').mockReturnValue(true)
     expect(() => reportViolations(receipt([], 0))).toThrow()
+  })
+
+  it('THROWS under warn for a contradicted notRun too — every emitter finding escalates', () => {
+    // `isEmitterFinding` is the list that decides this, and a new id added to
+    // the vocabulary without being added to that list would print above a zero
+    // exit — the precise lie ADR-014 §5 exists to prevent, and the mistake this
+    // assertion caught while the id was being wired.
+    vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+    expect(() =>
+      finishPreset(collectResult([], { examined: 5, notRun: true }), { report: 'warn' }),
+    ).toThrow()
   })
 
   it('is returned, not thrown, under report: return — the caller owns it', () => {

@@ -1,5 +1,9 @@
 import type { ArchViolation } from './violation.js'
-import { noReceiptViolation, passWithoutEvidenceViolation } from './emitter-findings.js'
+import {
+  noReceiptViolation,
+  passWithoutEvidenceViolation,
+  contradictoryEvidenceViolation,
+} from './emitter-findings.js'
 
 /**
  * The receipt — [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md).
@@ -33,6 +37,13 @@ export interface CollectResult extends Array<ArchViolation> {
    * never ran, so it has no denominator to be suspicious about — and marking it
    * `declaredEmpty` instead would mint the declaration ADR-014 §3's amendment
    * refuses to infer from `overrides: { id: 'off' }`.
+   *
+   * **It is falsifiable, like every other declaration here.** A rule that never
+   * ran examined nothing and found nothing, so `notRun` beside a non-zero
+   * `examined` or a violation is `emitter/contradictory-evidence` — checked at
+   * the gate and in the merge. Without that check this would be the one
+   * suppressing flag in the vocabulary that nothing can contradict, which is the
+   * shape ADR-014 §3's amendment exists to refuse.
    *
    * The two are not interchangeable: without this, one disabled rule reddened a
    * whole preset whose other rules examined plenty (measured — `adrEnforcement`
@@ -133,6 +144,20 @@ export function mergeCollectResults(parts: readonly (readonly ArchViolation[])[]
   // `adrEnforcement` with `adr/valid-tiers` off). The all-off case still
   // reports: every member is then `notRun`, the sum is zero and nobody
   // declared, which the emitter's own gate catches downstream.
+  // A member whose `notRun` contradicts its own evidence, checked HERE and not
+  // only at the gate: the merged receipt carries no `notRun`, so a contradictory
+  // member is invisible downstream — it would slip through the one door that
+  // could see it. `notRun` is also the flag that exempts a member from the dead
+  // filter below, so an unchecked one is a suppressor with no falsifier (the
+  // asymmetry with `declaredEmpty` an enforcement review found in plan 0235).
+  const contradictory = parts.find((p) => p.notRun === true && (p.examined > 0 || p.length > 0))
+  if (contradictory !== undefined) {
+    return collectResult(
+      [...violations, contradictoryEvidenceViolation(contradictory.examined, contradictory.length)],
+      { examined: parts.reduce((n, p) => n + p.examined, 0) },
+    )
+  }
+
   const dead = parts.filter(
     (p) =>
       p.examined === 0 &&

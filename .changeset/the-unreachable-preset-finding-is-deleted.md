@@ -39,3 +39,16 @@ The five dialects are named because they depend on the kernel and this is a
 removed export, so their changelogs should say what changed rather than
 "Updated dependencies" (bug 0185). None of them imported it; none needs a source
 change.
+
+**New (@nielspeter/eess, @nielspeter/eess-ts):** `EMITTER_CONTRADICTORY_EVIDENCE`
+(`emitter/contradictory-evidence`) joins the three emitter rule ids on both roots.
+
+It fires when a receipt marked `notRun: true` carries a non-zero `examined` or a
+violation — a rule that never ran can have neither. `notRun` is the flag that
+exempts a member from `mergeCollectResults`'s dead-member filter, so without this
+it was the one thing in the evidence vocabulary that could quiet a zero and could
+not be contradicted. `declaredEmpty` always had its expiry; this is the same
+property for the third state.
+
+Additive: nothing that was green goes red unless it was already claiming both
+that a rule did not run and that it examined something.

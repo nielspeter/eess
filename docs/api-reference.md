@@ -77,11 +77,12 @@ Three unsuppressable findings, by rule id:
 Each id is also exported as a constant, so a test or fixture can assert on it
 without re-typing the string — the drift a hand-copied id invites:
 
-| Constant                        | Rule id                         | Fires when                                     | Remedy                                                     |
-| ------------------------------- | ------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
-| `EMITTER_NO_RECEIPT`            | `emitter/no-receipt`            | the value carried no evidence at all           | hand over what the pipeline minted, not a hand-built array |
-| `EMITTER_PASS_WITHOUT_EVIDENCE` | `emitter/pass-without-evidence` | zero examined, zero violations, no declaration | widen the selection, or declare the set empty              |
-| `EMITTER_EXPIRED_DECLARATION`   | `emitter/expired-declaration`   | declared empty, then examined something        | remove the declaration — it has stopped being true         |
+| Constant                         | Rule id                          | Fires when                                        | Remedy                                                       |
+| -------------------------------- | -------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| `EMITTER_NO_RECEIPT`             | `emitter/no-receipt`             | the value carried no evidence at all              | hand over what the pipeline minted, not a hand-built array   |
+| `EMITTER_PASS_WITHOUT_EVIDENCE`  | `emitter/pass-without-evidence`  | zero examined, zero violations, no declaration    | widen the selection, or declare the set empty                |
+| `EMITTER_EXPIRED_DECLARATION`    | `emitter/expired-declaration`    | declared empty, then examined something           | remove the declaration — it has stopped being true           |
+| `EMITTER_CONTRADICTORY_EVIDENCE` | `emitter/contradictory-evidence` | marked never-run, yet examined or found something | drop the flag if the rule ran, or the evidence if it did not |
 
 ### Declaring a legitimately empty set
 
@@ -94,7 +95,10 @@ tableErAgree(corpus, { ...options, expectEmpty: true })
 ```
 
 The declaration **expires**: the day the subject appears, it reds with
-`emitter/expired-declaration`. That is what makes it a declaration rather than a
+`emitter/expired-declaration`. So does the third state: a receipt marked as never
+having run, that turns out to have examined something or found something, reds
+with `emitter/contradictory-evidence`. Every flag that can quiet a zero here has
+something that can contradict it — that is the property, not a coincidence. That is what makes it a declaration rather than a
 mute button, and it is why `overrides: { id: 'off' }` is not accepted as one — an
 instruction eess would have to read intent into, and a claim nothing can ever
 contradict.

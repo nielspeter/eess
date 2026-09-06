@@ -6,7 +6,9 @@ import {
   noReceiptViolation,
   passWithoutEvidenceViolation,
   expiredDeclarationViolation,
+  contradictoryEvidenceViolation,
   EMITTER_EXPIRED_DECLARATION,
+  EMITTER_CONTRADICTORY_EVIDENCE,
 } from './emitter-findings.js'
 
 /** Is this one of the emitter's own findings, as opposed to a caller's? */
@@ -14,7 +16,8 @@ function isEmitterFinding(v: ArchViolation): boolean {
   return (
     v.ruleId === EMITTER_NO_RECEIPT ||
     v.ruleId === EMITTER_PASS_WITHOUT_EVIDENCE ||
-    v.ruleId === EMITTER_EXPIRED_DECLARATION
+    v.ruleId === EMITTER_EXPIRED_DECLARATION ||
+    v.ruleId === EMITTER_CONTRADICTORY_EVIDENCE
   )
 }
 import type { OutputFormat } from './check-options.js'
@@ -123,6 +126,22 @@ function withEvidenceGate(violations: readonly ArchViolation[]): CollectResult {
       examined: violations.examined,
       sourceEmpty: violations.sourceEmpty,
     })
+  }
+  // The same check for the third state — ADR-014 §3, added after review found
+  // `notRun` shipped as a suppressor with no falsifier while `declaredEmpty` had
+  // one. A rule that never ran examined nothing and found nothing; either half
+  // present contradicts the flag, and BOTH are read because either alone would
+  // leave the other as an unchecked claim.
+  //
+  // Before the two exits below, deliberately: `examined > 0` is precisely the
+  // state that contradicts `notRun`, so checking after them would make the
+  // finding unreachable — the mistake this ADR's §2 warns about in its own
+  // implementation notes.
+  if (violations.notRun === true && (violations.examined > 0 || violations.length > 0)) {
+    return collectResult(
+      [...violations, contradictoryEvidenceViolation(violations.examined, violations.length)],
+      { examined: violations.examined, sourceEmpty: violations.sourceEmpty },
+    )
   }
   if (violations.length > 0) return violations
   if (violations.examined > 0) return violations

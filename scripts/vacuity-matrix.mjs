@@ -253,6 +253,12 @@ const EMITTER_PROBES = {
   // makes `declaredEmpty` admissible at all.
   'finishPreset(declared empty, then examined) [an expired declaration]': () =>
     kernel.finishPreset(kernel.collectResult([], { examined: 3, declaredEmpty: true })),
+  // The fourth id, for the same reason as the third. `notRun` is the one flag
+  // here that SUPPRESSES — it exempts a member from the merge's dead filter — so
+  // an id nothing proves can fire would leave a mute button with no falsifier,
+  // which is bug 0190's shape wearing the label of a fix for it.
+  'finishPreset(never ran, yet examined) [a contradicted notRun]': () =>
+    kernel.finishPreset(kernel.collectResult([], { examined: 5, notRun: true })),
 }
 
 const PRESET_PROBES = {

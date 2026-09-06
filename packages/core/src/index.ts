@@ -25,6 +25,7 @@ export {
   EMITTER_NO_RECEIPT,
   EMITTER_PASS_WITHOUT_EVIDENCE,
   EMITTER_EXPIRED_DECLARATION,
+  EMITTER_CONTRADICTORY_EVIDENCE,
 } from './emitter-findings.js'
 export { assertsCardinality } from './cardinality.js'
 export { ArchRuleError, isArchRuleError, ArchConfigError, isArchConfigError } from './errors.js'

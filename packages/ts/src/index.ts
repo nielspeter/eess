@@ -501,6 +501,7 @@ export {
   EMITTER_NO_RECEIPT,
   EMITTER_PASS_WITHOUT_EVIDENCE,
   EMITTER_EXPIRED_DECLARATION,
+  EMITTER_CONTRADICTORY_EVIDENCE,
 } from '@nielspeter/eess'
 export type { Evidence } from '@nielspeter/eess'
 export type {
