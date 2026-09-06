@@ -2,14 +2,15 @@
 
 ## Status
 
-- **State:** Draft — measured against the shipped source on 2026-09-06, by the
-  architect lens reviewing proposal 010 and again by execution during the
-  synthesis; no red test yet.
+- **State:** Fixed — red test first (it reported 2 where the barrel's line is
+  3), then `exportSiteLine` in `packages/ts/src/conditions/reverse-dependency.ts`
+  anchors the finding on the export site in the subject file. Fixed 2026-09-06.
+  `Deferred: none`.
 - **Severity:** Low — the verdict is right and the location is wrong, and it
   fails closed: a waiver on the barrel's real line does not apply, a code frame
   points at a line that may not exist in the named file, and an agent sent to
   line 5 of `index.ts` finds nothing there. Nothing is hidden; time is wasted. Same
-  class as [0242](./fixed/0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md).
+  class as [0242](./0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md).
 - **Origin:** self-found · architect review of proposal 010, verified by execution
 - **Reported:** 2026-09-06
 
@@ -74,7 +75,7 @@ A finding must report its own line. Inline exclusion comments anchor on
 from the same pair and point at nothing. Under ADR-009 a violation must be
 actionable; this one names the right symbol at the wrong place.
 
-**Not the same defect as [0243](./0243-a-barrel-re-export-counts-as-a-use.md)**,
+**Not the same defect as [0243](../0243-a-barrel-re-export-counts-as-a-use.md)**,
 which lives in the same function and is about the _verdict_ — a re-export
 counted as a use of the declaring module's symbol. This record is about the
 _location_ when the subject is itself the barrel. The two must not be folded:
@@ -83,26 +84,49 @@ index in place of the LanguageService) must inherit neither.
 
 ## Fix
 
-Anchor a re-exported name on its export site **in the subject file**: the
-`ExportSpecifier` inside `export { x } from` (or the `export *` statement for a
-star), found from `sf.getExportDeclarations()` by name, and report that node's
-line. An own declaration keeps today's line. Whether a barrel's re-export whose
-only user is the declaring file should be a finding at all is 0243's question
-and stays there.
+`exportSiteLine` in `packages/ts/src/conditions/reverse-dependency.ts` anchors a
+re-exported name on its export site **in the subject file**: the
+`ExportSpecifier` inside `export { x } from` (matched on the alias, so
+`export { dead as gone } from` is found under `gone`), the `export * as N from`
+statement, or the `export *` statement that forwards the name. An own
+declaration keeps the line it always had. Whether a barrel's re-export whose only
+user is the declaring file should be a finding at all is 0243's question and
+stays there.
+
+**One defect inside the fix, found by the fixtures and recorded rather than
+quietly repaired.** The first cut branched on ts-morph's `isNamespaceExport()`,
+which is implemented as `!hasNamedExports()` and is therefore **true for a bare
+`export * from`** as well as for `export * as N from`. The star form took the
+namespace branch, matched no name, and fell through to the declaring file's
+line — so the fix left its own headline case broken while the aliased and
+namespace cases passed. The three isolated fixtures caught it on their first run
+(star reported 5 under a two-line barrel); the code now reads
+`getNamespaceExport()` and says why in a comment.
 
 ## Verification
 
-- [ ] Red test written first: a one-line barrel re-exporting a name declared
-      at line 5 of another file reports `line: 1`. Red today: it reports 5.
-- [ ] The own-declaration path is unchanged: an export declared in the subject
-      file still reports its declaration's line.
-- [ ] `export * from` reports the star statement's line.
-- [ ] `npm run validate` green.
+- [x] Red test written first — `packages/ts/tests/conditions/reverse-dependency.test.ts` ·
+      `it('reports a re-exported name at the barrel\'s own export line, never the declaring file\'s (bug 0265)')`
+      over the existing `reverse-deps` fixture: the barrel re-exports `helperTwo`
+      on its line 3, the declaration is the other file's line 2, and the test
+      failed with "expected 2 to be 3" before the fix.
+- [x] The own-declaration path is unchanged —
+      `it('an own declaration still reports its declaration line (control for 0265)')`.
+- [x] `export * from`, `export * as L from` and `export { dead as gone } from`
+      each report their own statement's line — an isolated fixture,
+      `packages/ts/tests/fixtures/barrel-line/`, whose declaration sits on line 5
+      so a wrong anchor is a line none of the one-statement barrels has.
+- [x] Discrimination measured by sabotage: with `exportSiteLine` reduced to the
+      pre-fix behaviour (always the declaration's line), **exactly these four
+      tests red** and the other twelve in the file stay green — including the
+      own-declaration control, which the sabotage must not move.
+- [x] `npm run typecheck`, `lint`, the ts suite, `check:release` and `check:fast`
+      green in the PR; `npm run validate` is CI's.
 
 Deferred: none.
 
 ## Related
 
-- [0243](./0243-a-barrel-re-export-counts-as-a-use.md) — the verdict half, same function.
-- [0242](./fixed/0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md) — the wrong-anchor class.
-- [Proposal 010](../proposals/010-ts-performance-at-scale.md) — surfaced by its review; Ask C must not inherit this.
+- [0243](../0243-a-barrel-re-export-counts-as-a-use.md) — the verdict half, same function.
+- [0242](./0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md) — the wrong-anchor class.
+- [Proposal 010](../../proposals/010-ts-performance-at-scale.md) — surfaced by its review; Ask C must not inherit this.
