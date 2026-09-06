@@ -306,7 +306,7 @@ Recorded here because dispositions are a dispatch record, not a verdict, and the
 
 ## Appendix A — original submission (superseded 2026-09-06)
 
-> Preserved verbatim, per the lane's rule that the submission stays below the reviews rather than being edited away (the shape proposal 005 uses). Its `file:///` links are the ones the reviews describe; `check:corpus` treats them as external and does not ground them. The two reviews above cite this text.
+> Preserved below the reviews rather than edited away, per the lane's rule (the shape proposal 005 uses). **One mechanical change, and only one:** the four `file:///` links the reviews describe are rendered as inert code spans rather than live links. Their text is unchanged and they are still countable — but `packages/ts/tests/docs/cross-document-links-resolve.test.ts` resolves every markdown link under `work/`, and it red on all four the moment this appendix landed, in CI, while `check:corpus` had passed them as external URLs. That disagreement between two instruments over the same four links is worth more as a recorded fact than as a broken build, and it is the defect both reviews named: a link absolute to one machine grounds nowhere. Everything else is verbatim, and the two reviews above cite this text.
 
 ### Proposal 010 (original submission) — ts: performance at scale — incremental execution, predicate pushdown, and engine tiers for massive codebases
 
@@ -400,7 +400,7 @@ Currently, `RuleBuilder<T>` accumulates predicates in `that()` but delays all fi
 
 We propose:
 
-- Rule builders inspect their declared globs ([`globs()`](file:///Users/nps/Documents/Projects/NielsPeter/eess/packages/ts/src/core/rule-builder.ts#L198)) and registered path predicates (`resideInFolder`, `resideInFile`) before population.
+- Rule builders inspect their declared globs (`globs()` (`file:///Users/nps/Documents/Projects/NielsPeter/eess/packages/ts/src/core/rule-builder.ts#L198`)) and registered path predicates (`resideInFolder`, `resideInFile`) before population.
 - In `FunctionRuleBuilder`, `ClassRuleBuilder`, and `TypeRuleBuilder`, pass the declared path filters into the population step:
   ```ts
   protected getElements(pathFilter?: (filePath: string) => boolean): ArchFunction[] {
@@ -452,7 +452,7 @@ A Radius 0 rule cannot fail on an unchanged file if that file was already clean 
 
 We propose:
 
-- [`packages/ts/src/core/module-edges.ts`](file:///Users/nps/Documents/Projects/NielsPeter/eess/packages/ts/src/core/module-edges.ts) already extracts `ModuleEdge.names` across all files.
+- `packages/ts/src/core/module-edges.ts` (`file:///Users/nps/Documents/Projects/NielsPeter/eess/packages/ts/src/core/module-edges.ts`) already extracts `ModuleEdge.names` across all files.
 - Invert this into an export usage index:
   ```ts
   const importIndex = new Map<string, Set<string>>()
@@ -475,7 +475,7 @@ We propose:
 #### Correctness & Edge Cases
 
 - _Star exports (`export _ from './b'`)*: `ModuleEdge`records`names: []`. If a target file has incoming star re-exports or namespace imports (`import \* as X`), its exports are marked as potentially referenced, preventing false-positive violations.
-- _Default exports_: Default exports are already excluded from `haveNoUnusedExports()` ([`line 252`](file:///Users/nps/Documents/Projects/NielsPeter/eess/packages/ts/src/conditions/reverse-dependency.ts#L252)), which focuses strictly on named exports. File-level dead code is detected by `beImported()`.
+- _Default exports_: Default exports are already excluded from `haveNoUnusedExports()` (`line 252` (`file:///Users/nps/Documents/Projects/NielsPeter/eess/packages/ts/src/conditions/reverse-dependency.ts#L252`)), which focuses strictly on named exports. File-level dead code is detected by `beImported()`.
 
 ---
 
@@ -511,7 +511,7 @@ Introduce an opt-in or default persistent disk cache stored in `node_modules/.ca
 
 #### Mechanism
 
-`runCheck` in [`packages/ts/src/cli/commands/check.ts:90`](file:///Users/nps/Documents/Projects/NielsPeter/eess/packages/ts/src/cli/commands/check.ts#L90) runs sequentially on a single thread. On a 16-core machine, 15 cores sit idle.
+`runCheck` in `packages/ts/src/cli/commands/check.ts:90` (`file:///Users/nps/Documents/Projects/NielsPeter/eess/packages/ts/src/cli/commands/check.ts#L90`) runs sequentially on a single thread. On a 16-core machine, 15 cores sit idle.
 
 In multi-package monorepos using `workspace([...])`:
 
