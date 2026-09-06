@@ -654,6 +654,51 @@ As D1, D2, D4, D5 and D6 decide it. The parts the review left standing:
 - **no new `WeakSet`** — `packages/core/src/cardinality.ts` stays the sole home
   of the registries ADR-010 §2 caps.
 
+**BUILD FINDING, 2026-09-06 — the contract reaches four `eess-crossvalidate`
+presets that have no way to carry a declaration, and three tests now red.**
+
+Measured after Phase 2's retype. Three tests fail, all one shape:
+
+| test                                                                        | what it does                                  |
+| --------------------------------------------------------------------------- | --------------------------------------------- |
+| `tableErAgree() … skips documents without an erDiagram block`               | a corpus whose one document has no ER diagram |
+| `embeddedDiagramsMatchCode() … counts documents and diagrams independently` | a corpus with no embedded diagrams            |
+| `scenarioExemptionsCurrent() … is silent for a non-exempt scenario`         | a set with no exemptions declared             |
+
+Each examines zero units and used to pass in silence. Each now fires
+`emitter/pass-without-evidence`, **and the finding is correct**: a rule that
+examined nothing and reports success is indistinguishable from the same rule
+with a mis-configured glob, which is the whole of ADR-010.
+
+**But the caller has no way to say "this corpus legitimately has none".** These
+are presets, and ADR-010 §3's second bullet is precisely about this:
+
+> **Presets must thread the declaration.** A preset user does not hold the
+> builder; if a preset option cannot carry the user's empty-declaration to the
+> mint, their only reachable remedy is disabling the option — deleting coverage
+> permanently (ADR-009 rule 1's trained-suppression dynamic, reproduced by this
+> ADR's own gate if unaddressed).
+
+`eess-ts`'s presets thread it (`expectEmpty`). The four `eess-crossvalidate`
+presets do not. So the contract currently reaches them with a finding and no
+remedy — the exact dynamic ADR-010 names, produced by this plan's own gate.
+
+**Three options, and this is a scope decision rather than a build discovery:**
+
+1. **Thread `expectEmpty` through the crossvalidate presets** — faithful to
+   ADR-010 §3, and the honest fix. It is new option surface on four presets and
+   is not in any phase of this plan.
+2. **Ship the finding as-is** and let adopters of those four presets red until
+   option 1 lands. Defensible only if 1 follows immediately; otherwise it is a
+   gate people switch off.
+3. **Exempt crossvalidate's presets from the gate.** Rejected on sight: an
+   exemption list is what ADR-014 §2 refuses ("a required field, not a
+   registry"), and these are exactly the presets whose corpora most often
+   legitimately lack an artifact.
+
+Recorded rather than decided in a worktree. Nothing else in Phase 2 is blocked
+by it — the kernel, `eess-ts`, `eess-md` and `eess-mermaid` are green.
+
 ### Phase 3 — the migration, each site stating what it examined
 
 In the table's order, kernel first. Corrected from the reviewed draft:
@@ -845,9 +890,26 @@ are the plan. Everything under them is bookkeeping.
   **rule id**, in a unit test and in a non-vacuity fixture, against the kernel's
   new generic finding; and **a preset that constructed nothing reds under all
   five `eess-ts` presets**, asserted on `assertEnabled`'s id, not two of five.
-- **A preset whose rules were all disabled, and one that is legitimately empty,
-  stay green** (D4 and D5's opposite direction). A guard that cannot stay quiet
-  is a guard people switch off.
+- **A preset that is legitimately empty stays green WHEN DECLARED, and reds when
+  not.** A guard that cannot stay quiet is a guard people switch off — so the
+  quiet has to be reachable, and `expectEmpty` on `PresetReportOptions` is how.
+  It expires: the day the subject appears, the declaration reds with
+  `emitter/expired-declaration`.
+
+  **Corrected 2026-09-06, and the correction is the point.** This criterion read
+  "a preset whose rules were all disabled, and one that is legitimately empty,
+  stay green (D4 and D5's opposite direction)". It was written before ADR-014 §3
+  was amended on 2026-09-05, and the amendment reverses its first half: an
+  all-off preset is a **configuration finding**, because `overrides: { id: 'off' }`
+  is an instruction eess would have to read intent into, and a declaration
+  inferred from a config file is one nothing can ever contradict. A criterion
+  cannot outrank the ADR it is meant to build — and left standing it would have
+  been read as a licence to weaken the emitter until the old sentence passed
+  again, which is the exact shape of the defect this plan exists to remove.
+  Testing's review caught it as "a stated, binding success criterion is violated,
+  with zero test coverage", which was true of the sentence and false of the
+  behaviour.
+
 - **No mechanism is marked `gated` that examines nothing.** Specifically: the
   dogfood rule's declared scope must select a non-zero number of modules, or the
   row is not `gated`. ADR-014's Enforcement table is the last place a false green
@@ -891,8 +953,37 @@ which is why that rule is a companion and not a footnote.
       preset guard, and `assertEnabled`'s message is false of `recommended` and
       `layeredArchitecture` (see the build findings above). It stays with the two
       flag-gated presets, unchanged.
-- [ ] Phase 1 — the red tests written and measured red, keyed on real ids; the contradicted test removed
-- [ ] Phase 2 — the retype
+- [x] Phase 1 — red tests written and **measured red**, keyed on real ids.
+      `packages/core/src/emitter-findings.ts` gives the two findings hardcoded
+      stable ids — `emitter/no-receipt` (no evidence field at all, a shape
+      defect) and `emitter/pass-without-evidence` (zero examined, zero
+      violations, no declaration) — the kernel's first hardcoded rule ids, and
+      the reason bug 0190's finding could never be asserted on. Two, not one,
+      because ADR-014 §4 gives them different remedies and one id would let
+      either fixture be satisfied by the other.
+      `packages/core/tests/emitter-refuses-without-evidence.test.ts` — 16 tests,
+      every assertion keyed on rule id, never on a count. Measured red before the
+      `receipt.js` import was added: 12 of 16 failing on the assertions
+      themselves (`expected [] to include 'emitter/no-receipt'`, `expected
+[Function] to throw`), the other 4 being CONTROLs that pass trivially until
+      the feature exists and only become discriminating after Phase 2. `tsc`
+      reports the rest: `TS2307` for Phase 2's `receipt.js`, `TS2345` because
+      `reportViolations` still returns `void`, and **four `TS2578: Unused
+'@ts-expect-error'`** — the self-sabotaging property the plan asked for,
+      working: they vanish when the type tightens and return if anyone loosens
+      it. Two contradicted tests removed from `report.test.ts` with the reason
+      left in place, rather than left failing for the next reader to "fix".
+- [x] Phase 2 — the retype. `CollectResult` is the receipt (an `ArchViolation[]`
+      carrying `examined`/`sourceEmpty`/`declaredEmpty`), one kernel factory and
+      one fail-closed merge, `violations()` returns it, both emitters take and
+      return it, and the gate runs before the delivery mode is read. **All six
+      packages typecheck clean.** `eess-ts`'s forked `CollectResult` is unified
+      with the kernel's rather than left as a second shape (plan 0188's
+      duplication; D4 required it). Measured: the plan feared ~690 `.violations()`
+      call sites and the retype produced **15 type errors family-wide**, because
+      the receipt is still an array — which is exactly why D1 chose that shape
+      over an object. Suite 3610/3616; the three reds are the crossvalitate
+      declaration gap recorded above, not regressions.
 - [ ] Phase 3 — call sites migrated; 0206's branch fixed one way, sequenced against 0205
 - [ ] Phase 4 — return consumers migrated; the `check-corpus` fail-open proven closed
 - [ ] Phase 5 — the gates; ADR-014 `gated` and its `check:family` row corrected; changeset names all five dialects

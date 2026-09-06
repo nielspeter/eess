@@ -1,11 +1,16 @@
 import picomatch from 'picomatch'
 import { featurePaths, violationsFor } from './shared.js'
-import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
+import {
+  finishPreset,
+  type ArchViolation,
+  type PresetReportOptions,
+  collectResult,
+} from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
-export { finishPreset } from '@nielspeter/eess'
+export { finishPreset, collectResult } from '@nielspeter/eess'
 export type { ArchViolation, PresetReportOptions } from '@nielspeter/eess'
 
 export interface ScenarioCitationsResolveOptions extends PresetReportOptions {
@@ -106,9 +111,11 @@ export function scenarioCitationsResolve(
   const citations = extractCitations(corpus, dir, extract)
   const scenarioKeys = new Set(set.scenarios().map((s) => `${s.relPath}\0${s.title}`))
   const violations: ArchViolation[] = []
+  let examined = 0
 
   const paths = featurePaths(set)
   for (const c of citations) {
+    examined++
     const resolved = paths.resolve(c.path)
     if (resolved.kind === 'none') {
       violations.push(
@@ -143,7 +150,7 @@ export function scenarioCitationsResolve(
     }
   }
 
-  return finishPreset(violations, options)
+  return finishPreset(collectResult(violations, { examined }), options)
 }
 
 /** Count citations/scenarios for a caller's non-vacuity summary line. */

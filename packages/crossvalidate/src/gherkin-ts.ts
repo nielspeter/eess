@@ -1,4 +1,9 @@
-import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
+import {
+  finishPreset,
+  type ArchViolation,
+  type PresetReportOptions,
+  collectResult,
+} from '@nielspeter/eess'
 import { featurePaths, violationsFor } from './shared.js'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
 import type { FeatureSet, GherkinScenario } from '@nielspeter/eess-gherkin'
@@ -6,7 +11,7 @@ import path from 'node:path'
 import { itOrTestTitleOf } from './it-title.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
-export { finishPreset } from '@nielspeter/eess'
+export { finishPreset, collectResult } from '@nielspeter/eess'
 export type { ArchViolation, PresetReportOptions } from '@nielspeter/eess'
 
 /**
@@ -126,11 +131,18 @@ export function scenarioTestsResolve(
   const extract = options.extract ?? defaultExtract
   const scenarioKeys = new Set(set.scenarios().map((s) => `${s.relPath} ${s.title}`))
   const violations: ArchViolation[] = []
+  let examined = 0
 
   const paths = featurePaths(set)
   for (const site of itTitles(project)) {
     const cite = extract(site.title)
     if (cite === undefined) continue // not a scenario-citing test
+    // AFTER the `continue`, deliberately — ADR-014 §2: "a count taken before the
+    // loop's own `continue` is the same mistake one line earlier." The unit this
+    // rule examines is a CITATION it resolved, not every `it()` in the project;
+    // counting titles would report a healthy denominator for a suite that cites
+    // nothing at all, which is the exact state this rule exists to notice.
+    examined++
     const resolved = paths.resolve(cite.path)
     if (resolved.kind === 'none') {
       violations.push(
@@ -165,7 +177,7 @@ export function scenarioTestsResolve(
     }
   }
 
-  return finishPreset(violations, options)
+  return finishPreset(collectResult(violations, { examined }), options)
 }
 
 const COVER_RULE = 'every scenario should be proven by a citing test'
@@ -235,9 +247,11 @@ export function scenariosCovered(
   const extract = options.extract ?? defaultExtract
   const include = options.include ?? (() => true)
   const covered = citedScenarioKeys(project, set, extract)
-  const violations = set
-    .scenarios()
-    .filter(include)
+  // The unit is every scenario this rule CONSIDERED, not the ones that failed —
+  // counting the misses would report `examined: 0` on a perfectly healthy run.
+  const considered = set.scenarios().filter(include)
+  const examined = considered.length
+  const violations = considered
     .filter((s) => !covered.has(`${s.relPath} ${s.title}`))
     .map((s) =>
       sv(
@@ -246,7 +260,7 @@ export function scenariosCovered(
         'an unproven use-case flow is a spec with no gate behind it',
       ),
     )
-  return finishPreset(violations, options)
+  return finishPreset(collectResult(violations, { examined }), options)
 }
 
 export interface ScenarioExemptionsCurrentOptions extends PresetReportOptions {
@@ -291,30 +305,30 @@ export function scenarioExemptionsCurrent(
 ): ArchViolation[] {
   const extract = options.extract ?? defaultExtract
   const sites = citedScenarioSites(project, set, extract)
-  const violations = set
-    .scenarios()
-    .filter((s) => options.isExempt(s))
-    .flatMap((s) => {
-      const site = sites.get(`${s.relPath} ${s.title}`)
-      if (site === undefined) return []
-      const citedAt = `${path.relative(process.cwd(), site.file)}:${String(site.line)}`
-      return [
-        {
-          rule: EXEMPTION_RULE,
-          ruleId: 'crossval/scenario-exemption-stale',
-          element: `${s.relPath} › ${s.title}`,
-          file: s.file,
-          line: s.line,
-          message: `scenario "${s.title}" is exempt but ${citedAt} already cites it`,
-          because:
-            'an exemption that has outlived its reason is a silent hole in the coverage gate',
-          suggestion:
-            'if the scenario is genuinely done, remove the exempting tag; if the exemption is ' +
-            'still intentional (flaky, partial, tracked elsewhere), narrow isExempt to exclude it',
-        },
-      ]
-    })
-  return finishPreset(violations, options)
+  // Every exemption this rule weighed. A run with no exemptions declared
+  // examines nothing and says so, rather than passing silently.
+  const exempt = set.scenarios().filter((s) => options.isExempt(s))
+  const examined = exempt.length
+  const violations = exempt.flatMap((s) => {
+    const site = sites.get(`${s.relPath} ${s.title}`)
+    if (site === undefined) return []
+    const citedAt = `${path.relative(process.cwd(), site.file)}:${String(site.line)}`
+    return [
+      {
+        rule: EXEMPTION_RULE,
+        ruleId: 'crossval/scenario-exemption-stale',
+        element: `${s.relPath} › ${s.title}`,
+        file: s.file,
+        line: s.line,
+        message: `scenario "${s.title}" is exempt but ${citedAt} already cites it`,
+        because: 'an exemption that has outlived its reason is a silent hole in the coverage gate',
+        suggestion:
+          'if the scenario is genuinely done, remove the exempting tag; if the exemption is ' +
+          'still intentional (flaky, partial, tracked elsewhere), narrow isExempt to exclude it',
+      },
+    ]
+  })
+  return finishPreset(collectResult(violations, { examined }), options)
 }
 
 /** Count citing tests / scenarios for a caller's non-vacuity summary line. */

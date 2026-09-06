@@ -30,7 +30,7 @@ import { selectionMemo } from '@nielspeter/eess/internal'
 import type { ArchProject } from '../core/project.js'
 import { RuleBuilder } from '../core/rule-builder.js'
 import { TerminalBuilder } from '../core/terminal-builder.js'
-import { setCorrespondence } from '@nielspeter/eess'
+import { setCorrespondence, collectResult } from '@nielspeter/eess'
 import type { CorrespondenceResult } from '@nielspeter/eess'
 
 /**
@@ -440,7 +440,7 @@ export class CrossProjectBuilder extends TerminalBuilder {
     const unbound = unboundDeclarationFindings(this.declared(), sideA, sideB)
     // A configuration fault: the sides were never materialized, so nothing was
     // examined. Plan 0098 — 0 here is the honest number, not a placeholder.
-    if (unbound.length > 0) return { violations: unbound, examined: 0 }
+    if (unbound.length > 0) return collectResult(unbound, { examined: 0 })
 
     const pairing = this.pairingFor(sideA, sideB, meta)
 
@@ -448,20 +448,15 @@ export class CrossProjectBuilder extends TerminalBuilder {
     // vacuous, so its finding replaces them rather than joining them.
     const { emptyFindings, falseDeclarations } = emptinessFindings(pairing)
     if (emptyFindings.length > 0) {
-      return {
-        violations: [...emptyFindings, ...falseDeclarations],
+      return collectResult([...emptyFindings, ...falseDeclarations], {
         examined: this.examinedUnits(),
-      }
+      })
     }
 
-    return {
-      violations: [
-        ...falseDeclarations,
-        ...matchFindings(pairing),
-        ...duplicateKeyFindings(pairing),
-      ],
-      examined: this.examinedUnits(),
-    }
+    return collectResult(
+      [...falseDeclarations, ...matchFindings(pairing), ...duplicateKeyFindings(pairing)],
+      { examined: this.examinedUnits() },
+    )
   }
 }
 

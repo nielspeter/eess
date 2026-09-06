@@ -1,4 +1,4 @@
-import type { ArchViolation } from './violation.js'
+import { type CollectResult, collectResult } from './collect-result.js'
 import { severityFor } from './violation.js'
 import type { RuleMetadata } from './rule-metadata.js'
 import { formatViolations } from './format.js'
@@ -22,8 +22,8 @@ export interface PresetBaseOptions extends PresetReportOptions {
  * `RuleBuilder<T, P>` and `TerminalBuilder` hierarchies, across all dialects.
  */
 export interface Dispatchable {
-  rule(m: RuleMetadata): { violations(): ArchViolation[] }
-  violations(): ArchViolation[]
+  rule(m: RuleMetadata): { violations(): CollectResult }
+  violations(): CollectResult
 }
 
 /**
@@ -38,14 +38,30 @@ export function dispatchRule(
   rule: string | (RuleMetadata & { id: string }),
   defaultSeverity: RuleSeverity,
   overrides: Record<string, RuleSeverity> | undefined,
-): ArchViolation[] {
+): CollectResult {
   // Accept either a bare id (existing layered/data-layer/boundaries callers) or
   // full metadata — the latter lets a preset attach because/suggestion/imperative
   // so the rule's guidance reaches `check --format json` and `explain --format
   // agent`, not just the id.
   const meta = typeof rule === 'string' ? { id: rule } : rule
   const effective = overrides?.[meta.id] ?? defaultSeverity
-  if (effective === 'off') return []
+  if (effective === 'off') {
+    // A real, measured zero — and deliberately NOT `declaredEmpty`.
+    //
+    // ADR-014 §3, amended 2026-09-05: a declaration is one a caller MADE over a
+    // live instrument, never one eess infers from a configuration.
+    // `overrides: { id: 'off' }` is an instruction, and it is byte-identical
+    // whether the author meant "I have scoped this out" or "I turned this off to
+    // stop a finding" — eess is not positioned to tell those apart, so by
+    // ADR-013's rule it must not decide. Marking it declared here would mint,
+    // on the author's behalf, exactly the declaration `declaredEmptyFindings`
+    // refuses to let them write ("'off' deleted the rule, so the declaration
+    // about it is dead").
+    //
+    // The consequence is deliberate: a preset with every rule off sums to zero
+    // examined with no declaration, and the emitter reports it (bug 0261).
+    return collectResult([], { examined: 0, notRun: true })
+  }
 
   const violations = builder.rule(meta).violations()
 
@@ -58,7 +74,10 @@ export function dispatchRule(
     // constructed nothing — is `UNSUPPRESSABLE` by its own text; silently
     // dropping it here just because its OWN rule was downgraded is exactly the
     // suppression path that text promises does not exist.
-    return violations.filter((v) => severityFor(v, 'warn') === 'error')
+    return collectResult(
+      violations.filter((v) => severityFor(v, 'warn') === 'error'),
+      { examined: violations.examined },
+    )
   }
 
   return violations
@@ -96,6 +115,6 @@ export function validateOverrides(
  * `finishPreset` so a caller can opt into `report: 'return'` / `--format json`
  * (plan 0070).
  */
-export function throwIfViolations(violations: ArchViolation[]): void {
+export function throwIfViolations(violations: CollectResult): void {
   finishPreset(violations, { report: 'throw' })
 }

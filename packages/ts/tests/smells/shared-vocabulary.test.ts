@@ -119,7 +119,7 @@ export function haveDecorator(name: string) {
 
 describe('a pair sharing no vocabulary at all is not copy-paste', () => {
   it('reports nothing for two same-shaped records with no shared identifier', () => {
-    expect(run(NO_SHARED_VOCABULARY, 'smells/no-shared-vocab')).toEqual([])
+    expect(run(NO_SHARED_VOCABULARY, 'smells/no-shared-vocab')).toHaveLength(0)
   })
 
   it('still reports a pair that shares only five vocabulary items', () => {

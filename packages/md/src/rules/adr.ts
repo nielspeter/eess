@@ -7,6 +7,7 @@ import {
   not,
   type ArchViolation,
   type PresetBaseOptions,
+  mergeCollectResults,
 } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import { docs } from '../builders/docs.js'
@@ -136,9 +137,13 @@ export function adrEnforcement(
     .should()
     .satisfy(haveTableRowsSatisfying({ section, columns, row: (ctx) => validateTier(ctx, tiers) }))
 
-  const violations = [
-    ...dispatchRule(declared, 'adr/enforcement-declared', 'error', options.overrides),
-    ...dispatchRule(validTiers, 'adr/valid-tiers', 'error', options.overrides),
+  // The kernel merge, not a spread: a spread drops each receipt's evidence, and
+  // this preset's own all-off case (every rule id overridden `'off'`) is then
+  // indistinguishable from a healthy run that found nothing — bug 0261, measured
+  // in this very function.
+  const parts = [
+    dispatchRule(declared, 'adr/enforcement-declared', 'error', options.overrides),
+    dispatchRule(validTiers, 'adr/valid-tiers', 'error', options.overrides),
   ]
 
   if (verify) {
@@ -150,8 +155,8 @@ export function adrEnforcement(
       .satisfy(
         haveTableRowsSatisfying({ section, columns, row: (ctx) => validateCitations(ctx, corpus) }),
       )
-    violations.push(...dispatchRule(citations, 'adr/citations-resolve', 'error', options.overrides))
+    parts.push(dispatchRule(citations, 'adr/citations-resolve', 'error', options.overrides))
   }
 
-  return finishPreset(violations, options)
+  return finishPreset(mergeCollectResults(parts), options)
 }

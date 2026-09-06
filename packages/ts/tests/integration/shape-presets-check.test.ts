@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { collectResult } from '@nielspeter/eess'
 import { Project } from 'ts-morph'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -177,17 +178,21 @@ describe('arch:baseline with a shape preset (no longer crashes)', () => {
     // with the findings that COULD be baselined, so re-running after the fix is
     // cheap rather than starting over.
     const assertionLess: RuleBuilderLike = {
-      violations: () => [
-        {
-          rule: 'r/vacuous',
-          element: 'r/vacuous',
-          file: '',
-          line: 0,
-          message: 'this rule asserts nothing',
-          bypassFilters: true,
-        },
-        { rule: 'r/real', element: 'E', file: '/e.ts', line: 3, message: 'a real violation' },
-      ],
+      violations: () =>
+        collectResult(
+          [
+            {
+              rule: 'r/vacuous',
+              element: 'r/vacuous',
+              file: '',
+              line: 0,
+              message: 'this rule asserts nothing',
+              bypassFilters: true,
+            },
+            { rule: 'r/real', element: 'E', file: '/e.ts', line: 3, message: 'a real violation' },
+          ],
+          { examined: 1 },
+        ),
     }
     vi.mocked(loadRuleFiles).mockResolvedValue([assertionLess])
     const out = path.join(os.tmpdir(), `tsau-shape-baseline-refused-${String(process.pid)}.json`)
@@ -211,16 +216,20 @@ describe('arch:baseline with a shape preset (no longer crashes)', () => {
       return true
     })
     const vacuous: RuleBuilderLike = {
-      violations: () => [
-        {
-          rule: 'x/vacuous',
-          element: 'x/vacuous',
-          file: '',
-          line: 0,
-          message: 'this rule asserts nothing',
-          bypassFilters: true,
-        },
-      ],
+      violations: () =>
+        collectResult(
+          [
+            {
+              rule: 'x/vacuous',
+              element: 'x/vacuous',
+              file: '',
+              line: 0,
+              message: 'this rule asserts nothing',
+              bypassFilters: true,
+            },
+          ],
+          { examined: 1 },
+        ),
     }
     vi.mocked(loadRuleFiles).mockResolvedValue([vacuous])
     const out = path.join(os.tmpdir(), `tsau-shape-baseline-attr-${String(process.pid)}.json`)
@@ -235,9 +244,11 @@ describe('arch:baseline with a shape preset (no longer crashes)', () => {
     // File B returns builders. Both files' violations must land in the baseline.
     const vA = { rule: 'a', element: 'A', file: '/a.ts', line: 1, message: 'from throwing file' }
     const bRule: RuleBuilderLike = {
-      violations: () => [
-        { rule: 'b', element: 'B', file: '/b.ts', line: 1, message: 'from ok file' },
-      ],
+      violations: () =>
+        collectResult(
+          [{ rule: 'b', element: 'B', file: '/b.ts', line: 1, message: 'from ok file' }],
+          { examined: 1 },
+        ),
     }
     vi.mocked(loadRuleFiles)
       .mockRejectedValueOnce(new ArchRuleError([vA])) // file A self-executes + throws

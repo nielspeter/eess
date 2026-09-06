@@ -178,7 +178,7 @@ describe('what the floor does NOT fire on', () => {
       .should()
       .notExist()
       .violations()
-    expect(vs).toEqual([])
+    expect(vs).toHaveLength(0)
   })
 
   it('a declared-empty rule over a genuinely empty selection', () => {
@@ -191,7 +191,7 @@ describe('what the floor does NOT fire on', () => {
       .rule({ id: 'x/no-eval', because: 'b', suggestion: 's' })
       .expectEmpty()
       .violations()
-    expect(vs).toEqual([])
+    expect(vs).toHaveLength(0)
   })
 })
 

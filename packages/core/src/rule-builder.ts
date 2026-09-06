@@ -1,4 +1,5 @@
 import { assertionAdviceFor } from './assertion-advice.js'
+import { collectResult } from './collect-result.js'
 import type { Predicate } from './predicate.js'
 import { selectMatching, matchingElements } from './correspondence.js'
 import { recordPredicate } from './predicate.js'
@@ -386,7 +387,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
       // useful to say about one glob's fate against zero loaded files, and
       // `sourceEmpty` outranks it in `evidencedViolations()` regardless.
       const deadGlob = sourceEmpty ? undefined : this.deadGlobDiagnosis()
-      return { violations: [], examined, sourceEmpty, deadGlob }
+      return collectResult([], { examined, sourceEmpty, deadGlob })
     }
 
     // Bug 0155 — gate-first, before the conditions run. See
@@ -396,7 +397,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
     // assertion too — see `assertionLessViolation`.
     if (!this.assertsSomething() && this._expectEmpty === undefined) {
       const ruleId = this._metadata?.id ?? (this.buildRuleDescription() || 'unnamed')
-      return { violations: [assertionLessViolation(ruleId, this.assertionAdvice())], examined }
+      return collectResult([assertionLessViolation(ruleId, this.assertionAdvice())], { examined })
     }
 
     // Step 4: Build context for conditions
@@ -408,7 +409,7 @@ export abstract class RuleBuilder<T, P = unknown> extends TerminalBuilder {
       violations.push(...condition.evaluate(filtered, context))
     }
 
-    return { violations, examined }
+    return collectResult(violations, { examined })
   }
 
   /**

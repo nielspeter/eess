@@ -251,7 +251,7 @@ describe('item 10 — dependOn, stated so it fails on the un-widened build', () 
       .should()
       .satisfy(dependOn(BANNED))
       .violations()
-    expect(violations).toEqual([])
+    expect(violations).toHaveLength(0)
   })
 
   it('a runtime dynamic import satisfies dependOn (red -> green)', () => {
@@ -261,7 +261,7 @@ describe('item 10 — dependOn, stated so it fails on the un-widened build', () 
       .should()
       .satisfy(dependOn(BANNED))
       .violations()
-    expect(violations).toEqual([])
+    expect(violations).toHaveLength(0)
   })
 
   it('a type-only re-export does NOT satisfy dependOn', () => {
@@ -307,7 +307,7 @@ describe('item 10 — dependOn, stated so it fails on the un-widened build', () 
       .should()
       .satisfy(dependOn(BANNED))
       .violations()
-    expect(satisfied).toEqual([])
+    expect(satisfied).toHaveLength(0)
   })
 })
 
@@ -526,7 +526,7 @@ describe('item 9 — notHaveAliasedImports is deliberately NOT widened', () => {
       .should()
       .notHaveAliasedImports()
       .violations()
-    expect(reexportOnly).toEqual([])
+    expect(reexportOnly).toHaveLength(0)
   })
 })
 

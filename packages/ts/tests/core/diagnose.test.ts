@@ -6,6 +6,7 @@
  * users unable to measure before R3 flips anything, which is R2a's one job.
  */
 import path from 'node:path'
+import { collectResult } from '@nielspeter/eess'
 import picomatch from 'picomatch'
 import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
@@ -210,7 +211,7 @@ describe('diagnose', () => {
   })
 
   it('says nothing about a rule that declares no globs and names no project', () => {
-    expect(diagnose([{ violations: () => [] }])).toEqual([])
+    expect(diagnose([{ violations: () => collectResult([], { examined: 1 }) }])).toEqual([])
   })
 
   it('reports project-unknown rather than silence when globs cannot be checked', () => {
@@ -218,7 +219,7 @@ describe('diagnose', () => {
     // say which project to check them against used to be skipped, so a rule
     // file of nothing but such rules printed a clean bill of health.
     const opaque = {
-      violations: () => [],
+      violations: () => collectResult([], { examined: 1 }),
       globs: () => [
         stampGlobs(globAnyOf(['**/anywhere/**'], 'file-path'), 'selector', () => 'hand-built'),
       ],
@@ -355,7 +356,7 @@ describe('kind, derived behaviourally rather than restated', () => {
 
   it('matching: a file-shaped glob that DOES resolve slices is not reported', () => {
     const rule = slices(self).matching('src/core/*').should().beFreeOfCycles()
-    expect(rule.violations()).toEqual([])
+    expect(rule.violations()).toHaveLength(0)
     expect(diagnose([rule])).toEqual([])
   })
 
@@ -393,7 +394,7 @@ describe('slices().matching() — the glob the matcher receives', () => {
     'reports nothing for the working spelling %s',
     (glob) => {
       const rule = slices(nested).matching(glob).should().beFreeOfCycles()
-      expect(rule.violations()).toEqual([])
+      expect(rule.violations()).toHaveLength(0)
       expect(diagnose([rule])).toEqual([])
     },
   )

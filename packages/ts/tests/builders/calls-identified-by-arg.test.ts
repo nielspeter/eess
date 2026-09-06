@@ -108,7 +108,7 @@ describe('calls().identifiedByArg() — integration', () => {
       .notExist()
       .violations()
 
-    expect(negativeViolations).toEqual([])
+    expect(negativeViolations).toHaveLength(0)
 
     // Positive control: the SAME predicate against the BARE form DOES match —
     // proves the empty result above is due to predicate-scope behavior, not an

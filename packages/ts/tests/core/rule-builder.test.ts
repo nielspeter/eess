@@ -520,7 +520,7 @@ describe('RuleBuilder', () => {
         .should()
         .withCondition(alwaysPass())
         .violations()
-      expect(v).toEqual([])
+      expect(v).toHaveLength(0)
     })
 
     it('is now the DEFAULT — the opt-in it used to be is redundant', () => {

@@ -487,6 +487,22 @@ export type {
 export { rootFromTsConfigPath, rootOf, relativeToRoot } from './core/project-relative.js'
 export { syntacticFault } from './core/glob-diagnosis.js'
 export { dispatchRule, throwIfViolations, finishPreset } from '@nielspeter/eess'
+
+// ADR-014's receipt, re-exported so a consumer who installs only `eess-ts`
+// can build and merge one without a second, direct `@nielspeter/eess`
+// dependency — plan 0089's standalone-sufficiency contract, which
+// `check:family` and `tests/standalone-surface.test.ts` both enforce. The
+// emitter ids are here for the same reason: a fixture asserting on them is
+// exactly the kind of thing an adopter writes.
+export {
+  collectResult,
+  mergeCollectResults,
+  hasEvidence,
+  EMITTER_NO_RECEIPT,
+  EMITTER_PASS_WITHOUT_EVIDENCE,
+  EMITTER_EXPIRED_DECLARATION,
+} from '@nielspeter/eess'
+export type { Evidence } from '@nielspeter/eess'
 export type {
   RuleSeverity,
   PresetBaseOptions,

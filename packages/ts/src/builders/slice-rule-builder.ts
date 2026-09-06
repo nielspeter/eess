@@ -6,7 +6,7 @@ import type { ArchViolation } from '@nielspeter/eess'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { GlobNode } from '@nielspeter/eess'
 import { stampGlobs } from '@nielspeter/eess/internal'
-import { globAnyOf } from '@nielspeter/eess'
+import { globAnyOf, collectResult } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import type { Slice, SliceDefinition } from '../models/slice.js'
 import {
@@ -375,7 +375,7 @@ export class SliceRuleBuilder extends TerminalBuilder {
       // a config-level meta-finding, not a vacuous pass. The floor 0099 adds is a
       // generalisation of this branch, not an invention. `examined` is 0 on the
       // same condition that produces the finding.
-      return { violations: [this.emptyDiscoveryViolation()], examined: 0 }
+      return collectResult([this.emptyDiscoveryViolation()], { examined: 0 })
     }
 
     // Every slice condition is a statement about relationships BETWEEN slices, so a
@@ -411,7 +411,7 @@ export class SliceRuleBuilder extends TerminalBuilder {
     // shape of the discovery rather than what was examined: `assignedFrom()`
     // returns one slice per key whether or not anything matched, so the empty
     // case is "every slice has no files", never "no slices" (arch-014 I1).
-    return { violations, examined: this.examinedUnits() }
+    return collectResult(violations, { examined: this.examinedUnits() })
   }
 
   private buildRuleDescription(): string {

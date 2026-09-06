@@ -17,6 +17,7 @@
  * suppression count must not depend on the filter accounting for itself.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { collectResult } from '@nielspeter/eess'
 import path from 'node:path'
 import { project, functions } from '../../src/index.js'
 import { runCheck } from '../../src/cli/commands/check.js'
@@ -138,7 +139,7 @@ describe('the CLI discloses what --changed suppressed', () => {
   it('says so when it suppressed EVERYTHING, which is the run that looks clean', async () => {
     captureStreams()
     mockLoadRuleFiles.mockResolvedValue([
-      { violations: () => [v('/a.ts'), v('/b.ts'), v('/c.ts')] },
+      { violations: () => collectResult([v('/a.ts'), v('/b.ts'), v('/c.ts')], { examined: 1 }) },
     ])
     // Nothing the rule found is in a changed file.
     mockDiffAware.mockReturnValue(filterFor(['/x.ts', '/y.ts']))
@@ -156,7 +157,7 @@ describe('the CLI discloses what --changed suppressed', () => {
   it('says so when only some were suppressed, and still reports the survivors', async () => {
     captureStreams()
     mockLoadRuleFiles.mockResolvedValue([
-      { violations: () => [v('/a.ts'), v('/b.ts'), v('/c.ts')] },
+      { violations: () => collectResult([v('/a.ts'), v('/b.ts'), v('/c.ts')], { examined: 1 }) },
     ])
     mockDiffAware.mockReturnValue(filterFor(['/a.ts']))
 
@@ -184,7 +185,9 @@ describe('the CLI discloses what --changed suppressed', () => {
 
   it('stays quiet when it suppressed nothing, so the notice keeps meaning something', async () => {
     captureStreams()
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [v('/a.ts')] }])
+    mockLoadRuleFiles.mockResolvedValue([
+      { violations: () => collectResult([v('/a.ts')], { examined: 1 }) },
+    ])
     mockDiffAware.mockReturnValue(filterFor(['/a.ts']))
 
     await runCheck(baseArgs)
@@ -194,7 +197,9 @@ describe('the CLI discloses what --changed suppressed', () => {
 
   it('stays quiet when git was unavailable, because then nothing was hidden', async () => {
     captureStreams()
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [v('/a.ts')] }])
+    mockLoadRuleFiles.mockResolvedValue([
+      { violations: () => collectResult([v('/a.ts')], { examined: 1 }) },
+    ])
     // A real `diffAware` returns a pass-everything filter with size -1 when git
     // fails. The sentinel must never reach a user's screen as "-1 changed files".
     // A real `diffAware` returns this when git fails: a null changed-set, which
@@ -210,7 +215,9 @@ describe('the CLI discloses what --changed suppressed', () => {
 
   it('does not disclose when --changed was not asked for', async () => {
     captureStreams()
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [v('/a.ts')] }])
+    mockLoadRuleFiles.mockResolvedValue([
+      { violations: () => collectResult([v('/a.ts')], { examined: 1 }) },
+    ])
 
     await runCheck({ ...baseArgs, changed: false })
 
@@ -228,7 +235,9 @@ describe('--format json carries the disclosure on stdout', () => {
    */
   it('sets summary.reason when findings were suppressed', async () => {
     captureStreams()
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [v('/a.ts'), v('/b.ts')] }])
+    mockLoadRuleFiles.mockResolvedValue([
+      { violations: () => collectResult([v('/a.ts'), v('/b.ts')], { examined: 1 }) },
+    ])
     mockDiffAware.mockReturnValue(filterFor(['/x.ts', '/y.ts', '/z.ts']))
 
     await runCheck({ ...baseArgs, format: 'json' })
@@ -241,7 +250,9 @@ describe('--format json carries the disclosure on stdout', () => {
 
   it('leaves summary.reason null when nothing was suppressed', async () => {
     captureStreams()
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [v('/a.ts')] }])
+    mockLoadRuleFiles.mockResolvedValue([
+      { violations: () => collectResult([v('/a.ts')], { examined: 1 }) },
+    ])
     mockDiffAware.mockReturnValue(filterFor(['/a.ts']))
 
     await runCheck({ ...baseArgs, format: 'json' })
@@ -254,8 +265,8 @@ describe('checkAll discloses too, because it also filters once', () => {
   it('names the count for the whole array', () => {
     captureStreams()
     const rules = [
-      { violations: () => [v('/a.ts')] },
-      { violations: () => [v('/b.ts'), v('/c.ts')] },
+      { violations: () => collectResult([v('/a.ts')], { examined: 1 }) },
+      { violations: () => collectResult([v('/b.ts'), v('/c.ts')], { examined: 1 }) },
     ]
 
     // /a.ts survives, so checkAll throws — and the notice is written BEFORE the

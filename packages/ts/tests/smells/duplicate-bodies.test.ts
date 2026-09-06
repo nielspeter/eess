@@ -186,7 +186,7 @@ describe('smells.duplicateBodies()', () => {
         .minLines(2)
         .minDistinctVocabulary(6)
         .violations()
-      expect(violations).toEqual([])
+      expect(violations).toHaveLength(0)
     })
 
     it('an at-floor pair (exact boundary) does pair', () => {
@@ -241,7 +241,7 @@ describe('smells.duplicateBodies()', () => {
         .minLines(2)
         .minDistinctVocabulary(8)
         .violations()
-      expect(violations).toEqual([])
+      expect(violations).toHaveLength(0)
     })
 
     it('.minDistinctVocabulary(0) is a real config no-op, not a config no-op for the OTHER knob', () => {
@@ -332,7 +332,7 @@ describe('smells.duplicateBodies()', () => {
         .minLines(1)
         .minDistinctVocabulary(1)
         .violations()
-      expect(withFloor).toEqual([])
+      expect(withFloor).toHaveLength(0)
     })
 
     it('fast rejection actually rejects computeSimilarity — verified, not assumed', () => {

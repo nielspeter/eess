@@ -1,4 +1,6 @@
 import type { ArchViolation } from '@nielspeter/eess'
+import { collectResult } from '@nielspeter/eess'
+import type { CollectResult } from '@nielspeter/eess'
 import type { RuleFacts } from './vacuity-diagnosis.js'
 import {
   assertionLessFinding,
@@ -13,7 +15,14 @@ export interface RuleRun {
   readonly expectsEmpty: boolean
   assertsSomething(): boolean
   ownsDiscoveryDiagnosis(): boolean
-  collectViolations(): { violations: ArchViolation[]; examined: number }
+  /**
+   * ADR-010 §3 / ADR-014 §3: "`.notExist()` over zero subjects is a declaration
+   * by construction." The flag has to reach the receipt, or a cardinality-exempt
+   * rule arrives at the emitter undeclared and is reported as a vacuous pass.
+   * `TerminalBuilder.asRun()` already passed this; the guard did not read it.
+   */
+  assertsCardinality(): boolean
+  collectViolations(): CollectResult
 }
 
 /**
@@ -24,7 +33,19 @@ export interface RuleRun {
  * tangled with the fluent surface that configures them; the order is the whole
  * content of this function and now reads as such.
  */
-export function collectWithAssertionGuard(run: RuleRun): ArchViolation[] {
+/**
+ * Returns the RECEIPT, not a bare array — plan 0235.
+ *
+ * The gate paths below fire BEFORE `run.collectViolations()` on purpose (see
+ * `TerminalBuilder.collectWithAssertionGuard`'s comment: `CrossProjectBuilder`
+ * throws a `RangeError` from its collection, so a gate placed after it would
+ * never run and the error would escape the CLI's `ArchRuleError`-only catch).
+ * Those paths therefore report `examined: 0` — honest, because nothing was
+ * collected — and the caller must NOT reach for the count itself. A first cut
+ * did exactly that from `violations()` and reintroduced bug 0025's escaping
+ * `RangeError`; the evidence has to come back through here.
+ */
+export function collectWithAssertionGuard(run: RuleRun): CollectResult {
   if (run.assertsSomething()) {
     // Plan 0074 (R3b). AFTER the assertion gate, deliberately: a rule with a
     // dead glob AND no condition reports the missing assertion only, which is
@@ -59,16 +80,33 @@ export function collectWithAssertionGuard(run: RuleRun): ArchViolation[] {
     // "prefer what it produced" reads silence as "no opinion" when it is in
     // fact the opinion.
     const dead = deadSelectorFindings(run.facts)
-    if (dead.selector.length > 0) return dead.selector
-    if (dead.discovery.length > 0 && !run.ownsDiscoveryDiagnosis()) return dead.discovery
+    if (dead.selector.length > 0) return collectResult(dead.selector, { examined: 0 })
+    if (dead.discovery.length > 0 && !run.ownsDiscoveryDiagnosis())
+      return collectResult(dead.discovery, { examined: 0 })
     // Plan 0099: the floor. 0098 produced this evidence and discarded it here;
     // this is where discarding stops.
-    const { violations, examined } = run.collectViolations()
+    const collected = run.collectViolations()
+    const { examined } = collected
+    const violations: ArchViolation[] = [...collected]
 
     // ADR-010's floor: four branches that all answer one question — is a pass
     // here CONSTRUCTED from evidence, or defaulted? See `evidenceFloor`.
+    // The declaration, computed ONCE and used on both exits below.
+    //
+    // `evidenceFloor` returns the (empty) violations rather than `undefined` for
+    // a cardinality-exempt rule — its exempt path IS the declaration case — so an
+    // exit that drops the flag here leaves a `.notExist()` rule undeclared, and
+    // the emitter then reports it as a vacuous pass. Measured: exactly that,
+    // before this was hoisted.
+    const declaredEmpty =
+      run.expectsEmpty ||
+      (examined === 0 && (collected.declaredEmpty === true || run.assertsCardinality()))
+        ? true
+        : undefined
+
     const floor = evidenceFloor(run.facts, violations, examined)
-    if (floor !== undefined) return floor
+    if (floor !== undefined)
+      return collectResult(floor, { examined, sourceEmpty: collected.sourceEmpty, declaredEmpty })
 
     // The expiry half, and it is the ROOT's alone — `rule-builder.ts` used to
     // carry its own, so keeping both double-reported one fault.
@@ -78,10 +116,16 @@ export function collectWithAssertionGuard(run: RuleRun): ArchViolation[] {
     // and on `CrossProjectBuilder` `declaresEmpty()` is an all-sides
     // conjunction whose per-side expiry that class reports itself.
     if (examined > 0 && run.expectsEmpty) {
-      return [expiredDeclarationViolation(run.facts, examined), ...violations]
+      return collectResult([expiredDeclarationViolation(run.facts, examined), ...violations], {
+        examined,
+      })
     }
-    return violations
+    return collectResult(violations, {
+      examined,
+      sourceEmpty: collected.sourceEmpty,
+      declaredEmpty,
+    })
   }
 
-  return assertionLessFinding(run.facts)
+  return collectResult(assertionLessFinding(run.facts), { examined: 0 })
 }

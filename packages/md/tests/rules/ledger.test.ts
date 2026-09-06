@@ -216,12 +216,12 @@ describe('honestyAtClose — the State value is read, not grabbed', () => {
   ])('does not read %s as a state declaration at all', (line) => {
     // The colon is required. Without it, any line starting with the word "State"
     // became a declaration and reported its second word as the state.
-    expect(readsAs(line)).toEqual([])
+    expect(readsAs(line)).toHaveLength(0)
   })
 
   it('supports a multi-word vocabulary, which (\\S+) could not express', () => {
     const opts = { states: ['In progress', 'In review'], terminalStates: ['Shipped'] }
-    expect(readsAs('- **State:** In progress', opts)).toEqual([])
+    expect(readsAs('- **State:** In progress', opts)).toHaveLength(0)
     const unknown = readsAs('- **State:** In limbo', opts).filter(
       (v) => v.rule === 'ledger/unknown-state',
     )
@@ -254,7 +254,7 @@ describe('honestyAtClose — an empty vocabulary is a real config, not a caller 
       doneFolders: [],
       report: 'return',
     })
-    expect(f).toEqual([])
+    expect(f).toHaveLength(0)
   })
 
   it('ledgerStats reports a State:-shaped line as unreadable, not readable, when states is empty', () => {
@@ -300,7 +300,7 @@ describe('honestyAtClose — headerViolations: a dead selector is reported, not 
       expectEmptyHeaders: true,
       report: 'return',
     })
-    expect(f).toEqual([])
+    expect(f).toHaveLength(0)
   })
 
   it('expectEmptyHeaders expires the day a real document appears', () => {
@@ -331,6 +331,6 @@ describe('honestyAtClose — a done item with nothing outstanding is not a dead 
       doneFolders: [],
       report: 'return',
     })
-    expect(f).toEqual([])
+    expect(f).toHaveLength(0)
   })
 })

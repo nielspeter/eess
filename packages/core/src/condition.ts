@@ -1,4 +1,5 @@
 import type { ArchViolation } from './violation.js'
+import { type CollectResult, collectResult } from './collect-result.js'
 import type { DeclaredGlobs } from './glob-site.js'
 import type { RuleMetadata } from './rule-metadata.js'
 
@@ -105,18 +106,18 @@ export interface Condition<T> {
  * `diagnose()` silent. That is the fail-open cell ADR-009 exists to close.
  *
  * The zero-element early exit is stated rather than implied by an empty
- * violation list (plan 0098): `{ violations: [], examined: 0 }` is the
+ * violation list (plan 0098): a receipt with `examined: 0` is the
  * zero-evidence case, and ADR-010 wants it said out loud.
  */
 export function evaluateConditions<T>(
   elements: T[],
   conditions: readonly Condition<T>[],
   context: ConditionContext,
-): { violations: ArchViolation[]; examined: number } {
-  if (elements.length === 0) return { violations: [], examined: 0 }
+): CollectResult {
+  if (elements.length === 0) return collectResult([], { examined: 0 })
   const violations: ArchViolation[] = []
   for (const condition of conditions) {
     violations.push(...condition.evaluate(elements, context))
   }
-  return { violations, examined: elements.length }
+  return collectResult(violations, { examined: elements.length })
 }

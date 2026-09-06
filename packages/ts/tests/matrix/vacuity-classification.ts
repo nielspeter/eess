@@ -556,4 +556,22 @@ export const NOT_CHECKS: readonly string[] = [
   '.:ArchConfigError', // an error type: thrown when a RULE is misconfigured, not a check
   '.:isArchConfigError', // its type guard
   '.:variationBetween', // returns the axes two bodies differ on; a measurement, not an assertion
+  // ── Added 2026-09-06 with plan 0235's receipt (ADR-014). Found the same way
+  //    as the rows above: `validate` reached `test:matrix` only once every
+  //    earlier gate was green, and the census reded on six unclassified exports.
+  //    The audit works exactly as plan 0095 designed it — a new family joins by
+  //    being written down, and forgetting is indistinguishable from deciding
+  //    unless the decision is recorded here.
+  //
+  //    None is a checker. Three are the receipt's own vocabulary and three are
+  //    rule IDs; the vacuity question ("what does this report over an empty
+  //    corpus?") is not askable of any of them. The findings they name ARE
+  //    subject to it — at the emitter, which is where ADR-014 puts the gate, and
+  //    where `emitter-refuses-without-evidence.test.ts` exercises it.
+  '.:collectResult', // the receipt constructor: takes violations + evidence, asserts nothing
+  '.:mergeCollectResults', // folds receipts into one; the fail-closed merge, not a check
+  '.:hasEvidence', // a type guard over a value's shape
+  '.:EMITTER_NO_RECEIPT', // a rule id (string constant)
+  '.:EMITTER_PASS_WITHOUT_EVIDENCE', // a rule id (string constant)
+  '.:EMITTER_EXPIRED_DECLARATION', // a rule id (string constant)
 ]

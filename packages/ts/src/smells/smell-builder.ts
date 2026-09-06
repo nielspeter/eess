@@ -3,7 +3,7 @@ import type { CollectResult } from '../core/terminal-builder.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { GlobNode } from '@nielspeter/eess'
 import { stampGlobs } from '@nielspeter/eess/internal'
-import { globAnyOf } from '@nielspeter/eess'
+import { globAnyOf, collectResult } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import { isProjectRelative } from '../core/project-relative.js'
 
@@ -168,7 +168,7 @@ export abstract class SmellBuilder extends TerminalBuilder {
 
   /** Delegate to detect() for the terminal builder pipeline. */
   protected collectViolations(): CollectResult {
-    return { violations: this.detect(), examined: this.examinedUnits() }
+    return collectResult(this.detect(), { examined: this.examinedUnits() })
   }
 
   /** Subclasses implement: run detection, return violations. */

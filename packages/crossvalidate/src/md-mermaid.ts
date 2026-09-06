@@ -3,6 +3,7 @@ import {
   type ArchViolation,
   type Direction,
   type PresetReportOptions,
+  collectResult,
 } from '@nielspeter/eess'
 import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
@@ -11,7 +12,7 @@ import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
 import { identifyTsClass } from './shared.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
-export { finishPreset } from '@nielspeter/eess'
+export { finishPreset, collectResult } from '@nielspeter/eess'
 export { correspondence } from '@nielspeter/eess'
 export type { ArchViolation, Direction, PresetReportOptions } from '@nielspeter/eess'
 
@@ -108,8 +109,12 @@ export function embeddedDiagramsMatchCode(
   })
 
   const violations: ArchViolation[] = []
+  // Diagram BLOCKS compared, never documents scanned — counting one layer too
+  // high reads healthy on a corpus whose every diagram was skipped.
+  let examined = 0
   for (const doc of corpus.documents()) {
     for (const block of classDiagramBlocks(doc)) {
+      examined++
       let d
       try {
         d = diagram(block.value)
@@ -154,7 +159,7 @@ export function embeddedDiagramsMatchCode(
       )
     }
   }
-  return finishPreset(violations, options)
+  return finishPreset(collectResult(violations, { examined }), options)
 }
 
 /** The declared kind of a fence, for phrasing a finding. */

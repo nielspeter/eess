@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
+import { type CollectResult, collectResult } from '../src/collect-result.js'
 import { dispatchRule } from '../src/preset-dispatch.js'
 import type { RuleMetadata } from '../src/rule-metadata.js'
 import type { ArchViolation } from '../src/violation.js'
@@ -11,16 +12,20 @@ afterEach(() => vi.restoreAllMocks())
  */
 function fakeBuilder(violations: ArchViolation[]): {
   seen?: RuleMetadata
-  rule(m: RuleMetadata): { violations(): ArchViolation[] }
-  violations(): ArchViolation[]
+  rule(m: RuleMetadata): { violations(): CollectResult }
+  violations(): CollectResult
 } {
+  // `examined: 1` — this double stands in for a rule that examined something and
+  // found `violations`. A zero here would make every dispatch in this file trip
+  // the emitter's evidence gate, which is a different test.
+  const receipt = collectResult(violations, { examined: 1 })
   return {
     seen: undefined,
     rule(m: RuleMetadata) {
       this.seen = m
-      return { violations: () => violations }
+      return { violations: () => receipt }
     },
-    violations: () => violations,
+    violations: () => receipt,
   }
 }
 

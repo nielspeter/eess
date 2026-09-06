@@ -25,6 +25,7 @@
  * ADR-009's Notes states rather than implies.
  */
 import { describe, it, expect } from 'vitest'
+import { collectResult } from '@nielspeter/eess'
 import path from 'node:path'
 import { Project } from 'ts-morph'
 import { project, resetProjectCache } from '../../src/core/project.js'
@@ -286,7 +287,7 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
     // reachable through the structural interface, so it is guarded through it.
     // One row had been credited to two call sites, and this is the other half.
     const opaque = {
-      violations: () => [],
+      violations: () => collectResult([], { examined: 1 }),
       globs: () => [
         stampGlobs(globAnyOf(['**/anywhere/**'], 'file-path'), 'selector', () => 'hand-built'),
       ],
@@ -296,9 +297,11 @@ describe('the preview reports it, with the gate’s precedence (plan 0096)', () 
 
     // And with no globs the same rule DOES reach the evidence check, so the row
     // above is the gate working rather than the branch being unreachable.
-    expect(diagnose([{ violations: () => [], examinedUnits: () => 0 }]).map((f) => f.kind)).toEqual(
-      ['zero-subjects'],
-    )
+    expect(
+      diagnose([
+        { violations: () => collectResult([], { examined: 1 }), examinedUnits: () => 0 },
+      ]).map((f) => f.kind),
+    ).toEqual(['zero-subjects'])
   })
 
   it('does NOT fire beside a dead glob — the derived symptom yields to the cause', () => {
@@ -562,7 +565,7 @@ describe('the sharing and the memo are observable, not just intended (plan 0096)
     // `violations()` is the public gate path — `collectViolations()` is protected,
     // and reaching past a visibility boundary to test would guard a seam no
     // consumer can reach.
-    expect(rule.violations()).toEqual([])
+    expect(rule.violations()).toHaveLength(0)
     expect(asked, 'the gate re-derived what the evidence already computed').toBe(afterEvidence)
   })
 })

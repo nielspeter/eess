@@ -1,4 +1,5 @@
 import type { ArchViolation, ReportMode, OutputFormat } from '@nielspeter/eess'
+import type { CollectResult } from '@nielspeter/eess'
 
 /**
  * What a preset can be asked to do with its rules.
@@ -9,7 +10,13 @@ import type { ArchViolation, ReportMode, OutputFormat } from '@nielspeter/eess'
  * means the kernel's three emission modes stay exactly three.
  */
 export type PresetDelivery = ReportMode | 'builders'
-import { finishPreset, ArchRuleError, validateOverrides } from '@nielspeter/eess'
+import {
+  finishPreset,
+  ArchRuleError,
+  validateOverrides,
+  mergeCollectResults,
+  collectResult,
+} from '@nielspeter/eess'
 import { callerAggregates } from '../core/execute-rule.js'
 import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import type { Predicate } from '@nielspeter/eess'
@@ -31,7 +38,7 @@ interface PresetRule {
   asSeverity(level: 'error' | 'warn'): this
   /** Plan 0089's carrier — hoisted to `TerminalBuilder` by plan 0097, so every preset rule has it. */
   expectEmpty(): this
-  violations(): ArchViolation[]
+  violations(): CollectResult
 }
 
 /**
@@ -124,7 +131,11 @@ export function assertDiscovered(
     severity: 'error',
     bypassFilters: true,
   }
-  return [{ violations: () => [violation] }]
+  // `examined: 0` and honest: these are CONFIGURATION findings, not rules that
+  // examined units. The receipt carries a violation, so the emitter's evidence
+  // gate passes it through untouched (ADR-014 §4 — a value already carrying a
+  // finding is red, and the emitter adds nothing to it).
+  return [{ violations: () => collectResult([violation], { examined: 0 }) }]
 }
 
 /**
@@ -196,7 +207,11 @@ export function overrideFindings(
       UNSUPPRESSABLE,
     bypassFilters: true,
   }))
-  return [{ violations: () => violations }]
+  // `examined: 0` and honest: these are CONFIGURATION findings, not rules that
+  // examined units. The receipt carries a violation, so the emitter's evidence
+  // gate passes it through untouched (ADR-014 §4 — a value already carrying a
+  // finding is red, and the emitter adds nothing to it).
+  return [{ violations: () => collectResult(violations, { examined: 0 }) }]
 }
 
 /**
@@ -262,7 +277,11 @@ export function declaredEmptyFindings(
     suggestion,
     bypassFilters: true,
   }))
-  return [{ violations: () => violations }]
+  // `examined: 0` and honest: these are CONFIGURATION findings, not rules that
+  // examined units. The receipt carries a violation, so the emitter's evidence
+  // gate passes it through untouched (ADR-014 §4 — a value already carrying a
+  // finding is red, and the emitter adds nothing to it).
+  return [{ violations: () => collectResult(violations, { examined: 0 }) }]
 }
 
 /**
@@ -318,7 +337,11 @@ export function assertEnabled(
     suggestion: `Set at least one of: ${finding.optionsHint}. ` + UNSUPPRESSABLE,
     bypassFilters: true,
   }
-  return [{ violations: () => [violation] }]
+  // `examined: 0` and honest: these are CONFIGURATION findings, not rules that
+  // examined units. The receipt carries a violation, so the emitter's evidence
+  // gate passes it through untouched (ADR-014 §4 — a value already carrying a
+  // finding is red, and the emitter adds nothing to it).
+  return [{ violations: () => collectResult([violation], { examined: 0 }) }]
 }
 
 export interface PresetBaseOptions<TRuleId extends string = string> {
@@ -424,7 +447,19 @@ export function deliver(
   // to `finishPreset`, whose own default is 'throw' — so a preset called with no
   // options enforces, which is what ADR-008 states and what the docs teach.
   if (options?.report === 'builders') return builders
-  const violations = builders.flatMap((b) => b.violations())
+  // `flatMap` would drop every receipt's evidence on the floor — the exact site
+  // plan 0235's Phase 3 names. The kernel merge is fail-closed and is the only
+  // place the `examined` sum and the sourceEmpty/declaredEmpty precedence are
+  // stated once (bug 0205's class is four emitters restating that rule and
+  // disagreeing).
+  //
+  // A preset that constructed NO builders merges zero members: `examined: 0`,
+  // no declaration, no violations — and the emitter's gate then produces
+  // `emitter/pass-without-evidence`. That is the all-off case (bug 0261)
+  // falling out of the contract rather than needing a guard of its own, which
+  // is what ADR-014 §3's 2026-09-05 amendment settled: a declaration is one a
+  // caller made, never one eess infers from a config.
+  const violations = mergeCollectResults(builders.map((b) => b.violations()))
   const mode: PresetDelivery = options?.report ?? 'throw'
 
   // **Bug 0203 — enforce, but let an aggregating caller do the reporting.**
