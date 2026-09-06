@@ -20,6 +20,8 @@ export default defineConfig({
         items: [
           { text: 'What is eess?', link: '/what-is-eess' },
           { text: 'The Manifesto', link: '/manifesto' },
+          { text: 'Tests Cannot Lie', link: '/tests-cannot-lie' },
+          { text: 'Agent Integration', link: '/agent-integration' },
           { text: 'Calculator Walkthrough', link: '/eess-walkthrough-calculator' },
           { text: 'eess as a Harness', link: '/eess-as-a-harness' },
           { text: 'Getting Started', link: '/getting-started' },
