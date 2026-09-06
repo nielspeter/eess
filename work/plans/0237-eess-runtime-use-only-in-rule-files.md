@@ -2,8 +2,34 @@
 
 ## Status
 
-- **State:** Draft — the belt to plan 0235's braces. Independent of 0235 and
-  independently closable; ships whether or not the emitter contract has landed.
+- **State:** Ready — frozen 2026-09-06, the day plan 0235 merged. The belt to
+  0235's braces: independent of it and independently closable, and now the only
+  live mechanism aimed at the two residuals ADR-014 states it cannot reach.
+  **The freeze found five things and fixed them rather than flipping over
+  them** — four citations that had staled and one item of Phase 2 that was
+  already done:
+  1. The `dispatchRule`-in-`eess-md` fact is re-recorded **by value** (the three
+     call expressions and the import member). Its line citation had staled in
+     both this plan AND proposal 009's Ask C row, because 0235 rewrote the
+     surrounding lines — the same class that refused 0235's own first freeze.
+  2. Phase 2 asked the build to derive `check-guardrails.mjs`'s hard-coded
+     `5 rules`. **It already derives it.** Left in as a recorded correction so
+     an implementer is not sent to fix a fixed thing.
+  3. "`throwIfViolations` stays on the list until plan 0235 deletes the symbol"
+     — 0235 shipped without deleting it; that moved to plan 0263 Phase 5.
+  4. The runtime-import census is re-derived and dated, with the command that
+     produces it: 55/141 and 10/24 had drifted from 53 and 9. The conclusion is
+     unchanged and slightly stronger.
+  5. `DEFAULT_RULE_FILES` is marked as a constant this plan **introduces**, so
+     nobody greps for it first and concludes the snippet is wrong.
+
+  Everything else verified against the code at `4fa5e84`: `modules()`,
+  `onlyHaveTypeImportsFrom`, `notContain`, `call()`, `resideInFile`, the
+  `agentGuardrails` internals (the union, `STATIC_RULE_IDS`, `knownOverrideIds`,
+  `collectRuleIds`, `optionsHint`, `push`'s parameter type, the by-hand-in-four-
+  places comment) and `dependency.ts`'s `none-matched` edge disclosure all hold
+  at their cited lines.
+
 - **Priority:** High — it is the only mechanism that reaches the two residuals
   [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
   states it cannot: an adopter who sums receipts by hand, and one who never
@@ -97,6 +123,7 @@ if (options.noVerdictOutsideRules) {
     '@nielspeter/eess-*/**',
   ]
   // Extends the default; an adopter naming `scripts/**` must not lose `*.rules.ts`.
+  // DEFAULT_RULE_FILES is NEW — this plan introduces it; it does not exist yet.
   const ruleFiles = [...DEFAULT_RULE_FILES, ...(options.ruleFiles ?? [])]
   push(
     modules(p)
@@ -138,9 +165,17 @@ legitimate emitter call belongs.
 **The two narrowings, from Ask C's disposition row, both in.**
 
 1. `dispatchRule` is **not** on the banned list. It is the sanctioned
-   preset-authoring call, used correctly at `packages/md/src/rules/adr.ts:140-153`.
+   preset-authoring call, used correctly in `packages/md/src/rules/adr.ts`.
+   **Recorded by value at the freeze**, because the line citation had already
+   staled: the three calls are `dispatchRule(declared, 'adr/enforcement-declared', …)`,
+   `dispatchRule(validTiers, 'adr/valid-tiers', …)` and
+   `dispatchRule(citations, 'adr/citations-resolve', …)`, and the runtime import is
+   the `dispatchRule,` member of that file's first `import { … } from
+'@nielspeter/eess'`. This plan cited `:140-153` and proposal 009's Ask C row
+   cites `:131-141`; plan 0235 rewrote the surrounding lines and both are now off.
+   Grep the symbol, not the line.
    Stated honestly, though, the regex is not what spares a preset module: that
-   module imports `dispatchRule` at runtime (`adr.ts:3-10`), so the
+   module imports `dispatchRule` at runtime, so the
    type-import leg reds it whatever the call regex says. **A preset module is a
    verdict file by definition** and belongs in `ruleFiles`; the Phase 1
    fixture asserts that a declared preset module is green, which is the
@@ -170,9 +205,13 @@ legitimate emitter call belongs.
 version failing exactly there. A renamed import — `finishPreset as done` —
 escapes the call leg and is caught by the import leg, so the two conditions
 cover each other's blind spot once the subpath globs are right.
-`throwIfViolations` stays on the list until plan 0235 deletes the symbol; a
-dead name in a regex is harmless, and an adopter on an older kernel still has
-the alias.
+`throwIfViolations` stays on the list. **Corrected at the freeze:** this read
+"until plan 0235 deletes the symbol", and 0235 shipped on 2026-09-06 without
+deleting it — it is still exported from `packages/core/src/index.ts` and
+`packages/ts/src/index.ts`, and removing it is now
+[plan 0263](./0263-adr-014s-residual-enforcement-rows.md) Phase 5. The name is
+live, not pending-dead. Either way a dead name in a regex is harmless, and an
+adopter on an older kernel still has the alias.
 
 **What it catches, and what it does not.** It catches the pattern — eess used
 at runtime, or an emitter called, in a file that is not one of the declared
@@ -194,10 +233,28 @@ adopter whose hand-rolled gate lives there gets an honest green from this rule
 while the field shape is unreached. `docs/presets.md` says both.
 
 **And in this repository it cannot fire at all, which Phase 3 says plainly.**
-The dialects' own source _is_ eess: measured, 53 of 141 `eess-ts` source files,
-9 of 24 in `eess-md`, 8 of 29 in `eess-mermaid`, 7 of 9 in `eess-crossvalidate`
-import the kernel at runtime, by design, and `packages/core/src` never imports
-its own package name. A `ruleFiles` wide enough to make `check:guardrails`
+The dialects' own source _is_ eess. **Re-derived at the freeze, 2026-09-06,
+after plan 0235 changed 97 files** — the first two numbers had already drifted,
+which is why the derivation is recorded here and not only its result:
+
+```
+find packages/<pkg>/src -name '*.ts'                       # the denominator
+… | xargs grep -lE "^import [^t].*from '@nielspeter/eess"  # runtime importers
+```
+
+| package              | runtime-importing | of total |
+| -------------------- | ----------------- | -------- |
+| `eess-ts`            | 55 (was 53)       | 141      |
+| `eess-md`            | 10 (was 9)        | 24       |
+| `eess-mermaid`       | 8                 | 29       |
+| `eess-crossvalidate` | 7                 | 9        |
+| `eess` (kernel)      | 0                 | 58       |
+
+The conclusion is unchanged and slightly stronger: MORE of this repo's dialect
+source imports the kernel at runtime than when the plan was drafted, so a
+`ruleFiles` wide enough to green `check:guardrails` over `packages/*/src` would
+exempt even more of what could fire. The kernel never imports its own package
+name, so it is outside the rule's reach entirely. A `ruleFiles` wide enough to make `check:guardrails`
 green over `packages/*/src` would exempt every module that could fire, and the
 green would be a tautology presented as dogfood. The only honest evidence in
 this repo is a fixture project shaped like an adopter's, driven both ways.
@@ -261,9 +318,14 @@ records `none-matched` edge coverage on every healthy run
 (`packages/ts/src/conditions/dependency.ts:566-571`), and that disclosure reads
 as "the glob may be a typo" — for this rule zero matching imports is the goal,
 so under ADR-009 rule 2 the stated cause is wrong; give it a reason variant, or
-say it in the docs. And `scripts/check-guardrails.mjs:110` hard-codes
-`5 rules` in its summary line, true only because this rule is not enabled
-there; derive the number so it cannot lie when someone does.
+say it in the docs. **One item this phase used to carry is already done, found at the freeze.** The
+plan asked the build to derive `scripts/check-guardrails.mjs`'s hard-coded
+`5 rules` summary. It already is:
+`const ruleCount = agentGuardrails(p, { ...OPTIONS, report: 'builders' }).length`
+— asked of the preset rather than written beside it, with the old hard-code
+recorded in the comment above it as the defect it was. Nothing is owed here, and
+the number will move on its own when this rule is enabled there, which is the
+point of deriving it.
 
 ### Phase 3 — dogfood, honestly
 
