@@ -1,4 +1,5 @@
 import picomatch from 'picomatch'
+import { collectResult } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
 import type { SourceFile } from 'ts-morph'
 import type { ArchProject } from '../core/project.js'
@@ -306,10 +307,9 @@ export class PairFinalBuilder extends TerminalBuilder {
 
     // Plan 0098: the pairs ARE the examined set — `evaluate` receives exactly
     // this array, so the count cannot drift from what was checked.
-    return {
-      violations: this.condition.evaluate(this.pairs, context),
+    return collectResult(this.condition.evaluate(this.pairs, context), {
       examined: this.examinedUnits(),
-    }
+    })
   }
 }
 

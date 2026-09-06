@@ -2,11 +2,12 @@
 
 ## Status
 
-- **State:** Draft — measured unreachable; needs a decision, not just a test.
+- **State:** Fixed — deleted rather than wired; the emitter refuses an
+  evidence-free verdict instead (plan 0235, ADR-014).
 - **Severity:** High — **raised from Medium on 2026-09-03** (see Escalation
   below). Filed as an unreachable configuration finding that reads as coverage —
   ADR-009 rule 1's object, sibling of
-  [bug 0178](./0178-the-kernels-dead-glob-finding-cannot-fire.md). What changed is
+  [bug 0178](../0178-the-kernels-dead-glob-finding-cannot-fire.md). What changed is
   not the analysis but the evidence: the runtime path this record calls "the
   uncovered one" has now been measured firing in a consuming project, with a cost.
   An unreachable finding that reads as coverage is a Medium; the same finding once
@@ -19,7 +20,7 @@
 ## Symptom
 
 `presetConstructsNothingViolation`
-([`packages/core/src/preset-dispatch.ts:106`](../../packages/core/src/preset-dispatch.ts))
+([`packages/core/src/preset-dispatch.ts`](../../../packages/core/src/preset-dispatch.ts) — **deleted 2026-09-06**, see plan 0235 Phase 0)
 cannot be produced by anything this repo ships. An adopter whose preset
 constructs zero rules gets no finding.
 
@@ -30,7 +31,7 @@ build output:
 
 | site                                                             | kind                                             |
 | ---------------------------------------------------------------- | ------------------------------------------------ |
-| `packages/core/src/preset-dispatch.ts:106`                       | the definition                                   |
+| `packages/core/src/preset-dispatch.ts` (deleted 2026-09-06)      | the definition                                   |
 | `packages/core/src/index.ts:52` · `packages/ts/src/index.ts:508` | barrel re-exports                                |
 | `packages/core/src/preset-dispatch.ts:58`                        | a comment naming it as an example                |
 | `packages/core/tests/preset-dispatch.test.ts:68`                 | a comment naming it as an example                |
@@ -42,7 +43,7 @@ build output:
 ## Root cause
 
 Structural, not an oversight in wiring. `finishPreset`
-([`packages/core/src/report.ts:58`](../../packages/core/src/report.ts)) has this
+([`packages/core/src/report.ts:58`](../../../packages/core/src/report.ts)) has this
 signature:
 
 ```ts
@@ -77,7 +78,7 @@ is the uncovered one.
 
 ## Escalation — 2026-09-03: the uncovered path measured firing
 
-[Proposal 009](../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)
+[Proposal 009](../../proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md)
 arrived from a consuming project carrying exactly the measurement this record
 lacked. Reviewed the same day by three lenses; its Problem section was accepted by
 all three and independently re-verified against this repo's source.
@@ -118,7 +119,7 @@ available at that seam. It changes two things:
    That is the same "give the kernel the fact, not the array" move option 2 names,
    at a granularity that works.
 
-**The decision now exists as [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)**
+**The decision now exists as [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)**
 (Accepted 2026-09-03), which takes option 2 in the container's shape — the
 receipt as a **required field** on the emitter, not a minted registry, so
 ADR-010 §2's cap is untouched — and names this record's red test as one of its
@@ -139,7 +140,7 @@ _"Count emissions, not silences"_) adds no registry at all.
 sequencing together rather than one at a time:
 [0206](./0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md) (the
 dialect's default path bypasses the kernel finisher) and
-[0097](./0097-crossval-presets-bypass-caller-owns-reporting.md) (two presets return
+[0097](../0097-crossval-presets-bypass-caller-owns-reporting.md) (two presets return
 `void`, so ADR-008 never reached them).
 
 ## Fix
@@ -161,12 +162,32 @@ the symbol is gone. It must not stay exported and unreachable.
 
 ## Verification
 
-- [ ] Red test first: a preset that constructs zero rules produces the finding
-      through `.check()`. Must fail today.
-- [ ] The break class is registered in `scripts/check-nonvacuity.mjs`, so an
-      emptied implementation cannot stay green.
-- [ ] If option 3 is chosen instead, the symbol is removed from both barrels and
-      from `vacuity-classification.ts`, and this record says so.
-- [ ] `npm run validate` green.
+- [x] done-otherwise — a preset that constructs zero rules produces the finding,
+      but **the emitter's, not a preset constructor's**, and through `deliver()`
+      rather than `.check()`. `packages/ts/tests/presets/all-off-and-aggregation.test.ts`
+      ("recommended() with every rule off reports, instead of returning a silent
+      []") and the same for `layeredArchitecture`. Written after the mechanism
+      rather than before it — the honest note, since the box says "red test
+      first": what WAS red-first is 0206's aggregating-path test in the same
+      file, which failed until `deliver()` was fixed.
+- [x] done-otherwise — registered under **`check:vacuity`**, not
+      `check:nonvacuity`. `scripts/vacuity-matrix.mjs` gains three
+      `EMITTER_PROBES` handing the emitters a bare array and a zero-examined
+      receipt; an emptied implementation scores `fail-open` and reds. The
+      production-script half is `check:nonvacuity`'s `emitter/one-dead-check`,
+      which plants a `continue` in ONE of `scripts/check-corpus.mjs`'s checks.
+      Two homes because the two claims differ: one is "the emitter refuses", the
+      other is "the real gate notices".
+- [x] The symbol is removed from both barrels — `packages/core/src/index.ts` and
+      `packages/core/src/internal.ts` — and from
+      `packages/ts/tests/matrix/vacuity-classification.ts`. The vacuity-matrix
+      comment that asserted this case "must stay detectable" of a helper nothing
+      called is rewritten to describe what now runs.
+- [x] `npm run validate` green — exit 0 measured directly, not through a pipe.
+
+**Closed as "gone", not "producible".** The kernel constructor is deleted; the
+finding an adopter now gets is the emitter's, which reaches every hand-assembler
+rather than only the presets someone remembered to guard. The gap the deletion
+would otherwise have left is bug 0261, closed with this one.
 
 Deferred: none.

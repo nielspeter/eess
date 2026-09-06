@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — reproduced against the shipped source; fix not built.
+- **State:** Fixed — by construction: the receipt contract reports it, with no
+  guard of its own (plan 0235).
 - **Severity:** High — **false green.** The flagship dialect's flagship preset
   can be switched off entirely and every gate reports it healthy. This is the
   class ADR-009/010 exist to make unrepresentable, in the package adopters
@@ -88,7 +89,7 @@ Two further facts, both measured, close the alternative:
   `declaredEmptyFindings` reports an `expectEmpty` id naming an `'off'` rule:
   "`'off'` deleted the rule, so the declaration about it is dead."
 
-[ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3 was
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3 was
 amended 2026-09-05 accordingly: a declaration is one a caller made over a live
 instrument, never one eess infers from a configuration.
 
@@ -106,7 +107,7 @@ The finding is the preset-seam analogue of `sourceEmpty`, and its message is the
 existing one raised a level: the preset constructed zero rules before any rule
 ran. No new vocabulary.
 
-Sequenced into [plan 0235](../plans/0235-the-emitter-takes-a-receipt.md), because
+Sequenced into [plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md), because
 the receipt is where the evidence lives and a standalone guard would build a
 parallel floor that 0235 then replaces. `recommended` and `layeredArchitecture`
 join the census as call sites passing the fact.
@@ -136,9 +137,26 @@ belongs at the seam both dialects share.
 
 ## Verification
 
-- [ ] a red test: `recommended` with every rule `'off'` returns something that
-      records the preset constructed nothing — asserted by identity, not count
-- [ ] the same for `layeredArchitecture`
-- [ ] a preset that legitimately constructs rules and finds nothing stays green
-      and is not marked declared-empty (the opposite direction)
-- [ ] a non-vacuity fixture per rule id the fix emits
+- [x] `packages/ts/tests/presets/all-off-and-aggregation.test.ts`
+      ("recommended() with every rule off reports, instead of returning a silent
+      []") — asserted on `EMITTER_PASS_WITHOUT_EVIDENCE` by identity, with
+      `examined` pinned at 0 beside it.
+- [x] the same for `layeredArchitecture`, in the same file.
+- [x] Both directions, and a third the fix required: a preset that constructed
+      rules and found nothing stays green, AND **one** rule off among others does
+      not report. That last one is not decoration — without `notRun` on
+      `dispatchRule`'s `'off'` branch, a single disabled rule reddened a whole
+      preset whose others examined real files (measured on `adrEnforcement`).
+- [x] done-otherwise — the fix emits the kernel's `emitter/pass-without-evidence`
+      rather than a preset-specific id, so the fixture is
+      `check:nonvacuity`'s `emitter/one-dead-check` (which asserts that id
+      against the production `scripts/check-corpus.mjs`) plus three
+      `EMITTER_PROBES` under `check:vacuity`. One id, two homes, no new id
+      needing one of its own.
+
+**Closed by construction, not by a guard.** An all-off preset produces zero
+builders, the kernel merge sums zero members with no declaration, and the
+emitter reports it. That is why this record's "Fix" argued against a standalone
+guard: it would have built a parallel floor that plan 0235 then replaced.
+
+Deferred: none.

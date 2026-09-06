@@ -28,6 +28,7 @@
  *      dialect (ts, md, mermaid) actually builds on.
  */
 import { describe, it, expect } from 'vitest'
+import { collectResult } from '../../src/collect-result.js'
 import {
   TerminalBuilder,
   RuleBuilder,
@@ -91,22 +92,21 @@ class WidgetRuleBuilder extends TerminalBuilder {
 
   protected collectViolations(): CollectResult {
     if (this._mustBeEmpty) {
-      return {
-        violations: this._widgets.map((w) => ({
+      return collectResult(
+        this._widgets.map((w) => ({
           rule: 'mustNotExist',
           element: w.name,
           file: '',
           line: 0,
           message: `widget ${w.name} should not exist`,
         })),
-        examined: this._widgets.length,
-      }
+        { examined: this._widgets.length },
+      )
     }
-    return {
-      violations: [],
+    return collectResult([], {
       examined: this._widgets.length,
-      ...(this._sourceEmpty ? { sourceEmpty: true } : {}),
-    }
+      sourceEmpty: this._sourceEmpty ? true : undefined,
+    })
   }
 }
 

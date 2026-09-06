@@ -149,7 +149,7 @@ describe('a project-relative path glob means the same thing everywhere (bug 0033
     ]
     for (const rule of relative) {
       expect(diagnose([rule])).toEqual([])
-      expect(rule.violations()).toEqual([])
+      expect(rule.violations()).toHaveLength(0)
     }
   })
 

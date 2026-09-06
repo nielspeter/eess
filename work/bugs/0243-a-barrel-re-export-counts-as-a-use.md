@@ -20,12 +20,13 @@ under `packages/*/src` exports nothing unreferenced, excluding the entry points,
 _"because entry-point exports exist for consumers; internal ones must be used"_.
 
 It misses a symbol whose **only** reference is a barrel re-export.
-`presetConstructsNothingViolation` is defined at
-`packages/core/src/preset-dispatch.ts:111` and referenced by exactly one other
-file — `packages/core/src/internal.ts:50`, which re-exports it. The rule sees a
+`presetConstructsNothingViolation` was defined in
+`packages/core/src/preset-dispatch.ts` and referenced by exactly one other
+file — `packages/core/src/internal.ts`, which re-exported it. (Both were deleted
+2026-09-06 under plan 0235 Phase 0; the measurement below is as of filing.) The rule sees a
 reference and passes. Nothing calls it.
 
-That is bug [0190](./0190-the-preset-constructs-nothing-finding-cannot-fire.md)'s
+That is bug [0190](./fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md)'s
 whole subject, and the shape of [0178](./0178-the-kernels-dead-glob-finding-cannot-fire.md)
 and of 0241. Three records for three instances of one uncovered predicate.
 
@@ -117,7 +118,7 @@ only shrink turns an unbounded question into a bounded one — the same device
 
 ## Related
 
-- [0190](./0190-the-preset-constructs-nothing-finding-cannot-fire.md),
+- [0190](./fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md),
   [0178](./0178-the-kernels-dead-glob-finding-cannot-fire.md),
   [0241](./fixed/0241-archconfigerror-has-no-reader.md) — the three instances.
   This record is the predicate they share.

@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { collectResult } from '@nielspeter/eess'
 import { checkAll } from '../../src/core/check-all.js'
 import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { RuleBuilderLike } from '@nielspeter/eess'
 
-const rule = (violations: ArchViolation[]): RuleBuilderLike => ({ violations: () => violations })
+const rule = (violations: ArchViolation[]): RuleBuilderLike => ({
+  violations: () => collectResult(violations, { examined: Math.max(violations.length, 1) }),
+})
 const v = (ruleId: string, severity?: 'error' | 'warn'): ArchViolation => ({
   rule: 'r',
   element: 'e',

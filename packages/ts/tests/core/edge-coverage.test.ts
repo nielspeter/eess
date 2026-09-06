@@ -66,7 +66,7 @@ describe('the vacuous pass is reported', () => {
       .should()
       .onlyImportFrom('**/nowhere/**')
 
-    expect(rule.violations()).toEqual([])
+    expect(rule.violations()).toHaveLength(0)
   })
 
   it('names the rule that tested no edges', () => {

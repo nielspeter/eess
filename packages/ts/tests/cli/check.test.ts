@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { collectResult } from '@nielspeter/eess'
 import { runCheck } from '../../src/cli/commands/check.js'
 
 // Mock the load-rules module to avoid needing actual rule files
@@ -44,19 +45,23 @@ afterEach(() => {
 
 describe('runCheck', () => {
   it('returns 0 when all rules pass', async () => {
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [] }])
+    mockLoadRuleFiles.mockResolvedValue([{ violations: () => collectResult([], { examined: 1 }) }])
     expect(await runCheck(baseArgs)).toBe(0)
   })
 
   it('returns the error-severity violation count when rules fail', async () => {
     vi.spyOn(process.stderr, 'write').mockReturnValue(true)
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [v({ severity: 'error' })] }])
+    mockLoadRuleFiles.mockResolvedValue([
+      { violations: () => collectResult([v({ severity: 'error' })], { examined: 1 }) },
+    ])
     expect(await runCheck(baseArgs)).toBe(1)
   })
 
   it('reports warn-severity violations but does NOT fail (exit 0)', async () => {
     const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [v({ severity: 'warn' })] }])
+    mockLoadRuleFiles.mockResolvedValue([
+      { violations: () => collectResult([v({ severity: 'warn' })], { examined: 1 }) },
+    ])
     expect(await runCheck(baseArgs)).toBe(0)
     expect(stderr).toHaveBeenCalled() // still surfaced, just non-failing
   })
@@ -84,7 +89,9 @@ describe('runCheck', () => {
     })
     mockLoadRuleFiles
       .mockRejectedValueOnce(new TypeError('boom from file A'))
-      .mockResolvedValueOnce([{ violations: () => [v({ element: 'SurvivorFromB' })] }])
+      .mockResolvedValueOnce([
+        { violations: () => collectResult([v({ element: 'SurvivorFromB' })], { examined: 1 }) },
+      ])
     const code = await runCheck({ ...baseArgs, ruleFiles: ['a.rules.ts', 'b.rules.ts'] })
     const output = reported.join('')
     expect(output).toContain('SurvivorFromB')
@@ -108,7 +115,7 @@ describe('runCheck', () => {
           throw new RangeError('malformed rule')
         },
       },
-      { violations: () => [v({ element: 'SiblingSurvived' })] },
+      { violations: () => collectResult([v({ element: 'SiblingSurvived' })], { examined: 1 }) },
     ])
     const code = await runCheck(baseArgs)
     const output = reported.join('')
@@ -130,16 +137,20 @@ describe('runCheck', () => {
     })
     mockLoadRuleFiles.mockResolvedValue([
       {
-        violations: () => [
-          v({
-            rule: 'x/vacuous',
-            element: 'x/vacuous',
-            file: '',
-            line: 0,
-            message: 'this rule asserts nothing and can never fail',
-            bypassFilters: true,
-          }),
-        ],
+        violations: () =>
+          collectResult(
+            [
+              v({
+                rule: 'x/vacuous',
+                element: 'x/vacuous',
+                file: '',
+                line: 0,
+                message: 'this rule asserts nothing and can never fail',
+                bypassFilters: true,
+              }),
+            ],
+            { examined: 1 },
+          ),
       },
     ])
     const code = await runCheck({ ...baseArgs, ruleFiles: ['rules/mine.rules.ts'] })
@@ -171,9 +182,13 @@ describe('runCheck', () => {
   it('sums error-severity violations across builders', async () => {
     vi.spyOn(process.stderr, 'write').mockReturnValue(true)
     mockLoadRuleFiles.mockResolvedValue([
-      { violations: () => [v({ element: 'X', severity: 'error' })] },
-      { violations: () => [] },
-      { violations: () => [v({ element: 'Y', severity: 'error' })] },
+      {
+        violations: () => collectResult([v({ element: 'X', severity: 'error' })], { examined: 1 }),
+      },
+      { violations: () => collectResult([], { examined: 1 }) },
+      {
+        violations: () => collectResult([v({ element: 'Y', severity: 'error' })], { examined: 1 }),
+      },
     ])
     expect(await runCheck(baseArgs)).toBe(2)
   })
@@ -181,8 +196,10 @@ describe('runCheck', () => {
   it('emits ONE JSON document for a multi-builder run (agent-loop contract)', async () => {
     const spy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     mockLoadRuleFiles.mockResolvedValue([
-      { violations: () => [v({ element: 'A', severity: 'error' })] },
-      { violations: () => [v({ element: 'B', severity: 'warn' })] },
+      {
+        violations: () => collectResult([v({ element: 'A', severity: 'error' })], { examined: 1 }),
+      },
+      { violations: () => collectResult([v({ element: 'B', severity: 'warn' })], { examined: 1 }) },
     ])
 
     const count = await runCheck({ ...baseArgs, format: 'json' })
@@ -200,7 +217,7 @@ describe('runCheck', () => {
 
   it('--format json emits a valid document even on a clean run (agent contract)', async () => {
     const spy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [] }])
+    mockLoadRuleFiles.mockResolvedValue([{ violations: () => collectResult([], { examined: 1 }) }])
 
     const count = await runCheck({ ...baseArgs, format: 'json' })
 
@@ -217,8 +234,18 @@ describe('runCheck', () => {
   it('--format github renders warns as ::warning, not ::error', async () => {
     const spy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     mockLoadRuleFiles.mockResolvedValue([
-      { violations: () => [v({ element: 'ErrOne', message: 'the error one', severity: 'error' })] },
-      { violations: () => [v({ element: 'WarnOne', message: 'the warn one', severity: 'warn' })] },
+      {
+        violations: () =>
+          collectResult([v({ element: 'ErrOne', message: 'the error one', severity: 'error' })], {
+            examined: 1,
+          }),
+      },
+      {
+        violations: () =>
+          collectResult([v({ element: 'WarnOne', message: 'the warn one', severity: 'warn' })], {
+            examined: 1,
+          }),
+      },
     ])
 
     await runCheck({ ...baseArgs, format: 'github' })
@@ -253,7 +280,12 @@ describe('runCheck', () => {
           new ArchRuleError([v({ element: 'FromA', severity: 'error' })], 'preset'),
         )
       }
-      return Promise.resolve([{ violations: () => [v({ element: 'FromB', severity: 'error' })] }])
+      return Promise.resolve([
+        {
+          violations: () =>
+            collectResult([v({ element: 'FromB', severity: 'error' })], { examined: 1 }),
+        },
+      ])
     })
 
     const count = await runCheck({ ...baseArgs, ruleFiles: ['a.ts', 'b.ts'] })
@@ -274,8 +306,14 @@ describe('runCheck', () => {
       filterNew: (vs: ArchViolation[]) => vs.filter((x) => x.element !== 'Known'),
     } as unknown as ReturnType<typeof withBaseline>)
     mockLoadRuleFiles.mockResolvedValue([
-      { violations: () => [v({ element: 'Known', severity: 'error' })] },
-      { violations: () => [v({ element: 'New', severity: 'error' })] },
+      {
+        violations: () =>
+          collectResult([v({ element: 'Known', severity: 'error' })], { examined: 1 }),
+      },
+      {
+        violations: () =>
+          collectResult([v({ element: 'New', severity: 'error' })], { examined: 1 }),
+      },
     ])
 
     const count = await runCheck({ ...baseArgs, baseline: 'baseline.json' })

@@ -5,6 +5,7 @@
  * Uses .rule() metadata for educational violation messages.
  */
 import fs from 'node:fs'
+import { collectResult } from '@nielspeter/eess'
 import path from 'node:path'
 import { describe, it, expect, afterAll } from 'vitest'
 import type { GlobSite, Located, Predicate } from '../../src/index.js'
@@ -1186,7 +1187,10 @@ function internalRuleIds(): DiagnosableRule[] {
   // it on these — it reads `describeRule()` for the id and `getProject()` for the
   // scan, and `BUILT` supplies the project. An empty stub keeps the stand-in
   // honest about contributing no findings of its own.
-  return ids.map((id) => ({ describeRule: () => ({ rule: id, id }), violations: () => [] }))
+  return ids.map((id) => ({
+    describeRule: () => ({ rule: id, id }),
+    violations: () => collectResult([], { examined: 1 }),
+  }))
 }
 
 afterAll(() => {

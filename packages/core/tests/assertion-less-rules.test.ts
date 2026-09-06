@@ -129,7 +129,11 @@ describe('an assertion-less rule fails (bug 0155)', () => {
     // assertion-less told the author to add a condition or delete the rule,
     // both of which destroy a working corpus guard.
     const violations = new WidgetRules(project).that().named('alpha').expectNonEmpty().violations()
-    expect(violations).toEqual([])
+    // `toHaveLength(0)`, not `toEqual([])`: plan 0235 made the result a receipt —
+    // an array carrying `examined` as an own property — and a deep-equal against a
+    // bare `[]` now compares that property too. "No violations" is the claim; "and
+    // no evidence either" is not, and asserting it would be asserting the bug.
+    expect(violations).toHaveLength(0)
   })
 
   it('…and it still reddens when the corpus it guards IS empty', () => {
@@ -220,6 +224,10 @@ describe('an assertion-less rule fails (bug 0155)', () => {
       .should()
       .satisfy(WidgetRules.alwaysPasses())
       .violations()
-    expect(passing).toEqual([])
+    // `toHaveLength(0)`, not `toEqual([])`: plan 0235 made the result a receipt —
+    // an array carrying `examined` as an own property — and a deep-equal against a
+    // bare `[]` now compares that property too. "No violations" is the claim; "and
+    // no evidence either" is not, and asserting it would be asserting the bug.
+    expect(passing).toHaveLength(0)
   })
 })

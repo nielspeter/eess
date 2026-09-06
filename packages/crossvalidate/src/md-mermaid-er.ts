@@ -1,11 +1,20 @@
 import picomatch from 'picomatch'
-import { finishPreset, type ArchViolation, type PresetReportOptions } from '@nielspeter/eess'
+import type { CollectResult } from '@nielspeter/eess'
+import {
+  finishPreset,
+  type ArchViolation,
+  type PresetReportOptions,
+  collectResult,
+} from '@nielspeter/eess'
 import { violationsFor } from './shared.js'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { parseErDiagram, collectEntities, type ErEntityInfo } from '@nielspeter/eess-mermaid'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
-export { finishPreset } from '@nielspeter/eess'
+export { finishPreset, collectResult } from '@nielspeter/eess'
+// The receipt type is this module's public return type, so a standalone
+// consumer must be able to name it without a second kernel install (plan 0089).
+export type { CollectResult } from '@nielspeter/eess'
 export type { ArchViolation, PresetReportOptions } from '@nielspeter/eess'
 
 export interface TableErAgreeOptions extends PresetReportOptions {
@@ -71,9 +80,11 @@ function erEntitiesOf(doc: MdDocument): ErBlock[] {
  * `undefined`, are skipped — gate diagram *presence* separately with
  * `docs()` conformance if the corpus requires one.
  */
-export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): ArchViolation[] {
+export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): CollectResult {
   const inDocs = picomatch(options.docs ?? '**')
   const violations: ArchViolation[] = []
+  // ER blocks compared, not documents walked.
+  let examined = 0
 
   for (const doc of corpus.documents()) {
     if (!inDocs(doc.relPath)) continue
@@ -85,6 +96,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Arch
     // A block that is not standard Mermaid ER syntax is itself drift — flag
     // it (never crash, never silently skip) and compare what did parse.
     for (const b of blocks) {
+      examined++
       if (b.parseError !== undefined) {
         violations.push(
           v(
@@ -165,7 +177,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Arch
     }
   }
 
-  return finishPreset(violations, options)
+  return finishPreset(collectResult(violations, { examined }), options)
 }
 
 /** Count compared docs/entities/attributes for a caller's non-vacuity summary. */

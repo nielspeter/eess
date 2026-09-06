@@ -28,7 +28,7 @@ describe('.violations() terminal', () => {
       .notImportFrom('**/nonexistent/**')
       .violations()
 
-    expect(result).toEqual([])
+    expect(result).toHaveLength(0)
   })
 
   it('returns violations array without throwing (RuleBuilder)', () => {
@@ -70,6 +70,6 @@ describe('.violations() terminal', () => {
       .respectLayerOrder('routes', 'services', 'repositories')
       .violations()
 
-    expect(result).toEqual([])
+    expect(result).toHaveLength(0)
   })
 })

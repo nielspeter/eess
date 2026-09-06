@@ -3,6 +3,7 @@ import type { RuleRun } from './terminal-execution.js'
 import { zeroSubjectsAdviceOf, zeroSubjectsViolationOf } from './vacuity-diagnosis.js'
 import type { RuleFacts } from './vacuity-diagnosis.js'
 import type { ArchViolation } from '@nielspeter/eess'
+import { collectResult } from '@nielspeter/eess'
 import { severityFor, subjectOf } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import type { ArchProject } from './project.js'
@@ -39,17 +40,22 @@ const CONTRADICTION =
  * Part of the extension surface [ts-archunit ADR-010](https://github.com/nielspeter/ts-archunit/blob/main/adr/010-the-extension-surface-is-a-contract.md)
  * rule 1 names as contract, so changing this shape is a breaking change.
  */
-export interface CollectResult {
-  /** The violations the family found. Unchanged in meaning from the array this replaced. */
-  violations: ArchViolation[]
-  /**
-   * Units this family's own semantics examined — subjects, bodies, pairs, keys,
-   * declared requirements. **Never a file count**: counting one layer too high
-   * reads healthy on exactly the input this evidence exists to catch, which is a
-   * rule whose own narrowing removed everything the project loaded.
-   */
-  examined: number
-}
+/**
+ * The receipt — re-exported from the kernel, not redeclared.
+ *
+ * This was a second `CollectResult` interface, forked alongside the rest of the
+ * engine (plan 0188 tracks the duplication; bugs 0156, 0163 and 0227 are what it
+ * costs). It carried `{ violations, examined }` where the kernel's now carries
+ * its evidence on the array itself, and two shapes for one concept is how
+ * `declaredEmpty` would reach the kernel's terminal and never the flagship
+ * dialect's — plan 0235's D4 exactly: "D4's declaration goes on both terminals'
+ * receipts, or the flagship dialect's presets arrive undeclared."
+ *
+ * Unified here rather than waiting for 0188, because this plan cannot ship a
+ * declaration that reaches four dialects and not the fifth.
+ */
+import type { CollectResult } from '@nielspeter/eess'
+export type { CollectResult }
 
 /**
  * True when two or more of this batch's RAW violations would share one
@@ -730,7 +736,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * regardless of `.asSeverity('warn')`, refused by `.excluding()`, and skipped
    * by diff and baseline. See `severityFor` and ADR-009 rule 1.
    */
-  private collectWithAssertionGuard(): ArchViolation[] {
+  private collectWithAssertionGuard(): CollectResult {
     return runWithGuard(this.asRun())
   }
 
@@ -741,6 +747,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
       expectsEmpty: this._expectEmpty,
       assertsSomething: () => this.assertsSomething(),
       ownsDiscoveryDiagnosis: () => this.ownsDiscoveryDiagnosis(),
+      assertsCardinality: () => this.assertsCardinality(),
       collectViolations: () => this.collectViolations(),
     }
   }
@@ -793,8 +800,28 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * Execute the rule and return violations after exclusion filtering.
    * Does not throw — use for programmatic access (presets, aggregation).
    */
-  violations(): ArchViolation[] {
+  violations(): CollectResult {
+    // The evidence comes from `collectViolations()` directly: the assertion
+    // guard returns a bare array of findings (it can ADD a gate finding to a
+    // rule that collected nothing), so the denominator has to be read from the
+    // rule's own receipt rather than from what survived the gates.
+    //
+    // **The declaration travels with it — D4.** "D4's declaration goes on both
+    // terminals' receipts, or the flagship dialect's presets arrive undeclared."
+    // Unifying the TYPE across the two terminals is not enough; this is the line
+    // that makes an `eess-ts` rule's declaration reach the emitter at all, and
+    // without it every `.expectEmpty()` in the flagship dialect was silently
+    // undeclared. Caught by a test asserting `declaredEmpty` directly.
+    //
+    // `assertsCardinality()` only declares over ZERO examined — ADR-010 §3:
+    // `.notExist()` over zero subjects is a declaration by construction, but
+    // over a live selection it is an ordinary assertion.
     const raw = this.collectWithAssertionGuard()
+    const evidence = {
+      examined: raw.examined,
+      sourceEmpty: raw.sourceEmpty,
+      declaredEmpty: raw.declaredEmpty,
+    }
     const filtered = applyFilters(raw, this.filterContext())
     const sev: 'error' | 'warn' = this._severity ?? 'error'
     // Computed from `raw`, not `filtered`: `applyFilters()` already ran
@@ -804,10 +831,13 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     // exactly the case this exists to catch. Only computed when it can matter.
     const unsafe =
       sev === 'warn' && this._acceptedWarnings !== undefined && hasIdentityCollision(raw)
-    return filtered.map((v) => ({
-      ...v,
-      severity: severityFor(v, unsafe ? 'error' : this.fallbackSeverityFor(v, sev)),
-    }))
+    return collectResult(
+      filtered.map((v) => ({
+        ...v,
+        severity: severityFor(v, unsafe ? 'error' : this.fallbackSeverityFor(v, sev)),
+      })),
+      evidence,
+    )
   }
 
   /**

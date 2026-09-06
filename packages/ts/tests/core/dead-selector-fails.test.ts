@@ -83,7 +83,14 @@ describe('a dead selector fails at check time (plan 0074, R3b)', () => {
       .resideInFolder('**/domain/**')
       .should()
       .notImportFrom('**/no-such-target/**')
-    expect(rule.violations()).toEqual([])
+    const v = rule.violations()
+    expect(v).toHaveLength(0)
+    // The count cannot distinguish this control from the dead selector it exists
+    // to control for — both are zero. These two can: the rule examined real units
+    // and did NOT lean on a declaration, so the pass is built from evidence.
+    // (Plan 0079's scan is what insisted the block say more than a number.)
+    expect(v.examined).toBeGreaterThan(0)
+    expect(v.declaredEmpty).toBeUndefined()
   })
 
   it('exempts a condition that declares emptiness as its passing state', () => {
@@ -96,7 +103,12 @@ describe('a dead selector fails at check time (plan 0074, R3b)', () => {
       .resideInFolder('**/no-such-folder/**')
       .should()
       .satisfy(notExist())
-    expect(guard.violations()).toEqual([])
+    const v = guard.violations()
+    expect(v).toHaveLength(0)
+    // Zero examined and DECLARED by the cardinality condition — the exemption,
+    // stated rather than inferred from the empty list.
+    expect(v.examined).toBe(0)
+    expect(v.declaredEmpty).toBe(true)
   })
 
   it('CONTROL: the exemption does not disable the condition it exempts', () => {
@@ -216,7 +228,14 @@ describe('an empty selection is a fault by default (plan 0074, emptyIsPass)', ()
       .resideInFolder('**/domain/**')
       .should()
       .notImportFrom('**/no-such-target/**')
-    expect(rule.violations()).toEqual([])
+    const v = rule.violations()
+    expect(v).toHaveLength(0)
+    // Both report zero; only the evidence separates them. This one examined real
+    // units and declared nothing — a pass constructed from evidence, which is
+    // the claim. (Plan 0079's scan is what insisted the block say more than a
+    // number.)
+    expect(v.examined).toBeGreaterThan(0)
+    expect(v.declaredEmpty).toBeUndefined()
   })
 
   it('.expectEmpty() accepts an empty selection', () => {
@@ -228,7 +247,13 @@ describe('an empty selection is a fault by default (plan 0074, emptyIsPass)', ()
       .expectEmpty()
       .should()
       .notImportFrom('**/x/**')
-    expect(rule.violations()).toEqual([])
+    const v = rule.violations()
+    expect(v).toHaveLength(0)
+    // Zero examined AND declared — the pair is the assertion. Without the
+    // declaration this is the dead selector two tests up; without the zero the
+    // declaration would have expired.
+    expect(v.examined).toBe(0)
+    expect(v.declaredEmpty).toBe(true)
   })
 
   it('.expectEmpty() FAILS the day the selection stops being empty', () => {
@@ -277,7 +302,12 @@ describe('an empty selection is a fault by default (plan 0074, emptyIsPass)', ()
       .haveNameMatching(/^nope$/)
       .should()
       .satisfy(notExist())
-    expect(onlyCardinality.violations()).toEqual([])
+    // Identity, not a count: `.map()` on a receipt yields a plain array, so this
+    // names WHICH findings are absent. The block pins `toHaveLength(1)` for the
+    // mixed rule below, and plan 0079's scan flags a block that pins a non-zero
+    // count with no identity signal — which is what the scripted
+    // `toEqual([]) -> toHaveLength(0)` migration briefly made this.
+    expect(onlyCardinality.violations().map((v) => v.ruleId)).toEqual([])
 
     const mixed = modules(p)
       .that()

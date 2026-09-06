@@ -125,7 +125,7 @@ describe("the bug's own reproduction table", () => {
     // Under the threshold the rule does not fire at all, so there is nothing to
     // match — green for a different reason than the rows above, and worth
     // separating so a fix that broke rule firing would not read as success.
-    expect(violationsAt(5)).toEqual([])
+    expect(violationsAt(5)).toHaveLength(0)
     expect(afterBaseline(10, 5)).toEqual([])
   })
 })

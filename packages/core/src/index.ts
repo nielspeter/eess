@@ -17,7 +17,16 @@ export type { ArchViolation, ArchFix } from './violation.js'
 // Rule builder, terminal builder, error
 export { RuleBuilder } from './rule-builder.js'
 export { TerminalBuilder } from './terminal-builder.js'
-export type { CollectResult } from './terminal-builder.js'
+// ADR-014's receipt. The type keeps the name `CollectResult`; "receipt" is
+// plan 0235's prose word for it, never a second exported name.
+export type { CollectResult, Evidence } from './collect-result.js'
+export { collectResult, mergeCollectResults, hasEvidence } from './collect-result.js'
+export {
+  EMITTER_NO_RECEIPT,
+  EMITTER_PASS_WITHOUT_EVIDENCE,
+  EMITTER_EXPIRED_DECLARATION,
+  EMITTER_CONTRADICTORY_EVIDENCE,
+} from './emitter-findings.js'
 export { assertsCardinality } from './cardinality.js'
 export { ArchRuleError, isArchRuleError, ArchConfigError, isArchConfigError } from './errors.js'
 // On the ROOT, not `/internal`: `eess-ts` returns it from its public

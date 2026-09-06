@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { collectResult } from '@nielspeter/eess'
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -36,15 +37,19 @@ describe('runBaseline', () => {
 
     // Builder that reports one violation via .violations()
     const builder = {
-      violations: () => [
-        {
-          rule: 'test rule',
-          element: 'TestClass',
-          file: '/src/test.ts',
-          line: 10,
-          message: 'test violation',
-        },
-      ],
+      violations: () =>
+        collectResult(
+          [
+            {
+              rule: 'test rule',
+              element: 'TestClass',
+              file: '/src/test.ts',
+              line: 10,
+              message: 'test violation',
+            },
+          ],
+          { examined: 1 },
+        ),
     }
     mockLoadRuleFiles.mockResolvedValue([builder])
 
@@ -69,7 +74,7 @@ describe('runBaseline', () => {
     })
 
     // No violations — builder passes
-    mockLoadRuleFiles.mockResolvedValue([{ violations: () => [] }])
+    mockLoadRuleFiles.mockResolvedValue([{ violations: () => collectResult([], { examined: 1 }) }])
 
     await runBaseline({ ruleFiles: ['rules.ts'], output: outputPath })
 
@@ -104,7 +109,9 @@ describe('runBaseline', () => {
         chunks.push(String(chunk))
         return true
       })
-      mockLoadRuleFiles.mockResolvedValue([{ violations: () => elements.map(violation) }])
+      mockLoadRuleFiles.mockResolvedValue([
+        { violations: () => collectResult(elements.map(violation), { examined: elements.length }) },
+      ])
       await runBaseline({ ruleFiles: ['rules.ts'], output: outputPath })
       writeSpy.mockRestore()
       return chunks.join('')

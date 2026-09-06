@@ -156,8 +156,12 @@ describe('embeddedDiagramsMatchCode() — embedded ```mermaid in markdown', () =
       diagrams: 0,
       skipped: 1,
     })
+    // Declared: this document's only fence is a foreign diagram, so there is
+    // genuinely nothing for this preset to examine. Expires if one is added.
     expect(() =>
-      embeddedDiagramsMatchCode(c(['docs/embedded-foreign-only.md']), proj()),
+      embeddedDiagramsMatchCode(c(['docs/embedded-foreign-only.md']), proj(), {
+        expectEmpty: true,
+      }),
     ).not.toThrow()
     // the mixed document contributes its one class diagram and skips one fence
     expect(embeddedDiagramStats(c(['docs/embedded-mixed.md']))).toEqual({

@@ -355,7 +355,7 @@ describe('tsconfig() — value comparison and messages', () => {
       tsconfig(mk({ strict: true }))
         .requires({ strict: true })
         .violations(),
-    ).toEqual([])
+    ).toHaveLength(0)
   })
 
   it('emits the full violation shape (file, line, rule)', () => {

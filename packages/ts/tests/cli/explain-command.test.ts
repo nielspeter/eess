@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { collectResult } from '@nielspeter/eess'
 
 /**
  * Test the explain command's internal functions directly.
@@ -22,7 +23,10 @@ const mockedLoadRuleFiles = vi.mocked(loadRuleFiles)
 
 /** Helper: create a mock builder with optional describeRule for testing */
 function mockBuilder(extra?: Record<string, unknown>): RuleBuilderLike {
-  return Object.assign({ violations: () => [] }, extra) as RuleBuilderLike
+  return Object.assign(
+    { violations: () => collectResult([], { examined: 1 }) },
+    extra,
+  ) as RuleBuilderLike
 }
 
 afterEach(() => {

@@ -67,7 +67,7 @@ describe('dependency conditions resolve per package in a workspace (plan 0148)',
       .resideInFile('**/consumer.ts')
       .should()
       .satisfy(dependOn('src/api/**'))
-    expect(rule.violations()).toEqual([])
+    expect(rule.violations()).toHaveLength(0)
   })
 
   it('CONTROL: a target genuinely outside the allowlist still violates onlyImportFrom', () => {

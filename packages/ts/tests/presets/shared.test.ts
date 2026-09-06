@@ -89,7 +89,19 @@ describe('collectRule', () => {
       .notImportFrom('**/nonexistent/**')
     const result = collectRule(builder, { id: 'test/rule' }, 'warn', undefined)
     expect(result).toHaveLength(1)
-    expect(result[0]!.violations()).toEqual([])
+    const v = result[0]!.violations()
+    // `.map()` on a receipt yields a plain array, so this is a real identity
+    // assertion again — WHICH findings are absent, not merely how many. The
+    // scripted `toEqual([]) -> toHaveLength(0)` migration stripped the identity
+    // signal from this block while it still pinned `toHaveLength(1)` above, and
+    // plan 0079's scan caught the weakening.
+    expect(v.map((x) => x.ruleId)).toEqual([])
+    // "0 violations, not skipped" is this test's whole name, and until the
+    // receipt existed the two were indistinguishable from the outside. The
+    // declaration check is what makes this more than a second count: the rule
+    // passed on evidence, not by declaring itself empty.
+    expect(v.examined).toBeGreaterThan(0)
+    expect(v.declaredEmpty).toBeUndefined()
   })
 
   it('uses the override severity instead of the default', () => {

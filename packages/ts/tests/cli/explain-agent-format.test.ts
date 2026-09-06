@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { collectResult } from '@nielspeter/eess'
 import { runExplain } from '../../src/cli/commands/explain.js'
 
 vi.mock('../../src/cli/load-rules.js', () => ({ loadRuleFiles: vi.fn() }))
@@ -11,7 +12,12 @@ const mockLoad = vi.mocked(loadRuleFiles)
 /** Run explain --format agent over the given rule descriptions; return stdout. */
 async function runAgent(descs: RuleDescription[]): Promise<string> {
   const spy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
-  mockLoad.mockResolvedValue(descs.map((d) => ({ describeRule: () => d, violations: () => [] })))
+  mockLoad.mockResolvedValue(
+    descs.map((d) => ({
+      describeRule: () => d,
+      violations: () => collectResult([], { examined: 1 }),
+    })),
+  )
   await runExplain({ ruleFiles: ['rules.ts'], format: 'agent' })
   return spy.mock.calls.map((c) => String(c[0])).join('')
 }

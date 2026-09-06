@@ -50,6 +50,8 @@ const VACUITY_TSCONFIG =
 const tsRoot = await import('@nielspeter/eess-ts')
 const tsPresets = await import('@nielspeter/eess-ts/presets')
 const tsGraphql = await import('@nielspeter/eess-ts/graphql')
+// The kernel itself: ADR-014's emitters are the seam the probes below exercise.
+const kernel = await import('@nielspeter/eess')
 const { project, ArchRuleError } = tsRoot
 
 // --- Classification ---
@@ -209,13 +211,56 @@ const BUILDER_PROBES = {
  * blind to a recurrence of the branch's own headline bug — measured: byte-identical
  * green with the regression fully reintroduced. Found by the enforcement review.
  *
- * A preset that constructs NOTHING still scores `fail-open` here, correctly:
- * `finishPreset([], …)` has nothing to throw about. That is
- * `presetConstructsNothingViolation`'s case and it must stay detectable.
+ * **A preset that constructs NOTHING no longer scores `fail-open` here**, and
+ * the history is worth keeping. This paragraph used to read "`finishPreset([],
+ * …)` has nothing to throw about … that is `presetConstructsNothingViolation`'s
+ * case and it must stay detectable" — of a kernel constructor that had **no call
+ * site anywhere** (bug 0190). The sentence asserted a mechanism nothing ran.
+ *
+ * It is now true rather than aspirational: the constructor was deleted (plan
+ * 0235 Phase 0) and ADR-014 makes the emitter itself refuse an evidence-free
+ * verdict, so `finishPreset([])` throws a configuration finding. The
+ * `EMITTER_PROBES` below assert exactly that, which is what moved this from a
+ * claim to a check.
  *
  * One explicit-mode probe is kept below so `report: 'throw'` does not become
  * untested by moving the others onto the default.
  */
+/**
+ * The EMITTER probes — plan 0235 / ADR-014.
+ *
+ * The matrix's other probes call a published constructor and ask what it reports
+ * over a zero-file project. These ask a different question, at the seam ADR-014
+ * added: what does an emitter do with a value nobody minted?
+ *
+ * Added because this file's own comment said the case "must stay detectable" of
+ * a helper that had no call site at all (bug 0190) — a claim the matrix could
+ * not check, because `finishPreset` is a REPORTER and the enumeration walks
+ * check-CONSTRUCTORS. Proposal 009's field failure came through exactly that
+ * gap: a consumer importing eess's types and its printer and never a builder.
+ *
+ * `classify()` reads a thrown `ArchRuleError` as `fails`, which is what these
+ * must do — an evidence-free verdict is a configuration finding on every path.
+ */
+const EMITTER_PROBES = {
+  'finishPreset(bare array) [hand-assembled, no evidence]': () => kernel.finishPreset([]),
+  'reportViolations(bare array) [hand-assembled, no evidence]': () => kernel.reportViolations([]),
+  'finishPreset(receipt examining zero) [the loop that never ran]': () =>
+    kernel.finishPreset(kernel.collectResult([], { examined: 0 })),
+  // The third id needs its own probe or it is an id nothing proves can fire —
+  // bug 0190's shape, in the change that closes 0190. A declaration that cannot
+  // expire is not an assertion (ADR-010 §3), so the expiry IS the mechanism that
+  // makes `declaredEmpty` admissible at all.
+  'finishPreset(declared empty, then examined) [an expired declaration]': () =>
+    kernel.finishPreset(kernel.collectResult([], { examined: 3, declaredEmpty: true })),
+  // The fourth id, for the same reason as the third. `notRun` is the one flag
+  // here that SUPPRESSES — it exempts a member from the merge's dead filter — so
+  // an id nothing proves can fire would leave a mute button with no falsifier,
+  // which is bug 0190's shape wearing the label of a fix for it.
+  'finishPreset(never ran, yet examined) [a contradicted notRun]': () =>
+    kernel.finishPreset(kernel.collectResult([], { examined: 5, notRun: true })),
+}
+
 const PRESET_PROBES = {
   'recommended() [default delivery]': () => tsPresets.recommended(zeroFileProject, {}),
   'agentGuardrails() [default delivery]': () =>
@@ -263,6 +308,9 @@ for (const [name, thunk] of Object.entries(BUILDER_PROBES)) {
 }
 for (const [name, thunk] of Object.entries(PRESET_PROBES)) {
   results.push({ name, kind: 'preset', verdict: classify(thunk) })
+}
+for (const [name, thunk] of Object.entries(EMITTER_PROBES)) {
+  results.push({ name, kind: 'emitter', verdict: classify(thunk) })
 }
 
 const today = new Date().toISOString().slice(0, 10)
@@ -325,5 +373,5 @@ if (findings.length > 0) {
 }
 
 console.error(
-  `✓ vacuity matrix — ${results.length} exports probed (${BUILDER_PROBES ? Object.keys(BUILDER_PROBES).length : 0} builders + ${Object.keys(PRESET_PROBES).length} presets), ${KNOWN_FAIL_OPEN.length} tracked KNOWN_FAIL_OPEN entr${KNOWN_FAIL_OPEN.length === 1 ? 'y' : 'ies'}, 0 unaccounted fail-open`,
+  `✓ vacuity matrix — ${results.length} exports probed (${Object.keys(BUILDER_PROBES).length} builders + ${Object.keys(PRESET_PROBES).length} presets + ${Object.keys(EMITTER_PROBES).length} emitters), ${KNOWN_FAIL_OPEN.length} tracked KNOWN_FAIL_OPEN entr${KNOWN_FAIL_OPEN.length === 1 ? 'y' : 'ies'}, 0 unaccounted fail-open`,
 )

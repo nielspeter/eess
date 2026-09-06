@@ -21,6 +21,7 @@
  * version survived exactly that sabotage.
  */
 import path from 'node:path'
+import { collectResult } from '@nielspeter/eess'
 import { describe, it, expect, vi } from 'vitest'
 import { Project } from 'ts-morph'
 import * as rootExports from '../../src/index.js'
@@ -47,7 +48,6 @@ import fs from 'node:fs'
 import os from 'node:os'
 import { project } from '../../src/core/project.js'
 import type { ArchProject } from '../../src/core/project.js'
-import type { ArchViolation } from '@nielspeter/eess'
 
 const fixtures = (name: string): string =>
   path.resolve(import.meta.dirname, `../fixtures/${name}/tsconfig.json`)
@@ -448,7 +448,11 @@ class AdviceLessBuilder extends TerminalBuilder {
     // Plan 0098 retyped this seam. This fixture is the closest thing in-repo to
     // an ADR-010 foreign dialect, and updating it here IS the upgrade an external
     // dialect performs — a compile error naming the member, not a silent drift.
-    return { violations: [], examined: 0 }
+    //
+    // Second time, plan 0235: the object literal became the receipt, and this
+    // fixture reported it exactly as promised — one compile error, naming the
+    // member. An adopter's own dialect gets the same notice.
+    return collectResult([], { examined: 0 })
   }
 }
 
@@ -794,7 +798,12 @@ describe('diagnose() parity — one string, one place', () => {
     // what an external tool holding its own rule objects passes.
     // `violations` is required by `RuleBuilderLike`, which `DiagnosableRule`
     // extends — the minimum a real external caller would hold.
-    const ducked = { assertsSomething: () => false, violations: (): ArchViolation[] => [] }
+    // The duck a real external caller holds — and it now has to say what it
+    // examined, which is D1's whole point: the minimum shape carries evidence.
+    const ducked = {
+      assertsSomething: () => false,
+      violations: () => collectResult([], { examined: 0 }),
+    }
     const findings = diagnose([ducked]).filter((f) => f.kind === 'no-condition')
     expect(findings).toHaveLength(1)
     expect(findings[0]?.advice).toBe(TerminalBuilder.prototype.assertionAdvice.call(ducked))

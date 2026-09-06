@@ -337,7 +337,7 @@ describe('crossProject()', () => {
       expect(withGuard).toHaveLength(elements.length)
       expect(withGuard.every((x) => /over-normalization/.test(x.message))).toBe(true)
       // opt-in: without .distinctKeysOn() the collapse is not flagged (beComplete passes)
-      expect(base().violations()).toEqual([])
+      expect(base().violations()).toHaveLength(0)
     })
   })
 

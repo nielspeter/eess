@@ -80,7 +80,7 @@ describe('a body is never compared with a body nested inside it', () => {
         .rule({ id: 'smells/nested' })
         .violations(),
     )
-    expect(violations).toEqual([])
+    expect(violations).toHaveLength(0)
   })
 
   it('still reports two SEPARATE factories of the same shape', () => {

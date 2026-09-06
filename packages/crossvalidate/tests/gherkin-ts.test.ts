@@ -81,7 +81,7 @@ describe('scenarioTestsResolve() — gherkin↔ts', () => {
     // Truncated at the backtick, the citation read `discount.feature › Reject a `
     // — no such scenario — so the gate went red over a scenario that is present.
     const violations = violationsOf(() => scenarioTestsResolve(proj('quoted'), quotedSet()))
-    expect(violations).toEqual([])
+    expect(violations).toHaveLength(0)
     expect(scenarioTestStats(proj('quoted'), quotedSet()).citations).toBe(1)
   })
 
@@ -172,10 +172,17 @@ describe('scenarioExemptionsCurrent() — plan 0145 (proposal 005)', () => {
   it('is silent for a non-exempt scenario regardless of citation (isExempt scopes the check)', () => {
     // `covered` cites every scenario, including three non-@wip ones — none of
     // them should be reported, since only exempt scenarios are ever checked.
+    // `isExempt: () => false` means this rule examines zero exemptions BY
+    // CONSTRUCTION, which is the declaration's exact case: the set legitimately
+    // has none. Without it the emitter reports a pass over zero examined units,
+    // and it is right to.
     const violations = violationsOf(() =>
-      scenarioExemptionsCurrent(proj('covered'), set(), { isExempt: () => false }),
+      scenarioExemptionsCurrent(proj('covered'), set(), {
+        isExempt: () => false,
+        expectEmpty: true,
+      }),
     )
-    expect(violations).toEqual([])
+    expect(violations).toHaveLength(0)
   })
 
   it('report: return hands violations back without writing to stderr (ADR-008)', () => {

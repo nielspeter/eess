@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { collectResult } from '../src/collect-result.js'
 import { applyFilters } from '../src/internal.js'
 import { executeWarn, executeCheck } from '../src/execute-rule.js'
 import { ArchRuleError } from '../src/errors.js'
@@ -163,7 +164,12 @@ describe('executeCheck/executeWarn — diff-aware disclosure (plan 0147 Phase 4)
 
   it('executeCheck writes an activeNotice to stderr when the diff filter suppressed a finding', () => {
     const spy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
-    expect(() => executeCheck([bare()], {}, { diff: dropsEverything })).not.toThrow()
+    // `examined: 1` — a real unit was examined and its finding was then filtered
+    // away by diff-aware mode. Zero here would be the denominator lie, not the
+    // scenario: the run DID examine something.
+    expect(() =>
+      executeCheck(collectResult([bare()], { examined: 1 }), {}, { diff: dropsEverything }),
+    ).not.toThrow()
     const written = spy.mock.calls.map((c) => String(c[0])).join('')
     expect(written).toContain('Diff-aware mode is active')
   })

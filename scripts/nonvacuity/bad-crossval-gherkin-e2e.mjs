@@ -88,8 +88,15 @@ function scenario({ feature, spec }) {
 }
 
 const FEATURE_WIP = 'Feature: Probe\n\n  @wip\n  Scenario: A stale exemption\n    Given something\n'
+// The @wip scenario is the SUBJECT (exempt, uncited). The second, untagged and
+// cited, exists so the corpus is not vacuous on the other two axes: with an
+// empty spec this control had zero `it()` titles, so `scenarioTestsResolve`
+// examined nothing and — correctly, under ADR-014 — reported a pass built from
+// no evidence. A negative control whose corpus certifies nothing cannot show
+// that a rule "stayed silent"; it shows that nothing ran.
 const FEATURE_WIP_UNCITED =
-  'Feature: Probe\n\n  @wip\n  Scenario: Not yet done\n    Given something\n'
+  'Feature: Probe\n\n  @wip\n  Scenario: Not yet done\n    Given something\n\n' +
+  '  Scenario: Proven by a test\n    Given something\n'
 const FEATURE_UNTAGGED_UNCITED =
   'Feature: Probe\n\n  Scenario: Nobody proves this\n    Given something\n'
 const SPEC_CITES = [
@@ -98,9 +105,13 @@ const SPEC_CITES = [
   'export {}',
   '',
 ].join('\n')
-const SPEC_EMPTY = ['declare function it(name: string, fn?: () => void): void', 'export {}', ''].join(
-  '\n',
-)
+// Cites the untagged sibling, so every rule in the chain examines a real unit.
+const SPEC_COVERS_SIBLING = [
+  'declare function it(name: string, fn?: () => void): void',
+  "it('probe.feature › Proven by a test', () => {})",
+  'export {}',
+  '',
+].join('\n')
 
 const SCENARIOS = [
   [
@@ -111,13 +122,13 @@ const SCENARIOS = [
   ],
   [
     'exempt scenario, no citing test — must stay silent (negative control)',
-    { feature: FEATURE_WIP_UNCITED, spec: SPEC_EMPTY },
+    { feature: FEATURE_WIP_UNCITED, spec: SPEC_COVERS_SIBLING },
     'crossval/scenario-exemption-stale',
     false,
   ],
   [
     'untagged scenario, no citing test — must fire scenarios-covered (folds in bug 0112)',
-    { feature: FEATURE_UNTAGGED_UNCITED, spec: SPEC_EMPTY },
+    { feature: FEATURE_UNTAGGED_UNCITED, spec: SPEC_COVERS_SIBLING },
     'crossval/scenarios-covered',
     true,
   ],

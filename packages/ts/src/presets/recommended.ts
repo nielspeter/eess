@@ -1,4 +1,4 @@
-import type { ArchViolation } from '@nielspeter/eess'
+import type { CollectResult } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import type { Condition } from '@nielspeter/eess'
@@ -130,11 +130,11 @@ export function recommended(
   p: ArchProject,
   options: RecommendedOptions & { report: 'builders' },
 ): RuleBuilderLike[]
-export function recommended(p: ArchProject, options?: RecommendedOptions): ArchViolation[]
+export function recommended(p: ArchProject, options?: RecommendedOptions): CollectResult
 export function recommended(
   p: ArchProject,
   options: RecommendedOptions = {},
-): RuleBuilderLike[] | ArchViolation[] {
+): RuleBuilderLike[] | CollectResult {
   const include = options.include ?? '**/src/**'
   validateOverrides(options.overrides, RULE_IDS)
   const overrideProblems = overrideFindings(options.overrides, RULE_IDS)

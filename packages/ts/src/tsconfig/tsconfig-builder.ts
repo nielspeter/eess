@@ -1,4 +1,5 @@
 import type { RuleDescription } from '@nielspeter/eess'
+import { collectResult } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
 import { isRecord } from '@nielspeter/eess/internal'
 import { ScriptTarget, ModuleKind, ModuleResolutionKind } from 'ts-morph'
@@ -115,7 +116,7 @@ export class TsconfigBuilder extends TerminalBuilder {
     // Zero means `.require({})`: a tsconfig rule that asserts nothing, which is
     // this family's shape of the vacuity every other family expresses as an
     // empty selection.
-    return { violations, examined: this.examinedUnits() }
+    return collectResult(violations, { examined: this.examinedUnits() })
   }
 
   /**

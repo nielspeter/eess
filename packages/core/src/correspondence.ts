@@ -1,4 +1,5 @@
 import type { ArchViolation } from './violation.js'
+import { collectResult } from './collect-result.js'
 import type { Predicate } from './predicate.js'
 import { TerminalBuilder, type CollectResult } from './terminal-builder.js'
 import { matchSelections, type MatchOptions } from './matching.js'
@@ -136,7 +137,7 @@ export class CorrespondenceBuilder<L, R> extends TerminalBuilder {
     // many checks were chained; one side alone being empty is still real
     // examination of the other.
     const examined = this.opts.left.elements.length + this.opts.right.elements.length
-    return { violations, examined }
+    return collectResult(violations, { examined })
   }
 
   /**

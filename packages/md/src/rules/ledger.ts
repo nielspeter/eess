@@ -1,4 +1,4 @@
-import { finishPreset, type PresetReportOptions } from '@nielspeter/eess'
+import { finishPreset, type PresetReportOptions, mergeCollectResults } from '@nielspeter/eess'
 import type { Condition, ConditionContext, Predicate } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
@@ -577,8 +577,10 @@ export function honestyAtClose(
   if (!anyDeferredDisposedBoxOnADoneItem) deferredLieRule = deferredLieRule.expectEmpty()
   const deferredLieViolations = deferredLieRule.violations()
 
+  // Merged, not spread: all three are receipts, and a spread would discard every
+  // `examined` this preset just earned — the denominator `check:ledger` prints.
   return finishPreset(
-    [...headerViolations, ...silentOpenBoxViolations, ...deferredLieViolations],
+    mergeCollectResults([headerViolations, silentOpenBoxViolations, deferredLieViolations]),
     options,
   )
 }

@@ -150,7 +150,7 @@ describe('tsconfig: the toolchain ADR-001 pins', () => {
     const rule = tsconfig(p)
       .requires({ strict: true, noUncheckedIndexedAccess: true })
       .because('ADR-001: strict mode with noUncheckedIndexedAccess')
-    expect(built(rule).violations()).toEqual([])
+    expect(built(rule).violations()).toHaveLength(0)
   })
 })
 
@@ -272,7 +272,7 @@ describe('correspondence: the surfaces that must stay in step', () => {
       .should()
       .beComplete()
       .because('a builder with no test file is a surface nothing exercises')
-    expect(built(rule).violations()).toEqual([])
+    expect(built(rule).violations()).toHaveLength(0)
   })
 })
 
@@ -285,7 +285,7 @@ describe('the rule-builder grammar we never turned on ourselves', () => {
       .haveNameMatching(/^[A-Z]/)
       .because('exported type names are public API')
     expect(rule.examinedUnits()).toBeGreaterThan(0)
-    expect(built(rule).violations()).toEqual([])
+    expect(built(rule).violations()).toHaveLength(0)
   })
 })
 
@@ -341,7 +341,7 @@ describe('crossLayer: the family most likely to look healthy while empty', () =>
       .because('a test file that does not import its builder is covering something else')
 
     expect(rule.examinedUnits()).toBeGreaterThan(0)
-    expect(built(rule).violations()).toEqual([])
+    expect(built(rule).violations()).toHaveLength(0)
   })
 })
 
@@ -368,7 +368,7 @@ describe('inconsistentSiblings: the second detector the floor gates', () => {
       .ignorePaths('**/src/presets/index.ts', '**/src/presets/shared.ts')
       .forPattern(call('validateOverrides'))
     expect(rule.examinedUnits()).toBeGreaterThan(0)
-    expect(rule.violations()).toEqual([])
+    expect(rule.violations()).toHaveLength(0)
     // Plan 0102's C1 regression + latch-placement test: this rule is
     // ALL-CONFORMING (5 of 5 call validateOverrides, nonMatching === 0) — the
     // shape that must NOT be reported inert regardless, since the latch is
@@ -400,7 +400,7 @@ describe('inconsistentSiblings: the second detector the floor gates', () => {
       .inFolder('**/src/builders/**')
       .forPattern(call('this.copy'))
     expect(rule.examinedUnits()).toBe(13)
-    expect(rule.violations()).toEqual([])
+    expect(rule.violations()).toHaveLength(0)
     built(rule)
     // N-phase: INERT_FINDING_EMIT is false, so check() still passes today —
     // this is what lets N ship without breaking an adopter's green build.

@@ -1,4 +1,5 @@
 import type { ArchViolation } from './violation.js'
+import { hasEvidence } from './collect-result.js'
 import type { EdgeCoverage } from './edge-coverage.js'
 import { commentSuppressions } from './comment-suppression.js'
 
@@ -91,6 +92,8 @@ export interface ArchJsonReport {
     readonly errors: number
     readonly warnings: number
     readonly reason: string | null
+    /** Units examined — `null` when the caller supplied no evidence. */
+    readonly examined: number | null
   }
   readonly untestedAllowlists: readonly ArchJsonUntestedAllowlist[]
   readonly commentSuppressed: readonly ArchJsonSuppression[]
@@ -118,6 +121,22 @@ export function formatViolationsJson(
       errors,
       warnings: violations.length - errors,
       reason: reason ?? null,
+      /**
+       * The denominator, carried by hand — plan 0235.
+       *
+       * `JSON.stringify` DROPS an array's own properties: an `ArchViolation[]`
+       * carrying `examined` serialises as a bare `[…]` and the evidence is
+       * simply gone. Measured: `JSON.stringify(Object.assign([1,2],{examined:7}))`
+       * is `[1,2]`.
+       *
+       * Without this line `--format json` would carry violations and no
+       * denominator, which forecloses the machine-readable half of
+       * [bug 0174](../../../work/bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md)
+       * — a green with no way for a consumer to tell a clean run from one that
+       * examined nothing. `null` when the caller handed over a bare array, which
+       * is itself the honest answer: no evidence was supplied.
+       */
+      examined: hasEvidence(violations) ? violations.examined : null,
     },
     // Bug 0015: an allowlist constrains edges, so a subject with none passes
     // whatever the allowlist says. Reported rather than failed — for the `only*`

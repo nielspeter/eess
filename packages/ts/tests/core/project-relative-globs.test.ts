@@ -72,7 +72,7 @@ describe('a project-relative path glob (plan 0067 C)', () => {
     // failing build.
     const rule = modules(p).that().resideInFolder('src/domain/**').should().notImportFrom('**/x/**')
     expect(diagnose([rule])).toEqual([])
-    expect(rule.violations()).toEqual([])
+    expect(rule.violations()).toHaveLength(0)
   })
 
   it('behaves identically through the builder method and the standalone predicate', () => {

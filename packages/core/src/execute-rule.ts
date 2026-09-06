@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import type { ArchViolation } from './violation.js'
+import { type CollectResult, collectResult } from './collect-result.js'
 import { severityFor } from './violation.js'
 import type { CheckOptions } from './check-options.js'
 import type { RuleMetadata } from './rule-metadata.js'
@@ -333,10 +334,20 @@ export function applyFilters(
  * Execute the terminal "check" action: apply options, format, throw on violations.
  */
 export function executeCheck(
-  violations: ArchViolation[],
+  violations: CollectResult,
   ctx: ExecuteRuleContext,
   options?: CheckOptions,
 ): void {
+  // The evidence survives every filter below. Baseline and `--changed` remove
+  // violations, never units examined: a run that examined 900 files and had its
+  // findings baselined away examined 900 files, and reporting 0 there would be
+  // the denominator lie bug 0174 is about.
+  const evidence = {
+    examined: violations.examined,
+    sourceEmpty: violations.sourceEmpty,
+    declaredEmpty: violations.declaredEmpty,
+    deadGlob: violations.deadGlob,
+  }
   let filtered = applyFilters(violations, ctx)
 
   if (options?.baseline) {
@@ -351,7 +362,10 @@ export function executeCheck(
 
   if (filtered.length > 0) {
     // One emitter for both paths (plan 0070) — text/json/github, then throw.
-    reportViolations(filtered, { format: options?.format, reason: ctx.reason })
+    reportViolations(collectResult(filtered, evidence), {
+      format: options?.format,
+      reason: ctx.reason,
+    })
     throw new ArchRuleError(filtered, ctx.reason)
   }
 }

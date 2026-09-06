@@ -16,7 +16,7 @@ import type { ArchViolation } from '@nielspeter/eess'
 import type { RuleDescription } from '@nielspeter/eess'
 import type { Selection, ElementInfo } from '@nielspeter/eess'
 import { TerminalBuilder } from './terminal-builder.js'
-import { assertsCardinality } from '@nielspeter/eess'
+import { assertsCardinality, collectResult } from '@nielspeter/eess'
 
 /**
  * Abstract base class for the predicate/condition rule builders.
@@ -279,7 +279,7 @@ export abstract class RuleBuilder<T> extends TerminalBuilder {
     // actually receive — not `getElements()`. `filterElements()` is memoized per
     // builder (`element-cache.ts`), so asking here and again inside `evaluate()`
     // walks once.
-    return { violations: this.evaluate(), examined: this.examinedUnits() }
+    return collectResult(this.evaluate(), { examined: this.examinedUnits() })
   }
 
   /**

@@ -8,6 +8,7 @@ import {
 import type { RuleFacts } from './vacuity-findings.js'
 import { UNSUPPRESSABLE } from './unsuppressable.js'
 import type { ArchViolation } from './violation.js'
+import { type CollectResult, collectResult } from './collect-result.js'
 import type { CheckOptions } from './check-options.js'
 import type { RuleMetadata } from './rule-metadata.js'
 import type { RuleDescription } from './rule-description.js'
@@ -36,20 +37,7 @@ import { shallowClone } from './shallow-clone.js'
  * family has no separate source/selection stages) or the zero came from
  * narrowing, not upstream emptiness.
  */
-export interface CollectResult {
-  readonly violations: ArchViolation[]
-  readonly examined: number
-  readonly sourceEmpty?: boolean
-  /**
-   * A specific dead-glob explanation for a zero-examined rule, pre-formatted
-   * by the dialect that computed it (`RuleBuilder.deadGlobDiagnosis()`) —
-   * the kernel never touches picomatch or a project type to build this
-   * itself. `undefined` means no diagnosis is available (no glob declared,
-   * or the declared glob isn't actually dead), which falls through to the
-   * generic zero-examined finding the same as before this field existed.
-   */
-  readonly deadGlob?: string
-}
+export type { CollectResult } from './collect-result.js'
 
 /**
  * Abstract base class for builders that share the terminal method pattern
@@ -196,8 +184,17 @@ export abstract class TerminalBuilder {
    * Execute the rule and return violations after exclusion filtering.
    * Does not throw — use for programmatic access (presets, aggregation).
    */
-  violations(): ArchViolation[] {
-    return applyFilters(this.evidencedViolations(), this.filterContext())
+  violations(): CollectResult {
+    const evidenced = this.evidencedViolations()
+    // `applyFilters` returns a bare array (and the SAME reference when no
+    // exclusion applies), so the evidence is re-stamped onto a fresh one here —
+    // stamping onto its return would mutate whatever a family memoized.
+    return collectResult(applyFilters(evidenced, this.filterContext()), {
+      examined: evidenced.examined,
+      sourceEmpty: evidenced.sourceEmpty,
+      declaredEmpty: evidenced.declaredEmpty,
+      deadGlob: evidenced.deadGlob,
+    })
   }
 
   /**
@@ -260,25 +257,67 @@ export abstract class TerminalBuilder {
    *   case — `.expectNonEmpty()` has nothing left to assert once subjects
    *   exist): the rule's own violations stand as computed.
    */
-  private evidencedViolations(): ArchViolation[] {
-    const { violations, examined, sourceEmpty, deadGlob } = this.collectViolations()
+  private evidencedViolations(): CollectResult {
+    const collected = this.collectViolations()
+    const { examined, sourceEmpty, deadGlob } = collected
+    const violations: ArchViolation[] = [...collected]
+
+    // The evidence travels with every return below. A declaration reaches the
+    // emitter ON the receipt (ADR-014 §3) rather than through delivery options:
+    // one boolean over a sum cannot carry per-rule declarations, and this is the
+    // moment the terminal knows the fact and used to discard it.
+    const evidence = {
+      examined,
+      sourceEmpty,
+      deadGlob,
+      // `assertsCardinality()` is a declaration ONLY over zero subjects — ADR-010
+      // §3: "`.notExist()` over zero subjects is a declaration by construction."
+      // Over a non-empty selection it is an ordinary assertion that examined
+      // real units, and marking it declared there made every passing
+      // `.notExist()` expire the moment the emitter checked. Measured: it
+      // reddened six crossvalidate tests.
+      declaredEmpty:
+        this._expectEmpty === true || (examined === 0 && this.assertsCardinality())
+          ? true
+          : undefined,
+    }
+    const withFinding = (f: ArchViolation): CollectResult =>
+      collectResult([...violations, f], evidence)
+
+    // Split out because threading the evidence through every branch pushed this
+    // method to cyclomatic complexity 11 and the repo's own `check:arch` said so.
+    // The ORDER is the content here, and it is unchanged.
     if (examined === 0) {
-      if (sourceEmpty === true) return [...violations, zeroLoadedSourceViolation(this.facts())]
-      if (this._expectEmpty === true) return violations
-      if (this._expectEmpty === false)
-        return [...violations, unmetExpectNonEmptyViolation(this.facts())]
-      if (this.assertsCardinality()) return violations
-      // A specific dead-glob explanation, when the dialect could compute
-      // one, outranks the generic zero-examined message — both name the
-      // same underlying fact, and the specific one is strictly more
-      // actionable (it names the actual glob and why it can never match).
-      if (deadGlob !== undefined) return [...violations, deadGlobViolation(this.facts(), deadGlob)]
-      return [...violations, zeroExaminedViolation(this.facts())]
+      const zero = this.zeroExaminedFinding(sourceEmpty, deadGlob)
+      return zero === undefined ? collectResult(violations, evidence) : withFinding(zero)
     }
     if (this._expectEmpty === true) {
-      return [...violations, expiredExpectEmptyViolation(this.facts(), examined)]
+      return withFinding(expiredExpectEmptyViolation(this.facts(), examined))
     }
-    return violations
+    return collectResult(violations, evidence)
+  }
+
+  /**
+   * Which finding a zero-examined rule earns, or `undefined` when it earned none
+   * because it declared the emptiness.
+   *
+   * Extracted from `evidencedViolations` under `check:arch`'s complexity rule.
+   * The precedence is the whole content and is unchanged: an empty source
+   * outranks every declaration (ADR-010 §3), an explicit declaration is
+   * satisfied, `.expectNonEmpty()` is unmet, a cardinality condition is
+   * satisfied by emptiness, and a nameable dead glob outranks the generic
+   * message because it is strictly more actionable.
+   */
+  private zeroExaminedFinding(
+    sourceEmpty: boolean | undefined,
+    deadGlob: string | undefined,
+  ): ArchViolation | undefined {
+    if (sourceEmpty === true) return zeroLoadedSourceViolation(this.facts())
+    if (this._expectEmpty === true) return undefined
+    if (this._expectEmpty === false) return unmetExpectNonEmptyViolation(this.facts())
+    if (this.assertsCardinality()) return undefined
+    if (deadGlob !== undefined) return deadGlobViolation(this.facts(), deadGlob)
+    return zeroExaminedViolation(this.facts())
   }
 
   /**

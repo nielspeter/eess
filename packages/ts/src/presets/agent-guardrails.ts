@@ -1,4 +1,4 @@
-import type { ArchViolation } from '@nielspeter/eess'
+import type { CollectResult } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import { functions } from '../builders/function-rule-builder.js'
@@ -83,11 +83,11 @@ export function agentGuardrails(
   p: ArchProject,
   options: AgentGuardrailsOptions & { report: 'builders' },
 ): RuleBuilderLike[]
-export function agentGuardrails(p: ArchProject, options: AgentGuardrailsOptions): ArchViolation[]
+export function agentGuardrails(p: ArchProject, options: AgentGuardrailsOptions): CollectResult
 export function agentGuardrails(
   p: ArchProject,
   options: AgentGuardrailsOptions,
-): RuleBuilderLike[] | ArchViolation[] {
+): RuleBuilderLike[] | CollectResult {
   // Plan 0100's `attempted`: the ids the caller's OPTIONS ask for, before any
   // override is consulted — every rule this preset can build sits behind an
   // optional flag, so this can legitimately be `[]` (nothing was ever enabled).

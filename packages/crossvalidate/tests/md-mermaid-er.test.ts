@@ -66,7 +66,12 @@ describe('tableErAgree() — md↔mermaid-er', () => {
   })
 
   it('skips documents without an erDiagram block', () => {
-    expect(() => tableErAgree(c(['no-diagram.md']), OPTS)).not.toThrow()
+    // `expectEmpty` — this corpus legitimately has no ER diagram, and without the
+    // declaration the emitter is right to report a pass over zero examined units
+    // (ADR-014). The declaration EXPIRES: add a diagram to this fixture and this
+    // reddens with `emitter/expired-declaration`, which is what makes it an
+    // assertion rather than a mute button.
+    expect(() => tableErAgree(c(['no-diagram.md']), { ...OPTS, expectEmpty: true })).not.toThrow()
     expect(tableErStats(c(['no-diagram.md']), OPTS).docs).toBe(0)
   })
 })

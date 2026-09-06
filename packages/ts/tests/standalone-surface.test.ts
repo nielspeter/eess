@@ -47,7 +47,7 @@ describe('standalone sufficiency: eess-ts re-exports the kernel surface it owns 
     const missing = Object.keys(kernel).filter(
       (name) => !EXCLUDED.has(name) && !reachable.has(name),
     )
-    expect(missing).toEqual([])
+    expect(missing).toHaveLength(0)
   })
 
   // ADR-011 clause 2. The three lists above are empty now, so the staleness test

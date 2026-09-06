@@ -19,7 +19,13 @@ describe('formatViolationsJson', () => {
     const output = formatViolationsJson(violations)
     const parsed: unknown = JSON.parse(output)
     expect(parsed).toEqual({
-      summary: { total: 1, errors: 1, warnings: 0, reason: null },
+      // `examined: null` because this test hands over a bare array — the honest
+      // answer when no evidence was supplied, not a fabricated zero. Plan 0235
+      // carries the denominator across the JSON boundary by hand, because
+      // `JSON.stringify` drops an array's own properties; without it
+      // `--format json` would report violations with no denominator at all,
+      // foreclosing the machine-readable half of bug 0174.
+      summary: { total: 1, errors: 1, warnings: 0, reason: null, examined: null },
       untestedAllowlists: [],
       // Always present, never omitted, so a consumer can tell "nothing was
       // suppressed" from "this version does not report it" — same contract as

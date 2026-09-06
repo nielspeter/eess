@@ -2,7 +2,11 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-09-05. The freeze was refused once on
+- **State:** Done — all five phases shipped in PR #108, closing bugs 0190, 0206
+  and 0261 in the same PR. ADR-014 went from 0 to 10 of 16 rows `gated`; the five
+  that did not are `deferred→` [plan 0263](../0263-adr-014s-residual-enforcement-rows.md),
+  which owns them by name in the ADR's own table.
+  Previously read: Ready — frozen 2026-09-05. The freeze was refused once on
   2026-09-03, when six review lenses reached "do not build as written"
   independently; _Decisions, taken_ below answers what that review opened, and
   ADR-014 was amended the same day with every change Phase 0 owed it.
@@ -14,7 +18,7 @@
   still says what was claimed (bug 0253's class). The census, and every
   load-bearing citation behind D1, D2b and D7, is now recorded **by value** —
   keyed to an exported symbol or a greppable expression, not a line. Phases and
-  decisions are unchanged; only the way the plan names things moved. [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
+  decisions are unchanged; only the way the plan names things moved. [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
   (Accepted 2026-09-03) is not in question; this document was the sketch of its
   build and it under-scoped the work.
 - **Priority:** High — the ROADMAP's own definition: closes a gap between what
@@ -30,8 +34,8 @@
   names this plan. No `**Implements:**` line, deliberately: 009's ruling is
   `Split and sequence`, which `ACCEPTED_RULINGS` does not admit, so no plan is
   owed against it and a declaration would claim it builds the whole proposal.
-- **Claims to close** [bug 0190](../bugs/0190-the-preset-constructs-nothing-finding-cannot-fire.md)
-  and [bug 0206](../bugs/0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md).
+- **Claims to close** [bug 0190](../../bugs/fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md)
+  and [bug 0206](../../bugs/fixed/0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md).
   Both close only if D4's declaration reaches the emitter, which is why it is
   decided rather than deferred.
 
@@ -140,8 +144,8 @@ examined, or a mechanism that claims coverage it does not have.
    plan claims 0190 closes. A finding that cannot fire is coverage that is not
    there. → **D4**
 6. **Phase 1's own assertions cannot be written**, so its fixtures could pass
-   vacuously. `presetConstructsNothingViolation` carries **no `ruleId`**
-   (`packages/core/src/preset-dispatch.ts:119-127`), so "assert the rule id" has
+   vacuously. `presetConstructsNothingViolation` carried **no `ruleId`**
+   (`packages/core/src/preset-dispatch.ts`, deleted in Phase 0), so "assert the rule id" has
    nothing to key on and `gateNode`'s `mustSay` has no stable string — resolved
    in Phase 0 by keying on the finding that has one. The new
    non-vacuity row cannot be registered either: `gateCoverage()` fails closed on
@@ -275,7 +279,7 @@ sets its exit code without any emitter (`packages/ts/src/cli/commands/check.ts:1
 `:304`). The verdict there stays honest, because every `violations()` was
 evidence-gated at the terminal before the CLI saw it, so a vacuous rule arrives
 as a finding and reds. What is lost is the denominator — which is the open half
-of [bug 0174](../bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md),
+of [bug 0174](../../bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md),
 already filed, and not this plan's to close.
 
 **D2 — `reportViolations` returns the receipt, and the three default paths route
@@ -353,6 +357,39 @@ and every adopter's preset. No exemption list, no new option, and the adopter ke
 answer they have today. A finding whose only escape is switching the gate off
 ends in a gate nobody runs, which is a green that certifies nothing.
 
+**REVERSED 2026-09-05 by ADR-014 §3's amendment. The heading above is the
+position as first argued; what shipped is its opposite, and this note is left
+here because a decision section that reads as current while the code does the
+reverse is the drift this plan exists to catch.**
+
+An all-off preset is **not** a declaration. It is a configuration finding.
+`overrides: { id: 'off' }` is byte-identical whether the author meant "I have
+scoped this out" or "I turned this off to stop a finding", so a declaration
+minted from it is one nothing can ever contradict — and ADR-010 §3 admits a
+declaration ONLY because it "fails the day it stops being true". By D5's own
+second half — pass the fact, never infer it — eess is not positioned to read that
+intent, which is why the amendment lands against the first half and leaves the
+reasoning intact.
+
+What shipped instead is a **third** state, `notRun`
+(`packages/core/src/collect-result.ts:43`): the `'off'` branch of `dispatchRule`
+returns `collectResult([], { examined: 0, notRun: true })`
+(`packages/core/src/preset-dispatch.ts:63`) — a measured zero with no
+denominator to be suspicious about, deliberately not `declaredEmpty`. One
+disabled rule therefore cannot red a preset whose others examined plenty
+(measured: `adrEnforcement` with `adr/valid-tiers` off), and a preset where
+EVERY member is `notRun` still sums to zero examined with nobody declaring, so
+the emitter reports it. That is bug 0261, and it is now a test.
+
+The legitimate quiet D5 wanted still exists, but the caller has to **write** it:
+`expectEmpty` on `PresetReportOptions`, which expires the day the subject appears.
+
+**Two corrections on one decision, and they are not the same correction.** The
+2026-09-05 build finding below retracts a _different_ reversal — one argued from
+a misreading of `declaredEmptyFindings`, where a cautionary comment was quoted as
+the ruling. That retraction stands: D5 was not reversed by that argument. It was
+reversed the same day by the ADR, on the ground the argument should have used.
+
 **D6 — the message names the cause the receipt carries.** The receipt
 distinguishes no evidence at all, empty source, declared empty, and zero
 examined. Each gets its own remedy, and the kernel's generic one must be
@@ -392,8 +429,8 @@ gains nothing, so there is no collision with eess-ts's
 ## What exists, measured (corrected)
 
 **The kernel's finding is dead and the dialect's is alive.**
-`presetConstructsNothingViolation` (`packages/core/src/preset-dispatch.ts:111`)
-has no call site and no `ruleId` — bug 0190's whole subject. `assertEnabled`
+`presetConstructsNothingViolation` (`packages/core/src/preset-dispatch.ts`,
+deleted in Phase 0) had no call site and no `ruleId` — bug 0190's whole subject. `assertEnabled`
 (`packages/ts/src/presets/shared.ts:299`) is the finding that actually fires for
 a preset that constructed nothing, with an id, and it is wired into two presets
 of five. Phase 0 decides between them.
@@ -403,7 +440,7 @@ of five. Phase 0 decides between them.
 | kernel `executeCheck` (`packages/core/src/execute-rule.ts`)                                             | the filtered array of an already-gated terminal                                        | the terminal's own `examined`, threaded one call further                   |
 | kernel `finishPreset` → `reportViolations` (`packages/core/src/report.ts:83`)                           | whatever the caller passed                                                             | the same receipt, forwarded                                                |
 | kernel `dispatchRule` (`packages/core/src/preset-dispatch.ts:37`)                                       | `builder.rule(meta).violations()`, from a builder with **no public evidence accessor** | blocked on D1                                                              |
-| kernel `throwIfViolations` (`packages/core/src/preset-dispatch.ts:137`)                                 | a bare array forwarded to `finishPreset`                                               | nothing: removed, see the deletion list below                              |
+| kernel `throwIfViolations` (`packages/core/src/preset-dispatch.ts`)                                     | a bare array forwarded to `finishPreset`                                               | nothing: removed, see the deletion list below                              |
 | `eess-ts` `deliver()` (`packages/ts/src/presets/shared.ts:419`)                                         | `RuleBuilderLike[]`, an interface with one member                                      | blocked on D1                                                              |
 | the four synthetic builders in `shared.ts` (`:127`, `:199`, `:265`, `:321`)                             | a `RuleBuilderLike` with no evidence                                                   | `1` each — they examined the preset's own configuration                    |
 | six `eess-crossvalidate` presets (`md-gherkin.ts:144`, `gherkin-ts.ts:166`, `:244`, `:312`, and two)    | a hand-assembled array over what it iterated                                           | the count it iterated; each already exports a stats function               |
@@ -421,7 +458,7 @@ that called it.
 **The dialect has a path that never reaches the emitter.** Bug 0206:
 `deliver()` throws `ArchRuleError` itself when `callerAggregates()`
 (`packages/ts/src/presets/shared.ts:445-448`), bypassing `finishPreset`. Note
-0206's own record: it and [bug 0205](../bugs/0205-four-emitters-restate-the-suppression-rule-and-disagree.md)
+0206's own record: it and [bug 0205](../../bugs/0205-four-emitters-restate-the-suppression-rule-and-disagree.md)
 prescribe **opposite** fixes for that site, and whichever ships first makes the
 other's wrong. This plan must pick one, not offer "either" as Phase 3 did.
 
@@ -471,7 +508,7 @@ silent green behind each. ADR-008's amendment section and the CLAUDE.md index
 row moved with it. The plan no longer contradicts the law it builds.
 
 **Bug 0190 closes as "gone", not "producible".** `presetConstructsNothingViolation`
-(`packages/core/src/preset-dispatch.ts:111`) takes `(presetName, optionsHint)`,
+(`packages/core/src/preset-dispatch.ts`, deleted in Phase 0) took `(presetName, optionsHint)`,
 which D6 forbids the kernel emitter from ever naming, so the kernel cannot be its
 producer. The dialect already has the producer: `assertEnabled`
 (`packages/ts/src/presets/shared.ts:299`) builds the preset-shaped finding with
@@ -522,7 +559,7 @@ through `assertEnabled`". `assertEnabled` produces a `bypassFilters`
 **violation**, and its message reads "every rule it can build sits behind an
 optional flag, and none was set" — false of `recommended` and
 `layeredArchitecture`, whose rules are on by default. More importantly,
-[ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3
+[ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) §3
 rules that "a preset every rule of which was disabled is declared, not red — the
 standing ruling that all-off is a permanent, legitimate decision holds in every
 dialect." Routing these two to `assertEnabled` would redden exactly what the law
@@ -640,7 +677,7 @@ As D1, D2, D4, D5 and D6 decide it. The parts the review left standing:
   them today. Without
   a shared merge, each dialect hand-rolls the `examined` sum and the
   `sourceEmpty` / `declaredEmpty` precedence — four emitters restating one rule
-  and disagreeing, which is [bug 0205](../bugs/0205-four-emitters-restate-the-suppression-rule-and-disagree.md)'s
+  and disagreeing, which is [bug 0205](../../bugs/0205-four-emitters-restate-the-suppression-rule-and-disagree.md)'s
   class. The constructor stamps a **fresh** array: `applyFilters`
   (exported from `packages/core/src/execute-rule.ts`) returns the same reference
   when no exclusion applies, and stamping onto it would mutate whatever a family
@@ -653,6 +690,75 @@ As D1, D2, D4, D5 and D6 decide it. The parts the review left standing:
 - a value already carrying a finding passes through untouched;
 - **no new `WeakSet`** — `packages/core/src/cardinality.ts` stays the sole home
   of the registries ADR-010 §2 caps.
+
+**BUILD FINDING, 2026-09-06 — the contract reaches four `eess-crossvalidate`
+presets that have no way to carry a declaration, and three tests now red.**
+
+Measured after Phase 2's retype. Three tests fail, all one shape:
+
+| test                                                                        | what it does                                  |
+| --------------------------------------------------------------------------- | --------------------------------------------- |
+| `tableErAgree() … skips documents without an erDiagram block`               | a corpus whose one document has no ER diagram |
+| `embeddedDiagramsMatchCode() … counts documents and diagrams independently` | a corpus with no embedded diagrams            |
+| `scenarioExemptionsCurrent() … is silent for a non-exempt scenario`         | a set with no exemptions declared             |
+
+Each examines zero units and used to pass in silence. Each now fires
+`emitter/pass-without-evidence`, **and the finding is correct**: a rule that
+examined nothing and reports success is indistinguishable from the same rule
+with a mis-configured glob, which is the whole of ADR-010.
+
+**But the caller has no way to say "this corpus legitimately has none".** These
+are presets, and ADR-010 §3's second bullet is precisely about this:
+
+> **Presets must thread the declaration.** A preset user does not hold the
+> builder; if a preset option cannot carry the user's empty-declaration to the
+> mint, their only reachable remedy is disabling the option — deleting coverage
+> permanently (ADR-009 rule 1's trained-suppression dynamic, reproduced by this
+> ADR's own gate if unaddressed).
+
+`eess-ts`'s presets thread it (`expectEmpty`). The four `eess-crossvalidate`
+presets do not. So the contract currently reaches them with a finding and no
+remedy — the exact dynamic ADR-010 names, produced by this plan's own gate.
+
+**Three options, and this is a scope decision rather than a build discovery:**
+
+1. **Thread `expectEmpty` through the crossvalidate presets** — faithful to
+   ADR-010 §3, and the honest fix. It is new option surface on four presets and
+   is not in any phase of this plan.
+2. **Ship the finding as-is** and let adopters of those four presets red until
+   option 1 lands. Defensible only if 1 follows immediately; otherwise it is a
+   gate people switch off.
+3. **Exempt crossvalidate's presets from the gate.** Rejected on sight: an
+   exemption list is what ADR-014 §2 refuses ("a required field, not a
+   registry"), and these are exactly the presets whose corpora most often
+   legitimately lack an artifact.
+
+Recorded rather than decided in a worktree. Nothing else in Phase 2 is blocked
+by it — the kernel, `eess-ts`, `eess-md` and `eess-mermaid` are green.
+
+**DECIDED AND SHIPPED, 2026-09-06 — option 1, in a cheaper form than the option
+describes.** The paragraph above stops at "recorded rather than decided", and it
+stayed that way in the text after the decision was taken, which the method review
+caught by diffing the text against the diff. The record is corrected here rather
+than rewritten: the dilemma was real, and how it resolved is the useful half.
+
+The declaration did **not** need new option surface on four presets. It went on
+the kernel's shared `PresetReportOptions` as `expectEmpty?: boolean`
+(`packages/core/src/report.ts:70`), which every crossvalidate preset's own
+options interface already extends — so `tableErAgree`, `embeddedDiagramsMatchCode`,
+`scenarioTestsResolve`, `scenariosCovered` and `scenarioExemptionsCurrent` all
+gained the remedy without a bespoke option each, and so does any adopter preset
+that takes `PresetReportOptions`. That is ADR-010 §3's "presets must thread the
+declaration" satisfied once, at the seam every preset already passes through,
+instead of five times.
+
+It expires like every other declaration: `finishPreset` stamps the declaration
+onto the receipt rather than weighing a boolean beside the sum
+(`packages/core/src/report.ts:184`), and `withEvidenceGate` fires
+`emitter/expired-declaration` the day the corpus grows an ER diagram
+(`packages/core/src/report.ts:122`). The three tests named in the table above
+now pass `expectEmpty: true` and say in a comment why the corpus legitimately has
+none.
 
 ### Phase 3 — the migration, each site stating what it examined
 
@@ -808,17 +914,17 @@ ADR-008's amendment is **already done** (commit `371eba1`) and is not work here.
   plan. Opt-in, independently closable; holding this plan on it would couple a
   contract to a lint.
 - **A catch-all `.excluding()` turning a rule off** —
-  [bug 0233](../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md).
+  [bug 0233](../../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md).
   Same failure class, different seam.
 - **The two crossvalidate presets that return `void`** —
-  [bug 0097](../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md).
+  [bug 0097](../../bugs/0097-crossval-presets-bypass-caller-owns-reporting.md).
 - **Detecting a wrong `examined`.** ADR-014's stated ceiling, including its
   honest half: a count taken before the loop's own `continue` is the same
   mistake one line earlier, and the required field cannot tell it from the right
   number. **This plan must stop selling itself as closing the measured
   failures.** What ships is a compile-time nudge plus detection of the
   honestly-counted-zero sub-case.
-- **Unifying the two `applyFilters`** — [plan 0188](./0188-unify-the-duplicated-engine-modules.md).
+- **Unifying the two `applyFilters`** — [plan 0188](../0188-unify-the-duplicated-engine-modules.md).
 
 ## Success definition
 
@@ -845,9 +951,26 @@ are the plan. Everything under them is bookkeeping.
   **rule id**, in a unit test and in a non-vacuity fixture, against the kernel's
   new generic finding; and **a preset that constructed nothing reds under all
   five `eess-ts` presets**, asserted on `assertEnabled`'s id, not two of five.
-- **A preset whose rules were all disabled, and one that is legitimately empty,
-  stay green** (D4 and D5's opposite direction). A guard that cannot stay quiet
-  is a guard people switch off.
+- **A preset that is legitimately empty stays green WHEN DECLARED, and reds when
+  not.** A guard that cannot stay quiet is a guard people switch off — so the
+  quiet has to be reachable, and `expectEmpty` on `PresetReportOptions` is how.
+  It expires: the day the subject appears, the declaration reds with
+  `emitter/expired-declaration`.
+
+  **Corrected 2026-09-06, and the correction is the point.** This criterion read
+  "a preset whose rules were all disabled, and one that is legitimately empty,
+  stay green (D4 and D5's opposite direction)". It was written before ADR-014 §3
+  was amended on 2026-09-05, and the amendment reverses its first half: an
+  all-off preset is a **configuration finding**, because `overrides: { id: 'off' }`
+  is an instruction eess would have to read intent into, and a declaration
+  inferred from a config file is one nothing can ever contradict. A criterion
+  cannot outrank the ADR it is meant to build — and left standing it would have
+  been read as a licence to weaken the emitter until the old sentence passed
+  again, which is the exact shape of the defect this plan exists to remove.
+  Testing's review caught it as "a stated, binding success criterion is violated,
+  with zero test coverage", which was true of the sentence and false of the
+  behaviour.
+
 - **No mechanism is marked `gated` that examines nothing.** Specifically: the
   dogfood rule's declared scope must select a non-zero number of modules, or the
   row is not `gated`. ADR-014's Enforcement table is the last place a false green
@@ -881,13 +1004,100 @@ which is why that rule is a companion and not a footnote.
 
 ## Progress ledger
 
-- [ ] Phase 0 — ADR amendments done 2026-09-03; still owed here: the changeset in, five dialects at minor; the kernel constructor deleted, `assertEnabled` wired into all five presets
-- [ ] Phase 1 — the red tests written and measured red, keyed on real ids; the contradicted test removed
-- [ ] Phase 2 — the retype
-- [ ] Phase 3 — call sites migrated; 0206's branch fixed one way, sequenced against 0205
-- [ ] Phase 4 — return consumers migrated; the `check-corpus` fail-open proven closed
-- [ ] Phase 5 — the gates; ADR-014 `gated` and its `check:family` row corrected; changeset names all five dialects
-- [ ] `/close` — 0190 and 0206 moved to `fixed/` in this PR
+- [x] Phase 0 — ADR amendments done 2026-09-03, and ADR-014 §3 amended again
+      2026-09-05 (a declaration is made, never inferred). Kernel constructor
+      `presetConstructsNothingViolation` **deleted** with its `/internal` export —
+      measured first: its only occurrence in the workspace was its own definition.
+      Changeset in, six packages, the kernel break naming all five dialects at
+      minor. **`assertEnabled` is NOT wired into all five presets** — that
+      instruction is superseded: the all-off case is the kernel's finding, not a
+      preset guard, and `assertEnabled`'s message is false of `recommended` and
+      `layeredArchitecture` (see the build findings above). It stays with the two
+      flag-gated presets, unchanged.
+- [x] Phase 1 — red tests written and **measured red**, keyed on real ids.
+      `packages/core/src/emitter-findings.ts` gives the two findings hardcoded
+      stable ids — `emitter/no-receipt` (no evidence field at all, a shape
+      defect) and `emitter/pass-without-evidence` (zero examined, zero
+      violations, no declaration) — the kernel's first hardcoded rule ids, and
+      the reason bug 0190's finding could never be asserted on. Two, not one,
+      because ADR-014 §4 gives them different remedies and one id would let
+      either fixture be satisfied by the other.
+      `packages/core/tests/emitter-refuses-without-evidence.test.ts` — 16 tests,
+      every assertion keyed on rule id, never on a count. Measured red before the
+      `receipt.js` import was added: 12 of 16 failing on the assertions
+      themselves (`expected [] to include 'emitter/no-receipt'`, `expected
+[Function] to throw`), the other 4 being CONTROLs that pass trivially until
+      the feature exists and only become discriminating after Phase 2. `tsc`
+      reports the rest: `TS2307` for Phase 2's `receipt.js`, `TS2345` because
+      `reportViolations` still returns `void`, and **four `TS2578: Unused
+'@ts-expect-error'`** — the self-sabotaging property the plan asked for,
+      working: they vanish when the type tightens and return if anyone loosens
+      it. Two contradicted tests removed from `report.test.ts` with the reason
+      left in place, rather than left failing for the next reader to "fix".
+- [x] Phase 2 — the retype. `CollectResult` is the receipt (an `ArchViolation[]`
+      carrying `examined`/`sourceEmpty`/`declaredEmpty`), one kernel factory and
+      one fail-closed merge, `violations()` returns it, both emitters take and
+      return it, and the gate runs before the delivery mode is read. **All six
+      packages typecheck clean.** `eess-ts`'s forked `CollectResult` is unified
+      with the kernel's rather than left as a second shape (plan 0188's
+      duplication; D4 required it). Measured: the plan feared ~690 `.violations()`
+      call sites and the retype produced **15 type errors family-wide**, because
+      the receipt is still an array — which is exactly why D1 chose that shape
+      over an object. **Corrected 2026-09-06:** this line read "Suite 3610/3616;
+      the three reds are the crossvalitate declaration gap recorded above" — and
+      3616 − 3 is not 3610, so the sentence was already inconsistent with itself.
+      The three reds were real but **transient inside the phase**: they were
+      closed by the `expectEmpty` threading recorded below before the commit was
+      finalised. Re-derived by the method review in a clean worktree at
+      `53b4c2f`: **3616 passed, 3616 total, zero failures**. A ledger line that
+      asserts a state the commit does not hold is the same defect as a gate that
+      certifies one.
+- [x] Phase 3 — call sites migrated. The compiler produced the census rather than
+      a hand list: **15 type errors across six packages**, because the receipt is
+      still an array. `eess-ts`'s forked `CollectResult` unified with the
+      kernel's (D4 required it). 0206's branch fixed one way — the receipt rides
+      the throw — and **sequenced against 0205 by not deleting the aggregating
+      branch**, so 0205's stated fix stays valid.
+- [x] Phase 4 — return consumers migrated, and D2's half that Phase 2 had left:
+      `check-corpus.mjs` reached an emitter only under `--format json`, so its
+      default path exited on its own array. Both exits now share ONE receipt of
+      13 per-check members. The fail-open is proven closed by execution, not
+      assertion: a `continue` planted in one check reds the production script
+      naming `emitter/pass-without-evidence` while the others examined 1785
+      units. **A review of this phase found the `--format json` branch still
+      handed over a bare array — on a clean corpus it emitted a fabricated
+      finding with `examined: 0` and then crashed, invisible to every fixture
+      because a crash also exits 1.**
+- [x] Phase 5 — the gates. `check:nonvacuity`'s `emitter/one-dead-check` (the
+      production script, one dead check among healthy ones) and four
+      `EMITTER_PROBES` under `check:vacuity`, one per emitter id including the
+      expiry. The vacuity matrix's own denominator corrected to count them
+      (21 = 11 + 6 + 4) and its comment about the deleted constructor rewritten.
+      ADR-014: **10 of 16 rows `gated`** — re-counted at close, after a mixed
+      row was split in two and `a terminal's verdict flows through unchanged` was
+      measured rather than asserted (46 assertion lines removed, 41 of them
+      `toEqual([])` → `toHaveLength(0)`; the other five are this ADR's own
+      deliberate reversals, each annotated in place). **Five stay `pending`, and
+      every one now names
+      [plan 0263](../0263-adr-014s-residual-enforcement-rows.md) as its home** —
+      `throwIfViolations` is still exported, and four fixtures are unwritten. The `it('…')`
+      citations are file-path citations because `check:crossval` resolves against
+      `packages/ts/tsconfig.json` alone; filed as
+      [bug 0262](../../bugs/0262-an-adr-cannot-cite-a-kernel-test.md).
+- [x] `/close` — 0190, 0206 and 0261 moved to `fixed/` in this PR, ten ledger
+      boxes disposed, `Deferred: none` on all three. **0190 closed as "gone", not
+      "producible"**, and only once the replacement existed: deleting an
+      unreachable finding without it would have left the gap, which is 0261.
+      0206's state line is corrected from "latent" — the test written to close it
+      found the drift live.
 
-Deferred: none — **and the break-the-loop fixtures must keep that true, or name a
-home. `Deferred: none` beside an unwritten fixture is the lie this plan is about.**
+Deferred: [plan 0263](../0263-adr-014s-residual-enforcement-rows.md) — ADR-014's
+five remaining `pending` rows, `deferred→plan 0263`, created at this close and on
+the board.
+
+**This line read `Deferred: none` up to the close, with a warning attached to
+itself: "the break-the-loop fixtures must keep that true, or name a home.
+`Deferred: none` beside an unwritten fixture is the lie this plan is about."**
+Four of the five fixtures are unwritten. So the line changed, and the warning
+turned out to be the most useful sentence in the ledger: it is the reason the
+deferral got a home instead of an ADR row pointing at a completed plan.

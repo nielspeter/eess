@@ -44,8 +44,64 @@ Chain methods available on all rule builders (`RuleBuilder`, `SliceRuleBuilder`)
 | `.check()`        | `.check(options?: CheckOptions)`                                   | Execute rule; throw on violations.                                                                                                                                                                                                |
 | `.warn()`         | `.warn(options?: CheckOptions)`                                    | Execute rule; log violations without throwing.                                                                                                                                                                                    |
 | `.severity()`     | `.severity(level: 'error' \| 'warn')`                              | Execute with the given severity.                                                                                                                                                                                                  |
-| `.violations()`   | `.violations(): ArchViolation[]`                                   | Execute rule, return violations without throwing. For programmatic access and presets.                                                                                                                                            |
+| `.violations()`   | `.violations(): CollectResult`                                     | Execute rule, return violations without throwing. For programmatic access and presets. `CollectResult` **is** an `ArchViolation[]` — it additionally carries `examined` (see The receipt below).                                  |
 | `.describeRule()` | `.describeRule(): RuleDescription`                                 | Return rule metadata without executing. Used by `explain` command.                                                                                                                                                                |
+
+## The receipt — evidence at every seam
+
+[ADR-014](../adr/014-the-emitter-refuses-a-verdict-without-evidence.md). A verdict
+leaving eess carries what was examined to reach it, so a clean run and a loop that
+never ran are not the same value.
+
+`CollectResult` is an `ArchViolation[]` **carrying its own evidence** as own
+properties, so `.length`, iteration, `map`, `filter` and `for…of` all behave
+exactly as before.
+
+| Property        | Type      | Meaning                                                         |
+| --------------- | --------- | --------------------------------------------------------------- |
+| `examined`      | `number`  | Units this rule reached its assertion over. The denominator.    |
+| `sourceEmpty`   | `boolean` | The source loaded nothing at all, before any selection ran.     |
+| `declaredEmpty` | `boolean` | A caller declared this set legitimately empty — and it expires. |
+
+| Export                | Signature                                 | What it does                                                          |
+| --------------------- | ----------------------------------------- | --------------------------------------------------------------------- |
+| `collectResult`       | `(violations, evidence) => CollectResult` | The one constructor. Stamps a fresh array, never mutating the input.  |
+| `mergeCollectResults` | `(parts) => CollectResult`                | The one merge, fail-closed: a dead member cannot hide inside the sum. |
+| `hasEvidence`         | `(value) => value is CollectResult`       | Does this value carry evidence, or is it a bare array?                |
+
+### What the emitters refuse
+
+`finishPreset` and `reportViolations` take a receipt and hand the same value back.
+Three unsuppressable findings, by rule id:
+
+Each id is also exported as a constant, so a test or fixture can assert on it
+without re-typing the string — the drift a hand-copied id invites:
+
+| Constant                         | Rule id                          | Fires when                                        | Remedy                                                       |
+| -------------------------------- | -------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| `EMITTER_NO_RECEIPT`             | `emitter/no-receipt`             | the value carried no evidence at all              | hand over what the pipeline minted, not a hand-built array   |
+| `EMITTER_PASS_WITHOUT_EVIDENCE`  | `emitter/pass-without-evidence`  | zero examined, zero violations, no declaration    | widen the selection, or declare the set empty                |
+| `EMITTER_EXPIRED_DECLARATION`    | `emitter/expired-declaration`    | declared empty, then examined something           | remove the declaration — it has stopped being true           |
+| `EMITTER_CONTRADICTORY_EVIDENCE` | `emitter/contradictory-evidence` | marked never-run, yet examined or found something | drop the flag if the rule ran, or the evidence if it did not |
+
+### Declaring a legitimately empty set
+
+If a preset's subject genuinely does not exist in your project — no ER diagrams,
+no exemptions — say so with `expectEmpty`, available on every preset through
+`PresetReportOptions`:
+
+```ts
+tableErAgree(corpus, { ...options, expectEmpty: true })
+```
+
+The declaration **expires**: the day the subject appears, it reds with
+`emitter/expired-declaration`. So does the third state: a receipt marked as never
+having run, that turns out to have examined something or found something, reds
+with `emitter/contradictory-evidence`. Every flag that can quiet a zero here has
+something that can contradict it — that is the property, not a coincidence. That is what makes it a declaration rather than a
+mute button, and it is why `overrides: { id: 'off' }` is not accepted as one — an
+instruction eess would have to read intent into, and a claim nothing can ever
+contradict.
 
 ## Exclusion Comments
 

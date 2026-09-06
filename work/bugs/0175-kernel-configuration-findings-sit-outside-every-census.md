@@ -19,15 +19,15 @@ nothing else.
 `packages/core` holds **seven** `bypassFilters: true` producers, none with a
 `remedy` classification or a `verified:` decision:
 
-| producer                       | line                                        |
-| ------------------------------ | ------------------------------------------- |
-| `zeroExaminedViolation`        | `packages/core/src/vacuity-findings.ts:24`  |
-| `deadGlobViolation`            | `:54`                                       |
-| `unmetExpectNonEmptyViolation` | `:78`                                       |
-| `zeroLoadedSourceViolation`    | `:105`                                      |
-| `expiredExpectEmptyViolation`  | `:130`                                      |
-| `assertionLessViolation`       | `packages/core/src/terminal-builder.ts:413` |
-| (preset dispatch)              | `packages/core/src/preset-dispatch.ts:121`  |
+| producer                       | line                                                        |
+| ------------------------------ | ----------------------------------------------------------- |
+| `zeroExaminedViolation`        | `packages/core/src/vacuity-findings.ts:24`                  |
+| `deadGlobViolation`            | `:54`                                                       |
+| `unmetExpectNonEmptyViolation` | `:78`                                                       |
+| `zeroLoadedSourceViolation`    | `:105`                                                      |
+| `expiredExpectEmptyViolation`  | `:130`                                                      |
+| `assertionLessViolation`       | `packages/core/src/terminal-builder.ts:413`                 |
+| (preset dispatch)              | `packages/core/src/preset-dispatch.ts` — deleted 2026-09-06 |
 
 They serve `eess-md`, `eess-mermaid`, `eess-gherkin` and `eess-crossvalidate` —
 four dialects whose configuration findings are therefore entirely un-surveyed.
