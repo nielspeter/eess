@@ -2,11 +2,11 @@
 
 ## Status
 
-- **State:** Draft — measured against the shipped source and the profile
-  script on 2026-09-06; a docs and ADR-table fix, no red test possible for
-  prose (see Verification).
+- **State:** Fixed — filed and fixed 2026-09-06 in the same PR (the 0236
+  shape): the docs sentence, the large-projects note and the ADR-002 row.
+  `Deferred: none`.
 - **Severity:** Medium — the one claim/check gap both reviews of
-  [proposal 010](../proposals/010-ts-performance-at-scale.md) found. An adopter
+  [proposal 010](../../proposals/010-ts-performance-at-scale.md) found. An adopter
   who wires the agent-hook recipe expecting a faster run on a large repository
   gets the same run and a shorter report, and nothing tells them so.
 - **Implements:** proposal 010
@@ -78,21 +78,25 @@ the sentence beside it claims.
 
 ## Verification
 
-- [ ] No red test: the defect is prose. The instrument is `check:corpus` on the
-      pointer added in fix 1; the claim's truth is reviewed, not gated, and this
-      record says so rather than naming a gate that reads no prose.
-- [ ] `docs/agent-integration.md` no longer says "scopes the run" or "fast".
-- [ ] `docs/cli.md` names the lever and its cost.
-- [ ] ADR-002's table carries the row; `check:corpus` (ADR tables) green.
-- [ ] `npm run validate` green.
+- [x] done-otherwise — no red test: the defect is prose. The instrument is
+      `check:corpus` on the pointer added in fix 1 (it grounds the line; the
+      claim's truth is reviewed, not gated), and this record says so rather than
+      naming a gate that reads no prose.
+- [x] `docs/agent-integration.md` no longer says "scopes the run" or "fast".
+- [x] `docs/cli.md` names the lever and its cost, under "Large projects".
+- [x] ADR-002's table carries the row, status `deprecated` — the promise is
+      recorded as measured and not kept, rather than as pending work; `check:corpus`
+      (ADR tables) green.
+- [x] `npm run check:fast`, `check:ledger`, `check:docs-code` green in the PR;
+      `npm run validate` is CI's.
 
 Deferred: none.
 
 ## Related
 
-- [Proposal 010](../proposals/010-ts-performance-at-scale.md) — the docs
+- [Proposal 010](../../proposals/010-ts-performance-at-scale.md) — the docs
   slice its second review accepted; the Priority of that proposal rests on this
   record existing.
-- [0221](./0221-diffaware-cannot-tell-no-changes-from-wrong-base.md) — the
+- [0221](../0221-diffaware-cannot-tell-no-changes-from-wrong-base.md) — the
   same flag's other silence: an empty diff is indistinguishable from a wrong
   base.
