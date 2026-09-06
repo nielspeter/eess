@@ -107,7 +107,7 @@ The finding is the preset-seam analogue of `sourceEmpty`, and its message is the
 existing one raised a level: the preset constructed zero rules before any rule
 ran. No new vocabulary.
 
-Sequenced into [plan 0235](../../plans/0235-the-emitter-takes-a-receipt.md), because
+Sequenced into [plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md), because
 the receipt is where the evidence lives and a standalone guard would build a
 parallel floor that 0235 then replaces. `recommended` and `layeredArchitecture`
 join the census as call sites passing the fact.

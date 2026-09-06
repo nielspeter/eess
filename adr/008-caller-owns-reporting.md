@@ -104,7 +104,7 @@ to emit, and `reportViolations` still never throws on violations and never
 filters them. What narrows is what a caller may hand over — a value that says
 what was examined — and what widens is what comes back.
 
-**Decided, not yet enforced.** Until [plan 0235](../work/plans/0235-the-emitter-takes-a-receipt.md)
+**Decided, not yet enforced.** Until [plan 0235](../work/plans/completed/0235-the-emitter-takes-a-receipt.md)
 lands, the code still matches the Decision as written above and the Enforcement
 rows below still describe it; this amendment records the ruling, and the plan
 turns it into the seam.

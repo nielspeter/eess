@@ -1,7 +1,7 @@
 /**
  * The emitter refuses a verdict without evidence —
  * [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md),
- * built by [plan 0235](../../../work/plans/0235-the-emitter-takes-a-receipt.md).
+ * built by [plan 0235](../../../work/plans/completed/0235-the-emitter-takes-a-receipt.md).
  *
  * **RED FIRST.** These are written against the receipt API that Phase 2 builds;
  * until it lands they do not compile, which is the intended red. Do not
@@ -18,7 +18,11 @@
  */
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { reportViolations, finishPreset } from '../src/report.js'
-import { EMITTER_NO_RECEIPT, EMITTER_PASS_WITHOUT_EVIDENCE } from '../src/emitter-findings.js'
+import {
+  EMITTER_NO_RECEIPT,
+  EMITTER_PASS_WITHOUT_EVIDENCE,
+  EMITTER_EXPIRED_DECLARATION,
+} from '../src/emitter-findings.js'
 import { collectResult, mergeCollectResults } from '../src/collect-result.js'
 import type { ArchViolation } from '../src/violation.js'
 
@@ -114,6 +118,50 @@ describe('a pass whose evidence proves nothing', () => {
     const original = finding('core/zero-examined')
     const result = finishPreset(receipt([original], 0), { report: 'return' })
     expect(result).toContain(original)
+  })
+})
+
+describe('a declaration that has expired (ADR-014 §3)', () => {
+  // **Why this suite exists at all.** Without it `emitter/expired-declaration`
+  // would be an id nothing proves can fire — which is bug 0190's exact shape, in
+  // the change that closes 0190. Found by asking of this PR the question its own
+  // enforcement review would ask.
+  //
+  // The expiry is not decoration: ADR-010 §3 admits a declaration ONLY because it
+  // "fails the day it stops being true". A claim nothing can contradict is not an
+  // assertion, which is the whole reason ADR-014 §3's amendment refuses to infer
+  // one from `overrides: { id: 'off' }`.
+  it('declared empty, then examined something, is the expired-declaration finding', () => {
+    const expired = collectResult([], { examined: 3, declaredEmpty: true })
+    const result = finishPreset(expired, { report: 'return' })
+    expect(ids(result)).toContain(EMITTER_EXPIRED_DECLARATION)
+  })
+
+  it('names the number, because the number IS the finding', () => {
+    const expired = collectResult([], { examined: 7, declaredEmpty: true })
+    const result = finishPreset(expired, { report: 'return' })
+    const found = result.find((v) => v.ruleId === EMITTER_EXPIRED_DECLARATION)
+    expect(found?.message).toContain('7')
+  })
+
+  it('fires even beside real violations — the declaration is wrong independently', () => {
+    const expired = collectResult([finding('some/real-rule')], {
+      examined: 2,
+      declaredEmpty: true,
+    })
+    const result = finishPreset(expired, { report: 'return' })
+    expect(ids(result)).toContain(EMITTER_EXPIRED_DECLARATION)
+    expect(ids(result)).toContain('some/real-rule')
+  })
+
+  it('CONTROL — declared empty AND examined zero stays green', () => {
+    // The state the declaration exists for. If this reddened, the remedy would be
+    // to stop declaring, which is the trained-suppression dynamic ADR-009 rule 1
+    // names.
+    const honest = collectResult([], { examined: 0, declaredEmpty: true })
+    const result = finishPreset(honest, { report: 'return' })
+    expect(ids(result)).not.toContain(EMITTER_EXPIRED_DECLARATION)
+    expect(result).toHaveLength(0)
   })
 })
 

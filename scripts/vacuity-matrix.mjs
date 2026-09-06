@@ -247,6 +247,12 @@ const EMITTER_PROBES = {
   'reportViolations(bare array) [hand-assembled, no evidence]': () => kernel.reportViolations([]),
   'finishPreset(receipt examining zero) [the loop that never ran]': () =>
     kernel.finishPreset(kernel.collectResult([], { examined: 0 })),
+  // The third id needs its own probe or it is an id nothing proves can fire —
+  // bug 0190's shape, in the change that closes 0190. A declaration that cannot
+  // expire is not an assertion (ADR-010 §3), so the expiry IS the mechanism that
+  // makes `declaredEmpty` admissible at all.
+  'finishPreset(declared empty, then examined) [an expired declaration]': () =>
+    kernel.finishPreset(kernel.collectResult([], { examined: 3, declaredEmpty: true })),
 }
 
 const PRESET_PROBES = {

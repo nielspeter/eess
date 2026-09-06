@@ -962,27 +962,48 @@ const laneViolations =
       ]
     : lanesMatchDirectories.violations()
 
+const proposalDocsCount = liveDocs.filter(isProposalDoc).length
+const planDocsCount = liveDocs.filter(isPlanDoc).length
+
+// **One receipt, built once, used by BOTH exits.**
+//
+// Each member carries the denominator ITS OWN check ran over — never a shared
+// count, and never the corpus size. `mergeCollectResults` is fail-closed per
+// member, so a check that goes quiet is named rather than absorbed by the
+// others; bundling several under one number would put them back where a summed
+// total had them, which is the whole thing plan 0235 exists to remove.
+//
+// The `--format json` branch used to be built here from a bare array and exit
+// before any of this ran. Under ADR-014 that array reached `reportViolations`
+// with no evidence, so on a CLEAN corpus the machine-readable path emitted a
+// fabricated finding with `"examined": 0` and then threw. Every fixture missed
+// it: they assert exit 1 on violating input, and an uncaught throw exits 1 too.
+const receipt = mergeCollectResults([
+  collectResult(broken, { examined: linksChecked }),
+  collectResult(stale, { examined: pointersChecked }),
+  collectResult(adrViolations, { examined: adrDocs.length }),
+  collectResult(proposalPlanViolations, { examined: acceptedProposalCount }),
+  collectResult(boardRulingViolations, { examined: boardRowsExamined }),
+  collectResult(promotedViolations, { examined: promotedProposals.length }),
+  collectResult(acceptedDenominatorViolations, { examined: proposalDocsCount }),
+  collectResult(criteriaViolations, { examined: criteriaSubjects.length }),
+  collectResult(docsOnlyOwnerViolations, { examined: docsOnlyProposals.length }),
+  collectResult(unparseableRulingViolations, { examined: proposalDocsCount }),
+  collectResult(unparseableImplementsViolations, { examined: planDocsCount }),
+  collectResult(danglingImplementsViolations, { examined: planDocsCount }),
+  collectResult(laneViolations, { examined: laneRows.length }),
+])
+
+// ADR-008: this script owns its reporting on the terminal path, so the gate runs
+// under `report: 'return'` there. The machine-readable path DOES emit, because
+// that is what `--format json` is for.
 // --format json/github — emit all violations machine-readable, then exit (plan 0070).
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
 if (format === 'json' || format === 'github') {
-  const all = [
-    ...broken,
-    ...stale,
-    ...adrViolations,
-    ...proposalPlanViolations,
-    ...unparseableRulingViolations,
-    ...unparseableImplementsViolations,
-    ...danglingImplementsViolations,
-    ...boardRulingViolations,
-    ...promotedViolations,
-    ...acceptedDenominatorViolations,
-    ...criteriaViolations,
-    ...docsOnlyOwnerViolations,
-    ...laneViolations,
-  ]
-  reportViolations(all, { format })
-  process.exit(all.length > 0 ? 1 : 0)
+  const emitted = finishPreset(receipt, { report: 'return' })
+  reportViolations(emitted, { format })
+  process.exit(emitted.length > 0 ? 1 : 0)
 }
 
 // ---------- report ----------
@@ -1021,8 +1042,7 @@ line(
       : `✗ ${laneViolations.length} finding(s)`
   }`,
 )
-const proposalDocsCount = liveDocs.filter(isProposalDoc).length
-const planDocsCount = liveDocs.filter(isPlanDoc).length
+
 const proposalPlanFindingCount =
   proposalPlanViolations.length +
   unparseableRulingViolations.length +
@@ -1081,43 +1101,8 @@ if (adrError) {
     console.error(`    ${relTo(v.file)}:${v.line}  ${v.message.split('\n')[0]}`)
 }
 
-// **The verdict is a MERGE of per-check receipts, not a hand-summed total.**
-//
-// Plan 0235's top success criterion is a `continue` planted at the top of ONE
-// check's loop here — one, not all of them. Against a summed denominator that
-// criterion can never fail: the dead check contributes 0 and the others still
-// sum to a healthy number, which is precisely the shape proposal 009 records
-// from the field. `mergeCollectResults` is fail-closed PER MEMBER, so the dead
-// one is named rather than absorbed.
-//
-// Each member carries the denominator its own checks ran over — never the
-// corpus size, which would read healthy for a check that examined none of it.
-const receipt = mergeCollectResults([
-  collectResult(broken, { examined: linksChecked }),
-  collectResult(stale, { examined: pointersChecked }),
-  collectResult(adrViolations, { examined: adrDocs.length }),
-  collectResult(
-    [
-      ...proposalPlanViolations,
-      ...boardRulingViolations,
-      ...promotedViolations,
-      ...acceptedDenominatorViolations,
-      ...criteriaViolations,
-      ...docsOnlyOwnerViolations,
-      ...unparseableRulingViolations,
-      ...unparseableImplementsViolations,
-    ],
-    { examined: proposalDocsCount },
-  ),
-  collectResult(danglingImplementsViolations, { examined: planDocsCount }),
-  collectResult(laneViolations, { examined: laneRows.length }),
-])
-
-// ADR-008: this script owns its reporting, so `report: 'return'` — but the
-// EVIDENCE GATE still runs, on the default path and not only under
-// `--format json` (D2: a contract that binds only the machine-readable path is
-// a contract that does not bind CI). The exit below is taken on what the
-// emitter hands back, never on the array handed in.
+// The same receipt the machine-readable path used, so the two exits cannot
+// disagree about what was examined.
 const verdict = finishPreset(receipt, { report: 'return' })
 const emitterFindings = verdict.filter(
   (v) => typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/'),

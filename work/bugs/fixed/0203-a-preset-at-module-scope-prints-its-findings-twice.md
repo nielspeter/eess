@@ -214,8 +214,11 @@ shape it actually fits.
 - [**0206**](./0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md) —
   `deliver()` throws `ArchRuleError` itself rather than delegating to
   `finishPreset`, because the kernel has no mode meaning "run, throw, and let my
-  caller emit". Latent today; the exposure is that the flagship dialect's default
-  path no longer flows through the kernel finisher.
+  caller emit". **Corrected 2026-09-06 — "latent today" was wrong**, and 0206's
+  own record says so at close: the drift was live, and the test written to prove
+  it found the flagship dialect's default path already skipping the kernel
+  finisher. Fixed under [plan 0235](../../plans/completed/0235-the-emitter-takes-a-receipt.md);
+  the exposure was exactly as described, just not hypothetical.
 
 ## Verification
 

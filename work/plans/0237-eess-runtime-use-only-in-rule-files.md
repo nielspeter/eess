@@ -300,7 +300,7 @@ letting a `check:guardrails` tick imply it.
 
 ## Out of scope — each with its home
 
-- **The kernel-side contract** — [plan 0235](./0235-the-emitter-takes-a-receipt.md).
+- **The kernel-side contract** — [plan 0235](./completed/0235-the-emitter-takes-a-receipt.md).
   This rule does not make an evidence-free verdict unrepresentable; the emitter
   does.
 - **Seeing inside a rule file** — a hand-summed receipt, or a rule file that
