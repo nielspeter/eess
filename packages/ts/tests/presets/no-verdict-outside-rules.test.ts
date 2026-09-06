@@ -1,6 +1,6 @@
 /**
  * `preset/agent/no-verdict-outside-rules` —
- * [plan 0237](../../../../work/plans/0237-eess-runtime-use-only-in-rule-files.md),
+ * [plan 0237](../../../../work/plans/completed/0237-eess-runtime-use-only-in-rule-files.md),
  * reaching the two residuals
  * [ADR-014](../../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
  * states it cannot: a caller who sums receipts by hand, and one who never calls

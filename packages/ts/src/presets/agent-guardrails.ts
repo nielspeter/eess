@@ -56,7 +56,7 @@ export interface AgentGuardrailsOptions extends PresetBaseOptions<AgentGuardrail
   noCopyPaste?: boolean
   /**
    * Ban eess at runtime, and every emitter call, outside a file that is meant to
-   * write a verdict — [plan 0237](../../../../work/plans/0237-eess-runtime-use-only-in-rule-files.md),
+   * write a verdict — [plan 0237](../../../../work/plans/completed/0237-eess-runtime-use-only-in-rule-files.md),
    * reaching the two residuals ADR-014 states its own contract cannot.
    */
   noVerdictOutsideRules?: boolean

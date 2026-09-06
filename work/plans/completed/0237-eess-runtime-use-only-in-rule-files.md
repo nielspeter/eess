@@ -2,7 +2,17 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-09-06, the day plan 0235 merged. The belt to
+- **State:** Done — built and closed in PR #110, on top of the freeze in #109.
+  `preset/agent/no-verdict-outside-rules` ships behind `noVerdictOutsideRules`
+  (default off) with `preset/agent/rule-files-matches-nothing` beside it, two
+  `check:nonvacuity` rows (one per finding), 24 tests, and four stated ceilings.
+  Seven review personas found five real defects in it — a `base` derivation that
+  disagreed with the rule it described, a finding with no non-vacuity coverage,
+  a fourth escape, a false dogfood claim, and numbers that went stale inside the
+  branch that measured them. All fixed or filed; the record carries each one,
+  including a docs "fix" I made on a review finding that was itself wrong.
+  **Deferred: bug 0264.**
+  Previously read: Ready — frozen 2026-09-06, the day plan 0235 merged. The belt to
   0235's braces: independent of it and independently closable, and now the only
   live mechanism aimed at the two residuals ADR-014 states it cannot reach.
   **The freeze found five things and fixed them rather than flipping over
@@ -46,7 +56,7 @@
   at their cited lines.
 
 - **Priority:** High — it is the only mechanism that reaches the two residuals
-  [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
+  [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
   states it cannot: an adopter who sums receipts by hand, and one who never
   calls an emitter at all. Both are the shape an AI agent produces while
   believing it did the right thing, and the maintainer's standing instruction is
@@ -251,7 +261,7 @@ cover each other's blind spot once the subpath globs are right.
 "until plan 0235 deletes the symbol", and 0235 shipped on 2026-09-06 without
 deleting it — it is still exported from `packages/core/src/index.ts` and
 `packages/ts/src/index.ts`, and removing it is now
-[plan 0263](./0263-adr-014s-residual-enforcement-rows.md) Phase 5. The name is
+[plan 0263](../0263-adr-014s-residual-enforcement-rows.md) Phase 5. The name is
 live, not pending-dead. Either way a dead name in a regex is harmless, and an
 adopter on an older kernel still has the alias.
 
@@ -416,7 +426,7 @@ letting a `check:guardrails` tick imply it.
 
 ## Out of scope — each with its home
 
-- **The kernel-side contract** — [plan 0235](./completed/0235-the-emitter-takes-a-receipt.md).
+- **The kernel-side contract** — [plan 0235](./0235-the-emitter-takes-a-receipt.md).
   This rule does not make an evidence-free verdict unrepresentable; the emitter
   does.
 - **Seeing inside a rule file** — a hand-summed receipt, or a rule file that
@@ -556,7 +566,7 @@ letting a `check:guardrails` tick imply it.
          other's blind spot" was false for this shape. Measured, pinned by a
          **KNOWN-GAP test** so closing it turns the test red, stated in the
          source comment, `docs/presets.md` and the changeset, and filed as
-         [bug 0264](../bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md).
+         [bug 0264](../../bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md).
          The static renamed import IS caught — also now asserted rather than
          claimed in a comment.
       3. **`check-guardrails.mjs` said it runs "the preset"** and runs four of
@@ -576,6 +586,26 @@ letting a `check:guardrails` tick imply it.
       the remedy does not lead with the file move; changeset names the rule id,
       the `overrides` opt-out, the default-off upgrade path and the expected
       first red on preset modules.
-- [ ] `/close` — owed once this is merged and green.
+- [x] `/close` — authored in PR #110, before merge. **Deferred: one, and it has
+      a home**: the dynamic-import escape is `deferred→`
+      [bug 0264](../../bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md),
+      created when the enforcement review found it, on `BUGS.md`, and pinned by
+      a KNOWN-GAP test so closing it turns that test red. Nothing else from this
+      plan is owed: every Out-of-scope item was declared up front with its own
+      home and none was discovered mid-build.
 
-Deferred: none.
+      **The last Success criterion was verified at close rather than assumed.**
+      "The regenerated `AGENTS.md` block carries the imperative" had never been
+      run. It does — `npx eess-ts explain <rules> --format agent` emits it
+      verbatim, and the line leads with the construction that reaches the
+      evidence floor rather than the file move, which was the half that mattered.
+      Getting there took two wrong invocations of my own (`dist/cli/index.js`
+      instead of the real bin `dist/cli/bin.js`, and a probe outside the repo
+      where the package could not resolve), each of which returned **exit 0 with
+      empty output** — indistinguishable from bug 0134's real defect. A third
+      instance this session of a measurement apparatus failing silently and
+      reading as a finding.
+
+Deferred: [bug 0264](../../bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md) — the
+dynamic-import escape, found by review, filed with a home and pinned by a test
+that reds when it is closed.
