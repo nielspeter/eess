@@ -166,7 +166,7 @@ and the other four are pure gain.
 
 - **ADR-014's two stated residuals** — an adopter who sums by hand, and one who
   never calls an emitter. Those are
-  [plan 0237](./0237-eess-runtime-use-only-in-rule-files.md)'s, and the ADR marks
+  [plan 0237](./completed/0237-eess-runtime-use-only-in-rule-files.md)'s, and the ADR marks
   them `n/a` rather than `pending` for the reason it states: only a human reading
   the loop can judge a wrong `examined`.
 - **[Bug 0262](../bugs/0262-an-adr-cannot-cite-a-kernel-test.md)** — the reason

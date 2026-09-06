@@ -2,12 +2,37 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-09-06, the day plan 0235 merged. The belt to
+- **State:** Done — built and closed in PR #110, on top of the freeze in #109.
+  `preset/agent/no-verdict-outside-rules` ships behind `noVerdictOutsideRules`
+  (default off) with `preset/agent/rule-files-matches-nothing` beside it, two
+  `check:nonvacuity` rows (one per finding), 24 tests, and four stated ceilings.
+  Seven review personas found five real defects in it — a `base` derivation that
+  disagreed with the rule it described, a finding with no non-vacuity coverage,
+  a fourth escape, a false dogfood claim, and numbers that went stale inside the
+  branch that measured them. All fixed or filed; the record carries each one,
+  including a docs "fix" I made on a review finding that was itself wrong.
+  **Deferred: bug 0264.**
+  Previously read: Ready — frozen 2026-09-06, the day plan 0235 merged. The belt to
   0235's braces: independent of it and independently closable, and now the only
   live mechanism aimed at the two residuals ADR-014 states it cannot reach.
   **The freeze found five things and fixed them rather than flipping over
-  them** — four citations that had staled and one item of Phase 2 that was
-  already done:
+  them — and MISSED A SIXTH, which is recorded here because the freeze's own
+  count was one of the numbers it got wrong.** A method review found it: the
+  frozen text asserted, as decided rather than as an open question, that a dead
+  `ruleFiles` entry was covered by "the dead-glob diagnosis already in the
+  pipeline". That was false, and reachable by reading the one function the claim
+  depended on — `isDeadSite` short-circuits on negative polarity, as its own
+  comment says. The freeze's bar is that a load-bearing artifact is internalised
+  and checked; this one was neither, and it surfaced at build, forcing an entire
+  new rule id the frozen scope did not carry.
+
+  Worth stating beside it: plan 0263's freeze **did** catch the analogous
+  mistake — a table claim inherited without measuring — before any build. The
+  discipline works when it is actually applied to a mechanical claim; here it
+  was applied to four citations and not to the fifth thing the plan leaned on.
+
+  The five it did find — four citations that had staled and one item of Phase 2
+  that was already done:
   1. The `dispatchRule`-in-`eess-md` fact is re-recorded **by value** (the three
      call expressions and the import member). Its line citation had staled in
      both this plan AND proposal 009's Ask C row, because 0235 rewrote the
@@ -31,7 +56,7 @@
   at their cited lines.
 
 - **Priority:** High — it is the only mechanism that reaches the two residuals
-  [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
+  [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
   states it cannot: an adopter who sums receipts by hand, and one who never
   calls an emitter at all. Both are the shape an AI agent produces while
   believing it did the right thing, and the maintainer's standing instruction is
@@ -193,10 +218,37 @@ legitimate emitter call belongs.
    such rather than dressed as a mechanism. A file named in it is still under
    ADR-014 the moment it calls an emitter; the list decides where a verdict may
    be written, not whether it needs evidence. And an entry that matches **zero
-   files** is a configuration finding, not a silence: the exclusion predicate
+   files** is a configuration finding, not a silence — the way `overrideFindings`
+   (`packages/ts/src/presets/agent-guardrails.ts:98`) already reports an unknown
+   override key.
+
+   **BUILD FINDING, 2026-09-06 — the mechanism named here does not exist, and
+   the family refuses to build it.** This plan said "the exclusion predicate
    declares its globs, so the dead-glob diagnosis already in the pipeline covers
-   it, the way `overrideFindings` (`packages/ts/src/presets/agent-guardrails.ts:98`)
-   already reports an unknown override key. A list that can go stale silently
+   it". It does not, for two independent and deliberate reasons:
+   - `isDeadSite` opens with `if ((site.polarity ?? 'positive') === 'negative')
+return false`, and `not(...)` flips polarity. `terminal-builder.ts` states
+     the reasoning: _"`not(dead)` over-selects rather than under-selecting, so it
+     cannot be dead."_
+   - Exclusion sites are never faults at all: _"a condition glob matching nothing
+     is indistinguishable from an armed tripwire that has not fired, and plan
+     0072 got that wrong twice before it stayed written down."_
+
+   Both are correct, and neither should be weakened for this rule. **Decided:
+   an explicit check instead**, `preset/agent/rule-files-matches-nothing`, which
+   asks `isDeadSite` about each `ruleFiles` glob **on its own, at positive
+   polarity** — the same computation, the honest question. Reusing `isDeadSite`
+   rather than hand-rolling picomatch inherits `syntacticFault`'s anchoring and
+   project-relative handling, so the pre-flight and this check cannot disagree.
+
+   The UX is why it is worth a mechanism rather than a note. Without it a typo'd
+   `ruleFiles: ['script/**']` surfaces as _"your gate script violates
+   no-verdict-outside-rules"_, whose `Fix:` line says "name it in `ruleFiles`" —
+   which the adopter did, with a typo. A loop the finding itself sends them
+   around. The dead entry is at least **fail-closed** (an exemption that exempts
+   nothing reds the files it names rather than going quiet), so this is a
+   legibility fix, not a hole — and that distinction is stated here so the row
+   does not over-claim. A list that can go stale silently
    is proposal 009's own requirement (its lines 239-241), and the first draft of
    this plan had dropped it.
 
@@ -209,7 +261,7 @@ cover each other's blind spot once the subpath globs are right.
 "until plan 0235 deletes the symbol", and 0235 shipped on 2026-09-06 without
 deleting it — it is still exported from `packages/core/src/index.ts` and
 `packages/ts/src/index.ts`, and removing it is now
-[plan 0263](./0263-adr-014s-residual-enforcement-rows.md) Phase 5. The name is
+[plan 0263](../0263-adr-014s-residual-enforcement-rows.md) Phase 5. The name is
 live, not pending-dead. Either way a dead name in a regex is harmless, and an
 adopter on an older kernel still has the alias.
 
@@ -242,13 +294,22 @@ find packages/<pkg>/src -name '*.ts'                       # the denominator
 … | xargs grep -lE "^import [^t].*from '@nielspeter/eess"  # runtime importers
 ```
 
-| package              | runtime-importing | of total |
-| -------------------- | ----------------- | -------- |
-| `eess-ts`            | 55 (was 53)       | 141      |
-| `eess-md`            | 10 (was 9)        | 24       |
-| `eess-mermaid`       | 8                 | 29       |
-| `eess-crossvalidate` | 7                 | 9        |
-| `eess` (kernel)      | 0                 | 58       |
+| package              | runtime-importing                               | of total |
+| -------------------- | ----------------------------------------------- | -------- |
+| `eess-ts`            | **56** at build (55 at freeze, 53 when drafted) | 141      |
+| `eess-md`            | 10 (was 9)                                      | 24       |
+| `eess-mermaid`       | 8                                               | 29       |
+| `eess-crossvalidate` | 7                                               | 9        |
+| `eess` (kernel)      | 0                                               | 58       |
+
+**`eess-ts` moved from 55 to 56 inside this branch, and the cause is this
+plan's own build.** Phase 2 added `import { collectResult } from '@nielspeter/eess'`
+to `packages/ts/src/presets/agent-guardrails.ts` — a genuine runtime import, in
+the very file this rule ships from. So the file that implements "do not import
+eess at runtime outside a rule file" joined the population it had just counted.
+Caught by a method review, not by me. It changes nothing about the argument (the
+conclusion is "more, not fewer"), and it is the sharpest possible illustration of
+why the derivation is recorded beside the number.
 
 The conclusion is unchanged and slightly stronger: MORE of this repo's dialect
 source imports the kernel at runtime than when the plan was drafted, so a
@@ -282,8 +343,11 @@ fixtures that both conditions trip:
   named by `ruleFiles` → green;
 - a preset module calling `dispatchRule` → green (narrowing 1, asserted, not
   assumed);
-- a `ruleFiles` entry matching zero files → the dead-glob configuration
-  finding, by its rule id.
+- a `ruleFiles` entry matching zero files → `preset/agent/rule-files-matches-nothing`,
+  by its own rule id (see the build finding above — NOT the dead-glob pipeline,
+  which deliberately does not cover negated or exclusion sites);
+- a `ruleFiles` entry that DOES match → no such finding. The control, without
+  which the check above is satisfied by a finding that always fires.
 
 Every red assertion is by **rule id**, never by a count of one: each condition
 emits its own violation, so a module that trips both reports two.
@@ -362,7 +426,7 @@ letting a `check:guardrails` tick imply it.
 
 ## Out of scope — each with its home
 
-- **The kernel-side contract** — [plan 0235](./completed/0235-the-emitter-takes-a-receipt.md).
+- **The kernel-side contract** — [plan 0235](./0235-the-emitter-takes-a-receipt.md).
   This rule does not make an evidence-free verdict unrepresentable; the emitter
   does.
 - **Seeing inside a rule file** — a hand-summed receipt, or a rule file that
@@ -384,7 +448,9 @@ letting a `check:guardrails` tick imply it.
 - The adopter-shaped fixture project reds on the planted module and is green
   clean, registered under `check:guardrails`; no `check:guardrails` run over
   `packages/*/src` enables this rule.
-- A `ruleFiles` entry matching zero files reds by the dead-glob rule id.
+- A `ruleFiles` entry matching zero files reds by
+  `preset/agent/rule-files-matches-nothing`, and one that matches does not —
+  corrected from "the dead-glob rule id" at build, which could not fire.
 - A preset enabling only this rule accepts its `overrides` opt-out and fires no
   `constructs-nothing` finding on itself.
 - The regenerated `AGENTS.md` block carries the imperative, and the imperative
@@ -393,10 +459,153 @@ letting a `check:guardrails` tick imply it.
 
 ## Progress ledger
 
-- [ ] Phase 1 — fixtures red, keyed on the rule id; non-vacuity row registered under `check:guardrails`
-- [ ] Phase 2 — the rule, in the preset, both narrowings in
-- [ ] Phase 3 — the adopter-shaped fixture project, red planted and green clean, under `check:guardrails`
-- [ ] Phase 4 — docs and the changeset naming the id and the opt-out
-- [ ] `/close`
+- [x] Phase 1 — **24 tests**, every assertion keyed on the file a violation
+      names rather than a count (a module tripping both conditions reports
+      twice). Red first: 11 failed before Phase 2 existed. **The discrimination
+      is measured, not claimed** — each mechanism sabotaged in turn, and the
+      column that matters is WHICH tests fail, not how many:
 
-Deferred: none.
+      | sabotage | what fails |
+      | --- | --- |
+      | import leg → a no-op glob | `runtime-import` + the 3 specifier fixtures + the double-trip and static-rename fixtures — and NOT `wrapper-call`/`namespace-call`, which the call leg alone catches |
+      | call leg → a no-op regex | `wrapper-call`, `namespace-call`, double-trip — and NOT `runtime-import`, which the import leg alone catches |
+      | drop the `(^\|\.)` anchor | only the namespaced call and the double-trip that uses one |
+      | exemption stops exempting | the gate script and the preset module (plus the dead-entry agreement test, which reads the same list) |
+      | `base` hard-coded in the dead-entry check | **only** the agreement test — the regression guard for the architect review's critical |
+
+      **The failure COUNTS this table used to carry were stale within the same
+      branch, and a method review caught it.** It read 4 / 2 / 1 / 2, measured
+      against a 19-test suite; the suite is now 24, because every review finding
+      was pinned as a test, so the counts are 6 / 3 / 2 / 3 / 1 today and will
+      move again the moment anyone adds a case. A count is a fact about the
+      suite's size; the discrimination claim is about WHICH fixture survives,
+      and only the latter is stable. Same lesson CLAUDE.md records for its own
+      gate-summary table, re-learned here.
+
+      **And one of those counts was never real.** Re-deriving the matrix, the
+      anchor row first measured "0 failed" — which was a sabotage that never
+      applied (shell quoting ate the regex), not a guard that had stopped
+      working. Applied properly it fails 2. A sabotage that silently does
+      nothing reports exactly like a mechanism that catches nothing; both times
+      this session it was caught by checking that the edit landed, never by the
+      number.
+
+      Two things the build had to change that the plan did not foresee, both
+      recorded rather than done quietly: `vitest.config.ts` now excludes
+      `tests/fixtures/**` (the fixture proving the `**/*.test.ts` exemption must
+      literally be named `.test.ts`, and vitest was collecting it as a suite),
+      and `tsconfig.json` excludes this fixture directory (its files import
+      `@nielspeter/eess-ts` **by name** — the whole point — which makes the
+      project root ambiguous, TS2209, the same class as the two fixtures already
+      excluded there).
+
+- [x] Phase 2 — the rule, in the preset, both narrowings in. All four by-hand
+      lists updated (`AgentGuardrailsRuleId`, `STATIC_RULE_IDS`,
+      `collectRuleIds`, `optionsHint`) with a test pinning each: the override key
+      is accepted, no `constructs-nothing` fires on a preset enabling only this
+      rule, and the remedy lists the new flag. `push` widened to take a
+      `ModuleRuleBuilder`. **`preset/agent/rule-files-matches-nothing` added**
+      per the build finding above — `isDeadSite` asked about each caller glob on
+      its own at positive polarity, so this check and `doctor`'s pre-flight
+      cannot disagree.
+- [x] Phase 3 — `scripts/nonvacuity/bad-verdict-outside-rules.mjs` builds an
+      adopter-shaped project in a temp dir and drives it **both ways**: clean is
+      green (and a red there exits 2 — the fixture's premise broke, not the gate
+      proven), planted reds naming the rule id. Registered under
+      `check:guardrails` in both the fixture list and `GATE_FOR`; the harness now
+      reports **82 fixtures**. It does NOT plant under `packages/*/src`, and the
+      row carries the reason: this repo's dialect source is eess, so the rule can
+      fire on none of it and a green there would be a tautology.
+- [x] **REVIEW FINDING, 2026-09-06 — the `ruleFiles` check shipped disagreeing
+      with the rule it describes, and an architect review measured it.**
+      `ruleFilesFindings` hard-coded `base: 'absolute'` when asking `isDeadSite`,
+      while the exclusion it describes is built from `resideInFile`, which
+      derives `base: relative ? 'normalized' : 'absolute'` — as does every other
+      site in the dialect that stamps a `GlobSite` (`identity.ts:83`, `:114`,
+      `:157`). Measured on the fixture project with `ruleFiles: ['gates/**']`:
+      the rule **exempted** `gates/check-corpus.ts` (the unanchored glob matches
+      via the tsconfig-root-relative fallback, plan 0067 C) while the finding
+      said that same string "matches no file in this project, so it exempts
+      nothing". Two derivations disagreeing about one glob — the failure this
+      project spends most of its guards on — under a comment claiming they
+      "cannot disagree".
+
+      Three things were wrong and all three are fixed: the derivation now comes
+      from `isProjectRelative`, the remedy no longer tells adopters to **widen**
+      a correctly-scoped exemption to silence a false finding, and the test that
+      encoded `gates/**` as "the typo case" is corrected — it had pinned the bug
+      as expected behaviour. An **agreement test** is added and proven: with the
+      hard-coded `base` reintroduced, exactly one test fails.
+
+      **The docs correction that preceded this was itself wrong**, and is
+      recorded because the sequence is the lesson. An adopter review reported
+      the shipped example `ruleFiles: ['scripts/**']` as broken, having measured
+      raw `picomatch('scripts/**')` against an absolute path. That measurement is
+      real but the premise is not: the rule does not use raw picomatch, it uses
+      `resideInFile`. The example was correct; it was changed to
+      `'**/scripts/**'` on the strength of a plausible finding that had not been
+      checked against the actual code path, and changed back. A finding measured
+      against the wrong mechanism is still a wrong finding.
+
+- [x] **REVIEW ROUND, 2026-09-06 — four more findings, three of them real gaps
+      in what shipped.** A seven-persona panel; enforcement, testing and devops
+      re-ran the sabotage table independently and it reproduced.
+
+      1. **`rule-files-matches-nothing` had NO non-vacuity coverage** (testing,
+         Critical). Verified by emptying `ruleFilesFindings` to `return []`:
+         the fixture still exited 1, because its one scenario only exercised the
+         rule id. This is bug 0240's lesson — one row standing for several
+         findings — recurring in the change that cites it. Fixed with a **second
+         scenario and a second `GATE_FOR` row**, one per finding; the emptied
+         producer now correctly reports vacuous. 83 fixtures, was 82.
+      2. **A fourth escape, unstated** (enforcement, Important):
+         `const { finishPreset: done } = await import('@nielspeter/eess')` is
+         caught by neither leg — the import leg because `TYPE_IMPORT_KINDS` sets
+         `dynamic: false` by design, the call leg because the callee text is
+         `done`. Both blind on one line, so "the two conditions cover each
+         other's blind spot" was false for this shape. Measured, pinned by a
+         **KNOWN-GAP test** so closing it turns the test red, stated in the
+         source comment, `docs/presets.md` and the changeset, and filed as
+         [bug 0264](../../bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md).
+         The static renamed import IS caught — also now asserted rather than
+         claimed in a comment.
+      3. **`check-guardrails.mjs` said it runs "the preset"** and runs four of
+         its five rules (enforcement, Important). An unstated exemption, in the
+         script whose own header records it being created to end exactly that.
+         Header corrected to say four of five, and why the fifth is absent.
+      4. **The "reports twice" argument was never exercised** (testing, Minor).
+         The suite keys assertions on basenames rather than counts because a
+         module can trip both legs; no fixture did. `double-trip.ts` added.
+
+      Devops abstained from criticals after checking the changeset, both config
+      exclusions, gate ordering and the `dist` failure modes — all sound.
+
+- [x] Phase 4 — `docs/presets.md` gains the `agentGuardrails` section it never
+      had, including the three ceilings stated plainly; `docs/agent-integration.md`
+      recipe 3 names the imperative as the "do not hand-roll a gate" line and why
+      the remedy does not lead with the file move; changeset names the rule id,
+      the `overrides` opt-out, the default-off upgrade path and the expected
+      first red on preset modules.
+- [x] `/close` — authored in PR #110, before merge. **Deferred: one, and it has
+      a home**: the dynamic-import escape is `deferred→`
+      [bug 0264](../../bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md),
+      created when the enforcement review found it, on `BUGS.md`, and pinned by
+      a KNOWN-GAP test so closing it turns that test red. Nothing else from this
+      plan is owed: every Out-of-scope item was declared up front with its own
+      home and none was discovered mid-build.
+
+      **The last Success criterion was verified at close rather than assumed.**
+      "The regenerated `AGENTS.md` block carries the imperative" had never been
+      run. It does — `npx eess-ts explain <rules> --format agent` emits it
+      verbatim, and the line leads with the construction that reaches the
+      evidence floor rather than the file move, which was the half that mattered.
+      Getting there took two wrong invocations of my own (`dist/cli/index.js`
+      instead of the real bin `dist/cli/bin.js`, and a probe outside the repo
+      where the package could not resolve), each of which returned **exit 0 with
+      empty output** — indistinguishable from bug 0134's real defect. A third
+      instance this session of a measurement apparatus failing silently and
+      reading as a finding.
+
+Deferred: [bug 0264](../../bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md) — the
+dynamic-import escape, found by review, filed with a home and pinned by a test
+that reds when it is closed.

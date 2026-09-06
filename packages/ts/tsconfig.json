@@ -30,6 +30,13 @@
     // Bug 0051: this fixture is deliberately `.tsx` and carries its OWN tsconfig
     // with `"jsx": "preserve"`. The root program sets no `jsx`, so compiling it
     // here fails with TS17004 — in `npm run typecheck`, before any test runs.
-    "tests/fixtures/jsx-on-disk"
+    "tests/fixtures/jsx-on-disk",
+    // Plan 0237: these fixtures import `@nielspeter/eess-ts` and its subpaths BY
+    // NAME — that is the whole point of them, since the rule under test matches
+    // on the import specifier. Compiling them in this package's own root program
+    // makes the project root ambiguous for the export map entry '.' (TS2209), in
+    // `npm run typecheck`, before any test runs. Same shape as the two above:
+    // a fixture that is an INPUT to a rule, not a member of this program.
+    "tests/fixtures/presets/no-verdict-outside-rules"
   ]
 }
