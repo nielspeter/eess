@@ -949,6 +949,54 @@ function gateCorpusLaneDecoyTable() {
   }
 }
 
+/**
+ * Plan 0235's TOP success criterion, and the one the whole ADR exists for.
+ *
+ * Plant a `continue` at the top of ONE of `check-corpus.mjs`'s checks — one, not
+ * all of them — and the production script must exit non-zero naming the
+ * emitter's finding. This is the field failure proposal 009 records, in the
+ * shape it actually took: "a counter that fell from 38 compared against 0" with
+ * `✓ 0 violations` printed above it.
+ *
+ * **Why one check and not an emptied corpus.** An emptied corpus fires the
+ * terminal's own `sourceEmpty` under a different rule id and proves nothing
+ * about the emitter. An emptied iterable does not discriminate WHERE the count
+ * was taken. Only a single check going quiet while the others stay healthy
+ * separates "the merge is fail-closed per member" from "the sum happened to be
+ * zero" — and against the hand-summed denominator this script used before plan
+ * 0235, this criterion could not fail at all.
+ *
+ * The links check is the subject deliberately: it has no vacuity rung of its
+ * own, so nothing but the merge can catch it. Sabotaging the lanes check
+ * instead proves less — that one reports its own `corpus/lane-table-unreadable`
+ * before the emitter is ever consulted.
+ */
+function gateCorpusOneDeadCheck() {
+  const script = join(repoRoot, 'scripts', 'check-corpus.mjs')
+  // The honest mistake, per ADR-014 §2: the loop reaches its assertion zero
+  // times while everything it would have examined is still loaded.
+  const rewrite = (text) =>
+    text.replace(
+      /^const linksChecked = .*$/m,
+      'const linksChecked = 0 // non-vacuity probe: this check examines nothing',
+    )
+  const { json, terminal } = withRewrittenFile(script, rewrite, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-corpus.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-corpus.mjs')]),
+  }))
+  const named = terminal.stderr.includes('emitter/pass-without-evidence')
+  // The other checks must still have examined real units — otherwise this proves
+  // only that an all-zero corpus reds, which is a different and weaker claim.
+  const othersHealthy = /across \d+ checks/.test(terminal.stderr)
+  const ok = json.code === 1 && terminal.code === 1 && named && othersHealthy
+  return {
+    ok,
+    detail:
+      `one dead check among healthy ones \u2192 json exit ${json.code}, terminal exit ${terminal.code}, ` +
+      `named emitter/pass-without-evidence: ${named}, others still examined: ${othersHealthy}`,
+  }
+}
+
 function gateCorpusInertExclusion() {
   const { json, terminal } = withProbeDir(
     PROBE_CORPUS_INERT_EXCLUSION_DIR,
@@ -1725,6 +1773,7 @@ const gates = [
   ['corpus/lanes-match-directories/missing-row', gateCorpusLaneMissingRow],
   ['corpus/lanes-match-directories/row-unresolved', gateCorpusLaneRowUnresolved],
   ['corpus/lane-table-unreadable/decoy', gateCorpusLaneDecoyTable],
+  ['emitter/one-dead-check', gateCorpusOneDeadCheck],
   ['corpus/exclusion-inert', gateCorpusInertExclusion],
   // The other half of 0255. A separate row because the production script cannot
   // exercise it — every gate here calls `.rule({ id })`, so there is no id-less
@@ -1992,6 +2041,7 @@ const GATE_FOR = {
     'corpus/lanes-match-directories/missing-row',
     'corpus/lanes-match-directories/row-unresolved',
     'corpus/lane-table-unreadable/decoy',
+    'emitter/one-dead-check',
     'corpus/exclusion-inert',
     'corpus/exclusion-inert/no-id',
     'corpus/pointers/work-root',

@@ -30,8 +30,8 @@
   names this plan. No `**Implements:**` line, deliberately: 009's ruling is
   `Split and sequence`, which `ACCEPTED_RULINGS` does not admit, so no plan is
   owed against it and a declaration would claim it builds the whole proposal.
-- **Claims to close** [bug 0190](../bugs/0190-the-preset-constructs-nothing-finding-cannot-fire.md)
-  and [bug 0206](../bugs/0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md).
+- **Claims to close** [bug 0190](../bugs/fixed/0190-the-preset-constructs-nothing-finding-cannot-fire.md)
+  and [bug 0206](../bugs/fixed/0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md).
   Both close only if D4's declaration reaches the emitter, which is why it is
   decided rather than deferred.
 

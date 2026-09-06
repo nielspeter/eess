@@ -3,6 +3,7 @@ import {
   type ArchViolation,
   type PresetReportOptions,
   collectResult,
+  type CollectResult,
 } from '@nielspeter/eess'
 import { featurePaths, violationsFor } from './shared.js'
 import { calls, type ArchProject } from '@nielspeter/eess-ts'
@@ -12,6 +13,9 @@ import { itOrTestTitleOf } from './it-title.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset, collectResult } from '@nielspeter/eess'
+// The receipt type is this module's public return type, so a standalone
+// consumer must be able to name it without a second kernel install (plan 0089).
+export type { CollectResult } from '@nielspeter/eess'
 export type { ArchViolation, PresetReportOptions } from '@nielspeter/eess'
 
 /**
@@ -127,7 +131,7 @@ export function scenarioTestsResolve(
   project: ArchProject,
   set: FeatureSet,
   options: ScenarioTestsResolveOptions = {},
-): ArchViolation[] {
+): CollectResult {
   const extract = options.extract ?? defaultExtract
   const scenarioKeys = new Set(set.scenarios().map((s) => `${s.relPath} ${s.title}`))
   const violations: ArchViolation[] = []
@@ -243,7 +247,7 @@ export function scenariosCovered(
   project: ArchProject,
   set: FeatureSet,
   options: ScenariosCoveredOptions = {},
-): ArchViolation[] {
+): CollectResult {
   const extract = options.extract ?? defaultExtract
   const include = options.include ?? (() => true)
   const covered = citedScenarioKeys(project, set, extract)
@@ -302,7 +306,7 @@ export function scenarioExemptionsCurrent(
   project: ArchProject,
   set: FeatureSet,
   options: ScenarioExemptionsCurrentOptions,
-): ArchViolation[] {
+): CollectResult {
   const extract = options.extract ?? defaultExtract
   const sites = citedScenarioSites(project, set, extract)
   // Every exemption this rule weighed. A run with no exemptions declared

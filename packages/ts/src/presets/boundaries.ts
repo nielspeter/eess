@@ -1,4 +1,4 @@
-import type { ArchViolation } from '@nielspeter/eess'
+import type { CollectResult } from '@nielspeter/eess'
 import type { SourceFile } from 'ts-morph'
 import type { ImportOptions } from '../core/import-options.js'
 import picomatch from 'picomatch'
@@ -164,11 +164,11 @@ export function strictBoundaries(
   p: ArchProject,
   options: StrictBoundariesOptions & { report: 'builders' },
 ): RuleBuilderLike[]
-export function strictBoundaries(p: ArchProject, options: StrictBoundariesOptions): ArchViolation[]
+export function strictBoundaries(p: ArchProject, options: StrictBoundariesOptions): CollectResult
 export function strictBoundaries(
   p: ArchProject,
   options: StrictBoundariesOptions,
-): RuleBuilderLike[] | ArchViolation[] {
+): RuleBuilderLike[] | CollectResult {
   const config = options
   const constructed: string[] = []
   validateOverrides(config.overrides, [...RULE_IDS])

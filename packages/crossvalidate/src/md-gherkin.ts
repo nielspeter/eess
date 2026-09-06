@@ -1,4 +1,5 @@
 import picomatch from 'picomatch'
+import type { CollectResult } from '@nielspeter/eess'
 import { featurePaths, violationsFor } from './shared.js'
 import {
   finishPreset,
@@ -11,6 +12,9 @@ import type { FeatureSet } from '@nielspeter/eess-gherkin'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset, collectResult } from '@nielspeter/eess'
+// The receipt type is this module's public return type, so a standalone
+// consumer must be able to name it without a second kernel install (plan 0089).
+export type { CollectResult } from '@nielspeter/eess'
 export type { ArchViolation, PresetReportOptions } from '@nielspeter/eess'
 
 export interface ScenarioCitationsResolveOptions extends PresetReportOptions {
@@ -104,7 +108,7 @@ export function scenarioCitationsResolve(
   corpus: Corpus,
   set: FeatureSet,
   options: ScenarioCitationsResolveOptions = {},
-): ArchViolation[] {
+): CollectResult {
   const dir = options.dir ?? '**'
   const extract = options.extract ?? defaultExtract
 

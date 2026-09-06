@@ -34,7 +34,13 @@ import {
   rows,
 } from '@nielspeter/eess-md'
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
-import { definePredicate, reportViolations } from '@nielspeter/eess'
+import {
+  collectResult,
+  definePredicate,
+  finishPreset,
+  mergeCollectResults,
+  reportViolations,
+} from '@nielspeter/eess'
 import { matchSelections } from '@nielspeter/eess/internal'
 import { isRepoNativeLink, siteOptsAreSafe, unclassifiedRoots } from './lib/corpus-link-routing.mjs'
 import {
@@ -1075,14 +1081,55 @@ if (adrError) {
     console.error(`    ${relTo(v.file)}:${v.line}  ${v.message.split('\n')[0]}`)
 }
 
-const totalChecked =
-  linksChecked +
-  pointersChecked +
-  adrDocs.length +
-  proposalDocsCount +
-  planDocsCount +
-  laneRows.length
-const failed = problems.length > 0 || adrError
+// **The verdict is a MERGE of per-check receipts, not a hand-summed total.**
+//
+// Plan 0235's top success criterion is a `continue` planted at the top of ONE
+// check's loop here — one, not all of them. Against a summed denominator that
+// criterion can never fail: the dead check contributes 0 and the others still
+// sum to a healthy number, which is precisely the shape proposal 009 records
+// from the field. `mergeCollectResults` is fail-closed PER MEMBER, so the dead
+// one is named rather than absorbed.
+//
+// Each member carries the denominator its own checks ran over — never the
+// corpus size, which would read healthy for a check that examined none of it.
+const receipt = mergeCollectResults([
+  collectResult(broken, { examined: linksChecked }),
+  collectResult(stale, { examined: pointersChecked }),
+  collectResult(adrViolations, { examined: adrDocs.length }),
+  collectResult(
+    [
+      ...proposalPlanViolations,
+      ...boardRulingViolations,
+      ...promotedViolations,
+      ...acceptedDenominatorViolations,
+      ...criteriaViolations,
+      ...docsOnlyOwnerViolations,
+      ...unparseableRulingViolations,
+      ...unparseableImplementsViolations,
+    ],
+    { examined: proposalDocsCount },
+  ),
+  collectResult(danglingImplementsViolations, { examined: planDocsCount }),
+  collectResult(laneViolations, { examined: laneRows.length }),
+])
+
+// ADR-008: this script owns its reporting, so `report: 'return'` — but the
+// EVIDENCE GATE still runs, on the default path and not only under
+// `--format json` (D2: a contract that binds only the machine-readable path is
+// a contract that does not bind CI). The exit below is taken on what the
+// emitter hands back, never on the array handed in.
+const verdict = finishPreset(receipt, { report: 'return' })
+const emitterFindings = verdict.filter(
+  (v) => typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/'),
+)
+if (emitterFindings.length > 0) {
+  console.error('')
+  console.error('  evidence:')
+  for (const v of emitterFindings) console.error(`    ${v.ruleId ?? ''}  ${v.message}`)
+}
+
+const totalChecked = verdict.examined
+const failed = problems.length > 0 || adrError || emitterFindings.length > 0
 console.error('')
 if (!failed) {
   console.error(

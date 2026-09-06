@@ -158,7 +158,7 @@ enough evidence to decide rather than keep filing.
 
 ## Related
 
-- [0190](../0190-the-preset-constructs-nothing-finding-cannot-fire.md) — a
+- [0190](./0190-the-preset-constructs-nothing-finding-cannot-fire.md) — a
   finding constructor with no call site; the same shape, already High.
 - [0178](../0178-the-kernels-dead-glob-finding-cannot-fire.md) — the same shape
   again, in the kernel.

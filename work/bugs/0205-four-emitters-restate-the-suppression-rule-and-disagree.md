@@ -123,7 +123,7 @@ Open questions before it is built:
 
 ## 0205 and 0206 prescribe opposite fixes for the same site
 
-[Bug 0206](./0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md)'s
+[Bug 0206](./fixed/0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md)'s
 option 2 — give the kernel a non-emitting throw path so `deliver()` delegates again
 — **deletes** `deliver()`'s aggregation branch, removing it from this record's four
 sites entirely. Conversely, wiring `deliver()` into a ts-side primitive deepens the

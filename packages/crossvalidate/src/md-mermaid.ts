@@ -4,6 +4,7 @@ import {
   type Direction,
   type PresetReportOptions,
   collectResult,
+  type CollectResult,
 } from '@nielspeter/eess'
 import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
@@ -13,6 +14,9 @@ import { identifyTsClass } from './shared.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset, collectResult } from '@nielspeter/eess'
+// The receipt type is this module's public return type, so a standalone
+// consumer must be able to name it without a second kernel install (plan 0089).
+export type { CollectResult } from '@nielspeter/eess'
 export { correspondence } from '@nielspeter/eess'
 export type { ArchViolation, Direction, PresetReportOptions } from '@nielspeter/eess'
 
@@ -99,7 +103,7 @@ export function embeddedDiagramsMatchCode(
   corpus: Corpus,
   project: ArchProject,
   options: EmbeddedDiagramsMatchCodeOptions = {},
-): ArchViolation[] {
+): CollectResult {
   const scope = options.scope ?? '**/src/**'
   const direction = options.completeness ?? 'left-to-right'
 

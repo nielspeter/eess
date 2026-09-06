@@ -442,7 +442,7 @@ export function atPath<T extends Located>(glob: string, option?: string): Predic
 export function deliver(
   builders: RuleBuilderLike[],
   options: { report?: PresetDelivery; format?: OutputFormat; reason?: string } | undefined,
-): RuleBuilderLike[] | ArchViolation[] {
+): RuleBuilderLike[] | CollectResult {
   // Only an EXPLICIT 'builders' returns without running. Omission falls through
   // to `finishPreset`, whose own default is 'throw' — so a preset called with no
   // options enforces, which is what ADR-008 states and what the docs teach.
@@ -478,8 +478,20 @@ export function deliver(
   // choices about emission that a caller made on purpose, and `'warn'`'s
   // violations do NOT ride a throw — suppressing them here would lose them.
   if (mode === 'throw' && callerAggregates()) {
-    if (violations.length > 0) throw new ArchRuleError(violations, options?.reason)
-    return violations
+    // **The gate runs here too — bug 0206.** This branch used to return before
+    // `finishPreset` was ever called, so everything the finisher adds was
+    // invisible to an aggregating caller: an all-off preset threw nothing and
+    // reported nothing under `eess-ts check`, while the same preset on the
+    // default path reported correctly. Two doors, two verdicts, and only one of
+    // them tested — which is exactly what 0206 is about.
+    //
+    // `report: 'return'` because the aggregating caller owns emission (bug
+    // 0203); only the EMISSION moves, never the verdict. The receipt then rides
+    // the throw with the finding already in it, which is 0206's picked
+    // direction.
+    const gated = finishPreset(violations, { report: 'return' })
+    if (gated.length > 0) throw new ArchRuleError(gated, options?.reason)
+    return gated
   }
 
   return finishPreset(violations, {

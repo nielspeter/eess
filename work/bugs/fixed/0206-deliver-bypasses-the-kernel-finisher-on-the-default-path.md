@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — latent. Nothing is broken today; the exposure is that the two
+- **State:** Fixed — was NOT latent after all; see the first box.
+  Previously read: Draft — latent. Nothing is broken today; the exposure is that the two
   paths can drift and no test would notice.
 - **Deferred:** none
 - **Found:** 2026-08-21, architecture review of PR #75.
@@ -38,18 +39,18 @@ and `finishPreset` produce the same error payload.
 ## Why it was written this way
 
 `finishPreset` **emits and then throws**, and emitting is precisely what must not
-happen under an aggregating caller ([bug 0203](./fixed/0203-a-preset-at-module-scope-prints-its-findings-twice.md)).
+happen under an aggregating caller ([bug 0203](./0203-a-preset-at-module-scope-prints-its-findings-twice.md)).
 The kernel has no mode meaning _"run, throw, and let my caller emit"_ —
 `'return'` declines to throw, `'warn'` declines to throw, and the default emits. So
 the dialect had nowhere to delegate to.
 
 That gap is the real subject here. It is the same one
-[ADR-008's amendment](../../adr/008-caller-owns-reporting.md) records: aggregation
+[ADR-008's amendment](../../../adr/008-caller-owns-reporting.md) records: aggregation
 is a property of the run, and the kernel's preset API is per-call.
 
 ## This and bug 0205 prescribe opposite fixes for the same site
 
-[Bug 0205](./0205-four-emitters-restate-the-suppression-rule-and-disagree.md) wants
+[Bug 0205](../0205-four-emitters-restate-the-suppression-rule-and-disagree.md) wants
 `deliver()` wired into a shared ts-side emit-and-throw primitive. Option 2 below
 **deletes** `deliver()`'s aggregation branch entirely, removing it from 0205's four
 sites. Doing 0205 first deepens the bypass this record is about.
@@ -78,8 +79,23 @@ makes the drift loud.
 
 ## Verification
 
-- [ ] Red test first: change `finishPreset`'s throw (e.g. its `reason` handling) and
-      confirm the aggregating path does **not** follow — that is the drift this
-      records, and it should be demonstrable before it is closed.
-- [ ] Whichever fix ships, the aggregating path and `finishPreset` agree on the
-      thrown payload, asserted rather than assumed.
+- [x] Red test first, and it was genuinely red: `packages/ts/tests/presets/all-off-and-aggregation.test.ts`
+      ("the receipt rides the throw, so an aggregating caller sees the evidence")
+      failed on first run. The drift was live at that moment — `deliver()`'s
+      aggregating branch returned before `finishPreset` was ever called, so the
+      emitter's evidence gate never ran on that path. An all-off preset reported
+      correctly on the default path and **silently** under `eess-ts check`.
+      Written to close this bug, it found the bug still open.
+- [x] Both doors are asserted, not assumed: the same file pins the aggregating
+      path and the default path reaching the same verdict
+      ("and the non-aggregating default reaches the same verdict"). Asserting
+      only one is how the drift went unnoticed.
+
+**The picked direction, per plan 0235 Phase 0.** The aggregating branch keeps
+throwing without emitting — emission is the caller's under bug 0203 — but it now
+runs the gate first, so the `ArchRuleError` carries the receipt with the finding
+already in it. Teaching the kernel finisher a run-level aggregation mode was the
+alternative and is plan 0188's scope; a plan that must close in one PR does not
+reach into another plan's.
+
+Deferred: none.

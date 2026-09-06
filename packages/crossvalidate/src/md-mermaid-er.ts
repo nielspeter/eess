@@ -1,4 +1,5 @@
 import picomatch from 'picomatch'
+import type { CollectResult } from '@nielspeter/eess'
 import {
   finishPreset,
   type ArchViolation,
@@ -11,6 +12,9 @@ import { parseErDiagram, collectEntities, type ErEntityInfo } from '@nielspeter/
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset, collectResult } from '@nielspeter/eess'
+// The receipt type is this module's public return type, so a standalone
+// consumer must be able to name it without a second kernel install (plan 0089).
+export type { CollectResult } from '@nielspeter/eess'
 export type { ArchViolation, PresetReportOptions } from '@nielspeter/eess'
 
 export interface TableErAgreeOptions extends PresetReportOptions {
@@ -76,7 +80,7 @@ function erEntitiesOf(doc: MdDocument): ErBlock[] {
  * `undefined`, are skipped — gate diagram *presence* separately with
  * `docs()` conformance if the corpus requires one.
  */
-export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): ArchViolation[] {
+export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): CollectResult {
   const inDocs = picomatch(options.docs ?? '**')
   const violations: ArchViolation[] = []
   // ER blocks compared, not documents walked.

@@ -1,4 +1,4 @@
-import type { ArchViolation } from '@nielspeter/eess'
+import type { CollectResult } from '@nielspeter/eess'
 import type { ClassDeclaration } from 'ts-morph'
 import type { ArchProject } from '../core/project.js'
 import type { RuleBuilderLike } from '@nielspeter/eess'
@@ -55,11 +55,11 @@ export function dataLayerIsolation(
 export function dataLayerIsolation(
   p: ArchProject,
   options: DataLayerIsolationOptions,
-): ArchViolation[]
+): CollectResult
 export function dataLayerIsolation(
   p: ArchProject,
   options: DataLayerIsolationOptions,
-): RuleBuilderLike[] | ArchViolation[] {
+): RuleBuilderLike[] | CollectResult {
   const config = options
   const constructed: string[] = []
   validateOverrides(config.overrides, [...RULE_IDS])

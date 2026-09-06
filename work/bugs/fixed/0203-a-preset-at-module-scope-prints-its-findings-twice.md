@@ -211,7 +211,7 @@ shape it actually fits.
   is restated inline at four emitters and enforced by nothing. It already went wrong
   at one of them **inside this fix** and shipped as a fake green until review caught
   it, so this is a demonstrated failure mode rather than a tidiness concern.
-- [**0206**](../0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md) —
+- [**0206**](./0206-deliver-bypasses-the-kernel-finisher-on-the-default-path.md) —
   `deliver()` throws `ArchRuleError` itself rather than delegating to
   `finishPreset`, because the kernel has no mode meaning "run, throw, and let my
   caller emit". Latent today; the exposure is that the flagship dialect's default
