@@ -6,8 +6,23 @@
   0235's braces: independent of it and independently closable, and now the only
   live mechanism aimed at the two residuals ADR-014 states it cannot reach.
   **The freeze found five things and fixed them rather than flipping over
-  them** — four citations that had staled and one item of Phase 2 that was
-  already done:
+  them — and MISSED A SIXTH, which is recorded here because the freeze's own
+  count was one of the numbers it got wrong.** A method review found it: the
+  frozen text asserted, as decided rather than as an open question, that a dead
+  `ruleFiles` entry was covered by "the dead-glob diagnosis already in the
+  pipeline". That was false, and reachable by reading the one function the claim
+  depended on — `isDeadSite` short-circuits on negative polarity, as its own
+  comment says. The freeze's bar is that a load-bearing artifact is internalised
+  and checked; this one was neither, and it surfaced at build, forcing an entire
+  new rule id the frozen scope did not carry.
+
+  Worth stating beside it: plan 0263's freeze **did** catch the analogous
+  mistake — a table claim inherited without measuring — before any build. The
+  discipline works when it is actually applied to a mechanical claim; here it
+  was applied to four citations and not to the fifth thing the plan leaned on.
+
+  The five it did find — four citations that had staled and one item of Phase 2
+  that was already done:
   1. The `dispatchRule`-in-`eess-md` fact is re-recorded **by value** (the three
      call expressions and the import member). Its line citation had staled in
      both this plan AND proposal 009's Ask C row, because 0235 rewrote the
@@ -269,13 +284,22 @@ find packages/<pkg>/src -name '*.ts'                       # the denominator
 … | xargs grep -lE "^import [^t].*from '@nielspeter/eess"  # runtime importers
 ```
 
-| package              | runtime-importing | of total |
-| -------------------- | ----------------- | -------- |
-| `eess-ts`            | 55 (was 53)       | 141      |
-| `eess-md`            | 10 (was 9)        | 24       |
-| `eess-mermaid`       | 8                 | 29       |
-| `eess-crossvalidate` | 7                 | 9        |
-| `eess` (kernel)      | 0                 | 58       |
+| package              | runtime-importing                               | of total |
+| -------------------- | ----------------------------------------------- | -------- |
+| `eess-ts`            | **56** at build (55 at freeze, 53 when drafted) | 141      |
+| `eess-md`            | 10 (was 9)                                      | 24       |
+| `eess-mermaid`       | 8                                               | 29       |
+| `eess-crossvalidate` | 7                                               | 9        |
+| `eess` (kernel)      | 0                                               | 58       |
+
+**`eess-ts` moved from 55 to 56 inside this branch, and the cause is this
+plan's own build.** Phase 2 added `import { collectResult } from '@nielspeter/eess'`
+to `packages/ts/src/presets/agent-guardrails.ts` — a genuine runtime import, in
+the very file this rule ships from. So the file that implements "do not import
+eess at runtime outside a rule file" joined the population it had just counted.
+Caught by a method review, not by me. It changes nothing about the argument (the
+conclusion is "more, not fewer"), and it is the sharpest possible illustration of
+why the derivation is recorded beside the number.
 
 The conclusion is unchanged and slightly stronger: MORE of this repo's dialect
 source imports the kernel at runtime than when the plan was drafted, so a
@@ -425,17 +449,36 @@ letting a `check:guardrails` tick imply it.
 
 ## Progress ledger
 
-- [x] Phase 1 — **19 tests**, every assertion keyed on the file a violation
+- [x] Phase 1 — **24 tests**, every assertion keyed on the file a violation
       names rather than a count (a module tripping both conditions reports
       twice). Red first: 11 failed before Phase 2 existed. **The discrimination
-      is measured, not claimed** — each condition sabotaged in turn:
+      is measured, not claimed** — each mechanism sabotaged in turn, and the
+      column that matters is WHICH tests fail, not how many:
 
-      | sabotage | fails | what stayed green |
-      | --- | --- | --- |
-      | import leg → a no-op glob | 4 | `wrapper-call`, `namespace-call` — the call leg alone catches those |
-      | call leg → a no-op regex | 2 | `runtime-import` + the 3 specifier fixtures — the import leg alone |
-      | drop the `(^\|\.)` anchor | **1** | only the namespaced call, exactly as designed |
-      | exemption stops exempting | 2 | the gate script and the preset module |
+      | sabotage | what fails |
+      | --- | --- |
+      | import leg → a no-op glob | `runtime-import` + the 3 specifier fixtures + the double-trip and static-rename fixtures — and NOT `wrapper-call`/`namespace-call`, which the call leg alone catches |
+      | call leg → a no-op regex | `wrapper-call`, `namespace-call`, double-trip — and NOT `runtime-import`, which the import leg alone catches |
+      | drop the `(^\|\.)` anchor | only the namespaced call and the double-trip that uses one |
+      | exemption stops exempting | the gate script and the preset module (plus the dead-entry agreement test, which reads the same list) |
+      | `base` hard-coded in the dead-entry check | **only** the agreement test — the regression guard for the architect review's critical |
+
+      **The failure COUNTS this table used to carry were stale within the same
+      branch, and a method review caught it.** It read 4 / 2 / 1 / 2, measured
+      against a 19-test suite; the suite is now 24, because every review finding
+      was pinned as a test, so the counts are 6 / 3 / 2 / 3 / 1 today and will
+      move again the moment anyone adds a case. A count is a fact about the
+      suite's size; the discrimination claim is about WHICH fixture survives,
+      and only the latter is stable. Same lesson CLAUDE.md records for its own
+      gate-summary table, re-learned here.
+
+      **And one of those counts was never real.** Re-deriving the matrix, the
+      anchor row first measured "0 failed" — which was a sabotage that never
+      applied (shell quoting ate the regex), not a guard that had stopped
+      working. Applied properly it fails 2. A sabotage that silently does
+      nothing reports exactly like a mechanism that catches nothing; both times
+      this session it was caught by checking that the edit landed, never by the
+      number.
 
       Two things the build had to change that the plan did not foresee, both
       recorded rather than done quietly: `vitest.config.ts` now excludes
