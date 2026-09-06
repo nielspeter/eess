@@ -125,6 +125,81 @@ describe('Reverse dependency conditions', () => {
       }).not.toThrow()
     })
 
+    it("reports a re-exported name at the barrel's own export line, never the declaring file's (bug 0265)", () => {
+      // public/index.ts re-exports helperTwo on ITS line 3; the declaration is
+      // reexport-only.ts line 2; nobody imports helperTwo from the barrel. The
+      // finding names the barrel as `file`, so `line` must be a line of the
+      // barrel. Before the fix it was 2 — a line that exists only in the other
+      // file, so a code frame pointed at "export function helperTwo" under the
+      // wrong path and an `// eess-exclude` on the barrel's real line did not
+      // apply (the 0242 shape, fail-closed).
+      const violations = [
+        ...modules(p)
+          .that()
+          .resideInFile('**/public/index.ts')
+          .should()
+          .haveNoUnusedExports()
+          .violations(),
+      ]
+      const found = violations.find((v) => v.message.includes('"helperTwo"'))
+      expect(found?.file).toMatch(/public\/index\.ts$/)
+      expect(found?.line).toBe(3)
+    })
+
+    it('an own declaration still reports its declaration line (control for 0265)', () => {
+      // has-unused-export.ts declares unusedFunction on its line 7. The fix must
+      // move only re-exports; an own declaration keeps the line it always had.
+      const violations = [
+        ...modules(p)
+          .that()
+          .resideInFile('**/has-unused-export.ts')
+          .should()
+          .haveNoUnusedExports()
+          .violations(),
+      ]
+      const found = violations.find((v) => v.message.includes('"unusedFunction"'))
+      expect(found?.file).toMatch(/has-unused-export\.ts$/)
+      expect(found?.line).toBe(7)
+    })
+
+    it.each([
+      ['star', 'a bare `export * from`', 'dead'],
+      ['ns', 'a namespace re-export `export * as L from`', 'L'],
+      ['alias', 'an aliased re-export `export { dead as gone } from`', 'gone'],
+    ])(
+      'the %s fixture (%s) reports "%s" at the barrel own line 2, not the declaring line 5 (bug 0265)',
+      (dir, _spelling, name) => {
+        // ONE spelling per project (ADR-009 rule 5): each fixture can only red
+        // for its own reason, and a shared project would let one barrel's
+        // re-export count as a reference to another's. Every `lib.ts` declares
+        // on line 5 and every `barrel.ts` exports on line 2, so a finding
+        // anchored on the declaration is a line the barrel does not have.
+        //
+        // The star case is why they are separate: it is the one this fix got
+        // wrong first (`isNamespaceExport()` is true for a bare `export *`), and
+        // it reported line 5 while the other two were already correct.
+        const fixtureDir = path.resolve(import.meta.dirname, `../fixtures/barrel-line/${dir}`)
+        const tsConfig = path.join(fixtureDir, 'tsconfig.json')
+        const tsMorph = new Project({ tsConfigFilePath: tsConfig })
+        const barrelProject: ArchProject = {
+          tsConfigPath: tsConfig,
+          _project: tsMorph,
+          getSourceFiles: () => tsMorph.getSourceFiles(),
+        }
+        const violations = [
+          ...modules(barrelProject)
+            .that()
+            .resideInFile('**/barrel.ts')
+            .should()
+            .haveNoUnusedExports()
+            .violations(),
+        ]
+        const found = violations.find((v) => v.message.includes(`"${name}"`))
+        expect(found?.file).toMatch(/barrel\.ts$/)
+        expect(found?.line).toBe(2)
+      },
+    )
+
     it('re-exports count as references (isolated)', () => {
       // reexport-only.ts exports helperTwo — ONLY referenced via re-export in public/index.ts
       // No direct import from any other file. The re-export should count as a reference.

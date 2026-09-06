@@ -1,5 +1,5 @@
 import picomatch from 'picomatch'
-import { type SourceFile, type Project, Node } from 'ts-morph'
+import { type SourceFile, type Project, type ExportedDeclarations, Node } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { moduleEdges } from '../core/module-edges.js'
@@ -242,6 +242,50 @@ export function beImported(): Condition<SourceFile> {
  * file-level dead code detection. Only named exports are analyzed.
  */
 /**
+ * The line a finding about export `name` of `sf` is anchored at — bug 0265.
+ *
+ * `getExportedDeclarations()` follows a re-export to the DECLARING node in the
+ * other file, so that node's line is a line of the other file. A finding whose
+ * `file` is the barrel must carry a line of the barrel: the `export { name }
+ * from` specifier, the `export * as name from` statement, or the `export *`
+ * statement that forwards it. An own declaration keeps its own line. Measured
+ * before this existed: a one-line barrel reported its re-export at line 5,
+ * where the code frame pointed at nothing and an `// eess-exclude` on the
+ * barrel's real line did not apply (the 0242 shape, fail-closed).
+ */
+function exportSiteLine(sf: SourceFile, name: string, declaration: ExportedDeclarations): number {
+  if (Node.isNode(declaration) && declaration.getSourceFile() === sf) {
+    return declaration.getStartLineNumber()
+  }
+  let star: number | undefined
+  for (const exportDecl of sf.getExportDeclarations()) {
+    const specifier = exportDecl
+      .getNamedExports()
+      .find((s) => (s.getAliasNode()?.getText() ?? s.getName()) === name)
+    if (specifier !== undefined) return specifier.getStartLineNumber()
+    // `getNamespaceExport()`, NOT `isNamespaceExport()`. The latter is
+    // `!hasNamedExports()`, so it is TRUE for a bare `export * from 's'` — and
+    // the first cut of this function tested it, took the namespace branch for
+    // the star form, matched no name, and fell through to the declaring file's
+    // line. Measured on the isolated star fixture: line 5 under a two-line
+    // barrel, which is the exact defect this function exists to remove.
+    const namespaceExport = exportDecl.getNamespaceExport()
+    if (namespaceExport !== undefined) {
+      if (namespaceExport.getName() === name) return exportDecl.getStartLineNumber()
+    } else if (
+      exportDecl.getNamedExports().length === 0 &&
+      exportDecl.getModuleSpecifier() !== undefined
+    ) {
+      // `export * from 's'` forwards every name of the target, so it is the site
+      // for any name no specifier above claimed. First one wins, in source order.
+      star ??= exportDecl.getStartLineNumber()
+    }
+  }
+  if (star !== undefined) return star
+  return Node.isNode(declaration) ? declaration.getStartLineNumber() : 1
+}
+
+/**
  * Scan a single source file for unused named exports, returning violations.
  */
 function findUnusedExportsInFile(sf: SourceFile, context: ConditionContext): ArchViolation[] {
@@ -253,7 +297,7 @@ function findUnusedExportsInFile(sf: SourceFile, context: ConditionContext): Arc
     const [firstDecl] = declarations
     if (firstDecl === undefined) continue
     if (!hasExternalReference(firstDecl, sf)) {
-      const line = Node.isNode(firstDecl) ? firstDecl.getStartLineNumber() : 1
+      const line = exportSiteLine(sf, name, firstDecl)
       violations.push({
         rule: context.rule,
         element: sf.getBaseName(),
