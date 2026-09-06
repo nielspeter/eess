@@ -138,7 +138,13 @@ npx eess-ts check arch.rules.ts --watch
 - Only triggers on `.ts` / `.tsx` / `.mts` / `.cts` file changes
 - Queues re-runs if a change arrives during an active check
 
-For projects under 500 files, each re-run takes under 3 seconds. For larger projects, consider using `vitest --watch` with rules in test files instead.
+### Large projects
+
+Every run, watch or not, reloads the project: ts-morph parses every file the tsconfig includes at construction, and the first rule that resolves an import builds the type checker on top of that. Those two stages are the cost, and they scale with the files you hand the rules, not with the rules you write. A suite of purely syntactic rules never pays the second stage; one dependency rule pays it once per process.
+
+`--changed` does not reduce either stage. It filters the report to files touched since the base branch; evaluation stays whole-project, because cross-file rules need the graph.
+
+The lever that does reduce the cost is the project itself: a narrower `tsconfig.json`, or one `project()` per rule file so each file loads only what its rules need. Its cost is stated in the same breath: cross-file conditions — `beImported()`, `haveNoUnusedExports()`, `beFreeOfCycles()`, layer rules — only see what was loaded, so a module imported only from outside the narrowed project reads as dead. Keep the whole graph for the rules that need it, and narrow for the rest. Splitting rules into test files under `vitest --watch` is the same trade with the runner's file watching in place of `--watch`.
 
 **Linux users:** `fs.watch` with recursive watching may need a higher inotify limit:
 
