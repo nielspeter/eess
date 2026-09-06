@@ -193,10 +193,37 @@ legitimate emitter call belongs.
    such rather than dressed as a mechanism. A file named in it is still under
    ADR-014 the moment it calls an emitter; the list decides where a verdict may
    be written, not whether it needs evidence. And an entry that matches **zero
-   files** is a configuration finding, not a silence: the exclusion predicate
+   files** is a configuration finding, not a silence — the way `overrideFindings`
+   (`packages/ts/src/presets/agent-guardrails.ts:98`) already reports an unknown
+   override key.
+
+   **BUILD FINDING, 2026-09-06 — the mechanism named here does not exist, and
+   the family refuses to build it.** This plan said "the exclusion predicate
    declares its globs, so the dead-glob diagnosis already in the pipeline covers
-   it, the way `overrideFindings` (`packages/ts/src/presets/agent-guardrails.ts:98`)
-   already reports an unknown override key. A list that can go stale silently
+   it". It does not, for two independent and deliberate reasons:
+   - `isDeadSite` opens with `if ((site.polarity ?? 'positive') === 'negative')
+return false`, and `not(...)` flips polarity. `terminal-builder.ts` states
+     the reasoning: _"`not(dead)` over-selects rather than under-selecting, so it
+     cannot be dead."_
+   - Exclusion sites are never faults at all: _"a condition glob matching nothing
+     is indistinguishable from an armed tripwire that has not fired, and plan
+     0072 got that wrong twice before it stayed written down."_
+
+   Both are correct, and neither should be weakened for this rule. **Decided:
+   an explicit check instead**, `preset/agent/rule-files-matches-nothing`, which
+   asks `isDeadSite` about each `ruleFiles` glob **on its own, at positive
+   polarity** — the same computation, the honest question. Reusing `isDeadSite`
+   rather than hand-rolling picomatch inherits `syntacticFault`'s anchoring and
+   project-relative handling, so the pre-flight and this check cannot disagree.
+
+   The UX is why it is worth a mechanism rather than a note. Without it a typo'd
+   `ruleFiles: ['script/**']` surfaces as _"your gate script violates
+   no-verdict-outside-rules"_, whose `Fix:` line says "name it in `ruleFiles`" —
+   which the adopter did, with a typo. A loop the finding itself sends them
+   around. The dead entry is at least **fail-closed** (an exemption that exempts
+   nothing reds the files it names rather than going quiet), so this is a
+   legibility fix, not a hole — and that distinction is stated here so the row
+   does not over-claim. A list that can go stale silently
    is proposal 009's own requirement (its lines 239-241), and the first draft of
    this plan had dropped it.
 
@@ -282,8 +309,11 @@ fixtures that both conditions trip:
   named by `ruleFiles` → green;
 - a preset module calling `dispatchRule` → green (narrowing 1, asserted, not
   assumed);
-- a `ruleFiles` entry matching zero files → the dead-glob configuration
-  finding, by its rule id.
+- a `ruleFiles` entry matching zero files → `preset/agent/rule-files-matches-nothing`,
+  by its own rule id (see the build finding above — NOT the dead-glob pipeline,
+  which deliberately does not cover negated or exclusion sites);
+- a `ruleFiles` entry that DOES match → no such finding. The control, without
+  which the check above is satisfied by a finding that always fires.
 
 Every red assertion is by **rule id**, never by a count of one: each condition
 emits its own violation, so a module that trips both reports two.
@@ -384,7 +414,9 @@ letting a `check:guardrails` tick imply it.
 - The adopter-shaped fixture project reds on the planted module and is green
   clean, registered under `check:guardrails`; no `check:guardrails` run over
   `packages/*/src` enables this rule.
-- A `ruleFiles` entry matching zero files reds by the dead-glob rule id.
+- A `ruleFiles` entry matching zero files reds by
+  `preset/agent/rule-files-matches-nothing`, and one that matches does not —
+  corrected from "the dead-glob rule id" at build, which could not fire.
 - A preset enabling only this rule accepts its `overrides` opt-out and fires no
   `constructs-nothing` finding on itself.
 - The regenerated `AGENTS.md` block carries the imperative, and the imperative
@@ -393,10 +425,50 @@ letting a `check:guardrails` tick imply it.
 
 ## Progress ledger
 
-- [ ] Phase 1 — fixtures red, keyed on the rule id; non-vacuity row registered under `check:guardrails`
-- [ ] Phase 2 — the rule, in the preset, both narrowings in
-- [ ] Phase 3 — the adopter-shaped fixture project, red planted and green clean, under `check:guardrails`
-- [ ] Phase 4 — docs and the changeset naming the id and the opt-out
-- [ ] `/close`
+- [x] Phase 1 — **19 tests**, every assertion keyed on the file a violation
+      names rather than a count (a module tripping both conditions reports
+      twice). Red first: 11 failed before Phase 2 existed. **The discrimination
+      is measured, not claimed** — each condition sabotaged in turn:
+
+      | sabotage | fails | what stayed green |
+      | --- | --- | --- |
+      | import leg → a no-op glob | 4 | `wrapper-call`, `namespace-call` — the call leg alone catches those |
+      | call leg → a no-op regex | 2 | `runtime-import` + the 3 specifier fixtures — the import leg alone |
+      | drop the `(^\|\.)` anchor | **1** | only the namespaced call, exactly as designed |
+      | exemption stops exempting | 2 | the gate script and the preset module |
+
+      Two things the build had to change that the plan did not foresee, both
+      recorded rather than done quietly: `vitest.config.ts` now excludes
+      `tests/fixtures/**` (the fixture proving the `**/*.test.ts` exemption must
+      literally be named `.test.ts`, and vitest was collecting it as a suite),
+      and `tsconfig.json` excludes this fixture directory (its files import
+      `@nielspeter/eess-ts` **by name** — the whole point — which makes the
+      project root ambiguous, TS2209, the same class as the two fixtures already
+      excluded there).
+
+- [x] Phase 2 — the rule, in the preset, both narrowings in. All four by-hand
+      lists updated (`AgentGuardrailsRuleId`, `STATIC_RULE_IDS`,
+      `collectRuleIds`, `optionsHint`) with a test pinning each: the override key
+      is accepted, no `constructs-nothing` fires on a preset enabling only this
+      rule, and the remedy lists the new flag. `push` widened to take a
+      `ModuleRuleBuilder`. **`preset/agent/rule-files-matches-nothing` added**
+      per the build finding above — `isDeadSite` asked about each caller glob on
+      its own at positive polarity, so this check and `doctor`'s pre-flight
+      cannot disagree.
+- [x] Phase 3 — `scripts/nonvacuity/bad-verdict-outside-rules.mjs` builds an
+      adopter-shaped project in a temp dir and drives it **both ways**: clean is
+      green (and a red there exits 2 — the fixture's premise broke, not the gate
+      proven), planted reds naming the rule id. Registered under
+      `check:guardrails` in both the fixture list and `GATE_FOR`; the harness now
+      reports **82 fixtures**. It does NOT plant under `packages/*/src`, and the
+      row carries the reason: this repo's dialect source is eess, so the rule can
+      fire on none of it and a green there would be a tautology.
+- [x] Phase 4 — `docs/presets.md` gains the `agentGuardrails` section it never
+      had, including the three ceilings stated plainly; `docs/agent-integration.md`
+      recipe 3 names the imperative as the "do not hand-roll a gate" line and why
+      the remedy does not lead with the file move; changeset names the rule id,
+      the `overrides` opt-out, the default-off upgrade path and the expected
+      first red on preset modules.
+- [ ] `/close` — owed once this is merged and green.
 
 Deferred: none.

@@ -50,7 +50,14 @@ export default defineConfig({
     // in both workflows. A matrix row that skipped when `dist/` was absent would be a check
     // that cannot fail, so it lives behind `npm run test:matrix` and an explicit post-build CI
     // step — the pattern `scripts/verify-package.mjs` established for the same reason.
-    exclude: ['**/node_modules/**', '**/dist/**', 'tests/matrix/**'],
+    // `tests/fixtures/**` are INPUTS to rules, never suites — and plan 0237 is
+    // the first thing that needed the distinction. Its rule exempts
+    // `**/*.test.ts` / `**/*.spec.ts` by default, so proving that exemption
+    // requires fixture files with exactly those names; without this line
+    // `include: ['tests/**/*.test.ts']` collects them and vitest reports
+    // "No test suite found in file". Renaming them would have tested a
+    // different rule than the one that ships.
+    exclude: ['**/node_modules/**', '**/dist/**', 'tests/matrix/**', 'tests/fixtures/**'],
     globals: false,
     // Pinned, not just inherited: several modules use a swappable module-level
     // reference for test-only overrides (schema-loader.ts's loadGraphQL,

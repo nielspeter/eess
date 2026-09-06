@@ -1942,6 +1942,19 @@ const gates = [
         'guardrails/no-copy-paste',
       ]),
   ],
+  // The one `check:guardrails` row that does NOT plant a probe under
+  // `packages/*/src` — plan 0237, and the reason is the rule's own subject.
+  // This repo's dialect source IS eess (55 of 141 `eess-ts` files import the
+  // kernel at runtime, measured), so the rule examines every module there and
+  // can fire on none. A `ruleFiles` wide enough to green the gate over that
+  // source would exempt everything that could fire, and the green would be a
+  // tautology presented as dogfood. The fixture drives an ADOPTER-shaped
+  // project both ways instead. Filed under this gate as its closest owner, the
+  // way `engine/applyfilters-parity` is filed under `check:arch`.
+  [
+    'guardrails/no-verdict-outside-rules',
+    () => gateNode('bad-verdict-outside-rules.mjs', 'no-verdict-outside-rules'),
+  ],
   [
     'surface/undocumented-export',
     () =>
@@ -2113,6 +2126,7 @@ const GATE_FOR = {
     'guardrails/no-stubs',
     'guardrails/no-empty-bodies',
     'guardrails/no-copy-paste',
+    'guardrails/no-verdict-outside-rules',
   ],
   'check:examples': ['examples/does-not-compile'],
   'check:docs-code': ['docs-code/fence-does-not-compile'],

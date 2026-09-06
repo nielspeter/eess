@@ -182,6 +182,13 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
       'and the carrier itself is proven by declaring a live-glob-zero-subject rule and watching the ' +
       'finding clear, with a one-of-four row so "reached every rule" cannot pass as "silenced everything"',
   },
+  'src/presets/agent-guardrails.ts::ruleFilesFindings': {
+    remedy: 'own',
+    verified:
+      'behavioural: no-verdict-outside-rules.test.ts — the SAME dead entry corrected the way the ' +
+      "message says (a bare directory name needs a leading '**/') clears the finding, with two " +
+      'controls: every-entry-matches reports nothing, and the default list is never reported at all',
+  },
   'src/presets/shared.ts::overrideFindings': {
     remedy: 'own',
     verified:

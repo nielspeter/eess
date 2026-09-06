@@ -83,6 +83,17 @@ Regenerating it whenever rules change means the agent's standing instructions
 **cannot drift from what CI enforces** — eess's own drift-prevention applied
 to the prompt layer.
 
+**The line to look for once you enable `agentGuardrails`'s
+`noVerdictOutsideRules`** (see [presets](./presets.md#agentguardrails)) is its
+imperative — "Do NOT import eess as a value … outside a rule file … and inside
+one, reach the verdict through a builder, never a hand-written loop". That is
+the "do not hand-roll a gate" instruction, and it is the one this whole layer
+exists to deliver: the rule reaches the agent **before** it writes the wrong
+thing, rather than reddening afterwards. The remedy deliberately leads with the
+construction that reaches the evidence floor and not with "move it into a rules
+file" — the same loop moved there is inside the exemption and green, so that
+advice would un-detect the problem instead of fixing it.
+
 ```bash
 #!/usr/bin/env bash
 # update-agents-block.sh — regenerate the eess block in AGENTS.md (idempotent)

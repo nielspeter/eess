@@ -3,6 +3,15 @@ import type { ArchProject } from '../core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import { functions } from '../builders/function-rule-builder.js'
 import type { FunctionRuleBuilder } from '../builders/function-rule-builder.js'
+import { modules } from '../builders/module-rule-builder.js'
+import type { ModuleRuleBuilder } from '../builders/module-rule-builder.js'
+import { resideInFile } from '../predicates/identity.js'
+import { not, or } from '../core/combinators.js'
+import { isDeadSite } from '../core/glob-evaluator.js'
+import { pathUniverse } from '../core/path-universe.js'
+import type { ArchViolation } from '@nielspeter/eess'
+import { collectResult } from '@nielspeter/eess'
+import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import { call } from '../helpers/matchers.js'
 import { functionNoGenericErrors } from '../rules/errors.js'
 import { noStubComments, noEmptyBodies } from '../rules/hygiene.js'
@@ -33,6 +42,7 @@ type AgentGuardrailsRuleId =
   | 'preset/agent/no-stubs'
   | 'preset/agent/no-empty-bodies'
   | 'preset/agent/no-copy-paste'
+  | 'preset/agent/no-verdict-outside-rules'
 
 export interface AgentGuardrailsOptions extends PresetBaseOptions<AgentGuardrailsRuleId> {
   /** Glob for the source files the rules apply to. */
@@ -43,7 +53,73 @@ export interface AgentGuardrailsOptions extends PresetBaseOptions<AgentGuardrail
   noStubs?: boolean
   noEmptyBodies?: boolean
   noCopyPaste?: boolean
+  /**
+   * Ban eess at runtime, and every emitter call, outside a file that is meant to
+   * write a verdict — [plan 0237](../../../../work/plans/0237-eess-runtime-use-only-in-rule-files.md),
+   * reaching the two residuals ADR-014 states its own contract cannot.
+   */
+  noVerdictOutsideRules?: boolean
+  /**
+   * Where else eess may be used as a value. **Extends**
+   * {@link DEFAULT_RULE_FILES} rather than replacing it, so an adopter naming
+   * `scripts/**` does not thereby red every one of their rule files.
+   *
+   * A list, and ADR-009 rule 3's corollary is right to be wary of one — a marker
+   * an agent can stamp to go green is worse than none. Two things make this one
+   * honest. It lives in the preset's options, so stamping it is a visible line in
+   * the config diff, exactly like `overrides`: a Tier 5 defence, review-enforced,
+   * and named as such rather than dressed as a mechanism. And a file named here
+   * is still under ADR-014 the moment it calls an emitter — the list decides
+   * WHERE a verdict may be written, not whether it needs evidence.
+   *
+   * An entry matching no file is reported as
+   * `preset/agent/rule-files-matches-nothing`, so the list cannot rot in silence.
+   */
+  ruleFiles?: string[]
 }
+
+/**
+ * The rule-file kinds exempt without the caller naming anything — proposal 009's
+ * own list. `*.spec.ts` is here because an earlier draft of plan 0237 dropped it
+ * with no reason given, and half the ecosystem names tests that way.
+ */
+const DEFAULT_RULE_FILES = ['**/*.rules.ts', '**/*.test.ts', '**/*.spec.ts']
+
+/**
+ * Every specifier shape, not only the bare package.
+ *
+ * Measured with picomatch before this list was written: `@nielspeter/eess` and
+ * `@nielspeter/eess-*` alone match NONE of `@nielspeter/eess/internal`,
+ * `@nielspeter/eess-ts/presets` or `@nielspeter/eess-md/rules/adr` — and those
+ * subpath shapes are what real code imports, this repo's own guardrails script
+ * included. An earlier draft shipped the two bare globs.
+ */
+const EESS_PACKAGES = [
+  '@nielspeter/eess',
+  '@nielspeter/eess/**',
+  '@nielspeter/eess-*',
+  '@nielspeter/eess-*/**',
+]
+
+/**
+ * The emitters, anchored on the callee.
+ *
+ * `(^|\.)` so `import * as eess` followed by `eess.finishPreset(...)` is caught
+ * — the consuming project that measured the field failure had exactly that
+ * escape in its own first version of this rule. A RENAMED import
+ * (`finishPreset as done`) escapes this leg and is caught by the import leg, so
+ * the two conditions cover each other's blind spot.
+ *
+ * `dispatchRule` is deliberately absent: it is the sanctioned preset-authoring
+ * call. That is not what spares a preset module, though — such a module imports
+ * `dispatchRule` at runtime, so the import leg reds it whatever this regex says.
+ * A preset module is a verdict file by definition and belongs in `ruleFiles`.
+ *
+ * `throwIfViolations` stays until it leaves the public surface (plan 0263
+ * Phase 5); an adopter on an older kernel still has the alias, and a dead name
+ * in a regex is harmless.
+ */
+const EMITTERS = /(^|\.)(finishPreset|reportViolations|throwIfViolations)$/
 
 /**
  * Preset targeting the mistakes AI coding agents make most often — inline
@@ -106,7 +182,7 @@ export function agentGuardrails(
   // one and not the other makes a declaration bind to a rule that was never built.
   const constructed: string[] = []
   const push = (
-    builder: FunctionRuleBuilder | DuplicateBodiesBuilder,
+    builder: FunctionRuleBuilder | DuplicateBodiesBuilder | ModuleRuleBuilder,
     meta: RuleMetadata & { id: string },
     def: 'error' | 'warn',
   ): void => {
@@ -197,12 +273,56 @@ export function agentGuardrails(
     )
   }
 
+  if (options.noVerdictOutsideRules) {
+    // The exemption EXTENDS the default; an adopter naming `scripts/**` must not
+    // lose `*.rules.ts` by doing so.
+    const ruleFiles = [...DEFAULT_RULE_FILES, ...(options.ruleFiles ?? [])]
+    push(
+      modules(p)
+        .that()
+        .resideInFile(options.src)
+        .and()
+        // `not(or(...))` rather than a `notResideInFile` the builder does not
+        // have. Both combinators compose the globs their inputs declare, so the
+        // exclusion is a declared site rather than an opaque one — it just is
+        // not a site the dead-glob pipeline will ever call a fault, which is
+        // what `ruleFilesFindings` below exists for.
+        .satisfy(not(or(...ruleFiles.map((glob) => resideInFile(glob)))))
+        .should()
+        .onlyHaveTypeImportsFrom(...EESS_PACKAGES)
+        .andShould()
+        .notContain(call(EMITTERS)),
+      {
+        id: 'preset/agent/no-verdict-outside-rules',
+        because:
+          'outside a rule file nothing counts what was examined, so a pass there is a claim with ' +
+          'no evidence — a loop that skips every item looks identical to one that checked them all',
+        // The remedy must NOT lead with "move it into a *.rules.ts file": the
+        // same hand-written loop moved there is inside the exemption and green,
+        // so an agent following that Fix line would un-detect the problem rather
+        // than remediate it (ADR-009 rule 2).
+        suggestion:
+          'express the check as a Condition and reach the verdict through a builder (.check(), or ' +
+          'a preset), so the evidence floor sees it; moving the same loop into a *.rules.ts file ' +
+          'hides it, it does not fix it. If this module is a gate script that finishes through an ' +
+          'emitter, name it in ruleFiles',
+        imperative:
+          'Do NOT import eess as a value (only `import type`), or call ' +
+          'finishPreset/reportViolations, outside a rule file, a test, or a file listed in ' +
+          'ruleFiles — and inside one, reach the verdict through a builder, never a hand-written ' +
+          'loop: a green built by hand certifies nothing',
+      },
+      'error',
+    )
+  }
+
   // Unknown override keys FIRST: they say the configuration is wrong, which
   // the reader needs before any finding produced under it (bug 0038).
   // `constructed` is recorded at the `push` site above, not re-derived here.
   const otherFindings = [
     ...overrideProblems,
     ...declaredEmptyFindings(options.expectEmpty, constructed),
+    ...ruleFilesFindings(p, options),
   ]
   return deliver(
     [
@@ -213,7 +333,8 @@ export function agentGuardrails(
       ...assertEnabled(attempted, otherFindings, {
         id: 'preset/agent/constructs-nothing',
         presetName: 'agentGuardrails',
-        optionsHint: 'noInlineLogic, noGenericErrors, noStubs, noEmptyBodies, noCopyPaste',
+        optionsHint:
+          'noInlineLogic, noGenericErrors, noStubs, noEmptyBodies, noCopyPaste, noVerdictOutsideRules',
       }),
       ...builders,
     ],
@@ -247,6 +368,7 @@ const STATIC_RULE_IDS = [
   'preset/agent/no-stubs',
   'preset/agent/no-empty-bodies',
   'preset/agent/no-copy-paste',
+  'preset/agent/no-verdict-outside-rules',
 ] as const
 
 /**
@@ -290,5 +412,80 @@ function collectRuleIds(options: AgentGuardrailsOptions): string[] {
   if (options.noStubs) ids.push('preset/agent/no-stubs')
   if (options.noEmptyBodies) ids.push('preset/agent/no-empty-bodies')
   if (options.noCopyPaste) ids.push('preset/agent/no-copy-paste')
+  if (options.noVerdictOutsideRules) ids.push('preset/agent/no-verdict-outside-rules')
   return ids
+}
+
+/**
+ * A `ruleFiles` entry that matches no file in the project.
+ *
+ * **Why this is its own check and not the dead-glob pipeline** — plan 0237's
+ * build finding. The exclusion is `not(or(...))`, and `isDeadSite` opens with
+ * `if ((site.polarity ?? 'positive') === 'negative') return false`, because
+ * `not(dead)` over-selects rather than under-selecting. Exclusion sites are
+ * never faults either: "a condition glob matching nothing is indistinguishable
+ * from an armed tripwire that has not fired". Both decisions are correct and
+ * neither is weakened here.
+ *
+ * So the question is asked differently: `isDeadSite` about each caller-supplied
+ * glob **on its own, at positive polarity**. Same computation, same
+ * `syntacticFault` anchoring — so this check and `doctor`'s pre-flight cannot
+ * disagree about what matches nothing.
+ *
+ * **Only the caller's entries.** {@link DEFAULT_RULE_FILES} is never reported: a
+ * project with no `*.spec.ts` is ordinary, the defaults are not the caller's to
+ * fix, and reporting them would red the preset out of the box.
+ *
+ * The finding is legibility, not a hole, and says so. A dead entry is already
+ * fail-CLOSED — an exemption that exempts nothing reds the files it names rather
+ * than going quiet. What it prevents is the loop: without it a typo surfaces as
+ * "your gate script violates no-verdict-outside-rules", whose remedy says "name
+ * it in ruleFiles", which the adopter did — with a typo.
+ */
+function ruleFilesFindings(p: ArchProject, options: AgentGuardrailsOptions): RuleBuilderLike[] {
+  if (options.noVerdictOutsideRules !== true) return []
+  const declared = options.ruleFiles ?? []
+  if (declared.length === 0) return []
+
+  const universe = pathUniverse(p)
+  // Asked at POSITIVE polarity and `position: 'discovery'`, deliberately. In the
+  // rule this same glob sits negated inside an exclusion, where `isDeadSite`
+  // answers `false` by design (twice over). Here the question is the honest one
+  // — "does this glob, by itself, match anything?" — and it reaches the same
+  // `syntacticFault` anchoring the pre-flight uses, so `doctor` and this check
+  // cannot disagree about what matches nothing.
+  const dead = declared.filter((glob) =>
+    isDeadSite(
+      {
+        glob,
+        kind: 'file-path',
+        base: 'absolute',
+        position: 'discovery',
+        origin: `ruleFiles entry "${glob}"`,
+      },
+      universe,
+    ),
+  )
+  if (dead.length === 0) return []
+
+  const violations: ArchViolation[] = dead.map((glob) => ({
+    rule: `preset ruleFiles '${glob}'`,
+    ruleId: 'preset/agent/rule-files-matches-nothing',
+    element: glob,
+    file: '',
+    line: 0,
+    message: `ruleFiles entry '${glob}' matches no file in this project, so it exempts nothing.`,
+    because:
+      'an exemption that exempts nothing is not a weaker exemption, it is a typo — and the rule ' +
+      'it was meant to quiet will red the very files the entry names, sending the reader back to ' +
+      'a list that already says what they meant',
+    suggestion:
+      `Correct the glob or remove it. It is matched against absolute file paths, so a bare ` +
+      `directory name needs a leading '**/' — '**/scripts/**', not 'scripts/**'. ` +
+      UNSUPPRESSABLE,
+    bypassFilters: true,
+  }))
+  // `examined: 0` and honest: a CONFIGURATION finding, not a rule that examined
+  // units. The receipt carries a violation, so ADR-014 §4 passes it through.
+  return [{ violations: () => collectResult(violations, { examined: 0 }) }]
 }
