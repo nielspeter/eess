@@ -68,8 +68,13 @@ the same session that introduced it. In `.claude/settings.json`:
 }
 ```
 
-`--changed` scopes the run to files touched on the current branch (`--base
-main` to change the comparison branch), keeping the hook fast on large repos.
+`--changed` filters the **report** to files touched on the current branch
+(`--base main` to change the comparison branch). Every rule still evaluates
+the whole project — cross-file rules need the graph, and the kernel's own
+docstring says so (`packages/core/src/diff-aware.ts:10`) — so the run costs
+the same as without the flag. What it buys the hook is a report scoped to the
+agent's own edits, not a faster run; for what does make a run cheaper on a
+large repository, see the large-projects note in the [CLI guide](./cli.md).
 A non-empty result lands in the agent's context as feedback; the agent fixes
 the violation using the `Fix:` line instead of waiting to fail in CI. In this
 repo the equivalent fast loop is `npm run check:fast` (integrity + release +
