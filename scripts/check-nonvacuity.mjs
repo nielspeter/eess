@@ -997,6 +997,69 @@ function gateCorpusOneDeadCheck() {
   }
 }
 
+/**
+ * ADR-014's "every hand-assembled check supplies evidence", on `check:ledger`'s
+ * DEFAULT path — the path the row names, and the one that had no emitter on it
+ * until plan 0263 Phase 1. Measured before that phase: zeroing this exact
+ * denominator left the gate printing `✓ every done-item reconciled` at exit 0.
+ */
+function gateLedgerDeadCheck() {
+  const script = join(repoRoot, 'scripts', 'check-ledger.mjs')
+  // The honest mistake, per ADR-014 §2: the check reaches its assertion zero
+  // times while every OTHER check still examines its real corpus.
+  const rewrite = (text) =>
+    text.replace(
+      /^const finishedNotClosedViolations = finishedNotClosed\.violations$/m,
+      'const finishedNotClosedViolations = finishedNotClosed.violations\n' +
+        'finishedNotClosed.examined = 0 // non-vacuity probe: this check examines nothing',
+    )
+  const { terminal } = withRewrittenFile(script, rewrite, () => ({
+    terminal: sh(process.execPath, [join('scripts', 'check-ledger.mjs')]),
+  }))
+  const named = terminal.stderr.includes('emitter/pass-without-evidence')
+  // The other checks must still have examined real units — otherwise this proves
+  // only that an empty corpus reds, which is a different and weaker claim.
+  const othersHealthy = /\d+ scanned · \d+ with a readable State/.test(terminal.stderr)
+  return {
+    ok: terminal.code === 1 && named && othersHealthy,
+    detail:
+      `one dead check among healthy ones \u2192 exit ${terminal.code}, ` +
+      `named emitter/pass-without-evidence: ${named}, others still scanned: ${othersHealthy}`,
+  }
+}
+
+/**
+ * The same, on `check:release`. Its wrinkle, and the reason this is not a
+ * copy-paste of the row above: several of its checks legitimately examine zero
+ * (a diff touching no package, a run with no breaking changeset), so the probe
+ * must sever a denominator that is NON-zero on this repo today — the breaking
+ * rule, which reads 7 of 25 — or it would prove only that a declaration works.
+ */
+function gateReleaseDeadCheck() {
+  const script = join(repoRoot, 'scripts', 'check-release.mjs')
+  const rewrite = (text) =>
+    text.replace(
+      /^ {2}\['release\/breaking-needs-minor', stats\.breakingExamined, breakingFiles\.length === 0\],$/m,
+      "  ['release/breaking-needs-minor', 0, breakingFiles.length === 0], // non-vacuity probe",
+    )
+  const { terminal } = withRewrittenFile(script, rewrite, () => ({
+    terminal: sh(process.execPath, [join('scripts', 'check-release.mjs')]),
+  }))
+  const named = terminal.stderr.includes('emitter/pass-without-evidence')
+  // The declaration must NOT be what fired: a member that declared emptiness is
+  // green by design, so a probe that tripped one of those would report the
+  // opposite of what this row claims.
+  const notAnExpiry = !terminal.stderr.includes('emitter/expired-declaration')
+  const othersHealthy = /changeset\(s\)/.test(terminal.stderr)
+  return {
+    ok: terminal.code === 1 && named && notAnExpiry && othersHealthy,
+    detail:
+      `one dead check among healthy ones \u2192 exit ${terminal.code}, ` +
+      `named emitter/pass-without-evidence: ${named}, not an expiry: ${notAnExpiry}, ` +
+      `others still read: ${othersHealthy}`,
+  }
+}
+
 function gateCorpusInertExclusion() {
   const { json, terminal } = withProbeDir(
     PROBE_CORPUS_INERT_EXCLUSION_DIR,
@@ -1774,6 +1837,10 @@ const gates = [
   ['corpus/lanes-match-directories/row-unresolved', gateCorpusLaneRowUnresolved],
   ['corpus/lane-table-unreadable/decoy', gateCorpusLaneDecoyTable],
   ['emitter/one-dead-check', gateCorpusOneDeadCheck],
+  // The other two hand-assembled gates, on their default paths — ADR-014's row
+  // names all three, and only `check:corpus` had a fixture before plan 0263.
+  ['emitter/ledger-dead-check', gateLedgerDeadCheck],
+  ['emitter/release-dead-check', gateReleaseDeadCheck],
   ['corpus/exclusion-inert', gateCorpusInertExclusion],
   // The other half of 0255. A separate row because the production script cannot
   // exercise it — every gate here calls `.rule({ id })`, so there is no id-less
@@ -2091,6 +2158,7 @@ const GATE_FOR = {
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
   'check:ledger': [
+    'emitter/ledger-dead-check',
     'corpus/ledger/box',
     'corpus/ledger/placement',
     'corpus/ledger/state',
@@ -2101,6 +2169,7 @@ const GATE_FOR = {
     'corpus/ledger/finished-not-closed',
   ],
   'check:release': [
+    'emitter/release-dead-check',
     'release/needs-changeset',
     'release/names-real-package',
     'release/unparseable',

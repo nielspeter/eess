@@ -63,12 +63,61 @@ why they were not urgent, and **not by anything that fails on their specific
 regression**, which is why they are not `gated`. Calling that `gated` would be
 the over-claim ADR-014's own table is supposed to make impossible.
 
-## Phase 1 — the two fixtures (`check:nonvacuity`)
+## Phase 1 — evidence in the two gates, then the two fixtures (`check:nonvacuity`)
 
-Both are break-the-loop fixtures in `scripts/check-nonvacuity.mjs`, the same
-shape as the `emitter/one-dead-check` fixture 0235 shipped: plant the corruption
-in the **production** script, assert the finding fires by id, and assert the
-other checks still examined.
+> **Corrected at build, 2026-09-06, and it is the same correction the freeze
+> already made to Phase 2 — made again, one phase over, by the same author.**
+> This phase said "plant the corruption, assert the finding fires by id", which
+> assumes `check-ledger.mjs` and `check-release.mjs` reach the evidence gate the
+> way `check-corpus.mjs` does. **They do not.** Measured: `check-corpus.mjs`
+> carries 17 `collectResult`/`mergeCollectResults` references and the other two
+> carry **zero**. Both call `reportViolations` with a bare array on the
+> `--format json|github` branch alone and hand-print on the default terminal
+> path, so on the path ADR-014's row explicitly names — _"run on the default
+> path"_ — no emitter is consulted at all and there is no finding for a fixture
+> to key on.
+>
+> Driven both ways rather than argued:
+>
+> | sabotage                                                    | result                                                                                                                             |
+> | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+> | `check-ledger.mjs`, `finishedNotClosed.examined = 0`        | **exit 0**, `findings ✓ every done-item reconciled`, and the success line printed `0 of them still open` where it prints 112 today |
+> | `check-release.mjs`, the whole `violations` array discarded | **exit 0**, `✓ release readiness — 0 changed of 6 workspace package(s) … 0 findings`                                               |
+>
+> A green tick over a check that examined nothing, in two of the gates
+> `npm run validate` runs, with the only trace a `0` in the middle of a
+> sentence. That is the row's own subject, so the phase is now: **build the
+> mechanism, then the fixture.** Copying `check-corpus.mjs`'s shape exactly —
+> one `collectResult` per check carrying ITS OWN denominator, merged with
+> `mergeCollectResults`, and `finishPreset(receipt, { report: 'return' })`
+> consulted on **both** exits so the two cannot disagree about what was
+> examined.
+
+1. **`check-ledger.mjs` supplies evidence** — a receipt whose members are the
+   per-lane scans, the uncovered-lane check, the lane-done-vacuity check and the
+   finished-not-closed check, each with its own examined count.
+2. **`check-release.mjs` supplies evidence** — the same, with the `noDiff`
+   branch declaring emptiness rather than reporting a zero it cannot help.
+
+> **Second correction, self-caught at build the same day.** The first cut of
+> `check-release.mjs`'s receipt wrote `examined === 0 ? { declaredEmpty: true }`
+> — deriving the declaration from the very count it guards. Measured: severing
+> `stats.breakingExamined` to `0` left the gate at `✓ release readiness … 0
+findings`, exit 0. A dead check declared its own emptiness and passed, so the
+> mechanism built to close the fail-open contained the same fail-open. ADR-009
+> rule 5 names it: a derivation is unguarded until a **differently-derived**
+> value can disagree with it. Each member now carries two sources — the rule's
+> own count (`stats.*`) and the shell's own input (`breakingFiles`,
+> `changedPackages`, `declarations`) — and only the second may declare. One row
+> (`release/unparseable-changeset`) has no independent witness available, because
+> its subject IS the changeset file list; that is stated in the code rather than
+> dressed up. Re-driven after the fix: two independent sabotages both red with
+> `emitter/pass-without-evidence`, clean stays green.
+
+Then the fixtures. Both are break-the-loop fixtures in
+`scripts/check-nonvacuity.mjs`, the same shape as the `emitter/one-dead-check`
+fixture 0235 shipped: plant the corruption in the **production** script, assert
+the finding fires by id, and assert the other checks still examined.
 
 1. **`emitter/ledger-dead-check`** — plant a `continue` at the top of one of
    `scripts/check-ledger.mjs`'s per-check loops.
@@ -184,7 +233,17 @@ and the other four are pure gain.
 
 ## Progress
 
-- [ ] Phase 1 — the two dead-check fixtures
+- [x] Phase 1 — evidence in `check-ledger` and `check-release`, then the two
+      dead-check fixtures. Both gates now build one receipt used by **both**
+      exits (`--format json|github` and the default terminal path), each member
+      carrying its own denominator. `check:nonvacuity` gained
+      `emitter/ledger-dead-check` and `emitter/release-dead-check`, registered
+      under their gates, driven both ways: 85 fixtures fire, up from 83. Two
+      defects found while building it, both recorded above rather than quietly
+      repaired — the phase's own false premise, and a fail-open in the first cut
+      of the declaration. A third was caught by an existing fixture:
+      `bad-release-e2e.mjs`'s "a body declaring a break, bumped minor, is quiet"
+      reddened when `release/break-names-dependents` borrowed the wrong witness
 - [ ] Phase 2 — the rule-file fixture and the `checkAll` test
 - [ ] Phase 3 — the four remedy-remediates fixtures
 - [ ] Phase 4 — the no-second-registry rule

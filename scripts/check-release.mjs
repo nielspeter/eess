@@ -29,7 +29,12 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { reportViolations } from '@nielspeter/eess'
+import {
+  collectResult,
+  finishPreset,
+  mergeCollectResults,
+  reportViolations,
+} from '@nielspeter/eess'
 import { packagesTouchedBy, declarationsIn, releaseViolations } from './release-gate.mjs'
 
 const t0 = Date.now()
@@ -369,13 +374,96 @@ const { violations, stats } = releaseViolations({
   dependentsOf,
 })
 
+// **One receipt, built once, used by BOTH exits** — plan 0263 Phase 1, the shape
+// `scripts/check-corpus.mjs` has carried since plan 0235. ADR-014's row asks for
+// a break-the-loop fixture on this gate's DEFAULT path, and there was nothing on
+// that path to fire: measured before this existed, discarding this gate's entire
+// `violations` array left it printing `✓ release readiness — … 0 findings` and
+// exiting 0.
+//
+// **One member per RULE, keyed on the id it emits**, because the denominators
+// differ per rule and a sum would let a dead one hide behind a live one. The
+// mapping is exhaustive by construction: `unclaimed` below reds if a rule id
+// ever emits into no member, which is the failure a hand-written split invites
+// (a new rule added, its findings silently outside the evidence).
+//
+// **Several of these legitimately examine zero**, and they DECLARE it rather
+// than reporting a bare zero: a diff that touches no package, a run with no
+// breaking changeset, a break with no workspace dependent.
+//
+// **The declaration must be DIFFERENTLY DERIVED from the count it guards, and
+// the first cut of this code was not** — it read `examined === 0 ? declaredEmpty`,
+// so a check whose denominator had been zeroed declared its own emptiness and
+// passed. Measured: severing `stats.breakingExamined` to `0` left this gate at
+// `✓ release readiness … 0 findings`, exit 0 — the fail-open this member exists
+// to close, rebuilt inside the mechanism closing it. ADR-009 rule 5 is the rule
+// it broke: a derivation is unguarded until a differently-derived value can
+// disagree with it. So each row below carries TWO sources — the rule's own count
+// (`stats.*`, what the rule saw) and the shell's own input (`breakingFiles`,
+// `changedPackages`, `declarations`, what was handed to it) — and only the
+// second may declare. When they disagree, the receipt reds.
+//
+// The declaration expires on its own terms: `declaredEmpty` beside a non-zero
+// `examined` is `emitter/expired-declaration`, which is what makes it a
+// declaration and not a mute button.
+const byRuleId = (id) => violations.filter((v) => v.ruleId === id)
+const evidenceMembers = [
+  // [ruleId, examined (the rule's own count), legitimately empty (the input, derived elsewhere)]
+  ['release/changed-package-needs-changeset', stats.changed, changedPackages.length === 0],
+  ['release/changeset-names-real-package', stats.declarations, declarations.length === 0],
+  // The one row whose two sources coincide: this rule's subject IS the changeset
+  // file list, so "how many it examined" and "how many exist" are one number and
+  // no independent witness is available here. Stated rather than dressed up.
+  [
+    'release/unparseable-changeset',
+    changesetFiles.length + consumed.length,
+    changesetFiles.length + consumed.length === 0,
+  ],
+  ['release/breaking-needs-minor', stats.breakingExamined, breakingFiles.length === 0],
+  // The second row with no independent witness, and it is not the same reason as
+  // the one above. Zero edges is legitimate whenever a declared break has no
+  // workspace dependent — measured by `bad-release-e2e.mjs`'s "a body declaring a
+  // break, bumped minor, is quiet" scenario, which this member reddened falsely
+  // when it borrowed `breakingFiles.length === 0` as its witness: a break EXISTS
+  // there, so the witness said "not empty" while the rule had nothing to weigh.
+  // Only the rule knows, so the rule's own count declares.
+  ['release/break-names-dependents', stats.breakDependentEdges, stats.breakDependentEdges === 0],
+]
+
+// **Stated, because an unstated ceiling reads as coverage.** Two of the five
+// members declare from the same number they report — `release/unparseable-changeset`
+// (its subject IS the changeset list) and `release/break-names-dependents` (only
+// the rule can know an edge existed to weigh). A dead check in those two declares
+// its own emptiness and stays green, exactly as the first cut of this receipt did
+// everywhere. The other three carry an independent witness and are sabotage-
+// detectable; `check:nonvacuity`'s `emitter/release-dead-check` drives one of them
+// both ways.
+const claimedIds = new Set(evidenceMembers.map(([id]) => id))
+const unclaimed = violations.filter((v) => !claimedIds.has(v.ruleId))
+const receipt = mergeCollectResults([
+  ...evidenceMembers.map(([id, examined, legitimatelyEmpty]) =>
+    collectResult(byRuleId(id), {
+      examined,
+      ...(legitimatelyEmpty ? { declaredEmpty: true } : {}),
+    }),
+  ),
+  // The escape hatch, with a denominator that cannot be zero while it carries
+  // anything: a finding from an unmapped rule is evidence of its own rule having
+  // run, and it must not vanish from the report just because the split missed it.
+  collectResult(unclaimed, { examined: unclaimed.length, declaredEmpty: unclaimed.length === 0 }),
+])
+
 // --- report -----------------------------------------------------------------
 
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
 if (format === 'json' || format === 'github') {
-  reportViolations(violations, { format })
-  process.exit(violations.length > 0 ? 1 : 0)
+  // ADR-008: the machine-readable path emits, because that is what it is for.
+  // The gate runs first, so an evidence-free member reaches the consumer as a
+  // finding rather than as a silent zero.
+  const emitted = finishPreset(receipt, { report: 'return' })
+  reportViolations(emitted, { format })
+  process.exit(emitted.length > 0 ? 1 : 0)
 }
 
 const line = (label, detail) => console.error(`  ${label.padEnd(12)}${detail}`)
@@ -455,19 +543,35 @@ line(
       : `✗ ${String(brokeCount)} of ${String(stats.breakingExamined)} breaking changeset(s) bump only patch/none`,
 )
 
+// The same receipt the machine-readable path used, so the two exits cannot
+// disagree about what was examined. ADR-008: this script owns its reporting on
+// the terminal path, so the gate runs under `report: 'return'` here.
+const verdict = finishPreset(receipt, { report: 'return' })
+const emitterFindings = verdict.filter(
+  (v) => typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/'),
+)
+if (emitterFindings.length > 0) {
+  console.error('')
+  console.error('  evidence:')
+  for (const v of emitterFindings) console.error(`    ${v.ruleId ?? ''}  ${v.message}`)
+}
+
 console.error('')
-if (violations.length === 0) {
+if (violations.length === 0 && emitterFindings.length === 0) {
   console.error(
     `  ✓ release readiness — ${stats.changed} changed of ${stats.workspace} workspace ` +
       `package(s), ${stats.declarations} declaration(s) across ${changesetFiles.length} ` +
       `changeset(s), 0 findings (${elapsed()})`,
   )
 } else {
+  // Emitter findings count toward the number, or the line reads `0 finding(s)`
+  // beside a red exit — the summary contradicting the verdict.
+  const n = violations.length + emitterFindings.length
   console.error(
-    `  ✗ release readiness — ${violations.length} finding(s) across ${stats.changed} ` +
+    `  ✗ release readiness — ${n} finding(s) across ${stats.changed} ` +
       `changed package(s) (${elapsed()})`,
   )
 }
 console.error('')
 
-if (violations.length > 0) process.exit(1)
+if (violations.length > 0 || emitterFindings.length > 0) process.exit(1)

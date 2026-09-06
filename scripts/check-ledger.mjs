@@ -15,7 +15,12 @@
  */
 import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
-import { reportViolations } from '@nielspeter/eess'
+import {
+  collectResult,
+  finishPreset,
+  mergeCollectResults,
+  reportViolations,
+} from '@nielspeter/eess'
 import { findUncoveredLanes, findLaneDoneVacuity, laneDirectories } from './lib/lane-coverage.mjs'
 import { PROPOSAL_DONE_FOLDERS } from './lib/proposal-ruling.mjs'
 import { findFinishedNotClosed } from './lib/finished-not-closed.mjs'
@@ -147,6 +152,33 @@ const finishedNotClosed = findFinishedNotClosed(
 )
 const finishedNotClosedViolations = finishedNotClosed.violations
 
+// **One receipt, built once, used by BOTH exits** — the shape
+// `scripts/check-corpus.mjs` has carried since plan 0235, arriving here at plan
+// 0263 because ADR-014's row asks for a break-the-loop fixture on this gate's
+// DEFAULT path and there was nothing on that path to fire.
+//
+// Measured before this existed (plan 0263's Phase 1 correction): planting
+// `finishedNotClosed.examined = 0` left this script printing
+// `findings ✓ every done-item reconciled` and exiting 0, with the only trace a
+// `0 of them still open` in the middle of the success sentence. A check that
+// examined nothing, reported as a clean run, in a gate `npm run validate` runs.
+//
+// Each member carries the denominator ITS OWN check ran over. `mergeCollectResults`
+// is fail-closed per member, so a check that goes quiet is named rather than
+// absorbed by the others — the whole reason the members are not summed here.
+const receipt = mergeCollectResults([
+  // One member per lane, not one for all three: a selector break scoped to a
+  // single lane is invisible in a sum as long as another lane still scans
+  // (bug 0131's round-3 finding, applied to the evidence rather than to the
+  // done-count). The denominator is records SCANNED, not done-items — a lane
+  // may legitimately have zero done items, and `findLaneDoneVacuity` below is
+  // the check that judges that; zero scanned is always a broken selector.
+  ...scans.map((s) => collectResult(s.violations, { examined: s.stats.scanned })),
+  collectResult(uncoveredLaneViolations, { examined: workDirCount }),
+  collectResult(laneDoneVacuousViolations, { examined: scans.length }),
+  collectResult(finishedNotClosedViolations, { examined: finishedNotClosed.examined }),
+])
+
 const violations = [
   ...scans.flatMap((s) => s.violations),
   ...uncoveredLaneViolations,
@@ -160,8 +192,12 @@ const readable = scans.reduce((n, s) => n + s.stats.withReadableState, 0)
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
 if (format === 'json' || format === 'github') {
-  reportViolations(violations, { format })
-  process.exit(violations.length > 0 ? 1 : 0)
+  // ADR-008: the machine-readable path DOES emit, because that is what
+  // `--format json` is for. The gate runs first, so an evidence-free member
+  // reaches the consumer as a finding rather than as a silent zero.
+  const emitted = finishPreset(receipt, { report: 'return' })
+  reportViolations(emitted, { format })
+  process.exit(emitted.length > 0 ? 1 : 0)
 }
 
 const repoRoot = process.cwd()
@@ -196,6 +232,14 @@ line(
     `${uncoveredLaneViolations.length} uncovered`,
 )
 
+// The same receipt the machine-readable path used, so the two exits cannot
+// disagree about what was examined. ADR-008: this script owns its reporting on
+// the terminal path, so the gate runs under `report: 'return'` here.
+const verdict = finishPreset(receipt, { report: 'return' })
+const emitterFindings = verdict.filter(
+  (v) => typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/'),
+)
+
 if (violations.length > 0) {
   line('findings', `✗ ${violations.length}`)
   console.error('')
@@ -207,8 +251,14 @@ if (violations.length > 0) {
   line('findings', '✓ every done-item reconciled')
 }
 
+if (emitterFindings.length > 0) {
+  console.error('')
+  console.error('  evidence:')
+  for (const v of emitterFindings) console.error(`    ${v.ruleId ?? ''}  ${v.message}`)
+}
+
 console.error('')
-if (violations.length === 0) {
+if (violations.length === 0 && emitterFindings.length === 0) {
   console.error(
     `  ✓ honesty at close — ${doneCount} done-items across ${scanned} records ` +
       `(${scans.map((sc) => `${sc.stats.scanned} ${sc.lane.name}`).join(' + ')}), ` +
@@ -216,10 +266,14 @@ if (violations.length === 0) {
       `(checked for finished-but-open), 0 findings (${elapsed()})`,
   )
 } else {
+  // Emitter findings count toward the number. Without this the line read
+  // `✗ honesty at close — 0 finding(s)` beside a red exit, which is the summary
+  // contradicting the verdict — measured on the first run of the sabotage below.
+  const n = violations.length + emitterFindings.length
   console.error(
-    `  ✗ honesty at close — ${violations.length} finding(s) across ${doneCount} done-items (${elapsed()})`,
+    `  ✗ honesty at close — ${n} finding(s) across ${doneCount} done-items (${elapsed()})`,
   )
 }
 console.error('')
 
-if (violations.length > 0) process.exit(1)
+if (violations.length > 0 || emitterFindings.length > 0) process.exit(1)
