@@ -36,6 +36,13 @@ import { agentGuardrails } from '../../packages/ts/dist/presets/index.js'
 
 const SENTINEL = 'bad-verdict-outside-rules:'
 const RULE = 'preset/agent/no-verdict-outside-rules'
+const DEAD_ENTRY = 'preset/agent/rule-files-matches-nothing'
+// Two scenarios, one per finding this preset arm can produce — bug 0240's
+// lesson, which this repo learned when ONE row stood for four guardrails rules
+// and three of them could be emptied with the gate still green. A QA review
+// measured exactly that here: `ruleFilesFindings` patched to `return []` left
+// this fixture exiting 1, because the single scenario only exercised the rule.
+const SCENARIO = process.argv[2] ?? 'rule'
 const dir = mkdtempSync(join(tmpdir(), 'eess-0237-nv-'))
 
 /** The offending shape: eess at runtime in an ordinary module. */
@@ -47,13 +54,13 @@ const PLANTED =
   '  return n\n' +
   '}\n'
 
-function ruleIdsFrom(dirPath) {
+function ruleIdsFrom(dirPath, ruleFiles = ['**/gates/**']) {
   resetProjectCache()
   const p = project(join(dirPath, 'tsconfig.json'))
   const violations = agentGuardrails(p, {
     src: '**/src/**/*.ts',
     noVerdictOutsideRules: true,
-    ruleFiles: ['**/gates/**'],
+    ruleFiles,
     report: 'return',
   })
   return [...violations].map((v) => v.ruleId)
@@ -99,6 +106,32 @@ try {
     "import { reportViolations } from '@nielspeter/eess'\n" +
       'export const run = (v: unknown[]): void => reportViolations(v)\n',
   )
+
+  if (SCENARIO === 'dead-entry') {
+    // The second finding this arm produces. A caller glob that matches nothing
+    // must be REPORTED, and one that matches must not be — both halves, because
+    // a producer that always fires is as useless as one that never does.
+    const named = ruleIdsFrom(dir, ['**/gates/**'])
+    if (named.includes(DEAD_ENTRY)) {
+      console.error(
+        `${SENTINEL} a ruleFiles entry that DOES match reported ${DEAD_ENTRY} — ` +
+          `the finding fires unconditionally, so it discriminates nothing`,
+      )
+      process.exit(2)
+    }
+    const bogus = ruleIdsFrom(dir, ['**/gates/**', '**/no-such-directory/**'])
+    if (!bogus.includes(DEAD_ENTRY)) {
+      console.error(
+        `${SENTINEL} a ruleFiles entry matching NO file was not reported — ` +
+          `${DEAD_ENTRY} never fired, so the list can rot in silence`,
+      )
+      process.exit(0)
+    }
+    console.error(
+      `${SENTINEL} ${DEAD_ENTRY} red on a glob matching nothing and silent on one that matches`,
+    )
+    process.exit(1)
+  }
 
   const clean = ruleIdsFrom(dir)
   if (clean.includes(RULE)) {

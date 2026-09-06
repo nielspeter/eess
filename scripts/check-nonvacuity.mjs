@@ -1953,7 +1953,16 @@ const gates = [
   // way `engine/applyfilters-parity` is filed under `check:arch`.
   [
     'guardrails/no-verdict-outside-rules',
-    () => gateNode('bad-verdict-outside-rules.mjs', 'no-verdict-outside-rules'),
+    () => gateNode('bad-verdict-outside-rules.mjs', 'no-verdict-outside-rules', ['rule']),
+  ],
+  // A SECOND row for the second finding this preset arm produces, not a wider
+  // claim on the first. Bug 0240's lesson, re-learned here: a QA review emptied
+  // `ruleFilesFindings` and the single row above still exited 1, because it only
+  // ever exercised the rule id. One row per finding, or a finding can be deleted
+  // behind a green gate.
+  [
+    'guardrails/rule-files-matches-nothing',
+    () => gateNode('bad-verdict-outside-rules.mjs', 'rule-files-matches-nothing', ['dead-entry']),
   ],
   [
     'surface/undocumented-export',
@@ -2127,6 +2136,7 @@ const GATE_FOR = {
     'guardrails/no-empty-bodies',
     'guardrails/no-copy-paste',
     'guardrails/no-verdict-outside-rules',
+    'guardrails/rule-files-matches-nothing',
   ],
   'check:examples': ['examples/does-not-compile'],
   'check:docs-code': ['docs-code/fence-does-not-compile'],

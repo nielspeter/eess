@@ -8,6 +8,7 @@ import type { ModuleRuleBuilder } from '../builders/module-rule-builder.js'
 import { resideInFile } from '../predicates/identity.js'
 import { not, or } from '../core/combinators.js'
 import { isDeadSite } from '../core/glob-evaluator.js'
+import { isProjectRelative } from '../core/project-relative.js'
 import { pathUniverse } from '../core/path-universe.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import { collectResult } from '@nielspeter/eess'
@@ -74,6 +75,9 @@ export interface AgentGuardrailsOptions extends PresetBaseOptions<AgentGuardrail
    *
    * An entry matching no file is reported as
    * `preset/agent/rule-files-matches-nothing`, so the list cannot rot in silence.
+   * An unanchored entry (`scripts/**`) is matched relative to the tsconfig root,
+   * exactly as `resideInFile` does it — the check and the rule share one
+   * derivation rather than two that can drift apart.
    */
   ruleFiles?: string[]
 }
@@ -109,6 +113,16 @@ const EESS_PACKAGES = [
  * escape in its own first version of this rule. A RENAMED import
  * (`finishPreset as done`) escapes this leg and is caught by the import leg, so
  * the two conditions cover each other's blind spot.
+ *
+ * **The two legs cover each other for a STATIC renamed import, and NOT for a
+ * dynamic one.** `import { finishPreset as done }` escapes this regex and is
+ * caught by the import leg — asserted, not assumed. But
+ * `const { finishPreset: done } = await import('@nielspeter/eess')` escapes
+ * BOTH on one line: the import leg because `TYPE_IMPORT_KINDS` sets
+ * `dynamic: false` by design, this one because the callee text is `done`. That
+ * is [bug 0264](../../../../work/bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md),
+ * found by review, pinned by a KNOWN-GAP test, and named here rather than left
+ * for the next reader to discover — an unstated ceiling reads as coverage.
  *
  * `dispatchRule` is deliberately absent: it is the sanctioned preset-authoring
  * call. That is not what spares a preset module, though — such a module imports
@@ -450,16 +464,29 @@ function ruleFilesFindings(p: ArchProject, options: AgentGuardrailsOptions): Rul
   const universe = pathUniverse(p)
   // Asked at POSITIVE polarity and `position: 'discovery'`, deliberately. In the
   // rule this same glob sits negated inside an exclusion, where `isDeadSite`
-  // answers `false` by design (twice over). Here the question is the honest one
-  // — "does this glob, by itself, match anything?" — and it reaches the same
-  // `syntacticFault` anchoring the pre-flight uses, so `doctor` and this check
-  // cannot disagree about what matches nothing.
+  // answers `false` by design (twice over). Here the question is the honest one:
+  // "does this glob, by itself, match anything?"
+  //
+  // **`base` is DERIVED, not hard-coded, and that is the whole correctness of
+  // this check.** An architect review measured what a hard-coded
+  // `base: 'absolute'` did: `ruleFiles: ['gates/**']` genuinely exempted
+  // `gates/check-corpus.ts` — `resideInFile` falls back to matching the path
+  // relative to the tsconfig root for an unanchored glob (plan 0067 C) — while
+  // this producer reported "matches no file in this project, so it exempts
+  // nothing" about the same string. Both in one run. That is two derivations
+  // disagreeing about one glob, which is the failure this project spends most
+  // of its guards on, and the remedy it printed told the adopter to WIDEN a
+  // correctly-scoped exemption to silence a finding that was wrong.
+  //
+  // So the derivation is `resideInFile`'s own, taken from the same helper:
+  // every other site that stamps a `GlobSite` does `relative ? 'normalized' :
+  // 'absolute'` (`identity.ts:83`, `:114`, `:157`), and this one now does too.
   const dead = declared.filter((glob) =>
     isDeadSite(
       {
         glob,
         kind: 'file-path',
-        base: 'absolute',
+        base: isProjectRelative(glob) ? 'normalized' : 'absolute',
         position: 'discovery',
         origin: `ruleFiles entry "${glob}"`,
       },
@@ -480,8 +507,10 @@ function ruleFilesFindings(p: ArchProject, options: AgentGuardrailsOptions): Rul
       'it was meant to quiet will red the very files the entry names, sending the reader back to ' +
       'a list that already says what they meant',
     suggestion:
-      `Correct the glob or remove it. It is matched against absolute file paths, so a bare ` +
-      `directory name needs a leading '**/' — '**/scripts/**', not 'scripts/**'. ` +
+      `Correct the glob or remove it. An unanchored glob like 'scripts/**' is matched ` +
+      `against the path relative to your tsconfig root, so it is already correct for a ` +
+      `top-level directory; '**/scripts/**' matches one at any depth. Check the spelling ` +
+      `and the depth before widening. ` +
       UNSUPPRESSABLE,
     bypassFilters: true,
   }))

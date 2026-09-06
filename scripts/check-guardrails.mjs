@@ -1,7 +1,18 @@
 #!/usr/bin/env node
 /**
  * Dogfood: run eess-ts's own shipped `agentGuardrails` preset against this
- * repo's source.
+ * repo's source — **four of its five rules**, and the fifth's absence is stated
+ * here rather than left to be inferred from `OPTIONS` below.
+ *
+ * `noVerdictOutsideRules` is deliberately NOT enabled. It bans eess at runtime
+ * outside a rule file, and this repo's dialect source IS eess: 55 of 141
+ * `eess-ts` files import the kernel at runtime, by design. The rule would
+ * examine every module here and legitimately fire on none, so a `ruleFiles`
+ * wide enough to green this run would exempt everything that could fire — a
+ * tautology presented as dogfood, which is the shape the paragraph below
+ * records this script being created to end. Its evidence lives instead in
+ * `scripts/nonvacuity/bad-verdict-outside-rules.mjs`, which drives an
+ * adopter-shaped project both ways (plan 0237 Phase 3).
  *
  * **Why this exists at all.** eess ships two presets and used to dogfood one.
  * The one it exempted itself from is the one written for "the mistakes AI coding

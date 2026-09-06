@@ -224,15 +224,22 @@ beside them. A hand-rolled loop that skips every item looks exactly like one tha
 checked them all, and nothing counts what was examined.
 
 `ruleFiles` **extends** the default `['**/*.rules.ts', '**/*.test.ts', '**/*.spec.ts']`
-rather than replacing it, so naming `scripts/**` does not cost you your rule
-files. An entry matching no file is reported as
-`preset/agent/rule-files-matches-nothing`, so the list cannot rot in silence —
-note it is matched against absolute paths, so a bare directory name needs a
-leading `**/`.
+rather than replacing it, so naming your gate scripts does not cost you your rule
+files.
 
-**Expect a first red on your own preset modules.** A module that builds rules
-imports `dispatchRule` at runtime, so it trips this rule until you name it in
-`ruleFiles`. That is correct: a preset module is a verdict file by definition.
+Globs work exactly as they do everywhere else in `eess-ts`: an **unanchored** one
+like `scripts/**` is matched against the path relative to your tsconfig root, so
+it names a top-level directory; `**/scripts/**` matches one at any depth. An entry
+that matches nothing at all is reported by name as
+`preset/agent/rule-files-matches-nothing`, so the list cannot rot in silence.
+
+**If you write your own preset modules, expect a first red on them** — but only
+if they live inside `src`. A module that builds rules imports `dispatchRule` at
+runtime, so it trips this rule until you name it in `ruleFiles`; that is correct,
+because a preset module is a verdict file by definition. **Most adopters see no
+such red**: the rule only examines what `src` selects, so a root-level
+`arch.rules.ts` or `eess-ts.config.ts` is outside it entirely — exempt by
+selection, before the rule-file list is even consulted.
 
 ### What it does not reach — read this before trusting it
 
@@ -244,6 +251,11 @@ This is a Tier 1 pattern match, and three things are outside it by construction:
 - **Only modules inside your TypeScript project.** A `.mjs` gate script that sits
   outside every `tsconfig` — a very common shape, this repo ships five — is
   examined by nothing here.
+- **A dynamic import destructured under a new name.**
+  `const { finishPreset: done } = await import('@nielspeter/eess')` is caught by
+  neither condition — the import check does not treat dynamic imports as
+  candidates, and the call check matches the callee's text, which is `done`. A
+  **static** renamed import (`import { finishPreset as done }`) IS caught.
 - **Only `eess-ts`.** The rule needs an AST engine, so an adopter of `eess-md` or
   `eess-gherkin` alone has no equivalent. For them the kernel-side contract in
   [ADR-014](https://github.com/nielspeter/eess/blob/main/adr/014-the-emitter-refuses-a-verdict-without-evidence.md)

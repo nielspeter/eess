@@ -463,6 +463,70 @@ letting a `check:guardrails` tick imply it.
       reports **82 fixtures**. It does NOT plant under `packages/*/src`, and the
       row carries the reason: this repo's dialect source is eess, so the rule can
       fire on none of it and a green there would be a tautology.
+- [x] **REVIEW FINDING, 2026-09-06 — the `ruleFiles` check shipped disagreeing
+      with the rule it describes, and an architect review measured it.**
+      `ruleFilesFindings` hard-coded `base: 'absolute'` when asking `isDeadSite`,
+      while the exclusion it describes is built from `resideInFile`, which
+      derives `base: relative ? 'normalized' : 'absolute'` — as does every other
+      site in the dialect that stamps a `GlobSite` (`identity.ts:83`, `:114`,
+      `:157`). Measured on the fixture project with `ruleFiles: ['gates/**']`:
+      the rule **exempted** `gates/check-corpus.ts` (the unanchored glob matches
+      via the tsconfig-root-relative fallback, plan 0067 C) while the finding
+      said that same string "matches no file in this project, so it exempts
+      nothing". Two derivations disagreeing about one glob — the failure this
+      project spends most of its guards on — under a comment claiming they
+      "cannot disagree".
+
+      Three things were wrong and all three are fixed: the derivation now comes
+      from `isProjectRelative`, the remedy no longer tells adopters to **widen**
+      a correctly-scoped exemption to silence a false finding, and the test that
+      encoded `gates/**` as "the typo case" is corrected — it had pinned the bug
+      as expected behaviour. An **agreement test** is added and proven: with the
+      hard-coded `base` reintroduced, exactly one test fails.
+
+      **The docs correction that preceded this was itself wrong**, and is
+      recorded because the sequence is the lesson. An adopter review reported
+      the shipped example `ruleFiles: ['scripts/**']` as broken, having measured
+      raw `picomatch('scripts/**')` against an absolute path. That measurement is
+      real but the premise is not: the rule does not use raw picomatch, it uses
+      `resideInFile`. The example was correct; it was changed to
+      `'**/scripts/**'` on the strength of a plausible finding that had not been
+      checked against the actual code path, and changed back. A finding measured
+      against the wrong mechanism is still a wrong finding.
+
+- [x] **REVIEW ROUND, 2026-09-06 — four more findings, three of them real gaps
+      in what shipped.** A seven-persona panel; enforcement, testing and devops
+      re-ran the sabotage table independently and it reproduced.
+
+      1. **`rule-files-matches-nothing` had NO non-vacuity coverage** (testing,
+         Critical). Verified by emptying `ruleFilesFindings` to `return []`:
+         the fixture still exited 1, because its one scenario only exercised the
+         rule id. This is bug 0240's lesson — one row standing for several
+         findings — recurring in the change that cites it. Fixed with a **second
+         scenario and a second `GATE_FOR` row**, one per finding; the emptied
+         producer now correctly reports vacuous. 83 fixtures, was 82.
+      2. **A fourth escape, unstated** (enforcement, Important):
+         `const { finishPreset: done } = await import('@nielspeter/eess')` is
+         caught by neither leg — the import leg because `TYPE_IMPORT_KINDS` sets
+         `dynamic: false` by design, the call leg because the callee text is
+         `done`. Both blind on one line, so "the two conditions cover each
+         other's blind spot" was false for this shape. Measured, pinned by a
+         **KNOWN-GAP test** so closing it turns the test red, stated in the
+         source comment, `docs/presets.md` and the changeset, and filed as
+         [bug 0264](../bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md).
+         The static renamed import IS caught — also now asserted rather than
+         claimed in a comment.
+      3. **`check-guardrails.mjs` said it runs "the preset"** and runs four of
+         its five rules (enforcement, Important). An unstated exemption, in the
+         script whose own header records it being created to end exactly that.
+         Header corrected to say four of five, and why the fifth is absent.
+      4. **The "reports twice" argument was never exercised** (testing, Minor).
+         The suite keys assertions on basenames rather than counts because a
+         module can trip both legs; no fixture did. `double-trip.ts` added.
+
+      Devops abstained from criticals after checking the changeset, both config
+      exclusions, gate ordering and the `dist` failure modes — all sound.
+
 - [x] Phase 4 — `docs/presets.md` gains the `agentGuardrails` section it never
       had, including the three ceilings stated plainly; `docs/agent-integration.md`
       recipe 3 names the imperative as the "do not hand-roll a gate" line and why

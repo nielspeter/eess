@@ -100,6 +100,40 @@ describe('every specifier shape, not only the bare package', () => {
   })
 })
 
+describe('the escapes: one covered, one not — both pinned', () => {
+  it('a STATIC renamed import is caught by the import leg', () => {
+    // The source comment claims this; nothing proved it. `finishPreset as done`
+    // defeats the call leg (the callee text is `done`), and the import leg has
+    // to be what catches it. Now asserted rather than asserted-in-a-comment.
+    expect(flagged(run(NAMES_THE_GATE))).toContain('static-rename.ts')
+  })
+
+  it('KNOWN GAP — a dynamic import destructured under a new name escapes BOTH legs', () => {
+    // `const { finishPreset: done } = await import('@nielspeter/eess')`.
+    //
+    // Found by an enforcement review, measured, and pinned HERE rather than
+    // described in prose, because this rule's whole discipline is that an
+    // unstated ceiling reads as coverage. Both legs are blind on the same line:
+    // the import leg because `TYPE_IMPORT_KINDS` sets `dynamic: false` by design
+    // (there is no way to make `await import(…)` erased, so a type-import remedy
+    // could not be followed), and the call leg because the callee text is `done`.
+    //
+    // This test asserts the CURRENT behaviour, so closing the gap turns it red
+    // and whoever closes it must come here and say so. Owned by
+    // [bug 0264](../../../../work/bugs/0264-a-dynamic-import-escapes-the-verdict-rule.md).
+    expect(flagged(run(NAMES_THE_GATE))).not.toContain('dynamic-rename.ts')
+  })
+
+  it('a module tripping BOTH legs reports twice — the reason counts are the wrong key', () => {
+    // The file docstring argues basename-keyed assertions matter because a
+    // module can report twice. Nothing exercised that until now.
+    const both = run(NAMES_THE_GATE).filter(
+      (v) => v.ruleId === RULE && (v.file ?? '').includes('double-trip'),
+    )
+    expect(both.length).toBeGreaterThan(1)
+  })
+})
+
 describe('the exempted kinds stay green', () => {
   it.each([['corpus.rules.ts'], ['corpus.test.ts'], ['corpus.spec.ts']])(
     'does not red %s, which does the same thing in an exempt file',
@@ -152,14 +186,31 @@ describe('ruleFiles is a declared list, and a dead entry says so', () => {
   it('applying the remedy CLEARS it — the same entry, corrected', () => {
     // ADR-009 rule 2's behavioural corollary, and what the config-finding census
     // requires before this producer can be called verified: not "a finding
-    // fires" but "the remedy the message states makes it stop". The message
-    // says a bare directory name needs a leading `**/`; this does exactly that
-    // to the SAME entry, rather than swapping in a different options object.
-    const typo = run({ ruleFiles: ['gates/**'] })
+    // fires" but "the remedy the message states makes it stop".
+    //
+    // **This test used to assert the BUG.** It read `gates/**` as the typo case
+    // and `**/gates/**` as its correction, because the producer hard-coded
+    // `base: 'absolute'`. `gates/**` is not a typo — it is a working
+    // project-relative glob, and the rule honours it. An architect review
+    // measured the rule exempting the gate script while this finding called the
+    // same string dead. The subject is now a glob that genuinely matches
+    // nothing, and the agreement test below is what would have caught it.
+    const typo = run({ ruleFiles: ['**/gatez/**'] })
     expect(typo.map((x) => x.ruleId)).toContain(DEAD_ENTRY)
 
     const corrected = run({ ruleFiles: ['**/gates/**'] })
     expect(corrected.map((x) => x.ruleId)).not.toContain(DEAD_ENTRY)
+  })
+
+  it('AGREEMENT — a glob the rule honours is never called dead', () => {
+    // The regression guard for the defect above, and the invariant the producer
+    // claims in its own comment: this check and the rule must not disagree about
+    // one glob. `gates/**` is unanchored, so `resideInFile` matches it against
+    // the tsconfig-root-relative path and the exemption works — therefore the
+    // dead-entry finding must stay silent about it.
+    const v = run({ ruleFiles: ['gates/**'] })
+    expect(flagged(v)).not.toContain('check-corpus.ts') // the rule exempts it
+    expect(v.map((x) => x.ruleId)).not.toContain(DEAD_ENTRY) // so nothing calls it dead
   })
 
   it('CONTROL — the default list alone is never reported', () => {

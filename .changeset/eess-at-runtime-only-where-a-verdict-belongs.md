@@ -27,8 +27,15 @@ imports `dispatchRule` at runtime, so it trips this rule until you name it in
 `ruleFiles` **extends** the default `['**/*.rules.ts', '**/*.test.ts', '**/*.spec.ts']`
 rather than replacing it, and an entry matching no file is reported as
 `preset/agent/rule-files-matches-nothing` so the list cannot rot in silence.
+Its globs behave as they do everywhere else in `eess-ts`: an unanchored
+`scripts/**` is matched against the path relative to your tsconfig root, and the
+dead-entry check derives that the same way the rule does rather than deciding it
+separately.
 
 **What it does not reach**, stated because an unstated ceiling reads as
-coverage: nothing inside a rule file, no `.mjs` script outside your `tsconfig`,
-and no equivalent for adopters without `eess-ts` — there is no AST engine to
-build one on, and for them the kernel contract is the whole protection.
+coverage: nothing inside a rule file; no `.mjs` script outside your `tsconfig`;
+a dynamic import destructured under a new name
+(`const { finishPreset: done } = await import(…)`), though a static renamed
+import is caught; and no equivalent for adopters without `eess-ts` — there is no
+AST engine to build one on, and for them the kernel contract is the whole
+protection.
