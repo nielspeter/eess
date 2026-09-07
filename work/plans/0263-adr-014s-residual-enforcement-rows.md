@@ -295,11 +295,38 @@ and the other four are pure gain.
       `runCheck` now merge their builders' receipts and consult the gate;
       `check:nonvacuity` gained `emitter/bare-builder-reds-the-cli` (a probe rule
       file driving the real CLI, asserted by id); `check-all.test.ts` gained four
-      tests — bare array throws, the finding is named, one dead member among
-      healthy ones reds, and a CONTROL that a declared-empty member stays green.
-      Sabotage-checked: reverting the wiring reds exactly the three assertions and
-      leaves the control green. Ships `@nielspeter/eess-ts` minor, break-marked:
-      a hand-rolled builder that used to pass now fails, which is the point.
+      tests — a bare array loaded through `loadRuleFiles` throws, the cause is
+      named, one dead member among healthy ones reds, and a CONTROL that a
+      declared-empty member stays green.
+      Sabotage-checked: reverting the wiring reds exactly the assertions and
+      leaves the control green; renaming the cited test reds `check:crossval`.
+      Ships `@nielspeter/eess-ts` minor, break-marked: a hand-rolled builder that
+      used to pass now fails, which is the point.
+
+      **Reworked after review, and the corrections are the phase's real record.**
+      Five lenses measured the first cut. The gate now runs **per builder**
+      rather than over a run-wide merge — an architect's proposal, adopted
+      because it is strictly stronger and because one move fixed four defects at
+      once: the finding named no rule file, an `emitter/*` id arriving from
+      inside a member was reported twice, the summary printed `2 of 1 rule
+      failing`, and the guard keyed on an object identity that attribution had
+      already destroyed. `eess-ts baseline` is gated too — it was minting a
+      persisted verdict from a builder that certified nothing. The probe moved
+      under `scripts/nonvacuity/`, which `check:integrity` sweeps; at the repo
+      root it was invisible to both `git status` and that sweep, which is bug
+      0231's shape. The ADR row cites an `it()` title the resolver binds
+      (measured: renaming it reds `check:crossval`) and names the two commands
+      that are NOT in the clause, where it had claimed "the CLI".
+
+      **And the ceiling this phase asserted was false.** The test file argued the
+      bare-array case could not be tested without an `as` that ADR-005 forbids.
+      Two reviewers each wrote it independently — one through `loadRuleFiles`,
+      one with `@ts-expect-error` — and both typecheck and pass. The test is
+      written now, by the route production takes. That was the fourth premise in
+      this plan asserted rather than driven, inside the phase that filed
+      [bug 0267](../bugs/0267-the-freeze-checks-links-not-premises.md) about
+      exactly that habit.
+
 - [ ] Phase 3 — the four remedy-remediates fixtures
 - [ ] Phase 4 — the no-second-registry rule
 - [ ] Phase 5 — `throwIfViolations` removed, changeset naming the break

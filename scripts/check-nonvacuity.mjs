@@ -192,8 +192,19 @@ const FAMILY_REEXPORT_AGGREGATION_TARGET = join(
 )
 
 const PROBE_ARCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe__.ts')
-/** A rule file whose one builder hands back a bare array — plan 0263 Phase 2. */
-const PROBE_BARE_RULES = join(repoRoot, '__nonvacuity_probe_bare.rules.ts')
+/**
+ * A rule file whose one builder hands back a bare array — plan 0263 Phase 2.
+ *
+ * **Under `scripts/nonvacuity/`, not the repo root.** `.gitignore` hides every
+ * `__nonvacuity_probe*` file, and `check:integrity`'s leftover sweep walks a
+ * fixed list of roots (`scripts/check-workspace-integrity.mjs`) that does not
+ * include the repo root — so a probe left there by a killed run is invisible to
+ * `git status` AND to the gate that exists to name it, which is bug 0231's exact
+ * shape. Measured by a review of this phase's first cut, which put it at the
+ * root. The CLI takes a path, so the probe works equally well from a swept
+ * directory.
+ */
+const PROBE_BARE_RULES = join(repoRoot, 'scripts', 'nonvacuity', '__nonvacuity_probe_bare.rules.ts')
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
 const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
 // Bug 0127: corpus/links must prove BOTH routing regions (bug 0086's
@@ -1106,14 +1117,40 @@ function gateCheckAllBareBuilder() {
     PROBE_BARE_RULES,
     '// Non-vacuity probe (plan 0263 Phase 2): a builder with no receipt.\n' +
       'export default [{ violations: () => [] }]\n',
-    () => sh(EESS_TS, ['check', '__nonvacuity_probe_bare.rules.ts', '--format', 'json']),
+    () =>
+      sh(EESS_TS, [
+        'check',
+        join('scripts', 'nonvacuity', '__nonvacuity_probe_bare.rules.ts'),
+        '--format',
+        'json',
+      ]),
   )
   // By id, not by exit code: a rule file can exit 1 for a dozen reasons, and the
   // one this row answers for is the missing receipt.
-  const named = firedOn(bad, 'emitter/no-receipt')
+  // By id AND by file: the finding must name the rule file it came from, which
+  // is what the per-builder gate buys (bug 0026's seam). Asserting the id alone
+  // passed while the finding carried `file: ''`.
+  const named = firedOn(bad, 'emitter/no-receipt', '__nonvacuity_probe_bare.rules.ts')
+  // The green direction, which the first cut of this fixture never drove: an
+  // honest builder over the same door must stay silent, or "reds on a bare
+  // array" is satisfied by a gate that reds on everything.
+  const clean = withProbe(
+    PROBE_BARE_RULES,
+    "import { collectResult } from '@nielspeter/eess'\n" +
+      'export default [{ violations: () => collectResult([], { examined: 7 }) }]\n',
+    () =>
+      sh(EESS_TS, [
+        'check',
+        join('scripts', 'nonvacuity', '__nonvacuity_probe_bare.rules.ts'),
+        '--format',
+        'json',
+      ]),
+  )
   return {
-    ok: bad.code === 1 && named,
-    detail: `a rule file exporting a bare builder \u2192 exit ${bad.code}, named emitter/no-receipt: ${named}`,
+    ok: bad.code === 1 && named && clean.code === 0,
+    detail:
+      `a rule file exporting a bare builder \u2192 exit ${bad.code}, named emitter/no-receipt ` +
+      `at its own file: ${named}; an honest builder \u2192 exit ${clean.code}`,
   }
 }
 

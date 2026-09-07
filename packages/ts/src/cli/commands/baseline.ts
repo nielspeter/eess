@@ -1,6 +1,6 @@
-import { collectViolations } from '../../helpers/baseline-generator.js'
 import { formatBaselineDelta, generateBaseline } from '../../helpers/baseline.js'
 import type { ArchViolation } from '@nielspeter/eess'
+import { finishPreset } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 import { attributeToRuleFile, failureOrViolations } from '../rule-file-findings.js'
 
@@ -37,7 +37,30 @@ export async function runBaseline(args: BaselineArgs): Promise<number> {
         // Same attribution as `runCheck` (bug 0026): the findings this command
         // REFUSES to baseline are printed for the user to fix, and "which rule
         // file" is the first thing they need.
-        violations.push(...attributeToRuleFile(collectViolations(builder), file))
+        // **The evidence gate, here too** — plan 0263 Phase 2, added after a
+        // product review measured this door minting an artifact from nothing:
+        // `eess-ts baseline` over a rule file exporting `{ violations: () => [] }`
+        // wrote a baseline and exited 0. A baseline is a persisted verdict, so
+        // accepting one from a builder that certified nothing is worse than
+        // passing silently.
+        //
+        // The gate runs per builder, where the rule file is known, exactly as in
+        // `runCheck`. Its finding carries `bypassFilters`, so `refused` below
+        // catches it: the baseline is still written for what COULD be accepted,
+        // the finding is printed with its rule file, and the command exits 1.
+        //
+        // **`collectViolations` is deliberately untouched, and that is a stated
+        // residual.** It is public API (`packages/ts/src/index.ts`), documented
+        // as not throwing, and typed to accept `{ violations: () => ArchViolation[] }`
+        // — a bare array, by signature. Tightening it would move the break to
+        // adopters' compilers without closing the runtime hole for JS callers,
+        // and throwing from it would break the contract its own docstring makes.
+        // So the gate sits here, at the command that mints the artifact. An
+        // adopter calling `collectViolations` + `generateBaseline` by hand still
+        // bypasses it; closing that is a public-API decision, not a wiring one.
+        violations.push(
+          ...attributeToRuleFile(finishPreset(builder.violations(), { report: 'return' }), file),
+        )
       } catch (error: unknown) {
         violations.push(...failureOrViolations(file, error, total))
       }

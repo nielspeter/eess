@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { loadRuleFiles } from '../../src/cli/load-rules.js'
 import { collectResult } from '@nielspeter/eess'
 import { checkAll } from '../../src/core/check-all.js'
 import { ArchRuleError } from '@nielspeter/eess'
@@ -22,21 +26,35 @@ afterEach(() => vi.restoreAllMocks())
 
 describe('checkAll', () => {
   describe('the evidence gate (plan 0263 Phase 2)', () => {
-    // **The bare-array case is not tested here, and that is not an omission.**
-    // `RuleBuilderLike.violations()` is typed to return `CollectResult`, so a
-    // builder handing back a plain array does not compile — the compiler is the
-    // Tier-1 mechanism and ADR-014's `violations() returns the receipt` row is
-    // already gated on `npm run typecheck`. Forcing one here would need an `as`,
-    // which ADR-005 forbids, and would test the cast rather than the door.
+    // The bare-array case, loaded the way production loads it. An earlier cut of
+    // this file argued the shape could not be tested here because forcing it
+    // would need an `as` that ADR-005 forbids. **That was false, and it was the
+    // load-bearing claim of the phase** — an architect and an enforcement review
+    // each wrote the test independently, one through `loadRuleFiles` and one with
+    // `@ts-expect-error`, and both typecheck and pass. The ceiling was asserted,
+    // not driven, which is the mistake plan 0263 exists to remove.
     //
-    // The shape DOES reach production untyped: the CLI imports a rule file at
-    // runtime, so `export default [{ violations: () => [] }]` is loadable. That
-    // path is covered end to end by `check:nonvacuity`'s
-    // `emitter/bare-builder-reds-the-cli`, which drives the real binary over a
-    // probe rule file and asserts `emitter/no-receipt` by id.
-    //
-    // What IS testable here is the other half of the same gate: a well-typed
-    // receipt that examined nothing.
+    // `loadRuleFiles` is the better of the two routes because it is the one
+    // production takes: it guards only `typeof value.violations === 'function'`,
+    // so a rule file really can hand this door a bare array, and no cast is
+    // involved anywhere.
+    it('throws on a builder loaded from a rule file that hands back a bare array', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'eess-bare-builder-'))
+      const file = join(dir, 'bare.rules.ts')
+      writeFileSync(file, 'export default [{ violations: () => [] }]\n')
+      const builders = await loadRuleFiles([file])
+      vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+      try {
+        checkAll(builders)
+        expect.unreachable('checkAll should have thrown')
+      } catch (error) {
+        const ids = (error instanceof ArchRuleError ? error.violations : []).map((x) => x.ruleId)
+        expect(ids).toContain('emitter/no-receipt')
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+
     it('reds a member that ran and examined nothing', () => {
       // Before this phase `checkAll` aggregated with `flatMap`, which drops every
       // `examined` on the floor, so this returned silently — bug 0206's shape at

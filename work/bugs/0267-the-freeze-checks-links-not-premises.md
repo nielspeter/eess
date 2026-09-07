@@ -28,14 +28,24 @@ plan's own text says so:
   `WeakSet` registry. `owns-empty-discovery.ts` is a second, and says so in its
   own comment. The rule as written would have reddened legitimate kernel code on
   its first run.
+- **Phase 2 again**, NOT caught, found only at review: the phase said the fix was
+  `checkAll`'s `flatMap`, and item 2 assumed `eess-ts check` already reddened so a
+  fixture could simply assert it. Measured, the CLI had the identical hole, and so
+  did `eess-ts baseline` — which wrote a baseline artifact from a builder that
+  certified nothing. A fourth instance arrived in the same phase's test file,
+  which asserted that a case "cannot be tested" without a cast ADR-005 forbids;
+  two reviewers each wrote that test independently and both pass.
 - **Phase 1**, NOT caught, found only at build: `check-ledger.mjs` and
   `check-release.mjs` were assumed to reach the evidence gate the way
   `check-corpus.mjs` does. Measured, `check-corpus.mjs` carried 17
   `collectResult`/`mergeCollectResults` references and the other two carried
   zero.
 
-The freeze caught two of the three because the author happened to measure, not
-because the ritual asked.
+The freeze caught two of these because the author happened to measure, not
+because the ritual asked. The rest were caught at build or at review, and one of
+them — the false ceiling in Phase 2's test file — was written _after_ this bug
+was filed, by the author who filed it. The habit is not cured by knowing about
+it, which is the argument for a step rather than a note.
 
 ## Root cause
 

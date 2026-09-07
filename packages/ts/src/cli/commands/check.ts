@@ -4,7 +4,7 @@ import { withBaseline } from '../../helpers/baseline.js'
 import { diffAware } from '../../helpers/diff-aware.js'
 import type { OutputFormat } from '@nielspeter/eess'
 import type { ArchViolation, CheckOptions, RuleBuilderLike } from '@nielspeter/eess'
-import { finishPreset, isArchRuleError, mergeCollectResults } from '@nielspeter/eess'
+import { finishPreset, isArchRuleError } from '@nielspeter/eess'
 import { withCallerAggregating, violationsWritten, writeReport } from '../../core/execute-rule.js'
 import { suppressionNotice } from '@nielspeter/eess/internal'
 import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess/internal'
@@ -81,14 +81,6 @@ async function runCheckInner(
   const baseline = args.baseline !== undefined ? withBaseline(args.baseline) : undefined
   const diff = args.changed ? diffAware(args.base) : undefined
   let collected: ArchViolation[] = []
-  // **The receipts, kept beside the attributed violations** — plan 0263 Phase 2.
-  // `collected` is a bare array by construction: `attributeToRuleFile` maps over
-  // the violations and drops everything else, which is right for reporting and
-  // fatal for evidence. Measured before this existed: a rule file exporting
-  // `{ violations: () => [] }` ran through this command to
-  // `"examined": null, "total": 0`, exit 0 — the door ADR-014's row names beside
-  // `checkAll`, with the same hole.
-  const receipts: (readonly ArchViolation[])[] = []
   const total = args.ruleFiles.length
   // The denominator for the summary line below. Accumulated here rather than
   // derived from `collected`, which counts violations and cannot distinguish
@@ -191,11 +183,36 @@ async function runCheckInner(
         // Attributed here, where the rule file is known. A builder cannot do it
         // — the same builder is legal in a test file, where vitest supplies the
         // frame instead (bug 0026).
-        // The RAW receipt, before attribution, so its evidence survives; the
-        // attributed copy is what gets reported.
-        const raw = builder.violations()
-        receipts.push(raw)
-        const found = attributeToRuleFile(raw, file)
+        // **The gate runs HERE, per builder, where the receipt and the rule file
+        // are both in hand.** Plan 0263 Phase 2, corrected after review.
+        //
+        // The first cut kept a parallel array of raw receipts, merged them after
+        // the loop and re-injected the emitter findings. Three defects followed
+        // from that one choice, all measured: the finding named no rule file
+        // (`file: ''`, at the one seam in this package that exists to attribute
+        // it — bug 0026); an `emitter/*` id arriving from INSIDE a member was
+        // reported twice, because the identity guard compared against
+        // `collected`, whose entries `attributeToRuleFile` had already copied;
+        // and `failedRules` was incremented twice for one builder, printing
+        // `2 of 1 rule failing`.
+        //
+        // Gating here is also strictly stronger than the run-wide merge, not
+        // weaker: `mergeCollectResults` reds once per run for the dead-member
+        // case, while this names every dead builder. It does not red an honest
+        // rule — one that examined zero already carries its own finding, so
+        // `withEvidenceGate` returns at its violations check, and a
+        // `.notExist()`-shaped rule over zero subjects is stamped
+        // `declaredEmpty`. Only a genuinely evidence-free builder is caught,
+        // which is the target.
+        //
+        // ADR-008: this command owns its reporting, so the gate runs under
+        // `report: 'return'`. Its findings carry `bypassFilters`, so the
+        // baseline and the diff filter keep them, and they are error-severity,
+        // so they set the exit code.
+        const found = attributeToRuleFile(
+          finishPreset(builder.violations(), { report: 'return' }),
+          file,
+        )
         if (found.length > 0) failedRules++
         collected.push(...found)
       } catch (error: unknown) {
@@ -203,29 +220,6 @@ async function runCheckInner(
         collected.push(...failureOrViolations(file, error, total))
       }
     }
-  }
-
-  // **The evidence gate, over every builder this run loaded** — plan 0263 Phase
-  // 2. `mergeCollectResults` is fail-closed per member (ADR-014 §7), so one
-  // evidence-free builder among twenty is named rather than absorbed by the
-  // others' counts, and a bare array from any of them is `emitter/no-receipt`.
-  // Run only when something was loaded: a run with no builders at all is already
-  // `ruleFileContributedNoRules`, and reporting an absent denominator on top of
-  // it would be a second finding for one cause.
-  //
-  // ADR-008: this command owns its reporting, so the gate runs under
-  // `report: 'return'` and its findings join `collected` rather than being
-  // emitted here. They carry `bypassFilters`, so the baseline and the diff
-  // filter both keep them, and they are error-severity, so they set the exit
-  // code below.
-  if (receipts.length > 0) {
-    const verdict = finishPreset(mergeCollectResults(receipts), { report: 'return' })
-    const already = new Set(collected)
-    const evidence = verdict.filter(
-      (v) => !already.has(v) && typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/'),
-    )
-    if (evidence.length > 0) failedRules++
-    collected.push(...evidence)
   }
 
   // One option, one finding (plan 0074) — after the per-file loop, because the
