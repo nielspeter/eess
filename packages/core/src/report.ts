@@ -153,6 +153,14 @@ function withEvidenceGate(violations: readonly ArchViolation[]): CollectResult {
     return collectResult([...violations, sourceEmptyViolation()], {
       examined: violations.examined,
       sourceEmpty: true,
+      // The input's own declarations are carried through, not dropped. They do
+      // not rescue the verdict — that is the precedence this branch enforces —
+      // but a downstream reader still needs to know they were made, and the
+      // sibling branches above preserve what they were handed for the same
+      // reason.
+      declaredEmpty: violations.declaredEmpty,
+      notRun: violations.notRun,
+      deadGlob: violations.deadGlob,
     })
   }
   if (violations.declaredEmpty === true) return violations

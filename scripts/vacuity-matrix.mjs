@@ -259,6 +259,15 @@ const EMITTER_PROBES = {
   // which is bug 0190's shape wearing the label of a fix for it.
   'finishPreset(never ran, yet examined) [a contradicted notRun]': () =>
     kernel.finishPreset(kernel.collectResult([], { examined: 5, notRun: true })),
+  // The fifth id, for the same reason as the third and fourth: an id nothing
+  // proves can fire is bug 0190's shape. This one is also the only cause that
+  // must fire THROUGH a declaration — ADR-014 §4's "an empty source outranks any
+  // declaration" — so the probe declares it away deliberately. Without that, the
+  // probe would pass over a gate that had lost the precedence and kept the id.
+  'finishPreset(empty source, declared away) [the precedence §4 states]': () =>
+    kernel.finishPreset(
+      kernel.collectResult([], { examined: 0, sourceEmpty: true, declaredEmpty: true }),
+    ),
 }
 
 const PRESET_PROBES = {

@@ -278,11 +278,24 @@ and the other four are pure gain.
 - **Phase 2, docs** — `docs/core-concepts.md`, `docs/api-reference.md`, and the
   two `baseline-generator.ts` docstrings (the ungated `collectViolations` route,
   caveated rather than closed)
+- **Phase 3, the gate and its fixtures** — `packages/core/src/report.ts`,
+  `packages/core/src/collect-result.ts`, `packages/core/src/emitter-findings.ts`,
+  `packages/core/src/index.ts`, `packages/core/tests/remedy-remediates.test.ts`,
+  `scripts/nonvacuity/bad-emitter-remedies.mjs`, `scripts/check-nonvacuity.mjs`,
+  `scripts/vacuity-matrix.mjs`, `packages/ts/src/index.ts`,
+  `packages/ts/tests/matrix/vacuity-classification.ts`, `docs/api-reference.md`
 - `arch.internal.rules.ts` — the registry rule (Phase 4)
 - `packages/core/src/index.ts`, `packages/ts/src/index.ts` — the removal (Phase 5)
 - `adr/014-the-emitter-refuses-a-verdict-without-evidence.md` — rows to `gated`
 - `.changeset/` — Phase 2's behavioural break, and the Phase 5 break
 
+> **Wrong three rounds running, and the third time it was derived and still
+> incomplete.** Round three fixed the section's shape without deriving its
+> contents; round four's review found it naming a kernel file the branch does not
+> touch and omitting a test file it does. Phase 3's list above was produced with
+> `git diff --name-only main...HEAD`, which is the only way this section has ever
+> been right, and is one command.
+>
 > **This section has been wrong about Phase 2 in two successive rounds**, and
 > the second time is the instructive one: round three fixed its _shape_ and
 > still did not _derive_ its contents, so it named a kernel file the branch does
@@ -522,9 +535,12 @@ and the other four are pure gain.
       (`emitter/remedy-remediates`) drives all **five** causes — the plan said
       four and omitted `contradictory-evidence`, which has an id and a remedy
       like the rest — asserts each fires **by rule id**, then applies every
-      remedy its message names and asserts the finding is gone. Seven remedies
-      across five causes, because a message that offers two is wrong if either
-      fails. `packages/core/tests/remedy-remediates.test.ts` carries the same
+      remedy its message names and asserts the finding is gone. Five corrective and two declaring
+      remedies across five causes — separated after review, because counting them
+      alike is how a check-deleting instruction gets recorded as a working remedy
+      (`checkAll([])`'s "guard the array before calling" cleared its finding by
+      removing the check). Every cause must offer at least one corrective remedy,
+      and every declaring one must expire. `packages/core/tests/remedy-remediates.test.ts` carries the same
       pairs as units, with a CONTROL that an honest receipt reaches none of them.
 
       **The survey found a fail-open before a line of fixture was written, and
@@ -545,6 +561,17 @@ and the other four are pure gain.
       not be a preset". That is the same defect the #118 review measured on
       `checkAll([])`, one layer down and unnoticed until the row's own words were
       read against the code.
+
+      **A review round found the fix had recreated its own asymmetry.** Closing
+      the hatch at the gate left it open at the merge: `mergeCollectResults` had
+      always exempted a `sourceEmpty` member from its dead filter, which was the
+      right answer to "did this member say why", and the wrong one once §4 makes
+      that answer a fault. Measured — `finishPreset` reddened the receipt while
+      `mergeCollectResults([thatMember, aHealthyOne])` stayed green. That is the
+      `notRun` asymmetry Phase 2 fixed, recreated one seam over by the change
+      that fixed its sibling. The merge names an empty-source member now, and
+      §4's precedence has its own Enforcement row rather than riding inside
+      another clause's.
 
       Sabotage-checked one at a time: reverting the precedence, restoring the
       preset wording, and breaking a remedy each red the fixture. Ships a kernel

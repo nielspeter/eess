@@ -72,7 +72,7 @@ exactly as before.
 ### What the emitters refuse
 
 `finishPreset` and `reportViolations` take a receipt and hand the same value back.
-Three unsuppressable findings, by rule id:
+The unsuppressable findings, by rule id:
 
 Each id is also exported as a constant, so a test or fixture can assert on it
 without re-typing the string — the drift a hand-copied id invites:

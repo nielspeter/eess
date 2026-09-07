@@ -2429,6 +2429,18 @@ const GATE_FOR = {
   ],
   'check:baseline': ['baseline'],
   'check:diagram': ['diagram', 'emitter/mermaid-bare-builder-reds-the-cli'],
+  // `emitter/remedy-remediates` drives the kernel's `finishPreset` directly and
+  // runs no `check:*` script, so the claim here is narrower than the gate — the
+  // same shape as `engine/applyfilters-parity` under `check:arch` above, and
+  // filed for the same reason: `check:vacuity` is the gate that answers for the
+  // emitter surface, and without this row that fixture would have no gate to
+  // witness.
+  //
+  // It does NOT stand in for the matrix. A review asked whether listing two
+  // fixtures lets one be deleted with the row still non-empty; the answer is
+  // that the matrix's own coverage is held by its `EMITTER_PROBES` entries —
+  // six of them, one per emitter id, including the fifth added here — not by
+  // this row's length.
   'check:vacuity': ['vacuity-matrix', 'emitter/remedy-remediates'],
   'check:spec': ['spec'],
   'check:crossval': [

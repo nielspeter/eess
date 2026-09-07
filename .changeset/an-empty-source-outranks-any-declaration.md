@@ -38,6 +38,12 @@ kernel, so an adopter installing one of them takes the new precedence without as
 changesets propagates a dependency bump as a patch regardless, which is the release a `^0.x` range
 accepts silently (bug 0185's shape).
 
+**Both seams, not just one.** `mergeCollectResults` exempted a `sourceEmpty` member from its
+dead-member filter — correct for "did this member say why it contributed nothing", wrong once §4
+makes that answer a fault. Fixing only the gate left the two doors disagreeing about one receipt:
+`finishPreset` reddened it while `mergeCollectResults([thatMember, aHealthyOne])` stayed green. The
+merge names an empty-source member now.
+
 **Not affected:** every builder-produced verdict. A terminal that loaded nothing already carried its
 own source finding and exits before this gate. The population this changes is the hand-assembled
 receipt, which is what ADR-014's gate exists for.

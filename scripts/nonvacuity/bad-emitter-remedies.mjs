@@ -20,65 +20,101 @@
  *   0 = a cause did not fire, or a remedy did not clear it (vacuous)
  *   2 = unexpected error, or the fixture's own premise broke
  */
-import { collectResult, finishPreset } from '@nielspeter/eess'
+import { collectResult, finishPreset, mergeCollectResults } from '@nielspeter/eess'
 
 const NAME = 'bad-emitter-remedies'
 const gate = (receipt) => [...finishPreset(receipt, { report: 'return' })]
 const idsOf = (violations) => violations.map((v) => v.ruleId)
 
 /**
- * Each case: the corrupt receipt that must produce `id`, and the remedies the
- * message names — every one of which must clear it. A message offering two
- * remedies is wrong if either fails, so both are applied.
+ * Each case: the corrupt receipt that must produce `id`, and the remedies its
+ * message names — every one of which must clear it.
+ *
+ * **Two kinds of remedy, kept apart deliberately.** A `corrective` remedy makes
+ * the verdict real evidence: the loop now examines something. A `declaring`
+ * remedy asserts the emptiness instead, and is legitimate precisely because it
+ * EXPIRES — the day the subject appears it becomes a finding again. Counting the
+ * two alike is how a check-deleting instruction gets recorded as a working
+ * remedy, which is what `checkAll([])` shipped ("guard the array before calling"
+ * — true, and it removes the check). So every declaring remedy is additionally
+ * required to expire, and a cause whose ONLY remedy is declaring is reported: it
+ * would be a finding an author can always talk their way out of.
  */
 const CASES = [
   {
     id: 'emitter/no-receipt',
     corrupt: () => [],
-    remedies: { 'return a receipt': () => collectResult([], { examined: 7 }) },
+    corrective: { 'return a receipt': () => collectResult([], { examined: 7 }) },
+    declaring: {},
   },
   {
     id: 'emitter/pass-without-evidence',
     corrupt: () => collectResult([], { examined: 0 }),
-    remedies: {
-      'widen the selection': () => collectResult([], { examined: 12 }),
+    corrective: { 'widen the selection': () => collectResult([], { examined: 12 }) },
+    declaring: {
       'declare it on the receipt': () => collectResult([], { examined: 0, declaredEmpty: true }),
     },
   },
   {
     id: 'emitter/source-empty',
     corrupt: () => collectResult([], { examined: 0, sourceEmpty: true }),
-    remedies: { 'fix the source': () => collectResult([], { examined: 4 }) },
+    // No declaring remedy exists, and that IS §4's point: an empty source
+    // outranks any declaration, so there is nothing to talk your way out with.
+    corrective: { 'fix the source': () => collectResult([], { examined: 4 }) },
+    declaring: {},
   },
   {
     id: 'emitter/expired-declaration',
     corrupt: () => collectResult([], { examined: 3, declaredEmpty: true }),
-    remedies: { 'remove the declaration': () => collectResult([], { examined: 3 }) },
+    corrective: { 'remove the declaration': () => collectResult([], { examined: 3 }) },
+    declaring: {},
   },
   {
     id: 'emitter/contradictory-evidence',
     corrupt: () => collectResult([], { examined: 5, notRun: true }),
-    remedies: {
-      'drop the flag': () => collectResult([], { examined: 5 }),
-      'drop the evidence': () => collectResult([], { examined: 0, notRun: true }),
-    },
+    corrective: { 'drop the flag': () => collectResult([], { examined: 5 }) },
+    // Dropping the evidence leaves the rule off, examining nothing. Legitimate —
+    // `notRun` is for a rule turned off — but a declaration, not a repair.
+    declaring: { 'drop the evidence': () => collectResult([], { examined: 0, notRun: true }) },
   },
 ]
 
 const failures = []
 try {
-  for (const { id, corrupt, remedies } of CASES) {
+  for (const { id, corrupt, corrective, declaring } of CASES) {
     const fired = gate(corrupt())
     if (!idsOf(fired).includes(id)) {
-      failures.push(`${id} did NOT fire on its own cause (got: ${idsOf(fired).join(',') || 'nothing'})`)
+      failures.push(
+        `${id} did NOT fire on its own cause (got: ${idsOf(fired).join(',') || 'nothing'})`,
+      )
       continue
     }
-    for (const [label, remedy] of Object.entries(remedies)) {
+    for (const [label, remedy] of [...Object.entries(corrective), ...Object.entries(declaring)]) {
       const after = gate(remedy())
       if (after.length > 0) {
-        failures.push(`${id}: applying "${label}" did NOT clear it (still: ${idsOf(after).join(',')})`)
+        failures.push(
+          `${id}: applying "${label}" did NOT clear it (still: ${idsOf(after).join(',')})`,
+        )
       }
     }
+    // Every cause must offer at least one remedy that makes the verdict real
+    // evidence. A cause offering only a declaration is one an author can always
+    // talk their way out of.
+    if (Object.keys(corrective).length === 0) {
+      failures.push(`${id} offers no corrective remedy — only ways to declare the emptiness away`)
+    }
+  }
+
+  // **A declaring remedy must expire.** That is what separates it from deleting
+  // the check: the declaration is an assertion, and the day the subject appears
+  // it becomes a finding again. Asserted, not assumed.
+  if (!idsOf(gate(collectResult([], { examined: 4, declaredEmpty: true })))
+      .includes('emitter/expired-declaration')) {
+    failures.push('a declaredEmpty receipt that later examined units did NOT expire')
+  }
+  if (!idsOf(gate(collectResult([], { examined: 4, notRun: true })))
+      .includes('emitter/contradictory-evidence')) {
+    failures.push('a notRun receipt that later examined units was NOT contradicted')
   }
 
   // **An empty source outranks any declaration** — ADR-014 §4. Before Phase 3
@@ -90,6 +126,30 @@ try {
     if (!idsOf(gate(receipt)).includes('emitter/source-empty')) {
       failures.push(`an empty source was declared away by ${label} — §4's precedence is not held`)
     }
+  }
+
+  // **The MERGE holds the same precedence as the gate.** Fixing the gate alone
+  // left the two doors disagreeing about one receipt, and nothing caught it:
+  // `mergeCollectResults` exempts a `sourceEmpty` member from its dead filter,
+  // so a healthy sibling's `examined` carried the merged receipt straight past
+  // the gate's own check. Measured before the merge fix: green. Driven here
+  // because a fixture that only exercises `finishPreset` cannot see it — which
+  // is how the gap survived the first cut of this phase.
+  const mergedWithHealthy = mergeCollectResults([
+    collectResult([], { examined: 0, sourceEmpty: true, declaredEmpty: true }),
+    collectResult([], { examined: 5 }),
+  ])
+  if (!idsOf(gate(mergedWithHealthy)).includes('emitter/source-empty')) {
+    failures.push('an empty-source member merged with a healthy one did NOT red — the merge and the gate disagree')
+  }
+  // CONTROL for that: two healthy members must still merge green, or the check
+  // above is satisfied by a merge that reds on everything.
+  const mergedHealthy = mergeCollectResults([
+    collectResult([], { examined: 5 }),
+    collectResult([], { examined: 2 }),
+  ])
+  if (gate(mergedHealthy).length > 0) {
+    failures.push(`CONTROL: two healthy members merged to ${idsOf(gate(mergedHealthy)).join(',')}`)
   }
 
   // **The kernel names no preset's options** — ADR-014 §4, "at a seam that may
@@ -113,8 +173,11 @@ try {
 if (failures.length === 0) {
   console.error(
     `${NAME}: every emitter cause fired by id and every stated remedy cleared it — ` +
-      `${CASES.length} causes, ${CASES.reduce((n, c) => n + Object.keys(c.remedies).length, 0)} remedies, ` +
-      `plus §4's source precedence and the no-preset-option rule`,
+      `${CASES.length} causes, ` +
+      `${CASES.reduce((n, c) => n + Object.keys(c.corrective).length, 0)} corrective and ` +
+      `${CASES.reduce((n, c) => n + Object.keys(c.declaring).length, 0)} declaring remedies ` +
+      `(each declaring one proven to expire), plus §4's source precedence and the ` +
+      `no-preset-option rule`,
   )
   process.exit(1)
 }

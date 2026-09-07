@@ -3,6 +3,7 @@ import {
   noReceiptViolation,
   passWithoutEvidenceViolation,
   contradictoryEvidenceViolation,
+  sourceEmptyViolation,
 } from './emitter-findings.js'
 
 /**
@@ -156,6 +157,27 @@ export function mergeCollectResults(parts: readonly (readonly ArchViolation[])[]
       [...violations, contradictoryEvidenceViolation(contradictory.examined, contradictory.length)],
       { examined: parts.reduce((n, p) => n + p.examined, 0) },
     )
+  }
+
+  // **An empty source is a member-level fault, checked HERE for the same reason
+  // the contradictory `notRun` above is** — ADR-014 §4: "an empty source
+  // outranks any declaration and names the source."
+  //
+  // The dead filter below EXEMPTS a `sourceEmpty` member, which is right for
+  // "did this member contribute nothing without saying why" — it said why. But
+  // §4 makes that answer a fault rather than an excuse, so the exemption alone
+  // left the merge disagreeing with the gate about the same receipt: measured,
+  // `finishPreset` reds a `{ examined: 0, sourceEmpty: true, declaredEmpty: true }`
+  // member while `mergeCollectResults([thatMember, aHealthyOne])` was GREEN,
+  // because the healthy sibling's `examined` carries the merged receipt past the
+  // gate's own check. That is the `notRun` asymmetry this ADR already fixed once,
+  // recreated for `sourceEmpty` by the change that fixed it at the gate.
+  const emptySource = parts.find((p) => p.sourceEmpty === true && p.examined === 0)
+  if (emptySource !== undefined) {
+    return collectResult([...violations, sourceEmptyViolation()], {
+      examined: parts.reduce((n, p) => n + p.examined, 0),
+      sourceEmpty: true,
+    })
   }
 
   const dead = parts.filter(
