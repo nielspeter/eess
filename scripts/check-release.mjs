@@ -29,7 +29,7 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { reportViolations } from '@nielspeter/eess'
+import { finishPreset, reportViolations } from '@nielspeter/eess'
 import { packagesTouchedBy, declarationsIn, releaseViolations } from './release-gate.mjs'
 
 const t0 = Date.now()
@@ -374,9 +374,31 @@ const { violations, stats } = releaseViolations({
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
 if (format === 'json' || format === 'github') {
-  reportViolations(violations, { format })
-  process.exit(violations.length > 0 ? 1 : 0)
+  // `violations` is the receipt `releaseViolations` merged from its rules' own
+  // evidence — plan 0263 Phase 1. ADR-008: the machine-readable path emits,
+  // because that is what it is for, and the gate runs first so an evidence-free
+  // member reaches the consumer as a finding rather than as a silent zero.
+  // `reportViolations` escalates an unsuppressable emitter finding to a throw,
+  // caught here rather than left to surface as a bare stack trace in a CI log.
+  const emitted = finishPreset(violations, { report: 'return' })
+  try {
+    reportViolations(emitted, { format })
+  } catch {
+    process.exit(1)
+  }
+  process.exit(emitted.length > 0 ? 1 : 0)
 }
+
+// The same receipt the machine-readable path used, so the two exits cannot
+// disagree about what was examined. ADR-008: this script owns its reporting on
+// the terminal path, so the gate runs under `report: 'return'` here.
+const verdict = finishPreset(violations, { report: 'return' })
+const emitterFindings = verdict.filter(
+  (v) => !violations.includes(v) && typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/'),
+)
+// A per-check ✓ above a red verdict is the summary contradicting itself. When
+// evidence is missing, no line may claim its check passed.
+const evidenceOk = emitterFindings.length === 0
 
 const line = (label, detail) => console.error(`  ${label.padEnd(12)}${detail}`)
 
@@ -415,6 +437,8 @@ if (violations.length > 0) {
   }
 } else if (stats.waived) {
   line('findings', `— waived; ${stats.unchecked.length} changed package(s) not checked`)
+} else if (!evidenceOk) {
+  line('findings', '— no findings, but this run carries no evidence (see below)')
 } else if (noDiff) {
   line('findings', '✓ every declaration names a real package (changed-package rule not run)')
 } else {
@@ -435,7 +459,7 @@ line(
   stats.breakDependentEdges === 0
     ? 'no declared break has a workspace dependent — rule weighed 0 edges'
     : depsCount === 0
-      ? `✓ ${String(stats.breakDependentEdges)} dependency edge(s) weighed, each named at minor`
+      ? `${evidenceOk ? '✓' : '—'} ${String(stats.breakDependentEdges)} dependency edge(s) weighed${evidenceOk ? ', each named at minor' : ''}`
       : `✗ ${String(depsCount)} changeset(s) leave a dependent unnamed, of ${String(stats.breakDependentEdges)} edge(s) weighed`,
 )
 
@@ -448,26 +472,42 @@ line(
   stats.breakingExamined === 0
     ? `no pending changeset declares a break — rule examined 0 of ${String(changesetsRead)}`
     : brokeCount === 0
-      ? `✓ ${String(stats.breakingExamined)} of ${String(changesetsRead)} changeset(s) declare a break, each bumping past patch` +
+      ? `${evidenceOk ? '✓' : '—'} ${String(stats.breakingExamined)} of ${String(changesetsRead)} changeset(s) declare a break${evidenceOk ? ', each bumping past patch' : ''}` +
         (stats.breakingLoose === 0
           ? ''
           : ` — ${String(stats.breakingLoose)} checked loosely (several packages, no owner named, so only "at least one" could be asked)`)
       : `✗ ${String(brokeCount)} of ${String(stats.breakingExamined)} breaking changeset(s) bump only patch/none`,
 )
 
+if (emitterFindings.length > 0) {
+  console.error('')
+  console.error('  evidence:')
+  for (const v of emitterFindings) console.error(`    ${v.ruleId ?? ''}  ${v.message}`)
+  // The kernel's remedy names a preset option and a builder method. Neither
+  // exists on this path, so the gate states its own remedy rather than sending a
+  // reader to look for a preset that is not here (ADR-009 rule 2).
+  console.error(
+    '    → in this gate that means one of its evidence members examined nothing: ' +
+      'fix the rule that stopped evaluating, or declare that member empty in releaseViolations.',
+  )
+}
+
 console.error('')
-if (violations.length === 0) {
+if (violations.length === 0 && evidenceOk) {
   console.error(
     `  ✓ release readiness — ${stats.changed} changed of ${stats.workspace} workspace ` +
       `package(s), ${stats.declarations} declaration(s) across ${changesetFiles.length} ` +
       `changeset(s), 0 findings (${elapsed()})`,
   )
 } else {
+  // Emitter findings count toward the number, or the line reads `0 finding(s)`
+  // beside a red exit — the summary contradicting the verdict.
+  const n = violations.length + emitterFindings.length
   console.error(
-    `  ✗ release readiness — ${violations.length} finding(s) across ${stats.changed} ` +
+    `  ✗ release readiness — ${n} finding(s) across ${stats.changed} ` +
       `changed package(s) (${elapsed()})`,
   )
 }
 console.error('')
 
-if (violations.length > 0) process.exit(1)
+if (violations.length > 0 || emitterFindings.length > 0) process.exit(1)

@@ -37,6 +37,7 @@
  */
 import { readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { collectResult } from '@nielspeter/eess'
 import { corpus } from '@nielspeter/eess-md'
 import { ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 
@@ -74,8 +75,17 @@ export function laneDirectories(workRoot) {
  */
 export function findUncoveredLanes(workRoot, claimedTopSegments) {
   const violations = []
+  // **This check's OWN denominator** — the directories it actually opened and
+  // scanned, not the directories on disk. The two differ by every claimed
+  // segment the loop skips: measured on this repo, four directories exist and
+  // one is inspected. `check-ledger.mjs` used to supply the disk count from
+  // outside, which attested four for a loop that reached its assertion once, and
+  // attested four just the same when a widened `claimedTopSegments` made it
+  // reach its assertion zero times (plan 0263's Phase 1 review, mutation L13).
+  let examined = 0
   for (const name of laneDirectories(workRoot)) {
     if (claimedTopSegments.has(name)) continue
+    examined++
     const dirRel = `${workRoot}/${name}`
     const c = corpus({ roots: [`${dirRel}/**`] })
     const stats = ledgerStats(c, { states: [], terminalStates: [] })
@@ -94,7 +104,10 @@ export function findUncoveredLanes(workRoot, claimedTopSegments) {
         'exhaustive precisely because it is itemised (bug 0121)',
     })
   }
-  return violations
+  // A receipt, not a bare array — `CollectResult` extends `Array`, so every
+  // existing caller that reads `.length` or spreads this is unaffected, and the
+  // one that builds evidence gets the count from the check that produced it.
+  return collectResult(violations, { examined })
 }
 
 export const LANE_DONE_VACUOUS_RULE = 'ledger/lane-done-vacuous'
@@ -124,8 +137,15 @@ export const LANE_DONE_VACUOUS_RULE = 'ledger/lane-done-vacuous'
  */
 export function findLaneDoneVacuity(lanes) {
   const violations = []
+  // The lanes this check actually WEIGHED — one that is structurally exempt
+  // (`terminalStates: []`) was never judged, so counting it would attest a
+  // judgment that did not happen. `lanes.length` was the number supplied from
+  // outside before plan 0263's Phase 1 review, and it is `LANES.length`: a
+  // constant that cannot reach zero, so the member could never be dead.
+  let examined = 0
   for (const lane of lanes) {
     if (lane.terminalStates.length === 0) continue
+    examined++
     if (lane.doneItems > 0) continue
     if (lane.expectEmptyDone === true) continue
     violations.push({
@@ -146,5 +166,6 @@ export function findLaneDoneVacuity(lanes) {
       bypassFilters: true,
     })
   }
-  return violations
+  // Same shape as `findUncoveredLanes` above, for the same reason.
+  return collectResult(violations, { examined })
 }

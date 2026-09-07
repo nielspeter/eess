@@ -1115,13 +1115,18 @@ if (emitterFindings.length > 0) {
 
 const totalChecked = verdict.examined
 const failed = problems.length > 0 || adrError || emitterFindings.length > 0
+// Emitter findings count toward the number below. Without this the line read
+// `✗ corpus integrity — 0 violation(s)` beside a red exit — the summary
+// contradicting the verdict. Found by an architect review of plan 0263 Phase 1,
+// which fixed the same line in the two gates that copied this file and left the
+// original: plan 0188's own headline hazard, in the three scripts it names.
 console.error('')
 if (!failed) {
   console.error(
     `  ✓ corpus integrity — ${totalChecked} checks across ${liveDocs.length} documents, 0 violations (${elapsed()})`,
   )
 } else {
-  const n = problems.length + (adrError ? 1 : 0)
+  const n = problems.length + (adrError ? 1 : 0) + emitterFindings.length
   console.error(
     `  ✗ corpus integrity — ${n} violation(s) across ${totalChecked} checks (${elapsed()})`,
   )

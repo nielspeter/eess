@@ -997,6 +997,92 @@ function gateCorpusOneDeadCheck() {
   }
 }
 
+/**
+ * ADR-014's "every hand-assembled check supplies evidence", on `check:ledger`'s
+ * DEFAULT path — the path the row names, and the one that had no emitter on it
+ * before plan 0263 Phase 1.
+ *
+ * **The probe severs the rule, not the denominator.** It empties
+ * `honestyAtClose`'s result — the preset this gate exists to run, over every
+ * record — so the member's own receipt reports zero examined while the corpus is
+ * untouched. The phase's FIRST attempt zeroed a denominator instead, which is
+ * why it could sabotage only the one member whose count was already sourced
+ * correctly; measured then, of nine checks across the two gates, one reddened
+ * when its own check died.
+ */
+function gateLedgerDeadCheck() {
+  const script = join(repoRoot, 'scripts', 'check-ledger.mjs')
+  const rewrite = (text) =>
+    text.replace(
+      /^ {2}const violations = honestyAtClose\(c, \{ \.\.\.opts, report: 'return' \}\)$/m,
+      '  const violations = collectResult([], { examined: 0 }) // non-vacuity probe: ran, examined nothing',
+    )
+  const { json, terminal } = withRewrittenFile(script, rewrite, () => ({
+    json: sh(process.execPath, [join('scripts', 'check-ledger.mjs'), '--format', 'json']),
+    terminal: sh(process.execPath, [join('scripts', 'check-ledger.mjs')]),
+  }))
+  const named = firedOn(json, 'emitter/pass-without-evidence')
+  const terminalNamed = terminal.stderr.includes('emitter/pass-without-evidence')
+  // The other checks must still have examined REAL units. A non-zero capture is
+  // required: `0 scanned · 0 with a readable State` satisfies a bare `\d+`, so
+  // the old form could not tell "others healthy" from "others also dead".
+  const othersHealthy = /[1-9]\d* scanned · [1-9]\d* with a readable State/.test(terminal.stderr)
+  return {
+    ok: json.code === 1 && terminal.code === 1 && named && terminalNamed && othersHealthy,
+    detail:
+      `one dead check among healthy ones \u2192 json exit ${json.code}, terminal exit ${terminal.code}, ` +
+      `named emitter/pass-without-evidence: ${named && terminalNamed}, others still scanned: ${othersHealthy}`,
+  }
+}
+
+/**
+ * The same, on `check:release`, and its two wrinkles are why this is not a
+ * copy-paste of the row above.
+ *
+ * **It plants its own breaking changeset.** Several of this gate's rules
+ * legitimately examine zero — a diff touching no package, a run with no declared
+ * break — and declare it. The first attempt severed the breaking rule's
+ * denominator and relied on the repo happening to carry a breaking changeset:
+ * measured, 107 of the last 200 first-parent commits on `main` carry none, and
+ * on those the fixture reported the MECHANISM dead when only the corpus had
+ * moved. So the probe constructs the state it needs instead of borrowing it.
+ *
+ * `@nielspeter/eess-mermaid` is deliberate: nothing in the workspace depends on
+ * it, so the planted break does not also trip `release/break-names-dependents`
+ * and the probe stays about one rule.
+ */
+function gateReleaseDeadCheck() {
+  const script = join(repoRoot, 'scripts', 'release-gate.mjs')
+  const probe = join(repoRoot, '.changeset', '__nonvacuity_probe_break__.md')
+  // Sever the RULE's own counter while its input stays non-empty — the pair the
+  // merge's dead filter needs. The planted changeset below is what guarantees
+  // the input half, so the member cannot declare its way out.
+  const rewrite = (text) =>
+    text.replace(
+      /^ {6}examined: brokenOnPatchExamined,$/m,
+      '      examined: 0, // non-vacuity probe: this rule stops evaluating',
+    )
+  const { json, terminal } = withProbe(
+    probe,
+    "---\n'@nielspeter/eess-mermaid': minor\n---\n\n" +
+      '**Breaking (@nielspeter/eess-mermaid):** non-vacuity probe — plan 0263.\n',
+    () =>
+      withRewrittenFile(script, rewrite, () => ({
+        json: sh(process.execPath, [join('scripts', 'check-release.mjs'), '--format', 'json']),
+        terminal: sh(process.execPath, [join('scripts', 'check-release.mjs')]),
+      })),
+  )
+  const named = firedOn(json, 'emitter/pass-without-evidence')
+  const terminalNamed = terminal.stderr.includes('emitter/pass-without-evidence')
+  const othersHealthy = /[1-9]\d* pending/.test(terminal.stderr)
+  return {
+    ok: json.code === 1 && terminal.code === 1 && named && terminalNamed && othersHealthy,
+    detail:
+      `one dead rule among healthy ones \u2192 json exit ${json.code}, terminal exit ${terminal.code}, ` +
+      `named emitter/pass-without-evidence: ${named && terminalNamed}, others still read: ${othersHealthy}`,
+  }
+}
+
 function gateCorpusInertExclusion() {
   const { json, terminal } = withProbeDir(
     PROBE_CORPUS_INERT_EXCLUSION_DIR,
@@ -1774,6 +1860,10 @@ const gates = [
   ['corpus/lanes-match-directories/row-unresolved', gateCorpusLaneRowUnresolved],
   ['corpus/lane-table-unreadable/decoy', gateCorpusLaneDecoyTable],
   ['emitter/one-dead-check', gateCorpusOneDeadCheck],
+  // The other two hand-assembled gates, on their default paths — ADR-014's row
+  // names all three, and only `check:corpus` had a fixture before plan 0263.
+  ['emitter/ledger-dead-check', gateLedgerDeadCheck],
+  ['emitter/release-dead-check', gateReleaseDeadCheck],
   ['corpus/exclusion-inert', gateCorpusInertExclusion],
   // The other half of 0255. A separate row because the production script cannot
   // exercise it — every gate here calls `.rule({ id })`, so there is no id-less
@@ -2091,6 +2181,7 @@ const GATE_FOR = {
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
   'check:ledger': [
+    'emitter/ledger-dead-check',
     'corpus/ledger/box',
     'corpus/ledger/placement',
     'corpus/ledger/state',
@@ -2101,6 +2192,7 @@ const GATE_FOR = {
     'corpus/ledger/finished-not-closed',
   ],
   'check:release': [
+    'emitter/release-dead-check',
     'release/needs-changeset',
     'release/names-real-package',
     'release/unparseable',

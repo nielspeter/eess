@@ -61,7 +61,7 @@
  * another — the precise tool is `'@pkg': none`, which declares per package
  * instead of blanketing the run.
  */
-import { correspondence } from '@nielspeter/eess'
+import { collectResult, correspondence, mergeCollectResults } from '@nielspeter/eess'
 import parseChangeset from '@changesets/parse'
 
 /**
@@ -304,17 +304,29 @@ export function releaseViolations({
     .rule({ id: 'release/changeset-names-real-package' })
 
   const waived = waivers.length > 0
-  const unreadable = unparseable.map((u) => ({
-    rule: 'correspondence',
-    ruleId: 'release/unparseable-changeset',
-    element: u.file,
-    file: u.file,
-    line: 1,
-    message:
-      `\`${u.file}\` is in .changeset/ but the changesets parser rejects it: ${u.error}\n` +
-      `  fix the frontmatter, or delete the file — an unreadable changeset is not a waiver`,
-    because: WHY_UNPARSEABLE,
-  }))
+  // Counted INSIDE each hand-built rule's own evaluation, never from its input
+  // array's length. That is the difference between a denominator and a guard: if
+  // the rule stops evaluating while its input is non-empty, `examined` goes to
+  // zero and the merge's dead filter can see it. Taking `input.length` instead
+  // makes the two move together and the filter unsatisfiable, which is what
+  // plan 0263's first attempt at this phase did across every member.
+  let unreadableExamined = 0
+  const unreadable = unparseable.map(
+    (u) => (
+      unreadableExamined++,
+      {
+        rule: 'correspondence',
+        ruleId: 'release/unparseable-changeset',
+        element: u.file,
+        file: u.file,
+        line: 1,
+        message:
+          `\`${u.file}\` is in .changeset/ but the changesets parser rejects it: ${u.error}\n` +
+          `  fix the frontmatter, or delete the file — an unreadable changeset is not a waiver`,
+        because: WHY_UNPARSEABLE,
+      }
+    ),
+  )
 
   // A changeset that says it breaks something must bump at least one package
   // beyond `patch`. **At least one, not all** — a break is owned by one package
@@ -381,15 +393,19 @@ export function releaseViolations({
     return n + broken.reduce((m, b) => m + (dependentsOf[b] ?? []).length, 0)
   }, 0)
 
+  let brokenOnPatchExamined = 0
   const brokenOnPatch = breakingAnnotated
-    .filter(({ decls, owners }) =>
-      decls.length === 0
-        ? true
-        : owners.length > 0
-          ? !owners.every((o) =>
-              decls.some((d) => d.pkg === o && (d.bump === 'minor' || d.bump === 'major')),
-            )
-          : !decls.some((d) => d.bump === 'minor' || d.bump === 'major'),
+    .filter(
+      ({ decls, owners }) => (
+        brokenOnPatchExamined++,
+        decls.length === 0
+          ? true
+          : owners.length > 0
+            ? !owners.every((o) =>
+                decls.some((d) => d.pkg === o && (d.bump === 'minor' || d.bump === 'major')),
+              )
+            : !decls.some((d) => d.bump === 'minor' || d.bump === 'major')
+      ),
     )
     .map(({ file, marker, decls, owners }) => {
       // **Both branches must actually clear the finding** (ADR-009 rule 2). An
@@ -510,7 +526,9 @@ export function releaseViolations({
   // five dialects at `minor` rather than `patch`. That is the deliberate trade:
   // the bug is about a break reaching an adopter silently, and only the version
   // stops that.
+  let breakHiddenExamined = 0
   const breakHiddenInDependent = breakingAnnotated.flatMap(({ file, decls, owners }) => {
+    breakHiddenExamined++
     const declared = new Set(decls.map((d) => d.pkg))
     const broken =
       owners.length > 0
@@ -549,13 +567,65 @@ export function releaseViolations({
     ]
   })
 
-  const violations = [
-    ...(waived ? [] : needsChangeset.violations()),
-    ...namesRealPackage.violations(),
-    ...unreadable,
-    ...brokenOnPatch,
-    ...breakHiddenInDependent,
-  ]
+  // **The rules carry their own evidence out** — plan 0263 Phase 1, second
+  // attempt. The first spread these into a bare array here and let
+  // `check-release.mjs` reconstruct a denominator per rule id from the shell's
+  // inputs. Measured on that attempt: `stats.changed` IS `changedPackages.length`
+  // and `stats.breakingExamined` IS `breakingFiles.length`, so every
+  // reconstructed declaration was computed from the number it guarded, the
+  // merge's dead filter was unsatisfiable, and two live sabotages of this
+  // function left the gate green at exit 0.
+  //
+  // `correspondence(...).violations()` already returns a `CollectResult` with the
+  // count it joined over. Spreading it threw that away one line before the
+  // caller needed it. `CollectResult` extends `Array`, so returning the merged
+  // receipt as `violations` keeps every existing consumer — `.length`, `.map`,
+  // spreads, `bad-release.mjs` — working unchanged.
+  //
+  // A waived rule did not run. `notRun` is ADR-014's word for that and it is not
+  // `declaredEmpty`: a rule turned off has no denominator to be suspicious
+  // about, while a rule that ran and examined nothing is dead. The first attempt
+  // reported `examined: changedPackages.length` for a rule it had switched off.
+  // **The declaration comes from the INPUT; the count comes from the RULE.** That
+  // pairing is the whole guard: a rule that stops evaluating reports zero while
+  // its input is still non-empty, so its declaration is false and the merge's
+  // dead filter sees it. Deriving both from one number — which plan 0263's first
+  // attempt at this phase did at every member — makes `examined === 0` and
+  // `declaredEmpty` move together and the filter unsatisfiable. Measured on that
+  // attempt: two live sabotages of this function both left the gate green.
+  //
+  // A correspondence examines `|left| + |right|`, so it reports zero only when
+  // both sides are empty; that, and nothing narrower, is what may declare it.
+  const needsChangesetReceipt = needsChangeset.violations()
+  const namesRealPackageReceipt = namesRealPackage.violations()
+  const violations = mergeCollectResults([
+    // A waived rule did not run. `notRun` is ADR-014's word for that and it is
+    // not `declaredEmpty`: a rule turned off has no denominator to be suspicious
+    // about, while one that ran and examined nothing is dead. The first attempt
+    // reported a healthy non-zero denominator for this rule while it was off.
+    waived
+      ? collectResult([], { notRun: true, examined: 0 })
+      : collectResult([...needsChangesetReceipt], {
+          examined: needsChangesetReceipt.examined,
+          declaredEmpty: changedPackages.length === 0 && declarations.length === 0,
+        }),
+    collectResult([...namesRealPackageReceipt], {
+      examined: namesRealPackageReceipt.examined,
+      declaredEmpty: declarations.length === 0 && workspacePackages.length === 0,
+    }),
+    collectResult(unreadable, {
+      examined: unreadableExamined,
+      declaredEmpty: unparseable.length === 0,
+    }),
+    collectResult(brokenOnPatch, {
+      examined: brokenOnPatchExamined,
+      declaredEmpty: breakingFiles.length === 0,
+    }),
+    collectResult(breakHiddenInDependent, {
+      examined: breakHiddenExamined,
+      declaredEmpty: breakingFiles.length === 0,
+    }),
+  ])
 
   const declaredNames = new Set(declarations.map((d) => d.pkg))
   const undeclared = changedPackages.filter((p) => !declaredNames.has(p.name)).map((p) => p.name)
