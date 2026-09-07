@@ -2,7 +2,10 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-09-06. **The freeze found two things, one a
+- **State:** Ready — **Phase 1 shipped 2026-09-07 on its second attempt**; the
+  first was opened as PR #116, reviewed by five lenses, and **closed unmerged**
+  because the measurements said the design was wrong rather than incomplete (see
+  Phase 1's record). Phases 2-5 remain. Frozen 2026-09-06. **The freeze found two things, one a
   false premise this plan inherited from ADR-014's own table and repeated
   without measuring** — written the day before, by me, which is the mistake this
   ADR is about, made about the ADR:
@@ -63,7 +66,84 @@ why they were not urgent, and **not by anything that fails on their specific
 regression**, which is why they are not `gated`. Calling that `gated` would be
 the over-claim ADR-014's own table is supposed to make impossible.
 
-## Phase 1 — the two fixtures (`check:nonvacuity`)
+## Phase 1 — evidence in the two gates, then the two fixtures (`check:nonvacuity`)
+
+> **Corrected twice. The first correction was to the phase; the second was to the
+> fix.** Recorded in full because this plan's subject is mechanisms that stop
+> being true without anyone noticing, and both mistakes are that.
+>
+> **First: the phase's premise was wrong**, the same way the freeze had already
+> found Phase 2's to be wrong, one phase over, by the same author. This phase said
+> "plant the corruption, assert the finding fires", which assumes
+> `check-ledger.mjs` and `check-release.mjs` reach the evidence gate the way
+> `check-corpus.mjs` does. They do not: measured, `check-corpus.mjs` carried 17
+> `collectResult`/`mergeCollectResults` references and the other two carried
+> **zero**. Both hand-printed on the default path — the path ADR-014's row
+> explicitly names — so there was no finding for a fixture to key on. Driven both
+> ways before anything was written: zeroing the ledger's finished-not-closed
+> denominator left `findings ✓ every done-item reconciled` at exit 0, and
+> discarding the release gate's entire `violations` array left
+> `✓ release readiness … 0 findings` at exit 0.
+>
+> **Second: the first fix was wrong, and five reviews measured it.** It shipped as
+> PR #116, which was **closed unmerged**. Its receipts were built by the SHELL:
+> `ledgerStats(...).scanned` stamped onto `honestyAtClose`'s findings, a disk
+> count onto `findUncoveredLanes`'s, `LANES.length` onto `findLaneDoneVacuity`'s,
+> and per-rule denominators reconstructed in `check-release.mjs` from the same
+> arrays the declarations tested. The consequences, all measured by reviewers and
+> reproduced here:
+>
+> | measurement                                                                                      | result                                                                     |
+> | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+> | of the 9 checks the two receipts covered, how many red when their own check dies                 | **1**                                                                      |
+> | severing `honestyAtClose`, the preset `check:ledger` exists to run, over 216 records             | **exit 0**, `✓ every done-item reconciled`, receipt attesting 216 examined |
+> | two live sabotages of `releaseViolations`                                                        | **exit 0** green, both                                                     |
+> | `emitter/release-dead-check` on the 107 of 200 recent commits with no breaking changeset pending | **reds `check:nonvacuity`**, blaming the mechanism for a moved corpus      |
+> | reverting either `--format json` branch                                                          | both fixtures stayed **green**                                             |
+>
+> `scripts/release-gate.mjs` already stated the rule that broke, in this repo's
+> own words: _a denominator sourced from anywhere but the rule attests a check
+> that may not have run, which is worse than no denominator at all._ The first
+> attempt reproduced that one gate over, inside the change built to prevent it.
+>
+> **The rework, and what it is measured to catch.** Every member is now the
+> receipt its own check returned. `honestyAtClose` already returned one and the
+> shell was overwriting it; `findUncoveredLanes` and `findLaneDoneVacuity` now
+> return theirs (each counting what it actually weighed, not what was on disk or
+> declared); `releaseViolations` merges its rules' own receipts instead of
+> flattening them, counts the three hand-built rules inside their own loops, and
+> uses `notRun` for a waived rule rather than reporting a healthy denominator for
+> a rule that was switched off. Declarations come from the INPUT and counts from
+> the RULE, so the two can disagree — which is the entire guard.
+>
+> | mutation                                             | before | after   |
+> | ---------------------------------------------------- | ------ | ------- |
+> | sever `honestyAtClose`                               | green  | **red** |
+> | uncovered-lane loop reaches its assertion zero times | green  | **red** |
+> | lane-done-vacuity weighs zero lanes                  | green  | **red** |
+> | finished-not-closed examines nothing                 | red    | **red** |
+> | `brokenOnPatch` stops evaluating                     | green  | **red** |
+> | `break-names-dependents` stops evaluating            | green  | **red** |
+> | changed-package correspondence stops examining       | green  | **red** |
+>
+> **The ceiling, stated because an unstated one reads as coverage.** These
+> receipts guard the RULES, not the inputs. If the shell's own parsing goes wrong
+> — the breaking-marker detector stops pushing to `breakingFiles`, say — the
+> population and the declaration move together and the member declares
+> legitimately. That failure belongs to the parser's own fixtures
+> (`bad-release.mjs`, `bad-release-e2e.mjs`), not to this seam.
+
+1. **`check-ledger.mjs` supplies evidence** — the per-lane members are
+   `honestyAtClose`'s own receipts, and the two lane checks return theirs.
+2. **`check-release.mjs` supplies evidence** — `releaseViolations` returns one
+   merged receipt built from its rules' own evidence.
+3. **`check-corpus.mjs`** — its summary counted emitter findings out of the
+   total, so it printed `0 violation(s)` beside a red exit. The first attempt
+   fixed that line in the two copies it created and left the original: plan
+   0188's headline hazard, inside the change that made the third copy.
+
+Then the fixtures. Both plant the corruption in the **production** script, drive
+**both** exits, and assert the finding by id via `firedOn`:
 
 Both are break-the-loop fixtures in `scripts/check-nonvacuity.mjs`, the same
 shape as the `emitter/one-dead-check` fixture 0235 shipped: plant the corruption
@@ -155,6 +235,10 @@ and the other four are pure gain.
 
 ## Files changed
 
+- `scripts/check-ledger.mjs`, `scripts/check-release.mjs`, `scripts/release-gate.mjs`,
+  `scripts/lib/lane-coverage.mjs`, `scripts/check-corpus.mjs` — the evidence
+  seam (Phase 1, after its correction: the phase turned out to need the
+  mechanism before the fixture)
 - `scripts/check-nonvacuity.mjs` — four new fixtures (Phases 1 and 3)
 - `packages/ts/tests/` — the `checkAll` bare-builder test (Phase 2)
 - `arch.internal.rules.ts` — the registry rule (Phase 4)
@@ -184,7 +268,10 @@ and the other four are pure gain.
 
 ## Progress
 
-- [ ] Phase 1 — the two dead-check fixtures
+- [x] Phase 1 — evidence in `check-ledger` and `check-release`, then the two
+      dead-check fixtures. Shipped on the second attempt; the first is PR #116,
+      closed unmerged after five reviews, and its measurements are in the record
+      above. 85 fixtures fire.
 - [ ] Phase 2 — the rule-file fixture and the `checkAll` test
 - [ ] Phase 3 — the four remedy-remediates fixtures
 - [ ] Phase 4 — the no-second-registry rule

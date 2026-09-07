@@ -15,7 +15,12 @@
  */
 import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
-import { reportViolations } from '@nielspeter/eess'
+import {
+  collectResult,
+  finishPreset,
+  mergeCollectResults,
+  reportViolations,
+} from '@nielspeter/eess'
 import { findUncoveredLanes, findLaneDoneVacuity, laneDirectories } from './lib/lane-coverage.mjs'
 import { PROPOSAL_DONE_FOLDERS } from './lib/proposal-ruling.mjs'
 import { findFinishedNotClosed } from './lib/finished-not-closed.mjs'
@@ -147,6 +152,41 @@ const finishedNotClosed = findFinishedNotClosed(
 )
 const finishedNotClosedViolations = finishedNotClosed.violations
 
+// **One receipt, built once, used by BOTH exits** — the shape
+// `scripts/check-corpus.mjs` has carried since plan 0235, arriving here because
+// ADR-014's row asks for a break-the-loop fixture on this gate's DEFAULT path
+// and there was nothing on that path to fire: this script hand-printed its
+// verdict and reached no emitter at all.
+//
+// **Every member is the receipt its own check returned.** Nothing here supplies
+// a denominator from outside, and that is the correction plan 0263's first
+// attempt at this phase needed after review. That attempt stamped
+// `ledgerStats(...).scanned` onto `honestyAtClose`'s findings and a disk count
+// onto `findUncoveredLanes`'s. Measured on it: severing `honestyAtClose` — the
+// preset this gate exists to run, over all 216 records — left the gate printing
+// `✓ every done-item reconciled` at exit 0 while the receipt attested 216
+// examined. Of the nine checks the two rewritten gates covered, one reddened
+// when its own check died. `scripts/release-gate.mjs` states the rule that
+// broke, in this repo's own words: a denominator sourced from anywhere but the
+// rule attests a check that may not have run, which is worse than no
+// denominator at all.
+//
+// So each member below carries the count the check itself reached its assertion
+// over: `honestyAtClose` already returns a `CollectResult` (it ends in
+// `finishPreset(mergeCollectResults([…]))`), and `findUncoveredLanes`,
+// `findLaneDoneVacuity` and `findFinishedNotClosed` each report their own.
+// `mergeCollectResults` is fail-closed per member, so a check that goes quiet is
+// named rather than absorbed by the others.
+const receipt = mergeCollectResults([
+  // One member per lane, not one for all three: a corruption scoped to a single
+  // lane is invisible in a sum as long as another lane still scans — bug 0131's
+  // round-3 finding, applied to the evidence rather than to the done-count.
+  ...scans.map((s) => s.violations),
+  uncoveredLaneViolations,
+  laneDoneVacuousViolations,
+  collectResult(finishedNotClosedViolations, { examined: finishedNotClosed.examined }),
+])
+
 const violations = [
   ...scans.flatMap((s) => s.violations),
   ...uncoveredLaneViolations,
@@ -160,8 +200,19 @@ const readable = scans.reduce((n, s) => n + s.stats.withReadableState, 0)
 const fmtArg = process.argv.indexOf('--format')
 const format = fmtArg >= 0 ? process.argv[fmtArg + 1] : undefined
 if (format === 'json' || format === 'github') {
-  reportViolations(violations, { format })
-  process.exit(violations.length > 0 ? 1 : 0)
+  // ADR-008: the machine-readable path emits, because that is what it is for.
+  // The gate runs first, so an evidence-free member reaches the consumer as a
+  // finding rather than as a silent zero. `reportViolations` escalates an
+  // unsuppressable emitter finding to a throw, so the exit below is reached only
+  // when there is nothing to escalate — caught here rather than left to surface
+  // as a bare stack trace in a CI log.
+  const emitted = finishPreset(receipt, { report: 'return' })
+  try {
+    reportViolations(emitted, { format })
+  } catch {
+    process.exit(1)
+  }
+  process.exit(emitted.length > 0 ? 1 : 0)
 }
 
 const repoRoot = process.cwd()
@@ -196,6 +247,23 @@ line(
     `${uncoveredLaneViolations.length} uncovered`,
 )
 
+// The same receipt the machine-readable path used, so the two exits cannot
+// disagree about what was examined. ADR-008: this script owns its reporting on
+// the terminal path, so the gate runs under `report: 'return'` here.
+const verdict = finishPreset(receipt, { report: 'return' })
+// `verdict` carries every member's violations as well as the gate's own, so an
+// `emitter/*` id arriving from INSIDE a member (honestyAtClose runs its own
+// emitter) would be counted twice — once in `violations`, once here. Subtract
+// what the gate already knows about rather than filtering the whole verdict.
+const known = new Set(violations)
+const emitterFindings = verdict.filter(
+  (v) => !known.has(v) && typeof v.ruleId === 'string' && v.ruleId.startsWith('emitter/'),
+)
+// A per-check ✓ above a red verdict is the summary contradicting itself, which
+// is the same argument this file already applies to the count below. When
+// evidence is missing, no line may claim its check passed.
+const evidenceOk = emitterFindings.length === 0
+
 if (violations.length > 0) {
   line('findings', `✗ ${violations.length}`)
   console.error('')
@@ -203,12 +271,28 @@ if (violations.length > 0) {
     console.error(
       `    ${relTo(vv.file)}:${vv.line}  ${vv.rule}\n      ${vv.message.split('\n')[0]}`,
     )
-} else {
+} else if (evidenceOk) {
   line('findings', '✓ every done-item reconciled')
+} else {
+  line('findings', '— no findings, but this run carries no evidence (see below)')
+}
+
+if (emitterFindings.length > 0) {
+  console.error('')
+  console.error('  evidence:')
+  for (const v of emitterFindings) console.error(`    ${v.ruleId ?? ''}  ${v.message}`)
+  // The kernel's remedy names `expectEmpty: true` and `.expectEmpty()`, which
+  // are a preset's and a builder's escapes. Neither exists on this path, so the
+  // gate says what its own remedy is rather than sending a reader to look for a
+  // preset that is not here (ADR-009 rule 2).
+  console.error(
+    '    → in this gate that means one of its evidence members examined nothing: ' +
+      `fix the check that stopped examining, or pass declaredEmpty: true to that member's collectResult.`,
+  )
 }
 
 console.error('')
-if (violations.length === 0) {
+if (violations.length === 0 && evidenceOk) {
   console.error(
     `  ✓ honesty at close — ${doneCount} done-items across ${scanned} records ` +
       `(${scans.map((sc) => `${sc.stats.scanned} ${sc.lane.name}`).join(' + ')}), ` +
@@ -216,10 +300,13 @@ if (violations.length === 0) {
       `(checked for finished-but-open), 0 findings (${elapsed()})`,
   )
 } else {
+  // Emitter findings count toward the number, or the line reads `0 finding(s)`
+  // beside a red exit — the summary contradicting the verdict.
+  const n = violations.length + emitterFindings.length
   console.error(
-    `  ✗ honesty at close — ${violations.length} finding(s) across ${doneCount} done-items (${elapsed()})`,
+    `  ✗ honesty at close — ${n} finding(s) across ${doneCount} done-items (${elapsed()})`,
   )
 }
 console.error('')
 
-if (violations.length > 0) process.exit(1)
+if (violations.length > 0 || emitterFindings.length > 0) process.exit(1)
