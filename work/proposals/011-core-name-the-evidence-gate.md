@@ -9,7 +9,7 @@
 
 ADR-014 requires every emitter to refuse a verdict it has no evidence for. The
 mechanism is one kernel function, `withEvidenceGate`
-(`packages/core/src/report.ts:112`). It is **private** — not exported from the
+(`packages/core/src/report.ts:100`). It is **private** — not exported from the
 root, not from `@nielspeter/eess/internal`.
 
 So every caller that wants _"gate this receipt and hand me the findings"_ reaches

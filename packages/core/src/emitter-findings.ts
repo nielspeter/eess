@@ -141,7 +141,18 @@ export function noReceiptViolation(): ArchViolation {
     EMITTER_NO_RECEIPT,
     'this verdict arrived with no evidence of what was examined, so eess cannot tell a ' +
       'clean run from a loop that never ran. Hand the emitter what the pipeline minted — ' +
-      "a builder's violations(), or a preset's result — rather than an array assembled by hand.",
+      "a builder's violations(), or a preset's result — rather than an array assembled by hand. " +
+      // Naming the call, because the audience changed. This message was written
+      // for someone calling `finishPreset([])` directly; since plan 0263 Phase 2
+      // it is also what a rule-file author meets, and THEIR builder is the thing
+      // returning the array — so "hand the emitter a builder's violations()"
+      // describes what they already did. The changeset's migration line was the
+      // actionable one and lived only in the changelog. `collectResult` and
+      // `mergeCollectResults` are kernel root exports, re-exported by the
+      // dialects, so naming them costs an adopter no second install.
+      'If you are writing the builder: return collectResult(violations, { examined }) ' +
+      'instead of a plain array, where `examined` is how many units you actually ' +
+      'looked at. If you are combining builders, use mergeCollectResults([...]).',
   )
 }
 

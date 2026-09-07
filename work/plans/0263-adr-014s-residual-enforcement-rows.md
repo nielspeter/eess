@@ -270,9 +270,10 @@ and the other four are pure gain.
   `packages/ts/src/core/check-all.ts`, and in the kernel
   `packages/core/src/dedupe-config-findings.ts`,
   `packages/core/src/emitter-findings.ts`, `packages/core/src/report.ts`,
-  `packages/core/src/internal.ts`
+  `packages/core/src/internal.ts`, `packages/core/src/baseline-generator.ts`
 - **Phase 2, tests** — `packages/ts/tests/core/check-all.test.ts`,
   `packages/ts/tests/cli/dead-builders-are-named-individually.test.ts`,
+  `packages/ts/tests/core/every-config-finding-is-classified.test.ts`,
   `packages/core/tests/dedupe-config-findings.test.ts`
 - **Phase 2, docs** — `docs/core-concepts.md`, `docs/api-reference.md`, and the
   two `baseline-generator.ts` docstrings (the ungated `collectViolations` route,
@@ -282,7 +283,12 @@ and the other four are pure gain.
 - `adr/014-the-emitter-refuses-a-verdict-without-evidence.md` — rows to `gated`
 - `.changeset/` — Phase 2's behavioural break, and the Phase 5 break
 
-> **This section was wrong about Phase 2 until the third review round.** It named
+> **This section has been wrong about Phase 2 in two successive rounds**, and
+> the second time is the instructive one: round three fixed its _shape_ and
+> still did not _derive_ its contents, so it named a kernel file the branch does
+> not touch and omitted a test file it does. A Files-changed list is one
+> `git diff --name-only main...HEAD` away from being derived, and was written
+> from memory twice. It named
 > one line — "`packages/ts/tests/` — the `checkAll` bare-builder test" — for a
 > phase that changed three CLI doors and four kernel files, and credited this
 > phase's fixture to "Phases 1 and 3" and its changeset to "the Phase 5 break". A
@@ -323,7 +329,7 @@ and the other four are pure gain.
       it **per builder**, where the rule file is still in hand;
       `check:nonvacuity` gained `emitter/bare-builder-reds-the-cli` (a probe rule
       file driving the real binary, asserted by id); `check-all.test.ts` gained
-      **five** tests — a bare array loaded through `loadRuleFiles` throws, a
+      **six** tests — a bare array loaded through `loadRuleFiles` throws, a
       member that ran and examined nothing reds, the cause is named rather than
       thrown for some other reason, one dead member among healthy ones reds, and
       a CONTROL that a declared-empty member stays green.
@@ -453,6 +459,63 @@ and the other four are pure gain.
       `docs/core-concepts.md` and `docs/api-reference.md` now say so, and
       ADR-014's ceiling row names both functions instead of "an adopter who sums
       by hand". Closing them stays proposal 011 ask C.
+
+      **A fifth pass, after seven lenses again — and this round's worst finding
+      was a false positive I introduced while fixing a false negative.** The
+      `--fix` refusal keyed on `bypassFilters`, which marks every configuration
+      finding, not just the emitter's. Measured: a healthy rule's real fix was
+      withheld because an unrelated rule in the same file had a dead glob, making
+      `--fix --apply` a no-op in any project with one mis-globbed preset option.
+      It is now scoped to the emitter ids and applied **per builder**, so a
+      refused receipt withholds only its own edits — which is ADR-014 §7's own
+      rule, bundled back together at the door that had just been rewritten to
+      avoid bundling.
+
+      **The green control that should have caught it was vacuous.** The fixture's
+      honest builder carries zero violations, so it cannot tell a `--fix` that
+      applies nothing from one that works. The row now drives `--apply` in the
+      green direction too and asserts the target *was* rewritten, plus two
+      separate controls — one where the config finding rides the same builder as
+      the fixable violation (falsifies the predicate) and one where a healthy
+      builder sits beside a refused one (falsifies the scope). Each was
+      sabotage-checked and flips only its own field.
+
+      **`notRun` meant different things at the two doors.** The merge exempts a
+      disabled rule from its dead filter — that exemption is the flag's whole
+      purpose — and the gate had no such branch, so a per-builder door reddened a
+      rule the caller had deliberately turned off. Measured:
+      `checkAll([healthy, off])` green, `eess-ts check` over the same two builders
+      `1 of 2 rules failing`. The gate mirrors the merge now, and the all-off case
+      still reds because the merged receipt carries no `notRun`.
+
+      **A remedy I wrote while fixing an unreachable remedy taught suppression.**
+      `checkAll([])`'s `Fix:` line said "guard the array before calling", which
+      makes the check vanish — in the same string that says the finding cannot be
+      suppressed. It now leads with passing the rules, says the emptiness must be
+      declared upstream where the array is built, and states that skipping the
+      call removes the check rather than satisfying it. It also uses the kernel's
+      `UNSUPPRESSABLE` constant instead of the short form whose measured cost —
+      four wasted CI cycles — is recorded at `packages/core/src/unsuppressable.ts`.
+
+      **`--fix` and `baseline` blessed a rule file that contributed no rules**,
+      where `check` reddens: measured, both exited 0 and `baseline` wrote a
+      baseline from it. That is the disagreement `ruleFileContributedNoRules`
+      exists to end, true again at two doors; both now carry the guard.
+
+      Smaller: `emitter/no-receipt` now names `collectResult` and
+      `mergeCollectResults`, the calls that actually fix it, instead of describing
+      the mistake's shape to an author whose builder *is* the mistake; the 255
+      clamp's note claimed a measured fail-open that two reviewers showed is
+      unreachable through this door, and now says it is defence for a future
+      caller; ADR-014's Status paragraph claimed every row was `pending` and owned
+      by plan 0235 while the table read 14 `gated` and named 0263; §7's new rule
+      is dated; and this section named a kernel file the branch does not touch
+      while omitting a test file it does — written from memory twice, when
+      `git diff --name-only` was one command away.
+
+      Filed rather than absorbed: [bug 0270](../bugs/0270-the-vacuity-matrix-reports-zero-fail-open-doors-while-one-is-stated-open.md)
+      — `check:vacuity` prints `0 unaccounted fail-open` while this phase ships a
+      stated-open door, because both `collectViolations` sit in `NOT_CHECKS`.
 
 - [ ] Phase 3 — the four remedy-remediates fixtures
 - [ ] Phase 4 — the no-second-registry rule

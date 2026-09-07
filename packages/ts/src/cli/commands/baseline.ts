@@ -2,7 +2,11 @@ import { formatBaselineDelta, generateBaseline } from '../../helpers/baseline.js
 import type { ArchViolation } from '@nielspeter/eess'
 import { finishPreset } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
-import { attributeToRuleFile, failureOrViolations } from '../rule-file-findings.js'
+import {
+  attributeToRuleFile,
+  failureOrViolations,
+  ruleFileContributedNoRules,
+} from '../rule-file-findings.js'
 
 interface BaselineArgs {
   ruleFiles: string[]
@@ -34,6 +38,15 @@ export async function runBaseline(args: BaselineArgs): Promise<number> {
       builders = await loadRuleFiles([file])
     } catch (error: unknown) {
       violations.push(...failureOrViolations(file, error, total))
+      continue
+    }
+    // Parity with `runCheck` and `--fix`: a rule file that loads and exports `[]`
+    // enforces nothing, and a baseline is a persisted verdict. Measured before
+    // this guard, `eess-ts baseline` over exactly that file wrote a baseline and
+    // exited 0 while `check` reddened — the disagreement
+    // `ruleFileContributedNoRules` exists to end.
+    if (builders.length === 0) {
+      violations.push(ruleFileContributedNoRules(file))
       continue
     }
     for (const builder of builders) {

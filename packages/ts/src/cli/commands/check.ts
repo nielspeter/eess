@@ -5,6 +5,7 @@ import { diffAware } from '../../helpers/diff-aware.js'
 import type { OutputFormat } from '@nielspeter/eess'
 import type { ArchViolation, CheckOptions } from '@nielspeter/eess'
 import { finishPreset, isArchRuleError } from '@nielspeter/eess'
+import { isEmitterFinding } from '@nielspeter/eess/internal'
 import { withCallerAggregating, violationsWritten, writeReport } from '../../core/execute-rule.js'
 import { suppressionNotice } from '@nielspeter/eess/internal'
 import { edgeCoverageNotice, resetEdgeCoverage, untestedRules } from '@nielspeter/eess/internal'
@@ -338,9 +339,15 @@ async function runCheckInner(
  * guessing, and says how many it skipped — a silently-dropped edit would leave
  * the file half-repaired with a green run to match.
  *
- * **Clamped at 255.** `process.exitCode = 256` exits **0** — measured — so an
- * unclamped count is a fail-open at exactly 256 remaining violations, and this
- * door now carries an unsuppressable evidence finding through that counter.
+ * **Clamped at 255, defensively.** `process.exitCode = 256` exits **0**
+ * (measured), so a count assigned straight to `process.exitCode` wraps. That
+ * cannot happen through today's wiring — `handleCheck` normalises this to `1`
+ * (`packages/ts/src/cli/index.ts`) and neither `runCheck` nor `runFix` is
+ * exported — so the clamp is defence for a future direct caller, not a hole
+ * being closed. An earlier version of this note claimed the fail-open was live
+ * at this door; two reviewers measured that it is not, and a comment that
+ * manufactures a fail-open is the mirror image of the sin this repo exists to
+ * catch.
  *
  * **Loads per rule file, like `runBaseline`** — plan 0263 Phase 2, third pass.
  * It used to take a flat `RuleBuilderLike[]` that `runCheck` had already
@@ -361,50 +368,91 @@ async function runFix(
   // `violations()` on every builder, so it reaches exactly the same verdict
   // `runCheck` does, and a rule file exporting an evidence-free builder ran
   // through `--fix` to `0 fix(es)` and exit 0.
-  const all: ArchViolation[] = []
+  // Three buckets, because they have three different consequences.
+  //
+  // `accepted` — violations from a builder whose receipt passed the gate. Their
+  // fixes are trustworthy and get applied.
+  // `refused`  — emitter findings. The builder that produced them certified
+  //              nothing, so every edit derived from THAT receipt is dropped.
+  // `noRules`  — a rule file that loaded and contributed zero builders. There
+  //              are no fixes to drop; it reds the run, as it already does under
+  //              `check`.
+  const accepted: ArchViolation[] = []
+  const refused: ArchViolation[] = []
+  const noRules: ArchViolation[] = []
   for (const file of ruleFiles) {
     let builders
     try {
       builders = await loadRuleFiles([file], { fresh })
     } catch (error: unknown) {
-      all.push(...failureOrViolations(file, error, ruleFiles.length))
+      refused.push(...failureOrViolations(file, error, ruleFiles.length))
+      continue
+    }
+    // Parity with `runCheckInner`, which has had this guard since bug 0025's
+    // sibling: a rule file that loads and exports `[]` enforces nothing.
+    // Measured before this was ported, `--fix` and `baseline` both exited 0 over
+    // exactly that file while `check` reddened — the "two commands in one CLI
+    // disagreeing about whether 'no rules' is an error" that
+    // `ruleFileContributedNoRules` exists to end, true again at two doors.
+    if (builders.length === 0) {
+      noRules.push(ruleFileContributedNoRules(file))
       continue
     }
     for (const builder of builders) {
       try {
-        all.push(
-          ...attributeToRuleFile(finishPreset(builder.violations(), { report: 'return' }), file),
+        const gated = attributeToRuleFile(
+          finishPreset(builder.violations(), { report: 'return' }),
+          file,
         )
+        // **Per builder, not per run.** ADR-014 §7's rule is that a door which
+        // can name the member never bundles, and this door loads per rule file
+        // precisely so it can. Refusing the whole run on one bad receipt bundles
+        // it back together: measured, a healthy rule's real fix was withheld
+        // because an unrelated rule in the same file had a dead glob.
+        //
+        // Scoped to the emitter's findings, not to `bypassFilters`. That flag
+        // marks every configuration finding — a dead selector, a stale
+        // exclusion — and those say the rule matched nothing, not that its
+        // verdict is unreadable. Refusing on them made `--fix --apply` a
+        // permanent no-op in any project with one mis-globbed preset option,
+        // which is a red that should be green shipped inside the change arguing
+        // fail-closed.
+        const emitterFindings = gated.filter((v) => isEmitterFinding(v))
+        if (emitterFindings.length > 0) {
+          refused.push(...emitterFindings)
+          continue
+        }
+        accepted.push(...gated)
       } catch (error: unknown) {
-        all.push(...failureOrViolations(file, error, ruleFiles.length))
+        refused.push(...failureOrViolations(file, error, ruleFiles.length))
       }
     }
   }
 
-  // **Refuse BEFORE writing.** The comment above used to end "Applying repairs
-  // computed from a verdict that certifies nothing is worse than reporting one",
-  // and then the code did exactly that: the gate produced the finding into `all`,
-  // and `applyFixes` had already run by the time anything consulted it. Measured
-  // under `--apply`, a source file was rewritten while the same run printed
-  // `emitter/no-receipt` and exited 1.
-  //
-  // A fix is an edit derived from a verdict. If the verdict is refused, so is
-  // every edit computed from it — for the same reason `runBaseline` refuses to
-  // persist one. `bypassFilters` is the marker, exactly as it is there.
-  const refused = all.filter((v) => v.bypassFilters === true)
-  if (refused.length > 0) {
+  // **Refuse BEFORE writing** — the whole point of gating this door. An earlier
+  // cut produced the finding and then let `applyFixes` run anyway: measured under
+  // `--apply`, a source file was rewritten while the same run printed
+  // `emitter/no-receipt` and exited 1. A fix is an edit derived from a verdict,
+  // so a refused verdict refuses the edits computed from it — the same principle
+  // `runBaseline` applies to a persisted one.
+  const blocked = [...refused, ...noRules]
+  if (blocked.length > 0) {
+    // Same wording as `runBaseline`'s header, and for the reason recorded there:
+    // "enforces nothing" is false of a builder that found real violations and
+    // merely handed back no evidence, and of a rule file that could not be
+    // evaluated at all.
     writeStderr(
-      `eess-ts --fix refused: ${String(refused.length)} finding(s) report a rule that ` +
-        `certifies nothing, so no fix computed from this run can be trusted. ` +
-        `Nothing was ${write ? 'written' : 'previewed'}. Fix these first:\n`,
+      `eess-ts check --fix: ${String(blocked.length)} finding(s) report a rule whose verdict ` +
+        `cannot be checked, so the fixes computed from it are not applied. Fix these first:\n`,
     )
-    for (const v of refused) {
+    for (const v of blocked) {
       const where = v.file === '' ? '' : `${v.file}: `
       writeStderr(`  - ${where}${v.ruleId ?? v.rule}: ${v.message}\n`)
     }
-    return 1
+    // The other builders' fixes still apply below — they were each verified.
   }
 
+  const all = accepted
   const fixable = all.filter((v) => v.fix !== undefined)
   const result = applyFixes(fixable, { write })
 
@@ -426,5 +474,7 @@ async function runFix(
     for (const v of remaining)
       process.stdout.write(`  ${v.file}:${v.line}  ${v.message.split('\n')[0]}\n`)
   }
+  // Blocked builders red the run whatever the fixable ones did.
+  if (blocked.length > 0) return 1
   return Math.min(remaining.length, 255)
 }

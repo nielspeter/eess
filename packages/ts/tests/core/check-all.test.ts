@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { loadRuleFiles } from '../../src/cli/load-rules.js'
 import { collectResult } from '@nielspeter/eess'
+import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import { checkAll } from '../../src/core/check-all.js'
 import { ArchRuleError } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
@@ -107,9 +108,21 @@ describe('checkAll', () => {
         // text for this id names `.expectEmpty()` on a builder and `expectEmpty`
         // in a preset's report options, and at this door there is neither.
         const message = violations[0]?.message ?? ''
-        expect(message).toContain('Guard the array before calling')
+        expect(message).toContain('Pass the rules you meant to check')
         expect(message).not.toContain('.expectEmpty()')
         expect(violations[0]?.bypassFilters).toBe(true)
+        // **The remedy must not be a way to make the check disappear.** The
+        // first cut of this message led with "guard the array before calling",
+        // which turns a refused verdict into a run that examines nothing and
+        // exits 0 — the vacuous pass ADR-014 refuses — in the same string that
+        // says the finding cannot be suppressed. A product review caught it. The
+        // guard is still mentioned in the suggestion, with its cost stated.
+        const suggestion = violations[0]?.suggestion ?? ''
+        expect(suggestion).toContain('removes the check rather than satisfying it')
+        // And it carries the kernel's full unsuppressable text, not a short
+        // paraphrase — `packages/core/src/unsuppressable.ts` records the measured
+        // cost of the short form.
+        expect(suggestion).toContain(UNSUPPRESSABLE)
       }
       // The remedy remediates (ADR-009 rule 2): the message's second branch is
       // "pass the rules you meant to check", so doing that must clear it. A

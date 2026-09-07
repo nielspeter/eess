@@ -1193,18 +1193,74 @@ function gateBareBuilderRedsEveryCliDoor() {
   // and exited 1. The probe target must come back byte-identical.
   const FIX_TARGET_REL = join('scripts', 'nonvacuity', '__nonvacuity_probe_target.txt')
   const ORIGINAL = 'HELLOX rest of file\n'
-  const bareFixable =
-    'export default [{ violations: () => [{ rule: "x/fixable", message: "fixable", ' +
-    `file: ${JSON.stringify(FIX_TARGET_REL)}, line: 1, ` +
-    `fix: { file: ${JSON.stringify(FIX_TARGET_REL)}, start: 0, end: 6, text: "MUTATED" } }] }]\n`
-  let targetUntouched = false
-  try {
-    writeFileSync(PROBE_FIX_TARGET, ORIGINAL)
-    drive(bareFixable, ['check', rel, '--fix', '--apply'])
-    targetUntouched = readFileSync(PROBE_FIX_TARGET, 'utf8') === ORIGINAL
-  } finally {
-    rmSync(PROBE_FIX_TARGET, { force: true })
+  // A REAL `ArchFix` — `replacement` and `describe`, per `ArchFix` in
+  // `packages/core/src/violation.ts`. The first cut wrote `text:` instead, so
+  // `applyFixes` substituted the string "undefined" and printed
+  // `fixed: undefined`. The byte-identity assertion still discriminated, but the
+  // probe was not the shape it claimed to be, and the green control below asserts
+  // on what was written.
+  const fixLiteral =
+    `fix: { file: ${JSON.stringify(FIX_TARGET_REL)}, start: 0, end: 6, ` +
+    `replacement: "MUTATED", describe: "rewrite HELLOX" }`
+  const violationLiteral =
+    `{ rule: "x/fixable", message: "fixable", file: ${JSON.stringify(FIX_TARGET_REL)}, ` +
+    `line: 1, ${fixLiteral} }`
+  const bareFixable = `export default [{ violations: () => [${violationLiteral}] }]\n`
+  const honestFixable =
+    "import { collectResult } from '@nielspeter/eess'\n" +
+    `export default [{ violations: () => collectResult([${violationLiteral}], ` +
+    '{ examined: 9 }) }]\n'
+
+  const withTarget = (source) => {
+    try {
+      writeFileSync(PROBE_FIX_TARGET, ORIGINAL)
+      drive(source, ['check', rel, '--fix', '--apply'])
+      return readFileSync(PROBE_FIX_TARGET, 'utf8')
+    } finally {
+      rmSync(PROBE_FIX_TARGET, { force: true })
+    }
   }
+  // Red: a refused verdict must leave the file byte-identical.
+  const targetUntouched = withTarget(bareFixable) === ORIGINAL
+  // **Green: `--fix --apply` must still fix things.** Without this the row is
+  // satisfied by a `--fix` that refuses everything, or that applies nothing at
+  // all — and the other green control (`cleanFix`) uses a builder with ZERO
+  // violations, so it cannot tell those apart. An enforcement review measured
+  // exactly that gap, and the over-refusal it was hiding.
+  const targetFixed = withTarget(honestFixable) === 'MUTATED rest of file\n'
+  // **And it must still fix when an UNRELATED rule reports a configuration
+  // finding.** `bypassFilters` marks every one of those — a dead selector, a
+  // stale exclusion — and they say the rule matched nothing, not that its verdict
+  // is unreadable. A first cut refused the whole run on any of them, which made
+  // `--fix --apply` a permanent no-op in any project with one mis-globbed preset
+  // option. Nothing caught it: the other green controls use builders with no
+  // findings at all, so neither could tell an over-refusal from a healthy run.
+  //
+  // Two separate falsifiers, because the first cut had two separate faults and
+  // one control could not see both.
+  //
+  // (a) THE PREDICATE. The config finding rides on the SAME builder as the
+  //     fixable violation, so only a predicate that refuses on `bypassFilters`
+  //     rather than on the emitter's own ids drops that builder's fix.
+  const configFindingLiteral =
+    '{ rule: "probe/dead-glob", ruleId: "probe/dead-glob", element: "packages/zzz/**", ' +
+    'message: "glob matched nothing", file: "", line: 0, bypassFilters: true }'
+  const honestWithConfigFinding =
+    "import { collectResult } from '@nielspeter/eess'\n" +
+    `export default [{ violations: () => collectResult([${violationLiteral}, ` +
+    `${configFindingLiteral}], { examined: 9 }) }]\n`
+  const fixesDespiteConfigFinding = withTarget(honestWithConfigFinding) === 'MUTATED rest of file\n'
+
+  // (b) THE SCOPE. A healthy builder beside a genuinely evidence-free one: the
+  //     bare builder is refused, and the healthy builder's fix must still apply.
+  //     A run-wide refusal — filtering the whole run's findings rather than each
+  //     builder's — withholds it, which is the bundling ADR-014 §7 forbids at a
+  //     door that can name its member.
+  const honestBesideBare =
+    "import { collectResult } from '@nielspeter/eess'\n" +
+    `export default [{ violations: () => collectResult([${violationLiteral}], ` +
+    '{ examined: 9 }) }, { violations: () => [] }]\n'
+  const fixesBesideRefusedBuilder = withTarget(honestBesideBare) === 'MUTATED rest of file\n'
 
   // The green direction for each door. Without it, "reds on a bare builder" is
   // satisfied by a gate that reds on everything.
@@ -1214,13 +1270,23 @@ function gateBareBuilderRedsEveryCliDoor() {
   const doorsGreen = cleanCheck.code === 0 && cleanBaseline.code === 0 && cleanFix.code === 0
 
   return {
-    ok: bad.code === 1 && named && doorsRed && doorsGreen && targetUntouched,
+    ok:
+      bad.code === 1 &&
+      named &&
+      doorsRed &&
+      doorsGreen &&
+      targetUntouched &&
+      targetFixed &&
+      fixesDespiteConfigFinding &&
+      fixesBesideRefusedBuilder,
     detail:
       `a bare builder \u2192 check ${bad.code} (named at its own file: ${named}), ` +
       `baseline ${badBaseline.code} (named: ${saysBare(badBaseline)}), ` +
       `--fix ${badFix.code} (named: ${saysBare(badFix)}); --apply wrote nothing: ` +
       `${targetUntouched}; an honest builder \u2192 ` +
-      `${cleanCheck.code}/${cleanBaseline.code}/${cleanFix.code}`,
+      `${cleanCheck.code}/${cleanBaseline.code}/${cleanFix.code}, --apply still fixes: ` +
+      `${targetFixed}, beside a config finding: ${fixesDespiteConfigFinding}, ` +
+      `beside a refused builder: ${fixesBesideRefusedBuilder}`,
   }
 }
 

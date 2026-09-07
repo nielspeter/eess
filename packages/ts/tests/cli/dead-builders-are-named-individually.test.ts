@@ -62,6 +62,10 @@ describe('several evidence-free builders in one rule file', () => {
       expect(code).toBeGreaterThan(0)
       expect(report).toContain('[1 of 3]')
       expect(report).toContain('[3 of 3]')
+      // By id, not by count — the rule the nonvacuity fixture states thirty lines
+      // away and this test did not follow: three findings of some OTHER id would
+      // have satisfied the headers alone.
+      expect(report).toContain('emitter/no-receipt')
       // The fan-out note belongs to a preset that generated N rules from one
       // option. Three hand-rolled builders are not that, and telling their
       // author it is one edit sends them to fix one of three places.

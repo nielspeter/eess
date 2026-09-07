@@ -6,6 +6,7 @@ import {
   finishPreset,
   mergeCollectResults,
 } from '@nielspeter/eess'
+import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import { callerAggregates, writeReport } from './execute-rule.js'
 import { dedupeConfigFindings } from '@nielspeter/eess/internal'
 import { suppressionNotice } from '@nielspeter/eess/internal'
@@ -68,13 +69,15 @@ export function checkAll(rules: RuleBuilderLike[], options?: CheckOptions): void
         line: 0,
         message:
           'checkAll() was called with no rules, so this run examined nothing and cannot ' +
-          'report a pass. Guard the array before calling — `if (rules.length > 0) ' +
-          'checkAll(rules)` — or pass the rules you meant to check. There is no ' +
-          'declaration form at this door: a preset that legitimately produces no rules ' +
-          'declares that where it is built, not here.',
+          'report a pass. Pass the rules you meant to check. If the array is computed — ' +
+          "a preset in `report: 'builders'` mode, say — the emptiness is upstream, and " +
+          'the preset is where it has to be declared or fixed; there is no declaration ' +
+          'form at this door.',
         suggestion:
-          'Guard the array before calling: `if (rules.length > 0) checkAll(rules)`. ' +
-          'This finding cannot be suppressed.',
+          'Pass the rules you meant to check. If the array is computed and legitimately ' +
+          'empty, declare that where it is built — skipping the checkAll() call instead ' +
+          'removes the check rather than satisfying it. ' +
+          UNSUPPRESSABLE,
         bypassFilters: true,
       },
     ])
