@@ -192,6 +192,8 @@ const FAMILY_REEXPORT_AGGREGATION_TARGET = join(
 )
 
 const PROBE_ARCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe__.ts')
+/** A rule file whose one builder hands back a bare array — plan 0263 Phase 2. */
+const PROBE_BARE_RULES = join(repoRoot, '__nonvacuity_probe_bare.rules.ts')
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
 const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
 // Bug 0127: corpus/links must prove BOTH routing regions (bug 0086's
@@ -510,6 +512,7 @@ function withRemovedFile(path, fn) {
 
 // Sweep any leftover probes before doing anything — they must never survive.
 rmSync(PROBE_ARCH, { force: true })
+rmSync(PROBE_BARE_RULES, { force: true })
 rmSync(PROBE_CATCH, { force: true })
 rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
@@ -1080,6 +1083,37 @@ function gateReleaseDeadCheck() {
     detail:
       `one dead rule among healthy ones \u2192 json exit ${json.code}, terminal exit ${terminal.code}, ` +
       `named emitter/pass-without-evidence: ${named && terminalNamed}, others still read: ${othersHealthy}`,
+  }
+}
+
+/**
+ * ADR-014's "a rule file exporting an evidence-free builder reds the CLI and
+ * `checkAll`", on the CLI half — plan 0263 Phase 2.
+ *
+ * **Both doors had the same hole and neither was fixtured.** `runCheck` built its
+ * report by pushing `attributeToRuleFile(builder.violations(), file)` into a bare
+ * array, which drops everything but the violations; `checkAll` used `flatMap`.
+ * Measured before the phase: this exact probe file ran to `"total": 0`,
+ * `"examined": null`, exit 0. The plan's Phase 2 named only `checkAll`, so the
+ * CLI half is a premise the phase did not check — which is bug 0267's subject.
+ *
+ * The probe is a rule file, not a source file, because that is the shape an
+ * adopter writes: `export default [ … ]` is the documented returning form, and a
+ * builder that hands back `[]` is what a hand-rolled one looks like.
+ */
+function gateCheckAllBareBuilder() {
+  const bad = withProbe(
+    PROBE_BARE_RULES,
+    '// Non-vacuity probe (plan 0263 Phase 2): a builder with no receipt.\n' +
+      'export default [{ violations: () => [] }]\n',
+    () => sh(EESS_TS, ['check', '__nonvacuity_probe_bare.rules.ts', '--format', 'json']),
+  )
+  // By id, not by exit code: a rule file can exit 1 for a dozen reasons, and the
+  // one this row answers for is the missing receipt.
+  const named = firedOn(bad, 'emitter/no-receipt')
+  return {
+    ok: bad.code === 1 && named,
+    detail: `a rule file exporting a bare builder \u2192 exit ${bad.code}, named emitter/no-receipt: ${named}`,
   }
 }
 
@@ -1863,6 +1897,7 @@ const gates = [
   // The other two hand-assembled gates, on their default paths — ADR-014's row
   // names all three, and only `check:corpus` had a fixture before plan 0263.
   ['emitter/ledger-dead-check', gateLedgerDeadCheck],
+  ['emitter/bare-builder-reds-the-cli', gateCheckAllBareBuilder],
   ['emitter/release-dead-check', gateReleaseDeadCheck],
   ['corpus/exclusion-inert', gateCorpusInertExclusion],
   // The other half of 0255. A separate row because the production script cannot
@@ -2121,7 +2156,12 @@ const GATE_FOR = {
   // incidents). It equally guards the kernel copy every other check runs, so the
   // claim is narrower than the gate; it is filed under the script whose engine
   // would otherwise have no witness that it still matches the kernel's.
-  'check:arch': ['arch (root rules)', 'internal arch', 'engine/applyfilters-parity'],
+  'check:arch': [
+    'emitter/bare-builder-reds-the-cli',
+    'arch (root rules)',
+    'internal arch',
+    'engine/applyfilters-parity',
+  ],
   'check:family': [
     'family re-export (index)',
     'family re-export (crossvalidate)',

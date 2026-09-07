@@ -1,6 +1,6 @@
 import type { ArchViolation, RuleBuilderLike } from '@nielspeter/eess'
 import type { CheckOptions } from '@nielspeter/eess'
-import { ArchRuleError } from '@nielspeter/eess'
+import { ArchRuleError, finishPreset, mergeCollectResults } from '@nielspeter/eess'
 import { callerAggregates, writeReport } from './execute-rule.js'
 import { dedupeConfigFindings } from '@nielspeter/eess/internal'
 import { suppressionNotice } from '@nielspeter/eess/internal'
@@ -28,9 +28,28 @@ export function checkAll(rules: RuleBuilderLike[], options?: CheckOptions): void
   // not inherit the first's rules.
   resetEdgeCoverage()
   resetCommentSuppression()
+  // **The receipt survives the aggregation** — plan 0263 Phase 2, and the reason
+  // ADR-014's row for this door stayed `pending` after plan 0235 shipped the
+  // contract. This line used to be `rules.flatMap((rule) => rule.violations())`,
+  // and a `flatMap` over receipts yields a bare array: every `examined` on the
+  // floor, and the evidence gate never reached. Measured before the change,
+  // `checkAll([{ violations: () => [] }])` returned silently — a rule file
+  // exporting an evidence-free builder passed through this door without a word,
+  // which is bug 0206's shape at a different seam.
+  //
+  // `mergeCollectResults` is the kernel's one merge (ADR-014 §7) and is
+  // fail-closed **per member**, so one evidence-free builder among twenty is
+  // named rather than absorbed by the others' counts.
+  const receipt = mergeCollectResults(rules.map((rule) => rule.violations()))
+  // ADR-008: this function owns its reporting below, so the gate runs under
+  // `report: 'return'` and hands the findings back instead of emitting them.
+  // An emitter finding carries `bypassFilters`, so it survives both the baseline
+  // (`packages/core/src/baseline.ts:283`) and the diff filter, and it is
+  // error-severity, so it rides the throw at the bottom.
+  //
   // One option, one finding (plan 0074). A preset fans a single bad option out
   // across every generated rule, and only an aggregation point can see that.
-  let violations = dedupeConfigFindings(rules.flatMap((rule) => rule.violations()))
+  let violations = dedupeConfigFindings(finishPreset(receipt, { report: 'return' }))
 
   if (options?.baseline) {
     violations = options.baseline.filterNew(violations)

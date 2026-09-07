@@ -173,10 +173,29 @@ builder passes through `checkAll` silently today. That is why the row is
 `pending` rather than `warn`, and it makes this phase a wiring job, not only a
 fixture:
 
+> **Corrected at build, 2026-09-07: the phase named one door and the row names
+> two.** ADR-014's clause is _"reds the CLI **and** `checkAll`"_, and this phase
+> described only `checkAll`'s `flatMap`, with item 2 assuming `eess-ts check`
+> already reddened so a fixture could simply assert it. Measured before anything
+> was written — the probe rule file `export default [{ violations: () => [] }]`:
+>
+> | door                                 | before                                       |
+> | ------------------------------------ | -------------------------------------------- |
+> | `checkAll([bare])`                   | returned silently                            |
+> | `eess-ts check <file> --format json` | `"total": 0`, `"examined": null`, **exit 0** |
+>
+> `runCheck` has the same hole for the same reason: it builds its report by
+> pushing `attributeToRuleFile(builder.violations(), file)` into a plain array,
+> which keeps the violations and drops the receipt. So this phase wired both.
+> This is the third premise in this plan to be wrong the same way, and it is now
+> [bug 0267](../bugs/0267-the-freeze-checks-links-not-premises.md)'s subject
+> rather than another rueful sentence.
+
 1. Route `checkAll`'s aggregation through `mergeCollectResults` so the receipt
-   survives, and its delivery through the gate. The severity split at the bottom
-   (`ridesTheThrow`) and bug 0203's suppression contract must both survive the
-   change — they are why this was not done inside 0235.
+   survives, and its delivery through the gate — **and `runCheck`'s, for the
+   same reason**. The severity split at the bottom (`ridesTheThrow`) and bug
+   0203's suppression contract must both survive the change — they are why this
+   was not done inside 0235.
 2. A non-vacuity fixture whose rule file exports a builder whose `violations()`
    returns a bare `[]`, asserted to red `eess-ts check` by rule id.
 3. A test that `checkAll` over the same throws — the regression guard for bug
@@ -272,7 +291,15 @@ and the other four are pure gain.
       dead-check fixtures. Shipped on the second attempt; the first is PR #116,
       closed unmerged after five reviews, and its measurements are in the record
       above. 85 fixtures fire.
-- [ ] Phase 2 — the rule-file fixture and the `checkAll` test
+- [x] Phase 2 — both doors wired, the fixture and the tests. `checkAll` and
+      `runCheck` now merge their builders' receipts and consult the gate;
+      `check:nonvacuity` gained `emitter/bare-builder-reds-the-cli` (a probe rule
+      file driving the real CLI, asserted by id); `check-all.test.ts` gained four
+      tests — bare array throws, the finding is named, one dead member among
+      healthy ones reds, and a CONTROL that a declared-empty member stays green.
+      Sabotage-checked: reverting the wiring reds exactly the three assertions and
+      leaves the control green. Ships `@nielspeter/eess-ts` minor, break-marked:
+      a hand-rolled builder that used to pass now fails, which is the point.
 - [ ] Phase 3 — the four remedy-remediates fixtures
 - [ ] Phase 4 — the no-second-registry rule
 - [ ] Phase 5 — `throwIfViolations` removed, changeset naming the break
