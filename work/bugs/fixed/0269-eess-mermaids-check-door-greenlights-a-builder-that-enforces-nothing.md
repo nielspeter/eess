@@ -54,7 +54,7 @@ loader keys on `violations`, which is why the same probe reds there.
 A second, independent hole sat beside it: a rule file exporting `[]` printed
 `✓ eess-mermaid — 0 rules across 1 file · 0 failing` and exited 0.
 
-This is the shape `eess-ts` had before plan 0263 Phase 2, one dialect over. The
+This is the shape `eess-ts` had before it learned otherwise, one dialect over — though **not** in plan 0263 Phase 2, which is where an earlier draft of this record credited it. Measured from history: the `'violations' in value` guard dates to PR #72 and `ruleFileContributedNoRules` to PR #74; 0263 Phase 2 (PR #118) added only the `finishPreset` wiring. The correction matters because the corrected root cause below names the guard as the actual fault, so crediting 0263 credits it for the two parts it did not do. The
 kernel work it depends on is already done and published: `CollectResult`,
 `collectResult`, `mergeCollectResults` and the emitter findings are all on the
 kernel root, and `finishPreset(receipt, { report: 'return' })` is the same seam

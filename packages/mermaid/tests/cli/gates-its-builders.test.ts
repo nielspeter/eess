@@ -11,8 +11,12 @@
  * has `violations(): CollectResult`, and a real rule with a dead selector
  * already reddened through `.check()`. What was missing was the guard: the
  * loader keyed on `check`, which a hand-rolled object satisfies, so a builder
- * with no receipt at all was counted as a rule. This is the wiring fix
- * `eess-ts` made in plan 0263 Phase 2, one dialect over.
+ * with no receipt at all was counted as a rule.
+ *
+ * `eess-ts` learned this earlier and in pieces — the `'violations'` guard in
+ * PR #72, `ruleFileContributedNoRules` in PR #74, the `finishPreset` wiring in
+ * plan 0263 Phase 2 (PR #118). An earlier version of this note credited 0263
+ * for all three.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
@@ -24,6 +28,7 @@ import { dirname, resolve } from 'node:path'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const cleanReceipt = resolve(here, '../fixtures/rules/clean-receipt.rules.ts')
+const failing = resolve(here, '../fixtures/rules/failing.rules.ts')
 
 async function runCli(args: string[]): Promise<{ out: string; exitCode: number | undefined }> {
   const chunks: string[] = []
@@ -143,6 +148,26 @@ describe('eess-mermaid check — a builder that enforces nothing (bug 0269)', ()
       const matches = out.match(/"ruleId": "emitter\/no-receipt"/g) ?? []
       expect(matches).toHaveLength(1)
     })
+  })
+
+  it('pins the JSON summary.reason change, which the changeset declares', async () => {
+    // Reading the receipt instead of calling `builder.check()` means
+    // `executeCheck` no longer passes `reason: ctx.reason` into
+    // `reportViolations`, so `summary.reason` is null where it carried the rule's
+    // `because`. The per-violation `because` is unaffected and carries the same
+    // text — measured — so nothing is lost, and the changeset says so. Pinned
+    // here rather than left as prose: an undeclared JSON contract change in a
+    // published binary is exactly what a consumer would meet without warning.
+    const { out } = await runCli(['check', '--format', 'json', failing])
+    const parsed: unknown = JSON.parse(out)
+    const doc = parsed as {
+      summary: { reason: string | null }
+      violations: { because?: string }[]
+    }
+    expect(doc.summary.reason).toBeNull()
+    expect(doc.violations[0]?.because).toBe(
+      'Services may depend on repositories, never inherit from them',
+    )
   })
 
   it('CONTROL — a builder with a real receipt and nothing to report stays green', async () => {
