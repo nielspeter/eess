@@ -89,10 +89,22 @@ const CASES = [
 // print the ids the registration now keys on.
 const covered = new Set(CASES.map((c) => c.id))
 const uncovered = [...EMITTER_IDS].filter((id) => !covered.has(id))
+// **Both directions.** The subset check alone is one-way: REMOVING an id from
+// `EMITTER_IDS` leaves a smaller set that is still covered, so the guard that is
+// supposed to notice a missing id passes when the id is deleted. Measured — a
+// reviewer's sabotage removed `EMITTER_SOURCE_EMPTY` from the set and both this
+// fixture and the suite stayed green.
+const orphaned = [...covered].filter((id) => !EMITTER_IDS.has(id))
 
 const failures = []
 if (uncovered.length > 0) {
   failures.push(`no case for emitter id(s): ${uncovered.join(', ')} — the case list is not the id set`)
+}
+if (orphaned.length > 0) {
+  failures.push(
+    `case(s) for id(s) not in EMITTER_IDS: ${orphaned.join(', ')} — an id was dropped from the set, ` +
+      'so nothing downstream treats it as an emitter finding any more',
+  )
 }
 
 try {
@@ -174,6 +186,21 @@ try {
   if (!idsOf(gate(collectResult([], { examined: 900, sourceEmpty: true })))
       .includes('emitter/contradictory-evidence')) {
     failures.push('a sourceEmpty receipt claiming 900 examined units was NOT contradicted')
+  }
+
+  // **No message may tell the reader to delete the check.** This is the whole
+  // lesson of `checkAll([])`, whose remedy — "guard the array before calling" —
+  // cleared its finding by removing the check, in the same string that said the
+  // finding could not be suppressed. A reviewer's matrix showed the two messages
+  // this fixture does not read could be rewritten to say "Delete the rule" with
+  // nothing reddening, so every cause's text is read here.
+  const DELETING = /\b(delete|remove|skip|disable)\s+(the\s+)?(check|rule|call|gate)\b/i
+  for (const { id, corrupt } of CASES) {
+    const [finding] = gate(corrupt())
+    const text = `${finding?.message ?? ''} ${finding?.suggestion ?? ''}`
+    if (DELETING.test(text)) {
+      failures.push(`${id}'s text instructs the reader to delete the check: ${DELETING.exec(text)?.[0]}`)
+    }
   }
 
   // **The kernel names no preset's options** — ADR-014 §4, "at a seam that may
