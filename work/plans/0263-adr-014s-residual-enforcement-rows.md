@@ -451,7 +451,7 @@ and the other four are pure gain.
       `eess-mermaid check` over `{ check: () => {} }` prints a clean gate and
       exits 0 — measured. The clause now names the `eess-ts` doors it is true of,
       and the sibling door is
-      [bug 0269](../bugs/0269-eess-mermaids-check-door-greenlights-a-builder-that-enforces-nothing.md).
+      [bug 0269](../bugs/fixed/0269-eess-mermaids-check-door-greenlights-a-builder-that-enforces-nothing.md).
 
       The documented `collectViolations` + `generateBaseline` recipe — the one an
       adopter reaches for the moment `baseline` starts refusing — bypasses the

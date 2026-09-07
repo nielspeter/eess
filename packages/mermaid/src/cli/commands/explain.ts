@@ -1,3 +1,4 @@
+import { isDescribable } from '@nielspeter/eess/internal'
 import { loadRuleFiles } from '../load-rules.js'
 
 export interface ExplainArgs {
@@ -21,7 +22,12 @@ export async function runExplain(args: ExplainArgs): Promise<void> {
   const builders = await loadRuleFiles(args.ruleFiles)
   const rules: RuleDescriptionLike[] = []
   for (const builder of builders) {
-    if (typeof builder.describeRule !== 'function') continue
+    // `isDescribable` from the kernel, not a `describeRule` member on the
+    // dialect's own builder type — bug 0269's review. The local
+    // `RuleBuilderLike` copy carried `describeRule?` solely for this loop, and
+    // keeping the copy is what made ADR-014's Tier-1 mechanism untrue of this
+    // dialect. `eess-ts`'s `explain` already reads it this way.
+    if (!isDescribable(builder)) continue
     const desc = builder.describeRule()
     if (isRuleDescription(desc)) rules.push(desc)
   }
