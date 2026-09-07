@@ -112,6 +112,12 @@ by assertions now.
 - [x] Falsifiable, one sabotage at a time: reverting the loader guard, deleting
       the no-rules finding, and reverting to `builder.check()` each red the
       fixture, each in its own field.
+- [x] The tests pin `--format terminal` where they assert on the summary.
+      Without it they passed locally and **failed in CI**: `detectFormat()`
+      returns `github` when `GITHUB_ACTIONS` is set, and the summary line is
+      written only under `terminal`, so the assertions were about the
+      environment wearing the costume of assertions about behaviour. Verified
+      both ways (`GITHUB_ACTIONS=true CI=true` and bare).
 - [x] The repo's own `check:diagram` stays green — the control that matters,
       since a gate that reds on everything would satisfy the rest.
 - [x] ADR-014's clause names this dialect's door now that it is true of it.

@@ -60,6 +60,11 @@ function withRuleFile(source: string, fn: (file: string) => Promise<void>): Prom
   })
 }
 
+// **`--format terminal` is pinned on every run that asserts on the summary.**
+// `detectFormat()` returns `github` when `GITHUB_ACTIONS` is set, and the
+// summary line is written only under `terminal`. Without the flag these tests
+// passed locally and failed in CI — an assertion about the environment wearing
+// the costume of an assertion about behaviour.
 describe('eess-mermaid check — a builder that enforces nothing (bug 0269)', () => {
   beforeEach(() => {
     process.exitCode = undefined
@@ -70,7 +75,7 @@ describe('eess-mermaid check — a builder that enforces nothing (bug 0269)', ()
 
   it('reds on a hand-rolled builder that certifies nothing', async () => {
     await withRuleFile('export default [{ check: () => {} }]\n', async (file) => {
-      const { out, exitCode } = await runCli(['check', file])
+      const { out, exitCode } = await runCli(['check', '--format', 'terminal', file])
       expect(exitCode).toBe(1)
       expect(out).not.toContain('✓ eess-mermaid')
     })
@@ -78,7 +83,7 @@ describe('eess-mermaid check — a builder that enforces nothing (bug 0269)', ()
 
   it('reds on a builder that hands back a bare array instead of a receipt', async () => {
     await withRuleFile('export default [{ violations: () => [] }]\n', async (file) => {
-      const { out, exitCode } = await runCli(['check', file])
+      const { out, exitCode } = await runCli(['check', '--format', 'terminal', file])
       expect(exitCode).toBe(1)
       expect(out).toContain('emitter/no-receipt')
       // Named at its own rule file — bug 0026's seam. An emitter finding carries
@@ -105,14 +110,14 @@ describe('eess-mermaid check — a builder that enforces nothing (bug 0269)', ()
     // Without this, "reds on a builder that certifies nothing" is satisfied by a
     // gate that reds on everything. A fixture rather than a temp file: a rule
     // file importing `@nielspeter/eess` resolves only inside the workspace.
-    const { out, exitCode } = await runCli(['check', cleanReceipt])
+    const { out, exitCode } = await runCli(['check', '--format', 'terminal', cleanReceipt])
     expect(exitCode).toBeFalsy()
     expect(out).toContain('✓ eess-mermaid')
   })
 
   it('reds on a rule file that contributes no rules, rather than ticking over zero', async () => {
     await withRuleFile('export default []\n', async (file) => {
-      const { out, exitCode } = await runCli(['check', file])
+      const { out, exitCode } = await runCli(['check', '--format', 'terminal', file])
       expect(exitCode).toBe(1)
       // The zero-denominator-under-a-tick that CLAUDE.md calls a red flag.
       expect(out).not.toContain('0 rules across 1 file · 0 failing')
