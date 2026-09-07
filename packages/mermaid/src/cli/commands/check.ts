@@ -1,4 +1,10 @@
-import { collectResult, detectFormat, finishPreset, reportViolations } from '@nielspeter/eess'
+import {
+  collectResult,
+  detectFormat,
+  finishPreset,
+  isArchConfigError,
+  reportViolations,
+} from '@nielspeter/eess'
 import type { ArchViolation, CheckOptions, OutputFormat } from '@nielspeter/eess'
 import { loadRuleFiles, type LoadOptions, type RuleBuilderLike } from '../load-rules.js'
 
@@ -13,6 +19,28 @@ function isArchRuleError(value: unknown): boolean {
   // Duck-type: ArchRuleError class identity is unreliable across jiti boundaries
   // because the rule file may load its own copy of the kernel. Match by name.
   return 'name' in value && typeof value.name === 'string' && value.name === 'ArchRuleError'
+}
+
+/**
+ * A rule file the loader refused — bug 0269.
+ *
+ * Its message is the loader's own, verbatim: that text names the offending entry
+ * by index and says what a builder must be, which is exactly what the reader
+ * needs and is not this function's to paraphrase.
+ */
+function reportRuleFileMisconfigured(file: string, detail: string, options: CheckOptions): void {
+  const violation: ArchViolation = {
+    rule: 'rule file: misconfigured',
+    ruleId: 'cli/rule-file-misconfigured',
+    element: file,
+    file,
+    line: 1,
+    message: `${file} could not be loaded, so its rules enforced nothing in this run: ${detail}`,
+    because:
+      'a rule file that cannot be loaded enforces nothing, and a silent skip is a green gate over an absent rule',
+    bypassFilters: true,
+  }
+  reportViolations(collectResult([violation], { examined: 0 }), options)
 }
 
 /**
@@ -32,9 +60,9 @@ function reportContributedNoRules(file: string, options: CheckOptions): void {
     line: 1,
     message:
       `${file} loaded but contributed no rules, so this run enforced nothing from it. ` +
-      'Export the builders you meant to check from the default export — an array of ' +
-      'them, or a single one. If the file is deliberately empty, delete it rather than ' +
-      'leaving a rule file that enforces nothing.',
+      'Export the builders you meant to check: `export default [ …builders ]`, or a ' +
+      'function returning that array. If the file is deliberately empty, delete it ' +
+      'rather than leaving a rule file that enforces nothing.',
     because:
       'a rule file that contributes no rules cannot fail, and a gate that cannot fail is worth less than no gate',
     bypassFilters: true,
@@ -73,7 +101,22 @@ export async function runCheck(args: CheckArgs): Promise<number> {
   let fileFindings = 0
   let ruleCount = 0
   for (const file of args.ruleFiles) {
-    const builders: RuleBuilderLike[] = await loadRuleFiles([file], loadOptions)
+    let builders: RuleBuilderLike[]
+    try {
+      builders = await loadRuleFiles([file], loadOptions)
+    } catch (error: unknown) {
+      // A misconfigured rule file is a FINDING, not a stack trace. The loader
+      // now rejects a non-builder loudly (it used to drop it silently, turning a
+      // rule that ran and failed into a green run), and without this catch that
+      // loudness reached the adopter as an uncaught `ArchConfigError` with a
+      // Node stack frame — and abandoned every remaining rule file. `eess-ts`
+      // reports the same class as `ruleFileMisconfigured`; this is its
+      // counterpart.
+      if (!isArchConfigError(error)) throw error
+      fileFindings++
+      reportRuleFileMisconfigured(file, error.message, options)
+      continue
+    }
     // A rule file that loads cleanly and contributes nothing enforces nothing.
     // Measured before this: `export default []` printed
     // `✓ eess-mermaid — 0 rules across 1 file · 0 failing` and exited 0 — the

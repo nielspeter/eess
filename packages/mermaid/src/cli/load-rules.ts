@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { createJiti } from 'jiti'
-import type { CheckOptions, CollectResult } from '@nielspeter/eess'
+import { ArchConfigError } from '@nielspeter/eess'
+import type { CollectResult } from '@nielspeter/eess'
 
 export interface RuleBuilderLike {
   /**
@@ -18,7 +19,6 @@ export interface RuleBuilderLike {
    * not the dialect-wide contract change the bug record first supposed.
    */
   violations: () => CollectResult
-  check?: (opts?: CheckOptions) => void
   describeRule?: () => unknown
 }
 
@@ -46,12 +46,29 @@ export async function loadRuleFiles(
     const mod: unknown = await jiti.import(resolved)
 
     const exported = extractDefault(mod)
-    const items = resolveExported(exported)
-    for (const item of items) {
-      if (isRuleBuilderLike(item)) {
-        builders.push(item)
+    const items = resolveExported(exported, resolved)
+    // A non-builder in the default-export array is a LOUD ERROR, never a silent
+    // skip — the rule `eess-ts`'s loader states and this one did not have.
+    //
+    // Measured on the branch that tightened the guard without porting the
+    // loudness: a rule file holding one real builder and one hand-rolled
+    // `{ check() { throw … } }` went from **exit 1** (the hand-rolled rule ran
+    // and threw) to `✓ eess-mermaid — 1 rule across 1 file · 0 failing`, exit 0.
+    // A rule that ran and failed simply stopped existing, under a denominator
+    // that still said one rule was there. A silently-dropped rule is a
+    // green-but-empty gate, which is the defect this tool exists to forbid.
+    items.forEach((item, index) => {
+      if (!isRuleBuilderLike(item)) {
+        throw new ArchConfigError(
+          'loadRuleFiles',
+          `Rule file "${resolved}": default export entry [${index}] is not a rule builder ` +
+            `(got ${describeValue(item)}). Every entry must be a builder that can report what ` +
+            `it examined — e.g. \`classes(diagram(…)).should()…\`. An object with only a ` +
+            `\`check()\` method cannot say what it examined, so it cannot be gated.`,
+        )
       }
-    }
+      builders.push(item)
+    })
   }
 
   return builders
@@ -61,7 +78,7 @@ export async function loadRuleFiles(
  * Resolve the exported value to an array of unknowns.
  * Supports: direct arrays, or factory functions returning arrays.
  */
-function resolveExported(exported: unknown): unknown[] {
+function resolveExported(exported: unknown, file: string): unknown[] {
   if (Array.isArray(exported)) {
     return exported
   }
@@ -73,7 +90,21 @@ function resolveExported(exported: unknown): unknown[] {
       return result
     }
   }
-  return []
+  // Loud, for the same reason as the entry check above: a default export of the
+  // wrong shape used to make the file contribute zero rules silently.
+  throw new ArchConfigError(
+    'loadRuleFiles',
+    `Rule file "${file}": default export must be an array of rule builders, or a ` +
+      `function returning one (got ${describeValue(exported)}). Add ` +
+      '`export default [ …builders ]`.',
+  )
+}
+
+function describeValue(value: unknown): string {
+  if (value === null) return 'null'
+  if (value === undefined) return 'undefined'
+  if (Array.isArray(value)) return 'an array'
+  return typeof value
 }
 
 function extractDefault(mod: unknown): unknown {

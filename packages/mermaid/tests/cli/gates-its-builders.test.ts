@@ -51,8 +51,17 @@ async function runCli(args: string[]): Promise<{ out: string; exitCode: number |
   }
 }
 
-function withRuleFile(source: string, fn: (file: string) => Promise<void>): Promise<void> {
-  const dir = mkdtempSync(join(tmpdir(), 'eess-mermaid-0269-'))
+function withRuleFile(
+  source: string,
+  fn: (file: string) => Promise<void>,
+  options?: { inPackage?: boolean },
+): Promise<void> {
+  // `inPackage` writes the probe inside the package so a relative import of the
+  // dialect's own source resolves; a temp dir cannot reach it.
+  const dir =
+    options?.inPackage === true
+      ? mkdtempSync(join(here, '../__probe-'))
+      : mkdtempSync(join(tmpdir(), 'eess-mermaid-0269-'))
   const file = join(dir, 'probe.rules.ts')
   writeFileSync(file, source)
   return fn(file).finally(() => {
@@ -73,12 +82,42 @@ describe('eess-mermaid check — a builder that enforces nothing (bug 0269)', ()
     process.exitCode = undefined
   })
 
-  it('reds on a hand-rolled builder that certifies nothing', async () => {
+  it('rejects a hand-rolled builder LOUDLY, naming the entry by index', async () => {
+    // Loud, never a silent skip. Ported without its loudness, the tightened
+    // guard turned a rule that ran and threw into a green run: a file holding
+    // one real builder and one hand-rolled `{ check() { throw } }` went from
+    // exit 1 to `✓ eess-mermaid — 1 rule across 1 file · 0 failing`.
     await withRuleFile('export default [{ check: () => {} }]\n', async (file) => {
       const { out, exitCode } = await runCli(['check', '--format', 'terminal', file])
       expect(exitCode).toBe(1)
       expect(out).not.toContain('✓ eess-mermaid')
+      expect(out).toContain('entry [0]')
+      // By id, where the id actually appears: the terminal format prints the
+      // rule's NAME, so an id assertion belongs on the JSON stream.
+      const json = await runCli(['check', '--format', 'json', file])
+      expect(json.out).toContain('cli/rule-file-misconfigured')
     })
+  })
+
+  it('does not silently drop a non-builder sitting beside a real one', async () => {
+    // The regression this guard would otherwise have introduced: on the previous
+    // behaviour the hand-rolled entry's `check()` ran and threw, so the run
+    // reddened. Dropping it silently made a failing rule cease to exist while
+    // the denominator still claimed it was there.
+    await withRuleFile(
+      "import { diagram, classes } from '../../src/index.js'\n" +
+        "const d = diagram('classDiagram\\nclass Foo\\n<<kernel>> Foo')\n" +
+        'export default [\n' +
+        "  classes(d).should().haveStereotype('kernel').rule({ id: 'probe/ok', because: 'p' }),\n" +
+        '  { check: () => {} },\n' +
+        ']\n',
+      async (file) => {
+        const { out, exitCode } = await runCli(['check', '--format', 'terminal', file])
+        expect(exitCode).toBe(1)
+        expect(out).toContain('entry [1]')
+      },
+      { inPackage: true },
+    )
   })
 
   it('reds on a builder that hands back a bare array instead of a receipt', async () => {

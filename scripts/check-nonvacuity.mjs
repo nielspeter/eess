@@ -1332,11 +1332,26 @@ function gateMermaidBareBuilder() {
     (JSON.stringify(violationsOf(bare)).match(/emitter\/no-receipt/g) ?? []).length > 0 &&
     violationsOf(bare).filter((v) => v?.ruleId === 'emitter/no-receipt').length === 1
 
-  // A hand-rolled object with only a `check` method is not a builder at all.
-  const noop = drive('export default [{ check: () => {} }]\n', ['check', rel])
+  // **By id, not by exit code**, for the same reason this file states three rows
+  // above: a rule file can exit 1 for a dozen reasons. An earlier cut asserted
+  // these two doors on the exit code alone, and an enforcement review measured
+  // what that bought — the whole `cli/rule-file-contributed-no-rules` finding
+  // could be deleted, message, remedy and id, with every gate still green.
+  //
+  // A hand-rolled object with only a `check` method is not a builder at all, and
+  // is rejected LOUDLY by index rather than dropped.
+  const noop = drive('export default [{ check: () => {} }]\n', ['check', rel, '--format', 'json'])
+  const noopNamed =
+    firedOn(noop, 'cli/rule-file-misconfigured', '__nonvacuity_probe_mermaid.rules.ts') &&
+    JSON.stringify(violationsOf(noop)).includes('entry [0]')
   // A rule file that contributes nothing.
-  const empty = drive('export default []\n', ['check', rel])
-  const bothRed = noop.code === 1 && empty.code === 1
+  const empty = drive('export default []\n', ['check', rel, '--format', 'json'])
+  const emptyNamed = firedOn(
+    empty,
+    'cli/rule-file-contributed-no-rules',
+    '__nonvacuity_probe_mermaid.rules.ts',
+  )
+  const bothRed = noop.code === 1 && noopNamed && empty.code === 1 && emptyNamed
 
   // The green direction, or "reds on a bare builder" is satisfied by a gate that
   // reds on everything.
@@ -1350,7 +1365,8 @@ function gateMermaidBareBuilder() {
     ok: bare.code === 1 && named && once && bothRed && clean.code === 0,
     detail:
       `a bare builder \u2192 ${bare.code} (named at its own file: ${named}, reported once: ${once}); ` +
-      `a no-op builder \u2192 ${noop.code}; a rule file with no rules \u2192 ${empty.code}; ` +
+      `a no-op builder \u2192 ${noop.code} (named by id and index: ${noopNamed}); ` +
+      `a rule file with no rules \u2192 ${empty.code} (named by id: ${emptyNamed}); ` +
       `an honest builder \u2192 ${clean.code}`,
   }
 }

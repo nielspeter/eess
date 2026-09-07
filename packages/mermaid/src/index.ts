@@ -13,7 +13,13 @@ export { TerminalBuilder } from '@nielspeter/eess'
 // The evidence seam this dialect's own CLI now uses (bug 0269), re-exported so a
 // standalone `@nielspeter/eess-mermaid` consumer never needs a second, direct
 // kernel install — plan 0089's rule, enforced by `check:family`.
-export { collectResult, finishPreset, reportViolations } from '@nielspeter/eess'
+export {
+  ArchConfigError,
+  collectResult,
+  finishPreset,
+  isArchConfigError,
+  reportViolations,
+} from '@nielspeter/eess'
 export type { CollectResult } from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'

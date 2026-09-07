@@ -23,6 +23,16 @@ that its loader keyed on `check`, which any hand-rolled object satisfies.
 evidence gate, and names the rule file a finding came from; and a rule file that contributes no rules
 reds with its own finding instead of ticking over a zero denominator.
 
+**A non-builder in the array is now a loud error, not a silent skip.** A rule file holding a real
+builder beside a hand-rolled object used to run the hand-rolled one; now the file is refused, naming
+the offending entry by index (`cli/rule-file-misconfigured`). This matches `eess-ts`, and it exists
+because the alternative was worse: dropping the entry silently turned a rule that ran and threw into
+a green run under a denominator that still counted it.
+
+**One JSON field changes.** `summary.reason` is now `null` where it previously carried the failing
+rule's `because`. The per-violation `because` field is unaffected and carries the same text, so
+nothing is lost — but a consumer reading `summary.reason` should read `violations[].because` instead.
+
 **What breaks.** A rule file exporting a hand-rolled object with only a `check` method — or exporting
 nothing — used to pass and now fails. That is the point: it was certifying nothing. **What to do:**
 export the builders you meant to check. A builder produced by this package's fluent API already

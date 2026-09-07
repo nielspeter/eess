@@ -110,14 +110,28 @@ by assertions now.
       reported exactly **once**, that the no-op and the empty rule file both red,
       and that an honest builder stays green.
 - [x] Falsifiable, one sabotage at a time: reverting the loader guard, deleting
-      the no-rules finding, and reverting to `builder.check()` each red the
-      fixture, each in its own field.
+      the no-rules **branch**, and reverting to `builder.check()` each red the
+      fixture, each in its own field. **Corrected after an enforcement review:**
+      this line first said "deleting the no-rules finding", and that sabotage was
+      never run in the form written — at the time it did NOT red, because the
+      fixture asserted those doors by exit code alone. Both new ids are asserted
+      by id now, and deleting either finding while keeping its counter reds the
+      row (measured).
 - [x] The tests pin `--format terminal` where they assert on the summary.
       Without it they passed locally and **failed in CI**: `detectFormat()`
       returns `github` when `GITHUB_ACTIONS` is set, and the summary line is
       written only under `terminal`, so the assertions were about the
       environment wearing the costume of assertions about behaviour. Verified
       both ways (`GITHUB_ACTIONS=true CI=true` and bare).
+- [x] A non-builder beside a real builder is rejected **loudly, by index**, not
+      dropped. The first cut ported `eess-ts`'s guard without its loudness, and
+      an enforcement review measured the regression: a file holding one real
+      builder and one hand-rolled `{ check() { throw } }` went from **exit 1** on
+      the previous behaviour to `✓ eess-mermaid — 1 rule across 1 file · 0
+failing`, exit 0. A rule that ran and failed ceased to exist under a
+      denominator that still claimed it. The loader now refuses, and the CLI
+      reports it as `cli/rule-file-misconfigured` rather than an uncaught stack
+      trace.
 - [x] The repo's own `check:diagram` stays green — the control that matters,
       since a gate that reds on everything would satisfy the rest.
 - [x] ADR-014's clause names this dialect's door now that it is true of it.
