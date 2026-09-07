@@ -44,6 +44,11 @@ makes that answer a fault. Fixing only the gate left the two doors disagreeing a
 `finishPreset` reddened it while `mergeCollectResults([thatMember, aHealthyOne])` stayed green. The
 merge names an empty-source member now.
 
+**`sourceEmpty` can now be contradicted, like every other flag that quiets a zero.** A source that
+loaded nothing cannot have yielded units to examine, so `{ examined: 900, sourceEmpty: true }` is
+`emitter/contradictory-evidence` — it used to be silent. `notRun` and `declaredEmpty` beside evidence
+already reddened; this was the one flag in the vocabulary with no falsifier.
+
 **Not affected:** every builder-produced verdict. A terminal that loaded nothing already carried its
 own source finding and exits before this gate. The population this changes is the hand-assembled
 receipt, which is what ADR-014's gate exists for.

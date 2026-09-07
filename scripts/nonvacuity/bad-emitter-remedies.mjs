@@ -21,6 +21,7 @@
  *   2 = unexpected error, or the fixture's own premise broke
  */
 import { collectResult, finishPreset, mergeCollectResults } from '@nielspeter/eess'
+import { EMITTER_IDS } from '@nielspeter/eess/internal'
 
 const NAME = 'bad-emitter-remedies'
 const gate = (receipt) => [...finishPreset(receipt, { report: 'return' })]
@@ -79,7 +80,21 @@ const CASES = [
   },
 ]
 
+// **The denominator is asserted, not printed.** An enforcement review emptied
+// `CASES`, changed nothing else, and the harness still said OK — the summary
+// read `0 causes, 0 remedies` and `mustSay` matched a banner printed
+// unconditionally. That is this harness's own defect class, inside a fixture
+// written to hold it. So the case list is checked against the kernel's own id
+// set: a new emitter id with no case here reds, and an emptied `CASES` cannot
+// print the ids the registration now keys on.
+const covered = new Set(CASES.map((c) => c.id))
+const uncovered = [...EMITTER_IDS].filter((id) => !covered.has(id))
+
 const failures = []
+if (uncovered.length > 0) {
+  failures.push(`no case for emitter id(s): ${uncovered.join(', ')} — the case list is not the id set`)
+}
+
 try {
   for (const { id, corrupt, corrective, declaring } of CASES) {
     const fired = gate(corrupt())
@@ -152,6 +167,15 @@ try {
     failures.push(`CONTROL: two healthy members merged to ${idsOf(gate(mergedHealthy)).join(',')}`)
   }
 
+  // **Every flag that can quiet a zero can be contradicted.** `sourceEmpty` was
+  // the one that could not: `notRun` beside evidence reds, `declaredEmpty`
+  // beside evidence reds, and `{ examined: 900, sourceEmpty: true }` was silent
+  // until the change that gave `sourceEmpty` its own id put it in scope.
+  if (!idsOf(gate(collectResult([], { examined: 900, sourceEmpty: true })))
+      .includes('emitter/contradictory-evidence')) {
+    failures.push('a sourceEmpty receipt claiming 900 examined units was NOT contradicted')
+  }
+
   // **The kernel names no preset's options** — ADR-014 §4, "at a seam that may
   // not be a preset".
   const zeroExamined = gate(collectResult([], { examined: 0 }))[0]
@@ -173,6 +197,9 @@ try {
 if (failures.length === 0) {
   console.error(
     `${NAME}: every emitter cause fired by id and every stated remedy cleared it — ` +
+      // The ids themselves, so the registration can key on one and an emptied
+      // case list cannot print it.
+      `${[...covered].sort().join(' ')} — ` +
       `${CASES.length} causes, ` +
       `${CASES.reduce((n, c) => n + Object.keys(c.corrective).length, 0)} corrective and ` +
       `${CASES.reduce((n, c) => n + Object.keys(c.declaring).length, 0)} declaring remedies ` +

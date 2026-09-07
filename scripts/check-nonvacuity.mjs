@@ -2153,10 +2153,7 @@ const gates = [
   ['emitter/ledger-dead-check', gateLedgerDeadCheck],
   ['emitter/bare-builder-reds-the-cli', gateBareBuilderRedsEveryCliDoor],
   ['emitter/mermaid-bare-builder-reds-the-cli', gateMermaidBareBuilder],
-  [
-    'emitter/remedy-remediates',
-    () => gateNode('bad-emitter-remedies.mjs', 'every emitter cause fired'),
-  ],
+  ['emitter/remedy-remediates', () => gateNode('bad-emitter-remedies.mjs', 'emitter/source-empty')],
   ['emitter/release-dead-check', gateReleaseDeadCheck],
   ['corpus/exclusion-inert', gateCorpusInertExclusion],
   // The other half of 0255. A separate row because the production script cannot

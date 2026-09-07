@@ -132,6 +132,25 @@ function withEvidenceGate(violations: readonly ArchViolation[]): CollectResult {
       { examined: violations.examined, sourceEmpty: violations.sourceEmpty },
     )
   }
+  // **`sourceEmpty` beside real evidence is a contradiction, like its siblings.**
+  // A source that loaded nothing cannot have yielded units to examine — the flag
+  // is set precisely when `examined === 0`. Checked before the two exits below,
+  // for the same reason the `notRun` check above is: after them it would be
+  // unreachable.
+  //
+  // Without this, `sourceEmpty` was the one flag in the vocabulary that could
+  // quiet a zero and never be contradicted — `notRun` beside evidence is
+  // `emitter/contradictory-evidence`, `declaredEmpty` beside evidence is
+  // `emitter/expired-declaration`, and `{ examined: 900, sourceEmpty: true }` was
+  // silent. That asymmetry is what ADR-014's "every flag that can quiet a zero
+  // can be contradicted" row exists to refuse, and promoting `sourceEmpty` to a
+  // verdict-changing flag with its own id is what put it in scope.
+  if (violations.sourceEmpty === true && violations.examined > 0) {
+    return collectResult(
+      [...violations, contradictoryEvidenceViolation(violations.examined, violations.length)],
+      { examined: violations.examined },
+    )
+  }
   if (violations.length > 0) return violations
   if (violations.examined > 0) return violations
   // **An empty source outranks any declaration, and names the source** — ADR-014
