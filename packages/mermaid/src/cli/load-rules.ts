@@ -1,9 +1,24 @@
 import path from 'node:path'
 import { createJiti } from 'jiti'
-import type { CheckOptions } from '@nielspeter/eess'
+import type { CheckOptions, CollectResult } from '@nielspeter/eess'
 
 export interface RuleBuilderLike {
-  check: (opts?: CheckOptions) => void
+  /**
+   * The receipt — bug 0269.
+   *
+   * Required, not optional, and this is the whole fix. The loader used to key on
+   * `check`, which any hand-rolled object satisfies, so
+   * `export default [{ check: () => {} }]` was counted as a rule and the run
+   * printed `✓ eess-mermaid — 1 rule across 1 file · 0 failing`.
+   *
+   * Every real builder already has this: `ClassRuleBuilder extends RuleBuilder`,
+   * which extends the kernel's `TerminalBuilder`, where `violations()` has
+   * returned a `CollectResult` since ADR-014. The receipt was there the whole
+   * time and the CLI never asked for it — which is why this is a wiring fix and
+   * not the dialect-wide contract change the bug record first supposed.
+   */
+  violations: () => CollectResult
+  check?: (opts?: CheckOptions) => void
   describeRule?: () => unknown
 }
 
@@ -76,6 +91,8 @@ function isRuleBuilderLike(value: unknown): value is RuleBuilderLike {
   if (value === null || value === undefined || typeof value !== 'object') {
     return false
   }
-  // Structural type check: must have a 'check' method
-  return 'check' in value && typeof value.check === 'function'
+  // Structural, and keyed on the RECEIPT rather than on `check` — bug 0269. A
+  // builder that cannot say what it examined cannot be gated, and counting it as
+  // a rule is how a hand-rolled no-op earned a green tick and a denominator.
+  return 'violations' in value && typeof value.violations === 'function'
 }

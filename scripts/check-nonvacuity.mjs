@@ -223,6 +223,12 @@ const PROBE_BASELINE_OUT = join(
   '__nonvacuity_probe_baseline.json',
 )
 const PROBE_FIX_TARGET = join(repoRoot, 'scripts', 'nonvacuity', '__nonvacuity_probe_target.txt')
+const PROBE_MERMAID_RULES = join(
+  repoRoot,
+  'scripts',
+  'nonvacuity',
+  '__nonvacuity_probe_mermaid.rules.ts',
+)
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
 const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
 // Bug 0127: corpus/links must prove BOTH routing regions (bug 0086's
@@ -544,6 +550,7 @@ rmSync(PROBE_ARCH, { force: true })
 rmSync(PROBE_BARE_RULES, { force: true })
 rmSync(PROBE_BASELINE_OUT, { force: true })
 rmSync(PROBE_FIX_TARGET, { force: true })
+rmSync(PROBE_MERMAID_RULES, { force: true })
 rmSync(PROBE_CATCH, { force: true })
 rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
@@ -1287,6 +1294,64 @@ function gateBareBuilderRedsEveryCliDoor() {
       `${cleanCheck.code}/${cleanBaseline.code}/${cleanFix.code}, --apply still fixes: ` +
       `${targetFixed}, beside a config finding: ${fixesDespiteConfigFinding}, ` +
       `beside a refused builder: ${fixesBesideRefusedBuilder}`,
+  }
+}
+
+/**
+ * ADR-014's clause, in the OTHER dialect that publishes a binary — bug 0269.
+ *
+ * `eess-mermaid check` counted the throws from `builder.check()` and never
+ * looked at what a rule examined, so `export default [{ check: () => {} }]`
+ * printed `✓ eess-mermaid — 1 rule across 1 file · 0 failing` and exited 0.
+ * ADR-014's row was written dialect-neutrally and read as though the family were
+ * covered; measured, only `eess-ts` was.
+ *
+ * Three doors in one row, because they are one mechanism: the loader now keys on
+ * the RECEIPT rather than on `check`, so a hand-rolled no-op is not a rule; a
+ * rule file that contributes none reds instead of ticking over a zero
+ * denominator; and a builder that hands back a bare array meets the kernel gate
+ * and is named at its own rule file.
+ */
+function gateMermaidBareBuilder() {
+  const rel = join('scripts', 'nonvacuity', '__nonvacuity_probe_mermaid.rules.ts')
+  const drive = (source, args) =>
+    withProbe(PROBE_MERMAID_RULES, source, () => sh(EESS_MERMAID, args))
+
+  // By id AND by the file it names — the same standard the `eess-ts` row holds.
+  const bare = drive('export default [{ violations: () => [] }]\n', [
+    'check',
+    rel,
+    '--format',
+    'json',
+  ])
+  const named = firedOn(bare, 'emitter/no-receipt', '__nonvacuity_probe_mermaid.rules.ts')
+  // Exactly once: an earlier cut re-wrapped the gated findings with the raw
+  // receipt's `examined`, which a bare array has none of, so the emitter's own
+  // gate appended a second copy and the same finding printed twice.
+  const once =
+    (JSON.stringify(violationsOf(bare)).match(/emitter\/no-receipt/g) ?? []).length > 0 &&
+    violationsOf(bare).filter((v) => v?.ruleId === 'emitter/no-receipt').length === 1
+
+  // A hand-rolled object with only a `check` method is not a builder at all.
+  const noop = drive('export default [{ check: () => {} }]\n', ['check', rel])
+  // A rule file that contributes nothing.
+  const empty = drive('export default []\n', ['check', rel])
+  const bothRed = noop.code === 1 && empty.code === 1
+
+  // The green direction, or "reds on a bare builder" is satisfied by a gate that
+  // reds on everything.
+  const clean = drive(
+    "import { collectResult } from '@nielspeter/eess'\n" +
+      'export default [{ violations: () => collectResult([], { examined: 7 }) }]\n',
+    ['check', rel],
+  )
+
+  return {
+    ok: bare.code === 1 && named && once && bothRed && clean.code === 0,
+    detail:
+      `a bare builder \u2192 ${bare.code} (named at its own file: ${named}, reported once: ${once}); ` +
+      `a no-op builder \u2192 ${noop.code}; a rule file with no rules \u2192 ${empty.code}; ` +
+      `an honest builder \u2192 ${clean.code}`,
   }
 }
 
@@ -2071,6 +2136,7 @@ const gates = [
   // names all three, and only `check:corpus` had a fixture before plan 0263.
   ['emitter/ledger-dead-check', gateLedgerDeadCheck],
   ['emitter/bare-builder-reds-the-cli', gateBareBuilderRedsEveryCliDoor],
+  ['emitter/mermaid-bare-builder-reds-the-cli', gateMermaidBareBuilder],
   ['emitter/release-dead-check', gateReleaseDeadCheck],
   ['corpus/exclusion-inert', gateCorpusInertExclusion],
   // The other half of 0255. A separate row because the production script cannot
@@ -2342,7 +2408,7 @@ const GATE_FOR = {
     'family kernel-imports emptied',
   ],
   'check:baseline': ['baseline'],
-  'check:diagram': ['diagram'],
+  'check:diagram': ['diagram', 'emitter/mermaid-bare-builder-reds-the-cli'],
   'check:spec': ['spec'],
   'check:vacuity': ['vacuity-matrix'],
   'check:crossval': [

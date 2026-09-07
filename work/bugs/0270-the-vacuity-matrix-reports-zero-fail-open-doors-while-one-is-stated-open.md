@@ -88,5 +88,5 @@ Deferred: none.
 - [Plan 0263](../plans/0263-adr-014s-residual-enforcement-rows.md) — Phase 2
   stated the residual and made `.:checkAll`'s exclusion reason stale.
 - [0268](./0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md)
-  and [0269](./0269-eess-mermaids-check-door-greenlights-a-builder-that-enforces-nothing.md)
+  and [0269](./fixed/0269-eess-mermaids-check-door-greenlights-a-builder-that-enforces-nothing.md)
   — the other two doors Phase 2 measured and filed rather than closed.
