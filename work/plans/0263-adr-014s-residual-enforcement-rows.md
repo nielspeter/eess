@@ -250,4 +250,11 @@ and the other four are pure gain.
 - [ ] Phase 5 — `throwIfViolations` removed, changeset naming the break
 - [ ] `/close`
 
+**Shipped so far.** Phase 1 landed on its own, with ADR-014's
+`Every hand-assembled check in this repo supplies evidence` row moving
+`pending` → `gated` — the one row Phase 1 satisfies end to end. Four rows and
+four phases remain, and the plan stays open until they do: a public API break
+(Phase 5) and a rewiring of `checkAll` (Phase 2) do not belong in the same diff
+as a gate's evidence seam.
+
 Deferred: none
