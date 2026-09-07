@@ -3,6 +3,7 @@ import { type CollectResult, collectResult, hasEvidence } from './collect-result
 import {
   isEmitterFinding,
   noReceiptViolation,
+  sourceEmptyViolation,
   passWithoutEvidenceViolation,
   expiredDeclarationViolation,
   contradictoryEvidenceViolation,
@@ -133,16 +134,27 @@ function withEvidenceGate(violations: readonly ArchViolation[]): CollectResult {
   }
   if (violations.length > 0) return violations
   if (violations.examined > 0) return violations
-  // `declaredEmpty` legitimises a zero; `sourceEmpty` does NOT, and treating the
-  // two alike inverted ADR-010 §3's own gated precedence: "Zero loaded source
-  // files is a configuration finding UNDER ANY DECLARATION." An empty source is
-  // the stronger fault, not a weaker one.
+  // **An empty source outranks any declaration, and names the source** — ADR-014
+  // §4, and ADR-010 §3's own `gated` row ("Zero loaded source files outranks any
+  // `.expectEmpty()` declaration") which the terminal has always honoured.
   //
-  // A terminal that loaded nothing already carries `zeroLoadedSourceViolation`,
-  // so it exits at the `length > 0` line above and never reaches here. What does
-  // reach here is a hand-assembled receipt claiming an empty source with nothing
-  // to say about it — and passing that silently is the escape hatch this ADR
-  // closes.
+  // This branch is checked BEFORE `declaredEmpty` and `notRun`, and that ordering
+  // is the whole point. The comment that used to sit here said `sourceEmpty` does
+  // not legitimise a zero — and the next line returned green on `declaredEmpty`
+  // without ever reading it. Measured:
+  // `finishPreset(collectResult([], { examined: 0, sourceEmpty: true, declaredEmpty: true }))`
+  // was GREEN. A hand-assembled receipt claiming an empty source and declaring it
+  // away is precisely the escape hatch that comment claimed this ADR had closed.
+  //
+  // A terminal that loaded nothing already carries `zeroLoadedSourceViolation` and
+  // exits at the `length > 0` line above, so this fires for the hand-assembled
+  // receipt — the population ADR-014's gate exists for.
+  if (violations.sourceEmpty === true) {
+    return collectResult([...violations, sourceEmptyViolation()], {
+      examined: violations.examined,
+      sourceEmpty: true,
+    })
+  }
   if (violations.declaredEmpty === true) return violations
   // `notRun` legitimises a zero here for the same reason `declaredEmpty` does,
   // and for the reason the MERGE already exempts it: a rule turned off examined

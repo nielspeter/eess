@@ -575,4 +575,5 @@ export const NOT_CHECKS: readonly string[] = [
   '.:EMITTER_PASS_WITHOUT_EVIDENCE', // a rule id (string constant)
   '.:EMITTER_EXPIRED_DECLARATION', // a rule id (string constant)
   '.:EMITTER_CONTRADICTORY_EVIDENCE', // a rule id (string constant)
+  '.:EMITTER_SOURCE_EMPTY', // a rule id (string constant)
 ]

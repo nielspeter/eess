@@ -77,12 +77,13 @@ Three unsuppressable findings, by rule id:
 Each id is also exported as a constant, so a test or fixture can assert on it
 without re-typing the string — the drift a hand-copied id invites:
 
-| Constant                         | Rule id                          | Fires when                                        | Remedy                                                       |
-| -------------------------------- | -------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
-| `EMITTER_NO_RECEIPT`             | `emitter/no-receipt`             | the value carried no evidence at all              | hand over what the pipeline minted, not a hand-built array   |
-| `EMITTER_PASS_WITHOUT_EVIDENCE`  | `emitter/pass-without-evidence`  | zero examined, zero violations, no declaration    | widen the selection, or declare the set empty                |
-| `EMITTER_EXPIRED_DECLARATION`    | `emitter/expired-declaration`    | declared empty, then examined something           | remove the declaration — it has stopped being true           |
-| `EMITTER_CONTRADICTORY_EVIDENCE` | `emitter/contradictory-evidence` | marked never-run, yet examined or found something | drop the flag if the rule ran, or the evidence if it did not |
+| Constant                         | Rule id                          | Fires when                                         | Remedy                                                                           |
+| -------------------------------- | -------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `EMITTER_NO_RECEIPT`             | `emitter/no-receipt`             | the value carried no evidence at all               | hand over what the pipeline minted, not a hand-built array                       |
+| `EMITTER_PASS_WITHOUT_EVIDENCE`  | `emitter/pass-without-evidence`  | zero examined, zero violations, no declaration     | widen the selection, or declare the set empty                                    |
+| `EMITTER_EXPIRED_DECLARATION`    | `emitter/expired-declaration`    | declared empty, then examined something            | remove the declaration — it has stopped being true                               |
+| `EMITTER_CONTRADICTORY_EVIDENCE` | `emitter/contradictory-evidence` | marked never-run, yet examined or found something  | drop the flag if the rule ran, or the evidence if it did not                     |
+| `EMITTER_SOURCE_EMPTY`           | `emitter/source-empty`           | the source loaded nothing before any selection ran | fix the project, tsconfig or glob — a declaration cannot rescue an absent source |
 
 ### Declaring a legitimately empty set
 

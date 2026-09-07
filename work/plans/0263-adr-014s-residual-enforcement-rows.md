@@ -517,7 +517,40 @@ and the other four are pure gain.
       — `check:vacuity` prints `0 unaccounted fail-open` while this phase ships a
       stated-open door, because both `collectViolations` sit in `NOT_CHECKS`.
 
-- [ ] Phase 3 — the four remedy-remediates fixtures
+- [x] Phase 3 — the remedy-remediates fixtures, and the fail-open the survey
+      found while writing them. `scripts/nonvacuity/bad-emitter-remedies.mjs`
+      (`emitter/remedy-remediates`) drives all **five** causes — the plan said
+      four and omitted `contradictory-evidence`, which has an id and a remedy
+      like the rest — asserts each fires **by rule id**, then applies every
+      remedy its message names and asserts the finding is gone. Seven remedies
+      across five causes, because a message that offers two is wrong if either
+      fails. `packages/core/tests/remedy-remediates.test.ts` carries the same
+      pairs as units, with a CONTROL that an honest receipt reaches none of them.
+
+      **The survey found a fail-open before a line of fixture was written, and
+      it is the reason this row could not have been made honest without it.**
+      ADR-014 §4 says an empty source "outranks any declaration and names the
+      source". The gate honoured `declaredEmpty` before it ever read
+      `sourceEmpty`, so `collectResult([], { examined: 0, sourceEmpty: true,
+      declaredEmpty: true })` returned **green** — beneath a comment asserting
+      that exact escape hatch was closed. The stated rule and the code had
+      disagreed since the gate was written, and every reading of the comment
+      would have confirmed the rule rather than the behaviour.
+
+      Two more §4 clauses were unmet: an empty source produced the generic
+      `pass-without-evidence`, whose remedy ("widen the selection, or declare
+      it") is wrong for a source that loaded nothing — so `emitter/source-empty`
+      now names the source; and the zero-examined message named `expectEmpty:
+      true in a preset's report options`, which §4 forbids "at a seam that may
+      not be a preset". That is the same defect the #118 review measured on
+      `checkAll([])`, one layer down and unnoticed until the row's own words were
+      read against the code.
+
+      Sabotage-checked one at a time: reverting the precedence, restoring the
+      preset wording, and breaking a remedy each red the fixture. Ships a kernel
+      `minor` naming all five dialects, because a kernel break reaches an adopter
+      through whichever dialect they installed.
+
 - [ ] Phase 4 — the no-second-registry rule
 - [ ] Phase 5 — `throwIfViolations` removed, changeset naming the break
 - [ ] `/close`
