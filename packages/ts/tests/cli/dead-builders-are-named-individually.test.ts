@@ -9,9 +9,15 @@
  * anyone's code — so all three collapsed into one, with a note claiming they
  * were "one edit".
  *
- * They are three edits in three places. `keyFor` now refuses a key when the
- * element is the identity again, the same guard it already had for the
- * `'unnamed'` sentinel.
+ * They are three edits in three places. `keyFor` now refuses a key for the ids
+ * in `EMITTER_IDS`, which `emitter-findings.ts` owns.
+ *
+ * **Keyed on the id set, not on the `element === identity` shape.** A first cut
+ * used the shape and was too broad — a real rule with a real narrowing and no
+ * glob to name looks identical, and two instances of it genuinely are one edit.
+ * `tests/core/the-floor.test.ts`'s "CONTROL: genuinely identical findings still
+ * collapse" reds on that version. This note used to describe the rejected cut,
+ * which would have sent the next reader to make the change a control forbids.
  *
  * This lives in `packages/ts` rather than beside the kernel unit test because
  * `check:crossval` resolves ADR `it()` citations against `packages/ts`'s

@@ -46,26 +46,11 @@
  * one.
  */
 import type { ArchViolation } from './violation.js'
-import {
-  EMITTER_CONTRADICTORY_EVIDENCE,
-  EMITTER_EXPIRED_DECLARATION,
-  EMITTER_NO_RECEIPT,
-  EMITTER_PASS_WITHOUT_EVIDENCE,
-} from './emitter-findings.js'
-
-/**
- * The ids that are never collapsed — see `keyFor`.
- *
- * The constants rather than an `emitter/` prefix test, so a new id has to be
- * added here deliberately rather than inheriting the exemption by being named
- * well.
- */
-const EMITTER_IDS: ReadonlySet<string> = new Set([
-  EMITTER_NO_RECEIPT,
-  EMITTER_PASS_WITHOUT_EVIDENCE,
-  EMITTER_EXPIRED_DECLARATION,
-  EMITTER_CONTRADICTORY_EVIDENCE,
-])
+// The ids that are never collapsed — see `keyFor`. Imported rather than
+// re-listed: `emitter-findings.ts` declares them and owns the set, so the next
+// id is added in one place. A second local list here is how this guard would
+// silently stop covering a fifth id.
+import { EMITTER_IDS } from './emitter-findings.js'
 
 /** How the surviving finding states the fan-out it stands for. */
 function affectedNote(count: number): string {

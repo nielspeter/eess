@@ -3,7 +3,7 @@ import { applyFixes } from '@nielspeter/eess/internal'
 import { withBaseline } from '../../helpers/baseline.js'
 import { diffAware } from '../../helpers/diff-aware.js'
 import type { OutputFormat } from '@nielspeter/eess'
-import type { ArchViolation, CheckOptions, RuleBuilderLike } from '@nielspeter/eess'
+import type { ArchViolation, CheckOptions } from '@nielspeter/eess'
 import { finishPreset, isArchRuleError } from '@nielspeter/eess'
 import { withCallerAggregating, violationsWritten, writeReport } from '../../core/execute-rule.js'
 import { suppressionNotice } from '@nielspeter/eess/internal'
@@ -58,8 +58,7 @@ export async function runCheck(args: CheckArgs): Promise<number> {
   // eess's own capability (plan 0066); upstream has no equivalent and plan
   // 0165's engine copy dropped it. Restored in Phase 3.
   if (args.fix === true) {
-    const builders = await loadRuleFiles(args.ruleFiles, { fresh: args.fresh })
-    return runFix(builders, { format }, args.apply === true)
+    return await runFix(args.ruleFiles, { format }, args.apply === true, args.fresh)
   }
   // This command reports once, at the end, across every rule file. So a
   // self-executing rule file's own terminals must not also write the findings that
@@ -338,16 +337,74 @@ async function runCheckInner(
  * because it did some work. `applyFixes` skips overlapping edits rather than
  * guessing, and says how many it skipped — a silently-dropped edit would leave
  * the file half-repaired with a green run to match.
+ *
+ * **Clamped at 255.** `process.exitCode = 256` exits **0** — measured — so an
+ * unclamped count is a fail-open at exactly 256 remaining violations, and this
+ * door now carries an unsuppressable evidence finding through that counter.
+ *
+ * **Loads per rule file, like `runBaseline`** — plan 0263 Phase 2, third pass.
+ * It used to take a flat `RuleBuilderLike[]` that `runCheck` had already
+ * flattened, so the emitter finding printed as `  :0  …` with no path: bug
+ * 0026's seam, reopened at the one door the phase claimed had closed it. Six
+ * reviewers measured it independently. The file is in hand here for the same
+ * reason it is in `runCheck`, and for the same purpose.
  */
-function runFix(builders: RuleBuilderLike[], options: CheckOptions, write: boolean): number {
+async function runFix(
+  ruleFiles: string[],
+  options: CheckOptions,
+  write: boolean,
+  fresh?: boolean,
+): Promise<number> {
   // **The gate runs here too** — plan 0263 Phase 2, after review. An earlier cut
   // of this phase excused `--fix` from ADR-014's clause on the grounds that it
-  // "returns before any verdict". Measured, that was false: this line calls
+  // "returns before any verdict". Measured, that was false: it calls
   // `violations()` on every builder, so it reaches exactly the same verdict
   // `runCheck` does, and a rule file exporting an evidence-free builder ran
-  // through `--fix` to `0 fix(es)` and exit 0. Applying repairs computed from a
-  // verdict that certifies nothing is worse than reporting one.
-  const all = builders.flatMap((b) => finishPreset(b.violations(), { report: 'return' }))
+  // through `--fix` to `0 fix(es)` and exit 0.
+  const all: ArchViolation[] = []
+  for (const file of ruleFiles) {
+    let builders
+    try {
+      builders = await loadRuleFiles([file], { fresh })
+    } catch (error: unknown) {
+      all.push(...failureOrViolations(file, error, ruleFiles.length))
+      continue
+    }
+    for (const builder of builders) {
+      try {
+        all.push(
+          ...attributeToRuleFile(finishPreset(builder.violations(), { report: 'return' }), file),
+        )
+      } catch (error: unknown) {
+        all.push(...failureOrViolations(file, error, ruleFiles.length))
+      }
+    }
+  }
+
+  // **Refuse BEFORE writing.** The comment above used to end "Applying repairs
+  // computed from a verdict that certifies nothing is worse than reporting one",
+  // and then the code did exactly that: the gate produced the finding into `all`,
+  // and `applyFixes` had already run by the time anything consulted it. Measured
+  // under `--apply`, a source file was rewritten while the same run printed
+  // `emitter/no-receipt` and exited 1.
+  //
+  // A fix is an edit derived from a verdict. If the verdict is refused, so is
+  // every edit computed from it — for the same reason `runBaseline` refuses to
+  // persist one. `bypassFilters` is the marker, exactly as it is there.
+  const refused = all.filter((v) => v.bypassFilters === true)
+  if (refused.length > 0) {
+    writeStderr(
+      `eess-ts --fix refused: ${String(refused.length)} finding(s) report a rule that ` +
+        `certifies nothing, so no fix computed from this run can be trusted. ` +
+        `Nothing was ${write ? 'written' : 'previewed'}. Fix these first:\n`,
+    )
+    for (const v of refused) {
+      const where = v.file === '' ? '' : `${v.file}: `
+      writeStderr(`  - ${where}${v.ruleId ?? v.rule}: ${v.message}\n`)
+    }
+    return 1
+  }
+
   const fixable = all.filter((v) => v.fix !== undefined)
   const result = applyFixes(fixable, { write })
 
@@ -369,5 +426,5 @@ function runFix(builders: RuleBuilderLike[], options: CheckOptions, write: boole
     for (const v of remaining)
       process.stdout.write(`  ${v.file}:${v.line}  ${v.message.split('\n')[0]}\n`)
   }
-  return remaining.length
+  return Math.min(remaining.length, 255)
 }

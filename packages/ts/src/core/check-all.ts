@@ -1,6 +1,11 @@
 import type { ArchViolation, RuleBuilderLike } from '@nielspeter/eess'
 import type { CheckOptions } from '@nielspeter/eess'
-import { ArchRuleError, finishPreset, mergeCollectResults } from '@nielspeter/eess'
+import {
+  ArchRuleError,
+  EMITTER_PASS_WITHOUT_EVIDENCE,
+  finishPreset,
+  mergeCollectResults,
+} from '@nielspeter/eess'
 import { callerAggregates, writeReport } from './execute-rule.js'
 import { dedupeConfigFindings } from '@nielspeter/eess/internal'
 import { suppressionNotice } from '@nielspeter/eess/internal'
@@ -40,6 +45,41 @@ export function checkAll(rules: RuleBuilderLike[], options?: CheckOptions): void
   // `mergeCollectResults` is the kernel's one merge (ADR-014 §7) and is
   // fail-closed **per member**, so one evidence-free builder among twenty is
   // named rather than absorbed by the others' counts.
+  // **The empty array answers for itself, because the kernel's message cannot.**
+  // `mergeCollectResults([])` is zero examined and undeclared, so the gate below
+  // fires `emitter/pass-without-evidence` — correct. But that finding's remedy
+  // names `expectEmpty: true` in a preset's report options and `.expectEmpty()`
+  // on a builder, and at THIS door there is no preset and no builder to call it
+  // on: `CheckOptions` carries `baseline`, `diff` and `format` only. A finding
+  // whose every stated remedy is unreachable is ADR-009 rule 2's failure, and
+  // `emitter-findings.ts` records that this exact message was once rewritten for
+  // exactly that reason. Four reviewers caught it being recreated here.
+  //
+  // So this door states the remedy a `checkAll` caller can actually act on. The
+  // finding stays unsuppressable and error-severity like its sibling; only the
+  // text is this door's.
+  if (rules.length === 0) {
+    throw new ArchRuleError([
+      {
+        rule: EMITTER_PASS_WITHOUT_EVIDENCE,
+        ruleId: EMITTER_PASS_WITHOUT_EVIDENCE,
+        element: EMITTER_PASS_WITHOUT_EVIDENCE,
+        file: '',
+        line: 0,
+        message:
+          'checkAll() was called with no rules, so this run examined nothing and cannot ' +
+          'report a pass. Guard the array before calling — `if (rules.length > 0) ' +
+          'checkAll(rules)` — or pass the rules you meant to check. There is no ' +
+          'declaration form at this door: a preset that legitimately produces no rules ' +
+          'declares that where it is built, not here.',
+        suggestion:
+          'Guard the array before calling: `if (rules.length > 0) checkAll(rules)`. ' +
+          'This finding cannot be suppressed.',
+        bypassFilters: true,
+      },
+    ])
+  }
+
   const receipt = mergeCollectResults(rules.map((rule) => rule.violations()))
   // ADR-008: this function owns its reporting below, so the gate runs under
   // `report: 'return'` and hands the findings back instead of emitting them.

@@ -458,15 +458,15 @@ See [Cross-Layer Validation](/cross-layer) for usage examples.
 
 ## Check Options
 
-| Export              | Signature                                            | Description                                                           |
-| ------------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
-| `withBaseline`      | `withBaseline(path: string): Baseline`               | Load a baseline file for gradual adoption.                            |
-| `generateBaseline`  | `generateBaseline(violations, path): void`           | Write a baseline file from current violations.                        |
-| `collectViolations` | `collectViolations(...rules): ArchViolation[]`       | Collect violations from multiple rules.                               |
-| `diffAware`         | `diffAware(base: string): DiffFilter`                | Only report violations in changed files.                              |
-| `Baseline`          | class                                                | Baseline instance for filtering known violations.                     |
-| `DiffFilter`        | class                                                | Diff filter instance.                                                 |
-| `silent`            | `silent(pattern: string \| RegExp): SilentExclusion` | Wrap an exclusion pattern to suppress the "unused exclusion" warning. |
+| Export              | Signature                                            | Description                                                                                         |
+| ------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `withBaseline`      | `withBaseline(path: string): Baseline`               | Load a baseline file for gradual adoption.                                                          |
+| `generateBaseline`  | `generateBaseline(violations, path): void`           | Write a baseline file from current violations.                                                      |
+| `collectViolations` | `collectViolations(...rules): ArchViolation[]`       | Collect violations from multiple rules. **Bypasses the evidence gate** — prefer `eess-ts baseline`. |
+| `diffAware`         | `diffAware(base: string): DiffFilter`                | Only report violations in changed files.                                                            |
+| `Baseline`          | class                                                | Baseline instance for filtering known violations.                                                   |
+| `DiffFilter`        | class                                                | Diff filter instance.                                                                               |
+| `silent`            | `silent(pattern: string \| RegExp): SilentExclusion` | Wrap an exclusion pattern to suppress the "unused exclusion" warning.                               |
 
 ## ArchFunction Model
 

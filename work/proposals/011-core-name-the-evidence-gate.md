@@ -1,9 +1,9 @@
 # Proposal 011 — core: name the evidence gate, instead of reaching it through a reporting function
 
-**State:** Draft — surveyed against the repo source at the head of `plan-0263-phase-2`; every call site below was enumerated with `grep -rn "report: 'return'" packages/*/src scripts` rather than recalled. No red test written yet; nothing here is a defect, so there may never be one.
+**State:** Draft — **what this proposal produces is a decision, not a change**: ask A cannot be evaluated until root-vs-`/internal` is settled (open question 1), so accepting it schedules that decision rather than an implementation. Surveyed against the repo source at the head of `plan-0263-phase-2`; every call site below was enumerated with `grep -rn "report: 'return'" packages/*/src scripts` rather than recalled. No red test written yet; nothing here is a defect, so there may never be one.
 **Priority:** Medium — no false green today. It is a surface-honesty question about a seam that four packages and eight scripts already depend on, which is exactly the kind that gets more expensive to move.
 **Origin:** self-found — raised by the architect lens reviewing PR #118 (plan 0263 Phase 2), which declined the `verdictOf` primitive it had itself proposed in the previous round and named this as the complaint that survives.
-**Affects:** `packages/core/src/report.ts` (`withEvidenceGate`, `finishPreset`), `packages/core/src/index.ts` (the root surface), `packages/ts/src/cli/commands/check.ts`, `packages/ts/src/cli/commands/baseline.ts`, `packages/ts/src/core/check-all.ts`, `packages/ts/src/presets/shared.ts`, and the eight dogfood scripts under `scripts/`.
+**Affects:** `packages/core/src/report.ts` (`withEvidenceGate`, `finishPreset`), `packages/core/src/index.ts` (the root surface), `packages/ts/src/cli/commands/check.ts`, `packages/ts/src/cli/commands/baseline.ts`, `packages/ts/src/core/check-all.ts`, `packages/ts/src/presets/shared.ts`, `packages/core/src/preset-dispatch.ts`, and the three dogfood scripts that use the compound this proposal is about — `scripts/check-corpus.mjs`, `scripts/check-ledger.mjs`, `scripts/check-release.mjs`. (An earlier draft said "eight dogfood scripts", a number no reading of the grep produces: six files directly under `scripts/` contain the string, twelve including `scripts/nonvacuity/`, three contain the compound. It was recalled, in the line claiming derivation — the habit [bug 0267](../bugs/0267-the-freeze-checks-links-not-premises.md) is about, caught by a method review.)
 
 ## Problem
 
@@ -75,8 +75,8 @@ only names it — so the criteria are about the seam not going quietly inert.
   private function it replaces.
 - **Non-vacuity:** the export must be the symbol at least one existing
   `emitter/*` probe drives, by name, rather than a wrapper the probes reach only
-  through `finishPreset`. `scripts/vacuity-matrix.mjs` already carries three
-  `EMITTER_*` probes; if the named gate is not on the path they exercise, the
+  through `finishPreset`. `scripts/vacuity-matrix.mjs` already carries five
+  `EMITTER_PROBES` entries; if the named gate is not on the path they exercise, the
   export is decorative and the criterion is not met.
 - **Tier:** 1 for the signature, 2 for the behaviour. No new tier is claimed.
 

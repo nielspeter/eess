@@ -93,6 +93,33 @@ describe('checkAll', () => {
       }
     })
 
+    // The changeset announces `checkAll([])` as a break and nothing tested it —
+    // a new way to fail a build with no falsifier, which is the defect this plan
+    // exists to remove. Found by two reviewers.
+    it('throws on an empty rule array, naming a remedy reachable at this door', () => {
+      try {
+        checkAll([])
+        expect.unreachable('checkAll([]) should have thrown')
+      } catch (error) {
+        const violations = error instanceof ArchRuleError ? error.violations : []
+        expect(violations.map((v) => v.ruleId)).toContain('emitter/pass-without-evidence')
+        // The remedy must be one a `checkAll` caller can act on. The kernel's
+        // text for this id names `.expectEmpty()` on a builder and `expectEmpty`
+        // in a preset's report options, and at this door there is neither.
+        const message = violations[0]?.message ?? ''
+        expect(message).toContain('Guard the array before calling')
+        expect(message).not.toContain('.expectEmpty()')
+        expect(violations[0]?.bypassFilters).toBe(true)
+      }
+      // The remedy remediates (ADR-009 rule 2): the message's second branch is
+      // "pass the rules you meant to check", so doing that must clear it. A
+      // remedy that is only asserted, never applied, is the thing plan 0078's
+      // census exists to catch.
+      expect(() =>
+        checkAll([{ violations: () => collectResult([], { examined: 4 }) }]),
+      ).not.toThrow()
+    })
+
     it('CONTROL — a declared-empty member stays green', () => {
       // Without this the three above are satisfied by a gate that reds on every
       // zero, which would make a declared emptiness unusable through this door.

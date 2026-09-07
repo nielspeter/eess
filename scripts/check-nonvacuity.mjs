@@ -211,6 +211,18 @@ const BARE_BUILDER = 'export default [{ violations: () => [] }]\n'
 const HONEST_BUILDER =
   "import { collectResult } from '@nielspeter/eess'\n" +
   'export default [{ violations: () => collectResult([], { examined: 7 }) }]\n'
+// The baseline artifact and the --fix target live under `scripts/nonvacuity/`
+// for the same reason PROBE_BARE_RULES does: at the repo root `.gitignore`'s
+// `**/__nonvacuity_probe*` hides a leftover from `git status`, and
+// `check:integrity`'s probeRoots do not include ROOT — bug 0231's shape. This
+// directory is a probeRoot and is swept below, so a killed run is named.
+const PROBE_BASELINE_OUT = join(
+  repoRoot,
+  'scripts',
+  'nonvacuity',
+  '__nonvacuity_probe_baseline.json',
+)
+const PROBE_FIX_TARGET = join(repoRoot, 'scripts', 'nonvacuity', '__nonvacuity_probe_target.txt')
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
 const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
 // Bug 0127: corpus/links must prove BOTH routing regions (bug 0086's
@@ -530,6 +542,8 @@ function withRemovedFile(path, fn) {
 // Sweep any leftover probes before doing anything — they must never survive.
 rmSync(PROBE_ARCH, { force: true })
 rmSync(PROBE_BARE_RULES, { force: true })
+rmSync(PROBE_BASELINE_OUT, { force: true })
+rmSync(PROBE_FIX_TARGET, { force: true })
 rmSync(PROBE_CATCH, { force: true })
 rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
@@ -1118,7 +1132,7 @@ function gateReleaseDeadCheck() {
  * adopter writes: `export default [ … ]` is the documented returning form, and a
  * builder that hands back `[]` is what a hand-rolled one looks like.
  */
-function gateCheckAllBareBuilder() {
+function gateBareBuilderRedsEveryCliDoor() {
   const bad = withProbe(
     PROBE_BARE_RULES,
     '// Non-vacuity probe (plan 0263 Phase 2): a builder with no receipt.\n' +
@@ -1136,9 +1150,6 @@ function gateCheckAllBareBuilder() {
   // By id AND by file: the finding must name the rule file it came from, which
   // is what the per-builder gate buys (bug 0026's seam). Asserting the id alone
   // passed while the finding carried `file: ''`.
-  // By id AND by file: the finding must name the rule file it came from, which
-  // is what the per-builder gate buys (bug 0026's seam). Asserting the id alone
-  // passed while the finding carried `file: ''`.
   const named = firedOn(bad, 'emitter/no-receipt', '__nonvacuity_probe_bare.rules.ts')
 
   // **Every CLI door that reaches a verdict, not just `check`.** The first cut of
@@ -1151,15 +1162,49 @@ function gateCheckAllBareBuilder() {
   // defect this plan exists to remove, so every door is driven here, both ways.
   const rel = join('scripts', 'nonvacuity', '__nonvacuity_probe_bare.rules.ts')
   const drive = (source, args) => withProbe(PROBE_BARE_RULES, source, () => sh(EESS_TS, args))
-  const baselineOut = join(repoRoot, '__nonvacuity_probe_baseline.json')
   const runBaseline = (source) => {
-    const r = drive(source, ['baseline', rel, '--output', baselineOut])
-    rmSync(baselineOut, { force: true })
-    return r
+    try {
+      return drive(source, ['baseline', rel, '--output', PROBE_BASELINE_OUT])
+    } finally {
+      // In a `finally`, not after the call: a throw from `sh` used to skip the
+      // cleanup and strand the artifact.
+      rmSync(PROBE_BASELINE_OUT, { force: true })
+    }
   }
   const badBaseline = runBaseline(BARE_BUILDER)
   const badFix = drive(BARE_BUILDER, ['check', rel, '--fix'])
-  const doorsRed = badBaseline.code === 1 && badFix.code === 1
+
+  // **By id at every door, not by exit code at two of them.** This fixture's own
+  // rule is three lines above — "a rule file can exit 1 for a dozen reasons" —
+  // and the first cut then discriminated `baseline` and `--fix` with
+  // `code === 1` alone. `--fix`'s exit code is the count of unfixable
+  // violations and `baseline`'s is non-zero for ANY unsuppressable refusal, so
+  // either would have been satisfied by a rule file that failed for an
+  // unrelated reason. Both print the id and the rule file, so asserting them is
+  // free. Found by four reviewers independently.
+  const saysBare = (r) =>
+    r.out.includes('emitter/no-receipt') && r.out.includes('__nonvacuity_probe_bare.rules.ts')
+  const doorsRed =
+    badBaseline.code === 1 && saysBare(badBaseline) && badFix.code === 1 && saysBare(badFix)
+
+  // **The write path, which the dry run cannot answer for.** `--fix --apply`
+  // used to compute repairs from the refused verdict and write them: measured,
+  // a source file was rewritten while the same run printed `emitter/no-receipt`
+  // and exited 1. The probe target must come back byte-identical.
+  const FIX_TARGET_REL = join('scripts', 'nonvacuity', '__nonvacuity_probe_target.txt')
+  const ORIGINAL = 'HELLOX rest of file\n'
+  const bareFixable =
+    'export default [{ violations: () => [{ rule: "x/fixable", message: "fixable", ' +
+    `file: ${JSON.stringify(FIX_TARGET_REL)}, line: 1, ` +
+    `fix: { file: ${JSON.stringify(FIX_TARGET_REL)}, start: 0, end: 6, text: "MUTATED" } }] }]\n`
+  let targetUntouched = false
+  try {
+    writeFileSync(PROBE_FIX_TARGET, ORIGINAL)
+    drive(bareFixable, ['check', rel, '--fix', '--apply'])
+    targetUntouched = readFileSync(PROBE_FIX_TARGET, 'utf8') === ORIGINAL
+  } finally {
+    rmSync(PROBE_FIX_TARGET, { force: true })
+  }
 
   // The green direction for each door. Without it, "reds on a bare builder" is
   // satisfied by a gate that reds on everything.
@@ -1169,10 +1214,12 @@ function gateCheckAllBareBuilder() {
   const doorsGreen = cleanCheck.code === 0 && cleanBaseline.code === 0 && cleanFix.code === 0
 
   return {
-    ok: bad.code === 1 && named && doorsRed && doorsGreen,
+    ok: bad.code === 1 && named && doorsRed && doorsGreen && targetUntouched,
     detail:
       `a bare builder \u2192 check ${bad.code} (named at its own file: ${named}), ` +
-      `baseline ${badBaseline.code}, --fix ${badFix.code}; an honest builder \u2192 ` +
+      `baseline ${badBaseline.code} (named: ${saysBare(badBaseline)}), ` +
+      `--fix ${badFix.code} (named: ${saysBare(badFix)}); --apply wrote nothing: ` +
+      `${targetUntouched}; an honest builder \u2192 ` +
       `${cleanCheck.code}/${cleanBaseline.code}/${cleanFix.code}`,
   }
 }
@@ -1957,7 +2004,7 @@ const gates = [
   // The other two hand-assembled gates, on their default paths — ADR-014's row
   // names all three, and only `check:corpus` had a fixture before plan 0263.
   ['emitter/ledger-dead-check', gateLedgerDeadCheck],
-  ['emitter/bare-builder-reds-the-cli', gateCheckAllBareBuilder],
+  ['emitter/bare-builder-reds-the-cli', gateBareBuilderRedsEveryCliDoor],
   ['emitter/release-dead-check', gateReleaseDeadCheck],
   ['corpus/exclusion-inert', gateCorpusInertExclusion],
   // The other half of 0255. A separate row because the production script cannot

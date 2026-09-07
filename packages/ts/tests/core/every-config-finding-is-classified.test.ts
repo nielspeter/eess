@@ -81,6 +81,11 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'behavioural: slice-rule-builder.test.ts bug-0009 corpus — each branch reachable only when its advice is true',
   },
+  'src/core/check-all.ts::checkAll': {
+    remedy: 'own',
+    verified:
+      "behavioural: check-all.test.ts — `it('throws on an empty rule array, naming a remedy reachable at this door')` asserts the finding, then applies the remedy's second branch (pass the rules you meant to check) and asserts it no longer throws. This producer exists because the KERNEL's text for the same id names `.expectEmpty()` on a builder and `expectEmpty` in a preset's report options, and at this door there is neither — a remedy the reader cannot apply is ADR-009 rule 2's failure (plan 0263 Phase 2, found by four reviewers).",
+  },
   'src/cli/rule-file-findings.ts::ruleFileFailure': {
     remedy: 'own',
     verified:

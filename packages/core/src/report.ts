@@ -1,25 +1,13 @@
 import type { ArchViolation } from './violation.js'
 import { type CollectResult, collectResult, hasEvidence } from './collect-result.js'
 import {
-  EMITTER_NO_RECEIPT,
-  EMITTER_PASS_WITHOUT_EVIDENCE,
+  isEmitterFinding,
   noReceiptViolation,
   passWithoutEvidenceViolation,
   expiredDeclarationViolation,
   contradictoryEvidenceViolation,
-  EMITTER_EXPIRED_DECLARATION,
-  EMITTER_CONTRADICTORY_EVIDENCE,
 } from './emitter-findings.js'
 
-/** Is this one of the emitter's own findings, as opposed to a caller's? */
-function isEmitterFinding(v: ArchViolation): boolean {
-  return (
-    v.ruleId === EMITTER_NO_RECEIPT ||
-    v.ruleId === EMITTER_PASS_WITHOUT_EVIDENCE ||
-    v.ruleId === EMITTER_EXPIRED_DECLARATION ||
-    v.ruleId === EMITTER_CONTRADICTORY_EVIDENCE
-  )
-}
 import type { OutputFormat } from './check-options.js'
 import { ArchRuleError } from './errors.js'
 import { formatViolations } from './format.js'

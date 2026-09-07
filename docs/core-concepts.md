@@ -272,7 +272,13 @@ const baseline = withBaseline('arch-baseline.json')
 classes(p).that().extend('BaseRepository').should().notContain(call('parseInt')).check({ baseline })
 ```
 
-Generate a baseline from current violations:
+Generate a baseline — **prefer the CLI**, which gates each rule file:
+
+```bash
+eess-ts baseline arch.rules.ts
+```
+
+The programmatic route exists and still works:
 
 ```typescript
 import { collectViolations, generateBaseline } from '@nielspeter/eess-ts'
@@ -280,6 +286,14 @@ import { collectViolations, generateBaseline } from '@nielspeter/eess-ts'
 const violations = collectViolations(rule1, rule2, rule3)
 generateBaseline(violations, 'arch-baseline.json')
 ```
+
+::: warning This route bypasses the evidence gate
+`collectViolations` is typed to accept a bare array and documented as not
+throwing, so this pair will happily write a baseline from builders that examined
+nothing — the verdict ADR-014 exists to refuse. `eess-ts baseline` gates per rule
+file and refuses instead. Closing the helper is a public-API decision, not a
+wiring one; it is tracked as proposal 011 ask C.
+:::
 
 ## Diff-Aware Mode
 

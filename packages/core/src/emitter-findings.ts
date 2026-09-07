@@ -83,6 +83,31 @@ export const EMITTER_EXPIRED_DECLARATION = 'emitter/expired-declaration'
 export const EMITTER_CONTRADICTORY_EVIDENCE = 'emitter/contradictory-evidence'
 
 /**
+ * Every id this module can produce.
+ *
+ * One list, because there were two: `report.ts` had a four-way `||` and
+ * `dedupe-config-findings.ts` grew a second `Set` of the same four. Both are
+ * private, neither knew about the other, and a fifth id added to one and not the
+ * other silently reintroduces the defect the second was written to fix — N
+ * distinct dead builders collapsing into one finding annotated "they are one
+ * edit". The argument for naming the constants rather than testing an `emitter/`
+ * prefix only holds if there is ONE place to add the next one.
+ *
+ * Internal: exported for the kernel's own consumers, not on the root surface.
+ */
+export const EMITTER_IDS: ReadonlySet<string> = new Set([
+  EMITTER_NO_RECEIPT,
+  EMITTER_PASS_WITHOUT_EVIDENCE,
+  EMITTER_EXPIRED_DECLARATION,
+  EMITTER_CONTRADICTORY_EVIDENCE,
+])
+
+/** Is this one of the emitter's own findings, as opposed to a caller's? */
+export function isEmitterFinding(violation: { ruleId?: string; rule?: string }): boolean {
+  return EMITTER_IDS.has(violation.ruleId ?? violation.rule ?? '')
+}
+
+/**
  * Shared shape. `file: ''` / `line: 0` for the same reason `vacuity-findings.ts`
  * uses them: the fault is the verdict, not a place in anyone's code.
  * `bypassFilters` because a suppression mechanism that can suppress the

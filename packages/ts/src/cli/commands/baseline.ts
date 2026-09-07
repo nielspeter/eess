@@ -12,7 +12,11 @@ interface BaselineArgs {
 /**
  * Generate a baseline file from current rule violations.
  *
- * Wraps existing APIs: collectViolations + generateBaseline.
+ * Loads per rule file and gates each builder, then hands what survives to
+ * `generateBaseline`. It used to say "wraps existing APIs: collectViolations +
+ * generateBaseline" and no longer calls `collectViolations` — that helper is
+ * still exported and still ungated, which is a stated residual, not this
+ * command's route.
  */
 export async function runBaseline(args: BaselineArgs): Promise<number> {
   // Per-file parity with runCheck: a user rule file that self-executes a
@@ -73,6 +77,14 @@ export async function runBaseline(args: BaselineArgs): Promise<number> {
   // are deliberately not baselineable (they report that a rule enforces nothing), so
   // printing the pre-filter count told users they had accepted findings that CI would
   // still fail on, with no hint why.
+  // The header below says "whose verdict cannot be checked", not "that enforces
+  // nothing". Both were true of the vacuity findings that used to be the only
+  // members of this set; only the first is true of `emitter/no-receipt`, which
+  // this phase routes here. Measured: a hand-rolled builder returning two real
+  // violations has both baselined and is then told it "enforces nothing" — the
+  // rule enforced something, it just handed back no evidence that it had. That
+  // sends the reader looking for a dead selector that is not there, which is
+  // ADR-009 rule 2's failure (an adopter review caught it).
   const refused = violations.filter((v) => v.bypassFilters === true)
 
   // The delta first: it is the number the 0.28.0 upgrade recipe depends on, and a
@@ -88,7 +100,7 @@ export async function runBaseline(args: BaselineArgs): Promise<number> {
   if (refused.length > 0) {
     process.stdout.write(
       `\n${String(refused.length)} finding(s) could NOT be baselined — each reports a rule ` +
-        `that currently enforces nothing, so accepting it would hide the gap. Fix these:\n`,
+        `whose verdict cannot be checked, so accepting it would hide the gap. Fix these:\n`,
     )
     for (const violation of refused) {
       // The rule file first when there is one. Attributing the finding

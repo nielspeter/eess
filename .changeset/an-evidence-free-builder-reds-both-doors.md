@@ -3,7 +3,7 @@
 '@nielspeter/eess': patch
 ---
 
-**Breaking (behavioural):** `eess-ts check`, `eess-ts check --fix`, `eess-ts baseline` and `checkAll()` now fail on a builder that hands back a bare array instead of a receipt
+**Breaking (@nielspeter/eess-ts):** `eess-ts check`, `eess-ts check --fix`, `eess-ts baseline` and `checkAll()` now fail on a builder that hands back a bare array instead of a receipt — a behavioural break, not a signature one
 
 ADR-014 requires every emitter to refuse a verdict it has no evidence for. Four doors in this
 package did not: `runCheck` and `runBaseline` built their reports by pushing
@@ -16,7 +16,12 @@ Measured before this change, over a rule file containing `export default [{ viol
 baseline file and exited 0; `eess-ts check --fix` exited 0; and `checkAll()` returned silently.
 
 The three CLI doors now run the gate **per builder**, where the rule file is known, so the finding
-names the file it came from — and three dead builders in one file are three findings, not one. `checkAll` merges its builders' receipts with `mergeCollectResults`
+names the file it came from — and three dead builders in one file are three findings, not one.
+
+**`--fix` refuses before it writes.** A fix is an edit derived from a verdict, so a refused verdict
+refuses every edit computed from it. Measured before this change, `eess-ts check --fix --apply` over
+an evidence-free builder **rewrote the target file** while the same run reported the finding and
+exited 1. It now reports and writes nothing. `checkAll` merges its builders' receipts with `mergeCollectResults`
 (fail-closed per member, so one dead builder among many is named rather than absorbed) and consults
 the same gate. A builder with no receipt is `emitter/no-receipt`; one that ran and examined nothing,
 with no declaration, is `emitter/pass-without-evidence`. Both findings are unsuppressable and set the
@@ -27,14 +32,15 @@ builder that certified nothing must not contribute to one. The command still wri
 _could_ accept, prints the refused finding with its rule file, and exits 1 — the behaviour it
 already had for other unsuppressable findings.
 
-**`checkAll([])` now throws.** An empty rule array examined nothing and declared nothing, so it is
-the same case. If you spread a preset that can legitimately produce no rules, check the array before
-calling, or declare the empty state.
+**`checkAll([])` now throws**, with a message written for that door: guard the array —
+`if (rules.length > 0) checkAll(rules)` — or pass the rules you meant to check. There is no
+declaration form at this door, and the finding no longer offers one: a preset that legitimately
+produces no rules declares that where it is built, not here.
 
 **`eess-ts doctor` is unchanged, and that is a gap rather than a decision.** A diagnostic returns no
 verdict, so it is outside this clause. But measured against this same probe it prints `No rules that
 cannot enforce anything.` and exits 0 — the command whose stated job is reporting rules that cannot
-enforce anything. That is filed, not excused.
+enforce anything. That is bug 0268 — filed, not excused. A sibling dialect's door is bug 0269.
 
 **One door stays open, stated rather than implied:** the exported `collectViolations` helper is
 typed to accept a bare array and documented as not throwing, so calling it with `generateBaseline`
@@ -51,6 +57,6 @@ preset fan-out still collapses, and so does a rule with a real narrowing and no 
 **What breaks.** A rule file or test that hands any of these doors a hand-rolled builder — an object with
 a `violations()` that returns a plain array — used to pass and now fails. That is the point: it was
 certifying nothing. **What to do:** return `collectResult(violations, { examined })` from your
-builder, or declare a legitimately empty result with `declaredEmpty: true`. A builder produced by
+builder (`import { collectResult } from '@nielspeter/eess-ts'` — no second install), or declare a legitimately empty result with `declaredEmpty: true`. A builder produced by
 this package's own fluent API already carries its receipt and is unaffected; every rule file in this
 repository passes unchanged.
