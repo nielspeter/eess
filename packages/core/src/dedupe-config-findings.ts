@@ -46,6 +46,26 @@
  * one.
  */
 import type { ArchViolation } from './violation.js'
+import {
+  EMITTER_CONTRADICTORY_EVIDENCE,
+  EMITTER_EXPIRED_DECLARATION,
+  EMITTER_NO_RECEIPT,
+  EMITTER_PASS_WITHOUT_EVIDENCE,
+} from './emitter-findings.js'
+
+/**
+ * The ids that are never collapsed — see `keyFor`.
+ *
+ * The constants rather than an `emitter/` prefix test, so a new id has to be
+ * added here deliberately rather than inheriting the exemption by being named
+ * well.
+ */
+const EMITTER_IDS: ReadonlySet<string> = new Set([
+  EMITTER_NO_RECEIPT,
+  EMITTER_PASS_WITHOUT_EVIDENCE,
+  EMITTER_EXPIRED_DECLARATION,
+  EMITTER_CONTRADICTORY_EVIDENCE,
+])
 
 /** How the surviving finding states the fan-out it stands for. */
 function affectedNote(count: number): string {
@@ -119,5 +139,26 @@ function keyFor(violation: ArchViolation): string | undefined {
   // which is the rule the empty-string guard beside this already follows.
   if (identity === '' || identity === 'unnamed') return undefined
   if (violation.element === '' || violation.element === 'unnamed') return undefined
+  // An emitter finding is about a VERDICT, not about a rule's narrowing, so the
+  // collapse's premise — one authored option fanned out by a preset — never
+  // holds for it. Each one stands for a different builder that hands back no
+  // evidence, and each is its own edit in its own place.
+  //
+  // It cannot be told apart by shape: `emitter-findings.ts` sets
+  // `element: ruleId` (the fault is the verdict, so there is no place in anyone's
+  // code to point at) and `file: ''`, so the key degenerates to `('' , id, id)`
+  // and every occurrence in a run merges. Measured before this guard: three
+  // hand-rolled builders in one rule file reported as ONE finding whose note said
+  // they were "one edit". They are three edits — the case 0069's appendix decides
+  // the other way ("two different `shared` entries that both match nothing are
+  // two findings, because they are two edits").
+  //
+  // **Keyed on the id set, not on the `element === identity` shape.** A first cut
+  // refused a key whenever the element repeated the identity, and that is too
+  // broad: a real rule with a real narrowing and no glob to name does the same,
+  // and two instances of it genuinely ARE one edit — `the-floor.test.ts`'s
+  // "CONTROL: genuinely identical findings still collapse" reds on it, over
+  // `smells.duplicateBodies(p).minLines(500)`.
+  if (EMITTER_IDS.has(identity)) return undefined
   return `${violation.file} ${identity} ${violation.element}`
 }

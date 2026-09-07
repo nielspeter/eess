@@ -205,6 +205,12 @@ const PROBE_ARCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe
  * directory.
  */
 const PROBE_BARE_RULES = join(repoRoot, 'scripts', 'nonvacuity', '__nonvacuity_probe_bare.rules.ts')
+/** The offending shape: a builder that hands back a bare array. */
+const BARE_BUILDER = 'export default [{ violations: () => [] }]\n'
+/** The same rule file, honest — the control every door must stay green over. */
+const HONEST_BUILDER =
+  "import { collectResult } from '@nielspeter/eess'\n" +
+  'export default [{ violations: () => collectResult([], { examined: 7 }) }]\n'
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
 const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
 // Bug 0127: corpus/links must prove BOTH routing regions (bug 0086's
@@ -1130,27 +1136,44 @@ function gateCheckAllBareBuilder() {
   // By id AND by file: the finding must name the rule file it came from, which
   // is what the per-builder gate buys (bug 0026's seam). Asserting the id alone
   // passed while the finding carried `file: ''`.
+  // By id AND by file: the finding must name the rule file it came from, which
+  // is what the per-builder gate buys (bug 0026's seam). Asserting the id alone
+  // passed while the finding carried `file: ''`.
   const named = firedOn(bad, 'emitter/no-receipt', '__nonvacuity_probe_bare.rules.ts')
-  // The green direction, which the first cut of this fixture never drove: an
-  // honest builder over the same door must stay silent, or "reds on a bare
-  // array" is satisfied by a gate that reds on everything.
-  const clean = withProbe(
-    PROBE_BARE_RULES,
-    "import { collectResult } from '@nielspeter/eess'\n" +
-      'export default [{ violations: () => collectResult([], { examined: 7 }) }]\n',
-    () =>
-      sh(EESS_TS, [
-        'check',
-        join('scripts', 'nonvacuity', '__nonvacuity_probe_bare.rules.ts'),
-        '--format',
-        'json',
-      ]),
-  )
+
+  // **Every CLI door that reaches a verdict, not just `check`.** The first cut of
+  // this fixture drove `check` alone, and reviews then measured `baseline` and
+  // `--fix` passing the identical probe while the ADR row said "reds the CLI".
+  // `baseline` was the worst: it wrote a baseline file — a persisted verdict —
+  // from a builder that certified nothing; and once gated, deleting that gate
+  // left the entire chain green because nothing asserted it. Three reviewers and
+  // the author each measured that independently. A gate with no falsifier is the
+  // defect this plan exists to remove, so every door is driven here, both ways.
+  const rel = join('scripts', 'nonvacuity', '__nonvacuity_probe_bare.rules.ts')
+  const drive = (source, args) => withProbe(PROBE_BARE_RULES, source, () => sh(EESS_TS, args))
+  const baselineOut = join(repoRoot, '__nonvacuity_probe_baseline.json')
+  const runBaseline = (source) => {
+    const r = drive(source, ['baseline', rel, '--output', baselineOut])
+    rmSync(baselineOut, { force: true })
+    return r
+  }
+  const badBaseline = runBaseline(BARE_BUILDER)
+  const badFix = drive(BARE_BUILDER, ['check', rel, '--fix'])
+  const doorsRed = badBaseline.code === 1 && badFix.code === 1
+
+  // The green direction for each door. Without it, "reds on a bare builder" is
+  // satisfied by a gate that reds on everything.
+  const cleanCheck = drive(HONEST_BUILDER, ['check', rel, '--format', 'json'])
+  const cleanBaseline = runBaseline(HONEST_BUILDER)
+  const cleanFix = drive(HONEST_BUILDER, ['check', rel, '--fix'])
+  const doorsGreen = cleanCheck.code === 0 && cleanBaseline.code === 0 && cleanFix.code === 0
+
   return {
-    ok: bad.code === 1 && named && clean.code === 0,
+    ok: bad.code === 1 && named && doorsRed && doorsGreen,
     detail:
-      `a rule file exporting a bare builder \u2192 exit ${bad.code}, named emitter/no-receipt ` +
-      `at its own file: ${named}; an honest builder \u2192 exit ${clean.code}`,
+      `a bare builder \u2192 check ${bad.code} (named at its own file: ${named}), ` +
+      `baseline ${badBaseline.code}, --fix ${badFix.code}; an honest builder \u2192 ` +
+      `${cleanCheck.code}/${cleanBaseline.code}/${cleanFix.code}`,
   }
 }
 

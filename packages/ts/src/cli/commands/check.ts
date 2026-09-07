@@ -198,7 +198,17 @@ async function runCheckInner(
         //
         // Gating here is also strictly stronger than the run-wide merge, not
         // weaker: `mergeCollectResults` reds once per run for the dead-member
-        // case, while this names every dead builder. It does not red an honest
+        // case, while this names every dead builder — three in one rule file are
+        // three findings, measured.
+        //
+        // **That last clause depends on the kernel and was false when written.**
+        // `dedupeConfigFindings` keys on `(file, id, element)`, and an emitter
+        // finding sets `element` to its own id and `file` to `''`, so all three
+        // collapsed into one whose note said they were "one edit". `keyFor` now
+        // returns no key for the emitter ids. If that guard goes, this sentence
+        // goes with it.
+        //
+        // It does not red an honest
         // rule — one that examined zero already carries its own finding, so
         // `withEvidenceGate` returns at its violations check, and a
         // `.notExist()`-shaped rule over zero subjects is stamped
@@ -330,7 +340,14 @@ async function runCheckInner(
  * the file half-repaired with a green run to match.
  */
 function runFix(builders: RuleBuilderLike[], options: CheckOptions, write: boolean): number {
-  const all = builders.flatMap((b) => b.violations())
+  // **The gate runs here too** — plan 0263 Phase 2, after review. An earlier cut
+  // of this phase excused `--fix` from ADR-014's clause on the grounds that it
+  // "returns before any verdict". Measured, that was false: this line calls
+  // `violations()` on every builder, so it reaches exactly the same verdict
+  // `runCheck` does, and a rule file exporting an evidence-free builder ran
+  // through `--fix` to `0 fix(es)` and exit 0. Applying repairs computed from a
+  // verdict that certifies nothing is worse than reporting one.
+  const all = builders.flatMap((b) => finishPreset(b.violations(), { report: 'return' }))
   const fixable = all.filter((v) => v.fix !== undefined)
   const result = applyFixes(fixable, { write })
 

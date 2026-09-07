@@ -291,13 +291,16 @@ and the other four are pure gain.
       dead-check fixtures. Shipped on the second attempt; the first is PR #116,
       closed unmerged after five reviews, and its measurements are in the record
       above. 85 fixtures fire.
-- [x] Phase 2 — both doors wired, the fixture and the tests. `checkAll` and
-      `runCheck` now merge their builders' receipts and consult the gate;
+- [x] Phase 2 — every verdict door wired, the fixture and the tests. `checkAll`
+      merges its builders' receipts through `mergeCollectResults` and consults
+      the gate; the three CLI doors (`check`, `check --fix`, `baseline`) consult
+      it **per builder**, where the rule file is still in hand;
       `check:nonvacuity` gained `emitter/bare-builder-reds-the-cli` (a probe rule
-      file driving the real CLI, asserted by id); `check-all.test.ts` gained four
-      tests — a bare array loaded through `loadRuleFiles` throws, the cause is
-      named, one dead member among healthy ones reds, and a CONTROL that a
-      declared-empty member stays green.
+      file driving the real binary, asserted by id); `check-all.test.ts` gained
+      **five** tests — a bare array loaded through `loadRuleFiles` throws, a
+      member that ran and examined nothing reds, the cause is named rather than
+      thrown for some other reason, one dead member among healthy ones reds, and
+      a CONTROL that a declared-empty member stays green.
       Sabotage-checked: reverting the wiring reds exactly the assertions and
       leaves the control green; renaming the cited test reds `check:crossval`.
       Ships `@nielspeter/eess-ts` minor, break-marked: a hand-rolled builder that
@@ -315,8 +318,7 @@ and the other four are pure gain.
       under `scripts/nonvacuity/`, which `check:integrity` sweeps; at the repo
       root it was invisible to both `git status` and that sweep, which is bug
       0231's shape. The ADR row cites an `it()` title the resolver binds
-      (measured: renaming it reds `check:crossval`) and names the two commands
-      that are NOT in the clause, where it had claimed "the CLI".
+      (measured: renaming it reds `check:crossval`).
 
       **And the ceiling this phase asserted was false.** The test file argued the
       bare-array case could not be tested without an `as` that ADR-005 forbids.
@@ -326,6 +328,51 @@ and the other four are pure gain.
       this plan asserted rather than driven, inside the phase that filed
       [bug 0267](../bugs/0267-the-freeze-checks-links-not-premises.md) about
       exactly that habit.
+
+      **A third pass, because two of the review's own repairs were also
+      asserted.** The row excused `check --fix` as "returns before any verdict";
+      it does not — `runFix` calls `violations()` on every builder, so the door
+      was open and is now gated and driven by the fixture in both directions. It
+      excused `doctor` as a diagnostic that "already reports rules unable to
+      enforce anything"; measured against the built binary, `doctor` over a bare
+      builder prints `No rules that cannot enforce anything.` and exits 0, which
+      is now [bug 0268](../bugs/0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md).
+      `doctor` stays outside the clause because it returns no verdict, which is
+      the honest reason rather than the one given.
+
+      **The rework's own repair was measured too, and the first cut was
+      wrong.** An ops review measured three hand-rolled builders in one rule
+      file reported as ONE finding whose note said they were "one edit" — the
+      per-builder gate names every file, and the reporting layer merged them
+      back. The first fix refused a dedupe key whenever a finding's `element`
+      repeated its identity, which is too broad: `the-floor.test.ts`'s "CONTROL:
+      genuinely identical findings still collapse" reds on it, because a real
+      rule with a real narrowing and no glob to name has the same shape and two
+      instances of it genuinely are one edit. The guard is keyed on the four
+      emitter ids instead, and the kernel unit test now carries that control
+      locally so nobody widens it back.
+
+      **An existing negative control caught a mistake in a different lane.**
+      Adding the ADR row broke `crossval/scenario-exemption-stale` and
+      `crossval/scenarios-covered-e2e` — not because either gate changed, but
+      because their negative-control scenario requires the whole of
+      `check-crossval.mjs` to exit 0, and the new row cited a KERNEL test, which
+      the ADR resolver cannot see ([bug 0262](../bugs/0262-an-adr-cannot-cite-a-kernel-test.md)).
+      Two fixtures in an unrelated dialect reddened on a bad citation in an ADR.
+      The clause is now pinned by a `packages/ts` test at the door it is about,
+      which the resolver binds — measured by renaming it and watching
+      `check:crossval` go red.
+
+      **The falsifier was measured one gate at a time, not argued.** Deleting
+      the `check`, `--fix` or `baseline` gate individually reds the fixture;
+      deleting `checkAll`'s does not, and reds two suite tests instead — so the
+      fixture's blind spot is named in the ADR row rather than left implied. A
+      first attempt at this matrix ran in a `git worktree` whose `node_modules`
+      symlink resolved `.bin/eess-ts` back to the main checkout's `dist`, so the
+      sabotage never executed and the fixture "passed" against unmutated code.
+      The matrix was rerun in the real tree with every source file restored by
+      hash afterwards. An isolation habit that silently isolates the wrong thing
+      is the same fail-open shape this plan is about.
 
 - [ ] Phase 3 — the four remedy-remediates fixtures
 - [ ] Phase 4 — the no-second-registry rule
