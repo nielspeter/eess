@@ -11,7 +11,7 @@ Measured before this change, against the built binary:
 | rule file                                   | before                                                           |
 | ------------------------------------------- | ---------------------------------------------------------------- |
 | `export default [{ check: () => {} }]`      | `✓ eess-mermaid — 1 rule across 1 file · 0 failing`, **exit 0**  |
-| `export default [{ violations: () => [] }]` | same                                                             |
+| `export default [{ violations: () => [] }]` | `✓ eess-mermaid — 0 rules across 1 file · 0 failing`, **exit 0** |
 | `export default []`                         | `✓ eess-mermaid — 0 rules across 1 file · 0 failing`, **exit 0** |
 
 **The receipt was already there.** Every builder in this dialect extends the kernel's
@@ -22,6 +22,11 @@ that its loader keyed on `check`, which any hand-rolled object satisfies.
 **What changed.** The loader requires `violations()`; the command loads per rule file, consults the
 evidence gate, and names the rule file a finding came from; and a rule file that contributes no rules
 reds with its own finding instead of ticking over a zero denominator.
+
+**New on the package root:** `collectResult`, `finishPreset`, `reportViolations` and the
+`CollectResult` type, re-exported from the kernel. They are the migration path for the break above —
+`import { collectResult } from '@nielspeter/eess-mermaid'`, no second install — and the dialect's own
+CLI now uses them, which `check:family` requires it to re-export.
 
 **A non-builder in the array is now a loud error, not a silent skip.** A rule file holding a real
 builder beside a hand-rolled object used to run the hand-rolled one; now the file is refused, naming

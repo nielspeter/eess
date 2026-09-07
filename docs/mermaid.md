@@ -27,6 +27,44 @@ classes(d).that().haveStereotype('repository').should().haveNameEndingWith('Repo
 
 Because it's the same kernel, the combinators (`not`, `and`, `or`) and the terminal `.check()` behave exactly as they do in `eess-ts` — the only thing that changes is the element type (Mermaid classes instead of TypeScript declarations).
 
+## Running it from the CLI
+
+The example above calls `.check()` at module scope, which is the shape for a test
+file. The `eess-mermaid check` binary takes a **rule file** instead: a module
+whose default export is an **array of un-terminated builders**, which the command
+runs and reports once.
+
+```typescript
+// mermaid.rules.ts
+import { diagram, classes } from '@nielspeter/eess-mermaid'
+
+const d = diagram('docs/architecture.mmd')
+
+export default [
+  classes(d).should().haveStereotype('kernel').rule({
+    id: 'diagram/kernel-stereotype',
+    because: 'the architecture diagram depicts kernel classes only',
+  }),
+]
+```
+
+```bash
+npx eess-mermaid check mermaid.rules.ts
+```
+
+Two shapes the command refuses, both unsuppressable, because each is a gate that
+cannot fail:
+
+- **A file that contributes no rules** — an empty array, or a default export that
+  is neither an array nor a function returning one. A single un-arrayed builder
+  is not accepted; wrap it: `export default [ builder ]`.
+- **An entry that cannot report what it examined** — anything that is not a
+  builder. It is named by its index and refused, rather than skipped: a silently
+  dropped entry is a rule that stopped existing while the denominator still
+  counted it.
+
+A builder from this package's fluent API always satisfies both.
+
 ## Where it fits
 
 - **On its own** — enforce naming and stereotype conventions on a diagram, and catch a malformed diagram before it's committed.

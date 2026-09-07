@@ -1,26 +1,31 @@
 import path from 'node:path'
 import { createJiti } from 'jiti'
 import { ArchConfigError } from '@nielspeter/eess'
-import type { CollectResult } from '@nielspeter/eess'
+import type { RuleBuilderLike } from '@nielspeter/eess'
 
-export interface RuleBuilderLike {
-  /**
-   * The receipt — bug 0269.
-   *
-   * Required, not optional, and this is the whole fix. The loader used to key on
-   * `check`, which any hand-rolled object satisfies, so
-   * `export default [{ check: () => {} }]` was counted as a rule and the run
-   * printed `✓ eess-mermaid — 1 rule across 1 file · 0 failing`.
-   *
-   * Every real builder already has this: `ClassRuleBuilder extends RuleBuilder`,
-   * which extends the kernel's `TerminalBuilder`, where `violations()` has
-   * returned a `CollectResult` since ADR-014. The receipt was there the whole
-   * time and the CLI never asked for it — which is why this is a wiring fix and
-   * not the dialect-wide contract change the bug record first supposed.
-   */
-  violations: () => CollectResult
-  describeRule?: () => unknown
-}
+/**
+ * **The kernel's shape, re-exported rather than re-declared** — bug 0269's
+ * review.
+ *
+ * This dialect kept a local copy, and the first cut of the fix edited that copy
+ * to require `violations`. That left ADR-014's Tier-1 mechanism
+ * ("`RuleBuilderLike`'s single member; `npm run typecheck` across all six
+ * packages") untrue of the dialect the ADR had just named, because the type this
+ * package typechecks against was its own three-member one.
+ *
+ * The receipt is what the CLI now keys on: the loader used to accept anything
+ * with a `check` method, which any hand-rolled object satisfies, so
+ * `export default [{ check: () => {} }]` was counted as a rule and the run
+ * printed `✓ eess-mermaid — 1 rule across 1 file · 0 failing`. Every real
+ * builder already had the receipt — `ClassRuleBuilder` extends the kernel's
+ * `TerminalBuilder` — which is why this was a wiring fix and not the
+ * dialect-wide contract change the bug record first supposed.
+ *
+ * `describeRule` was the only reason for a local shape; `isDescribable` in
+ * `@nielspeter/eess/internal` answers it, which is what `eess-ts`'s `explain`
+ * already uses.
+ */
+export type { RuleBuilderLike } from '@nielspeter/eess'
 
 export interface LoadOptions {
   fresh?: boolean

@@ -6,6 +6,7 @@ import {
   reportViolations,
 } from '@nielspeter/eess'
 import type { ArchViolation, CheckOptions, OutputFormat } from '@nielspeter/eess'
+import { basename } from 'node:path'
 import { loadRuleFiles, type LoadOptions, type RuleBuilderLike } from '../load-rules.js'
 
 export interface CheckArgs {
@@ -32,12 +33,19 @@ function reportRuleFileMisconfigured(file: string, detail: string, options: Chec
   const violation: ArchViolation = {
     rule: 'rule file: misconfigured',
     ruleId: 'cli/rule-file-misconfigured',
-    element: file,
+    // BASENAME: with the full path here the terminal rendered `<path>:1 — <path>`,
+    // the same string twice on one line. `eess-ts` uses the basename for the
+    // same reason, recorded in its own finding module.
+    element: basename(file),
     file,
     line: 1,
-    message: `${file} could not be loaded, so its rules enforced nothing in this run: ${detail}`,
+    message: `${basename(file)} could not be loaded, so its rules enforced nothing in this run.`,
     because:
       'a rule file that cannot be loaded enforces nothing, and a silent skip is a green gate over an absent rule',
+    // The loader's own text names the offending entry by index and says what a
+    // builder must be. That IS the fix, so it is the suggestion rather than a
+    // paraphrase of it.
+    suggestion: detail,
     bypassFilters: true,
   }
   reportViolations(collectResult([violation], { examined: 0 }), options)
@@ -55,16 +63,23 @@ function reportContributedNoRules(file: string, options: CheckOptions): void {
   const violation: ArchViolation = {
     rule: 'rule file: contributed no rules',
     ruleId: 'cli/rule-file-contributed-no-rules',
-    element: file,
+    element: basename(file),
     file,
     line: 1,
-    message:
-      `${file} loaded but contributed no rules, so this run enforced nothing from it. ` +
-      'Export the builders you meant to check: `export default [ …builders ]`, or a ' +
-      'function returning that array. If the file is deliberately empty, delete it ' +
-      'rather than leaving a rule file that enforces nothing.',
+    message: `${basename(file)} loaded but contributed no rules, so this run enforced nothing from it.`,
     because:
       'a rule file that contributes no rules cannot fail, and a gate that cannot fail is worth less than no gate',
+    // `message` says what happened, `because` why it matters, `suggestion` what
+    // to do — the split `eess-ts` uses and `CLAUDE.md` promises ("every violation
+    // surfaces its rationale, a `Fix:` line, and a `Docs:` link where present").
+    // The first cut put the whole remedy in `message` and left `suggestion`
+    // unset, so the terminal printed no `Fix:` and a JSON consumer keying on
+    // `suggestion` got null.
+    suggestion:
+      'Export the builders you meant to check: `export default [ …builders ]`, or a ' +
+      'function returning that array. A single un-arrayed builder is not accepted. ' +
+      'If the file is deliberately empty, delete it rather than leaving a rule file ' +
+      'that enforces nothing.',
     bypassFilters: true,
   }
   // No try/catch: `reportViolations` escalates to a throw only for the emitter's

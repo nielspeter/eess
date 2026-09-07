@@ -20,7 +20,7 @@ export {
   isArchConfigError,
   reportViolations,
 } from '@nielspeter/eess'
-export type { CollectResult } from '@nielspeter/eess'
+export type { CollectResult, RuleBuilderLike } from '@nielspeter/eess'
 export type { RuleMetadata } from '@nielspeter/eess'
 export type { RuleDescription } from '@nielspeter/eess'
 export { not, and, or } from '@nielspeter/eess'
