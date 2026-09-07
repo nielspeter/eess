@@ -26,6 +26,13 @@ export { assertionLessViolation } from './terminal-builder.js'
 export { bold, red, dim, yellow, cyan, gray } from './ansi.js'
 export { byCodepoint, severityFor, remedyRepeatsMessage } from './violation.js'
 export { dedupeConfigFindings } from './dedupe-config-findings.js'
+// The emitter's own findings, for a dialect door that must tell "this receipt
+// carried no evidence" apart from "this rule matched nothing". They are
+// different faults with different remedies, and a door that refuses on the
+// second is a false positive — measured: one dead preset glob blocked every fix
+// in a run. Internal, not root: an adopter has no reason to mint or classify an
+// emitter finding, which is proposal 009's subject.
+export { isEmitterFinding } from './emitter-findings.js'
 export { disambiguateIdentities } from './violation.js'
 export { discoverIdentityRoot, normalizeIdentityText } from './identity-root.js'
 export { escapeGitHub } from './format-github.js'

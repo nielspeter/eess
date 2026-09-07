@@ -1,8 +1,12 @@
-import { collectViolations } from '../../helpers/baseline-generator.js'
 import { formatBaselineDelta, generateBaseline } from '../../helpers/baseline.js'
 import type { ArchViolation } from '@nielspeter/eess'
+import { finishPreset } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
-import { attributeToRuleFile, failureOrViolations } from '../rule-file-findings.js'
+import {
+  attributeToRuleFile,
+  failureOrViolations,
+  ruleFileContributedNoRules,
+} from '../rule-file-findings.js'
 
 interface BaselineArgs {
   ruleFiles: string[]
@@ -12,7 +16,11 @@ interface BaselineArgs {
 /**
  * Generate a baseline file from current rule violations.
  *
- * Wraps existing APIs: collectViolations + generateBaseline.
+ * Loads per rule file and gates each builder, then hands what survives to
+ * `generateBaseline`. It used to say "wraps existing APIs: collectViolations +
+ * generateBaseline" and no longer calls `collectViolations` — that helper is
+ * still exported and still ungated, which is a stated residual, not this
+ * command's route.
  */
 export async function runBaseline(args: BaselineArgs): Promise<number> {
   // Per-file parity with runCheck: a user rule file that self-executes a
@@ -32,12 +40,44 @@ export async function runBaseline(args: BaselineArgs): Promise<number> {
       violations.push(...failureOrViolations(file, error, total))
       continue
     }
+    // Parity with `runCheck` and `--fix`: a rule file that loads and exports `[]`
+    // enforces nothing, and a baseline is a persisted verdict. Measured before
+    // this guard, `eess-ts baseline` over exactly that file wrote a baseline and
+    // exited 0 while `check` reddened — the disagreement
+    // `ruleFileContributedNoRules` exists to end.
+    if (builders.length === 0) {
+      violations.push(ruleFileContributedNoRules(file))
+      continue
+    }
     for (const builder of builders) {
       try {
         // Same attribution as `runCheck` (bug 0026): the findings this command
         // REFUSES to baseline are printed for the user to fix, and "which rule
         // file" is the first thing they need.
-        violations.push(...attributeToRuleFile(collectViolations(builder), file))
+        // **The evidence gate, here too** — plan 0263 Phase 2, added after a
+        // product review measured this door minting an artifact from nothing:
+        // `eess-ts baseline` over a rule file exporting `{ violations: () => [] }`
+        // wrote a baseline and exited 0. A baseline is a persisted verdict, so
+        // accepting one from a builder that certified nothing is worse than
+        // passing silently.
+        //
+        // The gate runs per builder, where the rule file is known, exactly as in
+        // `runCheck`. Its finding carries `bypassFilters`, so `refused` below
+        // catches it: the baseline is still written for what COULD be accepted,
+        // the finding is printed with its rule file, and the command exits 1.
+        //
+        // **`collectViolations` is deliberately untouched, and that is a stated
+        // residual.** It is public API (`packages/ts/src/index.ts`), documented
+        // as not throwing, and typed to accept `{ violations: () => ArchViolation[] }`
+        // — a bare array, by signature. Tightening it would move the break to
+        // adopters' compilers without closing the runtime hole for JS callers,
+        // and throwing from it would break the contract its own docstring makes.
+        // So the gate sits here, at the command that mints the artifact. An
+        // adopter calling `collectViolations` + `generateBaseline` by hand still
+        // bypasses it; closing that is a public-API decision, not a wiring one.
+        violations.push(
+          ...attributeToRuleFile(finishPreset(builder.violations(), { report: 'return' }), file),
+        )
       } catch (error: unknown) {
         violations.push(...failureOrViolations(file, error, total))
       }
@@ -50,6 +90,14 @@ export async function runBaseline(args: BaselineArgs): Promise<number> {
   // are deliberately not baselineable (they report that a rule enforces nothing), so
   // printing the pre-filter count told users they had accepted findings that CI would
   // still fail on, with no hint why.
+  // The header below says "whose verdict cannot be checked", not "that enforces
+  // nothing". Both were true of the vacuity findings that used to be the only
+  // members of this set; only the first is true of `emitter/no-receipt`, which
+  // this phase routes here. Measured: a hand-rolled builder returning two real
+  // violations has both baselined and is then told it "enforces nothing" — the
+  // rule enforced something, it just handed back no evidence that it had. That
+  // sends the reader looking for a dead selector that is not there, which is
+  // ADR-009 rule 2's failure (an adopter review caught it).
   const refused = violations.filter((v) => v.bypassFilters === true)
 
   // The delta first: it is the number the 0.28.0 upgrade recipe depends on, and a
@@ -65,7 +113,7 @@ export async function runBaseline(args: BaselineArgs): Promise<number> {
   if (refused.length > 0) {
     process.stdout.write(
       `\n${String(refused.length)} finding(s) could NOT be baselined — each reports a rule ` +
-        `that currently enforces nothing, so accepting it would hide the gap. Fix these:\n`,
+        `whose verdict cannot be checked, so accepting it would hide the gap. Fix these:\n`,
     )
     for (const violation of refused) {
       // The rule file first when there is one. Attributing the finding

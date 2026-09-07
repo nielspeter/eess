@@ -7,6 +7,15 @@ import { ArchRuleError } from './errors.js'
  * Used to generate a baseline: run all rules, collect violations,
  * write them to a baseline file.
  *
+ * **This bypasses the evidence gate, deliberately and knowingly** — see ADR-014
+ * and proposal 011 ask C. Prefer a dialect's `baseline` command, which gates per
+ * rule file and refuses a builder that certified nothing.
+ *
+ * **Not the same function as `eess-ts`'s `collectViolations`.** This one takes
+ * builders with a throwing `check()` and harvests the `ArchRuleError`; the
+ * dialect's takes builders with a non-throwing `violations()`. Same name, same
+ * `@example`, different contract.
+ *
  * @example
  * const violations = collectViolations(
  *   classes(p).that().extend('Base').should().notContain(call('parseInt')),

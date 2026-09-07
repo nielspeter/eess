@@ -1,25 +1,13 @@
 import type { ArchViolation } from './violation.js'
 import { type CollectResult, collectResult, hasEvidence } from './collect-result.js'
 import {
-  EMITTER_NO_RECEIPT,
-  EMITTER_PASS_WITHOUT_EVIDENCE,
+  isEmitterFinding,
   noReceiptViolation,
   passWithoutEvidenceViolation,
   expiredDeclarationViolation,
   contradictoryEvidenceViolation,
-  EMITTER_EXPIRED_DECLARATION,
-  EMITTER_CONTRADICTORY_EVIDENCE,
 } from './emitter-findings.js'
 
-/** Is this one of the emitter's own findings, as opposed to a caller's? */
-function isEmitterFinding(v: ArchViolation): boolean {
-  return (
-    v.ruleId === EMITTER_NO_RECEIPT ||
-    v.ruleId === EMITTER_PASS_WITHOUT_EVIDENCE ||
-    v.ruleId === EMITTER_EXPIRED_DECLARATION ||
-    v.ruleId === EMITTER_CONTRADICTORY_EVIDENCE
-  )
-}
 import type { OutputFormat } from './check-options.js'
 import { ArchRuleError } from './errors.js'
 import { formatViolations } from './format.js'
@@ -156,6 +144,27 @@ function withEvidenceGate(violations: readonly ArchViolation[]): CollectResult {
   // to say about it — and passing that silently is the escape hatch this ADR
   // closes.
   if (violations.declaredEmpty === true) return violations
+  // `notRun` legitimises a zero here for the same reason `declaredEmpty` does,
+  // and for the reason the MERGE already exempts it: a rule turned off examined
+  // nothing and found nothing, and reporting that as a vacuous pass is the
+  // "one disabled rule reddens a whole preset" failure `notRun` was added to
+  // prevent (measured on `adrEnforcement` with `adr/valid-tiers` off).
+  //
+  // **The two doors disagreed until this line.** `mergeCollectResults` exempts a
+  // `notRun` member from its dead filter; this gate had no such branch, so the
+  // per-builder doors judged an off rule alone and reddened it. Measured:
+  // `checkAll([healthy, off])` was GREEN while `eess-ts check` over the same two
+  // builders reported `1 of 2 rules failing`. Same receipts, opposite verdicts,
+  // decided by which door you walked through — and `check.ts` claimed per-builder
+  // gating was "strictly stronger, not weaker", which is how a false positive is
+  // manufactured.
+  //
+  // It is not a mute button: a `notRun` beside a non-zero `examined` or any
+  // violation is `emitter/contradictory-evidence`, checked above and reached
+  // before this line. And the all-off case still reports, because the merged
+  // receipt carries no `notRun` — so a preset whose every member is off sums to
+  // zero examined, undeclared, and reds exactly as ADR-014 §3 requires.
+  if (violations.notRun === true) return violations
   return collectResult([passWithoutEvidenceViolation()], { examined: violations.examined })
 }
 

@@ -5,7 +5,8 @@
 - **State:** Ready — **Phase 1 shipped 2026-09-07 on its second attempt**; the
   first was opened as PR #116, reviewed by five lenses, and **closed unmerged**
   because the measurements said the design was wrong rather than incomplete (see
-  Phase 1's record). Phases 2-5 remain. Frozen 2026-09-06. **The freeze found two things, one a
+  Phase 1's record). **Phase 2 shipped 2026-09-07** (PR #118, three review
+  rounds); phases 3-5 remain. Frozen 2026-09-06. **The freeze found two things, one a
   false premise this plan inherited from ADR-014's own table and repeated
   without measuring** — written the day before, by me, which is the mistake this
   ADR is about, made about the ADR:
@@ -13,10 +14,15 @@
      registry home; `owns-empty-discovery.ts` is a second, and says so in its own
      comment. The rule as written would have reddened on legitimate kernel code
      on first run. Corrected here and in the ADR row.
-  2. **Phase 2 is bigger than "write a fixture".** `checkAll` aggregates with
-     `flatMap` and delivers through `writeReport`, so it never reaches the
-     evidence gate — the receipt's `examined` is discarded at that seam. The
-     phase now names the wiring and the two contracts that constrain it.
+  2. **Phase 2 is bigger than "write a fixture".** `checkAll` aggregated with
+     `flatMap` and delivered through `writeReport`, so it never reached the
+     evidence gate — the receipt's `examined` was discarded at that seam. The
+     phase named the wiring and the two contracts that constrain it.
+     **Past tense as of Phase 2's merge:** `check-all.ts` now merges through
+     `mergeCollectResults` and gates the merged receipt. This paragraph is kept
+     because it is the freeze's finding, not a description of today's code — a
+     method review caught it still reading as present tense, contradicting the
+     Problem table twelve rows below.
 
   Verified and holding: `throwIfViolations` still exported from both roots; all
   five `pending` rows name this plan; `emitter/one-dead-check` exists while
@@ -173,10 +179,29 @@ builder passes through `checkAll` silently today. That is why the row is
 `pending` rather than `warn`, and it makes this phase a wiring job, not only a
 fixture:
 
+> **Corrected at build, 2026-09-07: the phase named one door and the row names
+> two.** ADR-014's clause is _"reds the CLI **and** `checkAll`"_, and this phase
+> described only `checkAll`'s `flatMap`, with item 2 assuming `eess-ts check`
+> already reddened so a fixture could simply assert it. Measured before anything
+> was written — the probe rule file `export default [{ violations: () => [] }]`:
+>
+> | door                                 | before                                       |
+> | ------------------------------------ | -------------------------------------------- |
+> | `checkAll([bare])`                   | returned silently                            |
+> | `eess-ts check <file> --format json` | `"total": 0`, `"examined": null`, **exit 0** |
+>
+> `runCheck` has the same hole for the same reason: it builds its report by
+> pushing `attributeToRuleFile(builder.violations(), file)` into a plain array,
+> which keeps the violations and drops the receipt. So this phase wired both.
+> This is the third premise in this plan to be wrong the same way, and it is now
+> [bug 0267](../bugs/0267-the-freeze-checks-links-not-premises.md)'s subject
+> rather than another rueful sentence.
+
 1. Route `checkAll`'s aggregation through `mergeCollectResults` so the receipt
-   survives, and its delivery through the gate. The severity split at the bottom
-   (`ridesTheThrow`) and bug 0203's suppression contract must both survive the
-   change — they are why this was not done inside 0235.
+   survives, and its delivery through the gate — **and `runCheck`'s, for the
+   same reason**. The severity split at the bottom (`ridesTheThrow`) and bug
+   0203's suppression contract must both survive the change — they are why this
+   was not done inside 0235.
 2. A non-vacuity fixture whose rule file exports a builder whose `violations()`
    returns a bare `[]`, asserted to red `eess-ts check` by rule id.
 3. A test that `checkAll` over the same throws — the regression guard for bug
@@ -239,12 +264,38 @@ and the other four are pure gain.
   `scripts/lib/lane-coverage.mjs`, `scripts/check-corpus.mjs` — the evidence
   seam (Phase 1, after its correction: the phase turned out to need the
   mechanism before the fixture)
-- `scripts/check-nonvacuity.mjs` — four new fixtures (Phases 1 and 3)
-- `packages/ts/tests/` — the `checkAll` bare-builder test (Phase 2)
+- `scripts/check-nonvacuity.mjs` — new fixtures (Phases 1, 2 and 3)
+- **Phase 2, the doors and the kernel** — `packages/ts/src/cli/commands/check.ts`
+  (`check` and `--fix`), `packages/ts/src/cli/commands/baseline.ts`,
+  `packages/ts/src/core/check-all.ts`, and in the kernel
+  `packages/core/src/dedupe-config-findings.ts`,
+  `packages/core/src/emitter-findings.ts`, `packages/core/src/report.ts`,
+  `packages/core/src/internal.ts`, `packages/core/src/baseline-generator.ts`
+- **Phase 2, tests** — `packages/ts/tests/core/check-all.test.ts`,
+  `packages/ts/tests/cli/dead-builders-are-named-individually.test.ts`,
+  `packages/ts/tests/core/every-config-finding-is-classified.test.ts`,
+  `packages/core/tests/dedupe-config-findings.test.ts`
+- **Phase 2, docs** — `docs/core-concepts.md`, `docs/api-reference.md`, and the
+  two `baseline-generator.ts` docstrings (the ungated `collectViolations` route,
+  caveated rather than closed)
 - `arch.internal.rules.ts` — the registry rule (Phase 4)
 - `packages/core/src/index.ts`, `packages/ts/src/index.ts` — the removal (Phase 5)
-- `adr/014-the-emitter-refuses-a-verdict-without-evidence.md` — five rows to `gated`
-- `.changeset/` — the Phase 5 break
+- `adr/014-the-emitter-refuses-a-verdict-without-evidence.md` — rows to `gated`
+- `.changeset/` — Phase 2's behavioural break, and the Phase 5 break
+
+> **This section has been wrong about Phase 2 in two successive rounds**, and
+> the second time is the instructive one: round three fixed its _shape_ and
+> still did not _derive_ its contents, so it named a kernel file the branch does
+> not touch and omitted a test file it does. A Files-changed list is one
+> `git diff --name-only main...HEAD` away from being derived, and was written
+> from memory twice. It named
+> one line — "`packages/ts/tests/` — the `checkAll` bare-builder test" — for a
+> phase that changed three CLI doors and four kernel files, and credited this
+> phase's fixture to "Phases 1 and 3" and its changeset to "the Phase 5 break". A
+> plan that ships a kernel change under a Files-changed section saying the kernel
+> is untouched is the failure this plan is about, in the plan about it. It
+> matters concretely: Phase 4's rule is scoped by reasoning about what lives
+> under `packages/core/src`.
 
 ## Out of scope
 
@@ -271,8 +322,201 @@ and the other four are pure gain.
 - [x] Phase 1 — evidence in `check-ledger` and `check-release`, then the two
       dead-check fixtures. Shipped on the second attempt; the first is PR #116,
       closed unmerged after five reviews, and its measurements are in the record
-      above. 85 fixtures fire.
-- [ ] Phase 2 — the rule-file fixture and the `checkAll` test
+      above. The fixture count is the one `check:nonvacuity` prints on every run; pinning the integer here went stale within a day, which is the lesson `CLAUDE.md` already records about this gate.
+- [x] Phase 2 — every verdict door wired, the fixture and the tests. `checkAll`
+      merges its builders' receipts through `mergeCollectResults` and consults
+      the gate; the three CLI doors (`check`, `check --fix`, `baseline`) consult
+      it **per builder**, where the rule file is still in hand;
+      `check:nonvacuity` gained `emitter/bare-builder-reds-the-cli` (a probe rule
+      file driving the real binary, asserted by id); `check-all.test.ts` gained
+      **six** tests — a bare array loaded through `loadRuleFiles` throws, a
+      member that ran and examined nothing reds, the cause is named rather than
+      thrown for some other reason, one dead member among healthy ones reds, and
+      a CONTROL that a declared-empty member stays green.
+      Sabotage-checked: reverting the wiring reds exactly the assertions and
+      leaves the control green; renaming the cited test reds `check:crossval`.
+      Ships `@nielspeter/eess-ts` minor, break-marked: a hand-rolled builder that
+      used to pass now fails, which is the point.
+
+      **Reworked after review, and the corrections are the phase's real record.**
+      Five lenses measured the first cut. The gate now runs **per builder**
+      rather than over a run-wide merge — an architect's proposal, adopted
+      because it is strictly stronger and because one move fixed four defects at
+      once: the finding named no rule file, an `emitter/*` id arriving from
+      inside a member was reported twice, the summary printed `2 of 1 rule
+      failing`, and the guard keyed on an object identity that attribution had
+      already destroyed. `eess-ts baseline` is gated too — it was minting a
+      persisted verdict from a builder that certified nothing. The probe moved
+      under `scripts/nonvacuity/`, which `check:integrity` sweeps; at the repo
+      root it was invisible to both `git status` and that sweep, which is bug
+      0231's shape. The ADR row cites an `it()` title the resolver binds
+      (measured: renaming it reds `check:crossval`).
+
+      **And the ceiling this phase asserted was false.** The test file argued the
+      bare-array case could not be tested without an `as` that ADR-005 forbids.
+      Two reviewers each wrote it independently — one through `loadRuleFiles`,
+      one with `@ts-expect-error` — and both typecheck and pass. The test is
+      written now, by the route production takes. That was the fourth premise in
+      this plan asserted rather than driven, inside the phase that filed
+      [bug 0267](../bugs/0267-the-freeze-checks-links-not-premises.md) about
+      exactly that habit.
+
+      **A third pass, because two of the review's own repairs were also
+      asserted.** The row excused `check --fix` as "returns before any verdict";
+      it does not — `runFix` calls `violations()` on every builder, so the door
+      was open and is now gated and driven by the fixture in both directions. It
+      excused `doctor` as a diagnostic that "already reports rules unable to
+      enforce anything"; measured against the built binary, `doctor` over a bare
+      builder prints `No rules that cannot enforce anything.` and exits 0, which
+      is now [bug 0268](../bugs/0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md).
+      `doctor` stays outside the clause because it returns no verdict, which is
+      the honest reason rather than the one given.
+
+      **The rework's own repair was measured too, and the first cut was
+      wrong.** An ops review measured three hand-rolled builders in one rule
+      file reported as ONE finding whose note said they were "one edit" — the
+      per-builder gate names every file, and the reporting layer merged them
+      back. The first fix refused a dedupe key whenever a finding's `element`
+      repeated its identity, which is too broad: `the-floor.test.ts`'s "CONTROL:
+      genuinely identical findings still collapse" reds on it, because a real
+      rule with a real narrowing and no glob to name has the same shape and two
+      instances of it genuinely are one edit. The guard is keyed on the four
+      emitter ids instead, and the kernel unit test now carries that control
+      locally so nobody widens it back.
+
+      **An existing negative control caught a mistake in a different lane.**
+      Adding the ADR row broke `crossval/scenario-exemption-stale` and
+      `crossval/scenarios-covered-e2e` — not because either gate changed, but
+      because their negative-control scenario requires the whole of
+      `check-crossval.mjs` to exit 0, and the new row cited a KERNEL test, which
+      the ADR resolver cannot see ([bug 0262](../bugs/0262-an-adr-cannot-cite-a-kernel-test.md)).
+      Two fixtures in an unrelated dialect reddened on a bad citation in an ADR.
+      The clause is now pinned by a `packages/ts` test at the door it is about,
+      which the resolver binds — measured by renaming it and watching
+      `check:crossval` go red.
+
+      **The falsifier was measured one gate at a time, not argued.** Deleting
+      the `check`, `--fix` or `baseline` gate individually reds the fixture;
+      deleting `checkAll`'s does not, and reds two suite tests instead — so the
+      fixture's blind spot is named in the ADR row rather than left implied. A
+      first attempt at this matrix ran in a `git worktree` whose `node_modules`
+      symlink resolved `.bin/eess-ts` back to the main checkout's `dist`, so the
+      sabotage never executed and the fixture "passed" against unmutated code.
+      The matrix was rerun in the real tree with every source file restored by
+      hash afterwards. An isolation habit that silently isolates the wrong thing
+      is the same fail-open shape this plan is about.
+
+      **A fourth pass, after seven lenses. The worst finding was a write.**
+      `check --fix --apply` computed repairs from the verdict it then refused and
+      wrote them: measured, a source file was rewritten while the same run
+      printed `emitter/no-receipt` and exited 1 — with the comment directly above
+      saying "applying repairs computed from a verdict that certifies nothing is
+      worse than reporting one". A fix is an edit derived from a verdict, so the
+      door now refuses before `applyFixes`, and the fixture drives `--apply` and
+      asserts its target comes back byte-identical.
+
+      **Six of seven reviewers found the same over-claim independently:** the ADR
+      row and the changeset said all three CLI doors name the rule file, and
+      `--fix` did not — it took a flat builder array `runCheck` had already
+      flattened, so findings printed as `  :0  …`. That is bug 0026's seam,
+      reopened at the one door this phase claimed closed it. `runFix` now loads
+      per rule file like `runBaseline`.
+
+      **The fixture asserted two of its three doors by exit code alone**, against
+      its own stated rule three lines above ("a rule file can exit 1 for a dozen
+      reasons"). Both print the id and the file, so asserting them was free. All
+      three doors are now asserted by id and by file, and the new assertions were
+      each sabotage-checked.
+
+      Also this round: `checkAll([])` was announced as a break with **no test**
+      and threw a finding whose every remedy (`.expectEmpty()`, `expectEmpty` in
+      report options) is unreachable at that door — it now states a remedy a
+      `checkAll` caller can act on, and has a test. The emitter id set existed
+      **twice** in the kernel (`report.ts`'s four-way `||` and this phase's new
+      `Set`); `emitter-findings.ts` now owns it. The fixture's baseline artifact
+      was planted at the repo root — gitignored, outside the sweep, removed
+      outside a `finally` — which is bug 0231's shape, argued against twenty
+      lines above in the same file. `--fix`'s exit code was an unclamped count,
+      and `process.exitCode = 256` exits **0**.
+
+      **Two false numbers in the records, both mine, both caught by the method
+      lens.** Proposal 011 said "eight dogfood scripts" in the same breath as
+      claiming every call site "was enumerated with grep rather than recalled"
+      (no reading gives eight; the compound appears in three), and "three
+      `EMITTER_*` probes" where there are five — inherited from an ADR-014 row
+      that contradicted itself two rows later. Both corrected, and the ADR row
+      with them.
+
+      **A sibling dialect is not covered and the ADR read as if it were.**
+      `eess-mermaid check` over `{ check: () => {} }` prints a clean gate and
+      exits 0 — measured. The clause now names the `eess-ts` doors it is true of,
+      and the sibling door is
+      [bug 0269](../bugs/0269-eess-mermaids-check-door-greenlights-a-builder-that-enforces-nothing.md).
+
+      The documented `collectViolations` + `generateBaseline` recipe — the one an
+      adopter reaches for the moment `baseline` starts refusing — bypasses the
+      gate and taught the workaround with no caveat. Both helpers' docstrings,
+      `docs/core-concepts.md` and `docs/api-reference.md` now say so, and
+      ADR-014's ceiling row names both functions instead of "an adopter who sums
+      by hand". Closing them stays proposal 011 ask C.
+
+      **A fifth pass, after seven lenses again — and this round's worst finding
+      was a false positive I introduced while fixing a false negative.** The
+      `--fix` refusal keyed on `bypassFilters`, which marks every configuration
+      finding, not just the emitter's. Measured: a healthy rule's real fix was
+      withheld because an unrelated rule in the same file had a dead glob, making
+      `--fix --apply` a no-op in any project with one mis-globbed preset option.
+      It is now scoped to the emitter ids and applied **per builder**, so a
+      refused receipt withholds only its own edits — which is ADR-014 §7's own
+      rule, bundled back together at the door that had just been rewritten to
+      avoid bundling.
+
+      **The green control that should have caught it was vacuous.** The fixture's
+      honest builder carries zero violations, so it cannot tell a `--fix` that
+      applies nothing from one that works. The row now drives `--apply` in the
+      green direction too and asserts the target *was* rewritten, plus two
+      separate controls — one where the config finding rides the same builder as
+      the fixable violation (falsifies the predicate) and one where a healthy
+      builder sits beside a refused one (falsifies the scope). Each was
+      sabotage-checked and flips only its own field.
+
+      **`notRun` meant different things at the two doors.** The merge exempts a
+      disabled rule from its dead filter — that exemption is the flag's whole
+      purpose — and the gate had no such branch, so a per-builder door reddened a
+      rule the caller had deliberately turned off. Measured:
+      `checkAll([healthy, off])` green, `eess-ts check` over the same two builders
+      `1 of 2 rules failing`. The gate mirrors the merge now, and the all-off case
+      still reds because the merged receipt carries no `notRun`.
+
+      **A remedy I wrote while fixing an unreachable remedy taught suppression.**
+      `checkAll([])`'s `Fix:` line said "guard the array before calling", which
+      makes the check vanish — in the same string that says the finding cannot be
+      suppressed. It now leads with passing the rules, says the emptiness must be
+      declared upstream where the array is built, and states that skipping the
+      call removes the check rather than satisfying it. It also uses the kernel's
+      `UNSUPPRESSABLE` constant instead of the short form whose measured cost —
+      four wasted CI cycles — is recorded at `packages/core/src/unsuppressable.ts`.
+
+      **`--fix` and `baseline` blessed a rule file that contributed no rules**,
+      where `check` reddens: measured, both exited 0 and `baseline` wrote a
+      baseline from it. That is the disagreement `ruleFileContributedNoRules`
+      exists to end, true again at two doors; both now carry the guard.
+
+      Smaller: `emitter/no-receipt` now names `collectResult` and
+      `mergeCollectResults`, the calls that actually fix it, instead of describing
+      the mistake's shape to an author whose builder *is* the mistake; the 255
+      clamp's note claimed a measured fail-open that two reviewers showed is
+      unreachable through this door, and now says it is defence for a future
+      caller; ADR-014's Status paragraph claimed every row was `pending` and owned
+      by plan 0235 while the table read 14 `gated` and named 0263; §7's new rule
+      is dated; and this section named a kernel file the branch does not touch
+      while omitting a test file it does — written from memory twice, when
+      `git diff --name-only` was one command away.
+
+      Filed rather than absorbed: [bug 0270](../bugs/0270-the-vacuity-matrix-reports-zero-fail-open-doors-while-one-is-stated-open.md)
+      — `check:vacuity` prints `0 unaccounted fail-open` while this phase ships a
+      stated-open door, because both `collectViolations` sit in `NOT_CHECKS`.
+
 - [ ] Phase 3 — the four remedy-remediates fixtures
 - [ ] Phase 4 — the no-second-registry rule
 - [ ] Phase 5 — `throwIfViolations` removed, changeset naming the break
