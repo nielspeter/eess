@@ -278,17 +278,36 @@ and the other four are pure gain.
 - **Phase 2, docs** — `docs/core-concepts.md`, `docs/api-reference.md`, and the
   two `baseline-generator.ts` docstrings (the ungated `collectViolations` route,
   caveated rather than closed)
-- **Phase 3, the gate and its fixtures** — `packages/core/src/report.ts`,
-  `packages/core/src/collect-result.ts`, `packages/core/src/emitter-findings.ts`,
-  `packages/core/src/index.ts`, `packages/core/tests/remedy-remediates.test.ts`,
-  `scripts/nonvacuity/bad-emitter-remedies.mjs`, `scripts/check-nonvacuity.mjs`,
-  `scripts/vacuity-matrix.mjs`, `packages/ts/src/index.ts`,
-  `packages/ts/tests/matrix/vacuity-classification.ts`, `docs/api-reference.md`
+- **Phase 3, everything the branch touches outside `work/`** — derived with
+  `git diff --name-only main...HEAD`, listed in full rather than grouped, because
+  grouping is what let the last four attempts drift:
+  `.changeset/an-empty-source-outranks-any-declaration.md`,
+  `adr/014-the-emitter-refuses-a-verdict-without-evidence.md`,
+  `docs/api-reference.md`,
+  `packages/core/src/collect-result.ts`,
+  `packages/core/src/emitter-findings.ts`,
+  `packages/core/src/index.ts`,
+  `packages/core/src/internal.ts`,
+  `packages/core/src/report.ts`,
+  `packages/core/tests/remedy-remediates.test.ts`,
+  `packages/ts/src/index.ts`,
+  `packages/ts/tests/matrix/vacuity-classification.ts`,
+  `scripts/check-nonvacuity.mjs`,
+  `scripts/nonvacuity/bad-emitter-remedies.mjs`,
+  `scripts/vacuity-matrix.mjs`
 - `arch.internal.rules.ts` — the registry rule (Phase 4)
 - `packages/core/src/index.ts`, `packages/ts/src/index.ts` — the removal (Phase 5)
 - `adr/014-the-emitter-refuses-a-verdict-without-evidence.md` — rows to `gated`
 - `.changeset/` — Phase 2's behavioural break, and the Phase 5 break
 
+> **Wrong four rounds running, and the fourth time the falsehood was the
+> derivation claim itself.** Round four's entry said this list was produced with
+> `git diff --name-only` — and it had been, at the moment it was written, before
+> two later commits added `packages/core/src/internal.ts`. Deriving once and then
+> editing the branch is not deriving; the command has to be the last thing run,
+> and a claim that it was is worse than no claim, because it stops the next
+> reader checking. A method review caught it.
+>
 > **Wrong three rounds running, and the third time it was derived and still
 > incomplete.** Round three fixed the section's shape without deriving its
 > contents; round four's review found it naming a kernel file the branch does not
@@ -561,6 +580,16 @@ and the other four are pure gain.
       not be a preset". That is the same defect the #118 review measured on
       `checkAll([])`, one layer down and unnoticed until the row's own words were
       read against the code.
+
+      **And a fifth round found two of this phase's own fixes colliding.** The
+      merge stamped `sourceEmpty: true` on a receipt whose summed `examined` came
+      from healthy siblings, and the contradiction check added in the same phase
+      then fired on it — blaming `notRun`, a flag nobody had set, with a remedy
+      nobody could apply. Four reviewers measured it independently on this
+      branch's own headline scenario. The merge stamps the flag only when it is
+      true of the whole, the contradiction takes the flag as a parameter and
+      names it, and both are driven by the fixture, which had no assertion about
+      the interaction at all.
 
       **A review round found the fix had recreated its own asymmetry.** Closing
       the hatch at the gate left it open at the merge: `mergeCollectResults` had

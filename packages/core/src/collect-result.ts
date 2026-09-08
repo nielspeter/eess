@@ -174,9 +174,17 @@ export function mergeCollectResults(parts: readonly (readonly ArchViolation[])[]
   // recreated for `sourceEmpty` by the change that fixed it at the gate.
   const emptySource = parts.find((p) => p.sourceEmpty === true && p.examined === 0)
   if (emptySource !== undefined) {
+    const summed = parts.reduce((n, p) => n + p.examined, 0)
     return collectResult([...violations, sourceEmptyViolation()], {
-      examined: parts.reduce((n, p) => n + p.examined, 0),
-      sourceEmpty: true,
+      examined: summed,
+      // **Only when it is true of the WHOLE.** Stamping it unconditionally
+      // minted a receipt saying "the source loaded nothing" beside a non-zero
+      // sum from healthy siblings — and the gate then contradicted it, blaming a
+      // flag nobody set. Four reviewers measured that on this branch's own
+      // headline scenario. The member-level fact is already carried by the
+      // finding above; the flag describes the merged whole, and of the whole it
+      // is only true when nothing was examined anywhere.
+      sourceEmpty: summed === 0 ? true : undefined,
     })
   }
 

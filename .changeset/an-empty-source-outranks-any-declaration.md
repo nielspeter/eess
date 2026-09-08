@@ -49,6 +49,10 @@ loaded nothing cannot have yielded units to examine, so `{ examined: 900, source
 `emitter/contradictory-evidence` — it used to be silent. `notRun` and `declaredEmpty` beside evidence
 already reddened; this was the one flag in the vocabulary with no falsifier.
 
+**The contradiction names the flag it contradicts.** `emitter/contradictory-evidence` hardcoded
+`notRun` in its message, so a contradicted `sourceEmpty` told you to "drop the notRun flag" — one you
+never set. It names the actual flag now, with the matching remedy.
+
 **Not affected:** every builder-produced verdict. A terminal that loaded nothing already carried its
 own source finding and exits before this gate. The population this changes is the hand-assembled
 receipt, which is what ADR-014's gate exists for.

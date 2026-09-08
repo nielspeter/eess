@@ -147,7 +147,10 @@ function withEvidenceGate(violations: readonly ArchViolation[]): CollectResult {
   // verdict-changing flag with its own id is what put it in scope.
   if (violations.sourceEmpty === true && violations.examined > 0) {
     return collectResult(
-      [...violations, contradictoryEvidenceViolation(violations.examined, violations.length)],
+      [
+        ...violations,
+        contradictoryEvidenceViolation(violations.examined, violations.length, 'sourceEmpty'),
+      ],
       { examined: violations.examined },
     )
   }

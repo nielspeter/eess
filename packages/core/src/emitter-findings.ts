@@ -235,15 +235,39 @@ export function expiredDeclarationViolation(examined: number): ArchViolation {
  * numbers ARE the finding, so both are named: a caller debugging this needs to
  * know which half contradicted the flag.
  */
+/**
+ * A flag that quiets a zero, contradicted by the receipt's own evidence.
+ *
+ * **The flag is a parameter because the message names it.** It was hardcoded to
+ * `notRun`, and once `sourceEmpty` became contradictable too, a receipt claiming
+ * an empty source beside real evidence was told to "drop the notRun flag" — a
+ * flag nobody had set, and a remedy that cannot be applied. Four reviewers
+ * measured that on this branch's own headline scenario. ADR-009 rule 2: the
+ * finding names its cause, and the remedy remediates.
+ */
 export function contradictoryEvidenceViolation(
   examined: number,
   violations: number,
+  flag: 'notRun' | 'sourceEmpty' = 'notRun',
 ): ArchViolation {
+  const claim =
+    flag === 'notRun'
+      ? 'is marked as never having run'
+      : 'is marked as having loaded no source at all'
+  const why =
+    flag === 'notRun'
+      ? 'a rule that did not run can have neither'
+      : 'a source that loaded nothing can yield neither'
+  const remedy =
+    flag === 'notRun'
+      ? 'Drop the notRun flag if the rule ran, or drop the evidence if it did not; ' +
+        'notRun exists for a rule turned off, not for one whose result you want quiet.'
+      : 'Drop the sourceEmpty flag if the source loaded, or drop the evidence if it did ' +
+        'not; sourceEmpty describes an instrument that read nothing, not a result you ' +
+        'want quiet.'
   return emitterFinding(
     EMITTER_CONTRADICTORY_EVIDENCE,
-    `this verdict is marked as never having run, but examined ${String(examined)} unit(s) ` +
-      `and carries ${String(violations)} violation(s) — a rule that did not run can have ` +
-      'neither. Drop the notRun flag if the rule ran, or drop the evidence if it did not; ' +
-      'notRun exists for a rule turned off, not for one whose result you want quiet.',
+    `this verdict ${claim}, but examined ${String(examined)} unit(s) ` +
+      `and carries ${String(violations)} violation(s) — ${why}. ${remedy}`,
   )
 }

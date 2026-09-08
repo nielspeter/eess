@@ -169,6 +169,32 @@ try {
   if (!idsOf(gate(mergedWithHealthy)).includes('emitter/source-empty')) {
     failures.push('an empty-source member merged with a healthy one did NOT red — the merge and the gate disagree')
   }
+  // **The merged receipt must not lie about the whole.** Stamping
+  // `sourceEmpty: true` beside a non-zero sum made the gate contradict the
+  // merge's own output, and the contradiction blamed `notRun` — a flag nobody
+  // set, with a remedy nobody could apply. Two of this branch's fixes colliding;
+  // four reviewers measured it. Exactly one finding, and not that one.
+  const mergedIds = idsOf(gate(mergedWithHealthy))
+  if (mergedIds.includes('emitter/contradictory-evidence')) {
+    failures.push(
+      'the merge minted a receipt its own gate contradicts — sourceEmpty stamped beside a non-zero sum',
+    )
+  }
+  if (mergedIds.length !== 1) {
+    failures.push(`merging an empty-source member with a healthy one produced ${mergedIds.join(',')}`)
+  }
+
+  // **A contradiction names the flag it contradicts.** The constructor hardcoded
+  // `notRun`, so a contradicted `sourceEmpty` told the reader to drop a flag they
+  // had never set — ADR-009 rule 2, at the seam this phase is about.
+  const sourceContradiction = gate(collectResult([], { examined: 900, sourceEmpty: true }))[0]
+  if (!/sourceEmpty/.test(sourceContradiction?.message ?? '')) {
+    failures.push("a contradicted sourceEmpty does not name sourceEmpty in its message")
+  }
+  if (/notRun/.test(sourceContradiction?.message ?? '')) {
+    failures.push('a contradicted sourceEmpty blames notRun, a flag the caller never set')
+  }
+
   // CONTROL for that: two healthy members must still merge green, or the check
   // above is satisfied by a merge that reds on everything.
   const mergedHealthy = mergeCollectResults([
