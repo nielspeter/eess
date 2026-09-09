@@ -486,7 +486,7 @@ export type {
 // mistake, and its record says so.)
 export { rootFromTsConfigPath, rootOf, relativeToRoot } from './core/project-relative.js'
 export { syntacticFault } from './core/glob-diagnosis.js'
-export { dispatchRule, throwIfViolations, finishPreset } from '@nielspeter/eess'
+export { dispatchRule, finishPreset } from '@nielspeter/eess'
 
 // ADR-014's receipt, re-exported so a consumer who installs only `eess-ts`
 // can build and merge one without a second, direct `@nielspeter/eess`

@@ -100,7 +100,7 @@ Deferred: none.
 
 ## Related
 
-- [Plan 0263](../plans/0263-adr-014s-residual-enforcement-rows.md) — the three
+- [Plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) — the three
   phases; its Phase 1 record carries the measurements.
 - [0260](./0260-three-lane-declarations-and-nothing-compares-them.md) — the same
   shape one layer over: several declarations of one fact and nothing comparing

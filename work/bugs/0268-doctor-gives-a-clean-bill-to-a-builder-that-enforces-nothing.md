@@ -105,7 +105,7 @@ Deferred: none.
 - [ADR-014](../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) —
   the clause this command is outside of, and whose row carried the false
   rationale until this record replaced it.
-- [Plan 0263](../plans/0263-adr-014s-residual-enforcement-rows.md) — Phase 2
+- [Plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) — Phase 2
   gated the four verdict doors; this is the diagnostic beside them.
 - [0174](./0174-eess-ts-reports-a-clean-gate-with-no-denominator.md) — the same
   family: a surface reporting green without the evidence to say so.

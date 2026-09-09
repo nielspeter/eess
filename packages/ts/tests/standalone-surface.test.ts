@@ -50,6 +50,38 @@ describe('standalone sufficiency: eess-ts re-exports the kernel surface it owns 
     expect(missing).toHaveLength(0)
   })
 
+  // **The subpath, specifically.** The guard above asserts root-OR-presets
+  // reachability, so a gap in one barrel is invisible to it by construction —
+  // which is how `finishPreset` came to be missing from `/presets` while the
+  // release's own migration instruction told adopters to import it from there.
+  // Three separate adopter audits found holes in this barrel by hand before
+  // anything asserted its contents.
+  //
+  // **The set is every KERNEL VALUE this barrel re-exports**, which is the rule
+  // that makes the list derivable rather than remembered. The presets themselves
+  // (`recommended`, `layeredArchitecture`, …) are local to this package and are
+  // already gated by the compiled fences in `docs/presets.md`; these three
+  // originate in `@nielspeter/eess` and nothing else gates their presence here.
+  // Two are forwarded straight off the kernel and `validateOverrides` arrives
+  // via `./shared.js`, which imports it from the kernel — same origin, one hop,
+  // and worth saying so rather than leaving a reader to check.
+  //
+  // An earlier version of this comment said the set was "what the published docs
+  // teach FROM this subpath", and a testing review measured that wrong in both
+  // directions: `docs/presets.md` teaches `layeredArchitecture`,
+  // `strictBoundaries`, `dataLayerIsolation` and `recommended` from here, and
+  // `validateOverrides` appears nowhere in that file. The list was right and its
+  // stated rule pointed the next author at a different one.
+  //
+  // Types are NOT covered — `Object.keys` on a module namespace cannot see them,
+  // as this file's own header says. `PresetReportOptions`, `ReportMode` and
+  // `CollectResult` are gated instead by a compiled fence in `docs/presets.md`.
+  it('the presets subpath carries every kernel value it re-exports', () => {
+    for (const name of ['finishPreset', 'dispatchRule', 'validateOverrides']) {
+      expect(Object.keys(tsPresets)).toContain(name)
+    }
+  })
+
   // ADR-011 clause 2. The three lists above are empty now, so the staleness test
   // below can no longer fail on them — this is the assertion that replaced the
   // bookkeeping they used to do. The boundary is structural: a plumbing symbol is

@@ -142,7 +142,7 @@ Deferred: none.
 
 - [ADR-014](../../../adr/014-the-emitter-refuses-a-verdict-without-evidence.md) —
   the clause whose scope this record corrects.
-- [Plan 0263](../../plans/0263-adr-014s-residual-enforcement-rows.md) — Phase 2
+- [Plan 0263](../../plans/completed/0263-adr-014s-residual-enforcement-rows.md) — Phase 2
   closed the identical hole in `eess-ts`; its measurements are the template.
 - [0268](../0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md)
   — the same family of false green, on `eess-ts`'s diagnostic rather than a

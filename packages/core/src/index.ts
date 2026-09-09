@@ -54,7 +54,7 @@ export { detectFormat, isCI } from './environment.js'
 export { definePredicate, defineCondition } from './define.js'
 
 // Preset dispatch — generic per-rule severity/override infrastructure for presets
-export { dispatchRule, validateOverrides, throwIfViolations } from './preset-dispatch.js'
+export { dispatchRule, validateOverrides } from './preset-dispatch.js'
 export { reportViolations, finishPreset } from './report.js'
 export type { ReportMode, ReportOptions, PresetReportOptions } from './report.js'
 export type { RuleSeverity, PresetBaseOptions } from './preset-dispatch.js'

@@ -2,7 +2,7 @@ import { type CollectResult, collectResult } from './collect-result.js'
 import { severityFor } from './violation.js'
 import type { RuleMetadata } from './rule-metadata.js'
 import { formatViolations } from './format.js'
-import { finishPreset, type PresetReportOptions } from './report.js'
+import { type PresetReportOptions } from './report.js'
 import { writeStderr } from './stderr.js'
 
 /** Per-rule severity within a preset. */
@@ -106,15 +106,4 @@ export function validateOverrides(
       )
     }
   }
-}
-
-/**
- * Emit (stderr text) and throw a single `ArchRuleError` with all aggregated
- * violations, if any. Kept for backward compatibility; it is now `finishPreset`
- * in the default `throw` mode. New presets take `PresetReportOptions` and call
- * `finishPreset` so a caller can opt into `report: 'return'` / `--format json`
- * (plan 0070).
- */
-export function throwIfViolations(violations: CollectResult): void {
-  finishPreset(violations, { report: 'throw' })
 }

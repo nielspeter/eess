@@ -261,7 +261,7 @@ cover each other's blind spot once the subpath globs are right.
 "until plan 0235 deletes the symbol", and 0235 shipped on 2026-09-06 without
 deleting it — it is still exported from `packages/core/src/index.ts` and
 `packages/ts/src/index.ts`, and removing it is now
-[plan 0263](../0263-adr-014s-residual-enforcement-rows.md) Phase 5. The name is
+[plan 0263](./0263-adr-014s-residual-enforcement-rows.md) Phase 5. The name is
 live, not pending-dead. Either way a dead name in a regex is harmless, and an
 adopter on an older kernel still has the alias.
 

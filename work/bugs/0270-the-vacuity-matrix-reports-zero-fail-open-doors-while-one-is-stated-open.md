@@ -103,7 +103,7 @@ Deferred: none.
 - [Proposal 011](../proposals/011-core-name-the-evidence-gate.md) — ask C owns
   the decision about `collectViolations` itself; this record is about the
   instrument that cannot see it.
-- [Plan 0263](../plans/0263-adr-014s-residual-enforcement-rows.md) — Phase 2
+- [Plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) — Phase 2
   stated the residual and made `.:checkAll`'s exclusion reason stale.
 - [0268](./0268-doctor-gives-a-clean-bill-to-a-builder-that-enforces-nothing.md)
   and [0269](./fixed/0269-eess-mermaids-check-door-greenlights-a-builder-that-enforces-nothing.md)
