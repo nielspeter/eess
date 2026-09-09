@@ -36,6 +36,27 @@ Measured shapes, against `scripts/release-gate.mjs:169`:
 
 The third is an ordinary way to write the line and it degrades in silence.
 
+**A fourth shape, and it fails open in a different rule.** `breakingMarkerIn`
+caps the marker at 69 characters plus an ellipsis (`scripts/release-gate.mjs:175`)
+and the owner extraction then runs on the TRUNCATED string, so a name straddling
+the cut is mangled into a package that does not exist:
+
+```
+**Breaking (@nielspeter/eess, @nielspeter/eess-ts, @nielspeter/eess-md): removed.**
+→ owners: ['@nielspeter/eess', '@nielspeter/eess-ts', '@nielspeter/eess-m']
+```
+
+`release/break-names-dependents` then looks up `dependentsOf['@nielspeter/eess-m']`,
+finds nothing, and reports no missing dependents. That is a silent fail-open in
+the exact rule bug 0185 added — and it is worse than the weak-check fallback
+above, because the gate believes it is running the strong form.
+
+**PR #122's own marker sits one owner from it.** Measured: the full marker is 109
+characters, truncation keeps 69, and the closing parenthesis of its owner list
+lands at character 50 — so both `@nielspeter/eess` and `@nielspeter/eess-ts`
+survive. A third owner would not. That is luck, not design, and it is the reason
+this shape is recorded here rather than left for whoever hits it.
+
 ## Why it matters now
 
 PR #122 depends on the strong form. Its first version used
@@ -60,4 +81,8 @@ is not.
 - [ ] Red test first: a changeset with `**Breaking** — @nielspeter/eess …` and
       the owning package at `patch`, passing before the fix.
 - [ ] The gate names each loosely-checked changeset rather than counting them.
+- [ ] Owner extraction runs on the FULL marker, not the display-truncated one —
+      truncation is for the printed summary and must not narrow what is parsed.
+      Red test first: a three-owner marker whose third name straddles character
+      69, with that package's dependent undeclared, passing before the fix.
 - [ ] A non-vacuity fixture asserting by rule id.

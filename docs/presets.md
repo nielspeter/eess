@@ -41,6 +41,27 @@ const p = project('tsconfig.json')
 export default [...recommended(p, { report: 'builders' })]
 ```
 
+Writing your own preset wrapper? The seam and the types of its options come from
+the same subpath, so one import line covers it:
+
+```typescript
+import { project } from '@nielspeter/eess-ts'
+import {
+  finishPreset,
+  recommended,
+  type CollectResult,
+  type PresetReportOptions,
+  type ReportMode,
+} from '@nielspeter/eess-ts/presets'
+
+const p = project('tsconfig.json')
+
+export function houseRules(options: PresetReportOptions = {}): CollectResult {
+  const mode: ReportMode = options.report === 'warn' ? 'warn' : 'throw'
+  return finishPreset(recommended(p, { report: 'return' }), { report: mode })
+}
+```
+
 ### Two traps worth knowing
 
 **`'return'` in a rule file does not work.** A rule file spreads its presets into

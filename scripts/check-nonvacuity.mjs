@@ -788,7 +788,7 @@ function gateFamilyReExportCrossvalidate() {
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return {
     ok,
-    detail: `bad → exit ${bad.code} (family/re-export-complete on crossvalidate/src/files.ts) · ${cleanNote}`,
+    detail: `bad → exit ${bad.code} (family/re-export-complete on crossvalidate/src/files.ts naming 'diffAware') · ${cleanNote}`,
   }
 }
 
@@ -882,13 +882,6 @@ function gateFamilyReExportAggregation() {
   // Two of the three are checked below, because they — not "is it on the root" —
   // are what makes a payload stop violating.
   //
-  // **The third is not checked, and saying which is the point.** `ALLOWLIST` is
-  // `{ ts: FAMILY_ONLY }` and is not exported from that module, so md has no
-  // entry and the route is vacuous for this payload today. An architecture
-  // review found the first version of this comment claiming all three — coverage
-  // it did not have, in a guard whose subject is claims that outrun their
-  // evidence. If an `md` entry is ever added to `ALLOWLIST`, export it and check
-  // it here; until then this is a stated gap, not a silent one.
   //
   // A fourth condition is a standing constraint rather than a check: the payload
   // must be a kernel symbol **md's own source never imports**. `check:family`
@@ -1000,14 +993,13 @@ function gateFamilyReExportAggregation() {
   // match — the fixture went red on its own assertion. A gate that keys on
   // rendered text is the thing this repo keeps relearning; this one keys on the
   // record.
-  const namesPayload = violationsOf(bad).some(
-    (v) =>
-      v?.ruleId === 'family/re-export-complete' &&
-      String(v?.file ?? '').includes('md/src/index.ts') &&
-      String(v?.message ?? '').includes(PAYLOAD),
+  const namesPayload = firedNamingPayload(
+    bad,
+    'family/re-export-complete',
+    'md/src/index.ts',
+    PAYLOAD,
   )
-  const ok =
-    bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts') && namesPayload
+  const ok = bad.code === 1 && namesPayload
   const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return {

@@ -355,11 +355,19 @@ and the other four are pure gain.
 
   > **A SIXTH instance, and the review round caused it.** The list above was
   > derived correctly before the first commit, then the review round added three
-  > test files and nobody re-derived it — so it named twelve paths where
-  > `git diff --name-only main...HEAD | grep -v '^work/'` returns fifteen. That
-  > is the defect this section already records five times, committed by the round
-  > whose whole subject was claims that outrun their evidence, and caught by an
-  > architecture review rather than by re-running the one command. "Deriving once
+  > test files and nobody re-derived it — so it named twelve paths where the
+  > command returned fifteen. That is the defect this section already records
+  > five times, committed by the round whose whole subject was claims that
+  > outrun their evidence, and caught by an architecture review rather than by
+  > re-running the one command.
+  >
+  > **And this note then went stale itself, twice.** It pinned "fifteen" as a
+  > live figure while two further review rounds added four more files; the
+  > command now returns nineteen, and an enforcement review caught the pin. The
+  > count is deliberately not restated here any more — the list below is the
+  > derivation, and a number beside it is one more thing to keep in step. That
+  > is the same lesson `CLAUDE.md` records about pinning live figures in its own
+  > tables, learned here for the seventh time in one section. "Deriving once
   > and then editing the branch is not deriving" is written four entries above
   > this one, by me, about someone else.
 
@@ -851,13 +859,29 @@ and the other four are pure gain.
       a new symbol"; it is not the fail-closed repair the first draft claimed. It
       now also checks the routes that actually exempt a symbol. There are three
       — `KERNEL_INTERNAL`, `KERNEL_PRIVATE_BEFORE_THE_SPLIT`, and the package's
-      `ALLOWLIST` entry — and the guard checks **two**. `ALLOWLIST` is not
-      exported from `scripts/lib/family-re-exports.mjs` and has no `md` entry, so
-      the route is vacuous for this payload today; it is also the one a future
-      author could actually use, so the gap is stated in the fixture rather than
-      left silent. An architecture review found the first version of this
-      paragraph claiming all three. The root check was **kept and strengthened**,
-      not replaced: it now reads export statements rather than raw file text.
+      `ALLOWLIST` entry — and the guard checks all three. Getting to that
+      sentence took three attempts, and each one is a smaller version of this
+      plan's subject.
+
+      The first version claimed three and checked two; an architecture review
+      caught it. The second said two and named the third as a stated gap; a
+      testing review then measured that the unchecked route was the only one that
+      could actually fire — both checked sets are empty — and that adding an `md`
+      entry produced exactly the "expected a violation, got none" mystery the
+      guard exists to prevent. So `ALLOWLIST` was exported from
+      `scripts/lib/family-re-exports.mjs` and is read here. The third version of
+      the paragraph, this one, was written because an enforcement review found
+      the SECOND still standing in the plan and in the script beside the code
+      that had superseded it — the file argued both sides twenty-five lines
+      apart.
+
+      The kernel-root check was **removed, not strengthened.** An earlier draft of
+      this paragraph said the opposite. It is gone because the comment above it
+      proves the rule never consults the kernel root, so the check could red a
+      perfectly valid probe while claiming the payload "no longer violates", and
+      because reading export statements still did not stop a farewell comment
+      that QUOTES an export from satisfying it. Deleting it removes the
+      fail-open surface rather than narrowing it.
 
       The same review found the row could go green on a dead payload: exit 1 plus
       the rule id on `md/src/index.ts` is satisfied by any OTHER md re-export gap,
@@ -872,6 +896,15 @@ and the other four are pure gain.
       green on a dead payload carried by an unrelated regression. All three now
       share one `firedNamingPayload` helper, and the comment claiming a sibling
       already asserted this way named the wrong sibling.
+
+      A third round found the helper credited with three sites and used at two:
+      the aggregation probe still hand-rolled the identical predicate beside a
+      call to the older helper. Routed through it now. Both re-export probes were
+      then measured separately against a masking gap — an unrelated re-export
+      hole with no payload injected — and each behaves the same way: the old
+      assertion returns **true**, the new one **false**. The crossvalidate arm is
+      measured here because the review that found the defect said plainly it had
+      only checked the md one.
 
       That assertion took two attempts, and the first failure is the same lesson
       again. It tested `/"hasEvidence"/` against `stdout`, which is `--format
