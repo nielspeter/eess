@@ -53,6 +53,18 @@ Clean at audit (adopt as-is; non-vacuity proofs land in Phase 6):
 | `metrics/max-methods-20`              | 6   | **ADOPT with a-priori exclusion of `**/builders/**`+ kernel`RuleBuilder`** — ADR-003's fluent DSL makes a wide method surface the _design_ (`ClassRuleBuilder`'s 37 methods are the API). Non-builder classes stay bounded.                                                      |
 | `metrics/max-class-lines-300`         | 1   | Same ADR-003 exclusion (kernel `RuleBuilder`, 353 lines — the base of the fluent grammar).                                                                                                                                                                                       |
 
+**`eess/no-new-kernel-registry`** (added 2026-09-09, plan 0263 Phase 4) — **ADOPT
+with an a-priori exclusion of two files.** `packages/core/src/cardinality.ts`
+(`CARDINALITY_ASSERTERS`) and `packages/core/src/owns-empty-discovery.ts`
+(`OWNERS`) are the two kernel-bound suppression registries ADR-010 §2 declares;
+they are the thing the rule protects, not violations of it. Recorded here because
+for this rule **the exclusion list is the rule** — growing it by one line exempts
+a genuine new registry, and a builder `.excluding()` is not disclosed the way an
+inline `// eess-exclude` is. That is why `check:nonvacuity`'s
+`arch/no-new-kernel-registry` also counts the population independently of the
+list. Scoped to `WeakSet`: `packages/core/src/selection-memo.ts`'s two `WeakMap`s
+are a memo cache and must not be caught.
+
 **Rejected rules: 0.** Every candidate rule is adopted (11 already clean, 12 with fixes and/or a-priori exclusions above, 1 pending feasibility below).
 
 **Deferred to Phase 4 decision:** `hygiene/no-only-in-tests`-style test rules — test

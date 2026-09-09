@@ -13,6 +13,7 @@ import {
   modules,
   classes,
   functions,
+  newExpr,
   not,
   resideInFolder as inFolder,
 } from '@nielspeter/eess-ts'
@@ -61,6 +62,24 @@ const p = workspace([
 // would be a vacuous exclusion (the nonvacuity gate flags those).
 const GENERATED = /\/parser\/generated\//
 const ENV_ADAPTERS = /\/core\/src\/(ansi|environment)\.ts$/ // these modules ARE the env boundary
+
+// ADR-010 §2: the kernel's unforgeable suppression registries are a CLOSED SET.
+// The id names the banned thing, not an ordinal — every sibling in this file does
+// (`no-eval`, `no-silent-catch`, `no-dead-modules`), and an ordinal goes stale the
+// day a third home is legitimately sanctioned.
+//
+// registries are `WeakSet`-backed and each guards a distinct, named audience.
+// **Two homes, not one.** The ADR row said `cardinality.ts` was "the sole home"
+// and it never was — `owns-empty-discovery.ts`'s own comment says "the two
+// markers share it". A rule written from that text would have reddened on
+// legitimate existing kernel code on its first run, and the author would have
+// weakened or exempted it: a mechanism that fires on the thing it protects
+// teaches people to switch it off (ADR-009 rule 1). Corrected at plan 0263's
+// freeze, before the rule existed.
+const REGISTRY_HOMES = [
+  /\/core\/src\/cardinality\.ts$/, // CARDINALITY_ASSERTERS
+  /\/core\/src\/owns-empty-discovery\.ts$/, // OWNERS
+]
 // Entry points = import-graph roots (the packages' exports+bin maps, verbatim):
 const ENTRY_POINTS = [
   // `internal.ts` is a published entry point too — `@nielspeter/eess/internal`,
@@ -133,6 +152,29 @@ const rules = [
     .rule({
       id: 'eess/no-unused-exports',
       because: 'entry-point exports exist for consumers; internal ones must be used',
+    }),
+  // ADR-010 §2 / ADR-014: no THIRD kernel-bound suppression registry. Scoped to
+  // `WeakSet` deliberately — `packages/core/src/selection-memo.ts` constructs two
+  // `WeakMap`s and they are a memo cache, not a suppression registry. This
+  // sentence exists so nobody later "fixes" the rule to include `WeakMap` and
+  // reds the cache.
+  modules(p)
+    .that()
+    .resideInFolder('**/packages/core/src/**')
+    .excluding(...REGISTRY_HOMES)
+    .should()
+    .notContain(newExpr('WeakSet'))
+    .rule({
+      id: 'eess/no-new-kernel-registry',
+      because:
+        'ADR-010 §2 — the kernel-bound suppression registries are an unforgeable, closed set: two homes, each guarding a distinct named audience',
+      suggestion:
+        'Reuse one of the two existing registries if your marker fits its audience — ' +
+        'CARDINALITY_ASSERTERS in cardinality.ts, OWNERS in owns-empty-discovery.ts. ' +
+        'If it genuinely does not, a new home is an amendment to ADR-010 §2 and a new ' +
+        'entry in REGISTRY_HOMES, in that order — not a line added to the exclusion ' +
+        'list. And if you need a memo cache rather than a suppression registry, use a ' +
+        'WeakMap, which this rule does not touch (see selection-memo.ts).',
     }),
   srcFns().should().satisfy(noStubComments()).rule({ id: 'eess/no-stub-comments' }),
   srcFns().should().satisfy(noEmptyBodies()).rule({ id: 'eess/no-empty-bodies' }),

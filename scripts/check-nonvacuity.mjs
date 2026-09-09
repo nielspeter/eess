@@ -230,6 +230,7 @@ const PROBE_MERMAID_RULES = join(
   '__nonvacuity_probe_mermaid.rules.ts',
 )
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
+const PROBE_REGISTRY = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_registry__.ts')
 const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
 // Bug 0127: corpus/links must prove BOTH routing regions (bug 0086's
 // site-vs-repo-native split), and corpus/pointers must drive the production
@@ -474,9 +475,18 @@ function withProbeDir(dir, path, contents, fn) {
  * and restoring it, matching this whole session's own established
  * sabotage-then-restore discipline, is the correct shape here instead.
  *
- * Unlike `withProbe`'s throwaway file (inert if a crash skips the `finally`
- * — it's a `.gitignore`-matched, non-existent-until-written path), this
- * mutates a real, tracked source file in place. A SIGINT/SIGTERM/crash
+ * Unlike `withProbe`'s throwaway file — which a crash leaves behind but
+ * which the startup sweep deletes and `check:integrity` names by path — this
+ * mutates a real, tracked source file in place.
+ *
+ * This paragraph used to call that leftover probe "inert". It is not, and bug
+ * 0231 measured why: `.gitignore` carries a `__nonvacuity_probe` glob, so a
+ * survivor leaves `git status` clean while `check:arch` reds on a file the
+ * reader cannot find. `scripts/check-workspace-integrity.mjs` says so at
+ * length, and for a while these two comments in the same chain disagreed
+ * about the same fact. The distinction that survives is recoverability, not
+ * harmlessness: a leftover probe has a sweep, a corrupted tracked file has
+ * none. A SIGINT/SIGTERM/crash
  * mid-mutation would skip the `finally` and leave that file corrupted on
  * disk with no equivalent startup sweep to repair it (review found this —
  * architect + testing, independently). `pendingRestores` + the signal
@@ -552,6 +562,7 @@ rmSync(PROBE_BASELINE_OUT, { force: true })
 rmSync(PROBE_FIX_TARGET, { force: true })
 rmSync(PROBE_MERMAID_RULES, { force: true })
 rmSync(PROBE_CATCH, { force: true })
+rmSync(PROBE_REGISTRY, { force: true })
 rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
 rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
@@ -602,6 +613,103 @@ function gateInternalArch() {
       ? 'clean → green (both directions proven)'
       : 'clean → in-flight (other agents still fixing violations)'
   return { ok, detail: `bad → exit ${bad.code} (eess/no-silent-catch on probe) · ${cleanNote}` }
+}
+
+/**
+ * ADR-010 §2's "nothing may add a fourth" — plan 0263 Phase 4.
+ *
+ * The kernel's unforgeable suppression registries are `WeakSet`-backed, and each
+ * guards a distinct, named audience. There are TWO homes, not one: the ADR row
+ * said `cardinality.ts` was "the sole home" and it never was. A rule written from
+ * that text would have reddened on legitimate kernel code on its first run, and
+ * the author would have weakened or exempted it — a mechanism that fires on the
+ * thing it protects teaches people to switch it off (ADR-009 rule 1).
+ *
+ * **Both directions, and the second is why the rule is scoped to `WeakSet`.**
+ * A third `WeakSet` must red; a `WeakMap` must not, because
+ * `packages/core/src/selection-memo.ts` builds two of them as a memo cache. A
+ * fixture that only proved the red would let someone "fix" the rule to include
+ * `WeakMap` and red the cache with nothing to stop them.
+ */
+function gateNoNewKernelRegistry() {
+  const run = () => sh(EESS_TS, ['check', 'arch.internal.rules.ts', '--format', 'json'])
+  // A third registry: must fire, by rule id AND on the probe.
+  const third = withProbe(
+    PROBE_REGISTRY,
+    'const THIRD = new WeakSet<object>()\n' +
+      'export const mark = (o: object): void => void THIRD.add(o)\n',
+    run,
+  )
+  // **By severity, not only by id.** `.asSeverity('warn')` on the rule turns it
+  // into a report that does not block, and every other arm here stays green —
+  // the probe file trips two unrelated hygiene rules, so exit 1 arrives whatever
+  // this rule's severity is, and copying `third.code === 1` would not have caught
+  // it either. A rule that reports and does not block is the fail-open ADR-009
+  // exists for. Measured by a QA review.
+  const firedOnThird = violationsOf(third).some(
+    (v) =>
+      v?.ruleId === 'eess/no-new-kernel-registry' &&
+      String(v?.file ?? '').includes('__nonvacuity_probe_registry__') &&
+      v?.severity === 'error',
+  )
+
+  // A memo cache: must NOT fire. Without this the rule could be widened to
+  // `WeakMap` and the repo's own cache would red.
+  const memo = withProbe(
+    PROBE_REGISTRY,
+    'const CACHE = new WeakMap<object, number>()\n' +
+      'export const put = (o: object, n: number): void => void CACHE.set(o, n)\n',
+    run,
+  )
+  const quietOnMemo = !firedOn(memo, 'eess/no-new-kernel-registry', '__nonvacuity_probe_registry__')
+
+  // And the two real homes stay exempt with no probe planted at all — otherwise
+  // "reds on a third" is satisfied by a rule that reds on the existing two.
+  const clean = run()
+  const quietOnHomes = !firedOn(clean, 'eess/no-new-kernel-registry')
+
+  // **The census, because the rule alone cannot see two shapes of a fourth.**
+  //
+  // The rule excludes the two homes by PATH, so a fourth `WeakSet` added INSIDE
+  // one of them is invisible — measured: planting one in `cardinality.ts` left
+  // `check:arch` green. And the exclusion list *is* the rule, so growing
+  // `REGISTRY_HOMES` by one line silently exempts a genuine third registry;
+  // nothing discloses a builder `.excluding()` the way the inline-comment
+  // suppressions are disclosed. Both were found by review.
+  //
+  // Counting the occurrences answers both, and is independent of the rule's own
+  // exclusions: exactly two `new WeakSet` under `packages/core/src`, one in each
+  // named home. ADR-010 §2 is a statement about a POPULATION, so the mechanism
+  // that holds it has to count the population.
+  const KERNEL_SRC = join(repoRoot, 'packages', 'core', 'src')
+  const census = []
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) walk(full)
+      else if (entry.name.endsWith('.ts')) {
+        const hits = (readFileSync(full, 'utf8').match(/new WeakSet\b/g) ?? []).length
+        if (hits > 0) census.push({ file: full.slice(repoRoot.length + 1), hits })
+      }
+    }
+  }
+  walk(KERNEL_SRC)
+  const EXPECTED = [
+    { file: 'packages/core/src/cardinality.ts', hits: 1 },
+    { file: 'packages/core/src/owns-empty-discovery.ts', hits: 1 },
+  ]
+  const censusOk =
+    census.length === EXPECTED.length &&
+    EXPECTED.every((e) => census.some((c) => c.file === e.file && c.hits === e.hits))
+
+  return {
+    ok: firedOnThird && quietOnMemo && quietOnHomes && censusOk,
+    detail:
+      `a third WeakSet \u2192 fired at error severity on its own file: ${firedOnThird}; ` +
+      `census \u2192 ${census.map((c) => `${c.file}\u00d7${String(c.hits)}`).join(', ')} (${censusOk ? 'as declared' : 'DRIFTED'}); ` +
+      `a WeakMap memo cache \u2192 quiet: ${quietOnMemo}; ` +
+      `the two named homes \u2192 quiet: ${quietOnHomes}`,
+  }
 }
 
 // --- Gate: family (plan 0089 — standalone-sufficiency rules) ---
@@ -2028,6 +2136,7 @@ const gates = [
   ['gate coverage', () => gateCoverage()],
   ['arch (root rules)', gateArch],
   ['internal arch', gateInternalArch],
+  ['arch/no-new-kernel-registry', gateNoNewKernelRegistry],
   ['family re-export (index)', gateFamilyReExportIndex],
   ['family re-export (crossvalidate)', gateFamilyReExportCrossvalidate],
   ['family re-export (aggregation)', gateFamilyReExportAggregation],
@@ -2416,6 +2525,7 @@ const GATE_FOR = {
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'internal arch',
+    'arch/no-new-kernel-registry',
     'engine/applyfilters-parity',
   ],
   'check:family': [

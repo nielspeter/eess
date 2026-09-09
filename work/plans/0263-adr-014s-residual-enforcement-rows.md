@@ -6,7 +6,9 @@
   first was opened as PR #116, reviewed by five lenses, and **closed unmerged**
   because the measurements said the design was wrong rather than incomplete (see
   Phase 1's record). **Phase 2 shipped 2026-09-07** (PR #118, three review
-  rounds); phases 3-5 remain. Frozen 2026-09-06. **The freeze found two things, one a
+  rounds), **Phase 3 on 2026-09-09** (PR #120, six rounds — every one of them
+  found a defect introduced by the previous round's repair), and **Phase 4 is
+  built here**. Phase 5 alone remains. Frozen 2026-09-06. **The freeze found two things, one a
   false premise this plan inherited from ADR-014's own table and repeated
   without measuring** — written the day before, by me, which is the mistake this
   ADR is about, made about the ADR:
@@ -63,7 +65,7 @@ honest consequence is that nothing would notice their regression:
 | `throwIfViolations` is not exported                                        | It **is** still exported from `packages/core/src/index.ts` and `packages/ts/src/index.ts` — the clause is simply not satisfied | n/a; this one is undone work, not unwatched work                                                                     |
 | A rule file exporting an evidence-free builder reds the CLI and `checkAll` | It does — `checkAll` routes through the kernel merge and the CLI through the emitter                                           | a future refactor that hands the CLI a bare array again, which is exactly the shape 0206 had                         |
 | The finding names its cause, and the remedy remediates                     | Each of the four causes has its own id and message                                                                             | a message edited into uselessness, or a remedy that does not clear the finding it is printed beside (ADR-009 rule 2) |
-| No new kernel registry is added                                            | **TWO** `WeakSet` registries exist, not one — see Phase 4's freeze correction                                                  | a second registry added under `packages/core/src`, which is the device ADR-014 §2 chose the required field over      |
+| No new kernel registry is added                                            | **TWO** `WeakSet` registries exist, not one — see Phase 4's freeze correction                                                  | ANOTHER registry added under `packages/core/src`, which is the device ADR-014 §2 chose the required field over       |
 | Every hand-assembled check in this repo supplies evidence                  | `check:corpus` proves it end to end (`emitter/one-dead-check`)                                                                 | the same dead-check fail-open in `check:ledger` or `check:release`, neither of which has a break-the-loop fixture    |
 
 The middle three share a shape worth naming: **the clause is enforced by a
@@ -216,7 +218,7 @@ assertion is ADR-009 rule 2's behavioural corollary and is the half nobody
 writes — a message can name a remedy that does not work, and only this shape
 catches it.
 
-## Phase 4 — the no-third-registry rule
+## Phase 4 — the no-new-kernel-registry rule
 
 **Corrected at the freeze, 2026-09-06, and this is the phase's whole lesson.**
 This plan said "no module under `packages/core/src` other than `cardinality.ts`
@@ -250,6 +252,17 @@ Tier 1, and it must declare a non-zero denominator or the row is not `gated` —
 
 ## Phase 5 — `throwIfViolations` leaves the public surface
 
+> **Floor repaired 2026-09-09, before anyone builds it — a method review found
+> the freeze had missed a hazard plan 0235 recorded at its own close.**
+> `scripts/check-nonvacuity.mjs` injects
+> `import { throwIfViolations } from '@nielspeter/eess'` as the violating payload
+> for the family re-export probe. Deleting the export disarms a live probe:
+> "green for nothing, loudly confident", in 0235's words. Also unnamed by the
+> original floor and needed by whoever builds this:
+> `packages/ts/tests/matrix/vacuity-classification.ts`, `work/dogfood-coverage.md`,
+> `docs/api-reference.md`, `docs/presets.md`. The phase is still one coherent PR
+> and should not be split; it just needed its floor to be true.
+
 The only breaking change here. It is exported from two packages' roots; ADR-014
 says it should not be. Removing it needs a changeset marking the break and naming
 every dependent package (bug 0185's rule), and `check:surface` will want the root
@@ -264,7 +277,9 @@ and the other four are pure gain.
   `scripts/lib/lane-coverage.mjs`, `scripts/check-corpus.mjs` — the evidence
   seam (Phase 1, after its correction: the phase turned out to need the
   mechanism before the fixture)
-- `scripts/check-nonvacuity.mjs` — new fixtures (Phases 1, 2 and 3)
+- `scripts/check-nonvacuity.mjs` — Phase 1's fixtures. Every later phase also
+  touches this file; each says so in its own derived list below rather than
+  here, because naming it twice is what made the ADR file appear three times.
 - **Phase 2, the doors and the kernel** — `packages/ts/src/cli/commands/check.ts`
   (`check` and `--fix`), `packages/ts/src/cli/commands/baseline.ts`,
   `packages/ts/src/core/check-all.ts`, and in the kernel
@@ -295,11 +310,42 @@ and the other four are pure gain.
   `scripts/check-nonvacuity.mjs`,
   `scripts/nonvacuity/bad-emitter-remedies.mjs`,
   `scripts/vacuity-matrix.mjs`
-- `arch.internal.rules.ts` — the registry rule (Phase 4)
-- `packages/core/src/index.ts`, `packages/ts/src/index.ts` — the removal (Phase 5)
-- `adr/014-the-emitter-refuses-a-verdict-without-evidence.md` — rows to `gated`
-- `.changeset/` — Phase 2's behavioural break, and the Phase 5 break
+- **Phase 4, everything the branch touches outside `work/`** — derived with
+  `git diff --name-only main` against the WORKING TREE, because the commit does
+  not exist yet and `main...HEAD` is empty until it does, and re-derived after
+  the review pass rather than left at its first value:
+  `adr/010-a-pass-is-constructed-from-evidence.md`,
+  `adr/014-the-emitter-refuses-a-verdict-without-evidence.md`,
+  `arch.internal.rules.ts`,
+  `scripts/check-nonvacuity.mjs`
+- **Phase 5, not yet derived** — `packages/core/src/index.ts` and
+  `packages/ts/src/index.ts` (the removal), the remaining
+  `adr/014-the-emitter-refuses-a-verdict-without-evidence.md` rows to `gated`,
+  and a `.changeset/` entry for the break. Phases 2 and 3 shipped changesets of
+  their own; they are named in those phases' lists, not here. This bullet is a
+  forecast and says so — the derived list replaces it when the phase is built,
+  from `git diff --name-only main` AND `git status --porcelain`, per the
+  correction below.
 
+> **A fifth instance, caught before the commit this time.** Phase 4's first cut
+> ran `git diff --name-only main...HEAD` — which is EMPTY until the commit exists,
+> so the heading claimed a derivation and listed nothing. Caught by diffing the
+> claimed list against the real one before committing, which is the check this
+> section has needed for five rounds. Before a commit the honest source is
+> `git diff --name-only main`; after it, `main...HEAD`. Getting that wrong looks
+> exactly like getting it right.
+>
+> **And that rule still has a hole, which Phase 5 will walk into.** A method
+> review measured it: `git diff --name-only main` does not list an UNTRACKED
+> file — `git status --porcelain` does. Phase 5's own deliverable includes a
+> changeset, which is untracked until it is added, so the one command this
+> section settled on would omit the very file the release gate is about to
+> demand. Before a commit, derive from BOTH: `git diff --name-only main` for the
+> tracked edits and `git status --porcelain` for what is not yet staged. The
+> two-dot form carries a second caveat worth stating once — `main...HEAD` is
+> sound only while `main` is still the merge base, so a rebase or a moved `main`
+> silently changes what it answers.
+>
 > **Wrong four rounds running, and the fourth time the falsehood was the
 > derivation claim itself.** Round four's entry said this list was produced with
 > `git diff --name-only` — and it had been, at the moment it was written, before
@@ -607,7 +653,79 @@ and the other four are pure gain.
       `minor` naming all five dialects, because a kernel break reaches an adopter
       through whichever dialect they installed.
 
-- [ ] Phase 4 — the no-second-registry rule
+- [x] Phase 4 — the no-new-kernel-registry rule. `arch.internal.rules.ts` gains
+      `eess/no-new-kernel-registry`: no module under `packages/core/src/**`, other
+      than the two named homes, constructs a `WeakSet`. **Denominator: every
+      module in the kernel source directory — 58 as measured 2026-09-09, 0
+      violations** — because 0235's criterion is that a row is not `gated` on a
+      rule that examined nothing. The integer is dated and lives here rather than
+      in the ADR row, which now states the property: it is the file count of
+      `packages/core/src`, so it moves on nearly every kernel PR, and no gate
+      reprints it. **Of those 58, the rule can fail on 56.** Exclusions filter
+      violations, not the population, so the two homes are inside `examined` and
+      outside the enforced set. The evidence criterion is met on either number;
+      the reader would infer the wrong one.
+
+      **The rule was named three times, and the renames are the record, not
+      tidying.** It entered this plan as `no-second-registry`, from ADR-014's
+      false "sole home" premise. The freeze found a second home and made it
+      `no-third-registry`. Review then found the exclusion list WAS the rule, and
+      that ADR-010 §2's arithmetic capped a count where it meant a population —
+      so both the clause and the rule became `no-new-kernel-registry`. A rule
+      named for an ordinal is a rule that has to be renamed every time the set
+      grows, which is the shape the last two renames were paying for.
+
+      **The phase's whole value was spent before a line of rule was written.**
+      The freeze had already corrected this plan's premise: the ADR row said
+      `cardinality.ts` was "the sole home" and it never was —
+      `owns-empty-discovery.ts` holds `OWNERS` and its own comment says "the two
+      markers share it". A rule written from the old text would have reddened on
+      legitimate kernel code on its first run, and the author would have weakened
+      or exempted it. That is ADR-009 rule 1's dynamic: a mechanism that fires on
+      the thing it protects teaches people to switch it off. The survey here
+      re-measured it rather than trusting the correction — two `WeakSet`s, two
+      `WeakMap`s, exactly as recorded.
+
+      **Scoped to `WeakSet`, and the control is what holds that.**
+      `packages/core/src/selection-memo.ts` builds two `WeakMap`s as a memo cache.
+      `check:nonvacuity`'s `arch/no-new-kernel-registry` drives three directions by
+      rule id: a third `WeakSet` fires on its own probe file, a `WeakMap` memo
+      cache stays quiet, and with no probe planted the two real homes stay quiet —
+      without that third arm, "reds on a third" would be satisfied by a rule that
+      reds on the existing two. Deleting the rule, widening it to `WeakMap`, and
+      over-excluding the folder each red the fixture, measured one at a time.
+
+      **Seven lenses, and three measured holes in the rule — all the same shape:
+      the exclusion list IS the rule.** The rule excluded the two homes by path,
+      so a fourth `WeakSet` added INSIDE one was invisible (planting one in
+      `cardinality.ts` left `check:arch` green); growing `REGISTRY_HOMES` by one
+      line silently exempted a genuine third, with nothing disclosing a builder
+      `.excluding()` the way inline suppressions are disclosed; and
+      `.asSeverity('warn')` turned the rule into a non-blocking report while every
+      arm of the fixture stayed green — the probe trips two unrelated hygiene
+      rules, so exit 1 arrives whatever the severity is.
+
+      One mechanism answers the first two: the fixture now takes a **census** —
+      exactly two `new WeakSet` under `packages/core/src`, one in each named home,
+      counted independently of the rule's own exclusions. A clause about a
+      population needs a mechanism that counts the population. The third is a
+      severity-aware assertion. All three sabotages red now.
+
+      **And the doctrine was wrong one layer up.** ADR-010 §2 read "no third …
+      nothing may add a fourth", which counts a set of three; measured, there are
+      two. The rule caps at two while quoting a sentence that permits three, so an
+      author reddened on their third would have read the binding ADR and concluded
+      the gate was wrong — ADR-009 rule 1 with the ADR as accomplice, which is the
+      failure this phase's own comment describes, reproduced above the code. §2's
+      arithmetic is amended, the ordinal removed rather than corrected so it cannot
+      go stale, the rule renamed `eess/no-new-kernel-registry` (every sibling names
+      the banned thing, not an ordinal), and it now carries a remedy naming all
+      three legitimate moves. The Enforcement row moved to ADR-010, which is where
+      the clause lives.
+
+      No changeset: nothing under `packages/` changed, and `check:release`
+      confirms 0 of 6 packages touched.
+
 - [ ] Phase 5 — `throwIfViolations` removed, changeset naming the break
 - [ ] `/close`
 
