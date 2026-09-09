@@ -36,7 +36,12 @@ import { KERNEL_INTERNAL, FAMILY_ONLY, KERNEL_PRIVATE_BEFORE_THE_SPLIT } from '.
  * behind `@nielspeter/eess/internal`. They need no allowlist entry now: they are
  * not on the kernel root, so nothing obliges a dialect to re-export them.
  */
-const ALLOWLIST = {
+// Exported so a non-vacuity probe can ask the same exemption question this
+// module asks. A testing review measured the cost of it being module-local: the
+// aggregation probe's payload guard named this route, could not read it, and an
+// `md` entry here would have produced exactly the "expected a violation, got
+// none" mystery that guard exists to convert into an actionable message.
+export const ALLOWLIST = {
   ts: FAMILY_ONLY,
 }
 

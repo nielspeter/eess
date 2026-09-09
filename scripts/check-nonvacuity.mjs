@@ -157,6 +157,7 @@ import { dirname, join } from 'node:path'
 // owes a dialect a re-export, and the aggregation fixture's payload guard has to
 // ask the same question the rule asks.
 import { KERNEL_INTERNAL, KERNEL_PRIVATE_BEFORE_THE_SPLIT } from './lib/kernel-surface.mjs'
+import { ALLOWLIST } from './lib/family-re-exports.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const EESS_TS = join(repoRoot, 'node_modules', '.bin', 'eess-ts')
@@ -428,6 +429,33 @@ function firedOn(r, ruleId, fileFragment, elementFragment) {
       v?.ruleId === ruleId &&
       (fileFragment === undefined || String(v?.file ?? '').includes(fileFragment)) &&
       (elementFragment === undefined || String(v?.element ?? '').includes(elementFragment)),
+  )
+}
+
+/**
+ * `firedOn` plus the discriminator a payload-injecting probe needs.
+ *
+ * Exit 1 and a rule id on a file is satisfied by ANY other gap in that package,
+ * so a probe whose injected payload violates nothing still certifies green,
+ * carried by an unrelated regression. Measured by a testing review on the
+ * aggregation probe: dropping md's `validateOverrides` re-export and injecting a
+ * symbol md already carries left the row green on a dead payload.
+ *
+ * The finding names the symbol, so the discriminator was always available. Read
+ * it off the PARSED violation, never the rendered stream — `--format json`
+ * escapes the message's own quotes, and a first attempt to match `"name"`
+ * against stdout reddened the fixture on its own assertion.
+ *
+ * All three family re-export probes use this. The defect was found in one and
+ * fixed in one before a second review round found the other two.
+ */
+function firedNamingPayload(r, ruleId, fileFragment, payload) {
+  ASSERTED_RULE_IDS.add(ruleId)
+  return violationsOf(r).some(
+    (v) =>
+      v?.ruleId === ruleId &&
+      String(v?.file ?? '').includes(fileFragment) &&
+      String(v?.message ?? '').includes(payload),
   )
 }
 
@@ -732,12 +760,14 @@ function gateFamilyReExportIndex() {
     "import { collectViolations } from '@nielspeter/eess'",
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
-  const ok = bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts')
+  const ok =
+    bad.code === 1 &&
+    firedNamingPayload(bad, 'family/re-export-complete', 'md/src/index.ts', 'collectViolations')
   const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return {
     ok,
-    detail: `bad → exit ${bad.code} (family/re-export-complete on md/src/index.ts) · ${cleanNote}`,
+    detail: `bad → exit ${bad.code} (family/re-export-complete on md/src/index.ts naming 'collectViolations') · ${cleanNote}`,
   }
 }
 
@@ -752,7 +782,8 @@ function gateFamilyReExportCrossvalidate() {
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
   const ok =
-    bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'crossvalidate/src/files.ts')
+    bad.code === 1 &&
+    firedNamingPayload(bad, 'family/re-export-complete', 'crossvalidate/src/files.ts', 'diffAware')
   const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return {
@@ -848,8 +879,16 @@ function gateFamilyReExportAggregation() {
   // A symbol stops owing md a re-export by exactly three routes, all in
   // `scripts/lib/family-re-exports.mjs`: `KERNEL_INTERNAL`,
   // `KERNEL_PRIVATE_BEFORE_THE_SPLIT`, and that package's `ALLOWLIST` entry.
-  // Membership in those is checked below, because they — not "is it on the
-  // root" — are what makes a payload stop violating.
+  // Two of the three are checked below, because they — not "is it on the root" —
+  // are what makes a payload stop violating.
+  //
+  // **The third is not checked, and saying which is the point.** `ALLOWLIST` is
+  // `{ ts: FAMILY_ONLY }` and is not exported from that module, so md has no
+  // entry and the route is vacuous for this payload today. An architecture
+  // review found the first version of this comment claiming all three — coverage
+  // it did not have, in a guard whose subject is claims that outrun their
+  // evidence. If an `md` entry is ever added to `ALLOWLIST`, export it and check
+  // it here; until then this is a stated gap, not a silent one.
   //
   // A fourth condition is a standing constraint rather than a check: the payload
   // must be a kernel symbol **md's own source never imports**. `check:family`
@@ -861,22 +900,43 @@ function gateFamilyReExportAggregation() {
   // payload and its half-life may be short. It fails loudly, which is the right
   // direction, and the failure names the cause.
   const PAYLOAD = 'hasEvidence'
-  // **Read the export STATEMENTS, not the file text.** The first cut tested
-  // `/\bhasEvidence\b/` against the raw source of each index, and an enforcement
-  // review measured the fail-open: replace the kernel's export with a line
-  // reading `// hasEvidence moved behind /internal` and `onKernelRoot` stays
-  // true, which is precisely the rot the check was written against. This repo
-  // leaves a farewell comment when a symbol goes — the same commit that added
-  // this check did it twice — so that is not a hypothetical.
+  const MD = 'md'
+
+  // **What decides whether this probe is still valid, measured rather than
+  // assumed.** The rule is syntactic on the module specifier, so it fires on any
+  // name imported from `@nielspeter/eess` — including one that does not exist.
+  // The payload therefore stops violating by exactly two routes: md already
+  // re-exports it, or an exemption set names it. Those are what is asserted.
   //
-  // The two halves were also asymmetric, which is the worse half of the bug: a
-  // stray mention in md's root made `notReExported` false and reddened
-  // (fail-closed), while a stray mention in the kernel root passed (fail-open).
-  // It is the same confusion bug 0272 names — a mention is not an export —
-  // diagnosed in one file and shipped in another, in one commit.
-  const exportedNames = (file) => {
+  // `KERNEL_INTERNAL` and `KERNEL_PRIVATE_BEFORE_THE_SPLIT` are both empty
+  // today, so those arms cannot fire. `ALLOWLIST[md]` is the route a future
+  // author would actually use, and a testing review measured that adding
+  // `md: new Set(['hasEvidence'])` there produced precisely the "expected a
+  // violation, got none" mystery this guard exists to convert into an
+  // instruction. It was named in the comment and unreadable in the code, because
+  // `ALLOWLIST` was module-local. It is exported now, and checked here.
+  const exempt =
+    KERNEL_INTERNAL.has(PAYLOAD) ||
+    KERNEL_PRIVATE_BEFORE_THE_SPLIT.has(PAYLOAD) ||
+    (ALLOWLIST[MD]?.has(PAYLOAD) ?? false)
+
+  // md's re-exports, read as export STATEMENTS rather than as a mention of the
+  // name — a farewell comment is not an export. This side is the fail-CLOSED
+  // one: a stray textual match here only ever reds the row.
+  //
+  // **A second derivation of "what md re-exports", and the limit is stated.**
+  // The rule itself uses `reachableExportNames`, which walks
+  // `getExportedDeclarations()` and so resolves `export * from` chains and
+  // pre-alias names. This regex sees neither. They agree only because md's index
+  // currently has neither shape — a testing review's finding, kept as a note
+  // rather than closed: `reachableExportNames` is module-local and wants a
+  // ts-morph project this script does not build, so importing it would make the
+  // guard heavier than the fixture it guards. If md's index ever grows an
+  // `export *`, this reads "not re-exported" and the row reds with a confusing
+  // message. Loud, and now written down.
+  const mdExports = (() => {
     const names = new Set()
-    const src = readFileSync(file, 'utf8')
+    const src = readFileSync(join(repoRoot, 'packages', MD, 'src', 'index.ts'), 'utf8')
     for (const m of src.matchAll(/export\s+(?:type\s+)?\{([^}]*)\}/g)) {
       for (const raw of m[1].split(',')) {
         const n = raw
@@ -888,23 +948,29 @@ function gateFamilyReExportAggregation() {
       }
     }
     return names
-  }
-  const onKernelRoot = exportedNames(join(repoRoot, 'packages', 'core', 'src', 'index.ts')).has(
-    PAYLOAD,
-  )
-  const notReExported = !exportedNames(join(repoRoot, 'packages', 'md', 'src', 'index.ts')).has(
-    PAYLOAD,
-  )
-  const exempt = KERNEL_INTERNAL.has(PAYLOAD) || KERNEL_PRIVATE_BEFORE_THE_SPLIT.has(PAYLOAD)
-  if (!onKernelRoot || !notReExported || exempt) {
+  })()
+  const notReExported = !mdExports.has(PAYLOAD)
+
+  // **There is deliberately no "is it on the kernel root" check.** Two review
+  // rounds went into that sentence. The first version made kernel-root
+  // membership a hard failure, which is wrong twice over. The comment above
+  // proves the rule never asks whether the name exists there, so a payload moved
+  // behind `/internal` would still be a perfectly good violating input while
+  // this guard reddened claiming it "no longer violates" — a false diagnosis.
+  // And the check read file text, so a farewell comment QUOTING the old export
+  // statement satisfied it: a measured fail-open, in the one half of the guard
+  // that could fail open. Dropping the check removes both. Whether the symbol is
+  // real is a realism question for the reader, not a validity question for the
+  // fixture.
+  if (!notReExported || exempt) {
     return {
       ok: false,
       detail:
-        `PAYLOAD '${PAYLOAD}' no longer violates: on the kernel root: ${String(onKernelRoot)}, ` +
-        `absent from md's re-exports: ${String(notReExported)}, ` +
-        `exempted by KERNEL_INTERNAL/KERNEL_PRIVATE_BEFORE_THE_SPLIT: ${String(exempt)}. ` +
-        `Pick a kernel root symbol md does not re-export and no exemption set names — ` +
-        `otherwise this row reds with no violation to point at.`,
+        `PAYLOAD '${PAYLOAD}' no longer violates: md re-exports it: ${String(!notReExported)}, ` +
+        `named by an exemption set (KERNEL_INTERNAL / KERNEL_PRIVATE_BEFORE_THE_SPLIT / ` +
+        `ALLOWLIST.${MD}): ${String(exempt)}. Pick a kernel symbol md's source does not import, ` +
+        `md's index does not re-export, and no exemption set names — otherwise this row reds ` +
+        `with no violation to point at.`,
     }
   }
 
@@ -919,8 +985,14 @@ function gateFamilyReExportAggregation() {
   // carry this row green while the injected import violated nothing. Measured by
   // a testing review, which dropped md's `validateOverrides` re-export and used a
   // payload md already carries: the row went green on a dead payload. The
-  // discriminator was there all along — the message names the symbol — and the
-  // sibling fixture one function up already asserts its own message this way.
+  // discriminator was there all along: the message names the symbol.
+  //
+  // A first version of this comment said "the sibling fixture one function up
+  // already asserts its own message this way" — that sibling is
+  // `gateFamilyKernelImportsEmptied`, and the two family RE-EXPORT probes above
+  // had the identical hole. A second review round measured both. The defect was
+  // found in one of three and fixed in one of three; `firedNamingPayload` now
+  // carries the discriminator for all three.
   //
   // Read off the PARSED violation, not the raw stream. The first cut tested
   // `/"hasEvidence"/` against `stdout`, which is `--format json`, so the message's

@@ -24,7 +24,7 @@ export { recommended } from './recommended.js'
 export { dispatchRule } from '@nielspeter/eess'
 
 // `finishPreset` joins it, and the reason is this same subpath's history one
-// paragraph up. Plan 0263 Phase 5 removed `throwIfViolations` from HERE as well
+// paragraph up. Plan 0263 Phase 5 removed `throwIfViolations` from this barrel as well
 // as the two roots, and `finishPreset(v, { report: 'throw' })` is the migration
 // the changeset prints — which did not compile on this barrel, because the alias
 // was published here and its replacement never was. `docs/api-reference.md`
@@ -33,6 +33,15 @@ export { dispatchRule } from '@nielspeter/eess'
 // an adopter review, the second time this subpath has been audited separately
 // from the root and the second time that was the only way to see it.
 export { finishPreset } from '@nielspeter/eess'
+
+// …and the types of its options argument, for the same reason one subpath down.
+// `docs/presets.md` teaches its imports from THIS subpath and names
+// `PresetReportOptions` in its prose, while both types lived on the root only —
+// so a preset author typing their own wrapper hit a link error on the natural
+// import. That is the `finishPreset` defect one symbol over, and a product
+// review found it before it shipped: fixing the instance and leaving the class
+// is how this barrel has now been audited by hand three times.
+export type { PresetReportOptions, ReportMode } from '@nielspeter/eess'
 
 // The preset delivery mode, on the subpath the docs actually teach
 // (`docs/getting-started.md` imports presets from here). It was on the root

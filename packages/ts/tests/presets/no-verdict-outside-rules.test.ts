@@ -89,6 +89,14 @@ describe('the two conditions each catch what the other cannot', () => {
     expect(flagged(run(NAMES_THE_GATE))).toContain('legacy-alias-call.ts')
   })
 
+  it('reds the live reportViolations emitter, the third alternation', () => {
+    // `finishPreset` and the removed `throwIfViolations` each have a fixture;
+    // this one had none, so dropping it from `EMITTERS` changed no test. A
+    // testing review found the asymmetry: the dead name was covered and the
+    // live one was not.
+    expect(flagged(run(NAMES_THE_GATE))).toContain('report-violations-call.ts')
+  })
+
   it('reds a namespaced emitter call — the anchor, not a bare name match', () => {
     // `import * as eess` then `eess.finishPreset(...)`. The consuming project
     // that measured the field failure had this exact escape in its first version.

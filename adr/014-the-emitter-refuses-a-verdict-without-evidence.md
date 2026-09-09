@@ -99,9 +99,11 @@ verdict can leave on. The kernel root exports **two**: `finishPreset` and
 `reportViolations`. It exported a third when this was written —
 `throwIfViolations`, a one-line alias for `finishPreset(v, { report: 'throw' })`
 that ADR-008 kept for compatibility and that this decision **removes**. Plan
-0263 Phase 5 removed it, 2026-09-09.
+0263 Phase 5 removed it, 2026-09-09. A dialect path that throws without emitting
+under a run-level aggregating caller (ADR-008's amendment; `eess-ts`'s
+`deliver()`) is an emitter for this purpose too, and is bound the same way.
 
-**Corrected the same day, and the correction is the reason worth keeping.** This
+**Corrected 2026-09-09, and the correction is the reason worth keeping.** This
 paragraph said the alias "still takes a bare array", and that the bare array was
 the hole spelled differently. That stopped being true one plan earlier: 0235
 retyped every emitter to `CollectResult`, the alias included, so by the time it
@@ -110,9 +112,7 @@ is the one this ADR already makes in its Alternatives section — retyped, it is
 second name for one seam, and a second name hides the `report` option ADR-008
 made the caller's to choose. A review caught the stale premise on its way into
 six changelogs. An ADR whose thesis is that a claim is constructed from evidence
-should not justify a break with a premise its own `git show` falsifies. A dialect path that throws without emitting
-under a run-level aggregating caller (ADR-008's amendment; `eess-ts`'s
-`deliver()`) is an emitter for this purpose too, and is bound the same way.
+should not justify a break with a premise its own `git show` falsifies.
 
 The value every emitter accepts, and hands back, is the evidence shape ADR-010
 already mandates and every terminal already produces — `CollectResult`, which
