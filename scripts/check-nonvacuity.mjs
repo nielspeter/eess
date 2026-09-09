@@ -230,6 +230,7 @@ const PROBE_MERMAID_RULES = join(
   '__nonvacuity_probe_mermaid.rules.ts',
 )
 const PROBE_CATCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_catch__.ts')
+const PROBE_REGISTRY = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_registry__.ts')
 const PROBE_EVAL = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe_eval__.ts')
 // Bug 0127: corpus/links must prove BOTH routing regions (bug 0086's
 // site-vs-repo-native split), and corpus/pointers must drive the production
@@ -552,6 +553,7 @@ rmSync(PROBE_BASELINE_OUT, { force: true })
 rmSync(PROBE_FIX_TARGET, { force: true })
 rmSync(PROBE_MERMAID_RULES, { force: true })
 rmSync(PROBE_CATCH, { force: true })
+rmSync(PROBE_REGISTRY, { force: true })
 rmSync(PROBE_EVAL, { force: true })
 rmSync(PROBE_CORPUS_LINK_SITE, { force: true })
 rmSync(PROBE_CORPUS_LINK_REPO, { force: true })
@@ -602,6 +604,57 @@ function gateInternalArch() {
       ? 'clean → green (both directions proven)'
       : 'clean → in-flight (other agents still fixing violations)'
   return { ok, detail: `bad → exit ${bad.code} (eess/no-silent-catch on probe) · ${cleanNote}` }
+}
+
+/**
+ * ADR-010 §2's "nothing may add a fourth" — plan 0263 Phase 4.
+ *
+ * The kernel's unforgeable suppression registries are `WeakSet`-backed, and each
+ * guards a distinct, named audience. There are TWO homes, not one: the ADR row
+ * said `cardinality.ts` was "the sole home" and it never was. A rule written from
+ * that text would have reddened on legitimate kernel code on its first run, and
+ * the author would have weakened or exempted it — a mechanism that fires on the
+ * thing it protects teaches people to switch it off (ADR-009 rule 1).
+ *
+ * **Both directions, and the second is why the rule is scoped to `WeakSet`.**
+ * A third `WeakSet` must red; a `WeakMap` must not, because
+ * `packages/core/src/selection-memo.ts` builds two of them as a memo cache. A
+ * fixture that only proved the red would let someone "fix" the rule to include
+ * `WeakMap` and red the cache with nothing to stop them.
+ */
+function gateNoThirdRegistry() {
+  const run = () => sh(EESS_TS, ['check', 'arch.internal.rules.ts', '--format', 'json'])
+  // A third registry: must fire, by rule id AND on the probe.
+  const third = withProbe(
+    PROBE_REGISTRY,
+    'const THIRD = new WeakSet<object>()\n' +
+      'export const mark = (o: object): void => void THIRD.add(o)\n',
+    run,
+  )
+  const firedOnThird = firedOn(third, 'eess/no-third-registry', '__nonvacuity_probe_registry__')
+
+  // A memo cache: must NOT fire. Without this the rule could be widened to
+  // `WeakMap` and the repo's own cache would red.
+  const memo = withProbe(
+    PROBE_REGISTRY,
+    'const CACHE = new WeakMap<object, number>()\n' +
+      'export const put = (o: object, n: number): void => void CACHE.set(o, n)\n',
+    run,
+  )
+  const quietOnMemo = !firedOn(memo, 'eess/no-third-registry', '__nonvacuity_probe_registry__')
+
+  // And the two real homes stay exempt with no probe planted at all — otherwise
+  // "reds on a third" is satisfied by a rule that reds on the existing two.
+  const clean = run()
+  const quietOnHomes = !firedOn(clean, 'eess/no-third-registry')
+
+  return {
+    ok: firedOnThird && quietOnMemo && quietOnHomes,
+    detail:
+      `a third WeakSet \u2192 fired on its own file: ${firedOnThird}; ` +
+      `a WeakMap memo cache \u2192 quiet: ${quietOnMemo}; ` +
+      `the two named homes \u2192 quiet: ${quietOnHomes}`,
+  }
 }
 
 // --- Gate: family (plan 0089 — standalone-sufficiency rules) ---
@@ -2028,6 +2081,7 @@ const gates = [
   ['gate coverage', () => gateCoverage()],
   ['arch (root rules)', gateArch],
   ['internal arch', gateInternalArch],
+  ['arch/no-third-registry', gateNoThirdRegistry],
   ['family re-export (index)', gateFamilyReExportIndex],
   ['family re-export (crossvalidate)', gateFamilyReExportCrossvalidate],
   ['family re-export (aggregation)', gateFamilyReExportAggregation],
@@ -2416,6 +2470,7 @@ const GATE_FOR = {
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'internal arch',
+    'arch/no-third-registry',
     'engine/applyfilters-parity',
   ],
   'check:family': [

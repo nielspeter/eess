@@ -295,11 +295,24 @@ and the other four are pure gain.
   `scripts/check-nonvacuity.mjs`,
   `scripts/nonvacuity/bad-emitter-remedies.mjs`,
   `scripts/vacuity-matrix.mjs`
-- `arch.internal.rules.ts` — the registry rule (Phase 4)
+- **Phase 4, everything the branch touches outside `work/`** — derived with
+  `git diff --name-only main` against the WORKING TREE, because the commit does
+  not exist yet and `main...HEAD` is empty until it does:
+  `adr/014-the-emitter-refuses-a-verdict-without-evidence.md`,
+  `arch.internal.rules.ts`,
+  `scripts/check-nonvacuity.mjs`
 - `packages/core/src/index.ts`, `packages/ts/src/index.ts` — the removal (Phase 5)
 - `adr/014-the-emitter-refuses-a-verdict-without-evidence.md` — rows to `gated`
 - `.changeset/` — Phase 2's behavioural break, and the Phase 5 break
 
+> **A fifth instance, caught before the commit this time.** Phase 4's first cut
+> ran `git diff --name-only main...HEAD` — which is EMPTY until the commit exists,
+> so the heading claimed a derivation and listed nothing. Caught by diffing the
+> claimed list against the real one before committing, which is the check this
+> section has needed for five rounds. Before a commit the honest source is
+> `git diff --name-only main`; after it, `main...HEAD`. Getting that wrong looks
+> exactly like getting it right.
+>
 > **Wrong four rounds running, and the fourth time the falsehood was the
 > derivation claim itself.** Round four's entry said this list was produced with
 > `git diff --name-only` — and it had been, at the moment it was written, before
@@ -607,7 +620,35 @@ and the other four are pure gain.
       `minor` naming all five dialects, because a kernel break reaches an adopter
       through whichever dialect they installed.
 
-- [ ] Phase 4 — the no-second-registry rule
+- [x] Phase 4 — the no-third-registry rule. `arch.internal.rules.ts` gains
+      `eess/no-third-registry`: no module under `packages/core/src/**`, other than
+      the two named homes, constructs a `WeakSet`. **Denominator 58 modules
+      examined, 0 violations** — measured, because 0235's criterion is that a row
+      is not `gated` on a rule that examined nothing.
+
+      **The phase's whole value was spent before a line of rule was written.**
+      The freeze had already corrected this plan's premise: the ADR row said
+      `cardinality.ts` was "the sole home" and it never was —
+      `owns-empty-discovery.ts` holds `OWNERS` and its own comment says "the two
+      markers share it". A rule written from the old text would have reddened on
+      legitimate kernel code on its first run, and the author would have weakened
+      or exempted it. That is ADR-009 rule 1's dynamic: a mechanism that fires on
+      the thing it protects teaches people to switch it off. The survey here
+      re-measured it rather than trusting the correction — two `WeakSet`s, two
+      `WeakMap`s, exactly as recorded.
+
+      **Scoped to `WeakSet`, and the control is what holds that.**
+      `packages/core/src/selection-memo.ts` builds two `WeakMap`s as a memo cache.
+      `check:nonvacuity`'s `arch/no-third-registry` drives three directions by
+      rule id: a third `WeakSet` fires on its own probe file, a `WeakMap` memo
+      cache stays quiet, and with no probe planted the two real homes stay quiet —
+      without that third arm, "reds on a third" would be satisfied by a rule that
+      reds on the existing two. Deleting the rule, widening it to `WeakMap`, and
+      over-excluding the folder each red the fixture, measured one at a time.
+
+      No changeset: nothing under `packages/` changed, and `check:release`
+      confirms 0 of 6 packages touched.
+
 - [ ] Phase 5 — `throwIfViolations` removed, changeset naming the break
 - [ ] `/close`
 
