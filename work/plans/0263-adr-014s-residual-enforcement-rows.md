@@ -278,11 +278,43 @@ and the other four are pure gain.
 - **Phase 2, docs** — `docs/core-concepts.md`, `docs/api-reference.md`, and the
   two `baseline-generator.ts` docstrings (the ungated `collectViolations` route,
   caveated rather than closed)
+- **Phase 3, everything the branch touches outside `work/`** — derived with
+  `git diff --name-only main...HEAD`, listed in full rather than grouped, because
+  grouping is what let the last four attempts drift:
+  `.changeset/an-empty-source-outranks-any-declaration.md`,
+  `adr/014-the-emitter-refuses-a-verdict-without-evidence.md`,
+  `docs/api-reference.md`,
+  `packages/core/src/collect-result.ts`,
+  `packages/core/src/emitter-findings.ts`,
+  `packages/core/src/index.ts`,
+  `packages/core/src/internal.ts`,
+  `packages/core/src/report.ts`,
+  `packages/core/tests/remedy-remediates.test.ts`,
+  `packages/ts/src/index.ts`,
+  `packages/ts/tests/matrix/vacuity-classification.ts`,
+  `scripts/check-nonvacuity.mjs`,
+  `scripts/nonvacuity/bad-emitter-remedies.mjs`,
+  `scripts/vacuity-matrix.mjs`
 - `arch.internal.rules.ts` — the registry rule (Phase 4)
 - `packages/core/src/index.ts`, `packages/ts/src/index.ts` — the removal (Phase 5)
 - `adr/014-the-emitter-refuses-a-verdict-without-evidence.md` — rows to `gated`
 - `.changeset/` — Phase 2's behavioural break, and the Phase 5 break
 
+> **Wrong four rounds running, and the fourth time the falsehood was the
+> derivation claim itself.** Round four's entry said this list was produced with
+> `git diff --name-only` — and it had been, at the moment it was written, before
+> two later commits added `packages/core/src/internal.ts`. Deriving once and then
+> editing the branch is not deriving; the command has to be the last thing run,
+> and a claim that it was is worse than no claim, because it stops the next
+> reader checking. A method review caught it.
+>
+> **Wrong three rounds running, and the third time it was derived and still
+> incomplete.** Round three fixed the section's shape without deriving its
+> contents; round four's review found it naming a kernel file the branch does not
+> touch and omitting a test file it does. Phase 3's list above was produced with
+> `git diff --name-only main...HEAD`, which is the only way this section has ever
+> been right, and is one command.
+>
 > **This section has been wrong about Phase 2 in two successive rounds**, and
 > the second time is the instructive one: round three fixed its _shape_ and
 > still did not _derive_ its contents, so it named a kernel file the branch does
@@ -517,7 +549,64 @@ and the other four are pure gain.
       — `check:vacuity` prints `0 unaccounted fail-open` while this phase ships a
       stated-open door, because both `collectViolations` sit in `NOT_CHECKS`.
 
-- [ ] Phase 3 — the four remedy-remediates fixtures
+- [x] Phase 3 — the remedy-remediates fixtures, and the fail-open the survey
+      found while writing them. `scripts/nonvacuity/bad-emitter-remedies.mjs`
+      (`emitter/remedy-remediates`) drives all **five** causes — the plan said
+      four and omitted `contradictory-evidence`, which has an id and a remedy
+      like the rest — asserts each fires **by rule id**, then applies every
+      remedy its message names and asserts the finding is gone. Five corrective and two declaring
+      remedies across five causes — separated after review, because counting them
+      alike is how a check-deleting instruction gets recorded as a working remedy
+      (`checkAll([])`'s "guard the array before calling" cleared its finding by
+      removing the check). Every cause must offer at least one corrective remedy,
+      and every declaring one must expire. `packages/core/tests/remedy-remediates.test.ts` carries the same
+      pairs as units, with a CONTROL that an honest receipt reaches none of them.
+
+      **The survey found a fail-open before a line of fixture was written, and
+      it is the reason this row could not have been made honest without it.**
+      ADR-014 §4 says an empty source "outranks any declaration and names the
+      source". The gate honoured `declaredEmpty` before it ever read
+      `sourceEmpty`, so `collectResult([], { examined: 0, sourceEmpty: true,
+      declaredEmpty: true })` returned **green** — beneath a comment asserting
+      that exact escape hatch was closed. The stated rule and the code had
+      disagreed since the gate was written, and every reading of the comment
+      would have confirmed the rule rather than the behaviour.
+
+      Two more §4 clauses were unmet: an empty source produced the generic
+      `pass-without-evidence`, whose remedy ("widen the selection, or declare
+      it") is wrong for a source that loaded nothing — so `emitter/source-empty`
+      now names the source; and the zero-examined message named `expectEmpty:
+      true in a preset's report options`, which §4 forbids "at a seam that may
+      not be a preset". That is the same defect the #118 review measured on
+      `checkAll([])`, one layer down and unnoticed until the row's own words were
+      read against the code.
+
+      **And a fifth round found two of this phase's own fixes colliding.** The
+      merge stamped `sourceEmpty: true` on a receipt whose summed `examined` came
+      from healthy siblings, and the contradiction check added in the same phase
+      then fired on it — blaming `notRun`, a flag nobody had set, with a remedy
+      nobody could apply. Four reviewers measured it independently on this
+      branch's own headline scenario. The merge stamps the flag only when it is
+      true of the whole, the contradiction takes the flag as a parameter and
+      names it, and both are driven by the fixture, which had no assertion about
+      the interaction at all.
+
+      **A review round found the fix had recreated its own asymmetry.** Closing
+      the hatch at the gate left it open at the merge: `mergeCollectResults` had
+      always exempted a `sourceEmpty` member from its dead filter, which was the
+      right answer to "did this member say why", and the wrong one once §4 makes
+      that answer a fault. Measured — `finishPreset` reddened the receipt while
+      `mergeCollectResults([thatMember, aHealthyOne])` stayed green. That is the
+      `notRun` asymmetry Phase 2 fixed, recreated one seam over by the change
+      that fixed its sibling. The merge names an empty-source member now, and
+      §4's precedence has its own Enforcement row rather than riding inside
+      another clause's.
+
+      Sabotage-checked one at a time: reverting the precedence, restoring the
+      preset wording, and breaking a remedy each red the fixture. Ships a kernel
+      `minor` naming all five dialects, because a kernel break reaches an adopter
+      through whichever dialect they installed.
+
 - [ ] Phase 4 — the no-second-registry rule
 - [ ] Phase 5 — `throwIfViolations` removed, changeset naming the break
 - [ ] `/close`

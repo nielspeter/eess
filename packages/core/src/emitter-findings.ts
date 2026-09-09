@@ -83,6 +83,23 @@ export const EMITTER_EXPIRED_DECLARATION = 'emitter/expired-declaration'
 export const EMITTER_CONTRADICTORY_EVIDENCE = 'emitter/contradictory-evidence'
 
 /**
+ * The verdict's own source loaded nothing — ADR-014 §4.
+ *
+ * Distinct from `emitter/pass-without-evidence`, and the distinction is the
+ * point: a zero-examined verdict *may* be legitimate if the caller declares the
+ * emptiness, but an empty SOURCE may not. §4 states the precedence — "an empty
+ * source (`sourceEmpty`) outranks any declaration and names the source" — and
+ * ADR-010 §3 carries the same rule at the terminal as a `gated` row.
+ *
+ * The gate honoured `declaredEmpty` before it ever looked at `sourceEmpty`, so a
+ * hand-assembled receipt setting both passed silently: the escape hatch the
+ * comment beside that branch said this ADR had closed. Measured before the fix,
+ * `finishPreset(collectResult([], { examined: 0, sourceEmpty: true, declaredEmpty: true }))`
+ * returned green.
+ */
+export const EMITTER_SOURCE_EMPTY = 'emitter/source-empty'
+
+/**
  * Every id this module can produce.
  *
  * One list, because there were two: `report.ts` had a four-way `||` and
@@ -100,6 +117,7 @@ export const EMITTER_IDS: ReadonlySet<string> = new Set([
   EMITTER_PASS_WITHOUT_EVIDENCE,
   EMITTER_EXPIRED_DECLARATION,
   EMITTER_CONTRADICTORY_EVIDENCE,
+  EMITTER_SOURCE_EMPTY,
 ])
 
 /** Is this one of the emitter's own findings, as opposed to a caller's? */
@@ -124,6 +142,26 @@ function emitterFinding(ruleId: string, message: string): ArchViolation {
     suggestion: `${message} ${UNSUPPRESSABLE}`,
     bypassFilters: true,
   }
+}
+
+/**
+ * The source loaded nothing, so no declaration can rescue the verdict.
+ *
+ * Names the SOURCE, per ADR-014 §4, and says so explicitly — the remedy is to
+ * fix the project or glob, never to declare the emptiness, and a reader told to
+ * "declare it" here would be sent to the one thing that cannot work. The
+ * terminal's `zeroLoadedSourceViolation` says the same thing in the same words;
+ * this is its emitter-seam sibling, for a receipt with no rule facts to carry.
+ */
+export function sourceEmptyViolation(): ArchViolation {
+  return emitterFinding(
+    EMITTER_SOURCE_EMPTY,
+    'this verdict reports success over a source that loaded zero units before any ' +
+      'selection ran — an empty project, an unreadable config, or a glob resolving to ' +
+      'nothing. This outranks any declaration: declaring the emptiness cannot make an ' +
+      'absent source into evidence. Fix the source configuration — the project, the ' +
+      'tsconfig, or the glob — not the declaration.',
+  )
 }
 
 /**
@@ -167,10 +205,10 @@ export function passWithoutEvidenceViolation(): ArchViolation {
     EMITTER_PASS_WITHOUT_EVIDENCE,
     'this verdict reports success over zero examined units: the loop reached its ' +
       'assertion no times, so nothing was checked and the pass certifies nothing. Widen ' +
-      'the selection, or — if the set is legitimately empty — declare it: ' +
-      "expectEmpty: true in a preset's report options, .expectEmpty() on a builder. " +
-      'The declaration expires the day the subject appears, which is why it is not a ' +
-      'mute button. Do not suppress this.',
+      'the selection, or — if the set is legitimately empty — declare it on the receipt: ' +
+      'collectResult(violations, { examined, declaredEmpty: true }), or .expectEmpty() ' +
+      'on a builder. The declaration expires the day the subject appears, which is why ' +
+      'it is not a mute button. Do not suppress this.',
   )
 }
 
@@ -197,15 +235,39 @@ export function expiredDeclarationViolation(examined: number): ArchViolation {
  * numbers ARE the finding, so both are named: a caller debugging this needs to
  * know which half contradicted the flag.
  */
+/**
+ * A flag that quiets a zero, contradicted by the receipt's own evidence.
+ *
+ * **The flag is a parameter because the message names it.** It was hardcoded to
+ * `notRun`, and once `sourceEmpty` became contradictable too, a receipt claiming
+ * an empty source beside real evidence was told to "drop the notRun flag" — a
+ * flag nobody had set, and a remedy that cannot be applied. Four reviewers
+ * measured that on this branch's own headline scenario. ADR-009 rule 2: the
+ * finding names its cause, and the remedy remediates.
+ */
 export function contradictoryEvidenceViolation(
   examined: number,
   violations: number,
+  flag: 'notRun' | 'sourceEmpty' = 'notRun',
 ): ArchViolation {
+  const claim =
+    flag === 'notRun'
+      ? 'is marked as never having run'
+      : 'is marked as having loaded no source at all'
+  const why =
+    flag === 'notRun'
+      ? 'a rule that did not run can have neither'
+      : 'a source that loaded nothing can yield neither'
+  const remedy =
+    flag === 'notRun'
+      ? 'Drop the notRun flag if the rule ran, or drop the evidence if it did not; ' +
+        'notRun exists for a rule turned off, not for one whose result you want quiet.'
+      : 'Drop the sourceEmpty flag if the source loaded, or drop the evidence if it did ' +
+        'not; sourceEmpty describes an instrument that read nothing, not a result you ' +
+        'want quiet.'
   return emitterFinding(
     EMITTER_CONTRADICTORY_EVIDENCE,
-    `this verdict is marked as never having run, but examined ${String(examined)} unit(s) ` +
-      `and carries ${String(violations)} violation(s) — a rule that did not run can have ` +
-      'neither. Drop the notRun flag if the rule ran, or drop the evidence if it did not; ' +
-      'notRun exists for a rule turned off, not for one whose result you want quiet.',
+    `this verdict ${claim}, but examined ${String(examined)} unit(s) ` +
+      `and carries ${String(violations)} violation(s) — ${why}. ${remedy}`,
   )
 }

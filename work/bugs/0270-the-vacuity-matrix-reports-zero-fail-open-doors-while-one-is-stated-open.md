@@ -55,6 +55,24 @@ claim about eess's own surface. An audit whose scope is narrower than its summar
 line is the same shape as a rule that examined nothing and reported green — the
 defect the matrix exists to find, in the matrix.
 
+## A second instance, measured 2026-09-08
+
+`EMITTER_PROBES` has no falsifier of its own. A QA sabotage matrix on plan 0263
+Phase 3 deleted the sixth entry — the one covering `emitter/source-empty` — and
+**nothing reddened**: `check:vacuity` simply reported 22 exports instead of 23,
+`check:nonvacuity`, `check:corpus` and `check:crossval` all stayed green.
+
+That is the same shape as the headline symptom, one layer in: the matrix's
+summary line is a count of what it happened to probe, and shrinking the probe set
+shrinks the denominator rather than failing. Phase 3's own fixture asserts its
+case list against the kernel's `EMITTER_IDS` in both directions for exactly this
+reason; `EMITTER_PROBES` has no equivalent, so an emitter id can lose its probe
+silently.
+
+Whichever fix this record takes should cover it: the probe set is derivable from
+`EMITTER_IDS` the same way, and asserting that correspondence is cheaper than
+maintaining the list by hand.
+
 ## Fix
 
 Not decided. The cheapest honest shape is two moves:

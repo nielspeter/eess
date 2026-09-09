@@ -3,6 +3,7 @@ import { type CollectResult, collectResult, hasEvidence } from './collect-result
 import {
   isEmitterFinding,
   noReceiptViolation,
+  sourceEmptyViolation,
   passWithoutEvidenceViolation,
   expiredDeclarationViolation,
   contradictoryEvidenceViolation,
@@ -131,18 +132,59 @@ function withEvidenceGate(violations: readonly ArchViolation[]): CollectResult {
       { examined: violations.examined, sourceEmpty: violations.sourceEmpty },
     )
   }
+  // **`sourceEmpty` beside real evidence is a contradiction, like its siblings.**
+  // A source that loaded nothing cannot have yielded units to examine — the flag
+  // is set precisely when `examined === 0`. Checked before the two exits below,
+  // for the same reason the `notRun` check above is: after them it would be
+  // unreachable.
+  //
+  // Without this, `sourceEmpty` was the one flag in the vocabulary that could
+  // quiet a zero and never be contradicted — `notRun` beside evidence is
+  // `emitter/contradictory-evidence`, `declaredEmpty` beside evidence is
+  // `emitter/expired-declaration`, and `{ examined: 900, sourceEmpty: true }` was
+  // silent. That asymmetry is what ADR-014's "every flag that can quiet a zero
+  // can be contradicted" row exists to refuse, and promoting `sourceEmpty` to a
+  // verdict-changing flag with its own id is what put it in scope.
+  if (violations.sourceEmpty === true && violations.examined > 0) {
+    return collectResult(
+      [
+        ...violations,
+        contradictoryEvidenceViolation(violations.examined, violations.length, 'sourceEmpty'),
+      ],
+      { examined: violations.examined },
+    )
+  }
   if (violations.length > 0) return violations
   if (violations.examined > 0) return violations
-  // `declaredEmpty` legitimises a zero; `sourceEmpty` does NOT, and treating the
-  // two alike inverted ADR-010 §3's own gated precedence: "Zero loaded source
-  // files is a configuration finding UNDER ANY DECLARATION." An empty source is
-  // the stronger fault, not a weaker one.
+  // **An empty source outranks any declaration, and names the source** — ADR-014
+  // §4, and ADR-010 §3's own `gated` row ("Zero loaded source files outranks any
+  // `.expectEmpty()` declaration") which the terminal has always honoured.
   //
-  // A terminal that loaded nothing already carries `zeroLoadedSourceViolation`,
-  // so it exits at the `length > 0` line above and never reaches here. What does
-  // reach here is a hand-assembled receipt claiming an empty source with nothing
-  // to say about it — and passing that silently is the escape hatch this ADR
-  // closes.
+  // This branch is checked BEFORE `declaredEmpty` and `notRun`, and that ordering
+  // is the whole point. The comment that used to sit here said `sourceEmpty` does
+  // not legitimise a zero — and the next line returned green on `declaredEmpty`
+  // without ever reading it. Measured:
+  // `finishPreset(collectResult([], { examined: 0, sourceEmpty: true, declaredEmpty: true }))`
+  // was GREEN. A hand-assembled receipt claiming an empty source and declaring it
+  // away is precisely the escape hatch that comment claimed this ADR had closed.
+  //
+  // A terminal that loaded nothing already carries `zeroLoadedSourceViolation` and
+  // exits at the `length > 0` line above, so this fires for the hand-assembled
+  // receipt — the population ADR-014's gate exists for.
+  if (violations.sourceEmpty === true) {
+    return collectResult([...violations, sourceEmptyViolation()], {
+      examined: violations.examined,
+      sourceEmpty: true,
+      // The input's own declarations are carried through, not dropped. They do
+      // not rescue the verdict — that is the precedence this branch enforces —
+      // but a downstream reader still needs to know they were made, and the
+      // sibling branches above preserve what they were handed for the same
+      // reason.
+      declaredEmpty: violations.declaredEmpty,
+      notRun: violations.notRun,
+      deadGlob: violations.deadGlob,
+    })
+  }
   if (violations.declaredEmpty === true) return violations
   // `notRun` legitimises a zero here for the same reason `declaredEmpty` does,
   // and for the reason the MERGE already exempts it: a rule turned off examined
