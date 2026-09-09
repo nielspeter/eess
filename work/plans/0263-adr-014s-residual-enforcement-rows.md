@@ -6,7 +6,9 @@
   first was opened as PR #116, reviewed by five lenses, and **closed unmerged**
   because the measurements said the design was wrong rather than incomplete (see
   Phase 1's record). **Phase 2 shipped 2026-09-07** (PR #118, three review
-  rounds); phases 3-5 remain. Frozen 2026-09-06. **The freeze found two things, one a
+  rounds), **Phase 3 on 2026-09-09** (PR #120, six rounds — every one of them
+  found a defect introduced by the previous round's repair), and **Phase 4 is
+  built here**. Phase 5 alone remains. Frozen 2026-09-06. **The freeze found two things, one a
   false premise this plan inherited from ADR-014's own table and repeated
   without measuring** — written the day before, by me, which is the mistake this
   ADR is about, made about the ADR:
@@ -250,6 +252,17 @@ Tier 1, and it must declare a non-zero denominator or the row is not `gated` —
 
 ## Phase 5 — `throwIfViolations` leaves the public surface
 
+> **Floor repaired 2026-09-09, before anyone builds it — a method review found
+> the freeze had missed a hazard plan 0235 recorded at its own close.**
+> `scripts/check-nonvacuity.mjs` injects
+> `import { throwIfViolations } from '@nielspeter/eess'` as the violating payload
+> for the family re-export probe. Deleting the export disarms a live probe:
+> "green for nothing, loudly confident", in 0235's words. Also unnamed by the
+> original floor and needed by whoever builds this:
+> `packages/ts/tests/matrix/vacuity-classification.ts`, `work/dogfood-coverage.md`,
+> `docs/api-reference.md`, `docs/presets.md`. The phase is still one coherent PR
+> and should not be split; it just needed its floor to be true.
+
 The only breaking change here. It is exported from two packages' roots; ADR-014
 says it should not be. Removing it needs a changeset marking the break and naming
 every dependent package (bug 0185's rule), and `check:surface` will want the root
@@ -297,7 +310,9 @@ and the other four are pure gain.
   `scripts/vacuity-matrix.mjs`
 - **Phase 4, everything the branch touches outside `work/`** — derived with
   `git diff --name-only main` against the WORKING TREE, because the commit does
-  not exist yet and `main...HEAD` is empty until it does:
+  not exist yet and `main...HEAD` is empty until it does, and re-derived after
+  the review pass rather than left at its first value:
+  `adr/010-a-pass-is-constructed-from-evidence.md`,
   `adr/014-the-emitter-refuses-a-verdict-without-evidence.md`,
   `arch.internal.rules.ts`,
   `scripts/check-nonvacuity.mjs`
@@ -645,6 +660,34 @@ and the other four are pure gain.
       without that third arm, "reds on a third" would be satisfied by a rule that
       reds on the existing two. Deleting the rule, widening it to `WeakMap`, and
       over-excluding the folder each red the fixture, measured one at a time.
+
+      **Seven lenses, and three measured holes in the rule — all the same shape:
+      the exclusion list IS the rule.** The rule excluded the two homes by path,
+      so a fourth `WeakSet` added INSIDE one was invisible (planting one in
+      `cardinality.ts` left `check:arch` green); growing `REGISTRY_HOMES` by one
+      line silently exempted a genuine third, with nothing disclosing a builder
+      `.excluding()` the way inline suppressions are disclosed; and
+      `.asSeverity('warn')` turned the rule into a non-blocking report while every
+      arm of the fixture stayed green — the probe trips two unrelated hygiene
+      rules, so exit 1 arrives whatever the severity is.
+
+      One mechanism answers the first two: the fixture now takes a **census** —
+      exactly two `new WeakSet` under `packages/core/src`, one in each named home,
+      counted independently of the rule's own exclusions. A clause about a
+      population needs a mechanism that counts the population. The third is a
+      severity-aware assertion. All three sabotages red now.
+
+      **And the doctrine was wrong one layer up.** ADR-010 §2 read "no third …
+      nothing may add a fourth", which counts a set of three; measured, there are
+      two. The rule caps at two while quoting a sentence that permits three, so an
+      author reddened on their third would have read the binding ADR and concluded
+      the gate was wrong — ADR-009 rule 1 with the ADR as accomplice, which is the
+      failure this phase's own comment describes, reproduced above the code. §2's
+      arithmetic is amended, the ordinal removed rather than corrected so it cannot
+      go stale, the rule renamed `eess/no-new-kernel-registry` (every sibling names
+      the banned thing, not an ordinal), and it now carries a remedy naming all
+      three legitimate moves. The Enforcement row moved to ADR-010, which is where
+      the clause lives.
 
       No changeset: nothing under `packages/` changed, and `check:release`
       confirms 0 of 6 packages touched.

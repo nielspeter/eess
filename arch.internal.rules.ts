@@ -63,7 +63,11 @@ const p = workspace([
 const GENERATED = /\/parser\/generated\//
 const ENV_ADAPTERS = /\/core\/src\/(ansi|environment)\.ts$/ // these modules ARE the env boundary
 
-// ADR-010 §2's "nothing may add a fourth": the kernel's unforgeable suppression
+// ADR-010 §2: the kernel's unforgeable suppression registries are a CLOSED SET.
+// The id names the banned thing, not an ordinal — every sibling in this file does
+// (`no-eval`, `no-silent-catch`, `no-dead-modules`), and an ordinal goes stale the
+// day a third home is legitimately sanctioned.
+//
 // registries are `WeakSet`-backed and each guards a distinct, named audience.
 // **Two homes, not one.** The ADR row said `cardinality.ts` was "the sole home"
 // and it never was — `owns-empty-discovery.ts`'s own comment says "the two
@@ -161,9 +165,16 @@ const rules = [
     .should()
     .notContain(newExpr('WeakSet'))
     .rule({
-      id: 'eess/no-third-registry',
+      id: 'eess/no-new-kernel-registry',
       because:
-        'ADR-010 §2 — the kernel-bound suppression registries each guard a distinct, named audience, and nothing may add a fourth',
+        'ADR-010 §2 — the kernel-bound suppression registries are an unforgeable, closed set: two homes, each guarding a distinct named audience',
+      suggestion:
+        'Reuse one of the two existing registries if your marker fits its audience — ' +
+        'CARDINALITY_ASSERTERS in cardinality.ts, OWNERS in owns-empty-discovery.ts. ' +
+        'If it genuinely does not, a new home is an amendment to ADR-010 §2 and a new ' +
+        'entry in REGISTRY_HOMES, in that order — not a line added to the exclusion ' +
+        'list. And if you need a memo cache rather than a suppression registry, use a ' +
+        'WeakMap, which this rule does not touch (see selection-memo.ts).',
     }),
   srcFns().should().satisfy(noStubComments()).rule({ id: 'eess/no-stub-comments' }),
   srcFns().should().satisfy(noEmptyBodies()).rule({ id: 'eess/no-empty-bodies' }),

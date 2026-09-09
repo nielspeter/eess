@@ -622,7 +622,7 @@ function gateInternalArch() {
  * fixture that only proved the red would let someone "fix" the rule to include
  * `WeakMap` and red the cache with nothing to stop them.
  */
-function gateNoThirdRegistry() {
+function gateNoNewKernelRegistry() {
   const run = () => sh(EESS_TS, ['check', 'arch.internal.rules.ts', '--format', 'json'])
   // A third registry: must fire, by rule id AND on the probe.
   const third = withProbe(
@@ -631,7 +631,18 @@ function gateNoThirdRegistry() {
       'export const mark = (o: object): void => void THIRD.add(o)\n',
     run,
   )
-  const firedOnThird = firedOn(third, 'eess/no-third-registry', '__nonvacuity_probe_registry__')
+  // **By severity, not only by id.** `.asSeverity('warn')` on the rule turns it
+  // into a report that does not block, and every other arm here stays green —
+  // the probe file trips two unrelated hygiene rules, so exit 1 arrives whatever
+  // this rule's severity is, and copying `third.code === 1` would not have caught
+  // it either. A rule that reports and does not block is the fail-open ADR-009
+  // exists for. Measured by a QA review.
+  const firedOnThird = violationsOf(third).some(
+    (v) =>
+      v?.ruleId === 'eess/no-new-kernel-registry' &&
+      String(v?.file ?? '').includes('__nonvacuity_probe_registry__') &&
+      v?.severity === 'error',
+  )
 
   // A memo cache: must NOT fire. Without this the rule could be widened to
   // `WeakMap` and the repo's own cache would red.
@@ -641,17 +652,52 @@ function gateNoThirdRegistry() {
       'export const put = (o: object, n: number): void => void CACHE.set(o, n)\n',
     run,
   )
-  const quietOnMemo = !firedOn(memo, 'eess/no-third-registry', '__nonvacuity_probe_registry__')
+  const quietOnMemo = !firedOn(memo, 'eess/no-new-kernel-registry', '__nonvacuity_probe_registry__')
 
   // And the two real homes stay exempt with no probe planted at all — otherwise
   // "reds on a third" is satisfied by a rule that reds on the existing two.
   const clean = run()
-  const quietOnHomes = !firedOn(clean, 'eess/no-third-registry')
+  const quietOnHomes = !firedOn(clean, 'eess/no-new-kernel-registry')
+
+  // **The census, because the rule alone cannot see two shapes of a fourth.**
+  //
+  // The rule excludes the two homes by PATH, so a fourth `WeakSet` added INSIDE
+  // one of them is invisible — measured: planting one in `cardinality.ts` left
+  // `check:arch` green. And the exclusion list *is* the rule, so growing
+  // `REGISTRY_HOMES` by one line silently exempts a genuine third registry;
+  // nothing discloses a builder `.excluding()` the way the inline-comment
+  // suppressions are disclosed. Both were found by review.
+  //
+  // Counting the occurrences answers both, and is independent of the rule's own
+  // exclusions: exactly two `new WeakSet` under `packages/core/src`, one in each
+  // named home. ADR-010 §2 is a statement about a POPULATION, so the mechanism
+  // that holds it has to count the population.
+  const KERNEL_SRC = join(repoRoot, 'packages', 'core', 'src')
+  const census = []
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) walk(full)
+      else if (entry.name.endsWith('.ts')) {
+        const hits = (readFileSync(full, 'utf8').match(/new WeakSet\b/g) ?? []).length
+        if (hits > 0) census.push({ file: full.slice(repoRoot.length + 1), hits })
+      }
+    }
+  }
+  walk(KERNEL_SRC)
+  const EXPECTED = [
+    { file: 'packages/core/src/cardinality.ts', hits: 1 },
+    { file: 'packages/core/src/owns-empty-discovery.ts', hits: 1 },
+  ]
+  const censusOk =
+    census.length === EXPECTED.length &&
+    EXPECTED.every((e) => census.some((c) => c.file === e.file && c.hits === e.hits))
 
   return {
-    ok: firedOnThird && quietOnMemo && quietOnHomes,
+    ok: firedOnThird && quietOnMemo && quietOnHomes && censusOk,
     detail:
-      `a third WeakSet \u2192 fired on its own file: ${firedOnThird}; ` +
+      `a third WeakSet \u2192 fired at error severity on its own file: ${firedOnThird}; ` +
+      `census \u2192 ${census.map((c) => `${c.file}\u00d7${String(c.hits)}`).join(', ')} (${censusOk ? 'as declared' : 'DRIFTED'}); ` +
       `a WeakMap memo cache \u2192 quiet: ${quietOnMemo}; ` +
       `the two named homes \u2192 quiet: ${quietOnHomes}`,
   }
@@ -2081,7 +2127,7 @@ const gates = [
   ['gate coverage', () => gateCoverage()],
   ['arch (root rules)', gateArch],
   ['internal arch', gateInternalArch],
-  ['arch/no-third-registry', gateNoThirdRegistry],
+  ['arch/no-new-kernel-registry', gateNoNewKernelRegistry],
   ['family re-export (index)', gateFamilyReExportIndex],
   ['family re-export (crossvalidate)', gateFamilyReExportCrossvalidate],
   ['family re-export (aggregation)', gateFamilyReExportAggregation],
@@ -2470,7 +2516,7 @@ const GATE_FOR = {
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'internal arch',
-    'arch/no-third-registry',
+    'arch/no-new-kernel-registry',
     'engine/applyfilters-parity',
   ],
   'check:family': [
