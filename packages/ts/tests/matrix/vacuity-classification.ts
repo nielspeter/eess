@@ -223,7 +223,6 @@ export const NOT_CHECKS: readonly string[] = [
   //    than defaulted, per this file's own rule: "we thought about this one" and
   //    "we forgot this one" must not look the same.
   './presets:dispatchRule',
-  './presets:throwIfViolations',
   '.:STRICT_FAMILY_SIZE',
   '.:assertsCardinality',
   '.:diskSet',
@@ -235,7 +234,6 @@ export const NOT_CHECKS: readonly string[] = [
   '.:rootFromTsConfigPath',
   '.:rootOf',
   '.:syntacticFault',
-  '.:throwIfViolations',
   '.:validateOverrides',
   './graphql:ResolverRuleBuilder',
   './graphql:SchemaRuleBuilder',

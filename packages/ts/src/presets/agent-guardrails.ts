@@ -129,9 +129,14 @@ const EESS_PACKAGES = [
  * `dispatchRule` at runtime, so the import leg reds it whatever this regex says.
  * A preset module is a verdict file by definition and belongs in `ruleFiles`.
  *
- * `throwIfViolations` stays until it leaves the public surface (plan 0263
- * Phase 5); an adopter on an older kernel still has the alias, and a dead name
- * in a regex is harmless.
+ * `throwIfViolations` stays although plan 0263 Phase 5 removed it from this
+ * kernel's public surface, and the reason it stays is the reason it was listed:
+ * this preset runs against an ADOPTER's code, not ours. An adopter pinned to an
+ * older `@nielspeter/eess` still has the alias and can still call it outside a
+ * rule file, which is exactly the misuse this regex exists to catch. Dropping
+ * the name the day our own export went would open that gap for every consumer
+ * who has not upgraded. A dead name in a regex costs nothing; a missing one
+ * costs a silent pass.
  */
 const EMITTERS = /(^|\.)(finishPreset|reportViolations|throwIfViolations)$/
 

@@ -822,14 +822,36 @@ function gateFamilyReExportAggregation() {
   // own `file: entry.getFilePath()`) even though the missing import lives
   // in a sibling file — proof the aggregation actually reads the whole
   // package, not just the file under direct suspicion.
+  // **The payload's premise is asserted, because it has rotted twice.**
+  // It was `remedyRepeatsMessage` until ADR-011 moved that behind
+  // `@nielspeter/eess/internal`, where it obliges no re-export by design —
+  // which turned the violating input into a legal one and the probe
+  // green-for-nothing. It was then `throwIfViolations` until plan 0263 Phase 5
+  // deleted the symbol, which would have done the same thing a second time.
+  //
+  // A hardcoded symbol cannot stop a third rot; asserting what the symbol has
+  // to BE can. The payload must be exported from the kernel root and NOT
+  // re-exported by md, or the rule owes nothing and the fixture proves nothing.
+  // Both halves are checked here, and a failure says to pick a new symbol
+  // rather than reporting a mysterious missing violation.
+  const PAYLOAD = 'hasEvidence'
+  const kernelRoot = readFileSync(join(repoRoot, 'packages', 'core', 'src', 'index.ts'), 'utf8')
+  const mdRoot = readFileSync(join(repoRoot, 'packages', 'md', 'src', 'index.ts'), 'utf8')
+  const onKernelRoot = new RegExp(`\\b${PAYLOAD}\\b`).test(kernelRoot)
+  const notReExported = !new RegExp(`\\b${PAYLOAD}\\b`).test(mdRoot)
+  if (!onKernelRoot || !notReExported) {
+    return {
+      ok: false,
+      detail:
+        `PAYLOAD '${PAYLOAD}' no longer violates: on the kernel root: ${String(onKernelRoot)}, ` +
+        `absent from md's re-exports: ${String(notReExported)}. Pick a kernel root symbol md ` +
+        `does not re-export — otherwise this fixture is green for nothing.`,
+    }
+  }
+
   const bad = withMutatedFile(
     FAMILY_REEXPORT_AGGREGATION_TARGET,
-    // A ROOT symbol md does not re-export. It was `remedyRepeatsMessage` until
-    // ADR-011 moved that behind `@nielspeter/eess/internal`, where it obliges no
-    // re-export by design — which turned this fixture's violating input into a
-    // legal one and the probe green-for-nothing. The payload has to name a symbol
-    // the rule still owes a re-export for, or the fixture proves nothing.
-    "import { throwIfViolations } from '@nielspeter/eess'",
+    `import { ${PAYLOAD} } from '@nielspeter/eess'`,
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
   const ok = bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts')

@@ -21,7 +21,7 @@ export { recommended } from './recommended.js'
 // import of either from `@nielspeter/eess-ts/presets` was a link-time error that
 // no changeset declared. Found by an adopter review diffing every subpath, not
 // just `.`.
-export { dispatchRule, throwIfViolations } from '@nielspeter/eess'
+export { dispatchRule } from '@nielspeter/eess'
 
 // The preset delivery mode, on the subpath the docs actually teach
 // (`docs/getting-started.md` imports presets from here). It was on the root

@@ -621,7 +621,6 @@ Parameterized architecture rule bundles that generate multiple coordinated rules
 | `dataLayerIsolation`  | `dataLayerIsolation(p, options): void`                    | Base class extension and typed error enforcement.        |
 | `strictBoundaries`    | `strictBoundaries(p, options): void`                      | No cycles, no cross-boundary imports, shared isolation.  |
 | `dispatchRule`        | `dispatchRule(builder, ruleId, severity, overrides): V[]` | Run a single rule within a preset with severity control. |
-| `throwIfViolations`   | `throwIfViolations(violations): void`                     | Throw aggregated ArchRuleError if violations exist.      |
 | `validateOverrides`   | `validateOverrides(overrides, knownIds): void`            | Warn on unrecognized override keys.                      |
 
 See [Architecture Presets](/presets) for full configuration options.

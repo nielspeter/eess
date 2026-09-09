@@ -4,7 +4,7 @@
 
 - **State:** Done — all five phases shipped in PR #108, closing bugs 0190, 0206
   and 0261 in the same PR. ADR-014 went from 0 to 10 of 16 rows `gated`; the five
-  that did not are `deferred→` [plan 0263](../0263-adr-014s-residual-enforcement-rows.md),
+  that did not are `deferred→` [plan 0263](./0263-adr-014s-residual-enforcement-rows.md),
   which owns them by name in the ADR's own table.
   Previously read: Ready — frozen 2026-09-05. The freeze was refused once on
   2026-09-03, when six review lenses reached "do not build as written"
@@ -1079,7 +1079,7 @@ which is why that rule is a companion and not a footnote.
       `toEqual([])` → `toHaveLength(0)`; the other five are this ADR's own
       deliberate reversals, each annotated in place). **Five stay `pending`, and
       every one now names
-      [plan 0263](../0263-adr-014s-residual-enforcement-rows.md) as its home** —
+      [plan 0263](./0263-adr-014s-residual-enforcement-rows.md) as its home** —
       `throwIfViolations` is still exported, and four fixtures are unwritten. The `it('…')`
       citations are file-path citations because `check:crossval` resolves against
       `packages/ts/tsconfig.json` alone; filed as
@@ -1091,7 +1091,7 @@ which is why that rule is a companion and not a footnote.
       0206's state line is corrected from "latent" — the test written to close it
       found the drift live.
 
-Deferred: [plan 0263](../0263-adr-014s-residual-enforcement-rows.md) — ADR-014's
+Deferred: [plan 0263](./0263-adr-014s-residual-enforcement-rows.md) — ADR-014's
 five remaining `pending` rows, `deferred→plan 0263`, created at this close and on
 the board.
 

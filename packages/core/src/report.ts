@@ -238,8 +238,8 @@ export function reportViolations(
 
 /**
  * Finish a preset: deliver its aggregated violations per the requested mode
- * (plan 0070). `throw` (default) emits then throws — backward-compatible with
- * `throwIfViolations`; `return` hands the violations back untouched (the caller
+ * (plan 0070). `throw` (default) emits then throws — the mode the removed
+ * `throwIfViolations` alias used to name; `return` hands the violations back untouched (the caller
  * owns emission and control flow); `warn` emits without throwing. Always
  * returns the violations, so a caller can inspect them regardless of mode.
  */
