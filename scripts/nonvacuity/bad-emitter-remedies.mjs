@@ -44,12 +44,16 @@ const idsOf = (violations) => violations.map((v) => v.ruleId)
 const CASES = [
   {
     id: 'emitter/no-receipt',
+    // The call that fixes it — a message about a missing receipt that never names
+    // the constructor is describing the mistake, not the repair.
+    mustName: 'collectResult(violations, { examined })',
     corrupt: () => [],
     corrective: { 'return a receipt': () => collectResult([], { examined: 7 }) },
     declaring: {},
   },
   {
     id: 'emitter/pass-without-evidence',
+    mustName: 'declaredEmpty: true',
     corrupt: () => collectResult([], { examined: 0 }),
     corrective: { 'widen the selection': () => collectResult([], { examined: 12 }) },
     declaring: {
@@ -58,6 +62,7 @@ const CASES = [
   },
   {
     id: 'emitter/source-empty',
+    mustName: 'outranks any declaration',
     corrupt: () => collectResult([], { examined: 0, sourceEmpty: true }),
     // No declaring remedy exists, and that IS §4's point: an empty source
     // outranks any declaration, so there is nothing to talk your way out with.
@@ -66,12 +71,14 @@ const CASES = [
   },
   {
     id: 'emitter/expired-declaration',
+    mustName: 'remove the declaration',
     corrupt: () => collectResult([], { examined: 3, declaredEmpty: true }),
     corrective: { 'remove the declaration': () => collectResult([], { examined: 3 }) },
     declaring: {},
   },
   {
     id: 'emitter/contradictory-evidence',
+    mustName: 'notRun',
     corrupt: () => collectResult([], { examined: 5, notRun: true }),
     corrective: { 'drop the flag': () => collectResult([], { examined: 5 }) },
     // Dropping the evidence leaves the rule off, examining nothing. Legitimate —
@@ -220,13 +227,39 @@ try {
   // finding could not be suppressed. A reviewer's matrix showed the two messages
   // this fixture does not read could be rewritten to say "Delete the rule" with
   // nothing reddening, so every cause's text is read here.
-  const DELETING = /\b(delete|remove|skip|disable)\s+(the\s+)?(check|rule|call|gate)\b/i
-  for (const { id, corrupt } of CASES) {
+  // **Positive first, denylist second.** A denylist of phrasings is the weaker
+  // half and a reviewer proved it: rewording a remedy to "stop invoking this
+  // validation entirely; take the assertion out of your build" says exactly what
+  // the denylist forbids, in words it does not match. So each case declares the
+  // token its own message must NAME, and that is asserted — a message that stops
+  // naming its cause's repair reds whatever else it says.
+  const DELETING = /\b(delete|remove|skip|disable|stop\s+\w+ing)\s+(the\s+|this\s+)?(check|rule|call|gate|validation|assertion)\b/i
+  for (const { id, corrupt, mustName } of CASES) {
     const [finding] = gate(corrupt())
     const text = `${finding?.message ?? ''} ${finding?.suggestion ?? ''}`
+    if (!text.includes(mustName)) {
+      failures.push(`${id}'s text no longer names its own repair (${mustName})`)
+    }
     if (DELETING.test(text)) {
       failures.push(`${id}'s text instructs the reader to delete the check: ${DELETING.exec(text)?.[0]}`)
     }
+  }
+
+  // **The gate carries the input receipt's declarations through.** A reviewer's
+  // sabotage dropped them and nothing reddened: the finding is right, and a
+  // downstream reader loses the fact that a declaration was made at all.
+  // `finishPreset` directly, NOT through `gate` — that helper spreads the result
+  // into a plain array, which drops every field on it. The first cut of this
+  // assertion went through `gate` and failed against a gate that was preserving
+  // them correctly: it was measuring the helper.
+  const carried = finishPreset(
+    collectResult([], { examined: 0, sourceEmpty: true, declaredEmpty: true, notRun: true }),
+    { report: 'return' },
+  )
+  if (carried.declaredEmpty !== true || carried.notRun !== true) {
+    failures.push(
+      'the source-empty branch rebuilt the receipt and dropped the declarations it was handed',
+    )
   }
 
   // **The kernel names no preset's options** — ADR-014 §4, "at a seam that may
