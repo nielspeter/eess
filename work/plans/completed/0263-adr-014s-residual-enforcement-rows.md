@@ -804,7 +804,11 @@ and the other four are pure gain.
       `packages/ts/tests/standalone-surface.test.ts` · `it('every non-excluded
       kernel value export is reachable from eess-ts (root or presets subpath)')`
       with `expected [ 'throwIfViolations' ] to have a length of +0`. Both run
-      under `npm test` inside `validate`.
+      under different steps of `validate`: `packages/ts/vitest.config.ts`
+      excludes `tests/matrix/**`, so the standalone-surface guard runs under
+      `npm test` and the census under `test:matrix`. Both gate; naming one
+      runner for both would send the next reader to a green matrix and a
+      wrong conclusion, which is this phase's own failure mode.
 
       **The first measurement said "caught by nothing", and it was wrong.** The
       author ran the matrix, `check:surface` and `check:family` against a
@@ -916,7 +920,18 @@ and the other four are pure gain.
       link error. Both are now on the barrel. Three separate audits have found
       holes in this one barrel by hand, and nothing binds its composition —
       the standalone-surface guard asserts root-OR-presets reachability, so a
-      subpath gap is invisible to it by construction.
+      subpath gap is invisible to it by construction — which this phase then
+      closed for the names the docs teach, in
+      `packages/ts/tests/standalone-surface.test.ts`.
+
+      A third round found one more, and this one the phase CREATED rather than
+      inherited: publishing `finishPreset` on that barrel without `CollectResult`
+      leaves a caller able to call it and unable to annotate what they pass. An
+      adopter review compiled the error. Added. Still absent and deliberately not
+      closed here: `ArchRuleError`, `collectResult`, `mergeCollectResults` — a
+      `/presets` adopter who wants to catch the throw or build a receipt still
+      reaches for a second import path. Listed in the barrel so a fourth audit
+      starts from a list.
       The changeset's rationale was stale too — it said the alias "took a bare
       `ArchViolation[]`", a signature plan 0235 had already replaced with the
       receipt, so it told adopters their working code was unsafe.

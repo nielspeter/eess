@@ -7,7 +7,7 @@
 '@nielspeter/eess-crossvalidate': minor
 ---
 
-**Breaking (@nielspeter/eess): `throwIfViolations` is removed from the public surface.**
+**Breaking (@nielspeter/eess, @nielspeter/eess-ts): `throwIfViolations` is removed from the public surface.**
 
 ADR-008 recorded its removal and ADR-014 restated it; the symbol stayed
 exported anyway, which is the half-true row plan 0263 exists to close. It is

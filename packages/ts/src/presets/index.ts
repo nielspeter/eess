@@ -43,6 +43,21 @@ export { finishPreset } from '@nielspeter/eess'
 // is how this barrel has now been audited by hand three times.
 export type { PresetReportOptions, ReportMode } from '@nielspeter/eess'
 
+// …and the type of the argument, which is the same gap once more and one this
+// PR created rather than inherited: publishing `finishPreset` here without
+// `CollectResult` leaves a caller able to call it and unable to annotate what
+// they pass, which is the callable-but-unnameable defect ADR-011's own
+// nameability guard exists for, one package out. An adopter review measured the
+// error: `Module '"@nielspeter/eess-ts/presets"' has no exported member
+// 'CollectResult'`.
+//
+// Still absent from this barrel and present on the root, pre-existing and NOT
+// closed here: `ArchRuleError`, `collectResult`, `mergeCollectResults`. A
+// `/presets` adopter who wants to catch the throw or build a receipt still needs
+// a second import path. Named so the fourth audit of this barrel starts from a
+// list rather than from scratch.
+export type { CollectResult } from '@nielspeter/eess'
+
 // The preset delivery mode, on the subpath the docs actually teach
 // (`docs/getting-started.md` imports presets from here). It was on the root
 // barrel only, so an adopter writing `report: 'builders'` and reaching for the
