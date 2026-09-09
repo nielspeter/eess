@@ -475,9 +475,18 @@ function withProbeDir(dir, path, contents, fn) {
  * and restoring it, matching this whole session's own established
  * sabotage-then-restore discipline, is the correct shape here instead.
  *
- * Unlike `withProbe`'s throwaway file (inert if a crash skips the `finally`
- * — it's a `.gitignore`-matched, non-existent-until-written path), this
- * mutates a real, tracked source file in place. A SIGINT/SIGTERM/crash
+ * Unlike `withProbe`'s throwaway file — which a crash leaves behind but
+ * which the startup sweep deletes and `check:integrity` names by path — this
+ * mutates a real, tracked source file in place.
+ *
+ * This paragraph used to call that leftover probe "inert". It is not, and bug
+ * 0231 measured why: `.gitignore` carries a `__nonvacuity_probe` glob, so a
+ * survivor leaves `git status` clean while `check:arch` reds on a file the
+ * reader cannot find. `scripts/check-workspace-integrity.mjs` says so at
+ * length, and for a while these two comments in the same chain disagreed
+ * about the same fact. The distinction that survives is recoverability, not
+ * harmlessness: a leftover probe has a sweep, a corrupted tracked file has
+ * none. A SIGINT/SIGTERM/crash
  * mid-mutation would skip the `finally` and leave that file corrupted on
  * disk with no equivalent startup sweep to repair it (review found this —
  * architect + testing, independently). `pendingRestores` + the signal
