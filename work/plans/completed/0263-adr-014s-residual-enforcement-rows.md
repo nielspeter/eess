@@ -11,8 +11,9 @@
   2026-09-09** (PR #121, two rounds, the second finding a defect in a binding
   ADR), and **Phase 5 is built here — every phase is now built.** Phase 5 closed
   its clause and split its ADR row rather than marking it `gated` whole: the
-  kernel half of the surface is unwatched, measured, and now
-  [bug 0272](../../bugs/0272-nothing-watches-the-kernel-roots-export-list.md). Frozen 2026-09-06. **The freeze found two things, one a
+  kernel half was briefly split off as `pending` on a false negative and merged
+  back after a method review; the residual that survives measurement is
+  [bug 0272](../../bugs/0272-the-kernel-roots-unwatched-residual.md). Frozen 2026-09-06. **The freeze found two things, one a
   false premise this plan inherited from ADR-014's own table and repeated
   without measuring** — written the day before, by me, which is the mistake this
   ADR is about, made about the ADR:
@@ -66,13 +67,13 @@ The five are not oversights in the contract — the contract holds. They are
 clauses whose _mechanism_ was scoped out, each for a stated reason, and the
 honest consequence is that nothing would notice their regression:
 
-| Row                                                                        | What is true today                                                                   | What would not be noticed                                                                                                                                           |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `throwIfViolations` is not exported                                        | **Done, Phase 5.** Gone from all three barrels                                       | the kernel root half: re-adding it there alone is caught by nothing — measured, and now [bug 0272](../../bugs/0272-nothing-watches-the-kernel-roots-export-list.md) |
-| A rule file exporting an evidence-free builder reds the CLI and `checkAll` | It does — `checkAll` routes through the kernel merge and the CLI through the emitter | a future refactor that hands the CLI a bare array again, which is exactly the shape 0206 had                                                                        |
-| The finding names its cause, and the remedy remediates                     | Each of the four causes has its own id and message                                   | a message edited into uselessness, or a remedy that does not clear the finding it is printed beside (ADR-009 rule 2)                                                |
-| No new kernel registry is added                                            | **TWO** `WeakSet` registries exist, not one — see Phase 4's freeze correction        | ANOTHER registry added under `packages/core/src`, which is the device ADR-014 §2 chose the required field over                                                      |
-| Every hand-assembled check in this repo supplies evidence                  | `check:corpus` proves it end to end (`emitter/one-dead-check`)                       | the same dead-check fail-open in `check:ledger` or `check:release`, neither of which has a break-the-loop fixture                                                   |
+| Row                                                                        | What is true today                                                                   | What would not be noticed                                                                                                                                  |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `throwIfViolations` is not exported                                        | **Done, Phase 5.** Gone from all three barrels                                       | the kernel root half: re-adding it there alone is caught by nothing — measured, and now [bug 0272](../../bugs/0272-the-kernel-roots-unwatched-residual.md) |
+| A rule file exporting an evidence-free builder reds the CLI and `checkAll` | It does — `checkAll` routes through the kernel merge and the CLI through the emitter | a future refactor that hands the CLI a bare array again, which is exactly the shape 0206 had                                                               |
+| The finding names its cause, and the remedy remediates                     | Each of the four causes has its own id and message                                   | a message edited into uselessness, or a remedy that does not clear the finding it is printed beside (ADR-009 rule 2)                                       |
+| No new kernel registry is added                                            | **TWO** `WeakSet` registries exist, not one — see Phase 4's freeze correction        | ANOTHER registry added under `packages/core/src`, which is the device ADR-014 §2 chose the required field over                                             |
+| Every hand-assembled check in this repo supplies evidence                  | `check:corpus` proves it end to end (`emitter/one-dead-check`)                       | the same dead-check fail-open in `check:ledger` or `check:release`, neither of which has a break-the-loop fixture                                          |
 
 The middle three share a shape worth naming: **the clause is enforced by a
 mechanism that exists for another reason** (the type system, the suite), which is
@@ -408,17 +409,25 @@ and the other four are pure gain.
 - Five rows move from `pending` to `gated`, and each one's mechanism has been
   **run red** before it is called gated.
 
-  **Met for four; the fifth split.** ADR-014 ends this plan with 19 `gated` rows
-  and one `pending`. The `throwIfViolations` clause became two rows because
-  measuring it, rather than asserting it, showed the two halves are not equally
-  held: re-adding the export to the `eess-ts` root reds the published-surface
-  matrix, and re-adding it to the kernel root alone is caught by nothing. Marking
-  the single row `gated` would have been true of half the surface and read as
-  true of all of it — the precise failure this plan was created to fix, since
-  0235 split this row off its neighbour for the same reason. The remaining
-  `pending` row is owned by
-  [bug 0272](../../bugs/0272-nothing-watches-the-kernel-roots-export-list.md) and
-  names the mechanism it needs.
+  **Met, on the second measurement.** ADR-014 ends this plan with **no `pending`
+  rows**. Each mechanism was run red before its row was called gated.
+
+  The fifth row nearly did not get there, and the near miss is the plan's closing
+  lesson. Phase 5 first measured its clause with three instruments — the
+  published-surface matrix, `check:surface`, `check:family` — found all three
+  green on a kernel-root-only re-add, and concluded nothing held it. The suite
+  containing the guard that does was never run:
+  `packages/ts/tests/standalone-surface.test.ts` reds on exactly that re-add. On
+  the strength of the false negative the row was split, half marked `pending`, a
+  bug filed, and the claim copied into this section, the ROADMAP row and the bugs
+  board. A method review measured it and the rows were merged back to one `gated`
+  row held jointly by the two guards.
+
+  Splitting a row rather than force-marking it `gated` remains the right move
+  when the halves are genuinely unequal — 0235 split this row off its neighbour
+  for that reason. It is the wrong move when the inequality is an artifact of not
+  running the test. The difference between those two is a measurement, and this
+  plan got it wrong once at the very end, about itself.
 
 - No row is marked `gated` whose mechanism examines nothing — the criterion 0235
   set for itself and the reason this plan exists as a separate item rather than a
@@ -767,31 +776,102 @@ and the other four are pure gain.
       says, so a patch is the release an adopter's caret range takes without
       asking (bug 0185's rule, working).
 
-      **The clause is done; half of it is unwatched, and the row says so.**
-      Phase 5's purpose was ADR-014's row going `gated`, so the enforcement was
-      measured rather than asserted. Re-adding the export to the `eess-ts` root
-      reds the matrix naming `.:throwIfViolations`. Re-adding it to the KERNEL
-      root alone is caught by nothing: 48 of 48 matrix tests pass, `check:surface`
-      and `check:family` stay green. `check:surface` is the near miss — it binds
-      exports to a docs mention, and this name is documented in `docs/presets.md`
-      as a call `noVerdictOutsideRules` forbids, which a docs-mention check cannot
-      tell apart from documentation of an export. So the ADR row is SPLIT, the
-      way this plan split it from its neighbour for the same reason: `eess-ts`
-      `gated`, the kernel half `pending` against
-      [bug 0272](../../bugs/0272-nothing-watches-the-kernel-roots-export-list.md).
-      The fix is a kernel-root census, which freezes how the kernel surface
-      evolves — a decision, not a repair, and not one this phase's freeze took.
+      **The clause is `gated`, held jointly by two guards — and getting to that
+      sentence took a false negative and a method review.** Phase 5's purpose was
+      ADR-014's row going `gated`, so the enforcement was measured rather than
+      asserted. Re-adding the export to the `eess-ts` root reds the
+      published-surface matrix naming `.:throwIfViolations`. Re-adding it to the
+      KERNEL root alone reds
+      `packages/ts/tests/standalone-surface.test.ts` · `it('every non-excluded
+      kernel value export is reachable from eess-ts (root or presets subpath)')`
+      with `expected [ 'throwIfViolations' ] to have a length of +0`. Both run
+      under `npm test` inside `validate`.
 
-      **A live probe was disarmed and re-armed on the way past.** 0235 recorded
-      at its close that deleting this symbol would silently break
-      `scripts/check-nonvacuity.mjs`'s family re-export aggregation probe, which
-      injected `import { throwIfViolations } from '@nielspeter/eess'` as its
-      violating payload. The payload is now `hasEvidence`, and the fixture
-      **asserts its own premise** — the symbol must be on the kernel root and
-      absent from md's re-exports, or the row fails saying to pick a new one.
-      That payload had already rotted once, when ADR-011 moved
-      `remedyRepeatsMessage` behind `/internal`. A hardcoded symbol cannot stop a
-      third rot; asserting what the symbol has to BE can.
+      **The first measurement said "caught by nothing", and it was wrong.** The
+      author ran the matrix, `check:surface` and `check:family` against a
+      kernel-root-only re-add, found all three green, and concluded nothing held
+      it — without running the suite containing the guard that does. That is the
+      fail-open shape `CLAUDE.md` records about its own gate table: an instrument
+      that looks in one place and reports absence. On the strength of it the ADR
+      row was split, half of it marked `pending`, a bug was filed claiming
+      "nothing watches the kernel root", and the claim was copied into the plan's
+      Success section, the ROADMAP row and the bugs board — five artifacts from
+      one unrun test. A method review caught it. The rows are merged back to one
+      `gated` row, and [bug 0272](../../bugs/0272-the-kernel-roots-unwatched-residual.md)
+      is rewritten to the residual that survives measurement: a value export
+      added to the root AND to an exclusion set, or a type export whose name
+      already appears in docs.
+
+      **This plan corrected three inherited premises across five phases and named
+      the pattern. The fourth was its own, at the close.**
+
+      **The probe's payload was swapped — and the reason this phase first gave
+      for swapping it was false.** `scripts/check-nonvacuity.mjs`'s family
+      re-export aggregation probe injected
+      `import { throwIfViolations } from '@nielspeter/eess'` as its violating
+      payload, so the deletion had to move it. The payload is now `hasEvidence`.
+
+      What was written next, and repeated into the PR body, was that deleting the
+      symbol would have turned the violating input legal and left the probe
+      "green for nothing" — 0235's phrase, inherited from the fixture's own
+      comment, which had told the same story about ADR-011 moving
+      `remedyRepeatsMessage` behind `/internal`. **A testing review measured it
+      and it is false both times.** `reExportsWhatBodyUsesWithAllowlist` is
+      syntactic on the module SPECIFIER and never asks whether the imported name
+      exists on the kernel root. Re-measured here: `throwIfViolations` (deleted),
+      `remedyRepeatsMessage` (behind `/internal`) and a fabricated
+      `totallyMadeUpSymbolXyz` each fired the rule. A payload that stops violating
+      leaves the row RED with nothing to point at — not green.
+
+      That inverts what the new guard is for. It is a **diagnosis**, turning
+      "expected a violation, got none" into "the payload stopped violating, pick
+      a new symbol"; it is not the fail-closed repair the first draft claimed. It
+      now checks the three routes that actually exempt a symbol —
+      `KERNEL_INTERNAL`, `KERNEL_PRIVATE_BEFORE_THE_SPLIT`, the package
+      `ALLOWLIST` — rather than "is it on the root", which gates nothing.
+
+      The same review found the row could go green on a dead payload: exit 1 plus
+      the rule id on `md/src/index.ts` is satisfied by any OTHER md re-export gap,
+      demonstrated by dropping md's `validateOverrides` re-export. The fixture now
+      asserts the finding NAMES the payload, which the message carried all along.
+      Re-measured here against that exact sabotage, with no payload injected at
+      all: the old assertion returns **true** and the new one returns **false**.
+
+      That assertion took two attempts, and the first failure is the same lesson
+      again. It tested `/"hasEvidence"/` against `stdout`, which is `--format
+      json`, so the message's quotes arrive escaped and the pattern could not
+      match — the fixture reddened on its own assertion. It now reads the parsed
+      violation's `message` field rather than the rendered stream.
+
+      **And the retained guardrail arm got the fixture its argument had earned.**
+      This phase argued at length that `agentGuardrails` must keep
+      `throwIfViolations` in `EMITTERS` for adopters on older kernels, and nothing
+      tested it: with the symbol absent from this repo, deleting the alternation
+      changed no test. `packages/ts/tests/fixtures/presets/no-verdict-outside-rules/src/legacy-alias-call.ts`
+      now does, through a local wrapper the way `wrapper-call.ts` does. Verified
+      by removing the alternation: exactly one test fails, and it is that one.
+
+      **This is the phase's own lesson, committed inside a non-vacuity fixture.**
+      An unmeasured causal claim, inherited from a comment and repeated because it
+      sounded like the kind of thing this repo says.
+
+      **The migration this phase printed did not compile, and the false premise
+      was in this repo's own record.** `work/dogfood-coverage.md` said plan
+      0089's `eess-ts` additions were on the root because "the `/presets` subpath
+      already had them". Measured, that subpath carried `dispatchRule` and
+      `validateOverrides` and nothing else — not `finishPreset`, which is the
+      symbol the changeset told adopters to move to, and not the four others the
+      row lists. So the removal took `throwIfViolations` off a subpath whose
+      replacement was never published there, and `docs/api-reference.md`
+      documented the alias under "Presets (`eess-ts/presets`)", which means the
+      adopter who followed the docs is precisely the one the migration would have
+      failed. Caught by an adopter review, not by a gate: no mechanism binds a
+      changeset's migration instruction to whether it resolves. Fixed by
+      publishing `finishPreset` on that barrel, with its census row and its
+      API-reference row, and the dogfood-coverage line corrected at the source.
+      The changeset's rationale was stale too — it said the alias "took a bare
+      `ArchViolation[]`", a signature plan 0235 had already replaced with the
+      receipt, so it told adopters their working code was unsafe.
 
       `packages/ts/src/presets/agent-guardrails.ts` KEEPS `throwIfViolations` in
       its `EMITTERS` regex, deliberately: that preset runs against an adopter's
@@ -801,4 +881,5 @@ and the other four are pure gain.
 
 - [x] `/close` — authored in Phase 5's own PR, per the house rule that a plan closes with the change rather than in a follow-up.
 
-Deferred: [bug 0272](../../bugs/0272-nothing-watches-the-kernel-roots-export-list.md) — the kernel root's export list is watched by nothing. Measured in Phase 5, not planned work left undone: the phase's own scope (remove the symbol, declare the break) is complete, and this is what measuring the enforcement afterwards turned up.
+Deferred: [bug 0272](../../bugs/0272-the-kernel-roots-unwatched-residual.md) and
+[bug 0273](../../bugs/0273-nothing-compiles-a-changesets-migration-snippet.md) — two narrow residuals in what watches the kernel root, and the absence of any gate that compiles a changeset's migration snippet. Neither is planned work left undone: the phase's scope (remove the symbol, declare the break) is complete. Both are what review turned up afterwards, and 0273 is the mechanism whose absence let this phase print a migration that did not compile.

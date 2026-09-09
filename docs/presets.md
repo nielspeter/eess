@@ -217,10 +217,9 @@ agentGuardrails(p, {
 A module that is **not** a rule file, a test, or a file you named in `ruleFiles`
 must not import eess as a value (only `import type`), and must not call
 `finishPreset` / `reportViolations` / `throwIfViolations`. The last of those is
-no longer part of this kernel's API — it was removed in plan 0263 Phase 5 — and
-the preset still names it deliberately, because this preset runs against YOUR
-code and a project pinned to an older `@nielspeter/eess` still has the alias to
-misuse.
+no longer part of this kernel's API, and the preset still names it deliberately:
+this preset runs against YOUR code, and a project pinned to an older
+`@nielspeter/eess` still has the alias to misuse.
 
 That is the "walked around the pipeline" shape in one sentence: eess's loaders
 and eess's types imported into ordinary source, with a verdict assembled by hand

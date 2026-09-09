@@ -223,6 +223,7 @@ export const NOT_CHECKS: readonly string[] = [
   //    than defaulted, per this file's own rule: "we thought about this one" and
   //    "we forgot this one" must not look the same.
   './presets:dispatchRule',
+  './presets:finishPreset',
   '.:STRICT_FAMILY_SIZE',
   '.:assertsCardinality',
   '.:diskSet',

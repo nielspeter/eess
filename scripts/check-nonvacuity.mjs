@@ -153,6 +153,10 @@ import { spawnSync } from 'node:child_process'
 import { writeFileSync, rmSync, readFileSync, readdirSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+// Read, not duplicated: these are the sets that decide whether a kernel symbol
+// owes a dialect a re-export, and the aggregation fixture's payload guard has to
+// ask the same question the rule asks.
+import { KERNEL_INTERNAL, KERNEL_PRIVATE_BEFORE_THE_SPLIT } from './lib/kernel-surface.mjs'
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const EESS_TS = join(repoRoot, 'node_modules', '.bin', 'eess-ts')
@@ -822,30 +826,85 @@ function gateFamilyReExportAggregation() {
   // own `file: entry.getFilePath()`) even though the missing import lives
   // in a sibling file — proof the aggregation actually reads the whole
   // package, not just the file under direct suspicion.
-  // **The payload's premise is asserted, because it has rotted twice.**
-  // It was `remedyRepeatsMessage` until ADR-011 moved that behind
-  // `@nielspeter/eess/internal`, where it obliges no re-export by design —
-  // which turned the violating input into a legal one and the probe
-  // green-for-nothing. It was then `throwIfViolations` until plan 0263 Phase 5
-  // deleted the symbol, which would have done the same thing a second time.
+  // **The payload's premise is asserted — and the reason is NOT the one this
+  // comment used to give.** It said the payload had rotted once (ADR-011 moved
+  // `remedyRepeatsMessage` behind `/internal`) and would rot again when plan
+  // 0263 Phase 5 deleted `throwIfViolations`, each time turning the violating
+  // input legal and this probe "green for nothing". A testing review measured
+  // that and it is false in both directions. `reExportsWhatBodyUsesWithAllowlist`
+  // is purely syntactic on the module SPECIFIER: it never asks whether the
+  // imported name exists on the kernel root. Measured here — injecting
+  // `throwIfViolations` (deleted), `remedyRepeatsMessage` (behind `/internal`)
+  // and a fabricated `totallyMadeUpSymbolXyz` each fired the rule.
   //
-  // A hardcoded symbol cannot stop a third rot; asserting what the symbol has
-  // to BE can. The payload must be exported from the kernel root and NOT
-  // re-exported by md, or the rule owes nothing and the fixture proves nothing.
-  // Both halves are checked here, and a failure says to pick a new symbol
-  // rather than reporting a mysterious missing violation.
+  // So a payload that stops violating does not leave this row GREEN. It leaves
+  // it RED, with no violation to point at. That is the failure this guard is
+  // actually worth having, and it is a diagnosis, not a fail-closed repair: it
+  // turns "expected a violation, got none" into "the payload stopped violating,
+  // pick a new symbol". The distinction matters because the old comment claimed
+  // a fail-open this fixture never had, in a fixture whose whole subject is
+  // fail-open claims.
+  //
+  // A symbol stops owing md a re-export by exactly three routes, all in
+  // `scripts/lib/family-re-exports.mjs`: `KERNEL_INTERNAL`,
+  // `KERNEL_PRIVATE_BEFORE_THE_SPLIT`, and that package's `ALLOWLIST` entry.
+  // Membership in those is checked below, because they — not "is it on the
+  // root" — are what makes a payload stop violating.
+  //
+  // A fourth condition is a standing constraint rather than a check: the payload
+  // must be a kernel symbol **md's own source never imports**. `check:family`
+  // obliges a dialect to re-export every kernel symbol its source imports, so
+  // the day `packages/md/src/**` reaches for this name the two pull opposite
+  // ways. `hasEvidence` sits on the same kernel-root line as
+  // `mergeCollectResults`, which md re-exports precisely so a standalone eess-md
+  // consumer can build an ADR-014 receipt — so the same argument reaches this
+  // payload and its half-life may be short. It fails loudly, which is the right
+  // direction, and the failure names the cause.
   const PAYLOAD = 'hasEvidence'
-  const kernelRoot = readFileSync(join(repoRoot, 'packages', 'core', 'src', 'index.ts'), 'utf8')
-  const mdRoot = readFileSync(join(repoRoot, 'packages', 'md', 'src', 'index.ts'), 'utf8')
-  const onKernelRoot = new RegExp(`\\b${PAYLOAD}\\b`).test(kernelRoot)
-  const notReExported = !new RegExp(`\\b${PAYLOAD}\\b`).test(mdRoot)
-  if (!onKernelRoot || !notReExported) {
+  // **Read the export STATEMENTS, not the file text.** The first cut tested
+  // `/\bhasEvidence\b/` against the raw source of each index, and an enforcement
+  // review measured the fail-open: replace the kernel's export with a line
+  // reading `// hasEvidence moved behind /internal` and `onKernelRoot` stays
+  // true, which is precisely the rot the check was written against. This repo
+  // leaves a farewell comment when a symbol goes — the same commit that added
+  // this check did it twice — so that is not a hypothetical.
+  //
+  // The two halves were also asymmetric, which is the worse half of the bug: a
+  // stray mention in md's root made `notReExported` false and reddened
+  // (fail-closed), while a stray mention in the kernel root passed (fail-open).
+  // It is the same confusion bug 0272 names — a mention is not an export —
+  // diagnosed in one file and shipped in another, in one commit.
+  const exportedNames = (file) => {
+    const names = new Set()
+    const src = readFileSync(file, 'utf8')
+    for (const m of src.matchAll(/export\s+(?:type\s+)?\{([^}]*)\}/g)) {
+      for (const raw of m[1].split(',')) {
+        const n = raw
+          .trim()
+          .split(/\s+as\s+/)
+          .pop()
+          ?.trim()
+        if (n) names.add(n)
+      }
+    }
+    return names
+  }
+  const onKernelRoot = exportedNames(join(repoRoot, 'packages', 'core', 'src', 'index.ts')).has(
+    PAYLOAD,
+  )
+  const notReExported = !exportedNames(join(repoRoot, 'packages', 'md', 'src', 'index.ts')).has(
+    PAYLOAD,
+  )
+  const exempt = KERNEL_INTERNAL.has(PAYLOAD) || KERNEL_PRIVATE_BEFORE_THE_SPLIT.has(PAYLOAD)
+  if (!onKernelRoot || !notReExported || exempt) {
     return {
       ok: false,
       detail:
         `PAYLOAD '${PAYLOAD}' no longer violates: on the kernel root: ${String(onKernelRoot)}, ` +
-        `absent from md's re-exports: ${String(notReExported)}. Pick a kernel root symbol md ` +
-        `does not re-export — otherwise this fixture is green for nothing.`,
+        `absent from md's re-exports: ${String(notReExported)}, ` +
+        `exempted by KERNEL_INTERNAL/KERNEL_PRIVATE_BEFORE_THE_SPLIT: ${String(exempt)}. ` +
+        `Pick a kernel root symbol md does not re-export and no exemption set names — ` +
+        `otherwise this row reds with no violation to point at.`,
     }
   }
 
@@ -854,14 +913,36 @@ function gateFamilyReExportAggregation() {
     `import { ${PAYLOAD} } from '@nielspeter/eess'`,
     () => sh(EESS_TS, ['check', 'family.rules.ts', '--format', 'json']),
   )
-  const ok = bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts')
+  // **The finding must name the PAYLOAD, not merely the rule and the entry.**
+  // Exit 1 plus `family/re-export-complete` on `md/src/index.ts` is satisfied by
+  // any OTHER md re-export gap, so an unrelated regression elsewhere in md would
+  // carry this row green while the injected import violated nothing. Measured by
+  // a testing review, which dropped md's `validateOverrides` re-export and used a
+  // payload md already carries: the row went green on a dead payload. The
+  // discriminator was there all along — the message names the symbol — and the
+  // sibling fixture one function up already asserts its own message this way.
+  //
+  // Read off the PARSED violation, not the raw stream. The first cut tested
+  // `/"hasEvidence"/` against `stdout`, which is `--format json`, so the message's
+  // own quotes arrive escaped as `\"hasEvidence\"` and the pattern could not
+  // match — the fixture went red on its own assertion. A gate that keys on
+  // rendered text is the thing this repo keeps relearning; this one keys on the
+  // record.
+  const namesPayload = violationsOf(bad).some(
+    (v) =>
+      v?.ruleId === 'family/re-export-complete' &&
+      String(v?.file ?? '').includes('md/src/index.ts') &&
+      String(v?.message ?? '').includes(PAYLOAD),
+  )
+  const ok =
+    bad.code === 1 && firedOn(bad, 'family/re-export-complete', 'md/src/index.ts') && namesPayload
   const clean = sh(EESS_TS, ['check', 'family.rules.ts'])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return {
     ok,
     detail:
-      `bad → exit ${bad.code} (family/re-export-complete named on md/src/index.ts, ` +
-      `injected in model/document.ts) · ${cleanNote}`,
+      `bad → exit ${bad.code} (family/re-export-complete named on md/src/index.ts ` +
+      `and naming '${PAYLOAD}': ${String(namesPayload)}, injected in model/document.ts) · ${cleanNote}`,
   }
 }
 

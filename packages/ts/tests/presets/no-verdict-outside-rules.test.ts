@@ -80,6 +80,15 @@ describe('the two conditions each catch what the other cannot', () => {
     expect(flagged(run(NAMES_THE_GATE))).toContain('wrapper-call.ts')
   })
 
+  it('reds the legacy alias an adopter on an older kernel still has', () => {
+    // `throwIfViolations` left this kernel's public surface in plan 0263 Phase 5
+    // and stayed in `EMITTERS` on purpose: the preset runs against an adopter's
+    // code, and a project pinned to an older `@nielspeter/eess` can still call
+    // it outside a rule file. With the symbol gone from this repo, deleting that
+    // alternation changed no test until this one existed.
+    expect(flagged(run(NAMES_THE_GATE))).toContain('legacy-alias-call.ts')
+  })
+
   it('reds a namespaced emitter call — the anchor, not a bare name match', () => {
     // `import * as eess` then `eess.finishPreset(...)`. The consuming project
     // that measured the field failure had this exact escape in its first version.

@@ -23,6 +23,17 @@ export { recommended } from './recommended.js'
 // just `.`.
 export { dispatchRule } from '@nielspeter/eess'
 
+// `finishPreset` joins it, and the reason is this same subpath's history one
+// paragraph up. Plan 0263 Phase 5 removed `throwIfViolations` from HERE as well
+// as the two roots, and `finishPreset(v, { report: 'throw' })` is the migration
+// the changeset prints — which did not compile on this barrel, because the alias
+// was published here and its replacement never was. `docs/api-reference.md`
+// documented the alias under "Presets (`eess-ts/presets`)", so the adopter who
+// followed the docs is exactly the one the migration would have failed. Found by
+// an adopter review, the second time this subpath has been audited separately
+// from the root and the second time that was the only way to see it.
+export { finishPreset } from '@nielspeter/eess'
+
 // The preset delivery mode, on the subpath the docs actually teach
 // (`docs/getting-started.md` imports presets from here). It was on the root
 // barrel only, so an adopter writing `report: 'builders'` and reaching for the

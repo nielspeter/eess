@@ -615,13 +615,14 @@ Requires the optional `graphql` peer dependency.
 
 Parameterized architecture rule bundles that generate multiple coordinated rules from a single function call.
 
-| Export                | Signature                                                 | Description                                              |
-| --------------------- | --------------------------------------------------------- | -------------------------------------------------------- |
-| `layeredArchitecture` | `layeredArchitecture(p, options): void`                   | Layer ordering, cycles, isolation, restricted packages.  |
-| `dataLayerIsolation`  | `dataLayerIsolation(p, options): void`                    | Base class extension and typed error enforcement.        |
-| `strictBoundaries`    | `strictBoundaries(p, options): void`                      | No cycles, no cross-boundary imports, shared isolation.  |
-| `dispatchRule`        | `dispatchRule(builder, ruleId, severity, overrides): V[]` | Run a single rule within a preset with severity control. |
-| `validateOverrides`   | `validateOverrides(overrides, knownIds): void`            | Warn on unrecognized override keys.                      |
+| Export                | Signature                                                 | Description                                                        |
+| --------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `layeredArchitecture` | `layeredArchitecture(p, options): void`                   | Layer ordering, cycles, isolation, restricted packages.            |
+| `dataLayerIsolation`  | `dataLayerIsolation(p, options): void`                    | Base class extension and typed error enforcement.                  |
+| `strictBoundaries`    | `strictBoundaries(p, options): void`                      | No cycles, no cross-boundary imports, shared isolation.            |
+| `dispatchRule`        | `dispatchRule(builder, ruleId, severity, overrides): V[]` | Run a single rule within a preset with severity control.           |
+| `finishPreset`        | `finishPreset(receipt, options?): CollectResult`          | Deliver a preset's receipt: `throw` (default), `return` or `warn`. |
+| `validateOverrides`   | `validateOverrides(overrides, knownIds): void`            | Warn on unrecognized override keys.                                |
 
 See [Architecture Presets](/presets) for full configuration options.
 
