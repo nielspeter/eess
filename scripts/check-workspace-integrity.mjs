@@ -442,6 +442,15 @@ const probeRoots = [
   join(ROOT, 'work'),
   join(ROOT, 'examples'),
   join(ROOT, 'scripts', 'nonvacuity'),
+  // `.changeset` is the one probe root whose leftover does not merely red a
+  // gate — `changeset version` reads the FILESYSTEM, not git, so a probe the
+  // `.gitignore` rule hides would be consumed into six CHANGELOGs and published
+  // with provenance, and npm refuses to re-publish a version. Measured by a
+  // release review, which ran `changeset version` with the probe present and
+  // found its body in `packages/ts/CHANGELOG.md`. Bug 0273's own fixture plants
+  // one here, which is how the gap was found: the harm class this root exists
+  // for, reintroduced by a fixture written to close a different one.
+  join(ROOT, '.changeset'),
 ]
 let probeRootsWalked = 0
 /**

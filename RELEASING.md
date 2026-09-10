@@ -66,6 +66,13 @@ rule 1). A fence with no import claims nothing checkable and is counted as a
 fragment, which is also what makes the "before" half of a migration free: a bare
 `throwIfViolations(violations)` asserts nothing about where anything is exported.
 
+**Two things the gate does about being routed around.** A changeset fence that
+carries an import but is not tagged `ts`/`typescript` is counted and named in the
+summary — the three-character retag that would silence it leaves a trace, the way
+the skip directive does. And a failure in a changeset prints a remedy saying the
+import line is a claim about where a symbol is exported, rather than offering the
+skip directive as an equal option.
+
 **Showing a "before" that no longer resolves.** If the before-side genuinely
 needs its old import line, put `<!-- eess-docs-code-skip: pre-migration example -->`
 immediately above the fence. The gate counts skipped fences in its summary, so

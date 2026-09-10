@@ -127,13 +127,35 @@ import line".
       per script is exactly how this hole stayed open while the gate was green.
       Verified against an emptied implementation: dropping `CHANGESETS` from the
       file list makes the fixture report vacuous rather than pass.
-- [x] **Break class 2 dispositioned: the convention, not the shrug.** A
-      migration's import line lives in a compilable fence. Dogfooded on the
-      instance that produced this bug —
-      `.changeset/throwifviolations-leaves-the-public-surface.md` now carries
+- [x] **Break class 2 dispositioned as a convention, and the tier is stated
+      rather than implied.** A migration's import line lives in a compilable
+      fence. Dogfooded on the instance that produced this bug —
+      `.changeset/throwifviolations-leaves-the-public-surface.md` carries
       `import { finishPreset } from '@nielspeter/eess-ts/presets'` in its fence,
       and pointing that specifier at a barrel without the symbol reds the gate.
       The sentence that was false in prose is now a thing that fails the build.
+
+      **What is NOT gated, said plainly because an enforcement review found this
+      box implying otherwise.** Nothing requires a changeset to write an import
+      line. A migration stated purely in prose is a fragment and passes free —
+      which is the original defect, still uncatchable by a mechanism. Measured on
+      this branch: **3 of 30 changesets carry an import line.** So this is a
+      **Tier 5 convention held by review**, written into `RELEASING.md`, and the
+      build's contribution is narrower than "migrations are checked": the moment
+      you state where a symbol lives, that statement becomes falsifiable.
+
+      Two things make the convention harder to drift past than a bare rule. A
+      changeset fence that carries an import but is not tagged `ts` is counted
+      and named in the gate's summary, so the three-character retag that would
+      silence it leaves a trace — the same visibility the skip directive has. And
+      a failure in this population prints a remedy that says the import line is a
+      claim about where a symbol is exported, rather than offering the skip
+      directive as a co-equal option.
+
+      The demand-side check — requiring a migration to HAVE a fence — is not
+      built. It needs a way to tell a migration from any other changeset prose,
+      which is the same "extract a claim from English" problem this record calls
+      break class 2 in the first place.
 
 ## What a review round changed
 

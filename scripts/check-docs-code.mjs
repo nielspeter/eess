@@ -36,6 +36,8 @@ import { execFileSync } from 'node:child_process'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { ESLint } from 'eslint'
 import tseslint from 'typescript-eslint'
+// Split out so it can be unit-tested per shape (bug 0273, second review round).
+import { importStatementsIn } from './lib/import-statements.mjs'
 
 const DOCS = 'docs'
 // Each package's own README teaches code too — same rot risk, same fix. Only
@@ -84,42 +86,10 @@ function mdFiles(dir, acc = []) {
   return acc
 }
 
-/**
- * The import statements in a fence, verbatim, including multi-line named lists.
- *
- * **Why a changeset is checked by its imports and not by its whole body.** The
- * defect bug 0273 was filed for is a claim about WHERE a symbol is exported —
- * "`finishPreset` is exported from the same three places the alias was". That
- * claim is only checkable once it is written as an import line, and an import
- * line is checkable on its own: `tsc` reports TS2305 for a named member a module
- * does not export whether or not the name is ever used.
- *
- * Demanding the whole snippet compile would be the wrong bar. A migration reads
- * `finishPreset(violations, { report: 'throw' })`, where `violations` is the
- * reader's variable, not one the changeset can invent. Requiring it to be
- * invented would push authors toward ceremony or toward the skip directive, and
- * a gate people route around is the failure ADR-009 rule 1 names.
- */
-function importStatementsIn(code) {
-  const out = []
-  const lines = code.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    if (!/^\s*import\b/.test(lines[i])) continue
-    const buf = [lines[i]]
-    // A named list may span lines; a specifier closes the statement.
-    while (!/from\s*['"][^'"]+['"]|^\s*import\s*['"][^'"]+['"]/.test(buf.join('\n'))) {
-      i++
-      if (i >= lines.length) return out
-      buf.push(lines[i])
-    }
-    out.push(buf.join('\n'))
-  }
-  return out
-}
-
 const fences = [] // { file, fence, code, tmp }
 let fragments = 0
 let skipped = 0
+let untaggedWithImport = 0
 for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES, ...CHANGESETS]) {
   const isChangeset = file.startsWith('.changeset')
   const kids = fromMarkdown(readFileSync(file, 'utf8')).children
@@ -128,7 +98,23 @@ for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES, ...CHANGESETS]) {
     const node = kids[i]
     if (node.type !== 'code') continue
     const lang = (node.lang ?? '').toLowerCase()
-    if (lang !== 'ts' && lang !== 'typescript') continue
+    if (lang !== 'ts' && lang !== 'typescript') {
+      // **A retag is a silent route-around, so it gets a counter.** The gate
+      // reads `ts`/`typescript` only, and nothing requires a changeset fence to
+      // carry that tag — so an author who hits a red can clear it in three
+      // characters. Unlike the skip directive, which the summary counts and a
+      // reader can audit, that left no trace at all. Measured by a release
+      // review: across the pending changesets the tags were 13 untagged, 3 ts,
+      // 1 typescript, 1 js.
+      //
+      // Counted rather than failed, deliberately. A changeset may legitimately
+      // show shell output or JSON, and reddening on those would be a mechanism
+      // firing on the thing it protects (ADR-009 rule 1). What is reported is
+      // the narrower fact: a fence in a changeset that is NOT tagged for this
+      // gate and yet contains something shaped like an import.
+      if (isChangeset && /^[ \t]*import(?![.(\w])/m.test(node.value)) untaggedWithImport++
+      continue
+    }
     fence++
     // Self-contained = imports its own root-selection entry point AND calls it
     // (`project(...)` / `workspace(...)` for eess-ts, `corpus(...)` for eess-md,
@@ -197,6 +183,13 @@ writeFileSync(
         noEmit: true,
         skipLibCheck: true,
         esModuleInterop: true,
+        // Without this, TypeScript does not report an unresolved SIDE-EFFECT
+        // import at all — `import 'pkg/does-not-exist'` compiles clean. A
+        // testing review measured a changeset fence of exactly that shape being
+        // counted in the denominator, reported as checked, and unable to fail.
+        // "Add this import" is an ordinary migration shape. The flag closes it
+        // for all three populations; it was pre-existing for docs and READMEs.
+        noUncheckedSideEffectImports: true,
         jsx: 'react-jsx',
       },
       include: ['*.ts'],
@@ -275,6 +268,12 @@ console.error(
     `(${byPopulation.docs} docs · ${byPopulation.readme} package README · ${byPopulation.changeset} changeset) · ` +
     `${fragments} fragments + ${skipped} skip-directive'd (not checked)`,
 )
+if (untaggedWithImport > 0) {
+  console.error(
+    `  note      ${untaggedWithImport} changeset fence(s) carry an import but are not tagged ` +
+      `\`ts\`/\`typescript\`, so this gate does not read them. Retag to have the claim checked.`,
+  )
+}
 
 if (failures.length > 0) {
   console.error('')

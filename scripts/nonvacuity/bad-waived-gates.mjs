@@ -103,10 +103,18 @@ const PROBE_PATHS = [
   'examples/__nonvacuity_probe__.test.ts',
   // Bug 0240's three guardrails probes. This list is hand-kept, and a scenario
   // that plants a probe without adding it here loses the self-heal the comment
-  // above promises: `check:integrity` still NAMES the leftover, because its scan
-  // is prefix-based rather than a list, but the next run no longer clears it and
-  // a human has to. Adding a scenario means adding its path here — the omission
-  // is invisible until a SIGKILL, which is what bug 0231 measured.
+  // above promises: the next run no longer clears it and a human has to. Adding
+  // a scenario means adding its path here — the omission is invisible until a
+  // SIGKILL, which is what bug 0231 measured.
+  //
+  // **An earlier version of this comment said `check:integrity` "still NAMES the
+  // leftover, because its scan is prefix-based rather than a list". That is half
+  // true and the missing half matters.** The prefix match is what finds a probe
+  // inside a root already listed in `probeRoots`; a probe in a directory NOT on
+  // that list is invisible. Bug 0273's fixture plants one in `.changeset/`,
+  // which was not a probe root — a release review measured that `changeset
+  // version` reads the filesystem and would have consumed it into six published
+  // CHANGELOGs. `.changeset` is a probe root now.
   'packages/core/src/__nonvacuity_probe_stub__.ts',
   'packages/core/src/__nonvacuity_probe_empty__.ts',
   'packages/core/src/__nonvacuity_probe_copy__.ts',
@@ -331,6 +339,16 @@ SCENARIOS['docs-code/changeset-migration-does-not-compile'] = () => {
   // this hole was open: one script, two populations, and a row per population is
   // the only shape that notices when one of them stops being scanned. This is the
   // same one-row-per-multi-check-script trap scenarios 4 and 6 record.
+  //
+  // **`runCapture`, because an exit code cannot attribute this failure.** The
+  // gate runs three populations in one process, so a non-zero status says only
+  // "something reddened somewhere". A testing review measured the consequence:
+  // with the changeset population deleted from the file list AND an unrelated
+  // `docs/getting-started.md` fence broken, a status-only assertion still
+  // reported "red on its own subject" — a false sentence, one level down from
+  // the over-claim the second `GATE_FOR` row exists to prevent. The reporter
+  // prints the failing file and the compiler message, so both discriminators
+  // are there for the asking.
   const migration = withAddedFile(
     '.changeset/__nonvacuity_probe_migration__.md',
     [
@@ -345,11 +363,15 @@ SCENARIOS['docs-code/changeset-migration-does-not-compile'] = () => {
       '```',
       '',
     ].join('\n'),
-    () => run('check:docs-code'),
+    () => runCapture('check:docs-code'),
   )
-  if (migration === 0) {
+  const namesProbe = migration.out.includes('__nonvacuity_probe_migration__')
+  const namesSymbol = migration.out.includes('__nonvacuityMissingExport__')
+  if (migration.status === 0 || !namesProbe || !namesSymbol) {
     vacuous(
-      `check:docs-code exited ${migration} with a changeset importing a symbol that is not exported`,
+      `check:docs-code exited ${migration.status} with a changeset importing a symbol that is not ` +
+        `exported (named the probe file: ${String(namesProbe)}, named the missing symbol: ` +
+        `${String(namesSymbol)})`,
     )
   }
 }
