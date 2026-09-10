@@ -193,10 +193,16 @@ The second argument is the evidence — how many units you actually looked at:
 collectResult(violations, { examined: files.length })
 ```
 
-Every dialect with a barrel carries both from this release — `eess-ts`,
-`eess-mermaid`, `eess-md` and `eess-gherkin` — so whichever one you installed is
-enough. Before this release the coverage was uneven and some of these imports
-needed a direct kernel dependency; that is fixed, not worked around.
+Every dialect with a barrel carries the whole receipt seam from this release —
+`collectResult`, `mergeCollectResults`, `reportViolations`, `finishPreset` and
+`isArchConfigError` — so whichever of `eess-ts`, `eess-mermaid`, `eess-md` or
+`eess-gherkin` you installed is enough. Before this release the coverage was
+uneven and several of these needed a direct kernel dependency; that is fixed, not
+worked around.
+
+`eess-crossvalidate` is the exception. It ships flat entry files rather than a
+barrel, and each carries only what its own bindings use, so reaching a
+constructor from there may still need `@nielspeter/eess` directly.
 
 **Handing an emitter a bare array** is a type error, and at runtime a
 configuration finding with the id `emitter/no-receipt`.

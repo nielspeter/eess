@@ -18,9 +18,25 @@ export { scenarios, ScenarioRuleBuilder } from './builder.js'
 // or condition over scenarios() never needs a second, direct
 // @nielspeter/eess install.
 export { RuleBuilder } from '@nielspeter/eess'
-// Bug 0276: ADR-014's receipt constructors. This package's own source imports
-// neither, so `check:family` owed nothing and this barrel had neither — leaving
-// a standalone `eess-gherkin` consumer unable to build or merge a receipt
-// without a second, direct kernel install.
-export { collectResult, mergeCollectResults } from '@nielspeter/eess'
+// Bug 0276 — the receipt seam, derived from the ADRs rather than from whichever
+// symbols a release happened to mention. ADR-014 requires a verdict to carry its
+// evidence and names `collectResult`/`mergeCollectResults` as how one is built or
+// combined; it also records that this package publishes no binary, so "the seam
+// is the preset a caller finishes" — which makes `finishPreset` and
+// `reportViolations` (ADR-008's one emitter) part of the same obligation. And a
+// caller who can be handed a configuration finding needs the guard to catch it.
+//
+// The first cut of this fix shipped the two constructors alone, so a standalone
+// consumer could build a receipt and had nothing to hand it to. An architecture
+// review measured that; the set is now what the ADRs ask for.
+//
+// `check:family` owes none of these, correctly: it is import-driven and this
+// package's own source imports none of them.
+export {
+  collectResult,
+  mergeCollectResults,
+  finishPreset,
+  reportViolations,
+  isArchConfigError,
+} from '@nielspeter/eess'
 export type { Condition, Predicate, ArchViolation } from '@nielspeter/eess'

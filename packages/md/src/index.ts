@@ -29,6 +29,13 @@ export {
   not,
   dispatchRule,
   validateOverrides,
+  // Bug 0276, second pass. `finishPreset` was already here; its siblings were
+  // not, so a standalone consumer could finish a preset and neither report
+  // without throwing nor catch what the seam throws. ADR-008 names
+  // `reportViolations` as the one emitter, and ADR-014's configuration findings
+  // arrive as an `ArchConfigError` a caller has to recognise.
+  reportViolations,
+  isArchConfigError,
 } from '@nielspeter/eess'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
 // OWN source (so the family.rules.ts code-import scan can't see this gap —

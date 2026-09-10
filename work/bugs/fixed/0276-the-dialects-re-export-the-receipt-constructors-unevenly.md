@@ -92,4 +92,37 @@ No changeset added: `check:release` reports 3 changed packages and 0 findings,
 because `the-emitter-takes-a-receipt` already declares all six at `minor` and
 this is the fix that makes its own sentence true.
 
-Deferred: none.
+## What the architecture review changed
+
+**The required set was derived from a release, not from the ADRs, and it failed
+on its first outing.** The first fix asserted the two constructors a pending
+changeset happened to name. Measured consequence: `eess-gherkin` could build a
+receipt and merge two, and could reach neither `finishPreset` nor
+`reportViolations` to hand one to — while ADR-014 records that this package
+publishes no binary, so "the seam is the preset a caller finishes". `eess-md` was
+missing the emitter and the error guard too.
+
+The set is now derived clause by clause: the two constructors (ADR-014), the one
+emitter (ADR-008), `finishPreset` for the packages whose seam is a preset, and
+`isArchConfigError` so a caller can recognise what that seam throws. Adding a
+clause to those ADRs means adding a name here, which is the coupling that makes
+this a check of the decision rather than of the code.
+
+**And the corrected sentence was still false.** It said each of the five dialects
+re-exports both constructors. Measured across `eess-crossvalidate`'s seven flat
+entries: zero publish the merge, and the four carrying the constructor do so only
+because their own source imports it. The sentence now names the four barrel
+dialects and states crossvalidate's shape.
+
+**A third opinion about the same question, avoided.**
+`scripts/lib/kernel-surface.mjs` calls itself the one place saying which kernel
+exports a dialect need not re-export, and records that its two consumers were
+unified because a hand-synced pair drifts. This test is a third consumer, so it
+now reads those sets and fails on a contradiction rather than becoming a fourth
+definition.
+
+Deferred: [bug 0277](../0277-crossvalidates-flat-entries-have-no-standalone-contract.md)
+— whether standalone sufficiency applies to a flat-entry bridge package at all.
+That is a prior question, and extending the set over seven entries before
+answering it would build a gate from a shape rather than a decision, which is
+exactly what this bug's first cut did.
