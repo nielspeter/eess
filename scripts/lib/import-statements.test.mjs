@@ -64,6 +64,17 @@ test('an identifier merely starting with "import" is ignored', () => {
   assert.deepEqual(importStatementsIn('importantThing()'), [])
 })
 
+// The known limits, pinned so they are a decision rather than a surprise. Both
+// are fail-closed: an extra statement is compiled, never a real one skipped.
+
+test('a line comment does not yield an import', () => {
+  assert.deepEqual(importStatementsIn("// import { a } from 'p'"), [])
+})
+
+test('KNOWN LIMIT: a block comment does yield one, and that is fail-closed', () => {
+  assert.deepEqual(importStatementsIn("/*\nimport { a } from 'p'\n*/"), ["import { a } from 'p'"])
+})
+
 test('a fence with no import yields nothing', () => {
   assert.deepEqual(importStatementsIn('finishPreset(violations)'), [])
 })

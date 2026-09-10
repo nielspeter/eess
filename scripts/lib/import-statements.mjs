@@ -21,11 +21,15 @@
  * toward ceremony or toward the skip directive, and a gate people route around
  * is the failure ADR-009 rule 1 names.
  *
- * **Known limit, stated rather than discovered.** A line that begins with the
- * word `import` inside a template literal would be matched. The direction is
- * fail-closed — an extra statement is compiled, not a real one skipped — and
- * closing it means parsing TypeScript, which would make this helper heavier
- * than the fences it guards.
+ * **Known limits, stated rather than discovered.** A line beginning with the word
+ * `import` inside a template literal or a `/* … *\/` block comment is matched and
+ * compiled as real — measured by a testing review. A `//` line comment is not,
+ * because the line no longer starts with `import`.
+ *
+ * Both are fail-CLOSED: the cost is an extra statement compiled, never a real one
+ * skipped, so the worst case is noise on a fence that was making no claim. Closing
+ * them means parsing TypeScript, which would make this helper heavier than the
+ * fences it guards. The escape hatch is the documented skip directive.
  */
 
 // `(?![.(\w])` keeps `import.meta`, dynamic `import(`, and any identifier

@@ -193,4 +193,13 @@ show one going dark. It now reads `(48 docs · 10 package README · 1 changeset)
 That last number was zero for the whole time this bug was open, and nothing said
 so.
 
+**The document teaching the convention was outside every scanned population.**
+`RELEASING.md` gained a `ts` fence carrying an import, in the section arguing
+that a claim about where a symbol lives is not checkable until it is written as
+an import — and it sat in none of `docs/`, `packages/*/README.md` or
+`.changeset/`, so nothing compiled it. Found by a testing review. The repo-root
+documents are scanned now, on the migration rule rather than the example rule,
+because what they carry is a migration. Measured: pointing that fence's specifier
+at a barrel without the symbol reds the gate.
+
 Deferred: none.

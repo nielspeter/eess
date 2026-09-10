@@ -62,6 +62,30 @@ const PACKAGE_READMES = readdirSync('packages', { withFileTypes: true })
 // caught it and no gate did.
 //
 // `README.md` is changesets' own boilerplate, not a changeset.
+// The repo-root documents that teach code. `RELEASING.md` is the sharp case: it
+// is where the changeset convention is written down, and a testing review found
+// its example — the one saying "a claim about where a symbol lives is not
+// checkable until it is written as an import" — sitting in none of the scanned
+// populations. An unchecked import claim inside the section teaching that import
+// claims get checked.
+const ROOT_DOCS = ['README.md', 'RELEASING.md'].filter((f) => {
+  try {
+    readFileSync(f)
+    return true
+  } catch {
+    return false
+  }
+})
+
+// **Which rule a file gets, and why it is the file that decides.** A `docs/` or
+// README fence teaches a self-contained example, so it must import AND call an
+// entry function to be compiled. A changeset fence states a MIGRATION — where a
+// symbol now lives — so it is reduced to its import statements. `RELEASING.md`
+// is on the migration side because the example it carries IS a changeset
+// migration, quoted in the section that defines them.
+const IMPORT_CLAIM_FILES = new Set(['RELEASING.md'])
+const readsAsImportClaim = (file) => file.startsWith('.changeset') || IMPORT_CLAIM_FILES.has(file)
+
 const CHANGESETS = readdirSync('.changeset', { withFileTypes: true })
   .filter((e) => e.isFile() && e.name.endsWith('.md') && e.name !== 'README.md')
   .map((e) => join('.changeset', e.name))
@@ -90,8 +114,8 @@ const fences = [] // { file, fence, code, tmp }
 let fragments = 0
 let skipped = 0
 let untaggedWithImport = 0
-for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES, ...CHANGESETS]) {
-  const isChangeset = file.startsWith('.changeset')
+for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES, ...CHANGESETS, ...ROOT_DOCS]) {
+  const isChangeset = readsAsImportClaim(file)
   const kids = fromMarkdown(readFileSync(file, 'utf8')).children
   let fence = 0
   for (let i = 0; i < kids.length; i++) {
@@ -254,18 +278,21 @@ console.error('check:docs-code · doc code-fence checks (tsc + no-deprecated)')
 // the changeset half be absent while this gate printed green, and the shape
 // `CLAUDE.md` records about its own gate table. A zero beside a population that
 // should have fences is the signal.
-const byPopulation = { docs: 0, readme: 0, changeset: 0 }
+const byPopulation = { docs: 0, readme: 0, changeset: 0, root: 0 }
 for (const f of fences) {
   const key = f.file.startsWith('.changeset')
     ? 'changeset'
     : f.file.startsWith('docs')
       ? 'docs'
-      : 'readme'
+      : f.file.includes('/')
+        ? 'readme'
+        : 'root'
   byPopulation[key]++
 }
 console.error(
   `  scanned   ${fences.length} import-bearing TS fences ` +
-    `(${byPopulation.docs} docs · ${byPopulation.readme} package README · ${byPopulation.changeset} changeset) · ` +
+    `(${byPopulation.docs} docs · ${byPopulation.readme} package README · ` +
+    `${byPopulation.changeset} changeset · ${byPopulation.root} root doc) · ` +
     `${fragments} fragments + ${skipped} skip-directive'd (not checked)`,
 )
 if (untaggedWithImport > 0) {

@@ -2825,10 +2825,16 @@ const GATE_FOR = {
     'guardrails/rule-files-matches-nothing',
   ],
   'check:examples': ['examples/does-not-compile'],
-  // Two populations, two rows. The script scans `docs/` + package READMEs AND
-  // `.changeset/**` (bug 0273), and one row per script cannot notice when one
-  // population stops being scanned — which is exactly how the changeset half
-  // was absent with this gate green.
+  // Two rows, because the script scans several populations — `docs/` + package
+  // READMEs, `.changeset/**`, and the repo-root docs (bug 0273) — and one row per
+  // script cannot notice when one of them stops being scanned, which is exactly
+  // how the changeset half was absent with this gate green.
+  //
+  // **The bound on that claim, stated because a testing review measured it.**
+  // `gateCoverage()` asserts that each script has AT LEAST ONE row, so deleting
+  // this second row along with its `gates` entry leaves the meta-gate green. Two
+  // rows catch a population going dark; they do not catch someone removing the
+  // row that watches it. That ceiling is the harness's, not this gate's.
   'check:docs-code': [
     'docs-code/fence-does-not-compile',
     'docs-code/changeset-migration-does-not-compile',
