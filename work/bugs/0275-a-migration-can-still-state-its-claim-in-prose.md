@@ -26,10 +26,15 @@ Three reviewers reproduced it independently on PR #123. A changeset whose fence
 holds only `nopeNotAThing(violations, { report: 'throw' })` is counted as a
 fragment and the gate stays green.
 
-The population it applies to, at the time of filing: **3 of 30** changesets carry
-a module-claim statement. Two of the unchecked fences make live API claims —
-`embeddedDiagramStats(corpus)` and `pointers(c).that().areFrozen()` — and both
-happen to be true today.
+The population it applies to, measured at filing with the gate's own extractor:
+**1 of 30** changesets carries a module claim, in 2 fences. Three have a `ts`
+fence at all, so two of the three declare no module and are compiled by nothing.
+Both of those make live API claims — `embeddedDiagramStats(corpus)` and
+`pointers(c).that().areFrozen()` — and both happen to be true today.
+
+(The first version of this record said 3 of 30 carried a claim, then named the
+two claim-free fences three lines later. It contradicted itself on one page, and
+in the direction that made this residual look smaller than it is.)
 
 ## The corruption that must produce a violation
 
@@ -50,8 +55,16 @@ So the honest options are two, and picking one is the work:
 
 1. Build the demand-side rule, scoped narrowly enough that it does not red on
    ordinary changeset prose.
-2. Decide the convention stays review-held, and say so in `RELEASING.md` where it
-   currently says which half is gated.
+2. Decide the convention stays review-held, and **ratify** that as the answer.
+
+   Note what option 2 is NOT: writing the disclosure. `RELEASING.md` already says
+   the convention is held by review and not by the build, and bug 0273's ledger
+   box already calls it Tier 5 — both landed in the PR that filed this record. A
+   method review pointed out that an option asking for text which already exists
+   cannot distinguish done from not-done. What is open is the DECISION, and
+   ratifying it means recording that the demand side was considered and declined,
+   with the reason, so the next reader meets a closed question rather than an
+   unexplained gap.
 
 **Either is a real close. What is not acceptable is leaving it implied**, which
 is what a `[x]` beside "break class 2 dispositioned" did until three reviewers
@@ -63,5 +76,7 @@ read it as a mechanism.
 - [ ] If option 1: red test first — a changeset asserting an export location in
       prose with no module claim, failing before the fix — plus a non-vacuity
       row, since a demand-side rule that never fires is the defect it is for.
-- [ ] If option 2: `RELEASING.md` and bug 0273's ledger box both say the
-      convention is review-held, with no wording that reads as enforcement.
+- [ ] If option 2: the decision to decline the demand-side rule is recorded with
+      its reason — not merely the disclosure, which already exists in
+      `RELEASING.md` and in bug 0273's ledger box and would make this box
+      un-failable.

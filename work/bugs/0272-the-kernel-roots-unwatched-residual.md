@@ -4,8 +4,8 @@
 
 - **State:** Draft — narrow, measured, and much smaller than this record first
   claimed.
-- **Priority:** Low
-- **Found by:** plan 0263 Phase 5, then **corrected by a method review of the
+- **Severity:** Low
+- **Origin:** plan 0263 Phase 5, then **corrected by a method review of the
   same PR**, which found the original filing rested on a false negative.
 
 ## The correction that produced this record

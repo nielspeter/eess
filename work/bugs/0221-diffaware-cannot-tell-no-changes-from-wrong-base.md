@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — measured 2026-08-23; fix not built.
-- **Priority:** Medium — it silently suppresses every violation in one reachable case, but
+- **Severity:** Medium — it silently suppresses every violation in one reachable case, but
   only for callers who opt into `check({ diff })`, and no gate in this repo does.
 - **Origin:** self-found — architect review of an earlier, diff-gated design for
   [plan 0218](../plans/completed/0218-gate-proposal-acceptance-criteria.md). That design was reverted as

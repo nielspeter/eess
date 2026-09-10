@@ -4,7 +4,7 @@
 
 - **State:** Draft — root cause confirmed against `packages/ts/src/cli/import-rule-module.ts`;
   no red test written yet.
-- **Priority:** High — it is not a diagnostic gap but a total loss of the CLI for a whole
+- **Severity:** High — it is not a diagnostic gap but a total loss of the CLI for a whole
   project shape. `check`, `doctor` and `explain` all fail, and `explain` fails with an
   unhandled `ERR_MODULE_NOT_FOUND` stack rather than a message. The shape it excludes —
   TypeScript ESM with `.js` specifiers — is the one TypeScript _mandates_ for ESM, and it is

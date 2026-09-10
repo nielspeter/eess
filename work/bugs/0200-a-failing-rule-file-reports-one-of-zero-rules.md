@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — one-line reproduction.
-- **Priority:** Medium. Filed Low, raised on review: this record argues the
+- **Severity:** Medium. Filed Low, raised on review: this record argues the
   impossible ratio is _worse_ than printing no denominator, ties it to CLAUDE.md's
   instruction that agents read these lines as evidence and to bug 0174 — and then
   filed at Low, which contradicts its own argument. Bug 0199's fix also pushes a

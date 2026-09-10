@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — measured 2026-08-23; fix not built.
-- **Priority:** Medium — no live incorrectness, but it is a gate whose denominator is
+- **Severity:** Medium — no live incorrectness, but it is a gate whose denominator is
   whatever matched a glob rather than what is there, and the untypechecked half includes
   the fixtures three cross-dialect gates run against.
 - **Origin:** self-found — writing `scripts/nonvacuity/bad-waived-gates.mjs`, the fixture

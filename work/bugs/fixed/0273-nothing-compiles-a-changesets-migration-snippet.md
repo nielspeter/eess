@@ -2,8 +2,10 @@
 
 ## Status
 
-- **State:** Fixed — `check:docs-code` compiles the import lines of every
-  changeset fence, both break classes dispositioned, closed in its own PR.
+- **State:** Fixed — `check:docs-code` compiles the module-claim statements a
+  changeset fence carries, so a stated export location is checkable. It does not
+  require one to be stated; that residual is [bug 0275](../0275-a-migration-can-still-state-its-claim-in-prose.md).
+  Closed in its own PR.
 - **Severity:** Medium-to-high — raised from Medium by a product review: a changeset is copied verbatim into six published CHANGELOGs and reaches npm, so it is the one adopter-facing document with no gate.
 - **Origin:** self-found · enforcement and release reviews of PR #122, independently.
 
@@ -130,6 +132,14 @@ import line".
       per script is exactly how this hole stayed open while the gate was green.
       Verified against an emptied implementation: dropping `CHANGESETS` from the
       file list makes the fixture report vacuous rather than pass.
+- [ ] `deferred→` [0275](../0275-a-migration-can-still-state-its-claim-in-prose.md)
+      — the demand side: nothing requires a migration to write a module claim, so
+      a changeset stating an export location purely in prose still passes. This
+      box is open on purpose. Every other box here is `[x]`, and a method review
+      pointed out that a reader scanning boxes would see all-green while the
+      residual lived only in trailing prose. The lane's disposition token says it
+      where it is scanned.
+
 - [x] **Break class 2 dispositioned as a convention, and the tier is stated
       rather than implied.** A migration's import line lives in a compilable
       fence. Dogfooded on the instance that produced this bug —
@@ -145,7 +155,16 @@ import line".
       box implying otherwise.** Nothing requires a changeset to write an import
       line. A migration stated purely in prose is a fragment and passes free —
       which is the original defect, still uncatchable by a mechanism. Measured on
-      this branch: **3 of 30 changesets carry an import line.** So this is a
+      this branch with the gate's own extractor: **1 of 30 changesets carries a
+      module claim**, in 2 fences. Three changesets have a `ts` fence at all; the
+      other two declare no module and are compiled by nothing.
+
+      **An earlier version of this line said "3 of 30", under the word
+      measured.** It was the count of changesets with a `ts` fence, not with a
+      claim — a different question, answered by a regex over whole files rather
+      than by the extractor the gate uses. A method review caught it. The error
+      ran in the direction that flatters this fix: it tripled the gate's apparent
+      reach and understated the residual below by the same factor. So this is a
       **Tier 5 convention held by review**, written into `RELEASING.md`, and the
       build's contribution is narrower than "migrations are checked": the moment
       you state where a symbol lives, that statement becomes falsifiable.
@@ -195,9 +214,11 @@ fragment and passes free. `RELEASING.md` now says which half is gated — nothin
 checks that you wrote an import line, only that the line you wrote resolves.
 
 **The summary printed one denominator across three populations**, which cannot
-show one going dark. It now reads `(48 docs · 10 package README · 1 changeset)`.
-That last number was zero for the whole time this bug was open, and nothing said
-so.
+show one going dark. It now prints a count per population, and the changeset one was zero
+for the whole time this bug was open with nothing saying so. The line is
+deliberately not quoted here: an earlier draft did quote it, inside this very
+paragraph about dishonest denominators, and it was stale one commit later when a
+fourth population arrived.
 
 **The document teaching the convention was outside every scanned population.**
 `RELEASING.md` gained a `ts` fence carrying an import, in the section arguing
