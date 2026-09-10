@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — a standalone-sufficiency gap the family gate cannot see.
+- **State:** Fixed — all four barrels carry both constructors, asserted by a
+  test that runs under `check:family`.
 - **Severity:** Medium — it costs an adopter a direct kernel dependency, which is
   the exact thing plan 0089 and ADR-011 exist to avoid.
 - **Origin:** self-found · writing the 0.5 migration guide, when the docs-code
@@ -44,9 +45,9 @@ rather than for the source.
 
 So the missing half is demand-side: nothing asks whether a dialect publishes what
 an ADR says an adopter needs. That is the same shape as
-[bug 0275](./0275-a-migration-can-still-state-its-claim-in-prose.md) and as the
+[bug 0275](../0275-a-migration-can-still-state-its-claim-in-prose.md) and as the
 `/presets` subpath audits recorded in
-[plan 0263](../plans/completed/0263-adr-014s-residual-enforcement-rows.md) — three
+[plan 0263](../../plans/completed/0263-adr-014s-residual-enforcement-rows.md) — three
 instances now of "the gate checks what is written, and nothing requires the right
 thing to be written".
 
@@ -65,9 +66,30 @@ the general problem 0275 describes.
 
 ## Verification ledger
 
-- [ ] Red test first: an assertion that each dialect barrel publishes both
-      constructors, failing on `main`.
-- [ ] The three barrels updated, and the pending changeset's sentence corrected
-      or narrowed to the dialect it is true of.
-- [ ] A decision recorded on whether the required-set assertion is worth having,
-      or whether this stays a one-off correction.
+- [x] Red test first. `scripts/lib/receipt-constructors.test.mjs` imports each
+      dialect's built barrel and asserts both constructors are callable. Before
+      the fix: **3 failed, 2 passed** — `eess-ts` and the kernel green,
+      `eess-mermaid`, `eess-md` and `eess-gherkin` red. After: 5 of 5.
+- [x] The three barrels updated — one re-export line each, each carrying why the
+      gate that looks adjacent to this could not have caught it.
+- [x] The changeset corrected. It said "each also re-exports the new constructor
+      and merge", which was true of one dialect. It now names the two symbols, so
+      the sentence about to reach six published CHANGELOGs is one the suite holds.
+- [x] **The required-set assertion is worth having, and this is the decision.**
+      The test is not a list of what happens to be exported — it names what
+      ADR-014 requires an adopter to be able to do, and checks each barrel against
+      that. It also guards its own list: a final case asserts every required name
+      is still on the kernel root, so renaming a constructor reds here rather than
+      leaving four tests quietly asserting a symbol nobody exports.
+
+      Wired into `check:family`, beside the import-driven rule it complements.
+      That gate now runs both halves: the supply side (a dialect re-exports what
+      its source imports) and the demand side (a dialect publishes what the ADR
+      says an adopter needs). The second is what was missing, and the split is
+      why a green gate sat beside this gap.
+
+No changeset added: `check:release` reports 3 changed packages and 0 findings,
+because `the-emitter-takes-a-receipt` already declares all six at `minor` and
+this is the fix that makes its own sentence true.
+
+Deferred: none.

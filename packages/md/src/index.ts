@@ -41,7 +41,11 @@ export {
 export { correspondence, CorrespondenceBuilder } from '@nielspeter/eess'
 // ADR-014's receipt: this package's own rules merge with it, so a standalone
 // `eess-md` consumer must reach it without a second kernel install (plan 0089).
-export { mergeCollectResults } from '@nielspeter/eess'
+//
+// Bug 0276: the merge was here and the CONSTRUCTOR was not, which is the same
+// gap the other way round. A consumer handed a receipt could combine two and not
+// build one. Import-driven `check:family` owed nothing here either.
+export { collectResult, mergeCollectResults } from '@nielspeter/eess'
 // …and the types of their arguments. Re-exporting the FUNCTION and not its
 // options left an eess-md user able to call `correspondence()` and unable to
 // name what they pass it — the same callable-but-unnameable defect the kernel

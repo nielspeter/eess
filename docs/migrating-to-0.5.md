@@ -193,13 +193,10 @@ The second argument is the evidence — how many units you actually looked at:
 collectResult(violations, { examined: files.length })
 ```
 
-**The other dialects re-export these unevenly**, so check before assuming:
-`eess-mermaid` carries `collectResult` and not `mergeCollectResults`,
-`eess-md` carries `mergeCollectResults` and not `collectResult`, and
-`eess-gherkin` carries neither. Where your dialect is missing one, it comes from
-`@nielspeter/eess` — which means a direct kernel dependency, the cost section 2
-describes. That unevenness is a gap in the family rather than a decision, and it
-is filed.
+Every dialect with a barrel carries both from this release — `eess-ts`,
+`eess-mermaid`, `eess-md` and `eess-gherkin` — so whichever one you installed is
+enough. Before this release the coverage was uneven and some of these imports
+needed a direct kernel dependency; that is fixed, not worked around.
 
 **Handing an emitter a bare array** is a type error, and at runtime a
 configuration finding with the id `emitter/no-receipt`.

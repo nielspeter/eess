@@ -18,4 +18,9 @@ export { scenarios, ScenarioRuleBuilder } from './builder.js'
 // or condition over scenarios() never needs a second, direct
 // @nielspeter/eess install.
 export { RuleBuilder } from '@nielspeter/eess'
+// Bug 0276: ADR-014's receipt constructors. This package's own source imports
+// neither, so `check:family` owed nothing and this barrel had neither — leaving
+// a standalone `eess-gherkin` consumer unable to build or merge a receipt
+// without a second, direct kernel install.
+export { collectResult, mergeCollectResults } from '@nielspeter/eess'
 export type { Condition, Predicate, ArchViolation } from '@nielspeter/eess'

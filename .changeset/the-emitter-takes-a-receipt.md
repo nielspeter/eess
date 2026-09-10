@@ -59,5 +59,6 @@ evidence), because `JSON.stringify` drops an array's own properties.
 
 The five dialects are named because the break is the kernel's and their
 changelogs should say what changed rather than "Updated dependencies"
-(bug 0185). Each also re-exports the new constructor and merge, so a standalone
-consumer of one dialect never needs a second kernel install.
+(bug 0185). Each also re-exports `collectResult` and `mergeCollectResults`, so a
+standalone consumer of one dialect never needs a second kernel install to build
+or combine a receipt.
