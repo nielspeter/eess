@@ -439,6 +439,37 @@ SCENARIOS['docs-code/root-doc-fence'] = () => {
   }
 }
 
+SCENARIOS['docs-code/migration-page-fence'] = () => {
+  // The FIFTH member of the import-claim set: a `docs/migrating-*.md` page. Its
+  // fences say where a symbol lives after an upgrade, which is a changeset's
+  // claim in a document an adopter is sent to deliberately.
+  //
+  // It arrived listed by name in `IMPORT_CLAIM_FILES`, and an enforcement review
+  // measured what that cost: deleting the one line left a broken import claim
+  // sitting in the published page with every gate green and only the denominator
+  // moving. Membership is derived from the filename now, so dropping a page from
+  // the set means renaming it — which reds `check:corpus` through the README and
+  // sidebar links. This row is the other half: it proves the rule still reads
+  // that population at all.
+  const bad = withSabotage(
+    'docs/migrating-to-0.5.md',
+    (t) =>
+      t.replace(
+        "import { finishPreset } from '@nielspeter/eess'",
+        "import { __nonvacuityNoSuchMigrationExport__ } from '@nielspeter/eess'",
+      ),
+    () => runCapture('check:docs-code'),
+  )
+  const namesFile = bad.out.includes('migrating-to-0.5.md')
+  const namesSymbol = bad.out.includes('__nonvacuityNoSuchMigrationExport__')
+  if (bad.status === 0 || !namesFile || !namesSymbol) {
+    vacuous(
+      `check:docs-code exited ${bad.status} with a broken import claim in a migration page ` +
+        `(named the file: ${String(namesFile)}, named the symbol: ${String(namesSymbol)})`,
+    )
+  }
+}
+
 SCENARIOS['integrity/leftover-probe-changeset'] = () => {
   // A SECOND leftover row, because the existing one plants under
   // `packages/core/src/` and therefore proves the leftover RULE, not the ROOT

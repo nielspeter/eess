@@ -83,13 +83,23 @@ const ROOT_DOCS = ['README.md', 'RELEASING.md'].filter((f) => {
 // symbol now lives — so it is reduced to its import statements. `RELEASING.md`
 // is on the migration side because the example it carries IS a changeset
 // migration, quoted in the section that defines them.
-const IMPORT_CLAIM_FILES = new Set([
-  'RELEASING.md',
-  // A migration guide is a migration: its fences say where a symbol lives now,
-  // not how to write a rule file. Same rule as a changeset, for the same reason.
-  'docs/migrating-to-0.5.md',
-])
-const readsAsImportClaim = (file) => file.startsWith('.changeset') || IMPORT_CLAIM_FILES.has(file)
+const IMPORT_CLAIM_FILES = new Set(['RELEASING.md'])
+
+// **Derived, not listed** — an enforcement review measured why. A migration guide
+// belongs on the import-claim side for the same reason a changeset does: its
+// fences say where a symbol lives now, not how to write a rule file. Listing the
+// page by name made its checked status deletable in one line, with every gate
+// green and only the denominator moving — the same silent fail-open `ROOT_DOCS`
+// had before it got a fixture.
+//
+// By pattern, removing a page from the set means RENAMING it, which reds
+// `check:corpus` through the README and VitePress links pointing at it. The
+// membership rule is now a property of the filename rather than an entry someone
+// can quietly drop.
+const MIGRATION_PAGE = /^docs\/migrating-[^/]+\.md$/
+
+const readsAsImportClaim = (file) =>
+  file.startsWith('.changeset') || IMPORT_CLAIM_FILES.has(file) || MIGRATION_PAGE.test(file)
 
 // Guarded the way `PACKAGE_READMES` above is: the directory is committed today,
 // but a script that throws on a missing directory reports a broken extractor as

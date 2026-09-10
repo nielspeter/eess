@@ -2661,6 +2661,13 @@ const gates = [
       ]),
   ],
   [
+    'docs-code/migration-page-fence',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'docs-code/migration-page-fence red on its own subject', [
+        'docs-code/migration-page-fence',
+      ]),
+  ],
+  [
     'integrity/leftover-probe-changeset',
     () =>
       gateNode(
@@ -2871,6 +2878,7 @@ const GATE_FOR = {
     'docs-code/changeset-migration-does-not-compile',
     'docs-code/changeset-side-effect-import',
     'docs-code/root-doc-fence',
+    'docs-code/migration-page-fence',
   ],
   // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
   // sabotages the KERNEL ROOT — the only population this gate blocks on.

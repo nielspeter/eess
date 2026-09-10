@@ -13,15 +13,21 @@ have to reconstruct a migration from six changelogs.
 | `@nielspeter/eess-gherkin`       | 0.3.0 | 0.4.0 |
 | `@nielspeter/eess-crossvalidate` | 0.4.0 | 0.5.0 |
 
-Upgrade all six together. They are versioned independently but this release
+Upgrade all six together. They are versioned independently, but this release
 crosses the kernel boundary, and a mixed install puts two kernels in your tree
-with different public surfaces.
+with different public surfaces — the counters and registries inside them then
+split silently.
 
-**If you only write rule files and run the CLI, you are probably done after the
-upgrade.** Everything in "Changes you have to make" is about importing from eess
-in your own code. Read "Builds that can go red on their own" either way — three
-of those turn a passing build red without you changing a line, which is the point
-of them.
+**Your first contact with 0.5 may be an `ERESOLVE`, not a build error.**
+`eess-crossvalidate` raises its peer floors this release, so pinning an older
+dialect beside it now fails to install rather than resolving into that split
+state. That refusal is the point. Upgrade the set.
+
+**Read both halves.** "Changes you have to make" is about importing from eess in
+your own code, so if you only write rule files and run the CLI you can skim it.
+You cannot skip the second half: **all five entries under "Builds that can go red
+on their own" hit a rule-file-only adopter**, and they are the ones that turn a
+passing build red with your source untouched.
 
 ## Changes you have to make
 
@@ -33,12 +39,17 @@ It was a one-line alias for `finishPreset` in its default mode. Replace the call
 import { finishPreset } from '@nielspeter/eess'
 ```
 
-Behaviour is identical — emit to stderr, then throw one aggregated
-`ArchRuleError`:
+Emit to stderr, then throw one aggregated `ArchRuleError`:
 
 ```ts
 finishPreset(violations, { report: 'throw' })
 ```
+
+**One thing is not a like-for-like swap.** If what you pass is an array you
+assembled yourself — `rules.flatMap((r) => r.violations())`, say — this now fails
+with an unsuppressable `emitter/no-receipt` finding. The alias accepted a bare
+array and `finishPreset` requires a receipt, so for that caller sections 1 and 4
+are one migration. Read section 4 before you run it.
 
 It is on all three barrels, so the import line does not move wherever you took
 the old one from:
@@ -56,8 +67,18 @@ Taking the mode explicitly is the point: `report` also accepts `'return'` and
 
 The kernel now declares what its public API is. Family plumbing — clone helpers,
 type guards, the glob-tree vocabulary, the suppression and edge-coverage counters
-— moved to a second entry point. **Nothing was deleted or renamed**; change the
-specifier:
+— moved to a second entry point.
+
+**Read this before you use the fix below.** `/internal` is a published, versioned
+contract so that the dialects can share plumbing; it is deliberately **not API**.
+Nothing there is taught by any page or README, a consumer writing rules never
+names it, and it can change in ways the root never would. Nothing in npm or
+TypeScript can stop you importing it — the name and this paragraph are the whole
+mechanism. So if this section applies to you, treat it as a gap worth reporting
+rather than a path to settle into: you are reaching for plumbing, and we would
+rather know which piece and why.
+
+With that said — **nothing was deleted or renamed**; change the specifier:
 
 ```ts
 import { shallowClone, isRecord } from '@nielspeter/eess/internal'
@@ -103,6 +124,13 @@ collide.
 `eess-ts` loses glob-evaluator, disk-set, project-registration and diagnosis
 internals. `eess-md` loses nothing.
 
+**These did not move to `/internal`.** They were never kernel symbols, so no
+import path reaches them any more — section 2's fix does not apply here. If you
+were using one, reach for the documented builder that wraps it, or open an issue
+saying which and why. The full list of removed names is in each package's
+`CHANGELOG.md` under this release, so you can search for the symbol your compiler
+just named.
+
 ### 4. `violations()` returns a receipt
 
 `CollectResult` is an `ArchViolation[]` that also carries `examined`,
@@ -124,11 +152,24 @@ receipt's own properties too:
 ```
 
 **A custom builder's `collectViolations()` must return a constructed receipt**
-rather than an object literal. You get one compile error naming the member:
+rather than an object literal — `collectResult(violations, { examined })`, where
+`examined` is how many units you actually looked at. You get one compile error
+naming the member. Combining builders? Use `mergeCollectResults([...])`.
+
+If you write rules with `eess-ts`, take both from the dialect you already
+installed rather than from the kernel:
 
 ```ts
-import { collectResult } from '@nielspeter/eess'
+import { collectResult, mergeCollectResults } from '@nielspeter/eess-ts'
 ```
+
+**The other dialects re-export these unevenly**, so check before assuming:
+`eess-mermaid` carries `collectResult` and not `mergeCollectResults`,
+`eess-md` carries `mergeCollectResults` and not `collectResult`, and
+`eess-gherkin` carries neither. Where your dialect is missing one, it comes from
+`@nielspeter/eess` — which means a direct kernel dependency, the cost section 2
+describes. That unevenness is a gap in the family rather than a decision, and it
+is filed.
 
 **Handing an emitter a bare array** is a type error, and at runtime a
 configuration finding with the id `emitter/no-receipt`.
@@ -146,20 +187,44 @@ it previously stayed silent about, so a build that passed on 0.4 can fail on 0.5
 with your source untouched. That is the upgrade doing its job; the silence was
 the defect.
 
-### An evidence-free rule file now fails the CLI
+### A preset or rule file that examines nothing now says so
 
-`eess-ts check`, `eess-ts check --fix`, `eess-ts baseline`, `checkAll()` and
-`eess-mermaid check` now refuse a verdict they have no evidence for. A rule file
-whose builders examined nothing used to exit 0 and print a clean bill. It now
-reports a configuration finding naming the rule file.
+**This is the one most likely to redden your build.** `eess-ts check`,
+`eess-ts check --fix`, `eess-ts baseline`, `checkAll()` and `eess-mermaid check`
+now refuse a verdict they have no evidence for. Something that examined nothing
+used to exit 0 and print a clean bill; it now reports a configuration finding.
 
-If this fires, the rule file was not enforcing anything — check its globs.
+There are two different causes and they have different fixes.
+
+**If the subject legitimately does not exist in your corpus** — no ER diagrams,
+no exemptions, nothing for that preset to look at — say so. `expectEmpty: true`
+is on `PresetReportOptions`, and therefore on every preset in the family:
+
+```ts
+import type { PresetReportOptions } from '@nielspeter/eess-ts'
+```
+
+The declaration **expires**. The day the subject appears it reds with
+`emitter/expired-declaration`, and that expiry is what makes it a declaration
+rather than a mute button. It is also why `overrides: { id: 'off' }` is **not**
+accepted as one — that deletes the rule permanently and never expires, so eess
+would have to read intent into it.
+
+**If the subject should exist**, the rule file was not enforcing anything and the
+globs are the place to look.
+
+Do not reach for the globs first. The finding cannot be suppressed by `.warn()`,
+`.asSeverity('warn')`, `.excluding()`, an inline exclusion comment, a baseline or
+diff-aware mode — by design — so the only ways through are a true declaration or
+a real fix.
 
 ### An empty source can no longer be declared away
 
-A declaration that a source is expected to be empty no longer suppresses the
-finding when the source really is empty. The empty source outranks the
-declaration and gets its own finding, `emitter/source-empty`.
+The mirror image of the above: a declaration that a source is expected to be
+empty no longer suppresses the finding when the source really is empty. The empty
+source outranks the declaration and gets its own finding,
+`emitter/source-empty`. A declaration is for "there is nothing to examine here";
+it is not for "the thing I pointed at turned out to be missing".
 
 ### An ambiguous code pointer is a violation
 
@@ -168,6 +233,25 @@ two or more files as ambiguous and returned nothing for it. Nothing anywhere
 counted or printed those, while they stayed inside the denominator being
 reported. In the eess corpus itself that was sixteen pointers out of 463.
 
+The message names the candidates, so three ways out, in order of preference:
+
+1. **Cite a longer suffix** so it names one file. The shortest disambiguating
+   prefix is visible in the message without opening either file.
+2. **Sanction the region** where the citation is deliberately historical, with
+   `<!-- eess-exclude-start <rule-id>: reason -->` … `<!-- eess-exclude-end -->`.
+   **This requires `.rule({ id })` on the chain.** An exclusion comment matches a
+   violation by rule id, and a chain without `.rule()` has none — the comment is
+   then silently inert, with no diagnostic. So
+   `pointers(c).that().areLive().should().resolve().check()` must become
+   `pointers(c).that().areLive().should().resolve().rule({ id: 'my/pointers' }).check()`
+   before any sanction takes effect. That prerequisite is not new, but it was
+   only ever written down far from where you need it.
+3. **Move the rule to `.warn()`** while you work through them — it reports
+   without touching the exit code, so you can ratchet rather than stop the world.
+
+There is deliberately no autofix: choosing among the candidates is a judgement,
+and a deterministic rewrite would pick whichever sorted first.
+
 ### Duplicate findings anchor deterministically
 
 Which file a duplicate is reported at no longer depends on filesystem order.
@@ -175,6 +259,10 @@ Which file a duplicate is reported at no longer depends on filesystem order.
 suppressing after this upgrade**, turning a green build red with no change on
 your side. That the old location was never durable is the defect being fixed, and
 shipping it quietly as a patch would have been worse.
+
+If one stops suppressing, move the `// eess-exclude` comment to the file the
+finding now names — the run tells you which. `.warn()` on that rule buys you time
+if there are many.
 
 ### Duplicate bodies report clusters, not pairs
 
@@ -187,7 +275,11 @@ and no score changed.
 
 ## If something here is wrong
 
-The import lines on this page are compiled against the published packages on
-every CI run, so a specifier that does not resolve fails the build rather than
-reaching you. The prose is not checked. If a claim here does not match what you
-find, that is a bug worth filing.
+The `ts` fences on this page have their import lines compiled against the
+published packages on every CI run, so a specifier that does not resolve fails
+the build rather than reaching you.
+
+Everything else here is unchecked: the prose, the counts, and any fence not
+tagged `ts`. If a claim does not match what you find, that is a bug worth
+filing — and the ones most worth reporting are in the prose, because nothing
+else is watching it.

@@ -109,9 +109,17 @@ example. What made it worth writing:
 - It separates changes needing a code edit from ones where a passing build simply
   goes red — that second group is invisible in a changelog and is what actually
   surprises people.
-- Its fences are checked. Add the page to `IMPORT_CLAIM_FILES` in
-  `scripts/check-docs-code.mjs` so its import lines compile against the built
-  packages, the same rule a changeset gets and for the same reason.
+- Its fences are checked, and you do not have to wire that up: any
+  `docs/migrating-*.md` is read as import claims by pattern, so its import lines
+  compile against the built packages. Name the file that way and it is covered.
+
+**The cost, which is bounded but not zero.** A migration page pins the build to
+whatever it imports, forever, and a page naming `/internal` symbols pins the
+build to internal stability — which inverts what that entry point is for. A
+changeset has the same cost and escapes it because `changeset version` deletes
+it. A page does not. So when the release after next makes a page historical,
+either drop the import fences to prose or rename it out of the pattern. Do not
+leave a frozen document holding the engine still.
 
 ## Signalling a breaking change (bug 0184)
 
@@ -239,6 +247,20 @@ npm run version-packages
 #    lock breaks `npm ci` in CI (see Gotchas). This step is mandatory.
 npm install
 
+# 3a. Raise eess-crossvalidate's peerDependencies floors to the versions this
+#     release ships. `changeset version` does NOT touch them, so they sit at the
+#     PREVIOUS release's numbers and admit a dialect built against the previous
+#     kernel — two kernels in one tree, with the counters and registries inside
+#     them split. Measured on the 0.5 train, where the kernel's surface actually
+#     differed between the two. This was documented in prose below and not in
+#     these steps, so the documented sequence produced the wrong artifact.
+$EDITOR packages/crossvalidate/package.json
+
+# 3b. Update the README Packages table's version column. It is gated against the
+#     real versions, so `check:spec` reds in step 4 on every release that moves a
+#     major or minor — six violations on the 0.5 train. Expected, not a defect.
+$EDITOR README.md
+
 # 4. Sanity-check locally
 npm run validate
 
@@ -250,6 +272,20 @@ git tag v0.1.2
 git push origin main
 git push origin v0.1.2
 ```
+
+**The tag is the KERNEL's version.** The six packages do not share a number —
+this release ships `@nielspeter/eess` at 0.5.0 and `@nielspeter/eess-md` at
+0.6.0 — and `publish.yml` fires on any `v*`, so nothing decides this for you. The
+"Versioning" section below still says the family stays "in lockstep at a common
+version"; that has been false since `v0.4.0`, which was cut while md was at
+0.5.0.
+
+**A release carrying a migration page needs a step nothing automates.**
+`publish.yml` creates the GitHub Release with `generate_release_notes: true` and
+no body, so the notes are machine-made from PR titles and no authoring moment
+exists. After the tag push, edit the Release to link the migration page —
+`gh release edit v<kernel-version> --notes-file …` — or the page you wrote is
+reachable only by someone already browsing the docs.
 
 That's it. The tag push triggers `publish.yml`, which:
 

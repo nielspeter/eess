@@ -49,14 +49,15 @@ a five-minute intro; the [manifesto](./docs/manifesto.md) is the full design;
 the [worked example](./docs/eess-walkthrough-calculator.md) builds it up step
 by step.
 
-**Upgrading from 0.4?** The 0.5 family moves every package at once and eleven
-of its thirty changes are breaking. [Migrating to 0.5](./docs/migrating-to-0.5.md)
-collects them in one place, in the order you hit them.
-
 Artifacts are **siblings, not hierarchical**: TypeScript, Mermaid diagrams, and
 Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
+
+**Upgrading from 0.4?** The 0.5 family moves every package at once and carries
+breaking changes in both halves — imports you must change, and builds that go
+red with your source untouched. [Migrating to 0.5](./docs/migrating-to-0.5.md)
+collects them in the order you hit them.
 
 ## Packages
 
