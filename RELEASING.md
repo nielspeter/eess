@@ -96,14 +96,27 @@ verbatim, comment included — it will not render, but it does reach the publish
 
 `changeset version` writes each package's changelog in changeset order, so a
 train carrying many breaks scatters them through a long list an adopter has to
-reassemble. The 0.5 family shipped thirty changesets with eleven breaks in them —
-one landed around line 393 of the kernel's changelog. No gate can fix that, and
+reassemble. The v0.5 train carries thirty changesets with eleven breaks in them —
+one lands around line 393 of the kernel's changelog. No gate can fix that, and
 nothing in this file used to ask anyone to.
 
-So: **when a release carries more than two or three breaking changesets, write a
-migration page under `docs/` before cutting it**, and link it from the GitHub
-Release. [`docs/migrating-to-0.5.md`](./docs/migrating-to-0.5.md) is the worked
-example. What made it worth writing:
+So: **when a release carries three or more breaking changesets, write a migration
+page before cutting it.** [`docs/migrating-to-0.5.md`](./docs/migrating-to-0.5.md)
+is the worked example.
+
+**Where it goes**, so the next one does not re-litigate this:
+
+- The file is `docs/migrating-to-<kernel version>.md`. The name is load-bearing —
+  `check:docs-code` reads any `docs/migrating-*.md` as import claims by pattern,
+  so naming it that way is what gets its import lines compiled.
+- A **"Releases & migration"** group in `docs/.vitepress/config.ts`, newest first.
+  Not "Introduction": that is what a new reader walks top to bottom, and a
+  migration page is useless to someone installing fresh.
+- A **banner above `## Packages`** in `README.md`. **One at a time** — the next
+  release carrying breaks replaces it, it does not stack.
+- The **GitHub Release**, which needs a manual step; see the release sequence.
+
+What made the worked example worth writing:
 
 - It is ordered by **what the reader has to do**, not by package or by changeset.
 - It separates changes needing a code edit from ones where a passing build simply

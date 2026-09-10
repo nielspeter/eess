@@ -1,4 +1,9 @@
-# Migrating to the 0.5 family
+# Migrating to the v0.5 release
+
+> Written for the release tagged `v0.5.0`, from any 0.4-era install. The tag
+> carries the **kernel's** version — the six packages land on three different
+> numbers, which the table below gives exactly. Check what you have with
+> `npm ls @nielspeter/eess`.
 
 This release moves every package at once, and eleven of its thirty changes are
 breaking. This page collects them in the order you will hit them, so you do not
@@ -25,9 +30,10 @@ state. That refusal is the point. Upgrade the set.
 
 **Read both halves.** "Changes you have to make" is about importing from eess in
 your own code, so if you only write rule files and run the CLI you can skim it.
-You cannot skip the second half: **all five entries under "Builds that can go red
-on their own" hit a rule-file-only adopter**, and they are the ones that turn a
-passing build red with your source untouched.
+You cannot skip the second half: **every entry under "Builds that can go red on
+their own" hits a rule-file-only adopter**, and those are the ones that turn a
+passing build red with your source untouched. (No count here on purpose — an
+earlier draft said three, then five, and was wrong both times.)
 
 ## Changes you have to make
 
@@ -177,6 +183,12 @@ installed rather than from the kernel:
 import { collectResult, mergeCollectResults } from '@nielspeter/eess-ts'
 ```
 
+The second argument is the evidence — how many units you actually looked at:
+
+```ts
+collectResult(violations, { examined: files.length })
+```
+
 **The other dialects re-export these unevenly**, so check before assuming:
 `eess-mermaid` carries `collectResult` and not `mergeCollectResults`,
 `eess-md` carries `mergeCollectResults` and not `collectResult`, and
@@ -251,7 +263,8 @@ it is not for "the thing I pointed at turned out to be missing".
 `pointers().should().resolve()` in `suffix` mode classified a pointer matching
 two or more files as ambiguous and returned nothing for it. Nothing anywhere
 counted or printed those, while they stayed inside the denominator being
-reported. In the eess corpus itself that was sixteen pointers out of 463.
+reported. In the eess corpus itself that was sixteen such pointers when the
+change was made.
 
 The message names the candidates, so three ways out, in order of preference:
 
@@ -289,9 +302,13 @@ if there are many.
 `smells.duplicateBodies()` reports one finding per cluster of mutually-similar
 bodies instead of one per pair. A two-member cluster keeps the message and
 identity it had, so most baselines are untouched. A group of three or more
-collapses into one finding with a new `duplicate-cluster::` identity — **those
-baseline entries need regenerating** with `eess-ts baseline`. Nothing is dropped
-and no score changed.
+collapses into one finding with a new `duplicate-cluster::` identity.
+
+**Regenerate your baseline** with `eess-ts baseline`. You could hand-pick the
+affected entries, but the collapse is large — in the eess corpus it took 4,770
+pair findings down to 407 — so regenerating is both faster and less error-prone.
+Nothing is dropped and no score changed; this is what the detector says, not what
+it scores.
 
 ## If something here is wrong
 
