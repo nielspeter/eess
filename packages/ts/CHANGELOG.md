@@ -1,5 +1,793 @@
 # @nielspeter/eess-ts
 
+## 0.5.0
+
+### Minor Changes
+
+- 48bf698: **Breaking (@nielspeter/eess):** an empty source can no longer be declared away, and it gets its own finding
+
+  ADR-014 §4 states the precedence: "an empty source (`sourceEmpty`) outranks any declaration and names
+  the source." The evidence gate honoured `declaredEmpty` before it ever read `sourceEmpty`, so a
+  hand-assembled receipt could set both and pass. Measured before this change:
+
+  ```js
+  finishPreset(collectResult([], { examined: 0, sourceEmpty: true, declaredEmpty: true }))
+  // -> green
+  ```
+
+  That is a verdict declaring away a source that loaded nothing — the escape hatch the comment beside
+  that branch claimed this ADR had closed. It now reds, and so does the same receipt with `notRun`.
+
+  **New finding id: `emitter/source-empty`.** An empty source previously produced the generic
+  `emitter/pass-without-evidence`, whose remedy is "widen the selection, or declare it" — both wrong
+  here, because no declaration can make an absent source into evidence. The new finding names the
+  source and says so: fix the project, the tsconfig, or the glob. If you match on `ruleId`, this case
+  moves from `emitter/pass-without-evidence` to `emitter/source-empty`.
+
+  **The zero-examined message no longer names a preset's option.** It said `expectEmpty: true in a
+preset's report options`, which ADR-014 §4 forbids at a seam that is frequently not a preset — the
+  same defect that made `checkAll([])`'s remedy unreachable. It now names what a hand-assembled receipt
+  can actually do: `collectResult(violations, { examined, declaredEmpty: true })`, or `.expectEmpty()`
+  on a builder.
+
+  **Every dialect is named at `minor` because every dialect ships this break.** They depend on the
+  kernel, so an adopter installing one of them takes the new precedence without asking — and
+  changesets propagates a dependency bump as a patch regardless, which is the release a `^0.x` range
+  accepts silently (bug 0185's shape).
+
+  **Both seams, not just one.** `mergeCollectResults` exempted a `sourceEmpty` member from its
+  dead-member filter — correct for "did this member say why it contributed nothing", wrong once §4
+  makes that answer a fault. Fixing only the gate left the two doors disagreeing about one receipt:
+  `finishPreset` reddened it while `mergeCollectResults([thatMember, aHealthyOne])` stayed green. The
+  merge names an empty-source member now.
+
+  **`sourceEmpty` can now be contradicted, like every other flag that quiets a zero.** A source that
+  loaded nothing cannot have yielded units to examine, so `{ examined: 900, sourceEmpty: true }` is
+  `emitter/contradictory-evidence` — it used to be silent. `notRun` and `declaredEmpty` beside evidence
+  already reddened; this was the one flag in the vocabulary with no falsifier.
+
+  **The contradiction names the flag it contradicts.** `emitter/contradictory-evidence` hardcoded
+  `notRun` in its message, so a contradicted `sourceEmpty` told you to "drop the notRun flag" — one you
+  never set. It names the actual flag now, with the matching remedy.
+
+  **Not affected:** every builder-produced verdict. A terminal that loaded nothing already carried its
+  own source finding and exits before this gate. The population this changes is the hand-assembled
+  receipt, which is what ADR-014's gate exists for.
+
+- 3a68b5c: **Breaking (@nielspeter/eess-ts):** `eess-ts check`, `eess-ts check --fix`, `eess-ts baseline` and `checkAll()` now fail on a builder that hands back a bare array instead of a receipt — a behavioural break, not a signature one
+
+  ADR-014 requires every emitter to refuse a verdict it has no evidence for. Four doors in this
+  package did not: `runCheck` and `runBaseline` built their reports by pushing
+  `attributeToRuleFile(builder.violations(), …)` into a plain array, and `runFix` and `checkAll`
+  aggregated with `flatMap`. All four drop the `examined` count that `violations()` returns, so none
+  reached the evidence gate.
+
+  Measured before this change, over a rule file containing `export default [{ violations: () => [] }]`:
+  `eess-ts check` reported `"total": 0`, `"examined": null`, **exit 0**; `eess-ts baseline` wrote a
+  baseline file and exited 0; `eess-ts check --fix` exited 0; and `checkAll()` returned silently.
+
+  The three CLI doors now run the gate **per builder**, where the rule file is known, so the finding
+  names the file it came from — and three dead builders in one file are three findings, not one.
+
+  **`--fix` refuses before it writes, per builder.** A fix is an edit derived from a verdict, so a
+  refused verdict refuses the edits computed from it. Measured before this change,
+  `eess-ts check --fix --apply` over an evidence-free builder **rewrote the target file** while the
+  same run reported the finding and exited 1. It now reports that builder and applies nothing from it
+  — and still applies the fixes from every other builder, which were each verified. The refusal is
+  scoped to the emitter's own findings: a dead selector or a stale exclusion says the rule matched
+  nothing, not that its verdict is unreadable, and refusing on those made `--fix` a no-op in any
+  project with one mis-globbed preset option.
+
+  **`eess-ts check --fix` and `eess-ts baseline` now fail on a rule file that contributes no rules**,
+  which `eess-ts check` has always done. A file that loads cleanly and exports `[]` enforces nothing;
+  measured before this change, both commands exited 0 over exactly that, and `baseline` wrote a
+  baseline from it.
+
+  **A rule you turned off no longer reds a per-builder door.** `mergeCollectResults` has always exempted
+  a `notRun` member from its dead-member filter — that exemption is what `notRun` is for — and the
+  evidence gate had no matching branch. Measured: `checkAll([healthy, off])` was green while
+  `eess-ts check` over the same two builders reported `1 of 2 rules failing`. The gate now exempts it
+  too. It is still falsifiable: a `notRun` beside a non-zero `examined` or any violation remains
+  `emitter/contradictory-evidence`, and a run where _every_ rule is off still reds, because the merged
+  receipt carries no `notRun`. `checkAll` merges its builders' receipts with `mergeCollectResults`
+  (fail-closed per member, so one dead builder among many is named rather than absorbed) and consults
+  the same gate. A builder with no receipt is `emitter/no-receipt`; one that ran and examined nothing,
+  with no declaration, is `emitter/pass-without-evidence`. Both findings are unsuppressable and set the
+  exit code.
+
+  **`eess-ts baseline` refuses rather than accepting.** A baseline is a persisted verdict, so a
+  builder that certified nothing must not contribute to one. The command still writes the entries it
+  _could_ accept, prints the refused finding with its rule file, and exits 1 — the behaviour it
+  already had for other unsuppressable findings.
+
+  **`checkAll([])` now throws**, with a message written for that door: guard the array —
+  `if (rules.length > 0) checkAll(rules)` — or pass the rules you meant to check. There is no
+  declaration form at this door, and the finding no longer offers one: a preset that legitimately
+  produces no rules declares that where it is built, not here.
+
+  **`eess-ts doctor` is unchanged, and that is a gap rather than a decision.** A diagnostic returns no
+  verdict, so it is outside this clause. But measured against this same probe it prints `No rules that
+cannot enforce anything.` and exits 0 — the command whose stated job is reporting rules that cannot
+  enforce anything. That is bug 0268 — filed, not excused. A sibling dialect's door is bug 0269.
+
+  **One door stays open, stated rather than implied:** the exported `collectViolations` helper is
+  typed to accept a bare array and documented as not throwing, so calling it with `generateBaseline`
+  by hand still bypasses the gate. Closing that is a public-API decision rather than a wiring one, and
+  it is not made here.
+
+  **The kernel's `dedupeConfigFindings` no longer collapses emitter findings.** It keys on `(rule file,
+rule id, offending glob)`, and an emitter finding carries `element: ruleId` and `file: ''` — it points
+  at a verdict, not at a place in code — so every occurrence in a run shared one key and merged, with a
+  note claiming they were "one edit". Three hand-rolled builders are three edits in three places.
+  `keyFor` now returns no key for the four ids in `emitter-findings.ts`.
+
+  **`emitter/no-receipt` now names the call that fixes it.** The message was written for someone calling
+  `finishPreset([])` directly; it is now also what a rule-file author meets, and their builder _is_ the
+  thing returning the array — so "hand the emitter a builder's `violations()`" described what they had
+  already done. It now says `collectResult(violations, { examined })`, and `mergeCollectResults([...])`
+  for the combining case. Everything else is unchanged:
+  preset fan-out still collapses, and so does a rule with a real narrowing and no glob to name.
+
+  **What breaks.** A rule file or test that hands any of these doors a hand-rolled builder — an object with
+  a `violations()` that returns a plain array — used to pass and now fails. That is the point: it was
+  certifying nothing. **What to do:** return `collectResult(violations, { examined })` from your
+  builder (`import { collectResult } from '@nielspeter/eess-ts'` — no second install), or declare a legitimately empty result with `declaredEmpty: true`. A builder produced by
+  this package's own fluent API already carries its receipt and is unaffected; every rule file in this
+  repository passes unchanged.
+
+- 8934365: Report an exclusion comment that cannot apply, instead of leaving it silently inert
+
+  `.excluding()` patterns have warned about matching zero violations since bug 0044. Comment directives never did, so the two ways one goes inert were both
+  silent — the author saw the violation their sanction was supposed to cover, and
+  nothing else:
+  - **The chain declares no rule id.** A comment matches a violation by rule id, so
+    `pointers(c).that().areLive().should().resolve().check()` — no `.rule()` — can
+    never match one. Worse, the whole exclusion scan was gated on having an id, so
+    the file was not even parsed. Found by an adopter review whose own docs had
+    just recommended this exact sanction.
+  - **The directive is out of reach.** A single-line directive covers the _next_
+    line, so one that is not immediately above the finding covers nothing. (What
+    "the next line" means where a single physical line holds several logical ones —
+    a markdown table row, say — is documented per dialect; the diagnostic itself
+    stays domain-neutral, because the kernel emits it for every dialect.)
+
+  Both now print a stderr diagnostic naming the file and line. Neither is a
+  finding: the violation is already firing, so the build is red and the author is
+  looking at it.
+
+  The two are **not** symmetric, and the difference matters. The out-of-reach case
+  knows the directive is this rule's — it matches on id — so it can name the
+  region primitive as the fix. The no-id case cannot: a directive in the file may
+  belong to another, working rule, and from inside one rule's run there is no way
+  to tell. So it states the fact and leaves the id to you, rather than prescribing
+  one that might already be claimed.
+
+  **No behaviour changes for a directive that works.** Nothing new is suppressed or
+  un-suppressed, and no exit code moves. The one visible change beyond the
+  diagnostics is that a rule with no id now parses exclusion comments in files that
+  already failed — bounded the same way it always was, and the reason it can report
+  this at all.
+
+  A directive in a file with no violations is still never read, so a defensive
+  region over clean code costs nothing and is not reported.
+
+  **`@nielspeter/eess-ts` gets the same change, and that is not incidental.**
+  It carries its own copy of `applyFilters` (`packages/ts/src/core/execute-rule.ts`
+  — an independent fork, tracked by plan 0188), so a fix landing only in the kernel
+  would have reached `eess-md`, `eess-mermaid` and `eess-gherkin` while leaving the
+  dialect most people install exactly as silent as before. Review caught the first
+  version doing precisely that, with a changeset that said "eess now prints…" —
+  and found an `eess-ts` test still certifying the old behaviour.
+
+  Both diagnostics now exist in both copies, **print identical text**, and a gate
+  holds them to it: `engine/applyfilters-parity` runs the same scenarios through
+  both and fails on any divergence. That exists because hand-porting failed three
+  times on this one bug — the copy was missed, then its wording drifted once
+  ported, then its coverage was never written. Each half has its own test on each
+  side now, too.
+
+  `orphanExclusions`'s docstring is corrected alongside: it documented this gap as
+  one it could not close and priced it at "a parse per file per rule". The fix came
+  in under that estimate, leaving the docstring claiming a gap that no longer
+  exists. It now says what that module still uniquely covers — a directive in a
+  file that produced no violation, which the enforcement path never reads.
+
+- 725281f: **Breaking** — the published barrels stop re-exporting 37 internal helpers.
+
+  These were on the entry point but were never API: nothing outside their own
+  package's `src/` referenced them, no `docs/` page or README taught them, and every
+  test that used one reached past the barrel into the source module already. Measured
+  before the change: 253 of 664 exported symbols appeared in no documentation at all,
+  and these 37 were the subset that no reader could have found and no consumer could
+  have learned to use.
+
+  `eess-mermaid` loses the free predicate/condition functions — `haveNameMatching`,
+  `areAbstract`, `notDependOnStereotype` and the rest of that block. The documented
+  surface is the fluent builder that wraps every one of them
+  (`classes(d).that().areAbstract()`), per ADR-003; the free functions were the
+  plumbing behind it. Names like `haveNameMatching` looked documented only because
+  `docs/classes.md` and `docs/api-reference.md` are the **TypeScript** dialect's pages
+  and the names collide.
+
+  `eess-ts` loses glob-evaluator, disk-set, project-registration and diagnosis
+  internals. `eess-md` loses nothing (`presentExternalRoots` was removed and then
+  restored — see below).
+
+  Kept deliberately, because "unreferenced in this repo" is not the same as
+  "accidental" for a library: `taskItems()` and `TaskItemRuleBuilder` are a builder
+  entry point exactly like `docs()` and `links()`, `RowMatchOptions` is a **required**
+  argument to `rows()`, and `parseClassDiagram` throws the already-documented
+  `MermaidUnitParseError`. Seven more went back on the barrel because removing them
+  turned them from undocumented API into dead code, which is a different decision than
+  this one — they stay visible as undocumented surface in `check:docs-code` rather
+  than being quietly deleted.
+
+  `eess-crossvalidate` is named here because it peer-depends on all three dialects.
+  It imports none of the removed symbols and needs no change — but a consumer reading
+  its changelog should see the break named, not "Updated dependencies" (bug 0185).
+
+  ## Removed with no replacement — the full list
+
+  These 37 are dialect-local. They were never kernel symbols, so
+  `@nielspeter/eess/internal` does **not** have them and no import path reaches them any
+  more. If you used one, the fluent builder is the supported route.
+
+  **`@nielspeter/eess-ts` (19)** — FAULT_ADVICE, ON_DISK_ADVICE, buildDiskSet, collectCalls, collectObjectLiteralFunctions, diagnoseGlob, emptyProjectAdvice, fromObjectLiteralFunction, globSitesOf, isDeadGlobTree, isDeadSite, isStrictFamily, isTypeOnlyReExport, loadedNothing, registerProjectRoots, registerRootCompilerOptions, resolveFlag, splitGlobArgs, verbatimModuleSyntaxFor
+
+  **`@nielspeter/eess-mermaid` (18)** — areAbstract, conditionHaveStereotype, dependOn, extendClass, extendName, haveAtLeastOneMethod, haveMemberNamed, haveMethodNamed, haveNameEndingWith, haveNameMatching, haveNameStartingWith, haveNoMembers, notDependOn, notDependOnStereotype, notExist, notExtendStereotype, notHaveStereotype, predicateHaveStereotype
+
+  The mermaid list is the free predicate/condition block in full. Every one is available
+  as a builder method (`classes(d).that().areAbstract()`, `.should().notHaveStereotype(x)`)
+  — that is the documented surface per ADR-003, and it is unchanged.
+
+  Two eess-ts entries are worth calling out because their siblings survived:
+  `collectCalls` went while `fromCallExpression` from the same module stayed, and
+  `fromObjectLiteralFunction` went while `fromFunctionDeclaration` and
+  `fromMethodDeclaration` stayed. In both cases the survivor is reachable from a
+  documented path and the removed one was not.
+
+- e82c27d: eess now runs its own `agentGuardrails` preset against its own source
+  (`check:guardrails`, in the validate chain and in CI). It used to dogfood only
+  `recommended`; the preset written for "the mistakes AI coding agents make most
+  often" was the one exempted, in a repo written by AI coding agents.
+
+  The exemption lived as a comment claiming the rules fired on legitimate style —
+  "18 `throw new Error`, 270 by-design-similar rule-wrapper bodies". That rationale
+  was self-sealing: it was the reason not to run the preset, so nothing ever tested
+  it. Run, it reported 84 copy-paste findings rather than 270 — most of them true
+  duplicates — and all 17 bare `Error`s were a real finding.
+
+  **New: `ArchConfigError` and `isArchConfigError` on `@nielspeter/eess`** (re-exported
+  from `@nielspeter/eess-ts`). Thrown when a RULE is misconfigured — bad arguments to
+  a condition, a malformed rule file — as distinct from `ArchRuleError`, which means
+  the architecture under test is wrong. It carries `subject`, naming what was
+  misconfigured.
+
+  This is not cosmetic. `rule-file-findings.ts` already branched on
+  `isArchRuleError(error)` and routed everything else down one generic "rule file
+  failed" path, so a rule author who mistyped an argument saw the same surface as an
+  unhandled crash. The 17 sites that threw a bare `Error` — argument validation in
+  `conditions/`, rule-file loading in `cli/load-rules.ts`, project resolution,
+  GraphQL schema loading — now throw `ArchConfigError`. `ErrorOptions` is forwarded,
+  so the `cause` chain that distinguishes "graphql is missing" from "graphql failed
+  to load" is preserved.
+
+  The preset asked for this type and the repo did not have it. That is what
+  dogfooding is for.
+
+  Remaining honestly: `no-copy-paste` warnings, down from 84 at the moment the
+  preset was first run to 38 as this ships. Every reduction is an extraction, not a
+  threshold move — the shared owner each one produced is named in its own commit,
+  and several turned out to be fixes rather than tidying, because the duplicate
+  copies had already drifted apart. What is left divides into findings whose
+  remedy is a DSL decision (a `haveX`/`notHaveX` pair is duplicated by
+  construction, and collapsing it changes the public API) and a handful the
+  detector reports on eight or more varying axes, which is same-shape rather than
+  copy-paste. Plan 0188 owns the remainder. The gate blocks on errors and prints
+  the warnings; it does not call them clean.
+
+- 0a10e1f: **Breaking for baselines only:** `smells.duplicateBodies()` now reports one
+  finding per CLUSTER of mutually-similar bodies instead of one per pair. A
+  two-member cluster keeps the message and identity it already had, so most
+  baselines are untouched; a group of three or more collapses into a single
+  finding with a new `duplicate-cluster::` identity, and those entries need
+  regenerating. Nothing is dropped and no score changed — this is what the
+  detector says, not what it scores.
+
+  Measured on a ~5,600-file production monorepo: **4,770 pair findings became
+  407** — an 11.7x reduction. The old output had more findings than the 3,810
+  bodies that produced them, because N mutually-similar bodies carry one
+  observation and emit N^2/2 lines of it. The eight largest groups alone were 49%
+  of the output; one group of 89 emitted 398 lines; the worst single function was
+  named 29 times. On this repo, 220 became 93.
+
+  **Findings now say what varies.** A percentage cannot distinguish "one call
+  target differs" from "every property name differs", and those are opposite
+  verdicts:
+
+  ```
+  isExcludedByComment (core) is 100% similar to isExcludedByComment (ts)
+    — identical text: a literal copy
+  assertHomogeneous   (core) is 100% similar to assertHomogeneous   (ts)
+    — 1 varying axis: '...Matcher functions...' -> '...TypeMatcher functions...'
+  functionContain is 85% similar to haveOnlyReadonlyProperties
+    — 12 varying axes: fn -> element, ArchFunction -> PropertyBearingNode, +9 more
+  ```
+
+  A systematic rename counts as ONE axis however many times it occurs, because it
+  is one decision to evaluate. Reported, never filtered on: measured, the bucket
+  that is mostly convergent idiom carries a median of 6 axes against 4 for the
+  rest, which is real information and not a classifier.
+
+  **Findings are ordered by how likely they are to be worth acting on** — a copy
+  of one function into another file first. The detector ignores identifiers by
+  design (that is what makes it a type-2 clone score) and was also ignoring the
+  declaration's own name, where the evidence was. Bucketed over that corpus:
+  different-file-same-name is 14% of findings and is where the real copies are;
+  different-file-different-name is 56% and is mostly shared idiom. A ranking, not
+  a filter — dropping either bucket loses real duplication.
+
+  New public API on `@nielspeter/eess-ts`: `variationBetween`, and the types
+  `Variation` and `VariationAxis`. `Fingerprint` gains a `texts` field, parallel to
+  `kinds`; `computeSimilarity` does not read it and must not.
+
+- bef0ebd: **Breaking: which file a duplicate finding is reported at no longer depends on
+  the filesystem.**
+
+  Marked breaking on purpose. An inline `// eess-exclude` you committed against a duplicate can stop
+  suppressing after this upgrade, with no change on your side — a green build goes
+  red. That the old location was never durable is the defect being fixed, not a
+  reason to ship the change quietly as a patch.
+
+  A duplicate concerns several bodies and is reported at one of them. That location
+  is where you put `// eess-exclude`. It was whichever member the source walk
+  reached first — so the same duplicate could report at `a.ts` on your machine and
+  `b.ts` in CI, and a waiver committed against the first would silently stop
+  suppressing.
+
+  The identity beside it was already sorted for exactly this reason. The location
+  now uses the same ordering, by path then line.
+
+  Baselines are unaffected: the identity has not changed. What can change is the
+  `file`, `line` and `element` printed for a duplicate whose members were
+  previously reported in a different order — and if you have an inline waiver that
+  was working, it was working against a location that could have moved anyway.
+
+  Five smaller things move with it, all of them the same defect further down the
+  same finding, and all of them output you may be reading or diffing:
+  - A cluster finding lists the members it shows in path-then-line order rather
+    than walk order. `+N more` elides the rest, so which member you never saw used
+    to be the filesystem's choice.
+  - The varying axes quoted as evidence come from a pair chosen the same way, and
+    the `from -> to` direction follows the members rather than the walk — for pair
+    findings as well as clusters. The same finding could read `'x' -> 'y'` locally
+    and `'y' -> 'x'` in CI.
+  - `.groupByFolder()` groups by the folder a finding is REPORTED in. It grouped by
+    the walk-order endpoint, which stopped agreeing with the reported location once
+    the anchor moved.
+  - **The order findings are reported in** is now deterministic. Duplicate findings
+    are ranked into four buckets and the sort is stable, so equal-ranked findings —
+    the overwhelming majority — kept whatever order the filesystem produced. They
+    now tie-break on the anchor path.
+  - Folder names are compared directly rather than with `localeCompare`, whose
+    result depends on the runtime's ICU build and default locale. Same reason: a
+    report should read the same on two machines.
+
+  If you diff eess-ts output between runs or machines, expect this release to be
+  the last one where those diffs are noise.
+
+- 95bedfb: **Fixed: `--changed` hid the duplicate you had just created.**
+
+  A duplicate-body finding concerns two or more files and carries one `file`, which
+  is where it is reported. `diffAware()` keeps a violation when that one path is in
+  the changed set — so if you pasted a body into a second file, the finding sat on
+  the file you had _not_ touched and was filtered away. Which file that was came
+  down to source walk order, i.e. to how the OS enumerated a directory.
+
+  This was true for a plain two-body duplicate, which is the common case, and the
+  pair-to-cluster collapse widened it: a family of three reported at one file
+  instead of two.
+
+  **New on `ArchViolation`: `relatedFiles?: readonly string[]`** — the other files
+  one finding concerns. Optional and additive: a single-file finding omits it,
+  existing producers keep compiling, and a consumer that ignores it behaves exactly
+  as before. `diffAware()` now keeps a violation when its own file _or_ any related
+  file changed. `smells.duplicateBodies()` populates it for pairs and clusters.
+
+  Output volume is unchanged — a finding that names three files is still one
+  finding, not three. The alternative considered was emitting the finding once per
+  member file, which fixes the filter and gives back part of the 11.7x reduction
+  the cluster collapse exists for.
+
+  If you consume violations and filter them by file yourself, read `relatedFiles`
+  too, or you will reproduce this bug in your own tooling.
+
+- 8ab50f5: **New rule:** `preset/agent/no-verdict-outside-rules` on `agentGuardrails`,
+  behind `noVerdictOutsideRules` (default **off**).
+
+  A module that is not a rule file, a test, or a file you name in the companion
+  `ruleFiles` option must not import eess as a value — only `import type` — and
+  must not call `finishPreset` / `reportViolations` / `throwIfViolations`.
+
+  **Why.** A consuming project shipped four corpus gates as hand-rolled loops,
+  importing eess's types and its printer and never a `RuleBuilder`. Three went
+  inert in one week and each printed green. `ADR-014` makes an evidence-free
+  verdict unrepresentable at every seam eess owns, and names honestly what it
+  cannot reach: a caller who sums receipts by hand, and one who never calls an
+  emitter at all. This rule is what reaches those two.
+
+  **The flag defaults off, so the upgrade is silent** — no adopter reds on
+  install. A dogfooder running every flag must add this one. Turn it off again
+  with `overrides: { 'preset/agent/no-verdict-outside-rules': 'off' }`.
+
+  **Expect a first red on your own preset modules.** A module that builds rules
+  imports `dispatchRule` at runtime, so it trips this rule until you name it in
+  `ruleFiles` — correct, because a preset module is a verdict file by definition.
+
+  `ruleFiles` **extends** the default `['**/*.rules.ts', '**/*.test.ts', '**/*.spec.ts']`
+  rather than replacing it, and an entry matching no file is reported as
+  `preset/agent/rule-files-matches-nothing` so the list cannot rot in silence.
+  Its globs behave as they do everywhere else in `eess-ts`: an unanchored
+  `scripts/**` is matched against the path relative to your tsconfig root, and the
+  dead-entry check derives that the same way the rule does rather than deciding it
+  separately.
+
+  **What it does not reach**, stated because an unstated ceiling reads as
+  coverage: nothing inside a rule file; no `.mjs` script outside your `tsconfig`;
+  a dynamic import destructured under a new name
+  (`const { finishPreset: done } = await import(…)`), though a static renamed
+  import is caught; and no equivalent for adopters without `eess-ts` — there is no
+  AST engine to build one on, and for them the kernel contract is the whole
+  protection.
+
+- 725281f: **Breaking** — the kernel splits into two entry points. Family plumbing moves from
+  `@nielspeter/eess` to `@nielspeter/eess/internal` (ADR-011).
+
+  `@nielspeter/eess` had never declared what its public API was. It was implied — the
+  union of whatever the five dialects happened to import — so nothing could check the
+  boundary, and 78 engine internals sat on the published surface: `shallowClone`,
+  `isRecord`, `resetEdgeCoverage`, the glob-tree vocabulary, the suppression and
+  edge-coverage counters. Because `check:family` required each dialect to re-export
+  every kernel symbol its own source imports, each of those was published again by
+  every dialect that touched it.
+
+  **What moved.** 71 symbols now live at `@nielspeter/eess/internal`. If you import one
+  from `@nielspeter/eess`, change the specifier — nothing was deleted or renamed.
+
+  If you consume a DIALECT and hit one of these, note that `@nielspeter/eess/internal`
+  resolves for you only if the kernel is hoisted to your `node_modules` root. Under
+  pnpm's isolated layout or Yarn PnP it will not: add `@nielspeter/eess` to your own
+  dependencies. That is a direct dependency the family otherwise does not ask of you,
+  and it is the honest cost of reaching plumbing.
+
+  **What did not move**, because "unreferenced in this repo" is not "not API":
+  `correspondence` and `CorrespondenceBuilder` (documented on six pages, and the public
+  surface of eess-md and eess-crossvalidate), `reportViolations` and `finishPreset`
+  (named seams in ADR-008), and the `ArchJson*` types, which describe the `--format
+json` output that `docs/agent-integration.md` teaches.
+
+  Also still on the root, and worth naming because an earlier draft of this changeset
+  said otherwise: `globNode` and `globAnyOf` (the constructors a user-written
+  `definePredicate` needs to declare its globs — a documented extension point), and
+  `CorrespondenceOptions`, `RelationSpec` and `KeyBy` (the parameter types of
+  `correspondence()` and `preserveRelations()`, both public). **Do not rewrite imports
+  of those five to `/internal`** — they are not there.
+
+  **The dialects' surfaces shrink too.** A dialect no longer re-exports kernel plumbing
+  it only uses internally, so `eess-ts`, `eess-md` and `eess-mermaid` each drop what they
+  used to forward. For those, the rule above applies — the symbol is a KERNEL symbol and
+  `@nielspeter/eess/internal` has it.
+
+  **That rule does not cover the 37 dialect-local symbols removed in the same release.**
+  Those were never kernel symbols, so `/internal` does not have them and there is no
+  replacement path; see the companion changeset for the list and the reasoning.
+
+  Measured at release: the kernel root goes 156 → 86 exports, with 673 scanned across
+  the family's published entry points. All 86 root exports are documented; 116
+  dialect-side exports are still undocumented and are reported rather than gated — ADR-011 clause 1
+  covers the kernel root, and no ruling covers the dialects yet (bug 0220).
+
+  `@nielspeter/eess/internal` is a published, versioned contract — breaking it still
+  needs a changeset. What it is not is API: nothing there is taught by `docs/` or a
+  README, and a consumer writing rules never names it. That boundary is enforced inside
+  this repo and is convention outside it, which ADR-011's Enforcement table records as
+  `manual` rather than claiming otherwise.
+
+  **Also in this release, and narrower than it sounds:** `@nielspeter/eess-crossvalidate`
+  raises its peer floors on the four dialects from `>=0.1.1` to the versions current at
+  release. `>=0.1.1` admitted any dialect ever published, which since the kernel split can
+  resolve **two copies of `@nielspeter/eess`** — and the kernel holds module-level state
+  (coverage counters, suppression counters, identity collisions, the cache registry), so
+  that state splits silently. If you pin an older dialect alongside crossvalidate you will
+  now get an `ERESOLVE` instead, which is the point.
+
+- 4fa5e84: **Breaking (@nielspeter/eess):** every builder's `violations()` returns a
+  receipt, and the emitters take one.
+
+  [ADR-014](https://github.com/nielspeter/eess/blob/main/adr/014-the-emitter-refuses-a-verdict-without-evidence.md):
+  evidence is required at every seam where a verdict leaves eess, not only at the
+  terminal. `CollectResult` is now an `ArchViolation[]` carrying `examined`,
+  `sourceEmpty` and `declaredEmpty` as own properties. `finishPreset`,
+  `reportViolations` and `throwIfViolations` accept and return it.
+
+  **Why this break exists.** A consuming project shipped four corpus gates as
+  hand-rolled loops, importing eess's types and its printer and never a
+  `RuleBuilder`. Three went inert in one week — a `continue` on a malformed row, a
+  counter that fell from 38 compared against 0, a header count compared against
+  nothing. Each printed green. The agent that wrote them had been told to use eess
+  properly and had a working rule file in the same directory, so neither
+  documentation nor example reached it. The seam had to refuse.
+
+  **What breaks for you.**
+  - `.violations()` returns `CollectResult`, not `ArchViolation[]`. It is still an
+    array — `.length`, iteration, `map`, `filter` and `for…of` are unchanged — so
+    most call sites keep compiling. Across this whole workspace the retype produced
+    **15 type errors**, which is the measured size of the migration.
+  - **`expect(x.violations()).toEqual([])` now fails.** A deep-equal against a bare
+    `[]` compares the receipt's own properties too. Use `toHaveLength(0)`, or
+    `expect(v.map((x) => x.ruleId)).toEqual([])` to keep asserting identity.
+  - A custom builder's `collectViolations()` must return `collectResult(violations,
+{ examined })` instead of an object literal. You get one compile error naming
+    the member.
+  - Handing an emitter a bare array is now a type error, and at runtime a
+    configuration finding — `emitter/no-receipt`.
+
+  **Three new unsuppressable rule ids**, the kernel's first hardcoded ones:
+  `emitter/no-receipt` (no evidence at all), `emitter/pass-without-evidence` (zero
+  examined, zero violations, no declaration) and `emitter/expired-declaration`
+  (declared empty, then examined something).
+
+  **A preset that examines nothing now says so**, which is the point and the part
+  most likely to redden an existing build. If your corpus legitimately has none of
+  a preset's subject — no ER diagrams, no exemptions — declare it with
+  `expectEmpty: true`, now on `PresetReportOptions` and therefore on every preset
+  in the family. The declaration **expires**: the day the subject appears, it reds
+  with `emitter/expired-declaration`. That expiry is what makes it a declaration
+  rather than a mute button, and it is why `overrides: { id: 'off' }` is not
+  accepted as one — an instruction eess would have to read intent into, and a claim
+  nothing can contradict.
+
+  `--format json`'s `summary` gains `examined` (`null` when the caller supplied no
+  evidence), because `JSON.stringify` drops an array's own properties.
+
+  The five dialects are named because the break is the kernel's and their
+  changelogs should say what changed rather than "Updated dependencies"
+  (bug 0185). The four with a barrel — `eess-ts`, `eess-mermaid`, `eess-md` and
+  `eess-gherkin` — also re-export the receipt seam, so a standalone consumer of one
+  of them never needs a second kernel install to build, merge, report or finish
+  one. `eess-crossvalidate` is the exception: it ships flat entry files rather than
+  a barrel, and each carries only what its own bindings use, so reaching the
+  constructors from there may still need the kernel directly.
+
+- 4fa5e84: **Breaking (@nielspeter/eess):** `presetConstructsNothingViolation` is removed
+  from `@nielspeter/eess/internal`.
+
+  It had **no call site anywhere**: not in any of the five dialects, not in this
+  repo's scripts, not in a test. Measured before removal — the only occurrence of
+  `presetConstructsNothingViolation(` in the workspace was its own definition. It
+  was a constructor for a finding nothing constructed, which is
+  [bug 0190](https://github.com/nielspeter/eess/blob/main/work/bugs/0190-the-preset-constructs-nothing-finding-cannot-fire.md):
+  an id with no producer reads as coverage while certifying nothing.
+
+  **Deleted rather than wired**, and that is the decision worth naming. The obvious
+  fix was to give it a caller. It was rejected because the finding it produces
+  names `(presetName, optionsHint)` — dialect vocabulary the kernel emitter cannot
+  know — and because
+  [ADR-014](https://github.com/nielspeter/eess/blob/main/adr/014-the-emitter-refuses-a-verdict-without-evidence.md)
+  makes the emitter refuse an evidence-free verdict directly, which reaches every
+  hand-assembler rather than only the presets someone remembered to guard. A
+  finding with an id and no producer is bug 0190's shape with a label on it.
+
+  The preset-shaped diagnosis it was meant to carry already exists dialect-side and
+  is unchanged: `eess-ts`'s `assertEnabled` builds it with its own `ruleId`,
+  `bypassFilters` and remedy.
+
+  **Nothing that ran before stops running.** `dispatchRule`, `validateOverrides`,
+  `throwIfViolations` and `finishPreset` are untouched, and the `'off'` /
+  `'warn'` / `bypassFilters` precedence in `dispatchRule` is unchanged — the test
+  pinning it still passes.
+
+  The five dialects are named because they depend on the kernel and this is a
+  removed export, so their changelogs should say what changed rather than
+  "Updated dependencies" (bug 0185). None of them imported it; none needs a source
+  change.
+
+  **New (@nielspeter/eess, @nielspeter/eess-ts):** `EMITTER_CONTRADICTORY_EVIDENCE`
+  (`emitter/contradictory-evidence`) joins the three emitter rule ids on both roots.
+
+  It fires when a receipt marked `notRun: true` carries a non-zero `examined` or a
+  violation — a rule that never ran can have neither. `notRun` is the flag that
+  exempts a member from `mergeCollectResults`'s dead-member filter, so without this
+  it was the one thing in the evidence vocabulary that could quiet a zero and could
+  not be contradicted. `declaredEmpty` always had its expiry; this is the same
+  property for the third state.
+
+  Additive: nothing that was green goes red unless it was already claiming both
+  that a rule did not run and that it examined something.
+
+- 99a00d4: **Breaking (@nielspeter/eess, @nielspeter/eess-ts): `throwIfViolations` is removed from the public surface.**
+
+  It is gone from three barrels: the kernel root (`@nielspeter/eess`), the
+  `eess-ts` root, and the `@nielspeter/eess-ts/presets` subpath.
+
+  **What to do instead.** The call was a one-line alias for `finishPreset` in its
+  default mode, and always had been. Replace
+
+  ```ts
+  throwIfViolations(violations)
+  ```
+
+  with
+
+  ```ts
+  import { finishPreset } from '@nielspeter/eess-ts/presets'
+
+  finishPreset(violations, { report: 'throw' })
+  ```
+
+  It is on all three barrels, so the import line does not move wherever you took
+  the old one from:
+
+  ```ts
+  import { finishPreset } from '@nielspeter/eess'
+  import { finishPreset as fromTsRoot } from '@nielspeter/eess-ts'
+  import { finishPreset as fromPresets } from '@nielspeter/eess-ts/presets'
+  ```
+
+  Behaviour is identical — emit to stderr, then throw one aggregated
+  `ArchRuleError`. Taking the option explicitly is the point: you can choose
+  `report: 'return'` or `'warn'` at the same seam, which the alias hid.
+
+  On `@nielspeter/eess-ts/presets` that became true in this release: the alias was
+  published on that subpath and its replacement never was, so `finishPreset` is
+  added there now. If you import from `/presets`, you need this version or later
+  for the migration to resolve.
+
+  **Why an alias was worth removing.** Not because it was unsafe — your current
+  call is type-correct and always has been. It goes because it was a second name
+  for one door, and the name hard-coded a choice that belongs to you: whether a
+  preset throws, returns its violations, or warns. `finishPreset` makes that an
+  argument you pass rather than a decision baked into which function you call.
+
+  The four dialects take a **minor**, not a patch. They do not use the symbol, but
+  they depend on the kernel, so this break reaches an adopter through whichever
+  dialect they installed. A patch would not be enough: changesets propagates an
+  inherited bump as a patch whatever the config says, and a patch is the release
+  your caret range takes without asking, under a changelog reading "Updated
+  dependencies". Naming them at minor is the only way you get told.
+
+### Patch Changes
+
+- e72c061: `haveNoUnusedExports()` anchors a finding about a re-exported name on the barrel's own export line
+
+  A barrel's finding named the barrel as `file` and took `line` from the declaring node in the
+  _other_ file, so a one-line `index.ts` reported its re-export at line 5 — a line that exists
+  only in `lib.ts`. The code frame pointed at nothing and an `// eess-exclude` on the barrel's real
+  line did not apply. The finding now carries the line of the `export { name } from` specifier,
+  the `export * as name from` statement, or the `export *` statement that forwards the name. An
+  own declaration keeps the line it always had. The verdict is unchanged; only the location moves
+  (bug 0265). Baseline hashes do not include the line, so no baseline entry changes.
+
+- 725281f: Every package removes `dist/` before it builds.
+
+  `tsc -p` overwrites; it never deletes. A source file that is deleted or moved left
+  its `.js` and `.d.ts` behind forever, and `dist/` is gitignored, so nothing showed
+  it. Measured before the fix: **36 orphaned `.d.ts`** across the workspace — 34 in
+  `eess-ts` — the oldest from plan 0165's engine copy, whose `src/` counterparts no
+  longer exist.
+
+  That is shipped output, not a local artifact: `dist/` is what a consumer installs.
+  It also silently corrupts any measurement that reads the emitted types — a survey
+  of the dialects' public type surface was run against `dist/` during this work and
+  answered from files whose source had been deleted.
+
+  `check:integrity` now requires every package that builds to clean first. It checks
+  the mechanism rather than scanning for stale files: after this change there are
+  never any, and a check that cannot fail is worth less than no check (ADR-009). What
+  can still regress is a package added later with no `prebuild`, and that is what it
+  catches.
+
+- c03d856: **A misconfigured rule file no longer renders as a crash.**
+
+  `ArchConfigError` was added so that a rule author who mistyped an argument would
+  see something different from an unhandled failure. It shipped with 17 throw
+  sites and nothing reading it: every one landed in the same generic branch as a
+  syntax error or a missing dependency, which is the surface it was introduced to
+  fix.
+
+  The CLI now branches on it. A configuration fault names **what** was
+  misconfigured — `havePropertyNamed`, `requireGraphQL`, `workspace` — points at
+  the call rather than the file, and says plainly that editing the code under test
+  cannot clear it. The generic path is unchanged and still refuses to guess a
+  cause, which is why the two are worth telling apart.
+
+  It also surfaces `cause`, which nothing rendered before. That is the only thing
+  separating "the graphql package is not installed" from "it is installed but
+  failed to load" — the same distinction the loader's own code takes care to
+  preserve and which was being dropped on the way to the reader.
+
+- 3c58845: Name an id-less rule by its `.because()` reason in the "declares no id" diagnostic
+
+  A rule with no `.rule({ id })` cannot honour an exclusion comment, and eess says
+  so. But an id-less rule has no id to name, so several such chains over one file
+  printed byte-identical lines — three chains, three identical warnings, and no way
+  to tell which one needed the id without re-reading the rule file and counting.
+
+  Every rule already knows how to describe itself — `describeRule()` is on the
+  builder that constructs the filter context — so the message names it by its own
+  sentence, with no author action required:
+
+  ```
+  [eess] This rule ("that extend Base should not import Legacy") declares no id,
+  so no exclusion comment can apply to it — …
+  ```
+
+  If a builder has no sentence to give (its `describeRule()` reports `unnamed`), a
+  `.because()` reason is used instead; `.because()` works without `.rule({ id })`.
+  A rule with neither is genuinely anonymous, and its message is unchanged. Whitespace in the reason is collapsed, because the reason is prose and
+  may wrap while this report is deliberately one line per file.
+
+  Diagnostic text only — nothing is suppressed differently and no exit code moves.
+  Both copies of `applyFilters` changed together, which
+  `engine/applyfilters-parity` checks: landing it in the kernel alone makes the
+  copies diverge and fails the build.
+
+- 725281f: Body-analysis rules now see two function shapes they previously missed.
+
+  `eval` in a concise arrow body (`() => eval(x)`) or in a function expression
+  (`const a = function () { … }`) passed the `recommended` floor — the preset
+  described as "the universal safety floor every consumer gets". Two causes: both
+  match paths walked descendants only, so a concise arrow's body (which _is_ the
+  expression) was never tested; and a `VariableDeclaration` with a
+  `FunctionExpression` initializer was collected by nothing.
+
+  Affects every body-analysis rule, not only `no-eval` — the traversal fix is
+  shared. `fromArrowVariableDeclaration` is renamed `fromFunctionInitializerDeclaration`
+  and kept as a `@deprecated` alias.
+
+- bb211c6: **Fixed: `smells.duplicateBodies()` reported two functions that share no
+  identifier or literal at all.**
+
+  The detector had two fast rejections before scoring and both measured each body
+  on its own — plan 0103's `minDistinctVocabulary` asks "does this body carry
+  enough vocabulary to be evidence?". Nothing asked the pairwise question, "do
+  these two carry any of the _same_ vocabulary?", and `computeSimilarity` cannot
+  answer it: it scores syntax kinds only, which is what makes it a type-2 clone
+  score that survives renaming.
+
+  So a pair could reach 100% on shape with an empty vocabulary intersection. The
+  shipped instance in this repo was a rule builder's `asDeclared()` against a
+  smell detector's `scope()` — two functions that each gather six of their own
+  fields into a record, with not one name in common. "Extract the shared logic
+  into one function" named something that did not exist.
+
+  A pair is now rejected when both bodies have vocabulary and share none of it.
+  `=== 0`, not a threshold: measured across all 89 pairs this repo produces, two
+  share nothing, none share one or two, and the nearest real finding shares four.
+  The rejection defers to `minDistinctVocabulary` when either body has no
+  vocabulary at all — two bodies that are pure control flow share their entire
+  content, and whether that is worth reporting stays the caller's decision.
+
+  For adopters: strictly fewer findings, and only of this shape. No configuration
+  changes.
+
+- Updated dependencies [48bf698]
+- Updated dependencies [3a68b5c]
+- Updated dependencies [8934365]
+- Updated dependencies [725281f]
+- Updated dependencies [abc5957]
+- Updated dependencies [e82c27d]
+- Updated dependencies [95bedfb]
+- Updated dependencies [725281f]
+- Updated dependencies [725281f]
+- Updated dependencies [d4e586c]
+- Updated dependencies [3c58845]
+- Updated dependencies [39517a3]
+- Updated dependencies [4fa5e84]
+- Updated dependencies [4fa5e84]
+- Updated dependencies [99a00d4]
+  - @nielspeter/eess@0.5.0
+
 ## 0.4.0
 
 > **Upgrading from 0.2.1? Read the 0.3.0 section below as well.**
