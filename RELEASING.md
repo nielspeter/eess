@@ -92,6 +92,27 @@ this is visible rather than silent. Note that `changeset version` copies the bod
 verbatim, comment included — it will not render, but it does reach the published
 `CHANGELOG.md`.
 
+## A release with several breaks gets a migration page
+
+`changeset version` writes each package's changelog in changeset order, so a
+train carrying many breaks scatters them through a long list an adopter has to
+reassemble. The 0.5 family shipped thirty changesets with eleven breaks in them —
+one landed around line 393 of the kernel's changelog. No gate can fix that, and
+nothing in this file used to ask anyone to.
+
+So: **when a release carries more than two or three breaking changesets, write a
+migration page under `docs/` before cutting it**, and link it from the GitHub
+Release. [`docs/migrating-to-0.5.md`](./docs/migrating-to-0.5.md) is the worked
+example. What made it worth writing:
+
+- It is ordered by **what the reader has to do**, not by package or by changeset.
+- It separates changes needing a code edit from ones where a passing build simply
+  goes red — that second group is invisible in a changelog and is what actually
+  surprises people.
+- Its fences are checked. Add the page to `IMPORT_CLAIM_FILES` in
+  `scripts/check-docs-code.mjs` so its import lines compile against the built
+  packages, the same rule a changeset gets and for the same reason.
+
 ## Signalling a breaking change (bug 0184)
 
 A break must be **marked in the body** and bumped past `patch`. `check:release`

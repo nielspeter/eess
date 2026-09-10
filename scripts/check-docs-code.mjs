@@ -83,7 +83,12 @@ const ROOT_DOCS = ['README.md', 'RELEASING.md'].filter((f) => {
 // symbol now lives — so it is reduced to its import statements. `RELEASING.md`
 // is on the migration side because the example it carries IS a changeset
 // migration, quoted in the section that defines them.
-const IMPORT_CLAIM_FILES = new Set(['RELEASING.md'])
+const IMPORT_CLAIM_FILES = new Set([
+  'RELEASING.md',
+  // A migration guide is a migration: its fences say where a symbol lives now,
+  // not how to write a rule file. Same rule as a changeset, for the same reason.
+  'docs/migrating-to-0.5.md',
+])
 const readsAsImportClaim = (file) => file.startsWith('.changeset') || IMPORT_CLAIM_FILES.has(file)
 
 // Guarded the way `PACKAGE_READMES` above is: the directory is committed today,

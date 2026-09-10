@@ -26,6 +26,7 @@ export default defineConfig({
           { text: 'eess as a Harness', link: '/eess-as-a-harness' },
           { text: 'Getting Started', link: '/getting-started' },
           { text: 'Migrating from ts-archunit', link: '/migrating-from-ts-archunit' },
+          { text: 'Migrating to 0.5', link: '/migrating-to-0.5' },
           { text: 'What to Check', link: '/what-to-check' },
         ],
       },
