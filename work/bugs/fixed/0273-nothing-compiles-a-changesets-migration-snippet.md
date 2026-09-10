@@ -229,4 +229,30 @@ documents are scanned now, on the migration rule rather than the example rule,
 because what they carry is a migration. Measured: pointing that fence's specifier
 at a barrel without the symbol reds the gate.
 
+**Every guard this bug added is now falsifiable, and none was at first.** A
+second enforcement and testing round measured the same pattern three times: the
+fix closed a fail-open and left the close unpinned, so one deleted token reopened
+it with the whole harness green.
+
+| deleted                        | before                                   | after                                                    |
+| ------------------------------ | ---------------------------------------- | -------------------------------------------------------- |
+| `noUncheckedSideEffectImports` | every row green                          | `docs-code/changeset-side-effect-import` reports vacuous |
+| the root-doc population        | green, denominator silently `0 root doc` | `docs-code/root-doc-fence` reports vacuous               |
+| `.changeset` from `probeRoots` | green, roots silently 11 → 10            | `integrity/leftover-probe-changeset` reports vacuous     |
+
+The existing rows could not see any of it. The migration probe imports a NAMED
+member, which reds via TS2305 with or without the side-effect flag; the leftover
+probe plants under `packages/core/src/`, so it proves the leftover rule and not
+the root set. A denominator printed to stderr is a signal to a human, not to the
+build — which is the same distinction this record makes about `check:surface` two
+sections up, applied to itself a round late.
+
+**And two predicates disagreed about what a population is.** Selection used
+`readsAsImportClaim`, which includes `RELEASING.md`; reporting and the
+per-population counter keyed on the raw `.changeset` prefix. So a failure in the
+document that TEACHES the convention printed the docs remedy — the skip directive
+offered for a migration, inside the file whose own prose says the skip directive
+is never for a migration. Both now route through the predicate that chose the
+rule.
+
 Deferred: [bug 0275](../0275-a-migration-can-still-state-its-claim-in-prose.md) — the demand side. This gate checks a claim once it is written as a module statement and requires nothing to be written, so a migration stated purely in prose still passes. That is this bug's own defect, surviving at one remove, and three reviewers read the ledger box as a mechanism when it is a convention. Naming it in its own record is the difference between a residual and a silence.

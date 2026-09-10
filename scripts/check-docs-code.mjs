@@ -289,13 +289,18 @@ console.error('check:docs-code · doc code-fence checks (tsc + no-deprecated)')
 // should have fences is the signal.
 const byPopulation = { docs: 0, readme: 0, changeset: 0, root: 0 }
 for (const f of fences) {
-  const key = f.file.startsWith('.changeset')
-    ? 'changeset'
-    : f.file.startsWith('docs')
-      ? 'docs'
-      : f.file.includes('/')
-        ? 'readme'
+  // Keyed off the same predicate that CHOSE the rule, not a second spelling of
+  // it. Two predicates disagreeing about what a population is, is how a
+  // `RELEASING.md` failure came to print the docs remedy — the skip directive
+  // offered for a migration, inside the document whose own prose says the skip
+  // directive is never for a migration. Measured by two reviews independently.
+  const key = f.file.startsWith('docs')
+    ? 'docs'
+    : readsAsImportClaim(f.file)
+      ? f.file.startsWith('.changeset')
+        ? 'changeset'
         : 'root'
+      : 'readme'
   byPopulation[key]++
 }
 console.error(
@@ -329,7 +334,7 @@ if (failures.length > 0) {
   // toward silencing exactly the defect this population was added to catch
   // (ADR-009 rule 1: a mechanism that fires on the thing it protects teaches
   // people to switch it off). Found by a product review.
-  if (failures.some((v) => v.file.startsWith('.changeset'))) {
+  if (failures.some((v) => readsAsImportClaim(v.file))) {
     console.error(
       `  A changeset fence's import line is a claim about where a symbol is exported.\n` +
         `  A failure here means the claim is wrong, or the barrel is missing that export —\n` +
@@ -338,7 +343,7 @@ if (failures.length > 0) {
         `  import line".\n`,
     )
   }
-  if (failures.some((v) => !v.file.startsWith('.changeset'))) {
+  if (failures.some((v) => !readsAsImportClaim(v.file))) {
     console.error(
       `  Fix the example, or — if the fence is intentionally illustrative — precede it with\n  <!-- eess-docs-code-skip: <reason> -->\n`,
     )

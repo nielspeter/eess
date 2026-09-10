@@ -2645,6 +2645,31 @@ const gates = [
       ),
   ],
   [
+    'docs-code/changeset-side-effect-import',
+    () =>
+      gateNode(
+        'bad-waived-gates.mjs',
+        'docs-code/changeset-side-effect-import red on its own subject',
+        ['docs-code/changeset-side-effect-import'],
+      ),
+  ],
+  [
+    'docs-code/root-doc-fence',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'docs-code/root-doc-fence red on its own subject', [
+        'docs-code/root-doc-fence',
+      ]),
+  ],
+  [
+    'integrity/leftover-probe-changeset',
+    () =>
+      gateNode(
+        'bad-waived-gates.mjs',
+        'integrity/leftover-probe-changeset red on its own subject',
+        ['integrity/leftover-probe-changeset'],
+      ),
+  ],
+  [
     'examples/does-not-compile',
     () =>
       gateNode('bad-waived-gates.mjs', 'examples/does-not-compile red on its own subject', [
@@ -2812,6 +2837,12 @@ const GATE_FOR = {
     // with the gate still green (bug 0247).
     'integrity/source-text-utf8',
     'integrity/leftover-probe',
+    // A second leftover row, per ROOT rather than per rule. The row above plants
+    // under `packages/core/src/`, so it proves the leftover rule and not the root
+    // set — removing `.changeset` from `probeRoots` left it green while the
+    // denominator fell 11 to 10 in silence. That root is the one whose leftover
+    // `changeset version` would copy into six published CHANGELOGs.
+    'integrity/leftover-probe-changeset',
   ],
   // Four rules, four rows (bug 0240). One row for the whole preset let three of
   // them be emptied with the gate still green — the trap `GATE_FOR`'s own
@@ -2838,6 +2869,8 @@ const GATE_FOR = {
   'check:docs-code': [
     'docs-code/fence-does-not-compile',
     'docs-code/changeset-migration-does-not-compile',
+    'docs-code/changeset-side-effect-import',
+    'docs-code/root-doc-fence',
   ],
   // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
   // sabotages the KERNEL ROOT — the only population this gate blocks on.
