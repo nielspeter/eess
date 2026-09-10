@@ -145,8 +145,54 @@ documented surface is the fluent builder that wraps every one of them, so write
 because the pages carrying them are the **TypeScript** dialect's and the names
 collide.
 
-`eess-ts` loses glob-evaluator, disk-set, project-registration and diagnosis
-internals. `eess-md` loses nothing.
+`eess-md` and `eess-gherkin` lose nothing — both gained exports this release.
+
+**`eess-ts`'s removals, by name.** An earlier draft of this page described them
+as "glob-evaluator, disk-set, project-registration and diagnosis internals" and
+left it there. A product review said that gives a reader no way to map their own
+compile error back to this section, and used `resolveFlag` as the example. That
+prediction came true on the first adopter to upgrade, on that exact symbol — so
+here is the list, to search:
+
+```
+FAULT_ADVICE, ON_DISK_ADVICE, UNSUPPRESSABLE, activeNotice,
+assertionLessViolation, buildDiskSet, byCodepoint, collectCalls,
+collectObjectLiteralFunctions, combineGlobs, commentSuppressionNotice,
+commentSuppressions, countDeclaredGlobs, dedupeConfigFindings, diagnoseGlob,
+discoverIdentityRoot, edgeCoverageNotice, emptyProjectAdvice,
+fromObjectLiteralFunction, globSitesOf, isAnchored, isDeadGlobTree, isDeadSite,
+isFaultPosition, isGlobNode, isNullaryCallable, isOpaqueGlob, isProjectRelative,
+isRecord, isTypeOnlyReExport, loadedNothing, marksAssertsCardinality,
+negateGlobs, normalizeIdentityText, presetConstructsNothingViolation,
+recordCommentSuppression, recordEdgeCoverage, registerProjectRoots,
+registerRootCompilerOptions, remedyRepeatsMessage, resetCommentSuppression,
+resetDiffDisclosureForTests, resetEdgeCoverage, severityFor, shallowClone,
+splitGlobArgs, stampGlobs, suppressionNotice, throwIfViolations, untestedRules,
+verbatimModuleSyntaxFor, viewsFor
+```
+
+They fall into three groups. A handful moved to `@nielspeter/eess/internal` —
+`shallowClone`, `isRecord`, `resetEdgeCoverage` and the counters — so section 2's
+fix applies. Two were deleted outright: `throwIfViolations` (section 1) and
+`presetConstructsNothingViolation` (section 5). The rest have no import path at
+all.
+
+**`isStrictFamily` and `resolveFlag` were also removed and have been restored**,
+because removing them was a mistake. They live beside `STRICT_FAMILY_SIZE` and
+the `StrictFamilyFlag` type, which stayed — so the surface briefly let you name a
+strict-family flag and count the family while neither testing nor resolving one.
+If you are reading this at `0.5.0` exactly and hitting them, that is
+[bug 0278](https://github.com/NielsPeter/eess/blob/main/work/bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md).
+
+**Verify against your own tree rather than this list**, which is a snapshot:
+
+```bash
+npm i @nielspeter/eess-ts@0.4.0
+node -e "import('@nielspeter/eess-ts').then(m=>console.log(Object.keys(m).sort().join('\n')))" > old.txt
+npm i @nielspeter/eess-ts@0.5.0
+node -e "import('@nielspeter/eess-ts').then(m=>console.log(Object.keys(m).sort().join('\n')))" > new.txt
+comm -23 old.txt new.txt
+```
 
 **These did not move to `/internal`.** They were never kernel symbols, so no
 import path reaches them any more — section 2's fix does not apply here. If you
