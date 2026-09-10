@@ -32,6 +32,7 @@ import { FAMILY_ONLY, KERNEL_INTERNAL, ANSI_INTERNAL } from './kernel-surface.mj
 const REQUIRED = [
   'collectResult',
   'mergeCollectResults',
+  'hasEvidence',
   'reportViolations',
   'finishPreset',
   'isArchConfigError',
@@ -59,10 +60,25 @@ for (const dialect of DIALECTS) {
   })
 }
 
+test('neither list is empty — an emptied check is the failure this exists for', () => {
+  // **Both lists are `filter`ed, and `[].filter(…)` is `[]`.** So emptying either
+  // one leaves every case above passing: a testing review measured `REQUIRED = []`
+  // at 5 pass / exit 0 and `DIALECTS = []` at 1 pass / exit 0. A guard that a
+  // one-line edit turns into a check of nothing is the shape `check:nonvacuity`
+  // exists to catch, and it cannot see a `node --test` file — so the floor is
+  // asserted here, where the lists live.
+  assert.ok(REQUIRED.length >= 6, `REQUIRED collapsed to ${REQUIRED.length} names`)
+  assert.ok(DIALECTS.length >= 4, `DIALECTS collapsed to ${DIALECTS.length} packages`)
+})
+
 test('the required set is real — every name is a kernel root export', async () => {
-  // Guards the list from rotting into a check of nothing. Rename a symbol in the
-  // kernel and this fails, rather than four cases above quietly asserting
-  // something nobody exports any more.
+  // Guards the list from rotting into a check of nothing on the OTHER axis: a
+  // renamed kernel symbol.
+  //
+  // What this buys, stated narrowly because an earlier version of the bug record
+  // over-claimed it: on a real rename the four dialect cases red on their own, so
+  // this case adds a clearer message rather than the detection. What it does
+  // catch alone is a name added to `REQUIRED` that the kernel never exported.
   const kernel = await import('@nielspeter/eess')
   const absent = REQUIRED.filter((name) => typeof kernel[name] !== 'function')
   assert.deepEqual(absent, [], `not on the kernel root: ${absent.join(', ')}`)

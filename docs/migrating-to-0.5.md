@@ -193,12 +193,12 @@ The second argument is the evidence — how many units you actually looked at:
 collectResult(violations, { examined: files.length })
 ```
 
-Every dialect with a barrel carries the whole receipt seam from this release —
-`collectResult`, `mergeCollectResults`, `reportViolations`, `finishPreset` and
-`isArchConfigError` — so whichever of `eess-ts`, `eess-mermaid`, `eess-md` or
-`eess-gherkin` you installed is enough. Before this release the coverage was
-uneven and several of these needed a direct kernel dependency; that is fixed, not
-worked around.
+The whole receipt seam is **new in this release** and lands on every dialect with
+a barrel — `collectResult`, `mergeCollectResults`, `hasEvidence`,
+`reportViolations`, `finishPreset` and `isArchConfigError`. On 0.4 none of it
+existed, so there is nothing in your current code to change and no workaround to
+remove. Whichever of `eess-ts`, `eess-mermaid`, `eess-md` or `eess-gherkin` you
+installed is enough.
 
 `eess-crossvalidate` is the exception. It ships flat entry files rather than a
 barrel, and each carries only what its own bindings use, so reaching a

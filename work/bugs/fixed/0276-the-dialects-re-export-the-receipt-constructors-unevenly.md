@@ -82,6 +82,17 @@ the general problem 0275 describes.
       is still on the kernel root, so renaming a constructor reds here rather than
       leaving four tests quietly asserting a symbol nobody exports.
 
+      **What the self-guard buys, narrowly.** An earlier version of this box said
+      it means "renaming a constructor reds here rather than leaving four tests
+      quietly asserting a symbol nobody exports". A testing review measured that:
+      on a real kernel rename all five cases red, the four dialect ones on their
+      own, so the self-guard adds a clearer message and not the detection. What
+      it catches alone is a name ADDED to the required set that the kernel never
+      exported. A separate case now asserts neither list is empty, because both
+      are `filter`ed and `[].filter(…)` is `[]` — measured at 5 pass with the
+      required set emptied, which is the shape `check:nonvacuity` exists for and
+      cannot see in a `node --test` file.
+
       Wired into `check:family`, beside the import-driven rule it complements.
       That gate now runs both halves: the supply side (a dialect re-exports what
       its source imports) and the demand side (a dialect publishes what the ADR
@@ -120,6 +131,21 @@ exports a dialect need not re-export, and records that its two consumers were
 unified because a hand-synced pair drifts. This test is a third consumer, so it
 now reads those sets and fails on a contradiction rather than becoming a fourth
 definition.
+
+**The clause is in ADR-011, not only here.** A method review pointed out that
+this fix made `check:family` block the build on a rule no ADR stated — the
+supply half has a clause and a `gated` row, the demand half existed in a bug
+record's ledger box. A decision that reds CI belongs in the decision record. The
+row is added, and it carries the derivation, the two guards on the guard, and the
+crossvalidate scope limit, so the coupling this record claims is held by
+something other than a sentence.
+
+**And the shape is not newly noticed.** ADR-011 already states this exact
+mismatch as a decided premise: the rule's `because` promises a standalone
+consumer never needs a second install, its implementation compares against what
+the package's source imports, "those are not the same set". This bug is that
+paragraph reaching the other end — the case where the import set is too NARROW,
+where the ADR was worrying about it being too wide.
 
 Deferred: [bug 0277](../0277-crossvalidates-flat-entries-have-no-standalone-contract.md)
 — whether standalone sufficiency applies to a flat-entry bridge package at all.

@@ -38,5 +38,13 @@ export {
   finishPreset,
   reportViolations,
   isArchConfigError,
+  // The third row of the receipt's own table in `docs/api-reference.md`. An
+  // adopter review shipped the first two and found this missing: you could build
+  // a receipt and not ask whether it carried evidence.
+  hasEvidence,
 } from '@nielspeter/eess'
+// …and the type, so a consumer can NAME what they hold. Values without their
+// type is the callable-but-unnameable defect ADR-011's nameability guard exists
+// for, one package out.
+export type { CollectResult } from '@nielspeter/eess'
 export type { Condition, Predicate, ArchViolation } from '@nielspeter/eess'

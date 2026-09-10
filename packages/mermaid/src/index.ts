@@ -22,6 +22,7 @@ export {
   // the gate stayed green — the demand side ADR-014 asks for is what was
   // missing.
   mergeCollectResults,
+  hasEvidence,
   finishPreset,
   isArchConfigError,
   reportViolations,
