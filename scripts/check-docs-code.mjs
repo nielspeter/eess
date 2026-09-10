@@ -44,6 +44,18 @@ const PACKAGE_READMES = readdirSync('packages', { withFileTypes: true })
       return false
     }
   })
+// Bug 0273. A changeset body is the one document written specifically to tell an
+// adopter how to change their code, and it was the one document with no compile
+// gate — while changesets copies it verbatim into six `CHANGELOG.md` files and
+// ships it to npm. Plan 0263 Phase 5 printed a migration telling adopters to
+// import `finishPreset` from a subpath that did not export it; three reviewers
+// caught it and no gate did.
+//
+// `README.md` is changesets' own boilerplate, not a changeset.
+const CHANGESETS = readdirSync('.changeset', { withFileTypes: true })
+  .filter((e) => e.isFile() && e.name.endsWith('.md') && e.name !== 'README.md')
+  .map((e) => join('.changeset', e.name))
+
 const TMP = '.docs-code-check'
 const SKIP_RE = /eess-docs-code-skip/
 const t0 = Date.now()
@@ -64,10 +76,44 @@ function mdFiles(dir, acc = []) {
   return acc
 }
 
+/**
+ * The import statements in a fence, verbatim, including multi-line named lists.
+ *
+ * **Why a changeset is checked by its imports and not by its whole body.** The
+ * defect bug 0273 was filed for is a claim about WHERE a symbol is exported —
+ * "`finishPreset` is exported from the same three places the alias was". That
+ * claim is only checkable once it is written as an import line, and an import
+ * line is checkable on its own: `tsc` reports TS2305 for a named member a module
+ * does not export whether or not the name is ever used.
+ *
+ * Demanding the whole snippet compile would be the wrong bar. A migration reads
+ * `finishPreset(violations, { report: 'throw' })`, where `violations` is the
+ * reader's variable, not one the changeset can invent. Requiring it to be
+ * invented would push authors toward ceremony or toward the skip directive, and
+ * a gate people route around is the failure ADR-009 rule 1 names.
+ */
+function importStatementsIn(code) {
+  const out = []
+  const lines = code.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*import\b/.test(lines[i])) continue
+    const buf = [lines[i]]
+    // A named list may span lines; a specifier closes the statement.
+    while (!/from\s*['"][^'"]+['"]|^\s*import\s*['"][^'"]+['"]/.test(buf.join('\n'))) {
+      i++
+      if (i >= lines.length) return out
+      buf.push(lines[i])
+    }
+    out.push(buf.join('\n'))
+  }
+  return out
+}
+
 const fences = [] // { file, fence, code, tmp }
 let fragments = 0
 let skipped = 0
-for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES]) {
+for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES, ...CHANGESETS]) {
+  const isChangeset = file.startsWith('.changeset')
   const kids = fromMarkdown(readFileSync(file, 'utf8')).children
   let fence = 0
   for (let i = 0; i < kids.length; i++) {
@@ -90,7 +136,16 @@ for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES]) {
       'm',
     ).test(node.value)
     const callsEntryFn = new RegExp(`\\b${ENTRY_FN.source}\\s*\\(`).test(node.value)
-    const selfContained = importsEntryFn && callsEntryFn
+
+    // **A changeset's unit is its import lines, not a runnable example.** The
+    // docs rule above asks for a self-contained rule file because that is what
+    // docs teach. A changeset teaches a migration, so what it must get right is
+    // where a symbol now lives — see `importStatementsIn`. A fence with no
+    // import claims nothing checkable and is a fragment, which is also what
+    // makes the "before" half of a migration free: `throwIfViolations(v)` with
+    // no import line is not a claim about where anything is exported.
+    const imports = isChangeset ? importStatementsIn(node.value) : []
+    const selfContained = isChangeset ? imports.length > 0 : importsEntryFn && callsEntryFn
     if (!selfContained) {
       fragments++
       continue
@@ -101,7 +156,7 @@ for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES]) {
       continue
     }
     const tmp = `${file.replace(/[^\w]+/g, '_')}__f${fence}.ts`
-    fences.push({ file, fence, code: node.value, tmp })
+    fences.push({ file, fence, code: isChangeset ? imports.join('\n') : node.value, tmp })
   }
 }
 

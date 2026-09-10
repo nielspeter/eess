@@ -2636,6 +2636,15 @@ const gates = [
       ]),
   ],
   [
+    'docs-code/changeset-migration-does-not-compile',
+    () =>
+      gateNode(
+        'bad-waived-gates.mjs',
+        'docs-code/changeset-migration-does-not-compile red on its own subject',
+        ['docs-code/changeset-migration-does-not-compile'],
+      ),
+  ],
+  [
     'examples/does-not-compile',
     () =>
       gateNode('bad-waived-gates.mjs', 'examples/does-not-compile red on its own subject', [
@@ -2816,7 +2825,14 @@ const GATE_FOR = {
     'guardrails/rule-files-matches-nothing',
   ],
   'check:examples': ['examples/does-not-compile'],
-  'check:docs-code': ['docs-code/fence-does-not-compile'],
+  // Two populations, two rows. The script scans `docs/` + package READMEs AND
+  // `.changeset/**` (bug 0273), and one row per script cannot notice when one
+  // population stops being scanned — which is exactly how the changeset half
+  // was absent with this gate green.
+  'check:docs-code': [
+    'docs-code/fence-does-not-compile',
+    'docs-code/changeset-migration-does-not-compile',
+  ],
   // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
   // sabotages the KERNEL ROOT — the only population this gate blocks on.
   'check:surface': ['surface/undocumented-export'],

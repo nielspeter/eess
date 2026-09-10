@@ -24,8 +24,20 @@ throwIfViolations(violations)
 with
 
 ```ts
+import { finishPreset } from '@nielspeter/eess-ts/presets'
+
 finishPreset(violations, { report: 'throw' })
 ```
+
+The import line is in the fence on purpose. This changeset's earlier draft said
+in prose that `finishPreset` "is exported from the same three places the alias
+was", and that was false for the `/presets` subpath — three reviewers caught it
+and no gate could, because a claim about where a symbol lives is not checkable
+until it is written as an import. `check:docs-code` now compiles the import lines
+of every changeset fence ([bug 0273](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0273-nothing-compiles-a-changesets-migration-snippet.md)),
+so the sentence above is now a thing that fails the build rather than a thing you
+have to trust. Swap the specifier for `@nielspeter/eess` or `@nielspeter/eess-ts`
+if that is where you import from; all three carry it.
 
 Behaviour is identical — emit to stderr, then throw one aggregated
 `ArchRuleError`. Taking the option explicitly is the point: you can choose

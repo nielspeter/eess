@@ -978,4 +978,4 @@ and the other four are pure gain.
 - [x] `/close` — authored in Phase 5's own PR, per the house rule that a plan closes with the change rather than in a follow-up.
 
 Deferred: [bug 0272](../../bugs/0272-the-kernel-roots-unwatched-residual.md) and
-[bug 0273](../../bugs/0273-nothing-compiles-a-changesets-migration-snippet.md) — two narrow residuals in what watches the kernel root, and the absence of any gate that compiles a changeset's migration snippet. Neither is planned work left undone: the phase's scope (remove the symbol, declare the break) is complete. Both are what review turned up afterwards, and 0273 is the mechanism whose absence let this phase print a migration that did not compile.
+[bug 0273](../../bugs/fixed/0273-nothing-compiles-a-changesets-migration-snippet.md) — two narrow residuals in what watches the kernel root, and the absence of any gate that compiles a changeset's migration snippet. Neither is planned work left undone: the phase's scope (remove the symbol, declare the break) is complete. Both are what review turned up afterwards, and 0273 is the mechanism whose absence let this phase print a migration that did not compile.

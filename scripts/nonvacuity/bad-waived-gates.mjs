@@ -110,6 +110,7 @@ const PROBE_PATHS = [
   'packages/core/src/__nonvacuity_probe_stub__.ts',
   'packages/core/src/__nonvacuity_probe_empty__.ts',
   'packages/core/src/__nonvacuity_probe_copy__.ts',
+  '.changeset/__nonvacuity_probe_migration__.md',
 ]
 
 function sweepProbes() {
@@ -309,6 +310,47 @@ SCENARIOS['docs-code/fence-does-not-compile'] = () => {
   )
   if (fence === 0) {
     vacuous(`check:docs-code exited ${fence} with a documentation fence that does not typecheck`)
+  }
+}
+
+SCENARIOS['docs-code/changeset-migration-does-not-compile'] = () => {
+  // Bug 0273. `check:docs-code` compiled the fences under `docs/` and every
+  // package README, and never opened `.changeset/` — while changesets copies a
+  // changeset body verbatim into six `CHANGELOG.md` files and ships it to npm.
+  // It is the one document written specifically to tell an adopter how to change
+  // their code, and it was the one with no compile gate.
+  //
+  // Measured before the fix: a changeset fence importing a symbol that does not
+  // exist left the gate green. The instance that produced the bug is smaller and
+  // worse — plan 0263 Phase 5 told adopters to import `finishPreset` from a
+  // subpath that did not export it, three reviewers caught it, and no gate could,
+  // because the claim lived in prose rather than in an import line.
+  //
+  // A SEPARATE row from `docs-code/fence-does-not-compile` on purpose. That one
+  // sabotages a fence under `docs/`, and it stayed green through the whole period
+  // this hole was open: one script, two populations, and a row per population is
+  // the only shape that notices when one of them stops being scanned. This is the
+  // same one-row-per-multi-check-script trap scenarios 4 and 6 record.
+  const migration = withAddedFile(
+    '.changeset/__nonvacuity_probe_migration__.md',
+    [
+      '---',
+      "'@nielspeter/eess-ts': patch",
+      '---',
+      '',
+      'Replace it with:',
+      '',
+      '```ts',
+      "import { __nonvacuityMissingExport__ } from '@nielspeter/eess-ts/presets'",
+      '```',
+      '',
+    ].join('\n'),
+    () => run('check:docs-code'),
+  )
+  if (migration === 0) {
+    vacuous(
+      `check:docs-code exited ${migration} with a changeset importing a symbol that is not exported`,
+    )
   }
 }
 
