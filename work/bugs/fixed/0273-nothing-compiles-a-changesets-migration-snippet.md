@@ -4,13 +4,16 @@
 
 - **State:** Fixed — `check:docs-code` compiles the import lines of every
   changeset fence, both break classes dispositioned, closed in its own PR.
-- **Priority:** Medium-to-high — raised from Medium by a product review: a changeset is copied verbatim into six published CHANGELOGs and reaches npm, so it is the one adopter-facing document with no gate.
-- **Found by:** enforcement and release reviews of PR #122, independently.
+- **Severity:** Medium-to-high — raised from Medium by a product review: a changeset is copied verbatim into six published CHANGELOGs and reaches npm, so it is the one adopter-facing document with no gate.
+- **Origin:** self-found · enforcement and release reviews of PR #122, independently.
 
 ## Symptom
 
-`check:docs-code` compiles the fenced code blocks under `docs/` — 57
-import-bearing fences, measured. It never opens `.changeset/`.
+`check:docs-code` compiled the fenced code blocks under `docs/` and every
+package README. It never opened `.changeset/`. (The gate prints its own live
+denominator per population on each run; a number pinned here would be stale
+within a fortnight, which is the lesson `CLAUDE.md` records about its own
+tables.)
 
 A changeset body is the one document written specifically to tell an adopter how
 to change their code, and it is the one document with no compile gate. It also
@@ -133,7 +136,10 @@ import line".
       `.changeset/throwifviolations-leaves-the-public-surface.md` carries
       `import { finishPreset } from '@nielspeter/eess-ts/presets'` in its fence,
       and pointing that specifier at a barrel without the symbol reds the gate.
-      The sentence that was false in prose is now a thing that fails the build.
+      The sentence that was false in prose is now a thing that fails the build —
+      **in that changeset**, because the import line was written into it. Not in
+      the next one, unless its author writes one too. Three reviewers made the
+      same point independently and the distinction is the whole residual below.
 
       **What is NOT gated, said plainly because an enforcement review found this
       box implying otherwise.** Nothing requires a changeset to write an import
@@ -202,4 +208,4 @@ documents are scanned now, on the migration rule rather than the example rule,
 because what they carry is a migration. Measured: pointing that fence's specifier
 at a barrel without the symbol reds the gate.
 
-Deferred: none.
+Deferred: [bug 0275](../0275-a-migration-can-still-state-its-claim-in-prose.md) — the demand side. This gate checks a claim once it is written as a module statement and requires nothing to be written, so a migration stated purely in prose still passes. That is this bug's own defect, surviving at one remove, and three reviewers read the ledger box as a mechanism when it is a convention. Naming it in its own record is the difference between a residual and a silence.

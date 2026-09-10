@@ -1,65 +1,61 @@
 /**
- * The import statements in a code fence, verbatim.
+ * The statements in a code fence that claim WHERE a symbol lives.
  *
- * Split out of `scripts/check-docs-code.mjs` so it can be unit-tested the way
- * every other pure helper here is (bug 0273, second review round). A hand-rolled
- * parser doing a job TypeScript already does properly earns a test per shape,
- * and the first version had three that it silently dropped — a dropped import
- * makes the fence a fragment, which is indistinguishable from a fence that never
- * claimed anything.
+ * Two forms qualify, and both are claims of the same kind:
+ *   - `import { x } from 'p'` — x is exported by p
+ *   - `export { x } from 'p'` — x is exported by p, and re-exported here
  *
- * **Why a changeset is checked by its imports and not by its whole body.** The
- * defect bug 0273 was filed for is a claim about WHERE a symbol is exported —
+ * Split out of `scripts/check-docs-code.mjs` so it can be unit-tested per shape
+ * (bug 0273), and parsed with **ts-morph** rather than by regex.
+ *
+ * **Why the engine and not a regex.** ADR-002 makes ts-morph the engine for all
+ * AST work, and the first version of this helper was a hand-rolled scanner that
+ * proved the rule the hard way. An architecture review measured it missing
+ * `export { … } from '…'` entirely — the fence became a fragment and was never
+ * compiled, a fail-open in the exact shape this bug was filed for — and
+ * `scripts/lib/family-re-exports.mjs` already records that same lesson about that
+ * same node type. Its predecessor also swallowed lines past an unterminated
+ * import and matched the word `import` inside comments and template literals.
+ * The parser has no opinion about any of that; it just knows what a declaration
+ * is.
+ *
+ * **Why a changeset is checked by these and not by its whole body.** The defect
+ * bug 0273 was filed for is a claim about where a symbol is exported —
  * "`finishPreset` is exported from the same three places the alias was". That
- * claim is only checkable once written as an import line, and an import line is
+ * claim is only checkable once written as a statement, and such a statement is
  * checkable alone: `tsc` reports TS2305 for a named member a module does not
  * export whether or not the name is ever used.
  *
  * Demanding the whole snippet compile would be the wrong bar. A migration reads
  * `finishPreset(violations, …)`, where `violations` is the reader's variable and
  * not one a changeset can invent. Requiring it to be invented would push authors
- * toward ceremony or toward the skip directive, and a gate people route around
- * is the failure ADR-009 rule 1 names.
- *
- * **Known limits, stated rather than discovered.** A line beginning with the word
- * `import` inside a template literal or a `/* … *\/` block comment is matched and
- * compiled as real — measured by a testing review. A `//` line comment is not,
- * because the line no longer starts with `import`.
- *
- * Both are fail-CLOSED: the cost is an extra statement compiled, never a real one
- * skipped, so the worst case is noise on a fence that was making no claim. Closing
- * them means parsing TypeScript, which would make this helper heavier than the
- * fences it guards. The escape hatch is the documented skip directive.
+ * toward ceremony or toward the skip directive, and a gate people route around is
+ * the failure ADR-009 rule 1 names.
  */
+import { Project, ScriptKind } from 'ts-morph'
 
-// `(?![.(\w])` keeps `import.meta`, dynamic `import(`, and any identifier
-// starting with "import" from opening a statement. The first version had no such
-// guard, so an `import.meta.url` line swallowed the statement after it — measured
-// by a testing review, which left a bad import unchecked and the gate green.
-const STARTS = /^[ \t]*import(?![.(\w])/gm
+// One project reused across fences: creating a ts-morph Project per fence is the
+// expensive part, and the source file is overwritten each call.
+const project = new Project({
+  useInMemoryFileSystem: true,
+  skipFileDependencyResolution: true,
+  compilerOptions: { allowJs: false, noResolve: true },
+})
 
-// Tried IN THIS ORDER at each start, and the order is load-bearing. A bare
-// specifier ends the statement immediately; trying the `from` form first lets it
-// run past the closing quote to a LATER statement's `from`, merging two imports
-// into one — which the unit test beside this file caught on the first draft.
-const BARE = /[ \t]*import[ \t]*(['"])[^'"]*\1[ \t]*;?/y
-const FROM = /[ \t]*import(?:[^'"\n]|\n)*?from[ \t]*(['"])[^'"]*\1[ \t]*;?/y
-
-/** @param {string} code @returns {string[]} */
-export function importStatementsIn(code) {
-  const out = []
-  for (const start of code.matchAll(STARTS)) {
-    const at = start.index ?? 0
-    // Re-anchor past the leading whitespace the start match consumed.
-    const from = code.indexOf('import', at)
-    for (const re of [BARE, FROM]) {
-      re.lastIndex = from
-      const m = re.exec(code)
-      if (m) {
-        out.push(m[0].trim())
-        break
-      }
-    }
-  }
-  return out
+/**
+ * @param {string} code a fence's contents
+ * @returns {string[]} the module-claim statements, in source order
+ */
+export function moduleClaimsIn(code) {
+  const sf = project.createSourceFile('__fence__.ts', code, {
+    overwrite: true,
+    scriptKind: ScriptKind.TS,
+  })
+  const claims = [
+    ...sf.getImportDeclarations(),
+    // Only the re-export form: a bare `export { x }` names no module and claims
+    // nothing about where anything lives.
+    ...sf.getExportDeclarations().filter((d) => d.getModuleSpecifier() !== undefined),
+  ]
+  return claims.sort((a, b) => a.getPos() - b.getPos()).map((d) => d.getText())
 }

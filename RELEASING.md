@@ -73,10 +73,24 @@ the skip directive does. And a failure in a changeset prints a remedy saying the
 import line is a claim about where a symbol is exported, rather than offering the
 skip directive as an equal option.
 
+**Running it.** `check:docs-code` is late in `npm run validate` and is not in
+`check:fast`, because it needs a built `dist`. Once built, run it directly —
+`npm run check:docs-code`, about a second — rather than waiting for the full
+chain or for CI.
+
+**A rename in a later PR can red a changeset that PR did not touch.** Pending
+changesets are checked on every run, so renaming or moving a symbol reds any
+pending migration naming it, and the author of the rename has to edit someone
+else's unreleased document or mark it skipped. That is the intended behaviour —
+shipping a dead migration is the thing being prevented — but it is a real cost
+while a release train is long, and it is better met knowingly than as a surprise.
+
 **Showing a "before" that no longer resolves.** If the before-side genuinely
 needs its old import line, put `<!-- eess-docs-code-skip: pre-migration example -->`
 immediately above the fence. The gate counts skipped fences in its summary, so
-this is visible rather than silent.
+this is visible rather than silent. Note that `changeset version` copies the body
+verbatim, comment included — it will not render, but it does reach the published
+`CHANGELOG.md`.
 
 ## Signalling a breaking change (bug 0184)
 

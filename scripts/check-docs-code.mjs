@@ -12,7 +12,7 @@
  * checked only if it is a self-contained example — it imports AND calls an entry
  * function. A changeset fence is reduced to its import STATEMENTS, because what
  * a migration must get right is where a symbol now lives, and a migration's body
- * legitimately references the reader's own variables. See `importStatementsIn`.
+ * legitimately references the reader's own variables. See `moduleClaimsIn`.
  *
  * The docs teach code, but nothing compiled it — so a stale example (a moved import,
  * a removed/renamed method, a changed signature, a deprecated call) rots uncaught.
@@ -37,7 +37,7 @@ import { fromMarkdown } from 'mdast-util-from-markdown'
 import { ESLint } from 'eslint'
 import tseslint from 'typescript-eslint'
 // Split out so it can be unit-tested per shape (bug 0273, second review round).
-import { importStatementsIn } from './lib/import-statements.mjs'
+import { moduleClaimsIn } from './lib/import-statements.mjs'
 
 const DOCS = 'docs'
 // Each package's own README teaches code too — same rot risk, same fix. Only
@@ -86,9 +86,18 @@ const ROOT_DOCS = ['README.md', 'RELEASING.md'].filter((f) => {
 const IMPORT_CLAIM_FILES = new Set(['RELEASING.md'])
 const readsAsImportClaim = (file) => file.startsWith('.changeset') || IMPORT_CLAIM_FILES.has(file)
 
-const CHANGESETS = readdirSync('.changeset', { withFileTypes: true })
-  .filter((e) => e.isFile() && e.name.endsWith('.md') && e.name !== 'README.md')
-  .map((e) => join('.changeset', e.name))
+// Guarded the way `PACKAGE_READMES` above is: the directory is committed today,
+// but a script that throws on a missing directory reports a broken extractor as
+// a crash rather than as the zero it should be.
+const CHANGESETS = (() => {
+  try {
+    return readdirSync('.changeset', { withFileTypes: true })
+      .filter((e) => e.isFile() && e.name.endsWith('.md') && e.name !== 'README.md')
+      .map((e) => join('.changeset', e.name))
+  } catch {
+    return []
+  }
+})()
 
 const TMP = '.docs-code-check'
 const SKIP_RE = /eess-docs-code-skip/
@@ -158,11 +167,11 @@ for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES, ...CHANGESETS, ...ROOT
     // **A changeset's unit is its import lines, not a runnable example.** The
     // docs rule above asks for a self-contained rule file because that is what
     // docs teach. A changeset teaches a migration, so what it must get right is
-    // where a symbol now lives — see `importStatementsIn`. A fence with no
+    // where a symbol now lives — see `moduleClaimsIn`. A fence with no
     // import claims nothing checkable and is a fragment, which is also what
     // makes the "before" half of a migration free: `throwIfViolations(v)` with
     // no import line is not a claim about where anything is exported.
-    const imports = isChangeset ? importStatementsIn(node.value) : []
+    const imports = isChangeset ? moduleClaimsIn(node.value) : []
     const selfContained = isChangeset ? imports.length > 0 : importsEntryFn && callsEntryFn
     if (!selfContained) {
       fragments++
