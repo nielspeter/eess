@@ -52,7 +52,10 @@ array and `finishPreset` requires a receipt, so for that caller sections 1 and 4
 are one migration. Read section 4 before you run it.
 
 It is on all three barrels, so the import line does not move wherever you took
-the old one from:
+the old one from — **but on the `/presets` subpath that is true only from this
+release onward.** The alias was published there and its replacement never was, so
+`finishPreset` is added to that barrel now. If you import from `/presets`, upgrade
+before you migrate or the specifier will not resolve.
 
 ```ts
 import { finishPreset as fromKernel } from '@nielspeter/eess'
@@ -84,23 +87,34 @@ With that said — **nothing was deleted or renamed**; change the specifier:
 import { shallowClone, isRecord } from '@nielspeter/eess/internal'
 ```
 
-Five things stayed on the root that you might reasonably expect to have moved.
-**Do not rewrite these** — they are not at `/internal`:
+Some things stayed on the root that you might reasonably expect to have moved.
+**Do not rewrite these** — they are not at `/internal`, and a bulk
+search-and-replace will break them:
 
 ```ts
 import {
   correspondence,
   CorrespondenceBuilder,
   reportViolations,
+  finishPreset,
   globNode,
   globAnyOf,
 } from '@nielspeter/eess'
 ```
 
-`correspondence` and its options types are the public surface of `eess-md` and
-`eess-crossvalidate`. `reportViolations` and `finishPreset` are named seams in
+```ts
+import type { CorrespondenceOptions, RelationSpec, KeyBy } from '@nielspeter/eess'
+```
+
+`correspondence` is the public surface of `eess-md` and `eess-crossvalidate`, and
+the three types are the parameters of `correspondence()` and
+`preserveRelations()`. `reportViolations` and `finishPreset` are named seams in
 ADR-008. `globNode` and `globAnyOf` are what a user-written `definePredicate`
 needs to declare its globs.
+
+The type imports are on their own line above for a reason: they are the ones an
+earlier draft of the release notes got wrong, so they are the likeliest to be
+rewritten by mistake.
 
 **If you consume a dialect rather than the kernel**, `@nielspeter/eess/internal`
 resolves for you only when the kernel is hoisted to your `node_modules` root.
@@ -218,6 +232,12 @@ Do not reach for the globs first. The finding cannot be suppressed by `.warn()`,
 diff-aware mode — by design — so the only ways through are a true declaration or
 a real fix.
 
+### One `--format json` field changes
+
+`summary.reason` is now `null` where it previously carried the failing rule's
+`because`. Nothing is lost — read `violations[].because` instead. If you have a
+script or an agent parsing that field, it changes with your source untouched.
+
 ### An empty source can no longer be declared away
 
 The mirror image of the above: a declaration that a source is expected to be
@@ -275,9 +295,13 @@ and no score changed.
 
 ## If something here is wrong
 
-The `ts` fences on this page have their import lines compiled against the
-published packages on every CI run, so a specifier that does not resolve fails
-the build rather than reaching you.
+The `ts` fences on this page have their import lines compiled on every CI run,
+so a specifier that does not resolve fails the build rather than reaching you.
+
+To be exact about what that proves: it compiles against this repo's **workspace
+build**, not against the tarballs npm serves you. The two agree on everything
+this page names, but a packaging-level difference — an `exports` map or a `files`
+list — is not something this check can see.
 
 Everything else here is unchecked: the prose, the counts, and any fence not
 tagged `ts`. If a claim does not match what you find, that is a bug worth
