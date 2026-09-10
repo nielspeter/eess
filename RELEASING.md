@@ -36,6 +36,13 @@ line in the fence.** `check:docs-code` compiles the import statements of every
 `ts` fence under `.changeset/`, so the specifier and every named member are
 resolved against the built packages.
 
+**What is gated and what is not.** Nothing checks that you wrote an import line.
+A migration written purely in prose, or with a fence that has no import, passes
+free — it is a fragment, and no mechanism reads English. What is gated is that
+the line you DID write resolves. So this section is a convention held by review,
+not by the build, and the build's job is to make the convention worth following:
+the moment you state where a symbol lives, that statement becomes falsifiable.
+
 ```ts
 import { finishPreset } from '@nielspeter/eess-ts/presets'
 

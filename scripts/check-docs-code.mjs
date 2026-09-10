@@ -1,10 +1,18 @@
 #!/usr/bin/env node
 /**
- * Dogfood: type-check + no-deprecated-lint the TypeScript code fences in docs/
- * and every packages/<name>/README.md (plan 0082; README scope added plan 0089
- * round 3 — a dialect's own README teaching code with the same rot risk had no
- * coverage at all, confirmed by a stale `packages/md/README.md` example that
- * silently didn't compile standalone).
+ * Dogfood: type-check + no-deprecated-lint the TypeScript code fences in THREE
+ * populations — docs/, every packages/<name>/README.md, and .changeset/ (plan
+ * 0082; README scope added plan 0089 round 3 — a dialect's own README teaching
+ * code with the same rot risk had no coverage at all, confirmed by a stale
+ * `packages/md/README.md` example that silently didn't compile standalone;
+ * changesets added by bug 0273, after a published migration told adopters to
+ * import from a subpath that did not export the symbol).
+ *
+ * The populations do NOT share a selection rule. A docs or README fence is
+ * checked only if it is a self-contained example — it imports AND calls an entry
+ * function. A changeset fence is reduced to its import STATEMENTS, because what
+ * a migration must get right is where a symbol now lives, and a migration's body
+ * legitimately references the reader's own variables. See `importStatementsIn`.
  *
  * The docs teach code, but nothing compiled it — so a stale example (a moved import,
  * a removed/renamed method, a changed signature, a deprecated call) rots uncaught.
@@ -248,8 +256,24 @@ rmSync(TMP, { recursive: true, force: true })
 // ---------- report ----------
 console.error('')
 console.error('check:docs-code · doc code-fence checks (tsc + no-deprecated)')
+// **Per population, not one merged number.** A single denominator across three
+// populations cannot show one of them going dark — which is the shape that let
+// the changeset half be absent while this gate printed green, and the shape
+// `CLAUDE.md` records about its own gate table. A zero beside a population that
+// should have fences is the signal.
+const byPopulation = { docs: 0, readme: 0, changeset: 0 }
+for (const f of fences) {
+  const key = f.file.startsWith('.changeset')
+    ? 'changeset'
+    : f.file.startsWith('docs')
+      ? 'docs'
+      : 'readme'
+  byPopulation[key]++
+}
 console.error(
-  `  scanned   ${fences.length} import-bearing TS fences · ${fragments} fragments + ${skipped} skip-directive'd (not checked)`,
+  `  scanned   ${fences.length} import-bearing TS fences ` +
+    `(${byPopulation.docs} docs · ${byPopulation.readme} package README · ${byPopulation.changeset} changeset) · ` +
+    `${fragments} fragments + ${skipped} skip-directive'd (not checked)`,
 )
 
 if (failures.length > 0) {
@@ -262,9 +286,28 @@ if (failures.length > 0) {
   console.error(
     `  ✗ doc code-fence checks — ${failures.length} failure(s) across ${fences.length} fences (${elapsed()})`,
   )
-  console.error(
-    `  Fix the example, or — if the fence is intentionally illustrative — precede it with\n  <!-- eess-docs-code-skip: <reason> -->\n`,
-  )
+  // **The remedy differs by population, and offering the wrong one teaches the
+  // wrong reflex.** For a docs fence, "fix it or mark it illustrative" is right.
+  // For a changeset, the fence is a claim about WHERE a symbol is exported, and
+  // a red means either the claim is wrong or the barrel is missing an export —
+  // so offering the skip directive as a co-equal remedy would nudge an author
+  // toward silencing exactly the defect this population was added to catch
+  // (ADR-009 rule 1: a mechanism that fires on the thing it protects teaches
+  // people to switch it off). Found by a product review.
+  if (failures.some((v) => v.file.startsWith('.changeset'))) {
+    console.error(
+      `  A changeset fence's import line is a claim about where a symbol is exported.\n` +
+        `  A failure here means the claim is wrong, or the barrel is missing that export —\n` +
+        `  fix one of those. The skip directive is for a pre-migration "before" example\n` +
+        `  only, never for the migration itself. See RELEASING.md, "A migration names its\n` +
+        `  import line".\n`,
+    )
+  }
+  if (failures.some((v) => !v.file.startsWith('.changeset'))) {
+    console.error(
+      `  Fix the example, or — if the fence is intentionally illustrative — precede it with\n  <!-- eess-docs-code-skip: <reason> -->\n`,
+    )
+  }
   process.exit(1)
 }
 

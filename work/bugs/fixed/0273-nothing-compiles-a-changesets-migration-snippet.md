@@ -135,4 +135,40 @@ import line".
       and pointing that specifier at a barrel without the symbol reds the gate.
       The sentence that was false in prose is now a thing that fails the build.
 
+## What a review round changed
+
+**The published prose was the worst part of the first cut, and it is the same
+defect one level up.** The changeset was edited to explain, in the changeset, why
+its import line was now in a fence — naming this bug, three reviewers, a repo-local
+script and a deep link into `work/bugs/fixed/`. That text ships verbatim into six
+`CHANGELOG.md` files. A developer upgrading `eess-mermaid` would have got a
+paragraph about this repo's drafting process instead of a migration. A product
+review named it: the consumer of a changelog entry is an adopter, and that
+paragraph had no consumer outside the repo.
+
+Removing it exposed that the same fault was already there — `plan 0263`,
+`plan 0235`, `plan 0070`, `bug 0185`, `ADR-008`, `docs/api-reference.md`. All are
+gone; the changeset now reads as a changelog entry and nothing in it points at a
+document an adopter cannot open.
+
+**The remedy line was inverted for this population.** On a failure the gate said
+"fix the example, or mark it illustrative with the skip directive". For a docs
+fence that is right; for a changeset it offers, as a co-equal option, silencing
+the exact defect the population was added to catch — ADR-009 rule 1. The message
+now branches: a changeset failure says the import line is a claim about where a
+symbol is exported, that a red means the claim is wrong or the barrel is missing
+an export, and that the skip directive is for a "before" example only. Both
+branches measured.
+
+**The convention section over-claimed its tier.** It opened with a bolded
+imperative and immediately named the gate, so a reader meeting it cold would take
+the imperative as enforced. It is not: a migration written purely in prose is a
+fragment and passes free. `RELEASING.md` now says which half is gated — nothing
+checks that you wrote an import line, only that the line you wrote resolves.
+
+**The summary printed one denominator across three populations**, which cannot
+show one going dark. It now reads `(48 docs · 10 package README · 1 changeset)`.
+That last number was zero for the whole time this bug was open, and nothing said
+so.
+
 Deferred: none.
