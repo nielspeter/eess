@@ -103,13 +103,24 @@ const PROBE_PATHS = [
   'examples/__nonvacuity_probe__.test.ts',
   // Bug 0240's three guardrails probes. This list is hand-kept, and a scenario
   // that plants a probe without adding it here loses the self-heal the comment
-  // above promises: `check:integrity` still NAMES the leftover, because its scan
-  // is prefix-based rather than a list, but the next run no longer clears it and
-  // a human has to. Adding a scenario means adding its path here — the omission
-  // is invisible until a SIGKILL, which is what bug 0231 measured.
+  // above promises: the next run no longer clears it and a human has to. Adding
+  // a scenario means adding its path here — the omission is invisible until a
+  // SIGKILL, which is what bug 0231 measured.
+  //
+  // **An earlier version of this comment said `check:integrity` "still NAMES the
+  // leftover, because its scan is prefix-based rather than a list". That is half
+  // true and the missing half matters.** The prefix match is what finds a probe
+  // inside a root already listed in `probeRoots`; a probe in a directory NOT on
+  // that list is invisible. Bug 0273's fixture plants one in `.changeset/`,
+  // which was not a probe root — a release review measured that `changeset
+  // version` reads the filesystem and would have consumed it into six published
+  // CHANGELOGs. `.changeset` is a probe root now.
   'packages/core/src/__nonvacuity_probe_stub__.ts',
   'packages/core/src/__nonvacuity_probe_empty__.ts',
   'packages/core/src/__nonvacuity_probe_copy__.ts',
+  '.changeset/__nonvacuity_probe_migration__.md',
+  '.changeset/__nonvacuity_probe_sideeffect__.md',
+  '.changeset/__nonvacuity_probe_leftover__.md',
 ]
 
 function sweepProbes() {
@@ -309,6 +320,146 @@ SCENARIOS['docs-code/fence-does-not-compile'] = () => {
   )
   if (fence === 0) {
     vacuous(`check:docs-code exited ${fence} with a documentation fence that does not typecheck`)
+  }
+}
+
+SCENARIOS['docs-code/changeset-migration-does-not-compile'] = () => {
+  // Bug 0273. `check:docs-code` compiled the fences under `docs/` and every
+  // package README, and never opened `.changeset/` — while changesets copies a
+  // changeset body verbatim into six `CHANGELOG.md` files and ships it to npm.
+  // It is the one document written specifically to tell an adopter how to change
+  // their code, and it was the one with no compile gate.
+  //
+  // Measured before the fix: a changeset fence importing a symbol that does not
+  // exist left the gate green. The instance that produced the bug is smaller and
+  // worse — plan 0263 Phase 5 told adopters to import `finishPreset` from a
+  // subpath that did not export it, three reviewers caught it, and no gate could,
+  // because the claim lived in prose rather than in an import line.
+  //
+  // A SEPARATE row from `docs-code/fence-does-not-compile` on purpose. That one
+  // sabotages a fence under `docs/`, and it stayed green through the whole period
+  // this hole was open: one script, two populations, and a row per population is
+  // the only shape that notices when one of them stops being scanned. This is the
+  // same one-row-per-multi-check-script trap scenarios 4 and 6 record.
+  //
+  // **`runCapture`, because an exit code cannot attribute this failure.** The
+  // gate runs three populations in one process, so a non-zero status says only
+  // "something reddened somewhere". A testing review measured the consequence:
+  // with the changeset population deleted from the file list AND an unrelated
+  // `docs/getting-started.md` fence broken, a status-only assertion still
+  // reported "red on its own subject" — a false sentence, one level down from
+  // the over-claim the second `GATE_FOR` row exists to prevent. The reporter
+  // prints the failing file and the compiler message, so both discriminators
+  // are there for the asking.
+  const migration = withAddedFile(
+    '.changeset/__nonvacuity_probe_migration__.md',
+    [
+      '---',
+      "'@nielspeter/eess-ts': patch",
+      '---',
+      '',
+      'Replace it with:',
+      '',
+      '```ts',
+      "import { __nonvacuityMissingExport__ } from '@nielspeter/eess-ts/presets'",
+      '```',
+      '',
+    ].join('\n'),
+    () => runCapture('check:docs-code'),
+  )
+  const namesProbe = migration.out.includes('__nonvacuity_probe_migration__')
+  const namesSymbol = migration.out.includes('__nonvacuityMissingExport__')
+  if (migration.status === 0 || !namesProbe || !namesSymbol) {
+    vacuous(
+      `check:docs-code exited ${migration.status} with a changeset importing a symbol that is not ` +
+        `exported (named the probe file: ${String(namesProbe)}, named the missing symbol: ` +
+        `${String(namesSymbol)})`,
+    )
+  }
+}
+
+SCENARIOS['docs-code/changeset-side-effect-import'] = () => {
+  // A SECOND changeset row, because the first cannot see the guard that matters
+  // most to this population. `noUncheckedSideEffectImports` is what makes
+  // `import 'pkg/does-not-exist'` fail; without it TypeScript says nothing and
+  // the fence is counted, reported as checked, and unable to fail. The
+  // migration probe imports a NAMED member, which reds via TS2305 with or
+  // without the flag — so deleting the flag left every row green. Measured by
+  // two reviews independently. "Add this import" is an ordinary migration shape,
+  // so what escapes is adopter-facing.
+  const bad = withAddedFile(
+    '.changeset/__nonvacuity_probe_sideeffect__.md',
+    [
+      '---',
+      "'@nielspeter/eess-ts': patch",
+      '---',
+      '',
+      'Add this import:',
+      '',
+      '```ts',
+      "import '@nielspeter/eess-ts/__nonvacuity_no_such_subpath__'",
+      '```',
+      '',
+    ].join('\n'),
+    () => runCapture('check:docs-code'),
+  )
+  // By the specifier, not by exit code: the gate runs several populations, and a
+  // named-member probe elsewhere would satisfy a status-only assertion.
+  const namesSpecifier = bad.out.includes('__nonvacuity_no_such_subpath__')
+  if (bad.status === 0 || !namesSpecifier) {
+    vacuous(
+      `check:docs-code exited ${bad.status} with a changeset side-effect import of a module that ` +
+        `does not exist (named the specifier: ${String(namesSpecifier)})`,
+    )
+  }
+}
+
+SCENARIOS['docs-code/root-doc-fence'] = () => {
+  // The THIRD population — the repo-root docs. `RELEASING.md` is where the
+  // changeset convention is written down, and its example is a migration; a
+  // testing review found it sitting outside every scanned population, so the
+  // document teaching "a claim is not checkable until written as an import" had
+  // an unchecked import claim. Adding the population fixed that and pinned
+  // nothing: deleting `ROOT_DOCS` from the file list printed `0 root doc` and
+  // exited 0, with both other docs-code rows green. A denominator is a signal to
+  // a human; this row is the signal to the build.
+  const bad = withSabotage(
+    'RELEASING.md',
+    (t) => t.replace("import { finishPreset } from '@nielspeter/eess-ts/presets'",
+      "import { __nonvacuityNoSuchExport__ } from '@nielspeter/eess-ts/presets'"),
+    () => runCapture('check:docs-code'),
+  )
+  const namesFile = bad.out.includes('RELEASING.md')
+  const namesSymbol = bad.out.includes('__nonvacuityNoSuchExport__')
+  if (bad.status === 0 || !namesFile || !namesSymbol) {
+    vacuous(
+      `check:docs-code exited ${bad.status} with a broken import claim in RELEASING.md ` +
+        `(named the file: ${String(namesFile)}, named the symbol: ${String(namesSymbol)})`,
+    )
+  }
+}
+
+SCENARIOS['integrity/leftover-probe-changeset'] = () => {
+  // A SECOND leftover row, because the existing one plants under
+  // `packages/core/src/` and therefore proves the leftover RULE, not the ROOT
+  // SET. Removing `.changeset` from `probeRoots` left that row green while the
+  // denominator dropped 11 → 10 in silence.
+  //
+  // This root carries stakes the others do not. `changeset version` reads the
+  // filesystem rather than git, `.gitignore` hides the probe from `git status`,
+  // and a release review measured a planted probe's body landing in a published
+  // CHANGELOG ready to ship with provenance — which npm will not let you undo.
+  const bad = withAddedFile(
+    '.changeset/__nonvacuity_probe_leftover__.md',
+    '---\n---\n\nleftover probe\n',
+    () => runCapture('check:integrity'),
+  )
+  const namesFile = bad.out.includes('__nonvacuity_probe_leftover__')
+  if (bad.status === 0 || !namesFile) {
+    vacuous(
+      `check:integrity exited ${bad.status} with a leftover probe in .changeset/ ` +
+        `(named the file: ${String(namesFile)})`,
+    )
   }
 }
 

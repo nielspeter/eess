@@ -5,7 +5,7 @@
 - **State:** Draft — the gate is built and blocks on the kernel root (all 85 root exports
   documented as of 2026-08-24); the 89 dialect-side exports and the denominator holes are
   reported, not required, and are what keeps this record open.
-- **Priority:** Medium — no live incorrectness, but it is the gate-shaped half of a defect
+- **Severity:** Medium — no live incorrectness, but it is the gate-shaped half of a defect
   this repo has now hit twice, and the second time it went ten days unnoticed.
 - **Origin:** self-found — closing [bug 0219](./fixed/0219-corpus-listing-surface-is-undocumented.md),
   which documented three symbols that had shipped undocumented since they were written.

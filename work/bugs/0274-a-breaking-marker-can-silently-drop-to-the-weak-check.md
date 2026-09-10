@@ -3,8 +3,8 @@
 ## Status
 
 - **State:** Draft — a guarantee that weakens with nothing printed to say so.
-- **Priority:** Medium
-- **Found by:** release review of PR #122. Pre-existing, and load-bearing as of
+- **Severity:** Medium
+- **Origin:** release review of PR #122. Pre-existing, and load-bearing as of
   that release.
 
 ## Symptom

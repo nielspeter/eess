@@ -5,7 +5,7 @@
 - **State:** Draft — narrowed 2026-08-24. The acute instances are guarded by a
   compile-checked consumer fixture (`examples/public-surface.test.ts`); the general
   gate question below is still open.
-- **Priority:** Medium — a real standalone-sufficiency hole, but it fails loudly at the
+- **Severity:** Medium — a real standalone-sufficiency hole, but it fails loudly at the
   consumer's `tsc` rather than silently. No fake green.
 - **Origin:** self-found, reviewing [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md).
   A reviewer installed `@nielspeter/eess-md` alone and could call `correspondence()` but

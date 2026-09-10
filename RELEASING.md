@@ -29,6 +29,69 @@ Three ways to satisfy it, all of them declarations:
 over `--empty` in a mixed PR — `--empty` waives the whole run, and the gate says
 which packages it therefore left unchecked.
 
+## A migration names its import line (bug 0273)
+
+If a changeset tells an adopter to call something different, **put the import
+line in the fence.** `check:docs-code` compiles the import statements of every
+`ts` fence under `.changeset/`, so the specifier and every named member are
+resolved against the built packages.
+
+**What is gated and what is not.** Nothing checks that you wrote an import line.
+A migration written purely in prose, or with a fence that has no import, passes
+free — it is a fragment, and no mechanism reads English. What is gated is that
+the line you DID write resolves. So this section is a convention held by review,
+not by the build, and the build's job is to make the convention worth following:
+the moment you state where a symbol lives, that statement becomes falsifiable.
+
+```ts
+import { finishPreset } from '@nielspeter/eess-ts/presets'
+
+finishPreset(violations, { report: 'throw' })
+```
+
+The reason is a defect that shipped to a release-ready PR. Plan 0263 Phase 5
+wrote, in prose, that the replacement symbol "is exported from the same three
+places the alias was". It was not — the `/presets` subpath did not carry it, and
+an adopter following the migration verbatim would have got a link-time error.
+Three reviewers found it and no gate could, because **a claim about where a
+symbol lives is not checkable until it is written as an import.** Writing the
+import line is what converts the claim from prose into something that fails the
+build.
+
+Only the import lines are compiled, not the whole snippet. A migration reads
+`finishPreset(violations, …)` where `violations` is the reader's variable, and
+demanding a runnable example would push authors toward ceremony or toward the
+skip directive — a gate people route around is worth less than none (ADR-009
+rule 1). A fence with no import claims nothing checkable and is counted as a
+fragment, which is also what makes the "before" half of a migration free: a bare
+`throwIfViolations(violations)` asserts nothing about where anything is exported.
+
+**Two things the gate does about being routed around.** A changeset fence that
+carries an import but is not tagged `ts`/`typescript` is counted and named in the
+summary — the three-character retag that would silence it leaves a trace, the way
+the skip directive does. And a failure in a changeset prints a remedy saying the
+import line is a claim about where a symbol is exported, rather than offering the
+skip directive as an equal option.
+
+**Running it.** `check:docs-code` is late in `npm run validate` and is not in
+`check:fast`, because it needs a built `dist`. Once built, run it directly —
+`npm run check:docs-code`, about a second — rather than waiting for the full
+chain or for CI.
+
+**A rename in a later PR can red a changeset that PR did not touch.** Pending
+changesets are checked on every run, so renaming or moving a symbol reds any
+pending migration naming it, and the author of the rename has to edit someone
+else's unreleased document or mark it skipped. That is the intended behaviour —
+shipping a dead migration is the thing being prevented — but it is a real cost
+while a release train is long, and it is better met knowingly than as a surprise.
+
+**Showing a "before" that no longer resolves.** If the before-side genuinely
+needs its old import line, put `<!-- eess-docs-code-skip: pre-migration example -->`
+immediately above the fence. The gate counts skipped fences in its summary, so
+this is visible rather than silent. Note that `changeset version` copies the body
+verbatim, comment included — it will not render, but it does reach the published
+`CHANGELOG.md`.
+
 ## Signalling a breaking change (bug 0184)
 
 A break must be **marked in the body** and bumped past `patch`. `check:release`

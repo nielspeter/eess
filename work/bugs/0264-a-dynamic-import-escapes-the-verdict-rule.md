@@ -9,7 +9,7 @@
   each other's blind spot". They do not, for one shape, and the claim was in the
   source until this bug corrected it.
 - **Created:** 2026-09-06
-- **Found by:** enforcement review · plan 0237's build
+- **Origin:** enforcement review · plan 0237's build
 
 ## Symptom
 

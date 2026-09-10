@@ -8,7 +8,7 @@
   dialect clause gets an AST-grounded `it()` citation. The gate silently offers
   less proof for the package it most needs it from.
 - **Created:** 2026-09-06
-- **Found by:** self-found · moving ADR-014's rows to `gated` under plan 0235
+- **Origin:** self-found · moving ADR-014's rows to `gated` under plan 0235
 
 ## Symptom
 
