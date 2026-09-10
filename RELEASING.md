@@ -96,12 +96,22 @@ verbatim, comment included — it will not render, but it does reach the publish
 
 `changeset version` writes each package's changelog in changeset order, so a
 train carrying many breaks scatters them through a long list an adopter has to
-reassemble. The v0.5 train carries thirty changesets with eleven breaks in them —
-one lands around line 393 of the kernel's changelog. No gate can fix that, and
+reassemble. The v0.5 train carries thirty changesets with eleven breaks in them,
+and one of those breaks lands deep in a changelog of nearly a thousand lines. No gate can fix that, and
 nothing in this file used to ask anyone to.
 
 So: **when a release carries three or more breaking changesets, write a migration
-page before cutting it.** [`docs/migrating-to-0.5.md`](./docs/migrating-to-0.5.md)
+page before cutting it.**
+
+**Nothing checks this, and that is a choice rather than an oversight.** The
+breaking count is machine-readable — `check:release` already reports it — so
+"a train with three or more marked breaks has a `docs/migrating-*.md`" is a
+Tier-1 check somebody could write. What it cannot check is whether the page is
+COMPLETE: a twelfth break lands, the page stops covering the release, and the
+gate stays green while saying the obligation is met. A mechanism that fires on
+the presence of a file and calls that compliance is the shape ADR-009 warns
+about, so this stays a convention held by review until someone has a better
+answer than file-exists. Treat the rule as binding on you, not on the build. [`docs/migrating-to-0.5.md`](./docs/migrating-to-0.5.md)
 is the worked example.
 
 **Where it goes**, so the next one does not re-litigate this:

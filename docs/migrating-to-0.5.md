@@ -125,8 +125,12 @@ rewritten by mistake.
 **If you consume a dialect rather than the kernel**, `@nielspeter/eess/internal`
 resolves for you only when the kernel is hoisted to your `node_modules` root.
 Under pnpm's isolated layout or Yarn PnP it will not — add `@nielspeter/eess` to
-your own dependencies. That is a direct dependency the family does not otherwise
-ask of you, and it is the honest cost of reaching plumbing.
+your own dependencies.
+
+This constraint is not new and is not `/internal`'s: reaching **any** kernel
+symbol directly from a dialect-only install needed the same thing on 0.4. What
+is new is that more symbols now require reaching, which is why it is worth saying
+here.
 
 ### 3. The published barrels stop re-exporting internal helpers
 
@@ -205,6 +209,10 @@ configuration finding with the id `emitter/no-receipt`.
 It is gone from `@nielspeter/eess/internal`. The finding it constructed is no
 longer reachable — a preset that constructs nothing is now caught by the evidence
 gate instead, which reports it with more detail.
+
+(This section and the "nothing was deleted or renamed" claim above are the two
+things on this page a compiled import cannot prove. An import shows a symbol is
+there; nothing expresses an absence. Both were checked by hand.)
 
 ## Builds that can go red on their own
 

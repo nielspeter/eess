@@ -137,7 +137,7 @@ function mdFiles(dir, acc = []) {
 const fences = [] // { file, fence, code, tmp }
 let fragments = 0
 let skipped = 0
-let untaggedWithImport = 0
+const untaggedWithImport = []
 for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES, ...CHANGESETS, ...ROOT_DOCS]) {
   const isChangeset = readsAsImportClaim(file)
   const kids = fromMarkdown(readFileSync(file, 'utf8')).children
@@ -160,7 +160,10 @@ for (const file of [...mdFiles(DOCS), ...PACKAGE_READMES, ...CHANGESETS, ...ROOT
       // firing on the thing it protects (ADR-009 rule 1). What is reported is
       // the narrower fact: a fence in a changeset that is NOT tagged for this
       // gate and yet contains something shaped like an import.
-      if (isChangeset && /^[ \t]*import(?![.(\w])/m.test(node.value)) untaggedWithImport++
+      if (isChangeset && /^[ \t]*import(?![.(\w])/m.test(node.value))
+        // The file alone: `fence` counts ts fences only, so an untagged one would
+        // borrow the previous ts fence's index and point at the wrong block.
+        untaggedWithImport.push(file)
       continue
     }
     fence++
@@ -302,33 +305,43 @@ console.error('check:docs-code · doc code-fence checks (tsc + no-deprecated)')
 // the changeset half be absent while this gate printed green, and the shape
 // `CLAUDE.md` records about its own gate table. A zero beside a population that
 // should have fences is the signal.
-const byPopulation = { docs: 0, readme: 0, changeset: 0, root: 0 }
+const byPopulation = { docs: 0, readme: 0, changeset: 0, migration: 0 }
 for (const f of fences) {
   // Keyed off the same predicate that CHOSE the rule, not a second spelling of
   // it. Two predicates disagreeing about what a population is, is how a
   // `RELEASING.md` failure came to print the docs remedy — the skip directive
   // offered for a migration, inside the document whose own prose says the skip
   // directive is never for a migration. Measured by two reviews independently.
-  const key = f.file.startsWith('docs')
-    ? 'docs'
-    : readsAsImportClaim(f.file)
-      ? f.file.startsWith('.changeset')
-        ? 'changeset'
-        : 'root'
+  // Import-claim FIRST, because that is the rule the fence was selected by. An
+  // earlier ordering tested `docs/` first, so a migration page was counted as
+  // docs while its failure printed the changeset remedy — the same two-predicate
+  // split this file already fixed once, reopened the moment a `docs/` file joined
+  // the import-claim set. Measured by an enforcement review.
+  const key = !readsAsImportClaim(f.file)
+    ? f.file.startsWith('docs')
+      ? 'docs'
       : 'readme'
+    : f.file.startsWith('.changeset')
+      ? 'changeset'
+      : 'migration'
   byPopulation[key]++
 }
 console.error(
   `  scanned   ${fences.length} import-bearing TS fences ` +
     `(${byPopulation.docs} docs · ${byPopulation.readme} package README · ` +
-    `${byPopulation.changeset} changeset · ${byPopulation.root} root doc) · ` +
+    `${byPopulation.changeset} changeset · ${byPopulation.migration} migration doc) · ` +
     `${fragments} fragments + ${skipped} skip-directive'd (not checked)`,
 )
-if (untaggedWithImport > 0) {
+if (untaggedWithImport.length > 0) {
+  // Named, not counted. A bare count in a run of dozens of fences tells a reader
+  // that a route-around exists and not where — measured as a gap by an
+  // enforcement review, in the note whose whole purpose is making the bypass
+  // findable.
   console.error(
-    `  note      ${untaggedWithImport} changeset fence(s) carry an import but are not tagged ` +
-      `\`ts\`/\`typescript\`, so this gate does not read them. Retag to have the claim checked.`,
+    `  note      ${untaggedWithImport.length} import-claim fence(s) carry an import but are not ` +
+      `tagged \`ts\`/\`typescript\`, so this gate does not read them. Retag to have the claim checked:`,
   )
+  for (const where of untaggedWithImport) console.error(`              ${where}`)
 }
 
 if (failures.length > 0) {
@@ -351,11 +364,12 @@ if (failures.length > 0) {
   // people to switch it off). Found by a product review.
   if (failures.some((v) => readsAsImportClaim(v.file))) {
     console.error(
-      `  A changeset fence's import line is a claim about where a symbol is exported.\n` +
-        `  A failure here means the claim is wrong, or the barrel is missing that export —\n` +
-        `  fix one of those. The skip directive is for a pre-migration "before" example\n` +
-        `  only, never for the migration itself. See RELEASING.md, "A migration names its\n` +
-        `  import line".\n`,
+      `  An import-claim fence states where a symbol lives. A failure here means the\n` +
+        `  claim is wrong, or the barrel is missing that export — fix one of those.\n` +
+        `  The skip directive is for a pre-migration "before" example only, never for\n` +
+        `  the migration itself. See RELEASING.md — "A migration names its import line"\n` +
+        `  for a changeset, "A release with several breaks gets a migration page" for a\n` +
+        `  docs/migrating-*.md page.\n`,
     )
   }
   if (failures.some((v) => !readsAsImportClaim(v.file))) {
