@@ -892,7 +892,15 @@ function gateFamilyReExportAggregation() {
   // consumer can build an ADR-014 receipt — so the same argument reaches this
   // payload and its half-life may be short. It fails loudly, which is the right
   // direction, and the failure names the cause.
-  const PAYLOAD = 'hasEvidence'
+  // `hasEvidence` until 2026-09-10, when bug 0276 gave md the whole receipt seam
+  // and the payload stopped violating. The guard below caught it and said so —
+  // "md re-exports it: true" — which is the entire reason that guard exists, and
+  // is why this line is a one-word edit rather than an afternoon.
+  //
+  // `generateBaseline` is a baseline concept: md has no baseline, so its source
+  // has no reason to reach for one, which is what keeps it out of the re-export
+  // its own imports would force.
+  const PAYLOAD = 'generateBaseline'
   const MD = 'md'
 
   // **What decides whether this probe is still valid, measured rather than
@@ -2661,6 +2669,13 @@ const gates = [
       ]),
   ],
   [
+    'docs-code/migration-page-fence',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'docs-code/migration-page-fence red on its own subject', [
+        'docs-code/migration-page-fence',
+      ]),
+  ],
+  [
     'integrity/leftover-probe-changeset',
     () =>
       gateNode(
@@ -2871,6 +2886,7 @@ const GATE_FOR = {
     'docs-code/changeset-migration-does-not-compile',
     'docs-code/changeset-side-effect-import',
     'docs-code/root-doc-fence',
+    'docs-code/migration-page-fence',
   ],
   // ADR-011 clause 1's gate. Its fixture is scenario 2 of the same probe, which
   // sabotages the KERNEL ROOT — the only population this gate blocks on.

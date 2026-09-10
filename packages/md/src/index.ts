@@ -29,6 +29,13 @@ export {
   not,
   dispatchRule,
   validateOverrides,
+  // Bug 0276, second pass. `finishPreset` was already here; its siblings were
+  // not, so a standalone consumer could finish a preset and neither report
+  // without throwing nor catch what the seam throws. ADR-008 names
+  // `reportViolations` as the one emitter, and ADR-014's configuration findings
+  // arrive as an `ArchConfigError` a caller has to recognise.
+  reportViolations,
+  isArchConfigError,
 } from '@nielspeter/eess'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
 // OWN source (so the family.rules.ts code-import scan can't see this gap —
@@ -41,7 +48,12 @@ export {
 export { correspondence, CorrespondenceBuilder } from '@nielspeter/eess'
 // ADR-014's receipt: this package's own rules merge with it, so a standalone
 // `eess-md` consumer must reach it without a second kernel install (plan 0089).
-export { mergeCollectResults } from '@nielspeter/eess'
+//
+// Bug 0276: the merge was here and the CONSTRUCTOR was not, which is the same
+// gap the other way round. A consumer handed a receipt could combine two and not
+// build one. Import-driven `check:family` owed nothing here either.
+export { collectResult, mergeCollectResults, hasEvidence } from '@nielspeter/eess'
+export type { CollectResult } from '@nielspeter/eess'
 // …and the types of their arguments. Re-exporting the FUNCTION and not its
 // options left an eess-md user able to call `correspondence()` and unable to
 // name what they pass it — the same callable-but-unnameable defect the kernel

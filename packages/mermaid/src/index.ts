@@ -16,6 +16,13 @@ export { TerminalBuilder } from '@nielspeter/eess'
 export {
   ArchConfigError,
   collectResult,
+  // Bug 0276: `collectResult` was here and its partner was not, so a consumer
+  // could build a receipt and not combine two. `check:family` is import-driven
+  // and this package's source never imports the merge, so it owed nothing and
+  // the gate stayed green — the demand side ADR-014 asks for is what was
+  // missing.
+  mergeCollectResults,
+  hasEvidence,
   finishPreset,
   isArchConfigError,
   reportViolations,

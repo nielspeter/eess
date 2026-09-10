@@ -92,6 +92,58 @@ this is visible rather than silent. Note that `changeset version` copies the bod
 verbatim, comment included — it will not render, but it does reach the published
 `CHANGELOG.md`.
 
+## A release with several breaks gets a migration page
+
+`changeset version` writes each package's changelog in changeset order, so a
+train carrying many breaks scatters them through a long list an adopter has to
+reassemble. The v0.5 train carries thirty changesets with eleven breaks in them,
+and one of those breaks lands deep in a changelog of nearly a thousand lines. No gate can fix that, and
+nothing in this file used to ask anyone to.
+
+So: **when a release carries three or more breaking changesets, write a migration
+page before cutting it.**
+
+**Nothing checks this, and that is a choice rather than an oversight.** The
+breaking count is machine-readable — `check:release` already reports it — so
+"a train with three or more marked breaks has a `docs/migrating-*.md`" is a
+Tier-1 check somebody could write. What it cannot check is whether the page is
+COMPLETE: a twelfth break lands, the page stops covering the release, and the
+gate stays green while saying the obligation is met. A mechanism that fires on
+the presence of a file and calls that compliance is the shape ADR-009 warns
+about, so this stays a convention held by review until someone has a better
+answer than file-exists. Treat the rule as binding on you, not on the build. [`docs/migrating-to-0.5.md`](./docs/migrating-to-0.5.md)
+is the worked example.
+
+**Where it goes**, so the next one does not re-litigate this:
+
+- The file is `docs/migrating-to-<kernel version>.md`. The name is load-bearing —
+  `check:docs-code` reads any `docs/migrating-*.md` as import claims by pattern,
+  so naming it that way is what gets its import lines compiled.
+- A **"Releases & migration"** group in `docs/.vitepress/config.ts`, newest first.
+  Not "Introduction": that is what a new reader walks top to bottom, and a
+  migration page is useless to someone installing fresh.
+- A **banner above `## Packages`** in `README.md`. **One at a time** — the next
+  release carrying breaks replaces it, it does not stack.
+- The **GitHub Release**, which needs a manual step; see the release sequence.
+
+What made the worked example worth writing:
+
+- It is ordered by **what the reader has to do**, not by package or by changeset.
+- It separates changes needing a code edit from ones where a passing build simply
+  goes red — that second group is invisible in a changelog and is what actually
+  surprises people.
+- Its fences are checked, and you do not have to wire that up: any
+  `docs/migrating-*.md` is read as import claims by pattern, so its import lines
+  compile against the built packages. Name the file that way and it is covered.
+
+**The cost, which is bounded but not zero.** A migration page pins the build to
+whatever it imports, forever, and a page naming `/internal` symbols pins the
+build to internal stability — which inverts what that entry point is for. A
+changeset has the same cost and escapes it because `changeset version` deletes
+it. A page does not. So when the release after next makes a page historical,
+either drop the import fences to prose or rename it out of the pattern. Do not
+leave a frozen document holding the engine still.
+
 ## Signalling a breaking change (bug 0184)
 
 A break must be **marked in the body** and bumped past `patch`. `check:release`
@@ -218,6 +270,20 @@ npm run version-packages
 #    lock breaks `npm ci` in CI (see Gotchas). This step is mandatory.
 npm install
 
+# 3a. Raise eess-crossvalidate's peerDependencies floors to the versions this
+#     release ships. `changeset version` does NOT touch them, so they sit at the
+#     PREVIOUS release's numbers and admit a dialect built against the previous
+#     kernel — two kernels in one tree, with the counters and registries inside
+#     them split. Measured on the 0.5 train, where the kernel's surface actually
+#     differed between the two. This was documented in prose below and not in
+#     these steps, so the documented sequence produced the wrong artifact.
+$EDITOR packages/crossvalidate/package.json
+
+# 3b. Update the README Packages table's version column. It is gated against the
+#     real versions, so `check:spec` reds in step 4 on every release that moves a
+#     major or minor — six violations on the 0.5 train. Expected, not a defect.
+$EDITOR README.md
+
 # 4. Sanity-check locally
 npm run validate
 
@@ -229,6 +295,20 @@ git tag v0.1.2
 git push origin main
 git push origin v0.1.2
 ```
+
+**The tag is the KERNEL's version.** The six packages do not share a number —
+this release ships `@nielspeter/eess` at 0.5.0 and `@nielspeter/eess-md` at
+0.6.0 — and `publish.yml` fires on any `v*`, so nothing decides this for you. The
+"Versioning" section below still says the family stays "in lockstep at a common
+version"; that has been false since `v0.4.0`, which was cut while md was at
+0.5.0.
+
+**A release carrying a migration page needs a step nothing automates.**
+`publish.yml` creates the GitHub Release with `generate_release_notes: true` and
+no body, so the notes are machine-made from PR titles and no authoring moment
+exists. After the tag push, edit the Release to link the migration page —
+`gh release edit v<kernel-version> --notes-file …` — or the page you wrote is
+reachable only by someone already browsing the docs.
 
 That's it. The tag push triggers `publish.yml`, which:
 

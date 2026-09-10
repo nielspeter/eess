@@ -25,8 +25,18 @@ export default defineConfig({
           { text: 'Calculator Walkthrough', link: '/eess-walkthrough-calculator' },
           { text: 'eess as a Harness', link: '/eess-as-a-harness' },
           { text: 'Getting Started', link: '/getting-started' },
-          { text: 'Migrating from ts-archunit', link: '/migrating-from-ts-archunit' },
           { text: 'What to Check', link: '/what-to-check' },
+        ],
+      },
+      {
+        // Its own group, not part of Introduction. A brand-new reader walks
+        // Introduction top to bottom, and a migration page is useless to someone
+        // installing fresh — while the release convention guarantees more of
+        // them arrive every time a train carries breaks.
+        text: 'Releases & migration',
+        items: [
+          { text: 'Migrating to v0.5', link: '/migrating-to-0.5' },
+          { text: 'Migrating from ts-archunit', link: '/migrating-from-ts-archunit' },
         ],
       },
       {
