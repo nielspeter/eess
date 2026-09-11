@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Fixed — both functions restored to the `eess-ts` barrel, census rows
-  added, red-first against the published `0.5.0`.
+- **State:** Fixed — both functions restored, with a test that fails if either
+  leaves again.
+- **Reported:** 2026-09-11 · **Fixed:** 2026-09-11
 - **Severity:** High — it broke a real adopter's primary rule file at module
   load, in the release that shipped it.
 - **Origin:** external · found upgrading a consuming project to `v0.5.0`.
@@ -106,17 +107,33 @@ record about a dead gate.
 export named 'isStrictFamily'`.
 - [x] Both functions resolve from the barrel after the fix, checked by importing
       the built `dist` from outside the workspace.
-- [x] Census rows added; the matrix goes 47/48 to 48/48. The failure it produced
-      first — `expected [ '.:isStrictFamily', '.:resolveFlag' ] to deeply equal
-[]` — is the reverse-direction assertion doing its job.
-- [x] `docs/migrating-to-0.5.md` now lists all 54 removed names. A product review
-      of that page predicted this exact failure before it merged, naming
-      `resolveFlag` as the example, and the fix at the time was a pointer to the
-      changelogs rather than the list. That was not enough.
+- [x] Census rows added; the matrix goes 47/48 to 48/48. That was the FORWARD
+      assertion, published-but-unclassified, catching this repair's own missing
+      rows — not the reverse one, and not the removal. Both directions emit an
+      identically shaped message, so only running it tells you which fired, and
+      they call for opposite fixes.
+- [x] **A falsifying test, which this bug was first closed without.**
+      `scripts/lib/tsconfig-surface.test.mjs`, run by `check:family`. Measured on
+      the fixed tree: deleting the export AND its census row together, which is
+      plan 0088's exact shape, left the matrix at 48 of 48 with `check:family`
+      and `check:surface` green beside it. The same sabotage now fails three
+      cases, naming the symbols and saying a rule file will not load.
+- [x] `docs/migrating-to-0.5.md` lists the removed names for both shrinking
+      barrels — 54 from `eess-ts`, 19 from `eess-mermaid` — split by whether they
+      resolve from `@nielspeter/eess/internal` (33) or from nowhere (19). The
+      page previously said none of them moved to `/internal`, which was false for
+      the majority.
 
 Deferred: [bug 0279](../0279-the-barrel-criterion-has-no-memory-and-no-adopter-signal.md)
 — the criterion itself. Three passes, three adopter-found regressions, eight
-names restored and then removed again. A per-module rule is not the answer;
-measurement showed it would false-positive on most of the population. What is
-missing is any signal from outside this repo, and any memory that a name was
-restored because someone needed it.
+names restored and then removed again. What is missing is any signal from outside
+this repo, and any memory that a name was restored because someone needed it.
+
+**A cost estimate corrected, and carried into that record.** An earlier draft
+here said a per-module cohesion rule was not worth building. An enforcement
+review measured it: 75 `eess-ts` modules reach the barrel, 58 fully and **17
+split** — an exception list of 17 rows, not hundreds, with the enumeration
+machinery already in `scripts/lib/public-surface.mjs`. The rule is affordable.
+Whether the barrel may shrink at all is still the prior question, which is why it
+lives in 0279 — but "too costly" was an estimate stated as a reason, and it was
+wrong by an order of magnitude.

@@ -134,16 +134,34 @@ here.
 
 ### 3. The published barrels stop re-exporting internal helpers
 
-Thirty-seven helpers left the dialect barrels. They were on the entry point but
-were never API: no page taught them, and every test that used one already reached
-past the barrel into the source module.
+**73 names left the dialect barrels** — 54 from `eess-ts` and 19 from
+`eess-mermaid`. They were on the entry point but were never API by the criterion
+used: no page taught them, and every test that used one already reached past the
+barrel into the source module. Both lists are below, because a category cannot be
+searched for the symbol your compiler just named.
 
-`eess-mermaid` loses the free predicate and condition functions —
-`haveNameMatching`, `areAbstract`, `notDependOnStereotype` and that block. The
-documented surface is the fluent builder that wraps every one of them, so write
-`classes(d).that().areAbstract()` instead. Those names looked documented only
-because the pages carrying them are the **TypeScript** dialect's and the names
-collide.
+**`eess-mermaid`'s 19 removals, by name:**
+
+```
+areAbstract, conditionHaveStereotype, dependOn, extendClass, extendName,
+haveAtLeastOneMethod, haveMemberNamed, haveMethodNamed, haveNameEndingWith,
+haveNameMatching, haveNameStartingWith, haveNoMembers, marksAssertsCardinality,
+notDependOn, notDependOnStereotype, notExist, notExtendStereotype,
+notHaveStereotype, predicateHaveStereotype
+```
+
+All but one are the free predicate and condition functions. The documented
+surface is the fluent builder that wraps every one of them, so write
+`classes(d).that().areAbstract()` instead of importing `areAbstract`. Those names
+looked documented only because the pages carrying them are the **TypeScript**
+dialect's and the names collide.
+
+The exception is `marksAssertsCardinality`, which is an evidence helper rather
+than a predicate; it is on `@nielspeter/eess/internal`.
+
+**These fail at LOAD, not at type-check.** ESM resolves named imports up front,
+so a rule file importing one of these does not report a type error — it does not
+run. If your diagram gate went silent rather than red, this is why.
 
 `eess-md` and `eess-gherkin` lose nothing — both gained exports this release.
 
@@ -171,11 +189,24 @@ splitGlobArgs, stampGlobs, suppressionNotice, throwIfViolations, untestedRules,
 verbatimModuleSyntaxFor, viewsFor
 ```
 
-They fall into three groups. A handful moved to `@nielspeter/eess/internal` —
-`shallowClone`, `isRecord`, `resetEdgeCoverage` and the counters — so section 2's
-fix applies. Two were deleted outright: `throwIfViolations` (section 1) and
-`presetConstructsNothingViolation` (section 5). The rest have no import path at
-all.
+**Most of them still resolve, from `@nielspeter/eess/internal`.** Measured
+against the published packages: of the 52 above, **33 are on `/internal`** and 19
+are reachable from nowhere. So section 2's specifier fix applies to the majority,
+not to a handful — check before rewriting anything.
+
+These 19 have no import path at all:
+
+```
+FAULT_ADVICE, ON_DISK_ADVICE, buildDiskSet, collectCalls,
+collectObjectLiteralFunctions, diagnoseGlob, emptyProjectAdvice,
+fromObjectLiteralFunction, globSitesOf, isDeadGlobTree, isDeadSite,
+isTypeOnlyReExport, loadedNothing, presetConstructsNothingViolation,
+registerProjectRoots, registerRootCompilerOptions, splitGlobArgs,
+throwIfViolations, verbatimModuleSyntaxFor
+```
+
+Two of those are deliberate deletions with their own sections: `throwIfViolations`
+(section 1) and `presetConstructsNothingViolation` (section 5).
 
 **`isStrictFamily` and `resolveFlag` are restored in the next patch.** Removing
 them was a mistake: mirroring tsc's strict-family resolution is an ordinary thing
@@ -203,12 +234,12 @@ node -e "import('@nielspeter/eess-ts').then(m=>console.log(Object.keys(m).sort()
 comm -23 old.txt new.txt
 ```
 
-**These did not move to `/internal`.** They were never kernel symbols, so no
-import path reaches them any more — section 2's fix does not apply here. If you
-were using one, reach for the documented builder that wraps it, or open an issue
-saying which and why. The full list of removed names is in each package's
-`CHANGELOG.md` under this release, so you can search for the symbol your compiler
-just named.
+**Check the 19-name list above before assuming a symbol is gone.** An earlier
+draft of this page said flatly that none of these moved to `/internal`, which is
+false for 33 of the 52 — it would have sent two thirds of readers rewriting a rule
+when a one-line specifier change exists. If your symbol is on `/internal`,
+section 2 is your fix. If it is in the 19, reach for the documented builder that
+wraps it, or open an issue saying which and why.
 
 ### 4. `violations()` returns a receipt
 
