@@ -177,12 +177,21 @@ fix applies. Two were deleted outright: `throwIfViolations` (section 1) and
 `presetConstructsNothingViolation` (section 5). The rest have no import path at
 all.
 
-**`isStrictFamily` and `resolveFlag` were also removed and have been restored**,
-because removing them was a mistake. They live beside `STRICT_FAMILY_SIZE` and
-the `StrictFamilyFlag` type, which stayed — so the surface briefly let you name a
-strict-family flag and count the family while neither testing nor resolving one.
-If you are reading this at `0.5.0` exactly and hitting them, that is
+**`isStrictFamily` and `resolveFlag` are restored in the next patch.** Removing
+them was a mistake: mirroring tsc's strict-family resolution is an ordinary thing
+for a rule file to do, and at `0.5.0` exactly, a named import of either does not
+type-error — it fails to LOAD, because ESM resolves named imports up front. If
+your rule file imports them, `eess-ts check` stops running rather than reporting.
+That is
 [bug 0278](https://github.com/NielsPeter/eess/blob/main/work/bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md).
+
+**Eight other names on this list were restored once before and removed again.**
+`0.4.0` put twenty exports back after an adopter review; `0.5.0` took eight of
+them out a second time — `buildDiskSet`, `emptyProjectAdvice`, `globSitesOf`,
+`isDeadGlobTree`, `isDeadSite`, `isTypeOnlyReExport`, `loadedNothing`,
+`splitGlobArgs`. If you depend on any of those, say so, because the process that
+removed them cannot see you. That gap is
+[bug 0279](https://github.com/NielsPeter/eess/blob/main/work/bugs/0279-the-barrel-criterion-has-no-memory-and-no-adopter-signal.md).
 
 **Verify against your own tree rather than this list**, which is a snapshot:
 

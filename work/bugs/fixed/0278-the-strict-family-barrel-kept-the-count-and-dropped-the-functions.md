@@ -45,24 +45,59 @@ exists to prevent, shipped by this project.
 
 ## Root cause
 
-Plan 0088's barrel pass removed 54 symbols from `eess-ts` on the stated
-criterion that nothing outside the package's own `src/` referenced them and no
-page taught them. That was measured **inside this repo**, which by construction
-cannot see an adopter. These two are the counterexample: mirroring tsc's
-strict-family resolution is an ordinary thing for a rule file to do, and the
-adopter's own comment says exactly that.
+**Not what this record first said.** The first version blamed applying the
+removal criterion per symbol rather than per module, and credited the
+published-surface census with catching it. An architecture review measured both
+claims false.
 
-The criterion is not wrong — 52 of the 54 were genuinely plumbing. What is wrong
-is applying it per symbol rather than per module: three exports of one small
-module survived the pass and one did not, leaving an incoherent surface. "All
-four or none" is the shape that would have caught it.
+**Per-symbol was deliberate and documented.** The removal changeset names
+`isStrictFamily` and `resolveFlag` in its own list of nineteen, and states the
+principle with an example: "`collectCalls` went while `fromCallExpression` from
+the same module stayed … in both cases the survivor is reachable from a
+documented path and the removed one was not." Six modules were split that way,
+not one. A rule of "all exports of a module or none" would have forced
+`buildDiskSet`, `registerProjectRoots` and `collectCalls` back onto the published
+barrel, which is plumbing by any reading — it false-positives on most of the
+population and would not have caught this case for the right reason.
+
+**And the anomaly here is the survivors, not the casualties.**
+`STRICT_FAMILY_SIZE` and `StrictFamilyFlag` are referenced nowhere outside the
+package's own `src/` except two tests that reach past the barrel into the source
+module, and no page taught them. Under the stated criterion they should have gone
+too. Applied _consistently_, it yields none of the four — so restoring all four
+is justified by what an adopter needs, not by a coherence property the module
+never had.
+
+**The actual root cause is that this is the third time.** `0.4.0` restored twenty
+exports an earlier pass had dropped, "found by an adopter review that diffed
+every subpath". Eight of those were removed again in `0.5.0`:
+
+```
+buildDiskSet, emptyProjectAdvice, globSitesOf, isDeadGlobTree,
+isDeadSite, isTypeOnlyReExport, loadedNothing, splitGlobArgs
+```
+
+So the criterion — nothing outside this package's `src/` references it, no page
+teaches it — has now been applied three times, and each time an adopter has had
+to find what it took. It is measured entirely inside this repo, where no adopter
+is visible, and it has no memory: a name restored because someone needed it
+carries no mark saying so, and the next pass removes it again.
+
+That is the thing worth fixing, and it is larger than this repair.
 
 ## Fix
 
-Restored to `packages/ts/src/index.ts` beside the constant, with the two rows the
-published-surface census requires. The census caught the omission on the first
-run — an export in neither list fails the matrix — which is that mechanism
-working exactly as intended.
+Both functions restored to `packages/ts/src/index.ts` beside the constant, with
+the two rows the published-surface census requires.
+
+**The census did not catch the original removal, and cannot.** Its reverse
+assertion fires on a _stale_ row — a classification entry with no matching
+export. The removal edited both sides in one commit, so the two moved in
+lockstep: measured, the census rows went 2 → 0 in the same diff as the export
+line. What fired during this repair was the forward direction catching the
+restore's own missing bookkeeping. Crediting it with the catch, as an earlier
+draft of this record did, is a live gate claimed for a blind one — in a bug
+record about a dead gate.
 
 ## Verification ledger
 
@@ -79,7 +114,9 @@ export named 'isStrictFamily'`.
       `resolveFlag` as the example, and the fix at the time was a pointer to the
       changelogs rather than the list. That was not enough.
 
-Deferred: none. **Not fixed here:** the per-symbol-versus-per-module criterion
-that allowed it. Worth a rule — a module whose exports are split across the
-barrel boundary is at least a question — but that is a mechanism decision, not
-this repair.
+Deferred: [bug 0279](../0279-the-barrel-criterion-has-no-memory-and-no-adopter-signal.md)
+— the criterion itself. Three passes, three adopter-found regressions, eight
+names restored and then removed again. A per-module rule is not the answer;
+measurement showed it would false-positive on most of the population. What is
+missing is any signal from outside this repo, and any memory that a name was
+restored because someone needed it.
