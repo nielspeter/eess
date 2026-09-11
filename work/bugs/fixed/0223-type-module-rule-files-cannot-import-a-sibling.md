@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Fixed — by teaching the process loader TypeScript's specifier
-  substitution and retrying the NATIVE import. Red first, all four ledger items closed.
+  substitution and retrying the NATIVE import. Red first, all 5 ledger items closed.
 - **Severity:** High — it is not a diagnostic gap but a total loss of the CLI for a whole
   project shape. `check`, `doctor` and `explain` all fail, and `explain` fails with an
   unhandled `ERR_MODULE_NOT_FOUND` stack rather than a message. The shape it excludes —
@@ -132,10 +132,49 @@ not a fix. The obvious test was to assert a configuration finding is reported on
 twice.
 
 **It passed under the rejected fix too.** Measured: the jiti-widening implementation was built
-and run against the same project, and printed exactly one violation block. `dedupeConfigFindings`
-in the kernel now collapses duplicate configuration findings by content hash, so the observable
-that hazard was named for is absorbed before it reaches the report. The test would have shipped
-as a guard of nothing.
+and run against the same project, and printed exactly one violation block. The test would have
+shipped as a guard of nothing.
+
+**The first version of this section then explained WHY, and the explanation was false.** It
+said `dedupeConfigFindings` "collapses duplicate configuration findings by content hash". A
+method review disproved it, and the first attempt to retract it here overcorrected in the
+other direction. What is true, read from `packages/core/src/dedupe-config-findings.ts`:
+
+- **Not content-keyed.** The key is
+  `` `${violation.file} ${identity} ${violation.element}` ``, and that file's docblock states
+  the reason in bold — "**The glob, not the message**" — because two different globs that both
+  match nothing are two edits.
+- **One in-process array.** It is applied at `packages/ts/src/cli/commands/check.ts:238` and
+  `packages/ts/src/core/check-all.ts:95`. A cross-registry double print is two separate writes
+  to stderr, which no array function can collapse. This is the part that matters: whatever the
+  key were, it could not absorb the hazard it was credited with absorbing.
+- **The exclusions are narrow, not "all configuration findings".** `keyFor` declines a key for
+  a finding that is not `bypassFilters`, for an empty or `'unnamed'` identity or element, and
+  for the five ids in `EMITTER_IDS`. An ordinary configuration finding with a real id and a
+  real element **is** deduped.
+
+**And the hazard did not reproduce.** A method review forced the jiti branch on the built CLI
+(`--no-experimental-detect-module` in a `"type": "commonjs"` project, which makes the native
+import raise the format refusal) over a self-executing rule file with a vacuous selector — the
+only shape that reads `callerAggregatesReports` at all. It printed **two** blocks, the vacuity
+finding and the CLI's truncation notice, inside one numbered report. A genuine two-registry
+load would give three: the rule file's own standalone report, then the CLI's pair. Zero
+occurrences of the dedupe's own note ("This one option generated …") rule out that path
+independently.
+
+**So the honest statement is: the test did not discriminate, and why the hazard no longer
+reproduces is not established.** Three candidates were named and none tested — jiti resolving
+a bare specifier for an ESM package in `node_modules` through native `import()` rather than
+transforming it; `withCallerAggregating` having become a dynamic extent rather than a latch
+(bug 0203); or a Node or jiti version change since plan 0165 measured it. The probe also
+entered jiti through the format-refusal branch rather than the rejected widening, and its
+package was a symlink to this repo, so both sides shared one realpath; a consumer tree with a
+separately installed copy is the same shape and was not tested.
+
+Reaching for a mechanism to explain a measurement, and publishing it in three places without
+checking it, is the same defect as the unfalsifiable test — a claim written ahead of what was
+verified. The enum discriminator below stands on its own measurement and does not depend on
+any of this being resolved.
 
 What discriminates is **which loader resolved the specifier**, and a TypeScript `enum` answers
 it: Node's type stripping is erasable-syntax only and refuses one, jiti transpiles it. Putting
@@ -163,7 +202,17 @@ change, `explain` with a raw `ERR_MODULE_NOT_FOUND` stack.
       measured red under the rejected fix. The originally-planned assertion is recorded as
       `done-otherwise`: it could not distinguish the two implementations, and the section above
       says why rather than leaving a passing test to imply it did.
-- [x] `explain` reports a message, not an unhandled stack.
+- [x] `explain` reports a message, not an unhandled stack. **This box was checked
+      before it was earned.** The case backing it used a project whose sibling
+      RESOLVES, so after the repair it proved only that a working project works. A
+      product review measured the class this record's own Severity paragraph
+      describes — a specifier naming nothing, the ordinary typo — and found
+      `explain` alone answering with ten frames of Node internals while `check`
+      and `doctor` both reported a message. It failed CLOSED throughout, exit 1
+      either way, so this was a missing diagnosis and not a false green.
+      `explain` now wraps the load the way the other two do, and two cases cover
+      the failure path: one for `explain`, one asserting `check` and `doctor`
+      still do the same so it is not special-cased.
 - [x] The error message no longer names a test runner for a file that imports none — and still
       names one for a file that does, so the gate cannot pass by saying nothing.
 - [x] Two regressions the fix must not introduce: a specifier naming nothing still fails as it

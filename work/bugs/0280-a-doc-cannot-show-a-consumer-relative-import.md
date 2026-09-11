@@ -26,18 +26,44 @@ is the entire subject of that release.
 
 ## Measured
 
-One relative import exists across all four checked populations: the one that
-produced this bug. There is no precedent because the gate has never permitted
-one.
+**Zero** relative imports exist across all four checked populations — 51 files,
+384 `ts` fences, 207 module claims, counted with the gate's own extractor
+(`moduleClaimsIn` in `scripts/lib/import-statements.mjs`). There is no precedent
+because the gate has never permitted one.
+
+**This record first said "one", under the word Measured, and that was already
+false when it was written.** The one was the changeset that produced this bug, and
+it had been rewritten as prose before the commit landed — a rewrite the "Prose"
+section below describes. The count was taken, then the thing counted was changed,
+and the count was never retaken. A method review caught it with a single command.
 
 ## Why the obvious fixes are wrong
 
-**The skip directive.** `<!-- eess-docs-code-skip -->` exists, and both of its
-uses name a reason this is not: a pre-migration "before" example, and a
-deliberately-deprecated API. `RELEASING.md` says outright that the directive is
-"for a pre-migration 'before' example only, never for the migration itself".
-Widening it to mean "and also anything that does not compile" would dissolve the
-only category the gate has.
+**The skip directive.** `<!-- eess-docs-code-skip -->` exists, and no existing use
+covers this case. Measured — five occurrences in the scanned corpus, of which the
+gate reports honouring **one**:
+
+| where                      | stated reason                 |
+| -------------------------- | ----------------------------- |
+| `docs/cross-layer.md:39`   | a deliberately deprecated API |
+| `docs/tests-cannot-lie.md` | "illustrative" ×3             |
+| `docs/core-concepts.md`    | "illustrative" pseudo-code    |
+
+`RELEASING.md:88` documents a sixth category it does not itself use, the
+pre-migration "before" example. So the directive already spans several
+categories, and the argument against widening it is not that it would "dissolve
+the only category" — an earlier draft of this record said that, and the count
+refutes it. The argument is narrower: every existing use marks a fence that is
+NOT meant to be checked, whereas the package-facing half of a mixed fence is
+meant to be checked and would stop being. Skipping the fence throws away the
+claim worth keeping.
+
+**A correction this record owes.** It previously attributed to `RELEASING.md` the
+phrase "for a pre-migration 'before' example only, never for the migration
+itself". That sentence is not in `RELEASING.md`. The "never for a migration"
+phrasing is a code comment at `scripts/check-docs-code.mjs:313`, describing a
+remedy-routing bug. Quoting a document for words it does not contain is the
+failure this corpus has a pointer gate for, and the gate does not check prose.
 
 **An untagged fence.** Dropping the `ts` info string hides the fence from the
 compiler, and `check:docs-code` already counts untagged fences carrying imports

@@ -1,4 +1,4 @@
-import { isDescribable } from '@nielspeter/eess/internal'
+import { isDescribable, writeStderr } from '@nielspeter/eess/internal'
 import type { RuleDescription } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 
@@ -13,7 +13,27 @@ interface ExplainArgs {
  * Dump all active rules as structured JSON or markdown.
  */
 export async function runExplain(args: ExplainArgs): Promise<void> {
-  const builders = await loadRuleFiles(args.ruleFiles)
+  // `check` and `doctor` both wrap this load; `explain` did not, so a rule file
+  // that fails to load left Node's own `ERR_MODULE_NOT_FOUND` stack on stderr
+  // with no mention of which file or why. Bug 0223's reporter hit exactly that,
+  // and the repair for the specifier substitution did not cover it: a typo in a
+  // sibling path is far more common than the substitution, and it was the one
+  // command of three answering with Node internals.
+  //
+  // It already failed CLOSED — the process exits non-zero either way. What
+  // changes is that the reader is told what happened.
+  let builders
+  try {
+    builders = await loadRuleFiles(args.ruleFiles)
+  } catch (error: unknown) {
+    writeStderr(
+      `Error: ${args.ruleFiles.join(', ')} could not be loaded ` +
+        `(${error instanceof Error ? error.message : String(error)}), so there is ` +
+        `nothing to explain.\n`,
+    )
+    process.exitCode = 1
+    return
+  }
 
   const descriptions: RuleDescription[] = []
   for (const builder of builders) {

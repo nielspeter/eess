@@ -15,9 +15,21 @@ import { isRecord } from './type-guards.js'
  * actually importing the file, stays in each dialect because it needs `jiti`,
  * which the kernel cannot depend on.
  *
- * That leaves one genuinely shared subtlety in the impure half —
- * {@link isModuleFormatRefusal} — so it lives here too. It is pure, and it is
- * the part that is easy to get dangerously wrong.
+ * That left one genuinely shared subtlety in the impure half —
+ * {@link isModuleFormatRefusal} — so it lived here too: pure, and the part that
+ * is easy to get dangerously wrong.
+ *
+ * **That description is no longer complete, and saying so is the point.** Bug
+ * 0223 added two more members of the same family, and one of them —
+ * {@link enableTypeScriptSpecifierResolution} — is NOT pure: it registers a
+ * resolve hook on the host process, permanently. The substitution it performs is
+ * a fact about the language rule files are WRITTEN in, which is TypeScript for
+ * every dialect, so the kernel is the right owner. But "the impure half stays in
+ * each dialect" is now true of importing and false of resolving, and an
+ * architecture review called the three of them module-loading policy sitting in
+ * a config-discovery file. Splitting them into their own kernel module is the
+ * open half of that finding; the header no longer claims otherwise in the
+ * meantime.
  */
 
 /** Config fields every dialect CLI understands. A dialect may add its own. */
@@ -107,6 +119,25 @@ const TS_SPECIFIER_SUBSTITUTIONS: ReadonlyMap<string, readonly string[]> = new M
   ['.cjs', ['.cts']],
 ])
 
+/**
+ * Is this URL a TypeScript source file — the only kind that writes `.js` for `.ts`?
+ *
+ * Reads the PATH, not the href. Watch mode cache-busts by appending `?t=<now>`
+ * to the entry url, so an href check answers no for exactly the rule file being
+ * re-run — measured, and it disabled the substitution in watch mode entirely
+ * while every non-watch test stayed green.
+ */
+function isTypeScriptSource(url: string): boolean {
+  let pathname
+  try {
+    pathname = new URL(url).pathname
+  } catch (error: unknown) {
+    void error
+    return false
+  }
+  return ['.ts', '.tsx', '.mts', '.cts'].some((ext) => pathname.endsWith(ext))
+}
+
 /** The TypeScript file a JS-family URL stands for, if one is on disk. */
 function typeScriptSourceFor(url: string): string | undefined {
   for (const [emitted, sources] of TS_SPECIFIER_SUBSTITUTIONS) {
@@ -142,7 +173,14 @@ export function isTypeScriptSpecifierMiss(error: unknown): boolean {
   return typeof url === 'string' && typeScriptSourceFor(url) !== undefined
 }
 
-/** Registered at most once per process; the hook is global and idempotent. */
+/**
+ * Registered at most once per MODULE REGISTRY, which is usually per process.
+ *
+ * This is module state, so a second registry — the very hazard the loaders that
+ * call this exist to avoid — would hold a second flag and register a second
+ * hook. Harmless, since the hook is idempotent in effect, but the distinction is
+ * worth stating in the one file whose surrounding prose is about registries.
+ */
 let specifierResolutionEnabled = false
 
 /**
@@ -172,12 +210,40 @@ export function enableTypeScriptSpecifierResolution(): void {
         return nextResolve(specifier, context)
       }
       const parentURL = context.parentURL
-      if (parentURL === undefined) return nextResolve(specifier, context)
-      const emitted = new URL(specifier, parentURL)
-      if (fs.existsSync(emitted)) return nextResolve(specifier, context)
+      // Only a TypeScript file writes the specifier TypeScript mandates. Without
+      // this the hook rewrites for every relative specifier in the process,
+      // including from inside `node_modules` — so a dependency shipping source
+      // beside a stale build directory would get its `.ts` loaded through
+      // strip-only mode instead of the resolution error it expects.
+      if (parentURL === undefined || !isTypeScriptSource(parentURL)) {
+        return nextResolve(specifier, context)
+      }
+      // A non-hierarchical parent (`data:`, `node:`) makes this throw
+      // ERR_INVALID_URL, which inside a resolve hook would convert Node's own
+      // diagnostic into a TypeError attributed to us.
+      let emitted
+      try {
+        emitted = new URL(specifier, parentURL)
+      } catch (error: unknown) {
+        void error
+        return nextResolve(specifier, context)
+      }
+      if (emitted.protocol !== 'file:' || fs.existsSync(emitted)) {
+        return nextResolve(specifier, context)
+      }
       const source = typeScriptSourceFor(emitted.href)
       if (source === undefined) return nextResolve(specifier, context)
-      return nextResolve(source, context)
+      // Carry the parent's query onto the rewrite. Watch mode busts Node's
+      // module cache by appending `?t=<now>` to the ENTRY url only; a statically
+      // imported sibling keys on its own url, which carries no query, so it is
+      // evaluated once and reused for the life of the session. Measured: edit a
+      // shared glob in the sibling and the re-run reports green computed from
+      // the code you just replaced, with no signal. Propagating the query makes
+      // the whole graph fresh, and is a no-op outside watch because there is no
+      // query to carry.
+      const rewritten = new URL(source)
+      rewritten.search = new URL(parentURL).search
+      return nextResolve(rewritten.href, context)
     },
   })
 }
