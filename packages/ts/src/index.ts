@@ -558,7 +558,18 @@ export { pathUniverse } from './core/path-universe.js'
 // install (plan 0089's rule, and check:family enforces it).
 export type { PathUniverse } from '@nielspeter/eess'
 export { validateOverrides } from './presets/shared.js'
-export { STRICT_FAMILY_SIZE } from './tsconfig/strict-family.js'
+// Bug 0278 — all four, or none. The 0.5.0 barrel kept the count and the type and
+// dropped the two functions that use them, so an adopter could NAME a
+// strict-family flag and neither test nor resolve one. Found by a consuming
+// project whose rule file imports both and stopped loading at 0.5.0: ESM refuses
+// the named import, so `eess-ts check` failed outright rather than type-erroring.
+//
+// The removal criterion was "nothing outside this package's src references it and
+// no page teaches it" — measured inside this repo, where no adopter is visible.
+// These two are the counterexample: mirroring tsc's strict-family resolution is
+// an ordinary thing for a rule file to do, and `STRICT_FAMILY_SIZE` on its own
+// only tells you how many flags there are.
+export { STRICT_FAMILY_SIZE, isStrictFamily, resolveFlag } from './tsconfig/strict-family.js'
 export type { StrictFamilyFlag } from './tsconfig/strict-family.js'
 
 // The preset delivery mode, so an adopter writing `report: 'builders'` can name

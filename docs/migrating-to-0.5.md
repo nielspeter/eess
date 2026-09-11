@@ -134,26 +134,146 @@ here.
 
 ### 3. The published barrels stop re-exporting internal helpers
 
-Thirty-seven helpers left the dialect barrels. They were on the entry point but
-were never API: no page taught them, and every test that used one already reached
-past the barrel into the source module.
+**73 names left the dialect barrels** — 54 from `eess-ts` and 19 from
+`eess-mermaid`. They were on the entry point but were never API by the criterion
+used: no page taught them, and every test that used one already reached past the
+barrel into the source module. Both lists are below, because a category cannot be
+searched for the symbol your compiler just named.
 
-`eess-mermaid` loses the free predicate and condition functions —
-`haveNameMatching`, `areAbstract`, `notDependOnStereotype` and that block. The
-documented surface is the fluent builder that wraps every one of them, so write
-`classes(d).that().areAbstract()` instead. Those names looked documented only
-because the pages carrying them are the **TypeScript** dialect's and the names
-collide.
+**`eess-mermaid`'s 19 removals, by name:**
 
-`eess-ts` loses glob-evaluator, disk-set, project-registration and diagnosis
-internals. `eess-md` loses nothing.
+```
+areAbstract, conditionHaveStereotype, dependOn, extendClass, extendName,
+haveAtLeastOneMethod, haveMemberNamed, haveMethodNamed, haveNameEndingWith,
+haveNameMatching, haveNameStartingWith, haveNoMembers, marksAssertsCardinality,
+notDependOn, notDependOnStereotype, notExist, notExtendStereotype,
+notHaveStereotype, predicateHaveStereotype
+```
 
-**These did not move to `/internal`.** They were never kernel symbols, so no
-import path reaches them any more — section 2's fix does not apply here. If you
-were using one, reach for the documented builder that wraps it, or open an issue
-saying which and why. The full list of removed names is in each package's
-`CHANGELOG.md` under this release, so you can search for the symbol your compiler
-just named.
+All but one are the free predicate and condition functions. The documented
+surface is the fluent builder that wraps every one of them, so write
+`classes(d).that().areAbstract()` instead of importing `areAbstract`. Those names
+looked documented only because the pages carrying them are the **TypeScript**
+dialect's and the names collide.
+
+The exception is `marksAssertsCardinality`, which is an evidence helper rather
+than a predicate; it is on `@nielspeter/eess/internal`.
+
+**These fail at LOAD, not at type-check.** ESM resolves named imports up front,
+so a rule file importing one of these does not report a type error — it does not
+run. If your diagram gate went silent rather than red, this is why.
+
+`eess-md` and `eess-gherkin` lose nothing — both gained exports this release.
+
+**`eess-ts`'s removals, by name.** An earlier draft of this page described them
+as "glob-evaluator, disk-set, project-registration and diagnosis internals" and
+left it there. A product review said that gives a reader no way to map their own
+compile error back to this section, and used `resolveFlag` as the example. That
+prediction came true on the first adopter to upgrade, on that exact symbol — so
+here is the list, to search:
+
+```
+FAULT_ADVICE, ON_DISK_ADVICE, UNSUPPRESSABLE, activeNotice,
+assertionLessViolation, buildDiskSet, byCodepoint, collectCalls,
+collectObjectLiteralFunctions, combineGlobs, commentSuppressionNotice,
+commentSuppressions, countDeclaredGlobs, dedupeConfigFindings, diagnoseGlob,
+discoverIdentityRoot, edgeCoverageNotice, emptyProjectAdvice,
+fromObjectLiteralFunction, globSitesOf, isAnchored, isDeadGlobTree, isDeadSite,
+isFaultPosition, isGlobNode, isNullaryCallable, isOpaqueGlob, isProjectRelative,
+isRecord, isTypeOnlyReExport, loadedNothing, marksAssertsCardinality,
+negateGlobs, normalizeIdentityText, presetConstructsNothingViolation,
+recordCommentSuppression, recordEdgeCoverage, registerProjectRoots,
+registerRootCompilerOptions, remedyRepeatsMessage, resetCommentSuppression,
+resetDiffDisclosureForTests, resetEdgeCoverage, severityFor, shallowClone,
+splitGlobArgs, stampGlobs, suppressionNotice, throwIfViolations, untestedRules,
+verbatimModuleSyntaxFor, viewsFor
+```
+
+**Most of them still resolve, from `@nielspeter/eess/internal`.** Measured
+against the published packages: of the 52 above, **33 are on `/internal`** and 19
+are reachable from nowhere. So section 2's specifier fix applies to the majority,
+not to a handful — check before rewriting anything.
+
+These 19 have no import path at all:
+
+```
+FAULT_ADVICE, ON_DISK_ADVICE, buildDiskSet, collectCalls,
+collectObjectLiteralFunctions, diagnoseGlob, emptyProjectAdvice,
+fromObjectLiteralFunction, globSitesOf, isDeadGlobTree, isDeadSite,
+isTypeOnlyReExport, loadedNothing, presetConstructsNothingViolation,
+registerProjectRoots, registerRootCompilerOptions, splitGlobArgs,
+throwIfViolations, verbatimModuleSyntaxFor
+```
+
+Two of those are deliberate deletions with their own sections: `throwIfViolations`
+(section 1) and `presetConstructsNothingViolation` (section 5).
+
+**`isStrictFamily` and `resolveFlag` are restored in the next patch.** Removing
+them was a mistake: mirroring tsc's strict-family resolution is an ordinary thing
+for a rule file to do, and at `0.5.0` exactly, a named import of either does not
+type-error — it fails to LOAD, because ESM resolves named imports up front. If
+your rule file imports them, `eess-ts check` stops running rather than reporting.
+That is
+[bug 0278](https://github.com/NielsPeter/eess/blob/main/work/bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md).
+
+**If you are on `0.5.0` today, the remedy is to hold the whole 0.4 train, not just
+`eess-ts`.** There is no deep import to reach around the barrel — the exports map
+has no wildcard subpath, so `@nielspeter/eess-ts/dist/tsconfig/strict-family.js`
+is `ERR_PACKAGE_PATH_NOT_EXPORTED`. And pinning `eess-ts` alone splits the tree,
+measured on the published packages:
+
+- `eess-crossvalidate@0.5.0` peers on `"@nielspeter/eess-ts": ">=0.5.0"`, so it
+  will not resolve beside `eess-ts@0.4.0`.
+- `eess-ts@0.4.0` depends on `@nielspeter/eess@^0.4.0` while `eess-md@0.6.0` and
+  `eess-gherkin@0.4.0` depend on `@nielspeter/eess@^0.5.0` — moving those two
+  alone puts two kernels in one tree, each with its own counters and registries.
+
+Inlining the two functions works and is small, but it is a copy of library code;
+say so in a comment so it gets deleted when the patch lands.
+
+**Eight other names on this list were restored once before and removed again.**
+`0.4.0` put twenty exports back after an adopter review; `0.5.0` took eight of
+them out a second time — `buildDiskSet`, `emptyProjectAdvice`, `globSitesOf`,
+`isDeadGlobTree`, `isDeadSite`, `isTypeOnlyReExport`, `loadedNothing`,
+`splitGlobArgs`. If you depend on any of those, say so, because the process that
+removed them cannot see you. That gap is
+[bug 0279](https://github.com/NielsPeter/eess/blob/main/work/bugs/0279-the-barrel-criterion-has-no-memory-and-no-adopter-signal.md).
+
+**Verify against your own tree rather than this list**, which is a snapshot:
+
+```bash
+mkdir /tmp/eess-surface && cd /tmp/eess-surface && npm init -y   # NOT your project
+npm i @nielspeter/eess-ts@0.4.0
+node -e "import('@nielspeter/eess-ts').then(m=>console.log(Object.keys(m).sort().join('\n')))" > old.txt
+npm i @nielspeter/eess-ts@0.5.0
+node -e "import('@nielspeter/eess-ts').then(m=>console.log(Object.keys(m).sort().join('\n')))" > new.txt
+grep -Fxv -f new.txt old.txt
+```
+
+**It sees values, not types.** `Object.keys()` reads the runtime namespace, and an
+`export type` line leaves no runtime binding — so this cannot report a type-only
+removal, here or in any later release. Measured across all four dialects for the `0.5`
+train, comparing each package's published `index.d.ts` before and after: **zero**
+type-only exports were removed — every dialect gained some — so the list above is
+complete. If a future
+release drops one, your build fails at type-check rather than at load, and this
+recipe stays silent about it.
+
+**The count is the check: that prints 54 going `0.4.0` → `0.5.0`.** An earlier
+version of this recipe ended in `comm -23 old.txt new.txt`, which was wrong and
+wrong quietly. `comm` compares adjacent lines using the shell's locale collation,
+while `Object.keys().sort()` is codepoint order — the two disagree about whether
+`Zebra` precedes `apple`. Measured under `en_US.UTF-8`, the `comm` form reported
+**282** removals instead of 54, with exit 0 and no warning; 228 of those names are
+still published and still work. `grep -Fxv -f` tests set membership and has no
+ordering contract, so no locale can move it.
+
+**Check the 19-name list above before assuming a symbol is gone.** An earlier
+draft of this page said flatly that none of these moved to `/internal`, which is
+false for 33 of the 52 — it would have sent two thirds of readers rewriting a rule
+when a one-line specifier change exists. If your symbol is on `/internal`,
+section 2 is your fix. If it is in the 19, reach for the documented builder that
+wraps it, or open an issue saying which and why.
 
 ### 4. `violations()` returns a receipt
 

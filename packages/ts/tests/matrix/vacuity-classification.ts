@@ -225,6 +225,10 @@ export const NOT_CHECKS: readonly string[] = [
   './presets:dispatchRule',
   './presets:finishPreset',
   '.:STRICT_FAMILY_SIZE',
+  // Bug 0278: restored beside the constant they give meaning to. A predicate
+  // and a resolver, not something you call `.check()` on.
+  '.:isStrictFamily',
+  '.:resolveFlag',
   '.:assertsCardinality',
   '.:diskSet',
   '.:dispatchRule',
