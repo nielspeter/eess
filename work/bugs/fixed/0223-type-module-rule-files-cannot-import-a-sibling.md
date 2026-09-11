@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — root cause confirmed against `packages/ts/src/cli/import-rule-module.ts`;
-  no red test written yet.
+- **State:** Fixed — by teaching the process loader TypeScript's specifier
+  substitution and retrying the NATIVE import. Red first, all four ledger items closed.
 - **Severity:** High — it is not a diagnostic gap but a total loss of the CLI for a whole
   project shape. `check`, `doctor` and `explain` all fail, and `explain` fails with an
   unhandled `ERR_MODULE_NOT_FOUND` stack rather than a message. The shape it excludes —
@@ -106,24 +106,67 @@ helper — the CLI stops working, with an error that points at the wrong thing.
 
 ## Fix
 
-Not built. Two directions, neither obviously right:
+**Direction 1, as the record argued.** `node:module`'s `registerHooks` is synchronous and
+in-thread, so a resolve hook changes resolution without changing the loader: the rule file
+still lands in this module registry. Two new members on the kernel's `cli-config.ts`, beside
+`isModuleFormatRefusal` for the reason that file already gives — this is the shared, easy-to-
+get-dangerously-wrong part of the impure half:
 
-1. **Resolve the specifier before importing.** On `ERR_MODULE_NOT_FOUND` for a relative
-   `.js` specifier, retry with `.ts`/`.tsx` — keeping native `import()`, so the single-registry
-   invariant the current design protects is preserved. Narrow, and does not touch jiti.
-2. **Extend the jiti fallback to `ERR_MODULE_NOT_FOUND`** — simple, but re-opens exactly the
-   two-registry hazards this file documents, and would need `isArchRuleError` plus a
-   cross-registry answer for `callerAggregatesReports`.
+- `isTypeScriptSpecifierMiss(error)` — `ERR_MODULE_NOT_FOUND` whose `url` names a JS-family
+  path whose TypeScript source **is on disk**. A genuinely missing module is still genuinely
+  missing and nothing is retried on its behalf.
+- `enableTypeScriptSpecifierResolution()` — registers the hook once. It rewrites only when the
+  emitted path is absent AND the source present, so a real `.js` beside a `.ts` of the same
+  name still wins.
 
-Separately, and independent of either: the loader's error message should not offer the
-test-runner explanation when the file imports no test runner, and `explain` should degrade the
-way `check` and `doctor` do rather than throwing a raw stack.
+`packages/ts/src/cli/import-rule-module.ts` and `packages/mermaid/src/cli/import-config.ts`
+call it and retry natively. `packages/mermaid/src/cli/load-rules.ts` is unaffected — it goes
+straight to jiti and never attempts a native import.
+
+The doctor message is now gated on `importsTestRunner(file)`, parsed with ts-morph per ADR-002.
+
+## What the first attempt at a falsifier proved, which was nothing
+
+The ledger's second item is the load-bearing one: a fix that reopens the two-registry hazard is
+not a fix. The obvious test was to assert a configuration finding is reported once rather than
+twice.
+
+**It passed under the rejected fix too.** Measured: the jiti-widening implementation was built
+and run against the same project, and printed exactly one violation block. `dedupeConfigFindings`
+in the kernel now collapses duplicate configuration findings by content hash, so the observable
+that hazard was named for is absorbed before it reaches the report. The test would have shipped
+as a guard of nothing.
+
+What discriminates is **which loader resolved the specifier**, and a TypeScript `enum` answers
+it: Node's type stripping is erasable-syntax only and refuses one, jiti transpiles it. Putting
+the enum in the SIBLING means it is only reached after the substitution, so it probes the
+repaired path rather than the entry file. Measured both ways:
+
+| implementation           | result                                            |
+| ------------------------ | ------------------------------------------------- |
+| native retry (shipped)   | refuses the enum — Node loaded the sibling        |
+| jiti fallback (rejected) | `1 rule across` — a transpiler loaded the sibling |
+
+This does not re-argue whether the jiti fix was safe. It records that the stated reason to
+reject it is no longer observable the way the record assumed, and that the test which looked
+like a guard was not one.
 
 ## Verification
 
-- [ ] The reproduction above loads under `"type": "module"` with a `.js` sibling specifier.
-- [ ] ⚠️ **The single-registry invariant still holds** — `instanceof ArchRuleError` is true for
-      an error thrown by a loaded rule file, and a configuration finding is reported **once**,
-      not twice. That is what plan 0165 and bug 0029 cost; a fix that reopens it is not a fix.
-- [ ] `explain` reports a message, not an unhandled stack.
-- [ ] The error message no longer names a test runner for a file that imports none.
+`packages/ts/tests/cli/esm-sibling-import.test.ts`, eight cases driving the BUILT CLI in a temp
+`"type": "module"` project. Red first: `check`, `doctor` and `explain` all failed before the
+change, `explain` with a raw `ERR_MODULE_NOT_FOUND` stack.
+
+- [x] The reproduction above loads under `"type": "module"` with a `.js` sibling specifier —
+      `check` evaluates the rule, `doctor` diagnoses the file.
+- [x] **The single-registry invariant still holds** — asserted by the enum discriminator above,
+      measured red under the rejected fix. The originally-planned assertion is recorded as
+      `done-otherwise`: it could not distinguish the two implementations, and the section above
+      says why rather than leaving a passing test to imply it did.
+- [x] `explain` reports a message, not an unhandled stack.
+- [x] The error message no longer names a test runner for a file that imports none — and still
+      names one for a file that does, so the gate cannot pass by saying nothing.
+- [x] Two regressions the fix must not introduce: a specifier naming nothing still fails as it
+      did, and a real `.js` beside a `.ts` of the same name is still the one resolved.
+
+Deferred: none.

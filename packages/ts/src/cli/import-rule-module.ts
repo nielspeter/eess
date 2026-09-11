@@ -1,6 +1,10 @@
 import { createJiti } from 'jiti'
 import { importFresh } from './watch.js'
-import { isModuleFormatRefusal } from '@nielspeter/eess/internal'
+import {
+  isModuleFormatRefusal,
+  isTypeScriptSpecifierMiss,
+  enableTypeScriptSpecifierResolution,
+} from '@nielspeter/eess/internal'
 
 /**
  * Load a rule file or config module — natively when Node can, via jiti when it cannot.
@@ -28,11 +32,25 @@ import { isModuleFormatRefusal } from '@nielspeter/eess/internal'
  * `npm init -y` writes. Everything else rethrows, including an `ArchRuleError`
  * thrown by a self-executing rule file, which must never be retried (a second
  * execution would print its findings twice).
+ *
+ * **The second condition does not involve jiti at all.** Bug 0223: under
+ * `"type": "module"`, a rule file importing `./sibling.js` — the specifier
+ * TypeScript REQUIRES — fails with `ERR_MODULE_NOT_FOUND`, because Node performs
+ * no `.js` → `.ts` substitution. Widening the jiti fallback to cover it was the
+ * obvious fix and the wrong one: it would reopen both hazards above. Instead the
+ * process loader is taught the substitution and the NATIVE import is retried, so
+ * the rule file still lands in this registry.
  */
 export async function importRuleModule(file: string, fresh: boolean): Promise<unknown> {
   try {
     return fresh ? await importFresh(file) : await import(file)
   } catch (error: unknown) {
+    if (isTypeScriptSpecifierMiss(error)) {
+      // Resolution only — same loader, same registry. Retried once: if it fails
+      // again the specifier named something that is genuinely not there.
+      enableTypeScriptSpecifierResolution()
+      return fresh ? await importFresh(file) : await import(file)
+    }
     if (!isModuleFormatRefusal(error)) throw error
     // jiti transpiles to CJS, so the host's `"type": "commonjs"` stops mattering.
     // `fsCache`/`moduleCache` off when fresh, for the same reason `importFresh`

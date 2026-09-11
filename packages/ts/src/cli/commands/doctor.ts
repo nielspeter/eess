@@ -4,6 +4,62 @@ import { isArchRuleError } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 import { writeStderr } from '@nielspeter/eess/internal'
 import { orphanExclusions } from '../../core/orphan-exclusions.js'
+import fs from 'node:fs'
+import { Project, ScriptKind } from 'ts-morph'
+
+/**
+ * The runners whose presence makes `doctor` genuinely unable to load a file:
+ * importing one starts a test runtime that owns the process.
+ */
+const TEST_RUNNERS = new Set([
+  'vitest',
+  'jest',
+  '@jest/globals',
+  'node:test',
+  'mocha',
+  'bun:test',
+  'ava',
+  'uvu',
+  'tap',
+])
+
+/**
+ * Does this file import a test runner?
+ *
+ * Parsed with ts-morph rather than grepped, per ADR-002 — the same lesson
+ * `scripts/lib/import-statements.mjs` records, where a regex missed
+ * `export … from` entirely and matched the word inside comments and template
+ * literals. Here a false positive would restore exactly the misdirection bug
+ * 0223 filed.
+ *
+ * Answers false on any read or parse failure: the sentence it gates is an
+ * optional extra, and guessing it onto a file we could not read is the defect.
+ */
+function importsTestRunner(file: string): boolean {
+  try {
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipFileDependencyResolution: true,
+      compilerOptions: { allowJs: false, noResolve: true },
+    })
+    const sf = project.createSourceFile('__rule__.ts', fs.readFileSync(file, 'utf8'), {
+      scriptKind: ScriptKind.TS,
+    })
+    const specifiers = [
+      ...sf.getImportDeclarations().map((d) => d.getModuleSpecifierValue()),
+      ...sf.getExportDeclarations().map((d) => d.getModuleSpecifierValue()),
+    ]
+    return specifiers.some((s) => s !== undefined && TEST_RUNNERS.has(s))
+  } catch (error: unknown) {
+    // Deliberately swallowed, and the reason is the point: this only decides
+    // whether an OPTIONAL extra sentence is appended to a message that is
+    // already reporting a failure. A file we cannot read or parse is a file we
+    // cannot claim imports a test runner, and surfacing a second error here
+    // would bury the first one the reader actually needs.
+    void error
+    return false
+  }
+}
 
 interface DoctorArgs {
   ruleFiles: string[]
@@ -78,13 +134,21 @@ export async function runDoctor(args: DoctorArgs): Promise<number> {
         // The remedy is CONDITIONAL: this branch fires for any load failure —
         // a syntax error, a missing dependency — and asserting "this imports a
         // test runner" unconditionally would be a false cause (ADR-009 rule 2,
-        // caught in review). The error message is the evidence; the test-runner
-        // sentence is offered as the common case, not stated as the cause.
+        // caught in review).
+        //
+        // Offering it as "the common case" was not enough, measured. Bug 0223's
+        // reporter read the sentence as the diagnosis and concluded in writing
+        // that doctor refuses any file importing vitest — which it does not.
+        // A remedy the reader cannot act on is worse than no remedy, so the
+        // sentence is now shown only when the file actually imports one.
         writeStderr(
           `Error: ${file} could not be loaded (${error instanceof Error ? error.message : String(error)}), ` +
-            `so none of it could be diagnosed. If this file imports a test runner (vitest/jest), ` +
-            `doctor cannot load it — run your test suite instead; the runtime writes the same ` +
-            `diagnostics to stderr.\n`,
+            `so none of it could be diagnosed.` +
+            (importsTestRunner(file)
+              ? ` This file imports a test runner, which doctor cannot load — run your ` +
+                `test suite instead; the runtime writes the same diagnostics to stderr.`
+              : '') +
+            `\n`,
         )
       }
       loadFailures.push({ file, error: error instanceof Error ? error.message : String(error) })

@@ -1,5 +1,6 @@
 import path from 'node:path'
 import fs from 'node:fs'
+import { registerHooks } from 'node:module'
 import type { OutputFormat } from './check-options.js'
 import { isRecord } from './type-guards.js'
 
@@ -89,6 +90,96 @@ export function isModuleFormatRefusal(error: unknown): boolean {
     error.message.includes('Cannot use import statement outside a module') ||
     error.message.includes("Unexpected token 'export'")
   )
+}
+
+/**
+ * The extension substitutions TypeScript performs and Node does not.
+ *
+ * Under `nodenext`, TypeScript REQUIRES a relative import to name the emitted
+ * `.js` file even when the file on disk is `.ts`. Node performs no such
+ * substitution, so the specifier that `tsc` demands is the one Node cannot
+ * resolve.
+ */
+const TS_SPECIFIER_SUBSTITUTIONS: ReadonlyMap<string, readonly string[]> = new Map([
+  ['.js', ['.ts', '.tsx']],
+  ['.jsx', ['.tsx']],
+  ['.mjs', ['.mts']],
+  ['.cjs', ['.cts']],
+])
+
+/** The TypeScript file a JS-family URL stands for, if one is on disk. */
+function typeScriptSourceFor(url: string): string | undefined {
+  for (const [emitted, sources] of TS_SPECIFIER_SUBSTITUTIONS) {
+    if (!url.endsWith(emitted)) continue
+    const stem = url.slice(0, -emitted.length)
+    for (const source of sources) {
+      const candidate = `${stem}${source}`
+      if (fs.existsSync(new URL(candidate))) return candidate
+    }
+  }
+  return undefined
+}
+
+/**
+ * Did Node fail to resolve a specifier that TypeScript requires be written that
+ * way — a `./sibling.js` whose file on disk is `./sibling.ts`?
+ *
+ * Narrow for the same reason {@link isModuleFormatRefusal} is, and narrower
+ * still: it answers yes only when the TypeScript source is ACTUALLY on disk. A
+ * genuinely missing module is still a genuinely missing module, reported the way
+ * it always was, and nothing is retried on its behalf.
+ *
+ * This is bug 0223, reported by a consuming project. `"type": "module"` plus the
+ * `.js` specifier is not an exotic combination — it is the one TypeScript
+ * mandates for ESM, so every project that splits its rules across files reaches
+ * it on the first attempt. The failure is `ERR_MODULE_NOT_FOUND` rather than a
+ * `SyntaxError`, which is why the format-refusal predicate above cannot see it.
+ */
+export function isTypeScriptSpecifierMiss(error: unknown): boolean {
+  if (!isRecord(error)) return false
+  if (error['code'] !== 'ERR_MODULE_NOT_FOUND') return false
+  const url = error['url']
+  return typeof url === 'string' && typeScriptSourceFor(url) !== undefined
+}
+
+/** Registered at most once per process; the hook is global and idempotent. */
+let specifierResolutionEnabled = false
+
+/**
+ * Teach this process's loader the substitution, so `./sibling.js` resolves to
+ * `./sibling.ts` when that is the file that exists.
+ *
+ * **`registerHooks`, deliberately, and not a transpiling loader.** The hook is
+ * synchronous and in-thread, so a rule file still loads into THIS module
+ * registry. That is the invariant plan 0165 and bug 0029 paid for and the reason
+ * the alternative fix was rejected: a second registry makes
+ * `instanceof ArchRuleError` false and sets `callerAggregatesReports` on one
+ * copy while it is read on the other, printing every configuration finding
+ * twice. Resolution is the only thing being changed here; execution is
+ * untouched.
+ *
+ * The hook rewrites nothing unless the emitted path is absent AND the
+ * TypeScript source is present, so a real `.js` file beside a `.ts` of the same
+ * name always wins, and a specifier naming neither is left alone to fail as it
+ * would have.
+ */
+export function enableTypeScriptSpecifierResolution(): void {
+  if (specifierResolutionEnabled) return
+  specifierResolutionEnabled = true
+  registerHooks({
+    resolve(specifier, context, nextResolve) {
+      if (!specifier.startsWith('./') && !specifier.startsWith('../')) {
+        return nextResolve(specifier, context)
+      }
+      const parentURL = context.parentURL
+      if (parentURL === undefined) return nextResolve(specifier, context)
+      const emitted = new URL(specifier, parentURL)
+      if (fs.existsSync(emitted)) return nextResolve(specifier, context)
+      const source = typeScriptSourceFor(emitted.href)
+      if (source === undefined) return nextResolve(specifier, context)
+      return nextResolve(source, context)
+    },
+  })
 }
 
 /**
