@@ -118,6 +118,15 @@ export named 'isStrictFamily'`.
       plan 0088's exact shape, left the matrix at 48 of 48 with `check:family`
       and `check:surface` green beside it. The same sabotage now fails three
       cases, naming the symbols and saying a rule file will not load.
+- [x] **The fourth export instrumented too.** This record frames the bug as "the
+      module exports four things and the barrel kept two", and the first version
+      of the falsifier checked three of them. `StrictFamilyFlag` is a type, so it
+      has no runtime binding — an enforcement review measured that importing the
+      package and reading its namespace, which is also how the published-surface
+      census works, is blind to roughly fifty type-only names on this barrel. The
+      test now reads the barrel's own source with ts-morph (ADR-002). Measured:
+      deleting the `export type` line reds exactly that one case and no other,
+      which is also the proof the three value checks could not see it.
 - [x] `docs/migrating-to-0.5.md` lists the removed names for both shrinking
       barrels — 54 from `eess-ts`, 19 from `eess-mermaid` — split by whether they
       resolve from `@nielspeter/eess/internal` (33) or from nowhere (19). The

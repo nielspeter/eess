@@ -1,5 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { Project } from 'ts-morph'
 
 /**
  * Bug 0278 — the falsifier that bug was closed without.
@@ -31,6 +34,42 @@ import assert from 'node:assert/strict'
  */
 const REQUIRED_VALUES = ['STRICT_FAMILY_SIZE', 'isStrictFamily', 'resolveFlag']
 
+/**
+ * The fourth thing the module exports, and the one a runtime check cannot see.
+ *
+ * Everything above imports the barrel and reads its namespace, which is how the
+ * published-surface census works too. A `export type { … }` line leaves no
+ * runtime binding, so all of it is blind to all 88 type-only names on
+ * this barrel — an enforcement review measured that and named it inside the fix
+ * for 0278, where the doc comment says "these four" and instrumented three.
+ *
+ * `StrictFamilyFlag` is `resolveFlag`'s parameter type. Dropping it does not stop
+ * a rule file loading — it fails at type-check, which is the softer half — but it
+ * is the same removal criterion reaching the same module, so it is checked the
+ * only way it can be: by reading the barrel's own source with the engine
+ * ADR-002 names.
+ */
+const REQUIRED_TYPES = ['StrictFamilyFlag']
+
+/** Type-only exported names on the `eess-ts` barrel, read with ts-morph. */
+function typeExportsOfBarrel() {
+  const barrel = fileURLToPath(new URL('../../packages/ts/src/index.ts', import.meta.url))
+  const project = new Project({
+    useInMemoryFileSystem: true,
+    skipFileDependencyResolution: true,
+    compilerOptions: { allowJs: false, noResolve: true },
+  })
+  const sf = project.createSourceFile('__barrel__.ts', readFileSync(barrel, 'utf8'))
+  const names = new Set()
+  for (const decl of sf.getExportDeclarations()) {
+    const wholeClauseIsTypeOnly = decl.isTypeOnly()
+    for (const spec of decl.getNamedExports()) {
+      if (wholeClauseIsTypeOnly || spec.isTypeOnly()) names.add(spec.getName())
+    }
+  }
+  return names
+}
+
 test('@nielspeter/eess-ts publishes the strict-family resolution surface', async () => {
   const mod = await import('@nielspeter/eess-ts')
   const missing = REQUIRED_VALUES.filter((name) => mod[name] === undefined)
@@ -53,6 +92,29 @@ test('the constant and the functions travel together', async () => {
     present.length === 0 || present.length === REQUIRED_VALUES.length,
     `strict-family surface is split: published ${present.join(', ')} and not ` +
       `${REQUIRED_VALUES.filter((n) => !present.includes(n)).join(', ')}`,
+  )
+})
+
+test('the barrel publishes the strict-family type a runtime check cannot see', () => {
+  const published = typeExportsOfBarrel()
+  const missing = REQUIRED_TYPES.filter((name) => !published.has(name))
+  assert.deepEqual(
+    missing,
+    [],
+    `the eess-ts barrel has no type-only export of ${missing.join(', ')} — ` +
+      `importing the package and reading its namespace cannot see this, and ` +
+      `neither can the published-surface census, so the removal is silent`,
+  )
+})
+
+test('the barrel type-export reader sees something at all', () => {
+  // Guards the check above from passing because the reader returned an empty
+  // set. If the parse or the path breaks, this fails instead of greening.
+  const published = typeExportsOfBarrel()
+  assert.ok(
+    published.size > 20,
+    `read ${published.size} type-only exports from the eess-ts barrel — the ` +
+      `reader is broken or pointed at the wrong file, so the check above proves nothing`,
   )
 })
 

@@ -216,6 +216,21 @@ your rule file imports them, `eess-ts check` stops running rather than reporting
 That is
 [bug 0278](https://github.com/NielsPeter/eess/blob/main/work/bugs/fixed/0278-the-strict-family-barrel-kept-the-count-and-dropped-the-functions.md).
 
+**If you are on `0.5.0` today, the remedy is to hold the whole 0.4 train, not just
+`eess-ts`.** There is no deep import to reach around the barrel — the exports map
+has no wildcard subpath, so `@nielspeter/eess-ts/dist/tsconfig/strict-family.js`
+is `ERR_PACKAGE_PATH_NOT_EXPORTED`. And pinning `eess-ts` alone splits the tree,
+measured on the published packages:
+
+- `eess-crossvalidate@0.5.0` peers on `"@nielspeter/eess-ts": ">=0.5.0"`, so it
+  will not resolve beside `eess-ts@0.4.0`.
+- `eess-ts@0.4.0` depends on `@nielspeter/eess@^0.4.0` while `eess-md@0.6.0` and
+  `eess-gherkin@0.4.0` depend on `@nielspeter/eess@^0.5.0` — moving those two
+  alone puts two kernels in one tree, each with its own counters and registries.
+
+Inlining the two functions works and is small, but it is a copy of library code;
+say so in a comment so it gets deleted when the patch lands.
+
 **Eight other names on this list were restored once before and removed again.**
 `0.4.0` put twenty exports back after an adopter review; `0.5.0` took eight of
 them out a second time — `buildDiskSet`, `emptyProjectAdvice`, `globSitesOf`,
@@ -227,12 +242,31 @@ removed them cannot see you. That gap is
 **Verify against your own tree rather than this list**, which is a snapshot:
 
 ```bash
+mkdir /tmp/eess-surface && cd /tmp/eess-surface && npm init -y   # NOT your project
 npm i @nielspeter/eess-ts@0.4.0
 node -e "import('@nielspeter/eess-ts').then(m=>console.log(Object.keys(m).sort().join('\n')))" > old.txt
 npm i @nielspeter/eess-ts@0.5.0
 node -e "import('@nielspeter/eess-ts').then(m=>console.log(Object.keys(m).sort().join('\n')))" > new.txt
-comm -23 old.txt new.txt
+grep -Fxv -f new.txt old.txt
 ```
+
+**It sees values, not types.** `Object.keys()` reads the runtime namespace, and an
+`export type` line leaves no runtime binding — so this cannot report a type-only
+removal, here or in any later release. Measured across all four dialects for the `0.5`
+train, comparing each package's published `index.d.ts` before and after: **zero**
+type-only exports were removed — every dialect gained some — so the list above is
+complete. If a future
+release drops one, your build fails at type-check rather than at load, and this
+recipe stays silent about it.
+
+**The count is the check: that prints 54 going `0.4.0` → `0.5.0`.** An earlier
+version of this recipe ended in `comm -23 old.txt new.txt`, which was wrong and
+wrong quietly. `comm` compares adjacent lines using the shell's locale collation,
+while `Object.keys().sort()` is codepoint order — the two disagree about whether
+`Zebra` precedes `apple`. Measured under `en_US.UTF-8`, the `comm` form reported
+**282** removals instead of 54, with exit 0 and no warning; 228 of those names are
+still published and still work. `grep -Fxv -f` tests set membership and has no
+ordering contract, so no locale can move it.
 
 **Check the 19-name list above before assuming a symbol is gone.** An earlier
 draft of this page said flatly that none of these moved to `/internal`, which is

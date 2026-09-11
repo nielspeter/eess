@@ -284,6 +284,13 @@ $EDITOR packages/crossvalidate/package.json
 #     major or minor — six violations on the 0.5 train. Expected, not a defect.
 $EDITOR README.md
 
+# 3c. Diff the about-to-ship surface against what is on npm — EVERY subpath, every
+#     package — and require a changeset to name every removal. Nothing in the repo
+#     catches one: the census under packages/ts/tests/matrix/ imports the LOCAL
+#     dist, so both sides of it move in the same commit. See "A removal from a
+#     published barrel is invisible to every gate" below for the recipe.
+npm run build
+
 # 4. Sanity-check locally
 npm run validate
 
@@ -309,6 +316,102 @@ no body, so the notes are machine-made from PR titles and no authoring moment
 exists. After the tag push, edit the Release to link the migration page —
 `gh release edit v<kernel-version> --notes-file …` — or the page you wrote is
 reachable only by someone already browsing the docs.
+
+## A removal from a published barrel is invisible to every gate (bug 0279)
+
+**Three releases in a row have shipped a barrel removal that broke an adopter,
+and each was found by the adopter.** Pre-`0.4.0` dropped exports and `0.4.0` put
+twenty back after an adopter diffed every subpath; `0.5.0` dropped fifty-four
+from `eess-ts`, eight of them names `0.4.0` had just restored, and two of those
+stopped a consumer's rule file from loading at all (bug 0278). The sequence grew
+steps 3a and 3b when other incidents showed it producing the wrong artifact. It
+had no step for this one.
+
+**The census cannot stand in for it.** `loadPublishedExports()` in
+`packages/ts/tests/matrix/enumerate.ts:94` resolves the package by
+self-reference, which is deliberate — it exercises the real exports map — but it
+reads the LOCAL build. Delete an export and its classification row in one commit
+and the matrix passes at its new, smaller size. That is exactly what `0.5.0` did.
+
+**Root-only is not enough either.** The `0.4.0` restore included two names from
+the `/presets` subpath, and `eess-ts` publishes thirteen subpaths,
+`eess-crossvalidate` seven. Measured on this train: the root diff misses
+`throwIfViolations` leaving `./presets`.
+
+Run this after the build in step 3c, per package:
+
+```bash
+pkg=ts                                                   # repeat for each package
+name=$(node -p "require('./packages/$pkg/package.json').name")
+ref=$(mktemp -d)
+(cd "$ref" && npm init -y >/dev/null && npm i --silent "$name@latest")
+keys='m=>console.log(Object.keys(m).join("\n"))'
+for sub in $(node -p "Object.keys(require('./packages/$pkg/package.json').exports).join(' ')"); do
+  spec="$name${sub#.}"
+  (cd "$ref" && node -e "import('$spec').then($keys,()=>{})") > "$ref/old.txt" 2>/dev/null
+  node -e "import('$spec').then($keys,()=>{})" > "$ref/new.txt" 2>/dev/null
+  gone=$(grep -Fxv -f "$ref/new.txt" "$ref/old.txt" | tr '\n' ' ')
+  printf '%-22s published %3d → local %3d  removed: %s\n' "$sub" \
+    "$(wc -l < "$ref/old.txt")" "$(wc -l < "$ref/new.txt")" "${gone:-none}"
+done
+rm -rf "$ref"
+```
+
+**Read the denominators, not just the removals.** The loop prints a published and
+a local count for every subpath precisely so that "nothing removed" cannot be
+confused with a failed reference install or a stale `dist` — the same reason
+every `check:*` gate in this repo prints what it scanned. A subpath reading
+`published 0` means the install or the specifier is wrong, not that the surface
+is clean. Verified both ways on this train: against `0.4.0` it names the root
+removals **and** `throwIfViolations` leaving `./presets`, which a root-only diff
+does not see; against `0.5.0` it reports `none` on all thirteen subpaths.
+
+**It covers values only.** The loop reads runtime namespaces, so a type-only
+export leaves no binding for it to miss. Measured on the `eess-ts` barrel: **88**
+type-only exported names, across 50 `export type` lines, and neither this nor the
+published-surface census can see one leave — a removal there breaks an adopter at type-check instead of at
+load, which is quieter, not harmless. `scripts/lib/tsconfig-surface.test.mjs`
+shows the shape of the answer: read the barrel's own source with ts-morph.
+
+**`grep -Fxv -f`, not `comm -23`.** `comm` compares adjacent lines by the shell's
+locale collation; these lists are in codepoint order. Measured on the `0.4.0` →
+`0.5.0` root barrel under `en_US.UTF-8`, the `comm` form reports 282 removals
+instead of 54 — exit 0, no warning, 228 names that never left. The migration page
+shipped that mistake to adopters first.
+
+Every name this prints must be named in a changeset, in the changeset **body**,
+under a `**Breaking …**` marker. Automating the step is bug 0279.
+
+## If a published version is broken
+
+npm does not allow re-publishing a version, and `publish.yml` attaches
+provenance, so a bad release is permanent. Two things then have to happen, in
+this order:
+
+1. **Ship the fix as a new version.** A restored export is a `patch` at `0.x` —
+   both versions live under the same `^0.5.0` range, so the range cannot tell
+   them apart, and patch is the bump an adopter takes without reading anything.
+2. **Deprecate the broken version**, so `npm install` says so at install time
+   rather than leaving every fresh install on the broken one:
+
+   ```bash
+   npm deprecate '@nielspeter/eess-ts@0.5.0' 'Broken barrel: isStrictFamily/resolveFlag missing — a rule file importing either fails at ESM load. Use 0.5.1.'
+   ```
+
+   Deprecate the exact version, never a range that would catch the fix. This is
+   a manual step; nothing in `publish.yml` does it.
+
+3. **Do not skip step 3a because the fix touched one package.** The peer floors
+   in `eess-crossvalidate` are what stop a broken version resolving beside its
+   siblings, and after a fix release they still admit the broken one — a
+   `>=0.5.0` floor keeps accepting `0.5.0` once `0.5.1` exists. Raise the floor
+   to the version that carries the fix, or decide out loud that it does not
+   matter for this one and say why in the changeset.
+
+Do not reach for `npm unpublish`. Inside 72 hours it succeeds and breaks every
+tree that already installed the version. Past 72 hours npm allows it only under
+narrow conditions, and a package with dependents is not one of them. Deprecation
+is the tool that exists for this; unpublishing is not a rollback.
 
 That's it. The tag push triggers `publish.yml`, which:
 
