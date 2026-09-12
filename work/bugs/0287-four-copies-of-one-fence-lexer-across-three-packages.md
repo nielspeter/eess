@@ -7,7 +7,7 @@
 - **Severity:** **High** — raised 2026-09-12. **The earlier rationale ("nothing is
   wrong that 0286 does not already file") was measured false.** A fourth consumer
   has its own live fail-open in a CI gate on this repo, filed as
-  [0288](./0288-an-unpaired-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md).
+  [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md).
   What remains true is that 0286's and 0288's fixes have four places to land and no
   owner, so copies will keep the bug after one is fixed.
 - **Origin:** self-found · split out of 0286 on review, which found the record was
@@ -38,7 +38,7 @@ consumer then selects fewer elements and loses findings:
 
 | consumer                                           | measured                                                                                                         |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `scripts/lib/proposal-ruling.mjs`                  | [0288](./0288-an-unpaired-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) — the ruling vanishes, in CI |
+| `scripts/lib/proposal-ruling.mjs`                  | [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) — the ruling vanishes, in CI |
 | `packages/md/src/rules/ledger.ts`                  | [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) — boxes lost                                    |
 | `packages/md/src/builders/vocabulary.ts` `terms()` | follows by construction; **not measured**                                                                        |
 | `packages/crossvalidate/src/md-gherkin.ts`         | follows by construction; **not measured**                                                                        |
@@ -97,7 +97,7 @@ options are not "widen the regex" versus "leave it":
 
 4. **Report an unterminated fence** as its own finding, whoever owns the lexer. This
    is the only option that reaches the shape _both_ parsers get wrong, and it is
-   [0288](./0288-an-unpaired-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md)'s
+   [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md)'s
    preferred fix for the same reason.
 
 (1) is the smallest thing that stops the defect recurring across four files. (4) is

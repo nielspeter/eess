@@ -119,14 +119,42 @@ is in this repo's gate script rather than in the package an adopter installs —
 same asymmetry as the per-lane `LANES` table and the missing reference
 `check-ledger.mjs` ([0151](./0151-honesty-at-close-options-undiscoverable-past-source.md)).
 
-### What it also catches
+### What it catches — and the claim retracted here
 
-The same signature covers
-[0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)'s first route,
-where a fenced example knocks the record out of the done population: `doneItems: 0`
-there too. It does **not** catch 0286's second route, where `doneItems` stays 1 and
-the boxes vanish. **Two of the three fail-opens on this branch are one missing
-guard; the third is genuinely separate.**
+**An earlier version of this section said the same signature covers
+[0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)'s first route, and
+that "two of the three fail-opens on this branch are one missing guard". Measured
+false, and the measurement that produced it was a fixture of my own making.**
+
+`findLaneDoneVacuity` is a **lane-wide denominator** guard:
+`scripts/lib/lane-coverage.mjs:149` is `if (lane.doneItems > 0) continue`, and
+`doneItems` is summed across the whole lane. **One** correctly-closed record
+anywhere in the lane makes it non-zero and the guard silent, while every victim in
+that lane stays unreported.
+
+Measured, a two-record lane closed in place — one victim carrying two undisposed
+boxes behind a fenced example, one ordinary correctly-closed record:
+
+|                           | value      |
+| ------------------------- | ---------- |
+| `doneItems`               | 1          |
+| `honestyAtClose` findings | **0**      |
+| `findLaneDoneVacuity`     | **silent** |
+
+So the guard fires only at **total lane blackout**. That is a real break class and a
+worthwhile one, and it is not this record's. The earlier claim held only because the
+probe behind it was a **single-record** corpus, which is the one shape in which the
+victims are the entire done population — the same over-generalisation this branch
+has now produced repeatedly, this time from a fixture written to test the claim.
+
+This record's own verification box asks that a remedy be **corrective**: after
+applying it, the record is classified done and its open box reports. Applying this
+guard to a mixed lane changes nothing, so it does not meet that bar either.
+
+**What remains true.** The asymmetry is still real and still worth filing: the
+lane-blackout guard exists in this repo's gate script and in no shipped package. But
+it is an _adjacent_ protection, not this record's fix, and the per-record corruption
+this record files is still unowned.
 
 ### The prior question, re-ordered
 
@@ -169,8 +197,11 @@ because a probe that asserts ids fire stays green when a whole check goes dark.
 - [x] **Falsified this record's own corruption predicate** — it under-fires on the
       commoner non-empty-intersection configuration and over-fires on a documented
       supported one.
-- [x] Located the guard already written at `scripts/lib/lane-coverage.mjs:138`, and
+- [x] Located the lane-blackout guard at `scripts/lib/lane-coverage.mjs:138`, and
       confirmed nothing equivalent exists in `packages/md`.
+- [x] **Falsified this record's own claim that the guard covers 0286's first route
+      and that two fail-opens are one missing guard** — measured silent on a
+      two-record lane; it fires only at total lane blackout.
 - [ ] Red first, in [0283](./0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md)'s
       honest form, **not** "the finding names both options" — a constant string
       satisfies that, which is the trap 0283 warns about and an earlier version of

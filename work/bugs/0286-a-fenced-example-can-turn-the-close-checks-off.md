@@ -183,7 +183,7 @@ appear. A new `scripts/check-nonvacuity.mjs` registry row is required, with a
    [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md), which
    owns that decision and has a fixed precedent. **Repairs route A only.**
 2. **Own the unclosed fence directly** — report an unterminated fence as its own
-   finding, per [0288](./0288-an-unpaired-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md).
+   finding, per [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md).
    **Route B needs this and nothing else reaches it.**
 3. The fixtures — one per route, with the three conditions above.
 4. The non-vacuity rows — **two, not one**: the routes are independent and a fix
