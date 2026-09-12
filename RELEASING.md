@@ -344,7 +344,12 @@ Run this after the build in step 3c, per package:
 pkg=ts                                                   # repeat for each package
 name=$(node -p "require('./packages/$pkg/package.json').name")
 ref=$(mktemp -d)
-(cd "$ref" && npm init -y >/dev/null && npm i --silent "$name@latest")
+# Install the PEERS too. `eess-crossvalidate`'s entries import the dialects, so
+# without them every subpath imports as empty and the diff reads `published 0`
+# for a surface that is fine — measured on the 0.5.1 train, five subpaths.
+(cd "$ref" && npm init -y >/dev/null && npm i --silent "$name@latest" \
+  @nielspeter/eess-ts@latest @nielspeter/eess-mermaid@latest \
+  @nielspeter/eess-md@latest @nielspeter/eess-gherkin@latest)
 keys='m=>console.log(Object.keys(m).join("\n"))'
 for sub in $(node -p "Object.keys(require('./packages/$pkg/package.json').exports).join(' ')"); do
   spec="$name${sub#.}"
