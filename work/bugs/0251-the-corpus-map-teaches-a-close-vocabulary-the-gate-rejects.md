@@ -57,11 +57,46 @@ So the one-screen map teaches precisely the union the gate refuses.
 - `kit/templates/work/README.md` teaches the same single union vocabulary.
 - `kit/templates/plan.md` gives `Draft · Ready · Done · Won't-do`, **omitting
   `Open`** — so the kit contradicts itself.
-- `kit/skills/close/SKILL.md` gives `**State:** Done` for every lane.
+- `kit/skills/close/SKILL.md` gives `**State:** Done` for every lane — **stale as
+  of 2026-09-12, see the amendment below.**
 - **`Fixed` appears zero times across all three.** The exported method never
   teaches the bugs lane's terminal token at all.
 
 Fixing only this repo's copy leaves the exported method wrong.
+
+### Amendment 2026-09-12 — the close skill now writes a token no kit list contains
+
+The bullet above is no longer accurate, and what replaced it is sharper than what
+it said. `kit/skills/close/SKILL.md:62-66` carries a proposals paragraph: "A
+proposal is not 'done', it is _dispatched_: `Promoted` … or `Rejected`." It
+entered the kit in commit `488931a` on 2026-08-23, twelve days before this record
+was filed, and was missed on the first pass.
+
+So the exported method does not merely teach one union where the gate declares
+three. It **instructs an author to write a token that appears in none of its own
+lists** — `Promoted` is absent from `kit/templates/work/README.md:38`, absent from
+`kit/templates/plan.md:17`, and absent from `DEFAULT_STATES`
+(`packages/md/src/rules/ledger.ts:86`). An adopter following the kit exactly, and
+wiring `check:ledger` the only way the kit describes, reds on the first proposal
+they close.
+
+That is the same defect this record already files, at its sharpest available
+instance, and it is the one to write the red test against.
+
+**Measured, the contradiction has a second axis this record did not have.** The
+same close skill instructs moving the closed file to `proposals/promoted/` or
+`rejected/`, and neither is in `DEFAULT_DONE_FOLDERS`
+(`packages/md/src/rules/ledger.ts:84`). That half produces a worse message and is
+filed separately as [0282](./0282-the-kit-instructs-a-close-into-folders-the-gate-does-not-know.md),
+because its fix is a different artifact and its message is false rather than
+merely incomplete.
+
+**Provenance.** This amendment began as a separate record, filed 2026-09-12 from
+an external report and withdrawn the same day when architecture review found it
+duplicated this section. It measured less than this record already had: it asserted
+the kit teaches one vocabulary for every lane, which `kit/templates/plan.md:17`
+falsifies, and which the second bullet above had already caught. Folded in rather
+than kept, so the lane holds one record for one defect.
 
 ## Two prerequisites, one of which is code
 
@@ -110,3 +145,8 @@ Fixing only this repo's copy leaves the exported method wrong.
   both halves were blocked on, closed 2026-09-04.
 - [0250](./fixed/0250-the-review-roster-has-no-working-method-lens.md) — the lens
   whose first run found this.
+- [0282](./0282-the-kit-instructs-a-close-into-folders-the-gate-does-not-know.md) —
+  the done-folder axis of the same kit contradiction, split out 2026-09-12.
+- [0151](./0151-honesty-at-close-options-undiscoverable-past-source.md) — the kit
+  documents none of `honestyAtClose`'s options and ships no reference script, which
+  is why an adopter meets every one of these defaults without a way to override it.
