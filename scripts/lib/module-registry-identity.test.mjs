@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync, symlinkSync, cpSync } fr
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { createJiti } from 'jiti'
-import { ArchConfigError } from '@nielspeter/eess'
+import { ArchRuleError, isArchRuleError } from '@nielspeter/eess'
 
 /**
  * What actually decides whether a rule file shares the kernel with its CLI.
@@ -53,19 +53,19 @@ test('jiti does not split the kernel — one install, one instance', async () =>
   const dir = scratch()
   writeFileSync(
     path.join(dir, 'rules.ts'),
-    "import { ArchConfigError } from '@nielspeter/eess'\nexport const Theirs = ArchConfigError\n",
+    "import { ArchRuleError } from '@nielspeter/eess'\nexport const Theirs = ArchRuleError\n",
   )
   const mod = await createJiti(import.meta.url).import(path.join(dir, 'rules.ts'))
   // Both-undefined would satisfy `equal`; assert it is a class first.
   assert.equal(typeof mod.Theirs, 'function', 'the rule file exported no class')
   assert.equal(
     mod.Theirs,
-    ArchConfigError,
+    ArchRuleError,
     'a jiti-loaded rule file resolved the kernel to a different instance — ' +
       "ADR-015's reasoning about which loader to prefer was re-derived on the " +
       'opposite finding and must be revisited, not patched',
   )
-  assert.ok(new mod.Theirs('x') instanceof ArchConfigError, 'instanceof must hold across jiti')
+  assert.ok(new mod.Theirs([]) instanceof ArchRuleError, 'instanceof must hold across jiti')
 })
 
 test('fresh mode does not split it either — the watch path', async () => {
@@ -75,12 +75,12 @@ test('fresh mode does not split it either — the watch path', async () => {
   const dir = scratch()
   writeFileSync(
     path.join(dir, 'rules.ts'),
-    "import { ArchConfigError } from '@nielspeter/eess'\nexport const Theirs = ArchConfigError\n",
+    "import { ArchRuleError } from '@nielspeter/eess'\nexport const Theirs = ArchRuleError\n",
   )
   const jiti = createJiti(import.meta.url, { fsCache: false, moduleCache: false })
   const mod = await jiti.import(path.join(dir, 'rules.ts'))
   assert.equal(typeof mod.Theirs, 'function', 'the rule file exported no class')
-  assert.equal(mod.Theirs, ArchConfigError, 'fresh mode split the kernel')
+  assert.equal(mod.Theirs, ArchRuleError, 'fresh mode split the kernel')
 })
 
 test('a duplicate install DOES split it, whatever the loader', async () => {
@@ -95,20 +95,28 @@ test('a duplicate install DOES split it, whatever the loader', async () => {
   })
   writeFileSync(
     path.join(dir, 'rules/r.ts'),
-    "import { ArchConfigError } from '@nielspeter/eess'\nexport const Theirs = ArchConfigError\n",
+    "import { ArchRuleError } from '@nielspeter/eess'\nexport const Theirs = ArchRuleError\n",
   )
   const mod = await createJiti(import.meta.url).import(path.join(dir, 'rules/r.ts'))
   // Positively, BEFORE the inequality: `assert.notEqual(undefined, X)` passes,
   // so a failed copy or a throwing import would otherwise read as a genuine
   // split and this control would certify a probe that observed nothing.
   assert.equal(typeof mod.Theirs, 'function', 'the nested copy did not load a class')
-  assert.notEqual(
-    mod.Theirs,
-    ArchConfigError,
-    'a second physical copy resolved to the same instance',
-  )
+  assert.notEqual(mod.Theirs, ArchRuleError, 'a second physical copy resolved to the same instance')
+  const foreign = new mod.Theirs([])
   assert.ok(
-    new mod.Theirs('x') instanceof mod.Theirs && !(new mod.Theirs('x') instanceof ArchConfigError),
+    foreign instanceof mod.Theirs && !(foreign instanceof ArchRuleError),
     'the two classes are distinct objects but instanceof does not separate them',
+  )
+  // The point of the whole case: this object is exactly what `isArchRuleError`
+  // is structural FOR, and a testing review noticed the case built it and threw
+  // it away without ever asking the predicate. `instanceof` says no above; the
+  // predicate must say yes, or the kernel's reason for being structural is
+  // asserted nowhere in the repository.
+  assert.equal(
+    isArchRuleError(foreign),
+    true,
+    'isArchRuleError did not recognise an error from a second physical copy of ' +
+      'the kernel — which is the one case it is structural for',
   )
 })

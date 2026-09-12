@@ -9,10 +9,21 @@ import {
 /**
  * Load a rule file or config module — natively when Node can, via jiti when it cannot.
  *
- * **Native first, and that ordering is the whole design.** A rule file loaded
- * through jiti gets jiti's own module registry, so the copy of eess-ts it imports
- * is a DIFFERENT instance from the CLI's. Two things break silently when that
- * happens, both measured (plan 0165):
+ * **Native first, and that ordering is the whole design — but not for the reason
+ * this comment used to give.** It said a rule file loaded through jiti "gets
+ * jiti's own module registry, so the copy of eess-ts it imports is a DIFFERENT
+ * instance from the CLI's". Measured and false: under the pinned jiti 2.7.0 a
+ * transpiled rule file resolves its bare specifiers to the instances the host
+ * already holds. A second physical copy on disk splits them; the loader does not.
+ * [Bug 0199](../../../../work/bugs/fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)
+ * had already disproved the same claim three ways, and this file kept repeating it.
+ *
+ * The real reason to load natively is that the loader decides which PROGRAMS are
+ * valid rule files: jiti transpiles, so it accepts TypeScript that Node's
+ * strip-only mode refuses. See ADR-015.
+ *
+ * The two hazards plan 0165 named are recorded below because the SECOND physical
+ * copy case is real and neither is fixed by a loader choice:
  *
  *  - `instanceof ArchRuleError` is false for an error that is one, so
  *    `check.ts` skipped `ruleFileTruncated()` and a truncated run said nothing

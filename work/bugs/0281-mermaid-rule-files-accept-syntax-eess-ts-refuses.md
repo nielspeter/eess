@@ -36,7 +36,13 @@ unreliable across jiti boundaries because the rule file may load its own copy of
 the kernel" — names the wrong cause. The duck-type it justifies is still worth
 keeping, for the duplicate-install case that no loader choice fixes.
 
-Plan 0165 measured a real split on an older `jiti`. This is ground that moved.
+**This was an error made then, not ground that moved.** An earlier version of
+this record said plan 0165 measured a real split on an older `jiti`. Measured:
+`package-lock.json` has pinned 2.7.0 since the initial commit and the declared
+range never changed, so plan 0165 ran under the same version. And
+[bug 0199](./fixed/0199-a-bare-preset-call-throws-before-baseline-filtering.md)
+had already disproved the same claim three ways. The exculpation was invented,
+in a record whose subject is a false premise.
 
 ## What is actually true, measured
 
