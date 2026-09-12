@@ -23,7 +23,7 @@
     "fix": "npm run lint:fix && npm run format",
     "check:integrity": "node scripts/check-workspace-integrity.mjs && node --test scripts/lib/source-text.test.mjs",
     "check:arch": "eess-ts check arch.rules.ts arch.internal.rules.ts",
-    "check:family": "eess-ts check family.rules.ts && node --test scripts/lib/family-re-exports.test.mjs && node --test scripts/lib/receipt-constructors.test.mjs && node --test scripts/lib/tsconfig-surface.test.mjs",
+    "check:family": "eess-ts check family.rules.ts && node --test scripts/lib/family-re-exports.test.mjs && node --test scripts/lib/receipt-constructors.test.mjs && node --test scripts/lib/tsconfig-surface.test.mjs && node --test scripts/lib/module-registry-identity.test.mjs",
     "check:baseline": "node scripts/check-baseline.mjs",
     "check:guardrails": "node scripts/check-guardrails.mjs",
     "check:diagram": "eess-mermaid check mermaid.rules.ts",

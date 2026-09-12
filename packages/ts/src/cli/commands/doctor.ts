@@ -4,6 +4,82 @@ import { isArchRuleError } from '@nielspeter/eess'
 import { loadRuleFiles } from '../load-rules.js'
 import { writeStderr } from '@nielspeter/eess/internal'
 import { orphanExclusions } from '../../core/orphan-exclusions.js'
+import fs from 'node:fs'
+import { Project, ScriptKind, Node } from 'ts-morph'
+
+/**
+ * The runners whose presence makes `doctor` genuinely unable to load a file:
+ * importing one starts a test runtime that owns the process.
+ */
+const TEST_RUNNERS = [
+  'vitest',
+  'jest',
+  '@jest/globals',
+  'node:test',
+  'mocha',
+  'bun:test',
+  'ava',
+  'uvu',
+  'tap',
+]
+
+/** Exact match or a subpath of one — `vitest/config` is still vitest. */
+function isTestRunner(specifier: string): boolean {
+  return TEST_RUNNERS.some((name) => specifier === name || specifier.startsWith(`${name}/`))
+}
+
+/**
+ * Does this file import a test runner?
+ *
+ * Parsed with ts-morph rather than grepped, per ADR-002 — the same lesson
+ * `scripts/lib/import-statements.mjs` records, where a regex missed
+ * `export … from` entirely and matched the word inside comments and template
+ * literals. Here a false positive would restore exactly the misdirection bug
+ * 0223 filed.
+ *
+ * Answers false on any read or parse failure: the sentence it gates is an
+ * optional extra, and guessing it onto a file we could not read is the defect.
+ */
+function importsTestRunner(file: string): boolean {
+  try {
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipFileDependencyResolution: true,
+      compilerOptions: { allowJs: false, noResolve: true },
+    })
+    const sf = project.createSourceFile('__rule__.ts', fs.readFileSync(file, 'utf8'), {
+      scriptKind: ScriptKind.TS,
+    })
+    // `getImportStringLiterals()` and not `getImportDeclarations()`, which is
+    // the shape `core/module-edges.ts` records as defective (ts-archunit bug
+    // 0022): it sees static imports only, missing `import('vitest')`,
+    // `require('vitest')` and `import x = require('vitest')`. Low stakes here —
+    // it gates one sentence — but a second, worse enumerator in the dialect that
+    // owns the good one is how the good one stops being the only one.
+    // A type-only import is ERASED before the module runs, so it cannot be the
+    // reason a file failed to load — an adopter review measured `import type
+    // { TestAPI } from 'vitest'` drawing the sentence onto a file whose real
+    // fault was a throw. `getImportStringLiterals()` returns the literal, so the
+    // type-only-ness is read from its declaration.
+    return sf.getImportStringLiterals().some((literal) => {
+      if (!isTestRunner(literal.getLiteralValue())) return false
+      const declaration = literal.getFirstAncestor(
+        (node) => Node.isImportDeclaration(node) || Node.isExportDeclaration(node),
+      )
+      if (Node.isImportDeclaration(declaration)) return !declaration.isTypeOnly()
+      if (Node.isExportDeclaration(declaration)) return !declaration.isTypeOnly()
+      return true
+    })
+  } catch (error: unknown) {
+    // Deliberately swallowed, and the reason is the point: this only decides
+    // whether an OPTIONAL extra sentence is appended to a message that is
+    // already reporting a failure. A file we cannot read or parse is a file we
+    // cannot claim imports a test runner, and surfacing a second error here
+    // would bury the first one the reader actually needs.
+    void error
+    return false
+  }
+}
 
 interface DoctorArgs {
   ruleFiles: string[]
@@ -78,13 +154,29 @@ export async function runDoctor(args: DoctorArgs): Promise<number> {
         // The remedy is CONDITIONAL: this branch fires for any load failure —
         // a syntax error, a missing dependency — and asserting "this imports a
         // test runner" unconditionally would be a false cause (ADR-009 rule 2,
-        // caught in review). The error message is the evidence; the test-runner
-        // sentence is offered as the common case, not stated as the cause.
+        // caught in review).
+        //
+        // Offering it as "the common case" was not enough, measured. Bug 0223's
+        // reporter read the sentence as the diagnosis and concluded in writing
+        // that doctor refuses any file importing vitest — which it does not.
+        //
+        // Gating it on the import was the first repair and it was still wrong,
+        // caught in review: it turned a hedge into a confident, usually-false
+        // diagnosis. Measured — a rule file that IMPORTS vitest diagnoses fine
+        // (exit 0); one that CALLS `describe()` at module scope fails with a
+        // vitest-internal error. So the gate keeps it off files it cannot apply
+        // to, and the wording states the distinction the record measured rather
+        // than asserting a cause.
         writeStderr(
           `Error: ${file} could not be loaded (${error instanceof Error ? error.message : String(error)}), ` +
-            `so none of it could be diagnosed. If this file imports a test runner (vitest/jest), ` +
-            `doctor cannot load it — run your test suite instead; the runtime writes the same ` +
-            `diagnostics to stderr.\n`,
+            `so none of it could be diagnosed.` +
+            (importsTestRunner(file)
+              ? ` This file imports a test runner. Importing one is fine — but if it also ` +
+                `CALLS one at module scope (a \`describe(…)\` outside a test run), doctor ` +
+                `cannot load it; run your test suite instead, where the runtime writes the ` +
+                `same diagnostics to stderr.`
+              : '') +
+            `\n`,
         )
       }
       loadFailures.push({ file, error: error instanceof Error ? error.message : String(error) })

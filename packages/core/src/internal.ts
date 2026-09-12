@@ -96,6 +96,8 @@ export {
   findConfigFile,
   extractSharedConfig,
   isModuleFormatRefusal,
+  isTypeScriptSpecifierMiss,
+  enableTypeScriptSpecifierResolution,
   requireRuleFiles,
 } from './cli-config.js'
 export type { SharedCliConfig } from './cli-config.js'
