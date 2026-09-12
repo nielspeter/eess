@@ -1,4 +1,4 @@
-# Bug 0281: `eess-mermaid` rule files accept syntax `eess-ts` refuses
+# Bug 0281: which loader reads a rule file decides what a rule file may contain
 
 ## Status
 
@@ -49,9 +49,21 @@ The same rule file, in both dialects:
 | `namespace`            | refused, exit 1 | loads, exit 0  |
 | a parameter property   | refused, exit 1 | loads, exit 0  |
 
-Consistent across `"type": "module"` and `"type": "commonjs"` — Node raises the
-syntax error before the format refusal, so `eess-ts`'s `jiti` fallback is never
-reached.
+That table is the ENTRY-file case. **A second divergence sits inside `eess-ts`
+itself**, found by an architecture review after this record first claimed the
+refusal was "consistent across both project types". It is not. Put the syntax in
+a SIBLING and the entry fails with `Cannot use import statement outside a
+module`, which IS the format refusal, so `jiti` is entered and transpiles the
+whole graph:
+
+| consumer's `type` | `eess-ts`, a sibling containing `enum` |
+| ----------------- | -------------------------------------- |
+| `commonjs`        | loads and runs, exit 0                 |
+| `module`          | refused, exit 1                        |
+
+So the accepted language of an `eess-ts` rule file depends on the consumer's
+`type` field. The original claim was measured on one shape — the enum in the
+entry file — and generalised to both.
 
 **Nothing documents either rule.** This repo's own `mermaid.rules.ts` is
 erasable-only, and no page under `docs/` or `packages/mermaid/README.md` shows
@@ -97,8 +109,11 @@ Two, and they are different:
 - [ ] `deferred→this record` — `docs/agent-integration.md:11` says the CLI loads
       rule files via `jiti`, which is false for `eess-ts` since ADR-015. An
       adopter looking for the rule is told the opposite of it.
-- [ ] `deferred→this record` — `packages/mermaid/src/cli/commands/check.ts`'s
-      duck-type comment names `jiti` as the cause; the cause is a duplicate
-      install.
+- [x] `packages/mermaid/src/cli/commands/check.ts`'s duck-type comment named
+      `jiti` as the cause; it now names installation topology, which is the cause.
+- [ ] `deferred→this record` — **`eess-ts`'s own CJS fallback widens the language
+      for a sibling.** Restricting the fallback transform to erasable syntax is
+      the fix; nothing gates it today, and ADR-015 records the divergence rather
+      than closing it.
 
 Deferred: three, all to this record, held open by its own gate.

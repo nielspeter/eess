@@ -56,6 +56,8 @@ test('jiti does not split the kernel — one install, one instance', async () =>
     "import { ArchConfigError } from '@nielspeter/eess'\nexport const Theirs = ArchConfigError\n",
   )
   const mod = await createJiti(import.meta.url).import(path.join(dir, 'rules.ts'))
+  // Both-undefined would satisfy `equal`; assert it is a class first.
+  assert.equal(typeof mod.Theirs, 'function', 'the rule file exported no class')
   assert.equal(
     mod.Theirs,
     ArchConfigError,
@@ -77,6 +79,7 @@ test('fresh mode does not split it either — the watch path', async () => {
   )
   const jiti = createJiti(import.meta.url, { fsCache: false, moduleCache: false })
   const mod = await jiti.import(path.join(dir, 'rules.ts'))
+  assert.equal(typeof mod.Theirs, 'function', 'the rule file exported no class')
   assert.equal(mod.Theirs, ArchConfigError, 'fresh mode split the kernel')
 })
 
@@ -95,10 +98,17 @@ test('a duplicate install DOES split it, whatever the loader', async () => {
     "import { ArchConfigError } from '@nielspeter/eess'\nexport const Theirs = ArchConfigError\n",
   )
   const mod = await createJiti(import.meta.url).import(path.join(dir, 'rules/r.ts'))
+  // Positively, BEFORE the inequality: `assert.notEqual(undefined, X)` passes,
+  // so a failed copy or a throwing import would otherwise read as a genuine
+  // split and this control would certify a probe that observed nothing.
+  assert.equal(typeof mod.Theirs, 'function', 'the nested copy did not load a class')
   assert.notEqual(
     mod.Theirs,
     ArchConfigError,
-    'a second physical copy of the kernel resolved to the same instance — the ' +
-      'probe cannot observe a split, so the cases above prove nothing',
+    'a second physical copy resolved to the same instance',
+  )
+  assert.ok(
+    new mod.Theirs('x') instanceof mod.Theirs && !(new mod.Theirs('x') instanceof ArchConfigError),
+    'the two classes are distinct objects but instanceof does not separate them',
   )
 })
