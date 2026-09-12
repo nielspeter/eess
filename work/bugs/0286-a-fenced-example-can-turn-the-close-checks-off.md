@@ -57,6 +57,33 @@ state; with the folder path unavailable, the misread state is the only input, an
 the boxes are never selected. `ledgerStats` corroborates rather than exposes it —
 it reports a readable state, because it read the example's.
 
+### A second fail-open, by the opposite mechanism
+
+Found by the testing lens and reproduced here. An **unclosed fence in the
+preamble** produces a green by the mirror-image route:
+
+| document                       | state read   | boxes found  | verdict   |
+| ------------------------------ | ------------ | ------------ | --------- |
+| plain                          | `Fixed`, l.5 | 1 undisposed | reports   |
+| unclosed fence in the preamble | `Fixed`, l.8 | **none**     | **GREEN** |
+
+Here `findState` reads the record's **own** state correctly and the record _is_
+classified done. What vanishes is the box: `collectTaskItems` reaches fences
+through **mdast**, which parses an unclosed fence as code to the end of the
+document and swallows every `- [ ]` after it. Nothing is left to report.
+
+**So the two halves of this one preset read the same document with two parsers
+that disagree about where a fence ends** — a regex in `findState`, mdast in
+`collectTaskItems` — and _either_ direction of disagreement yields a silent green:
+
+- regex over-strips or misreads → the record is not classified done → boxes unchecked;
+- mdast over-strips → the boxes are gone → nothing to check.
+
+That disagreement is the root, and it is why
+[0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) is not
+merely about duplication: the hand-rolled copy contradicts the parser the same
+preset already runs.
+
 `closeInPlace` is a documented option, and any lane whose folder is not in
 `doneFolders` reaches the same branch, which is the situation
 [0282](./rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)'s
@@ -87,9 +114,18 @@ that no test can see.
 
 ## The corruption that must produce a violation
 
-1. **The fail-open.** A record with a terminal state and an undisposed box must be
-   reported, whether or not it also contains a fenced example of a state line.
+1. **The fail-open, both routes.** A record with a terminal state and an undisposed
+   box must be reported, whether or not it also contains a fenced example of a
+   state line (regex route) **and** whether or not an unclosed fence precedes the
+   box (mdast route). Two fixtures, because the mechanisms are opposite and a fix
+   for one does not touch the other.
 2. **The guard.** Gutting `stripFencedCode` must fail something.
+
+**Both call sites, not one.** `stripFencedCode` is called twice in this file —
+`packages/md/src/rules/ledger.ts:175` in `findState` and `:303` in
+`deferredNoneLieViolation`, whose own comment names an illustrative
+`Deferred: none` as the thing it guards against. An earlier version of this record
+specified a fixture for the first only.
 
 **The fixture constraint, stated precisely.** An earlier version said the fence
 must sit "inside the scanned region — before the second `##`". Necessary and
@@ -129,8 +165,15 @@ This record closes on (1)+(2)+(3) whichever way 0287 is decided: if 0287 says
       that mdast handles all seven shapes correctly.
 - [x] Confirmed the ordering constraint by building the hollow fixture and
       watching it pass.
-- [ ] Red first (1): the fail-open — a closed-in-place record with a four-backtick
-      example and an undisposed box must still report.
+- [x] Reproduced the second fail-open: an unclosed fence in the preamble makes
+      mdast swallow the boxes while `findState` reads the real state past it —
+      green on a done record with an undisposed box.
+- [x] Confirmed two call sites, `:175` and `:303`.
+- [ ] Red first (1a): the regex route — a closed-in-place record with a
+      four-backtick example and an undisposed box must still report.
+- [ ] Red first (1b): the mdast route — a done record with a preamble unclosed
+      fence and an undisposed box must still report.
+- [ ] The `deferredNoneLieViolation` call site gets the same treatment.
 - [ ] Red first (2): the guard fixture, with the illustrative token preceding the
       record's own.
 - [ ] The `check-nonvacuity.mjs` registry row.

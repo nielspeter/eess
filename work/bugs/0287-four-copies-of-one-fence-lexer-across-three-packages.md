@@ -58,7 +58,13 @@ corners of the family.
 **Should any of these own a fence lexer at all?**
 
 The markdown dialect already parses markdown properly for its task-box path, and
-mdast handles all seven shapes 0286 probed correctly by construction. So the
+mdast handles all seven shapes 0286 probed correctly by construction.
+
+**And the two disagree inside one preset, which is how a record goes green.**
+`honestyAtClose` reads one document with both: the hand-rolled regex in
+`findState`, and mdast in `collectTaskItems`. 0286 measures a silent green from
+_each_ direction of that disagreement. So this is not only four copies of one
+function — it is a copy that contradicts the parser shipping beside it. So the
 options are not "widen the regex" versus "leave it":
 
 1. **One owner, kernel or dialect-internal**, four callers, three copies deleted —
