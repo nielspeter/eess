@@ -357,3 +357,54 @@ runner is a discoverability and packaging problem, not a missing capability. The
 honest next steps are an API-reference entry for `checkAll`, a plan to lift it to
 the kernel, a decision on run-scope ownership, and a separate record for the stale
 `check:crossval` rationale. Asks A and B wait behind all four.
+
+## Review — 2026-09-12 (third round: evidence from a second adopter)
+
+**Ruling: Rewrite needed**
+
+Unchanged again, but for a better reason than the first two rounds had. A second
+consuming project — not the one cited in the submission — has already run this
+proposal's experiment to completion, and its result corrects the review as much as
+the submission.
+
+**The bespoke-driver gap is real and it is closable.** That project migrated
+**five** hand-written gate scripts to eess rules across six phases, finished, with
+the scripts and their tests deleted. What each became:
+
+| hand-rolled gate                                | became                                                                                   |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| corpus schema check                             | `docs().should().satisfy(shape)`, `haveSection`, `rows()` + `correspondence()`           |
+| graph/link check                                | `links(c).that().areInternal().should().resolve()` plus an id-collision condition        |
+| record drift check                              | a `Condition<MdDocument>` over git mtimes, and `rows()` count vs `documents().length`    |
+| workspace coverage                              | `correspondence()` with `beComplete({ direction: 'left' })` and a declared exemption map |
+| corpus coverage (~700 lines, eleven invariants) | `rows()` + `correspondence()` per board, `honestyAtClose`, `taskItems()`                 |
+
+**So the review's coverage pessimism was measuring the wrong thing, and so was the
+submission.** The enforcement lens measured whether a _config_ could express this
+repo's eighteen gates and got 1 of 18. That project measured whether _rule files_
+could express five bespoke drivers and got 5 of 5. Those are different questions,
+and this proposal conflated them throughout. The answer to "can the hand-rolled
+drivers go away" is yes; the answer to "does a config make them go away" is no.
+
+**And that adopter reached the architect's conclusion independently, from outside
+this repository.** They wrote their own ADR for it, whose decision reads: a check
+over the source or the corpus is written as an eess rule and reaches its verdict
+through a builder. That is C2's answer — ADR-006's "rules are code, not config" —
+arrived at by someone with no stake in this repo's ADR history. It is the
+strongest evidence in this review, and the submission had none like it, because
+bug 0279 is exactly about this family having no channel for adopter signal.
+
+**Two library gaps that project hit, worth carrying regardless of this
+proposal's fate.** Their plan records `findState()` as MEASURED absent from the
+published `eess-md`, which exports only `honestyAtClose` and `ledgerStats` — while
+an ADR draft of theirs had claimed otherwise. And `honestyAtClose`'s `states` and
+`terminalStates` default to the plan lane's vocabulary, so a single call over a
+mixed corpus reports `ledger/unknown-state` on every bug record, forcing two
+calls. Neither is this proposal's subject; both are the kind of finding the family
+only learns from outside, and neither has a record here.
+
+**What this changes about the recommendation.** Nothing in direction — rewrite
+around the reporting gap still stands, and so does dropping Asks A and E. What it
+adds is that the rewrite should cite this migration as the evidence that the
+capability already exists in rule-file form, and should carry the two library gaps
+above into their own records rather than losing them.
