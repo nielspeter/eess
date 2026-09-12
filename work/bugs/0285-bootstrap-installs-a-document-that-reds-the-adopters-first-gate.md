@@ -4,8 +4,13 @@
 
 - **State:** Draft — reproduced end to end in a throwaway project; no red test yet.
 - **Severity:** Medium — a **false red on day one**, before the adopter has
-  authored anything, in a file the kit itself installed. It is the first thing the
-  exported method does, and the first thing it does is fail.
+  authored anything, in a file the kit itself installed. **Not literally the first
+  obstacle:** an adopter-lens reviewer who ran the kit reports that it names two
+  gates to wire while shipping no runner, no install line and no pointer to the
+  page carrying the snippets, and that after these two links are fixed the _next_
+  rule in the same snippet reds on zero examined. The first of those is
+  [0151](./0151-honesty-at-close-options-undiscoverable-past-source.md); the second
+  is unfiled. This record is the first defect _in a file the kit itself wrote_.
 - **Origin:** self-found · six-lens review of 0283/0284, by a reviewer who
   bootstrapped the kit rather than reading it
 - **Reported:** 2026-09-12
@@ -75,26 +80,54 @@ where it is used, and nothing here measures it where it is used.
 
 ## The corruption that must produce a violation
 
-**A document `kit/bootstrap.mjs` installs must not contain a relative link whose
-target the bootstrap does not also install.**
+**A tree this kit produces must pass the gates this kit tells the adopter to
+wire.**
 
-The red is mechanical: take the bootstrap's own install manifest, resolve every
-relative markdown link in every file it copies against that manifest, and fail on
-a target the manifest does not contain. It needs no new corpus root and no
-heuristic — the manifest is data `bootstrap.mjs` already has.
+### The manifest check this record first proposed is vacuously green — do not build it
 
-That is narrower and cheaper than the question
-[0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md) and
-[0260](./0260-three-lane-declarations-and-nothing-compares-them.md) are blocked on
-(whether `kit/` joins a content gate's roots), and it does not depend on the
-answer. It checks the **shipped set**, not the kit's prose.
+The first version said: resolve every relative link in every file the bootstrap
+copies against the bootstrap's own install manifest, because "the manifest is data
+`bootstrap.mjs` already has". **Measured, and false on three counts:**
+
+1. **Nothing is exported.** `node -e "import('./kit/bootstrap.mjs')"` yields
+   `exports: []`, and importing the file _runs_ it.
+2. **Destinations only.** `plan(verb, absPath, run)` (`kit/bootstrap.mjs:27-29`)
+   records the destination; the source lives inside the `run` closure. The check
+   needs source content to extract links and destination position to resolve them.
+3. **The manifest is a function of the destination tree — and at the repo root it
+   omits this bug's subject.** `kit/bootstrap.mjs:76` is
+   `if (existsSync(METHOD_DST)) skip(...)`. Run from this repository, where
+   `docs/working-method.md` exists, the file lands on the **skip** list. A check
+   written that way, run where CI runs it, examines zero installed documents and
+   reports green.
+
+A vacuously-green mechanism, proposed inside a record about a gate. Recorded
+rather than edited away.
+
+### The mechanism that works is this record's own reproduction
+
+Bootstrap into a fresh temporary directory, run the gates the kit tells the
+adopter to wire over the result, and assert clean. It reads no manifest, so all
+three problems above are unreachable; it takes seconds; and it encodes the
+property actually claimed — **the adopter's first gate run goes green** — rather
+than a proxy for it.
+
+It also catches what the manifest form would get wrong in both directions. The
+kit's shipped skills link to _directories_ (`../../../work/bugs/`, `work/`) that
+the bootstrap creates implicitly by placing files inside them; a manifest
+membership test false-reds on all of those. And it catches the defects in files
+this record's own symptom section does not count, because that section reasons
+about `docs/` as though it were the whole install set.
+
+This does not depend on whether `kit/` joins a content gate's roots. It runs over
+a _produced tree_, not over `kit/` itself.
 
 ## Fix
 
 1. Rewrite the two links in `docs/working-method.md:7` as absolute URLs, matching
    `kit/templates/work/README.md:46`'s existing form.
-2. Add the manifest check above, so the next document the bootstrap learns to ship
-   cannot reintroduce it.
+2. Add the bootstrap-into-temp harness above, so the next document the bootstrap
+   learns to ship cannot reintroduce it.
 
 Option 2 is what stops this recurring. Without it, the fix is a one-line edit with
 nothing holding it.
@@ -115,7 +148,15 @@ The gate must red on it and the fixture must print a token only this check emits
 - [x] Confirmed the bootstrap then instructs the adopter to wire `check:corpus`.
 - [x] Confirmed the absolute-URL precedent already exists in a sibling kit
       template.
-- [ ] Red first: the manifest check fails on the shipped tree today.
+- [x] **Falsified this record's own first mechanism** — the manifest is not
+      exported, carries destinations only, and at the repo root places this bug's
+      subject on the skip list, so the proposed check would have reported green.
+- [ ] Red first: a bootstrap-into-temp harness, running the kit's own named gates,
+      fails on the shipped tree today.
+- [ ] Count the defects in the _whole_ install set, not only `docs/` — at least one
+      further installed file carries an unresolvable link, and the shipped
+      `next-number.mjs` prints a remedy path (`node kit/scripts/next-number.mjs`)
+      that does not exist in an adopter's tree.
 - [ ] The non-vacuity row and fixture.
 
 Deferred: none.
@@ -125,7 +166,12 @@ Deferred: none.
 - [0252](./0252-the-kit-names-a-reviewer-it-does-not-ship.md) — the same class:
   the kit references something it does not ship.
 - [0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md) ·
-  [0260](./0260-three-lane-declarations-and-nothing-compares-them.md) — both
-  blocked on whether `kit/` enters a gate's roots. This record deliberately is not.
+  [0260](./0260-three-lane-declarations-and-nothing-compares-them.md) — adjacent
+  kit records. **An earlier version of this record said both were "blocked on
+  whether `kit/` enters a gate's roots" and that this one deliberately was not.
+  That was invented.** 0251's two prerequisites are a corpus root (struck through,
+  met 2026-09-04) and `LANES` not being importable; 0260 names no blocker at all.
+  That no content gate reads `kit/` is true; attributing it to those records as
+  their blocker was not.
 - [0279](./0279-the-barrel-criterion-has-no-memory-and-no-adopter-signal.md) — why
   a defect that only exists in someone else's tree has no channel back here.
