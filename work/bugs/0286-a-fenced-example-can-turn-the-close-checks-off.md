@@ -20,15 +20,16 @@ shapes get past it.
 
 Probed against `findState`, not read off the regex:
 
-| shape                                   | guard |
-| --------------------------------------- | ----- |
-| plain triple-backtick fence             | holds |
-| tilde fence                             | holds |
-| fence indented inside a list item       | holds |
-| tilde outer wrapping a backtick example | holds |
-| **four-backtick outer fence**           | leaks |
-| **unclosed triple-backtick fence**      | leaks |
-| **four-space indented block, no fence** | leaks |
+| shape                                     | guard |
+| ----------------------------------------- | ----- |
+| plain triple-backtick fence               | holds |
+| tilde fence                               | holds |
+| fence indented inside a list item         | holds |
+| tilde outer wrapping a backtick example   | holds |
+| four-backtick outer, **no** inner fence   | holds |
+| **four-backtick wrapping an inner fence** | leaks |
+| **unclosed triple-backtick fence**        | leaks |
+| **four-space indented block, no fence**   | leaks |
 
 The four-backtick form is the one that matters. It is CommonMark's own way of
 showing a fenced block inside a fenced block — what any markdown-tooling corpus
@@ -38,10 +39,24 @@ line standing.
 
 ## The direction that matters: this is a fail-open, not a false red
 
-**An earlier version of this record called the leaks a false red.** That is true
-only when the example shows a token _outside_ the vocabulary. The likely case is
-the opposite — you illustrate a _closed_ record — and then `findState` returns a
-**readable** state and the gate believes it.
+**Two earlier versions of this record got the direction wrong, in opposite ways.**
+The first called the leaks a false red. The second said the fail-open fires when
+you illustrate a _closed_ record. **Both are false**, and the second names the case
+that provably does _not_ fire. Measured, on byte-identical records carrying two
+undisposed boxes, closed in place:
+
+| record's own state | the example shows         | findings |
+| ------------------ | ------------------------- | -------- |
+| `Fixed`            | nothing                   | 2        |
+| `Fixed`            | `Draft` (an open record)  | **0**    |
+| `Fixed`            | `Fixed` (a closed record) | 2        |
+| `Draft`            | `Fixed`                   | 2        |
+
+The fail-open needs a **closed** record illustrating an **open** one. The cause is
+an asymmetry: `isDoneItem` (`packages/md/src/rules/ledger.ts:200-208`) calls
+`findState` with **`terminalStates`** alone, while `headerStateViolation` (`:238`)
+calls it with the full vocabulary. So the illustrated token knocks the record out
+of the done population only if it is **non-terminal**.
 
 What follows depends on where the record sits, and both branches were measured on
 otherwise byte-identical records carrying two undisposed boxes:
@@ -106,8 +121,11 @@ load-bearing by design intent and exercised by nothing.
 
 The three existing fence tests (`packages/md/tests/rules/ledger.test.ts:46`, `:53`,
 `:82`) cover the **task-box** path, which reaches fences through mdast — a
-different code path that handles all seven shapes above correctly. No fixture
-anywhere puts a `State:` line in a fence.
+different code path. **An earlier version of this record claimed that path handles
+all seven shapes correctly. Measured, it is six of seven** — an unclosed fence
+makes mdast swallow to end of document and lose the **real** box, which is this
+record's own second route, and is why no fence-lexer change can repair it. No
+fixture anywhere puts a `State:` line in a fence.
 
 That combination is the finding: a documented behaviour, with a fail-open in it,
 that no test can see.
@@ -127,13 +145,30 @@ that no test can see.
 `Deferred: none` as the thing it guards against. An earlier version of this record
 specified a fixture for the first only.
 
-**The fixture constraint, stated precisely.** An earlier version said the fence
-must sit "inside the scanned region — before the second `##`". Necessary and
-**not sufficient**: `findState` returns at the _first_ readable token, so the
-illustrative token must also come **before the record's own `State:` line**. The
-house template puts the real state immediately under `## Status`, so a fixture
-written the natural way passes while testing nothing. Two reviewers and this
-record's author each built the hollow fixture before noticing.
+**The fixture constraint, stated precisely — third attempt.** Three conditions, all
+required. Each earlier version of this record stated a strict subset:
+
+1. a **leaking shape** — four-backtick _wrapping an inner fence_, unclosed, or
+   four-space indented. A plain fence is stripped correctly.
+2. the illustrative token must precede the record's **own `State:` line**, because
+   `findState` returns at the first readable token.
+3. the illustrative token must be **non-terminal** under `terminalStates`, per the
+   asymmetry above.
+
+A fixture meeting (1) and (2) while showing a terminal token yields two findings
+with the guard and two without. **Four hollow fixtures were built against this
+record's successive specifications** — by two reviewers, by this record's author,
+and by a third reviewer against the corrected version — before (3) was stated.
+
+**The shape that reaches this in the wild is this repo's own board.** `BUGS.md`
+publishes a template state line leading with a non-terminal token; copying it into
+a record as documentation supplies condition (3) for free:
+
+| the house template line, carried in…        | findings |
+| ------------------------------------------- | -------- |
+| a plain fence                               | 2        |
+| a four-backtick fence wrapping an inner one | **0**    |
+| a four-space indented block                 | **0**    |
 
 ## Non-vacuity
 
@@ -144,14 +179,25 @@ appear. A new `scripts/check-nonvacuity.mjs` registry row is required, with a
 
 ## Fix
 
-1. Handle the three leaking shapes, or stop hand-rolling the lexer — see
+1. Handle the leaking shapes, or stop hand-rolling the lexer — see
    [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md), which
-   owns that decision and has a fixed precedent.
-2. The fixture, with the ordering constraint above.
-3. The non-vacuity row.
+   owns that decision and has a fixed precedent. **Repairs route A only.**
+2. **Own the unclosed fence directly** — report an unterminated fence as its own
+   finding, per [0288](./0288-an-unpaired-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md).
+   **Route B needs this and nothing else reaches it.**
+3. The fixtures — one per route, with the three conditions above.
+4. The non-vacuity rows — **two, not one**: the routes are independent and a fix
+   for one does not touch the other, so a single row leaves half the record
+   unguarded.
 
-This record closes on (1)+(2)+(3) whichever way 0287 is decided: if 0287 says
-"consolidate", this record's fix is to call the consolidated one.
+**An earlier version said this record closes on (1)+(3)+(4) whichever way 0287 is
+decided. That was false, and a reviewer proved it by building the fix.** Widening
+the pattern repaired route A completely and left route B at zero findings, because
+route B is the markdown parser never emitting the box — no lexer change restores a
+node that was never produced. Routing the state scan through mdast instead does not
+help either: mdast loses the state line the same way it loses the box. Item 2 is
+therefore load-bearing, and without it this record's stated closing condition could
+never be met.
 
 ## Verification ledger
 
@@ -161,8 +207,9 @@ This record closes on (1)+(2)+(3) whichever way 0287 is decided: if 0287 says
 - [x] Sabotage: markdown suite, whole-repo suite and all three real lanes are
       byte-identical with the guard gutted.
 - [x] Confirmed zero corpus documents exercise the guard.
-- [x] Confirmed the three existing fence tests cover the task-box path only, and
-      that mdast handles all seven shapes correctly.
+- [x] Confirmed the three existing fence tests cover the task-box path only.
+- [x] **Falsified this record's own claim that mdast handles all seven shapes** —
+      measured six of seven; an unclosed fence loses the real box.
 - [x] Confirmed the ordering constraint by building the hollow fixture and
       watching it pass.
 - [x] Reproduced the second fail-open: an unclosed fence in the preamble makes
@@ -176,7 +223,10 @@ This record closes on (1)+(2)+(3) whichever way 0287 is decided: if 0287 says
 - [ ] The `deferredNoneLieViolation` call site gets the same treatment.
 - [ ] Red first (2): the guard fixture, with the illustrative token preceding the
       record's own.
-- [ ] The `check-nonvacuity.mjs` registry row.
+- [x] **Falsified this record's own closing condition** — a reviewer applied fix (1)
+      and route B stayed at zero findings, with `withReadableState` dropping to 0
+      while `doneItems` stayed 1 by folder.
+- [ ] The `check-nonvacuity.mjs` registry rows — one per route.
 
 Deferred: none.
 

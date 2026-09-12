@@ -15,10 +15,16 @@
 ## Symptom
 
 `states` and `terminalStates` default independently. Override one and not the
-other, and the resulting pair can have an **empty intersection** — a vocabulary in
-which no declared token is terminal. Under it, `isDoneItem`
-(`packages/md/src/rules/ledger.ts:200-208`) can never return `true` by state, so
-every close check silently selects nothing.
+other, and a token the author treats as closing is not in `terminalStates` — so the
+record is never classified done and every close check silently selects nothing.
+
+**An earlier version of this record said `isDoneItem` "can never return `true` by
+state". That is false, measured.** `isDoneItem`
+(`packages/md/src/rules/ledger.ts:200-208`) calls `findState` with
+**`terminalStates`**, which under a partial override is still the live default — so
+a record carrying `Done` closes correctly and reports correctly. What breaks is
+narrower: **a record whose state token comes from the vocabulary the author
+declared can never be classified done, and nothing reports the incoherence.**
 
 Measured. A corpus holding one proposal at `work/proposals/promoted/0001-p.md`:
 
@@ -81,23 +87,54 @@ reaching the configuration an adopter reaches first.
 
 ## The corruption that must produce a violation
 
-A configuration under which no record can be classified done **by state** must be
-reported, not silently obeyed. Concretely: `states` and `terminalStates` whose
-intersection is empty, while `states` is non-empty.
+**An earlier version specified this as `states` and `terminalStates` "whose
+intersection is empty, while `states` is non-empty". That predicate is wrong in
+both directions, and two reviewers measured it.**
 
-Two design questions this record does not settle, both for the library author:
+- **It under-fires.** The same silent green occurs with a **non-empty**
+  intersection. An adopter who keeps the printed vocabulary and adds their own
+  tokens — which is what `ledger/unknown-state`'s message steers them to do — gets
+  `doneItems: 0` and zero findings while the intersection is non-empty. That is the
+  commoner configuration, so the check would ship and the defect would survive it.
+- **It over-fires.** It reds on `terminalStates: []`, which
+  `packages/md/src/rules/ledger.ts:116-125` documents as "a real, supported input,
+  not a caller error" for a lane where nothing is ledger-closed by design, and which
+  `scripts/lib/lane-coverage.mjs:147` deliberately exempts.
 
-1. **Is an empty intersection always wrong?** A corpus closing purely by folder
-   placement is coherent with no terminal state at all — `closeInPlace` exists for
-   the neighbouring case. If so, the finding is conditional on `doneFolders` also
-   matching nothing, or it ships as a declared-empty claim the caller must make.
-2. **Should `terminalStates` default at all when `states` is overridden?** A
-   default that silently survives an override of its own partner is the shape that
-   produces this. Deriving it, or requiring it whenever `states` is passed, removes
-   the class rather than reporting it — at the cost of a breaking signature change
-   on a published option.
+### The guard already exists in this repo, and is not in the shipped package
 
-(2) removes the defect; (1) reports it. Answering first is the prior question.
+`findLaneDoneVacuity` (`scripts/lib/lane-coverage.mjs:138-160`) is exactly it. It
+fires when a lane **scanned zero done-items while declaring a real
+`terminalStates` vocabulary**, skips the structurally-exempt empty-terminal lane,
+and gives the caller an explicit `expectEmptyDone` escape. Its own message states
+the reason: every predicate and peek `honestyAtClose` runs for a lane shares the
+same done/state determination.
+
+So the corruption to gate is **zero done-items on a corpus that declares a real
+terminal vocabulary and contains records** — not set intersection. Nothing like it
+exists anywhere in `packages/md`.
+
+This is the branch's recurring shape once more: the protection is written, and it
+is in this repo's gate script rather than in the package an adopter installs — the
+same asymmetry as the per-lane `LANES` table and the missing reference
+`check-ledger.mjs` ([0151](./0151-honesty-at-close-options-undiscoverable-past-source.md)).
+
+### What it also catches
+
+The same signature covers
+[0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)'s first route,
+where a fenced example knocks the record out of the done population: `doneItems: 0`
+there too. It does **not** catch 0286's second route, where `doneItems` stays 1 and
+the boxes vanish. **Two of the three fail-opens on this branch are one missing
+guard; the third is genuinely separate.**
+
+### The prior question, re-ordered
+
+An earlier version leaned toward reporting the incoherent pair and treated
+requiring `terminalStates` as the costlier alternative. **That ordering is
+backwards:** reporting the pair fixes only the empty-intersection shape, while
+requiring the option whenever `states` is passed removes both. Shipping the
+existing guard is the third option and the cheapest, since it is already written.
 
 ## What the violation must say
 
@@ -127,7 +164,15 @@ because a probe that asserts ids fire stays green when a whole check goes dark.
       options for every lane.
 - [x] Confirmed the path from `ledger/unknown-state`'s advice to this
       configuration is one edit.
-- [ ] Red first: the disjoint pair produces a finding naming both options.
+- [x] **Falsified this record's own mechanism sentence** — a record carrying `Done`
+      under the disjoint pair still closes and still reports.
+- [x] **Falsified this record's own corruption predicate** — it under-fires on the
+      commoner non-empty-intersection configuration and over-fires on a documented
+      supported one.
+- [x] Located the guard already written at `scripts/lib/lane-coverage.mjs:138`, and
+      confirmed nothing equivalent exists in `packages/md`.
+- [ ] Red first: zero done-items under a declared real terminal vocabulary produces
+      a finding naming both options.
 - [ ] A `check-nonvacuity.mjs` registry row with its own fixture and `mustSay`.
 - [ ] The prior question answered: report the incoherent pair, or remove the class
       by changing how `terminalStates` defaults.
