@@ -172,3 +172,98 @@ Related, and visible in the same `check:crossval` output: `md↔gherkin` reports
 **1 citation across 4 scenarios**. Three stories are unbound today, in the repo
 that invented the check. Whatever the config declares, it has to make that
 visible rather than let a low number sit in the output unremarked.
+
+## Review — 2026-09-12
+
+**Ruling: Rewrite needed**
+
+Three lenses, all reporting findings the submission above does not survive. The
+material about reporting is real and worth keeping. The container is wrong, and
+the survey missed the two things that decide it.
+
+**The artifact graph already exists, as a rule file.** `spec.rules.ts` imports
+`rows` from `eess-md` and `files` from `eess-crossvalidate` into an `eess-ts`
+rule file, declares four artifacts, and joins them with two
+`correspondence(...).beComplete({ direction: 'both' })` calls. One command runs
+it; it emits once. Ask A's option (1) — "the config names the artifacts and the
+edges, the dialects become readers" — is not a candidate shape. It is what this
+repo already does, and `CLAUDE.md`'s own project tree describes that file as
+exactly that. Ask A's option (2) is at a different level: `rules: ['spec.rules.ts']`
+names the file, the file declares the graph. So the prior question the whole
+proposal rests on is **malformed as posed**, and the survey's sentence "Nothing
+here proposes building something the family already has" is false.
+
+**ADR-006 already ruled on the other half, and the proposal does not cite it.**
+"Rules are code, not config" is its decision line. Its rejected alternatives lead
+with JSON config; its consequences say there is no centralized config file, users
+write TypeScript instead, and "this is a feature, not a bug." The submission
+cites ADR-008, 011 and 014 and never 006 — the one ADR that rules on its central
+ask. Any rewrite must either be a TypeScript module exporting declarations, in
+which case it is a rule file and no decision is owed, or a data config, in which
+case it needs an amendment to ADR-006 that survives 006's own argument.
+
+**Ask C is self-defeating as written, and unbuildable on half the graph.** A
+checker that reads the config can only see artifacts someone declared, so an
+artifact nobody wrote down stays invisible — green because the check was never
+declared, which is the sentence the Problem section uses to condemn the status
+quo, reproduced one level up. The fork is whether artifacts are **discovered** or
+**declared**, and the submission never names it. Separately, measured across all
+seven crossvalidate subpaths: only `mermaid-ts` and `gherkin-ts` can express
+"bound to nothing" by default; `md-mermaid` can but does not default to it; and
+`md-ts`, `md-gherkin` and `md-mermaid-er` cannot at all. `md-ts` hardcodes
+`left-to-right`; `md-gherkin` ships only `scenarioCitationsResolve` and
+`scenarioCitationStats`. So Ask C requires three new completeness primitives and
+a default flip, none of it stated.
+
+**The submission's own footnote was the live instance and it was under-read.** It
+notes `md↔gherkin` reporting 1 citation across 4 scenarios and calls it a number
+that should not sit unremarked. It is more than that: three scenarios are bound
+to no document, the gate is green, and it is green because that edge has no
+direction that could go red. Ask C's exact failure class, present today,
+unfalsifiable, in the repo that invented the check.
+
+**Ask B's unknown number is now measured, and it is the one that kills the
+framing.** The enforcement lens reports 1 of 18 as written, 6 of 18 if open
+question 2 is answered "two entry kinds", 9 of 18 counting partial absorption.
+The submission said this number had to be known before the capability was
+described. It now is.
+
+**What survives, and it is the better proposal.** The kernel has no way to say "I
+ran, here is what I examined, nothing was wrong": `reportViolations` returns early
+on an empty receipt (`packages/core/src/report.ts`), so the clean-run denominator
+is implemented in both dialect CLIs, in several other places, and again by hand in
+every adopter driver. That is why bug 0223's review found the well-tested CLI
+printing nothing under CI's chosen format — the capability has no single home.
+Measured in the one real consumer: a 67-line driver of which roughly 40 lines are
+scope printing and exit handling around one rule. A kernel receipt printer is
+generic, small, needs no config, and would not have been visible without this
+review.
+
+**Ask D is largely `checkAll` one level up.** `packages/ts/src/core/check-all.ts`
+already merges receipts, gates through `finishPreset(receipt, { report: 'return' })`,
+dedupes, filters baseline and diff, and emits once — typed on kernel interfaces,
+with one local dependency on `execute-rule.js` for the aggregation flag. The
+honest framing is "lift `checkAll` to the kernel and solve the flag", not "build a
+runner".
+
+**Ask C also has a precedent one level down**, missed by the survey:
+`unboundDeclarationFindings` in `packages/ts/src/builders/correspondence-findings.ts`
+fires when a declaration names a side neither side of the join has. And a tension
+the submission never argues: `beComplete` and the absence-assertion form are both
+`marksAssertsCardinality`, so the kernel's own join deliberately declines to fail
+on an empty side inside a declared binding, while Ask C proposes failing on
+emptiness outside one.
+
+**Recommended next step.** Rewrite around the reporting gap, which is one
+shippable generic thing: a kernel primitive that reports a clean run with its
+denominator. Drop Ask A and Ask E — `spec.rules.ts` and ADR-006 answer them
+between them. Re-file Ask C only after deciding discovered-versus-declared, and
+only with the three missing completeness primitives named as its scope. Ask D
+becomes "lift `checkAll`", which may be a bug rather than a proposal.
+
+**A correction this review owes, recorded rather than fixed away.** The survey
+section was written by the proposal's author and asserts completeness it did not
+have. It read `check-crossval.mjs` and the crossvalidate subpaths and stopped at
+the package boundary; the answer to its central question was in a rule file at the
+repo root, named in `CLAUDE.md`. `PROPOSALS.md` records three prior proposals lost
+to exactly this. This is the fourth.
