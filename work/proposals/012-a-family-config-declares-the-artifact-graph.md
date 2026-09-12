@@ -267,3 +267,93 @@ have. It read `check-crossval.mjs` and the crossvalidate subpaths and stopped at
 the package boundary; the answer to its central question was in a rule file at the
 repo root, named in `CLAUDE.md`. `PROPOSALS.md` records three prior proposals lost
 to exactly this. This is the fourth.
+
+## Review — 2026-09-12 (second round, after the reviewers were given the step-2 survey)
+
+**Ruling: Rewrite needed**
+
+Unchanged in direction. All three lenses returned addenda after being handed the
+survey findings the first round produced, and two of them found things sharper
+than anything in round one. The proposal shrinks further: its five asks reduce to
+a docs fix, a package move, one small feature, one reconciliation, and one
+deferred hypothesis. None of them is a family config.
+
+**The family runner exists, is dialect-agnostic, and four of five dialects cannot
+reach it.** `RuleBuilderLike` is `{ violations: () => CollectResult }` and nothing
+more, so `checkAll` accepts a mixed array of builders from any dialect **today**,
+unchanged. But it is published only from `@nielspeter/eess-ts`. Measured: the
+kernel, `eess-md`, `eess-mermaid` and `eess-gherkin` all publish no `checkAll`. An
+adopter running the markdown and Gherkin dialects — which is the real consumer's
+shape — must install the TypeScript dialect and its ts-morph dependency to reach
+the family's own aggregation door.
+
+**And that is the mechanism of this review's central failure.** `checkAll` has
+**zero** mentions in `docs/api-reference.md` and **zero** in
+`packages/ts/README.md`. Nobody looking for a family-level runner looks inside one
+dialect, which is precisely why the submission's survey concluded the runner did
+not exist. The discoverability defect and the survey defect are the same defect.
+So Ask D is withdrawn as a capability ask and becomes two smaller things: an API
+reference entry, and lifting `checkAll` to the kernel — bounded work, since its
+only eess-ts-local dependencies are `writeReport` and `callerAggregates` in
+`execute-rule.ts`, with a re-export left behind so no caller breaks. That also
+answers **Ask E**: the kernel, not crossvalidate, and once it is a function rather
+than a bin there is no command to name.
+
+**An in-process runner would delete the kernel's own vacuity disclosure.** This is
+the finding the proposal most needed and least anticipated. `resetEdgeCoverage()`
+and `resetCommentSuppression()` are **kernel** singletons over module-level state
+(`packages/core/src/edge-coverage.ts`, `packages/core/src/comment-suppression.ts`),
+called from exactly two places, both in eess-ts —
+`packages/ts/src/core/check-all.ts` and `packages/ts/src/cli/commands/check.ts`.
+
+Today every `check:*` gate is a separate OS process, so each gets a fresh tally and
+this is safe. A family runner's entire premise is one process. Running
+`arch.rules.ts` and then `spec.rules.ts` in-process means the second reset wipes
+the first run's tally **before the runner reports it**, and what is wiped is:
+
+```
+[eess] N allowlist rules passed without testing a single edge:
+  An allowlist constrains edges, so a subject with none cannot violate it. Only you can
+  tell an intended shape from a rule that certified nothing.
+```
+
+A runner proposed to make vacuity visible across five dialects would, on its first
+day, erase the one vacuity disclosure the kernel already produces — not through a
+design error anyone would notice, but by calling the reset each dialect's entry
+point already calls. **Run-scope ownership must be settled before this is a plan**,
+and the non-vacuity fixture is cheap and concrete: two rule files through one
+in-process runner, an allowlist rule in the first sabotaged to test zero edges,
+assert the notice still appears.
+
+**Per-rule granularity already exists and must not be lost.**
+`packages/ts/src/core/check-all.ts` merges one receipt member per rule, and its own
+comment states the property in the proposal's terms: `mergeCollectResults` is
+fail-closed per member, "so one evidence-free builder among twenty is named rather
+than absorbed by the others' counts". So the acceptance criterion in the submission
+is wrong in emphasis. It should not ask for per-dialect denominators; it should
+require that the merge stays one member per rule, with that line as the reference.
+A merge of one member per dialect is the failure, and it is the shape the
+submission's wording invites.
+
+**Ask B is unchanged at 1 of 18 / 6 of 18 / 9 of 18.** `checkAll`'s existence
+changes the cost of Ask D, not the coverage of Ask A's shape.
+
+**Also confirmed: the wiring rationale the submission built on is stale.**
+`scripts/check-crossval.mjs` records that the crossvalidate presets "return void
+and throw ArchRuleError — they cannot live in an eess-ts CLI rule file". That is
+no longer true of all of them: measured with ts-morph over
+`packages/crossvalidate/src/*.ts`, **6 of 23 exported functions declare a
+`CollectResult` return**, which is exactly `RuleBuilderLike`'s shape. A reviewer
+reported this as "five of seven entry functions"; that figure did not reproduce,
+and the count above is what did, so the weaker claim is the one recorded. Either
+way the script's stated reason for existing has partly expired and nothing
+noticed. How many of the six are _entry_ functions rather than helpers is
+unmeasured, and whoever takes this up should measure it rather than inherit
+either number.
+
+**What the second round changes about the first round's recommendation.** Rewrite
+around reporting still stands, and gains a second, larger companion: the family
+runner is a discoverability and packaging problem, not a missing capability. The
+honest next steps are an API-reference entry for `checkAll`, a plan to lift it to
+the kernel, a decision on run-scope ownership, and a separate record for the stale
+`check:crossval` rationale. Asks A and B wait behind all four.
