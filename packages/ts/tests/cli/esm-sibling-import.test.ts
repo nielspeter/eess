@@ -20,6 +20,18 @@ import path from 'node:path'
  */
 
 const BIN = path.resolve(import.meta.dirname, '../../dist/cli/bin.js')
+
+/**
+ * Every `check` here passes `--format terminal` on purpose.
+ *
+ * The CLI's default is `auto`, which resolves to `github` when it detects CI —
+ * and in that format a CLEAN run prints nothing at all, on either stream.
+ * `it('check evaluates the rule rather than refusing the file')` asserted the
+ * terminal summary and passed locally for six commits before CI caught it, with
+ * `expected '' to match /1 rule across/`. The assertions here are about whether a
+ * rule RAN, so the format has to be pinned rather than inherited from wherever
+ * the suite happens to be running.
+ */
 const tmpDirs: string[] = []
 
 /** A `"type": "module"` project whose rule file imports a sibling as `./sibling.js`. */
@@ -70,7 +82,7 @@ afterEach(() => {
 describe('a rule file importing a sibling under "type": "module" (bug 0223)', () => {
   it('check evaluates the rule rather than refusing the file', () => {
     const dir = esmProjectWithSibling()
-    const r = spawnSync(process.execPath, [BIN, 'check', 'arch.rules.ts'], {
+    const r = spawnSync(process.execPath, [BIN, 'check', '--format', 'terminal', 'arch.rules.ts'], {
       cwd: dir,
       encoding: 'utf8',
     })
@@ -220,7 +232,7 @@ describe('the single-registry invariant the fix must not reopen (plan 0165, bug 
       "import { classes } from '@nielspeter/eess-ts'\nimport { p, lane } from './sibling.js'\n\n" +
         'export default [classes(p).that().resideInFolder(lane).should().beExported()]\n',
     )
-    const r = spawnSync(process.execPath, [BIN, 'check', 'arch.rules.ts'], {
+    const r = spawnSync(process.execPath, [BIN, 'check', '--format', 'terminal', 'arch.rules.ts'], {
       cwd: dir,
       encoding: 'utf8',
     })
@@ -243,7 +255,7 @@ describe('a specifier that names nothing at all', () => {
       "import { classes } from '@nielspeter/eess-ts'\nimport { p } from './typo.js'\n\n" +
         "export default [classes(p).that().resideInFolder('src').should().beExported()]\n",
     )
-    const r = spawnSync(process.execPath, [BIN, 'check', 'arch.rules.ts'], {
+    const r = spawnSync(process.execPath, [BIN, 'check', '--format', 'terminal', 'arch.rules.ts'], {
       cwd: dir,
       encoding: 'utf8',
     })
@@ -265,7 +277,7 @@ describe('a specifier that names nothing at all', () => {
         "if (which !== 'js') throw new Error(`resolved to the ${which} file`)\n" +
         "export default [classes(p).that().resideInFolder('src').should().beExported()]\n",
     )
-    const r = spawnSync(process.execPath, [BIN, 'check', 'arch.rules.ts'], {
+    const r = spawnSync(process.execPath, [BIN, 'check', '--format', 'terminal', 'arch.rules.ts'], {
       cwd: dir,
       encoding: 'utf8',
     })
