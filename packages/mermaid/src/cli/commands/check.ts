@@ -17,8 +17,15 @@ export interface CheckArgs {
 
 function isArchRuleError(value: unknown): boolean {
   if (value === null || typeof value !== 'object') return false
-  // Duck-type: ArchRuleError class identity is unreliable across jiti boundaries
-  // because the rule file may load its own copy of the kernel. Match by name.
+  // Duck-type, because class identity is not guaranteed: a consumer with a
+  // second physical copy of the kernel on disk — a nested or duplicated install
+  // — gets a different class object, and `instanceof` goes false. Match by name.
+  //
+  // This comment used to blame jiti, and that was measured false: under jiti
+  // 2.7.0 a transpiled rule file resolves its bare specifiers to the instances
+  // the host already holds, so the loader splits nothing. Installation topology
+  // does, whatever the loader, which is also why `isArchRuleError` in the kernel
+  // is structural. Pinned by `scripts/lib/module-registry-identity.test.mjs`.
   return 'name' in value && typeof value.name === 'string' && value.name === 'ArchRuleError'
 }
 

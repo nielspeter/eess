@@ -24,16 +24,30 @@ The family already carries a second loader. `jiti` transpiles, resolves the
 specifier correctly, and was sitting right there in the `catch`. Widening its
 fallback is a two-token change and it works.
 
-**It is refused, and the reason is the decision this ADR records.** A module
-loaded through `jiti` gets `jiti`'s own module registry, so the copy of the
-dialect it imports is a different instance from the CLI's. Plan 0165 measured
-both halves of what that breaks: `instanceof ArchRuleError` goes false, so a
-truncated run says nothing about the rules that never ran ([ts-archunit bug
-0029](https://github.com/nielspeter/ts-archunit/blob/main/bugs/fixed/0029-a-throwing-warn-truncates-the-rest-of-the-rule-file.md));
-and `execute-rule.ts`'s module-level `callerAggregatesReports` is set on one copy
-and read on the other. The first half was later made structural by
-`isArchRuleError`. The second cannot be: module state has no cross-registry
-identity to compare.
+**It is refused, and the first version of this ADR gave the wrong reason.** It
+said a module loaded through `jiti` gets `jiti`'s own registry, "so the copy of
+the dialect it imports is a different instance from the CLI's", and rested the
+whole decision on that. An architecture review measured it and it is false.
+
+Under the pinned `jiti` 2.7.0, the transpiled rule file is `jiti`'s; every bare
+specifier it names resolves to the instance the host already holds. Measured
+three ways, with controls: the kernel's error class is the same object,
+`instanceof` holds, the dialect's exported function is the same object, and a
+write performed inside a `jiti`-loaded file is visible to the host's read.
+Fresh mode, which the watch path uses, behaves identically.
+
+**The split is a property of installation topology, not of the loader.** A second
+physical copy of the kernel — a nested or duplicated install — does split it, and
+would split it just as thoroughly under a native `import()`. That is why
+`isArchRuleError` in `packages/core/src/errors.ts` is structural, and it stays
+justified; plan 0165 measured a real split on an older `jiti`, so this is ground
+that moved rather than an error made then.
+
+**The durable reason to load natively is different, and simpler: the loader
+decides which PROGRAMS are a valid rule file.** `jiti` transpiles, so it accepts
+TypeScript that Node's strip-only mode refuses — an `enum`, a `namespace`, a
+parameter property. Whether a rule file compiles must not depend on which dialect
+is reading it, and today it does.
 
 So the loaders are native-first by design, and `isModuleFormatRefusal` keeps the
 `jiti` fallback to exactly one condition — a consumer project that is
@@ -42,8 +56,8 @@ So the loaders are native-first by design, and `isModuleFormatRefusal` keeps the
 
 ## Decision
 
-**Module RESOLUTION may be extended. Module EXECUTION may not be delegated to a
-second registry.**
+**Module RESOLUTION may be extended. A consumer's file is EXECUTED by Node, not
+handed to a transpiler.**
 
 Concretely, for any file the family loads on a consumer's behalf — a rule file, a
 config file:
@@ -51,47 +65,47 @@ config file:
 1. The kernel may teach the host process's resolver a fact about how TypeScript
    writes specifiers, through `node:module`'s synchronous `registerHooks`. That
    hook is in-thread and changes only which URL a specifier names.
-2. The file is then imported by Node, into the CLI's own registry. A second
-   registry is not an acceptable price for loading a file.
+2. The file is then imported by Node. Which loader reads a consumer's file
+   decides which programs are valid rule files, and that must not vary by
+   dialect — a transpiler quietly widens the accepted language for one dialect
+   and not another.
 3. The one standing exception is the `"type": "commonjs"` format refusal above,
    which predates this ADR and is narrowed by a predicate rather than by a
    general `catch`.
 
 **One door does not conform, and it ships today.** `eess-mermaid`'s RULE FILE
 loader — `packages/mermaid/src/cli/load-rules.ts` — calls `jiti.import()`
-unconditionally, with no native attempt, so every `eess-mermaid` rule file loads
-into a second registry right now. That package's own
-`packages/mermaid/src/cli/commands/check.ts` duck-types `ArchRuleError` by name,
-commenting that "class identity is unreliable across jiti boundaries" — this
-hazard, described as a workaround. Its CONFIG loader was brought onto the
-native-first footing by bug 0223; its rule-file loader was not.
+unconditionally, with no native attempt. Measured, the consequence is not a
+second registry: it is a wider accepted language. The same rule file, in both
+dialects:
 
-This ADR states the rule the family is held to and names that door as a known
-divergence rather than quietly excluding it. Whether those rule files may remain
-a transpiled population — moving them is a break, since jiti accepts TypeScript
-syntax Node's type stripping refuses — is the prior question, and it is
-[bug 0281](../work/bugs/0281-every-mermaid-rule-file-loads-into-a-second-registry.md).
-Found by the adversarial validation of this table, not by its author.
+| a rule file containing | `eess-ts`       | `eess-mermaid` |
+| ---------------------- | --------------- | -------------- |
+| `enum`                 | refused, exit 1 | loads, exit 0  |
+| `namespace`            | refused, exit 1 | loads, exit 0  |
+| a parameter property   | refused, exit 1 | loads, exit 0  |
 
-**That door is sanctioned, on a condition.** The hazard has two halves and only
-one is live there. `instanceof` breaking is real, and the duck-type handles it.
-The other half — module state set on one copy and read on the other, which has no
-duck-type available — is `callerAggregatesReports`, and it lives entirely in
-`packages/ts/src/core/execute-rule.ts`. Measured: `eess-mermaid` has no
-equivalent, and imports none of the kernel's shared registries. So the live cost
-of its second registry today is one function that works, while aligning the
-loader would break rule files using syntax nothing taught and the sibling dialect
-already refuses.
+The refusal is consistent across `"type": "module"` and `"type": "commonjs"`:
+Node raises the syntax error before the format refusal, so the `jiti` fallback is
+never reached.
 
-So `eess-mermaid` rule files may be a transpiled population **for as long as that
-dialect holds no state shared with the rule file's copy** — and that condition is
-gated rather than trusted, by the row below. The day it reaches for shared state
-the gate reds, and the remedy is bug 0281 rather than an exception. A sanction
-with a trigger, not a permanent carve-out.
+**That door is sanctioned, and the sanction is about language, not registries.**
+Nothing taught the permission — this repo's own `mermaid.rules.ts` is
+erasable-only, and no page under `docs/` or the mermaid README shows any of the
+three. Aligning the loader would break rule files using syntax nothing documented
+and the sibling dialect already refuses. So `eess-mermaid` rule files remain a
+transpiled population until that break is worth taking, and
+[bug 0281](../work/bugs/0281-mermaid-rule-files-accept-syntax-eess-ts-refuses.md)
+holds the prior question.
 
-The substitution is confined to where it cannot change an existing answer: it
-fires only when the parent is a TypeScript source, the emitted path is **absent**
-from disk, and the TypeScript source is **present**.
+**What is gated instead.** The premise this ADR was first argued from — that
+`jiti` splits the kernel — is now pinned by
+`scripts/lib/module-registry-identity.test.mjs`, with a duplicate-install control
+so the probe can be shown capable of observing a split. If `jiti` changes, that
+reds and this reasoning is re-derived rather than drifting. An earlier version of
+this ADR gated a scan of `eess-mermaid`'s imports for shared kernel state; a
+testing review emptied that gate without any case noticing, and the premise it
+guarded turned out not to hold, so it is deleted rather than repaired.
 
 ## Alternatives rejected
 
@@ -140,14 +154,14 @@ inferred.
 
 ## Enforcement
 
-| Clause                                                                          | Tier | Mechanism                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status    |
-| ------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| A rule file loads into the CLI's own registry, not a transpiler's               | 2    | `packages/ts/tests/cli/esm-sibling-import.test.ts` · `it('resolves the sibling with Node, not by falling back to a transpiler')` — a TypeScript `enum` in the SIBLING discriminates the two loaders, because Node's type stripping refuses one and `jiti` transpiles it. Measured red against the rejected implementation, built and run                                                                                                                                                                                                                                                                                                                                  | `gated`   |
-| Resolution is extended only where Node would otherwise fail                     | 2    | `packages/ts/tests/cli/esm-sibling-import.test.ts` · `it('a real .js beside a .ts of the same name still wins')` for the hook, and `packages/core/tests/typescript-specifier-resolution.test.ts` for the predicate — its first case asserts the on-disk conjunct. Both measured red when the respective conjunct is removed. The kernel half is cited by path, not by title: the ADR↔test resolver loads only `packages/ts/tsconfig.json`, so a kernel `it()` cannot be resolved ([bug 0262](../work/bugs/0262-an-adr-cannot-cite-a-kernel-test.md)). It runs in `npm test` and blocks                                                                                    | `gated`   |
-| The substitution follows TypeScript's own emit table, not a guess               | 1    | `packages/core/tests/typescript-specifier-resolution.test.ts` — one case asserts the four emitted-to-source pairs as a set, so deleting a row fails; another asserts the inverse, that a `.mjs` specifier never resolves to a plain `.ts`, so the mapping cannot pass by accepting everything. Cited by path rather than by title for the same reason as the row above ([bug 0262](../work/bugs/0262-an-adr-cannot-cite-a-kernel-test.md))                                                                                                                                                                                                                                | `gated`   |
-| Both CONFIG doors — `eess-ts` and `eess-mermaid` — take this route              | 2    | `packages/mermaid/tests/cli/esm-sibling-config.test.ts`, driven through a real Node subprocess because vitest resolves through Vite and performs the substitution itself — an in-process version of this test passed with the fix deleted. Cited by path: the resolver is `eess-ts`-only ([bug 0262](../work/bugs/0262-an-adr-cannot-cite-a-kernel-test.md)). Only these two dialects ship a bin; the other three load no consumer file                                                                                                                                                                                                                                   | `gated`   |
-| Every RULE FILE door takes this route, or is sanctioned on a gated condition    | 2    | `eess-ts`'s does, and row 1 gates it. `eess-mermaid`'s `packages/mermaid/src/cli/load-rules.ts` calls `jiti.import()` unconditionally, which is **sanctioned while that dialect shares no state with the rule file's copy** — `scripts/lib/mermaid-registry-isolation.test.mjs`, run by `check:family`, reds if it imports any kernel accessor whose answer depends on one registry. Measured red by adding one such import, and its own list guard reds when a banned name stops being a kernel export. The prior question, and the alignment work if the condition ever fails, is [bug 0281](../work/bugs/0281-every-mermaid-rule-file-loads-into-a-second-registry.md) | `gated`   |
-| The kernel gains no dependency by doing this                                    | 1    | `check:integrity`'s phantom-dependency check — `@nielspeter/eess` declares no dependencies, so any non-builtin bare import in its `src/` fails                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `gated`   |
-| The hook never fires for a parent that is not a TypeScript source               | 1    | No test exists. The guard is `isTypeScriptSource` in `packages/core/src/cli-config.ts`; removing it lets a relative specifier inside `node_modules` be rewritten, which is how a dependency shipping source beside a stale build directory would get its TypeScript loaded through strip-only mode. Owed a fixture                                                                                                                                                                                                                                                                                                                                                        | `pending` |
-| `jiti` is entered for the `"type": "commonjs"` format refusal and nothing else  | 2    | **A second entrance already ships**, so this is not an unproven hypothetical: `packages/mermaid/src/cli/load-rules.ts` enters `jiti` unconditionally (bug 0281). `packages/ts/tests/cli/config-cjs-project.test.ts` covers that the refusal path works, and nothing asserts it is the only path. A rule counting `createJiti` call sites per dialect is the shape; the enum clause above catches the specific widening this ADR rejects, not a further entrance                                                                                                                                                                                                           | `pending` |
-| A worker-thread or async loader for rule files is out of scope while this holds | 5    | Ratification: no mechanism is possible for a decision about what is not built. Recorded so the next person weighing it reads this first                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | `manual`  |
+| Clause                                                                          | Tier | Mechanism                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status    |
+| ------------------------------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| A rule file loads into the CLI's own registry, not a transpiler's               | 2    | `packages/ts/tests/cli/esm-sibling-import.test.ts` · `it('resolves the sibling with Node, not by falling back to a transpiler')` — a TypeScript `enum` in the SIBLING discriminates the two loaders, because Node's type stripping refuses one and `jiti` transpiles it. Measured red against the rejected implementation, built and run                                                                                                                                                                                                                                                  | `gated`   |
+| Resolution is extended only where Node would otherwise fail                     | 2    | `packages/ts/tests/cli/esm-sibling-import.test.ts` · `it('a real .js beside a .ts of the same name still wins')` for the hook, and `packages/core/tests/typescript-specifier-resolution.test.ts` for the predicate — its first case asserts the on-disk conjunct. Both measured red when the respective conjunct is removed. The kernel half is cited by path, not by title: the ADR↔test resolver loads only `packages/ts/tsconfig.json`, so a kernel `it()` cannot be resolved ([bug 0262](../work/bugs/0262-an-adr-cannot-cite-a-kernel-test.md)). It runs in `npm test` and blocks    | `gated`   |
+| The substitution follows TypeScript's own emit table, not a guess               | 1    | `packages/core/tests/typescript-specifier-resolution.test.ts` — one case asserts the four emitted-to-source pairs as a set, so deleting a row fails; another asserts the inverse, that a `.mjs` specifier never resolves to a plain `.ts`, so the mapping cannot pass by accepting everything. Cited by path rather than by title for the same reason as the row above ([bug 0262](../work/bugs/0262-an-adr-cannot-cite-a-kernel-test.md))                                                                                                                                                | `gated`   |
+| Both CONFIG doors — `eess-ts` and `eess-mermaid` — take this route              | 2    | `packages/mermaid/tests/cli/esm-sibling-config.test.ts`, driven through a real Node subprocess because vitest resolves through Vite and performs the substitution itself — an in-process version of this test passed with the fix deleted. Cited by path: the resolver is `eess-ts`-only ([bug 0262](../work/bugs/0262-an-adr-cannot-cite-a-kernel-test.md)). Only these two dialects ship a bin; the other three load no consumer file                                                                                                                                                   | `gated`   |
+| Every RULE FILE door takes this route, or is a sanctioned transpiled population | 2    | `eess-ts`'s does, and row 1 gates it. `eess-mermaid`'s `packages/mermaid/src/cli/load-rules.ts` calls `jiti.import()` unconditionally, which is **sanctioned**: measured, it widens the accepted language rather than splitting the registry, and nothing taught the wider language. The premise the first version of this row was argued from is pinned by `scripts/lib/module-registry-identity.test.mjs`, whose duplicate-install control shows the probe can observe a split. The prior question is [bug 0281](../work/bugs/0281-mermaid-rule-files-accept-syntax-eess-ts-refuses.md) | `gated`   |
+| The kernel gains no dependency by doing this                                    | 1    | `check:integrity`'s phantom-dependency check — `@nielspeter/eess` declares no dependencies, so any non-builtin bare import in its `src/` fails                                                                                                                                                                                                                                                                                                                                                                                                                                            | `gated`   |
+| The hook never fires for a parent that is not a TypeScript source               | 1    | No test exists. The guard is `isTypeScriptSource` in `packages/core/src/cli-config.ts`; removing it lets a relative specifier inside `node_modules` be rewritten, which is how a dependency shipping source beside a stale build directory would get its TypeScript loaded through strip-only mode. Owed a fixture                                                                                                                                                                                                                                                                        | `pending` |
+| `jiti` is entered for the `"type": "commonjs"` format refusal and nothing else  | 2    | **A second entrance already ships**, so this is not an unproven hypothetical: `packages/mermaid/src/cli/load-rules.ts` enters `jiti` unconditionally (bug 0281). `packages/ts/tests/cli/config-cjs-project.test.ts` covers that the refusal path works, and nothing asserts it is the only path. A rule counting `createJiti` call sites per dialect is the shape; the enum clause above catches the specific widening this ADR rejects, not a further entrance                                                                                                                           | `pending` |
+| A worker-thread or async loader for rule files is out of scope while this holds | 5    | Ratification: no mechanism is possible for a decision about what is not built. Recorded so the next person weighing it reads this first                                                                                                                                                                                                                                                                                                                                                                                                                                                   | `manual`  |
