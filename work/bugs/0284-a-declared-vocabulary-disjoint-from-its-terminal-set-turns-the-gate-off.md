@@ -171,8 +171,13 @@ because a probe that asserts ids fire stays green when a whole check goes dark.
       supported one.
 - [x] Located the guard already written at `scripts/lib/lane-coverage.mjs:138`, and
       confirmed nothing equivalent exists in `packages/md`.
-- [ ] Red first: zero done-items under a declared real terminal vocabulary produces
-      a finding naming both options.
+- [ ] Red first, in [0283](./0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md)'s
+      honest form, **not** "the finding names both options" — a constant string
+      satisfies that, which is the trap 0283 warns about and an earlier version of
+      this box walked into. Assert instead: the finding fires **by rule id** on a
+      corpus with zero done-items under a declared real terminal vocabulary, and the
+      remedy it names is **corrective** — after applying it the record is classified
+      done and its open box reports.
 - [ ] A `check-nonvacuity.mjs` registry row with its own fixture and `mustSay`.
 - [ ] The prior question answered: report the incoherent pair, or remove the class
       by changing how `terminalStates` defaults.

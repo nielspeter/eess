@@ -171,7 +171,16 @@ leaving the next one silent.
 - [x] Confirmed this repo passes a per-lane vocabulary rather than the default.
 - [x] Both reported gaps checked against the published packages; recorded above
       rather than filed.
-- [x] Checked whether eess's own corpus already violates this: two records carry
+- [x] ~~Checked whether eess's own corpus already violates this: two records carry~~
+      **Corrected 2026-09-12 — the verdict is right and the mechanism named below is
+      not.** The fence is not what keeps those two green: `findState` stops at the
+      second `##`, and both examples sit four and three headings past it, so the
+      scan never reaches them. Gutting `stripFencedCode` leaves the whole corpus
+      byte-identical, which proves it. Filed as
+      [0286](../0286-a-fenced-example-can-turn-the-close-checks-off.md). The
+      original box text is kept below, uncorrected, because being wrong _here_ is
+      why this record was worth keeping.
+- [x] two records carry
       `**State:** Done` in a bug lane whose vocabulary excludes it
       (`work/bugs/0120-no-state-and-cannot-find-it-are-the-same-answer.md:40`, `work/bugs/fixed/0119-placement-check-never-ran.md:34`) — **both inside
       fenced code blocks as illustrations**, so the gate is correctly green. Not a

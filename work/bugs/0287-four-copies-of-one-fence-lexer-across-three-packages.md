@@ -119,8 +119,10 @@ this is a `Draft` record putting a question and not a fix.
 
 ## Verification ledger
 
-- [x] Four copies located; pattern and body confirmed byte-identical across all
-      four.
+- [x] Four copies located. **Pattern** byte-identical across all four — the
+      load-bearing half. **Body** byte-identical across three;
+      `scripts/lib/proposal-ruling.mjs:115` names its parameter `text` rather than
+      `s`. An earlier version of this box said all four bodies matched.
 - [x] Confirmed all four share the leaks 0286 measured, since the pattern is the
       same.
 - [x] Confirmed 0143 points at two of these copies as canonical, which they are
