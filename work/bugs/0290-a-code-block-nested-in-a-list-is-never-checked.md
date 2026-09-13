@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft. Measured end to end on `main`; no red test yet.
-- **Severity:** **High**, a **fail-open**. eess-crossvalidate's md↔mermaid bindings pass a diagram that names a class the code does not have, whenever the diagram sits inside a list item or a blockquote. The nested document also never counts toward the diagram statistics.
+- **Severity:** **High**, a **fail-open**. eess-crossvalidate's md↔mermaid binding (`embeddedDiagramsMatchCode`) passes a diagram that names a class the code does not have, whenever the diagram sits inside a list item or a blockquote. The nested document also never counts toward the diagram statistics. The md↔mermaid-er binding reads the same list, so it follows by construction; it was not measured.
 - **Origin:** self-found · design review of a fence-handling fix
 - **Reported:** 2026-09-13
 

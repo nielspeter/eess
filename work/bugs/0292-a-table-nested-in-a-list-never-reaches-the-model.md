@@ -3,11 +3,7 @@
 ## Status
 
 - **State:** Draft. Measured on `main` through the document model and the row matcher; no red test yet.
-- **Severity:** **Medium.** Rows in a nested table are invisible to every table consumer. Each consumer's verdict follows by construction and was not measured, so the direction depends on the rule:
-  - **silent** where another table supplies the evidence, as in a citation lookup;
-  - **loud** where completeness is asserted, as in a correspondence that expects every row.
-
-  Raise to High if a silent path is measured.
+- **Severity:** **High**, a **fail-open**. Rows in a nested table are invisible to every table consumer, and one silent path is measured: the md↔ts ADR citation binding skips a nested Enforcement table with no finding (`packages/crossvalidate/src/md-ts.ts:51`), so a broken test citation in it passes. Where completeness is asserted, as in a correspondence that expects every row, the loss is loud instead. An earlier version rated this Medium, pending a measured silent path.
 
 - **Origin:** self-found · architecture review of a markdown design
 - **Reported:** 2026-09-13
@@ -54,6 +50,13 @@ Measured on `main` at `2a2a503`:
 | top.md   | 1                   | 1                     | 1 (`a`)                                                     |
 | quote.md | 1                   | **0**                 | **0**                                                       |
 | list.md  | 1                   | **0**                 | **0**                                                       |
+
+**The silent path, end to end.** `adrCitationsResolve` over the fixture project `packages/crossvalidate/tests/fixtures/citations`, reading `docs/adr/0001-good.md` and one ADR under test:
+
+| ADR under test                                                    | Result                                                    |
+| ----------------------------------------------------------------- | --------------------------------------------------------- |
+| `docs/adr/0002-bad.md` as shipped (control)                       | a finding at line 5: `it('missing')` has no matching test |
+| the same ADR with its whole Enforcement table inside a blockquote | **passes, no findings**                                   |
 
 ## The corruption that must produce a violation
 

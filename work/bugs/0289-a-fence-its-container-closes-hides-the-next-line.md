@@ -71,7 +71,7 @@ Control B: shape 2 with the fence closed.
 - see `missing.ts:1`
 ````
 
-Control C: the pointer on the last line of an unclosed fence at end of file, with no trailing newline. That line is code, so it must not be checked.
+Control C: the pointer on the last line of an unclosed fence at end of file, with no trailing newline. That line is code, so it must produce no pointer finding. A future report of the unclosed fence itself does not break this control.
 
 ````text
 # Doc
@@ -92,7 +92,7 @@ A unist position's end is exclusive. A code block that its container ends has it
 
 ## The corruption that must produce a violation
 
-After a code block that its container ends, a line that CommonMark renders as prose must be read: a missing-file pointer there is reported. Control C's line stays code.
+After a code block that its container ends, a line that CommonMark renders as prose must be read: a missing-file pointer there is reported. Control C's line stays code: no pointer finding there.
 
 ## Measured fact for a fix
 
