@@ -1,9 +1,8 @@
-# Bug 0287: one fence lexer, four byte-identical copies, three packages, and a precedent that already settled this
+# Bug 0287: one fence lexer, four byte-identical copies, two packages and a script, and a precedent that already settled this
 
 ## Status
 
-- **State:** Draft — measured; this is a decision, not a defect to patch, and it
-  wants its own review.
+- **State:** Draft — measured; this is a decision, not a defect to patch, and it wants its own review. It cannot close by a bug PR alone: its closing condition is a placement decision, and no decision record owns it yet.
 - **Severity:** **High** — raised 2026-09-12. **The earlier rationale ("nothing is
   wrong that 0286 does not already file") was measured false.** A fourth consumer
   has its own live fail-open in a CI gate on this repo, filed as
@@ -26,25 +25,51 @@ byte-identical body:
 | `packages/crossvalidate/src/md-gherkin.ts:64` | markdown-to-Gherkin binding       |
 | `scripts/lib/proposal-ruling.mjs:107`         | `**Ruling:**` parsing             |
 
-Three packages plus a gate script. All four carry
+Two packages plus a gate script. An earlier version said three packages. All four carry
 `/(```|~~~)[\s\S]*?\1/g`, so all four carry the same behaviour on the same input
 class.
 
 **An earlier version of this record framed that behaviour as leaks letting
 _illustrative_ content through. That is the safer direction and it is not the one
-that matters.** The pattern is non-greedy and unanchored, so an **unpaired** opener
-pairs with the next real fence and blanks the **real** content between them. Every
+that matters.** The pattern is non-greedy and unanchored, so a triple-backtick run inside a longer fence is read as a delimiter, pairs with the next real fence, and blanks the **real** content between them. An earlier wording called this an unpaired opener; [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) measured the document as paired. Every
 consumer then selects fewer elements and loses findings:
 
 | consumer                                           | measured                                                                                                             |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `scripts/lib/proposal-ruling.mjs`                  | [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) — the ruling vanishes, in CI |
-| `packages/md/src/rules/ledger.ts`                  | [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) — boxes lost                                        |
+| `packages/md/src/rules/ledger.ts`                  | measured: the State line vanishes and nothing reports; the document is below                                         |
 | `packages/md/src/builders/vocabulary.ts` `terms()` | follows by construction; **not measured**                                                                            |
 | `packages/crossvalidate/src/md-gherkin.ts`         | follows by construction; **not measured**                                                                            |
 
 The last two are marked unmeasured deliberately. Same function, same input class,
 but this record does not claim a defect it did not run.
+
+The `ledger.ts` row, measured on `main` with `closeInPlace: true`:
+
+`````text
+# 0001 x
+
+````md
+```
+````
+
+**State:** Done
+
+## Tasks
+
+- [ ] box
+
+```text
+later
+```
+`````
+
+| document                                           | findings                    | readable state | done  |
+| -------------------------------------------------- | --------------------------- | -------------- | ----- |
+| the same without the four-backtick block (control) | `ledger/silent-open-box` @7 | 1              | 1     |
+| with it                                            | **none**                    | **0**          | **0** |
+
+By commonmark.js the State line and the box are outside code. An earlier version of this row cited [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md), which measured other mechanisms.
 
 ## Why this is not just 0286 repeated
 
@@ -76,7 +101,7 @@ corners of the family.
 **Should any of these own a fence lexer at all?**
 
 The markdown dialect already parses markdown properly for its task-box path, and
-mdast handles all seven shapes 0286 probed correctly by construction.
+mdast handles all seven shapes 0286 probed correctly by construction. A later version of this record retracted that as six of seven; the retraction was wrong, since on the unclosed fence mdast agrees with CommonMark ([0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)).
 
 **And the two disagree inside one preset, which is how a record goes green.**
 `honestyAtClose` reads one document with both: the hand-rolled regex in
@@ -89,21 +114,15 @@ options are not "widen the regex" versus "leave it":
    0257's resolution applied.
 2. **Stop hand-rolling**: route the `State:`/`Deferred:`/`Ruling:` scans through the
    mdast pass the dialect already runs. This is ADR-012's shape — the kernel borrows
-   a lexer it cannot own — one level down. **It does not remove the leak class**:
-   measured, mdast handles six of the seven shapes and loses real content on the
-   unclosed fence, so this relocates the defect rather than closing it. Needs
-   option (4) beside it.
+   a lexer it cannot own — one level down. It removes the misreading, but not the silence on an unclosed fence: by CommonMark that document has no State line and no box outside code, and 0286 records a widened pattern leaving that document with no readable state and still no finding. Needs option (4) beside it. An earlier version said mdast loses real content here; it does not.
 3. **Widen the regex in one place and consolidate**, which is (1) plus a patch.
 
-4. **Report an unterminated fence** as its own finding, whoever owns the lexer. This
-   is the only option that reaches the shape _both_ parsers get wrong, and it is
-   [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md)'s
-   preferred fix for the same reason.
+4. **Report an unterminated fence** as its own finding, whoever owns the lexer. It reaches 0286's unclosed-fence document directly, which no choice of lexer does. [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) owns it; [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) once preferred it and retracted that.
 
 (1) is the smallest thing that stops the defect recurring across four files. (4) is
 the one that actually closes the dangerous shape. They compose; (2) does not
 substitute for (4). **Not settled here** — it is
-a placement decision across three packages, and 0257 says the answer has precedent
+a placement decision across two packages and a script, and 0257 says the answer has precedent
 rather than saying what it is for this case.
 
 ## The corruption that must produce a violation
@@ -114,8 +133,9 @@ duplication: an architecture rule that no module outside the owner declares a
 `FENCE_RE`-shaped constant or a `stripFencedCode` function. `arch.rules.ts` is the
 home and `0257`'s fix is the model.
 
-Until the ownership question is answered there is nothing to gate, which is why
-this is a `Draft` record putting a question and not a fix.
+**What this rule cannot see.** Two fence readers already exist that are not `FENCE_RE`-shaped: the kernel's line loop `maskMarkdownCodeSpans` (`packages/core/src/mask-non-comment.ts:171`) and the mdast walk behind `pointers()` (`packages/md/src/model/pointers.ts:37`). A rule on a regex constant matches neither, so this break class covers the four copies only.
+
+Until the ownership question is answered there is nothing to gate, which is why this is a `Draft` record putting a question and not a fix.
 
 ## Verification ledger
 
@@ -128,10 +148,8 @@ this is a `Draft` record putting a question and not a fix.
 - [x] Confirmed 0143 points at two of these copies as canonical, which they are
       not.
 - [x] Confirmed 0257 is Fixed, with one-owner-in-the-kernel as its resolution.
-- [x] **Falsified this record's own claim that mdast handles the leaking shapes.**
-      Measured six of seven: an unclosed fence makes mdast swallow to end of
-      document and lose the real content. So option (2) below does not remove the
-      leak class — it relocates it.
+- [x] **Corrected a false retraction.** An earlier box said mdast handles six of seven shapes and loses real content on the unclosed fence. By commonmark.js that content is code ([0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)), so mdast is right on all seven.
+- [x] Measured the over-strip shape in `ledger.ts`, the document above: no readable state and no finding.
 - [ ] The ownership question answered — **the library author's.** This record puts
       it and does not settle it.
 - [ ] Once answered: the copies removed, and the architecture rule that stops a

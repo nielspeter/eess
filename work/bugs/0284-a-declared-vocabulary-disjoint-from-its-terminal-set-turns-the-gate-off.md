@@ -43,7 +43,7 @@ left to its default `['Done', "Won't-do"]`:
 | ------- | --------------------- | ---------- | -------- |
 | 1       | 1                     | **0**      | **0**    |
 
-The record is closed, sits in a done-folder, and carries an undisposed open box.
+The record is closed by the token its author declared, and carries an undisposed open box. It is not in a done folder: `/promoted/` is not among the defaults (`packages/md/src/rules/ledger.ts:84`), and the reproduction depends on that. An earlier version said it sat in a done folder.
 The gate reports clean.
 
 ## Why the vacuity guard does not catch it
@@ -101,18 +101,18 @@ both directions, and two reviewers measured it.**
   not a caller error" for a lane where nothing is ledger-closed by design, and which
   `scripts/lib/lane-coverage.mjs:147` deliberately exempts.
 
-### The guard already exists in this repo, and is not in the shipped package
+### A lane guard exists in this repo, and it is not this record's fix
 
-`findLaneDoneVacuity` (`scripts/lib/lane-coverage.mjs:138-160`) is exactly it. It
-fires when a lane **scanned zero done-items while declaring a real
-`terminalStates` vocabulary**, skips the structurally-exempt empty-terminal lane,
-and gives the caller an explicit `expectEmptyDone` escape. Its own message states
-the reason: every predicate and peek `honestyAtClose` runs for a lane shares the
-same done/state determination.
+`findLaneDoneVacuity` (`scripts/lib/lane-coverage.mjs:138-160`) fires when a lane **scanned zero done-items while declaring a real `terminalStates` vocabulary**, skips the structurally-exempt empty-terminal lane, and gives the caller an explicit `expectEmptyDone` escape. It catches this record's single-record reproduction.
 
-So the corruption to gate is **zero done-items on a corpus that declares a real
-terminal vocabulary and contains records** — not set intersection. Nothing like it
-exists anywhere in `packages/md`.
+**An earlier version said this guard "is exactly" the fix, and that the corruption to gate is zero done-items. Measured, it is not.** A real corpus holds at least one correctly closed record, and one is enough to silence it:
+
+| corpus, with `states` set to the defaults plus `Promoted`                                                            | findings | done items | `findLaneDoneVacuity` |
+| -------------------------------------------------------------------------------------------------------------------- | -------- | ---------- | --------------------- |
+| the reproduction above, alone                                                                                        | 0        | 0          | fires                 |
+| the same, beside an ordinary record in `work/proposals/completed/` whose State is `Done` and whose one box is ticked | **0**    | 1          | **silent**            |
+
+So the corruption to gate is **per record**: a record closed by a token its author declared, with an undisposed box, must not pass silently in a lane that also holds a correctly closed record. Nothing like the lane guard exists anywhere in `packages/md` either.
 
 This is the branch's recurring shape once more: the protection is written, and it
 is in this repo's gate script rather than in the package an adopter installs — the
@@ -161,8 +161,7 @@ this record files is still unowned.
 An earlier version leaned toward reporting the incoherent pair and treated
 requiring `terminalStates` as the costlier alternative. **That ordering is
 backwards:** reporting the pair fixes only the empty-intersection shape, while
-requiring the option whenever `states` is passed removes both. Shipping the
-existing guard is the third option and the cheapest, since it is already written.
+requiring the option whenever `states` is passed removes both. Shipping the existing lane guard is not a third option: it reaches only a lane with no done item at all. An earlier version called it the cheapest.
 
 ## What the violation must say
 
@@ -199,16 +198,14 @@ because a probe that asserts ids fire stays green when a whole check goes dark.
       supported one.
 - [x] Located the lane-blackout guard at `scripts/lib/lane-coverage.mjs:138`, and
       confirmed nothing equivalent exists in `packages/md`.
+- [x] **Falsified this record's own claim that the lane guard is its fix** — beside one correctly closed record, the victim gives 0 findings and the guard is silent.
 - [x] **Falsified this record's own claim that the guard covers 0286's first route
       and that two fail-opens are one missing guard** — measured silent on a
       two-record lane; it fires only at total lane blackout.
 - [ ] Red first, in [0283](./0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md)'s
       honest form, **not** "the finding names both options" — a constant string
       satisfies that, which is the trap 0283 warns about and an earlier version of
-      this box walked into. Assert instead: the finding fires **by rule id** on a
-      corpus with zero done-items under a declared real terminal vocabulary, and the
-      remedy it names is **corrective** — after applying it the record is classified
-      done and its open box reports.
+      this box walked into. Assert instead: the finding fires **by rule id** on the mixed corpus in the table above, which has a done item, and the remedy it names is **corrective** — after applying it the record is classified done and its open box reports. A test on a corpus with zero done-items would pass a fix that ships only the lane guard.
 - [ ] A `check-nonvacuity.mjs` registry row with its own fixture and `mustSay`.
 - [ ] The prior question answered: report the incoherent pair, or remove the class
       by changing how `terminalStates` defaults.

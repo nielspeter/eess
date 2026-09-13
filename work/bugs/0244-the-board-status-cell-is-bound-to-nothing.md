@@ -76,32 +76,28 @@ a closed-work check.
 ## Amendment 2026-09-12 — the gap is wider than the Status cell
 
 This record and [0197](./0197-nothing-binds-a-board-status-to-the-records-state.md)
-both scope the problem to the **Status** cell. Measured on one branch
-(`bug-0282-honestyatclose-default-lane`), the same unbound-cell problem produced
-**four** wrong rows in cells neither record covers:
+both scope the problem to the **Status** cell. On the branch that filed bugs 0282–0288, the same unbound-cell problem produced **three** wrong rows in cells neither record covers. The rows existed only in that branch's intermediate commits, so they are carried here by value:
 
 | row  | cell     | the row said                                         | the record said                                |
 | ---- | -------- | ---------------------------------------------------- | ---------------------------------------------- |
 | 0287 | Severity | `Medium`                                             | `High`, raised the same day                    |
-| 0287 | prose    | "mdast already gets all seven shapes right"          | retracted — six of seven                       |
 | 0284 | prose    | "a vocabulary in which nothing can ever be terminal" | retracted as measured false                    |
 | 0286 | prose    | the four-backtick outer fence leaks                  | a bare one holds; only the wrapping form leaks |
 
-All four passed `check:corpus` throughout, because the bugs board gets
+An earlier version of this table listed a fourth: 0287's row saying "mdast already gets all seven shapes right", marked retracted as six of seven. The row was right and the retraction wrong ([0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)).
+
+All three passed `check:corpus` throughout, because the bugs board gets
 link-resolution only — the board-agreement machinery
 (`scripts/check-corpus.mjs:460-474`) is built for the **proposals** board's
 `Ruling` column and says so.
 
-Three of the four were introduced by an author who had, in the same commit,
-filed and fixed a fifth instance and written that a row disagreeing with its
+They were introduced by an author who had, on the same branch, filed and fixed another instance and written that a row disagreeing with its
 record is "drift inside the bug tracker, which is the class this family exists to
-catch". The fourth was introduced by that author's own narrow audit: it compared
-Severity cells and not prose, and reported clean.
+catch". That author's own audit compared Severity cells and not prose, and reported clean.
 
 **What this changes about the fix.** A mechanism scoped to Status closes one cell
 of four. The Severity cell is derivable the same way Status is. The prose cell is
-not derivable and never will be — but it is the cell that carried three of these
-four, and the only thing that catches it is a reviewer reading the row against the
+not derivable and never will be — but it is the cell that carried two of these three, and the only thing that catches it is a reviewer reading the row against the
 record. That asymmetry belongs in the Fix section: derive what is derivable, and
 say plainly that the prose cell stays manual, so nobody mistakes a green board
 gate for a board that agrees with its records.

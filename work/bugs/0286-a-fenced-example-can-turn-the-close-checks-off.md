@@ -72,27 +72,40 @@ state; with the folder path unavailable, the misread state is the only input, an
 the boxes are never selected. `ledgerStats` corroborates rather than exposes it —
 it reports a readable state, because it read the example's.
 
-### A second fail-open, by the opposite mechanism
+### A second fail-open, after an unclosed fence
 
 Found by the testing lens and reproduced here. An **unclosed fence in the
 preamble** produces a green by the mirror-image route:
 
-| document                       | state read   | boxes found  | verdict   |
-| ------------------------------ | ------------ | ------------ | --------- |
-| plain                          | `Fixed`, l.5 | 1 undisposed | reports   |
-| unclosed fence in the preamble | `Fixed`, l.8 | **none**     | **GREEN** |
+````text
+# 0001 x
 
-Here `findState` reads the record's **own** state correctly and the record _is_
-classified done. What vanishes is the box: `collectTaskItems` reaches fences
-through **mdast**, which parses an unclosed fence as code to the end of the
-document and swallows every `- [ ]` after it. Nothing is left to report.
+```md
+an example with no closer
+
+**State:** Fixed
+
+## Tasks
+
+- [ ] box
+````
+
+Measured on `main` with `states: ['Draft', 'Fixed']`, `terminalStates: ['Fixed']` and `closeInPlace: true`. The control drops the fence and example lines.
+
+| document       | findings                    | readable state | done | commonmark.js                  |
+| -------------- | --------------------------- | -------------- | ---- | ------------------------------ |
+| control        | `ledger/silent-open-box` @7 | 1              | 1    | 1 list item, 0 code blocks     |
+| unclosed fence | **none**                    | 1              | 1    | **0 list items, 1 code block** |
+
+By CommonMark, an unclosed fence runs to the end of the document, so the State line and the box are both code. `collectTaskItems` reaches boxes through **mdast**, which agrees and finds no box. `findState`'s regex finds no closer, strips nothing, and reads the State line out of the code, so the record _is_ classified done. Nothing is left to report on a record the gate believes is done.
+
+**An earlier version of this section said `findState` reads the record's own state correctly, and blamed mdast for swallowing the box. The attribution was inverted:** mdast is right, and the regex is the reader that departs from CommonMark.
 
 **So the two halves of this one preset read the same document with two parsers
-that disagree about where a fence ends** — a regex in `findState`, mdast in
-`collectTaskItems` — and _either_ direction of disagreement yields a silent green:
+that disagree about where a fence ends** — a regex in `findState`, mdast in `collectTaskItems` — and in both routes the regex is the one that departs from CommonMark:
 
-- regex over-strips or misreads → the record is not classified done → boxes unchecked;
-- mdast over-strips → the boxes are gone → nothing to check.
+- route A: the regex reads an example State line inside a fence as prose, so the record is not classified done and its boxes go unchecked;
+- route B: the regex reads a State line after an unclosed fence as prose, so a record whose box is code is classified done with nothing to check.
 
 That disagreement is the root, and it is why
 [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) is not
@@ -121,10 +134,7 @@ load-bearing by design intent and exercised by nothing.
 
 The three existing fence tests (`packages/md/tests/rules/ledger.test.ts:46`, `:53`,
 `:82`) cover the **task-box** path, which reaches fences through mdast — a
-different code path. **An earlier version of this record claimed that path handles
-all seven shapes correctly. Measured, it is six of seven** — an unclosed fence
-makes mdast swallow to end of document and lose the **real** box, which is this
-record's own second route, and is why no fence-lexer change can repair it. No
+different code path. That path handles all seven shapes as CommonMark does. **A later version of this record retracted that as "six of seven", saying mdast loses the real box after an unclosed fence. The retraction was wrong:** by CommonMark that box is code, as measured above. No
 fixture anywhere puts a `State:` line in a fence.
 
 That combination is the finding: a documented behaviour, with a fail-open in it,
@@ -132,11 +142,7 @@ that no test can see.
 
 ## The corruption that must produce a violation
 
-1. **The fail-open, both routes.** A record with a terminal state and an undisposed
-   box must be reported, whether or not it also contains a fenced example of a
-   state line (regex route) **and** whether or not an unclosed fence precedes the
-   box (mdast route). Two fixtures, because the mechanisms are opposite and a fix
-   for one does not touch the other.
+1. **The fail-open, both routes.** A record with a terminal state and an undisposed box must be reported whether or not it also contains a fenced example of a state line (route A). A record whose State line and box follow an unclosed fence must not pass silently (route B); by CommonMark both are code, so the finding is about the document, not the box. Two fixtures, because a fix for one does not touch the other.
 2. **The guard.** Gutting `stripFencedCode` must fail something.
 
 **Both call sites, not one.** `stripFencedCode` is called twice in this file —
@@ -182,9 +188,7 @@ appear. A new `scripts/check-nonvacuity.mjs` registry row is required, with a
 1. Handle the leaking shapes, or stop hand-rolling the lexer — see
    [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md), which
    owns that decision and has a fixed precedent. **Repairs route A only.**
-2. **Own the unclosed fence directly** — report an unterminated fence as its own
-   finding, per [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md).
-   **Route B needs this and nothing else reaches it.**
+2. **Own the unclosed fence directly** — report an unterminated fence as its own finding. **This record owns that fix.** [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) once proposed it for its own reproduction and retracted it there, and [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md)'s option (4) is the same finding.
 3. The fixtures — one per route, with the three conditions above.
 4. The non-vacuity rows — **two, not one**: the routes are independent and a fix
    for one does not touch the other, so a single row leaves half the record
@@ -192,10 +196,7 @@ appear. A new `scripts/check-nonvacuity.mjs` registry row is required, with a
 
 **An earlier version said this record closes on (1)+(3)+(4) whichever way 0287 is
 decided. That was false, and a reviewer proved it by building the fix.** Widening
-the pattern repaired route A completely and left route B at zero findings, because
-route B is the markdown parser never emitting the box — no lexer change restores a
-node that was never produced. Routing the state scan through mdast instead does not
-help either: mdast loses the state line the same way it loses the box. Item 2 is
+the pattern repaired route A completely and left route B at zero findings. Route B's box is code by CommonMark, so no correct reader produces it, and the same run left the document with no readable state and still no finding. Item 2 is
 therefore load-bearing, and without it this record's stated closing condition could
 never be met.
 
@@ -208,18 +209,14 @@ never be met.
       byte-identical with the guard gutted.
 - [x] Confirmed zero corpus documents exercise the guard.
 - [x] Confirmed the three existing fence tests cover the task-box path only.
-- [x] **Falsified this record's own claim that mdast handles all seven shapes** —
-      measured six of seven; an unclosed fence loses the real box.
+- [x] **Corrected a false retraction.** An earlier box here said mdast handles six of seven shapes. On the unclosed fence, mdast agrees with commonmark.js (0 list items, 1 code block); the regex is the reader that departs.
 - [x] Confirmed the ordering constraint by building the hollow fixture and
       watching it pass.
-- [x] Reproduced the second fail-open: an unclosed fence in the preamble makes
-      mdast swallow the boxes while `findState` reads the real state past it —
-      green on a done record with an undisposed box.
+- [x] Reproduced the second fail-open: after an unclosed fence in the preamble, `findState` reads a State line CommonMark calls code, and the record passes as done with no box found.
 - [x] Confirmed two call sites, `:175` and `:303`.
 - [ ] Red first (1a): the regex route — a closed-in-place record with a
       four-backtick example and an undisposed box must still report.
-- [ ] Red first (1b): the mdast route — a done record with a preamble unclosed
-      fence and an undisposed box must still report.
+- [ ] Red first (1b): route B — the document above must not pass silently.
 - [ ] The `deferredNoneLieViolation` call site gets the same treatment.
 - [ ] Red first (2): the guard fixture, with the illustrative token preceding the
       record's own.

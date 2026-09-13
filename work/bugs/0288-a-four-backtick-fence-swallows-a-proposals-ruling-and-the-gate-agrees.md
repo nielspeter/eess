@@ -53,16 +53,15 @@ shared lexer's defect as leaks letting **illustrative** content through. That is
 one direction and it is the safer one.
 
 **Over-stripping is the dangerous direction**, and it follows from the pattern by
-construction, so it applies to all four copies: an unpaired opener pairs with the
-next real fence and blanks the **real** content between them. Every consumer then
+construction, so it applies to all four copies: a triple-backtick run inside a longer fence is read as a delimiter, pairs with the next real fence, and blanks the **real** content between them. An earlier wording here still said an unpaired opener, which this record's own Symptom section retracts. Every consumer then
 selects fewer elements and loses findings:
 
-| consumer                                           | measured                                                         |
-| -------------------------------------------------- | ---------------------------------------------------------------- |
-| `scripts/lib/proposal-ruling.mjs`                  | this record — the ruling vanishes                                |
-| `packages/md/src/rules/ledger.ts` `findState`      | [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) |
-| `packages/md/src/builders/vocabulary.ts` `terms()` | follows by construction; **not measured**                        |
-| `packages/crossvalidate/src/md-gherkin.ts`         | follows by construction; **not measured**                        |
+| consumer                                           | measured                                                                                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `scripts/lib/proposal-ruling.mjs`                  | this record — the ruling vanishes                                                                                                                |
+| `packages/md/src/rules/ledger.ts` `findState`      | measured: the State line vanishes and nothing reports; the document is in [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) |
+| `packages/md/src/builders/vocabulary.ts` `terms()` | follows by construction; **not measured**                                                                                                        |
+| `packages/crossvalidate/src/md-gherkin.ts`         | follows by construction; **not measured**                                                                                                        |
 
 The last two are stated as unmeasured on purpose. They are the same function on
 the same input class, but this record does not claim a defect it did not run.
@@ -84,8 +83,7 @@ at least as long as its opener. A reviewer built one while reviewing
 [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) and measured it
 repairing that record's first route completely.
 
-**Genuinely unterminated fences are a separate, real shape** — 0286's second route,
-where an opener with no closer makes the markdown parser swallow to end of document.
+**Genuinely unterminated fences are a separate, real shape** — 0286's second route, where an opener with no closer makes the rest of the document code by CommonMark while the regex reads on.
 That needs its own handling and this record no longer claims to cover it. Reporting
 it remains right _there_, per
 [0120](./0120-no-state-and-cannot-find-it-are-the-same-answer.md)'s precedent that an
@@ -94,8 +92,17 @@ unreadable input is reported rather than guessed at.
 ## Non-vacuity
 
 `scripts/check-nonvacuity.mjs` has no row for the ruling parser's fail-open,
-because the failure is a finding that does not appear. A new row with its own
-fixture — an accepted proposal with an unpaired fence and no plan — must red.
+because the failure is a finding that does not appear. A new row with its own fixture must red: an accepted proposal whose `**Ruling:**` follows a four-backtick example holding a triple-backtick run, then an ordinary fenced block, with no plan declaring it.
+
+**An earlier version specified an unpaired fence. That fixture is hollow either way.** Measured on `main`:
+
+| fixture                                           | `operativeRuling` | commonmark.js          |
+| ------------------------------------------------- | ----------------- | ---------------------- |
+| the Ruling, then an unpaired fence                | `"Ship as-is"`    | Ruling outside code    |
+| an unpaired fence, the Ruling, then a later fence | `null`            | **Ruling inside code** |
+| this record's reproduction                        | `null`            | Ruling outside code    |
+
+With no later fence, the Ruling is read and the gate reds for the ordinary missing-plan reason. With one, the regex agrees with CommonMark.
 
 ## Verification ledger
 
@@ -108,8 +115,7 @@ fixture — an accepted proposal with an unpaired fence and no plan — must red
 - [x] **Falsified this record's own mechanism and both its fixes** — the document
       is CommonMark-paired, so "unterminated fence" names nothing in it and neither
       offered fix fires on it.
-- [ ] Red first: an accepted proposal carrying a four-backtick example, with no plan
-      declaring it, must fail `check:corpus`.
+- [ ] Red first: this record's reproduction, as an accepted proposal with no plan declaring it, must fail `check:corpus`.
 - [ ] The non-vacuity row and fixture.
 - [ ] The run-length-aware pattern, decided once for all four consumers. **Bears on
       0286 and 0287.**
