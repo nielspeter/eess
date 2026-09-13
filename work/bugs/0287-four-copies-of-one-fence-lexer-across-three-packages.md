@@ -36,12 +36,12 @@ that matters.** The pattern is non-greedy and unanchored, so an **unpaired** ope
 pairs with the next real fence and blanks the **real** content between them. Every
 consumer then selects fewer elements and loses findings:
 
-| consumer                                           | measured                                                                                                         |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| consumer                                           | measured                                                                                                             |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `scripts/lib/proposal-ruling.mjs`                  | [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) — the ruling vanishes, in CI |
-| `packages/md/src/rules/ledger.ts`                  | [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) — boxes lost                                    |
-| `packages/md/src/builders/vocabulary.ts` `terms()` | follows by construction; **not measured**                                                                        |
-| `packages/crossvalidate/src/md-gherkin.ts`         | follows by construction; **not measured**                                                                        |
+| `packages/md/src/rules/ledger.ts`                  | [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) — boxes lost                                        |
+| `packages/md/src/builders/vocabulary.ts` `terms()` | follows by construction; **not measured**                                                                            |
+| `packages/crossvalidate/src/md-gherkin.ts`         | follows by construction; **not measured**                                                                            |
 
 The last two are marked unmeasured deliberately. Same function, same input class,
 but this record does not claim a defect it did not run.
