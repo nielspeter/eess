@@ -38,8 +38,9 @@ export function implementsByName(cls: ClassDeclaration, interfaceName: string): 
 
 /**
  * The names a decorator answers to: as written, and — when it is an imported alias — the name
- * of the declaration it stands for. Only an alias symbol is asked for its target, because the
- * checker asserts when asked about any other kind of symbol.
+ * of the declaration it stands for. Only an alias symbol is asked for its target: only an alias
+ * has one. (Measured: asking a same-file decorator's symbol for an aliased target did not throw
+ * here, but the guard does not rely on how the checker answers a question with no answer.)
  */
 export function decoratorNames(decorator: Decorator): readonly string[] {
   const written = decorator.getName()

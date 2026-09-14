@@ -15,8 +15,8 @@ import type { ArchProject } from '../../src/core/project.js'
  * condition's findings cannot pass over a rule that reports nothing.
  *
  * The same-file decorator CONTROL guards the resolution itself: a decorator that is not an
- * import has a symbol that is not an alias, and asking the checker for its aliased symbol
- * asserts. It must still match, by name.
+ * import has a symbol that is not an alias, so there is no target to resolve. It must still
+ * match, by the name it is written with.
  */
 function clauseTextProject(): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })
