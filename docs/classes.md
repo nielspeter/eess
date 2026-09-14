@@ -72,7 +72,7 @@ These conditions assert on class structure -- inheritance, methods, properties, 
 
 ### Body Analysis Conditions
 
-Body analysis conditions inspect the AST inside a class's member code — method, constructor and accessor bodies, parameter defaults, property initializers and static blocks — for specific call expressions, constructor invocations, or other patterns. Use these to ban unsafe APIs or require specific helper calls.
+Body analysis conditions inspect the AST inside a class's member code — method, constructor and accessor bodies, parameter defaults, property initializers and static blocks, and the decorator arguments, computed member names and the arguments of `extends` — for specific call expressions, constructor invocations, or other patterns. Use these to ban unsafe APIs or require specific helper calls.
 
 | Condition                           | Description                                       |
 | ----------------------------------- | ------------------------------------------------- |

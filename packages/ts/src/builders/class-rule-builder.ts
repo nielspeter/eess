@@ -393,8 +393,10 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
 
   /**
    * Assert that the class body contains at least one match.
-   * "Body" = the code each member runs: method, constructor and accessor bodies,
-   * parameter defaults, property initializers and static blocks — not decorators.
+   * "Body" = the code each member runs — method, constructor and accessor bodies, parameter
+   * defaults, property initializers and static blocks — and what the class supplies outside its
+   * members: decorator arguments, computed member names and the arguments of `extends`. Not the
+   * decorator or base class itself, and not docstrings (bug 0307).
    */
   contain(matcher: ExpressionMatcher): this {
     return this.addCondition(classContain(matcher))

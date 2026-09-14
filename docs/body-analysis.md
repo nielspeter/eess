@@ -285,7 +285,7 @@ classes(p)
 
 Body analysis works on both classes and functions, but the scope differs:
 
-- **`classes(p)`** -- checks the member code of each matched class: method, constructor and accessor bodies, parameter defaults, property initializers and static blocks
+- **`classes(p)`** -- checks the member code of each matched class: method, constructor and accessor bodies, parameter defaults, property initializers and static blocks, and the decorator arguments, computed member names and the arguments of `extends`
 - **`functions(p)`** -- checks the body of each matched function/arrow/method individually
 
 ```typescript

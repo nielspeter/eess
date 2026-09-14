@@ -1,6 +1,8 @@
 import {
   type Node,
+  type CallExpression,
   type ClassDeclaration,
+  type Decorator,
   type SourceFile,
   Node as NodeUtils,
   SyntaxKind,
@@ -168,25 +170,27 @@ function triviaMatches(node: Node, matcher: ExpressionMatcher): Match[] {
 }
 
 /**
- * Search the code a class's members run (bug 0300).
+ * Search the code a class runs (bugs 0300, 0307).
  *
- * Every method, constructor and accessor — its body, then each parameter's default value —
- * then every property initializer, which covers an arrow-function property, then every
- * static block. Overload signatures have no body and no defaults, so walking every
- * constructor is the same as walking the implementation.
+ * Every method, constructor and accessor — its body, then its parameters' default values, then
+ * its parameters' and its own decorator arguments and a computed name — then every property —
+ * its initializer, which covers an arrow-function property, then its decorator arguments and a
+ * computed name — then every static block, then the class's decorator arguments and the
+ * arguments of calls in `extends`. Overload signatures have no body, defaults or decorators, so
+ * walking every constructor is the same as walking the implementation.
  *
- * It walked method, last-constructor and accessor bodies only, so a field initializer, a
- * static field, a parameter default and a static block were never searched, and every
- * class-level body rule passed over them. Docstrings are not member code and are still not
- * walked, so a `comment()` rule reads bodies, not documentation. Code the class runs outside
- * its members — decorator arguments, computed member names, `extends` — is not walked either
- * (bug 0307).
+ * What a class supplies outside its members runs when the class is defined, so it is searched:
+ * a decorator's arguments, a computed member name, an argument of `extends`. The wiring they are
+ * supplied to is not — the decorator or base class itself, which `haveDecorator()` and
+ * `extend()` select on — or a must-contain rule would pass on a class that only carries
+ * `@Validate()`. `implements` is type-only, and docstrings are not code, so a `comment()` rule
+ * reads bodies, not documentation.
  *
- * The body comes before the defaults on purpose. A match's baseline identity is numbered
- * within its enclosing member (`match-identity.ts`), and a member's defaults and body share
- * that member. Searched first, a new match in a default would take the ordinal of the body
- * match a baseline already accepted — the baseline would then hide the new finding and
- * report the accepted one.
+ * The order is for baselines. A match's identity is numbered within its enclosing declaration
+ * (`match-identity.ts`): a member's body, defaults and decorators share the member, and a static
+ * block, the class's decorators and `extends` share the class. What each declaration was
+ * searched for before comes first, so a finding a baseline accepted keeps its ordinal and a new
+ * one is numbered after it.
  */
 export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatcher): MatchResult {
   const matchingNodes: Match[] = []
@@ -203,14 +207,58 @@ export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatche
     ...cls.getGetAccessors(),
     ...cls.getSetAccessors(),
   ]
+  const searchDecorators = (decorators: readonly Decorator[]): void => {
+    for (const decorator of decorators) {
+      for (const argument of suppliedArguments(decorator.getExpression()))
+        searchExpression(argument)
+    }
+  }
+  const searchComputedName = (name: Node): void => {
+    if (NodeUtils.isComputedPropertyName(name)) searchExpression(name.getExpression())
+  }
+
   for (const member of runnable) {
     searchBody(member.getBody())
     for (const parameter of member.getParameters()) searchExpression(parameter.getInitializer())
+    for (const parameter of member.getParameters()) searchDecorators(parameter.getDecorators())
+    if (!NodeUtils.isConstructorDeclaration(member)) {
+      searchDecorators(member.getDecorators())
+      searchComputedName(member.getNameNode())
+    }
   }
-  for (const property of cls.getProperties()) searchExpression(property.getInitializer())
+  for (const property of cls.getProperties()) {
+    searchExpression(property.getInitializer())
+    searchDecorators(property.getDecorators())
+    searchComputedName(property.getNameNode())
+  }
   for (const block of cls.getStaticBlocks()) searchBody(block.getBody())
+  searchDecorators(cls.getDecorators())
+  for (const argument of suppliedArguments(cls.getExtends()?.getExpression())) {
+    searchExpression(argument)
+  }
 
   return toResult(matchingNodes)
+}
+
+/**
+ * The arguments a class supplies to a decorator or to `extends` (bug 0307): those of every call
+ * in a factory chain — `@Outer(a)(b)` supplies `a` and `b` — in source order, read through
+ * parentheses. Not the callee: that is the decorator or base class itself, the wiring.
+ */
+function suppliedArguments(expression: Node | undefined): Node[] {
+  const calls: CallExpression[] = []
+  let current = expression
+  while (current !== undefined) {
+    if (NodeUtils.isParenthesizedExpression(current)) {
+      current = current.getExpression()
+    } else if (NodeUtils.isCallExpression(current)) {
+      calls.unshift(current)
+      current = current.getExpression()
+    } else {
+      break
+    }
+  }
+  return calls.flatMap((call) => call.getArguments())
 }
 
 /**

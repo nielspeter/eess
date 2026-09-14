@@ -156,8 +156,8 @@ export function noFunctionConstructor(): Condition<ClassDeclaration> {
 }
 
 /**
- * No process.env read in a class's member code — bodies, parameter defaults, property
- * initializers and static blocks — spelled `process.env`, `process['env']`, or through a
+ * No process.env read in a class's body code, as `contain()` on the class builder
+ * defines it, spelled `process.env`, `process['env']`, or through a
  * global object. An `env` destructured from `process` or imported from `node:process` is
  * not seen (bug 0305); `import.meta.env` is not Node's environment and is not reported.
  *

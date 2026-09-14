@@ -39,7 +39,7 @@ import {
 | `moduleNoTypeAssertions()`      | modules   | Source file must not contain `as` casts (allows `as const`)     |
 | `moduleNoNonNullAssertions()`   | modules   | Source file must not contain `!` non-null assertions            |
 
-`noTypeAssertions` (and its variants) allow `as const` since that narrows types rather than widening them. The class variants scan the code each member runs: method, constructor and accessor bodies, parameter defaults, property initializers and static blocks — not decorators or docstrings. Module variants scan the entire file — broader than function/class and useful for "nowhere in src/" enforcement.
+`noTypeAssertions` (and its variants) allow `as const` since that narrows types rather than widening them. The class variants scan the code each member runs: method, constructor and accessor bodies, parameter defaults, property initializers and static blocks, and the decorator arguments, computed member names and the arguments of `extends` — not the decorator or base class itself, and not docstrings. Module variants scan the entire file — broader than function/class and useful for "nowhere in src/" enforcement.
 
 ```typescript
 // Classes
@@ -211,10 +211,10 @@ Positive body assertions — "this function MUST call something matching a patte
 import { mustCall, classMustCall } from '@nielspeter/eess-ts/rules/architecture'
 ```
 
-| Rule                     | Target    | What it checks                                         |
-| ------------------------ | --------- | ------------------------------------------------------ |
-| `mustCall(pattern)`      | functions | Function body must contain a call matching the regex   |
-| `classMustCall(pattern)` | classes   | At least one class method must contain a matching call |
+| Rule                     | Target    | What it checks                                       |
+| ------------------------ | --------- | ---------------------------------------------------- |
+| `mustCall(pattern)`      | functions | Function body must contain a call matching the regex |
+| `classMustCall(pattern)` | classes   | The class's body code must contain a matching call   |
 
 Use to enforce delegation patterns — e.g., services must call a repository, handlers must call a validator:
 

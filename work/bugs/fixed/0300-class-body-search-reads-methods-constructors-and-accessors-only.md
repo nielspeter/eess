@@ -6,7 +6,7 @@
   each member runs: bodies, parameter defaults, property initializers and static blocks; red test
   first. Two gaps of the same kind, found in review, are filed as
   [0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md) and
-  [0307](../0307-class-body-rules-skip-class-code-outside-its-members.md).
+  [0307](./0307-class-body-rules-skip-class-code-outside-its-members.md).
 - **Severity:** High — **false green.** Every rule built on the class body conditions missed code in a field
   initializer, a static field, a constructor parameter default, a static block and an
   arrow-function property. In a class written for dependency injection, a field initializer is
@@ -58,7 +58,7 @@ The record first proposed walking the whole class node. The fix deliberately doe
 node also holds docstrings, and a `comment()` rule would start reporting documentation. A CONTROL
 pins that a docstring is still not read. The class node also holds code no member runs — decorator
 arguments, computed member names, the `extends` expression — all evaluated when the class is
-defined; leaving them out is a gap, not a design choice, and is [0307](../0307-class-body-rules-skip-class-code-outside-its-members.md).
+defined; leaving them out is a gap, not a design choice, and is [0307](./0307-class-body-rules-skip-class-code-outside-its-members.md).
 
 `noSilentCatch`, `noMagicNumbers` and the class metrics rules do not use this search; each walks
 its own member list and still misses these positions. That is
@@ -127,10 +127,11 @@ the one preset rule (`dataLayerIsolation`'s `preset/data/typed-errors`) built on
       review findings were added afterwards, and every row was run again with them.
 - [ ] deferred→[0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md) —
       `noSilentCatch`, `noMagicNumbers` and the class metrics rules keep their own member walk.
-- [ ] deferred→[0307](../0307-class-body-rules-skip-class-code-outside-its-members.md) — decorator arguments,
+- [ ] deferred→[0307](./0307-class-body-rules-skip-class-code-outside-its-members.md) — decorator arguments,
       computed member names and the `extends` expression are not searched. The method review
-      found the first, the enforcement review the other two.
+      found the first, the enforcement review the other two. Fixed there: the search reads what a
+      class supplies to them.
 - [x] `npm run validate` green.
 
 Deferred: [0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md),
-[0307](../0307-class-body-rules-skip-class-code-outside-its-members.md)
+[0307](./0307-class-body-rules-skip-class-code-outside-its-members.md)

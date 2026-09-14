@@ -685,10 +685,10 @@ See [Architecture Presets](/presets) for full configuration options.
 
 ### `eess-ts/rules/architecture`
 
-| Export                   | Target    | Description                                             |
-| ------------------------ | --------- | ------------------------------------------------------- |
-| `mustCall(pattern)`      | functions | Function body must contain a call matching the regex.   |
-| `classMustCall(pattern)` | classes   | At least one class method must contain a matching call. |
+| Export                   | Target    | Description                                           |
+| ------------------------ | --------- | ----------------------------------------------------- |
+| `mustCall(pattern)`      | functions | Function body must contain a call matching the regex. |
+| `classMustCall(pattern)` | classes   | The class's body code must contain a matching call.   |
 
 ### `eess-ts/rules/hygiene`
 
