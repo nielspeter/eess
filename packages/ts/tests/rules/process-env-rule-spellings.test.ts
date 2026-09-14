@@ -20,7 +20,7 @@ import type { ArchProject } from '../../src/core/project.js'
  *
  * An environment read through a local binding — `const { env } = process`,
  * `import { env } from 'node:process'` — is not covered; it is pinned under bug 0305. A read
- * through a cast or a non-null assertion is not covered either; that is bug 0308.
+ * through a cast or a non-null assertion is covered since bug 0308.
  */
 const GLOBALS = [
   'declare var process: { env: Record<string, string | undefined> }',

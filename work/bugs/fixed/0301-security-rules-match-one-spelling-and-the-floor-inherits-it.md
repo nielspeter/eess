@@ -99,6 +99,9 @@ is a `minor` marked breaking: the floor reports more.
   - **A limit, stated rather than filed:** only one leading global object is read through, so
     `window.self.eval('1')` is not reported. Nothing but a deliberate evasion writes a doubled
     global chain, and the rule is not a defence against a determined author.
+    2026-09-14: filed as [0308](./0308-security-rules-miss-a-global-read-through-a-cast.md) and reversed there. The evasion argument holds, but it
+    is no reason to leave the chain unread: wherever a doubled global chain evaluates, it is the
+    global, so reading it cannot flag working code.
 - [ ] deferred→[0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md) —
       `const ev = eval`, `const F = Function` and `const { log } = console` reach the global
       through a local binding, which needs the binding followed: the design question 0297
