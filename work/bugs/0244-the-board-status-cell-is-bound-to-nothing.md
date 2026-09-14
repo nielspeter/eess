@@ -191,6 +191,16 @@ saying so:
       than assumed — a gate that passes only because someone already fixed the
       data proves nothing.
 
+## Also measured, 2026-09-14 — the header is a hand-typed count too
+
+The board's header line read `Updated: 2026-08-19 · Open: 46 (44 Draft · 2 Parked) ·
+Fixed: 22`. Counted on disk the same day, before bugs 0295–0304 were filed: 95 open
+(92 Draft, 3 Parked) and 76 in `fixed/` — 26 days and 54 fixed records behind. And
+the 0281 row read `🔴 Draft` beside a record whose `State:` is `Parked`. Both were
+corrected by hand in the change that filed 0295–0304, which is the kind of
+correction this record says proves nothing. A mechanism for the cells should derive
+the header's counts too: they are the same correspondence, summed.
+
 ## Related
 
 - [0242](./fixed/0242-a-waiver-on-a-non-anchor-file-silently-does-not-apply.md) —

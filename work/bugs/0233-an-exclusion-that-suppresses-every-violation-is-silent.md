@@ -62,17 +62,28 @@ All three are the "an exclusion that does **nothing**" direction — which is
 fail-**closed**: the finding still fires, CI is still red. Nobody has built the
 "an exclusion that does **everything**" direction, which is fail-**open**.
 
-**The library predicted this exact moment.** `packages/ts/src/core/execute-rule.ts:215-223`,
+**The library predicted this exact moment.** `packages/ts/src/core/execute-rule.ts:218-232`,
 verbatim:
 
 > "Unused exclusion" above it warns about a pattern that silences NOTHING
 > (fail-closed — the finding still fires, CI is still red), while this warns about
 > a pattern that silences MULTIPLE real findings and every future one on the same
-> edges (fail-open — a green `check()`, one stderr line). ADR-008 states the
+> edges (fail-open — a green `check()`, one stderr line). ADR-009 states the
 > primary consumer does not read warnings. Kept advisory here, matching plan
 > 0104's own review resolution — **but the asymmetry is real and worth
 > re-litigating if this loophole is measured firing in practice, not settled by
 > the precedent alone.**
+
+_Corrected 2026-09-14:_ the source, and this quote of it, said **ADR-008**. ADR-008
+discusses the `warn` report mode, but it does not say the primary consumer does not
+read warnings; that is [ADR-009](../../adr/009-agent-first-failure-surfaces.md)'s
+Context, point 1. The misnumbering is carried over from ts-archunit, whose ADR-008 is
+eess's ADR-009. This corrects one site; the other 35 are
+[0303](./0303-ts-archunit-adr-numbers-persist-in-eess-comments.md). The pointers into
+`packages/ts/src/core/execute-rule.ts` in this record, and the one into the kernel
+copy, were refreshed the same day — they had drifted by up to seventeen lines.
+[0298](./0298-an-exclusion-that-absorbs-several-subjects-says-nothing.md) is the
+partial-match half of this record.
 
 Proposal 007 is that measurement arriving. It carries a consuming project's
 tracker entry for this loophole firing in production, and proposes to hand the
@@ -80,7 +91,7 @@ consumer private state so they can build the detector — which is why this reco
 exists instead.
 
 **And the existing advisory is narrower than that comment implies.** It only
-accumulates for cycle-edge identities — `packages/ts/src/core/execute-rule.ts:184`,
+accumulates for cycle-edge identities — `packages/ts/src/core/execute-rule.ts:193`,
 `if (v.identity?.startsWith('cycle-edge::') === true)`. So for a `TsconfigBuilder`
 rule with a catch-all exclusion and a drifted config: `matchIndex >= 0`, so no
 unused-exclusion warning; no cycle-edge identities, so no advisory. **Zero output.**
@@ -92,13 +103,15 @@ unused-exclusion warning; no cycle-edge identities, so no advisory. **Zero outpu
 
 - **Tier 1** — statically decidable from the filter's own bookkeeping.
 - **The measurement already exists.** At the reporting loop
-  (`packages/ts/src/core/execute-rule.ts:196-239`) the filter already holds the
+  (`packages/ts/src/core/execute-rule.ts:205`) the filter already holds the
   pre-filter count, the post-filter count, `matchedPatterns`
-  (`:140` — which indices matched anything), `refusedPatterns` (which hit a
+  (`:149` — which indices matched anything), `refusedPatterns` (which hit a
   `bypassFilters` finding) and `silentIndices`. The predicate is a subtraction
   over numbers already in scope: _a rule that produced ≥1 non-`bypassFilters`
   violation and retained 0 after exclusion filtering._ The only reason it is not
-  reported today is the ADR-008-precedent decision recorded at `:213-223`, not a
+  reported today is the plan-0104 precedent recorded at `:218-232` — a plan
+  number no document in this repo carries, see
+  [0303](./0303-ts-archunit-adr-numbers-persist-in-eess-comments.md) — not a
   missing measurement.
 - **Unsuppressable**, like every other ADR-010 configuration finding — a finding
   about the rule's own instrument, not about what it examined.
@@ -114,9 +127,16 @@ A fix must fail when:
    rule's violations, which is what `.excluding()` is for; nor when the rule
    produced none to begin with, which is the stale-exclusion case already
    covered; nor on a `bypassFilters` configuration finding, which exclusions
-   already refuse (`packages/core/src/execute-rule.ts:50`).
+   already refuse (`packages/core/src/execute-rule.ts:67`).
 
 (2) is what makes this narrow rather than a ban on `.excluding()`.
+
+_Added 2026-09-14:_ [0298](./0298-an-exclusion-that-absorbs-several-subjects-says-nothing.md)
+records the partial case (2) excludes — one pattern silently absorbing several
+subjects — and one of its candidate fixes fires exactly where (2) says a fix must
+not. The two records need one decision about what an exclusion must disclose,
+recorded once; this clause should then point at that decision rather than stand
+beside a contradicting one.
 
 ## Notes for whoever fixes this
 
