@@ -70,8 +70,11 @@ blind to `export … from` and `import()`, with **0** violations on edges that d
 cross the boundary. Destructuring `process` is an ordinary refactor; the agent this
 project ships for needs no intent to escape the rule.
 
-The same matcher shape recurs across `security.ts`:
-[0301](./0301-security-rules-match-one-spelling-and-the-floor-inherits-it.md).
+The same matcher shape recurred across `security.ts`.
+[0301](./fixed/0301-security-rules-match-one-spelling-and-the-floor-inherits-it.md) fixed
+its lexical spellings; the aliased ones are
+[0305](./0305-security-rules-miss-a-global-reached-through-a-local-alias.md), which shares
+this record's question of how far a binding is followed.
 
 ## Fix
 
