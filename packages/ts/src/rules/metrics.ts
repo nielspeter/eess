@@ -1,5 +1,5 @@
 import { Node } from 'ts-morph'
-import type { ClassDeclaration } from 'ts-morph'
+import type { ArrowFunction, ClassDeclaration, FunctionExpression } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { cyclomaticComplexity, linesOfCode } from '../helpers/complexity.js'
@@ -19,6 +19,24 @@ interface CallableMember {
   readonly name: string
   readonly body: Node | undefined
   readonly parameterCount: number
+}
+
+/**
+ * The function a property holds, read through the wrappers that leave it unchanged at run time —
+ * parentheses, `as`, `<T>`, `satisfies` and `!` — or `undefined` when it holds something else.
+ */
+function functionValueOf(node: Node | undefined): ArrowFunction | FunctionExpression | undefined {
+  let current = node
+  while (
+    Node.isParenthesizedExpression(current) ||
+    Node.isAsExpression(current) ||
+    Node.isTypeAssertion(current) ||
+    Node.isSatisfiesExpression(current) ||
+    Node.isNonNullExpression(current)
+  ) {
+    current = current.getExpression()
+  }
+  return Node.isArrowFunction(current) || Node.isFunctionExpression(current) ? current : undefined
 }
 
 function callableMembers(cls: ClassDeclaration): CallableMember[] {
@@ -41,8 +59,8 @@ function callableMembers(cls: ClassDeclaration): CallableMember[] {
   }
   // After the declared members, so a finding the old walk reported keeps its place.
   for (const property of cls.getProperties()) {
-    const value = property.getInitializer()
-    if (!Node.isArrowFunction(value) && !Node.isFunctionExpression(value)) continue
+    const value = functionValueOf(property.getInitializer())
+    if (value === undefined) continue
     members.push({
       node: property,
       name: `${clsName}.${property.getName()}`,

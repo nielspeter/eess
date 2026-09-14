@@ -12,7 +12,8 @@ import type { ArchProject } from '../../src/core/project.js'
  * arrow-function property, a magic number in a static block and an arrow-function property of any
  * complexity all passed.
  *
- * `noSilentCatch` and `noMagicNumbers` forbid something, so they read all the code a class runs.
+ * `noSilentCatch` forbids something, so it reads all the code a class runs. `noMagicNumbers` reads the
+ * class's member code: a number in a decorator is named by the decorator that takes it.
  * The metrics rules measure callable members, and a property whose value is a function is one.
  *
  * Expectations are sorted lists, so a finding reported twice shows.
@@ -60,7 +61,7 @@ describe('bug 0306: class rules with their own walk read the code a class runs',
     ])
   })
 
-  it('noMagicNumbers reports a magic number wherever the class runs it, named by its member', () => {
+  it('noMagicNumbers reports a magic number anywhere in member code, named by its member', () => {
     const result = classes(
       project('/src/tuning.ts', [
         '@Retry(4040) export class Tuning {', // 1
@@ -75,7 +76,9 @@ describe('bug 0306: class rules with their own walk read the code a class runs',
         '  retries = 4848', // 10
         '  scaled = 4747 * 10', // 11
         '  retry(attempts = 4949) { return attempts }', // 12
-        '}', // 13
+        '  flags = ~9696', // 13
+        '  bonus = +7171', // 14
+        '}', // 15
       ]),
     )
       .should()
@@ -83,19 +86,47 @@ describe('bug 0306: class rules with their own walk read the code a class runs',
       .rule({ id: 'test/0306-magic-numbers' })
       .violations()
 
-    // A method's finding keeps the message it had; 100 is in the default allowed list. A number that is
-    // the whole value of a property or a parameter default is named by it (lines 8-10 and 12); one
-    // inside a larger initializer or default is not (lines 4 and 11).
+    // A method's finding keeps the message it had; 100 is in the default allowed list. The rule reads
+    // member code only, so the decorator's 4040 and the computed name's 4646 are not reported. A number
+    // that is the whole value of the class's own property or parameter is named by it (lines 8-10, 12
+    // and 14); one inside a larger initializer or default, or behind `~`, is not (lines 4, 11 and 13).
     expect(
       result.map((v) => v.message.replace(/ — extract to a named constant$/, '')).sort(),
     ).toEqual([
-      'Tuning contains magic number 4040',
-      'Tuning.[4646] contains magic number 4646',
       'Tuning.arrow contains magic number 4242',
       'Tuning.constructor contains magic number 4444',
+      'Tuning.flags contains magic number 9696',
       'Tuning.method contains magic number 4545',
       'Tuning.scaled contains magic number 4747',
       'Tuning.static contains magic number 4343',
+    ])
+  })
+
+  it("noMagicNumbers exempts the class's own named values, not those of a function or class nested in a member", () => {
+    // The method walk before bug 0306 reported a number in a nested function's default or a nested
+    // class's field; those are not the class's names, so they are still reported.
+    const result = classes(
+      project('/src/nested.ts', [
+        'export class Nested {', // 1
+        '  m() { const f = (x = 5000) => x; return f(0) }', // 2
+        '  n() { return class { t = 6000 } }', // 3
+        '  o() { function g(y = -7000) { return y } return g() }', // 4
+        '  own = 8000', // 5
+        '  p(z = 9000) { return z }', // 6
+        '}', // 7
+      ]),
+    )
+      .should()
+      .satisfy(noMagicNumbers())
+      .rule({ id: 'test/0306-nested-named-values' })
+      .violations()
+
+    expect(
+      result.map((v) => v.message.replace(/ — extract to a named constant$/, '')).sort(),
+    ).toEqual([
+      'Nested.m contains magic number 5000',
+      'Nested.n contains magic number 6000',
+      'Nested.o contains magic number 7000',
     ])
   })
 
@@ -109,6 +140,10 @@ describe('bug 0306: class rules with their own walk read the code a class runs',
       '    return 4',
       '  }',
       '  onLegacy = function (a: number) { if (a) { return 1 } if (!a) { return 2 } return 3 }',
+      '  onWrapped = ((a: number) => { if (a) { return 1 } if (!a) { return 2 } return 3 }) as Handler',
+      '  onSatisfies = ((a: number) => { if (a) { return 1 } if (!a) { return 2 } return 3 }) satisfies Handler',
+      '  onAsserted = <Handler>((a: number) => { if (a) { return 1 } if (!a) { return 2 } return 3 })',
+      '  onNonNull = ((a: number) => { if (a) { return 1 } if (!a) { return 2 } return 3 })!',
       '  plain = 5',
       '  small() { return 1 }',
       '}',
@@ -129,7 +164,14 @@ describe('bug 0306: class rules with their own walk read the code a class runs',
       .rule({ id: 'test/0306-lines' })
       .violations()
 
-    expect(namesMeasured(complexity)).toEqual(['Handlers.onEvent', 'Handlers.onLegacy'])
+    expect(namesMeasured(complexity)).toEqual([
+      'Handlers.onAsserted',
+      'Handlers.onEvent',
+      'Handlers.onLegacy',
+      'Handlers.onNonNull',
+      'Handlers.onSatisfies',
+      'Handlers.onWrapped',
+    ])
     expect(namesMeasured(parameters)).toEqual(['Handlers.onEvent'])
     expect(namesMeasured(lines)).toEqual(['Handlers.onEvent'])
   })

@@ -42,11 +42,11 @@ export function functionNoTypeErrors(): Condition<ArchFunction> {
 
 // ─── Silent catch detection ──────────────────────────────────────
 
-/** A catch clause that never references the error it catches. */
-const silentCatch: ExpressionMatcher = {
-  description: 'silent catch block',
+/** Every catch clause; `noSilentCatch` decides which of them are silent. */
+const catchClause: ExpressionMatcher = {
+  description: 'catch clause',
   syntaxKinds: [SyntaxKind.CatchClause],
-  matches: (node) => Node.isCatchClause(node) && silentCatchMessage(node) !== undefined,
+  matches: (node) => Node.isCatchClause(node),
 }
 
 /**
@@ -65,7 +65,7 @@ export function noSilentCatch(): Condition<ClassDeclaration> {
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
-        for (const node of searchClassBody(cls, silentCatch, 'all-code').matchingNodes) {
+        for (const node of searchClassBody(cls, catchClause, 'all-code').matchingNodes) {
           if (!Node.isCatchClause(node)) continue
           const message = silentCatchMessage(node)
           if (message !== undefined) violations.push(createViolation(node, message, context))

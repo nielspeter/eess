@@ -100,19 +100,19 @@ export function noPublicFields(): Condition<ClassDeclaration> {
 }
 
 /**
- * No code a class runs may contain magic numbers: member bodies, parameter defaults, property
- * initializers, static blocks, decorators, computed names and `extends` (bug 0306). It forbids
- * something, so it reads all of it, as `notContain()` on the class builder does.
+ * No member code of a class may contain magic numbers: method, constructor and accessor bodies,
+ * parameter defaults, property initializers and static blocks (bug 0306). Decorators, computed names
+ * and `extends` are not read: a number in `@Max(150)` or `@Column({ precision: 12 })` is named by the
+ * decorator that takes it, and reading them would report every validation and ORM field.
  *
  * Numbers 0, 1, -1, 2, 10, 100 are allowed by default.
  * Configure with options.allowed to customize.
  *
- * A number that is the whole value of a property or a parameter default is named by it, and is not
- * reported.
+ * A number that is the whole value of one of the class's own properties or its members' parameter
+ * defaults is named by it, and is not reported.
  *
  * A finding names the member the number sits in — `Class.method`, `Class.constructor`,
- * `Class.static` for a static block, the class alone for a class decorator or `extends` — so a
- * number in a method keeps the message it always had.
+ * `Class.static` for a static block — so a number in a method keeps the message it always had.
  *
  * @example
  * import { noMagicNumbers } from '@nielspeter/eess-ts/rules/code-quality'
@@ -127,19 +127,22 @@ export function noPublicFields(): Condition<ClassDeclaration> {
  */
 export function noMagicNumbers(options?: { allowed?: number[] }): Condition<ClassDeclaration> {
   const allowedSet = new Set(options?.allowed ?? [0, 1, -1, 2, 10, 100])
-  const magicNumber: ExpressionMatcher = {
+  const magicNumberIn = (cls: ClassDeclaration): ExpressionMatcher => ({
     description: 'magic number',
     syntaxKinds: [SyntaxKind.NumericLiteral],
     matches: (node) =>
-      Node.isNumericLiteral(node) && !allowedSet.has(Number(node.getText())) && !isNamedValue(node),
-  }
+      Node.isNumericLiteral(node) &&
+      !allowedSet.has(Number(node.getText())) &&
+      !isNamedValue(node, cls),
+  })
 
   return {
-    description: 'have no magic numbers in the code the class runs',
+    description: 'have no magic numbers in the class member code',
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
-        for (const literal of searchClassBody(cls, magicNumber, 'all-code').matchingNodes) {
+        for (const literal of searchClassBody(cls, magicNumberIn(cls), 'member-code')
+          .matchingNodes) {
           const value = Number(literal.getText())
           violations.push(
             createViolation(
@@ -156,28 +159,35 @@ export function noMagicNumbers(options?: { allowed?: number[] }): Condition<Clas
 }
 
 /**
- * A number that is the whole value of a declaration — a property's initializer or a parameter's
- * default, sign included — is named by that declaration: `private timeout = 5000`,
- * `retry(attempts = 3)`. It is not reported. A number inside a larger initializer or default still
- * is.
+ * A number that is the whole value of one of the class's own declarations — a property's initializer
+ * or a member's parameter default, sign included — is named by that declaration:
+ * `private timeout = 5000`, `retry(attempts = 3)`. It is not reported. A number inside a larger
+ * initializer or default still is, and so is one in a function or class nested inside a member: the
+ * method walk before bug 0306 reported those, and they are not the class's names.
  */
-function isNamedValue(literal: Node): boolean {
+function isNamedValue(literal: Node, cls: ClassDeclaration): boolean {
   let value: Node = literal
   let parent = value.getParent()
-  if (Node.isPrefixUnaryExpression(parent)) {
+  if (
+    Node.isPrefixUnaryExpression(parent) &&
+    (parent.getOperatorToken() === SyntaxKind.MinusToken ||
+      parent.getOperatorToken() === SyntaxKind.PlusToken)
+  ) {
     value = parent
     parent = value.getParent()
   }
-  return (
-    (Node.isPropertyDeclaration(parent) || Node.isParameterDeclaration(parent)) &&
-    parent.getInitializer() === value
-  )
+  if (Node.isPropertyDeclaration(parent)) {
+    return parent.getInitializer() === value && parent.getParent() === cls
+  }
+  if (Node.isParameterDeclaration(parent)) {
+    return parent.getInitializer() === value && parent.getParent()?.getParent() === cls
+  }
+  return false
 }
 
 /**
  * `Class.member` for the member of `cls` a node sits in: `Class.constructor` in a constructor,
- * `Class.static` in a static block, and the class alone outside any member — a class decorator or
- * `extends`.
+ * `Class.static` in a static block, and the class alone for a node outside every member.
  */
 function memberLabel(cls: ClassDeclaration, node: Node): string {
   const className = cls.getName() ?? '<anonymous>'

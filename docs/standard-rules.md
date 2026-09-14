@@ -397,13 +397,13 @@ import {
 } from '@nielspeter/eess-ts/rules/code-quality'
 ```
 
-| Rule                            | What it checks                                                             |
-| ------------------------------- | -------------------------------------------------------------------------- |
-| `requireJsDocOnPublicMethods()` | All public methods must have JSDoc comments                                |
-| `noPublicFields()`              | No public mutable fields (allows static readonly)                          |
-| `noMagicNumbers(options?)`      | No numeric literals in any code the class runs (configurable allowed list) |
+| Rule                            | What it checks                                                                                                                |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `requireJsDocOnPublicMethods()` | All public methods must have JSDoc comments                                                                                   |
+| `noPublicFields()`              | No public mutable fields (allows static readonly)                                                                             |
+| `noMagicNumbers(options?)`      | No numeric literals in class member code, except its own properties' and parameters' whole values (configurable allowed list) |
 
-`requireJsDocOnPublicMethods` enforces that every public API surface is documented. This is especially useful for library code and shared packages where consumers rely on JSDoc for IDE hints. `noPublicFields` enforces encapsulation — state should be accessed through methods, not exposed directly (static readonly constants are allowed). `noMagicNumbers` catches unexplained numeric literals in method bodies; pass an `allowed` array for numbers that are self-explanatory (0, 1, -1, HTTP status codes):
+`requireJsDocOnPublicMethods` enforces that every public API surface is documented. This is especially useful for library code and shared packages where consumers rely on JSDoc for IDE hints. `noPublicFields` enforces encapsulation — state should be accessed through methods, not exposed directly (static readonly constants are allowed). `noMagicNumbers` catches unexplained numeric literals in a class's member code — not its decorators, computed names or `extends` — except the whole value of one of its own properties or parameters; pass an `allowed` array for numbers that are self-explanatory (0, 1, -1, HTTP status codes):
 
 ```typescript
 // Public API must be documented
