@@ -47,7 +47,7 @@ newExpr(/^(?!Typed)Error$/) // matches new Error but not new TypeError
 
 ### `access(target)`
 
-Matches property access expressions. Use this to detect direct access to globals like `process.env` or `document`, which should typically go through an abstraction layer for testability and portability.
+Matches property access expressions. Use this to detect direct access to globals like `process.env` or `document`, which should typically go through an abstraction layer for testability and portability. `access()` compares text, so `process['env']` and `globalThis.process.env` are not `process.env` to it; for the environment, `noProcessEnv()` reads those spellings too.
 
 ```typescript
 import { access } from '@nielspeter/eess-ts'

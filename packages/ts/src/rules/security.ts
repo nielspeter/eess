@@ -2,21 +2,23 @@ import { Node, SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration, SourceFile } from 'ts-morph'
 import type { Condition } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
-import { call, access, type ExpressionMatcher } from '../helpers/matchers.js'
+import { call, type ExpressionMatcher } from '../helpers/matchers.js'
 import { classNotContain } from '../conditions/body-analysis.js'
 import { functionNotContain } from '../conditions/body-analysis-function.js'
 import { moduleNotContain } from '../conditions/body-analysis-module.js'
 
-// ─── Reading a global however its name is spelled (bug 0301) ──────
+// ─── Reading a global however its name is spelled (bugs 0301, 0297) ──────
 //
 // `call('eval')` compared the callee's text, so `globalThis.eval(…)`, `(0, eval)(…)`
 // and `Function(…)` without `new` passed rules — and a `recommended` floor — written
-// to catch exactly those. These matchers read the name structurally instead. They are
+// to catch exactly those; `access('process.env')` did the same to `process['env']` and
+// `globalThis.process.env`. These matchers read the name structurally instead. They are
 // private to this module on purpose: the public `call()` and `access()` promise a text
 // match, and adopters' own rules depend on that.
 //
 // They read names, not bindings, so a local binding misleads them both ways: a global
-// first bound to a local name (`const ev = eval`, `const { log } = console`) is missed,
+// first bound to a local name (`const ev = eval`, `const { log } = console`,
+// `const { env } = process`, an `env` imported from `node:process`) is missed,
 // and a local declaration that shadows a global (`function Function() {}`,
 // `const console = {…}`) is reported as the global. Both need the binding followed,
 // which is bug 0305. Only one leading global object is read through, so a doubled chain
@@ -65,7 +67,10 @@ function globalNameOf(node: Node): string | undefined {
   return dot > 0 && GLOBAL_OBJECTS.has(chain.slice(0, dot)) ? chain.slice(dot + 1) : chain
 }
 
-/** A call to the global `name`. Described as `call()` describes it, so messages and baselines are unchanged. */
+/**
+ * A call to the global `name`. Described as `call()` describes it, so messages are unchanged; a
+ * newly reported call earlier in a declaration still renumbers the matches after it.
+ */
 function globalCall(name: string): ExpressionMatcher {
   return {
     description: `call to '${name}'`,
@@ -85,12 +90,27 @@ function functionConstructor(): ExpressionMatcher {
   }
 }
 
-/** Any member of the global `console`. Described as the `access()` it replaces, so baselines are unchanged. */
+/**
+ * Any member of the global `console`. Described as the `access()` it replaces, so messages are
+ * unchanged; a newly reported read earlier in a declaration still renumbers the matches after it.
+ */
 function consoleAccess(): ExpressionMatcher {
   return {
     description: 'access matching /^console\\./',
     syntaxKinds: [SyntaxKind.PropertyAccessExpression, SyntaxKind.ElementAccessExpression],
     matches: (node) => globalNameOf(node)?.startsWith('console.') === true,
+  }
+}
+
+/**
+ * A read of the global `process.env`. Described as the `access()` it replaces, so messages are
+ * unchanged; a newly reported read earlier in a member still renumbers the matches after it.
+ */
+function processEnvAccess(): ExpressionMatcher {
+  return {
+    description: "access to 'process.env'",
+    syntaxKinds: [SyntaxKind.PropertyAccessExpression, SyntaxKind.ElementAccessExpression],
+    matches: (node) => globalNameOf(node) === 'process.env',
   }
 }
 
@@ -118,8 +138,10 @@ export function noFunctionConstructor(): Condition<ClassDeclaration> {
 }
 
 /**
- * No direct process.env access in a class's member code — bodies, parameter defaults,
- * property initializers and static blocks.
+ * No process.env read in a class's member code — bodies, parameter defaults, property
+ * initializers and static blocks — spelled `process.env`, `process['env']`, or through a
+ * global object. An `env` destructured from `process` or imported from `node:process` is
+ * not seen (bug 0305); `import.meta.env` is not Node's environment and is not reported.
  *
  * Use dependency injection for configuration instead.
  *
@@ -130,7 +152,7 @@ export function noFunctionConstructor(): Condition<ClassDeclaration> {
  *   .check()
  */
 export function noProcessEnv(): Condition<ClassDeclaration> {
-  return classNotContain(access('process.env'))
+  return classNotContain(processEnvAccess())
 }
 
 /**
@@ -175,7 +197,7 @@ export function functionNoFunctionConstructor(): Condition<ArchFunction> {
 }
 
 export function functionNoProcessEnv(): Condition<ArchFunction> {
-  return functionNotContain(access('process.env'))
+  return functionNotContain(processEnvAccess())
 }
 
 export function functionNoConsoleLog(): Condition<ArchFunction> {
@@ -197,7 +219,7 @@ export function moduleNoEval(): Condition<SourceFile> {
 }
 
 export function moduleNoProcessEnv(): Condition<SourceFile> {
-  return moduleNotContain(access('process.env'))
+  return moduleNotContain(processEnvAccess())
 }
 
 export function moduleNoConsoleLog(): Condition<SourceFile> {

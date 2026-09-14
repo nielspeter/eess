@@ -5,6 +5,7 @@ import {
   functionNoEval,
   functionNoFunctionConstructor,
   functionNoConsole,
+  functionNoProcessEnv,
 } from '../../src/rules/security.js'
 import type { ArchProject } from '../../src/core/project.js'
 
@@ -69,6 +70,81 @@ describe('bug 0305: a global reached through a local alias', () => {
     expect(evalReported).toEqual(new Set(['evalCall']))
     expect(functionReported).toEqual(new Set(['functionNew']))
     expect(consoleReported).toEqual(new Set(['consoleLog']))
+  })
+
+  it('KNOWN GAP — an environment read through destructuring or the node:process import is not reported', () => {
+    // Split from bug 0297, which fixed the bracketed and global-object spellings.
+    const tsm = new Project({ useInMemoryFileSystem: true })
+    tsm.createSourceFile(
+      '/src/globals.d.ts',
+      [
+        'declare var process: { env: Record<string, string | undefined> }',
+        "declare module 'node:process' {",
+        '  export const env: Record<string, string | undefined>',
+        '}',
+        '',
+      ].join('\n'),
+    )
+    tsm.createSourceFile(
+      '/src/env.ts',
+      [
+        'export function viaDot() { return process.env.A }',
+        'export function viaDestructure() { const { env } = process; return env.B }',
+        "import { env as nodeEnv } from 'node:process'",
+        'export function viaNodeProcess() { return nodeEnv.C }',
+        '',
+      ].join('\n'),
+    )
+    const p: ArchProject = {
+      tsConfigPath: '/tsconfig.json',
+      _project: tsm,
+      getSourceFiles: () => tsm.getSourceFiles(),
+    }
+    const reported = elements(
+      functions(p)
+        .that()
+        .resideInFile('**/env.ts')
+        .should()
+        .satisfy(functionNoProcessEnv())
+        .rule({ id: 'test/0305-process-env' })
+        .violations(),
+    )
+
+    expect(reported).toEqual(new Set(['viaDot']))
+  })
+
+  it('KNOWN GAP — a local named process, global, window or self is read as the global by noProcessEnv', () => {
+    // None of these reads the environment. `global`, `window` and `self` became reportable when
+    // 0297 read `process.env` through a global object; a `process` parameter was reported before.
+    const tsm = new Project({ useInMemoryFileSystem: true })
+    tsm.createSourceFile(
+      '/src/env-shadows.ts',
+      [
+        'export function shadowProcess(process: { env: object }) { return process.env }',
+        'export function shadowGlobal(global: { process: { env: object } }) { return global.process.env }',
+        'export function shadowWindow(window: { process: { env: object } }) { return window.process.env }',
+        'export function shadowSelf(host: { process: { env: object } }) { const self = host; return self.process.env }',
+        'export function unrelated() { return 1 }',
+        '',
+      ].join('\n'),
+    )
+    const p: ArchProject = {
+      tsConfigPath: '/tsconfig.json',
+      _project: tsm,
+      getSourceFiles: () => tsm.getSourceFiles(),
+    }
+    const reported = functions(p)
+      .should()
+      .satisfy(functionNoProcessEnv())
+      .rule({ id: 'test/0305-env-shadow' })
+      .violations()
+
+    expect(reported.map((v) => v.element).sort()).toEqual([
+      'shadowGlobal',
+      'shadowProcess',
+      'shadowSelf',
+      'shadowWindow',
+    ])
   })
 
   it('KNOWN GAP — a local declaration that shadows Function or console is reported as the global', () => {

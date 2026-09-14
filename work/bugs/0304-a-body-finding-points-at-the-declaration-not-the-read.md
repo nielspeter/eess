@@ -7,7 +7,7 @@
   message names the right line; the finding's `line` field, which is what an editor,
   a GitHub annotation or an agent opens, names the declaration.
 - **Origin:** found by review of
-  [0297](./0297-no-process-env-reads-one-spelling-of-an-environment-read.md), and
+  [0297](./fixed/0297-no-process-env-reads-one-spelling-of-an-environment-read.md), and
   measured then.
 - **Reported:** 2026-09-14
 

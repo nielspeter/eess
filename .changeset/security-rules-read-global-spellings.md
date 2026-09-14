@@ -17,7 +17,10 @@ the name, such as `obj.eval()`, is not reported.
 `noFunctionConstructor`'s description changes from `new 'Function'` to `Function constructor`,
 because it now also matches a call. A finding of that rule already recorded in a baseline is
 reported once more; review it and regenerate the baseline. The other rules keep their
-descriptions, so their baselines are unaffected.
+descriptions, so their messages are unchanged. A baseline keeps its count of accepted findings,
+but which finding an entry covers can move: identities are numbered within a declaration, so a
+newly reported `globalThis.console.log(…)` above an accepted `console.log(…)` takes its ordinal,
+and the accepted call is reported as new until the baseline is reviewed.
 
 The rules read names, not bindings, and that cuts both ways (bug 0305). A global bound to a
 local name first — `const ev = eval`, `const { log } = console` — is still not reported. And a

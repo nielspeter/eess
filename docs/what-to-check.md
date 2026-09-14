@@ -230,7 +230,7 @@ classes(p).should().notContain(call('eval')).check()
 // No console.log in production
 functions(p).that().resideInFolder('**/src/**').should().notContain(call('console.log')).check()
 
-// No direct process.env in domain
+// No direct process.env in domain — access() compares text; functionNoProcessEnv() also reads process['env']
 functions(p)
   .that()
   .resideInFolder('**/domain/**')
