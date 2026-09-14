@@ -14,10 +14,10 @@ import type { ArchProject } from '../../src/core/project.js'
  * It now walks the code each member runs: bodies, every parameter's default, property
  * initializers and static blocks.
  *
- * What it does not walk is anything outside a member's code. A member's docstring is pinned
- * by the CONTROL, so a fix that searched the whole class node — and started reporting
- * comments in docstrings under a `comment()` rule — cannot pass as this one. A decorator's
- * arguments are excluded by the `noProcessEnv` test; that exclusion is bug 0307.
+ * A member's docstring is not code, and the CONTROL pins that it is not walked, so a fix that
+ * searched the whole class node — and started reporting comments in docstrings under a
+ * `comment()` rule — cannot pass as this one. Since bug 0307 a must-not-contain rule also reads
+ * decorators, and the `noProcessEnv` test expects the one on line 12.
  *
  * Every read is spelled `process.env.X`, so this is not bug 0297. Expectations are the
  * lines the messages name, sorted, so a duplicated finding shows.
@@ -92,8 +92,8 @@ describe('bug 0300: class-body search walks the code every member runs', () => {
       .rule({ id: 'test/0300-positions' })
       .violations()
 
-    // Every member's code: 2, 3, 4, 6, 8, 9, 10 and 11. Not the decorator argument on 12 (bug 0307).
-    expect(linesNamedIn(result)).toEqual(['2', '3', '4', '6', '8', '9', '10', '11'])
+    // Every member's code: 2, 3, 4, 6, 8, 9, 10 and 11, and the decorator argument on 12 (bug 0307).
+    expect(linesNamedIn(result)).toEqual(['2', '3', '4', '6', '8', '9', '10', '11', '12'])
   })
 
   it('noEval on a class reads eval in a field initializer', () => {

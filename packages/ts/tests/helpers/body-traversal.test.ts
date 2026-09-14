@@ -20,46 +20,54 @@ describe('Body traversal', () => {
 
   describe('searchClassBody()', () => {
     it('finds parseInt in ProductService (bad service)', () => {
-      const result = searchClassBody(findClass('ProductService'), call('parseInt'))
+      const result = searchClassBody(findClass('ProductService'), call('parseInt'), 'all-code')
       expect(result.found).toBe(true)
       expect(result.matchingNodes.length).toBeGreaterThan(0)
     })
 
     it('does NOT find parseInt in OrderService (good service)', () => {
-      const result = searchClassBody(findClass('OrderService'), call('parseInt'))
+      const result = searchClassBody(findClass('OrderService'), call('parseInt'), 'all-code')
       expect(result.found).toBe(false)
       expect(result.matchingNodes).toHaveLength(0)
     })
 
     it('finds new Error in ProductService', () => {
-      const result = searchClassBody(findClass('ProductService'), newExpr('Error'))
+      const result = searchClassBody(findClass('ProductService'), newExpr('Error'), 'all-code')
       expect(result.found).toBe(true)
     })
 
     it('does NOT find new Error in OrderService (uses DomainError)', () => {
-      const result = searchClassBody(findClass('OrderService'), newExpr('Error'))
+      const result = searchClassBody(findClass('OrderService'), newExpr('Error'), 'all-code')
       expect(result.found).toBe(false)
     })
 
     it('finds new DomainError in OrderService', () => {
-      const result = searchClassBody(findClass('OrderService'), newExpr('DomainError'))
+      const result = searchClassBody(findClass('OrderService'), newExpr('DomainError'), 'all-code')
       expect(result.found).toBe(true)
     })
 
     it('finds nested parseInt in EdgeCaseService.withNesting', () => {
-      const result = searchClassBody(findClass('EdgeCaseService'), call('parseInt'))
+      const result = searchClassBody(findClass('EdgeCaseService'), call('parseInt'), 'all-code')
       expect(result.found).toBe(true)
     })
 
     it('finds multiple violations in EdgeCaseService', () => {
-      const parseResult = searchClassBody(findClass('EdgeCaseService'), call('parseInt'))
-      const errorResult = searchClassBody(findClass('EdgeCaseService'), newExpr('Error'))
+      const parseResult = searchClassBody(
+        findClass('EdgeCaseService'),
+        call('parseInt'),
+        'all-code',
+      )
+      const errorResult = searchClassBody(
+        findClass('EdgeCaseService'),
+        newExpr('Error'),
+        'all-code',
+      )
       expect(parseResult.found).toBe(true)
       expect(errorResult.found).toBe(true)
     })
 
     it('returns matching nodes with correct line numbers', () => {
-      const result = searchClassBody(findClass('ProductService'), call('parseInt'))
+      const result = searchClassBody(findClass('ProductService'), call('parseInt'), 'all-code')
       expect(result.matchingNodes.length).toBeGreaterThan(0)
       for (const node of result.matchingNodes) {
         expect(node.getStartLineNumber()).toBeGreaterThan(0)

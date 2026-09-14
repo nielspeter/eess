@@ -52,7 +52,7 @@ export function noAnyProperties(): Condition<ClassDeclaration> {
 /**
  * Class bodies must not contain `as` type assertions.
  * Allows `as const` (narrows types, doesn't widen).
- * Scans each member's code: bodies, parameter defaults, property initializers, static blocks.
+ * Scans all the code the class runs, as `notContain()` on the class builder defines it.
  *
  * @example
  * classes(p).that().haveNameEndingWith('Service')
@@ -66,7 +66,7 @@ export function noTypeAssertions(): Condition<ClassDeclaration> {
 /**
  * Class bodies must not contain non-null assertions (`!`).
  * Handle null/undefined explicitly instead of asserting it away.
- * Scans each member's code: bodies, parameter defaults, property initializers, static blocks.
+ * Scans all the code the class runs, as `notContain()` on the class builder defines it.
  *
  * @example
  * classes(p).that().resideInFolder('** /domain/** ')

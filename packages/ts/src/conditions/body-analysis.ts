@@ -11,7 +11,9 @@ import { searchClassBody, reportedLine } from '../helpers/body-traversal.js'
 /**
  * Class body must contain at least one node matching the matcher.
  *
- * Violation if nothing in the class's member code contains a match.
+ * Violation if nothing in the class's member code contains a match: method, constructor and
+ * accessor bodies, parameter defaults, property initializers and static blocks. Not decorators,
+ * computed names or `extends` — wiring cannot satisfy a must-contain rule (bug 0307).
  */
 export function classContain(matcher: ExpressionMatcher): Condition<ClassDeclaration> {
   return {
@@ -19,7 +21,7 @@ export function classContain(matcher: ExpressionMatcher): Condition<ClassDeclara
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
-        const result = searchClassBody(cls, matcher)
+        const result = searchClassBody(cls, matcher, 'member-code')
         if (!result.found) {
           violations.push(
             createViolation(
@@ -38,7 +40,8 @@ export function classContain(matcher: ExpressionMatcher): Condition<ClassDeclara
 /**
  * Class body must NOT contain any node matching the matcher.
  *
- * Violation for EACH matching node found in the class's member code.
+ * Violation for EACH matching node found in any code the class runs: its member code, and every
+ * decorator expression, computed member name and the `extends` expression (bug 0307).
  * Reports the specific line where the violation occurs.
  */
 export function classNotContain(matcher: ExpressionMatcher): Condition<ClassDeclaration> {
@@ -47,7 +50,7 @@ export function classNotContain(matcher: ExpressionMatcher): Condition<ClassDecl
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
-        const result = searchClassBody(cls, matcher)
+        const result = searchClassBody(cls, matcher, 'all-code')
         const identities = identifyMatches(
           'class-body',
           cls.getSourceFile().getFilePath(),
@@ -89,8 +92,8 @@ export function classUseInsteadOf(
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
-        const badResult = searchClassBody(cls, bad)
-        const goodResult = searchClassBody(cls, good)
+        const badResult = searchClassBody(cls, bad, 'all-code')
+        const goodResult = searchClassBody(cls, good, 'member-code')
 
         // Report each occurrence of the bad pattern
         const identities = identifyMatches(
