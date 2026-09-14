@@ -55,13 +55,72 @@ So the one-screen map teaches precisely the union the gate refuses.
 `kit/` ships this repo's working method to other projects. Measured:
 
 - `kit/templates/work/README.md` teaches the same single union vocabulary.
+  **Corrected 2026-09-12 — this bullet grades the kit against the wrong gate.**
+  Measured against the gate an adopter actually runs (`honestyAtClose` on its
+  defaults), that vocabulary is `DEFAULT_STATES`
+  (`packages/md/src/rules/ledger.ts:86`) character for character, terminal tokens
+  included. It is agreement, not drift.
 - `kit/templates/plan.md` gives `Draft · Ready · Done · Won't-do`, **omitting
   `Open`** — so the kit contradicts itself.
-- `kit/skills/close/SKILL.md` gives `**State:** Done` for every lane.
-- **`Fixed` appears zero times across all three.** The exported method never
-  teaches the bugs lane's terminal token at all.
+- `kit/skills/close/SKILL.md` gives `**State:** Done` for every lane — **wrong when
+  written, not drifted** (the carve-out below predates this record by twelve days);
+  see the amendment.
+- **`Fixed` appears zero times across all three.**
+  **Corrected 2026-09-12 — not a defect.** `Fixed` is _this repo's_ word. The kit's
+  method closes a bug as `Done` into `fixed/`, and that passes on the defaults. The
+  exported method is not obliged to export this repo's lane vocabulary.
 
 Fixing only this repo's copy leaves the exported method wrong.
+
+### Amendment 2026-09-12 — the close skill now writes a token no kit list contains
+
+The third bullet above was **wrong the day it was written**, not drift, and what
+replaced it is sharper than what it said. `kit/skills/close/SKILL.md:62-66` carries a proposals paragraph: "A
+proposal is not 'done', it is _dispatched_: `Promoted` … or `Rejected`." It
+entered the kit in commit `488931a` on 2026-08-23, twelve days before this record
+was filed, and was missed on the first pass.
+
+So the exported method does not merely teach one union where the gate declares
+three. It **instructs an author to write a token that appears in none of its own
+lists** — `Promoted` is absent from `kit/templates/work/README.md:38`, absent from
+`kit/templates/plan.md:17`, and absent from `DEFAULT_STATES`
+(`packages/md/src/rules/ledger.ts:86`). An adopter following the kit exactly, and
+wiring `check:ledger` the only way the kit describes, reds on the first proposal
+they close.
+
+That is the same defect this record already files, at its sharpest available
+instance, and it is the one to write the red test against.
+
+**The divergence is narrower than this record's opening claims, and it is one
+paragraph.** Measured against the preset defaults, the exported method agrees on
+three of its four lanes, on both axes: `plans/completed/`, `bugs/fixed/` and
+`support/delivered/` are all in `DEFAULT_DONE_FOLDERS`
+(`packages/md/src/rules/ledger.ts:84`), and the taught tokens are the default ones.
+Only the proposals paragraph diverges — `Promoted` is in no kit list, and
+`proposals/promoted/` is in no default.
+
+And it describes a lane the kit does not ship. `kit/bootstrap.mjs:45` seeds
+`README.md`, `plans/ROADMAP.md` and `bugs/BUGS.md`; there is no proposals template,
+no proposals board, and no proposals skill among the seven in `kit/skills/`. The
+paragraph even asserts "Gated: a `Promoted` proposal that names no owner … is a
+violation, not a state" — a gate implemented here as `scripts/lib/proposal-ruling.mjs`
+and shipped in the kit not at all. **The exported method promises enforcement it
+never installs, for a lane it never creates**, which may make the fix a deletion
+rather than a binding.
+
+The _message_ half of that divergence — what the gate says when it fires — is a
+`packages/md` defect and belongs with the other ledger messages in
+[0283](./0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md), not
+here.
+
+**Provenance.** This amendment began as a separate record, filed 2026-09-12 from
+an external report and rejected the same day when review found it duplicated this
+section. It measured less than this record already had, and it graded the kit
+against the wrong gate — the error the first and fourth bullets above now carry
+corrections for. It is kept, with its reasoning and the two external measurements
+it verified, at
+[`rejected/0282`](./rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)
+rather than deleted, per this lane's rule.
 
 ## Two prerequisites, one of which is code
 
@@ -110,3 +169,14 @@ Fixing only this repo's copy leaves the exported method wrong.
   both halves were blocked on, closed 2026-09-04.
 - [0250](./fixed/0250-the-review-roster-has-no-working-method-lens.md) — the lens
   whose first run found this.
+- [0260](./0260-three-lane-declarations-and-nothing-compares-them.md) — the
+  structure this record is one field-slice of: the lane set, its vocabulary and its
+  done-folders are each declared more than once and nothing joins any of them.
+- [rejected/0282](./rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)
+  — filed against this same section and rejected; kept for the two external claims
+  it verified.
+- [0283](./0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md) —
+  what the gate _says_ when the kit's divergence fires.
+- [0151](./0151-honesty-at-close-options-undiscoverable-past-source.md) — the kit
+  documents none of `honestyAtClose`'s options and ships no reference script, which
+  is why an adopter meets every one of these defaults without a way to override it.

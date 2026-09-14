@@ -6,8 +6,23 @@
   filed rather than folded into it: 0108 bound one of the three declarations to
   the filesystem, which is what it was for. Binding them to _each other_ is a
   second mechanism.
-- **Severity:** Low — nothing is wrong today. All three are green, and the
-  disagreement is currently benign. It is the shape that is wrong.
+- **Severity:** ~~Low — nothing is wrong today. All three are green, and the
+  disagreement is currently benign.~~ **Raised to Medium 2026-09-12: the
+  disagreement is no longer benign, and it reached an adopter.** Correcting in
+  place rather than editing, because the falsified sentence is the reason this
+  record sat unbuilt.
+
+  What changed is not the code but the measurement. `kit/` exports the method to
+  other projects, and an adopter who follows it meets the disagreement on the
+  first record they close — the fourth declaration, `honestyAtClose`'s own option
+  defaults, agrees with none of the three listed below for the proposals lane.
+  Reproduced end to end by three independent reviewers. The field-slices are
+  [0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md)
+  (vocabulary) and
+  [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
+  (what a partial declaration does), and this record is the structure all of them
+  are slices of. It is still the shape that is wrong; the shape is now load-bearing.
+
 - **Created:** 2026-09-05
 
 ## Symptom
