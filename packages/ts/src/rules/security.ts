@@ -1,29 +1,120 @@
+import { Node, SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration, SourceFile } from 'ts-morph'
 import type { Condition } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
-import { call, newExpr, access } from '../helpers/matchers.js'
+import { call, access, type ExpressionMatcher } from '../helpers/matchers.js'
 import { classNotContain } from '../conditions/body-analysis.js'
 import { functionNotContain } from '../conditions/body-analysis-function.js'
 import { moduleNotContain } from '../conditions/body-analysis-module.js'
 
+// ─── Reading a global however its name is spelled (bug 0301) ──────
+//
+// `call('eval')` compared the callee's text, so `globalThis.eval(…)`, `(0, eval)(…)`
+// and `Function(…)` without `new` passed rules — and a `recommended` floor — written
+// to catch exactly those. These matchers read the name structurally instead. They are
+// private to this module on purpose: the public `call()` and `access()` promise a text
+// match, and adopters' own rules depend on that.
+//
+// They read names, not bindings, so a local binding misleads them both ways: a global
+// first bound to a local name (`const ev = eval`, `const { log } = console`) is missed,
+// and a local declaration that shadows a global (`function Function() {}`,
+// `const console = {…}`) is reported as the global. Both need the binding followed,
+// which is bug 0305. Only one leading global object is read through, so a doubled chain
+// (`window.self.eval`) is not seen.
+
+/** The names a global is reachable through: standard, browser, worker and Node. */
+const GLOBAL_OBJECTS: ReadonlySet<string> = new Set(['globalThis', 'window', 'self', 'global'])
+
+/** `x['y']` reads as `x.y` when the key is a literal; a computed key reads as nothing. */
+function elementChainOf(node: Node): string | undefined {
+  if (!Node.isElementAccessExpression(node)) return undefined
+  const key = node.getArgumentExpression()
+  const base = chainOf(node.getExpression())
+  if (base === undefined) return undefined
+  if (Node.isStringLiteral(key) || Node.isNoSubstitutionTemplateLiteral(key)) {
+    return `${base}.${key.getLiteralValue()}`
+  }
+  return undefined
+}
+
 /**
- * No eval() calls in class methods.
+ * The dotted name an expression reads, or `undefined` when it is not a plain name
+ * chain. `x?.y` reads as `x.y`, and `(0, x)` — the indirect-call idiom — as `x`.
+ * `this.x` reads as nothing, so a member of an instance is never a global.
+ */
+function chainOf(node: Node): string | undefined {
+  if (Node.isIdentifier(node)) return node.getText()
+  if (Node.isParenthesizedExpression(node)) {
+    const inner = node.getExpression()
+    const isComma =
+      Node.isBinaryExpression(inner) && inner.getOperatorToken().getKind() === SyntaxKind.CommaToken
+    return chainOf(isComma ? inner.getRight() : inner)
+  }
+  if (Node.isPropertyAccessExpression(node)) {
+    const base = chainOf(node.getExpression())
+    return base === undefined ? undefined : `${base}.${node.getName()}`
+  }
+  return elementChainOf(node)
+}
+
+/** The chain with a leading global object removed: `globalThis.eval` reads as `eval`. */
+function globalNameOf(node: Node): string | undefined {
+  const chain = chainOf(node)
+  if (chain === undefined) return undefined
+  const dot = chain.indexOf('.')
+  return dot > 0 && GLOBAL_OBJECTS.has(chain.slice(0, dot)) ? chain.slice(dot + 1) : chain
+}
+
+/** A call to the global `name`. Described as `call()` describes it, so messages and baselines are unchanged. */
+function globalCall(name: string): ExpressionMatcher {
+  return {
+    description: `call to '${name}'`,
+    syntaxKinds: [SyntaxKind.CallExpression],
+    matches: (node) => Node.isCallExpression(node) && globalNameOf(node.getExpression()) === name,
+  }
+}
+
+/** The global `Function`, called or constructed — `Function(…)` is `new Function(…)`. */
+function functionConstructor(): ExpressionMatcher {
+  return {
+    description: 'Function constructor',
+    syntaxKinds: [SyntaxKind.NewExpression, SyntaxKind.CallExpression],
+    matches: (node) =>
+      (Node.isNewExpression(node) || Node.isCallExpression(node)) &&
+      globalNameOf(node.getExpression()) === 'Function',
+  }
+}
+
+/** Any member of the global `console`. Described as the `access()` it replaces, so baselines are unchanged. */
+function consoleAccess(): ExpressionMatcher {
+  return {
+    description: 'access matching /^console\\./',
+    syntaxKinds: [SyntaxKind.PropertyAccessExpression, SyntaxKind.ElementAccessExpression],
+    matches: (node) => globalNameOf(node)?.startsWith('console.') === true,
+  }
+}
+
+/**
+ * No eval() calls in class methods — `eval(…)`, through a global object
+ * (`globalThis`, `window`, `self`, `global`), a string-keyed bracket, or the indirect
+ * `(0, eval)(…)`. An `eval` bound to a local name first is not seen (bug 0305).
  *
  * @example
  * classes(p).should().satisfy(noEval()).check()
  */
 export function noEval(): Condition<ClassDeclaration> {
-  return classNotContain(call('eval'))
+  return classNotContain(globalCall('eval'))
 }
 
 /**
- * No new Function() constructor (equivalent to eval).
+ * No Function constructor (equivalent to eval) — called with or without `new`, and
+ * through a global object.
  *
  * @example
  * classes(p).should().satisfy(noFunctionConstructor()).check()
  */
 export function noFunctionConstructor(): Condition<ClassDeclaration> {
-  return classNotContain(newExpr('Function'))
+  return classNotContain(functionConstructor())
 }
 
 /**
@@ -42,7 +133,8 @@ export function noProcessEnv(): Condition<ClassDeclaration> {
 }
 
 /**
- * No console.log calls in class methods.
+ * No console.log calls in class methods — including `console['log']` and through a
+ * global object.
  *
  * Use a logger abstraction instead.
  *
@@ -52,15 +144,16 @@ export function noProcessEnv(): Condition<ClassDeclaration> {
  *   .check()
  */
 export function noConsoleLog(): Condition<ClassDeclaration> {
-  return classNotContain(call('console.log'))
+  return classNotContain(globalCall('console.log'))
 }
 
 /**
- * No direct console access (any method: log, warn, error, debug, info).
+ * No direct console access (any method: log, warn, error, debug, info), including
+ * bracketed and global-object spellings.
  * Stricter than noConsoleLog — catches all console methods.
  */
 export function noConsole(): Condition<ClassDeclaration> {
-  return classNotContain(access(/^console\./))
+  return classNotContain(consoleAccess())
 }
 
 /**
@@ -73,11 +166,11 @@ export function noJsonParse(): Condition<ClassDeclaration> {
 // ─── Function variants ────────────────────────────────────────────
 
 export function functionNoEval(): Condition<ArchFunction> {
-  return functionNotContain(call('eval'))
+  return functionNotContain(globalCall('eval'))
 }
 
 export function functionNoFunctionConstructor(): Condition<ArchFunction> {
-  return functionNotContain(newExpr('Function'))
+  return functionNotContain(functionConstructor())
 }
 
 export function functionNoProcessEnv(): Condition<ArchFunction> {
@@ -85,11 +178,11 @@ export function functionNoProcessEnv(): Condition<ArchFunction> {
 }
 
 export function functionNoConsoleLog(): Condition<ArchFunction> {
-  return functionNotContain(call('console.log'))
+  return functionNotContain(globalCall('console.log'))
 }
 
 export function functionNoConsole(): Condition<ArchFunction> {
-  return functionNotContain(access(/^console\./))
+  return functionNotContain(consoleAccess())
 }
 
 export function functionNoJsonParse(): Condition<ArchFunction> {
@@ -99,7 +192,7 @@ export function functionNoJsonParse(): Condition<ArchFunction> {
 // ─── Module variants ──────────────────────────────────────────────
 
 export function moduleNoEval(): Condition<SourceFile> {
-  return moduleNotContain(call('eval'))
+  return moduleNotContain(globalCall('eval'))
 }
 
 export function moduleNoProcessEnv(): Condition<SourceFile> {
@@ -107,5 +200,5 @@ export function moduleNoProcessEnv(): Condition<SourceFile> {
 }
 
 export function moduleNoConsoleLog(): Condition<SourceFile> {
-  return moduleNotContain(call('console.log'))
+  return moduleNotContain(globalCall('console.log'))
 }

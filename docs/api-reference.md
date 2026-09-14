@@ -641,13 +641,13 @@ See [Architecture Presets](/presets) for full configuration options.
 | Export                            | Target    | Description                                       |
 | --------------------------------- | --------- | ------------------------------------------------- |
 | `noEval()`                        | classes   | No `eval()` calls in class methods.               |
-| `noFunctionConstructor()`         | classes   | No `new Function()` constructor.                  |
+| `noFunctionConstructor()`         | classes   | No `Function` constructor, with or without `new`. |
 | `noConsoleLog()`                  | classes   | No `console.log` calls.                           |
 | `noProcessEnv()`                  | classes   | No direct `process.env` access.                   |
 | `noConsole()`                     | classes   | No console access at all (log, warn, error, etc). |
 | `noJsonParse()`                   | classes   | No `JSON.parse` calls.                            |
 | `functionNoEval()`                | functions | No `eval()` calls in functions.                   |
-| `functionNoFunctionConstructor()` | functions | No `new Function()` in functions.                 |
+| `functionNoFunctionConstructor()` | functions | No `Function` constructor, with or without `new`. |
 | `functionNoProcessEnv()`          | functions | No `process.env` access in functions.             |
 | `functionNoConsoleLog()`          | functions | No `console.log` in functions.                    |
 | `functionNoConsole()`             | functions | No console access in functions.                   |
