@@ -12,7 +12,7 @@
   arrow-function property. In a class written for dependency injection, a field initializer is
   the ordinary place to read configuration.
 - **Origin:** found by review of the records filed with it
-  ([0297](../0297-no-process-env-reads-one-spelling-of-an-environment-read.md)), measured then.
+  ([0297](./0297-no-process-env-reads-one-spelling-of-an-environment-read.md)), measured then.
 - **Reported:** 2026-09-14 · **Fixed:** 2026-09-14
 
 ## Symptom

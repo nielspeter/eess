@@ -11,7 +11,7 @@
   `new Function('return 1')()` — the rule's own docs describe it as "equivalent to
   eval". It also passed `globalThis.eval('1')`.
 - **Origin:** found by review of
-  [0297](../0297-no-process-env-reads-one-spelling-of-an-environment-read.md), and
+  [0297](./0297-no-process-env-reads-one-spelling-of-an-environment-read.md), and
   measured then.
 - **Reported:** 2026-09-14 · **Fixed:** 2026-09-14
 

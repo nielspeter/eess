@@ -97,17 +97,19 @@ import {
 | ----------------------- | ----------------------- | --------------------------------------------------------------------- |
 | `noEval`                | class, function, module | No `eval()` calls                                                     |
 | `noFunctionConstructor` | class, function         | No `Function` constructor, with or without `new` (equivalent to eval) |
-| `noProcessEnv`          | class, function, module | No direct `process.env` access                                        |
+| `noProcessEnv`          | class, function, module | No `process.env` read (not `import.meta.env`)                         |
 | `noConsoleLog`          | class, function, module | No `console.log` calls                                                |
 | `noConsole`             | class, function         | No console access at all (`log`, `warn`, `error`, `debug`, `info`)    |
 | `noJsonParse`           | class, function         | No `JSON.parse` calls — centralize deserialization                    |
 
-The `eval`, `Function` and `console` rules read the global however its name is spelled at the
-site of use: through `globalThis`, `window`, `self` or `global`, through a string-keyed bracket
-(`console['log']`), and through the indirect `(0, eval)(…)`. A member of an ordinary object that
-happens to share the name (`obj.eval()`) is not the global. What they do **not** see is a global
-bound to a local name first — `const ev = eval`, `const { log } = console` — and then used under
-that name.
+The `eval`, `Function`, `console` and `process.env` rules read the global however its name is
+spelled at the site of use: through `globalThis`, `window`, `self` or `global`, through a
+string-keyed bracket (`console['log']`, `process['env']`), and through the indirect `(0, eval)(…)`.
+A member of an ordinary object that happens to share the name (`obj.eval()`, `settings.env`) is not
+the global. What they do **not** see is a global bound to a local name first — `const ev = eval`,
+`const { log } = console`, `const { env } = process`, an `env` imported from `node:process` — and
+then used under that name. `import.meta.env` is a bundler convention, not Node's environment, and
+is outside `noProcessEnv`.
 
 ### When to use which variant
 

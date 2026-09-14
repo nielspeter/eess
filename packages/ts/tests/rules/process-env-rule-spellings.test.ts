@@ -7,48 +7,43 @@ import { moduleNoProcessEnv, functionNoProcessEnv, noProcessEnv } from '../../sr
 import type { ArchProject } from '../../src/core/project.js'
 
 /**
- * Bug 0297 — every `noProcessEnv` variant is `notContain(access('process.env'))`, a
- * text match on one `PropertyAccessExpression`. Four equivalent reads pass.
+ * Bug 0297 — every `noProcessEnv` variant was `notContain(access('process.env'))`, a text
+ * match on one `PropertyAccessExpression`, so `process['env']` and `globalThis.process.env`
+ * passed. The rules now read the name structurally, as 0301's rules read `eval` and `console`.
  *
- * The KNOWN GAP tests assert today's behaviour. Fixing 0297 turns them red: invert
- * them into red-first tests in the same change, and say so in the record. Each
- * asserts the dot form IS caught, so none can pass over a rule that catches nothing,
- * and each variant has its own test, so a fix to one variant reds only that one.
+ * Each variant has its own test with an exact set, so a fix to one reds only its own, and
+ * each set excludes `settings.env` — an `env` that is not the environment — so a rule that
+ * reports every `.env` cannot pass. `import.meta.env` is a bundler convention outside the
+ * rule's name, pinned by a CONTROL.
  *
- * `process` and `node:process` are declared ambiently, so the reads resolve: a fix
- * that resolves the `process` binding can be tested against this fixture as it is.
- * A fix that requires `@types/node` must load it here.
+ * An environment read through a local binding — `const { env } = process`,
+ * `import { env } from 'node:process'` — is not covered; it is pinned under bug 0305.
  */
 const GLOBALS = [
   'declare var process: { env: Record<string, string | undefined> }',
-  "declare module 'node:process' {",
-  '  export const env: Record<string, string | undefined>',
-  '}',
+  'declare const settings: { env: Record<string, string | undefined> }',
   '',
 ].join('\n')
 
-// Line 1 is the dot form. Lines 2–4 and 6 are the four equivalent reads.
-// Line 7 is `import.meta.env`, which is outside the rule's name.
+// Lines 1–4 read the environment. Line 5 is another object's `env`; line 6 is `import.meta.env`.
 const MODULE = [
   'export function viaDot() { return process.env.A }',
   "export function viaBracket() { return process['env'].B }",
-  'export function viaDestructure() { const { env } = process; return env.C }',
-  'export function viaGlobalThis() { return globalThis.process.env.D }',
-  "import { env as nodeEnv } from 'node:process'",
-  'export function viaNodeProcess() { return nodeEnv.E }',
+  'export function viaGlobalThis() { return globalThis.process.env.C }',
+  "export function viaGlobalBracket() { return globalThis['process']['env'].D }",
+  'export function viaOtherObject() { return settings.env.E }',
   'export function viaImportMeta() { return import.meta.env.F }',
   '',
 ].join('\n')
 
-// Line 3 is the dot form; lines 4–7 are the four equivalent reads.
+// Lines 2–5 read the environment; line 6 is another object's `env`.
 const CLASS = [
-  "import { env as nodeEnv } from 'node:process'",
   'export class Config {',
   '  dot() { return process.env.A }',
   "  bracket() { return process['env'].B }",
-  '  destructure() { const { env } = process; return env.C }',
-  '  viaGlobalThis() { return globalThis.process.env.D }',
-  '  viaNodeProcess() { return nodeEnv.E }',
+  '  viaGlobalThis() { return globalThis.process.env.C }',
+  "  viaGlobalBracket() { return globalThis['process']['env'].D }",
+  '  viaOtherObject() { return settings.env.E }',
   '}',
   '',
 ].join('\n')
@@ -69,8 +64,8 @@ function linesNamedIn(result: readonly { message: string }[]): Set<string> {
   return new Set(result.map((v) => /at line (\d+)/.exec(v.message)?.[1] ?? '?'))
 }
 
-describe('bug 0297: noProcessEnv reads one spelling of an environment read', () => {
-  it('KNOWN GAP — functionNoProcessEnv reports process.env.X and none of four equivalent reads', () => {
+describe('bug 0297: noProcessEnv reads process.env however it is spelled', () => {
+  it('functionNoProcessEnv reports process.env read through a bracket or a global object', () => {
     const result = functions(envProject())
       .that()
       .resideInFile('**/env.ts')
@@ -79,10 +74,12 @@ describe('bug 0297: noProcessEnv reads one spelling of an environment read', () 
       .rule({ id: 'test/0297-function' })
       .violations()
 
-    expect(new Set(result.map((v) => v.element))).toEqual(new Set(['viaDot']))
+    expect(new Set(result.map((v) => v.element))).toEqual(
+      new Set(['viaDot', 'viaBracket', 'viaGlobalThis', 'viaGlobalBracket']),
+    )
   })
 
-  it('KNOWN GAP — moduleNoProcessEnv reports process.env.X and none of four equivalent reads', () => {
+  it('moduleNoProcessEnv reports process.env read through a bracket or a global object', () => {
     const result = modules(envProject())
       .that()
       .resideInFile('**/env.ts')
@@ -91,10 +88,10 @@ describe('bug 0297: noProcessEnv reads one spelling of an environment read', () 
       .rule({ id: 'test/0297-module' })
       .violations()
 
-    expect(linesNamedIn(result)).toEqual(new Set(['1']))
+    expect(linesNamedIn(result)).toEqual(new Set(['1', '2', '3', '4']))
   })
 
-  it('KNOWN GAP — noProcessEnv on a class reports process.env.X and none of four equivalent reads in its methods', () => {
+  it('noProcessEnv on a class reports process.env read through a bracket or a global object', () => {
     const result = classes(envProject())
       .that()
       .resideInFile('**/config.ts')
@@ -103,7 +100,7 @@ describe('bug 0297: noProcessEnv reads one spelling of an environment read', () 
       .rule({ id: 'test/0297-class' })
       .violations()
 
-    expect(linesNamedIn(result)).toEqual(new Set(['3']))
+    expect(linesNamedIn(result)).toEqual(new Set(['2', '3', '4', '5']))
   })
 
   it('CONTROL — import.meta.env is outside noProcessEnv', () => {
