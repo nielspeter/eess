@@ -32,8 +32,9 @@ Two shapes work today and must keep working: a generic base
 checker cannot resolve (`extends Model`, imported from an uninstalled package, is
 selected by `extend('Model')` — by its text).
 
-A base written through an alias, a namespace or a mixin call is a **different**
-defect with a different fix: [0296](./0296-heritage-predicates-compare-the-clause-text.md).
+A base written through an alias, a namespace or a mixin call was a **different**
+defect with a different fix: [0296](./fixed/0296-heritage-predicates-compare-the-clause-text.md),
+since fixed — the predicates now match the direct clause as written or as resolved.
 
 ## Root cause
 

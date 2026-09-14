@@ -4,25 +4,28 @@ import type { ArchViolation } from '@nielspeter/eess'
 import { elementCondition } from './helpers.js'
 import { createViolation, getElementName } from '../core/violation.js'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
+import { extendsByName, implementsByName } from '../helpers/heritage.js'
 
 /**
- * Assert that classes extend the named base class.
+ * Assert that classes directly extend the named base class — written as its name, or through
+ * an aliased import, a namespace member or a mixin call.
  */
 export function shouldExtend(className: string): Condition<ClassDeclaration> {
   return elementCondition<ClassDeclaration>(
     `extend "${className}"`,
-    (cls) => cls.getExtends()?.getExpression().getText() === className,
+    (cls) => extendsByName(cls, className),
     (cls) => `${getElementName(cls)} does not extend "${className}"`,
   )
 }
 
 /**
- * Assert that classes implement the named interface.
+ * Assert that classes implement the named interface in their own `implements` clause — as
+ * written, or through an aliased import.
  */
 export function shouldImplement(interfaceName: string): Condition<ClassDeclaration> {
   return elementCondition<ClassDeclaration>(
     `implement "${interfaceName}"`,
-    (cls) => cls.getImplements().some((impl) => impl.getExpression().getText() === interfaceName),
+    (cls) => implementsByName(cls, interfaceName),
     (cls) => `${getElementName(cls)} does not implement "${interfaceName}"`,
   )
 }
