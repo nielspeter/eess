@@ -11,7 +11,7 @@ import { searchClassBody, reportedLine } from '../helpers/body-traversal.js'
 /**
  * Class body must contain at least one node matching the matcher.
  *
- * Violation if NO method in the class contains a match.
+ * Violation if nothing in the class's member code contains a match.
  */
 export function classContain(matcher: ExpressionMatcher): Condition<ClassDeclaration> {
   return {
@@ -38,7 +38,7 @@ export function classContain(matcher: ExpressionMatcher): Condition<ClassDeclara
 /**
  * Class body must NOT contain any node matching the matcher.
  *
- * Violation for EACH matching node found in any method.
+ * Violation for EACH matching node found in the class's member code.
  * Reports the specific line where the violation occurs.
  */
 export function classNotContain(matcher: ExpressionMatcher): Condition<ClassDeclaration> {

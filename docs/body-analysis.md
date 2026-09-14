@@ -285,11 +285,11 @@ classes(p)
 
 Body analysis works on both classes and functions, but the scope differs:
 
-- **`classes(p)`** -- checks all method bodies in each matched class
+- **`classes(p)`** -- checks the member code of each matched class: method, constructor and accessor bodies, parameter defaults, property initializers and static blocks
 - **`functions(p)`** -- checks the body of each matched function/arrow/method individually
 
 ```typescript
-// Check class method bodies
+// Check class member code
 classes(p).that().extend('BaseService').should().notContain(newExpr('Error')).check()
 
 // Check function bodies (includes standalone functions AND arrow functions)

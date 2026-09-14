@@ -288,8 +288,8 @@ Available on all entry points via `.that()`.
 
 | Export                     | Signature                                        | Description                                      |
 | -------------------------- | ------------------------------------------------ | ------------------------------------------------ |
-| `classContain`             | `classContain(matcher: ExpressionMatcher)`       | Class methods must contain expression.           |
-| `classNotContain`          | `classNotContain(matcher: ExpressionMatcher)`    | Class methods must not contain expression.       |
+| `classContain`             | `classContain(matcher: ExpressionMatcher)`       | Class member code must contain expression.       |
+| `classNotContain`          | `classNotContain(matcher: ExpressionMatcher)`    | Class member code must not contain expression.   |
 | `classUseInsteadOf`        | `classUseInsteadOf(banned, replacement)`         | Ban expression in class, suggest replacement.    |
 | `functionContain`          | `functionContain(matcher: ExpressionMatcher)`    | Function body must contain expression.           |
 | `functionNotContain`       | `functionNotContain(matcher: ExpressionMatcher)` | Function body must not contain expression.       |
@@ -630,17 +630,17 @@ See [Architecture Presets](/presets) for full configuration options.
 
 ### `eess-ts/rules/typescript`
 
-| Export                  | Description                                                              |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `noAnyProperties()`     | Class properties must not be typed as `any`.                             |
-| `noTypeAssertions()`    | Method bodies must not contain `as` type assertions (allows `as const`). |
-| `noNonNullAssertions()` | Method bodies must not contain non-null assertions (`!`).                |
+| Export                  | Description                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `noAnyProperties()`     | Class properties must not be typed as `any`.                                 |
+| `noTypeAssertions()`    | Class member code must not contain `as` type assertions (allows `as const`). |
+| `noNonNullAssertions()` | Class member code must not contain non-null assertions (`!`).                |
 
 ### `eess-ts/rules/security`
 
 | Export                            | Target    | Description                                       |
 | --------------------------------- | --------- | ------------------------------------------------- |
-| `noEval()`                        | classes   | No `eval()` calls in class methods.               |
+| `noEval()`                        | classes   | No `eval()` calls in a class's member code.       |
 | `noFunctionConstructor()`         | classes   | No `Function` constructor, with or without `new`. |
 | `noConsoleLog()`                  | classes   | No `console.log` calls.                           |
 | `noProcessEnv()`                  | classes   | No direct `process.env` access.                   |

@@ -168,45 +168,71 @@ function triviaMatches(node: Node, matcher: ExpressionMatcher): Match[] {
 }
 
 /**
- * Search all method bodies in a class for matches.
+ * Search the code a class's members run (bug 0300).
  *
- * Iterates over every method (instance and static), gets the body,
- * and tests each body against the matcher. Returns aggregated results.
+ * Every method, constructor and accessor — its body, then each parameter's default value —
+ * then every property initializer, which covers an arrow-function property, then every
+ * static block. Overload signatures have no body and no defaults, so walking every
+ * constructor is the same as walking the implementation.
+ *
+ * It walked method, last-constructor and accessor bodies only, so a field initializer, a
+ * static field, a parameter default and a static block were never searched, and every
+ * class-level body rule passed over them. Docstrings are not member code and are still not
+ * walked, so a `comment()` rule reads bodies, not documentation. Code the class runs outside
+ * its members — decorator arguments, computed member names, `extends` — is not walked either
+ * (bug 0307).
+ *
+ * The body comes before the defaults on purpose. A match's baseline identity is numbered
+ * within its enclosing member (`match-identity.ts`), and a member's defaults and body share
+ * that member. Searched first, a new match in a default would take the ordinal of the body
+ * match a baseline already accepted — the baseline would then hide the new finding and
+ * report the accepted one.
  */
 export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatcher): MatchResult {
   const matchingNodes: Match[] = []
-
-  for (const method of cls.getMethods()) {
-    const body = method.getBody()
-    if (!body) continue
-    matchingNodes.push(...findMatchesInNode(body, matcher))
+  const searchBody = (node: Node | undefined): void => {
+    if (node !== undefined) matchingNodes.push(...findMatchesInNode(node, matcher))
+  }
+  const searchExpression = (node: Node | undefined): void => {
+    if (node !== undefined) matchingNodes.push(...findMatchesInExpression(node, matcher))
   }
 
-  // Also check constructor body (use last constructor — earlier ones are overload signatures without bodies)
-  const ctors = cls.getConstructors()
-  const ctor = ctors[ctors.length - 1]
-  if (ctor) {
-    const body = ctor.getBody()
-    if (body) {
-      matchingNodes.push(...findMatchesInNode(body, matcher))
-    }
+  const runnable = [
+    ...cls.getMethods(),
+    ...cls.getConstructors(),
+    ...cls.getGetAccessors(),
+    ...cls.getSetAccessors(),
+  ]
+  for (const member of runnable) {
+    searchBody(member.getBody())
+    for (const parameter of member.getParameters()) searchExpression(parameter.getInitializer())
   }
-
-  // Also check getters and setters
-  for (const accessor of cls.getGetAccessors()) {
-    const body = accessor.getBody()
-    if (body) {
-      matchingNodes.push(...findMatchesInNode(body, matcher))
-    }
-  }
-  for (const accessor of cls.getSetAccessors()) {
-    const body = accessor.getBody()
-    if (body) {
-      matchingNodes.push(...findMatchesInNode(body, matcher))
-    }
-  }
+  for (const property of cls.getProperties()) searchExpression(property.getInitializer())
+  for (const block of cls.getStaticBlocks()) searchBody(block.getBody())
 
   return toResult(matchingNodes)
+}
+
+/**
+ * Matches in an expression that is code in its own right — a property initializer or a
+ * parameter default — including the expression itself (bug 0300).
+ *
+ * `findMatchesInNode` tests a subtree's descendants, not its root. That never mattered for a
+ * body, a block: no shipped by-kind matcher names a block, and a broad matcher keeps the
+ * deepest match, which lies inside it. An initializer can BE the match — `field = eval('1')`
+ * — so its root has to be tested too. A trivia matcher already
+ * includes the root. A broad matcher keeps only the deepest match, so the root counts only
+ * when nothing inside it matched.
+ */
+function findMatchesInExpression(node: Node, matcher: ExpressionMatcher): Match[] {
+  const inner = findMatchesInNode(node, matcher)
+  if (matcher.matchedTriviaPositions !== undefined) return inner
+  const kinds = matcher.syntaxKinds ?? []
+  const broad = kinds.length === 0
+  if (!broad && !kinds.includes(node.getKind())) return inner
+  if (!matcher.matches(node)) return inner
+  if (broad && inner.length > 0) return inner
+  return [{ node }, ...inner]
 }
 
 /**

@@ -47,7 +47,7 @@ separate, separately named rule.
 
 A read in a class **field initializer**, static field or parameter default is
 missed by the class variant whatever its spelling — a different root cause,
-[0300](./0300-class-body-search-reads-methods-constructors-and-accessors-only.md).
+[0300](./fixed/0300-class-body-search-reads-methods-constructors-and-accessors-only.md).
 
 ## Root cause
 
