@@ -170,16 +170,23 @@ function triviaMatches(node: Node, matcher: ExpressionMatcher): Match[] {
 /**
  * Search the code a class's members run (bug 0300).
  *
- * Every method, constructor and accessor — each parameter's default value, then the
- * body — then every property initializer, which covers an arrow-function property, then
- * every static block. Overload signatures have no body and no defaults, so walking every
+ * Every method, constructor and accessor — its body, then each parameter's default value —
+ * then every property initializer, which covers an arrow-function property, then every
+ * static block. Overload signatures have no body and no defaults, so walking every
  * constructor is the same as walking the implementation.
  *
  * It walked method, last-constructor and accessor bodies only, so a field initializer, a
  * static field, a parameter default and a static block were never searched, and every
- * class-level body rule passed over them. Decorators and docstrings are not member code
- * and are still not walked, so a `comment()` rule reads bodies, not documentation. The
- * groups keep their old order, so the findings the old walk reported keep theirs.
+ * class-level body rule passed over them. Docstrings are not member code and are still not
+ * walked, so a `comment()` rule reads bodies, not documentation. Code the class runs outside
+ * its members — decorator arguments, computed member names, `extends` — is not walked either
+ * (bug 0307).
+ *
+ * The body comes before the defaults on purpose. A match's baseline identity is numbered
+ * within its enclosing member (`match-identity.ts`), and a member's defaults and body share
+ * that member. Searched first, a new match in a default would take the ordinal of the body
+ * match a baseline already accepted — the baseline would then hide the new finding and
+ * report the accepted one.
  */
 export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatcher): MatchResult {
   const matchingNodes: Match[] = []
@@ -197,8 +204,8 @@ export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatche
     ...cls.getSetAccessors(),
   ]
   for (const member of runnable) {
-    for (const parameter of member.getParameters()) searchExpression(parameter.getInitializer())
     searchBody(member.getBody())
+    for (const parameter of member.getParameters()) searchExpression(parameter.getInitializer())
   }
   for (const property of cls.getProperties()) searchExpression(property.getInitializer())
   for (const block of cls.getStaticBlocks()) searchBody(block.getBody())
@@ -211,8 +218,9 @@ export function searchClassBody(cls: ClassDeclaration, matcher: ExpressionMatche
  * parameter default — including the expression itself (bug 0300).
  *
  * `findMatchesInNode` tests a subtree's descendants, not its root. That never mattered for a
- * body: a body is a block, and no expression matcher matches a block. An initializer can BE
- * the match — `field = eval('1')` — so its root has to be tested too. A trivia matcher already
+ * body, a block: no shipped by-kind matcher names a block, and a broad matcher keeps the
+ * deepest match, which lies inside it. An initializer can BE the match — `field = eval('1')`
+ * — so its root has to be tested too. A trivia matcher already
  * includes the root. A broad matcher keeps only the deepest match, so the root counts only
  * when nothing inside it matched.
  */

@@ -14,13 +14,13 @@ import type { ArchProject } from '../../src/core/project.js'
  * It now walks the code each member runs: bodies, every parameter's default, property
  * initializers and static blocks.
  *
- * What it still does not walk, on purpose, is anything that is not member code: a
- * decorator's arguments and a member's docstring. The CONTROL pins both, so a fix that
- * simply searched the whole class node — which would start reporting comments in
- * docstrings under a `comment()` rule — cannot pass as this one.
+ * What it does not walk is anything outside a member's code. A member's docstring is pinned
+ * by the CONTROL, so a fix that searched the whole class node — and started reporting
+ * comments in docstrings under a `comment()` rule — cannot pass as this one. A decorator's
+ * arguments are excluded by the `noProcessEnv` test; that exclusion is bug 0307.
  *
- * Every read is spelled `process.env.X`, so this is not bug 0297. Expectations are exact
- * sets of the lines the messages name.
+ * Every read is spelled `process.env.X`, so this is not bug 0297. Expectations are the
+ * lines the messages name, sorted, so a duplicated finding shows.
  */
 const SERVICE = [
   'export class Service {', // 1
@@ -39,11 +39,13 @@ const SERVICE = [
   '',
 ].join('\n')
 
+// Lines 2 and 4 are an initializer and a default that ARE the call; line 3 is a body.
 const EVALUATOR = [
   'export class Evaluator {', // 1
   "  field = eval('1')", // 2
   "  method() { return eval('2') }", // 3
-  '}', // 4
+  "  withDefault(x = eval('3')) { return x }", // 4
+  '}', // 5
   '',
 ].join('\n')
 
@@ -74,8 +76,12 @@ function project(path: string, text: string): ArchProject {
   }
 }
 
-function linesNamedIn(result: readonly { message: string }[]): Set<string> {
-  return new Set(result.map((v) => /at line (\d+)/.exec(v.message)?.[1] ?? '?'))
+function lineOf(v: { message: string }): string {
+  return /at line (\d+)/.exec(v.message)?.[1] ?? '?'
+}
+
+function linesNamedIn(result: readonly { message: string }[]): string[] {
+  return result.map(lineOf).sort((a, b) => Number(a) - Number(b))
 }
 
 describe('bug 0300: class-body search walks the code every member runs', () => {
@@ -86,8 +92,8 @@ describe('bug 0300: class-body search walks the code every member runs', () => {
       .rule({ id: 'test/0300-positions' })
       .violations()
 
-    // Every member's code: 2, 3, 4, 6, 8, 9, 10 and 11. Not the decorator argument on 12.
-    expect(linesNamedIn(result)).toEqual(new Set(['2', '3', '4', '6', '8', '9', '10', '11']))
+    // Every member's code: 2, 3, 4, 6, 8, 9, 10 and 11. Not the decorator argument on 12 (bug 0307).
+    expect(linesNamedIn(result)).toEqual(['2', '3', '4', '6', '8', '9', '10', '11'])
   })
 
   it('noEval on a class reads eval in a field initializer', () => {
@@ -97,7 +103,7 @@ describe('bug 0300: class-body search walks the code every member runs', () => {
       .rule({ id: 'test/0300-eval-field' })
       .violations()
 
-    expect(linesNamedIn(result)).toEqual(new Set(['2', '3']))
+    expect(linesNamedIn(result)).toEqual(['2', '3', '4'])
   })
 
   it('classContain counts a call in a field initializer as the class containing it', () => {
@@ -107,7 +113,33 @@ describe('bug 0300: class-body search walks the code every member runs', () => {
       .rule({ id: 'test/0300-contain' })
       .violations()
 
-    expect(new Set(result.map((v) => v.element))).toEqual(new Set(['Untracked']))
+    expect(result.map((v) => v.element)).toEqual(['Untracked'])
+  })
+
+  it('a match in a parameter default is numbered after the body match of the same member', () => {
+    // A baseline identity is numbered within the enclosing member, which a member's body and
+    // defaults share. The body's match keeps #1, the ordinal the walk before bug 0300 gave it,
+    // so a baseline that accepted it still accepts it, and the new match in the default is #2.
+    const source = [
+      'export class Ordered {', // 1
+      "  m(x = eval('a')) {", // 2
+      "    return eval('b')", // 3
+      '  }', // 4
+      '}', // 5
+      '',
+    ].join('\n')
+    const result = classes(project('/src/ordered.ts', source))
+      .should()
+      .satisfy(noEval())
+      .rule({ id: 'test/0300-ordinals' })
+      .violations()
+
+    const byLine = new Map(result.map((v) => [lineOf(v), v.identity ?? '']))
+    expect([...byLine.keys()].sort()).toEqual(['2', '3'])
+    const scope = (identity: string): string => identity.replace(/#\d+$/, '')
+    expect(scope(byLine.get('2') ?? '')).toBe(scope(byLine.get('3') ?? ''))
+    expect(byLine.get('3')?.endsWith('#1')).toBe(true)
+    expect(byLine.get('2')?.endsWith('#2')).toBe(true)
   })
 
   it('a broad matcher reports an initializer once, at its deepest match', () => {
@@ -122,7 +154,7 @@ describe('bug 0300: class-body search walks the code every member runs', () => {
       .rule({ id: 'test/0300-broad' })
       .violations()
 
-    expect(result.map((v) => /at line (\d+)/.exec(v.message)?.[1])).toEqual(['2'])
+    expect(linesNamedIn(result)).toEqual(['2'])
   })
 
   it('a trivia matcher that narrows by kind reports a comment on an initializer once', () => {
@@ -153,7 +185,26 @@ describe('bug 0300: class-body search walks the code every member runs', () => {
       .rule({ id: 'test/0300-trivia' })
       .violations()
 
-    expect(result.map((v) => /at line (\d+)/.exec(v.message)?.[1])).toEqual(['3'])
+    expect(linesNamedIn(result)).toEqual(['3'])
+  })
+
+  it('a matcher that narrows by kind is asked only about an initializer of that kind', () => {
+    // A by-kind walk only ever hands a matcher nodes of its kinds, and a matcher may rely on it.
+    // This one answers yes to anything, so asking it about the literal `1` would report it.
+    const anyCall: ExpressionMatcher = {
+      description: 'any call, trusting its kind',
+      syntaxKinds: [SyntaxKind.CallExpression],
+      matches: () => true,
+    }
+    const result = classes(
+      project('/src/plain.ts', ['export class Plain {', '  field = 1', '}', ''].join('\n')),
+    )
+      .should()
+      .satisfy(classNotContain(anyCall))
+      .rule({ id: 'test/0300-kind' })
+      .violations()
+
+    expect(linesNamedIn(result)).toEqual([])
   })
 
   it('CONTROL — a docstring is not member code, so a comment rule still reads only the body', () => {
@@ -163,6 +214,6 @@ describe('bug 0300: class-body search walks the code every member runs', () => {
       .rule({ id: 'test/0300-docstring' })
       .violations()
 
-    expect(linesNamedIn(result)).toEqual(new Set(['4']))
+    expect(linesNamedIn(result)).toEqual(['4'])
   })
 })

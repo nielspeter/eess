@@ -2,9 +2,12 @@
 
 ## Status
 
-- **State:** Fixed — every class-level body rule searches the code each member runs: bodies,
-  parameter defaults, property initializers and static blocks; red test first.
-- **Severity:** High — **false green.** Every class-level body rule missed code in a field
+- **State:** Fixed — the class body conditions, and every rule built on them, search the code
+  each member runs: bodies, parameter defaults, property initializers and static blocks; red test
+  first. Two gaps of the same kind, found in review, are filed as
+  [0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md) and
+  [0307](../0307-class-body-rules-skip-class-code-outside-its-members.md).
+- **Severity:** High — **false green.** Every rule built on the class body conditions missed code in a field
   initializer, a static field, a constructor parameter default, a static block and an
   arrow-function property. In a class written for dependency injection, a field initializer is
   the ordinary place to read configuration.
@@ -41,14 +44,25 @@ named was replaced.
 
 ## Fix
 
-`searchClassBody` walks the code each member runs: every method, constructor and accessor — each
-parameter's default, then the body — then every property initializer, which covers an
-arrow-function property, then every static block. The groups keep their old order, so the findings
-the old walk reported keep theirs.
+`searchClassBody` walks the code each member runs: every method, constructor and accessor — its body,
+then each parameter's default — then every property initializer, which covers an arrow-function
+property, then every static block.
+
+The body comes before the defaults because of baselines. A match's identity is numbered within its
+enclosing member, and a member's body and defaults share that member. The first version searched
+the defaults first, so a new match in a default took the ordinal of the body match a baseline had
+accepted: the baseline hid the new finding and reported the accepted one. The enforcement review
+measured that against a baseline written under the old walk; a test now pins the ordinals.
 
 The record first proposed walking the whole class node. The fix deliberately does not: the class
-node also holds decorators and docstrings, which are not member code, and a `comment()` rule would
-start reporting documentation. A CONTROL pins that a docstring is still not read.
+node also holds docstrings, and a `comment()` rule would start reporting documentation. A CONTROL
+pins that a docstring is still not read. The class node also holds code no member runs — decorator
+arguments, computed member names, the `extends` expression — all evaluated when the class is
+defined; leaving them out is a gap, not a design choice, and is [0307](../0307-class-body-rules-skip-class-code-outside-its-members.md).
+
+`noSilentCatch`, `noMagicNumbers` and the class metrics rules do not use this search; each walks
+its own member list and still misses these positions. That is
+[0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md).
 
 **Found while fixing, and fixed with it.** `findMatchesInNode` tests a subtree's descendants, not
 its root. That never mattered for a body — a block — but an initializer can itself be the match:
@@ -63,9 +77,12 @@ The trivia branch is redundant for `comment()`, the one trivia matcher shipped, 
 narrow by kind. It is kept for a custom trivia matcher that does — the `ExpressionMatcher`
 interface allows it — which would otherwise be reported twice, and a test pins it.
 
-The JSDoc that said "in class methods" and the doc lines that listed what class variants scan were
-corrected to the walk. The changeset is a `minor` marked breaking: a green class rule may report
-findings in these positions.
+The descriptions of the old walk were corrected: the JSDoc of the security and typescript class
+rules, of `contain()` on the class builder and of `classContain` and `classNotContain`, and the
+class body lines in `docs/api-reference.md`, `docs/classes.md`, `docs/body-analysis.md` and
+`docs/standard-rules.md`. The first pass corrected only the security JSDoc and two doc lines; the
+method review found the rest. The changeset is a `minor` marked breaking, and names every rule and
+the one preset rule (`dataLayerIsolation`'s `preset/data/typed-errors`) built on the conditions.
 
 ## Verification
 
@@ -73,7 +90,7 @@ findings in these positions.
       `packages/ts/tests/conditions/class-body-search-skips-member-initializers.test.ts`, its
       KNOWN-GAP tests inverted into the target behaviour. Measured as matrix row R1, which puts the
       shipped walk from `e17c7e6` back: `noProcessEnv` reported lines `{9, 10}` of eight, `noEval`
-      `{3}` of two, `classContain` reported both classes, while
+      `{3}` of three, `classContain` reported both classes, while
       `it('CONTROL — a docstring is not member code, so a comment rule still reads only the body')`
       stayed green.
 - [x] The fix turns them green:
@@ -84,21 +101,36 @@ findings in these positions.
       branch that keeps it from double-reporting, because nothing else guarded them:
       `it('a broad matcher reports an initializer once, at its deepest match')` and
       `it('a trivia matcher that narrows by kind reports a comment on an initializer once')`. The
-      full `packages/ts` suite passes.
+      enforcement review added three more, each measured unguarded before it was written:
+      `it('a match in a parameter default is numbered after the body match of the same member')`,
+      `it('a matcher that narrows by kind is asked only about an initializer of that kind')`, and an
+      `eval` default in the `noEval` fixture that is itself the call. Line assertions are sorted
+      arrays, not sets, so a duplicated finding shows. The full `packages/ts` suite passes.
 - [x] Sabotage matrix in the 0300 worktree (per-entry `node_modules`, `@nielspeter/eess` resolved
       to the worktree's `packages/core`, literal replacements in `body-traversal.ts` restored by
-      sha256 after every row, verdicts read by test title): **10 rows, 0 mismatches.** Baseline
-      green. R1, the shipped walk restored, reds the three target tests and both guards. Dropping
-      parameter defaults reds `noProcessEnv` only; dropping property initializers reds everything
-      but the CONTROL; dropping static blocks reds `noProcessEnv` only. Never counting an
-      initializer's root reds `noEval` and `classContain`. Counting a broad root despite an inner
-      match reds the broad guard only; dropping the trivia branch reds the trivia guard only.
-      Over-broad — searching the whole class node — reds `noProcessEnv` (the decorator argument)
-      and the CONTROL (the docstring). A total break reds all six. Two first-run errors were the
-      matrix's, not the fix's, and are recorded: the over-broad row's search string was not
-      unique, and was re-anchored; the trivia test's first fixture put the comment on the line of
-      `=`, where ts-morph reads it as that token's trailing trivia, so the test was red at baseline
-      — the comment was moved to its own line before the rows were run again.
+      sha256 after every row, verdicts read by test title): **13 rows, 0 mismatches.** Baseline
+      green. R1, the shipped walk restored, reds the three target tests, both double-report guards
+      and the ordinal test. Dropping parameter defaults reds `noProcessEnv`, `noEval` and the
+      ordinal test; dropping property initializers reds everything but the ordinal test, the kind
+      test and the CONTROL; dropping static blocks reds `noProcessEnv` only. Never counting an
+      initializer's root reds `noEval`, `classContain` and the ordinal test; never counting a
+      parameter default's root alone reds `noEval` and the ordinal test. Searching defaults before
+      the body reds the ordinal test only. Counting a broad root despite an inner match reds the
+      broad guard only; dropping the trivia branch reds the trivia guard only; dropping the kind
+      guard reds the kind test only. Over-broad — searching the whole class node — reds
+      `noProcessEnv` (the decorator argument), the CONTROL (the docstring) and the ordinal test
+      (document order puts the default first). A total break reds all but the kind test, which
+      expects nothing. The first run had two errors of the matrix's own, recorded: the over-broad
+      row's search string was not unique, and was re-anchored; the trivia test's first fixture put
+      the comment on the line of `=`, where ts-morph reads it as that token's trailing trivia, so
+      the test was red at baseline — the comment was moved to its own line. The three rows for the
+      review findings were added afterwards, and every row was run again with them.
+- [ ] deferred→[0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md) —
+      `noSilentCatch`, `noMagicNumbers` and the class metrics rules keep their own member walk.
+- [ ] deferred→[0307](../0307-class-body-rules-skip-class-code-outside-its-members.md) — decorator arguments,
+      computed member names and the `extends` expression are not searched. The method review
+      found the first, the enforcement review the other two.
 - [x] `npm run validate` green.
 
-Deferred: none.
+Deferred: [0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md),
+[0307](../0307-class-body-rules-skip-class-code-outside-its-members.md)
