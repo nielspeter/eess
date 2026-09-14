@@ -79,8 +79,8 @@ built on the name reading
 a property access or a string-keyed element access, drops one leading global object —
 `globalThis`, `window`, `self`, `global` — and matches when what remains is `process.env`. So
 `process.env`, `process?.env`, `process['env']`, `globalThis.process.env` and
-`globalThis['process']['env']` are reported, and `settings.env` is not. It does not read through a type assertion, a
-non-null assertion or a second global object — [0308](../0308-security-rules-miss-a-global-read-through-a-cast.md) — and, since it reads
+`globalThis['process']['env']` are reported, and `settings.env` is not. It did not read through a type assertion, a
+non-null assertion or a second global object — [0308](./0308-security-rules-miss-a-global-read-through-a-cast.md), since fixed — and, since it reads
 names rather than bindings, it reads a local named `global`, `window` or `self` as the global
 object — [0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md).
 
@@ -126,10 +126,10 @@ and named in 0305's symptom table.
       `const { env } = process` and `import { env } from 'node:process'`, which need the binding
       followed. Pinned by
       `it('KNOWN GAP — an environment read through destructuring or the node:process import is not reported')`.
-- [ ] deferred→[0308](../0308-security-rules-miss-a-global-read-through-a-cast.md) —
+- [ ] deferred→[0308](./0308-security-rules-miss-a-global-read-through-a-cast.md) —
       a read through a type assertion, a non-null assertion or a second global object; found by
-      the enforcement review. Pinned by
-      `it('KNOWN GAP — a global read through a type assertion, a non-null assertion or a second global object is not reported')`.
+      the enforcement review. Fixed there; its KNOWN-GAP test became
+      `it('functionNoProcessEnv reads process.env through a type assertion, a non-null assertion and a second global object')`.
 - [x] Sabotage matrix in the 0297 worktree (per-entry `node_modules`, `@nielspeter/eess` resolved
       to the worktree’s `packages/core`, literal replacements in `security.ts` restored by sha256
       after every row, verdicts read by test title over this file, 0305’s tests, the body-finding
@@ -154,4 +154,4 @@ and named in 0305's symptom table.
 - [x] `npm run validate` green.
 
 Deferred: [0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md),
-[0308](../0308-security-rules-miss-a-global-read-through-a-cast.md)
+[0308](./0308-security-rules-miss-a-global-read-through-a-cast.md)

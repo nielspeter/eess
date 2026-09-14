@@ -16,8 +16,6 @@ Still not reported:
 
 - an environment read through a local binding, `const { env } = process` or
   `import { env } from 'node:process'`, which needs the binding followed (bug 0305);
-- a read through a type assertion, a non-null assertion or a second global object —
-  `(globalThis as any).process.env`, `process!.env`, `window.self.process.env` (bug 0308);
 - `import.meta.env`, a bundler convention outside the rule's name.
 
 Reading names rather than bindings cuts the other way too (bug 0305): a local named `global`,

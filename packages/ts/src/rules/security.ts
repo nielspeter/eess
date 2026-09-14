@@ -7,7 +7,7 @@ import { classNotContain } from '../conditions/body-analysis.js'
 import { functionNotContain } from '../conditions/body-analysis-function.js'
 import { moduleNotContain } from '../conditions/body-analysis-module.js'
 
-// ─── Reading a global however its name is spelled (bugs 0301, 0297) ──────
+// ─── Reading a global however its name is spelled (bugs 0301, 0297, 0308) ──────
 //
 // `call('eval')` compared the callee's text, so `globalThis.eval(…)`, `(0, eval)(…)`
 // and `Function(…)` without `new` passed rules — and a `recommended` floor — written
@@ -21,8 +21,8 @@ import { moduleNotContain } from '../conditions/body-analysis-module.js'
 // `const { env } = process`, an `env` imported from `node:process`) is missed,
 // and a local declaration that shadows a global (`function Function() {}`,
 // `const console = {…}`) is reported as the global. Both need the binding followed,
-// which is bug 0305. Only one leading global object is read through, so a doubled chain
-// (`window.self.eval`) is not seen.
+// which is bug 0305. A type assertion, `satisfies` and a non-null assertion are read through,
+// and so is any number of leading global objects (`window.self.eval`) — bug 0308.
 
 /** The names a global is reachable through: standard, browser, worker and Node. */
 const GLOBAL_OBJECTS: ReadonlySet<string> = new Set(['globalThis', 'window', 'self', 'global'])
@@ -42,10 +42,20 @@ function elementChainOf(node: Node): string | undefined {
 /**
  * The dotted name an expression reads, or `undefined` when it is not a plain name
  * chain. `x?.y` reads as `x.y`, and `(0, x)` — the indirect-call idiom — as `x`.
- * `this.x` reads as nothing, so a member of an instance is never a global.
+ * `this.x` reads as nothing, so a member of an instance is never a global. A type assertion
+ * (`as`, `<T>`), `satisfies` and a non-null assertion (`!`) read as the expression they wrap:
+ * none of them changes the value at run time (bug 0308).
  */
 function chainOf(node: Node): string | undefined {
   if (Node.isIdentifier(node)) return node.getText()
+  if (
+    Node.isAsExpression(node) ||
+    Node.isSatisfiesExpression(node) ||
+    Node.isNonNullExpression(node) ||
+    Node.isTypeAssertion(node)
+  ) {
+    return chainOf(node.getExpression())
+  }
   if (Node.isParenthesizedExpression(node)) {
     const inner = node.getExpression()
     const isComma =
@@ -59,12 +69,20 @@ function chainOf(node: Node): string | undefined {
   return elementChainOf(node)
 }
 
-/** The chain with a leading global object removed: `globalThis.eval` reads as `eval`. */
+/**
+ * The chain with its leading global objects removed: `globalThis.eval` and `window.self.eval`
+ * both read as `eval` (bug 0308). Only leading names are dropped, so `settings.window.eval` is
+ * not the global.
+ */
 function globalNameOf(node: Node): string | undefined {
-  const chain = chainOf(node)
+  let chain = chainOf(node)
   if (chain === undefined) return undefined
-  const dot = chain.indexOf('.')
-  return dot > 0 && GLOBAL_OBJECTS.has(chain.slice(0, dot)) ? chain.slice(dot + 1) : chain
+  let dot = chain.indexOf('.')
+  while (dot > 0 && GLOBAL_OBJECTS.has(chain.slice(0, dot))) {
+    chain = chain.slice(dot + 1)
+    dot = chain.indexOf('.')
+  }
+  return chain
 }
 
 /**

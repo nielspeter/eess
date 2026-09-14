@@ -96,7 +96,7 @@ is a `minor` marked breaking: the floor reports more.
     global — so they are recorded there and pinned by a KNOWN-GAP test, not fixed here.
   - **A stale doc row.** `docs/api-reference.md` still described `functionNoFunctionConstructor`
     as `new Function()` only; corrected in this change.
-  - **A limit, stated rather than filed:** only one leading global object is read through, so
+  - **A limit, stated rather than filed** (filed later as [0308](./0308-security-rules-miss-a-global-read-through-a-cast.md), and fixed): only one leading global object is read through, so
     `window.self.eval('1')` is not reported. Nothing but a deliberate evasion writes a doubled
     global chain, and the rule is not a defence against a determined author.
 - [ ] deferred→[0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md) —
