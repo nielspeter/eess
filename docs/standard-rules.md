@@ -104,16 +104,15 @@ import {
 
 The `eval`, `Function`, `console` and `process.env` rules read the global in these spellings at the
 site of use, and no others: through `globalThis`, `window`, `self` or `global` (one or more), through a
-string-keyed bracket (`console['log']`, `process['env']`), and through the indirect `(0, eval)(…)`.
+string-keyed bracket (`console['log']`, `process['env']`), through the indirect `(0, eval)(…)`, and
+through a type assertion, a `satisfies` expression or a non-null assertion
+(`(globalThis as any).process.env`, `process!.env`), none of which changes the value at run time.
 A member of an ordinary object that happens to share the name (`obj.eval()`, `settings.env`) is not
 the global. What they do **not** see is a global bound to a local name first — `const ev = eval`,
 `const { log } = console`, `const { env } = process`, an `env` imported from `node:process` — and
 then used under that name. `import.meta.env` is a bundler convention, not Node's environment, and
-is outside `noProcessEnv`. The rules read through a type assertion, a `satisfies` expression and a
-non-null assertion — `(globalThis as any).process.env`, `process!.env` — which leave the value
-unchanged at run time. And a
-local named like a global object, such as a parameter called `global`, `window` or `self`, is read
-as the global (bug 0305).
+is outside `noProcessEnv`. And a local named like a global object, such as a parameter called
+`global`, `window` or `self`, is read as the global (bug 0305).
 
 ### When to use which variant
 

@@ -76,11 +76,11 @@ to escape the rule.
 The three rules use `processEnvAccess()`, a matcher private to `packages/ts/src/rules/security.ts`
 built on the name reading
 [0301](./0301-security-rules-match-one-spelling-and-the-floor-inherits-it.md) added there. It reads
-a property access or a string-keyed element access, drops one leading global object —
+a property access or a string-keyed element access, drops one leading global object (every leading one since 0308, 2026-09-14) —
 `globalThis`, `window`, `self`, `global` — and matches when what remains is `process.env`. So
 `process.env`, `process?.env`, `process['env']`, `globalThis.process.env` and
 `globalThis['process']['env']` are reported, and `settings.env` is not. It did not read through a type assertion, a
-non-null assertion or a second global object — [0308](./0308-security-rules-miss-a-global-read-through-a-cast.md), since fixed — and, since it reads
+non-null assertion or a second global object — [0308](./0308-security-rules-miss-a-global-read-through-a-cast.md), fixed on 2026-09-14 — and, since it reads
 names rather than bindings, it reads a local named `global`, `window` or `self` as the global
 object — [0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md).
 

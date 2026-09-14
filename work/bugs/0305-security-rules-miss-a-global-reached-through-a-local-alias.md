@@ -41,7 +41,9 @@ spelling is reported, the aliased one is not:
 | `functionNoProcessEnv`          | `const self = host; self.process.env`                                | 0297's fix  |
 
 The `process.env` rows were measured in 0297's reviews. A local named `global`, `window` or `self`
-became reportable when 0297 read `process.env` through a global object. The
+became reportable when 0297 read `process.env` through a global object. Since 0308 drops every leading
+global object, a local named like one and followed by another global name is read as the global too:
+`function f(self: any) { return self.window.eval('1') }` is reported. The
 bare call is new: before 0301 only `new Function(…)` was matched, so a call to a local
 `Function` was never checked. The class and module variants share the matchers, so they share
 both directions.

@@ -19,7 +19,7 @@ import type { ArchProject } from '../../src/core/project.js'
  * spelling of the global-object read.
  *
  * One test per rule, each an exact sorted list of the functions reported, over every wrapper and a
- * doubled global object; each fixture's first function is the direct spelling. The CONTROL pins
+ * doubled global object, and a tripled one for `eval`; each fixture's first function is the direct spelling. The CONTROL pins
  * what the rules must still not read as a global: a cast of a local or of `this`, a global
  * object's name after the first segment, and a method of a cast object.
  */
@@ -72,6 +72,7 @@ describe('bug 0308: the security rules read a global through a cast', () => {
       "export function evalAsCallee() { return (eval as any)('1') }",
       "export function evalNonNull() { return eval!('1') }",
       "export function evalDoubledGlobal() { return window.self.eval('1') }",
+      "export function evalTripleGlobal() { return window.self.globalThis.eval('1') }",
     ])
     const result = functions(p)
       .should()
@@ -85,6 +86,7 @@ describe('bug 0308: the security rules read a global through a cast', () => {
       'evalDirect',
       'evalDoubledGlobal',
       'evalNonNull',
+      'evalTripleGlobal',
     ])
   })
 
@@ -129,7 +131,7 @@ describe('bug 0308: the security rules read a global through a cast', () => {
 
   it('CONTROL — a cast of a local or of this, a global name after the first segment, and a method of a cast object are not the global', () => {
     const p = project([
-      'export function castOfLocal(settings: { env: object }) { return (settings as any).env }',
+      'export function castOfLocal(settings: { process: { env: object } }) { return (settings as any).process.env }',
       'export function castOfThis() { return (this as any).process.env }',
       'export function globalAfterFirst(settings: { window: { process: { env: object } } }) { return settings.window.process.env }',
       "export function methodOfCast(obj: { eval(s: string): void }) { return (obj as any).eval('1') }",
