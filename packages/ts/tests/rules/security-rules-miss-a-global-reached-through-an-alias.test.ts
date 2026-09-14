@@ -113,6 +113,40 @@ describe('bug 0305: a global reached through a local alias', () => {
     expect(reported).toEqual(new Set(['viaDot']))
   })
 
+  it('KNOWN GAP — a local named process, global, window or self is read as the global by noProcessEnv', () => {
+    // None of these reads the environment. `global`, `window` and `self` became reportable when
+    // 0297 read `process.env` through a global object; a `process` parameter was reported before.
+    const tsm = new Project({ useInMemoryFileSystem: true })
+    tsm.createSourceFile(
+      '/src/env-shadows.ts',
+      [
+        'export function shadowProcess(process: { env: object }) { return process.env }',
+        'export function shadowGlobal(global: { process: { env: object } }) { return global.process.env }',
+        'export function shadowWindow(window: { process: { env: object } }) { return window.process.env }',
+        'export function shadowSelf(host: { process: { env: object } }) { const self = host; return self.process.env }',
+        'export function unrelated() { return 1 }',
+        '',
+      ].join('\n'),
+    )
+    const p: ArchProject = {
+      tsConfigPath: '/tsconfig.json',
+      _project: tsm,
+      getSourceFiles: () => tsm.getSourceFiles(),
+    }
+    const reported = functions(p)
+      .should()
+      .satisfy(functionNoProcessEnv())
+      .rule({ id: 'test/0305-env-shadow' })
+      .violations()
+
+    expect(reported.map((v) => v.element).sort()).toEqual([
+      'shadowGlobal',
+      'shadowProcess',
+      'shadowSelf',
+      'shadowWindow',
+    ])
+  })
+
   it('KNOWN GAP — a local declaration that shadows Function or console is reported as the global', () => {
     const tsm = new Project({ useInMemoryFileSystem: true })
     tsm.createSourceFile(

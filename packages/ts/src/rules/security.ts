@@ -67,7 +67,10 @@ function globalNameOf(node: Node): string | undefined {
   return dot > 0 && GLOBAL_OBJECTS.has(chain.slice(0, dot)) ? chain.slice(dot + 1) : chain
 }
 
-/** A call to the global `name`. Described as `call()` describes it, so messages and baselines are unchanged. */
+/**
+ * A call to the global `name`. Described as `call()` describes it, so messages are unchanged; a
+ * newly reported call earlier in a declaration still renumbers the matches after it.
+ */
 function globalCall(name: string): ExpressionMatcher {
   return {
     description: `call to '${name}'`,
@@ -87,7 +90,10 @@ function functionConstructor(): ExpressionMatcher {
   }
 }
 
-/** Any member of the global `console`. Described as the `access()` it replaces, so baselines are unchanged. */
+/**
+ * Any member of the global `console`. Described as the `access()` it replaces, so messages are
+ * unchanged; a newly reported read earlier in a declaration still renumbers the matches after it.
+ */
 function consoleAccess(): ExpressionMatcher {
   return {
     description: 'access matching /^console\\./',
@@ -96,7 +102,10 @@ function consoleAccess(): ExpressionMatcher {
   }
 }
 
-/** A read of the global `process.env`. Described as the `access()` it replaces, so messages and baselines are unchanged. */
+/**
+ * A read of the global `process.env`. Described as the `access()` it replaces, so messages are
+ * unchanged; a newly reported read earlier in a member still renumbers the matches after it.
+ */
 function processEnvAccess(): ExpressionMatcher {
   return {
     description: "access to 'process.env'",

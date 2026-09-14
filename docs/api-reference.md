@@ -638,23 +638,23 @@ See [Architecture Presets](/presets) for full configuration options.
 
 ### `eess-ts/rules/security`
 
-| Export                            | Target    | Description                                                                |
-| --------------------------------- | --------- | -------------------------------------------------------------------------- |
-| `noEval()`                        | classes   | No `eval()` calls in a class's member code.                                |
-| `noFunctionConstructor()`         | classes   | No `Function` constructor, with or without `new`.                          |
-| `noConsoleLog()`                  | classes   | No `console.log` calls.                                                    |
-| `noProcessEnv()`                  | classes   | No `process.env` read, bracketed or through a global object.               |
-| `noConsole()`                     | classes   | No console access at all (log, warn, error, etc).                          |
-| `noJsonParse()`                   | classes   | No `JSON.parse` calls.                                                     |
-| `functionNoEval()`                | functions | No `eval()` calls in functions.                                            |
-| `functionNoFunctionConstructor()` | functions | No `Function` constructor, with or without `new`.                          |
-| `functionNoProcessEnv()`          | functions | No `process.env` read in functions, spelled as for `noProcessEnv()`.       |
-| `functionNoConsoleLog()`          | functions | No `console.log` in functions.                                             |
-| `functionNoConsole()`             | functions | No console access in functions.                                            |
-| `functionNoJsonParse()`           | functions | No `JSON.parse` in functions.                                              |
-| `moduleNoEval()`                  | modules   | No `eval()` anywhere in module.                                            |
-| `moduleNoProcessEnv()`            | modules   | No `process.env` read anywhere in module, spelled as for `noProcessEnv()`. |
-| `moduleNoConsoleLog()`            | modules   | No `console.log` anywhere in module.                                       |
+| Export                            | Target    | Description                                                                                                                         |
+| --------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `noEval()`                        | classes   | No `eval()` calls in a class's member code.                                                                                         |
+| `noFunctionConstructor()`         | classes   | No `Function` constructor, with or without `new`.                                                                                   |
+| `noConsoleLog()`                  | classes   | No `console.log` calls.                                                                                                             |
+| `noProcessEnv()`                  | classes   | `process.env` read with a dot, a bracket or through one global object. Not a destructured or imported `env`, nor `import.meta.env`. |
+| `noConsole()`                     | classes   | No console access at all (log, warn, error, etc).                                                                                   |
+| `noJsonParse()`                   | classes   | No `JSON.parse` calls.                                                                                                              |
+| `functionNoEval()`                | functions | No `eval()` calls in functions.                                                                                                     |
+| `functionNoFunctionConstructor()` | functions | No `Function` constructor, with or without `new`.                                                                                   |
+| `functionNoProcessEnv()`          | functions | No `process.env` read in functions, spelled as for `noProcessEnv()`.                                                                |
+| `functionNoConsoleLog()`          | functions | No `console.log` in functions.                                                                                                      |
+| `functionNoConsole()`             | functions | No console access in functions.                                                                                                     |
+| `functionNoJsonParse()`           | functions | No `JSON.parse` in functions.                                                                                                       |
+| `moduleNoEval()`                  | modules   | No `eval()` anywhere in module.                                                                                                     |
+| `moduleNoProcessEnv()`            | modules   | No `process.env` read anywhere in module, spelled as for `noProcessEnv()`.                                                          |
+| `moduleNoConsoleLog()`            | modules   | No `console.log` anywhere in module.                                                                                                |
 
 ### `eess-ts/rules/errors`
 
