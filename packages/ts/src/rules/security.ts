@@ -95,7 +95,7 @@ function consoleAccess(): ExpressionMatcher {
 }
 
 /**
- * No eval() calls in class methods — `eval(…)`, through a global object
+ * No eval() calls in a class's member code — `eval(…)`, through a global object
  * (`globalThis`, `window`, `self`, `global`), a string-keyed bracket, or the indirect
  * `(0, eval)(…)`. An `eval` bound to a local name first is not seen (bug 0305).
  *
@@ -118,7 +118,8 @@ export function noFunctionConstructor(): Condition<ClassDeclaration> {
 }
 
 /**
- * No direct process.env access in class methods.
+ * No direct process.env access in a class's member code — bodies, parameter defaults,
+ * property initializers and static blocks.
  *
  * Use dependency injection for configuration instead.
  *
@@ -133,7 +134,7 @@ export function noProcessEnv(): Condition<ClassDeclaration> {
 }
 
 /**
- * No console.log calls in class methods — including `console['log']` and through a
+ * No console.log calls in a class's member code — including `console['log']` and through a
  * global object.
  *
  * Use a logger abstraction instead.

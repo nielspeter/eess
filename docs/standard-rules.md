@@ -39,7 +39,7 @@ import {
 | `moduleNoTypeAssertions()`      | modules   | Source file must not contain `as` casts (allows `as const`)     |
 | `moduleNoNonNullAssertions()`   | modules   | Source file must not contain `!` non-null assertions            |
 
-`noTypeAssertions` (and its variants) allow `as const` since that narrows types rather than widening them. The class variants scan methods, constructors, getters, and setters. Module variants scan the entire file — broader than function/class and useful for "nowhere in src/" enforcement.
+`noTypeAssertions` (and its variants) allow `as const` since that narrows types rather than widening them. The class variants scan the code each member runs: method, constructor and accessor bodies, parameter defaults, property initializers and static blocks — not decorators or docstrings. Module variants scan the entire file — broader than function/class and useful for "nowhere in src/" enforcement.
 
 ```typescript
 // Classes

@@ -640,7 +640,7 @@ See [Architecture Presets](/presets) for full configuration options.
 
 | Export                            | Target    | Description                                       |
 | --------------------------------- | --------- | ------------------------------------------------- |
-| `noEval()`                        | classes   | No `eval()` calls in class methods.               |
+| `noEval()`                        | classes   | No `eval()` calls in a class's member code.       |
 | `noFunctionConstructor()`         | classes   | No `Function` constructor, with or without `new`. |
 | `noConsoleLog()`                  | classes   | No `console.log` calls.                           |
 | `noProcessEnv()`                  | classes   | No direct `process.env` access.                   |
