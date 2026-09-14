@@ -225,7 +225,7 @@ export function applyFilters(
         // pattern that silences NOTHING (fail-closed — the finding still fires, CI is
         // still red), while this warns about a pattern that silences MULTIPLE real
         // findings and every future one on the same edges (fail-open — a green
-        // `check()`, one stderr line). ADR-008 states the primary consumer does not
+        // `check()`, one stderr line). ADR-009 states the primary consumer does not
         // read warnings. Kept advisory here, matching plan 0104's own review
         // resolution — but the asymmetry is real and worth re-litigating if this
         // loophole is measured firing in practice, not settled by the precedent
