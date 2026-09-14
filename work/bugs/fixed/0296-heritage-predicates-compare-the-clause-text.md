@@ -57,8 +57,11 @@ Two limits are stated rather than fixed:
 - **A mixin resolves only when TypeScript types it as one**, which needs the mixin's constructor
   to take `...args: any[]`; any other signature leaves the result without a base class, and the
   predicates fall back to the written text.
-- **Matching by resolved name conflates two classes of the same name** from different modules —
-  as the written text already did.
+- **Matching by resolved name conflates two classes of the same name** from different modules.
+  Written the same way, `extends Base`, the text already conflated them. Imported under
+  different aliases, it did not: `import { Base as A } from './a'` and `import { Base as B } from './b'`
+  matched neither under `extend('Base')` before and both now (measured in review). That is the
+  mechanism that fixes the alias, not a separate path, so it is stated rather than guarded.
 
 The changeset is a `minor` marked breaking: a selector can select classes it used to skip.
 
