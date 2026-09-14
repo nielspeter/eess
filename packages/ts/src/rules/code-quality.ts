@@ -3,6 +3,8 @@ import type { ClassDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation } from '../core/violation.js'
+import { searchClassBody } from '../helpers/body-traversal.js'
+import type { ExpressionMatcher } from '../helpers/matchers.js'
 
 /**
  * All public methods must have JSDoc comments.
@@ -98,10 +100,20 @@ export function noPublicFields(): Condition<ClassDeclaration> {
 }
 
 /**
- * Method bodies must not contain magic numbers.
+ * No member code of a class may contain magic numbers: method, constructor and accessor bodies,
+ * parameter defaults, property initializers and static blocks (bug 0306). Decorators, computed names
+ * and `extends` are not read: a number in `@Max(150)` or `@Column({ precision: 12 })` is named by the
+ * decorator that takes it, and reading them would report every validation and ORM field.
  *
  * Numbers 0, 1, -1, 2, 10, 100 are allowed by default.
  * Configure with options.allowed to customize.
+ *
+ * A number that is the whole value of one of the class's own properties or its members' parameter
+ * defaults is named by it, and is not reported — read through a sign, parentheses, `as`, `<T>`,
+ * `satisfies` and `!`, so `static readonly LIMIT = 5000 as const` is named too.
+ *
+ * A finding names the member the number sits in — `Class.method`, `Class.constructor`,
+ * `Class.static` for a static block — so a number in a method keeps the message it always had.
  *
  * @example
  * import { noMagicNumbers } from '@nielspeter/eess-ts/rules/code-quality'
@@ -116,32 +128,101 @@ export function noPublicFields(): Condition<ClassDeclaration> {
  */
 export function noMagicNumbers(options?: { allowed?: number[] }): Condition<ClassDeclaration> {
   const allowedSet = new Set(options?.allowed ?? [0, 1, -1, 2, 10, 100])
+  const magicNumberIn = (cls: ClassDeclaration): ExpressionMatcher => ({
+    description: 'magic number',
+    syntaxKinds: [SyntaxKind.NumericLiteral],
+    matches: (node) =>
+      Node.isNumericLiteral(node) &&
+      !allowedSet.has(node.getLiteralValue()) &&
+      !isNamedValue(node, cls),
+  })
 
   return {
-    description: 'have no magic numbers in method bodies',
+    description: 'have no magic numbers in member code',
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
-        for (const method of cls.getMethods()) {
-          const body = method.getBody()
-          if (!body) continue
-
-          const literals = body.getDescendantsOfKind(SyntaxKind.NumericLiteral)
-          for (const lit of literals) {
-            const value = Number(lit.getText())
-            if (!allowedSet.has(value)) {
-              violations.push(
-                createViolation(
-                  lit,
-                  `${cls.getName() ?? '<anonymous>'}.${method.getName()} contains magic number ${String(value)} — extract to a named constant`,
-                  context,
-                ),
-              )
-            }
-          }
+        for (const literal of searchClassBody(cls, magicNumberIn(cls), 'member-code')
+          .matchingNodes) {
+          if (!Node.isNumericLiteral(literal)) continue
+          // The value, not the text: `5_000` is 5000, in the message and against the allowed list.
+          const value = literal.getLiteralValue()
+          violations.push(
+            createViolation(
+              literal,
+              `${memberLabel(cls, literal)} contains magic number ${String(value)} — extract to a named constant`,
+              context,
+            ),
+          )
         }
       }
       return violations
     },
   }
+}
+
+/**
+ * A number that is the whole value of one of the class's own declarations — a property's initializer
+ * or a member's parameter default — is named by that declaration: `private timeout = 5000`,
+ * `retry(attempts = 3)`, `static readonly LIMIT = -5000 as const`. It is not reported. A number
+ * inside a larger initializer or default still is, and so is one in a function or class nested inside
+ * a member: the method walk before bug 0306 reported those, and they are not the class's names.
+ */
+function isNamedValue(literal: Node, cls: ClassDeclaration): boolean {
+  let value: Node = literal
+  let parent = value.getParent()
+  while (parent !== undefined && leavesValueUnchanged(parent)) {
+    value = parent
+    parent = value.getParent()
+  }
+  if (Node.isPropertyDeclaration(parent)) {
+    return parent.getInitializer() === value && parent.getParent() === cls
+  }
+  if (Node.isParameterDeclaration(parent)) {
+    return parent.getInitializer() === value && parent.getParent()?.getParent() === cls
+  }
+  return false
+}
+
+/**
+ * A wrapper that leaves the value inside it unchanged: a `-` or `+` sign, parentheses, `as`, `<T>`,
+ * `satisfies` or `!`. The metrics rules read a function-valued property through the same wrappers.
+ */
+function leavesValueUnchanged(node: Node): boolean {
+  if (Node.isPrefixUnaryExpression(node)) {
+    const operator = node.getOperatorToken()
+    return operator === SyntaxKind.MinusToken || operator === SyntaxKind.PlusToken
+  }
+  return (
+    Node.isParenthesizedExpression(node) ||
+    Node.isAsExpression(node) ||
+    Node.isTypeAssertion(node) ||
+    Node.isSatisfiesExpression(node) ||
+    Node.isNonNullExpression(node)
+  )
+}
+
+/**
+ * `Class.member` for the member of `cls` a node sits in: `Class.constructor` in a constructor,
+ * `Class.static` in a static block, and the class alone for a node outside every member.
+ */
+function memberLabel(cls: ClassDeclaration, node: Node): string {
+  const className = cls.getName() ?? '<anonymous>'
+  let member: Node = node
+  let parent = member.getParent()
+  while (parent !== undefined && parent !== cls) {
+    member = parent
+    parent = member.getParent()
+  }
+  if (Node.isConstructorDeclaration(member)) return `${className}.constructor`
+  if (Node.isClassStaticBlockDeclaration(member)) return `${className}.static`
+  if (
+    Node.isMethodDeclaration(member) ||
+    Node.isPropertyDeclaration(member) ||
+    Node.isGetAccessorDeclaration(member) ||
+    Node.isSetAccessorDeclaration(member)
+  ) {
+    return `${className}.${member.getName()}`
+  }
+  return className
 }

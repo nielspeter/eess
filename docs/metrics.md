@@ -18,13 +18,13 @@ classes(p).should().satisfy(maxMethods(15)).warn()
 
 Class-level metric rules enforce upper bounds on complexity, size, and member counts for class declarations. They prevent individual classes from growing into "god objects" that are hard to test and reason about.
 
-| Rule                         | What it checks                                           |
-| ---------------------------- | -------------------------------------------------------- |
-| `maxCyclomaticComplexity(n)` | No method/constructor/getter/setter exceeds complexity N |
-| `maxClassLines(n)`           | Class has no more than N code lines                      |
-| `maxMethodLines(n)`          | No method/constructor/getter/setter exceeds N code lines |
-| `maxMethods(n)`              | Class has no more than N methods                         |
-| `maxParameters(n)`           | No method/constructor has more than N parameters         |
+| Rule                         | What it checks                                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `maxCyclomaticComplexity(n)` | No callable member (method, constructor, accessor or function-valued property) exceeds complexity N       |
+| `maxClassLines(n)`           | Class has no more than N code lines                                                                       |
+| `maxMethodLines(n)`          | No callable member (method, constructor, accessor or function-valued property) exceeds N code lines       |
+| `maxMethods(n)`              | Class has no more than N declared methods (a function-valued property is not counted)                     |
+| `maxParameters(n)`           | No callable member (method, constructor, accessor or function-valued property) has more than N parameters |
 
 ```typescript
 import {
@@ -111,13 +111,13 @@ classes(p)
 
 Available predicates:
 
-| Predicate                                      | Entry Point    | Description                            |
-| ---------------------------------------------- | -------------- | -------------------------------------- |
-| `haveCyclomaticComplexity({ greaterThan: n })` | `classes(p)`   | Class has a method with complexity > n |
-| `haveMoreLinesThan(n)`                         | `classes(p)`   | Class has more than n code lines       |
-| `haveMoreMethodsThan(n)`                       | `classes(p)`   | Class has more than n methods          |
-| `haveComplexity({ greaterThan: n })`           | `functions(p)` | Function has complexity > n            |
-| `haveMoreFunctionLinesThan(n)`                 | `functions(p)` | Function has more than n code lines    |
+| Predicate                                      | Entry Point    | Description                                                                                      |
+| ---------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------ |
+| `haveCyclomaticComplexity({ greaterThan: n })` | `classes(p)`   | Class has a method, constructor or accessor with complexity > n (not a function-valued property) |
+| `haveMoreLinesThan(n)`                         | `classes(p)`   | Class has more than n code lines                                                                 |
+| `haveMoreMethodsThan(n)`                       | `classes(p)`   | Class has more than n declared methods                                                           |
+| `haveComplexity({ greaterThan: n })`           | `functions(p)` | Function has complexity > n                                                                      |
+| `haveMoreFunctionLinesThan(n)`                 | `functions(p)` | Function has more than n code lines                                                              |
 
 ## How Lines Are Counted
 

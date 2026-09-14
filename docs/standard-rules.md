@@ -387,7 +387,7 @@ modules(p)
 
 ## Code Quality (`eess-ts/rules/code-quality`)
 
-Structural code quality rules that go beyond what a linter catches. These check properties of the class as a whole — whether public methods are documented, whether mutable state is exposed, whether magic numbers are scattered through method bodies. Use `.warn()` for gradual adoption on existing codebases, `.check()` for strict enforcement on new code.
+Structural code quality rules that go beyond what a linter catches. These check properties of the class as a whole — whether public methods are documented, whether mutable state is exposed, whether magic numbers are scattered through member code. Use `.warn()` for gradual adoption on existing codebases, `.check()` for strict enforcement on new code.
 
 ```typescript
 import {
@@ -397,13 +397,13 @@ import {
 } from '@nielspeter/eess-ts/rules/code-quality'
 ```
 
-| Rule                            | What it checks                                                   |
-| ------------------------------- | ---------------------------------------------------------------- |
-| `requireJsDocOnPublicMethods()` | All public methods must have JSDoc comments                      |
-| `noPublicFields()`              | No public mutable fields (allows static readonly)                |
-| `noMagicNumbers(options?)`      | No numeric literals in method bodies (configurable allowed list) |
+| Rule                            | What it checks                                                                                                                |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `requireJsDocOnPublicMethods()` | All public methods must have JSDoc comments                                                                                   |
+| `noPublicFields()`              | No public mutable fields (allows static readonly)                                                                             |
+| `noMagicNumbers(options?)`      | No numeric literals in class member code, except its own properties' and parameters' whole values (configurable allowed list) |
 
-`requireJsDocOnPublicMethods` enforces that every public API surface is documented. This is especially useful for library code and shared packages where consumers rely on JSDoc for IDE hints. `noPublicFields` enforces encapsulation — state should be accessed through methods, not exposed directly (static readonly constants are allowed). `noMagicNumbers` catches unexplained numeric literals in method bodies; pass an `allowed` array for numbers that are self-explanatory (0, 1, -1, HTTP status codes):
+`requireJsDocOnPublicMethods` enforces that every public API surface is documented. This is especially useful for library code and shared packages where consumers rely on JSDoc for IDE hints. `noPublicFields` enforces encapsulation — state should be accessed through methods, not exposed directly (static readonly constants are allowed). `noMagicNumbers` catches unexplained numeric literals in a class's member code — not its decorators, computed names or `extends` — except the whole value of one of its own properties or parameters, read through a sign or `as const` — a keyed table such as `static readonly Status = { OK: 200 }` is still reported; pass an `allowed` array for numbers that are self-explanatory (0, 1, -1, HTTP status codes):
 
 ```typescript
 // Public API must be documented
@@ -450,16 +450,16 @@ import {
 } from '@nielspeter/eess-ts/rules/metrics'
 ```
 
-| Rule                         | Target    | What it checks                         |
-| ---------------------------- | --------- | -------------------------------------- |
-| `maxCyclomaticComplexity(n)` | classes   | No method exceeds complexity N         |
-| `maxClassLines(n)`           | classes   | Class has no more than N code lines    |
-| `maxMethodLines(n)`          | classes   | No method exceeds N code lines         |
-| `maxMethods(n)`              | classes   | Class has no more than N methods       |
-| `maxParameters(n)`           | classes   | No method has more than N parameters   |
-| `maxFunctionComplexity(n)`   | functions | Function complexity does not exceed N  |
-| `maxFunctionLines(n)`        | functions | Function has no more than N code lines |
-| `maxFunctionParameters(n)`   | functions | Function has no more than N parameters |
+| Rule                         | Target    | What it checks                                |
+| ---------------------------- | --------- | --------------------------------------------- |
+| `maxCyclomaticComplexity(n)` | classes   | No callable member exceeds complexity N       |
+| `maxClassLines(n)`           | classes   | Class has no more than N code lines           |
+| `maxMethodLines(n)`          | classes   | No callable member exceeds N code lines       |
+| `maxMethods(n)`              | classes   | Class has no more than N methods              |
+| `maxParameters(n)`           | classes   | No callable member has more than N parameters |
+| `maxFunctionComplexity(n)`   | functions | Function complexity does not exceed N         |
+| `maxFunctionLines(n)`        | functions | Function has no more than N code lines        |
+| `maxFunctionParameters(n)`   | functions | Function has no more than N parameters        |
 
 Start with generous limits and tighten over time. Common starting points: complexity 15, method lines 40, class lines 300, parameters 4. Use `.warn()` for soft limits and `.check()` for hard limits:
 

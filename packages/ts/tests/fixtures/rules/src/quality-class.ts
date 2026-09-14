@@ -17,7 +17,7 @@ export class BadQualityService {
 
   constructor(name: string) {
     this.name = name
-    this.counter = 99 // magic number in constructor (not scanned by noMagicNumbers)
+    this.counter = 99 // magic number in constructor (read by noMagicNumbers since bug 0306)
   }
 
   // Public method without JSDoc — violation

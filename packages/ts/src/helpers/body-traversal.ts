@@ -182,6 +182,10 @@ function triviaMatches(node: Node, matcher: ExpressionMatcher): Match[] {
  * computed name or the `extends` expression is wiring that must not satisfy a rule like
  * `classMustCall` — a DI token passed to a decorator included. The line is drawn by position: a
  * call in member code still satisfies it, a DI lookup in a field initializer included.
+ *
+ * A rule that forbids something may still read member code only, when the other positions hold
+ * nothing it should report: `noMagicNumbers` does, because a number in a decorator argument such as
+ * `@Max(150)` is named by the decorator that takes it (bug 0306).
  */
 type ClassBodyReach = 'member-code' | 'all-code'
 

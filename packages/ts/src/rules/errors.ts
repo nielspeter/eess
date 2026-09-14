@@ -1,13 +1,14 @@
-import { Node } from 'ts-morph'
+import { Node, SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration, SourceFile } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation } from '../core/violation.js'
 import type { ArchFunction } from '../models/arch-function.js'
-import { newExpr } from '../helpers/matchers.js'
+import { newExpr, type ExpressionMatcher } from '../helpers/matchers.js'
+import { searchClassBody } from '../helpers/body-traversal.js'
 import { classNotContain } from '../conditions/body-analysis.js'
 import { functionNotContain } from '../conditions/body-analysis-function.js'
-import { findSilentCatches } from '../conditions/catch-analysis.js'
+import { findSilentCatches, silentCatchMessage } from '../conditions/catch-analysis.js'
 
 /**
  * No throwing generic Error — use typed domain errors instead.
@@ -41,9 +42,18 @@ export function functionNoTypeErrors(): Condition<ArchFunction> {
 
 // ─── Silent catch detection ──────────────────────────────────────
 
+/** Every catch clause; `noSilentCatch` decides which of them are silent. */
+const catchClause: ExpressionMatcher = {
+  description: 'catch clause',
+  syntaxKinds: [SyntaxKind.CatchClause],
+  matches: (node) => Node.isCatchClause(node),
+}
+
 /**
- * Catch blocks in class methods, constructors, getters, and setters
- * must reference the caught error variable.
+ * Catch blocks anywhere a class runs code must reference the caught error variable: member
+ * bodies, parameter defaults, property initializers (an arrow-function event handler included),
+ * static blocks, decorators, computed names and `extends` (bug 0306). It forbids something, so
+ * it reads all of it, as `notContain()` on the class builder does.
  *
  * Detects catch blocks that silently discard errors — no logging,
  * no rethrowing, no passing to another function. A common source of
@@ -55,18 +65,10 @@ export function noSilentCatch(): Condition<ClassDeclaration> {
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
-        const members = [
-          ...cls.getMethods(),
-          ...cls.getConstructors(),
-          ...cls.getGetAccessors(),
-          ...cls.getSetAccessors(),
-        ]
-        for (const member of members) {
-          const body = member.getBody()
-          if (!body) continue
-          for (const result of findSilentCatches(body)) {
-            violations.push(createViolation(result.node, result.message, context))
-          }
+        for (const node of searchClassBody(cls, catchClause, 'all-code').matchingNodes) {
+          if (!Node.isCatchClause(node)) continue
+          const message = silentCatchMessage(node)
+          if (message !== undefined) violations.push(createViolation(node, message, context))
         }
       }
       return violations
