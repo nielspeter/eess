@@ -181,7 +181,7 @@ function triviaMatches(node: Node, matcher: ExpressionMatcher): Match[] {
  * search for what it MUST contain reads member code only: there, reading less fails closed, and a
  * decorator, a DI token or a base class is wiring that must not satisfy a rule like `classMustCall`.
  */
-export type ClassBodyReach = 'member-code' | 'all-code'
+type ClassBodyReach = 'member-code' | 'all-code'
 
 /**
  * Search the code a class runs (bugs 0300, 0307), as far as `reach` says.
