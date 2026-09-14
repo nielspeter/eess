@@ -130,15 +130,17 @@ tool. A general tool needs one answer.
 
 ## Enforcement
 
-| Clause                                                                    | Tier | Mechanism                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Status  |
-| ------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| Exactly one `parseExclusionComments` exists in the family                 | 1    | `check:guardrails` (`scripts/check-guardrails.mjs`) runs the shipped `agentGuardrails` preset over `packages/*/src/**`. It reported this pair at 100% before the unification and does not now. **`warn`, not `gated`, and the distinction is real**: `no-copy-paste` ships `.warn()`, so a second copy reappearing is reported and does not fail the build                                                                                                                                                                                                                                                                                                                                                                                              | `warn`  |
-| A dialect that injects nothing gets the conservative default              | 2    | `packages/core/tests/exclusion-reason-and-nesting.test.ts` and `packages/core/tests/exclusion-directive-position.test.ts` call `parseExclusionComments` with no options throughout, so every case in them asserts default behaviour; the option is additive                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `gated` |
-| An injected masker cannot make the parser accept what the default refuses | 2    | `packages/core/tests/exclusion-mask-injection.test.ts` — injects the identity function as a masker and asserts a directive inside a string literal is still refused. Verified by sabotage: replacing the composition with the injected masker alone reds exactly that test and no other. **Cited by file, not by `it()` title, and not by choice**: `check:crossval` resolves ADR test citations against `project('packages/ts/tsconfig.json')`, so no clause in any ADR can name a kernel test by title. The gap is the mechanism's, not this row's                                                                                                                                                                                                    | `gated` |
-| `eess-ts` keeps its `ts-morph` accuracy after the parser moves            | 2    | `packages/ts/tests/helpers/exclusion-comments.test.ts` runs against the unified parser plus the injected masker, unchanged except where the reason-free decision below changed the answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `gated` |
-| A reason-free waiver applies, and becomes an unsuppressable finding       | 2    | Three mechanisms, because one clause spans two engines. `packages/ts/tests/core/exclusion-comments-reach-every-condition.test.ts` · `it('an undocumented exclusion fails the build (bug 0039)')` pins the **`eess-ts` fork**, which has its own copy of the filter. `packages/core/tests/exclusion-reason-and-nesting.test.ts` pins the **kernel's** promotion by driving `applyFilters` with a reason-free directive and asserting the finding's severity and unsuppressability (cited by file — see the row above for why a kernel test cannot be cited by title). And `scripts/nonvacuity/bad-undocumented-waiver.mjs`, claimed by `check:corpus`, proves it end to end through `eess-md`, one of the four dialects that do **not** fork the filter. | `gated` |
-| `MaskNonComment` is nameable from wherever `parseExclusionComments` is    | 1    | `packages/core/tests/public-surface-is-nameable.test.ts` — it failed on the first implementation of this ADR, which had put the type behind `/internal`; that is this row's own red-first evidence. By file, for the same reason as above                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `gated` |
-| The kernel gains no dependency in the process                             | 1    | `check:integrity`'s phantom-dependency check: `@nielspeter/eess` declares no dependencies, so any bare import in its `src/` fails                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `gated` |
+| Clause                                                                            | Tier | Mechanism                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Status       |
+| --------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Exactly one `parseExclusionComments` exists in the family                         | 1    | `check:guardrails` (`scripts/check-guardrails.mjs`) runs the shipped `agentGuardrails` preset over `packages/*/src/**`. It reported this pair at 100% before the unification and does not now. **`warn`, not `gated`, and the distinction is real**: `no-copy-paste` ships `.warn()`, so a second copy reappearing is reported and does not fail the build                                                                                                                                                                                                                                                                                                                                                                                              | `warn`       |
+| A dialect that injects nothing gets the conservative default, for code-like files | 2    | `packages/core/tests/exclusion-reason-and-nesting.test.ts` and `packages/core/tests/exclusion-directive-position.test.ts` call `parseExclusionComments` with no options throughout, so every case in them asserts default behaviour; the option is additive                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `gated`      |
+| A markdown file with no injected masker gets the conservative default             | 2    | `packages/core/tests/mask-markdown.test.ts` pins top-level fences only. No test covers a fence in a list item or blockquote, a closer that carries an info string, `<pre>`, or a region delimiter indented four spaces, and the property is measured false for each ([bug 0291](../work/bugs/0291-the-markdown-masker-honours-a-directive-inside-code.md))                                                                                                                                                                                                                                                                                                                                                                                              | `pending`    |
+| The identity masker leaves the default's refusals unchanged, for code-like files  | 2    | `packages/core/tests/exclusion-mask-injection.test.ts` — injects the identity function as a masker and asserts a directive inside a string literal is still refused. Verified by sabotage: replacing the composition with the injected masker alone reds exactly that test and no other. **Cited by file, not by `it()` title, and not by choice**: `check:crossval` resolves ADR test citations against `project('packages/ts/tsconfig.json')`, so no clause in any ADR can name a kernel test by title. The gap is the mechanism's, not this row's                                                                                                                                                                                                    | `gated`      |
+| An injected masker cannot make the parser accept what the default refuses         | 2    | Measured false for every file type on `main`'s kernel, and no blank-only composition can hold it: a masker that hides a region delimiter merges two waiver regions, and blanking more cannot restore a hidden delimiter. See the property 3 correction below. What replaces the clause is undecided ([bug 0291](../work/bugs/0291-the-markdown-masker-honours-a-directive-inside-code.md))                                                                                                                                                                                                                                                                                                                                                              | `deprecated` |
+| `eess-ts` keeps its `ts-morph` accuracy after the parser moves                    | 2    | `packages/ts/tests/helpers/exclusion-comments.test.ts` runs against the unified parser plus the injected masker, unchanged except where the reason-free decision below changed the answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `gated`      |
+| A reason-free waiver applies, and becomes an unsuppressable finding               | 2    | Three mechanisms, because one clause spans two engines. `packages/ts/tests/core/exclusion-comments-reach-every-condition.test.ts` · `it('an undocumented exclusion fails the build (bug 0039)')` pins the **`eess-ts` fork**, which has its own copy of the filter. `packages/core/tests/exclusion-reason-and-nesting.test.ts` pins the **kernel's** promotion by driving `applyFilters` with a reason-free directive and asserting the finding's severity and unsuppressability (cited by file — see the row above for why a kernel test cannot be cited by title). And `scripts/nonvacuity/bad-undocumented-waiver.mjs`, claimed by `check:corpus`, proves it end to end through `eess-md`, one of the four dialects that do **not** fork the filter. | `gated`      |
+| `MaskNonComment` is nameable from wherever `parseExclusionComments` is            | 1    | `packages/core/tests/public-surface-is-nameable.test.ts` — it failed on the first implementation of this ADR, which had put the type behind `/internal`; that is this row's own red-first evidence. By file, for the same reason as above                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `gated`      |
+| The kernel gains no dependency in the process                                     | 1    | `check:integrity`'s phantom-dependency check: `@nielspeter/eess` declares no dependencies, so any bare import in its `src/` fails                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `gated`      |
 
 ### A correction, 2026-09-03
 
@@ -156,3 +158,100 @@ records it and its fix; the row now names a mechanism per engine. This is
 [bug 0189](../work/bugs/fixed/0189-adr-008s-preset-default-row-is-gated-over-a-changed-engine.md)'s
 shape a second time — a row green over a different path than the clause it
 states — which is why the correction is recorded here rather than edited away.
+
+### A correction, 2026-09-13 — property 2 for markdown
+
+**Property 2 does not hold for markdown.** It was measured through
+`parseExclusionComments` with no masker, on `main` at `2a2a503`. A directive
+waives a real finding on the next line when it sits inside:
+
+- a fenced block in a list item;
+- a fenced block in a blockquote;
+- a fenced block at top level whose "closer" carries an info string;
+- a `<pre>` block.
+
+**A waiver can also widen with no injection at all.** A region's `-end`, and the
+next region's `-start`, written inside list items and indented four spaces, are
+prose to CommonMark. The default blanks every line indented four spaces, so the
+two regions merge:
+
+```text
+<!-- eess-exclude-start corpus/pointers-resolve: first -->
+- item one
+
+    <!-- eess-exclude-end -->
+
+see `missing.ts:1`
+
+- item two
+
+    <!-- eess-exclude-start corpus/pointers-resolve: second -->
+
+text
+
+<!-- eess-exclude-end -->
+```
+
+| Delimiters            | Exclusions          | The pointer on line 6 |
+| --------------------- | ------------------- | --------------------- |
+| indented four spaces  | **one, lines 1–14** | **silent**            |
+| at column 0 (control) | lines 1–4, 10–14    | reported              |
+
+So "a directive is dropped rather than a violation silently suppressed" does not
+hold for markdown in either direction.
+
+**Why.** The default markdown masker decides what is code with a line loop. It cannot see containers, it closes a fence on a closer that carries an info string, and it blanks every line indented four spaces, region delimiters included. [Bug 0291](../work/bugs/0291-the-markdown-masker-honours-a-directive-inside-code.md) records the shapes by value.
+
+**The row is split.** "A dialect that injects nothing gets the conservative
+default" was `gated` on kernel tests that contain no markdown container case.
+Code-like files stay `gated` on those tests; markdown is `pending`.
+
+### A correction, 2026-09-13 — property 3, for every file type
+
+**Property 3 does not hold.** It says an injected masker "can only blank MORE",
+and so cannot expose a directive the default would have hidden. That assumes the
+default never shows more when its input is blanked more. Both defaults track
+lexer state, so the assumption fails:
+
+- **Markdown.** Blank a fence's delimiter lines, and the markdown default no longer
+  sees a fence.
+- **Code-like files.** Blank a string's quotes, or a block comment's `/*` and `*/`,
+  and the code-like default no longer sees a literal or a comment.
+
+Measured on `main`'s kernel (`2a2a503`) with `parseExclusionComments`:
+
+| File       | Input                                                                                               | No masker               | Identity masker         | Masker blanking only the delimiters |
+| ---------- | --------------------------------------------------------------------------------------------------- | ----------------------- | ----------------------- | ----------------------------------- |
+| `probe.ts` | a string literal holding `// eess-exclude foo/bar: smuggled`                                        | 0 exclusions            | 0                       | **1 exclusion**                     |
+| `probe.ts` | `/*`, then `// eess-exclude foo/bar: smuggled`, then `*/`                                           | 0 exclusions            | 0                       | **1 exclusion**                     |
+| `doc.md`   | a fence holding `<!-- eess-exclude-start md/pointers: x -->`, its closer, a pointer, the region end | 0 exclusions, 1 warning | 0 exclusions, 1 warning | **1 exclusion, lines 2–5**          |
+
+**Consequences for this ADR:**
+
+- **A dialect can inject an unsafe masker, for any file type.**
+- **The gated row never tested this.** "An injected masker cannot make the parser
+  accept what the default refuses" was `gated` on
+  `packages/core/tests/exclusion-mask-injection.test.ts`, which injects only the
+  identity masker. Its clause is re-scoped to what that test shows: the identity
+  masker leaves the default's refusals unchanged.
+- **Why composition cannot bound it.** Blanking a region delimiter merges two
+  regions. In `probe.ts`, `-start`/`-end`, then `export const bad = 1`, then
+  `-start`/`const ok = 1`/`-end` gives exclusions on lines 1–2 and 4–6; a masker
+  that blanks only the first `-end` and the second `-start` gives **one exclusion,
+  lines 1–6**, waiving line 3. Every composition that only blanks keeps that merge,
+  because blanking more cannot restore a hidden delimiter.
+- **The clause is deprecated, not pending.** No mechanism can hold it as written.
+  What replaces it is undecided ([bug 0291](../work/bugs/0291-the-markdown-masker-honours-a-directive-inside-code.md)).
+
+Recorded here rather than edited away, like the correction above.
+
+The Consequences sentence is false in both halves. A dialect can inject an unsafe
+masker, and "the worst outcome is over-masking, which hides a directive loudly" is
+also false: over-masking a region's delimiter widens a waiver silently, as the
+property 2 correction shows with no masker at all. Two code comments repeat the
+claim, at `packages/core/src/exclusion-comments.ts:361` and
+`packages/core/src/mask-non-comment.ts:201`; bug 0291 owns correcting them.
+
+Files that are neither code-like nor markdown (for example `.mmd`, `.feature`,
+`.yml`) route to the code-like masker too, and sit in no row. They were not
+examined here.
