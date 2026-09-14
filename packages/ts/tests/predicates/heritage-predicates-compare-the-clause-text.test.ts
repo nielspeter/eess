@@ -5,20 +5,28 @@ import { types } from '../../src/builders/type-rule-builder.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 /**
- * Bug 0296 — the heritage and decorator predicates compare the clause as written,
- * so a DIRECT base written through an alias, a namespace or a mixin call is missed.
- * No grandchild is involved; that is bug 0295.
+ * Bug 0296 — the heritage and decorator predicates compared the clause as written, so a
+ * DIRECT base written through an alias, a namespace or a mixin call was missed. They now
+ * match the clause as written OR the name the checker resolves it to, which only ever adds
+ * matches. A grandchild is not a direct child; that is bug 0295, pinned separately.
  *
- * The KNOWN GAP tests assert today's behaviour. Fixing 0296 turns them red: invert
- * them into red-first tests in the same change, and say so in the record. The
- * CONTROL is the half that must survive the fix — each predicate still matches a
- * base written as its own imported name.
+ * Every expectation is an exact set (ADR-009 rule 5), and each fixture carries a subject that
+ * must NOT match — a class with no base, a class with no `implements` — so an assertion over a
+ * condition's findings cannot pass over a rule that reports nothing.
+ *
+ * The same-file decorator CONTROL guards the resolution itself: a decorator that is not an
+ * import has a symbol that is not an alias, and asking the checker for its aliased symbol
+ * asserts. It must still match, by name.
  */
 function clauseTextProject(): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })
+  // The mixin takes `...args: any[]` because TypeScript only types a class expression that
+  // extends a type parameter as a mixin when its constructor signature is exactly that
+  // (TS2545). With any other signature the checker gives the result no base class, and the
+  // predicates fall back to the written text — which does not name `BaseRepository`.
   tsm.createSourceFile(
     '/src/base.ts',
-    'export class BaseRepository {}\nexport function Scoped<C extends new (...args: never[]) => object>(B: C) {\n  return class extends B {}\n}\n',
+    'export class BaseRepository {}\nexport function Scoped<C extends new (...args: any[]) => object>(B: C) {\n  return class extends B {}\n}\n',
   )
   tsm.createSourceFile(
     '/src/repositories.ts',
@@ -30,6 +38,7 @@ function clauseTextProject(): ArchProject {
       'export class AliasedRepository extends Base {}',
       'export class NamespacedRepository extends base.BaseRepository {}',
       'export class MixinRepository extends Scoped(BaseRepository) {}',
+      'export class UnrelatedRepository {}',
       '',
     ].join('\n'),
   )
@@ -45,6 +54,9 @@ function clauseTextProject(): ArchProject {
       'export class AliasedImpl implements B {',
       '  x = 1',
       '}',
+      'export class BareImpl {',
+      '  x = 1',
+      '}',
       '',
     ].join('\n'),
   )
@@ -58,6 +70,9 @@ function clauseTextProject(): ArchProject {
       'export interface DirectCfg extends BaseConfig {}',
       'export interface AliasCfg extends BC {}',
       'export interface NsCfg extends cfg.BaseConfig {}',
+      'export interface StandaloneCfg {',
+      '  b: number',
+      '}',
       '',
     ].join('\n'),
   )
@@ -70,10 +85,16 @@ function clauseTextProject(): ArchProject {
     [
       "import { Controller } from './decorators'",
       "import { Controller as C } from './decorators'",
+      'function Local(): ClassDecorator {',
+      '  return () => undefined',
+      '}',
       '@Controller()',
       'export class PlainController {}',
       '@C()',
       'export class AliasedController {}',
+      '@Local()',
+      'export class LocalController {}',
+      'export class UndecoratedController {}',
       '',
     ].join('\n'),
   )
@@ -124,57 +145,55 @@ function extendTypeSelects(p: ArchProject): Set<string> {
   )
 }
 
-function decoratorSelects(p: ArchProject): Set<string> {
+function decoratorSelects(p: ArchProject, name: string): Set<string> {
   return elements(
     classes(p)
       .that()
-      .haveDecorator('Controller')
+      .haveDecorator(name)
       .should()
       .notExist()
-      .rule({ id: 'test/0296-decorator' })
+      .rule({ id: `test/0296-decorator-${name}` })
       .violations(),
   )
 }
 
-describe('bug 0296: heritage and decorator predicates compare the clause text', () => {
+describe('bug 0296: heritage and decorator predicates match a base however it is written', () => {
   it('CONTROL — each predicate matches a base written as its own imported name', () => {
     const p = clauseTextProject()
     expect(extendSelects(p)).toContain('DirectRepository')
     expect(implementSelects(p)).toContain('DirectImpl')
     expect(extendTypeSelects(p)).toContain('DirectCfg')
-    expect(decoratorSelects(p)).toContain('PlainController')
+    expect(decoratorSelects(p, 'Controller')).toContain('PlainController')
   })
 
-  it('KNOWN GAP — extend() as a selector drops a base written through an alias, a namespace or a mixin call', () => {
-    const selected = extendSelects(clauseTextProject())
-    expect(selected).toContain('DirectRepository')
-    expect(selected).not.toContain('AliasedRepository')
-    expect(selected).not.toContain('NamespacedRepository')
-    expect(selected).not.toContain('MixinRepository')
+  it('CONTROL — a decorator declared in the same file, not imported, is matched by its name', () => {
+    expect(decoratorSelects(clauseTextProject(), 'Local')).toEqual(new Set(['LocalController']))
   })
 
-  it('KNOWN GAP — extend() as a condition reds a base written through an alias, a namespace or a mixin call', () => {
+  it('extend() as a selector matches a base written through an alias, a namespace or a mixin call', () => {
+    expect(extendSelects(clauseTextProject())).toEqual(
+      new Set(['DirectRepository', 'AliasedRepository', 'NamespacedRepository', 'MixinRepository']),
+    )
+  })
+
+  it('extend() as a condition accepts a base written through an alias, a namespace or a mixin call', () => {
     const reported = elements(
       classes(clauseTextProject())
         .that()
         .haveNameEndingWith('Repository')
         .and()
-        .haveNameMatching(/^(Direct|Aliased|Namespaced|Mixin)/)
+        .haveNameMatching(/^(Direct|Aliased|Namespaced|Mixin|Unrelated)/)
         .should()
         .extend('BaseRepository')
         .rule({ id: 'test/0296-extend-condition' })
         .violations(),
     )
-    expect(reported).not.toContain('DirectRepository')
-    expect(reported).toContain('AliasedRepository')
-    expect(reported).toContain('NamespacedRepository')
-    expect(reported).toContain('MixinRepository')
+    expect(reported).toEqual(new Set(['UnrelatedRepository']))
   })
 
-  it('KNOWN GAP — implement() drops and reds an interface imported under an alias', () => {
+  it('implement() matches an interface imported under an alias, as a selector and as a condition', () => {
     const p = clauseTextProject()
-    expect(implementSelects(p)).toContain('DirectImpl')
-    expect(implementSelects(p)).not.toContain('AliasedImpl')
+    expect(implementSelects(p)).toEqual(new Set(['DirectImpl', 'AliasedImpl']))
 
     const reported = elements(
       classes(p)
@@ -185,19 +204,29 @@ describe('bug 0296: heritage and decorator predicates compare the clause text', 
         .rule({ id: 'test/0296-implement-condition' })
         .violations(),
     )
-    expect(reported).toEqual(new Set(['AliasedImpl']))
+    expect(reported).toEqual(new Set(['BareImpl']))
   })
 
-  it('KNOWN GAP — extendType() drops a base interface written through an alias or a namespace', () => {
-    const selected = extendTypeSelects(clauseTextProject())
-    expect(selected).toContain('DirectCfg')
-    expect(selected).not.toContain('AliasCfg')
-    expect(selected).not.toContain('NsCfg')
+  it('extendType() matches a base interface written through an alias or a namespace', () => {
+    expect(extendTypeSelects(clauseTextProject())).toEqual(
+      new Set(['DirectCfg', 'AliasCfg', 'NsCfg']),
+    )
   })
 
-  it('KNOWN GAP — haveDecorator() drops a decorator imported under an alias', () => {
-    const selected = decoratorSelects(clauseTextProject())
-    expect(selected).toContain('PlainController')
-    expect(selected).not.toContain('AliasedController')
+  it('haveDecorator() and haveDecoratorMatching() match a decorator imported under an alias', () => {
+    const p = clauseTextProject()
+    expect(decoratorSelects(p, 'Controller')).toEqual(
+      new Set(['PlainController', 'AliasedController']),
+    )
+    const matching = elements(
+      classes(p)
+        .that()
+        .haveDecoratorMatching(/^Controller$/)
+        .should()
+        .notExist()
+        .rule({ id: 'test/0296-decorator-matching' })
+        .violations(),
+    )
+    expect(matching).toEqual(new Set(['PlainController', 'AliasedController']))
   })
 })
