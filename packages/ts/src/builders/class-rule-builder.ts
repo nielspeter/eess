@@ -393,18 +393,18 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
 
   /**
    * Assert that the class body contains at least one match.
-   * "Body" = the code each member runs — method, constructor and accessor bodies, parameter
-   * defaults, property initializers and static blocks — and what the class supplies outside its
-   * members: decorator arguments, computed member names and the arguments of `extends`. Not the
-   * decorator or base class itself, and not docstrings (bug 0307).
+   * "Body" = the member code only — method, constructor and accessor bodies, parameter defaults,
+   * property initializers and static blocks. A decorator, a computed name or a base class is
+   * wiring, and cannot satisfy it (bug 0307).
    */
   contain(matcher: ExpressionMatcher): this {
     return this.addCondition(classContain(matcher))
   }
 
   /**
-   * Assert that the class body does NOT contain any match.
-   * Produces one violation per matching node found.
+   * Assert that no code the class runs contains a match: its member code, and every decorator
+   * expression, computed member name and the `extends` expression (bug 0307). Produces one
+   * violation per matching node found.
    */
   notContain(matcher: ExpressionMatcher): this {
     return this.addCondition(classNotContain(matcher))

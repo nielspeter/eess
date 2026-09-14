@@ -288,8 +288,8 @@ Available on all entry points via `.that()`.
 
 | Export                     | Signature                                        | Description                                      |
 | -------------------------- | ------------------------------------------------ | ------------------------------------------------ |
-| `classContain`             | `classContain(matcher: ExpressionMatcher)`       | Class member code must contain expression.       |
-| `classNotContain`          | `classNotContain(matcher: ExpressionMatcher)`    | Class member code must not contain expression.   |
+| `classContain`             | `classContain(matcher: ExpressionMatcher)`       | The class's member code must contain expression. |
+| `classNotContain`          | `classNotContain(matcher: ExpressionMatcher)`    | No code the class runs may contain expression.   |
 | `classUseInsteadOf`        | `classUseInsteadOf(banned, replacement)`         | Ban expression in class, suggest replacement.    |
 | `functionContain`          | `functionContain(matcher: ExpressionMatcher)`    | Function body must contain expression.           |
 | `functionNotContain`       | `functionNotContain(matcher: ExpressionMatcher)` | Function body must not contain expression.       |
@@ -633,14 +633,14 @@ See [Architecture Presets](/presets) for full configuration options.
 | Export                  | Description                                                                  |
 | ----------------------- | ---------------------------------------------------------------------------- |
 | `noAnyProperties()`     | Class properties must not be typed as `any`.                                 |
-| `noTypeAssertions()`    | Class member code must not contain `as` type assertions (allows `as const`). |
-| `noNonNullAssertions()` | Class member code must not contain non-null assertions (`!`).                |
+| `noTypeAssertions()`    | No code the class runs may contain `as` type assertions (allows `as const`). |
+| `noNonNullAssertions()` | No code the class runs may contain non-null assertions (`!`).                |
 
 ### `eess-ts/rules/security`
 
 | Export                            | Target    | Description                                                                                                                                        |
 | --------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `noEval()`                        | classes   | No `eval()` calls in a class's member code.                                                                                                        |
+| `noEval()`                        | classes   | No `eval()` calls in any code a class runs.                                                                                                        |
 | `noFunctionConstructor()`         | classes   | No `Function` constructor, with or without `new`.                                                                                                  |
 | `noConsoleLog()`                  | classes   | No `console.log` calls.                                                                                                                            |
 | `noProcessEnv()`                  | classes   | `process.env` read with a dot or a bracket, through leading global objects or a cast. Not a destructured or imported `env`, nor `import.meta.env`. |
@@ -688,7 +688,7 @@ See [Architecture Presets](/presets) for full configuration options.
 | Export                   | Target    | Description                                           |
 | ------------------------ | --------- | ----------------------------------------------------- |
 | `mustCall(pattern)`      | functions | Function body must contain a call matching the regex. |
-| `classMustCall(pattern)` | classes   | The class's body code must contain a matching call.   |
+| `classMustCall(pattern)` | classes   | The class's member code must contain a matching call. |
 
 ### `eess-ts/rules/hygiene`
 

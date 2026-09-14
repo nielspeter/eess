@@ -24,5 +24,7 @@ report it.
 Not changed: docstrings are still not searched. And `noSilentCatch`,
 `noMagicNumbers` and the class metrics rules keep their own walk of class members (bug 0306).
 
-Within one member the body is searched before parameter defaults, so a finding a baseline accepted
-keeps its identity and a new one in a default is numbered after it.
+Every member body is searched before anything the walk did not read before — parameter defaults,
+property initializers, static blocks — so a finding a baseline accepted keeps its identity and a new
+one is numbered after it, also beside a getter and its setter, or a static and an instance member of
+one name.

@@ -129,8 +129,8 @@ the one preset rule (`dataLayerIsolation`'s `preset/data/typed-errors`) built on
       `noSilentCatch`, `noMagicNumbers` and the class metrics rules keep their own member walk.
 - [ ] deferred→[0307](./0307-class-body-rules-skip-class-code-outside-its-members.md) — decorator arguments,
       computed member names and the `extends` expression are not searched. The method review
-      found the first, the enforcement review the other two. Fixed there: the search reads what a
-      class supplies to them.
+      found the first, the enforcement review the other two. Resolved in 0307 (2026-09-14): a
+      must-not-contain rule reads them whole; a must-contain rule reads member code only.
 - [x] `npm run validate` green.
 
 Deferred: [0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md),

@@ -2,9 +2,9 @@
 
 ## Status
 
-- **State:** Fixed — the class body search reads what a class supplies outside its members:
-  decorator arguments, computed member names and the arguments of calls in `extends`; not the
-  decorator or base class itself. Red test first.
+- **State:** Fixed — a class body rule that forbids something reads all the code a class runs,
+  including every decorator expression, computed member names and the `extends` expression; one
+  that requires something reads member code only. Red test first.
 - **Severity:** High — **false green.** A framework module that reads its configuration in a
   class decorator — `@Module({ path: process.env.X })` — passed `noProcessEnv`, the rule written to
   push configuration into injection.
@@ -39,84 +39,94 @@ The same held for every rule built on the class body conditions.
 ## Root cause
 
 `searchClassBody` in `packages/ts/src/helpers/body-traversal.ts` walked the code each member runs
-— bodies, parameter defaults, property initializers and static blocks. Decorator arguments,
-computed member names and the `extends` expression are none of those: they run when the class is
-defined. They were not read before 0300 either.
+— bodies, parameter defaults, property initializers and static blocks. Decorators, computed member
+names and the `extends` expression are none of those: they run when the class is defined. They
+were not read before 0300 either.
 
 ## Fix
 
-**The ruling.** The record left open which of these a class body rule owns. It was ruled in the fix
-— asked to settle it on what makes sense rather than as a question — and stands as the fix's review
-ratifies it. Class body conditions work in two directions. For a must-not-contain rule
-(`notContain`, and everything built on it) searching more of what the class runs is fail-closed.
-For a must-contain rule (`contain`, `classMustCall` — "enforce that a layer actually delegates to
-its dependency") searching more can make the rule pass on code that is not behaviour. So the search
-reads what a class **supplies** and not the **wiring** it supplies it to:
+**How the ruling was reached.** The record left open which of these a class body rule reads. On
+2026-09-14 the maintainer asked for it to be settled on what makes sense rather than put to them as
+a question. The first ruling, in #136's first commit, drew a syntactic line: read what a class
+supplies — decorator arguments, computed names, the arguments of `extends` — and not the wiring they
+are supplied to, so that `@Validate()` alone could not satisfy `classMustCall(/validate/i)`. #136's
+enforcement review showed that line does not hold. A DI token is wiring passed as an argument:
+`constructor(@Inject(getRepositoryToken(User)) …)` made `classMustCall(/Repository/)` pass on a
+service that never calls a repository, red before the change and green after. A cut between callee
+and argument cannot tell behaviour from wiring. The ruling below replaces it; it is that review's
+first option, and it stands as the re-review of #136 ratifies it.
 
-- read: the arguments of every decorator on the class, its members, accessors and parameters —
-  every call of a factory chain, so `@Outer(a)(b)` supplies `a` and `b` — computed member names,
-  and the arguments of calls in `extends`;
-- not read: the decorator or base class itself. That is what `haveDecorator()` and `extend()`
-  select on, and counting it as body code would let `classMustCall(/validate/i)` pass on a class
-  that only carries `@Validate()`, a new false green. On the must-not-contain side it gains
-  nothing: no global a security rule forbids is applied as a decorator or a base class.
-- not read: `implements`, which is type-only, and docstrings, which are not code.
+**The ruling: fail closed in each direction.** For a rule about what a class must NOT contain —
+`notContain`, the banned half of `useInsteadOf`, and every rule built on them — reading more can only
+report more, so it reads all the code the class runs: member code, every decorator expression on
+the class, its members, accessors and parameters, computed member names and the whole `extends`
+expression. For a rule about what a class MUST contain — `contain`, `classMustCall`, the replacement
+half of `useInsteadOf` — reading less is what fails closed, so it reads member code only, and a
+decorator, a DI token, a computed name or a base class never satisfies it. `implements` is
+type-only and docstrings are not code, so neither is read.
 
-**Built.** `searchClassBody` reads, after each member's body and parameter defaults, its
-parameters' and its own decorator arguments and a computed name; after each property's
-initializer, its decorator arguments and a computed name; and after the static blocks, the class's
-decorator arguments and the arguments of `extends`. A private helper, `suppliedArguments`, walks a
-decorator or `extends` expression's call chain through parentheses and returns every call's
-arguments in source order.
+That also removes every limit the first ruling had to state. A must-not-contain rule now reads
+`extends (eval('Base'))`, a cast or non-null assertion in the wiring (`extends (Base as any)`,
+`extends registry.Base!`), a ternary, element access or method chain in `extends` or a decorator,
+and a comment inside a decorator's argument list.
 
-**The order is for baselines.** A match's identity is numbered within its enclosing declaration.
-Measured: a class decorator's arguments and `extends` count toward the class, as a static block
-does; a member decorator's and a parameter decorator's arguments toward the member, as its body and
-defaults do; a computed name has a scope of its own. Each declaration's earlier searches come first,
-so a finding a baseline accepted keeps its ordinal and a new one is numbered after it; a test pins
-both scopes.
+**Built.** `searchClassBody` takes a required `reach` — `'member-code'` or `'all-code'` — so every
+caller decides: `classContain` and the replacement half of `classUseInsteadOf` pass `'member-code'`;
+`classNotContain` and the banned half pass `'all-code'`.
 
-**A limit, stated rather than filed:** a forbidden call used as the base or decorator itself —
-`extends (eval('Base'))` — is not reported, because the wiring is not searched. Nothing but a
-deliberate evasion writes one, and reading the wiring would cost the must-contain rules a false
-green.
+**Ordering, for baselines.** A match's identity is numbered within its enclosing declaration, and a
+declaration is known by its name, so a getter and its setter, or a static and an instance member of
+one name, share one — measured by the enforcement review. The first version searched member by
+member, so a new read in one member could take the ordinal of an accepted read in its same-named
+twin; 0300's parameter defaults, merged but unreleased, had the same defect. The walk now runs in
+three passes over all members: every method, constructor and accessor body, which is what it read
+before 0300, in the same order; then every parameter default, property initializer and static
+block, which 0300 added; then, for `'all-code'`, every decorator, computed name and the `extends`
+expression. A test pins each pairing, including a getter and setter and a static and an instance
+member. The first version of this record also claimed a computed name has a scope of its own; the
+method review measured that it shares its method's.
 
-The descriptions of the class walk were updated: the `contain()` JSDoc on the class builder, the
-class rules' JSDoc in `rules/typescript` and `rules/security`, the class walk in
-`docs/standard-rules.md`, `docs/body-analysis.md` and `docs/classes.md`, and the `classMustCall`
+The descriptions were brought into line: the `contain()` and `notContain()` JSDoc on the class
+builder, `classContain` and `classNotContain`, the class rules in `rules/typescript` and
+`rules/security`, the class walk and the `contain`/`notContain` rows in `docs/standard-rules.md`,
+`docs/api-reference.md`, `docs/body-analysis.md` and `docs/classes.md`, and the `classMustCall`
 rows, which still said "at least one class method". The pending 0300 changeset no longer lists these
-positions as unsearched.
+positions as unsearched, and says the ordering in its three-pass form.
 
 ## Verification
 
-- [x] A ruling on which of them a class body rule reads — above.
-- [x] Red test first —
-      `packages/ts/tests/conditions/class-body-search-reads-class-code-outside-members.test.ts`, the
-      KNOWN-GAP test inverted into target tests and run before the fix: the positions test reported
-      line `['6']` of eleven findings; the wiring test reported all four classes as not containing
-      the call, where the one that supplies `validate()` in a decorator argument contains it; the
-      ordinal test saw lines `['4', '8']` of four; the docstring CONTROL passed.
+- [x] A ruling on which of them a class body rule reads — above, with how it was reached.
+- [x] Red test first — the first target tests were run against `2630112` before the first fix: the
+      positions test reported line `['6']` of eleven findings; the wiring test reported all four
+      classes; the ordinal test saw lines `['4', '8']` of four; the docstring CONTROL passed. The
+      redesign's tests are measured red against the same shipped walk as matrix row R0, below.
 - [x] The fix turns them green —
       `it('noProcessEnv on a class reads decorator arguments, computed member names and the arguments of extends')`,
-      `it('a decorator or base class is wiring, not body code, but a call in its arguments is')` and
-      `it('a match outside the members is numbered after the matches its declaration already had')`,
-      with `it('CONTROL — a docstring above a decorator is still not read')` still green. 0300’s
-      `noProcessEnv` test now expects the decorator argument on its line 12. The full `packages/ts`
-      suite passes.
+      `it('a must-not-contain rule reads the whole extends and decorator expressions')`,
+      `it('a must-contain rule is satisfied only by member code, never by a decorator, a DI token, a computed name or a base class')`,
+      `it('a must-not-contain rule reports the same calls wherever the class runs them')` and
+      `it('a finding the walk read before keeps its ordinal, even beside a member of the same name')`,
+      with `it('CONTROL — a docstring above a decorator is still not read')` and
+      `it('CONTROL — implements is type-only and is not read')` green. 0300’s `noProcessEnv` test
+      expects the decorator argument on its line 12. The `packages/ts` suite passes, and tsc and
+      eslint are clean.
 - [x] Sabotage matrix in the 0307 worktree (per-entry `node_modules`, `@nielspeter/eess` resolved
       to the worktree’s `packages/core`, literal replacements in `body-traversal.ts` restored by
-      sha256 after every row, verdicts read by test title over this file and 0300’s): **16 rows, 0
-      mismatches**, every row as predicted on its first run. Baseline green. Every new search
-      removed reds the positions, wiring and ordinal tests and 0300’s `noProcessEnv` test.
-      Removing one search at a time reds the positions test each time, and also: member decorators
-      the ordinal test; property decorators 0300’s `noProcessEnv` test; class decorators the wiring
-      and ordinal tests. Reading only the outermost call of a factory chain reds the positions
-      test. Searching the class’s decorators and `extends` before its static blocks reds the
-      ordinal test; searching a member’s decorators and defaults before its body reds the ordinal
-      test and 0300’s. Over-broad — the whole decorator expression, or the whole `extends`
-      expression — reds the wiring test only; reading the decorator node with its leading trivia
-      reds the wiring test and the docstring CONTROL. A total break reds every test in both files
-      but 0300’s kind-guard test, which expects nothing.
+      sha256 after every row, verdicts read by test title over this file and 0300’s): **17 rows, 0
+      mismatches**. Baseline green. R0 restores the shipped walk from `2630112` and R1 switches the
+      0307 pass off: each reds the positions, whole-expression, must-not-contain and ordinal tests
+      and 0300’s `noProcessEnv` test, while the must-contain test stays green, because the shipped
+      walk read member code only. Letting a must-contain search read everything reds the
+      must-contain test only. Removing one 0307 search at a time reds the positions test, and also:
+      parameter decorators the must-not-contain test (the DI token); member decorators the ordinal
+      test; computed method names the must-not-contain and ordinal tests; property decorators
+      0300’s `noProcessEnv` test; class decorators the whole-expression, must-not-contain and
+      ordinal tests; the `extends` expression the whole-expression and must-not-contain tests. Each
+      of the three orderings — defaults before bodies, static blocks after the class decorator, the
+      0307 pass before the bodies — reds the ordinal test, and the first also 0300’s ordinal test.
+      Over-broad — the decorator node read with its leading trivia, or `implements` read — reds the
+      matching CONTROL only. A total break reds every test in both files but the `implements`
+      CONTROL and 0300’s kind-guard test, which both expect nothing.
 - [x] `npm run validate` green.
 
 Deferred: none.

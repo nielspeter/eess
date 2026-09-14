@@ -133,7 +133,7 @@ function processEnvAccess(): ExpressionMatcher {
 }
 
 /**
- * No eval() calls in a class's member code — `eval(…)`, through a global object
+ * No eval() calls in any code a class runs — `eval(…)`, through a global object
  * (`globalThis`, `window`, `self`, `global`), a string-keyed bracket, or the indirect
  * `(0, eval)(…)`. An `eval` bound to a local name first is not seen (bug 0305).
  *
@@ -156,8 +156,8 @@ export function noFunctionConstructor(): Condition<ClassDeclaration> {
 }
 
 /**
- * No process.env read in a class's body code, as `contain()` on the class builder
- * defines it, spelled `process.env`, `process['env']`, or through a
+ * No process.env read in any code a class runs, as `notContain()` on the class
+ * builder defines it, spelled `process.env`, `process['env']`, or through a
  * global object. An `env` destructured from `process` or imported from `node:process` is
  * not seen (bug 0305); `import.meta.env` is not Node's environment and is not reported.
  *
@@ -174,7 +174,7 @@ export function noProcessEnv(): Condition<ClassDeclaration> {
 }
 
 /**
- * No console.log calls in a class's member code — including `console['log']` and through a
+ * No console.log calls in any code a class runs — including `console['log']` and through a
  * global object.
  *
  * Use a logger abstraction instead.
