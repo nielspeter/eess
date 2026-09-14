@@ -15,9 +15,12 @@ import { moduleNotContain } from '../conditions/body-analysis-module.js'
 // private to this module on purpose: the public `call()` and `access()` promise a text
 // match, and adopters' own rules depend on that.
 //
-// What they still cannot see is a global first bound to a local name
-// (`const ev = eval`, `const { log } = console`): that needs the binding followed,
-// which is bug 0305.
+// They read names, not bindings, so a local binding misleads them both ways: a global
+// first bound to a local name (`const ev = eval`, `const { log } = console`) is missed,
+// and a local declaration that shadows a global (`function Function() {}`,
+// `const console = {…}`) is reported as the global. Both need the binding followed,
+// which is bug 0305. Only one leading global object is read through, so a doubled chain
+// (`window.self.eval`) is not seen.
 
 /** The names a global is reachable through: standard, browser, worker and Node. */
 const GLOBAL_OBJECTS: ReadonlySet<string> = new Set(['globalThis', 'window', 'self', 'global'])

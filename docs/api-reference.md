@@ -647,7 +647,7 @@ See [Architecture Presets](/presets) for full configuration options.
 | `noConsole()`                     | classes   | No console access at all (log, warn, error, etc). |
 | `noJsonParse()`                   | classes   | No `JSON.parse` calls.                            |
 | `functionNoEval()`                | functions | No `eval()` calls in functions.                   |
-| `functionNoFunctionConstructor()` | functions | No `new Function()` in functions.                 |
+| `functionNoFunctionConstructor()` | functions | No `Function` constructor, with or without `new`. |
 | `functionNoProcessEnv()`          | functions | No `process.env` access in functions.             |
 | `functionNoConsoleLog()`          | functions | No `console.log` in functions.                    |
 | `functionNoConsole()`             | functions | No console access in functions.                   |

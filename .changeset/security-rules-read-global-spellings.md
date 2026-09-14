@@ -19,5 +19,8 @@ because it now also matches a call. A finding of that rule already recorded in a
 reported once more; review it and regenerate the baseline. The other rules keep their
 descriptions, so their baselines are unaffected.
 
-A global bound to a local name first — `const ev = eval`, `const { log } = console` — is still
-not reported; that is bug 0305.
+The rules read names, not bindings, and that cuts both ways (bug 0305). A global bound to a
+local name first — `const ev = eval`, `const { log } = console` — is still not reported. And a
+local declaration that shadows a global is reported as if it were the global: a local function
+named `Function`, called without `new`, is newly reported by this change, alongside the local
+`class Function` and `const console` that were reported before.

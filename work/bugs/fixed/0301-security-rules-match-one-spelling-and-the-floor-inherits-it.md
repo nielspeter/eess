@@ -86,6 +86,19 @@ is a `minor` marked breaking: the floor reports more.
       written without the two tests it also reds, because stripping `console.` breaks the
       console rules as well; the set was corrected from that reasoning and the row re-run.
 - [x] `npm run validate` green.
+- [x] Independent review (enforcement lens, a different model than the author), no critical
+      findings, each disposed:
+  - **A false positive this fix opened.** A local function named `Function`, called without
+    `new`, is now reported as the constructor; before, only `new Function(…)` was matched, so
+    that bare call was never checked. A local `class Function` used with `new`, and a local
+    `const console = {…}`, were reported before this fix and still are. All three are the other
+    direction of the question 0305 holds — a local binding decides whether a name is the
+    global — so they are recorded there and pinned by a KNOWN-GAP test, not fixed here.
+  - **A stale doc row.** `docs/api-reference.md` still described `functionNoFunctionConstructor`
+    as `new Function()` only; corrected in this change.
+  - **A limit, stated rather than filed:** only one leading global object is read through, so
+    `window.self.eval('1')` is not reported. Nothing but a deliberate evasion writes a doubled
+    global chain, and the rule is not a defence against a determined author.
 - [ ] deferred→[0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md) —
       `const ev = eval`, `const F = Function` and `const { log } = console` reach the global
       through a local binding, which needs the binding followed: the design question 0297
