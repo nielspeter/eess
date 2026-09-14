@@ -54,11 +54,19 @@ the defaults first, so a new match in a default took the ordinal of the body mat
 accepted: the baseline hid the new finding and reported the accepted one. The enforcement review
 measured that against a baseline written under the old walk; a test now pins the ordinals.
 
+**Correction, 2026-09-14 ([0307](./0307-class-body-rules-skip-class-code-outside-its-members.md)).** Per member is not enough. A
+declaration is known by its name, so a getter and its setter, or a static and an instance member of
+one name, share one, and a default in one could still take the ordinal of an accepted body in the
+other; 0307's enforcement review measured it, and this record's ordinal test stayed green over it.
+The walk now searches every body first, then every default, property initializer and static block.
+
 The record first proposed walking the whole class node. The fix deliberately does not: the class
 node also holds docstrings, and a `comment()` rule would start reporting documentation. A CONTROL
 pins that a docstring is still not read. The class node also holds code no member runs — decorator
 arguments, computed member names, the `extends` expression — all evaluated when the class is
-defined; leaving them out is a gap, not a design choice, and is [0307](./0307-class-body-rules-skip-class-code-outside-its-members.md).
+defined; leaving them out is a gap, not a design choice, and is [0307](./0307-class-body-rules-skip-class-code-outside-its-members.md). (2026-09-14:
+0307 ruled that a must-not-contain rule reads them, and that for a must-contain rule leaving them out
+is the design, because wiring must not satisfy it.)
 
 `noSilentCatch`, `noMagicNumbers` and the class metrics rules do not use this search; each walks
 its own member list and still misses these positions. That is

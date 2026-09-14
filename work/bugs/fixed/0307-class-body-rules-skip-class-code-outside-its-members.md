@@ -47,22 +47,26 @@ were not read before 0300 either.
 
 **How the ruling was reached.** The record left open which of these a class body rule reads. On
 2026-09-14 the maintainer asked for it to be settled on what makes sense rather than put to them as
-a question. The first ruling, in #136's first commit, drew a syntactic line: read what a class
+a question. The first ruling, in #136's first commit (squashed away at merge, so this summary is its lasting
+copy), drew a syntactic line: read what a class
 supplies — decorator arguments, computed names, the arguments of `extends` — and not the wiring they
 are supplied to, so that `@Validate()` alone could not satisfy `classMustCall(/validate/i)`. #136's
 enforcement review showed that line does not hold. A DI token is wiring passed as an argument:
 `constructor(@Inject(getRepositoryToken(User)) …)` made `classMustCall(/Repository/)` pass on a
 service that never calls a repository, red before the change and green after. A cut between callee
-and argument cannot tell behaviour from wiring. The ruling below replaces it; it is that review's
-first option, and it stands as the re-review of #136 ratifies it.
+and argument cannot tell behaviour from wiring. The ruling below replaces it; it is that review's first option. #136's enforcement and method re-reviews ratified it on
+2026-09-14; the enforcement re-review also found most of the direction split unpinned by any test
+that could fail, which the tests and matrix below now close.
 
 **The ruling: fail closed in each direction.** For a rule about what a class must NOT contain —
 `notContain`, the banned half of `useInsteadOf`, and every rule built on them — reading more can only
 report more, so it reads all the code the class runs: member code, every decorator expression on
 the class, its members, accessors and parameters, computed member names and the whole `extends`
 expression. For a rule about what a class MUST contain — `contain`, `classMustCall`, the replacement
-half of `useInsteadOf` — reading less is what fails closed, so it reads member code only, and a
-decorator, a DI token, a computed name or a base class never satisfies it. `implements` is
+half of `useInsteadOf` — reading less is what fails closed, so it reads member code only, and a decorator, a computed name or the `extends` expression never satisfies it — a DI token
+passed to a decorator included. The line is drawn by position, not by what a call means: a call in
+member code still satisfies it, and so does a DI lookup such as
+`private users = inject(getRepositoryToken(User))` in a field initializer, as 0300 disclosed. `implements` is
 type-only and docstrings are not code, so neither is read.
 
 That also removes every limit the first ruling had to state. A must-not-contain rule now reads
@@ -104,29 +108,40 @@ positions as unsearched, and says the ordering in its three-pass form.
       `it('noProcessEnv on a class reads decorator arguments, computed member names and the arguments of extends')`,
       `it('a must-not-contain rule reads the whole extends and decorator expressions')`,
       `it('a must-contain rule is satisfied only by member code, never by a decorator, a DI token, a computed name or a base class')`,
-      `it('a must-not-contain rule reports the same calls wherever the class runs them')` and
+      `it('a must-not-contain rule reports the same calls wherever the class runs them')`,
+      `it('useInsteadOf reports a banned call in a decorator, and a replacement only in a decorator does not satisfy it')`
+      and
       `it('a finding the walk read before keeps its ordinal, even beside a member of the same name')`,
       with `it('CONTROL — a docstring above a decorator is still not read')` and
       `it('CONTROL — implements is type-only and is not read')` green. 0300’s `noProcessEnv` test
-      expects the decorator argument on its line 12. The `packages/ts` suite passes, and tsc and
-      eslint are clean.
+      expects the decorator argument on its line 12. The wiring fixtures cover every position — class,
+      property, method, accessor and parameter decorators, computed property and method names and
+      `extends` — after the enforcement re-review found five of them unpinned. The `packages/ts` suite
+      passes, and tsc and eslint are clean.
 - [x] Sabotage matrix in the 0307 worktree (per-entry `node_modules`, `@nielspeter/eess` resolved
-      to the worktree’s `packages/core`, literal replacements in `body-traversal.ts` restored by
-      sha256 after every row, verdicts read by test title over this file and 0300’s): **17 rows, 0
-      mismatches**. Baseline green. R0 restores the shipped walk from `2630112` and R1 switches the
-      0307 pass off: each reds the positions, whole-expression, must-not-contain and ordinal tests
-      and 0300’s `noProcessEnv` test, while the must-contain test stays green, because the shipped
-      walk read member code only. Letting a must-contain search read everything reds the
-      must-contain test only. Removing one 0307 search at a time reds the positions test, and also:
-      parameter decorators the must-not-contain test (the DI token); member decorators the ordinal
-      test; computed method names the must-not-contain and ordinal tests; property decorators
-      0300’s `noProcessEnv` test; class decorators the whole-expression, must-not-contain and
-      ordinal tests; the `extends` expression the whole-expression and must-not-contain tests. Each
-      of the three orderings — defaults before bodies, static blocks after the class decorator, the
-      0307 pass before the bodies — reds the ordinal test, and the first also 0300’s ordinal test.
-      Over-broad — the decorator node read with its leading trivia, or `implements` read — reds the
-      matching CONTROL only. A total break reds every test in both files but the `implements`
-      CONTROL and 0300’s kind-guard test, which both expect nothing.
+      to the worktree's `packages/core`, literal replacements in `body-traversal.ts` or
+      `body-analysis.ts` restored by sha256 after every row, verdicts read by test title over this
+      file and 0300's): **26 rows, 0 mismatches**, run again after the enforcement re-review added
+      the wiring positions and the `useInsteadOf` test. Baseline green. R0 restores the shipped walk
+      from `2630112` and R1 switches the 0307 pass off: each reds the positions, whole-expression,
+      must-not-contain, `useInsteadOf` and ordinal tests and 0300's `noProcessEnv` test, while the
+      must-contain test stays green, because the shipped walk read member code only. Direction:
+      letting a must-contain search read everything reds the must-contain and `useInsteadOf` tests;
+      letting it read any one of property, method and accessor, or parameter decorators, or computed
+      property or method names, reds the must-contain test; flipping `classContain`'s reach reds the
+      must-contain test, flipping `classNotContain`'s reds the positions, whole-expression,
+      must-not-contain and ordinal tests and 0300's, and flipping either half of
+      `classUseInsteadOf` reds the `useInsteadOf` test. Removing one 0307 search at a time reds the
+      positions and must-not-contain tests, and also: member decorators and computed method names
+      the ordinal test; property decorators 0300's `noProcessEnv` test; class decorators the
+      whole-expression, `useInsteadOf` and ordinal tests; the `extends` expression the
+      whole-expression test. Each of the three orderings reds the ordinal test, and defaults before
+      bodies also 0300's ordinal test. Over-broad — the decorator node read with its leading trivia,
+      or `implements` read — reds the matching CONTROL only. A total break reds every test in both
+      files but the `implements` CONTROL and 0300's kind-guard test. One first-run mismatch was the
+      matrix's: letting a must-contain search read everything also reds the `useInsteadOf` test,
+      whose replacement half is a must-contain search; the expected set was corrected and the row
+      re-run.
 - [x] `npm run validate` green.
 
 Deferred: none.

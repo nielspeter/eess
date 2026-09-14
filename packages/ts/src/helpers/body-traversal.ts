@@ -178,8 +178,10 @@ function triviaMatches(node: Node, matcher: ExpressionMatcher): Match[] {
  *   names and the `extends` expression.
  *
  * A search for what a class must NOT contain reads all of it: there, reading more fails closed. A
- * search for what it MUST contain reads member code only: there, reading less fails closed, and a
- * decorator, a DI token or a base class is wiring that must not satisfy a rule like `classMustCall`.
+ * search for what it MUST contain reads member code only: there, reading less fails closed, and a decorator, a
+ * computed name or the `extends` expression is wiring that must not satisfy a rule like
+ * `classMustCall` — a DI token passed to a decorator included. The line is drawn by position: a
+ * call in member code still satisfies it, a DI lookup in a field initializer included.
  */
 type ClassBodyReach = 'member-code' | 'all-code'
 

@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import { classes } from '../../src/builders/class-rule-builder.js'
 import { noProcessEnv } from '../../src/rules/security.js'
-import { classContain, classNotContain } from '../../src/conditions/body-analysis.js'
+import {
+  classContain,
+  classNotContain,
+  classUseInsteadOf,
+} from '../../src/conditions/body-analysis.js'
 import { call, comment, expression } from '../../src/helpers/matchers.js'
 import type { ArchProject } from '../../src/core/project.js'
 
@@ -45,6 +49,11 @@ const WIRING = [
   '@Wrap(validate()) export class DecoratorArgument { run() { return 1 } }',
   'export class DiToken { constructor(@Inject(validateToken()) private readonly v: unknown) {} run() { return 1 } }',
   'export class ComputedName { [validateKey()]() { return 1 } }',
+  'export class ComputedProperty { [validateKey()] = 1 }',
+  'export class PropertyInjection { @Inject(validateToken()) dep!: unknown; run() { return 1 } }',
+  'export class MethodDecorator { @Guard(validateGuard()) run() { return 1 } }',
+  'export class AccessorDecorator { @Lazy(validateRef()) get value() { return 1 } }',
+  'export class MethodParameterDecorator { run(@Arg(validateArg()) x: unknown) { return x } }',
   'export class Behaves { run() { return validate() } }',
 ]
 
@@ -104,11 +113,16 @@ describe('bug 0307: the class body search reads the code a class runs outside it
       .violations()
 
     expect(result.map((v) => v.element).sort()).toEqual([
+      'AccessorDecorator',
       'ComputedName',
+      'ComputedProperty',
       'DecoratorArgument',
       'DiToken',
+      'MethodDecorator',
+      'MethodParameterDecorator',
       'OnlyDecorated',
       'OnlyExtends',
+      'PropertyInjection',
     ])
   })
 
@@ -120,13 +134,37 @@ describe('bug 0307: the class body search reads the code a class runs outside it
       .violations()
 
     expect(result.map((v) => v.element).sort()).toEqual([
+      'AccessorDecorator',
       'Behaves',
       'ComputedName',
+      'ComputedProperty',
       'DecoratorArgument',
       'DiToken',
+      'MethodDecorator',
+      'MethodParameterDecorator',
       'OnlyDecorated',
       'OnlyExtends',
+      'PropertyInjection',
     ])
+  })
+
+  it('useInsteadOf reports a banned call in a decorator, and a replacement only in a decorator does not satisfy it', () => {
+    // The banned half reads all the code the class runs; the replacement half reads member code.
+    const result = classes(
+      project('/src/instead.ts', [
+        '@Cache(fetch()) export class BannedInDecorator { run() { return httpClient() } }',
+        '@Wire(httpClient()) export class ReplacementInDecorator { run() { return 1 } }',
+      ]),
+    )
+      .should()
+      .satisfy(classUseInsteadOf(call('fetch'), call('httpClient')))
+      .rule({ id: 'test/0307-use-instead-of' })
+      .violations()
+
+    const kinds = result.map(
+      (v) => `${v.element}: ${v.message.includes('instead') ? 'banned' : 'missing'}`,
+    )
+    expect(kinds.sort()).toEqual(['BannedInDecorator: banned', 'ReplacementInDecorator: missing'])
   })
 
   it('a finding the walk read before keeps its ordinal, even beside a member of the same name', () => {

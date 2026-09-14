@@ -14,10 +14,10 @@ import type { ArchProject } from '../../src/core/project.js'
  * It now walks the code each member runs: bodies, every parameter's default, property
  * initializers and static blocks.
  *
- * What it does not walk is anything outside a member's code. A member's docstring is pinned
- * by the CONTROL, so a fix that searched the whole class node — and started reporting
- * comments in docstrings under a `comment()` rule — cannot pass as this one. A decorator's
- * arguments are read since bug 0307, and the `noProcessEnv` test expects the one on line 12.
+ * A member's docstring is not code, and the CONTROL pins that it is not walked, so a fix that
+ * searched the whole class node — and started reporting comments in docstrings under a
+ * `comment()` rule — cannot pass as this one. Since bug 0307 a must-not-contain rule also reads
+ * decorators, and the `noProcessEnv` test expects the one on line 12.
  *
  * Every read is spelled `process.env.X`, so this is not bug 0297. Expectations are the
  * lines the messages name, sorted, so a duplicated finding shows.
