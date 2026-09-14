@@ -1,4 +1,5 @@
 import { Node, SyntaxKind } from 'ts-morph'
+import type { CatchClause } from 'ts-morph'
 
 /**
  * Result of scanning a single catch clause.
@@ -39,7 +40,7 @@ function getBindingNames(nameNode: Node): Set<string> {
 }
 
 /**
- * Find catch clauses in the body that don't reference the caught error.
+ * Why a catch clause is silent, or `undefined` when it references the caught error.
  *
  * A catch clause is "silent" if:
  * 1. It has no binding at all (`catch { ... }`) — no error to reference
@@ -57,41 +58,35 @@ function getBindingNames(nameNode: Node): Set<string> {
  *   — the inner `err` usage satisfies the outer check.
  * Both are rare in practice and arguably code smells themselves.
  */
+export function silentCatchMessage(catchClause: CatchClause): string | undefined {
+  const varDecl = catchClause.getVariableDeclaration()
+
+  // catch { ... } — no binding at all, always a violation
+  if (!varDecl) return 'catch block has no error binding — error is silently discarded'
+
+  // No binding names extracted (e.g., unusual pattern) — skip to avoid false positive
+  const bindingNames = getBindingNames(varDecl.getNameNode())
+  if (bindingNames.size === 0) return undefined
+
+  // Walk the catch block for Identifier nodes matching any binding name
+  const hasReference = catchClause
+    .getBlock()
+    .getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((id) => bindingNames.has(id.getText()))
+  if (hasReference) return undefined
+
+  return `catch block binds '${varDecl.getName()}' but never references it — error is silently discarded`
+}
+
+/**
+ * Find catch clauses in the body that don't reference the caught error — see
+ * `silentCatchMessage` for what counts as silent.
+ */
 export function findSilentCatches(body: Node): SilentCatchResult[] {
   const results: SilentCatchResult[] = []
-
   for (const catchClause of body.getDescendantsOfKind(SyntaxKind.CatchClause)) {
-    const varDecl = catchClause.getVariableDeclaration()
-
-    if (!varDecl) {
-      // catch { ... } — no binding at all, always a violation
-      results.push({
-        node: catchClause,
-        message: 'catch block has no error binding — error is silently discarded',
-      })
-      continue
-    }
-
-    // Collect the binding names to search for
-    const bindingNames = getBindingNames(varDecl.getNameNode())
-
-    // No binding names extracted (e.g., unusual pattern) — skip to avoid false positive
-    if (bindingNames.size === 0) continue
-
-    // Walk the catch block for Identifier nodes matching any binding name
-    const block = catchClause.getBlock()
-    const hasReference = block
-      .getDescendantsOfKind(SyntaxKind.Identifier)
-      .some((id) => bindingNames.has(id.getText()))
-
-    if (!hasReference) {
-      const varName = varDecl.getName()
-      results.push({
-        node: catchClause,
-        message: `catch block binds '${varName}' but never references it — error is silently discarded`,
-      })
-    }
+    const message = silentCatchMessage(catchClause)
+    if (message !== undefined) results.push({ node: catchClause, message })
   }
-
   return results
 }

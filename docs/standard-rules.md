@@ -397,11 +397,11 @@ import {
 } from '@nielspeter/eess-ts/rules/code-quality'
 ```
 
-| Rule                            | What it checks                                                   |
-| ------------------------------- | ---------------------------------------------------------------- |
-| `requireJsDocOnPublicMethods()` | All public methods must have JSDoc comments                      |
-| `noPublicFields()`              | No public mutable fields (allows static readonly)                |
-| `noMagicNumbers(options?)`      | No numeric literals in method bodies (configurable allowed list) |
+| Rule                            | What it checks                                                             |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `requireJsDocOnPublicMethods()` | All public methods must have JSDoc comments                                |
+| `noPublicFields()`              | No public mutable fields (allows static readonly)                          |
+| `noMagicNumbers(options?)`      | No numeric literals in any code the class runs (configurable allowed list) |
 
 `requireJsDocOnPublicMethods` enforces that every public API surface is documented. This is especially useful for library code and shared packages where consumers rely on JSDoc for IDE hints. `noPublicFields` enforces encapsulation — state should be accessed through methods, not exposed directly (static readonly constants are allowed). `noMagicNumbers` catches unexplained numeric literals in method bodies; pass an `allowed` array for numbers that are self-explanatory (0, 1, -1, HTTP status codes):
 
@@ -450,16 +450,16 @@ import {
 } from '@nielspeter/eess-ts/rules/metrics'
 ```
 
-| Rule                         | Target    | What it checks                         |
-| ---------------------------- | --------- | -------------------------------------- |
-| `maxCyclomaticComplexity(n)` | classes   | No method exceeds complexity N         |
-| `maxClassLines(n)`           | classes   | Class has no more than N code lines    |
-| `maxMethodLines(n)`          | classes   | No method exceeds N code lines         |
-| `maxMethods(n)`              | classes   | Class has no more than N methods       |
-| `maxParameters(n)`           | classes   | No method has more than N parameters   |
-| `maxFunctionComplexity(n)`   | functions | Function complexity does not exceed N  |
-| `maxFunctionLines(n)`        | functions | Function has no more than N code lines |
-| `maxFunctionParameters(n)`   | functions | Function has no more than N parameters |
+| Rule                         | Target    | What it checks                                |
+| ---------------------------- | --------- | --------------------------------------------- |
+| `maxCyclomaticComplexity(n)` | classes   | No callable member exceeds complexity N       |
+| `maxClassLines(n)`           | classes   | Class has no more than N code lines           |
+| `maxMethodLines(n)`          | classes   | No callable member exceeds N code lines       |
+| `maxMethods(n)`              | classes   | Class has no more than N methods              |
+| `maxParameters(n)`           | classes   | No callable member has more than N parameters |
+| `maxFunctionComplexity(n)`   | functions | Function complexity does not exceed N         |
+| `maxFunctionLines(n)`        | functions | Function has no more than N code lines        |
+| `maxFunctionParameters(n)`   | functions | Function has no more than N parameters        |
 
 Start with generous limits and tighten over time. Common starting points: complexity 15, method lines 40, class lines 300, parameters 4. Use `.warn()` for soft limits and `.check()` for hard limits:
 

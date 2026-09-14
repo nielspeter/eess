@@ -5,7 +5,7 @@
 - **State:** Fixed — the class body conditions, and every rule built on them, search the code
   each member runs: bodies, parameter defaults, property initializers and static blocks; red test
   first. Two gaps of the same kind, found in review, are filed as
-  [0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md) and
+  [0306](./0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md) and
   [0307](./0307-class-body-rules-skip-class-code-outside-its-members.md).
 - **Severity:** High — **false green.** Every rule built on the class body conditions missed code in a field
   initializer, a static field, a constructor parameter default, a static block and an
@@ -70,7 +70,7 @@ is the design, because wiring must not satisfy it.)
 
 `noSilentCatch`, `noMagicNumbers` and the class metrics rules do not use this search; each walks
 its own member list and still misses these positions. That is
-[0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md).
+[0306](./0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md).
 
 **Found while fixing, and fixed with it.** `findMatchesInNode` tests a subtree's descendants, not
 its root. That never mattered for a body — a block — but an initializer can itself be the match:
@@ -133,7 +133,7 @@ the one preset rule (`dataLayerIsolation`'s `preset/data/typed-errors`) built on
       the comment on the line of `=`, where ts-morph reads it as that token's trailing trivia, so
       the test was red at baseline — the comment was moved to its own line. The three rows for the
       review findings were added afterwards, and every row was run again with them.
-- [ ] deferred→[0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md) —
+- [ ] deferred→[0306](./0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md) —
       `noSilentCatch`, `noMagicNumbers` and the class metrics rules keep their own member walk.
 - [ ] deferred→[0307](./0307-class-body-rules-skip-class-code-outside-its-members.md) — decorator arguments,
       computed member names and the `extends` expression are not searched. The method review
@@ -141,5 +141,5 @@ the one preset rule (`dataLayerIsolation`'s `preset/data/typed-errors`) built on
       must-not-contain rule reads them whole; a must-contain rule reads member code only.
 - [x] `npm run validate` green.
 
-Deferred: [0306](../0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md),
+Deferred: [0306](./0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md),
 [0307](./0307-class-body-rules-skip-class-code-outside-its-members.md)

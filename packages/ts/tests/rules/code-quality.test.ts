@@ -139,19 +139,21 @@ describe('noMagicNumbers', () => {
 
   it('supports custom allowed list', () => {
     const cls = getClass('BadQualityService')
-    const condition = noMagicNumbers({ allowed: [0, 1, -1, 42, 1000] })
+    const condition = noMagicNumbers({ allowed: [0, 1, -1, 42, 1000, 99] })
     const violations = condition.evaluate([cls], ctx)
-    // 42 and 1000 are now allowed
+    // 42, 1000 and the constructor's 99 are now allowed
     expect(violations).toHaveLength(0)
   })
 
-  it('does not scan constructor bodies', () => {
+  it('reports a magic number in a constructor body', () => {
     const cls = getClass('BadQualityService')
     const condition = noMagicNumbers()
     const violations = condition.evaluate([cls], ctx)
     const messages = violations.map((v) => v.message)
-    // 99 is in the constructor, which is not scanned
-    expect(messages.some((m) => m.includes('99'))).toBe(false)
+    // 99 is in the constructor, which bug 0306 made the rule read
+    expect(messages).toContain(
+      'BadQualityService.constructor contains magic number 99 — extract to a named constant',
+    )
   })
 
   it('reports no violations for clean class', () => {

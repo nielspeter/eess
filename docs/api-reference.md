@@ -701,13 +701,13 @@ See [Architecture Presets](/presets) for full configuration options.
 
 ### `eess-ts/rules/metrics`
 
-| Export                       | Description                                               |
-| ---------------------------- | --------------------------------------------------------- |
-| `maxCyclomaticComplexity(n)` | No method/constructor/getter/setter exceeds complexity n. |
-| `maxClassLines(n)`           | Class has no more than n code lines.                      |
-| `maxMethodLines(n)`          | No method/constructor/getter/setter exceeds n code lines. |
-| `maxMethods(n)`              | Class has no more than n methods.                         |
-| `maxParameters(n)`           | No method/constructor has more than n parameters.         |
-| `maxFunctionComplexity(n)`   | Function complexity does not exceed n.                    |
-| `maxFunctionLines(n)`        | Function has no more than n code lines.                   |
-| `maxFunctionParameters(n)`   | Function has no more than n parameters.                   |
+| Export                       | Description                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `maxCyclomaticComplexity(n)` | No callable member (method, constructor, accessor or function-valued property) exceeds complexity n.       |
+| `maxClassLines(n)`           | Class has no more than n code lines.                                                                       |
+| `maxMethodLines(n)`          | No callable member (method, constructor, accessor or function-valued property) exceeds n code lines.       |
+| `maxMethods(n)`              | Class has no more than n methods.                                                                          |
+| `maxParameters(n)`           | No callable member (method, constructor, accessor or function-valued property) has more than n parameters. |
+| `maxFunctionComplexity(n)`   | Function complexity does not exceed n.                                                                     |
+| `maxFunctionLines(n)`        | Function has no more than n code lines.                                                                    |
+| `maxFunctionParameters(n)`   | Function has no more than n parameters.                                                                    |

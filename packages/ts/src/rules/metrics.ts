@@ -1,38 +1,56 @@
-import type {
-  ClassDeclaration,
-  MethodDeclaration,
-  ConstructorDeclaration,
-  GetAccessorDeclaration,
-  SetAccessorDeclaration,
-} from 'ts-morph'
+import { Node } from 'ts-morph'
+import type { ClassDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { cyclomaticComplexity, linesOfCode } from '../helpers/complexity.js'
 import { metricViolation } from '../core/metric-violation.js'
 
-/** All callable members of a class: methods, constructors, getters, setters */
-type ClassMember =
-  | MethodDeclaration
-  | ConstructorDeclaration
-  | GetAccessorDeclaration
-  | SetAccessorDeclaration
+/**
+ * One callable member of a class, as the ceilings measure it: a method, constructor or accessor,
+ * or a property whose value is a function — an arrow function or a function expression (bug
+ * 0306). An event handler written `onClick = () => {…}` is as much a member as `onClick() {…}`.
+ * A static block, a parameter default or a property holding anything else is not a callable member,
+ * and is not measured; `maxClassLines` still counts it.
+ */
+interface CallableMember {
+  /** The declaration a finding anchors at. */
+  readonly node: Node
+  /** `Class.member` — the qualified name a finding carries. */
+  readonly name: string
+  readonly body: Node | undefined
+  readonly parameterCount: number
+}
 
-function getClassMembers(cls: ClassDeclaration): ClassMember[] {
-  return [
+function callableMembers(cls: ClassDeclaration): CallableMember[] {
+  const clsName = cls.getName() ?? '<anonymous>'
+  const members: CallableMember[] = []
+  for (const member of [
     ...cls.getMethods(),
     ...cls.getConstructors(),
     ...cls.getGetAccessors(),
     ...cls.getSetAccessors(),
-  ]
-}
-
-function getMemberName(cls: ClassDeclaration, member: ClassMember): string {
-  const clsName = cls.getName() ?? '<anonymous>'
-  if ('getName' in member && typeof member.getName === 'function') {
-    const memberName = String(member.getName())
-    return `${clsName}.${memberName}`
+  ]) {
+    members.push({
+      node: member,
+      name: Node.isConstructorDeclaration(member)
+        ? `${clsName}.constructor`
+        : `${clsName}.${member.getName()}`,
+      body: member.getBody(),
+      parameterCount: member.getParameters().length,
+    })
   }
-  return `${clsName}.constructor`
+  // After the declared members, so a finding the old walk reported keeps its place.
+  for (const property of cls.getProperties()) {
+    const value = property.getInitializer()
+    if (!Node.isArrowFunction(value) && !Node.isFunctionExpression(value)) continue
+    members.push({
+      node: property,
+      name: `${clsName}.${property.getName()}`,
+      body: value.getBody(),
+      parameterCount: value.getParameters().length,
+    })
+  }
+  return members
 }
 
 /**
@@ -56,7 +74,7 @@ function memberCeiling(
     description: string
     metric: string
     unit?: string
-    measure: (member: ClassMember) => number
+    measure: (member: CallableMember) => number
     message: (name: string, measured: number) => string
   },
 ): Condition<ClassDeclaration> {
@@ -65,13 +83,13 @@ function memberCeiling(
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
-        for (const member of getClassMembers(cls)) {
+        for (const member of callableMembers(cls)) {
           const value = spec.measure(member)
           if (value <= threshold) continue
-          const name = getMemberName(cls, member)
+          const name = member.name
           violations.push(
             metricViolation(
-              member,
+              member.node,
               {
                 metric: spec.metric,
                 ...(spec.unit === undefined ? {} : { unit: spec.unit }),
@@ -96,8 +114,8 @@ function memberCeiling(
 }
 
 /**
- * No method/constructor/getter/setter in the class may exceed the given
- * cyclomatic complexity.
+ * No callable member of the class — a method, constructor or accessor, or a property whose
+ * value is a function — may exceed the given cyclomatic complexity (bug 0306).
  *
  * @example
  * ```ts
@@ -110,7 +128,7 @@ export function maxCyclomaticComplexity(threshold: number): Condition<ClassDecla
   return memberCeiling(threshold, {
     description: `have no method with cyclomatic complexity > ${String(threshold)}`,
     metric: 'complexity',
-    measure: (member) => cyclomaticComplexity(member.getBody()),
+    measure: (member) => cyclomaticComplexity(member.body),
     message: (name, cc) =>
       `${name} has cyclomatic complexity ${String(cc)} (max: ${String(threshold)}) — split into smaller methods`,
   })
@@ -157,7 +175,8 @@ export function maxClassLines(threshold: number): Condition<ClassDeclaration> {
 }
 
 /**
- * No method/constructor/getter/setter may exceed the given number of lines.
+ * No callable member of the class — a method, constructor or accessor, or a property whose
+ * value is a function — may exceed the given number of lines (bug 0306).
  *
  * @example
  * ```ts
@@ -173,7 +192,7 @@ export function maxMethodLines(threshold: number): Condition<ClassDeclaration> {
     // `code-lines` since bug 0170 — the metric kept its name when it stopped
     // counting comments, and the baseline must not compare across that.
     unit: 'code-lines',
-    measure: (member) => linesOfCode(member),
+    measure: (member) => linesOfCode(member.node),
     message: (name, loc) => `${name} has ${String(loc)} code lines (max: ${String(threshold)})`,
   })
 }
@@ -217,7 +236,8 @@ export function maxMethods(threshold: number): Condition<ClassDeclaration> {
 }
 
 /**
- * No method/constructor may have more than the given number of parameters.
+ * No callable member of the class — a method, constructor or accessor, or a property whose
+ * value is a function — may have more than the given number of parameters (bug 0306).
  *
  * @example
  * ```ts
@@ -232,7 +252,7 @@ export function maxParameters(threshold: number): Condition<ClassDeclaration> {
   return memberCeiling(threshold, {
     description: `have no method with more than ${String(threshold)} parameters`,
     metric: 'parameters',
-    measure: (member) => member.getParameters().length,
+    measure: (member) => member.parameterCount,
     message: (name, params) =>
       `${name} has ${String(params)} parameters (max: ${String(threshold)}) — use an options object`,
   })
