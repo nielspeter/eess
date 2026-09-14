@@ -78,7 +78,15 @@ describe('bug 0306: class rules with their own walk read the code a class runs',
         '  retry(attempts = 4949) { return attempts }', // 12
         '  flags = ~9696', // 13
         '  bonus = +7171', // 14
-        '}', // 15
+        '  get limit() { return 4141 }', // 15
+        '  asConst = 4250 as const', // 16
+        '  parens = (4251)', // 17
+        '  satisfied = 4252 satisfies number', // 18
+        '  asserted = <number>4253', // 19
+        '  bang = 4254!', // 20
+        '  signedAsConst = -4255 as const', // 21
+        '  separated() { return 4_256 }', // 22
+        '}', // 23
       ]),
     )
       .should()
@@ -89,16 +97,39 @@ describe('bug 0306: class rules with their own walk read the code a class runs',
     // A method's finding keeps the message it had; 100 is in the default allowed list. The rule reads
     // member code only, so the decorator's 4040 and the computed name's 4646 are not reported. A number
     // that is the whole value of the class's own property or parameter is named by it (lines 8-10, 12
-    // and 14); one inside a larger initializer or default, or behind `~`, is not (lines 4, 11 and 13).
+    // and 14), through a sign, parentheses, `as`, `<T>`, `satisfies` or `!` (lines 16-21); one inside a
+    // larger initializer or default, or behind `~`, is not (lines 4, 11 and 13). An accessor's number
+    // is named by the accessor, and `4_256` is read as its value.
     expect(
       result.map((v) => v.message.replace(/ — extract to a named constant$/, '')).sort(),
     ).toEqual([
       'Tuning.arrow contains magic number 4242',
       'Tuning.constructor contains magic number 4444',
       'Tuning.flags contains magic number 9696',
+      'Tuning.limit contains magic number 4141',
       'Tuning.method contains magic number 4545',
       'Tuning.scaled contains magic number 4747',
+      'Tuning.separated contains magic number 4256',
       'Tuning.static contains magic number 4343',
+    ])
+  })
+
+  it('noMagicNumbers reads a number by its value, so a numeric separator matches the allowed list', () => {
+    const result = classes(
+      project('/src/separated.ts', [
+        'export class Separated {', // 1
+        '  a() { return 5_000 }', // 2
+        '  b() { return 6_000 }', // 3
+        '}', // 4
+      ]),
+    )
+      .should()
+      .satisfy(noMagicNumbers({ allowed: [5000] }))
+      .rule({ id: 'test/0306-separators' })
+      .violations()
+
+    expect(result.map((v) => v.message)).toEqual([
+      'Separated.b contains magic number 6000 — extract to a named constant',
     ])
   })
 
@@ -174,6 +205,27 @@ describe('bug 0306: class rules with their own walk read the code a class runs',
     ])
     expect(namesMeasured(parameters)).toEqual(['Handlers.onEvent'])
     expect(namesMeasured(lines)).toEqual(['Handlers.onEvent'])
+  })
+
+  it('the metrics rules list declared members before function-valued properties, and anchor a property finding at the property', () => {
+    const p = project('/src/order.ts', [
+      'export class Order {', // 1
+      '  onFirst =', // 2
+      '    (a: number) => { if (a) { return 1 } if (!a) { return 2 } return 3 }', // 3
+      '  later(a: number) { if (a) { return 1 } if (!a) { return 2 } return 3 }', // 4
+      '}', // 5
+    ])
+    const result = classes(p)
+      .should()
+      .satisfy(maxCyclomaticComplexity(2))
+      .rule({ id: 'test/0306-order' })
+      .violations()
+
+    // Not sorted: the declared member the old walk reported comes first, wherever the property sits.
+    expect(result.map((v) => [v.line, v.message])).toEqual([
+      [4, 'Order.later has cyclomatic complexity 3 (max: 2) — split into smaller methods'],
+      [2, 'Order.onFirst has cyclomatic complexity 3 (max: 2) — split into smaller methods'],
+    ])
   })
 
   it('CONTROL — a property that is not a function, and a static block, are not members a metric measures', () => {

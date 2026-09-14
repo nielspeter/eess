@@ -18,7 +18,7 @@ In the 0306 worktree, one full `vitest run` of `packages/ts` failed both scan te
 `packages/ts/tests/tools/scan-cardinality-assertions.test.ts` —
 `it('VACUITY: the scan actually read the suite')` and
 `it('no new FILE contributes a count-only block')` — beside two failures the fix expected. The file
-passed alone twenty seconds later with no test file changed, and the next full run passed. The
+passed when run alone within a minute with no test file changed, and the next full run passed. The
 assertion messages were not captured.
 
 ## Root cause
@@ -28,9 +28,10 @@ describe block is collected (`testFiles` in `packages/ts/tests/tools/scan-cardin
 `packages/ts/tests/core/warn-survives-the-test-runner.test.ts` writes probe test files into
 `tests/__generated__/run-<pid>/` while it runs, and two of its probes are count-only blocks —
 `toHaveLength(4)` and nothing else. A scan collected while they exist sees a file the list has never
-seen, which fails "no new FILE", and a population two larger against `CEILING = 103`. That VACUITY
-failed as well fits a population within two of the ceiling; the population that day was not
-measured.
+seen, which fails "no new FILE", and a population two larger against `CEILING = 103`. VACUITY failed as well because the population has no headroom: at `4c7ae9e` it is 103, exactly the
+ceiling, over 49 contributing files and 3602 blocks (`scanCardinalityAssertions` over a `git archive`
+copy of `packages/ts/tests`, measured by #137's second method review), so the two probes make 105.
+The population on the day of the failure was not measured.
 
 `tests/__generated__` is gitignored and excluded from `tsconfig.json` because other readers of the
 tree tripped on these probes; the scan does not skip it.

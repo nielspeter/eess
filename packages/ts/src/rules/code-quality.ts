@@ -109,7 +109,8 @@ export function noPublicFields(): Condition<ClassDeclaration> {
  * Configure with options.allowed to customize.
  *
  * A number that is the whole value of one of the class's own properties or its members' parameter
- * defaults is named by it, and is not reported.
+ * defaults is named by it, and is not reported — read through a sign, parentheses, `as`, `<T>`,
+ * `satisfies` and `!`, so `static readonly LIMIT = 5000 as const` is named too.
  *
  * A finding names the member the number sits in — `Class.method`, `Class.constructor`,
  * `Class.static` for a static block — so a number in a method keeps the message it always had.
@@ -132,18 +133,20 @@ export function noMagicNumbers(options?: { allowed?: number[] }): Condition<Clas
     syntaxKinds: [SyntaxKind.NumericLiteral],
     matches: (node) =>
       Node.isNumericLiteral(node) &&
-      !allowedSet.has(Number(node.getText())) &&
+      !allowedSet.has(node.getLiteralValue()) &&
       !isNamedValue(node, cls),
   })
 
   return {
-    description: 'have no magic numbers in the class member code',
+    description: 'have no magic numbers in member code',
     evaluate(elements: ClassDeclaration[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const cls of elements) {
         for (const literal of searchClassBody(cls, magicNumberIn(cls), 'member-code')
           .matchingNodes) {
-          const value = Number(literal.getText())
+          if (!Node.isNumericLiteral(literal)) continue
+          // The value, not the text: `5_000` is 5000, in the message and against the allowed list.
+          const value = literal.getLiteralValue()
           violations.push(
             createViolation(
               literal,
@@ -160,19 +163,15 @@ export function noMagicNumbers(options?: { allowed?: number[] }): Condition<Clas
 
 /**
  * A number that is the whole value of one of the class's own declarations — a property's initializer
- * or a member's parameter default, sign included — is named by that declaration:
- * `private timeout = 5000`, `retry(attempts = 3)`. It is not reported. A number inside a larger
- * initializer or default still is, and so is one in a function or class nested inside a member: the
- * method walk before bug 0306 reported those, and they are not the class's names.
+ * or a member's parameter default — is named by that declaration: `private timeout = 5000`,
+ * `retry(attempts = 3)`, `static readonly LIMIT = -5000 as const`. It is not reported. A number
+ * inside a larger initializer or default still is, and so is one in a function or class nested inside
+ * a member: the method walk before bug 0306 reported those, and they are not the class's names.
  */
 function isNamedValue(literal: Node, cls: ClassDeclaration): boolean {
   let value: Node = literal
   let parent = value.getParent()
-  if (
-    Node.isPrefixUnaryExpression(parent) &&
-    (parent.getOperatorToken() === SyntaxKind.MinusToken ||
-      parent.getOperatorToken() === SyntaxKind.PlusToken)
-  ) {
+  while (parent !== undefined && leavesValueUnchanged(parent)) {
     value = parent
     parent = value.getParent()
   }
@@ -183,6 +182,24 @@ function isNamedValue(literal: Node, cls: ClassDeclaration): boolean {
     return parent.getInitializer() === value && parent.getParent()?.getParent() === cls
   }
   return false
+}
+
+/**
+ * A wrapper that leaves the value inside it unchanged: a `-` or `+` sign, parentheses, `as`, `<T>`,
+ * `satisfies` or `!`. The metrics rules read a function-valued property through the same wrappers.
+ */
+function leavesValueUnchanged(node: Node): boolean {
+  if (Node.isPrefixUnaryExpression(node)) {
+    const operator = node.getOperatorToken()
+    return operator === SyntaxKind.MinusToken || operator === SyntaxKind.PlusToken
+  }
+  return (
+    Node.isParenthesizedExpression(node) ||
+    Node.isAsExpression(node) ||
+    Node.isTypeAssertion(node) ||
+    Node.isSatisfiesExpression(node) ||
+    Node.isNonNullExpression(node)
+  )
 }
 
 /**

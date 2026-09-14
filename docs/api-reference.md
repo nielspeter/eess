@@ -493,15 +493,15 @@ See [Cross-Layer Validation](/cross-layer) for usage examples.
 
 ## Metrics
 
-| Export                      | Signature                                                     | Description                                                 |
-| --------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------- |
-| `cyclomaticComplexity`      | `cyclomaticComplexity(body: Node \| undefined): number`       | Calculate McCabe cyclomatic complexity for a function body. |
-| `linesOfCode`               | `linesOfCode(node: Node): number`                             | Count code lines (comments and blanks excluded).            |
-| `haveCyclomaticComplexity`  | `haveCyclomaticComplexity(opts): Predicate<ClassDeclaration>` | Predicate: class has a method with complexity > threshold.  |
-| `haveComplexity`            | `haveComplexity(opts): Predicate<ArchFunction>`               | Predicate: function has complexity > threshold.             |
-| `haveMoreLinesThan`         | `haveMoreLinesThan(n): Predicate<ClassDeclaration>`           | Predicate: class has more than n code lines.                |
-| `haveMoreFunctionLinesThan` | `haveMoreFunctionLinesThan(n): Predicate<ArchFunction>`       | Predicate: function has more than n code lines.             |
-| `haveMoreMethodsThan`       | `haveMoreMethodsThan(n): Predicate<ClassDeclaration>`         | Predicate: class has more than n methods.                   |
+| Export                      | Signature                                                     | Description                                                                         |
+| --------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `cyclomaticComplexity`      | `cyclomaticComplexity(body: Node \| undefined): number`       | Calculate McCabe cyclomatic complexity for a function body.                         |
+| `linesOfCode`               | `linesOfCode(node: Node): number`                             | Count code lines (comments and blanks excluded).                                    |
+| `haveCyclomaticComplexity`  | `haveCyclomaticComplexity(opts): Predicate<ClassDeclaration>` | Predicate: class has a method, constructor or accessor with complexity > threshold. |
+| `haveComplexity`            | `haveComplexity(opts): Predicate<ArchFunction>`               | Predicate: function has complexity > threshold.                                     |
+| `haveMoreLinesThan`         | `haveMoreLinesThan(n): Predicate<ClassDeclaration>`           | Predicate: class has more than n code lines.                                        |
+| `haveMoreFunctionLinesThan` | `haveMoreFunctionLinesThan(n): Predicate<ArchFunction>`       | Predicate: function has more than n code lines.                                     |
+| `haveMoreMethodsThan`       | `haveMoreMethodsThan(n): Predicate<ClassDeclaration>`         | Predicate: class has more than n declared methods.                                  |
 
 ## CLI
 
@@ -706,7 +706,7 @@ See [Architecture Presets](/presets) for full configuration options.
 | `maxCyclomaticComplexity(n)` | No callable member (method, constructor, accessor or function-valued property) exceeds complexity n.       |
 | `maxClassLines(n)`           | Class has no more than n code lines.                                                                       |
 | `maxMethodLines(n)`          | No callable member (method, constructor, accessor or function-valued property) exceeds n code lines.       |
-| `maxMethods(n)`              | Class has no more than n methods.                                                                          |
+| `maxMethods(n)`              | Class has no more than n declared methods (a function-valued property is not counted).                     |
 | `maxParameters(n)`           | No callable member (method, constructor, accessor or function-valued property) has more than n parameters. |
 | `maxFunctionComplexity(n)`   | Function complexity does not exceed n.                                                                     |
 | `maxFunctionLines(n)`        | Function has no more than n code lines.                                                                    |

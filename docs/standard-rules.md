@@ -387,7 +387,7 @@ modules(p)
 
 ## Code Quality (`eess-ts/rules/code-quality`)
 
-Structural code quality rules that go beyond what a linter catches. These check properties of the class as a whole — whether public methods are documented, whether mutable state is exposed, whether magic numbers are scattered through method bodies. Use `.warn()` for gradual adoption on existing codebases, `.check()` for strict enforcement on new code.
+Structural code quality rules that go beyond what a linter catches. These check properties of the class as a whole — whether public methods are documented, whether mutable state is exposed, whether magic numbers are scattered through member code. Use `.warn()` for gradual adoption on existing codebases, `.check()` for strict enforcement on new code.
 
 ```typescript
 import {
@@ -403,7 +403,7 @@ import {
 | `noPublicFields()`              | No public mutable fields (allows static readonly)                                                                             |
 | `noMagicNumbers(options?)`      | No numeric literals in class member code, except its own properties' and parameters' whole values (configurable allowed list) |
 
-`requireJsDocOnPublicMethods` enforces that every public API surface is documented. This is especially useful for library code and shared packages where consumers rely on JSDoc for IDE hints. `noPublicFields` enforces encapsulation — state should be accessed through methods, not exposed directly (static readonly constants are allowed). `noMagicNumbers` catches unexplained numeric literals in a class's member code — not its decorators, computed names or `extends` — except the whole value of one of its own properties or parameters; pass an `allowed` array for numbers that are self-explanatory (0, 1, -1, HTTP status codes):
+`requireJsDocOnPublicMethods` enforces that every public API surface is documented. This is especially useful for library code and shared packages where consumers rely on JSDoc for IDE hints. `noPublicFields` enforces encapsulation — state should be accessed through methods, not exposed directly (static readonly constants are allowed). `noMagicNumbers` catches unexplained numeric literals in a class's member code — not its decorators, computed names or `extends` — except the whole value of one of its own properties or parameters, read through a sign or `as const` — a keyed table such as `static readonly Status = { OK: 200 }` is still reported; pass an `allowed` array for numbers that are self-explanatory (0, 1, -1, HTTP status codes):
 
 ```typescript
 // Public API must be documented

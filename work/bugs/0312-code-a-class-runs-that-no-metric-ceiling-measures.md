@@ -6,7 +6,8 @@
 - **Severity:** Medium — **false green** for code of any size. `maxCyclomaticComplexity`,
   `maxMethodLines` and `maxParameters` pass a static block, a function passed through a call in a
   property's value (`onChange = debounce((e) => {…})`) and a method of an object in a property's
-  value (`handlers = { onEvent() {…} }`), however complex or long.
+  value (`handlers = { onEvent() {…} }`), however complex or long. The KNOWN-GAP test runs
+  complexity and lines; `maxParameters` reads the same member list and is not run.
 - **Origin:** stated as a limit in
   [0306](./fixed/0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md)'s fix; the
   enforcement review of 0306 asked for a home, and it was measured then.

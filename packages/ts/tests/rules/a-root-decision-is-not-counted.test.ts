@@ -34,11 +34,16 @@ describe('bug 0310: a decision at the root of an expression body is not counted'
 
     const result = classes(p)
       .should()
-      .satisfy(maxCyclomaticComplexity(1))
+      .satisfy(maxCyclomaticComplexity(0))
       .rule({ id: 'test/0310-root' })
       .violations()
 
-    expect(result.map((v) => v.message)).toEqual([])
+    // Each is measured, at 1: the decision that is the body is not counted.
+    expect(result.map((v) => v.message)).toEqual([
+      'Root.onAnd has cyclomatic complexity 1 (max: 0) — split into smaller methods',
+      'Root.onNullish has cyclomatic complexity 1 (max: 0) — split into smaller methods',
+      'Root.onTernary has cyclomatic complexity 1 (max: 0) — split into smaller methods',
+    ])
   })
 
   it('CONTROL — the same decision one node below the body is counted', () => {
