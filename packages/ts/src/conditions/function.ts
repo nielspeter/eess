@@ -117,8 +117,8 @@ export function haveNameMatching(pattern: RegExp): Condition<ArchFunction> {
  * Reports one violation per function that has no matching parameter.
  *
  * **Scope note:** This operates on the function's own parameter list only.
- * Unlike the class-level counterpart, it does NOT scan set accessors
- * because `collectFunctions()` excludes them.
+ * A set accessor is a function of its own, `Class.set x`, since bug 0315; the class-level
+ * counterpart scans the whole class at once.
  */
 export function acceptParameterOfType(matcher: TypeMatcher): Condition<ArchFunction> {
   return functionCondition(
@@ -136,8 +136,8 @@ export function acceptParameterOfType(matcher: TypeMatcher): Condition<ArchFunct
  * with actionable messages including the parameter name and type.
  *
  * **Scope note:** This operates on the function's own parameter list only.
- * Unlike the class-level counterpart, it does NOT scan set accessors
- * because `collectFunctions()` excludes them.
+ * A set accessor is a function of its own, `Class.set x`, since bug 0315; the class-level
+ * counterpart scans the whole class at once.
  */
 export function notAcceptParameterOfType(matcher: TypeMatcher): Condition<ArchFunction> {
   return {

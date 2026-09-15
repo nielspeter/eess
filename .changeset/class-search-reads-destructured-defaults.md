@@ -22,7 +22,7 @@ Affected, because they are built on the class body search: `contain`, `notContai
   parameter now contains it, for `contain`, `classMustCall` and the replacement half of
   `useInsteadOf`.
 - The `recommended` preset and `agentGuardrails` run function rules, which still read no parameter
-  default (bug 0314), so they do not change.
+  default (bug 0314), so this change does not change them.
 
 `noMagicNumbers` names a number that is the whole default of a binding element in a parameter of one
 of the class's own members, as it names a parameter's default: `retry({ attempts = 3 } = {})` is not

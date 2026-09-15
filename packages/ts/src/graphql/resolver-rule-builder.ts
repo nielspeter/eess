@@ -6,13 +6,23 @@ import { stampGlobs } from '@nielspeter/eess/internal'
 import { globAnyOf } from '@nielspeter/eess'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchFunction } from '../models/arch-function.js'
-import { collectFunctions } from '../models/arch-function.js'
+import { collectFunctions, functionKindOf, type FunctionKind } from '../models/arch-function.js'
 import {
   functionContain,
   functionNotContain,
   functionUseInsteadOf,
 } from '../conditions/body-analysis-function.js'
 import { GraphqlRuleBuilder } from './graphql-rule-builder.js'
+
+/**
+ * The kinds of collected function `resolvers()` does not treat as a resolver. A getter written as a field
+ * resolver, `@Field() get fullName()`, is therefore not read.
+ */
+const NOT_RESOLVERS: ReadonlySet<FunctionKind> = new Set<FunctionKind>([
+  'constructor',
+  'getter',
+  'setter',
+])
 
 /**
  * Predicate: filter to resolver functions for fields returning types matching the pattern.
@@ -174,8 +184,15 @@ export class ResolverRuleBuilder extends GraphqlRuleBuilder<ArchFunction> {
     // sit beside the resolvers and none of the resolvers themselves — measured
     // on a real schema as 60 subjects, 0 of them resolvers. Every rule written
     // against it then passes on the wrong subjects (ADR-008).
+    //
+    // A constructor or an accessor is not treated as a resolver, so a getter field resolver is not read.
+    // Since bug 0315 the collection returns a class's constructor and accessors beside its methods, and a
+    // class-based resolver's injected constructor would otherwise fail every `contain(...)` rule written
+    // against the resolvers.
     return this.sourceFiles.flatMap((sf) =>
-      collectFunctions(sf, { includeObjectLiteralFunctions: true }),
+      collectFunctions(sf, { includeObjectLiteralFunctions: true }).filter(
+        (fn) => !NOT_RESOLVERS.has(functionKindOf(fn)),
+      ),
     )
   }
 }

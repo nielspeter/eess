@@ -67,7 +67,7 @@ export function shouldNotHaveMethodMatching(regex: RegExp): Condition<ClassDecla
  *
  * **Scope note:** This scans constructors, methods, AND set accessors.
  * The function-level counterpart (`functions(p).should().acceptParameterOfType(...)`)
- * does NOT scan set accessors because `collectFunctions()` excludes them.
+ * reads a set accessor as its own function, `Class.set x` (bug 0315).
  */
 export function acceptParameterOfType(matcher: TypeMatcher): Condition<ClassDeclaration> {
   return {
@@ -105,7 +105,7 @@ export function acceptParameterOfType(matcher: TypeMatcher): Condition<ClassDecl
  *
  * **Scope note:** This scans constructors, methods, AND set accessors.
  * The function-level counterpart (`functions(p).should().notAcceptParameterOfType(...)`)
- * does NOT scan set accessors because `collectFunctions()` excludes them.
+ * reads a set accessor as its own function, `Class.set x` (bug 0315).
  */
 /**
  * Scan parameters of class members (constructors, methods, set accessors) for

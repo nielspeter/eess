@@ -1,9 +1,10 @@
 import { Node } from 'ts-morph'
-import type { ArrowFunction, ClassDeclaration, FunctionExpression } from 'ts-morph'
+import type { ClassDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { cyclomaticComplexity, linesOfCode } from '../helpers/complexity.js'
 import { metricViolation } from '../core/metric-violation.js'
+import { functionValueOf } from '../models/arch-function.js'
 
 /**
  * One callable member of a class, as the ceilings measure it: a method, constructor or accessor,
@@ -19,24 +20,6 @@ interface CallableMember {
   readonly name: string
   readonly body: Node | undefined
   readonly parameterCount: number
-}
-
-/**
- * The function a property holds, read through the wrappers that leave it unchanged at run time —
- * parentheses, `as`, `<T>`, `satisfies` and `!` — or `undefined` when it holds something else.
- */
-function functionValueOf(node: Node | undefined): ArrowFunction | FunctionExpression | undefined {
-  let current = node
-  while (
-    Node.isParenthesizedExpression(current) ||
-    Node.isAsExpression(current) ||
-    Node.isTypeAssertion(current) ||
-    Node.isSatisfiesExpression(current) ||
-    Node.isNonNullExpression(current)
-  ) {
-    current = current.getExpression()
-  }
-  return Node.isArrowFunction(current) || Node.isFunctionExpression(current) ? current : undefined
 }
 
 function callableMembers(cls: ClassDeclaration): CallableMember[] {
