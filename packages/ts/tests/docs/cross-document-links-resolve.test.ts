@@ -174,8 +174,9 @@ function sourceFiles(): string[] {
       const full = path.join(d, entry.name)
       if (entry.isDirectory()) {
         // Dot-directories are skipped, and that is a CORRECTNESS fix, not tidiness.
-        // `scan-cardinality-assertions.test.ts` writes real `.ts` files into
-        // `tests/tools/.scan-probe/` and deletes them in a `finally`; vitest runs the
+        // `scan-cardinality-assertions.test.ts` wrote real `.ts` files into
+        // `tests/tools/.scan-probe/` and deleted them in a `finally` (it writes them to a throwaway tree
+        // since bug 0313); vitest runs the
         // two files in parallel workers, so this walk could collect a probe file and
         // then read it after it was gone — `ENOENT … .scan-probe/a.test.ts`. Observed
         // in `npm run validate` while `npm test` passed, which is the worst shape: an

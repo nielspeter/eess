@@ -112,9 +112,9 @@ function blocksIn(text: string): { line: number; body: string }[] {
  * Other tests write probe test files there while the suite runs and delete them after —
  * `warn-survives-the-test-runner.test.ts` among them, with count-only blocks — which is why the repo
  * gitignores it and `tsconfig.json` excludes it. A scan collected while they exist counted them, and
- * both of this scan's tests failed with nothing changed (bug 0313). Only that one directory: a
- * directory of the same name deeper down is committed code, and a dot-directory is where this scan's
- * own test plants its probes.
+ * both of this scan's tests failed with nothing changed (bug 0313). Only that one directory:
+ * `.gitignore` names each package's `tests/__generated__/` alone, so a directory of that name deeper
+ * down, or one whose name merely starts with it, would be committed code, and is read.
  */
 export function testFiles(dir: string): string[] {
   const out: string[] = []
