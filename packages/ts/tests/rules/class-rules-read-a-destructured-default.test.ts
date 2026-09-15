@@ -13,7 +13,8 @@ import type { ArchProject } from '../../src/core/project.js'
  * destructured parameter: `m({ a = eval('x') } = {})`. Every class rule over that search missed it.
  *
  * A destructured parameter runs code at each call: a binding element's default, a computed key, and
- * the same again in a nested pattern. The search reads all three, after everything it read before.
+ * the same again in a nested pattern. The search reads all three, after everything it read before,
+ * so a finding a baseline accepted keeps its ordinal.
  */
 function project(path: string, lines: readonly string[]): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })
@@ -24,6 +25,11 @@ function project(path: string, lines: readonly string[]): ArchProject {
     getSourceFiles: () => tsm.getSourceFiles(),
   }
 }
+
+const lineOf = (v: { message: string }): string => /at line (\d+)/.exec(v.message)?.[1] ?? '?'
+const ordinalOf = (v: { identity?: string }): string => /#(\d+)$/.exec(v.identity ?? '')?.[1] ?? '?'
+const scopeOf = (v: { identity?: string }): string => (v.identity ?? '').replace(/#\d+$/, '')
+const byLine = (pairs: string[][]): string[][] => pairs.sort((a, b) => Number(a[0]) - Number(b[0]))
 
 describe('bug 0309: the class rules read a default inside a destructured parameter', () => {
   it('the class rules read a default inside a destructured parameter', () => {
@@ -36,7 +42,8 @@ describe('bug 0309: the class rules read a default inside a destructured paramet
       "  s({ outer: { inner = eval('w') } = {} } = {}) { return inner }", // 6
       "  t({ [eval('k')]: key } = {}) { return key }", // 7
       "  set v({ w = eval('v') }) {}", // 8
-      '}', // 9
+      "  constructor({ c = eval('c') } = {}) {}", // 9
+      '}', // 10
     ])
 
     const evals = classes(p).should().satisfy(noEval()).rule({ id: 'test/0309-eval' }).violations()
@@ -51,19 +58,22 @@ describe('bug 0309: the class rules read a default inside a destructured paramet
       .rule({ id: 'test/0309-catch' })
       .violations()
 
-    // An object pattern, an array pattern with a hole, a nested pattern, a computed key and a
-    // setter's parameter.
-    expect(evals.map((v) => v.message)).toEqual([
+    // An object pattern, an array pattern with a hole, a nested pattern, a computed key, a setter's
+    // parameter and a constructor's.
+    expect(evals.map((v) => v.message).sort()).toEqual([
       "Destructured contains call to 'eval' at line 2",
       "Destructured contains call to 'eval' at line 3",
       "Destructured contains call to 'eval' at line 6",
       "Destructured contains call to 'eval' at line 7",
       "Destructured contains call to 'eval' at line 8",
+      "Destructured contains call to 'eval' at line 9",
     ])
     expect(numbers.map((v) => v.message)).toEqual([
       'Destructured.q contains magic number 4242 — extract to a named constant',
     ])
-    expect(catches.map((v) => v.line)).toEqual([5])
+    expect(catches.map((v) => [v.line, v.message])).toEqual([
+      [5, "catch block binds 'err' but never references it — error is silently discarded"],
+    ])
   })
 
   it("noMagicNumbers exempts a whole default inside the class's own destructured parameter, not a nested function's", () => {
@@ -76,7 +86,9 @@ describe('bug 0309: the class rules read a default inside a destructured paramet
       '  keyed({ [4646]: k } = {}) { return k }', // 6
       '  m() { const f = ({ x = 5000 }) => x; return f({}) }', // 7
       '  pair([first = 4343] = []) { return first }', // 8
-      '}', // 9
+      '  constructor({ timeout = 4141 } = {}) {}', // 9
+      '  outer({ timeout } = { timeout: 4040 }) { return timeout }', // 10
+      '}', // 11
     ])
 
     const result = classes(p)
@@ -85,13 +97,15 @@ describe('bug 0309: the class rules read a default inside a destructured paramet
       .rule({ id: 'test/0309-named' })
       .violations()
 
-    // A binding element names its whole default as a parameter does (lines 2-4 and 8); a number inside a
-    // larger default, in a computed key, or in a function nested in a member is reported (5-7).
+    // A binding element names its whole default as a parameter does (lines 2-4, 8 and 9); a number
+    // inside a larger default, in a computed key, or in a function nested in a member is reported
+    // (lines 5-7 and 10).
     expect(
       result.map((v) => v.message.replace(/ — extract to a named constant$/, '')).sort(),
     ).toEqual([
       'Named.keyed contains magic number 4646',
       'Named.m contains magic number 5000',
+      'Named.outer contains magic number 4040',
       'Named.scaled contains magic number 4747',
     ])
   })
@@ -117,17 +131,74 @@ describe('bug 0309: the class rules read a default inside a destructured paramet
       .rule({ id: 'test/0309-ordinals' })
       .violations()
 
-    const ordinalByLine = result.map((v) => [
-      /at line (\d+)/.exec(v.message)?.[1],
-      /#(\d+)$/.exec(v.identity ?? '')?.[1],
-    ])
-    const scopes = new Set(result.map((v) => (v.identity ?? '').replace(/#\d+$/, '')))
-    expect(scopes.size).toBe(1)
-    expect(ordinalByLine.sort((a, b) => Number(a[0]) - Number(b[0]))).toEqual([
+    expect(new Set(result.map(scopeOf)).size).toBe(1)
+    expect(byLine(result.map((v) => [lineOf(v), ordinalOf(v)]))).toEqual([
       ['3', '2'],
       ['4', '4'],
       ['5', '3'],
       ['7', '1'],
+    ])
+  })
+
+  it('a destructured-default match is numbered after a decorator, a same-named static member and a property of that name', () => {
+    // Each class holds an earlier read the test above has none of, in the scope the new match joins:
+    // a member decorator (read in the third pass), a static member of the same name (members of one
+    // name share a scope) and a property of that name (read in the second pass, after every
+    // member's defaults). Each keeps #1, and the match inside the destructured parameter is #2.
+    const p = project('/src/scopes.ts', [
+      'export class Decorated {', // 1
+      "  @Dec(eval('a'))", // 2
+      "  m({ y = eval('b') } = {}) { return y }", // 3
+      '}', // 4
+      'export class Shared {', // 5
+      "  static m({ a = eval('s') } = {}) { return a }", // 6
+      "  m(x = eval('i')) { return x }", // 7
+      '}', // 8
+      'export class Propertied {', // 9
+      "  static m = eval('p')", // 10
+      "  m({ a = eval('q') } = {}) { return a }", // 11
+      '}', // 12
+    ])
+    const result = classes(p)
+      .should()
+      .satisfy(noEval())
+      .rule({ id: 'test/0309-scopes' })
+      .violations()
+
+    const scope = new Map(result.map((v) => [lineOf(v), scopeOf(v)]))
+    expect(scope.get('2')).toBe(scope.get('3'))
+    expect(scope.get('6')).toBe(scope.get('7'))
+    expect(scope.get('10')).toBe(scope.get('11'))
+    expect(byLine(result.map((v) => [lineOf(v), ordinalOf(v)]))).toEqual([
+      ['2', '1'],
+      ['3', '2'],
+      ['6', '2'],
+      ['7', '1'],
+      ['10', '1'],
+      ['11', '2'],
+    ])
+  })
+
+  it('a destructured parameter is read in the order it runs: computed key, then default, then nested pattern', () => {
+    const p = project('/src/keyed.ts', [
+      'export class Keyed {', // 1
+      '  k({', // 2
+      "    [eval('key')]:", // 3
+      "      { inner = eval('inner') } =", // 4
+      "        eval('dflt'),", // 5
+      '  } = {}) { return 1 }', // 6
+      '}', // 7
+    ])
+    const result = classes(p)
+      .should()
+      .satisfy(noEval())
+      .rule({ id: 'test/0309-order' })
+      .violations()
+
+    expect(byLine(result.map((v) => [lineOf(v), ordinalOf(v)]))).toEqual([
+      ['3', '1'],
+      ['4', '3'],
+      ['5', '2'],
     ])
   })
 
@@ -144,7 +215,9 @@ describe('bug 0309: the class rules read a default inside a destructured paramet
       .rule({ id: 'test/0309-contain' })
       .violations()
 
-    expect(result.map((v) => v.element)).toEqual(['Untracked'])
+    expect(result.map((v) => [v.element, v.message])).toEqual([
+      ['Untracked', "Untracked does not contain call to 'register'"],
+    ])
   })
 
   it('CONTROL — a plain parameter default and a whole pattern default are read as before', () => {

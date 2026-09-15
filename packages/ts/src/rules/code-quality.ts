@@ -101,8 +101,8 @@ export function noPublicFields(): Condition<ClassDeclaration> {
 
 /**
  * No member code of a class may contain magic numbers: method, constructor and accessor bodies,
- * parameter defaults, property initializers and static blocks (bug 0306). Decorators, computed names
- * and `extends` are not read: a number in `@Max(150)` or `@Column({ precision: 12 })` is named by the
+ * parameter defaults, property initializers and static blocks (bug 0306). Decorators, computed member
+ * names and `extends` are not read: a number in `@Max(150)` or `@Column({ precision: 12 })` is named by the
  * decorator that takes it, and reading them would report every validation and ORM field.
  *
  * Numbers 0, 1, -1, 2, 10, 100 are allowed by default.
@@ -184,7 +184,7 @@ function isNamedValue(literal: Node, cls: ClassDeclaration): boolean {
     return parent.getInitializer() === value && isOwnParameter(parent, cls)
   }
   if (Node.isBindingElement(parent)) {
-    return parent.getInitializer() === value && isOwnParameter(destructuredParameter(parent), cls)
+    return parent.getInitializer() === value && isOwnParameter(patternOwner(parent), cls)
   }
   return false
 }
@@ -195,7 +195,7 @@ function isOwnParameter(node: Node | undefined, cls: ClassDeclaration): boolean 
 }
 
 /** What a binding element destructures, through any nested patterns: a parameter, or a variable. */
-function destructuredParameter(element: Node): Node | undefined {
+function patternOwner(element: Node): Node | undefined {
   let node = element.getParent()
   while (
     Node.isObjectBindingPattern(node) ||

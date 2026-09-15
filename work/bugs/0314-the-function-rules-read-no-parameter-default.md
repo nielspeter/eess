@@ -33,6 +33,14 @@ Read a function's parameter defaults, as
 [0300](./fixed/0300-class-body-search-reads-methods-constructors-and-accessors-only.md) did for class
 members, including the defaults inside a binding pattern that 0309 reads for class members.
 
+#138's architecture review names two things the fix must also cover. `bindingPatternMatches` in
+`packages/ts/src/helpers/body-traversal.ts` reads a destructured parameter for the class search and
+is kept apart from it so this search can use it. And `functionNoSilentCatch`
+(`packages/ts/src/rules/errors.ts`) does not use `searchFunctionBody` — it reads a block body itself
+— so fixing the function search alone leaves its parameters unread. The two searches also disagree on
+comments in a parameter default: the function search starts a comment matcher at the declaration,
+and the class search reads none there; the fix should make them agree.
+
 ## Verification
 
 - [x] KNOWN-GAP test pins today's behaviour —

@@ -4,7 +4,8 @@
 
 - **State:** Fixed — `noSilentCatch` reads all the code a class runs, `noMagicNumbers` reads the
   class's member code, and the metrics ceilings measure a function-valued property as a callable
-  member. None of them reads a default inside a destructured parameter (0309). A number that is the
+  member. None of them read a default inside a destructured parameter
+  until 0309, fixed on 2026-09-15. A number that is the
   whole value of the class's own property or parameter is named by it, by design, so the reported
   `constructor(x = 4444)` stays unreported. Red test first.
 - **Severity:** High — **false green.** A silent `catch` in an arrow-function property — the
@@ -111,7 +112,7 @@ property's value and a property holding anything else are not callable members a
 `maxClassLines` still counts them.
 
 **Found by #137's reviews beyond this record, and filed rather than widened into it:** a default
-inside a destructured parameter is read by no class rule (0309); an expression body whose root is a
+inside a destructured parameter was read by no class rule (0309, fixed on 2026-09-15); an expression body whose root is a
 decision measures one low (0310); `haveCyclomaticComplexity` and `maxMethods` count their own members,
 a disagreement this fix opened for the predicate (0311); a static block and a function nested in a
 property's value have no metric ceiling (0312); the cardinality scan reads another test's generated
@@ -184,7 +185,7 @@ probe reaches the magic-number and metrics gates (0316); and the named-value lin
 - [x] `npm run validate` green.
 - [ ] deferred→[0309](./0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md) —
       "anywhere in member code" does not reach a default inside a destructured parameter, for
-      `noSilentCatch` and `noMagicNumbers` as for every class rule.
+      `noSilentCatch` and `noMagicNumbers` as for every class rule. Fixed by 0309 on 2026-09-15.
 - [ ] deferred→[0310](../0310-complexity-misses-a-decision-at-the-root-of-an-expression-body.md) — a
       function-valued property whose expression body is itself a decision is measured one low.
 - [ ] deferred→[0311](../0311-the-class-metric-predicates-and-max-methods-count-their-own-members.md) —

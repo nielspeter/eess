@@ -39,7 +39,10 @@ Rule on each shape, and record who ruled:
 - a function-valued property's parameter default — 0306 made such a property a member for the metrics
   rules, which argues it is the class's own parameter here too;
 - a local constant — exempting it drops findings the method walk reported before 0306, so it changes
-  the rule in the other direction.
+  the rule in the other direction;
+- a numeric key in a destructuring pattern — in a member's own parameter a computed `{ [4646]: k }` is
+  reported and a plain `{ 4646: k }` is not read, while a plain key destructured in a member's body is
+  reported (#138's architecture and enforcement reviews).
 
 ## Verification
 

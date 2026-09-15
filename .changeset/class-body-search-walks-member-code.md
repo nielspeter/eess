@@ -21,8 +21,7 @@ call sat in a field initializer.
 A trailing comment on a property (`field = 1 // TODO`) is member code too, so a `comment()` rule may
 report it.
 
-Not changed: docstrings are still not searched. And `noSilentCatch`,
-`noMagicNumbers` and the class metrics rules keep their own walk of class members (bug 0306).
+Not changed: docstrings are still not searched.
 
 Every member body is searched before anything the walk did not read before — parameter defaults,
 property initializers, static blocks — so a finding a baseline accepted keeps its identity and a new
