@@ -4,7 +4,8 @@
 
 - **State:** Fixed — `noSilentCatch` reads all the code a class runs, `noMagicNumbers` reads the
   class's member code, and the metrics ceilings measure a function-valued property as a callable
-  member. None of them reads a default inside a destructured parameter (0309). A number that is the
+  member. None of them read a default inside a destructured parameter
+  until 0309, fixed on 2026-09-15. A number that is the
   whole value of the class's own property or parameter is named by it, by design, so the reported
   `constructor(x = 4444)` stays unreported. Red test first.
 - **Severity:** High — **false green.** A silent `catch` in an arrow-function property — the
@@ -68,6 +69,32 @@ The lines below were drawn by the implementer while fixing 0306 on 2026-09-14 �
 asked that day for design questions to be reasoned out rather than put to them — and each moved under
 #137's reviews. The maintainer accepts or rejects them at merge.
 
+**Measured, 2026-09-15.** At #138's review the maintainer asked that these lines rest on
+measurement rather than argument. The corpora: eess's `packages/*/src` at `7a71d2f`; NestJS's `packages/` and, separately, its `sample/` and
+`integration/` apps, at `nestjs/nest@4c5fac0`; TypeORM's `src/` and, separately, its `sample/` and
+test entities, at `typeorm/typeorm@7a9009d`; and PixiJS's `src/` at `pixijs/pixijs@6bcc937` — 4,458
+files and 3,344 classes, tests excluded. The rule ran as shipped, with the exemption removed, and
+reading decorators, computed member names and `extends` as well, each a patched copy of the built
+rule.
+
+- **Reach.** Reading decorators, computed member names and `extends` added no finding in the four
+  library sources, and 287 in the two app corpora, where the rule as shipped reports 52: 199
+  `@Column`/`@PrimaryColumn` options such as `length: 255` and `precision: 10`, 46
+  `@HttpCode(200)`, and the rest `@WebSocketGateway`, `@Module` connection options, `@Length`,
+  `@MaxLength`, `@Max` and four one-offs. Reading them would multiply the rule's findings in app code
+  5.5 times over with framework configuration. The line stands.
+- **Named values.** The exemption hid 55 of 1,148 findings, 4.8%: 46 property initializers and 9
+  parameter defaults, every one the whole value of a named declaration — `maxAliasLength = 63` in
+  seven drivers, `static readonly SUBTYPE_UUID = 4`, `alignment: number = 0.5`, `take = 25`, and
+  this repo's own `_minSimilarity = 0.85`; without it, this repo's `check:arch` reports its two builder
+  defaults. ESLint's `no-magic-numbers` draws the identical line — `ignoreClassFieldInitialValues`
+  treats `foo = 2`, `bar = -3` and `static qux = 5` as fine and `foo = 2 + 3` as not, and
+  `ignoreDefaultValues` covers parameter and destructuring defaults — but leaves both off by default;
+  typescript-eslint's `ignoreReadonlyClassProperties` is off by default too, and the rule is not in
+  ESLint's recommended set. None of the three public repos enables it. The line stands: measured,
+  what it hides is numbers that already have a name, which is what the rule's message asks the
+  author to give them. An option to report them anyway, as ESLint does by default, is not built.
+
 - **Reach.** The first cut read all the code a class runs, as `noSilentCatch` does. #137's first
   enforcement review measured the cost: every validation and ORM decorator argument — `@Max(150)`,
   `@Column({ precision: 12 })` — became a finding. Reading more is the fail-closed direction for a
@@ -111,7 +138,7 @@ property's value and a property holding anything else are not callable members a
 `maxClassLines` still counts them.
 
 **Found by #137's reviews beyond this record, and filed rather than widened into it:** a default
-inside a destructured parameter is read by no class rule (0309); an expression body whose root is a
+inside a destructured parameter was read by no class rule (0309, fixed on 2026-09-15); an expression body whose root is a
 decision measures one low (0310); `haveCyclomaticComplexity` and `maxMethods` count their own members,
 a disagreement this fix opened for the predicate (0311); a static block and a function nested in a
 property's value have no metric ceiling (0312); the cardinality scan reads another test's generated
@@ -182,9 +209,9 @@ probe reaches the magic-number and metrics gates (0316); and the named-value lin
       `findSilentCatches`, `metrics.test.ts` a constructor's metric name — and the matrix does not
       count them.
 - [x] `npm run validate` green.
-- [ ] deferred→[0309](../0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md) —
+- [ ] deferred→[0309](./0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md) —
       "anywhere in member code" does not reach a default inside a destructured parameter, for
-      `noSilentCatch` and `noMagicNumbers` as for every class rule.
+      `noSilentCatch` and `noMagicNumbers` as for every class rule. Fixed by 0309 on 2026-09-15.
 - [ ] deferred→[0310](../0310-complexity-misses-a-decision-at-the-root-of-an-expression-body.md) — a
       function-valued property whose expression body is itself a decision is measured one low.
 - [ ] deferred→[0311](../0311-the-class-metric-predicates-and-max-methods-count-their-own-members.md) —
@@ -207,7 +234,7 @@ probe reaches the magic-number and metrics gates (0316); and the named-value lin
       computed name has no other name: `getElementName` names every class-rule finding inside a member
       so, and this fix changes no naming.
 
-Deferred: [0309](../0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md),
+Deferred: [0309](./0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md),
 [0310](../0310-complexity-misses-a-decision-at-the-root-of-an-expression-body.md),
 [0311](../0311-the-class-metric-predicates-and-max-methods-count-their-own-members.md),
 [0312](../0312-code-a-class-runs-that-no-metric-ceiling-measures.md),

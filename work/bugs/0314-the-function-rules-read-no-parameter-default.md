@@ -8,7 +8,7 @@
   preset runs `functionNoEval`, `functionNoFunctionConstructor` and `functionNoSilentCatch`
   (`packages/ts/src/presets/recommended.ts:48`, `:58`, `:68`).
 - **Origin:** found on 2026-09-14 by the CONTROL written for
-  [0309](./0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md), recorded
+  [0309](./fixed/0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md), recorded
   there, and split out by #137's second method review.
 - **Reported:** 2026-09-14
 
@@ -32,6 +32,14 @@ which is the body alone: no parameter is read.
 Read a function's parameter defaults, as
 [0300](./fixed/0300-class-body-search-reads-methods-constructors-and-accessors-only.md) did for class
 members, including the defaults inside a binding pattern that 0309 reads for class members.
+
+#138's architecture review names two things the fix must also cover. `bindingPatternMatches` in
+`packages/ts/src/helpers/body-traversal.ts` reads a destructured parameter for the class search and
+is kept apart from it so this search can use it. And `functionNoSilentCatch`
+(`packages/ts/src/rules/errors.ts`) does not use `searchFunctionBody` — it reads a block body itself
+— so fixing the function search alone leaves its parameters unread. The two searches also disagree on
+comments in a parameter default: the function search starts a comment matcher at the declaration,
+and the class search reads none there; the fix should make them agree.
 
 ## Verification
 

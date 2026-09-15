@@ -101,15 +101,16 @@ export function noPublicFields(): Condition<ClassDeclaration> {
 
 /**
  * No member code of a class may contain magic numbers: method, constructor and accessor bodies,
- * parameter defaults, property initializers and static blocks (bug 0306). Decorators, computed names
- * and `extends` are not read: a number in `@Max(150)` or `@Column({ precision: 12 })` is named by the
+ * parameter defaults, property initializers and static blocks (bug 0306). Decorators, computed member
+ * names and `extends` are not read: a number in `@Max(150)` or `@Column({ precision: 12 })` is named by the
  * decorator that takes it, and reading them would report every validation and ORM field.
  *
  * Numbers 0, 1, -1, 2, 10, 100 are allowed by default.
  * Configure with options.allowed to customize.
  *
  * A number that is the whole value of one of the class's own properties or its members' parameter
- * defaults is named by it, and is not reported — read through a sign, parentheses, `as`, `<T>`,
+ * defaults, a default inside a destructured parameter included, is named by it, and is not reported
+ * — read through a sign, parentheses, `as`, `<T>`,
  * `satisfies` and `!`, so `static readonly LIMIT = 5000 as const` is named too.
  *
  * A finding names the member the number sits in — `Class.method`, `Class.constructor`,
@@ -162,11 +163,12 @@ export function noMagicNumbers(options?: { allowed?: number[] }): Condition<Clas
 }
 
 /**
- * A number that is the whole value of one of the class's own declarations — a property's initializer
- * or a member's parameter default — is named by that declaration: `private timeout = 5000`,
- * `retry(attempts = 3)`, `static readonly LIMIT = -5000 as const`. It is not reported. A number
- * inside a larger initializer or default still is, and so is one in a function or class nested inside
- * a member: the method walk before bug 0306 reported those, and they are not the class's names.
+ * A number that is the whole value of one of the class's own declarations — a property's initializer,
+ * a member's parameter default, or a binding element's default in a member's destructured parameter
+ * (bug 0309) — is named by that declaration: `private timeout = 5000`, `retry(attempts = 3)`,
+ * `retry({ attempts = 3 } = {})`, `static readonly LIMIT = -5000 as const`. It is not reported. A
+ * number inside a larger initializer or default still is, and so is one in a function or class nested
+ * inside a member: the method walk before bug 0306 reported those, and they are not the class's names.
  */
 function isNamedValue(literal: Node, cls: ClassDeclaration): boolean {
   let value: Node = literal
@@ -179,9 +181,30 @@ function isNamedValue(literal: Node, cls: ClassDeclaration): boolean {
     return parent.getInitializer() === value && parent.getParent() === cls
   }
   if (Node.isParameterDeclaration(parent)) {
-    return parent.getInitializer() === value && parent.getParent()?.getParent() === cls
+    return parent.getInitializer() === value && isOwnParameter(parent, cls)
+  }
+  if (Node.isBindingElement(parent)) {
+    return parent.getInitializer() === value && isOwnParameter(patternOwner(parent), cls)
   }
   return false
+}
+
+/** Whether a node is a parameter of one of the class's own members, not of a function nested in one. */
+function isOwnParameter(node: Node | undefined, cls: ClassDeclaration): boolean {
+  return Node.isParameterDeclaration(node) && node.getParent()?.getParent() === cls
+}
+
+/** What a binding element destructures, through any nested patterns: a parameter, or a variable. */
+function patternOwner(element: Node): Node | undefined {
+  let node = element.getParent()
+  while (
+    Node.isObjectBindingPattern(node) ||
+    Node.isArrayBindingPattern(node) ||
+    Node.isBindingElement(node)
+  ) {
+    node = node.getParent()
+  }
+  return node
 }
 
 /**

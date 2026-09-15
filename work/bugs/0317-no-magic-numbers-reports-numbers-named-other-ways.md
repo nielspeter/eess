@@ -7,7 +7,10 @@
   constant" although the number already has a name. Since 0306 the rule reads property initializers,
   so a class's table of constants — `static readonly Status = { OK: 200, NotFound: 404 }` — is likely
   the largest source of new findings in that release. #137's product review notes that ESLint's
-  `no-magic-numbers` ignores object property values unless `detectObjects` is set.
+  `no-magic-numbers` ignores object property values unless `detectObjects` is set; its documentation
+  confirms `detectObjects` defaults to `false`. The same measurement that 0306 records found 199
+  `@Column`/`@PrimaryColumn` option values in two app corpora — the object-property shape, in
+  decorators this rule does not read.
 - **Origin:** #137's second product, enforcement and architecture reviews, measured then.
 - **Reported:** 2026-09-14
 
@@ -39,7 +42,10 @@ Rule on each shape, and record who ruled:
 - a function-valued property's parameter default — 0306 made such a property a member for the metrics
   rules, which argues it is the class's own parameter here too;
 - a local constant — exempting it drops findings the method walk reported before 0306, so it changes
-  the rule in the other direction.
+  the rule in the other direction;
+- a numeric key in a destructuring pattern — in a member's own parameter a computed `{ [4646]: k }` is
+  reported and a plain `{ 4646: k }` is not read, while a plain key destructured in a member's body is
+  reported (#138's architecture and enforcement reviews).
 
 ## Verification
 

@@ -172,7 +172,8 @@ function triviaMatches(node: Node, matcher: ExpressionMatcher): Match[] {
  * How much of a class a body search reads (bug 0307).
  *
  * - `'member-code'` — the code the class's members run: method, constructor and accessor bodies,
- *   parameter defaults, property initializers and static blocks.
+ *   parameter defaults — each default and computed key inside a destructured parameter included
+ *   (bug 0309) — property initializers and static blocks.
  * - `'all-code'` — that, and the code the class runs outside its members when it is defined: every
  *   decorator expression (on the class, its members, accessors and parameters), computed member
  *   names and the `extends` expression.
@@ -183,6 +184,10 @@ function triviaMatches(node: Node, matcher: ExpressionMatcher): Match[] {
  * `classMustCall` — a DI token passed to a decorator included. The line is drawn by position: a
  * call in member code still satisfies it, a DI lookup in a field initializer included.
  *
+ * A computed key inside a destructured parameter is member code, unlike a computed member name: the
+ * key runs at each call, as a default does, and the member name runs once, when the class is
+ * defined. So a call in the key satisfies a must-contain rule, and a call in the member name does not.
+ *
  * A rule that forbids something may still read member code only, when the other positions hold
  * nothing it should report: `noMagicNumbers` does, because a number in a decorator argument such as
  * `@Max(150)` is named by the decorator that takes it (bug 0306).
@@ -192,17 +197,20 @@ type ClassBodyReach = 'member-code' | 'all-code'
 /**
  * Search the code a class runs (bugs 0300, 0307), as far as `reach` says.
  *
- * In three passes, for baselines. A match's identity is numbered within its enclosing declaration
+ * In four passes, for baselines. A match's identity is numbered within its enclosing declaration
  * (`match-identity.ts`), and a declaration is known by its name, so a getter and its setter, or a
  * static and an instance member of one name, share one. What the walk read before bug 0300 comes
- * first for every member, then what 0300 added, then what 0307 added, so a finding a baseline
- * accepted keeps its ordinal and a new one is numbered after it however the members interleave:
+ * first for every member, then what 0300 added, then what 0307 added, then what 0309 added, so a
+ * finding a baseline accepted keeps its ordinal and a new one is numbered after it however the
+ * members interleave:
  *
  * 1. every method, constructor and accessor body;
  * 2. every parameter default, property initializer (which covers an arrow-function property) and
  *    static block;
  * 3. for `'all-code'`: every parameter, member and property decorator, computed member name, class
- *    decorator and the `extends` expression.
+ *    decorator and the `extends` expression;
+ * 4. under either reach, the code every destructured parameter runs at each call, at any depth
+ *    (`bindingPatternMatches`).
  *
  * Overload signatures have no body, defaults or decorators, so walking every constructor is the
  * same as walking the implementation. `implements` is type-only and docstrings are not code, so
@@ -259,7 +267,38 @@ export function searchClassBody(
     searchExpression(cls.getExtends()?.getExpression())
   }
 
+  for (const member of runnable) {
+    for (const parameter of member.getParameters()) {
+      matchingNodes.push(...bindingPatternMatches(parameter.getNameNode(), matcher))
+    }
+  }
+
   return toResult(matchingNodes)
+}
+
+/**
+ * Matches in the code a destructured parameter runs at each call (bug 0309): for each binding
+ * element, at any depth, its computed key, then its default, then the pattern it destructures into —
+ * the order they run. A name that is not a pattern runs nothing, and a hole in an array pattern is
+ * not an element.
+ *
+ * Apart from any one search, so the function search can read a function's parameters the same way
+ * (bug 0314).
+ */
+function bindingPatternMatches(name: Node, matcher: ExpressionMatcher): Match[] {
+  if (!NodeUtils.isObjectBindingPattern(name) && !NodeUtils.isArrayBindingPattern(name)) return []
+  const matches: Match[] = []
+  for (const element of name.getElements()) {
+    if (!NodeUtils.isBindingElement(element)) continue
+    const key = element.getPropertyNameNode()
+    if (NodeUtils.isComputedPropertyName(key)) {
+      matches.push(...findMatchesInExpression(key.getExpression(), matcher))
+    }
+    const initializer = element.getInitializer()
+    if (initializer !== undefined) matches.push(...findMatchesInExpression(initializer, matcher))
+    matches.push(...bindingPatternMatches(element.getNameNode(), matcher))
+  }
+  return matches
 }
 
 /**

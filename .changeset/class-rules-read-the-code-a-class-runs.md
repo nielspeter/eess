@@ -3,8 +3,7 @@
 ---
 
 **Breaking (@nielspeter/eess-ts):** five class rules that walked their own list of members now read
-more of a class, each as below (bug 0306). None of them yet reads a default inside a destructured
-parameter (bug 0309).
+more of a class, each as below (bug 0306).
 
 - `noSilentCatch` now reports a silent `catch` anywhere a class runs code — member bodies, parameter
   defaults, property initializers (an arrow-function event handler included), static blocks,
