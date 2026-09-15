@@ -1,6 +1,6 @@
 # Function Rules
 
-The `functions()` entry point operates on functions, arrow functions, and class methods. eess-ts wraps all of these in a unified `ArchFunction` model.
+The `functions()` entry point operates on functions, arrow functions, and class members — methods, constructors, accessors and properties whose value is a function. eess-ts wraps all of these in a unified `ArchFunction` model.
 
 ## When to Use
 
@@ -12,7 +12,7 @@ The `functions()` entry point operates on functions, arrow functions, and class 
 
 ## ArchFunction
 
-Unlike most linters that treat function declarations, arrow functions, and class methods as separate constructs, eess-ts collects all three into a single `ArchFunction` type. This lets you write one rule that covers every function shape in your codebase.
+Unlike most linters that treat function declarations, arrow functions, and class methods as separate constructs, eess-ts collects them into a single `ArchFunction` type. A class member is named by its class: `Service.handle`, `Service.constructor`, `Service.get status`, `Service.set status` and, for `onClick = () => {…}`, `Service.onClick`. A function behind parentheses, `as`, `<T>`, `satisfies` or `!` is collected as the function it is. This lets you write one rule that covers every function shape in your codebase.
 
 1. **Function declarations** -- `function handleRequest() { ... }`
 2. **Arrow function variables** -- `const handleRequest = () => { ... }`
@@ -229,7 +229,7 @@ functions(p)
 
 ### Parameter Type Conditions
 
-`acceptParameterOfType(matcher)` and `notAcceptParameterOfType(matcher)` scan all parameters of matched functions. For class methods accessed via `functions()`, only the method's own parameter list is checked (not the entire class). Use the `classes()` builder if you need to scan constructor + methods + setters together.
+`acceptParameterOfType(matcher)` and `notAcceptParameterOfType(matcher)` scan all parameters of matched functions. For a class member accessed via `functions()` — a method, the constructor or a set accessor — only that member's own parameter list is checked (not the entire class). Use the `classes()` builder if you need to scan constructor + methods + setters together.
 
 ```typescript
 import { project, functions, matching } from '@nielspeter/eess-ts'

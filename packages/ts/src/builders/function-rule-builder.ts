@@ -73,8 +73,9 @@ function optionsKey(options?: FunctionCollectionOptions): string {
 /**
  * Rule builder for function-level architecture rules.
  *
- * Operates on both FunctionDeclarations and const arrow functions,
- * unified through the ArchFunction model.
+ * Operates on every named function — declarations, variables holding a function, and class
+ * members: methods, constructors, accessors and function-valued properties (bug 0315) — unified
+ * through the ArchFunction model.
  *
  * @example
  * ```typescript
@@ -413,8 +414,8 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction> {
    * Assert that at least one parameter has a type matching the given matcher.
    *
    * **Scope note:** Scans only the function's own parameter list.
-   * Unlike the class-level counterpart, does NOT scan set accessors
-   * because `collectFunctions()` excludes them.
+   * A set accessor is a function of its own, `Class.set x`, since bug 0315;
+   * the class-level counterpart scans the whole class at once.
    */
   acceptParameterOfType(matcher: TypeMatcher): this {
     return this.addCondition(fnAcceptParameterOfType(matcher))
@@ -425,8 +426,8 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction> {
    * Reports one violation per matching parameter.
    *
    * **Scope note:** Scans only the function's own parameter list.
-   * Unlike the class-level counterpart, does NOT scan set accessors
-   * because `collectFunctions()` excludes them.
+   * A set accessor is a function of its own, `Class.set x`, since bug 0315;
+   * the class-level counterpart scans the whole class at once.
    */
   notAcceptParameterOfType(matcher: TypeMatcher): this {
     return this.addCondition(fnNotAcceptParameterOfType(matcher))

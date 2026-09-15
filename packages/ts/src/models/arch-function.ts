@@ -1,6 +1,11 @@
 import { ArchConfigError } from '@nielspeter/eess'
 import {
+  type ClassDeclaration,
+  type ConstructorDeclaration,
   type FunctionDeclaration,
+  type GetAccessorDeclaration,
+  type PropertyDeclaration,
+  type SetAccessorDeclaration,
   type VariableDeclaration,
   type MethodDeclaration,
   type ArrowFunction,
@@ -122,15 +127,14 @@ export function fromFunctionDeclaration(decl: FunctionDeclaration): ArchFunction
 }
 
 /**
- * Create an ArchFunction from a VariableDeclaration whose initializer
- * is an ArrowFunction.
+ * Create an ArchFunction from a VariableDeclaration whose initializer is a function — an arrow
+ * function or a function expression, directly or behind parentheses, `as`, `<T>`, `satisfies` or `!`
+ * (bug 0315).
  *
- * Precondition: caller must verify the initializer is an ArrowFunction.
+ * Precondition: caller must verify the initializer is one, with {@link functionValueOf}.
  */
 export function fromFunctionInitializerDeclaration(decl: VariableDeclaration): ArchFunction {
-  const arrow =
-    decl.getInitializerIfKind(SyntaxKind.ArrowFunction) ??
-    decl.getInitializerIfKind(SyntaxKind.FunctionExpression)
+  const arrow = functionValueOf(decl.getInitializer())
   if (!arrow)
     throw new ArchConfigError(
       'fromFunctionInitializerDeclaration',
@@ -186,13 +190,99 @@ export function fromMethodDeclaration(method: MethodDeclaration): ArchFunction {
     getBody: () => method.getBody(),
     getNode: () => method,
     getStartLineNumber: () => method.getStartLineNumber(),
-    getScope: () => {
-      const scope = method.getScope()
-      if (scope === Scope.Protected) return 'protected'
-      if (scope === Scope.Private) return 'private'
-      return 'public'
-    },
+    getScope: () => accessOf(method.getScope()),
   }
+}
+
+/** A member's access modifier as an `ArchFunction` reports it; no modifier is `'public'`. */
+function accessOf(scope: Scope): 'public' | 'protected' | 'private' {
+  if (scope === Scope.Protected) return 'protected'
+  if (scope === Scope.Private) return 'private'
+  return 'public'
+}
+
+/**
+ * The function a node holds, read through the wrappers that leave it unchanged at run time —
+ * parentheses, `as`, `<T>`, `satisfies` and `!` — or `undefined` when it holds something else.
+ * A variable's initializer and a class property's value are read this way (bugs 0306, 0315).
+ */
+export function functionValueOf(
+  node: Node | undefined,
+): ArrowFunction | FunctionExpression | undefined {
+  let current = node
+  while (
+    NodeClass.isParenthesizedExpression(current) ||
+    NodeClass.isAsExpression(current) ||
+    NodeClass.isTypeAssertion(current) ||
+    NodeClass.isSatisfiesExpression(current) ||
+    NodeClass.isNonNullExpression(current)
+  ) {
+    current = current.getExpression()
+  }
+  return NodeClass.isArrowFunction(current) || NodeClass.isFunctionExpression(current)
+    ? current
+    : undefined
+}
+
+/**
+ * A class member that is a function but not a method, as an `ArchFunction` (bug 0315): the
+ * constructor, an accessor, or a property whose value is a function. Named by its class, as a method
+ * is; reported at the member, and read through `fn` — the member itself, or the property's function.
+ */
+function fromClassMember(
+  cls: ClassDeclaration,
+  member:
+    | ConstructorDeclaration
+    | GetAccessorDeclaration
+    | SetAccessorDeclaration
+    | PropertyDeclaration,
+  name: string,
+  fn:
+    | ConstructorDeclaration
+    | GetAccessorDeclaration
+    | SetAccessorDeclaration
+    | ArrowFunction
+    | FunctionExpression,
+): ArchFunction {
+  const className = cls.getName() ?? '<anonymous>'
+  return {
+    getName: () => `${className}.${name}`,
+    getSourceFile: () => member.getSourceFile(),
+    isExported: () => cls.isExported(),
+    isAsync: () =>
+      NodeClass.isArrowFunction(fn) || NodeClass.isFunctionExpression(fn) ? fn.isAsync() : false,
+    getParameters: () => fn.getParameters(),
+    getReturnType: () => fn.getReturnType(),
+    getBody: () => fn.getBody(),
+    getNode: () => member,
+    getStartLineNumber: () => member.getStartLineNumber(),
+    getScope: () => accessOf(member.getScope()),
+  }
+}
+
+/**
+ * The class's function members other than its methods. The constructor with a body, as
+ * `Class.constructor` — ts-morph lists an overloaded constructor by its implementation alone, and an
+ * ambient class's constructor has no body. Each accessor as `Class.get x` or `Class.set x`: a
+ * getter and its setter share a name, and a metric's identity keys on the function's name. Each
+ * property whose value is a function, as `Class.handler`.
+ */
+function classMemberFunctions(cls: ClassDeclaration): ArchFunction[] {
+  const members: ArchFunction[] = []
+  for (const ctor of cls.getConstructors()) {
+    if (ctor.getBody() !== undefined) members.push(fromClassMember(cls, ctor, 'constructor', ctor))
+  }
+  for (const getter of cls.getGetAccessors()) {
+    members.push(fromClassMember(cls, getter, `get ${getter.getName()}`, getter))
+  }
+  for (const setter of cls.getSetAccessors()) {
+    members.push(fromClassMember(cls, setter, `set ${setter.getName()}`, setter))
+  }
+  for (const property of cls.getProperties()) {
+    const value = functionValueOf(property.getInitializer())
+    if (value !== undefined) members.push(fromClassMember(cls, property, property.getName(), value))
+  }
+  return members
 }
 
 /**
@@ -200,7 +290,10 @@ export function fromMethodDeclaration(method: MethodDeclaration): ArchFunction {
  */
 // eess-exclude eess/no-unused-exports: re-exported from `src/index.ts`; this gate does not count a barrel `export … from` re-export as usage — see work/bugs/0168
 export interface FunctionCollectionOptions {
-  /** Include class methods (pattern 3). Default: `true`. */
+  /**
+   * Include class members (pattern 3): methods, the constructor, accessors and function-valued
+   * properties. Default: `true`.
+   */
   includeMethods?: boolean
   /**
    * Include object-literal function property values — arrows, function
@@ -216,8 +309,11 @@ export interface FunctionCollectionOptions {
  *
  * Returns ArchFunction wrappers for these *named* shapes by default:
  * 1. FunctionDeclarations — `function foo() {}`
- * 2. VariableDeclarations with ArrowFunction initializer — `const foo = () => {}`
- * 3. Class MethodDeclarations — `class Foo { bar() {} }` (when includeMethods is true)
+ * 2. VariableDeclarations whose initializer is a function — `const foo = () => {}`, also behind
+ *    parentheses, `as`, `<T>`, `satisfies` or `!`
+ * 3. Class members, when includeMethods is true — methods (`Foo.bar`), the constructor
+ *    (`Foo.constructor`), accessors (`Foo.get x`, `Foo.set x`) and function-valued properties
+ *    (`Foo.handler`)
  *
  * Plus, when `includeObjectLiteralFunctions` is set (default off):
  * 4. Object-literal function property values (arrows / function expressions /
@@ -246,20 +342,21 @@ export function collectFunctions(
     // passing the `recommended` floor inside one, because the element never
     // reached the rule at all. (Distinct from the concise-arrow half of that
     // bug, which was a traversal gap, not a collection gap.)
-    if (
-      varDecl.getInitializerIfKind(SyntaxKind.ArrowFunction) ??
-      varDecl.getInitializerIfKind(SyntaxKind.FunctionExpression)
-    ) {
+    // Read through parentheses, `as`, `<T>`, `satisfies` and `!` too: `const f = ((x) => …) as F` is
+    // the same function, and was collected by nothing (bug 0315).
+    if (functionValueOf(varDecl.getInitializer()) !== undefined) {
       functions.push(fromFunctionInitializerDeclaration(varDecl))
     }
   }
 
-  // Pattern 3: class methods
+  // Pattern 3: class members — each class's methods, then its other function members, which no
+  // function rule read before bug 0315.
   if (includeMethods) {
     for (const cls of sourceFile.getClasses()) {
       for (const method of cls.getMethods()) {
         functions.push(fromMethodDeclaration(method))
       }
+      functions.push(...classMemberFunctions(cls))
     }
   }
 

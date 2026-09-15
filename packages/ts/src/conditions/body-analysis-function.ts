@@ -1,4 +1,4 @@
-import { Node } from 'ts-morph'
+import { Node, Scope } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
@@ -132,6 +132,21 @@ export function functionUseInsteadOf(
 }
 
 /**
+ * An empty constructor that still does something (bug 0315): a parameter property assigns a field, and
+ * a private or protected constructor restricts who may construct the class. Neither body is a stub.
+ * An empty public constructor without either does nothing.
+ */
+function isPurposefulConstructor(node: Node): boolean {
+  if (!Node.isConstructorDeclaration(node)) return false
+  const scope = node.getScope()
+  return (
+    scope === Scope.Private ||
+    scope === Scope.Protected ||
+    node.getParameters().some((parameter) => parameter.isParameterProperty())
+  )
+}
+
+/**
  * Function must not have an empty body (zero statements).
  *
  * Expression-bodied arrows (`() => expr`) always pass — they have no block body.
@@ -148,6 +163,7 @@ export function functionNotHaveEmptyBody(): Condition<ArchFunction> {
 
         // Expression-bodied arrows return the expression, not a Block
         if (!Node.isBlock(body)) continue // expression body — always has content
+        if (isPurposefulConstructor(fn.getNode())) continue
 
         if (body.getStatements().length === 0) {
           violations.push(

@@ -252,12 +252,12 @@ import {
 } from '@nielspeter/eess-ts/rules/hygiene'
 ```
 
-| Rule                       | Target    | What it checks                                       |
-| -------------------------- | --------- | ---------------------------------------------------- |
-| `noDeadModules()`          | modules   | File must be imported by at least one other file     |
-| `noUnusedExports()`        | modules   | Every named export must be referenced elsewhere      |
-| `noStubComments(pattern?)` | functions | No TODO/FIXME/HACK/STUB/PLACEHOLDER comments in body |
-| `noEmptyBodies()`          | functions | Functions must have at least one statement           |
+| Rule                       | Target    | What it checks                                                                                                                       |
+| -------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `noDeadModules()`          | modules   | File must be imported by at least one other file                                                                                     |
+| `noUnusedExports()`        | modules   | Every named export must be referenced elsewhere                                                                                      |
+| `noStubComments(pattern?)` | functions | No TODO/FIXME/HACK/STUB/PLACEHOLDER comments in body                                                                                 |
+| `noEmptyBodies()`          | functions | Functions must have at least one statement; an empty constructor with a parameter property, or a private or protected one, is exempt |
 
 ### Dead module detection
 
@@ -306,7 +306,7 @@ Note: comments _above_ a function (leading trivia) are not checked — only comm
 
 ### Empty body detection
 
-`noEmptyBodies()` catches functions with zero statements. Expression-bodied arrows (`() => expr`) always pass — they have content by definition:
+`noEmptyBodies()` catches functions with zero statements. Expression-bodied arrows (`() => expr`) always pass — they have content by definition. An empty constructor passes when it still does something: `constructor(private readonly db: Db) {}` assigns a field, and a `private` or `protected` constructor restricts who may construct the class:
 
 ```typescript
 functions(p).that().resideInFolder('src/**').should().satisfy(noEmptyBodies()).check()
@@ -435,7 +435,7 @@ classes(p)
 
 Metric rules enforce quantitative limits on code complexity and size. Cyclomatic complexity measures how many independent paths exist through a function — high values mean the function is hard to test and reason about. Line counts and method counts catch classes that have grown too large and need splitting. Parameter counts flag functions with too many arguments (a sign they need a parameter object or decomposition).
 
-Class-level rules check every method, constructor, getter, and setter in the class. Function-level rules check standalone functions, arrow functions, and class methods individually. Use the function variants for more granular control.
+Class-level rules check every method, constructor, getter, and setter in the class. Function-level rules check standalone functions, arrow functions, and each class member — method, constructor, accessor or function-valued property — individually. Use the function variants for more granular control.
 
 ```typescript
 import {

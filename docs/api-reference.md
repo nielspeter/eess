@@ -4,18 +4,18 @@ All public exports from `eess-ts`, organized by category.
 
 ## Entry Points
 
-| Export        | Signature                                         | Description                                                      |
-| ------------- | ------------------------------------------------- | ---------------------------------------------------------------- |
-| `project`     | `project(tsConfigPath: string): ArchProject`      | Load a TypeScript project. Cached per path.                      |
-| `workspace`   | `workspace(tsConfigPaths: string[]): ArchProject` | Load multiple tsconfigs into a unified project for monorepo use. |
-| `modules`     | `modules(p: ArchProject): ModuleRuleBuilder`      | Rule builder for source files (imports/dependencies).            |
-| `classes`     | `classes(p: ArchProject): ClassRuleBuilder`       | Rule builder for class declarations.                             |
-| `functions`   | `functions(p: ArchProject): FunctionRuleBuilder`  | Rule builder for functions, arrow functions, class methods.      |
-| `types`       | `types(p: ArchProject): TypeRuleBuilder`          | Rule builder for interfaces and type aliases.                    |
-| `slices`      | `slices(p: ArchProject): SliceRuleBuilder`        | Rule builder for file groupings (cycles, layers).                |
-| `calls`       | `calls(p: ArchProject): CallRuleBuilder`          | Rule builder for call expressions.                               |
-| `jsxElements` | `jsxElements(p: ArchProject): JsxRuleBuilder`     | Rule builder for JSX elements in .tsx/.jsx files.                |
-| `within`      | `within(sel: CallRuleBuilder): ScopedContext`     | Scoped rule builder for callback functions inside matched calls. |
+| Export        | Signature                                         | Description                                                                                                                   |
+| ------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `project`     | `project(tsConfigPath: string): ArchProject`      | Load a TypeScript project. Cached per path.                                                                                   |
+| `workspace`   | `workspace(tsConfigPaths: string[]): ArchProject` | Load multiple tsconfigs into a unified project for monorepo use.                                                              |
+| `modules`     | `modules(p: ArchProject): ModuleRuleBuilder`      | Rule builder for source files (imports/dependencies).                                                                         |
+| `classes`     | `classes(p: ArchProject): ClassRuleBuilder`       | Rule builder for class declarations.                                                                                          |
+| `functions`   | `functions(p: ArchProject): FunctionRuleBuilder`  | Rule builder for functions, arrow functions and class members (methods, constructors, accessors, function-valued properties). |
+| `types`       | `types(p: ArchProject): TypeRuleBuilder`          | Rule builder for interfaces and type aliases.                                                                                 |
+| `slices`      | `slices(p: ArchProject): SliceRuleBuilder`        | Rule builder for file groupings (cycles, layers).                                                                             |
+| `calls`       | `calls(p: ArchProject): CallRuleBuilder`          | Rule builder for call expressions.                                                                                            |
+| `jsxElements` | `jsxElements(p: ArchProject): JsxRuleBuilder`     | Rule builder for JSX elements in .tsx/.jsx files.                                                                             |
+| `within`      | `within(sel: CallRuleBuilder): ScopedContext`     | Scoped rule builder for callback functions inside matched calls.                                                              |
 
 ## Rule Builders
 
@@ -692,12 +692,12 @@ See [Architecture Presets](/presets) for full configuration options.
 
 ### `eess-ts/rules/hygiene`
 
-| Export                     | Target    | Description                                            |
-| -------------------------- | --------- | ------------------------------------------------------ |
-| `noDeadModules()`          | modules   | Module must be imported by at least one other file.    |
-| `noUnusedExports()`        | modules   | Every named export must be referenced by another file. |
-| `noStubComments(pattern?)` | functions | No TODO/FIXME/HACK/STUB comments in function body.     |
-| `noEmptyBodies()`          | functions | Functions must have at least one statement.            |
+| Export                     | Target    | Description                                                                                                                    |
+| -------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `noDeadModules()`          | modules   | Module must be imported by at least one other file.                                                                            |
+| `noUnusedExports()`        | modules   | Every named export must be referenced by another file.                                                                         |
+| `noStubComments(pattern?)` | functions | No TODO/FIXME/HACK/STUB comments in function body.                                                                             |
+| `noEmptyBodies()`          | functions | Functions must have at least one statement; a constructor with a parameter property, or a private or protected one, is exempt. |
 
 ### `eess-ts/rules/metrics`
 
