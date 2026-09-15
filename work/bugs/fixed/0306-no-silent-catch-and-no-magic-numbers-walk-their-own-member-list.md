@@ -219,7 +219,7 @@ probe reaches the magic-number and metrics gates (0316); and the named-value lin
 - [ ] deferred→[0312](../0312-code-a-class-runs-that-no-metric-ceiling-measures.md) — a static block
       and a function nested in a property's value have no metric ceiling; this record first stated it
       as a limit, and review asked for a home.
-- [ ] deferred→[0313](../0313-the-cardinality-scan-reads-probe-files-another-test-writes-mid-run.md) —
+- [ ] deferred→[0313](./0313-the-cardinality-scan-reads-probe-files-another-test-writes-mid-run.md) —
       the first full `packages/ts` run after the fix failed both scan tests in
       `packages/ts/tests/tools/scan-cardinality-assertions.test.ts`, and the next passed; traced to the
       scan reading another test's generated probes.
@@ -238,6 +238,6 @@ Deferred: [0309](./0309-a-default-inside-a-destructured-parameter-is-not-read-by
 [0310](../0310-complexity-misses-a-decision-at-the-root-of-an-expression-body.md),
 [0311](../0311-the-class-metric-predicates-and-max-methods-count-their-own-members.md),
 [0312](../0312-code-a-class-runs-that-no-metric-ceiling-measures.md),
-[0313](../0313-the-cardinality-scan-reads-probe-files-another-test-writes-mid-run.md),
+[0313](./0313-the-cardinality-scan-reads-probe-files-another-test-writes-mid-run.md),
 [0316](../0316-no-nonvacuity-fixture-for-the-magic-number-and-metrics-gates.md),
 [0317](../0317-no-magic-numbers-reports-numbers-named-other-ways.md).
