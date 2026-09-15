@@ -66,7 +66,20 @@ class's own members, constructors included. A number inside a larger default —
 destructured parameter of a function nested inside a member, as it was before. A plain numeric key
 in a member's own parameter, `{ 4646: k }`, is not code and is not read; how numeric keys should be
 treated is recorded with [0317](../0317-no-magic-numbers-reports-numbers-named-other-ways.md).
-**Maintainer's ruling:** pending — put to the maintainer at #138's review.
+**Measured, not argued.** At #138's review, on 2026-09-15, the maintainer asked that the ruling
+rest on facts rather than argument. The corpora are recorded in
+[0306](./0306-no-silent-catch-and-no-magic-numbers-walk-their-own-member-list.md): eess's `packages/*/src` at `7a71d2f`; NestJS's `packages/` and, separately, its `sample/` and
+`integration/` apps, at `nestjs/nest@4c5fac0`; TypeORM's `src/` and, separately, its `sample/` and
+test entities, at `typeorm/typeorm@7a9009d`; and PixiJS's `src/` at `pixijs/pixijs@6bcc937` — 4,458
+files and 3,344 classes, tests excluded. The rule ran as shipped, with the exemption removed, and
+reading decorators, computed member names and `extends` as well, each a patched copy of the built
+rule. Across
+them the exemption hid 55 of 1,148 findings, and not one was a default inside a destructured
+parameter, so on this sample the extension changes no finding either way. ESLint's
+`no-magic-numbers` names destructured defaults in the same line — its `ignoreDefaultValues` treats
+`const { tax = 0.25 } = accountancy` as fine — and leaves that option off by default. The
+binding-element exemption stands on the plain-default exemption it extends, whose measurement 0306
+records.
 
 The function rules read no parameter default at all; that is
 [0314](../0314-the-function-rules-read-no-parameter-default.md), still open.

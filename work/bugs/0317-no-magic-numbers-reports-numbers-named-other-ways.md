@@ -7,7 +7,10 @@
   constant" although the number already has a name. Since 0306 the rule reads property initializers,
   so a class's table of constants — `static readonly Status = { OK: 200, NotFound: 404 }` — is likely
   the largest source of new findings in that release. #137's product review notes that ESLint's
-  `no-magic-numbers` ignores object property values unless `detectObjects` is set.
+  `no-magic-numbers` ignores object property values unless `detectObjects` is set; its documentation
+  confirms `detectObjects` defaults to `false`. The same measurement that 0306 records found 199
+  `@Column`/`@PrimaryColumn` option values in two app corpora — the object-property shape, in
+  decorators this rule does not read.
 - **Origin:** #137's second product, enforcement and architecture reviews, measured then.
 - **Reported:** 2026-09-14
 
