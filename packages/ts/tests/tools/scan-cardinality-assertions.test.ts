@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { scanCardinalityAssertions } from './scan-cardinality-assertions.js'
 
@@ -191,23 +192,22 @@ describe('the cardinality-only population does not grow (plan 0079)', () => {
         expect(messages.some((m) => m.includes('"offset"'))).toBe(true)
       })
     `
-    // Written to a scratch file the scan reads, because the scan's unit is a file
-    // on disk. Asserting on the regexes directly would test the regexes rather
-    // than the decision they feed.
-    const dir = path.join(REPO, 'tests', 'tools', '.scan-probe')
-    // Remove first, not only in `finally`: a hard kill between the writes and the
-    // cleanup leaves a probe file on disk, and the next run counts it — a red
-    // ratchet with a work list naming a file that is not part of the suite.
-    fs.rmSync(dir, { recursive: true, force: true })
+    // Written to files the scan reads, because the scan's unit is a file on disk: asserting on the
+    // regexes directly would test the regexes rather than the decision they feed. The files live in a
+    // throwaway tree, not this repo's `tests/`. There, a second run sharing the checkout read them
+    // mid-write or mid-delete — counting a probe, or losing one — which is bug 0313's failure through a
+    // second door, and a killed run left them for the next run to count.
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-scan-probe-'))
+    const dir = path.join(root, 'tests', 'tools')
     fs.mkdirSync(dir, { recursive: true })
     try {
       fs.writeFileSync(path.join(dir, 'a.test.ts'), swapSurvivor)
       fs.writeFileSync(path.join(dir, 'b.test.ts'), elementBoolean)
-      const probed = scanCardinalityAssertions(REPO).population.map((b) => b.file)
-      expect(probed).toContain(path.join('tests', 'tools', '.scan-probe', 'a.test.ts'))
-      expect(probed).not.toContain(path.join('tests', 'tools', '.scan-probe', 'b.test.ts'))
+      const probed = scanCardinalityAssertions(root).population.map((b) => b.file)
+      expect(probed).toContain(path.join('tests', 'tools', 'a.test.ts'))
+      expect(probed).not.toContain(path.join('tests', 'tools', 'b.test.ts'))
     } finally {
-      fs.rmSync(dir, { recursive: true, force: true })
+      fs.rmSync(root, { recursive: true, force: true })
     }
   })
 })

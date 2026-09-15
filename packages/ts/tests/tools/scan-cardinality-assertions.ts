@@ -106,14 +106,25 @@ function blocksIn(text: string): { line: number; body: string }[] {
   return out
 }
 
-/** Every `.test.ts` under `dir`, recursively. */
+/**
+ * Every `.test.ts` under `dir`, recursively, except under `dir/__generated__`.
+ *
+ * Other tests write probe test files there while the suite runs and delete them after —
+ * `warn-survives-the-test-runner.test.ts` among them, with count-only blocks — which is why the repo
+ * gitignores it and `tsconfig.json` excludes it. A scan collected while they exist counted them, and
+ * both of this scan's tests failed with nothing changed (bug 0313). Only that one directory:
+ * `.gitignore` names each package's `tests/__generated__/` alone, so a directory of that name deeper
+ * down, or one whose name merely starts with it, would be committed code, and is read.
+ */
 export function testFiles(dir: string): string[] {
   const out: string[] = []
+  const generated = path.join(dir, '__generated__')
   const walk = (d: string): void => {
     for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
       const full = path.join(d, entry.name)
-      if (entry.isDirectory()) walk(full)
-      else if (entry.name.endsWith('.test.ts')) out.push(full)
+      if (entry.isDirectory()) {
+        if (full !== generated) walk(full)
+      } else if (entry.name.endsWith('.test.ts')) out.push(full)
     }
   }
   walk(dir)
