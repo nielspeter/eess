@@ -23,8 +23,10 @@ import { collectObjectLiteralFunctions } from '../core/object-literal-functions.
 /**
  * Unified representation of a TypeScript function.
  *
- * Wraps both FunctionDeclaration (`function foo() {}`) and
- * VariableDeclaration with ArrowFunction initializer (`const foo = () => {}`).
+ * Wraps every function `collectFunctions` collects: a FunctionDeclaration (`function foo() {}`), a
+ * VariableDeclaration holding a function (`const foo = () => {}`), a class member — a method, the
+ * constructor, an accessor or a property holding a function (bug 0315) — or, when asked, a function
+ * value in an object literal. {@link functionKindOf} says which.
  *
  * Satisfies Named, Located, and Exportable interfaces from identity predicates.
  */
@@ -51,8 +53,9 @@ export interface ArchFunction {
   getBody(): Node | undefined
 
   /**
-   * Underlying ts-morph node for violation reporting.
-   * FunctionDeclaration or VariableDeclaration.
+   * Underlying ts-morph node for violation reporting: the FunctionDeclaration, the
+   * VariableDeclaration, the class member's declaration (method, constructor, accessor or property),
+   * or an object-literal function itself.
    */
   getNode(): Node
 
@@ -66,8 +69,8 @@ export interface ArchFunction {
    * Visibility scope of this function.
    *
    * - Standalone functions and arrow functions are always `'public'` (module-level).
-   * - Class methods return their actual modifier (`public`, `protected`, or `private`).
-   *   Methods with no explicit modifier default to `'public'`.
+   * - Class members return their actual modifier (`public`, `protected`, or `private`).
+   *   A member with no explicit modifier defaults to `'public'`.
    */
   getScope(): 'public' | 'protected' | 'private'
 }
@@ -194,6 +197,25 @@ export function fromMethodDeclaration(method: MethodDeclaration): ArchFunction {
   }
 }
 
+/**
+ * What an `ArchFunction` is (bug 0315): `'function'` — a function declaration, a variable holding a
+ * function, or a function value in an object literal; `'method'` — of a class, or an object literal's
+ * shorthand; `'constructor'`; `'getter'`; `'setter'`; or `'property'` — a class property whose value
+ * is a function.
+ */
+export type FunctionKind = 'function' | 'method' | 'constructor' | 'getter' | 'setter' | 'property'
+
+/** The kind of function an `ArchFunction` is, read off the node it reports at. */
+export function functionKindOf(fn: ArchFunction): FunctionKind {
+  const node = fn.getNode()
+  if (NodeClass.isMethodDeclaration(node)) return 'method'
+  if (NodeClass.isConstructorDeclaration(node)) return 'constructor'
+  if (NodeClass.isGetAccessorDeclaration(node)) return 'getter'
+  if (NodeClass.isSetAccessorDeclaration(node)) return 'setter'
+  if (NodeClass.isPropertyDeclaration(node)) return 'property'
+  return 'function'
+}
+
 /** A member's access modifier as an `ArchFunction` reports it; no modifier is `'public'`. */
 function accessOf(scope: Scope): 'public' | 'protected' | 'private' {
   if (scope === Scope.Protected) return 'protected'
@@ -287,6 +309,11 @@ function classMemberFunctions(cls: ClassDeclaration): ArchFunction[] {
 
 /**
  * Options for {@link collectFunctions} / the `functions()` entry point.
+ *
+ * A named declaration is collected by default — a function, a variable holding a function, and a class
+ * member (bug 0315) — because each is a subject a rule is written about. An anonymous function value in
+ * an object literal is opt-in (proposal 016), because collecting every inline callback would flood every
+ * rule with subjects nobody named.
  */
 // eess-exclude eess/no-unused-exports: re-exported from `src/index.ts`; this gate does not count a barrel `export … from` re-export as usage — see work/bugs/0168
 export interface FunctionCollectionOptions {

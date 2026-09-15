@@ -335,6 +335,8 @@ export const NOT_CHECKS: readonly string[] = [
   '.:areHtmlElements',
   '.:areInterfaces',
   '.:areNotAsync',
+  '.:areNotOfKind',
+  '.:areOfKind',
   '.:areNotExported',
   '.:arePrivate',
   '.:areProtected',

@@ -2,10 +2,12 @@
 
 ## Status
 
-- **State:** Fixed — `functions()` collects every named function: a class's constructor, accessors and
+- **State:** Fixed — `functions()` collects a class declaration's constructor, accessors and
   function-valued properties beside its methods, and a function behind parentheses, `as`, `<T>`,
-  `satisfies` or `!`. `noEmptyBodies` does not report an empty constructor that still does
-  something. Red test first.
+  `satisfies` or `!`. Each function reports its kind and a rule selects by it; `resolvers()` leaves
+  out constructors and accessors; `noEmptyBodies` does not report an empty constructor that does
+  something. Red test first. The positions still not collected are 0321, and accessor and static
+  member naming is 0320.
 - **Severity:** High — **false green** on the floor. The `recommended` preset's function rules never
   saw the code of a class constructor, an accessor or an arrow-function property, or a function inside
   parentheses or behind `as`: `eval` there passed `functionNoEval`. The class rules read those
@@ -38,72 +40,119 @@ values in object literals. Constructors, accessors and class properties were not
 
 ## Fix
 
-**Collection** (`packages/ts/src/models/arch-function.ts`). After each class's methods,
-`collectFunctions` collects its constructor with a body — ts-morph lists an overloaded constructor by its
-implementation alone, and an ambient class's constructor has none — its accessors, and its properties whose value is a function. It reads a variable's initializer, and a
-property's value, through parentheses, `as`, `<T>`, `satisfies` and `!` with `functionValueOf`, which
-the class metrics rules now import from here instead of keeping their own copy. A member is named by
-its class — `Class.constructor`, `Class.handler`, and `Class.get x` and `Class.set x`, because a getter
-and its setter share a name and a function metric's identity keys on it — and reports its class's
-export, its own access modifier, whether it is async and its parameters. `includeMethods: false`
-leaves out every class member. The name of every function collected before is unchanged. The setter
-notes on `acceptParameterOfType`, the function builder's own description, and `docs/functions.md`,
-`docs/standard-rules.md`, `docs/api-reference.md` and the eess-ts README say so.
+**Collection** (`packages/ts/src/models/arch-function.ts`). After each class declaration's methods,
+`collectFunctions` collects its constructor with a body — ts-morph lists an overloaded constructor by
+its implementation alone, and an ambient class's constructor has none — its accessors, and its
+properties whose value is a function. It reads a variable's initializer, and a property's value,
+through parentheses, `as`, `<T>`, `satisfies` and `!` with `functionValueOf`, which the class metrics
+rules now import from here instead of keeping their own copy. A member is named by its class —
+`Class.constructor`, `Class.handler`, and `Class.get x` and `Class.set x`, because a getter and its
+setter share a name — and reports its class's export, its own access modifier, whether it is async,
+its parameters and its function's return type; its line and its node are the member's, so a finding,
+and a comment above the member, anchor there. `includeMethods: false` leaves out every class member.
+Every function collected before keeps its name.
 
-**Measured before building it, 2026-09-15.** A prototype of that collection ran beside today's over
+Not collected, and filed in this PR: a class expression's and a namespace class's members, an object
+literal's accessors, a static block, and a function behind a call or a conditional —
+[0321](../0321-function-positions-no-function-rule-reads.md). The class metrics still name an accessor
+`Class.x`, and a static member is named like its instance twin on both sides —
+[0320](../0320-an-accessor-is-named-two-ways-and-static-members-collide.md).
+
+**Kinds** (`packages/ts/src/predicates/function.ts`). A requirement — `beAsync()`, `contain(...)`,
+`acceptParameterOfType(...)`, `haveReturnTypeMatching(...)`, `haveNameMatching(...)`, `beExported()`
+— now judges a constructor and an accessor too, which may not be able to comply. #140's product review
+asked for a way to keep such a rule to the functions that can. `functionKindOf` names each function's
+kind — `'function'`, `'method'`, `'constructor'`, `'getter'`, `'setter'` or `'property'` — and
+`areOfKind(...)` and `areNotOfKind(...)` select by it, as predicates and on the function builder;
+naming no kind throws `ArchConfigError`. `resolvers()`
+(`packages/ts/src/graphql/resolver-rule-builder.ts`) leaves out constructors and accessors itself: a
+class-based resolver's injected constructor would otherwise fail every `contain(...)` rule written
+against the resolvers. `docs/functions.md`, `docs/api-reference.md` and the changeset say so.
+
+**Measured on the shipped build, 2026-09-15.** Each rule below ran twice — over the collection at
+`6e077ed` and over this fix's build, with object-literal functions collected as the presets ask — on
 eess's `packages/*/src` at `6e077ed`; NestJS's `packages/` and, separately, its `sample/` and
 `integration/` apps, at `nestjs/nest@4c5fac0`; TypeORM's `src/` at `typeorm/typeorm@7a9009d`; and
-PixiJS's `src/` at `pixijs/pixijs@6bcc937`. The collection grew by 2.0% in eess (1,767 → 1,803
-functions) and 34.0% in PixiJS (2,354 → 3,154). No finding any measured rule reported was lost. The
-findings it added, summed over the five corpora: `functionNoEval` and `functionNoFunctionConstructor`
-0, `functionNoSilentCatch` 1, `functionNoGenericErrors` 19, `noStubComments` 9,
-`maxFunctionComplexity(10)` 6, `maxFunctionLines(50)` 10, `maxFunctionParameters(4)` 18, duplicate
-bodies at 0.9 similarity 21 — generic `Error`s thrown in constructors and getters, `ColumnMetadata`'s
-constructor at complexity 63 — and `noEmptyBodies` 201, every one an empty constructor: 199 with a
-parameter property, `constructor(private readonly db: Db) {}`, and 2 `constructor() {}`.
+PixiJS's `src/` at `pixijs/pixijs@6bcc937`, tests and specs left out. Findings were compared by file,
+element and message, and each added and each lost finding counted rather than the totals netted. The
+collection grew by 2.0% in eess (1,789 → 1,825 functions) and 34.0% in PixiJS (2,354 → 3,154). **No
+finding was lost.** Added, summed over the five: duplicate bodies at 0.9 similarity 21,
+`functionNoGenericErrors` 19, `maxFunctionParameters(4)` 18, `maxFunctionLines(50)` 10,
+`noStubComments` 9, `maxFunctionComplexity(10)` 6, `noEmptyBodies` 2, `functionNoSilentCatch` 1,
+and `functionNoEval` and `functionNoFunctionConstructor` 0 — generic `Error`s thrown in constructors
+and getters, and TypeORM's `ColumnMetadata` constructor at complexity 63, among them. `resolvers()`,
+`inconsistentSiblings` and the requirement conditions were not measured.
 
-**`noEmptyBodies`** (`packages/ts/src/conditions/body-analysis-function.ts`). Ruled on that
-measurement, as the maintainer asked on 2026-09-15 that such rulings rest on facts: an empty
-constructor with a parameter property, or a `private` or `protected` one, is not reported, and an
-empty public constructor without either is. A parameter property assigns a field and a non-public
-constructor restricts who may construct the class, so neither body is a stub — typescript-eslint's
-`no-useless-constructor` treats both as useful too. It clears all 199 and keeps the 2. Without it,
-collecting constructors would have added 199 false findings to the `recommended` floor, the largest
-effect of the change.
+**`noEmptyBodies`** (`packages/ts/src/conditions/body-analysis-function.ts`). A prototype of the
+collection, run on the same corpora before any of this was built, reported 201 empty constructors: 199
+whose every parameter is a parameter property, `constructor(private readonly db: Db) {}`, and 2
+`constructor() {}` in NestJS's integration apps. The implementer ruled on that measurement — the
+maintainer had asked, in conversation on 2026-09-15, that such rulings rest on facts — and #140's
+reviews narrowed the ruling: an empty constructor whose every parameter is a parameter property is not
+reported, since each parameter assigns a field, and neither is a `private` or `protected` constructor
+that takes no parameter, since it restricts who may construct the class. Every other empty constructor
+is reported: a plain parameter beside a parameter property, a decorated parameter without a property
+modifier, a non-public constructor that drops a parameter, and a public one that takes nothing. The
+shipped build reports the 2 and none of the 199. Two parts rest on reasoning, because the corpora hold
+neither shape: they contain no empty non-public constructor without parameters, and no empty constructor
+with a decorated plain parameter such as `@Inject(TOKEN) db: Db`. typescript-eslint's
+`no-useless-constructor` spares both exempted shapes and more — any parameter property or decorated
+parameter, and any non-public constructor — because it asks whether removing a constructor would change
+the class. This rule asks whether an empty body is a stub, so a dropped parameter is reported.
 
 ## Verification
 
-- [x] Red test first — `packages/ts/tests/rules/functions-collects-every-named-function.test.ts`, the
+- [x] Red test first —
+      `packages/ts/tests/rules/functions-collects-class-members-and-wrapped-functions.test.ts`, the
       KNOWN-GAP test inverted and widened, run before the fix: the shapes test found 2 of 11 functions,
       the member test none of its members, the `includeMethods: false` test 1 of 5, and the empty-body
-      test collected no function at all, so the rule reported only that it examined nothing. The
-      member test was widened after that run — async, parameters, an overloaded constructor and an
-      ambient class — and the matrix shows it red without the fix.
+      test collected no function at all. The member test was widened after that run, and the tests
+      #140's reviews asked for were added after the fix; the matrix shows each red without the part it
+      pins.
 - [x] The fix turns them green —
       `it('collects a constructor, accessors, a function-valued property and a wrapped function')`,
       `it("a class member reports its class's export, its own access modifier, async and parameters")`,
-      `it('includeMethods: false leaves out every class member, and still reads a wrapped variable')`
-      and `it('noEmptyBodies reports an empty constructor only when it does nothing')`. The whole
-      `packages/ts` suite passes with no other test changed, and this repo's own `check:arch`,
-      `check:guardrails` and `check:baseline`, which run function rules and the two presets, pass.
-- [x] Sabotage matrix in the 0315 worktree (per-entry `node_modules`, literal replacements in
-      `arch-function.ts` and `body-analysis-function.ts` restored by sha256 after every row, verdicts
-      read by test title over the new test file and `class-rules-read-the-code-a-class-runs.test.ts`):
-      **26 rows, 0 mismatches**. Baseline green. Collecting no class member but methods reds the
-      shapes, member and empty-body tests; reading a variable without unwrapping reds the shapes and
-      `includeMethods` tests; reading through any one of the five wrappers fewer also reds 0306's
-      metrics test, which shares the unwrap. Collecting a constructor without a body — an ambient
-      class's — or a member reporting itself exported, public, not async or without parameters reds the member test.
-      Naming a getter like a property, or collecting no getter, reds the shapes, member and empty-body
-      tests; naming a setter like a property, or collecting no setter or no function-valued property,
-      reds the shapes and member tests. A member without a body reds the shapes and empty-body tests;
-      ignoring `includeMethods: false` reds its test. Removing the empty-constructor exemption, or
-      its private, protected or parameter-property branch, exempting every constructor, or exempting
-      one for any parameter, reds the empty-body test. One row was a mismatch on the first run: with
-      only an overloaded constructor in the fixture, collecting a constructor without a body stayed
-      green, because ts-morph lists an overloaded constructor by its implementation alone; an ambient
-      class was added, and that row reds. Not pinned: a member's return type and start line, which no
-      rule over these shapes reads in the tests.
+      `it('a class member reports its return type')`,
+      `it('a finding on a class member is reported at the member, not the read')`,
+      `it('a comment above a class member belongs to the member')`,
+      `it('includeMethods: false leaves out every class member, and still reads a wrapped variable')`,
+      `it('each function reports its kind, and a rule narrows by kind')` and
+      `it('noEmptyBodies reports an empty constructor only when it does nothing')`;
+      `packages/ts/tests/rules/no-eval-function-shapes.test.ts` gains six shapes, from a constructor to
+      a property behind `satisfies`; and
+      `packages/ts/tests/graphql/resolvers-skip-constructors-and-accessors.test.ts` ·
+      `it('a class-based resolver is judged on its methods and function-valued properties only')`.
+      The whole `packages/ts` suite passes.
+- [x] Sabotage matrix in the 0315 worktree (per-entry `node_modules`; literal replacements in
+      `arch-function.ts`, `body-analysis-function.ts`, `predicates/function.ts` and
+      `resolver-rule-builder.ts`, restored by sha256 after every row; verdicts read by test title over
+      six files — the test above, `class-rules-read-the-code-a-class-runs.test.ts`,
+      `no-eval-function-shapes.test.ts`, the resolver test, and 0320's and 0321's KNOWN-GAP tests):
+      **44 rows, 0 mismatches**, the working tree unchanged after. Baseline green. Collecting no class
+      member but methods reds all 16 tests that read one; reading a variable without unwrapping reds
+      the shapes, `includeMethods`, kind and `as`-shape tests; leaving any one of the five wrappers
+      unread reds those that use it and 0306's metrics test, which shares the unwrap. Collecting a
+      constructor without a body, or a member reporting itself exported, public, not async or without
+      parameters, reds the member test. Naming a getter or a setter like a property, or collecting
+      none, reds every test that names or counts one, 0320's among them; collecting no function-valued
+      property reds ten. A member reporting no body reds every test that reads a body. Reading a
+      member's return type from the member, its line from its function, or taking its function as its
+      node reds, in turn, the return-type test, the line test, and the comment and kind tests. Removing
+      any of `functionKindOf`'s five branches, `areOfKind` matching everything, `areNotOfKind` not
+      negating, and naming no kind accepted red the kind test; a constructor, getter or setter reporting
+      kind `'function'`, or `resolvers()` keeping any of the three, reds the resolver test. Removing
+      the empty-constructor exemption, or its private, protected or parameter-property condition, reds
+      the empty-body test, and so do five over-broad variants: every constructor spared, one parameter
+      property sparing a plain parameter beside it, any parameter sparing, a public constructor that
+      takes nothing spared, and a non-public one with a plain parameter spared. One row was a mismatch on the matrix's last run, a wrong prediction rather than a wrong test: collecting no class member also reds 0320's exclusion test, because without the setter only the two methods remain. The expectation was corrected and the row rerun, green. Not pinned: the order a
+      class's members are listed in — methods, then the constructor, accessors and properties — and
+      that an abstract accessor without a body is collected, as an abstract method is, which #140's
+      testing review measured; the member test pins an ambient accessor.
 - [x] `npm run validate` green.
+- [ ] deferred→[0320](../0320-an-accessor-is-named-two-ways-and-static-members-collide.md) — one
+      accessor naming for the class and function sides, and a static member named apart from its
+      instance twin, raised by #140's reviews.
+- [ ] deferred→[0321](../0321-function-positions-no-function-rule-reads.md) — the function positions
+      still not collected, raised by #140's method and enforcement reviews.
 
-Deferred: none.
+Deferred: 0320, 0321.

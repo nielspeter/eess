@@ -10,7 +10,11 @@ import {
 } from '../conditions/body-analysis-function.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { createElementCache, SOLE_POPULATION } from '../core/element-cache.js'
-import { collectFunctions, type FunctionCollectionOptions } from '../models/arch-function.js'
+import {
+  collectFunctions,
+  type FunctionCollectionOptions,
+  type FunctionKind,
+} from '../models/arch-function.js'
 import { followPattern as followPatternCondition } from '../conditions/pattern.js'
 import type { ArchPattern } from '../helpers/pattern.js'
 import {
@@ -40,6 +44,8 @@ import {
   arePrivate as fnArePrivate,
   areAsync as fnAreAsync,
   areNotAsync as fnAreNotAsync,
+  areOfKind as fnAreOfKind,
+  areNotOfKind as fnAreNotOfKind,
   haveParameterCount as fnHaveParameterCount,
   haveParameterCountGreaterThan as fnHaveParameterCountGreaterThan,
   haveParameterCountLessThan as fnHaveParameterCountLessThan,
@@ -262,6 +268,33 @@ export class FunctionRuleBuilder extends RuleBuilder<ArchFunction> {
    */
   areNotAsync(): this {
     return this.addPredicate(fnAreNotAsync())
+  }
+
+  /**
+   * Narrows the selection to functions of any of the given kinds: `'function'`, `'method'`,
+   * `'constructor'`, `'getter'`, `'setter'` or `'property'` (bug 0315).
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
+  areOfKind(...kinds: FunctionKind[]): this {
+    return this.addPredicate(fnAreOfKind(...kinds))
+  }
+
+  /**
+   * Narrows the selection to functions of none of the given kinds. A rule that requires something a
+   * constructor or an accessor cannot give — `beAsync()`, `contain(call(...))` — keeps to the
+   * functions that can with `.that().areNotOfKind('constructor', 'getter', 'setter')` (bug 0315).
+   *
+   * **Predicate only**, unlike the dual-use methods on this builder: it never
+   * becomes an assertion. Written after `.should()` it still filters, and the
+   * assertion gate reports it as a misplaced predicate rather than letting the
+   * rule pass having asserted nothing.
+   */
+  areNotOfKind(...kinds: FunctionKind[]): this {
+    return this.addPredicate(fnAreNotOfKind(...kinds))
   }
 
   /**

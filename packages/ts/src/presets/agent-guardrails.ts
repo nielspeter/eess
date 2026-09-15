@@ -152,13 +152,13 @@ const EMITTERS = /(^|\.)(finishPreset|reportViolations|throwIfViolations)$/
  * agent an actionable fix.
  *
  * Uses function-variant rules so standalone functions, arrow functions, and
- * class methods are all covered.
+ * class members are all covered.
  */
 // Presets collect object-literal functions unconditionally. `functions()`
-// keeps it opt-in because widening a selector the USER wrote silently changes
-// their rule; a preset's subject set is the preset's own, and this one already
-// promises "standalone functions, arrow functions, and class methods are all
-// covered". A handler map — the shape agents generate most — was none of the
+// keeps these anonymous values opt-in because every inline callback would flood
+// a rule the USER wrote; a preset's subject set is the preset's own, and this one
+// already promises "standalone functions, arrow functions, and class members are
+// all covered". A handler map — the shape agents generate most — was none of the
 // three, so `{ POST: () => {} }` slipped every guardrail (bug 0013).
 const COLLECT_ALL = { includeObjectLiteralFunctions: true } as const
 

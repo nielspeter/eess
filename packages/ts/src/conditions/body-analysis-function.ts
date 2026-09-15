@@ -132,18 +132,18 @@ export function functionUseInsteadOf(
 }
 
 /**
- * An empty constructor that still does something (bug 0315): a parameter property assigns a field, and
- * a private or protected constructor restricts who may construct the class. Neither body is a stub.
- * An empty public constructor without either does nothing.
+ * An empty constructor that still does something (bug 0315). One whose every parameter is a parameter
+ * property assigns a field for each — `constructor(private readonly db: Db) {}` — and a private or
+ * protected one that takes nothing restricts who may construct the class. An empty constructor that
+ * takes a plain parameter drops it, and an empty public constructor that takes nothing does nothing:
+ * both are reported.
  */
 function isPurposefulConstructor(node: Node): boolean {
   if (!Node.isConstructorDeclaration(node)) return false
+  const parameters = node.getParameters()
+  if (parameters.length > 0) return parameters.every((parameter) => parameter.isParameterProperty())
   const scope = node.getScope()
-  return (
-    scope === Scope.Private ||
-    scope === Scope.Protected ||
-    node.getParameters().some((parameter) => parameter.isParameterProperty())
-  )
+  return scope === Scope.Private || scope === Scope.Protected
 }
 
 /**

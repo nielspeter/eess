@@ -15,10 +15,12 @@ The `functions()` entry point operates on functions, arrow functions, and class 
 Unlike most linters that treat function declarations, arrow functions, and class methods as separate constructs, eess-ts collects them into a single `ArchFunction` type. A class member is named by its class: `Service.handle`, `Service.constructor`, `Service.get status`, `Service.set status` and, for `onClick = () => {…}`, `Service.onClick`. A function behind parentheses, `as`, `<T>`, `satisfies` or `!` is collected as the function it is. This lets you write one rule that covers every function shape in your codebase.
 
 1. **Function declarations** -- `function handleRequest() { ... }`
-2. **Arrow function variables** -- `const handleRequest = () => { ... }`
-3. **Class methods** -- `class OrderService { handleRequest() { ... } }`
+2. **Variables holding a function** -- `const handleRequest = () => { ... }`
+3. **Class members** -- methods `handleRequest() { ... }`, the constructor, accessors `get status() { ... }` and properties holding a function `onClick = () => { ... }`
 
-All three support the same predicates and conditions, so you write one rule and it applies everywhere.
+All of them support the same predicates and conditions, so you write one rule and it applies everywhere. `functions(p, { includeMethods: false })` leaves out every class member.
+
+A rule that requires something of every function — `beAsync()`, `contain(call(...))`, `acceptParameterOfType(...)` — may not make sense for a constructor or an accessor. Keep it to the functions that can comply with `.that().areNotOfKind('constructor', 'getter', 'setter')`; `areOfKind(...)` selects kinds instead. The kinds are `'function'`, `'method'`, `'constructor'`, `'getter'`, `'setter'` and `'property'`.
 
 ## Basic Usage
 
@@ -50,6 +52,8 @@ Predicates filter which functions a rule targets. Combine them with `.and()` to 
 | `haveOptionalParameter()`          | Function has an optional or default-valued parameter | `.that().haveOptionalParameter()`            |
 | `haveParameterOfType(i, matcher)`  | Parameter at index i matches the TypeMatcher         | `.that().haveParameterOfType(0, isString())` |
 | `haveParameterNameMatching(regex)` | Function has a parameter name matching regex         | `.that().haveParameterNameMatching(/^ctx/)`  |
+| `areOfKind(...kinds)`              | Function is of one of the kinds                      | `.that().areOfKind('getter', 'setter')`      |
+| `areNotOfKind(...kinds)`           | Function is of none of the kinds                     | `.that().areNotOfKind('constructor')`        |
 
 ## Available Conditions
 
