@@ -64,10 +64,13 @@ literal's accessors, a static block, and a function behind a call or a condition
 asked for a way to keep such a rule to the functions that can. `functionKindOf` names each function's
 kind — `'function'`, `'method'`, `'constructor'`, `'getter'`, `'setter'` or `'property'` — and
 `areOfKind(...)` and `areNotOfKind(...)` select by it, as predicates and on the function builder;
-naming no kind throws `ArchConfigError`. `resolvers()`
+naming no kind, or a string that is not a kind, throws `ArchConfigError`, because the type stops a
+typo only where a rule file is type-checked: #140's second enforcement review measured
+`areOfKind('getter', 'seter')` passing a setter's `eval` before that check. `resolvers()`
 (`packages/ts/src/graphql/resolver-rule-builder.ts`) leaves out constructors and accessors itself: a
 class-based resolver's injected constructor would otherwise fail every `contain(...)` rule written
-against the resolvers. `docs/functions.md`, `docs/api-reference.md` and the changeset say so.
+against the resolvers. A getter written as a field resolver is therefore not read either.
+`docs/functions.md`, `docs/api-reference.md` and the changeset say so.
 
 **Measured on the shipped build, 2026-09-15.** Each rule below ran twice — over the collection at
 `6e077ed` and over this fix's build, with object-literal functions collected as the presets ask — on
@@ -75,7 +78,7 @@ eess's `packages/*/src` at `6e077ed`; NestJS's `packages/` and, separately, its 
 `integration/` apps, at `nestjs/nest@4c5fac0`; TypeORM's `src/` at `typeorm/typeorm@7a9009d`; and
 PixiJS's `src/` at `pixijs/pixijs@6bcc937`, tests and specs left out. Findings were compared by file,
 element and message, and each added and each lost finding counted rather than the totals netted. The
-collection grew by 2.0% in eess (1,789 → 1,825 functions) and 34.0% in PixiJS (2,354 → 3,154). **No
+collection grew by 2.0% in eess (1,767 → 1,803 functions) and 34.0% in PixiJS (2,354 → 3,154). **No
 finding was lost.** Added, summed over the five: duplicate bodies at 0.9 similarity 21,
 `functionNoGenericErrors` 19, `maxFunctionParameters(4)` 18, `maxFunctionLines(50)` 10,
 `noStubComments` 9, `maxFunctionComplexity(10)` 6, `noEmptyBodies` 2, `functionNoSilentCatch` 1,
@@ -128,7 +131,8 @@ the class. This rule asks whether an empty body is a stub, so a dropped paramete
       `resolver-rule-builder.ts`, restored by sha256 after every row; verdicts read by test title over
       six files — the test above, `class-rules-read-the-code-a-class-runs.test.ts`,
       `no-eval-function-shapes.test.ts`, the resolver test, and 0320's and 0321's KNOWN-GAP tests):
-      **44 rows, 0 mismatches**, the working tree unchanged after. Baseline green. Collecting no class
+      **45 rows, 0 mismatches** on the last full run, the working tree unchanged after. Baseline
+      green. Collecting no class
       member but methods reds all 16 tests that read one; reading a variable without unwrapping reds
       the shapes, `includeMethods`, kind and `as`-shape tests; leaving any one of the five wrappers
       unread reds those that use it and 0306's metrics test, which shares the unwrap. Collecting a
@@ -139,16 +143,25 @@ the class. This rule asks whether an empty body is a stub, so a dropped paramete
       member's return type from the member, its line from its function, or taking its function as its
       node reds, in turn, the return-type test, the line test, and the comment and kind tests. Removing
       any of `functionKindOf`'s five branches, `areOfKind` matching everything, `areNotOfKind` not
-      negating, and naming no kind accepted red the kind test; a constructor, getter or setter reporting
+      negating, and naming no kind or an unknown kind
+      accepted red the kind test; a constructor, getter or setter reporting
       kind `'function'`, or `resolvers()` keeping any of the three, reds the resolver test. Removing
       the empty-constructor exemption, or its private, protected or parameter-property condition, reds
       the empty-body test, and so do five over-broad variants: every constructor spared, one parameter
       property sparing a plain parameter beside it, any parameter sparing, a public constructor that
-      takes nothing spared, and a non-public one with a plain parameter spared. One row was a mismatch on the matrix's last run, a wrong prediction rather than a wrong test: collecting no class member also reds 0320's exclusion test, because without the setter only the two methods remain. The expectation was corrected and the row rerun, green. Not pinned: the order a
+      takes nothing spared, and a non-public one with a plain parameter spared. An earlier full run,
+      before the unknown-kind
+      check existed, had one mismatch, a wrong prediction rather than a wrong test: collecting no class
+      member also reds 0320's exclusion test, because without the setter only the two methods remain.
+      The expectation was corrected. Not pinned: the order a
       class's members are listed in — methods, then the constructor, accessors and properties — and
       that an abstract accessor without a body is collected, as an abstract method is, which #140's
       testing review measured; the member test pins an ambient accessor.
 - [x] `npm run validate` green.
+- [ ] dropped-on-purpose — a `check:nonvacuity` probe planting `eval` in a class member for the
+      `recommended` gate, raised by #140's enforcement review. That probe proves the preset reaches this
+      repo, which the top-level probe already does; which positions the collection reads is proven by
+      the tests and the matrix above, which run inside `validate`.
 - [ ] deferred→[0320](../0320-an-accessor-is-named-two-ways-and-static-members-collide.md) — one
       accessor naming for the class and function sides, and a static member named apart from its
       instance twin, raised by #140's reviews.

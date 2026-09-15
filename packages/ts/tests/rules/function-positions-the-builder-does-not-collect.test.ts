@@ -10,7 +10,7 @@ import type { ArchProject } from '../../src/core/project.js'
  * function behind a wrapper. It still does not collect a class expression's members, a namespace
  * class's, an object literal's accessors, a static block, or a function a variable holds through a
  * call or a conditional, even with object-literal functions asked for, or a callback passed to a call
- * outside any function. No function rule reads them, and the class rules miss a class expression and a
+ * outside any function, or a class field that holds no function. No function rule reads them, and the class rules miss a class expression and a
  * namespace class as well.
  */
 function project(lines: readonly string[]): ArchProject {
@@ -35,6 +35,7 @@ const POSITIONS = [
   "export const chosen = flag ? () => eval('conditional') : () => 0", // 9
   'declare const app: { get(path: string, handler: () => unknown): void }', // 10
   "app.get('/', () => eval('module-level callback'))", // 11
+  "export class F { x = eval('field') }", // 12
 ]
 
 describe('bug 0321: named function positions the builder does not collect', () => {
@@ -45,7 +46,7 @@ describe('bug 0321: named function positions the builder does not collect', () =
       .rule({ id: 'test/0321-positions' })
       .violations()
 
-    // Only the control: lines 2 to 11 hold eight more reads of eval, and none is reported.
+    // Only the control: lines 2 to 12 hold nine more reads of eval, and none is reported.
     expect(result.map((v) => [v.element, v.line])).toEqual([['control', 1]])
   })
 
@@ -56,7 +57,11 @@ describe('bug 0321: named function positions the builder does not collect', () =
       .rule({ id: 'test/0321-classes' })
       .violations()
 
-    // The control: the class rules read a static block, so S is reported. Expr and N.Inner are not.
-    expect(result.map((v) => [v.element, v.line])).toEqual([['S', 5]])
+    // The controls: the class rules read a static block and a field, so S and F are reported. Expr and
+    // N.Inner are not.
+    expect(result.map((v) => [v.element, v.line])).toEqual([
+      ['S', 5],
+      ['F', 12],
+    ])
   })
 })

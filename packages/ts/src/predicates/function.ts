@@ -44,13 +44,37 @@ export function arePrivate(): Predicate<ArchFunction> {
 
 // --- Kind predicates (bug 0315) ---
 
-/** The kinds a kind predicate names, refused when empty: a predicate over no kind is a mistake. */
+/** Every kind, checked by the compiler against `FunctionKind` so the two cannot drift apart. */
+const KINDS = {
+  function: true,
+  method: true,
+  constructor: true,
+  getter: true,
+  setter: true,
+  property: true,
+} satisfies Record<FunctionKind, true>
+
+const KNOWN_KINDS: ReadonlySet<string> = new Set(Object.keys(KINDS))
+
+/**
+ * The kinds a kind predicate names. Naming none is refused, and so is a string that is not a kind: the
+ * `FunctionKind` type stops a typo only where the rule file is type-checked, and without this a rule
+ * file loaded unchecked would narrow the rule to the kinds it spelled right, and say nothing.
+ */
 function namedKinds(predicate: string, kinds: readonly FunctionKind[]): ReadonlySet<FunctionKind> {
   if (kinds.length === 0) {
     throw new ArchConfigError(
       predicate,
       'name at least one kind, e.g. constructor, getter or setter',
     )
+  }
+  for (const kind of kinds) {
+    if (!KNOWN_KINDS.has(kind)) {
+      throw new ArchConfigError(
+        predicate,
+        `'${kind}' is not a function kind; the kinds are ${[...KNOWN_KINDS].join(', ')}`,
+      )
+    }
   }
   return new Set(kinds)
 }

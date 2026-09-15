@@ -3,7 +3,7 @@ import { Project } from 'ts-morph'
 import { ArchConfigError } from '@nielspeter/eess'
 import { functions } from '../../src/builders/function-rule-builder.js'
 import { collectFunctions, functionKindOf } from '../../src/models/arch-function.js'
-import { areOfKind } from '../../src/predicates/function.js'
+import { areNotOfKind, areOfKind } from '../../src/predicates/function.js'
 import { functionNoEval } from '../../src/rules/security.js'
 import { noEmptyBodies, noStubComments } from '../../src/rules/hygiene.js'
 import type { ArchProject } from '../../src/core/project.js'
@@ -265,6 +265,15 @@ describe('bug 0315: the function builder collects class members and wrapped func
     expect(onlyAccessors.map((v) => v.element).sort()).toEqual(['Service.get g', 'Service.set g'])
 
     expect(() => areOfKind()).toThrow(ArchConfigError)
+
+    // A rule file loaded without a type check can name a kind that does not exist. A typo in a list
+    // would otherwise narrow the rule to the kinds spelled right.
+    // @ts-expect-error — 'seter' is not a FunctionKind
+    const typo = () => areOfKind('getter', 'seter')
+    expect(typo).toThrow(ArchConfigError)
+    expect(typo).toThrow(/'seter' is not a function kind/)
+    // @ts-expect-error — nor is 'constructors'
+    expect(() => areNotOfKind('constructors')).toThrow(/'constructors' is not a function kind/)
   })
 
   it('noEmptyBodies reports an empty constructor only when it does nothing', () => {

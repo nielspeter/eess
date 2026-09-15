@@ -20,7 +20,7 @@ Unlike most linters that treat function declarations, arrow functions, and class
 
 All of them support the same predicates and conditions, so you write one rule and it applies everywhere. `functions(p, { includeMethods: false })` leaves out every class member.
 
-A rule that requires something of every function — `beAsync()`, `contain(call(...))`, `acceptParameterOfType(...)` — may not make sense for a constructor or an accessor. Keep it to the functions that can comply with `.that().areNotOfKind('constructor', 'getter', 'setter')`; `areOfKind(...)` selects kinds instead. The kinds are `'function'`, `'method'`, `'constructor'`, `'getter'`, `'setter'` and `'property'`.
+A rule that requires something of every function — `beAsync()`, `contain(call(...))`, `acceptParameterOfType(...)` — may not make sense for a constructor or an accessor. Keep it to the functions that can comply with `.that().areNotOfKind('constructor', 'getter', 'setter')`; `areOfKind(...)` selects kinds instead. The kinds are `'function'`, `'method'`, `'constructor'`, `'getter'`, `'setter'` and `'property'`; an object literal's method shorthand, `{ get() {} }`, is a `'method'`, and an arrow function or function expression it holds is a `'function'`. Naming no kind, or a string that is not a kind, throws.
 
 ## Basic Usage
 

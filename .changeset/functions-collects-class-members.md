@@ -27,24 +27,26 @@ What changes for a rule you already run:
   `onChange = () => {}`, and an empty constructor that does nothing. It does not report an empty
   constructor whose every parameter is a parameter property, `constructor(private readonly db: Db) {}`,
   or a `private` or `protected` constructor that takes no parameter.
-- **`resolvers()`** in `@nielspeter/eess-ts/graphql` leaves out constructors and accessors.
+- **`resolvers()`** in `@nielspeter/eess-ts/graphql` leaves out constructors and accessors, so a getter
+  written as a field resolver is not read.
 - The `recommended` and `agentGuardrails` presets and the `duplicateBodies` and `inconsistentSiblings`
   smells are built on the collection and see the new members. `includeMethods: false` leaves out every
   class member, not only methods.
 
 New: `areOfKind(...)` and `areNotOfKind(...)`, as predicates and on the function builder, select by
 `FunctionKind`: `'function'`, `'method'`, `'constructor'`, `'getter'`, `'setter'` or `'property'`.
-Naming no kind throws `ArchConfigError`.
+An object literal's method shorthand is a `'method'`, and a function it holds a `'function'`. Naming no
+kind, or a string that is not a kind, throws `ArchConfigError`.
 
 **Baselines.** Every function collected before keeps its name, so a finding reported before keeps its
 identity. A finding in a new member is not in your baseline and fails the check; regenerating the
 baseline accepts all of them, so read them first.
 
 **Measured** on eess, NestJS's packages and its sample and integration apps, TypeORM and PixiJS, with
-the presets' collection options, for the rules named here and duplicate bodies. No finding reported
+the presets' collection options, for the ten rules below. No finding reported
 before was lost, compared by file, element and message. Added across the five: duplicate bodies at 0.9
 similarity 21, `functionNoGenericErrors` 19, `maxFunctionParameters(4)` 18, `maxFunctionLines(50)` 10,
 `noStubComments` 9, `maxFunctionComplexity(10)` 6, `noEmptyBodies` 2, `functionNoSilentCatch` 1,
 `functionNoEval` and `functionNoFunctionConstructor` 0. Without the `noEmptyBodies` exemption a
-prototype reported 199 more, every one a dependency-injection constructor. `resolvers()`,
+prototype reported 199 more, every one a constructor whose every parameter is a parameter property. `resolvers()`,
 `inconsistentSiblings` and the requirement conditions were not measured.

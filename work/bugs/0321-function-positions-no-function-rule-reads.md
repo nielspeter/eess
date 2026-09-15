@@ -24,6 +24,7 @@ and `classes()`, each with its `eval` rule.
 | a namespace class's method: `export namespace N { export class Inner { m() { eval('…') } } }` | **no**                           | **no**                 |
 | an object literal's accessors: `{ get x() { return eval('…') }, set x(v) { eval(v) } }`       | **no**                           | —                      |
 | a static block: `class S { static { eval('…') } }`                                            | **no**                           | reported               |
+| a class field that holds no function: `class F { x = eval('…') }`                             | **no**                           | reported               |
 | a function passed to a call a variable holds: `const memoised = memo(() => eval('…'))`        | **no**                           | —                      |
 | a function a conditional chooses: `const chosen = flag ? () => eval('…') : () => 0`           | **no**                           | —                      |
 | a callback at module level: `app.get('/', () => eval('…'))`                                   | **no**                           | —                      |
@@ -44,7 +45,8 @@ part of that function's body, and a default-exported class, whose method is coll
   conditional — and a callback passed to a call outside any function belongs to no collected function;
 - collects an object-literal value that is an arrow function, a function expression or a method
   (`packages/ts/src/models/arch-function.ts:460`), so not an accessor;
-- collects nothing for a static block, which is not a function.
+- collects nothing for a static block, or for a class field whose value is not a function: neither is
+  a function.
 
 The class rules miss a class expression and a namespace class too; where their walk starts is for
 the fix to establish.
@@ -57,8 +59,8 @@ The positions are different questions, and each wants a measured ruling:
   walk does not reach, and the class rules need the same reach;
 - an object literal's accessors are the object-literal collection's counterpart of 0315's class
   accessors;
-- a static block is code a class runs on load; whether a function rule reads it, or it stays with the
-  class rules, which read it, is a ruling;
+- a static block, and a field whose value is not a function, are code a class runs; whether a function
+  rule reads them, or they stay with the class rules, which read both, is a ruling;
 - a function passed to a call or chosen by a conditional is where 0315 stopped on purpose.
   `FunctionCollectionOptions` keeps anonymous function values opt-in because every inline callback
   would reach rules written for named functions. Code outside any function may belong to
@@ -73,7 +75,8 @@ Measure each on the corpora 0315 used before ruling.
       `packages/ts/tests/rules/function-positions-the-builder-does-not-collect.test.ts` ·
       `it('KNOWN GAP — eval in a class expression, a namespace class, an object accessor, a static block, a call or a conditional is not reported')`
       and `it('KNOWN GAP — the class rules read neither a class expression nor a namespace class')`,
-      each asserting its control: the function declaration, and the static block, are reported.
+      each asserting its control: the function declaration, and the static block and the field, are
+      reported.
 - [ ] a measured ruling per position
 - [ ] the fix, the KNOWN-GAP tests inverted, a sabotage matrix
 - [ ] `npm run validate` green.
