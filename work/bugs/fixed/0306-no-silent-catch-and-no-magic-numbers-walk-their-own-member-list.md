@@ -182,7 +182,7 @@ probe reaches the magic-number and metrics gates (0316); and the named-value lin
       `findSilentCatches`, `metrics.test.ts` a constructor's metric name — and the matrix does not
       count them.
 - [x] `npm run validate` green.
-- [ ] deferred→[0309](../0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md) —
+- [ ] deferred→[0309](./0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md) —
       "anywhere in member code" does not reach a default inside a destructured parameter, for
       `noSilentCatch` and `noMagicNumbers` as for every class rule.
 - [ ] deferred→[0310](../0310-complexity-misses-a-decision-at-the-root-of-an-expression-body.md) — a
@@ -207,7 +207,7 @@ probe reaches the magic-number and metrics gates (0316); and the named-value lin
       computed name has no other name: `getElementName` names every class-rule finding inside a member
       so, and this fix changes no naming.
 
-Deferred: [0309](../0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md),
+Deferred: [0309](./0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md),
 [0310](../0310-complexity-misses-a-decision-at-the-root-of-an-expression-body.md),
 [0311](../0311-the-class-metric-predicates-and-max-methods-count-their-own-members.md),
 [0312](../0312-code-a-class-runs-that-no-metric-ceiling-measures.md),

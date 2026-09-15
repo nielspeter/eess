@@ -8,7 +8,7 @@
   preset runs `functionNoEval`, `functionNoFunctionConstructor` and `functionNoSilentCatch`
   (`packages/ts/src/presets/recommended.ts:48`, `:58`, `:68`).
 - **Origin:** found on 2026-09-14 by the CONTROL written for
-  [0309](./0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md), recorded
+  [0309](./fixed/0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md), recorded
   there, and split out by #137's second method review.
 - **Reported:** 2026-09-14
 

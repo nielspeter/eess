@@ -192,17 +192,20 @@ type ClassBodyReach = 'member-code' | 'all-code'
 /**
  * Search the code a class runs (bugs 0300, 0307), as far as `reach` says.
  *
- * In three passes, for baselines. A match's identity is numbered within its enclosing declaration
+ * In four passes, for baselines. A match's identity is numbered within its enclosing declaration
  * (`match-identity.ts`), and a declaration is known by its name, so a getter and its setter, or a
  * static and an instance member of one name, share one. What the walk read before bug 0300 comes
- * first for every member, then what 0300 added, then what 0307 added, so a finding a baseline
- * accepted keeps its ordinal and a new one is numbered after it however the members interleave:
+ * first for every member, then what 0300 added, then what 0307 added, then what 0309 added, so a
+ * finding a baseline accepted keeps its ordinal and a new one is numbered after it however the
+ * members interleave:
  *
  * 1. every method, constructor and accessor body;
  * 2. every parameter default, property initializer (which covers an arrow-function property) and
  *    static block;
  * 3. for `'all-code'`: every parameter, member and property decorator, computed member name, class
- *    decorator and the `extends` expression.
+ *    decorator and the `extends` expression;
+ * 4. inside every destructured parameter, at any depth, the code it runs at each call: each
+ *    computed key and each binding element's default, in the order they run.
  *
  * Overload signatures have no body, defaults or decorators, so walking every constructor is the
  * same as walking the implementation. `implements` is type-only and docstrings are not code, so
@@ -225,6 +228,16 @@ export function searchClassBody(
   }
   const searchComputedName = (name: Node): void => {
     if (NodeUtils.isComputedPropertyName(name)) searchExpression(name.getExpression())
+  }
+  const searchBindingPattern = (name: Node): void => {
+    if (!NodeUtils.isObjectBindingPattern(name) && !NodeUtils.isArrayBindingPattern(name)) return
+    for (const element of name.getElements()) {
+      if (!NodeUtils.isBindingElement(element)) continue
+      const propertyName = element.getPropertyNameNode()
+      if (propertyName !== undefined) searchComputedName(propertyName)
+      searchExpression(element.getInitializer())
+      searchBindingPattern(element.getNameNode())
+    }
   }
 
   const runnable = [
@@ -257,6 +270,10 @@ export function searchClassBody(
     }
     searchDecorators(cls.getDecorators())
     searchExpression(cls.getExtends()?.getExpression())
+  }
+
+  for (const member of runnable) {
+    for (const parameter of member.getParameters()) searchBindingPattern(parameter.getNameNode())
   }
 
   return toResult(matchingNodes)
