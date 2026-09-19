@@ -94,6 +94,14 @@ export function reportedLine(node: Node, triviaPos: number | undefined): number 
  * Parent nodes' getText() includes children's text, so regex-based
  * matchers (expression()) match at multiple ancestor levels.
  * Keep only the deepest (most specific) matching nodes.
+ *
+ * Several nodes can share one span — a statement without a semicolon and its
+ * expression, a shorthand property and its name, a call's only argument and
+ * the `SyntaxList` holding it. Each lies inside the others, so a filter that
+ * drops a match with another inside it dropped all of them and reported
+ * nothing (bug 0322). Of a tie, the last in walk order is kept: the walk is
+ * pre-order, so that is the deepest. `getAncestors()` cannot break the tie —
+ * it follows `getParent()`, which skips the `SyntaxList` the walk yields.
  */
 function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Match[] {
   const matches: Node[] = []
@@ -107,11 +115,13 @@ function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Match[] {
   }
   return matches
     .filter(
-      (m) =>
-        !matches.some(
-          (other) =>
-            other !== m && other.getStart() >= m.getStart() && other.getEnd() <= m.getEnd(),
-        ),
+      (m, i) =>
+        !matches.some((other, j) => {
+          if (other === m) return false
+          if (other.getStart() < m.getStart() || other.getEnd() > m.getEnd()) return false
+          const sameSpan = other.getStart() === m.getStart() && other.getEnd() === m.getEnd()
+          return !sameSpan || j > i
+        }),
     )
     .map((n) => ({ node: n }))
 }
@@ -393,7 +403,14 @@ export function searchFunctionBody(fn: ArchFunction, matcher: ExpressionMatcher)
   // the comment above warns about — `expression(/…/)` against a Block matches
   // the function's whole body text, turning every body-analysis rule into a
   // whole-declaration one.
-  if (!NodeUtils.isBlock(body) && matcher.matches(body)) {
+  //
+  // Nor when a broad matcher already matched inside the body. The body is then an
+  // ancestor of that match, which the broad search exists to leave out, and adding
+  // it reported one match twice — `() => use(legacy(1))` under
+  // `expression(/legacy\(1\)/)` (bug 0322). A by-kind matcher never tests the root
+  // it searches, so for it the body is a different node and still counts.
+  const broadHit = (matcher.syntaxKinds ?? []).length === 0 && matchingNodes.length > 0
+  if (!NodeUtils.isBlock(body) && !broadHit && matcher.matches(body)) {
     matchingNodes.push({ node: body })
   }
   return toResult(matchingNodes)
