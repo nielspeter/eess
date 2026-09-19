@@ -2370,6 +2370,16 @@ const gates = [
   // only "protection" was this repo's own live corpus incidentally carrying a
   // deferred box, which would silently vanish the day that box got resolved.
   ['corpus/ledger/deferred-lie', () => gateNode('bad-ledger.mjs', 'ledger/deferred-none-lie')],
+  // Bug 0286: two rows, one per route — a fix for one does not touch the other. Route A is an
+  // existing finding that fails to appear, so its token is one only this fixture's document can print.
+  [
+    'corpus/ledger/fenced-example',
+    () => gateNode('bad-ledger-fences.mjs', 'fenced-example: silent box reported'),
+  ],
+  [
+    'corpus/ledger/unterminated-fence',
+    () => gateNode('bad-ledger-fences.mjs', 'ledger/unterminated-fence'),
+  ],
   // Bug 0131 follow-up (six-persona review): the fold's zero-examined guard
   // must actually reach `honestyAtClose`'s `headerViolations` lane, not just
   // its detection logic — a regression back to hand-rolled iteration (or an
@@ -2824,6 +2834,8 @@ const GATE_FOR = {
     'corpus/ledger/uncovered-lane',
     'corpus/ledger/lane-done-vacuous',
     'corpus/ledger/finished-not-closed',
+    'corpus/ledger/fenced-example',
+    'corpus/ledger/unterminated-fence',
   ],
   'check:release': [
     'emitter/release-dead-check',

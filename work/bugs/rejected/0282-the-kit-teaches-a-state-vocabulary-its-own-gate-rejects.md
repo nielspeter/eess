@@ -177,7 +177,7 @@ leaving the next one silent.
       second `##`, and both examples sit four and three headings past it, so the
       scan never reaches them. Gutting `stripFencedCode` leaves the whole corpus
       byte-identical, which proves it. Filed as
-      [0286](../0286-a-fenced-example-can-turn-the-close-checks-off.md). The
+      [0286](../fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md). The
       original box text is kept below, uncorrected, because being wrong _here_ is
       why this record was worth keeping.
 - [x] two records carry

@@ -2,7 +2,8 @@
 
 ## Status
 
-- **State:** Draft — measured; this is a decision, not a defect to patch, and it wants its own review. It cannot close by a bug PR alone: its closing condition is a placement decision, and no decision record owns it yet.
+- **State:** Draft — ruled 2026-09-19 (see "Ruled" below); one of four copies moved so far.
+  Measured; this is a decision, not a defect to patch, and it wants its own review. It cannot close by a bug PR alone: its closing condition is a placement decision, and no decision record owns it yet.
 - **Severity:** **High** — raised 2026-09-12. **The earlier rationale ("nothing is
   wrong that 0286 does not already file") was measured false.** A fourth consumer
   has its own live fail-open in a CI gate on this repo, filed as
@@ -69,7 +70,7 @@ later
 | the same without the four-backtick block (control) | `ledger/silent-open-box` @7 | 1              | 1     |
 | with it                                            | **none**                    | **0**          | **0** |
 
-By commonmark.js the State line and the box are outside code. An earlier version of this row cited [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md), which measured other mechanisms.
+By commonmark.js the State line and the box are outside code. An earlier version of this row cited [0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md), which measured other mechanisms.
 
 ## Why this is not just 0286 repeated
 
@@ -101,7 +102,7 @@ corners of the family.
 **Should any of these own a fence lexer at all?**
 
 The markdown dialect already parses markdown properly for its task-box path, and
-mdast handles all seven shapes 0286 probed correctly by construction. A later version of this record retracted that as six of seven; the retraction was wrong, since on the unclosed fence mdast agrees with CommonMark ([0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)).
+mdast handles all seven shapes 0286 probed correctly by construction. A later version of this record retracted that as six of seven; the retraction was wrong, since on the unclosed fence mdast agrees with CommonMark ([0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md)).
 
 **And the two disagree inside one preset, which is how a record goes green.**
 `honestyAtClose` reads one document with both: the hand-rolled regex in
@@ -117,7 +118,7 @@ options are not "widen the regex" versus "leave it":
    a lexer it cannot own — one level down. It removes the misreading, but not the silence on an unclosed fence: by CommonMark that document has no State line and no box outside code, and 0286 records a widened pattern leaving that document with no readable state and still no finding. Needs option (4) beside it. An earlier version said mdast loses real content here; it does not.
 3. **Widen the regex in one place and consolidate**, which is (1) plus a patch.
 
-4. **Report an unterminated fence** as its own finding, whoever owns the lexer. It reaches 0286's unclosed-fence document directly, which no choice of lexer does. [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) owns it; [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) once preferred it and retracted that.
+4. **Report an unterminated fence** as its own finding, whoever owns the lexer. It reaches 0286's unclosed-fence document directly, which no choice of lexer does. [0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md) owns it; [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) once preferred it and retracted that.
 
 (1) is the smallest thing that stops the defect recurring across four files. (4) is
 the one that actually closes the dangerous shape. They compose; (2) does not
@@ -137,6 +138,18 @@ home and `0257`'s fix is the model.
 
 Until the ownership question is answered there is nothing to gate, which is why this is a `Draft` record putting a question and not a fix.
 
+## Ruled, 2026-09-19
+
+**The library author ruled options (2) and (4): the dialect reads prose on the markdown parser it already
+runs, and reports an unterminated fence.** The owner is `packages/md/src/model/prose.ts` in eess-md —
+`nonProseRanges` and `proseText` — not the kernel: the kernel borrows a lexer it cannot own (ADR-012), and
+the markdown parser is the dialect's.
+
+Built so far, in 0286's PR: the owner, and the `ledger.ts` copy deleted, both of its call sites reading
+through the owner, and the unterminated-fence finding. Still to move onto it: `builders/vocabulary.ts`,
+`packages/crossvalidate/src/md-gherkin.ts` and `scripts/lib/proposal-ruling.mjs` — and then the
+architecture rule that stops a fifth copy.
+
 ## Verification ledger
 
 - [x] Four copies located. **Pattern** byte-identical across all four — the
@@ -148,7 +161,7 @@ Until the ownership question is answered there is nothing to gate, which is why 
 - [x] Confirmed 0143 points at two of these copies as canonical, which they are
       not.
 - [x] Confirmed 0257 is Fixed, with one-owner-in-the-kernel as its resolution.
-- [x] **Corrected a false retraction.** An earlier box said mdast handles six of seven shapes and loses real content on the unclosed fence. By commonmark.js that content is code ([0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)), so mdast is right on all seven.
+- [x] **Corrected a false retraction.** An earlier box said mdast handles six of seven shapes and loses real content on the unclosed fence. By commonmark.js that content is code ([0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md)), so mdast is right on all seven.
 - [x] Measured the over-strip shape in `ledger.ts`, the document above: no readable state and no finding.
 - [ ] The ownership question answered — **the library author's.** This record puts
       it and does not settle it.
@@ -160,7 +173,7 @@ elsewhere.
 
 ## Related
 
-- [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) — the defect
+- [0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md) — the defect
   that made this worth asking. It closes whichever way this is decided.
 - [0143](./0143-proposal-ruling-parser-duplicates-terms-vocabulary.md) — open, and
   partly inverted by this record's measurement.

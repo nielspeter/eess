@@ -84,7 +84,7 @@ both scope the problem to the **Status** cell. On the branch that filed bugs 028
 | 0284 | prose    | "a vocabulary in which nothing can ever be terminal" | retracted as measured false                    |
 | 0286 | prose    | the four-backtick outer fence leaks                  | a bare one holds; only the wrapping form leaks |
 
-An earlier version of this table listed a fourth: 0287's row saying "mdast already gets all seven shapes right", marked retracted as six of seven. The row was right and the retraction wrong ([0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)).
+An earlier version of this table listed a fourth: 0287's row saying "mdast already gets all seven shapes right", marked retracted as six of seven. The row was right and the retraction wrong ([0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md)).
 
 All three passed `check:corpus` throughout, because the bugs board gets
 link-resolution only — the board-agreement machinery

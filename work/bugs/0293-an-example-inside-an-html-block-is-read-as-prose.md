@@ -148,6 +148,14 @@ An example State line inside an HTML block must not silence a record's close che
 - **Skipping HTML comments silences pointers after an unclosed `<!--`.** Those pointers are checked today.
 - **One direction that skips nothing.** Report a State, `Deferred:` or Ruling line found inside an HTML block as ambiguous, with a remedy: move it out, put an example in a fence, or add blank lines around it. That keeps both directions loud, and was not measured.
 
+## Progress, 2026-09-19
+
+The State half is fixed and pinned by [0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md)'s
+PR: the ledger reads prose through the markdown parser, so an example in `<pre>`, in an HTML comment, or
+in a `<pre>` nested in a list item is not the record's State (`packages/md/tests/rules/ledger-reads-prose-as-commonmark.test.ts`).
+Still open here: the Ruling shapes, read by `scripts/lib/proposal-ruling.mjs`; the `<details>` and
+`<div>` shapes, which that test does not pin; and the non-vacuity row.
+
 ## Verification ledger
 
 - [x] A State example in `<pre>`, a comment, a nested `<pre>`, or `<details>` without blank lines silences a done record on `main`; both controls report.
@@ -159,5 +167,5 @@ An example State line inside an HTML block must not silence a record's close che
 
 ## Related
 
-- [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md): the same fail-open through a fenced example.
+- [0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md): the same fail-open through a fenced example.
 - [0291](./0291-the-markdown-masker-honours-a-directive-inside-code.md): the directive half.

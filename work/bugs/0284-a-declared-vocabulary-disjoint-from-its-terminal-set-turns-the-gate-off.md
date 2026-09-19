@@ -122,7 +122,7 @@ same asymmetry as the per-lane `LANES` table and the missing reference
 ### What it catches — and the claim retracted here
 
 **An earlier version of this section said the same signature covers
-[0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)'s first route, and
+[0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md)'s first route, and
 that "two of the three fail-opens on this branch are one missing guard". Measured
 false, and the measurement that produced it was a fixture of my own making.**
 

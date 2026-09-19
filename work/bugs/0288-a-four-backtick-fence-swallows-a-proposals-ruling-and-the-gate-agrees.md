@@ -80,7 +80,7 @@ mechanism this record had misnamed.
 
 The fix is **run-length awareness**: an anchored pattern whose closer must be a run
 at least as long as its opener. A reviewer built one while reviewing
-[0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) and measured it
+[0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md) and measured it
 repairing that record's first route completely.
 
 **Genuinely unterminated fences are a separate, real shape** — 0286's second route, where an opener with no closer makes the rest of the document code by CommonMark while the regex reads on.
@@ -127,7 +127,7 @@ Deferred: none.
 - [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) — the four
   copies. This record is the measured consequence in the fourth, and corrects that
   record's severity rationale.
-- [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) — the same
+- [0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md) — the same
   over-stripping direction in the ledger preset, plus a second route no lexer fix
   reaches.
 - [0143](./0143-proposal-ruling-parser-duplicates-terms-vocabulary.md) — files this
