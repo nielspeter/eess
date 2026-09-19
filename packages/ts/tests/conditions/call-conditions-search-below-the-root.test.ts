@@ -78,4 +78,20 @@ describe('bug 0323: the call conditions search below the root', () => {
 
     expect(missing).toEqual(['use'])
   })
+
+  it('KNOWN GAP — haveCallbackContaining reports a concise callback whose body is the match as missing', () => {
+    const missing = (statement: string): string[] =>
+      calls(project(statement))
+        .that()
+        .withMethod('use')
+        .should()
+        .haveCallbackContaining(call('legacy'))
+        .rule({ id: 'test/0323-callback-requirement' })
+        .violations()
+        .map((v) => v.element)
+
+    expect(missing('use(() => legacy(1));')).toEqual(['use'])
+    // The control: the same call in a block body is found.
+    expect(missing('use(() => { return legacy(1) });')).toEqual([])
+  })
 })

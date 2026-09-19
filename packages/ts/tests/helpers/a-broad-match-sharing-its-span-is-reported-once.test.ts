@@ -16,7 +16,8 @@ import type { ArchProject } from '../../src/core/project.js'
  * them, so nothing was reported. It now keeps one, the deepest.
  *
  * Every shape is reported exactly once. Breaking the tie by `getAncestors()` reports some twice,
- * because it cannot see the `SyntaxList`.
+ * because it cannot see the `SyntaxList`, and so did adding a concise arrow's body beside a broad
+ * match inside it. Which node of a tie is kept shows in a finding's identity, so that is pinned too.
  */
 function project(lines: readonly string[]): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })
@@ -183,5 +184,73 @@ describe('bug 0322: a broad match that shares its span is reported once', () => 
       found('use(() => { legacy(alpha); });'),
       found('use(() => { return { alpha } });'),
     ]).toEqual([1, 1, 1])
+  })
+
+  it('the requirement conditions pass a body whose only match shares its span', () => {
+    const useCalls = (statement: string) =>
+      calls(project([...PRELUDE, statement]))
+        .that()
+        .withMethod('use')
+        .should()
+    const failing = (statement: string, condition: 'argument' | 'callback'): readonly string[] => {
+      const should = useCalls(statement)
+      const rule =
+        condition === 'argument'
+          ? should.haveArgumentContaining(expression(/\balpha\b/))
+          : should.haveCallbackContaining(expression(/\balpha\b/))
+      return rule
+        .rule({ id: 'test/0322-requires' })
+        .violations()
+        .map((v) => v.element)
+    }
+
+    expect(failing('use({ alpha });', 'argument')).toEqual([])
+    expect(failing('use(() => { legacy(alpha) });', 'callback')).toEqual([])
+    // The controls: a call without the name still fails both.
+    expect(failing('use({ key: beta });', 'argument')).toEqual(['use'])
+    expect(failing('use(() => { legacy(beta) });', 'callback')).toEqual(['use'])
+
+    // useInsteadOf's good side: the good call, written without a semicolon, is found.
+    const insteadOf = functions(project([...PRELUDE, 'export function g() {\n  modern(1)\n}']))
+      .that()
+      .haveNameMatching(/^g$/)
+      .should()
+      .useInsteadOf(expression(/legacy\(1\)/), expression(/modern\(1\)/))
+      .rule({ id: 'test/0322-instead-good' })
+      .violations()
+    expect(insteadOf.map((v) => v.element)).toEqual([])
+  })
+
+  it('a concise arrow whose body holds a broad match reports it once', () => {
+    const elements = (declaration: string, pattern: RegExp): string[] =>
+      functions(project([...PRELUDE, declaration]))
+        .that()
+        .haveNameMatching(/^arrow$/)
+        .should()
+        .notContain(expression(pattern))
+        .rule({ id: 'test/0322-concise' })
+        .violations()
+        .map((v) => v.element)
+
+    // A tie inside the body, a shorthand property, and a match strictly inside the body: each is
+    // one finding, not the match and the body around it.
+    expect(elements('export const arrow = () => use(legacy(12))', /legacy\(12\)/)).toEqual([
+      'arrow',
+    ])
+    expect(elements('export const arrow = () => ({ alpha })', /\balpha\b/)).toEqual(['arrow'])
+    expect(elements('export const arrow = () => legacy(1)', /legacy/)).toEqual(['arrow'])
+  })
+
+  it('of a tie, the deepest node is kept, which a finding names in its identity', () => {
+    const identities = modules(project(['export class C { delta }']))
+      .should()
+      .notContain(expression(/\bdelta\b/))
+      .rule({ id: 'test/0322-identity' })
+      .violations()
+      .map((v) => (v.identity ?? '').split('::')[2])
+
+    // The property's name is the deepest node of the tie; the class's member list around it would
+    // be named for the class, `C`.
+    expect(identities).toEqual(['C.delta'])
   })
 })

@@ -403,7 +403,14 @@ export function searchFunctionBody(fn: ArchFunction, matcher: ExpressionMatcher)
   // the comment above warns about — `expression(/…/)` against a Block matches
   // the function's whole body text, turning every body-analysis rule into a
   // whole-declaration one.
-  if (!NodeUtils.isBlock(body) && matcher.matches(body)) {
+  //
+  // Nor when a broad matcher already matched inside the body. The body is then an
+  // ancestor of that match, which the broad search exists to leave out, and adding
+  // it reported one match twice — `() => use(legacy(1))` under
+  // `expression(/legacy\(1\)/)` (bug 0322). A by-kind matcher never tests the root
+  // it searches, so for it the body is a different node and still counts.
+  const broadHit = (matcher.syntaxKinds ?? []).length === 0 && matchingNodes.length > 0
+  if (!NodeUtils.isBlock(body) && !broadHit && matcher.matches(body)) {
     matchingNodes.push({ node: body })
   }
   return toResult(matchingNodes)

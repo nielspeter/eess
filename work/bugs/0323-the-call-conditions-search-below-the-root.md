@@ -18,7 +18,7 @@ The call conditions search each argument, or each callback's body, with `findMat
 (`packages/ts/src/conditions/call.ts:125`, `:157`, `:300` and `:342`). That function tests a node's
 descendants and never the node itself (`packages/ts/src/helpers/body-traversal.ts:136`). An argument
 that is the match is never tested, and neither is a concise callback's body, which
-`getFunctionBody` returns as the expression itself (`packages/ts/src/helpers/body-traversal.ts:421`).
+`getFunctionBody` returns as the expression itself (`packages/ts/src/helpers/body-traversal.ts:428`).
 
 Measured, the same with either matcher, `call('legacy')` or `expression(/legacy\(1\)/)`:
 
@@ -29,8 +29,14 @@ Measured, the same with either matcher, `call('legacy')` or `expression(/legacy\
 | `use(() => legacy(1));`            | `notHaveCallbackContaining` | **0**    |
 | `use(() => { return legacy(1) });` | `notHaveCallbackContaining` | 1        |
 
-A requirement fails the other way: `haveArgumentContaining(call('legacy'))` reports `use(legacy(1))`
-as missing the call it passes.
+The requirements fail the other way: `haveArgumentContaining(call('legacy'))` reports
+`use(legacy(1))` as missing the call it passes, and `haveCallbackContaining(call('legacy'))` reports
+`use(() => legacy(1))` the same way.
+
+Two published claims are false until this is fixed: `docs/calls.md:235` says `haveArgumentContaining`
+"searches all arguments recursively at any depth", and `docs/calls.md:253` says
+`notHaveArgumentContaining` reports every match "found at any depth". Depth zero, the argument itself,
+is not searched.
 
 ## Root cause
 
@@ -48,8 +54,8 @@ A function's own concise body is not affected: `functions().should().notContain(
 ## Fix
 
 Measured, not built: the call conditions search with `findMatchesInExpression` instead of
-`findMatchesInNode`, at all four sites. Applied to a copy and restored by sha256: the three pins go
-red, and 3,777 of the eess-ts suite's 3,780 tests pass; the three that fail are the pins.
+`findMatchesInNode`, at all four sites. Applied in the PR's worktree and restored by sha256: the four
+pins go red, and 3,780 of the eess-ts suite's 3,784 tests pass; the four that fail are the pins.
 
 **It is a behaviour change.** It reports findings that 0.5.1 misses, and the call conditions'
 baseline identities are ordinals per declaration, so a newly reported match above an accepted one
@@ -66,11 +72,14 @@ takes its ordinal. The changeset must say so.
       `packages/ts/tests/conditions/call-conditions-search-below-the-root.test.ts` ·
       `it('KNOWN GAP — notHaveArgumentContaining misses an argument that is the match')`,
       `it('KNOWN GAP — notHaveCallbackContaining misses a concise callback whose body is the match')`
-      and `it('KNOWN GAP — haveArgumentContaining reports an argument that is the match as missing')`.
+      `it('KNOWN GAP — haveArgumentContaining reports an argument that is the match as missing')`
+      and
+      `it('KNOWN GAP — haveCallbackContaining reports a concise callback whose body is the match as missing')`
+      — one per call-condition site the fix changes, so a fix that misses one stays red.
 - [x] each pin goes red under the fix direction above, and no other eess-ts test does.
 - [ ] the fix: the four call-condition sites search the root too
-- [ ] `haveCallbackContaining` measured with a concise callback
-- [ ] the three tests assert the fixed behaviour
+- [ ] the four tests assert the fixed behaviour
+- [ ] `docs/calls.md:235` and `:253` true again, or corrected
 - [ ] the changeset marks it breaking and names the baseline effect
 - [ ] `npm run validate` green.
 
