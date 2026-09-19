@@ -18,7 +18,7 @@
 
 ### 1. `ledger/unknown-state` names the vocabulary it wanted, never the option
 
-From `packages/md/src/rules/ledger.ts:244-251`:
+From `packages/md/src/rules/ledger.ts:242-249`:
 
 ```
 State: Promoted is not a state this corpus declares — expected one of
@@ -33,7 +33,7 @@ the call, and neither the message nor the rationale says so.
 
 ### 2. `ledger/state-folder-mismatch`, second branch, asserts a move that was made
 
-From `packages/md/src/rules/ledger.ts:265-271`, on a file that **is** in a folder,
+From `packages/md/src/rules/ledger.ts:263-269`, on a file that **is** in a folder,
 just not one the caller declared:
 
 ```
@@ -57,7 +57,7 @@ does not say which side to change.
 ## Root cause — corrected twice
 
 **First version.** Said the local five-parameter helper at
-`packages/md/src/rules/ledger.ts:210-223` is why no finding carries a `Fix:` line.
+`packages/md/src/rules/ledger.ts:208-221` is why no finding carries a `Fix:` line.
 Wrong as a _reason_: the helper is not the only constructor.
 
 **Second version.** "Corrected" that to say a `honestyAtClose` finding _can_ carry

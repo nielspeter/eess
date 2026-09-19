@@ -14,7 +14,8 @@ import { honestyAtClose } from '../../src/rules/ledger.js'
  * with nothing to check (route B). The ledger now reads prose through the parser, and reports an
  * unclosed fence.
  *
- * An example in an HTML block is read the same way (bug 0293's State half).
+ * Code blocks only: an HTML block is read as it was, since it can hold a record's real claim as well as
+ * an example of one — bug 0293's question.
  */
 function findings(text: string): [string, number][] {
   const dir = mkdtempSync(join(tmpdir(), 'ledger-prose-'))
@@ -55,9 +56,7 @@ describe('bug 0286: the ledger reads a document’s prose as CommonMark does', (
       control: [],
       fourBacktickWrappingAFence: ['````md', '```md', EXAMPLE_STATE, '```', '````'],
       indentedBlock: ['An example:', '', `    ${EXAMPLE_STATE}`],
-      preBlock: ['<pre>', EXAMPLE_STATE, '</pre>'],
-      htmlComment: ['<!--', EXAMPLE_STATE, '-->'],
-      preInAListItem: ['- note:', '  <pre>', `  ${EXAMPLE_STATE}`, '  </pre>'],
+      tildeFenceWrappingAFence: ['~~~~md', '~~~md', EXAMPLE_STATE, '~~~', '~~~~'],
     }
 
     const reported = Object.fromEntries(
@@ -84,6 +83,82 @@ describe('bug 0286: the ledger reads a document’s prose as CommonMark does', (
       ['ledger/silent-open-box', 9],
     ])
     expect(findings(record('- **State:** Done — closed in `ledger.ts`'))).toEqual([
+      ['ledger/silent-open-box', 9],
+    ])
+  })
+
+  it('an HTML block is read as it was, so a real State line inside one is still the record’s own', () => {
+    // Setting HTML blocks aside would silence these; 0.6.0 reads them, and so does the fix.
+    const record = (open: string, close: string): string =>
+      [
+        '# 0001 x',
+        '',
+        '## Status',
+        '',
+        open,
+        '- **State:** Done — closed',
+        close,
+        '',
+        '## Tasks',
+        '',
+        '- [ ] box',
+        '',
+      ].join('\n')
+
+    expect(findings(record('<div>', '</div>'))).toEqual([['ledger/silent-open-box', 11]])
+    expect(findings(record('<details><summary>s</summary>', '</details>'))).toEqual([
+      ['ledger/silent-open-box', 11],
+    ])
+  })
+
+  it('a fence is closed only by a closer CommonMark accepts, at the end of the document too', () => {
+    const endsWith = (fence: readonly string[]): [string, number][] =>
+      findings(['# 0001 x', '', '- **State:** Draft — open', '', ...fence].join('\n'))
+
+    // Not closers: a tab, four spaces, or a quote marker before the run.
+    expect(endsWith(['```md', 'an example', '\t```'])).toEqual([['ledger/unterminated-fence', 5]])
+    expect(endsWith(['```md', 'an example', '    ```'])).toEqual([['ledger/unterminated-fence', 5]])
+    expect(endsWith(['```md', 'an example', '> ```'])).toEqual([['ledger/unterminated-fence', 5]])
+    // Closed at the very end of the file, with and without a newline after the closer.
+    expect(endsWith(['```md', 'an example', '```'])).toEqual([])
+    expect(endsWith(['```md', 'an example', '```', ''])).toEqual([])
+  })
+
+  it('a fence its list item closes does not hide the list item after it', () => {
+    // The fence's end is exclusive: it ends at column 1 of the next item, which is not code.
+    const text = [
+      '# 0001 x',
+      '',
+      '## Status',
+      '',
+      '- note:',
+      '  ```md',
+      '  an example its list item ends',
+      '- **State:** Done — closed',
+      '',
+      '## Tasks',
+      '',
+      '- [ ] box',
+      '',
+    ].join('\n')
+
+    expect(findings(text)).toEqual([['ledger/silent-open-box', 12]])
+  })
+
+  it('a record whose only State line is inside a code block is reported, not passed', () => {
+    const record = (status: readonly string[]): string =>
+      ['# 0001 x', '', '## Status', '', ...status, '', '## Tasks', '', '- [ ] box', ''].join('\n')
+
+    // Four spaces make an indented code block, and a fence is a fence: CommonMark reads neither as the
+    // record's own State, so the record would pass with nothing checked.
+    expect(findings(record(['    - **State:** Done — closed']))).toEqual([
+      ['ledger/state-in-code', 5],
+    ])
+    expect(findings(record(['```', '- **State:** Done — closed', '```']))).toEqual([
+      ['ledger/state-in-code', 6],
+    ])
+    // The control: the same line in prose is read, and its silent box reported.
+    expect(findings(record(['- **State:** Done — closed']))).toEqual([
       ['ledger/silent-open-box', 9],
     ])
   })

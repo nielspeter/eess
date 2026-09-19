@@ -2374,11 +2374,16 @@ const gates = [
   // existing finding that fails to appear, so its token is one only this fixture's document can print.
   [
     'corpus/ledger/fenced-example',
-    () => gateNode('bad-ledger-fences.mjs', 'fenced-example: silent box reported'),
+    () =>
+      gateNode('bad-ledger-fences.mjs', 'fenced-example: silent box reported', ['fenced-example']),
   ],
   [
     'corpus/ledger/unterminated-fence',
-    () => gateNode('bad-ledger-fences.mjs', 'ledger/unterminated-fence'),
+    () => gateNode('bad-ledger-fences.mjs', 'ledger/unterminated-fence', ['unterminated-fence']),
+  ],
+  [
+    'corpus/ledger/state-in-code',
+    () => gateNode('bad-ledger-fences.mjs', 'ledger/state-in-code', ['state-in-code']),
   ],
   // Bug 0131 follow-up (six-persona review): the fold's zero-examined guard
   // must actually reach `honestyAtClose`'s `headerViolations` lane, not just
@@ -2836,6 +2841,7 @@ const GATE_FOR = {
     'corpus/ledger/finished-not-closed',
     'corpus/ledger/fenced-example',
     'corpus/ledger/unterminated-fence',
+    'corpus/ledger/state-in-code',
   ],
   'check:release': [
     'emitter/release-dead-check',

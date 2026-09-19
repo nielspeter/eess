@@ -9,17 +9,33 @@
  * - route B: `0008-unclosed-fence.md` opens a fence that never closes, so by CommonMark its State line
  *   and box are code. It must report `ledger/unterminated-fence` — before the fix it reported nothing.
  *
+ * - `0010-state-in-code.md` has its only State line indented four spaces, a code block by CommonMark. It
+ *   must report `ledger/state-in-code` — before, the regex read it; after the fix, nothing would.
+ *
  * `0009-plain-fence.md` is the clean direction: a plain fenced example and every box done.
  *
+ * One route per run: the first argument, `fenced-example`, `unterminated-fence` or `state-in-code`, names it, so each
+ * registry row goes red for its own route alone.
+ *
  * Exit codes (consumed by scripts/check-nonvacuity.mjs):
- *   1 = both routes reported (gate correctly failed) — OK
- *   0 = a route reported nothing (the gate is vacuous — the harness treats this as fail)
+ *   1 = the named route reported (gate correctly failed) — OK
+ *   0 = the named route reported nothing (the gate is vacuous — the harness treats this as fail)
  *   2 = unexpected error, or the fixture's own premise broke — treated as fail
  */
 import { corpus } from '@nielspeter/eess-md'
 import { honestyAtClose } from '@nielspeter/eess-md/rules/ledger'
 
 const ROOT = 'scripts/nonvacuity/bad-ledger-fences'
+const ROUTE = process.argv[2]
+const ROUTES = {
+  'fenced-example': ['0007-fenced-example', 'ledger/silent-open-box'],
+  'unterminated-fence': ['0008-unclosed-fence', 'ledger/unterminated-fence'],
+  'state-in-code': ['0010-state-in-code', 'ledger/state-in-code'],
+}
+if (!(ROUTE in ROUTES)) {
+  console.error(`bad-ledger-fences: name a route — ${Object.keys(ROUTES).join(', ')}, not ${String(ROUTE)}`)
+  process.exit(2)
+}
 
 let c
 try {
@@ -30,8 +46,8 @@ try {
 }
 
 const docs = c.documents().length
-if (docs !== 3) {
-  console.error(`bad-ledger-fences: the corpus loaded ${docs} document(s), expected 3 — check ${ROOT}`)
+if (docs !== 4) {
+  console.error(`bad-ledger-fences: the corpus loaded ${docs} document(s), expected 4 — check ${ROOT}`)
   process.exit(2)
 }
 
@@ -57,17 +73,17 @@ if (from('0009-plain-fence').length > 0) {
   process.exit(2)
 }
 
-const routeA = from('0007-fenced-example').some((v) => v.rule === 'ledger/silent-open-box')
-const routeB = from('0008-unclosed-fence').some((v) => v.rule === 'ledger/unterminated-fence')
-if (!routeA || !routeB) {
-  console.error(
-    `bad-ledger-fences: route A ${routeA ? 'reported' : 'SILENT'}, route B ${routeB ? 'reported' : 'SILENT'} — ` +
-      'the gate is vacuous for the silent route',
-  )
+const [document, rule] = ROUTES[ROUTE]
+const reported = from(document).some((v) => v.rule === rule)
+if (!reported) {
+  console.error(`bad-ledger-fences: route ${ROUTE} SILENT — the gate is vacuous for it`)
   process.exit(0)
 }
 
-console.error('bad-ledger-fences: both routes reported across 3 documents')
-console.error('  x fenced-example: silent box reported under an example of a State line')
-console.error('  x ledger/unterminated-fence: an unclosed fence reported')
+console.error(`bad-ledger-fences: route ${ROUTE} reported across 4 documents`)
+console.error(
+  ROUTE === 'fenced-example'
+    ? '  x fenced-example: silent box reported under an example of a State line'
+    : `  x ${rule}: reported`,
+)
 process.exit(1)

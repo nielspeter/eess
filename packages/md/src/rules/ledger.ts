@@ -163,14 +163,21 @@ export function findState(
   vocabulary: readonly string[],
   root?: Root,
 ): { state?: string; raw: string; line: number } | null {
+  // Prose only, read as CommonMark reads it, so an illustrative `**State:** Draft` in a code block is
+  // not the document's own (bugs 0286, 0287) — by the parser the task-box pass uses.
+  return stateIn(proseText(text, root).split('\n'), vocabulary)
+}
+
+/** The first `State:` token in the header region of these lines — `findState`'s scan. */
+function stateIn(
+  lines: readonly string[],
+  vocabulary: readonly string[],
+): { state?: string; raw: string; line: number } | null {
   const known = stateMatcher(vocabulary)
   const canonical = (m: string): string =>
     vocabulary.find(
       (s) => s.toLowerCase().replace(/’/g, "'") === m.toLowerCase().replace(/’/g, "'"),
     ) ?? m
-  // Prose only, read as CommonMark reads it, so an illustrative `**State:** Draft` in a code block or
-  // an HTML block is not the document's own (bugs 0286, 0287) — by the parser the task-box pass uses.
-  const lines = proseText(text, root).split('\n')
   // The preamble **and the first section**. Stopping at the first `##` — as this
   // did — meant the check never ran on a real document in the corpus it was
   // written for: the house template is `# Title` / `## Status` / `- **State:** X`,
@@ -367,13 +374,40 @@ function belongsToADoneItem(
 function unterminatedFenceViolation(doc: MdDocument): ArchViolation | null {
   const line = unterminatedFence(doc.text, doc.root)
   if (line === null) return null
-  return v(
-    'ledger/unterminated-fence',
-    doc,
+  return {
+    rule: 'ledger/unterminated-fence',
+    element: doc.relPath,
+    file: doc.file,
     line,
-    'a fenced code block opened here never closes, so by CommonMark everything after it is code — its State: line and task boxes are not read',
-    'close the fence with a line of at least as many backticks or tildes as opened it',
-  )
+    message:
+      'a fenced code block opened here never closes, so by CommonMark everything after it is code — no State: line or task box below it can be read',
+    because: 'a record the gate cannot read would pass with nothing checked',
+    suggestion:
+      'close the fence where the example ends — above the State: line — with a line of at least as many backticks or tildes as opened it',
+  }
+}
+
+/**
+ * A record whose only `State:` line in the header is inside a code block (bug 0286). By CommonMark the
+ * record then states nothing, so the gate would treat it as no item and check nothing; an indented line is
+ * the likely cause — four spaces make a code block. Reported at the hidden line. An unterminated fence is
+ * reported instead where it explains the same absence.
+ */
+function stateInCodeViolation(doc: MdDocument, known: readonly string[]): ArchViolation | null {
+  if (findState(doc.text, known, doc.root) !== null) return null
+  const hidden = stateIn(doc.text.split('\n'), known)
+  if (hidden === null) return null
+  return {
+    rule: 'ledger/state-in-code',
+    element: doc.relPath,
+    file: doc.file,
+    line: hidden.line,
+    message:
+      'the only State: line in the header is inside a code block, so by CommonMark the record states nothing and its boxes are not checked',
+    because: 'a record the gate cannot read would pass with nothing checked',
+    suggestion:
+      'take the State: line out of the code block — four spaces of indent make one, so remove the indent',
+  }
 }
 
 /** Condition: the header `State:` line is readable and matches its folder. */
@@ -391,6 +425,10 @@ function headerStateCondition(
         const inDoneFolder = doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))
         const fence = unterminatedFenceViolation(doc)
         if (fence) out.push(fence)
+        else {
+          const hidden = stateInCodeViolation(doc, [...new Set([...states, ...terminalStates])])
+          if (hidden) out.push(hidden)
+        }
         const found = headerStateViolation(doc, inDoneFolder, closeInPlace, states, terminalStates)
         if (found) out.push(found)
       }

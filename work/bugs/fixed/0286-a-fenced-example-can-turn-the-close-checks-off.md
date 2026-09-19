@@ -10,7 +10,7 @@
 - **Origin:** self-found · surfaced while checking a claim in
   [rejected/0282](../rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md);
   the fail-open direction was found by an adopter-lens reviewer who ran the kit
-- **Reported:** 2026-09-12 · **Fixed:** 2026-09-19
+- **Reported:** 2026-09-12 · **Fixed:** 2026-09-19 (PR #144)
 
 ## Symptom
 
@@ -122,6 +122,9 @@ can make the close checks select nothing, and the gate reports a clean pass.**
 
 ## Nothing tests the guard, anywhere
 
+_As of 0.6.0. Since the fix, the test file and `scripts/nonvacuity/bad-ledger-fences/` put a `State:` line
+in a fence, and gutting the reading turns them red._
+
 Gut `stripFencedCode` to `return s` and:
 
 - the markdown package suite passes — 12 files, 119 tests;
@@ -204,17 +207,32 @@ never be met.
 ## Fixed
 
 [0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md) was ruled on 2026-09-19 by the
-library author: the dialect reads prose on the markdown parser it already runs, and reports an
-unterminated fence — its options (2) and (4). This record's half is built:
+library author: one owner, in the dialect, reading prose on the markdown parser it already runs, and a
+finding for an unterminated fence. This record's half is built, with line numbers below as of the fix
+(the sections above cite 0.6.0, `72d629a`):
 
-- `packages/md/src/model/prose.ts` owns the reading: `nonProseRanges` gives the lines of every code
-  block, fenced with any run or indented, and every HTML block, by mdast; `proseText` blanks them and keeps
-  the line count. Inline code and inline HTML are prose, since they sit on a line that may be the claim.
-- Both ledger call sites use it — `findState` and `deferredNoneLieViolation` — so the `State:` scan and
-  the task-box pass read one document with one parser. `findState` takes the parsed tree as an optional
+- `packages/md/src/model/prose.ts` owns the reading. `proseText` blanks every **code block** by mdast —
+  fenced with any run of backticks or tildes, or indented — and keeps the line count.
+- **HTML blocks are read as before.** An HTML block can hold a record's real claim as well as an example
+  of one: setting them aside made a real `State:` line inside a `<div>` or `<details>` unreadable, and the
+  record passed with nothing checked — measured, and caught by both reviews of the first version of this
+  fix. Which HTML to set aside is [0293](../0293-an-example-inside-an-html-block-is-read-as-prose.md)'s
+  question, and this fix leaves it open.
+- Both ledger call sites read through it — `findState` and `deferredNoneLieViolation` — so the `State:` scan
+  and the task-box pass read code blocks with one parser. `findState` takes the parsed tree as an optional
   third argument; its two-argument form is unchanged.
-- **Route B:** `ledger/unterminated-fence` reports a fenced block that has no closing fence and runs to the
-  end of the document, at its opening line. A fence its container closes is not reported.
+- **Route B, for fences:** `ledger/unterminated-fence` reports a fenced block that has no closing fence and
+  runs to the end of the document, at its opening line. Whether a fence closed is read off the parser: a
+  closed fence spans its opener, its content and its closer. A closer CommonMark does not accept — behind a
+  tab, four spaces or `>` — does not close it, and a fence its container closes is not reported. The finding
+  names where to close it, in its `Fix:` line.
+- **Not covered:** an HTML block that never closes, such as an `<!--` running to the end, still hides a
+  State line or boxes silently, as it did on 0.6.0; 0293 records it.
+- **A State line that is itself code.** Four spaces of indent make a code block, so a record whose own
+  `State:` line is indented that way was read on 0.6.0 and states nothing by CommonMark. Rather than pass it
+  with nothing checked — a silence the review of this fix's second version found — `ledger/state-in-code`
+  reports a record whose only `State:` line in the header is inside a code block, at that line. An
+  unterminated fence is reported instead where it explains the same absence.
 
 Measured on 0.6.0 against the fix, a closed-in-place record with one silent box and an example of the
 house template's `Draft` State line before its own:
@@ -223,14 +241,12 @@ house template's `Draft` State line before its own:
 | ------------------------------------ | ----- | ----- |
 | none (control)                       | 1     | 1     |
 | four-backtick fence wrapping a fence | **0** | 1     |
+| four-tilde fence wrapping a fence    | **0** | 1     |
 | four-space indented block            | **0** | 1     |
-| `<pre>` block                        | **0** | 1     |
-| HTML comment                         | **0** | 1     |
-| `<pre>` inside a list item           | **0** | 1     |
 
-The HTML rows are [0293](../0293-an-example-inside-an-html-block-is-read-as-prose.md)'s State half; that
-record keeps its Ruling half. The same reading of this repo's own corpus is unchanged: 124 done-items
-across 275 records, all 275 readable, 0 findings, on 0.6.0 and on the fix.
+A real State line inside `<div>` or `<details>` reports the box on 0.6.0 and on the fix. Over this repo's
+own corpus at the fix's head, 0.6.0's ledger and the fix's print the same: 126 done-items across 276
+records, all 276 readable, 0 findings.
 
 ## Verification ledger
 
@@ -264,17 +280,24 @@ across 275 records, all 275 readable, 0 findings, on 0.6.0 and on the fix.
 - [x] **Falsified this record's own closing condition** — a reviewer applied fix (1)
       and route B stayed at zero findings, with `withReadableState` dropping to 0
       while `doneItems` stayed 1 by folder.
-- [x] The `check-nonvacuity.mjs` registry rows — one per route: `corpus/ledger/fenced-example` and
-      `corpus/ledger/unterminated-fence`, over `scripts/nonvacuity/bad-ledger-fences.mjs`, which exits 0
-      (both routes silent) on 0.6.0's source and 1 on the fix.
+- [x] The `check-nonvacuity.mjs` registry rows — one per route: `corpus/ledger/fenced-example`,
+      `corpus/ledger/unterminated-fence` and `corpus/ledger/state-in-code`, each running
+      `scripts/nonvacuity/bad-ledger-fences.mjs` for its own route alone; each route exits 0 (silent) on
+      0.6.0's ledger and 1 on the fix.
 
 - [x] Inline HTML and inline code on a State line stay prose, so the line is still read —
       `it('a State line carrying inline HTML or inline code is still the record’s own')`.
-- [x] Sabotage matrix in the worktree, sources restored by sha256 and the tree unchanged: prose blanking
-      nothing turns the shapes and `Deferred` tests red; no fence finding, the fence test; every `html`
-      node set aside, the inline test; HTML blocks read as prose, the shapes test; a fence reported short
-      of the end, the list-item boundary; `findState` or the `Deferred` check reading raw text, their
-      tests.
+- [x] The review's pins: `it('an HTML block is read as it was, so a real State line inside one is still the record’s own')`,
+      `it('a fence is closed only by a closer CommonMark accepts, at the end of the document too')` and
+      `it('a fence its list item closes does not hide the list item after it')`, and
+      `it('a record whose only State line is inside a code block is reported, not passed')` for
+      `ledger/state-in-code`.
+- [x] Sabotage matrix in the worktree, sources restored by sha256 and the tree unchanged, eleven rows: prose
+      blanking nothing turns the shapes and `Deferred` tests red; no fence finding, the fence and closer
+      tests; a fence reported short of the end, the list-item boundary; `findState` or the `Deferred`
+      check reading raw text, their tests; HTML blocks set aside, the HTML test; every fence at the end
+      reported, the closer test; a block's end read as inclusive, the list-item-after-fence test; closing
+      off by one, the closer test; no state-in-code finding, its test.
 
 Deferred: none.
 

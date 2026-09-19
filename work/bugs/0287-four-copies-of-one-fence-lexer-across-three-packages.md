@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — ruled 2026-09-19 (see "Ruled" below); one of four copies moved so far.
-  Measured; this is a decision, not a defect to patch, and it wants its own review. It cannot close by a bug PR alone: its closing condition is a placement decision, and no decision record owns it yet.
+- **State:** Draft — ruled 2026-09-19 (see "Ruled" below). One of four copies moved, in PR #144; the
+  other three and the architecture rule close it.
 - **Severity:** **High** — raised 2026-09-12. **The earlier rationale ("nothing is
   wrong that 0286 does not already file") was measured false.** A fourth consumer
   has its own live fail-open in a CI gate on this repo, filed as
@@ -19,12 +19,12 @@
 The same fence-stripper is hand-rolled four times. Byte-identical pattern,
 byte-identical body:
 
-| copy                                          | used for                          |
-| --------------------------------------------- | --------------------------------- |
-| `packages/md/src/rules/ledger.ts:153`         | `State:` and `Deferred:` scanning |
-| `packages/md/src/builders/vocabulary.ts:97`   | `terms()` label collection        |
-| `packages/crossvalidate/src/md-gherkin.ts:64` | markdown-to-Gherkin binding       |
-| `scripts/lib/proposal-ruling.mjs:107`         | `**Ruling:**` parsing             |
+| copy                                                              | used for                          |
+| ----------------------------------------------------------------- | --------------------------------- |
+| `packages/md/src/rules/ledger.ts:153` (0.6.0; deleted in PR #144) | `State:` and `Deferred:` scanning |
+| `packages/md/src/builders/vocabulary.ts:97`                       | `terms()` label collection        |
+| `packages/crossvalidate/src/md-gherkin.ts:64`                     | markdown-to-Gherkin binding       |
+| `scripts/lib/proposal-ruling.mjs:107`                             | `**Ruling:**` parsing             |
 
 Two packages plus a gate script. An earlier version said three packages. All four carry
 `/(```|~~~)[\s\S]*?\1/g`, so all four carry the same behaviour on the same input
@@ -122,7 +122,7 @@ options are not "widen the regex" versus "leave it":
 
 (1) is the smallest thing that stops the defect recurring across four files. (4) is
 the one that actually closes the dangerous shape. They compose; (2) does not
-substitute for (4). **Not settled here** — it is
+substitute for (4). **Not settled here** (settled 2026-09-19 — see "Ruled") — it is
 a placement decision across two packages and a script, and 0257 says the answer has precedent
 rather than saying what it is for this case.
 
@@ -136,16 +136,23 @@ home and `0257`'s fix is the model.
 
 **What this rule cannot see.** Two fence readers already exist that are not `FENCE_RE`-shaped: the kernel's line loop `maskMarkdownCodeSpans` (`packages/core/src/mask-non-comment.ts:171`) and the mdast walk behind `pointers()` (`packages/md/src/model/pointers.ts:37`). A rule on a regex constant matches neither, so this break class covers the four copies only.
 
-Until the ownership question is answered there is nothing to gate, which is why this is a `Draft` record putting a question and not a fix.
+Until the ownership question is answered there is nothing to gate, which is why this is a `Draft` record putting a question and not a fix. _(Answered 2026-09-19; the rule lands with the last copy.)_
 
 ## Ruled, 2026-09-19
 
-**The library author ruled options (2) and (4): the dialect reads prose on the markdown parser it already
-runs, and reports an unterminated fence.** The owner is `packages/md/src/model/prose.ts` in eess-md —
-`nonProseRanges` and `proseText` — not the kernel: the kernel borrows a lexer it cannot own (ADR-012), and
-the markdown parser is the dialect's.
+**The library author ruled options (1), (2) and (4): one owner, in the dialect, reading prose on the
+markdown parser it already runs, every copy moved onto it and a rule against a fifth, and a finding for an
+unterminated fence.** The owner is `packages/md/src/model/prose.ts` in eess-md — `proseText` — not the
+kernel: the kernel borrows a lexer it cannot own (ADR-012), and the markdown parser is the dialect's. A bug
+record holds the ruling, as [0257](./fixed/0257-path-suffix-resolution-is-implemented-twice.md)'s did for the
+same shape; no ADR is written for it.
 
-Built so far, in 0286's PR: the owner, and the `ledger.ts` copy deleted, both of its call sites reading
+Two things the ruling leaves to the next PR: how crossvalidate and the proposal script reach `proseText` —
+a public export of eess-md or an internal entry point — and HTML. The first version of 0286's fix set HTML
+blocks aside too, and silenced a real `State:` line inside a `<div>`; the fix sets aside code blocks only,
+and HTML stays [0293](./0293-an-example-inside-an-html-block-is-read-as-prose.md)'s question.
+
+Built so far, in 0286's PR (#144): the owner, and the `ledger.ts` copy deleted, both of its call sites reading
 through the owner, and the unterminated-fence finding. Still to move onto it: `builders/vocabulary.ts`,
 `packages/crossvalidate/src/md-gherkin.ts` and `scripts/lib/proposal-ruling.mjs` — and then the
 architecture rule that stops a fifth copy.
@@ -163,7 +170,7 @@ architecture rule that stops a fifth copy.
 - [x] Confirmed 0257 is Fixed, with one-owner-in-the-kernel as its resolution.
 - [x] **Corrected a false retraction.** An earlier box said mdast handles six of seven shapes and loses real content on the unclosed fence. By commonmark.js that content is code ([0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md)), so mdast is right on all seven.
 - [x] Measured the over-strip shape in `ledger.ts`, the document above: no readable state and no finding.
-- [ ] The ownership question answered — **the library author's.** This record puts
+- [x] The ownership question answered — **the library author's**, on 2026-09-19: see "Ruled". This record puts
       it and does not settle it.
 - [ ] Once answered: the copies removed, and the architecture rule that stops a
       fifth.
