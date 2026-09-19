@@ -47,5 +47,8 @@ describe('bug 0325: the class search reads no comment on a parameter', () => {
     // The function rules read both, and the class rules read a comment in the member's body.
     expect(SHAPES.map(functionFindings)).toEqual([1, 1])
     expect(classFindings('  m() { const x = /* TODO */ 1; return x }')).toBe(1)
+    // And a comment on its own line inside a default, which the class search reads already — what a
+    // fix must not report twice.
+    expect(classFindings('  m(\n    g =\n      // TODO\n      1,\n  ) { return g }')).toBe(1)
   })
 })

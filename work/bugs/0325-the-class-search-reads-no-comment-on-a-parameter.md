@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — confirmed and pinned by a KNOWN-GAP test. The fix is not built.
-- **Severity:** Medium — **false green for a comment rule on classes.** `m(g = /* TODO */ 1)` and a
+- **Severity:** High — **false green for a comment rule on classes.** `m(g = /* TODO */ 1)` and a
   `// TODO` on its own line before a parameter pass `classes().should().notContain(comment(/TODO/))`,
   while the function rules report both on the same member. No shipped class rule reads comments with a
   `comment()` matcher, so the gap is in rules adopters write.
@@ -36,8 +36,16 @@ instead, so it reads every comment in the parameter list.
 
 ## Fix
 
-Not decided. The candidate that turned the pin red searches each parameter of a class member with the
-comment matcher, beside its body. Two questions for the fix:
+Not decided, and it is a design question before it is a patch.
+[0307](./fixed/0307-class-body-rules-skip-class-code-outside-its-members.md) ruled that docstrings are
+not code, so the class search reads no comment attached to a member's declaration: a `// TODO` above a
+method, above an arrow-valued property, or after a decorator is 0 for the class rules and 1 for the
+function rules, measured by the method review of 0314's PR. A comment on its own line before a
+parameter is the same kind — leading trivia on a declaration. The fix has to say whether the class
+search reads a parameter's comments while it reads no member's, or rules on the member level too.
+
+The candidate that turned the pin red searches each parameter of a class member with the comment
+matcher, beside its body. Whatever the ruling, two questions for the fix:
 
 - **Identities.** A newly reported comment in a parameter sits between comments the class search reads
   now, so it would take an accepted one's ordinal in a baseline unless it is numbered after them, as the
@@ -54,7 +62,8 @@ comment matcher, beside its body. Two questions for the fix:
 - [x] reproduced and pinned —
       `packages/ts/tests/conditions/class-search-reads-no-comment-on-a-parameter.test.ts` ·
       `it('KNOWN GAP — a comment on a parameter or inline in its default passes a class comment rule')`,
-      with the function rules and a comment in a member's body as controls.
+      with the function rules, a comment in a member's body and one on its own line inside a default as
+      controls.
 - [x] the pin goes red when the class search reads each parameter for comments (the sabotage run of
       0314's PR, row S7).
 - [ ] the fix, numbered after the comments the class search reads today, with no comment reported twice

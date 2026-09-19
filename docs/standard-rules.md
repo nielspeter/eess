@@ -123,7 +123,7 @@ is outside `noProcessEnv`. And a local named like a global object, such as a par
 modules(p).that().resideInFolder('**/domain/**').should().satisfy(moduleNoEval()).check()
 ```
 
-**Function variants** are more precise — they only check inside function bodies. Use when you want per-function rules or when filtering by function predicates:
+**Function variants** are more precise — they check each function's own code: its body and its parameters' defaults. Use when you want per-function rules or when filtering by function predicates:
 
 ```typescript
 // Exported functions must not access process.env
@@ -211,10 +211,10 @@ Positive body assertions — "this function MUST call something matching a patte
 import { mustCall, classMustCall } from '@nielspeter/eess-ts/rules/architecture'
 ```
 
-| Rule                     | Target    | What it checks                                       |
-| ------------------------ | --------- | ---------------------------------------------------- |
-| `mustCall(pattern)`      | functions | Function body must contain a call matching the regex |
-| `classMustCall(pattern)` | classes   | The class's member code must contain a matching call |
+| Rule                     | Target    | What it checks                                                                  |
+| ------------------------ | --------- | ------------------------------------------------------------------------------- |
+| `mustCall(pattern)`      | functions | Function's body or a parameter's default must contain a call matching the regex |
+| `classMustCall(pattern)` | classes   | The class's member code must contain a matching call                            |
 
 Use to enforce delegation patterns — e.g., services must call a repository, handlers must call a validator:
 
@@ -302,7 +302,7 @@ functions(p)
   .check()
 ```
 
-Note: comments _above_ a function (leading trivia) are not checked — only comments _inside_ the function body.
+Note: comments _above_ a function (its docstring and leading comments) are checked too, and so are comments in its parameter list — a comment matcher starts at the function's declaration.
 
 ### Empty body detection
 
