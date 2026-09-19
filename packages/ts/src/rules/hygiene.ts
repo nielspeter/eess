@@ -58,7 +58,9 @@ export function noStubComments(pattern: RegExp = STUB_PATTERNS): Condition<ArchF
 
 /**
  * Functions must not have empty bodies.
- * An empty function compiles and passes type checks but does nothing.
+ * An empty function compiles and passes type checks but does nothing. An empty constructor whose every
+ * parameter is a parameter property, or a private or protected one that takes nothing, does something,
+ * and is not reported (bug 0315).
  *
  * @example
  * functions(p)

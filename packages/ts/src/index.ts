@@ -152,7 +152,7 @@ export {
   fromArrowVariableDeclaration,
   fromMethodDeclaration,
 } from './models/arch-function.js'
-export type { FunctionCollectionOptions } from './models/arch-function.js'
+export type { FunctionCollectionOptions, FunctionKind } from './models/arch-function.js'
 export type { ObjectLiteralFunction } from './core/object-literal-functions.js'
 
 // Function predicates
@@ -162,6 +162,8 @@ export {
   arePrivate,
   areAsync,
   areNotAsync,
+  areOfKind,
+  areNotOfKind,
   haveParameterCount,
   haveParameterCountGreaterThan,
   haveParameterCountLessThan,

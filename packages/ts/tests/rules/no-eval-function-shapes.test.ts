@@ -27,6 +27,16 @@ const SHAPES = [
   { name: 'arrow, concise body', src: 'export const a = () => eval("1")' },
   { name: 'function expression', src: 'export const a = function () { return eval("1") }' },
   { name: 'class method', src: 'export class A { m() { return eval("1") } }' },
+  // Bug 0315: a class's other function members, and a function behind a wrapper.
+  { name: 'class constructor', src: 'export class A { constructor() { eval("1") } }' },
+  { name: 'class getter', src: 'export class A { get g() { return eval("1") } }' },
+  { name: 'class setter', src: 'export class A { set s(v: string) { eval(v) } }' },
+  { name: 'function-valued class property', src: 'export class A { h = () => eval("1") }' },
+  { name: 'variable behind as', src: 'export const a = (() => eval("1")) as () => unknown' },
+  {
+    name: 'class property behind satisfies',
+    src: 'export class A { h = (() => eval("1")) satisfies () => unknown }',
+  },
 ]
 
 describe('functionNoEval sees every function shape', () => {

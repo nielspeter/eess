@@ -380,7 +380,7 @@ smells
 | -------------- | ----------------------------------------- | ----------------------------------------------------- |
 | `modules(p)`   | Source files                              | Import/dependency rules                               |
 | `classes(p)`   | Class declarations                        | Inheritance, decorators, methods, body analysis       |
-| `functions(p)` | Functions, arrow functions, class methods | Naming, parameters, body analysis                     |
+| `functions(p)` | Functions, arrow functions, class members | Naming, parameters, body analysis                     |
 | `types(p)`     | Interfaces + type aliases                 | Property types, type safety                           |
 | `slices(p)`    | Groups of files                           | Cycles, layer ordering                                |
 | `calls(p)`     | Call expressions                          | Framework-agnostic route/handler matching             |

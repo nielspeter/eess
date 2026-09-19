@@ -1,5 +1,6 @@
 import type { Predicate } from '@nielspeter/eess'
-import type { ArchFunction } from '../models/arch-function.js'
+import { ArchConfigError } from '@nielspeter/eess'
+import { functionKindOf, type ArchFunction, type FunctionKind } from '../models/arch-function.js'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
 
 // --- Visibility predicates (plan 0032) ---
@@ -7,7 +8,7 @@ import type { TypeMatcher } from '../helpers/type-matchers.js'
 /**
  * Matches functions/methods with public visibility.
  *
- * - Class methods: matches explicitly `public` or no access modifier (implicitly public).
+ * - Class members: matches explicitly `public` or no access modifier (implicitly public).
  * - Standalone functions / arrow functions: always match (module-level, no visibility concept).
  */
 export function arePublic(): Predicate<ArchFunction> {
@@ -18,7 +19,7 @@ export function arePublic(): Predicate<ArchFunction> {
 }
 
 /**
- * Matches class methods with `protected` visibility.
+ * Matches class members with `protected` visibility.
  *
  * Standalone functions and arrow functions never match (they have no visibility modifier).
  */
@@ -30,7 +31,7 @@ export function areProtected(): Predicate<ArchFunction> {
 }
 
 /**
- * Matches class methods with `private` visibility.
+ * Matches class members with `private` visibility.
  *
  * Standalone functions and arrow functions never match (they have no visibility modifier).
  */
@@ -38,6 +39,69 @@ export function arePrivate(): Predicate<ArchFunction> {
   return {
     description: 'are private',
     test: (fn) => fn.getScope() === 'private',
+  }
+}
+
+// --- Kind predicates (bug 0315) ---
+
+/** Every kind, checked by the compiler against `FunctionKind` so the two cannot drift apart. */
+const KINDS = {
+  function: true,
+  method: true,
+  constructor: true,
+  getter: true,
+  setter: true,
+  property: true,
+} satisfies Record<FunctionKind, true>
+
+const KNOWN_KINDS: ReadonlySet<string> = new Set(Object.keys(KINDS))
+
+/**
+ * The kinds a kind predicate names. Naming none is refused, and so is a string that is not a kind: the
+ * `FunctionKind` type stops a typo only where the rule file is type-checked, and without this a rule
+ * file loaded unchecked would narrow the rule to the kinds it spelled right, and say nothing.
+ */
+function namedKinds(predicate: string, kinds: readonly FunctionKind[]): ReadonlySet<FunctionKind> {
+  if (kinds.length === 0) {
+    throw new ArchConfigError(
+      predicate,
+      'name at least one kind, e.g. constructor, getter or setter',
+    )
+  }
+  for (const kind of kinds) {
+    if (!KNOWN_KINDS.has(kind)) {
+      throw new ArchConfigError(
+        predicate,
+        `'${kind}' is not a function kind; the kinds are ${[...KNOWN_KINDS].join(', ')}`,
+      )
+    }
+  }
+  return new Set(kinds)
+}
+
+/**
+ * Matches functions of any of the given kinds: `'function'`, `'method'`, `'constructor'`,
+ * `'getter'`, `'setter'` or `'property'` (see {@link FunctionKind}).
+ */
+export function areOfKind(...kinds: FunctionKind[]): Predicate<ArchFunction> {
+  const named = namedKinds('areOfKind', kinds)
+  return {
+    description: `are of kind ${kinds.join(', ')}`,
+    test: (fn) => named.has(functionKindOf(fn)),
+  }
+}
+
+/**
+ * Matches functions of none of the given kinds. Since bug 0315 `functions()` collects a class's
+ * constructor and accessors beside its methods; a rule that requires something they cannot give —
+ * `beAsync()`, `contain(call(...))` — keeps to the functions that can with
+ * `areNotOfKind('constructor', 'getter', 'setter')`.
+ */
+export function areNotOfKind(...kinds: FunctionKind[]): Predicate<ArchFunction> {
+  const named = namedKinds('areNotOfKind', kinds)
+  return {
+    description: `are not of kind ${kinds.join(', ')}`,
+    test: (fn) => !named.has(functionKindOf(fn)),
   }
 }
 
