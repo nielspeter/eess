@@ -38,14 +38,15 @@ consumer then selects fewer elements and loses findings:
 | consumer                                           | measured                                                                                                             |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `scripts/lib/proposal-ruling.mjs`                  | [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) — the ruling vanishes, in CI |
-| `packages/md/src/rules/ledger.ts`                  | measured: the State line vanishes and nothing reports; the document is below                                         |
+| `packages/md/src/rules/ledger.ts`                  | measured on 0.6.0: the State line vanishes and nothing reports; the document is below. Fixed by PR #144              |
 | `packages/md/src/builders/vocabulary.ts` `terms()` | follows by construction; **not measured**                                                                            |
 | `packages/crossvalidate/src/md-gherkin.ts`         | follows by construction; **not measured**                                                                            |
 
 The last two are marked unmeasured deliberately. Same function, same input class,
 but this record does not claim a defect it did not run.
 
-The `ledger.ts` row, measured on `main` with `closeInPlace: true`:
+The `ledger.ts` row, measured on 0.6.0 (`72d629a`) with `closeInPlace: true`. Since PR #144 the same
+document reports `ledger/silent-open-box` @11, with a readable state and one done item:
 
 `````text
 # 0001 x

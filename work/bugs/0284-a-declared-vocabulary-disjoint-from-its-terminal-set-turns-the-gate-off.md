@@ -20,7 +20,7 @@ record is never classified done and every close check silently selects nothing.
 
 **An earlier version of this record said `isDoneItem` "can never return `true` by
 state". That is false, measured.** `isDoneItem`
-(`packages/md/src/rules/ledger.ts:200-208`) calls `findState` with
+(`packages/md/src/rules/ledger.ts:205-213`) calls `findState` with
 **`terminalStates`**, which under a partial override is still the live default — so
 a record carrying `Done` closes correctly and reports correctly. What breaks is
 narrower: **a record whose state token comes from the vocabulary the author
@@ -43,14 +43,14 @@ left to its default `['Done', "Won't-do"]`:
 | ------- | --------------------- | ---------- | -------- |
 | 1       | 1                     | **0**      | **0**    |
 
-The record is closed by the token its author declared, and carries an undisposed open box. It is not in a done folder: `/promoted/` is not among the defaults (`packages/md/src/rules/ledger.ts:84`), and the reproduction depends on that. An earlier version said it sat in a done folder.
+The record is closed by the token its author declared, and carries an undisposed open box. It is not in a done folder: `/promoted/` is not among the defaults (`packages/md/src/rules/ledger.ts:86`), and the reproduction depends on that. An earlier version said it sat in a done folder.
 The gate reports clean.
 
 ## Why the vacuity guard does not catch it
 
 It cannot, and the guard is not at fault. The gate declares its box rules empty
 only after an **independent** peek — `anyOpenBoxOnADoneItem`
-(`packages/md/src/rules/ledger.ts:545`) calls `isDoneItem` directly rather than
+(`packages/md/src/rules/ledger.ts:610`) calls `isDoneItem` directly rather than
 through `belongsToADoneItem`, deliberately, "so a corruption of
 `belongsToADoneItem` itself doesn't also blind this peek". Both paths then agree,
 **correctly**, that under this configuration nothing is done.
@@ -97,7 +97,7 @@ both directions, and two reviewers measured it.**
   `doneItems: 0` and zero findings while the intersection is non-empty. That is the
   commoner configuration, so the check would ship and the defect would survive it.
 - **It over-fires.** It reds on `terminalStates: []`, which
-  `packages/md/src/rules/ledger.ts:116-125` documents as "a real, supported input,
+  `packages/md/src/rules/ledger.ts:118-127` documents as "a real, supported input,
   not a caller error" for a lane where nothing is ledger-closed by design, and which
   `scripts/lib/lane-coverage.mjs:147` deliberately exempts.
 

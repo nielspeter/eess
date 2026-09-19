@@ -450,10 +450,13 @@ open box carrying no disposition token (`ledger/silent-open-box`), a
 `deferred→<home>` (`ledger/deferred-none-lie`), a `State:` value that
 doesn't match its folder (`ledger/state-folder-mismatch`), a `State:` value
 outside the declared vocabulary (`ledger/unknown-state`), a fenced code block that
-never closes (`ledger/unterminated-fence`), and a record whose only `State:` line
-is inside a code block (`ledger/state-in-code`). The last two are the same fact seen
-twice: by CommonMark a line in code is not prose, so a record whose State line is code
-states nothing, and the gate would check nothing without them.
+never closes (`ledger/unterminated-fence`), and a document whose header has a
+`State:` line only inside a code block (`ledger/state-in-code`). The last two are the
+same fact seen twice: by CommonMark a line in code is not prose, so a record whose State
+line is code states nothing, and the gate would check nothing without them. The gate
+cannot tell such a record from a document that is not one — a guide in the lane showing
+the template in a code block — so `ledger/state-in-code` reports that too; name a
+document like that in `boardFiles`.
 
 The vocabulary finding, `ledger/unknown-state`, is the one a new adopter meets first, and it is a **violation,
 not an ignore**: the default vocabulary is `Draft | Ready | Open | Done |

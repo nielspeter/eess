@@ -208,8 +208,8 @@ never be met.
 
 [0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md) was ruled on 2026-09-19 by the
 library author: one owner, in the dialect, reading prose on the markdown parser it already runs, and a
-finding for an unterminated fence. This record's half is built, with line numbers below as of the fix
-(the sections above cite 0.6.0, `72d629a`):
+finding for an unterminated fence. This record's half is built; the line numbers elsewhere in this
+record, the ledger's included, cite 0.6.0 (`72d629a`):
 
 - `packages/md/src/model/prose.ts` owns the reading. `proseText` blanks every **code block** by mdast —
   fenced with any run of backticks or tildes, or indented — and keeps the line count.
@@ -228,11 +228,21 @@ finding for an unterminated fence. This record's half is built, with line number
   names where to close it, in its `Fix:` line.
 - **Not covered:** an HTML block that never closes, such as an `<!--` running to the end, still hides a
   State line or boxes silently, as it did on 0.6.0; 0293 records it.
-- **A State line that is itself code.** Four spaces of indent make a code block, so a record whose own
-  `State:` line is indented that way was read on 0.6.0 and states nothing by CommonMark. Rather than pass it
-  with nothing checked — a silence the review of this fix's second version found — `ledger/state-in-code`
-  reports a record whose only `State:` line in the header is inside a code block, at that line. An
-  unterminated fence is reported instead where it explains the same absence.
+- **A State line that is itself code — beyond the ruling.** Four spaces of indent make a code block, so a
+  record whose own `State:` line is indented that way was read on 0.6.0 and states nothing by CommonMark.
+  Rather than pass it with nothing checked — a silence the review of this fix's second version found —
+  `ledger/state-in-code` reports a document whose header has a `State:` line only inside a code block,
+  at the first such line. 0287's ruling named one new finding, the fence; this second one is the
+  builder's, for the library author to accept or refuse at merge.
+  - The header ends at the prose's second heading. The first build counted a `##` comment in a code block
+    as a heading, which ended the search above an indented State line and turned the record green where
+    0.6.0 reported its box — found by the second round of review, measured, and pinned.
+  - It also reports a document that is not a record — a guide in the lane showing the template in a code
+    block, green on 0.6.0 — since the gate cannot tell the two apart. The `Fix:` line names each case:
+    un-indent or un-fence the record's own line, keep an example and add the real line, or name a
+    non-record in `boardFiles`.
+  - A fence that never closes is reported alone; a State line still in code once it is closed is reported
+    on the next run.
 
 Measured on 0.6.0 against the fix, a closed-in-place record with one silent box and an example of the
 house template's `Draft` State line before its own:
@@ -244,7 +254,9 @@ house template's `Draft` State line before its own:
 | four-tilde fence wrapping a fence    | **0** | 1     |
 | four-space indented block            | **0** | 1     |
 
-A real State line inside `<div>` or `<details>` reports the box on 0.6.0 and on the fix. Over this repo's
+A real State line inside `<div>` or `<details>` reports the box on 0.6.0 and on the fix. An indented
+own State line reports the box on 0.6.0 and `ledger/state-in-code` on the fix, with or without a `##`
+comment in a code block above it. Over this repo's
 own corpus at the fix's head, 0.6.0's ledger and the fix's print the same: 126 done-items across 276
 records, all 276 readable, 0 findings.
 
@@ -291,13 +303,18 @@ records, all 276 readable, 0 findings.
       `it('a fence is closed only by a closer CommonMark accepts, at the end of the document too')` and
       `it('a fence its list item closes does not hide the list item after it')`, and
       `it('a record whose only State line is inside a code block is reported, not passed')` for
-      `ledger/state-in-code`.
-- [x] Sabotage matrix in the worktree, sources restored by sha256 and the tree unchanged, eleven rows: prose
+      `ledger/state-in-code`, with
+      `it('a document that shows a State line only in code is reported, and naming it a board file clears it')`
+      for a non-record and its remedy.
+- [x] Sabotage matrix in the worktree, sources restored by sha256 and the tree unchanged, fourteen rows
+      and an as-built control that fails nothing: prose
       blanking nothing turns the shapes and `Deferred` tests red; no fence finding, the fence and closer
       tests; a fence reported short of the end, the list-item boundary; `findState` or the `Deferred`
       check reading raw text, their tests; HTML blocks set aside, the HTML test; every fence at the end
       reported, the closer test; a block's end read as inclusive, the list-item-after-fence test; closing
-      off by one, the closer test; no state-in-code finding, its test.
+      off by one, the closer test; no state-in-code finding, its test; a `##` line in code counted as a
+      heading, the state-in-code test; an indented block checked for a closer, an empty fence counted as a
+      line, or an opener read from column 1, the closer test.
 
 Deferred: none.
 

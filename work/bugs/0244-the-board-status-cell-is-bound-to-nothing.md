@@ -106,9 +106,9 @@ gate for a board that agrees with its records.
 
 `check:ledger` reads the records and **excludes the boards by construction.**
 `boardFiles` is a skip list, not a check list — `notBoardFile`
-(`packages/md/src/rules/ledger.ts:322`) filters board documents out of the scan,
+(`packages/md/src/rules/ledger.ts:327`) filters board documents out of the scan,
 and `ledgerStats` skips them again when computing its denominator
-(`packages/md/src/rules/ledger.ts:626`).
+(`packages/md/src/rules/ledger.ts:691`).
 
 That exclusion is correct on its own terms: a board is an index, not an item,
 and scanning it as an item would report every row as a record missing a `State:`

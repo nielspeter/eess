@@ -388,14 +388,22 @@ function unterminatedFenceViolation(doc: MdDocument): ArchViolation | null {
 }
 
 /**
- * A record whose only `State:` line in the header is inside a code block (bug 0286). By CommonMark the
- * record then states nothing, so the gate would treat it as no item and check nothing; an indented line is
- * the likely cause — four spaces make a code block. Reported at the hidden line. An unterminated fence is
- * reported instead where it explains the same absence.
+ * A document whose header has a `State:` line only inside a code block (bug 0286). By CommonMark it then
+ * states nothing, so the gate would treat it as no item and check nothing; an indented line is the likely
+ * cause — four spaces make a code block. Reported at the first such line, which may be an example rather
+ * than the record's own, and on a document that is not a record at all, such as a guide showing the
+ * template: the gate cannot tell those apart, so the remedy names each case.
+ *
+ * The header ends where the prose's second heading does. A `##` line inside a code block — a shell
+ * comment, a template's skeleton — is not a heading, and counting it would end the search above the line.
  */
 function stateInCodeViolation(doc: MdDocument, known: readonly string[]): ArchViolation | null {
-  if (findState(doc.text, known, doc.root) !== null) return null
-  const hidden = stateIn(doc.text.split('\n'), known)
+  const prose = proseText(doc.text, doc.root).split('\n')
+  if (stateIn(prose, known) !== null) return null
+  const raw = doc.text
+    .split('\n')
+    .map((line, i) => (/^##\s/.test(line) && prose[i] !== line ? '' : line))
+  const hidden = stateIn(raw, known)
   if (hidden === null) return null
   return {
     rule: 'ledger/state-in-code',
@@ -403,10 +411,10 @@ function stateInCodeViolation(doc: MdDocument, known: readonly string[]): ArchVi
     file: doc.file,
     line: hidden.line,
     message:
-      'the only State: line in the header is inside a code block, so by CommonMark the record states nothing and its boxes are not checked',
+      'the header has a State: line only inside a code block, and this is the first — by CommonMark the document states nothing, so its boxes are not checked',
     because: 'a record the gate cannot read would pass with nothing checked',
     suggestion:
-      'take the State: line out of the code block — four spaces of indent make one, so remove the indent',
+      "write the record's own State: line as prose in the header — if this is it, remove its indent or move it out of the fence; if it is an example, keep it and add the real line; if this document is not a record, list it in boardFiles",
   }
 }
 
@@ -423,6 +431,8 @@ function headerStateCondition(
       const out: ArchViolation[] = []
       for (const doc of elements) {
         const inDoneFolder = doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))
+        // A fence that never closes turns everything below it into code, so it is reported alone; a
+        // State: line still in code once it is closed is reported on the next run.
         const fence = unterminatedFenceViolation(doc)
         if (fence) out.push(fence)
         else {

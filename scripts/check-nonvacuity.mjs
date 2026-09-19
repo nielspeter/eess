@@ -2370,7 +2370,7 @@ const gates = [
   // only "protection" was this repo's own live corpus incidentally carrying a
   // deferred box, which would silently vanish the day that box got resolved.
   ['corpus/ledger/deferred-lie', () => gateNode('bad-ledger.mjs', 'ledger/deferred-none-lie')],
-  // Bug 0286: two rows, one per route — a fix for one does not touch the other. Route A is an
+  // Bug 0286: three rows, one per route — a fix for one does not touch the others. Route A is an
   // existing finding that fails to appear, so its token is one only this fixture's document can print.
   [
     'corpus/ledger/fenced-example',
@@ -2853,8 +2853,8 @@ const GATE_FOR = {
     'release/gate-fails-the-build',
   ],
   // One row per CHECK, not per script — the doctrine stated below `GATE_FOR`,
-  // which `check:corpus` (24), `check:ledger` (8), `check:release` (6),
-  // `check:crossval` (7) and `check:family` (4) already follow. `check:integrity`
+  // which `check:corpus`, `check:ledger`, `check:release`, `check:crossval` and
+  // `check:family` already follow. `check:integrity`
   // did not: four checks behind one row named after harness history, so
   // `gateCoverage()` counted the script as accounted for while any check inside
   // it could be deleted silently. That is how the raw-NUL check nearly shipped

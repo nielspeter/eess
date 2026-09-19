@@ -74,8 +74,8 @@ describe('bug 0286: the ledger reads a document’s prose as CommonMark does', (
   })
 
   it('a State line carrying inline HTML or inline code is still the record’s own', () => {
-    // Inline HTML and inline code sit on a line that may be the claim itself, so they are prose; only an
-    // HTML block or a code block is set aside.
+    // Inline HTML and inline code sit on a line that may be the claim itself, so they are prose; only a
+    // code block is set aside.
     const record = (stateLine: string): string =>
       ['# 0001 x', '', '## Status', '', stateLine, '', '## Tasks', '', '- [ ] box', ''].join('\n')
 
@@ -122,6 +122,14 @@ describe('bug 0286: the ledger reads a document’s prose as CommonMark does', (
     // Closed at the very end of the file, with and without a newline after the closer.
     expect(endsWith(['```md', 'an example', '```'])).toEqual([])
     expect(endsWith(['```md', 'an example', '```', ''])).toEqual([])
+    // An empty fence closed at the end, and an indented block at the end: no fence is left open.
+    expect(endsWith(['```', '```'])).toEqual([])
+    expect(endsWith(['An example:', '', '    indented code'])).toEqual([])
+    // A fence opened inside a list item or a quote, running to the end, is read from where it opens.
+    expect(endsWith(['- note:', '  ```md', '  an example'])).toEqual([
+      ['ledger/unterminated-fence', 6],
+    ])
+    expect(endsWith(['> ```md', '> an example'])).toEqual([['ledger/unterminated-fence', 5]])
   })
 
   it('a fence its list item closes does not hide the list item after it', () => {
@@ -157,10 +165,47 @@ describe('bug 0286: the ledger reads a document’s prose as CommonMark does', (
     expect(findings(record(['```', '- **State:** Done — closed', '```']))).toEqual([
       ['ledger/state-in-code', 6],
     ])
+    // A `##` comment in a code block is not a heading, so it does not end the header above the line.
+    expect(
+      findings(record(['```sh', '## build first', '```', '', '    - **State:** Done — closed'])),
+    ).toEqual([['ledger/state-in-code', 9]])
     // The control: the same line in prose is read, and its silent box reported.
     expect(findings(record(['- **State:** Done — closed']))).toEqual([
       ['ledger/silent-open-box', 9],
     ])
+  })
+
+  it('a document that shows a State line only in code is reported, and naming it a board file clears it', () => {
+    // A guide showing the template, in a lane beside a record: it is not a record, but the gate cannot
+    // tell it from one whose own line is in code, so the fix line's remedy for it is boardFiles.
+    const dir = mkdtempSync(join(tmpdir(), 'ledger-prose-'))
+    writeFileSync(
+      join(dir, '0001-x.md'),
+      ['# 0001 x', '', '- **State:** Draft — open', ''].join('\n'),
+    )
+    writeFileSync(
+      join(dir, 'notes.md'),
+      [
+        '# How to write a record',
+        '',
+        '```md',
+        '## Status',
+        '',
+        '- **State:** Draft',
+        '```',
+        '',
+      ].join('\n'),
+    )
+    const lane = (boardFiles: string[]): [string, string, number][] =>
+      honestyAtClose(corpus({ roots: ['*.md'], cwd: dir }), {
+        states: ['Draft', 'Done'],
+        terminalStates: ['Done'],
+        boardFiles,
+        report: 'return',
+      }).map((v) => [v.element, v.rule, v.line])
+
+    expect(lane([])).toEqual([['notes.md', 'ledger/state-in-code', 6]])
+    expect(lane(['notes.md'])).toEqual([])
   })
 
   it('a fence that never closes is reported, since the State line and box after it are code', () => {

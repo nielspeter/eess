@@ -105,8 +105,10 @@ export function findFinishedNotClosed(lanes) {
       if (inDoneFolder) continue
 
       const found = findState(doc.text, vocabulary)
-      // No State at all, or one outside the vocabulary: `ledger/unknown-state`
-      // owns that, and guessing here would be a second opinion on the same text.
+      // No State line in prose — no item, or one whose State line is code, which
+      // `ledger/state-in-code` and `ledger/unterminated-fence` report — or one
+      // outside the vocabulary, which `ledger/unknown-state` reports. Guessing here
+      // would be a second opinion on the same text.
       if (found?.state === undefined) continue
       if (lane.terminalStates.includes(found.state)) continue
 
