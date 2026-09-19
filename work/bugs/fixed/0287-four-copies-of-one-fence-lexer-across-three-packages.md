@@ -186,12 +186,23 @@ a fence with its closing line. That is what the copies meant to do, with the fen
 The kernel's own masker takes the mirror of it for the mirror reason: it looks for waivers, so it blanks
 to the end (`packages/core/src/mask-non-comment.ts:166-169`).
 
-**How far "never a silent pass" goes.** For a reader whose findings grow with what it reads — a term, a
-citation — reading more can only add a false red. A reader that keeps only the **last** of something does
-not have that property: the proposal script takes the last ruling, so an example read after the real line
-becomes the verdict. Measured, on 0.6.0 and on the fix alike: a real `Ship as-is` followed by an unclosed
-fence holding an example `Reject` reads `Reject`. It needs a reader that reports the fence beside it, and
-in this repo `check:ledger` does, on the proposals and plans lanes.
+**How far "never a silent pass" goes, and what a last-wins reader owes.** For a reader whose findings grow
+with what it reads — a term, a citation — reading more can only add a false red. A reader that keeps only
+the **last** of something does not have that property: the proposal script takes the last ruling, so an
+example read after the real line becomes the verdict.
+
+The first build leaned on another gate for that — `check:ledger` reporting the fence beside it — and the
+enforcement review measured that the net has a hole exactly where it was needed: `check:ledger` reports
+only a fence that runs to the **end of the document**, so an example ruling inside a fence a list item
+ended, with any later fence in the document, became the proposal's verdict and `check:corpus` went green
+on an accepted proposal with no plan. 0.6.0 went red there, by accident: its regex paired the opener with
+the next fence run and blanked the example between them, and with no later fence it read the example too.
+
+So the script refuses instead of leaning: below the first fence with no closing line — ended by its
+container or by the end of the document — it reads no `**Ruling:**` and no `**Implements:**`, and the
+document is reported as reviewed-but-unreadable by the finding that already exists for that. A ruling
+**above** such a fence still reads. The fact it refuses on is `unclosedFences`, from the owner; the
+remedy in the message is the author's, and it is small: close the fence.
 
 **"Closed" means the fence has its closing line** — not that something ended it. The first build counted a
 fence its list item or blockquote ended as closed, and set it aside: a ruling below such a fence, which
@@ -210,17 +221,28 @@ either. A fence with no closer inside the block is not set aside, by the same ru
 Whether a **non-fenced** example inside an HTML block should be read stays
 [0293](../0293-an-example-inside-an-html-block-is-read-as-prose.md)'s question.
 
+**Indentation means nothing inside an HTML block**, of any width or kind. The first build of that loop
+bounded its opener at CommonMark's "at most three spaces, or it is an indented code block instead" — a
+rule about a markdown block context, and inside an HTML block there is none: every line is raw text. The
+architecture review measured what the imported bound cost: with the `<details>` body indented four
+spaces or a tab, which is how people ordinarily write one, the example became the record's State and the
+proposal's ruling again, in both live gates, where 0.6.0's textual regex set them aside. Pinned per
+indentation width — the axis the 26-shape probe never varied, which is why a whole row of the table
+above was wrong until the review found it.
+
 **Measured on 0.6.0 against the fix**, each consumer, a real line and an example line per shape:
 
-| shape                                                  | 0.6.0                     | fixed                 |
-| ------------------------------------------------------ | ------------------------- | --------------------- |
-| a four-backtick or four-tilde example, lone inner run  | **real line lost**, all 3 | read                  |
-| a fence its list item ends, with a later fence         | **real line lost**, all 3 | read                  |
-| an inner fence paired inside a four-backtick/tilde one | **example read**, all 3   | set aside             |
-| a fenced example inside `<details>` or `<div>`         | set aside                 | set aside             |
-| a fence its list item ends, no closer                  | example read              | example read          |
-| a fence that never closes                              | real and example read     | real and example read |
-| an indented example                                    | read                      | read                  |
+| shape                                                  | 0.6.0                     | fixed                  |
+| ------------------------------------------------------ | ------------------------- | ---------------------- |
+| a four-backtick or four-tilde example, lone inner run  | **real line lost**, all 3 | read                   |
+| a fence its list item ends, with a later fence         | **real line lost**, all 3 | read                   |
+| an inner fence paired inside a four-backtick/tilde one | **example read**, all 3   | set aside              |
+| a fenced example inside `<details>` or `<div>`         | set aside                 | set aside              |
+| the same, indented four spaces or a tab                | set aside                 | set aside              |
+| a fence its list item ends, no closer                  | example read              | example read           |
+| a ruling below any fence with no closing line          | read, either way          | reported as unreadable |
+| a fence that never closes                              | real and example read     | real and example read  |
+| an indented example                                    | read                      | read                   |
 
 No shape loses a real line on the fix, and none reads an example the copies set aside. Over this repo's
 521 markdown documents the script's six readings (ruling, ruling line, unparseable ruling, Implements,
@@ -229,8 +251,15 @@ an `**Implements:**` line; the rest read `null` on both — and so is every docu
 across 21 documents).
 
 **Reached through `@nielspeter/eess-md/internal`**, the dialect's counterpart of the kernel's family
-plumbing (ADR-011): not public API, not re-exported by the barrel, and skipped by the public-surface
-census like the kernel's. `eess-crossvalidate` imports it at runtime from `md-gherkin`, so its peer floor
+plumbing (ADR-011): not public API, and skipped by the public-surface census like the kernel's. It
+exports `unterminatedFence` beside `proseText`, so a caller that sets aside only closed fences can still
+reach the fact it is choosing to read past, rather than holding a reading with no evidence of what it
+dropped (ADR-010). "The barrel never re-exports what is here" was a sentence in two files and a
+mechanism in none; `scripts/lib/internal-not-reexported.test.mjs` now checks it in `check:family`, for
+every package that ships the subpath. Whether ADR-011's clauses — written about the kernel — cover a
+dialect's `/internal` at all is [0327](../0327-adr-011-is-written-about-the-kernel-and-the-family-now-has-two-internals.md);
+the peer floor that makes the import resolvable for an adopter is
+[0328](../0328-a-sibling-peer-floor-is-a-manual-release-step.md). Neither is settled here. `eess-crossvalidate` imports it at runtime from `md-gherkin`, so its peer floor
 on eess-md must reach the release that ships it — raised in that release's `changeset version` commit,
 as `RELEASING.md` step 3a says, not before.
 
@@ -242,7 +271,10 @@ outside two named homes: the owner, and the kernel's masker, which cannot reach 
 (ADR-012). It walks the filesystem rather than listing tracked files, because a non-vacuity probe is
 `.gitignore`d by design, and prints the count it scanned.
 
-It fails on `main`, naming the three copies left there; on 0.6.0 it names four. Its own floor is that
+It fails on `main`, naming the three copies left there; on 0.6.0 it names four. Its homes are files, so
+"one lexer" is enforced as "one file": `prose.ts` holds two fence regexes — the shape classifier's and
+the HTML loop's — both sanctioned because the file is. That is the one place a second copy can still
+appear quietly, and it is the file whose whole job is this. Its own floor is that
 every home is **in the scanned set** and still matched — the first build asserted only that a home's file
 matched when read directly, which an emptied root list would have passed, measured by the review. Two
 non-vacuity rows plant the copies' exact regex and run `npm run check:arch`: one under `packages/md/src`,
@@ -287,12 +319,26 @@ is still wired into the gate.
       closed-fence examples, fail on 0.6.0's copies; the unclosed-fence tests pass on both, pinning what
       must not be lost.
 
-- [x] Sabotage matrix in the worktree, sources restored by sha256 and the tree unchanged: 13 rows and an
+- [x] The enforcement review's second critical, measured end to end and fixed: an example ruling inside a
+      fence its list item ended, with a later fence, became the proposal's verdict and `check:corpus`
+      went green on an accepted proposal with no plan, where 0.6.0 went red. The script now refuses to
+      read a declaration below a fence with no closing line — pinned by four directions in
+      `scripts/nonvacuity/bad-proposal-ruling.mjs`, including the one that must still read (a ruling
+      above such a fence), and by the `S3` sabotage row.
+- [x] The architecture review's critical, measured and fixed: an indented fenced example inside an HTML
+      block read as the document's own claim — `isAccepted` flipping true→false on a proposal, and a
+      closed record's silent box unreported — where 0.6.0 set it aside. Pinned by
+      `it('a fenced example inside an HTML block is one however far it is indented')` and the
+      indentation loop in `it('a reference inside a fence written in an HTML block is an example')`.
+- [x] Sabotage matrix in the worktree, sources restored by sha256 and the tree unchanged: 16 rows and an
       as-built control that fails nothing. The reader's two modes (setting aside nothing, or everything),
       a fence with no closing line classed as closed, an HTML fence not set aside or closed by a shorter
       run, each of the three consumers reading as CommonMark or reading raw text, the script stripping
       nothing, and the check matching nothing, walking nothing, or missing a fifth copy planted in a
-      package — each turns its own test red.
+      package, the HTML loop bounding its opener at three spaces, and the script reading below a fence
+      with no closing line — each turns its own test red. The two non-vacuity rows, one per root the
+      copies lived in, run `npm run check:arch` with a planted copy and are named
+      `arch/one-fence-reader (packages)` and `arch/one-fence-reader (scripts)`.
 
 Deferred: none.
 

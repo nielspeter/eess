@@ -103,9 +103,14 @@ check(
   null,
 )
 check(
-  'ruling after a fence that never closes read',
+  'ruling below a fence that never closes not read',
   operativeRuling('```md\nan example\n\n**Ruling: Ship as-is**\n'),
-  'Ship as-is',
+  null,
+)
+check(
+  'ruling below a fence that never closes flagged unparseable',
+  hasUnparseableRuling('```md\nan example\n\n**Ruling: Ship as-is**\n'),
+  true,
 )
 
 check(
@@ -115,11 +120,26 @@ check(
   ),
   'Ship as-is',
 )
+// The review's shape: an example ruling inside a fence its list item ended, below the real one. Read as
+// prose it wins by last-wins and the proposal reads rejected; read as code the real one stands. Neither
+// is decidable, so the document is reported rather than guessed at.
 check(
-  'ruling after a fence its list item leaves unclosed read',
+  'example ruling below a container-ended fence not read',
   operativeRuling(
-    '- note:\n  ```md\n  an example\n\n  **Ruling: Ship as-is**\n\nAfter the list.\n',
+    '**Ruling: Ship as-is**\n\n- note:\n  ```md\n  **Ruling: Reject**\n- next\n\n```text\nlater\n```\n',
   ),
+  null,
+)
+check(
+  'example ruling below a container-ended fence flagged unparseable',
+  hasUnparseableRuling(
+    '**Ruling: Ship as-is**\n\n- note:\n  ```md\n  **Ruling: Reject**\n- next\n\n```text\nlater\n```\n',
+  ),
+  true,
+)
+check(
+  'ruling above a fence with no closing line still read',
+  operativeRuling('**Ruling: Ship as-is**\n\n- note:\n  ```md\n  an example\n- next\n'),
   'Ship as-is',
 )
 
@@ -132,6 +152,7 @@ if (failures.length > 0) {
 console.error(
   'bad-proposal-ruling: proposal-ruling/module-behavior — last-Ruling-wins, markdown-link ' +
     'Implements, fence-blindness, multi-Implements rejection, garbled-vs-absent, label ' +
-    'prefix tolerance, parser-paired fences, and fenced examples inside an HTML block all hold',
+    'prefix tolerance, parser-paired fences, fenced examples inside an HTML block, and refusing to read ' +
+    'below a fence with no closing line all hold',
 )
 process.exit(1)

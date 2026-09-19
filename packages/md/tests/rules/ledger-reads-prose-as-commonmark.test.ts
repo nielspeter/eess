@@ -140,6 +140,36 @@ describe('bug 0286: the ledger reads a document’s prose as CommonMark does', (
     expect(findings(record('<div>', '</div>'))).toEqual([['ledger/silent-open-box', 16]])
   })
 
+  it('a fenced example inside an HTML block is one however far it is indented', () => {
+    // Indenting the body of a `<details>` is ordinary. Inside an HTML block every line is raw text, so
+    // CommonMark's "at most three spaces" bound means nothing there — importing it read a four-space or
+    // tab-indented example as the record's own State (bug 0287's architecture review).
+    const record = (indent: string): string =>
+      [
+        '# 0001 x',
+        '',
+        '<details>',
+        '<summary>example</summary>',
+        `${indent}\`\`\`md`,
+        `${indent}${EXAMPLE_STATE}`,
+        `${indent}\`\`\``,
+        '</details>',
+        '',
+        '## Status',
+        '',
+        '- **State:** Done — closed',
+        '',
+        '## Tasks',
+        '',
+        '- [ ] box',
+        '',
+      ].join('\n')
+
+    for (const indent of ['', '  ', '    ', '\t']) {
+      expect(findings(record(indent))).toEqual([['ledger/silent-open-box', 16]])
+    }
+  })
+
   it('a fence is closed only by a closer CommonMark accepts, at the end of the document too', () => {
     const endsWith = (fence: readonly string[]): [string, number][] =>
       findings(['# 0001 x', '', '- **State:** Draft — open', '', ...fence].join('\n'))

@@ -79,6 +79,25 @@ describe('bug 0287: terms() pairs fences with the markdown parser', () => {
     expect(unresolved(inHtml('<details>', '</details>'))).toEqual([])
     expect(unresolved(inHtml('<div>', '</div>'))).toEqual([])
 
+    // However far the block's body is indented: inside an HTML block, indentation means nothing.
+    for (const indent of ['  ', '    ', '\t']) {
+      const indented = [
+        '# x',
+        '',
+        '<details>',
+        '<summary>example</summary>',
+        `${indent}\`\`\`md`,
+        `${indent}**Context:** Example`,
+        `${indent}\`\`\``,
+        '</details>',
+        '',
+        '**Context:** Known',
+        '',
+      ].join('\n')
+
+      expect(unresolved(indented)).toEqual([])
+    }
+
     // Paired by run length there too: the lone inner run is content, not the closer.
     const longer = [
       '# x',

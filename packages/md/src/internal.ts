@@ -6,6 +6,11 @@
 // or the package README.
 //
 // As with the kernel's, the boundary holds on this side only: the package barrel must never re-export
-// what is here, and a subpath export is resolvable by anyone.
+// what is here (checked by `scripts/lib/internal-not-reexported.test.mjs`), and a subpath export is
+// resolvable by anyone.
+//
+// `unterminatedFence` rides along with `proseText` on purpose: a caller that sets aside only closed
+// fences is choosing to read past an unclosed one, and ADR-010's line is that a verdict is built from
+// evidence. A caller that can report should be able to reach the fact, not just the reading.
 
-export { proseText, type SetAside } from './model/prose.js'
+export { proseText, unclosedFences, unterminatedFence, type SetAside } from './model/prose.js'
