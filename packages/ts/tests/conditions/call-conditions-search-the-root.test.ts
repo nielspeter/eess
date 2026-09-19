@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { Project } from 'ts-morph'
 import { calls } from '../../src/builders/call-rule-builder.js'
-import { call, expression } from '../../src/helpers/matchers.js'
+import { modules } from '../../src/builders/module-rule-builder.js'
+import { access, call, expression } from '../../src/helpers/matchers.js'
 import type { ExpressionMatcher } from '../../src/helpers/matchers.js'
 import type { ArchProject } from '../../src/core/project.js'
 
@@ -12,7 +13,9 @@ import type { ArchProject } from '../../src/core/project.js'
  * `use(() => legacy(1))` — were not seen, with `call()` as with `expression()`.
  *
  * They now test the node itself too, unless it is a block: a block is searched below its root, as a
- * function's own body is. One test per call site, so a fix that misses one stays red.
+ * function's own body is. One test per call site, so a fix that misses one stays red. A root's match
+ * is numbered after the matches below it, and a module-scope initializer, searched the same way under
+ * `scopeToModule`, is tested itself too.
  */
 function project(statement: string): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })
@@ -21,6 +24,7 @@ function project(statement: string): ArchProject {
     [
       'declare function legacy(n: unknown): number',
       'declare function use(...v: unknown[]): void',
+      'declare const process: { env: Record<string, string> }',
       statement,
       '',
     ].join('\n'),
@@ -121,5 +125,48 @@ describe('bug 0323: the call conditions test the root they search', () => {
     expect(
       findings('use(() => { legacy({}) });', 'notHaveCallbackContaining', expression(/\{\s*\}/)),
     ).toBe(1)
+    // The same boundary at the requirement's site, where reading more fails open: the block itself
+    // does not satisfy the pattern, and neither does a parameter's default — the body is searched,
+    // not the whole callback.
+    expect(findings('use(() => {});', 'haveCallbackContaining', expression(/\{\s*\}/))).toBe(1)
+    expect(findings('use((n = legacy(1)) => 1);', 'haveCallbackContaining', call('legacy'))).toBe(1)
+  })
+
+  it('a match at the root is numbered after the matches below it, so a baseline keeps its identities', () => {
+    // 0.5.1 reported only the inner call, as #1. The outer call, newly reported, takes #2, and the
+    // accepted #1 still names the inner call.
+    const ordinals = (statement: string, condition: Condition): [number, string][] =>
+      calls(project(statement))
+        .that()
+        .withMethod('use')
+        .should()
+        [condition](call('legacy'))
+        .rule({ id: 'test/0323-order' })
+        .violations()
+        .map((v) => [Number(/at line (\d+)/.exec(v.message)?.[1]), (v.identity ?? '').slice(-2)])
+
+    // Each finding names its match's line: line 4 holds the outer call, line 5 the inner one.
+    expect(ordinals('use(legacy(\n  legacy(1)));', 'notHaveArgumentContaining')).toEqual([
+      [5, '#1'],
+      [4, '#2'],
+    ])
+    expect(ordinals('use(() => legacy(\n  legacy(1)));', 'notHaveCallbackContaining')).toEqual([
+      [5, '#1'],
+      [4, '#2'],
+    ])
+  })
+
+  it('a module-scope initializer that is the match is found under scopeToModule', () => {
+    const found = (statement: string, matcher: ExpressionMatcher): number =>
+      modules(project(statement))
+        .should()
+        .notContain(matcher, { scopeToModule: true })
+        .rule({ id: 'test/0323-module' })
+        .violations().length
+
+    expect(found('const x = legacy(1);', call('legacy'))).toBe(1)
+    expect(found('const e = process.env;', access('process.env'))).toBe(1)
+    // The control, one level down, is unchanged.
+    expect(found('const x = 0 + legacy(1);', call('legacy'))).toBe(1)
   })
 })

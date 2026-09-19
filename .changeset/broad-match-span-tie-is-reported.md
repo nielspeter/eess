@@ -31,7 +31,3 @@ reported as new, and the new one is hidden until the baseline is reviewed. Revie
 findings before regenerating it. Message wording is unchanged, but a class field or parameter default
 whose only match was such a shape now names the match's line rather than the initializer's first
 line; its identity is unchanged.
-
-A KNOWN-GAP test file pins bug 0323: the call conditions do not test an argument, or a concise
-callback's body, that is itself the match — `use(legacy(1))` as the argument itself, with `call()` as
-with `expression()`. Behaviour there is unchanged.

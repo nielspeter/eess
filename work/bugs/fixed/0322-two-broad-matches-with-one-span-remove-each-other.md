@@ -102,7 +102,7 @@ an ancestor of that match, and adding it reported one match twice. In 0.5.1 a ti
 emptied the inner search, so the body was reported alone, once; keeping the tie made it twice, as it
 already was for a match strictly inside — `() => legacy(1)` under `expression(/legacy/)` was two
 findings in 0.5.1. The body is now skipped when a broad matcher matched inside it
-(`packages/ts/src/helpers/body-traversal.ts:412`), and each of those is one finding. A by-kind matcher
+(`packages/ts/src/helpers/body-traversal.ts:447`), and each of those is one finding. A by-kind matcher
 never tests the root it searches, so for it the body is a different node and still counts:
 `() => legacy(legacy(1))` under `call('legacy')` is two findings, as it should be. Found by the
 enforcement review of this PR.
@@ -129,8 +129,9 @@ The changeset marks it breaking and names every search that changes.
 ## Related
 
 - [0323](./0323-the-call-conditions-search-below-the-root.md) — found while measuring this fix. The
-  call conditions never test an argument, or a concise callback's body, that is itself the match, with
-  `call()` as with `expression()`. A different cause, filed with KNOWN-GAP tests and fixed in its own PR.
+  call conditions never tested an argument, or a concise callback's body, that was itself the match,
+  with `call()` as with `expression()`. A different cause, filed here with KNOWN-GAP tests and fixed
+  in PR #142.
 
 ## Verification
 

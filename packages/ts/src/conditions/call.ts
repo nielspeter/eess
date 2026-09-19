@@ -4,7 +4,12 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
-import { getFunctionBody, findMatchesInCode, reportedLine } from '../helpers/body-traversal.js'
+import {
+  getFunctionBody,
+  findMatchesInCode,
+  findMatchesInEach,
+  reportedLine,
+} from '../helpers/body-traversal.js'
 import { identifyMatches } from './match-identity.js'
 import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 
@@ -120,10 +125,11 @@ export function notHaveCallbackContaining(matcher: ExpressionMatcher): Condition
         // Flatten across arguments before assigning identities: a per-argument
         // counter would restart at 1 for each callback, so two callbacks with a
         // match in the same enclosing declaration would collide.
-        const matches = args.flatMap((arg) => {
+        const bodies = args.flatMap((arg) => {
           const body = getFunctionBody(arg)
-          return body ? findMatchesInCode(body, matcher) : []
+          return body ? [body] : []
         })
+        const matches = findMatchesInEach(bodies, matcher)
         const identities = identifyMatches(
           'call-callback',
           archCall.getSourceFile().getFilePath(),
@@ -341,7 +347,7 @@ export function notHaveArgumentContaining(matcher: ExpressionMatcher): Condition
         // same archCall — same identity work each time.
         const callName = callNameForMessage(archCall, context)
         const args = archCall.getArguments()
-        const matches = args.flatMap((arg) => findMatchesInCode(arg, matcher))
+        const matches = findMatchesInEach(args, matcher)
         const identities = identifyMatches(
           'call-argument',
           archCall.getSourceFile().getFilePath(),
