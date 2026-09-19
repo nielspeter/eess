@@ -45,7 +45,7 @@ Since [0315](./fixed/0315-the-function-builder-does-not-collect-constructors-acc
 the function rules collect a class's constructor, so the defaults this fix reads include a
 constructor's, a parameter property's among them: `constructor(readonly f = eval('w')) {}` passes
 today. And that comment matcher starts at `triviaRoot(fn.getNode())`
-(`packages/ts/src/helpers/body-traversal.ts:376`), which for a function-valued property is the whole
+(`packages/ts/src/helpers/body-traversal.ts:421`), which for a function-valued property is the whole
 property declaration — its decorators and type annotation, not only the function — as #140's
 architecture review noted; the comment question has to settle that start too.
 

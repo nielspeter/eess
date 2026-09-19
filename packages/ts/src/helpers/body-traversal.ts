@@ -133,7 +133,7 @@ function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Match[] {
  * (efficient — only walks nodes of that kind). Falls back to
  * getDescendants() for matchers without syntaxKinds (expression()).
  */
-export function findMatchesInNode(node: Node, matcher: ExpressionMatcher): Match[] {
+function findMatchesInNode(node: Node, matcher: ExpressionMatcher): Match[] {
   // TRIVIA first, and at the dispatcher rather than inside the broad walk.
   // A trivia matcher may also narrow by `syntaxKinds` for speed — plan 0047's
   // `tsDirective()` wants exactly that — and with the branch one level down it
@@ -334,6 +334,41 @@ function findMatchesInExpression(node: Node, matcher: ExpressionMatcher): Match[
 }
 
 /**
+ * Matches in what a call condition searches — an argument, or a callback's body — including the
+ * node itself unless it is a block (bug 0323).
+ *
+ * An argument can BE the match — `use(legacy(1))` — and so can a concise callback's body, which
+ * `getFunctionBody` returns as the expression itself: `use(() => legacy(1))`. With
+ * `findMatchesInNode` alone neither was tested, under `call()` as under `expression()`. A block is
+ * searched below its root, as `searchFunctionBody` searches a function's own: tested itself, a
+ * block would match a broad pattern against the whole body.
+ */
+export function findMatchesInCode(node: Node, matcher: ExpressionMatcher): Match[] {
+  return NodeUtils.isBlock(node)
+    ? findMatchesInNode(node, matcher)
+    : findMatchesInExpression(node, matcher)
+}
+
+/**
+ * `findMatchesInCode` over several roots, numbered so a baseline keeps its identities (bug 0323):
+ * every match below a root first, in order, then the roots that are matches themselves.
+ *
+ * 0.5.1 never tested a root, so each root match is new. Numbered in place, one would take the
+ * ordinal of a match a baseline already accepted, and the new finding would be the one hidden —
+ * as `searchClassBody` numbers the code bug 0300 made it read after the code it read before. A
+ * trivia match was found on a root before too, so it keeps its place.
+ */
+export function findMatchesInEach(roots: readonly Node[], matcher: ExpressionMatcher): Match[] {
+  const found = roots.map((root) => ({ root, matches: findMatchesInCode(root, matcher) }))
+  const isNewRoot = (root: Node, match: Match): boolean =>
+    match.node === root && match.triviaPos === undefined
+  return [
+    ...found.flatMap(({ root, matches }) => matches.filter((m) => !isNewRoot(root, m))),
+    ...found.flatMap(({ root, matches }) => matches.filter((m) => isNewRoot(root, m))),
+  ]
+}
+
+/**
  * The node a function's own docstring is attached to.
  *
  * For a `function` declaration that is the declaration itself. For an arrow or
@@ -461,7 +496,8 @@ function collectVariableStatementMatches(statement: Node, matcher: ExpressionMat
     if (NodeUtils.isArrowFunction(initializer) || NodeUtils.isFunctionExpression(initializer)) {
       continue
     }
-    matches.push(...findMatchesInNode(initializer, matcher))
+    // The initializer can BE the match — `const x = legacy(1)` (bug 0323).
+    matches.push(...findMatchesInEach([initializer], matcher))
   }
   return matches
 }
