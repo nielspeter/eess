@@ -8,6 +8,7 @@ import {
   collectResult,
 } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
+import { proseText } from '@nielspeter/eess-md/internal'
 import type { FeatureSet } from '@nielspeter/eess-gherkin'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
@@ -59,13 +60,6 @@ function defaultExtract(line: string): ExtractedCitation[] {
   return out
 }
 
-// Blank out fenced code in place (preserving line numbers) so an illustrative
-// citation inside an example block never counts as a real one.
-const FENCE_RE = /(```|~~~)[\s\S]*?\1/g
-function stripFencedCode(s: string): string {
-  return s.replace(FENCE_RE, (m) => '\n'.repeat((m.match(/\n/g) ?? []).length))
-}
-
 function extractCitations(
   corpus: Corpus,
   dir: string,
@@ -75,7 +69,9 @@ function extractCitations(
   const out: Citation[] = []
   for (const doc of corpus.documents()) {
     if (!inDir(doc.relPath)) continue
-    const lines = stripFencedCode(doc.text).split('\n')
+    // A citation in a closed fence is an example and never counts. Only a closed one: this preset reports
+    // no unclosed fence, so it reads past one rather than drop every citation after it (bug 0287).
+    const lines = proseText(doc.text, doc.root, 'closed-fences').split('\n')
     for (let i = 0; i < lines.length; i++) {
       for (const cite of extract(lines[i] ?? '')) {
         out.push({ ...cite, doc, line: i + 1 })
@@ -101,8 +97,9 @@ const v = violationsFor<Citation>(RULE, 'crossval/scenario-citations-resolve', (
  * A citation is a backticked feature path with an optional quoted scenario
  * title on the same line. Three failure modes are gated: the cited feature
  * file doesn't exist in the set, the path is ambiguous (matches several
- * files), or the cited scenario title doesn't exist in that file. Citations
- * inside fenced code blocks never count.
+ * files), or the cited scenario title doesn't exist in that file. A citation
+ * inside a fenced code block that closes never counts; one after a fence that
+ * never closes is still read, since this preset does not report the fence.
  */
 export function scenarioCitationsResolve(
   corpus: Corpus,

@@ -316,6 +316,13 @@ const PROBE_CORPUS_PROPOSAL_UNCITED = join(
   'proposals',
   '__nonvacuity_probe_proposal__.md',
 )
+// Bug 0288: the same accepted proposal, with its ruling below a four-backtick example.
+const PROBE_CORPUS_PROPOSAL_FENCED = join(
+  repoRoot,
+  'work',
+  'proposals',
+  '__nonvacuity_probe_proposal_fenced__.md',
+)
 const PROBE_CORPUS_RULING_UNPARSEABLE = join(
   repoRoot,
   'work',
@@ -604,6 +611,7 @@ rmSync(PROBE_CORPUS_BOARD_PROPOSAL, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_DUP, { force: true })
 rmSync(PROBE_CORPUS_PROMOTED, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
+rmSync(PROBE_CORPUS_PROPOSAL_FENCED, { force: true })
 rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_MATCHED, { force: true })
 rmSync(PROBE_CORPUS_PLAN_IMPLEMENTS, { force: true })
@@ -1831,6 +1839,22 @@ function gateCorpusProposalUncited() {
   )
 }
 
+// Bug 0288. The ruling sits below a four-backtick example holding a lone triple-backtick run, with an
+// ordinary fence after it. The hand-rolled fence regex read the inner run as a closer, paired the
+// four-backtick closer with the later fence and blanked the ruling between them, so the proposal read
+// as never reviewed and the gate agreed. By CommonMark the ruling is prose; this reds only if the
+// script reads it that way.
+function gateCorpusProposalRulingBehindFence() {
+  return gateCorpusProbe(
+    PROBE_CORPUS_PROPOSAL_FENCED,
+    '# Non-vacuity probe\n\n## Acceptance criteria\n\nBreak class: the probe itself.\n\n## Review — 2026-01-01\n\n' +
+      '````md\n```\n````\n\n**Ruling: Ship as-is**\n\n' +
+      'Accepted, on purpose, with no implementing plan — the probe.\n\n```text\na later fence\n```\n',
+    'corpus/accepted-proposal-uncited',
+    'work/proposals/__nonvacuity_probe_proposal_fenced__.md',
+  )
+}
+
 // Plan 0216: the board is a two-sided join, so it ships several rule ids. The
 // harness's own comment at the plan-0142 probes warns that `gateCoverage()`
 // asserts per-SCRIPT, not per-rule-id — a new rule inside an already-covered
@@ -2485,6 +2509,7 @@ const gates = [
   // Plan 0142 (closing bug 0141): proposal→plan linkage, built on the
   // gateCorpusProbe shape from day one.
   ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
+  ['corpus/proposal-ruling-behind-a-fence', gateCorpusProposalRulingBehindFence],
   ['corpus/proposal-ruling-unparseable', gateCorpusRulingUnparseable],
   ['corpus/proposal-board-ruling', gateCorpusProposalBoardRuling],
   ['corpus/proposal-board-missing', gateCorpusBoardMissing],
@@ -2808,6 +2833,7 @@ const GATE_FOR = {
     'corpus/pointers/work-root',
     'corpus/frozen-scope',
     'corpus/proposal-plan-linkage',
+    'corpus/proposal-ruling-behind-a-fence',
     'corpus/proposal-ruling-unparseable',
     'corpus/proposal-board-ruling',
     'corpus/proposal-board-missing',

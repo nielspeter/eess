@@ -27,6 +27,11 @@
   > tolerating `-`/`*`/`+`/`>`/indentation) — see the Reproduction section,
   > updated in place rather than rewritten.
 
+  > **Note — 2026-09-19.** The fence-stripper half is gone: the script reads prose through eess-md's
+  > parser, the one owner [0287](./fixed/0287-four-copies-of-one-fence-lexer-across-three-packages.md)
+  > ruled. It was not correct either: [0288](./fixed/0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md)
+  > measured it blanking a real ruling. The closed-vocabulary matcher half is untouched and still open.
+
 - **Origin:** self-found · architect review of the branch that built
   [plan 0142](../plans/completed/0142-bind-proposals-to-plans.md), 2026-08-14
 - **Reported:** 2026-08-14

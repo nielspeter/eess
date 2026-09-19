@@ -88,6 +88,26 @@ check('indented Ruling', operativeRuling('  **Ruling: Ship as-is**\n'), 'Ship as
 check('proposalNumberFromPath', proposalNumberFromPath('work/proposals/002-x.md'), '2')
 check('proposalNumberFromPath no digits', proposalNumberFromPath('work/proposals/PROPOSALS.md'), null)
 
+// Direction 8 — fences are paired by the markdown parser (bugs 0287, 0288). A triple-backtick run
+// inside a four-backtick example is content, not a closer: the regex this replaced blanked the real
+// ruling below such an example, and read one written inside it. A fence that never closes is read
+// past rather than dropping the rest, since this module reports no unclosed fence.
+check(
+  'ruling below a four-backtick example read',
+  operativeRuling('````md\n```\n````\n\n**Ruling: Ship as-is**\n\n```text\nlater\n```\n'),
+  'Ship as-is',
+)
+check(
+  'ruling inside a four-backtick example ignored',
+  operativeRuling('````md\n```\n**Ruling: Ship as-is**\n```\n````\n'),
+  null,
+)
+check(
+  'ruling after a fence that never closes read',
+  operativeRuling('```md\nan example\n\n**Ruling: Ship as-is**\n'),
+  'Ship as-is',
+)
+
 if (failures.length > 0) {
   console.error(`bad-proposal-ruling: ${failures.length} check(s) failed:`)
   for (const f of failures) console.error(`  x ${f}`)
@@ -96,7 +116,7 @@ if (failures.length > 0) {
 
 console.error(
   'bad-proposal-ruling: proposal-ruling/module-behavior — last-Ruling-wins, markdown-link ' +
-    'Implements, fence-blindness, multi-Implements rejection, garbled-vs-absent, and label ' +
-    'prefix tolerance all hold',
+    'Implements, fence-blindness, multi-Implements rejection, garbled-vs-absent, label ' +
+    'prefix tolerance, and parser-paired fences all hold',
 )
 process.exit(1)

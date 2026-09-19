@@ -90,7 +90,7 @@ const ENTRY_POINTS = [
   /\/ts\/src\/(index|cli\/bin|presets\/index|graphql\/index)\.ts$/,
   /\/ts\/src\/rules\/(typescript|security|errors|naming|dependencies|code-quality|metrics|architecture|hygiene)\.ts$/,
   /\/mermaid\/src\/(index|cli\/bin)\.ts$/,
-  /\/md\/src\/(index|rules\/(adr|ledger))\.ts$/,
+  /\/md\/src\/(index|internal|rules\/(adr|ledger))\.ts$/,
   /\/gherkin\/src\/index\.ts$/,
   /\/crossvalidate\/src\/(mermaid-ts|md-ts|md-mermaid|md-mermaid-er|md-gherkin|gherkin-ts|files)\.ts$/,
 ]
