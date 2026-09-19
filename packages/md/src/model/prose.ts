@@ -75,7 +75,7 @@ function codeBlocks(text: string, root: Root): { first: number; last: number; sh
 /**
  * The closed fences written inside an HTML block. CommonMark reads such a fence as raw HTML, so the
  * parser has no code node for it; but the author fenced it as an example, and the copies this owner
- * replaced set it aside (bug 0287's review measured a fenced example inside `<details>` read as a
+ * replaced set aside a simple one there — mis-reading a longer one, as they did everywhere else (bug
  * record's state and as a proposal's ruling). Paired by run length as CommonMark pairs a fence: a closer
  * is a run of the opener's character at least as long, alone on its line. A fence with no closer inside
  * the block is not set aside.

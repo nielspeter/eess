@@ -9,9 +9,10 @@
 reference or citation below such an example and read the ones written inside it. Both are corrected, so a
 green rule may report a reference it could not see, and a red one may lose a finding that was an example.
 
-A fenced example inside an HTML block is set aside, as the regex did, however far the block's body is
-indented; an indented example outside one is read, as before. **A fence with no closing line — left
-unclosed, or ended by its list item or blockquote — is read past**, where the regex's behaviour depended
+A fenced example inside an HTML block is set aside however far the block's body is indented, and whatever
+the length of its fence — where the regex set aside a simple one and mis-read a longer one; an indented
+example outside an HTML block is read, as before.
+unclosed, or ended by its list item or blockquote — is read past\*\*, where the regex's behaviour depended
 on whether a later fence happened to pair with it: for `terms()` and `scenarioCitationsResolve` that
 means a reference or citation under such a fence is now checked rather than silently dropped, which can
 add a finding.

@@ -155,9 +155,10 @@ reading onto the markdown parser for **code blocks only**. Its first version set
 well, and silenced a real `State:` line inside a `<div>` or `<details>`, as this record's measured
 constraints predicted; the fix leaves HTML blocks read as before. Nothing in this record is fixed yet.
 
-**Amended 2026-09-19 (PR #145).** A **fenced** example inside an HTML block is set aside again, by the
-family's one prose reader: 0.6.0's regex blanked it, PR #144 read it, and PR #145 restores that — for the
-ledger, `terms()`, the scenario citations and the proposal script alike. That is this record's own advice
+**Amended 2026-09-19 (PR #145).** A **fenced** example inside an HTML block is set aside by the family's
+one prose reader — for the ledger, `terms()`, the scenario citations and the proposal script alike.
+0.6.0's regex set aside a simple one there and mis-read a longer one; PR #144 read them all; PR #145
+sets them all aside, paired by run length. That is this record's own advice
 ("put an example in a fence") holding inside an HTML block. What stays open here is unchanged: an example
 that is **not** fenced — in `<pre>`, in a comment, or between `<details>` tags — is still read as the
 document's own claim.

@@ -211,11 +211,12 @@ unterminated-fence finding is unchanged by this: it still reports only a fence t
 document, measured identical to `main` across 26 shapes.
 
 **A fence written inside an HTML block is set aside too, in both readings.** CommonMark reads such a fence
-as raw HTML, so the parser has no code node for it — but the author fenced it as an example, and the
-regex this owner replaced blanked it. The first build read it, and the enforcement review measured what
-that cost: a fenced `**Ruling: Reject**` inside `<details>` became a proposal's operative ruling, and
-`check:corpus` stopped reporting the accepted proposal with no plan. **The same regression reached the
-ledger in PR #144** — a fenced `Draft` example inside `<details>` above a closed record's own State line
+as raw HTML, so the parser has no code node for it — but the author fenced it as an example. The regex
+this owner replaced set aside a simple one there and mis-read a longer one: measured, a ````-fence inside
+`<details>`leaked its example on 0.6.0, the same run-length blindness as everywhere else. The owner sets
+aside all of them, paired by run length. The first build read it, and the enforcement review measured what
+that cost: a fenced`**Ruling: Reject**`inside`<details>`became a proposal's operative ruling, and`check:corpus`stopped reporting the accepted proposal with no plan. **The same regression reached the
+ledger in PR #144** — a fenced`Draft`example inside`<details>` above a closed record's own State line
 took its place, and the record's silent box went unreported. Both are fixed here, before eess-md ships
 either. A fence with no closer inside the block is not set aside, by the same rule as everywhere else.
 Whether a **non-fenced** example inside an HTML block should be read stays
@@ -226,7 +227,7 @@ bounded its opener at CommonMark's "at most three spaces, or it is an indented c
 rule about a markdown block context, and inside an HTML block there is none: every line is raw text. The
 architecture review measured what the imported bound cost: with the `<details>` body indented four
 spaces or a tab, which is how people ordinarily write one, the example became the record's State and the
-proposal's ruling again, in both live gates, where 0.6.0's textual regex set them aside. Pinned per
+proposal's ruling again, in both live gates, where 0.6.0 set that shape aside. Pinned per
 indentation width — the axis the 26-shape probe never varied, which is why a whole row of the table
 above was wrong until the review found it.
 
@@ -237,8 +238,9 @@ above was wrong until the review found it.
 | a four-backtick or four-tilde example, lone inner run  | **real line lost**, all 3 | read                   |
 | a fence its list item ends, with a later fence         | **real line lost**, all 3 | read                   |
 | an inner fence paired inside a four-backtick/tilde one | **example read**, all 3   | set aside              |
-| a fenced example inside `<details>` or `<div>`         | set aside                 | set aside              |
+| a simple fenced example inside `<details>`/`<div>`     | set aside                 | set aside              |
 | the same, indented four spaces or a tab                | set aside                 | set aside              |
+| a longer fence inside one, holding a shorter run       | **example read**          | set aside              |
 | a fence its list item ends, no closer                  | example read              | example read           |
 | a ruling below any fence with no closing line          | read, either way          | reported as unreadable |
 | a fence that never closes                              | real and example read     | real and example read  |
@@ -285,7 +287,7 @@ is still wired into the gate.
 
 - [x] Four copies located. **Pattern** byte-identical across all four — the
       load-bearing half. **Body** byte-identical across three;
-      `scripts/lib/proposal-ruling.mjs:115` names its parameter `text` rather than
+      `scripts/lib/proposal-ruling.mjs:115` (0.6.0) names its parameter `text` rather than
       `s`. An earlier version of this box said all four bodies matched.
 - [x] Confirmed all four share the leaks 0286 measured, since the pattern is the
       same.
@@ -331,13 +333,14 @@ is still wired into the gate.
       `it('a fenced example inside an HTML block is one however far it is indented')` and the
       indentation loop in `it('a reference inside a fence written in an HTML block is an example')`.
 - [x] Sabotage matrix in the worktree, sources restored by sha256 and the tree unchanged: 16 rows and an
-      as-built control that fails nothing. The reader's two modes (setting aside nothing, or everything),
-      a fence with no closing line classed as closed, an HTML fence not set aside or closed by a shorter
-      run, each of the three consumers reading as CommonMark or reading raw text, the script stripping
-      nothing, and the check matching nothing, walking nothing, or missing a fifth copy planted in a
-      package, the HTML loop bounding its opener at three spaces, and the script reading below a fence
-      with no closing line — each turns its own test red. The two non-vacuity rows, one per root the
-      copies lived in, run `npm run check:arch` with a planted copy and are named
+      as-built control that fails nothing, each turning its own test red. The owner: the closed-fences
+      reading setting aside nothing (1) or everything (2), a fence with no closing line classed as
+      closed (3), and the HTML loop not running (4), closing on a shorter run (5), or bounding its
+      opener at three spaces (6). The consumers: `terms()` (7, 8) and the citations preset (9, 10),
+      each reading as CommonMark or reading raw text, and the script stripping nothing (11), reading as
+      CommonMark (12), or reading below a fence with no closing line (13). The check: matching nothing
+      (14), walking nothing (15), and a fifth copy planted in a package (16). Its two non-vacuity rows,
+      one per root the copies lived in, run `npm run check:arch` with a planted copy —
       `arch/one-fence-reader (packages)` and `arch/one-fence-reader (scripts)`.
 
 Deferred: none.
