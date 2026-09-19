@@ -94,6 +94,14 @@ export function reportedLine(node: Node, triviaPos: number | undefined): number 
  * Parent nodes' getText() includes children's text, so regex-based
  * matchers (expression()) match at multiple ancestor levels.
  * Keep only the deepest (most specific) matching nodes.
+ *
+ * Several nodes can share one span — a statement without a semicolon and its
+ * expression, a shorthand property and its name, a call's only argument and
+ * the `SyntaxList` holding it. Each lies inside the others, so a filter that
+ * drops a match with another inside it dropped all of them and reported
+ * nothing (bug 0322). Of a tie, the last in walk order is kept: the walk is
+ * pre-order, so that is the deepest. `getAncestors()` cannot break the tie —
+ * it follows `getParent()`, which skips the `SyntaxList` the walk yields.
  */
 function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Match[] {
   const matches: Node[] = []
@@ -107,11 +115,13 @@ function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Match[] {
   }
   return matches
     .filter(
-      (m) =>
-        !matches.some(
-          (other) =>
-            other !== m && other.getStart() >= m.getStart() && other.getEnd() <= m.getEnd(),
-        ),
+      (m, i) =>
+        !matches.some((other, j) => {
+          if (other === m) return false
+          if (other.getStart() < m.getStart() || other.getEnd() > m.getEnd()) return false
+          const sameSpan = other.getStart() === m.getStart() && other.getEnd() === m.getEnd()
+          return !sameSpan || j > i
+        }),
     )
     .map((n) => ({ node: n }))
 }
