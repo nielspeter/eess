@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 /**
  * Bug 0287 — one markdown fence reader, not four.
@@ -16,14 +16,19 @@ import { readFileSync } from 'node:fs'
  * else, and one of the four copies was a script; a rule that cannot see where the last copy lived
  * cannot guard against the next one there.
  *
- * **What it cannot see** (stated in bug 0287): a fence reader that is not a regex alternating a
- * backtick run and a tilde run — a character loop, or one fence kind only.
+ * **What it cannot see** (stated in bug 0287): a fence reader that is not a regex alternating a backtick
+ * run and a tilde run in one of the three forms below — a character loop, one fence kind only, or a
+ * pattern built as a string and passed to `new RegExp`. Nor does it read the packages' tests.
  */
 
-/** A regex that reads a markdown fence: a backtick run and a tilde run, alternated, either order. */
+/**
+ * A regex that reads a markdown fence: a backtick run and a tilde run, alternated in either order, or
+ * both in one character class — the three ways the four copies and the two homes write it.
+ */
 const FENCE_READER = [
   /(?:```|`\{3,?\})[^\n]{0,60}\|[^\n]{0,60}(?:~~~|~\{3,?\})/,
   /(?:~~~|~\{3,?\})[^\n]{0,60}\|[^\n]{0,60}(?:```|`\{3,?\})/,
+  /\[(?:`~|~`)\][*+]|\[(?:`~|~`)\]\{[0-9]/,
 ]
 
 /**
@@ -38,46 +43,76 @@ const HOMES = {
   'packages/core/src/mask-non-comment.ts': 'the kernel borrows a lexer it cannot own (ADR-012)',
 }
 
-/** Code this repo ships or runs: every package's source, and the scripts that gate it. */
-const ROOTS = ['packages/*/src/**', 'scripts/**', 'kit/**']
+/** Code this repo ships or runs: every package's source, the scripts that gate it, and the kit. */
+const ROOTS = ['packages', 'scripts', 'kit', '.claude/workflows']
 const CODE = /\.(?:[cm]?[jt]s|tsx)$/
-// This file spells out the pattern and the copy it replaced, so it matches itself.
-const SELF = 'scripts/lib/one-fence-reader.test.mjs'
+const SKIP = new Set(['node_modules', 'dist', 'tests', 'fixtures'])
+// This file spells out the patterns and the copy it replaced, so it matches itself.
+const SELF = join('scripts', 'lib', 'one-fence-reader.test.mjs')
 
-// Tracked and untracked-but-not-ignored: a copy added in a working tree is seen before it is committed.
+/**
+ * Every code file under a root, walked on disk rather than listed by git: a non-vacuity probe is
+ * `.gitignore`d by design (bug 0231), and a check that cannot see the probe planted in its own
+ * population cannot be falsified.
+ */
 function codeFiles(root) {
-  return execFileSync(
-    'git',
-    ['ls-files', '--cached', '--others', '--exclude-standard', '--', root],
-    {
-      encoding: 'utf8',
-    },
-  )
-    .split('\n')
-    .filter((f) => CODE.test(f) && f !== SELF)
+  const out = []
+  const walk = (dir) => {
+    let entries = []
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return // a root that does not exist here is reported by the floor test below
+    }
+    for (const entry of entries) {
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        if (!SKIP.has(entry.name)) walk(path)
+      } else if (CODE.test(entry.name) && path !== SELF) out.push(path)
+    }
+  }
+  walk(root)
+  return out
 }
 
 const readsAFence = (text) =>
   text.split('\n').some((line) => FENCE_READER.some((re) => re.test(line)))
 
 const scanned = new Map(ROOTS.map((root) => [root, codeFiles(root)]))
+const allScanned = [...scanned.values()].flat()
 
-test('only its homes read a markdown fence with a regex', () => {
-  const offenders = [...scanned.values()]
-    .flat()
-    .filter((f) => !(f in HOMES) && readsAFence(readFileSync(f, 'utf8')))
+test('only its homes read a markdown fence with a regex', (t) => {
+  t.diagnostic(
+    `scanned ${allScanned.length} files: ` +
+      ROOTS.map((r) => `${r} ${(scanned.get(r) ?? []).length}`).join(' · '),
+  )
+  const offenders = allScanned.filter((f) => !(f in HOMES) && readsAFence(readFileSync(f, 'utf8')))
   assert.deepEqual(
     offenders,
     [],
     `a markdown fence is read by a regex outside its homes: ${offenders.join(', ')}. ` +
-      `Read prose through proseText from @nielspeter/eess-md/internal (or ../model/prose.js inside ` +
-      `eess-md) instead — a hand-rolled fence regex is how four copies came to lose a real line (bug 0287)`,
+      `Read prose through proseText — \`../model/prose.js\` inside eess-md, ` +
+      `\`@nielspeter/eess-md/internal\` outside it — instead; a hand-rolled fence regex is how four copies ` +
+      `came to lose a real line (bug 0287). The kernel cannot reach the dialect's parser (ADR-012), so a ` +
+      `reader there is a new home, and a decision to record beside the change that adds it`,
   )
 })
 
-test('every home is still matched — a pattern that stopped matching would pass on nothing', () => {
+test('every home is scanned and still matched — either half emptied would pass on nothing', () => {
+  const unscanned = Object.keys(HOMES).filter((f) => !allScanned.includes(f))
+  assert.deepEqual(
+    unscanned,
+    [],
+    `a home is not in the scanned set: ${unscanned.join(', ')} — the roots no longer reach it, so ` +
+      `nothing under them is checked either`,
+  )
   const unmatched = Object.keys(HOMES).filter((f) => !readsAFence(readFileSync(f, 'utf8')))
-  assert.deepEqual(unmatched, [], `the fence pattern no longer matches: ${unmatched.join(', ')}`)
+  assert.deepEqual(
+    unmatched,
+    [],
+    `the fence patterns no longer match: ${unmatched.join(', ')} — either a pattern broke, or that home ` +
+      `stopped reading fences with a regex and should leave HOMES`,
+  )
 })
 
 test('the pattern matches the copy it replaced', () => {
@@ -88,5 +123,6 @@ test('the pattern matches the copy it replaced', () => {
 test('every root contributed files — an emptied root is a check of nothing', () => {
   const empty = ROOTS.filter((root) => (scanned.get(root) ?? []).length === 0)
   assert.deepEqual(empty, [], `no code files under ${empty.join(', ')}`)
+  assert.ok(ROOTS.length >= 4, `ROOTS collapsed to ${ROOTS.length}`)
   assert.ok(Object.keys(HOMES).length >= 2, 'HOMES collapsed')
 })

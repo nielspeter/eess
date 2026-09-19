@@ -108,6 +108,21 @@ check(
   'Ship as-is',
 )
 
+check(
+  'ruling fenced inside an HTML block ignored',
+  operativeRuling(
+    '**Ruling: Ship as-is**\n\n<details>\n<summary>example</summary>\n```md\n**Ruling: Reject**\n```\n</details>\n',
+  ),
+  'Ship as-is',
+)
+check(
+  'ruling after a fence its list item leaves unclosed read',
+  operativeRuling(
+    '- note:\n  ```md\n  an example\n\n  **Ruling: Ship as-is**\n\nAfter the list.\n',
+  ),
+  'Ship as-is',
+)
+
 if (failures.length > 0) {
   console.error(`bad-proposal-ruling: ${failures.length} check(s) failed:`)
   for (const f of failures) console.error(`  x ${f}`)
@@ -117,6 +132,6 @@ if (failures.length > 0) {
 console.error(
   'bad-proposal-ruling: proposal-ruling/module-behavior — last-Ruling-wins, markdown-link ' +
     'Implements, fence-blindness, multi-Implements rejection, garbled-vs-absent, label ' +
-    'prefix tolerance, and parser-paired fences all hold',
+    'prefix tolerance, parser-paired fences, and fenced examples inside an HTML block all hold',
 )
 process.exit(1)

@@ -71,7 +71,7 @@ function extractCitations(
     if (!inDir(doc.relPath)) continue
     // A citation in a closed fence is an example and never counts. Only a closed one: this preset reports
     // no unclosed fence, so it reads past one rather than drop every citation after it (bug 0287).
-    const lines = proseText(doc.text, doc.root, 'closed-fences').split('\n')
+    const lines = proseText(doc.text, 'closed-fences', doc.root).split('\n')
     for (let i = 0; i < lines.length; i++) {
       for (const cite of extract(lines[i] ?? '')) {
         out.push({ ...cite, doc, line: i + 1 })

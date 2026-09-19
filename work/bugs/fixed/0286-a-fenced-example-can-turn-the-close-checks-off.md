@@ -260,6 +260,13 @@ comment in a code block above it. Over this repo's
 own corpus at the fix's head, 0.6.0's ledger and the fix's print the same: 126 done-items across 276
 records, all 276 readable, 0 findings.
 
+**Note, 2026-09-19 (PR #145).** This fix read a fence written **inside an HTML block** as prose: CommonMark
+reads such a fence as raw HTML, so the parser has no code node for it, and 0.6.0's regex — which was
+textual — blanked it. Measured in PR #145's enforcement review: a fenced `Draft` example inside
+`<details>` or `<div>`, above a closed record's own State line, became the record's state, and its silent
+box went unreported where 0.6.0 reported it. Fixed in PR #145: the owner sets aside a closed fence inside
+an HTML block too, in both readings, and a test here pins it. eess-md had not shipped either version.
+
 ## Verification ledger
 
 - [x] Seven shapes probed; the three leaks reproduced.

@@ -17,7 +17,7 @@
 ## Symptom
 
 `scripts/check-nonvacuity.mjs` names one rule id that reads class code, `eess/no-silent-catch`
-(`scripts/check-nonvacuity.mjs:641`). It names none of the four ids above.
+(`scripts/check-nonvacuity.mjs:675`). It names none of the four ids above.
 
 ## Root cause
 

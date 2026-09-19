@@ -19,12 +19,12 @@
 The same fence-stripper is hand-rolled four times. Byte-identical pattern,
 byte-identical body:
 
-| copy                                                              | used for                          |
-| ----------------------------------------------------------------- | --------------------------------- |
-| `packages/md/src/rules/ledger.ts:153` (0.6.0; deleted in PR #144) | `State:` and `Deferred:` scanning |
-| `packages/md/src/builders/vocabulary.ts:97`                       | `terms()` label collection        |
-| `packages/crossvalidate/src/md-gherkin.ts:64`                     | markdown-to-Gherkin binding       |
-| `scripts/lib/proposal-ruling.mjs:107`                             | `**Ruling:**` parsing             |
+| copy                                                                      | used for                          |
+| ------------------------------------------------------------------------- | --------------------------------- |
+| `packages/md/src/rules/ledger.ts:153` (0.6.0; deleted in PR #144)         | `State:` and `Deferred:` scanning |
+| `packages/md/src/builders/vocabulary.ts:97` (0.6.0; deleted in PR #145)   | `terms()` label collection        |
+| `packages/crossvalidate/src/md-gherkin.ts:64` (0.6.0; deleted in PR #145) | markdown-to-Gherkin binding       |
+| `scripts/lib/proposal-ruling.mjs:107` (0.6.0; deleted in PR #145)         | `**Ruling:**` parsing             |
 
 Two packages plus a gate script. An earlier version said three packages. All four carry
 `/(```|~~~)[\s\S]*?\1/g`, so all four carry the same behaviour on the same input
@@ -135,7 +135,7 @@ duplication: an architecture rule that no module outside the owner declares a
 `FENCE_RE`-shaped constant or a `stripFencedCode` function. `arch.rules.ts` is the
 home and `0257`'s fix is the model.
 
-**What this rule cannot see.** Two fence readers already exist that are not `FENCE_RE`-shaped: the kernel's line loop `maskMarkdownCodeSpans` (`packages/core/src/mask-non-comment.ts:171`) and the mdast walk behind `pointers()` (`packages/md/src/model/pointers.ts:37`). A rule on a regex constant matches neither, so this break class covers the four copies only. _(As built, the check matches any regex alternating a backtick run and a tilde run, which includes the kernel's line loop; that one is a named home. The mdast walk is not a regex and stays out of reach.)_
+**What this rule cannot see.** Two fence readers already exist that are not `FENCE_RE`-shaped: the kernel's line loop `maskMarkdownCodeSpans` (`packages/core/src/mask-non-comment.ts:171`) and the mdast walk behind `pointers()` (`packages/md/src/model/pointers.ts:37`). A rule on a regex constant matches neither, so this break class covers the four copies only. _(As built, the check matches a regex alternating a backtick run and a tilde run, or naming both in one character class — the kernel's line loop is one of those, and a named home. Out of reach: the mdast walk, which is not a regex; a pattern built as a string and handed to `new RegExp`; a reader of one fence kind only; and anything under the packages' `tests/`, which the walk skips.)_
 
 Until the ownership question is answered there is nothing to gate, which is why this is a `Draft` record putting a question and not a fix. _(Answered 2026-09-19; the rule lands with the last copy.)_
 
@@ -153,6 +153,13 @@ a public export of eess-md or an internal entry point — and HTML. The first ve
 blocks aside too, and silenced a real `State:` line inside a `<div>`; the fix sets aside code blocks only,
 and HTML stays [0293](../0293-an-example-inside-an-html-block-is-read-as-prose.md)'s question.
 
+**Both were ruled later the same day, in the same conversation as the ruling above.** The entry point:
+`@nielspeter/eess-md/internal`, not a public export of eess-md. And when the fix's review found that
+reading prose as CommonMark does drops a real line after a fence that never closes — for a reader with no
+finding to report it with — the library author declined to settle the reading and left it to the builder
+to settle by measurement ("you created this — so figure it out, investigate or spike"). What the builder
+settled, and what it rests on, is under "Fixed".
+
 Built so far, in 0286's PR (#144): the owner, and the `ledger.ts` copy deleted, both of its call sites reading
 through the owner, and the unterminated-fence finding. Still to move onto it: `builders/vocabulary.ts`,
 `packages/crossvalidate/src/md-gherkin.ts` and `scripts/lib/proposal-ruling.mjs` — and then the
@@ -169,31 +176,57 @@ the markdown parser for every reader in the family, and takes which code to set 
   proposal-ruling script read this way: none of them can report an unclosed fence, so each reads past one
   rather than drop the rest of the document.
 
-**The second reading is a design choice, made when the fix was built.** The ruling paired the parser (2)
-with a finding for an unterminated fence (4), because by CommonMark everything after an unclosed fence is
-code, and a reader that silently agrees drops it. Measured when fixing: the copies read a real line after
-an unclosed fence, and `'commonmark'` alone dropped it for all three consumers. `terms()` is a builder
-and cannot report one. The library author left the design to the builder. The rule chosen: a reader that
-can report reads as CommonMark and reports (4); a reader that cannot sets aside only what is certainly an
-example, so a malformed document errs toward a false red, never a silent pass. That is what the copies
-meant to do, with the fences paired by the parser. The kernel's own masker takes the mirror of it for the
-mirror reason: it looks for waivers, so it blanks to the end (`packages/core/src/mask-non-comment.ts:166-169`).
-In this repo `check:ledger` reports an unclosed fence on the proposals and plans lanes, so the script's
-readings are covered from the side that can report.
+**The second reading is a design choice, made when the fix was built**, on the delegation recorded above.
+The ruling paired the parser (2) with a finding for an unterminated fence (4), because by CommonMark
+everything after an unclosed fence is code, and a reader that silently agrees drops it. Measured when
+fixing: the copies read a real line after an unclosed fence, and `'commonmark'` alone dropped it for all
+three consumers. `terms()` is a builder and cannot report one. The rule chosen: **a reader that can report
+reads as CommonMark and reports (4); a reader that cannot sets aside only what is certainly an example** —
+a fence with its closing line. That is what the copies meant to do, with the fences paired by the parser.
+The kernel's own masker takes the mirror of it for the mirror reason: it looks for waivers, so it blanks
+to the end (`packages/core/src/mask-non-comment.ts:166-169`).
+
+**How far "never a silent pass" goes.** For a reader whose findings grow with what it reads — a term, a
+citation — reading more can only add a false red. A reader that keeps only the **last** of something does
+not have that property: the proposal script takes the last ruling, so an example read after the real line
+becomes the verdict. Measured, on 0.6.0 and on the fix alike: a real `Ship as-is` followed by an unclosed
+fence holding an example `Reject` reads `Reject`. It needs a reader that reports the fence beside it, and
+in this repo `check:ledger` does, on the proposals and plans lanes.
+
+**"Closed" means the fence has its closing line** — not that something ended it. The first build counted a
+fence its list item or blockquote ended as closed, and set it aside: a ruling below such a fence, which
+0.6.0 read, went silent. Found by the fix's enforcement review, measured, and pinned. The ledger's
+unterminated-fence finding is unchanged by this: it still reports only a fence that runs to the end of the
+document, measured identical to `main` across 26 shapes.
+
+**A fence written inside an HTML block is set aside too, in both readings.** CommonMark reads such a fence
+as raw HTML, so the parser has no code node for it — but the author fenced it as an example, and the
+regex this owner replaced blanked it. The first build read it, and the enforcement review measured what
+that cost: a fenced `**Ruling: Reject**` inside `<details>` became a proposal's operative ruling, and
+`check:corpus` stopped reporting the accepted proposal with no plan. **The same regression reached the
+ledger in PR #144** — a fenced `Draft` example inside `<details>` above a closed record's own State line
+took its place, and the record's silent box went unreported. Both are fixed here, before eess-md ships
+either. A fence with no closer inside the block is not set aside, by the same rule as everywhere else.
+Whether a **non-fenced** example inside an HTML block should be read stays
+[0293](../0293-an-example-inside-an-html-block-is-read-as-prose.md)'s question.
 
 **Measured on 0.6.0 against the fix**, each consumer, a real line and an example line per shape:
 
 | shape                                                  | 0.6.0                     | fixed                 |
 | ------------------------------------------------------ | ------------------------- | --------------------- |
 | a four-backtick or four-tilde example, lone inner run  | **real line lost**, all 3 | read                  |
+| a fence its list item ends, with a later fence         | **real line lost**, all 3 | read                  |
 | an inner fence paired inside a four-backtick/tilde one | **example read**, all 3   | set aside             |
-| a fence its list item closes                           | **example read**, all 3   | set aside             |
+| a fenced example inside `<details>` or `<div>`         | set aside                 | set aside             |
+| a fence its list item ends, no closer                  | example read              | example read          |
 | a fence that never closes                              | real and example read     | real and example read |
 | an indented example                                    | read                      | read                  |
 
-No shape loses a real line on the fix. Over this repo's 519 markdown documents the script's six readings
-(ruling, ruling line, unparseable ruling, Implements, its line, unparseable Implements) are identical on
-0.6.0 and the fix, and so is every document's citation count (57).
+No shape loses a real line on the fix, and none reads an example the copies set aside. Over this repo's
+521 markdown documents the script's six readings (ruling, ruling line, unparseable ruling, Implements,
+its line, unparseable Implements) are identical on 0.6.0 and the fix — 11 documents carry a ruling and 8
+an `**Implements:**` line; the rest read `null` on both — and so is every document's citation count (57,
+across 21 documents).
 
 **Reached through `@nielspeter/eess-md/internal`**, the dialect's counterpart of the kernel's family
 plumbing (ADR-011): not public API, not re-exported by the barrel, and skipped by the public-surface
@@ -203,11 +236,18 @@ as `RELEASING.md` step 3a says, not before.
 
 **The check against a fifth copy is a source scan, not an eess-ts rule.** `arch.rules.ts` sees the
 packages' TypeScript only, and one of the four copies was a script. `scripts/lib/one-fence-reader.test.mjs`
-runs in `check:arch`: no file under `packages/*/src`, `scripts` or `kit` may read a markdown fence with
-a regex alternating a backtick run and a tilde run, outside two named homes — the owner, and the kernel's
-masker, which cannot depend on the dialect's parser (ADR-012). It fails on 0.6.0 naming the three copies
-that were left. Its non-vacuity is its own: every home must still match, the copies' exact regex must
-match, and every root must contribute files.
+runs in `check:arch`: no file under `packages`, `scripts`, `kit` or `.claude/workflows` may read a
+markdown fence with a regex — a backtick run and a tilde run alternated, or both in one character class —
+outside two named homes: the owner, and the kernel's masker, which cannot reach the dialect's parser
+(ADR-012). It walks the filesystem rather than listing tracked files, because a non-vacuity probe is
+`.gitignore`d by design, and prints the count it scanned.
+
+It fails on `main`, naming the three copies left there; on 0.6.0 it names four. Its own floor is that
+every home is **in the scanned set** and still matched — the first build asserted only that a home's file
+matched when read directly, which an emptied root list would have passed, measured by the review. Two
+non-vacuity rows plant the copies' exact regex and run `npm run check:arch`: one under `packages/md/src`,
+one under `scripts`, since the copies lived in both, and running the npm script is what proves the check
+is still wired into the gate.
 
 ## Verification ledger
 
@@ -227,6 +267,19 @@ match, and every root must contribute files.
 - [x] Once answered: the copies removed, and the check that stops a fifth — done-otherwise: a source
       scan run by `check:arch`, `scripts/lib/one-fence-reader.test.mjs`, rather than a rule in
       `arch.rules.ts`, which cannot see a script; see "Fixed".
+- [x] The enforcement review's two criticals, both measured on 0.6.0 against the fix and fixed here: a
+      fenced example inside an HTML block read as a claim (and the same regression in the ledger from PR
+      #144), and the check passing over zero files. Pinned by
+      `it('a fenced example inside an HTML block is an example, not the record’s own State')`,
+      `it('a reference inside a fence written in an HTML block is an example')`,
+      `it('a citation inside a fence written in an HTML block is an example')`, two directions in
+      `scripts/nonvacuity/bad-proposal-ruling.mjs`, and the check's own scanned-set floor.
+- [x] The review's I1, measured and fixed: a fence its container ended counted as closed, so a ruling
+      below it went silent. "Closed" now means the fence has its closing line —
+      `it('a reference after a fence its list item leaves unclosed is still read')` and its citation twin.
+- [x] 26 fence shapes probed against the new classification — closed and unclosed, top level, in list
+      items, quotes and nested lists, with trailing blanks, CRLF, empty fences and four kinds of
+      non-closer: 0 misread, and the ledger's unterminated-fence report identical to `main` on all 26.
 - [x] Red first: `packages/md/tests/builders/terms-reads-fences-through-the-parser.test.ts` ·
       `it('a reference below a longer fence holding a lone shorter run is read')` and
       `packages/crossvalidate/tests/md-gherkin-reads-fences-through-the-parser.test.ts` ·
@@ -234,8 +287,14 @@ match, and every root must contribute files.
       closed-fence examples, fail on 0.6.0's copies; the unclosed-fence tests pass on both, pinning what
       must not be lost.
 
-Deferred: none — the open box above is this record's own subject, not work handed
-elsewhere.
+- [x] Sabotage matrix in the worktree, sources restored by sha256 and the tree unchanged: 13 rows and an
+      as-built control that fails nothing. The reader's two modes (setting aside nothing, or everything),
+      a fence with no closing line classed as closed, an HTML fence not set aside or closed by a shorter
+      run, each of the three consumers reading as CommonMark or reading raw text, the script stripping
+      nothing, and the check matching nothing, walking nothing, or missing a fifth copy planted in a
+      package — each turns its own test red.
+
+Deferred: none.
 
 ## Related
 

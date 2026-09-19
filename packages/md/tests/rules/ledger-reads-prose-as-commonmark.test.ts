@@ -111,6 +111,35 @@ describe('bug 0286: the ledger reads a document’s prose as CommonMark does', (
     ])
   })
 
+  it('a fenced example inside an HTML block is an example, not the record’s own State', () => {
+    // CommonMark reads this fence as raw HTML, so the parser has no code node for it — but the author
+    // fenced it as an example. 0.6.0's regex set it aside; the first version of this fix read it, which
+    // lost the silent box on the record below (bug 0287's review).
+    const record = (open: string, close: string): string =>
+      [
+        '# 0001 x',
+        '',
+        open,
+        '<summary>example</summary>',
+        '```md',
+        EXAMPLE_STATE,
+        '```',
+        close,
+        '',
+        '## Status',
+        '',
+        '- **State:** Done — closed',
+        '',
+        '## Tasks',
+        '',
+        '- [ ] box',
+        '',
+      ].join('\n')
+
+    expect(findings(record('<details>', '</details>'))).toEqual([['ledger/silent-open-box', 16]])
+    expect(findings(record('<div>', '</div>'))).toEqual([['ledger/silent-open-box', 16]])
+  })
+
   it('a fence is closed only by a closer CommonMark accepts, at the end of the document too', () => {
     const endsWith = (fence: readonly string[]): [string, number][] =>
       findings(['# 0001 x', '', '- **State:** Draft — open', '', ...fence].join('\n'))

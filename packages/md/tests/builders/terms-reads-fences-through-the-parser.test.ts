@@ -51,10 +51,69 @@ describe('bug 0287: terms() pairs fences with the markdown parser', () => {
 
     expect(unresolved(inside(['````md', '```', '**Context:** Example', '```', '````']))).toEqual([])
     expect(unresolved(inside(['~~~~md', '~~~', '**Context:** Example', '~~~', '~~~~']))).toEqual([])
-    // A fence its list item closes is closed too.
+    // A fence its list item ends has no closing line, so it is not certainly an example: its reference
+    // is read, as the regex this replaced read it.
     expect(
       unresolved(inside(['- note:', '  ```md', '  **Context:** Example', '- another note'])),
-    ).toEqual([])
+    ).toEqual(['Example'])
+  })
+
+  it('a reference inside a fence written in an HTML block is an example', () => {
+    // CommonMark reads the fence as raw HTML, so the parser has no code node for it. The author fenced
+    // it as an example, and the copy this replaced set it aside (bug 0287's review).
+    const inHtml = (open: string, close: string): string =>
+      [
+        '# x',
+        '',
+        open,
+        '<summary>example</summary>',
+        '```md',
+        '**Context:** Example',
+        '```',
+        close,
+        '',
+        '**Context:** Known',
+        '',
+      ].join('\n')
+
+    expect(unresolved(inHtml('<details>', '</details>'))).toEqual([])
+    expect(unresolved(inHtml('<div>', '</div>'))).toEqual([])
+
+    // Paired by run length there too: the lone inner run is content, not the closer.
+    const longer = [
+      '# x',
+      '',
+      '<details>',
+      '<summary>example</summary>',
+      '````md',
+      '```',
+      '**Context:** Example',
+      '````',
+      '</details>',
+      '',
+      '**Context:** Known',
+      '',
+    ].join('\n')
+
+    expect(unresolved(longer)).toEqual([])
+  })
+
+  it('a reference after a fence its list item leaves unclosed is still read', () => {
+    // The list item ends the fence, but nothing closed it, so it is not certainly an example.
+    const text = [
+      '# x',
+      '',
+      '- note:',
+      '  ```md',
+      '  an example',
+      '',
+      '  **Context:** Real',
+      '',
+      'After the list.',
+      '',
+    ].join('\n')
+
+    expect(unresolved(text)).toEqual(['Real'])
   })
 
   it('a reference after a fence that never closes is still read', () => {

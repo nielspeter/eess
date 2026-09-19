@@ -120,7 +120,7 @@ const readings = new Map()
 function stripFencedCode(text) {
   let prose = readings.get(text)
   if (prose === undefined) {
-    prose = proseText(text, undefined, 'closed-fences')
+    prose = proseText(text, 'closed-fences')
     readings.set(text, prose)
   }
   return prose

@@ -55,8 +55,50 @@ describe('bug 0287: scenario citations pair fences with the markdown parser', ()
 
     expect(unresolved(inside(['````md', '```', example, '```', '````']))).toEqual([])
     expect(unresolved(inside(['~~~~md', '~~~', example, '~~~', '~~~~']))).toEqual([])
-    // A fence its list item closes is closed too.
-    expect(unresolved(inside(['- note:', '  ```md', `  ${example}`, '- another note']))).toEqual([])
+    // A fence its list item ends has no closing line, so it is not certainly an example: its citation is
+    // read, as the regex this replaced read it.
+    expect(unresolved(inside(['- note:', '  ```md', `  ${example}`, '- another note']))).toEqual([
+      'features/example.feature',
+    ])
+  })
+
+  it('a citation inside a fence written in an HTML block is an example', () => {
+    // CommonMark reads the fence as raw HTML, so the parser has no code node for it. The author fenced
+    // it as an example, and the copy this replaced set it aside (bug 0287's review).
+    const inHtml = (open: string, close: string): string =>
+      [
+        '# x',
+        '',
+        open,
+        '<summary>example</summary>',
+        '```md',
+        'See `features/example.feature`.',
+        '```',
+        close,
+        '',
+        'See `features/ok.feature`.',
+        '',
+      ].join('\n')
+
+    expect(unresolved(inHtml('<details>', '</details>'))).toEqual([])
+    expect(unresolved(inHtml('<div>', '</div>'))).toEqual([])
+  })
+
+  it('a citation after a fence its list item leaves unclosed is still read', () => {
+    const text = [
+      '# x',
+      '',
+      '- note:',
+      '  ```md',
+      '  an example',
+      '',
+      '  See `features/real.feature`.',
+      '',
+      'After the list.',
+      '',
+    ].join('\n')
+
+    expect(unresolved(text)).toEqual(['features/real.feature'])
   })
 
   it('a citation after a fence that never closes is still read', () => {

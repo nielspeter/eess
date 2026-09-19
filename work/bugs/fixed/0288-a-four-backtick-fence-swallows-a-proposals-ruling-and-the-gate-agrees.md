@@ -80,7 +80,9 @@ mechanism this record had misnamed.
 The fix is **run-length awareness**: an anchored pattern whose closer must be a run
 at least as long as its opener. A reviewer built one while reviewing
 [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md) and measured it
-repairing that record's first route completely.
+repairing that record's first route completely. _(Superseded 2026-09-19: no pattern
+ships. The fences are paired by the markdown parser, in the one owner every consumer
+reads through — see "Fixed".)_
 
 **Genuinely unterminated fences are a separate, real shape** — 0286's second route, where an opener with no closer makes the rest of the document code by CommonMark while the regex reads on.
 That needs its own handling and this record no longer claims to cover it. Reporting
@@ -90,8 +92,9 @@ unreadable input is reported rather than guessed at.
 
 ## Non-vacuity
 
-`scripts/check-nonvacuity.mjs` has no row for the ruling parser's fail-open,
-because the failure is a finding that does not appear. A new row with its own fixture must red: an accepted proposal whose `**Ruling:**` follows a four-backtick example holding a triple-backtick run, then an ordinary fenced block, with no plan declaring it.
+`scripts/check-nonvacuity.mjs` had no row for the ruling parser's fail-open,
+because the failure is a finding that does not appear. _(Added 2026-09-19 as
+`corpus/proposal-ruling-behind-a-fence` — see "Fixed".)_ A new row with its own fixture must red: an accepted proposal whose `**Ruling:**` follows a four-backtick example holding a triple-backtick run, then an ordinary fenced block, with no plan declaring it.
 
 **An earlier version specified an unpaired fence. That fixture is hollow either way.** Measured on `main`:
 
@@ -132,7 +135,7 @@ repo's 519 markdown documents, all six readings are identical on both.
 - [x] **Falsified this record's own mechanism and both its fixes** — the document
       is CommonMark-paired, so "unterminated fence" names nothing in it and neither
       offered fix fires on it.
-- [x] Red first: this record's reproduction, as an accepted proposal with no plan declaring it, must fail `check:corpus` — the non-vacuity row below plants it: with 0.6.0's script `check:corpus` exits 0 and reports nothing on it; on the fix it exits 1 with `corpus/accepted-proposal-uncited`.
+- [x] Red first: this record's reproduction, as an accepted proposal with no plan declaring it, must fail `check:corpus` — the non-vacuity row in `scripts/check-nonvacuity.mjs` plants it: with 0.6.0's script `check:corpus` exits 0 and reports nothing on it; on the fix it exits 1 with `corpus/accepted-proposal-uncited`.
 - [x] The non-vacuity row and fixture: `corpus/proposal-ruling-behind-a-fence` in `scripts/check-nonvacuity.mjs`, running the production `check:corpus` on the planted proposal, and three parser-paired directions in `scripts/nonvacuity/bad-proposal-ruling.mjs`.
 - [x] The run-length-aware pattern, decided once for all four consumers — done-otherwise: not a pattern.
       The fences are paired by the markdown parser, in one owner every consumer reads through

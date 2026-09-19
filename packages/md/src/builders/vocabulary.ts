@@ -109,7 +109,7 @@ function collectTerms(corpus: Corpus, options: TermsOptions): MdTerm[] {
   for (const doc of corpus.documents()) {
     // A closed fence is an example, so its prose never yields terms. Only a closed one: a builder cannot
     // report a fence that never closes, so it reads past one rather than drop the rest (bug 0287).
-    const lines = proseText(doc.text, doc.root, 'closed-fences').split('\n')
+    const lines = proseText(doc.text, 'closed-fences', doc.root).split('\n')
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i] ?? ''
       const m = label.exec(line)

@@ -168,6 +168,21 @@ adrEnforcement(c, {
 })
 ```
 
+## `@nielspeter/eess-md/internal` is not API
+
+| Specifier                      | What it is                                                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `@nielspeter/eess-md`          | The public API — the corpus, the builders, the presets. A change to it is a versioned change.                                       |
+| `@nielspeter/eess-md/internal` | Family plumbing: `proseText`, the one reader of a document's prose the family shares, so nothing hand-rolls a fence regex. Not API. |
+
+You want the root. `/internal` exists so the family's other markdown readers —
+`@nielspeter/eess-crossvalidate`, and this repo's own gate scripts — can read prose the way this
+dialect reads it, rather than keeping a copy that disagrees with it (bug 0287). It is published because
+npm has no way to ship a package-private module. Nothing there is documented beyond its own JSDoc, the
+package barrel does not re-export it, and it changes without migration notes. The kernel's
+`/internal` says the same thing for the same reason; see
+[ADR-011](https://github.com/nielspeter/eess/blob/main/adr/011-the-kernels-public-api-is-explicit.md).
+
 ## License
 
 MIT

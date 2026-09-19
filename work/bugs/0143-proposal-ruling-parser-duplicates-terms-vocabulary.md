@@ -20,7 +20,7 @@
   > reproduced live against the real corpus. The shipped `terms()`/
   > `vocabulary()` primitive this bug is about does **not** have that defect
   > (`collectTerms` uses an unanchored `label.exec(line)` —
-  > `packages/md/src/builders/vocabulary.ts:118` — so a line prefix is
+  > `packages/md/src/builders/vocabulary.ts:115` — so a line prefix is
   > irrelevant by construction). That is the strongest evidence this bug
   > argues, and the first draft undercut it by asserting correctness instead
   > of citing the defect. Now fixed (both sides share a `LABEL_PREFIX`

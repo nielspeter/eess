@@ -197,6 +197,11 @@ const FAMILY_REEXPORT_AGGREGATION_TARGET = join(
 )
 
 const PROBE_ARCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe__.ts')
+// Bug 0287: a fifth copy of the fence regex, one per root the check walks. `.mjs`, not `.ts`: the
+// packages' tsconfigs take `src/**/*.ts`, so a `.ts` probe reds `eess-ts` first and `check:arch`'s
+// `&&` would never reach the check under test.
+const PROBE_FENCE_PKG = join(repoRoot, 'packages', 'md', 'src', '__nonvacuity_probe_fence__.mjs')
+const PROBE_FENCE_SCRIPT = join(repoRoot, 'scripts', '__nonvacuity_probe_fence__.mjs')
 /**
  * A rule file whose one builder hands back a bare array — plan 0263 Phase 2.
  *
@@ -610,6 +615,8 @@ rmSync(PROBE_CORPUS_WORK_ROOT, { force: true })
 rmSync(PROBE_CORPUS_BOARD_PROPOSAL, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_DUP, { force: true })
 rmSync(PROBE_CORPUS_PROMOTED, { force: true })
+rmSync(PROBE_FENCE_PKG, { force: true })
+rmSync(PROBE_FENCE_SCRIPT, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_UNCITED, { force: true })
 rmSync(PROBE_CORPUS_PROPOSAL_FENCED, { force: true })
 rmSync(PROBE_CORPUS_RULING_UNPARSEABLE, { force: true })
@@ -634,6 +641,27 @@ function gateArch() {
   const clean = sh(EESS_TS, ['check', 'arch.rules.ts'])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
   return { ok, detail: `bad → exit ${bad.code} (eess/adr002-no-raw-typescript) · ${cleanNote}` }
+}
+
+/**
+ * Bug 0287: the check that stops a fifth copy of the fence regex. One row per root it walks, because
+ * the four copies lived in two of them — two packages and a gate script — and a root dropped from its
+ * list takes everything under it out of the population silently.
+ *
+ * Runs `npm run check:arch`, not the check directly: unwiring it from that script is the other way the
+ * guard stops guarding.
+ */
+function gateFenceReader(probe, where) {
+  // Assembled, not written out: spelled literally, this line would be the fifth copy the row exists to
+  // catch, and `check:arch` would red on the harness itself.
+  const backticks = '`'.repeat(3)
+  const copy =
+    "// A fifth copy of the fence regex the family's one prose reader replaced (bug 0287).\n" +
+    `export const FENCE_RE = /(${backticks}|~~~)[\\s\\S]*?\\1/g\n`
+  const bad = withProbe(probe, copy, () => sh('npm', ['run', 'check:arch']))
+  const named = `${bad.stdout}${bad.stderr}`.includes('__nonvacuity_probe_fence__.mjs')
+  const ok = bad.code !== 0 && named
+  return { ok, detail: `bad (${where}) → exit ${bad.code}, names the probe: ${named}` }
 }
 
 // --- Gate: internal arch (intra-package rules) ---
@@ -2508,6 +2536,8 @@ const gates = [
   ['corpus/frozen-scope', gateCorpusFrozenScope],
   // Plan 0142 (closing bug 0141): proposal→plan linkage, built on the
   // gateCorpusProbe shape from day one.
+  ['arch/one-fence-reader (packages)', () => gateFenceReader(PROBE_FENCE_PKG, 'packages/md/src')],
+  ['arch/one-fence-reader (scripts)', () => gateFenceReader(PROBE_FENCE_SCRIPT, 'scripts')],
   ['corpus/proposal-plan-linkage', gateCorpusProposalUncited],
   ['corpus/proposal-ruling-behind-a-fence', gateCorpusProposalRulingBehindFence],
   ['corpus/proposal-ruling-unparseable', gateCorpusRulingUnparseable],
@@ -2781,6 +2811,8 @@ const GATE_FOR = {
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'internal arch',
+    'arch/one-fence-reader (packages)',
+    'arch/one-fence-reader (scripts)',
     'arch/no-new-kernel-registry',
     'engine/applyfilters-parity',
   ],
