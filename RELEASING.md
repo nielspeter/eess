@@ -310,6 +310,11 @@ this release ships `@nielspeter/eess` at 0.5.0 and `@nielspeter/eess-md` at
 version"; that has been false since `v0.4.0`, which was cut while md was at
 0.5.0.
 
+**When the kernel does not move, the tag takes the version of the package that does.** The kernel's
+version is already tagged then, so `v0.6.0` was cut for a release that moved eess-ts alone, and its
+migration page is `docs/migrating-to-eess-ts-0.6.md`. The cost: when the kernel next reaches a version
+already tagged, its release takes the next free tag.
+
 **A release carrying a migration page needs a step nothing automates.**
 `publish.yml` creates the GitHub Release with `generate_release_notes: true` and
 no body, so the notes are machine-made from PR titles and no authoring moment

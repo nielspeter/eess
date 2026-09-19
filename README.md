@@ -54,10 +54,10 @@ Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
 
-**Upgrading from 0.4?** The 0.5 family moves every package at once and carries
-breaking changes in both halves — imports you must change, and builds that go
-red with your source untouched. [Migrating to 0.5](./docs/migrating-to-0.5.md)
-collects them in the order you hit them.
+**Upgrading eess-ts from 0.5?** eess-ts 0.6 carries eleven breaking changes, and
+every one makes a rule report code it used to pass — so a build can go red with
+your source untouched. [Migrating to eess-ts 0.6](./docs/migrating-to-eess-ts-0.6.md)
+collects them, with what to do before you regenerate a baseline.
 
 ## Packages
 

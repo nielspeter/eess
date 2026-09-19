@@ -4,7 +4,7 @@
 
 - **State:** Fixed — the call conditions test an argument, and a concise callback's body, itself
   too, and so does a module-scope search under `scopeToModule` for a top-level initializer; a root's
-  match is numbered after the matches below it, so a baseline keeps its identities. Red test first.
+  match is numbered after the matches below it within one call. Red test first.
 - **Severity:** High — **false green, with `call()`**, the matcher eess recommends for precision.
   `notHaveCallbackContaining(call('legacy'))` passed `use(() => legacy(1))`, and a concise arrow is
   the ordinary way to write a one-line callback. `notHaveArgumentContaining(call('legacy'))` passed
@@ -86,12 +86,16 @@ nothing inside it matched, so `use(legacy(legacy(1)))` is one finding under
 a regex can match an argument and a call inside it, as it already did one level down:
 `call(/legacy/)` in `use(legacy(1).then())` was one finding and is two.
 
-**A baseline keeps its identities.** A finding's identity is an ordinal among the matches in its
+**Baselines, within one call only.** A finding's identity is an ordinal among the matches in its
 declaration. Numbered where it stands, a new root match would take the ordinal of a match a baseline
 already accepted, and the new finding would be the one hidden — the outcome
 `packages/ts/src/conditions/match-identity.ts:20` calls worse than a miss. `findMatchesInEach`
-numbers the root matches last, as `searchClassBody` numbers the code 0300 made it read. Found by the
-enforcement review of this fix; a trivia match was found on a root before, so it keeps its place.
+numbers the root matches last within one call, or one initializer; a trivia match was found on a root
+before, so it keeps its place. **Across calls it does not:** the ordinal is shared by every call in the
+declaration, so in `use(legacy(1)); use(0 + legacy(2));` the new first finding takes `#1` and the
+accepted one becomes `#1#1` — measured by the method review. The changeset says so and asks for a
+review before regenerating, as for any rule that reports more. Numbering across calls would change how
+identities are assigned, and is not done here.
 
 **It is a behaviour change.** It reports findings 0.5.1 missed. The changeset marks it breaking.
 `docs/calls.md` is true again, says a concise callback's body is tested itself, and says a callback
@@ -120,7 +124,7 @@ inside an object literal is not searched yet.
       KNOWN-GAP file is replaced, as
       [0297](./0297-no-process-env-reads-one-spelling-of-an-environment-read.md)'s was.
 - [x] The review's findings pinned —
-      `it('a match at the root is numbered after the matches below it, so a baseline keeps its identities')`,
+      `it('a match at the root is numbered after the matches below it in the same call')`,
       `it('a module-scope initializer that is the match is found under scopeToModule')`, and the
       block-body test's two assertions at the `haveCallbackContaining` site.
 - [x] Sabotage matrix in the worktree over the two test files this PR adds, sources restored by

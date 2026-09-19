@@ -21,6 +21,9 @@ argument and a call or access inside it, as it already did one level down: `call
 both `legacy(1).then()` and `legacy(1)` in `use(legacy(1).then())`. No shipped rule or preset uses
 these conditions or `scopeToModule`.
 
-A green rule may report new findings. Messages are unchanged. A newly reported match on an argument,
-a callback body or an initializer itself is numbered after the matches below it, so a finding a
-baseline accepted keeps its identity and the new one is reported as new.
+A green rule may report new findings. Messages are unchanged. Within one call, or one initializer, a
+newly reported match on the argument, the callback body or the initializer itself is numbered after
+the matches below it. Across calls in one declaration, or statements of one module, it is not: as with
+any rule that reports more, a newly reported match above an accepted one takes its ordinal in a
+baseline — the accepted match is reported as new, and the new one is hidden until the baseline is
+reviewed. Review that declaration's findings before regenerating it.

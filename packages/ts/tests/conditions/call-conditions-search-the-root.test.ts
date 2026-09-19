@@ -13,9 +13,9 @@ import type { ArchProject } from '../../src/core/project.js'
  * `use(() => legacy(1))` — were not seen, with `call()` as with `expression()`.
  *
  * They now test the node itself too, unless it is a block: a block is searched below its root, as a
- * function's own body is. One test per call site, so a fix that misses one stays red. A root's match
- * is numbered after the matches below it, and a module-scope initializer, searched the same way under
- * `scopeToModule`, is tested itself too.
+ * function's own body is. One test per call site, so a fix that misses one stays red. Within one call,
+ * a root's match is numbered after the matches below it; a module-scope initializer, searched the same
+ * way under `scopeToModule`, is tested itself too.
  */
 function project(statement: string): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })
@@ -132,7 +132,7 @@ describe('bug 0323: the call conditions test the root they search', () => {
     expect(findings('use((n = legacy(1)) => 1);', 'haveCallbackContaining', call('legacy'))).toBe(1)
   })
 
-  it('a match at the root is numbered after the matches below it, so a baseline keeps its identities', () => {
+  it('a match at the root is numbered after the matches below it in the same call', () => {
     // 0.5.1 reported only the inner call, as #1. The outer call, newly reported, takes #2, and the
     // accepted #1 still names the inner call.
     const ordinals = (statement: string, condition: Condition): [number, string][] =>
