@@ -133,7 +133,7 @@ function findMatchesBroad(node: Node, matcher: ExpressionMatcher): Match[] {
  * (efficient — only walks nodes of that kind). Falls back to
  * getDescendants() for matchers without syntaxKinds (expression()).
  */
-export function findMatchesInNode(node: Node, matcher: ExpressionMatcher): Match[] {
+function findMatchesInNode(node: Node, matcher: ExpressionMatcher): Match[] {
   // TRIVIA first, and at the dispatcher rather than inside the broad walk.
   // A trivia matcher may also narrow by `syntaxKinds` for speed — plan 0047's
   // `tsDirective()` wants exactly that — and with the branch one level down it
@@ -331,6 +331,22 @@ function findMatchesInExpression(node: Node, matcher: ExpressionMatcher): Match[
   if (!matcher.matches(node)) return inner
   if (broad && inner.length > 0) return inner
   return [{ node }, ...inner]
+}
+
+/**
+ * Matches in what a call condition searches — an argument, or a callback's body — including the
+ * node itself unless it is a block (bug 0323).
+ *
+ * An argument can BE the match — `use(legacy(1))` — and so can a concise callback's body, which
+ * `getFunctionBody` returns as the expression itself: `use(() => legacy(1))`. With
+ * `findMatchesInNode` alone neither was tested, under `call()` as under `expression()`. A block is
+ * searched below its root, as `searchFunctionBody` searches a function's own: tested itself, a
+ * block would match a broad pattern against the whole body.
+ */
+export function findMatchesInCode(node: Node, matcher: ExpressionMatcher): Match[] {
+  return NodeUtils.isBlock(node)
+    ? findMatchesInNode(node, matcher)
+    : findMatchesInExpression(node, matcher)
 }
 
 /**

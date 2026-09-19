@@ -155,7 +155,7 @@ Conditions define the assertions enforced on calls that pass the predicate filte
 
 ### `haveCallbackContaining(matcher)`
 
-At least one callback argument must contain the matched expression. Searches all arrow functions and function expressions passed as arguments.
+At least one callback argument must contain the matched expression. Searches all arrow functions and function expressions passed as arguments. A concise arrow's body is tested itself too, so `() => authenticate(req)` contains `call('authenticate')`; a block body is searched inside its braces.
 
 ```typescript
 calls(p)
@@ -232,7 +232,7 @@ calls(p)
 
 ### `haveArgumentContaining(matcher)`
 
-At least one argument subtree must contain the matched expression. Searches all arguments recursively at any depth -- object literals, nested objects, callbacks, and any other expression.
+At least one argument subtree must contain the matched expression. Searches all arguments recursively at any depth, the argument itself included -- object literals, nested objects, callbacks, and any other expression.
 
 This is a superset of `haveCallbackContaining`. Use `haveCallbackContaining` when you only want to search callback (function-like) arguments.
 

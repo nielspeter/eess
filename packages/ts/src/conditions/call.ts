@@ -4,7 +4,7 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
-import { getFunctionBody, findMatchesInNode, reportedLine } from '../helpers/body-traversal.js'
+import { getFunctionBody, findMatchesInCode, reportedLine } from '../helpers/body-traversal.js'
 import { identifyMatches } from './match-identity.js'
 import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 
@@ -122,7 +122,7 @@ export function notHaveCallbackContaining(matcher: ExpressionMatcher): Condition
         // match in the same enclosing declaration would collide.
         const matches = args.flatMap((arg) => {
           const body = getFunctionBody(arg)
-          return body ? findMatchesInNode(body, matcher) : []
+          return body ? findMatchesInCode(body, matcher) : []
         })
         const identities = identifyMatches(
           'call-callback',
@@ -154,7 +154,7 @@ function searchCallbacksFor(archCall: ArchCall, matcher: ExpressionMatcher): boo
   for (const arg of args) {
     const body = getFunctionBody(arg)
     if (!body) continue
-    const matches = findMatchesInNode(body, matcher)
+    const matches = findMatchesInCode(body, matcher)
     if (matches.length > 0) return true
   }
   return false
@@ -282,7 +282,8 @@ export function notHaveArgumentWithProperty(...names: string[]): Condition<ArchC
 /**
  * Assert that at least one argument subtree contains a match.
  *
- * Searches ALL arguments of each call recursively using `findMatchesInNode`.
+ * Searches ALL arguments of each call recursively using `findMatchesInCode`,
+ * which tests each argument itself too (bug 0323).
  * This is a superset of `haveCallbackContaining` — it searches the entire
  * subtree of every argument (object literals, callbacks, nested expressions),
  * not just function-like arguments. Use `haveCallbackContaining` when you
@@ -297,7 +298,7 @@ export function haveArgumentContaining(matcher: ExpressionMatcher): Condition<Ar
         const args = archCall.getArguments()
         let found = false
         for (const arg of args) {
-          const matches = findMatchesInNode(arg, matcher)
+          const matches = findMatchesInCode(arg, matcher)
           if (matches.length > 0) {
             found = true
             break
@@ -321,7 +322,8 @@ export function haveArgumentContaining(matcher: ExpressionMatcher): Condition<Ar
 /**
  * Assert that NO argument subtree contains a match.
  *
- * Searches ALL arguments of each call recursively using `findMatchesInNode`.
+ * Searches ALL arguments of each call recursively using `findMatchesInCode`,
+ * which tests each argument itself too (bug 0323).
  * Produces one violation per matching node found in any argument.
  *
  * This is a superset of `notHaveCallbackContaining` — it searches the entire
@@ -339,7 +341,7 @@ export function notHaveArgumentContaining(matcher: ExpressionMatcher): Condition
         // same archCall — same identity work each time.
         const callName = callNameForMessage(archCall, context)
         const args = archCall.getArguments()
-        const matches = args.flatMap((arg) => findMatchesInNode(arg, matcher))
+        const matches = args.flatMap((arg) => findMatchesInCode(arg, matcher))
         const identities = identifyMatches(
           'call-argument',
           archCall.getSourceFile().getFilePath(),

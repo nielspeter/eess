@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { Project, SyntaxKind } from 'ts-morph'
 import path from 'node:path'
 import { call, access, newExpr, expression } from '../../src/helpers/matchers.js'
-import { findMatchesInNode } from '../../src/helpers/body-traversal.js'
+import { findMatchesInCode } from '../../src/helpers/body-traversal.js'
 
 const fixturesDir = path.resolve(import.meta.dirname, '../fixtures/poc')
 
@@ -150,7 +150,7 @@ describe('ExpressionMatcher helpers', () => {
       const sf = p.createSourceFile('test.ts', `function handler() { reply.code(400).send({}) }`)
       const fn = sf.getFunctions()[0]!
       const body = fn.getBody()!
-      const matches = findMatchesInNode(body, expression(/reply\.code\(400\)/))
+      const matches = findMatchesInCode(body, expression(/reply\.code\(400\)/))
       // Should match the deepest node containing the pattern, not every ancestor
       expect(matches.length).toBe(1)
     })
@@ -160,7 +160,7 @@ describe('ExpressionMatcher helpers', () => {
       const sf = p.createSourceFile('test.ts', `function f() { foo(); bar() }`)
       const fn = sf.getFunctions()[0]!
       const body = fn.getBody()!
-      const matches = findMatchesInNode(body, expression(/foo|bar/))
+      const matches = findMatchesInCode(body, expression(/foo|bar/))
       // Both siblings BY NAME: matching foo() twice also had length 2.
       expect(matches.map((m) => m.node.getText()).sort()).toEqual(['bar', 'foo'])
     })
@@ -171,7 +171,7 @@ describe('ExpressionMatcher helpers', () => {
       const fn = sf.getFunctions()[0]!
       const body = fn.getBody()!
       // call() uses syntaxKinds — goes through targeted path, not broad+dedup
-      const callMatches = findMatchesInNode(body, call('parseInt'))
+      const callMatches = findMatchesInCode(body, call('parseInt'))
       // Identity here too: the sibling at :155 was class C for the same reason,
       // and this block shares its helper.
       expect(callMatches.map((m) => m.node.getText())).toEqual(["parseInt('42', 10)"])

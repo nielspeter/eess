@@ -128,9 +128,9 @@ The changeset marks it breaking and names every search that changes.
 
 ## Related
 
-- [0323](../0323-the-call-conditions-search-below-the-root.md) — found while measuring this fix. The
+- [0323](./0323-the-call-conditions-search-below-the-root.md) — found while measuring this fix. The
   call conditions never test an argument, or a concise callback's body, that is itself the match, with
-  `call()` as with `expression()`. A different cause, filed with KNOWN-GAP tests.
+  `call()` as with `expression()`. A different cause, filed with KNOWN-GAP tests and fixed in its own PR.
 
 ## Verification
 
