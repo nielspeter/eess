@@ -286,7 +286,7 @@ classes(p)
 Body analysis works on both classes and functions, but the scope differs:
 
 - **`classes(p)`** -- `notContain` checks all the code each matched class runs: its members' code (method, constructor and accessor bodies, parameter defaults, property initializers and static blocks), every decorator expression, computed member names and the `extends` expression. `contain` checks member code only, so a decorator or base class cannot satisfy it
-- **`functions(p)`** -- checks the body of each matched function/arrow/method individually
+- **`functions(p)`** -- checks the code each matched function/arrow/method runs, individually: its body, and what its parameters run at each call — a default, and a destructured parameter's defaults and computed keys
 
 ```typescript
 // Check all the code each matched class runs

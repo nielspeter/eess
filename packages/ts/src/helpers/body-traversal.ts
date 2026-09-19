@@ -3,6 +3,7 @@ import {
   type ClassDeclaration,
   type Decorator,
   type SourceFile,
+  type ParameterDeclaration,
   Node as NodeUtils,
   SyntaxKind,
 } from 'ts-morph'
@@ -312,6 +313,33 @@ function bindingPatternMatches(name: Node, matcher: ExpressionMatcher): Match[] 
 }
 
 /**
+ * The code a function's parameters run at each call (bug 0314): for each parameter, its default, then,
+ * in a destructured parameter, each binding element's computed key and default at any depth, and the
+ * pattern it destructures into — the order they run, as `bindingPatternMatches` reads a class member's.
+ * A parameter without a default or a pattern runs nothing.
+ */
+export function codeOfParameters(parameters: readonly ParameterDeclaration[]): Node[] {
+  const code: Node[] = []
+  const walkPattern = (name: Node): void => {
+    if (!NodeUtils.isObjectBindingPattern(name) && !NodeUtils.isArrayBindingPattern(name)) return
+    for (const element of name.getElements()) {
+      if (!NodeUtils.isBindingElement(element)) continue
+      const key = element.getPropertyNameNode()
+      if (NodeUtils.isComputedPropertyName(key)) code.push(key.getExpression())
+      const initializer = element.getInitializer()
+      if (initializer !== undefined) code.push(initializer)
+      walkPattern(element.getNameNode())
+    }
+  }
+  for (const parameter of parameters) {
+    const initializer = parameter.getInitializer()
+    if (initializer !== undefined) code.push(initializer)
+    walkPattern(parameter.getNameNode())
+  }
+  return code
+}
+
+/**
  * Matches in an expression that is code in its own right — a property initializer or a
  * parameter default — including the expression itself (bug 0300).
  *
@@ -447,6 +475,13 @@ export function searchFunctionBody(fn: ArchFunction, matcher: ExpressionMatcher)
   const broadHit = (matcher.syntaxKinds ?? []).length === 0 && matchingNodes.length > 0
   if (!NodeUtils.isBlock(body) && !broadHit && matcher.matches(body)) {
     matchingNodes.push({ node: body })
+  }
+
+  // What the parameters run at each call — a default, and a destructured parameter's defaults and
+  // computed keys — is the function's code too (bug 0314). Read after the body, so a finding a
+  // baseline accepted in the body keeps its identity and a new one is numbered after it.
+  for (const code of codeOfParameters(fn.getParameters())) {
+    matchingNodes.push(...findMatchesInExpression(code, matcher))
   }
   return toResult(matchingNodes)
 }

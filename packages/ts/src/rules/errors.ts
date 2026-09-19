@@ -5,7 +5,7 @@ import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation } from '../core/violation.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { newExpr, type ExpressionMatcher } from '../helpers/matchers.js'
-import { searchClassBody } from '../helpers/body-traversal.js'
+import { codeOfParameters, searchClassBody } from '../helpers/body-traversal.js'
 import { classNotContain } from '../conditions/body-analysis.js'
 import { functionNotContain } from '../conditions/body-analysis-function.js'
 import { findSilentCatches, silentCatchMessage } from '../conditions/catch-analysis.js'
@@ -83,9 +83,13 @@ export function functionNoSilentCatch(): Condition<ArchFunction> {
       const violations: ArchViolation[] = []
       for (const fn of elements) {
         const body = fn.getBody()
-        if (!body || !Node.isBlock(body)) continue
-        for (const result of findSilentCatches(body)) {
-          violations.push(createViolation(result.node, result.message, context))
+        if (!body) continue
+        // The body whatever its kind — a concise arrow's too — then what the parameters run at each
+        // call (bug 0314). A catch clause is never the root of either, so walking below it is enough.
+        for (const code of [body, ...codeOfParameters(fn.getParameters())]) {
+          for (const result of findSilentCatches(code)) {
+            violations.push(createViolation(result.node, result.message, context))
+          }
         }
       }
       return violations

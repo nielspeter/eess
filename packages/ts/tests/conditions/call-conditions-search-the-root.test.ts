@@ -154,6 +154,27 @@ describe('bug 0323: the call conditions test the root they search', () => {
       [5, '#1'],
       [4, '#2'],
     ])
+    // Across the roots of one call: the first argument, newly reported, is numbered after the match
+    // 0.5.1 reported inside the second.
+    expect(ordinals('use(legacy(1),\n  0 + legacy(2));', 'notHaveArgumentContaining')).toEqual([
+      [5, '#1'],
+      [4, '#2'],
+    ])
+  })
+
+  it('within one module-scope initializer, a root match is numbered after the matches below it', () => {
+    const ordinals = modules(project('const x = legacy(\n  legacy(1));'))
+      .should()
+      .notContain(call('legacy'), { scopeToModule: true })
+      .rule({ id: 'test/0323-module-order' })
+      .violations()
+      .map((v) => [Number(/at line (\d+)/.exec(v.message)?.[1]), (v.identity ?? '').slice(-2)])
+
+    // Line 4 holds the initializer, the outer call; line 5 the inner call 0.5.1 reported, as #1.
+    expect(ordinals).toEqual([
+      [5, '#1'],
+      [4, '#2'],
+    ])
   })
 
   it('a module-scope initializer that is the match is found under scopeToModule', () => {
