@@ -1,5 +1,310 @@
 # @nielspeter/eess-ts
 
+## 0.6.0
+
+### Minor Changes
+
+- e90c13b: **Breaking (@nielspeter/eess-ts):** a broad matcher — `expression()`, or any `ExpressionMatcher`
+  that names no syntax kind — now reports a match that covers exactly the same text as another node
+  (bug 0322). Before, both were dropped and nothing was reported. Newly reported in a function, class
+  or module body, for example:
+  - a call or an assignment written as a statement without a semicolon, `legacy(1)`;
+  - a shorthand property, `{ token }`, and a destructured binding, `const { token } = source`;
+  - a variable declared without a value, and a type annotation, `let x: Legacy`;
+  - a call's only argument or an array's only element, with or without a semicolon —
+    `use(legacy(1));`, `log(config.secret);`, `[token]`.
+
+  Every search a broad matcher takes changes the same way: `notContain`, `contain` and `useInsteadOf`
+  on functions, classes and modules, and `haveArgumentContaining`, `notHaveArgumentContaining`,
+  `haveCallbackContaining` and `notHaveCallbackContaining` on calls — for a match inside the argument
+  or the callback. The requirements (`contain`, `useInsteadOf`'s good side, `haveArgumentContaining`,
+  `haveCallbackContaining`) stop failing a body that holds such a match, and the `inconsistentSiblings`
+  smell reads the same search. `call()`, `access()`, `newExpr()`, `property()` and the other matchers
+  that name a syntax kind are unchanged, and so is `comment()`.
+
+  Each match is reported once. A concise arrow whose body holds a broad match used to report the match
+  and the body around it; it now reports the match alone — `() => legacy(1)` under
+  `expression(/legacy/)` was two findings and is one.
+
+  A green rule may report new findings. As with any rule that reports more, a newly reported match
+  above an accepted one in the same declaration takes its ordinal in a baseline: the accepted match is
+  reported as new, and the new one is hidden until the baseline is reviewed. Review that declaration's
+  findings before regenerating it. Message wording is unchanged, but a class field or parameter default
+  whose only match was such a shape now names the match's line rather than the initializer's first
+  line; its identity is unchanged.
+
+- 9ced7a2: **Breaking (@nielspeter/eess-ts):** the call conditions — `haveArgumentContaining`,
+  `notHaveArgumentContaining`, `haveCallbackContaining` and `notHaveCallbackContaining` — now test an
+  argument, and a concise callback's body, itself too (bug 0323). Before, they searched only below it,
+  so an argument that is the match, or a concise arrow whose body is the match, was not seen, under
+  `call()` as under `expression()`. So does a module's `notContain`/`contain` under
+  `{ scopeToModule: true }` for a top-level initializer. Newly reported, for example:
+  - `use(legacy(1))` under `notHaveArgumentContaining(call('legacy'))`;
+  - `app.get('/', () => db.query(sql))` under `notHaveCallbackContaining(call('db.query'))`;
+  - `const env = process.env` under `modules(p).should().notContain(access('process.env'), { scopeToModule: true })`.
+
+  `haveArgumentContaining`, `haveCallbackContaining` and `contain` stop failing such code. The callback
+  conditions still search a block body below its braces, as a function's own body is searched; the
+  argument conditions read a callback argument whole, as before. A broad match inside a concise body is
+  reported once, not beside the body around it. A `call()` or `access()` given a regex can now match an
+  argument and a call or access inside it, as it already did one level down: `call(/legacy/)` reports
+  both `legacy(1).then()` and `legacy(1)` in `use(legacy(1).then())`. No shipped rule or preset uses
+  these conditions or `scopeToModule`.
+
+  A green rule may report new findings. Messages are unchanged. Within one call, or one initializer, a
+  newly reported match on the argument, the callback body or the initializer itself is numbered after
+  the matches below it. Across calls in one declaration, or statements of one module, it is not: as with
+  any rule that reports more, a newly reported match above an accepted one takes its ordinal in a
+  baseline — the accepted match is reported as new, and the new one is hidden until the baseline is
+  reviewed. Review that declaration's findings before regenerating it.
+
+- dfdf40e: **Breaking (@nielspeter/eess-ts):** a class body rule that forbids something now reads all the code a class
+  runs (bug 0307). One that requires something is unchanged, and still reads only its members' code.
+  - `classes(p).should().notContain(…)` and `classNotContain`, and the banned half of
+    `.useInsteadOf(…)` and `classUseInsteadOf`, now also read every decorator expression — on the
+    class, its members, accessors and parameters — computed member names and the `extends`
+    expression. `@Module({ path: process.env.X })`, `extends Mixin(Base, process.env.X)` and
+    `extends (Base as any)` used to pass.
+  - `classes(p).should().contain(…)` and `classContain`, and the replacement half of
+    `useInsteadOf`, are unchanged: they still read member code only — bodies, parameter defaults,
+    property initializers and static blocks — so a decorator, a computed name or the `extends` expression — `@Inject(getRepositoryToken(User))`
+    included — does not satisfy a must-contain rule like `classMustCall(/Repository/)`. The line is
+    drawn by position: a call in member code still does, a DI lookup such as
+    `private users = inject(getRepositoryToken(User))` included.
+
+  Affected, because they are built on those conditions: `noEval`, `noFunctionConstructor`,
+  `noProcessEnv`, `noConsoleLog`, `noConsole` and `noJsonParse` in `rules/security`; `noGenericErrors`
+  and `noTypeErrors` in `rules/errors`; `noTypeAssertions` and `noNonNullAssertions` in `rules/typescript`; and the `dataLayerIsolation` preset's
+  `preset/data/typed-errors` rule.
+
+  A green must-not-contain rule may report findings in those positions, including a name in `extends` that a broad `expression()` matcher matches, and a comment trailing a
+  decorator or `extends` (`@ApiProperty() // TODO`) under a `comment()` rule. `implements` is type-only and docstrings are not code,
+  so neither is read.
+
+  For every member, the walk reads what it read before this release first and anything new after, so a
+  finding a baseline accepted keeps its identity — also beside a getter and its setter, or a static and
+  an instance member of one name.
+
+- 9b91ed7: **Breaking (@nielspeter/eess-ts):** the class body conditions — `classes(p).should().contain(…)`,
+  `.notContain(…)` and `.useInsteadOf(…)` — now search the code each member of a class runs: method,
+  constructor and accessor bodies, every parameter's default value, property initializers (including
+  arrow-function properties) and static blocks (bug 0300). They searched method, constructor and
+  accessor bodies only, so a read in a field initializer, a static field, a parameter default or a
+  static block passed.
+
+  Affected, because they are built on those conditions: `noEval`, `noFunctionConstructor`,
+  `noProcessEnv`, `noConsoleLog`, `noConsole` and `noJsonParse` in `rules/security`; `noGenericErrors`
+  and `noTypeErrors` in `rules/errors`; `noTypeAssertions` and `noNonNullAssertions` in
+  `rules/typescript`; `classMustCall` in `rules/architecture`; and the `dataLayerIsolation` preset's
+  `preset/data/typed-errors` rule.
+
+  A green class rule may report findings in those positions, and a `contain` rule may now pass where a
+  call sat in a field initializer.
+
+  A trailing comment on a property (`field = 1 // TODO`) is member code too, so a `comment()` rule may
+  report it.
+
+  Not changed: docstrings are still not searched.
+
+  Every member body is searched before anything the walk did not read before — parameter defaults,
+  property initializers, static blocks — so a finding a baseline accepted keeps its identity and a new
+  one is numbered after it, also beside a getter and its setter, or a static and an instance member of
+  one name.
+
+- 59203b2: **Breaking (@nielspeter/eess-ts):** five class rules that walked their own list of members now read
+  more of a class, each as below (bug 0306).
+  - `noSilentCatch` now reports a silent `catch` anywhere a class runs code — member bodies, parameter
+    defaults, property initializers (an arrow-function event handler included), static blocks,
+    decorators, computed names and `extends`. It read methods, constructors and accessors only.
+  - `noMagicNumbers` now reports a magic number anywhere in a class's member code — method,
+    constructor and accessor bodies, parameter defaults, property initializers and static blocks. It
+    read methods only, and not even constructors or accessors. Decorators, computed names and
+    `extends` are not read: a number in `@Max(150)` or `@Column({ precision: 12 })` is named by the
+    decorator that takes it.
+    - A finding names the member the number sits in — `Class.constructor`, `Class.static` for a static
+      block, `Class.limit` for an accessor — and a number in a method keeps its message.
+    - A number that is the whole value of one of the class's own properties or its members' parameter
+      defaults — `private timeout = 5000`, `retry(attempts = 3)`, `static readonly LIMIT = 5000 as const`
+      — is named by it and is not reported. It is read through a `-` or `+` sign, parentheses, `as`,
+      `<T>`, `satisfies` and `!`.
+    - A number named any other way is reported, and these are the new findings to expect most: a value
+      in a keyed table a property holds (`static readonly Status = { OK: 200 }` reports 200), an array
+      element, the default of a function-valued property's parameter, and a local constant in a member
+      (bug 0317). A number inside a larger initializer or default is reported
+      (`constructor(x = 4444 * 2)`), and so is one in a function or class nested inside a member, as it
+      was before.
+    - A number is read by its value: `5_000` is reported as 5000 and matches `allowed: [5000]`. It was
+      reported as `NaN` and matched nothing.
+    - The description changes from `have no magic numbers in method bodies` to
+      `have no magic numbers in member code`: the old one names a scope the rule no longer has.
+  - `maxCyclomaticComplexity`, `maxMethodLines` and `maxParameters` now measure a property whose value
+    is a function — `onClick = () => {…}`, `onLoad = function () {…}`, also inside parentheses or behind
+    `as`, `<T>`, `satisfies` or `!` — as a callable member, named `Class.onClick`. They measured
+    methods, constructors and accessors only. A static block, a parameter default, a function nested in
+    a property's value such as `debounce(() => {…})`, and a property holding anything else are not
+    callable members and are still not measured; `maxClassLines` counts them. Their descriptions,
+    `have no method with …`, are unchanged: a function-valued property is still read as a method there.
+
+  **Baselines.** A baseline identity includes the rule's description, so every baselined
+  `noMagicNumbers` finding is reported again, and eess-ts's notice says a description change is not new
+  rot. For this upgrade that is not the whole story: the rule now also reads constructors, accessors,
+  property initializers and static blocks, so regenerating the baseline accepts genuinely new findings
+  along with the returning ones. Review the new entries before committing it.
+
+  Findings `noSilentCatch` and the metrics rules already reported keep their identity: declared members
+  come first, and a member's message and qualified name are unchanged.
+
+- 83aa0f8: **Breaking (@nielspeter/eess-ts):** the class body search reads the code a destructured parameter of
+  a method, constructor or accessor runs at each call (bug 0309): each binding element's computed key
+  and default, at any depth — `m({ a = eval('x') } = {})`, `n([b = load()] = [])`,
+  `t({ [key()]: value } = {})`. Both reaches read it, because it runs on every call as a plain default
+  does. A computed key inside a destructured parameter is therefore member code, unlike a computed
+  member name, which runs once when the class is defined.
+
+  Affected, because they are built on the class body search: `contain`, `notContain` and
+  `useInsteadOf` on classes; `noEval`, `noFunctionConstructor`, `noProcessEnv`, `noConsoleLog`,
+  `noConsole` and `noJsonParse` in `rules/security`; `noGenericErrors`, `noTypeErrors` and
+  `noSilentCatch` in `rules/errors`; `noTypeAssertions` and `noNonNullAssertions` in `rules/typescript`;
+  `noMagicNumbers` in `rules/code-quality`; `classMustCall` in `rules/architecture`; and the
+  `dataLayerIsolation` preset's `preset/data/typed-errors` rule.
+  - A green class rule may report findings there — `constructor({ config = {} as Config } = {})` is now
+    a `noTypeAssertions` finding.
+  - A red must-contain rule may turn green: a class whose only matching call sits in a destructured
+    parameter now contains it, for `contain`, `classMustCall` and the replacement half of
+    `useInsteadOf`.
+  - The `recommended` preset and `agentGuardrails` run function rules, which still read no parameter
+    default (bug 0314), so this change does not change them.
+
+  `noMagicNumbers` names a number that is the whole default of a binding element in a parameter of one
+  of the class's own members, as it names a parameter's default: `retry({ attempts = 3 } = {})` is not
+  reported. A number inside a larger default is — `outer({ timeout } = { timeout: 5000 })` included —
+  and so is one in a computed key, or in a function nested inside a member.
+
+  This change moves no existing identity: the search reads these positions after everything it read
+  before, so a new match is numbered after the old ones in its member.
+
+- 1c76505: **Breaking (@nielspeter/eess-ts):** `functions()` collects a class's constructor, accessors and
+  function-valued properties, and a function behind a wrapper (bug 0315). Beside a class declaration's
+  methods it collects the constructor with a body, each getter and setter, and each property whose value
+  is a function, named `Class.constructor`, `Class.get x`, `Class.set x` and `Class.handler`. A variable
+  or property whose function sits behind parentheses, `as`, `<T>`, `satisfies` or `!` is collected as
+  that function. No function rule read any of these, so `eval` in a constructor, a getter or an
+  arrow-function property passed `functionNoEval` and the `recommended` preset. A class expression's
+  members, a namespace class's, an object literal's accessors, a static block and a function a variable
+  holds through a call or a conditional are still not collected (bug 0321).
+
+  What changes for a rule you already run:
+  - **A prohibition** — `notContain(...)`, `functionNoEval`, `functionNoSilentCatch`, `noStubComments`
+    and the like — reads the new members and reports what it finds there.
+  - **A requirement** judges the new members too: `beAsync()`, `contain(...)`,
+    `acceptParameterOfType(...)`, `haveReturnTypeMatching(...)` (a constructor returns its class, a
+    setter `void`), `haveNameMatching(...)` (an accessor's name holds a space, `Class.get x`) and
+    `beExported()` (a member is exported when its class is). Where a constructor or an accessor cannot
+    comply, narrow the rule: `functions(p).that().areNotOfKind('constructor', 'getter', 'setter')`.
+  - **The ceilings** `maxFunctionComplexity`, `maxFunctionLines` and `maxFunctionParameters` measure the
+    new members.
+  - **`noEmptyBodies`** reports an empty accessor, an empty function-valued property such as a no-op
+    `onChange = () => {}`, and an empty constructor that does nothing. It does not report an empty
+    constructor whose every parameter is a parameter property, `constructor(private readonly db: Db) {}`,
+    or a `private` or `protected` constructor that takes no parameter.
+  - **`resolvers()`** in `@nielspeter/eess-ts/graphql` leaves out constructors and accessors, so a getter
+    written as a field resolver is not read.
+  - The `recommended` and `agentGuardrails` presets and the `duplicateBodies` and `inconsistentSiblings`
+    smells are built on the collection and see the new members. `includeMethods: false` leaves out every
+    class member, not only methods.
+
+  New: `areOfKind(...)` and `areNotOfKind(...)`, as predicates and on the function builder, select by
+  `FunctionKind`: `'function'`, `'method'`, `'constructor'`, `'getter'`, `'setter'` or `'property'`.
+  An object literal's method shorthand is a `'method'`, and a function it holds a `'function'`. Naming no
+  kind, or a string that is not a kind, throws `ArchConfigError`.
+
+  **Baselines.** Every function collected before keeps its name, so a finding reported before keeps its
+  identity. A finding in a new member is not in your baseline and fails the check; regenerating the
+  baseline accepts all of them, so read them first.
+
+  **Measured** on eess, NestJS's packages and its sample and integration apps, TypeORM and PixiJS, with
+  the presets' collection options, for the ten rules below. No finding reported
+  before was lost, compared by file, element and message. Added across the five: duplicate bodies at 0.9
+  similarity 21, `functionNoGenericErrors` 19, `maxFunctionParameters(4)` 18, `maxFunctionLines(50)` 10,
+  `noStubComments` 9, `maxFunctionComplexity(10)` 6, `noEmptyBodies` 2, `functionNoSilentCatch` 1,
+  `functionNoEval` and `functionNoFunctionConstructor` 0. Without the `noEmptyBodies` exemption a
+  prototype reported 199 more, every one a constructor whose every parameter is a parameter property. `resolvers()`,
+  `inconsistentSiblings` and the requirement conditions were not measured.
+
+- e96834b: **Breaking (@nielspeter/eess-ts):** `extend()`, `implement()`, `extendType()`, `haveDecorator()`
+  and `haveDecoratorMatching()` now match a direct base however it is written (bug 0296): through
+  an aliased import (`extends Base`, where `Base` is `BaseRepository` imported under another name),
+  a namespace member (`extends base.BaseRepository`) or a mixin call
+  (`extends Scoped(BaseRepository)`), as well as by its written name.
+
+  Used as a selector, each can now select classes it used to skip, so a green rule may report new
+  findings. Used as a condition, `extend()` and `implement()` stop reporting classes whose base was
+  written through an alias. The `dataLayer` preset's base-class rule uses `extend()`.
+
+  Only the direct base is read. A class that reaches the base through an intermediate class is still
+  not matched; that is bug 0295.
+
+- 2630112: **Breaking (@nielspeter/eess-ts):** `noProcessEnv`, `functionNoProcessEnv` and `moduleNoProcessEnv`
+  now report `process.env` read through a string-keyed bracket (`process['env']`) or a global object
+  (`globalThis.process.env`, and `window`, `self` and `global`) (bug 0297). They matched the text
+  `process.env` only, so those reads passed.
+
+  A green rule may report new findings. The message is unchanged — `access to 'process.env'` — so a
+  baseline keeps its count of accepted findings. Which read an entry covers can move: identities are
+  numbered within a member, so a newly reported read above an accepted one takes its ordinal. The
+  accepted read is then reported as new, and the new one is hidden until the baseline is reviewed.
+
+  Still not reported:
+  - an environment read through a local binding, `const { env } = process` or
+    `import { env } from 'node:process'`, which needs the binding followed (bug 0305);
+  - `import.meta.env`, a bundler convention outside the rule's name.
+
+  Reading names rather than bindings cuts the other way too (bug 0305): a local named `global`,
+  `window` or `self` is read as the global object, so `function f(global: Config) { return
+global.process.env }` is newly reported.
+
+- 45a8ee3: **Breaking (@nielspeter/eess-ts):** the `eval`, `Function` and `console` security rules —
+  and the `recommended` floor, which uses the first two — now report the global however its
+  name is spelled at the site of use (bug 0301). Newly reported:
+  - `globalThis.eval(…)`, `window['eval'](…)` and the indirect `(0, eval)(…)`, and the same
+    through `self` and `global`
+  - `Function(…)` called without `new`, and `new globalThis.Function(…)`
+  - `console['log'](…)` and `globalThis.console.log(…)`
+
+  A codebase that was green may now report these. A member of an ordinary object that shares
+  the name, such as `obj.eval()`, is not reported.
+
+  `noFunctionConstructor`'s description changes from `new 'Function'` to `Function constructor`,
+  because it now also matches a call. A finding of that rule already recorded in a baseline is
+  reported once more; review it and regenerate the baseline. The other rules keep their
+  descriptions, so their messages are unchanged. A baseline keeps its count of accepted findings,
+  but which finding an entry covers can move: identities are numbered within a declaration, so a
+  newly reported `globalThis.console.log(…)` above an accepted `console.log(…)` takes its ordinal,
+  and the accepted call is reported as new until the baseline is reviewed.
+
+  The rules read names, not bindings, and that cuts both ways (bug 0305). A global bound to a
+  local name first — `const ev = eval`, `const { log } = console` — is still not reported. And a
+  local declaration that shadows a global is reported as if it were the global: a local function
+  named `Function`, called without `new`, is newly reported by this change, alongside the local
+  `class Function` and `const console` that were reported before.
+
+- 39614dc: **Breaking (@nielspeter/eess-ts):** the security rules — `noEval`, `noFunctionConstructor`,
+  `noConsole`, `noConsoleLog` and `noProcessEnv`, in every variant, and the `recommended` floor, which
+  uses `functionNoEval` and `functionNoFunctionConstructor` — now read a global's name through a type
+  assertion (`as`, `<T>`), a `satisfies` expression and a non-null assertion (`!`), none of which
+  changes the value at run time, and through more than one leading global object (bug 0308). Newly
+  reported, for example: `(globalThis as any).process.env`, `process!.env`, `(eval as any)('1')`,
+  `new (globalThis as any).Function(…)`, `console!.log(…)` and `window.self.eval(…)`.
+
+  A green rule may report new findings. Messages are unchanged. As with any rule that reports more, a
+  newly reported read above an accepted one in the same declaration takes its ordinal in a baseline:
+  the accepted read is reported as new, and the new one is hidden until the baseline is reviewed.
+  Review that declaration's findings before regenerating it.
+
+  Still not read as the global: a cast of a local not named like a global, or of `this`, and a
+  global object's name after the first segment, such as `settings.window.process.env`. A local named like a global object is still
+  read as the global (bug 0305).
+
 ## 0.5.1
 
 ### Patch Changes
