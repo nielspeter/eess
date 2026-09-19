@@ -9,7 +9,7 @@
 
 ## Symptom
 
-CommonMark treats an HTML block's content as raw HTML, not markdown. The ledger's State reader strips fenced code with a regex (`packages/md/src/rules/ledger.ts:153`) and reads the rest of the text, HTML blocks included. It takes the first `State:` line it finds, so an example placed above the real line wins. The proposal gate's Ruling reader (`operativeRuling` in `scripts/lib/proposal-ruling.mjs`) takes the **last** `**Ruling:**` line, so there an example placed below the real line wins.
+CommonMark treats an HTML block's content as raw HTML, not markdown. The ledger's State reader strips fenced code with a regex (`packages/md/src/rules/ledger.ts:153` on 0.6.0; since PR #144 it sets aside code blocks through the markdown parser, `packages/md/src/model/prose.ts`) and reads the rest of the text, HTML blocks included. It takes the first `State:` line it finds, so an example placed above the real line wins. The proposal gate's Ruling reader (`operativeRuling` in `scripts/lib/proposal-ruling.mjs`) takes the **last** `**Ruling:**` line, so there an example placed below the real line wins.
 
 ## Reproduce
 
@@ -148,6 +148,13 @@ An example State line inside an HTML block must not silence a record's close che
 - **Skipping HTML comments silences pointers after an unclosed `<!--`.** Those pointers are checked today.
 - **One direction that skips nothing.** Report a State, `Deferred:` or Ruling line found inside an HTML block as ambiguous, with a remedy: move it out, put an example in a fence, or add blank lines around it. That keeps both directions loud, and was not measured.
 
+## Note, 2026-09-19
+
+[0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md)'s fix (PR #144) moved the ledger's
+reading onto the markdown parser for **code blocks only**. Its first version set HTML blocks aside as
+well, and silenced a real `State:` line inside a `<div>` or `<details>`, as this record's measured
+constraints predicted; the fix leaves HTML blocks read as before. Nothing in this record is fixed yet.
+
 ## Verification ledger
 
 - [x] A State example in `<pre>`, a comment, a nested `<pre>`, or `<details>` without blank lines silences a done record on `main`; both controls report.
@@ -159,5 +166,5 @@ An example State line inside an HTML block must not silence a record's close che
 
 ## Related
 
-- [0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md): the same fail-open through a fenced example.
+- [0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md): the same fail-open through a fenced example.
 - [0291](./0291-the-markdown-masker-honours-a-directive-inside-code.md): the directive half.

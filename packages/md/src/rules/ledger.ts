@@ -3,7 +3,9 @@ import type { Condition, ConditionContext, Predicate } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
 import type { ArchViolation } from '../model/violation.js'
+import type { Root } from 'mdast'
 import { collectTaskItems } from '../model/task-items.js'
+import { proseText, unterminatedFence } from '../model/prose.js'
 import { docs } from '../builders/docs.js'
 import { taskItems, type MdTaskItem } from '../builders/task-items.js'
 
@@ -150,13 +152,6 @@ const DEFERRED_DISPOSITION_RE = /deferred\s*(?:→|->|:|\bto\b)\s*(?!none\b)\S/i
 // A summary line asserting the deferral count out loud, e.g. `Deferred: none`.
 const DEFERRED_SUMMARY_RE =
   /^[^\S\n]*(?:[-*+][^\S\n]+)?(?:\*\*)?deferred:?(?:\*\*)?[^\S\n]*(.+?)[^\S\n]*$/im
-const FENCE_RE = /(```|~~~)[\s\S]*?\1/g
-
-// Blank out fenced code in place (preserve line numbers) so an illustrative
-// `**State:** Done` or `Deferred: none` in an example never misclassifies.
-function stripFencedCode(s: string): string {
-  return s.replace(FENCE_RE, (m) => '\n'.repeat((m.match(/\n/g) ?? []).length))
-}
 
 /**
  * The `State:` token in the header region, with its line — one scan, shared by
@@ -166,13 +161,23 @@ function stripFencedCode(s: string): string {
 export function findState(
   text: string,
   vocabulary: readonly string[],
+  root?: Root,
+): { state?: string; raw: string; line: number } | null {
+  // Prose only, read as CommonMark reads it, so an illustrative `**State:** Draft` in a code block is
+  // not the document's own (bugs 0286, 0287) — by the parser the task-box pass uses.
+  return stateIn(proseText(text, root).split('\n'), vocabulary)
+}
+
+/** The first `State:` token in the header region of these lines — `findState`'s scan. */
+function stateIn(
+  lines: readonly string[],
+  vocabulary: readonly string[],
 ): { state?: string; raw: string; line: number } | null {
   const known = stateMatcher(vocabulary)
   const canonical = (m: string): string =>
     vocabulary.find(
       (s) => s.toLowerCase().replace(/’/g, "'") === m.toLowerCase().replace(/’/g, "'"),
     ) ?? m
-  const lines = stripFencedCode(text).split('\n')
   // The preamble **and the first section**. Stopping at the first `##` — as this
   // did — meant the check never ran on a real document in the corpus it was
   // written for: the house template is `# Title` / `## Status` / `- **State:** X`,
@@ -203,7 +208,7 @@ function isDoneItem(
   terminalStates: readonly string[],
 ): boolean {
   if (doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))) return true
-  const found = findState(doc.text, terminalStates)
+  const found = findState(doc.text, terminalStates, doc.root)
   return found?.state !== undefined && terminalStates.includes(found.state)
 }
 
@@ -237,7 +242,7 @@ function headerStateViolation(
   terminalStates: readonly string[],
 ): ArchViolation | null {
   const known = [...new Set([...states, ...terminalStates])]
-  const found = findState(doc.text, known)
+  const found = findState(doc.text, known, doc.root)
   if (!found) return null // no State line at all → this document is not an item
 
   if (found.state === undefined) {
@@ -300,7 +305,7 @@ function hasDeferredDisposedBox(doc: MdDocument): boolean {
  * is deliberately NOT gated; only a *contradicting* one is.
  */
 function deferredNoneLieViolation(doc: MdDocument): ArchViolation | null {
-  const lines = stripFencedCode(doc.text).split('\n')
+  const lines = proseText(doc.text, doc.root).split('\n')
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i] ?? ''
     if (/^\s*>/.test(raw)) continue
@@ -361,6 +366,58 @@ function belongsToADoneItem(
   }
 }
 
+/**
+ * A fenced code block that never closes (bug 0286). By CommonMark it runs to the end of the document, so
+ * the document's `State:` line and task boxes below it are code: the gate would read no state and no box,
+ * and report nothing. The fence is reported instead, at its line.
+ */
+function unterminatedFenceViolation(doc: MdDocument): ArchViolation | null {
+  const line = unterminatedFence(doc.text, doc.root)
+  if (line === null) return null
+  return {
+    rule: 'ledger/unterminated-fence',
+    element: doc.relPath,
+    file: doc.file,
+    line,
+    message:
+      'a fenced code block opened here never closes, so by CommonMark everything after it is code — no State: line or task box below it can be read',
+    because: 'a record the gate cannot read would pass with nothing checked',
+    suggestion:
+      'close the fence where the example ends — above the State: line — with a line of at least as many backticks or tildes as opened it',
+  }
+}
+
+/**
+ * A document whose header has a `State:` line only inside a code block (bug 0286). By CommonMark it then
+ * states nothing, so the gate would treat it as no item and check nothing; an indented line is the likely
+ * cause — four spaces make a code block. Reported at the first such line, which may be an example rather
+ * than the record's own, and on a document that is not a record at all, such as a guide showing the
+ * template: the gate cannot tell those apart, so the remedy names each case.
+ *
+ * The header ends where the prose's second heading does. A `##` line inside a code block — a shell
+ * comment, a template's skeleton — is not a heading, and counting it would end the search above the line.
+ */
+function stateInCodeViolation(doc: MdDocument, known: readonly string[]): ArchViolation | null {
+  const prose = proseText(doc.text, doc.root).split('\n')
+  if (stateIn(prose, known) !== null) return null
+  const raw = doc.text
+    .split('\n')
+    .map((line, i) => (/^##\s/.test(line) && prose[i] !== line ? '' : line))
+  const hidden = stateIn(raw, known)
+  if (hidden === null) return null
+  return {
+    rule: 'ledger/state-in-code',
+    element: doc.relPath,
+    file: doc.file,
+    line: hidden.line,
+    message:
+      'the header has a State: line only inside a code block, and this is the first — by CommonMark the document states nothing, so its boxes are not checked',
+    because: 'a record the gate cannot read would pass with nothing checked',
+    suggestion:
+      "write the record's own State: line as prose in the header — if this is it, remove its indent or move it out of the fence; if it is an example, keep it and add the real line; if this document is not a record, list it in boardFiles",
+  }
+}
+
 /** Condition: the header `State:` line is readable and matches its folder. */
 function headerStateCondition(
   doneFolders: readonly string[],
@@ -374,6 +431,14 @@ function headerStateCondition(
       const out: ArchViolation[] = []
       for (const doc of elements) {
         const inDoneFolder = doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))
+        // A fence that never closes turns everything below it into code, so it is reported alone; a
+        // State: line still in code once it is closed is reported on the next run.
+        const fence = unterminatedFenceViolation(doc)
+        if (fence) out.push(fence)
+        else {
+          const hidden = stateInCodeViolation(doc, [...new Set([...states, ...terminalStates])])
+          if (hidden) out.push(hidden)
+        }
         const found = headerStateViolation(doc, inDoneFolder, closeInPlace, states, terminalStates)
         if (found) out.push(found)
       }
@@ -627,7 +692,7 @@ export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {})
     const base = doc.relPath.split('/').pop() ?? doc.relPath
     if (boardFiles.has(base)) continue
     scanned += 1
-    const found = findState(doc.text, known)
+    const found = findState(doc.text, known, doc.root)
     if (found?.state !== undefined) withReadableState += 1
     else if (found !== null) unreadableState += 1
     if (isDoneItem(doc, doneFolders, terminalStates)) doneItems += 1

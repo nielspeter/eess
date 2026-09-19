@@ -84,7 +84,7 @@ both scope the problem to the **Status** cell. On the branch that filed bugs 028
 | 0284 | prose    | "a vocabulary in which nothing can ever be terminal" | retracted as measured false                    |
 | 0286 | prose    | the four-backtick outer fence leaks                  | a bare one holds; only the wrapping form leaks |
 
-An earlier version of this table listed a fourth: 0287's row saying "mdast already gets all seven shapes right", marked retracted as six of seven. The row was right and the retraction wrong ([0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)).
+An earlier version of this table listed a fourth: 0287's row saying "mdast already gets all seven shapes right", marked retracted as six of seven. The row was right and the retraction wrong ([0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md)).
 
 All three passed `check:corpus` throughout, because the bugs board gets
 link-resolution only — the board-agreement machinery
@@ -106,9 +106,9 @@ gate for a board that agrees with its records.
 
 `check:ledger` reads the records and **excludes the boards by construction.**
 `boardFiles` is a skip list, not a check list — `notBoardFile`
-(`packages/md/src/rules/ledger.ts:322`) filters board documents out of the scan,
+(`packages/md/src/rules/ledger.ts:327`) filters board documents out of the scan,
 and `ledgerStats` skips them again when computing its denominator
-(`packages/md/src/rules/ledger.ts:626`).
+(`packages/md/src/rules/ledger.ts:691`).
 
 That exclusion is correct on its own terms: a board is an index, not an item,
 and scanning it as an item would report every row as a record missing a `State:`

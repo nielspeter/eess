@@ -2,14 +2,15 @@
 
 ## Status
 
-- **State:** Draft — measured; no red test yet.
+- **State:** Fixed — the ledger reads a record's own `State:` and `Deferred:` lines through the markdown
+  parser, and reports a fence that never closes. Red test first, both routes.
 - **Severity:** **High** — a **fail-open**. A record that documents its own close
   convention, in the shape CommonMark provides for exactly that, loses every
   silently-open box the gate exists to catch. Measured: two findings become zero.
 - **Origin:** self-found · surfaced while checking a claim in
-  [rejected/0282](./rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md);
+  [rejected/0282](../rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md);
   the fail-open direction was found by an adopter-lens reviewer who ran the kit
-- **Reported:** 2026-09-12
+- **Reported:** 2026-09-12 · **Fixed:** 2026-09-19 (PR #144)
 
 ## Symptom
 
@@ -108,18 +109,21 @@ that disagree about where a fence ends** — a regex in `findState`, mdast in `c
 - route B: the regex reads a State line after an unclosed fence as prose, so a record whose box is code is classified done with nothing to check.
 
 That disagreement is the root, and it is why
-[0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) is not
+[0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md) is not
 merely about duplication: the hand-rolled copy contradicts the parser the same
 preset already runs.
 
 `closeInPlace` is a documented option, and any lane whose folder is not in
 `doneFolders` reaches the same branch, which is the situation
-[0282](./rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)'s
-successor territory and [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
+[0282](../rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)'s
+successor territory and [0284](../0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
 are both about. The three records share one shape: **a configuration or a document
 can make the close checks select nothing, and the gate reports a clean pass.**
 
 ## Nothing tests the guard, anywhere
+
+_As of 0.6.0. Since the fix, the test file and `scripts/nonvacuity/bad-ledger-fences/` put a `State:` line
+in a fence, and gutting the reading turns them red._
 
 Gut `stripFencedCode` to `return s` and:
 
@@ -186,9 +190,9 @@ appear. A new `scripts/check-nonvacuity.mjs` registry row is required, with a
 ## Fix
 
 1. Handle the leaking shapes, or stop hand-rolling the lexer — see
-   [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md), which
+   [0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md), which
    owns that decision and has a fixed precedent. **Repairs route A only.**
-2. **Own the unclosed fence directly** — report an unterminated fence as its own finding. **This record owns that fix.** [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) once proposed it for its own reproduction and retracted it there, and [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md)'s option (4) is the same finding.
+2. **Own the unclosed fence directly** — report an unterminated fence as its own finding. **This record owns that fix.** [0288](../0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) once proposed it for its own reproduction and retracted it there, and [0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md)'s option (4) is the same finding.
 3. The fixtures — one per route, with the three conditions above.
 4. The non-vacuity rows — **two, not one**: the routes are independent and a fix
    for one does not touch the other, so a single row leaves half the record
@@ -199,6 +203,62 @@ decided. That was false, and a reviewer proved it by building the fix.** Widenin
 the pattern repaired route A completely and left route B at zero findings. Route B's box is code by CommonMark, so no correct reader produces it, and the same run left the document with no readable state and still no finding. Item 2 is
 therefore load-bearing, and without it this record's stated closing condition could
 never be met.
+
+## Fixed
+
+[0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md) was ruled on 2026-09-19 by the
+library author: one owner, in the dialect, reading prose on the markdown parser it already runs, and a
+finding for an unterminated fence. This record's half is built; the line numbers elsewhere in this
+record, the ledger's included, cite 0.6.0 (`72d629a`):
+
+- `packages/md/src/model/prose.ts` owns the reading. `proseText` blanks every **code block** by mdast —
+  fenced with any run of backticks or tildes, or indented — and keeps the line count.
+- **HTML blocks are read as before.** An HTML block can hold a record's real claim as well as an example
+  of one: setting them aside made a real `State:` line inside a `<div>` or `<details>` unreadable, and the
+  record passed with nothing checked — measured, and caught by both reviews of the first version of this
+  fix. Which HTML to set aside is [0293](../0293-an-example-inside-an-html-block-is-read-as-prose.md)'s
+  question, and this fix leaves it open.
+- Both ledger call sites read through it — `findState` and `deferredNoneLieViolation` — so the `State:` scan
+  and the task-box pass read code blocks with one parser. `findState` takes the parsed tree as an optional
+  third argument; its two-argument form is unchanged.
+- **Route B, for fences:** `ledger/unterminated-fence` reports a fenced block that has no closing fence and
+  runs to the end of the document, at its opening line. Whether a fence closed is read off the parser: a
+  closed fence spans its opener, its content and its closer. A closer CommonMark does not accept — behind a
+  tab, four spaces or `>` — does not close it, and a fence its container closes is not reported. The finding
+  names where to close it, in its `Fix:` line.
+- **Not covered:** an HTML block that never closes, such as an `<!--` running to the end, still hides a
+  State line or boxes silently, as it did on 0.6.0; 0293 records it.
+- **A State line that is itself code — beyond the ruling.** Four spaces of indent make a code block, so a
+  record whose own `State:` line is indented that way was read on 0.6.0 and states nothing by CommonMark.
+  Rather than pass it with nothing checked — a silence the review of this fix's second version found —
+  `ledger/state-in-code` reports a document whose header has a `State:` line only inside a code block,
+  at the first such line. 0287's ruling named one new finding, the fence; this second one is the
+  builder's, for the library author to accept or refuse at merge.
+  - The header ends at the prose's second heading. The first build counted a `##` comment in a code block
+    as a heading, which ended the search above an indented State line and turned the record green where
+    0.6.0 reported its box — found by the second round of review, measured, and pinned.
+  - It also reports a document that is not a record — a guide in the lane showing the template in a code
+    block, green on 0.6.0 — since the gate cannot tell the two apart. The `Fix:` line names each case:
+    un-indent or un-fence the record's own line, keep an example and add the real line, or name a
+    non-record in `boardFiles`.
+  - A fence that never closes is reported alone; a State line still in code once it is closed is reported
+    on the next run.
+
+Measured on 0.6.0 against the fix, a closed-in-place record with one silent box and an example of the
+house template's `Draft` State line before its own:
+
+| example shape                        | 0.6.0 | fixed |
+| ------------------------------------ | ----- | ----- |
+| none (control)                       | 1     | 1     |
+| four-backtick fence wrapping a fence | **0** | 1     |
+| four-tilde fence wrapping a fence    | **0** | 1     |
+| four-space indented block            | **0** | 1     |
+
+A real State line inside `<div>` or `<details>` reports the box on 0.6.0 and on the fix. An indented
+own State line reports the box on 0.6.0 and `ledger/state-in-code` on the fix, with or without a `##`
+comment in a code block above it. Over this repo's
+own corpus at the fix's head, 0.6.0's ledger and the fix's print the same: 126 done-items across 276
+records, all 276 readable, 0 findings.
 
 ## Verification ledger
 
@@ -214,29 +274,60 @@ never be met.
       watching it pass.
 - [x] Reproduced the second fail-open: after an unclosed fence in the preamble, `findState` reads a State line CommonMark calls code, and the record passes as done with no box found.
 - [x] Confirmed two call sites, `:175` and `:303`.
-- [ ] Red first (1a): the regex route — a closed-in-place record with a
-      four-backtick example and an undisposed box must still report.
-- [ ] Red first (1b): route B — the document above must not pass silently.
-- [ ] The `deferredNoneLieViolation` call site gets the same treatment.
-- [ ] Red first (2): the guard fixture, with the illustrative token preceding the
-      record's own.
+- [x] Red first (1a): the regex route — a closed-in-place record with a
+      four-backtick example and an undisposed box must still report —
+      `packages/md/tests/rules/ledger-reads-prose-as-commonmark.test.ts` ·
+      `it('a closed record reports its silent box whatever example of a State line it shows')`, red on
+      0.6.0.
+- [x] Red first (1b): route B — the document above must not pass silently —
+      `it('a fence that never closes is reported, since the State line and box after it are code')`, red
+      on 0.6.0, with `it('a fence its list item closes is not reported, and the record after it is read')`
+      as its boundary.
+- [x] The `deferredNoneLieViolation` call site gets the same treatment —
+      ``it('an example of `Deferred: none` does not contradict a real deferral, and a real one still does')``,
+      red on 0.6.0.
+- [x] Red first (2): the guard fixture, with the illustrative token preceding the
+      record's own — the shapes test above places each example before the record's State line, and it
+      is red on 0.6.0 and green on the fix.
 - [x] **Falsified this record's own closing condition** — a reviewer applied fix (1)
       and route B stayed at zero findings, with `withReadableState` dropping to 0
       while `doneItems` stayed 1 by folder.
-- [ ] The `check-nonvacuity.mjs` registry rows — one per route.
+- [x] The `check-nonvacuity.mjs` registry rows — one per route: `corpus/ledger/fenced-example`,
+      `corpus/ledger/unterminated-fence` and `corpus/ledger/state-in-code`, each running
+      `scripts/nonvacuity/bad-ledger-fences.mjs` for its own route alone; each route exits 0 (silent) on
+      0.6.0's ledger and 1 on the fix.
+
+- [x] Inline HTML and inline code on a State line stay prose, so the line is still read —
+      `it('a State line carrying inline HTML or inline code is still the record’s own')`.
+- [x] The review's pins: `it('an HTML block is read as it was, so a real State line inside one is still the record’s own')`,
+      `it('a fence is closed only by a closer CommonMark accepts, at the end of the document too')` and
+      `it('a fence its list item closes does not hide the list item after it')`, and
+      `it('a record whose only State line is inside a code block is reported, not passed')` for
+      `ledger/state-in-code`, with
+      `it('a document that shows a State line only in code is reported, and naming it a board file clears it')`
+      for a non-record and its remedy.
+- [x] Sabotage matrix in the worktree, sources restored by sha256 and the tree unchanged, fourteen rows
+      and an as-built control that fails nothing: prose
+      blanking nothing turns the shapes and `Deferred` tests red; no fence finding, the fence and closer
+      tests; a fence reported short of the end, the list-item boundary; `findState` or the `Deferred`
+      check reading raw text, their tests; HTML blocks set aside, the HTML test; every fence at the end
+      reported, the closer test; a block's end read as inclusive, the list-item-after-fence test; closing
+      off by one, the closer test; no state-in-code finding, its test; a `##` line in code counted as a
+      heading, the state-in-code test; an indented block checked for a closer, an empty fence counted as a
+      line, or an opener read from column 1, the closer test.
 
 Deferred: none.
 
 ## Related
 
-- [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) — who
+- [0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md) — who
   owns the lexer. Split out of this record: a decision, not a defect.
-- [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
+- [0284](../0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
   — the same fail-open shape reached through configuration rather than content.
-- [0283](./0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md) —
+- [0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md) —
   same file, same fixture, same non-vacuity gap.
-- [0087](./0087-frontmatter-parsed-as-setext-heading.md) — the other open record
+- [0087](../0087-frontmatter-parsed-as-setext-heading.md) — the other open record
   where this dialect's hand-rolled markdown reading gets a CommonMark shape wrong.
   It also _contains_ a fenced `State:` example, so the shape is in this corpus.
-- [rejected/0282](./rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)
+- [rejected/0282](../rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)
   — the wrong turn that surfaced this, kept for that reason.

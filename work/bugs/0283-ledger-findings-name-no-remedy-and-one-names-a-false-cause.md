@@ -4,7 +4,7 @@
 
 - **State:** Draft — root cause corrected twice, both corrections recorded in
   place; no red test yet.
-- **Severity:** Medium — three of five messages leave the author with no remedy,
+- **Severity:** Medium — three of the five messages that predate PR #144 leave the author with no remedy,
   and one of those three asserts something untrue about the repository. Acting on
   the first of them can reach
   [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md),
@@ -13,12 +13,15 @@
   to cover every `ledger/*` message, since they are one file, one class, one
   fixture and one test file
 - **Reported:** 2026-09-12
+- **Note, 2026-09-19:** PR #144 added two findings that do name their remedy —
+  see [The census](#the-census). This record is about the five before them, and
+  its line numbers are restated for that PR's `ledger.ts`.
 
 ## Symptom
 
 ### 1. `ledger/unknown-state` names the vocabulary it wanted, never the option
 
-From `packages/md/src/rules/ledger.ts:244-251`:
+From `packages/md/src/rules/ledger.ts:249-256`:
 
 ```
 State: Promoted is not a state this corpus declares — expected one of
@@ -33,7 +36,7 @@ the call, and neither the message nor the rationale says so.
 
 ### 2. `ledger/state-folder-mismatch`, second branch, asserts a move that was made
 
-From `packages/md/src/rules/ledger.ts:265-271`, on a file that **is** in a folder,
+From `packages/md/src/rules/ledger.ts:270-276`, on a file that **is** in a folder,
 just not one the caller declared:
 
 ```
@@ -44,20 +47,20 @@ work/proposals/promoted/0001-p.md:5
 
 The move was made. `work/proposals/promoted/` is not an active lane. **Both fields
 are false**, and the finding names no remedy at all — unlike the rule id's first
-branch (`:260`), which names both moves.
+branch (`:265`), which names both moves.
 
 This one is reached by acting on the first. An author told their token is not
 declared edits it to one that is, and lands here.
 
 ### 3. `ledger/deferred-none-lie` states the contradiction, not the fix
 
-`:309-315` reports that a `Deferred: none` summary contradicts a disposed box. It
+`:314-320` reports that a `Deferred: none` summary contradicts a disposed box. It
 does not say which side to change.
 
 ## Root cause — corrected twice
 
 **First version.** Said the local five-parameter helper at
-`packages/md/src/rules/ledger.ts:210-223` is why no finding carries a `Fix:` line.
+`packages/md/src/rules/ledger.ts:215-228` is why no finding carries a `Fix:` line.
 Wrong as a _reason_: the helper is not the only constructor.
 
 **Second version.** "Corrected" that to say a `honestyAtClose` finding _can_ carry
@@ -78,10 +81,10 @@ claim it refutes. The verification box certifying the correction measured
 receipt answering a different proposition than its claim is the exact defect class
 this record is about, committed twice inside it.
 
-**What holds.** No `ledger/*` finding renders a `Fix:` line, for **two independent
-reasons**:
+**What holds.** None of the five `ledger/*` findings before PR #144 renders a `Fix:`
+line, for **two independent reasons**:
 
-1. All five construction sites (`:244`, `:256`, `:265`, `:309`, `:394`) go through
+1. All five construction sites (`:249`, `:261`, `:270`, `:314`, `:459`) go through
    the local helper, which has no `suggestion` parameter.
 2. The one `honestyAtClose` finding that does carry a `suggestion` is a kernel
    configuration finding whose suggestion equals its message, which every emitter
@@ -93,8 +96,8 @@ suggestion onto any violation lacking one
 reach `ledger/unknown-state` today.
 
 **The reason that cheap fix is wrong is the finding.** `headerRule` is one chain
-whose single condition emits two rule ids from opposite branches — `:245` and
-`:257`/`:266`. The stamp is per rule, so one remedy would land on a rejected token
+whose single condition emits two rule ids from opposite branches — `:250` and
+`:262`/`:271`. The stamp is per rule, so one remedy would land on a rejected token
 _and_ on a misplaced file. That is
 [0124](./0124-correspondence-stamps-one-remedy-onto-opposite-branches.md), which
 records that nothing in eess triggers it yet because no shipped preset sets a
@@ -135,6 +138,13 @@ Four rule ids, **five** messages. Three of the five carry no remedy.
 An earlier version of this record said "three of four" in prose beside a table
 saying two, with a board row saying two. All three were wrong and so was the
 denominator.
+
+**Since PR #144 (2026-09-19): six rule ids, seven messages.** The two new
+findings, `ledger/unterminated-fence` and `ledger/state-in-code`, are built
+outside the helper (`:377`, `:408`) and carry a `suggestion` of their own,
+which the kernel's formats render as a `Fix:` line. The five above still carry
+none. This repo's own gate never shows either line: `scripts/check-ledger.mjs:270-273`
+prints only the first line of each message — the same gap, one layer out.
 
 ## The committed position this contradicts
 

@@ -58,7 +58,7 @@ So the one-screen map teaches precisely the union the gate refuses.
   **Corrected 2026-09-12 — this bullet grades the kit against the wrong gate.**
   Measured against the gate an adopter actually runs (`honestyAtClose` on its
   defaults), that vocabulary is `DEFAULT_STATES`
-  (`packages/md/src/rules/ledger.ts:86`) character for character, terminal tokens
+  (`packages/md/src/rules/ledger.ts:88`) character for character, terminal tokens
   included. It is agreement, not drift.
 - `kit/templates/plan.md` gives `Draft · Ready · Done · Won't-do`, **omitting
   `Open`** — so the kit contradicts itself.
@@ -84,7 +84,7 @@ So the exported method does not merely teach one union where the gate declares
 three. It **instructs an author to write a token that appears in none of its own
 lists** — `Promoted` is absent from `kit/templates/work/README.md:38`, absent from
 `kit/templates/plan.md:17`, and absent from `DEFAULT_STATES`
-(`packages/md/src/rules/ledger.ts:86`). An adopter following the kit exactly, and
+(`packages/md/src/rules/ledger.ts:88`). An adopter following the kit exactly, and
 wiring `check:ledger` the only way the kit describes, reds on the first proposal
 they close.
 
@@ -95,7 +95,7 @@ instance, and it is the one to write the red test against.
 paragraph.** Measured against the preset defaults, the exported method agrees on
 three of its four lanes, on both axes: `plans/completed/`, `bugs/fixed/` and
 `support/delivered/` are all in `DEFAULT_DONE_FOLDERS`
-(`packages/md/src/rules/ledger.ts:84`), and the taught tokens are the default ones.
+(`packages/md/src/rules/ledger.ts:86`), and the taught tokens are the default ones.
 Only the proposals paragraph diverges — `Promoted` is in no kit list, and
 `proposals/promoted/` is in no default.
 

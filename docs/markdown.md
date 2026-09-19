@@ -444,30 +444,41 @@ primitive.
 `@nielspeter/eess-md/rules/ledger` ships a second opt-in preset,
 `honestyAtClose` — the working-method's "an item closes with nothing silently
 lost" gate. It reads GFM task boxes (via `collectTaskItems`, above) and a
-document's `State:` header line, and reports four things: a done item with an
+document's `State:` header line, and reports six things: a done item with an
 open box carrying no disposition token (`ledger/silent-open-box`), a
 `Deferred: none` summary that contradicts a box disposed as
 `deferred→<home>` (`ledger/deferred-none-lie`), a `State:` value that
-doesn't match its folder (`ledger/state-folder-mismatch`), and a `State:` value
-outside the declared vocabulary (`ledger/unknown-state`).
+doesn't match its folder (`ledger/state-folder-mismatch`), a `State:` value
+outside the declared vocabulary (`ledger/unknown-state`), a fenced code block that
+never closes (`ledger/unterminated-fence`), and a document whose header has a
+`State:` line only inside a code block (`ledger/state-in-code`). The last two are the
+same fact seen twice: by CommonMark a line in code is not prose, so a record whose State
+line is code states nothing, and the gate would check nothing without them. The gate
+cannot tell such a record from a document that is not one — a guide in the lane showing
+the template in a code block — so `ledger/state-in-code` reports that too; name a
+document like that in `boardFiles`.
 
-That last one is the finding a new adopter meets first, and it is a **violation,
+The vocabulary finding, `ledger/unknown-state`, is the one a new adopter meets first, and it is a **violation,
 not an ignore**: the default vocabulary is `Draft | Ready | Open | Done |
 Won't-do`, so a corpus using `In Review` or `Shipped` reds until you pass your own
 `states`/`terminalStates`. An unreadable state is reported rather than skipped on
 purpose — a record whose status nobody can parse is indistinguishable from one
 that has none, which is what bug 0120 is about.
 
-`findState(text, vocabulary)` is the same scan the preset uses to read a
+`findState(text, vocabulary, root?)` is the same scan the preset uses to read a
 document's status, exported so a caller can ask the question without a second
 opinion. It returns `{ state?, raw, line }` or `null`, and the three things it
-gets right are the three a hand-rolled regex gets wrong: it strips fenced code
-first (so an example `**State:** Draft` inside a fence is not the document's
-state), it accepts every label form the corpus uses (`**State:**`, `**State**:`,
+gets right are the three a hand-rolled regex gets wrong: it reads the document's prose as
+CommonMark does, through the parser the task-box pass uses (so an example `**State:** Draft` in a
+code block — fenced with any run of backticks or tildes, or indented — is not the document's state;
+HTML blocks are read as prose; pass the parsed `root` if you have it), it accepts every label form the corpus uses (`**State:**`, `**State**:`,
 `__State__:`, bare `State:`, with or without a bullet), and it canonicalises
 apostrophe glyphs so a smart-quoted `Won’t-do` is the same token as `Won't-do`.
 `state` is absent when the value is outside `vocabulary` — `raw` still carries
-what was written, which is what `ledger/unknown-state` reports.
+what was written, which is what `ledger/unknown-state` reports. `null` means no State line in
+prose: a record whose State line sits only in a code block, or after a fence that never closes, is
+`null` too — `honestyAtClose` reports those, and a caller of its own should not read `null` as "not an
+item" without the same check.
 
 If you are writing your own ledger check, call this rather than re-deriving it.
 This repo learned that twice: once when `check-ledger.mjs` re-derived the scan and
