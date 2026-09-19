@@ -3,6 +3,7 @@ import {
   type ClassDeclaration,
   type Decorator,
   type SourceFile,
+  type ParameterDeclaration,
   Node as NodeUtils,
   SyntaxKind,
 } from 'ts-morph'
@@ -287,28 +288,46 @@ export function searchClassBody(
 }
 
 /**
- * Matches in the code a destructured parameter runs at each call (bug 0309): for each binding
- * element, at any depth, its computed key, then its default, then the pattern it destructures into —
- * the order they run. A name that is not a pattern runs nothing, and a hole in an array pattern is
- * not an element.
+ * The code a destructured binding runs (bug 0309): for each binding element, at any depth, its computed
+ * key, then its default, then the pattern it destructures into — the order they run. A name that is not
+ * a pattern runs nothing, and a hole in an array pattern is not an element.
  *
- * Apart from any one search, so the function search can read a function's parameters the same way
- * (bug 0314).
+ * One walk for both searches: the class search reads a member's parameters with it through
+ * `bindingPatternMatches`, and the function search a function's through `codeOfParameters` (bug 0314).
  */
-function bindingPatternMatches(name: Node, matcher: ExpressionMatcher): Match[] {
+function codeOfBindingPattern(name: Node): Node[] {
   if (!NodeUtils.isObjectBindingPattern(name) && !NodeUtils.isArrayBindingPattern(name)) return []
-  const matches: Match[] = []
+  const code: Node[] = []
   for (const element of name.getElements()) {
     if (!NodeUtils.isBindingElement(element)) continue
     const key = element.getPropertyNameNode()
-    if (NodeUtils.isComputedPropertyName(key)) {
-      matches.push(...findMatchesInExpression(key.getExpression(), matcher))
-    }
+    if (NodeUtils.isComputedPropertyName(key)) code.push(key.getExpression())
     const initializer = element.getInitializer()
-    if (initializer !== undefined) matches.push(...findMatchesInExpression(initializer, matcher))
-    matches.push(...bindingPatternMatches(element.getNameNode(), matcher))
+    if (initializer !== undefined) code.push(initializer)
+    code.push(...codeOfBindingPattern(element.getNameNode()))
   }
-  return matches
+  return code
+}
+
+/** Matches in the code a destructured parameter of a class member runs (bug 0309). */
+function bindingPatternMatches(name: Node, matcher: ExpressionMatcher): Match[] {
+  return codeOfBindingPattern(name).flatMap((code) => findMatchesInExpression(code, matcher))
+}
+
+/**
+ * The code a function's parameters run (bug 0314): for each parameter, its default, then the code of
+ * its destructured binding, if it has one. A default runs whenever its argument is omitted — like a
+ * class member's parameter default, it is read as the function's code. A parameter without a default
+ * or a pattern runs nothing.
+ */
+export function codeOfParameters(parameters: readonly ParameterDeclaration[]): Node[] {
+  const code: Node[] = []
+  for (const parameter of parameters) {
+    const initializer = parameter.getInitializer()
+    if (initializer !== undefined) code.push(initializer)
+    code.push(...codeOfBindingPattern(parameter.getNameNode()))
+  }
+  return code
 }
 
 /**
@@ -447,6 +466,13 @@ export function searchFunctionBody(fn: ArchFunction, matcher: ExpressionMatcher)
   const broadHit = (matcher.syntaxKinds ?? []).length === 0 && matchingNodes.length > 0
   if (!NodeUtils.isBlock(body) && !broadHit && matcher.matches(body)) {
     matchingNodes.push({ node: body })
+  }
+
+  // What the parameters run — a default, and a destructured or rest parameter's defaults and computed
+  // keys — is the function's code too (bug 0314). Read after the body, so within one function a finding a
+  // baseline accepted in the body keeps its identity and a new one is numbered after it.
+  for (const code of codeOfParameters(fn.getParameters())) {
+    matchingNodes.push(...findMatchesInExpression(code, matcher))
   }
   return toResult(matchingNodes)
 }

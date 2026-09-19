@@ -142,5 +142,10 @@ inside an object literal is not searched yet.
 - [x] The changeset marks it breaking — `.changeset/call-conditions-test-the-root.md` — and the
       pending 0322 changeset no longer says 0323 is open.
 - [x] `npm run validate` green on the pushed head.
+- [x] Added after release, in PR #143: the ordering pinned across the roots of one call and
+      within one `scopeToModule` initializer —
+      `it('within one module-scope initializer, a root match is numbered after the matches below it')`
+      and a two-argument case in the order test — each red under the mutation the enforcement
+      re-review found surviving (0314's sabotage run, rows S5 and S6).
 
 Deferred: none.

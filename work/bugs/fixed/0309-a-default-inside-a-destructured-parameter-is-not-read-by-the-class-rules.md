@@ -13,7 +13,7 @@
   measured then. The class search has read a whole parameter's default since
   [0300](./0300-class-body-search-reads-methods-constructors-and-accessors-only.md); a default
   inside the pattern was never read. The function rules' parameter defaults, first recorded here,
-  were split to [0314](../0314-the-function-rules-read-no-parameter-default.md) by #137's second
+  were split to [0314](./0314-the-function-rules-read-no-parameter-default.md) by #137's second
   method review: either fix can land without the other.
 - **Reported:** 2026-09-14 · **Fixed:** 2026-09-15
 
@@ -42,7 +42,8 @@ binding element under the parameter's name node, and the name node was not searc
 it read before, every destructured parameter of every method, constructor and accessor. The walk,
 `bindingPatternMatches`, reads for each binding element its computed key, then its default, then the
 pattern it destructures into — the order they run — and sits apart from the class search so 0314's
-fix can read a function's parameters with it. That code runs at each call, so both reaches read it:
+fix can read a function's parameters with it (it does, through the shared walk `codeOfBindingPattern`,
+since 2026-09-19, PR #143). That code runs at each call, so both reaches read it:
 it is member code, as a plain default is, and a computed key inside a destructured parameter is
 member code while a computed member name, which runs once when the class is defined, is not. The
 reach's documentation says so. A match there is numbered after every match the search read before in
@@ -82,7 +83,7 @@ binding-element exemption stands on the plain-default exemption it extends, whos
 records.
 
 The function rules read no parameter default at all; that is
-[0314](../0314-the-function-rules-read-no-parameter-default.md), still open.
+[0314](./0314-the-function-rules-read-no-parameter-default.md), since fixed (2026-09-19, PR #143).
 
 ## Verification
 
