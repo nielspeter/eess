@@ -81,8 +81,8 @@ claim it refutes. The verification box certifying the correction measured
 receipt answering a different proposition than its claim is the exact defect class
 this record is about, committed twice inside it.
 
-**What holds.** No `ledger/*` finding renders a `Fix:` line, for **two independent
-reasons**:
+**What holds.** None of the five `ledger/*` findings before PR #144 renders a `Fix:`
+line, for **two independent reasons**:
 
 1. All five construction sites (`:249`, `:261`, `:270`, `:314`, `:459`) go through
    the local helper, which has no `suggestion` parameter.
