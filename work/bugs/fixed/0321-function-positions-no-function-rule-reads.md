@@ -120,9 +120,10 @@ Measured, one position per row, `functionNoEval` over `functions(p, { includeObj
 
 **What this fix does not close**, each filed rather than left:
 
-- [0333](../0333-the-recommended-floor-reads-functions-only.md) — the `recommended` floor builds
-  every rule with `functions()`, so the three positions ruled out above are checked by no rule an
-  adopter installs. That is the severity claim of this record, and it survives the ruling.
+- [0333](./0333-the-recommended-floor-reads-functions-only.md) — the `recommended` floor built
+  every rule with `functions()`, so the three positions ruled out above were checked by no rule an
+  adopter installs. That was the severity claim of this record surviving the ruling, and it is now
+  **fixed**: each floor rule reads the broadest subject its condition has a variant for.
 - [0334](../0334-classes-cannot-select-a-class-expression.md) — `classes()` is typed on
   `ClassDeclaration` from its predicates to `searchClassBody`, so a class EXPRESSION is still not a
   subject of a class rule, though its members are now read by the function rules.
@@ -152,8 +153,8 @@ Measured, one position per row, `functionNoEval` over `functions(p, { includeObj
       code beside the one the prefix removes.
 - [x] `npm run validate` green.
 - [x] the severity's other half re-homed, not closed: the floor still runs only `functions()`, so
-      the three ruled-out positions pass the preset an adopter installs — `deferred→`
-      [0333](../0333-the-recommended-floor-reads-functions-only.md), pinned there. The class-rule
+      the three ruled-out positions passed the preset an adopter installs — `deferred→`
+      [0333](./0333-the-recommended-floor-reads-functions-only.md), which has since been fixed. The class-rule
       half of this record's last paragraph is `deferred→`
       [0334](../0334-classes-cannot-select-a-class-expression.md).
 

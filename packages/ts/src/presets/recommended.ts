@@ -3,9 +3,13 @@ import type { ArchProject } from '../core/project.js'
 import type { RuleMetadata } from '@nielspeter/eess'
 import type { Condition } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
+import type { SourceFile } from 'ts-morph'
 import { functions } from '../builders/function-rule-builder.js'
-import { functionNoEval, functionNoFunctionConstructor } from '../rules/security.js'
-import { functionNoSilentCatch } from '../rules/errors.js'
+import type { FunctionRuleBuilder } from '../builders/function-rule-builder.js'
+import { modules } from '../builders/module-rule-builder.js'
+import type { ModuleRuleBuilder } from '../builders/module-rule-builder.js'
+import { moduleNoEval, moduleNoFunctionConstructor } from '../rules/security.js'
+import { moduleNoSilentCatch } from '../rules/errors.js'
 import { noEmptyBodies } from '../rules/hygiene.js'
 import type { RuleBuilderLike } from '@nielspeter/eess'
 import type { PresetBaseOptions } from './shared.js'
@@ -32,8 +36,26 @@ export interface RecommendedOptions extends PresetBaseOptions<RecommendedRuleId>
   include?: string
 }
 
+/**
+ * A floor rule, and the SUBJECT it reads (bug 0333).
+ *
+ * Every rule here was built with `functions()`, which reads a function's body — so the floor said
+ * nothing about code outside one. Measured on a file holding eleven positions: only `eval` inside a
+ * function was reported. A bare `eval('x')` at top level, one in a class's static block, one in a
+ * field initializer and one in a callback handed to a call all passed the preset an adopter
+ * installs, under a rule named `no-eval`.
+ *
+ * The subject kinds NEST — a module's search reads the whole file, a class's reads its members —
+ * so running two of them for one rule id reports the same call twice. Each rule therefore reads
+ * exactly one subject: the broadest its condition has a variant for. For the three that have a
+ * module variant that is `modules()`; `no-empty-bodies` stays on `functions()`, because an empty
+ * body is a fact about a function and has no meaning at module scope.
+ */
+type RuleSubject = 'module' | 'function'
+
 interface RuleSpec {
-  condition: Condition<ArchFunction>
+  condition: Condition<SourceFile> | Condition<ArchFunction>
+  subject: RuleSubject
   meta: RuleMetadata & { id: string }
   default: 'error' | 'warn'
 }
@@ -45,7 +67,8 @@ interface RuleSpec {
  */
 const SPECS = [
   {
-    condition: functionNoEval(),
+    condition: moduleNoEval(),
+    subject: 'module',
     meta: {
       id: 'preset/recommended/no-eval',
       because: 'eval() executes arbitrary code — a code-injection risk',
@@ -55,7 +78,8 @@ const SPECS = [
     default: 'error',
   },
   {
-    condition: functionNoFunctionConstructor(),
+    condition: moduleNoFunctionConstructor(),
+    subject: 'module',
     meta: {
       id: 'preset/recommended/no-function-constructor',
       because: 'the Function constructor is eval() in disguise',
@@ -65,7 +89,8 @@ const SPECS = [
     default: 'error',
   },
   {
-    condition: functionNoSilentCatch(),
+    condition: moduleNoSilentCatch(),
+    subject: 'module',
     meta: {
       id: 'preset/recommended/no-silent-catch',
       because: 'a silent catch hides failures',
@@ -76,6 +101,7 @@ const SPECS = [
   },
   {
     condition: noEmptyBodies(),
+    subject: 'function',
     meta: {
       id: 'preset/recommended/no-empty-bodies',
       because: 'an empty function body is usually an unfinished stub',
@@ -85,6 +111,28 @@ const SPECS = [
     default: 'warn',
   },
 ] as const satisfies readonly RuleSpec[]
+
+/**
+ * The builder a spec reads its subject with (bug 0333), selected and narrowed in one place so the
+ * loop below cannot pair a condition with the wrong one.
+ *
+ * `satisfy` is called on the concrete builder while its element type is still known — a single
+ * `satisfy` after the branch would need the union, which no condition accepts.
+ */
+function builderFor(
+  p: ArchProject,
+  spec: (typeof SPECS)[number],
+  include: string,
+): ModuleRuleBuilder | FunctionRuleBuilder {
+  if (spec.subject === 'module') {
+    return modules(p).that().resideInFile(include).should().satisfy(spec.condition)
+  }
+  return functions(p, { includeObjectLiteralFunctions: true })
+    .that()
+    .resideInFile(include)
+    .should()
+    .satisfy(spec.condition)
+}
 
 /**
  * Derived from `SPECS`, never restated. A hand-written union is a second list
@@ -141,7 +189,8 @@ export function recommended(
 
   const builders: RuleBuilderLike[] = []
   const constructed: string[] = []
-  for (const { condition, meta, default: def } of SPECS) {
+  for (const spec of SPECS) {
+    const { meta, default: def } = spec
     const sev = options.overrides?.[meta.id] ?? def
     if (sev === 'off') continue
     constructed.push(meta.id)
@@ -149,11 +198,7 @@ export function recommended(
       // Plan 0089's carrier. Applied at construction so it reaches every rule
       // this preset builds, not only the ones routed through `collectRule`.
       declareEmptyIfListed(
-        functions(p, { includeObjectLiteralFunctions: true })
-          .that()
-          .resideInFile(include)
-          .should()
-          .satisfy(condition)
+        builderFor(p, spec, include)
           .rule({ ...meta, declarationSpelling: presetDeclarationSpelling(meta.id) })
           .asSeverity(sev),
         meta.id,

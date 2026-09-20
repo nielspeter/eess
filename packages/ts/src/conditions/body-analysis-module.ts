@@ -2,6 +2,7 @@ import type { SourceFile } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { identifyMatches } from './match-identity.js'
+import { enclosingScopeName } from '../core/violation.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import {
   searchModuleBody,
@@ -69,7 +70,13 @@ export function moduleNotContain(
         result.matchingNodes.forEach((node, index) => {
           violations.push({
             rule: context.rule,
-            element: sf.getBaseName(),
+            // The declaration that CONTAINS the match, and the file only when none does (bug 0333).
+            // A module rule reads the whole file, so `element` was the file for every finding — and
+            // `element` is what `.excluding()` keys on and what a reader looks at first. With the
+            // `recommended` floor reading module subjects, that would have turned every finding it
+            // already made from `runEval` into `dangerous.ts`. The identity is keyed on the file and
+            // the matcher, not on this, so a baseline built on module rules is unaffected.
+            element: enclosingScopeName(node) ?? sf.getBaseName(),
             file: sf.getFilePath(),
             line: reportedLine(node, result.triviaPositions[index]),
             message: `${sf.getBaseName()} contains ${matcher.description} at line ${String(reportedLine(node, result.triviaPositions[index]))}`,

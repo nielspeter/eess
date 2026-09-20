@@ -655,6 +655,7 @@ See [Architecture Presets](/presets) for full configuration options.
 | `functionNoConsole()`             | functions | No console access in functions.                                                                                                                    |
 | `functionNoJsonParse()`           | functions | No `JSON.parse` in functions.                                                                                                                      |
 | `moduleNoEval()`                  | modules   | No `eval()` anywhere in module.                                                                                                                    |
+| `moduleNoFunctionConstructor()`   | modules   | No Function constructor anywhere in module, called with or without `new`.                                                                          |
 | `moduleNoProcessEnv()`            | modules   | No `process.env` read anywhere in module, spelled as for `noProcessEnv()`.                                                                         |
 | `moduleNoConsoleLog()`            | modules   | No `console.log` anywhere in module.                                                                                                               |
 

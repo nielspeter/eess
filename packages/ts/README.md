@@ -172,7 +172,7 @@ layeredArchitecture(p, {
 
 **Floor presets** (universal safety, scoped by glob):
 
-- `recommended(p)` — a thin, universal safety floor (no `eval`, no Function constructor, no silent catches, no empty bodies) that fires ~never on healthy code.
+- `recommended(p)` — a thin, universal safety floor (no `eval`, no Function constructor, no silent catches, no empty bodies) that fires ~never on healthy code. The first three read the whole FILE, so they see a call wherever it is written — at top level, in a class's static block or field initializer, in a callback — not only inside a function body (bug 0333); `no-empty-bodies` reads functions, since that is what an empty body is a fact about. A finding names the declaration that contains it, or the file when nothing does.
 - `agentGuardrails(p, { src })` — the mistakes AI coding agents make most: generic errors, stub comments, empty bodies, copy-paste, and banned inline calls. Each rule carries `imperative` metadata for `explain --format agent`.
 
 Every preset **runs its rules and throws** on any error-severity violation by

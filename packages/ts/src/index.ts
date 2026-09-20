@@ -412,6 +412,7 @@ export {
   functionNoConsole,
   functionNoJsonParse,
   moduleNoEval,
+  moduleNoFunctionConstructor,
   moduleNoProcessEnv,
   moduleNoConsoleLog,
 } from './rules/security.js'
