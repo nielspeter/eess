@@ -1,5 +1,6 @@
 import { Node, SyntaxKind } from 'ts-morph'
 import type { Identifier } from 'ts-morph'
+import { throughWrappers } from '../core/through-wrappers.js'
 
 /**
  * Reading a global through the bindings a file spells out (bug 0305).
@@ -47,32 +48,117 @@ interface AliasSource {
 export function globalChainOf(
   node: Node,
   chainOf: (node: Node) => string | undefined,
-  seen: ReadonlySet<Node> = new Set(),
 ): string | undefined {
+  const resolved = resolve(node, chainOf, new Set())
+  if (resolved.kind === 'chain') return resolved.chain
+  if (resolved.kind === 'not-a-global') return undefined
+  // UNKNOWN: the name as written. A binding this reader cannot follow must never turn a rule off
+  // (ADR-009), so it errs toward the reading that reports.
+  return chainOf(node)
+}
+
+/**
+ * Three answers, and the difference between the last two is the whole of ADR-009 here:
+ *
+ * - `chain` — this expression denotes that dotted global name.
+ * - `not-a-global` — it provably denotes something else: a local function, class, parameter or
+ *   enum, or a value that could not be a global (a literal, an object, a function, a `new`).
+ * - `unknown` — this reader cannot follow it: a declaration kind it has no rule for, an import from
+ *   a module it knows nothing about, an opaque initializer such as `require('node:process')`.
+ *
+ * The first version of this module answered `not-a-global` for both of the last two, and the
+ * enforcement review measured what that cost on real code with real `@types/node`:
+ * `const process = require('node:process'); process.env.A` reported nothing where 0.6.0 reported
+ * it, against the sentence this module ships about itself.
+ */
+type Resolution =
+  | { readonly kind: 'chain'; readonly chain: string }
+  | { readonly kind: 'not-a-global' }
+  | { readonly kind: 'unknown' }
+
+const UNKNOWN: Resolution = { kind: 'unknown' }
+const NOT_A_GLOBAL: Resolution = { kind: 'not-a-global' }
+
+function resolve(
+  node: Node,
+  chainOf: (node: Node) => string | undefined,
+  seen: ReadonlySet<Node>,
+): Resolution {
   const chain = chainOf(node)
-  if (chain === undefined) return undefined
+  // Not a name chain at all: a literal or an object cannot be a global; a call might be.
+  if (chain === undefined) return isProvablyNotAGlobal(node) ? NOT_A_GLOBAL : UNKNOWN
   const root = rootIdentifierOf(node)
-  // No identifier to resolve — fail-closed, the name as written.
-  if (root === undefined) return chain
+  if (root === undefined) return UNKNOWN
 
   const declarations = root.getSymbol()?.getDeclarations() ?? []
   // Unresolvable, declared nowhere, or ambient: the global itself. `declare function eval(…)`,
   // `lib.dom.d.ts` and `@types/node` all land here, which is why the ordinary case is unchanged.
-  if (declarations.length === 0 || declarations.every(isAmbient)) return chain
+  if (declarations.length === 0 || declarations.every(isAmbient)) return { kind: 'chain', chain }
 
   const rest = chain.split('.').slice(1)
   for (const declaration of declarations) {
     if (seen.has(declaration)) continue
     const imported = importedProcessMember(declaration)
-    if (imported !== undefined) return [imported, ...rest].join('.')
+    if (imported !== undefined) return { kind: 'chain', chain: [imported, ...rest].join('.') }
     const source = aliasSourceOf(declaration)
     if (source === undefined) continue
-    const base = globalChainOf(source.node, chainOf, new Set([...seen, declaration]))
-    if (base === undefined) return undefined
-    return [base, ...source.suffix, ...rest].join('.')
+    const base = resolve(source.node, chainOf, new Set([...seen, declaration]))
+    if (base.kind !== 'chain') return base
+    return { kind: 'chain', chain: [base.chain, ...source.suffix, ...rest].join('.') }
   }
-  // A local declaration that is not bound to a global: a shadow, and not the global's name.
-  return undefined
+  // Only a declaration that POSITIVELY names a local value says "not the global". Everything else
+  // reaching here is an unknown: a variable or binding element whose source could not be read, and
+  // every import this reader has no rule for — an explicit branch for those was removed because it
+  // could not be made to fail, which is this line answering them already.
+  return declarations.every(isLocalValueDeclaration) ? NOT_A_GLOBAL : UNKNOWN
+}
+
+/**
+ * Whether an expression could not possibly be a global: a literal, an object or array, a function,
+ * a class, a `new`. Anything else — a call, an `await`, a conditional, a member of something opaque
+ * — is an unknown, and an unknown reports (ADR-009).
+ *
+ * The distinction is the one the enforcement review measured this module conflating: "I followed
+ * this and it is not a global" and "I could not follow this" were both answered `undefined`, so
+ * `const process = require('node:process'); process.env.A` reported nothing where 0.6.0 reported it.
+ */
+function isProvablyNotAGlobal(node: Node): boolean {
+  return (
+    Node.isObjectLiteralExpression(node) ||
+    Node.isArrayLiteralExpression(node) ||
+    Node.isStringLiteral(node) ||
+    Node.isNumericLiteral(node) ||
+    Node.isNoSubstitutionTemplateLiteral(node) ||
+    Node.isTemplateExpression(node) ||
+    Node.isArrowFunction(node) ||
+    Node.isFunctionExpression(node) ||
+    Node.isClassExpression(node) ||
+    Node.isNewExpression(node) ||
+    Node.isTrueLiteral(node) ||
+    Node.isFalseLiteral(node) ||
+    Node.isNullLiteral(node)
+  )
+}
+
+/**
+ * Whether a declaration positively names a local value that cannot be a global — the shadow case.
+ *
+ * A variable or a binding element is absent on purpose: reaching here with one means its source
+ * could not be read (a variable with no initializer, a parameter's destructuring), and an unread
+ * source is an unknown, not a local.
+ */
+function isLocalValueDeclaration(declaration: Node): boolean {
+  return (
+    Node.isFunctionDeclaration(declaration) ||
+    Node.isClassDeclaration(declaration) ||
+    Node.isClassExpression(declaration) ||
+    Node.isParameterDeclaration(declaration) ||
+    Node.isEnumDeclaration(declaration) ||
+    Node.isMethodDeclaration(declaration) ||
+    Node.isPropertyDeclaration(declaration) ||
+    Node.isFunctionExpression(declaration) ||
+    Node.isArrowFunction(declaration)
+  )
 }
 
 /**
@@ -97,10 +183,18 @@ function isAmbient(declaration: Node): boolean {
  * environment under a name that was never `process`.
  */
 function importedProcessMember(declaration: Node): string | undefined {
-  if (!Node.isImportSpecifier(declaration)) return undefined
-  const module = declaration.getImportDeclaration().getModuleSpecifierValue()
-  if (!PROCESS_MODULES.has(module)) return undefined
-  return `process.${declaration.getName()}`
+  if (Node.isImportSpecifier(declaration)) {
+    const module = declaration.getImportDeclaration().getModuleSpecifierValue()
+    return PROCESS_MODULES.has(module) ? `process.${declaration.getName()}` : undefined
+  }
+  // `import process from 'node:process'` — the form Node's ESM documentation recommends — and
+  // `import * as process from 'node:process'`: the whole module IS the global.
+  if (Node.isImportClause(declaration) || Node.isNamespaceImport(declaration)) {
+    const importDeclaration = declaration.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
+    const module = importDeclaration?.getModuleSpecifierValue()
+    return module !== undefined && PROCESS_MODULES.has(module) ? 'process' : undefined
+  }
+  return undefined
 }
 
 /** What a local declaration is bound to, when that is another expression in the file. */
@@ -140,28 +234,31 @@ function patternSourceOf(element: Node): AliasSource | undefined {
   return undefined
 }
 
-/** The identifier a dotted name chain starts from. */
+/**
+ * The identifier a dotted name chain starts from.
+ *
+ * The value wrappers — parentheses, `as`, `<T>`, `satisfies`, `!` — come from
+ * {@link throughWrappers}, which owns that list for the whole package; what is left here is the
+ * access-expression walk and the comma operator, which it does not cover.
+ */
 function rootIdentifierOf(node: Node): Identifier | undefined {
   let current: Node | undefined = node
   while (current !== undefined) {
-    if (Node.isIdentifier(current)) return current
-    if (
-      Node.isPropertyAccessExpression(current) ||
-      Node.isElementAccessExpression(current) ||
-      Node.isAsExpression(current) ||
-      Node.isSatisfiesExpression(current) ||
-      Node.isNonNullExpression(current) ||
-      Node.isTypeAssertion(current)
-    ) {
-      current = current.getExpression()
+    const unwrapped = throughWrappers(current)
+    if (unwrapped !== current) {
+      // A parenthesized comma expression is the indirect-call idiom `(0, eval)`, whose value is the
+      // right-hand side; `throughWrappers` steps into the parentheses and stops at the comma.
+      current =
+        unwrapped !== undefined &&
+        Node.isBinaryExpression(unwrapped) &&
+        unwrapped.getOperatorToken().getKind() === SyntaxKind.CommaToken
+          ? unwrapped.getRight()
+          : unwrapped
       continue
     }
-    if (Node.isParenthesizedExpression(current)) {
-      const inner: Node = current.getExpression()
-      const isComma: boolean =
-        Node.isBinaryExpression(inner) &&
-        inner.getOperatorToken().getKind() === SyntaxKind.CommaToken
-      current = isComma && Node.isBinaryExpression(inner) ? inner.getRight() : inner
+    if (Node.isIdentifier(current)) return current
+    if (Node.isPropertyAccessExpression(current) || Node.isElementAccessExpression(current)) {
+      current = current.getExpression()
       continue
     }
     return undefined

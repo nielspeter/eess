@@ -164,9 +164,12 @@ function readsAName(node: Node): boolean {
     return parent.getNameNode() !== node
   }
   if (Node.isImportSpecifier(parent) || Node.isParameterDeclaration(parent)) return false
-  if (Node.isPropertyAssignment(parent) || Node.isShorthandPropertyAssignment(parent)) {
-    return parent.getNameNode() !== node
-  }
+  // A shorthand property's name IS its value — `const o = { console }` reads the global, where
+  // `{ console: x }` writes the key and reads `x`. It changes no verdict today, because these
+  // matchers read a MEMBER access (`console.log`, `process.env`) and a bare `console` handed on as
+  // a value is not one; it is here so the predicate answers its own question truthfully.
+  if (Node.isShorthandPropertyAssignment(parent)) return true
+  if (Node.isPropertyAssignment(parent)) return parent.getNameNode() !== node
   return true
 }
 

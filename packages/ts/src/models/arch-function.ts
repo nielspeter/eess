@@ -384,6 +384,11 @@ export function collectFunctions(
     // hold a class of the same name, and an unqualified name would make the violation ambiguous,
     // `.excluding()` hit both, and one accepted finding silently accept the other — bug 0010's
     // collision, which the object-literal collection already prefixes against.
+    //
+    // The prefix does not remove every collision, and the new one is worth naming: in one file
+    // `class Expr { m() {} }`, `const Expr = class { m() {} }` and `namespace Expr { function m() {} }`
+    // all report as `Expr.m`. Name-based identity cannot tell them apart, here or on the
+    // object-literal path.
     const prefix = namespacePathOf(namespace)
     const collected: ArchFunction[] = []
     collectFromScope(namespace, collected, includeMethods)
@@ -419,13 +424,29 @@ export function collectFunctions(
 }
 
 /**
- * Every namespace body in a file that is not inside a function, innermost ones included — the
- * scopes bug 0321 added beside the file itself.
+ * Every namespace body in a file that holds code and is not inside a function, innermost ones
+ * included — the scopes bug 0321 added beside the file itself.
+ *
+ * `ModuleDeclaration` is three declarations wearing one node kind: `namespace N {}`,
+ * `declare module 'virtual:mod' {}` and `declare global {}`. Only the first holds code. Taking all
+ * three collected subjects that DECLARE rather than run — `global.gf`, and `'virtual:mod'.mg`,
+ * whose element name carries a quote and a colon — and an adopter rule about function names
+ * reported them. An ambient `declare namespace` is the same: a description, not code.
  */
 function namespaceScopes(sourceFile: SourceFile): ModuleDeclaration[] {
-  return sourceFile
-    .getDescendantsOfKind(SyntaxKind.ModuleDeclaration)
-    .filter((namespace) => !isInsideAFunction(namespace))
+  if (sourceFile.isDeclarationFile()) return []
+  return (
+    sourceFile
+      .getDescendantsOfKind(SyntaxKind.ModuleDeclaration)
+      // AMBIENT is the whole test, and it is the only one that can fail. `declare global {}` and
+      // `declare module 'virtual:mod' {}` both carry the keyword, so both go; `namespace N {}` and the
+      // legacy `module N {}` both hold code, and both stay. Filtering by `ModuleDeclarationKind`
+      // instead dropped the legacy spelling — a false green measured while closing the ambient one —
+      // and the two extra filters that briefly guarded the other forms could not be made to fail, so
+      // they are not here.
+      .filter((namespace) => !namespace.hasDeclareKeyword())
+      .filter((namespace) => !isInsideAFunction(namespace))
+  )
 }
 
 /** The dotted path of a namespace, outermost first: `N` for `N`, `A.B` for `namespace A { namespace B {} }`. */

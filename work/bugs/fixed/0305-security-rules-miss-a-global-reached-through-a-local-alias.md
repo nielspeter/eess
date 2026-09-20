@@ -77,6 +77,21 @@ chain is. Four cases, answering the record's "how far":
 A `let` is read through its initializer like a `const`. It can be reassigned later, so the answer is
 not certain — and for a prohibition the uncertain direction to take is the one that reports.
 
+**"Anything else local" had to be narrowed, and the first version of this fix was a fail-open.** An
+IMPORT is not a shadow: it is a binding this file does not spell out, which the rule above sends to
+the fallback. The first version treated every unresolved declaration as a local, so
+`import process from 'node:process'; process.env.A` — the form Node's ESM documentation recommends —
+reported **nothing** where 0.6.0 reported it, and the suite did not catch it because only the named
+import was pinned. Now only a declaration that positively names a local value — a function, a class,
+a parameter, an enum, a method, a property — says "not the global"; an import from the process
+module resolves to `process`, named, default or namespace; and any other binding falls back to the
+name as written. A `process` imported from somewhere else is therefore still reported, as it was at
+0.6.0: a false red this fix keeps rather than guess.
+
+**What these matchers do not read**, measured and left: they read a member ACCESS, so a global
+stored as a property of something else and reached through that thing — `const o = { console };
+o.console.log(1)` — is not followed, as it was not before.
+
 **The access matchers had to learn to read a bare NAME.** `const { log } = console; log(1)` has no
 property access to match at the use site, and neither has `env.B` once `env` is the root. So
 `console` and `process.env` are matched at an identifier too, with the positions that are not reads
@@ -106,8 +121,16 @@ Measured, one function per row:
 
 **What it costs, measured rather than assumed.** Resolving a binding asks the type checker for a
 symbol, and the access matchers now ask it per identifier. Over this repository's 270 source files
-the `recommended` floor gate went from 0.50–0.86s to 0.90–1.07s — about 1.5ms per file. Recorded
-here because a check that becomes slow enough to switch off is a fail-open by another route.
+the `recommended` floor gate measured **0.50s, 0.51s, 0.51s and 0.86s before; 0.92s, 0.93s, 0.99s
+and 1.02s after** — so between 0.2ms and 2.0ms per file depending which ends are paired, around
+1.6ms at the medians. The single figure this record first gave was the minimum-to-minimum pairing,
+which the method review named; the runs are here instead. Recorded at all because a check that
+becomes slow enough to switch off is a fail-open by another route.
+
+The architecture review measured the same cost one level down: **83,764 `getSymbol()` calls against
+17,142 distinct nodes** over five rules, which a memo would serve. That is filed as
+[0335](../0335-the-binding-resolver-asks-the-checker-once-per-identifier.md) rather than added here,
+because a stale symbol is a wrong verdict and a cache's invalidation is its own decision.
 
 ## Verification
 
@@ -130,6 +153,17 @@ here because a check that becomes slow enough to switch off is a fail-open by an
       alone: two red. R9, a bare name not a candidate: two red. R10, a name being declared counted
       as a read: one red. R11, a destructured binding not followed: three red. R12, the
       `node:process` import not followed: one red.
+- [x] the architecture review's findings closed — the import fallback above, with
+      `it('reports the environment however the process module is imported')` covering the default,
+      namespace, renamed and foreign-module shapes; the ambient-ancestor walk pinned with a global
+      the rules actually match, `it('reads a global declared inside a declare global block as the global')`;
+      the value-wrapper list taken from `core/through-wrappers.ts` instead of a third copy; and the
+      member-access limit pinned by
+      `it('reads a global through a variable that holds it, and not through an object that wraps it')`.
 - [x] `npm run validate` green.
+- [x] the cost this fix adds is `deferred→`
+      [0335](../0335-the-binding-resolver-asks-the-checker-once-per-identifier.md), where the
+      architecture review's call counts live: a memo is a cache, and a stale symbol is a wrong
+      verdict, so its invalidation is a decision this PR did not make.
 
-Deferred: none.
+Deferred: 0335.

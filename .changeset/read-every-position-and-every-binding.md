@@ -9,10 +9,13 @@ security rules read a name through its binding.
 `recommended` floor — in a class EXPRESSION's members, anywhere inside a NAMESPACE, and an object
 literal's ACCESSORS, because the collection asked the source file for its top-level functions,
 variables and classes and nothing else. It now reads a namespace as it reads a file, a class
-expression as it reads a class, and an accessor as it reads a method. A namespace's members carry
+expression HELD BY A VARIABLE as it reads a class, and an accessor as it reads a method. A class
+expression passed straight to a call is still not collected, with the inline functions bug 0315 left
+out on purpose. A namespace's members carry
 its path (`N.Inner.m`), a class expression's carry the binding that holds it (`Expr.m`), and an
 object literal's accessors are named by their key (`o["get x"]`). `classes()` selects every class
-declaration in a file, its namespaces included, not only the top-level ones.
+declaration in a file, its namespaces included, not only the top-level ones — but not one nested
+inside another class, whose body search already reads it.
 
 Ruled out, and unchanged: a static block and a class field that holds no function are code a CLASS
 runs, and the class rules read both; a function passed to a call or chosen by a conditional, and a
@@ -30,10 +33,20 @@ declaration that is ambient — the lib, a `.d.ts`, a `declare` in a source file
 binding that cannot be resolved falls back to the name as written, so a missing type definition
 cannot turn a rule off.
 
+An import of the process module is followed however it is spelled — named, default, namespace or
+renamed — and a binding this reader cannot follow falls back to the name as written, so a `process`
+imported from elsewhere is still reported as it was before. Ambient declarations — `declare global`,
+`declare module 'x'`, a `.d.ts` — are read as declarations, not as code: their contents are not
+collected as functions, and a global declared in one is still the global.
+
 **What changes for a green build.** A rule may report findings it could not see: a global under an
 alias, and any code in the three newly collected positions. A rule may STOP reporting a local that
 shadows a global — if a baseline accepted one of those, it is now an unmatched baseline entry.
 Resolving a binding asks the type checker, measured at about 1.5ms per file on the floor gate over
-270 files. Messages are unchanged. Within a file, the newly collected functions are appended after
-the ones collected before, so a finding a baseline accepted keeps its identity; across a rule whose
-subjects now include a namespace's functions, review the findings before regenerating a baseline.
+270 files. Messages are unchanged, and a baseline entry is a hash of the rule and the finding's own text
+(`hashViolation`), not of its position in a run — so an accepted finding keeps its entry whatever is
+reported beside it. What a baseline WILL show is new entries for the newly read positions, and
+unmatched entries for any shadow it had accepted. Review those before regenerating it.
+
+The `#n` identities a body search assigns within one enclosing declaration are unchanged: the newly
+collected functions are separate subjects, not extra matches inside an existing one.

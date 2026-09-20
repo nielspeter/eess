@@ -116,6 +116,56 @@ describe('bug 0321: the positions a function rule reads', () => {
     expect(result).not.toContain('Expr')
   })
 
+  it('collects nothing from an ambient module, a global augmentation or a declare namespace', () => {
+    // `ModuleDeclaration` is three declarations wearing one node kind, and only `namespace N {}`
+    // holds code. The architecture review measured what taking all three collected: subjects named
+    // `global.gf` and `'virtual:mod'.mg` — a module specifier, quote and colon included, in an
+    // element name — which an adopter rule about function names then reported.
+    // A rule nothing can satisfy names every subject, which is how the subjects are read here — a
+    // zero would also be what a collection gone dead produces.
+    const subjects = functions(
+      project([
+        'declare global { function gf(): void }',
+        "declare module 'virtual:mod' { export function mg(): void }",
+        'export declare namespace Amb { function f(): void }',
+        'export namespace Real { export function r() { return 1 } }',
+        'export module Legacy { export function lf() { return 1 } }',
+      ]),
+    )
+      .should()
+      .haveNameMatching(/^nothing-matches-this$/)
+      .rule({ id: 'test/0321-ambient' })
+      .violations()
+      .map((v) => v.element)
+
+    // The legacy `module N {}` spelling holds code exactly as `namespace N {}` does — filtering by
+    // declaration KIND dropped it, which the sabotage matrix caught before this test existed.
+    expect(subjects).toEqual(['Real.r', 'Legacy.lf'])
+  })
+
+  it('reports one finding for a class inside a class, at any depth', () => {
+    // The class builder walks every class declaration since this fix, and a class inside another
+    // class is not its own subject: the enclosing class's body search already reads it. Without
+    // the guard the enforcement review measured `["Q","In"]` for one `eval`, and three findings at
+    // two levels of nesting.
+    const byClasses = (source: string): string[] =>
+      classes(project([source]))
+        .should()
+        .satisfy(noEval())
+        .rule({ id: 'test/0321-nested-class' })
+        .violations()
+        .filter((v) => !v.message.includes('examined 0 subjects'))
+        .map((v) => v.element)
+
+    expect(byClasses("export class Q { m() { class In { n() { eval('x') } } } }")).toEqual(['Q'])
+    expect(byClasses("export class R { static { class In2 { n() { eval('x') } } } }")).toEqual([
+      'R',
+    ])
+    expect(
+      byClasses("export class A1 { m() { class B1 { n() { class C1 { o() { eval('x') } } } } } }"),
+    ).toEqual(['A1'])
+  })
+
   it('reports one finding for a class or a namespace inside a function, not two', () => {
     // The enclosing function's body already covers them, so collecting the nested declaration
     // again would report the same `eval` twice — which is why a namespace inside a function is not

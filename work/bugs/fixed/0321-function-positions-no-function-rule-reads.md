@@ -38,20 +38,25 @@ part of that function's body, and a default-exported class, whose method is coll
 
 ## Root cause
 
-`collectFunctions` (`packages/ts/src/models/arch-function.ts:365`):
+`collectFunctions` (`packages/ts/src/models/arch-function.ts:344` on `main` at 4c84df7, the code
+this record describes — every pointer below is pinned to that revision, because the fix moved all of
+them):
 
-- collects class members from `sourceFile.getClasses()` (`packages/ts/src/models/arch-function.ts:395`),
-  a file's top-level class declarations, so neither a class expression nor a class inside a
-  namespace;
-- collects a variable whose initializer is a function behind at most parentheses, `as`, `<T>`,
-  `satisfies` or `!` (`packages/ts/src/models/arch-function.ts:387`), so not one behind a call or a
-  conditional — and a callback passed to a call outside any function belongs to no collected function;
-- collects an object-literal value that is an arrow function, a function expression or a method
-  (`packages/ts/src/models/arch-function.ts:473`), so not an accessor;
-- collects nothing for a static block, or for a class field whose value is not a function: neither is
-  a function.
+- collected class members from `sourceFile.getClasses()` (`:374`), a file's top-level class
+  declarations, so neither a class expression nor a class inside a namespace;
+- collected a variable whose initializer is a function behind at most parentheses, `as`, `<T>`,
+  `satisfies` or `!` (`:366`), so not one behind a call or a conditional — and a callback passed to a
+  call outside any function belonged to no collected function;
+- collected an object-literal value that is an arrow function, a function expression or a method
+  (`:399`), so not an accessor;
+- collected nothing for a static block, or for a class field whose value is not a function: neither
+  is a function.
 
-The class rules miss a class expression and a namespace class too; where their walk starts is for
+Everything inside a `namespace` was invisible for the same reason as the first point:
+`getFunctions()`, `getVariableDeclarations()` and `getClasses()` answer for the node they are asked,
+and only the source file was asked.
+
+The class rules missed a class expression and a namespace class too; where their walk starts was for
 the fix to establish.
 
 ## Fix
@@ -85,6 +90,16 @@ collection simply could not reach, and they are now collected:
 **A class inside a function, and a namespace inside a function, are left to the enclosing
 function.** Its body already covers them, and collecting them again reported one `eval` twice —
 pinned in both shapes.
+
+**A namespace is code; a declaration is not.** `ModuleDeclaration` is three declarations wearing one
+node kind, and the first version of this fix took all three: the architecture review measured
+subjects named `global.gf` and `'virtual:mod'.mg` — a module specifier, quote and colon included, in
+an element name — and an ordinary adopter rule about function names reporting them. The filter is
+the ambient test, and only that: `declare global {}` and `declare module 'x' {}` carry the keyword
+and go, while `namespace N {}` and the legacy `module N {}` hold code and stay. Filtering by
+declaration KIND instead dropped the legacy spelling — a false green found by the sabotage matrix,
+not by the review — and two further filters that guarded the other forms could not be made to fail,
+so they are not in the code.
 
 Measured, one position per row, `functionNoEval` over `functions(p, { includeObjectLiteralFunctions: true })`:
 
@@ -129,6 +144,17 @@ Measured, one position per row, `functionNoEval` over `functions(p, { includeObj
       not a class; R3, an accessor not a function; R4, a namespace member unqualified; R5, a nested
       namespace collected again; R6, the class builder reading top-level classes only — each reddens
       its own test.
+- [x] the architecture review's findings closed — ambient declarations are not scopes, pinned by
+      `it('collects nothing from an ambient module, a global augmentation or a declare namespace')`,
+      which names the subjects rather than counting them; the class walk goes through the shared
+      walk cache as every other walk in the package does; and the new name collision
+      (`class Expr`, `const Expr = class`, `namespace Expr` all reporting `Expr.m`) is named in the
+      code beside the one the prefix removes.
 - [x] `npm run validate` green.
+- [x] the severity's other half re-homed, not closed: the floor still runs only `functions()`, so
+      the three ruled-out positions pass the preset an adopter installs — `deferred→`
+      [0333](../0333-the-recommended-floor-reads-functions-only.md), pinned there. The class-rule
+      half of this record's last paragraph is `deferred→`
+      [0334](../0334-classes-cannot-select-a-class-expression.md).
 
-Deferred: none.
+Deferred: 0333, 0334.

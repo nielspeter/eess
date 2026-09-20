@@ -205,6 +205,164 @@ describe('bug 0305: a global is read through its binding', () => {
     ).toEqual(new Set(['calls']))
   })
 
+  it('reports the environment however the process module is imported', () => {
+    // The architecture review of this fix measured the hole: only a NAMED import was followed, and
+    // every other import shape fell through to "a local, not the global" — so
+    // `import process from 'node:process'` reported nothing where 0.6.0 reported it. An import is
+    // not a shadow; it is a binding this file does not spell out, and those fall back to the name.
+    const readsEnv = (source: string): number =>
+      functions(projectOf({ '/src/imports.ts': source }))
+        .should()
+        .satisfy(functionNoProcessEnv())
+        .rule({ id: 'test/0305-imports' })
+        .violations()
+        .filter((v) => !v.message.includes('examined 0 subjects')).length
+
+    expect(
+      readsEnv("import process from 'node:process'\nexport function f() { return process.env.A }"),
+    ).toBe(1)
+    expect(
+      readsEnv(
+        "import * as process from 'node:process'\nexport function f() { return process.env.A }",
+      ),
+    ).toBe(1)
+    // RENAMED, which is what makes the import branch load-bearing rather than covered by the
+    // fallback: the name at the use site is not `process`, so only resolving the import finds it.
+    expect(
+      readsEnv("import proc from 'node:process'\nexport function f() { return proc.env.A }"),
+    ).toBe(1)
+    expect(
+      readsEnv("import * as proc from 'node:process'\nexport function f() { return proc.env.A }"),
+    ).toBe(1)
+    expect(
+      readsEnv("import { env } from 'node:process'\nexport function f() { return env.A }"),
+    ).toBe(1)
+    // A `process` imported from somewhere else is not known to be the global — and is reported
+    // anyway, because an unfollowable binding falls back to the name as written (ADR-009). The
+    // false red is the direction this project chooses; the named limit is in the record.
+    expect(
+      readsEnv("import process from './shim'\nexport function f() { return process.env.A }"),
+    ).toBe(1)
+  })
+
+  it('reads a global through a variable that holds it, and not through an object that wraps it', () => {
+    // The limit these matchers have by their own description: they read a member ACCESS. A global
+    // bound to a name and then used as one is followed; a global stored as a property of something
+    // else and reached through that thing is not, and was not before this fix either.
+    const p = projectOf({
+      '/src/held.ts': [
+        'export function throughAVariable() { const c = console; c.log(1) }',
+        'export function throughAnObject() { const o = { console }; o.console.log(1) }',
+        '',
+      ].join('\n'),
+    })
+    expect(
+      elements(
+        functions(p)
+          .should()
+          .satisfy(functionNoConsole())
+          .rule({ id: 'test/0305-held' })
+          .violations(),
+      ),
+    ).toEqual(new Set(['throughAVariable']))
+  })
+
+  it('reads a global declared inside a declare global block as the global', () => {
+    // The `declare` keyword can sit on an ANCESTOR of the declaration: a function declared inside
+    // `declare global {}` has none of its own, so asking the declaration alone reads a global as a
+    // local shadow and reports nothing. Measured here with `eval` itself, which is the only way the
+    // walk is falsifiable — a name the rules do not match would pass either way.
+    const p = projectOf({
+      '/src/ambient-global.ts': [
+        'declare global { function eval(source: string): unknown }',
+        "export function usesEval() { return eval('1') }",
+        '',
+      ].join('\n'),
+    })
+    expect(
+      elements(
+        functions(p)
+          .should()
+          .satisfy(functionNoEval())
+          .rule({ id: 'test/0305-ambient-ancestor' })
+          .violations(),
+      ),
+    ).toEqual(new Set(['usesEval']))
+  })
+
+  it('reports a global reached through a binding it cannot follow', () => {
+    // The distinction ADR-009 turns on: "I followed this and it is not a global" is an answer,
+    // "I cannot follow this" is not. The enforcement review measured the two conflated —
+    // `const process = require('node:process')` reported nothing where 0.6.0 reported it.
+    const reported = (source: string, condition: 'env' | 'console'): string[] =>
+      functions(projectOf({ '/src/opaque.ts': source }))
+        .should()
+        .satisfy(condition === 'env' ? functionNoProcessEnv() : functionNoConsole())
+        .rule({ id: 'test/0305-opaque' })
+        .violations()
+        .filter((v) => !v.message.includes('examined 0 subjects'))
+        .map((v) => v.element)
+
+    expect(
+      reported(
+        "declare function require(m: string): any\nconst process = require('node:process')\nexport function f() { return process.env.A }",
+        'env',
+      ),
+    ).toEqual(['f'])
+    expect(
+      reported(
+        "import process = require('node:process')\nexport function f() { return process.env.A }",
+        'env',
+      ),
+    ).toEqual(['f'])
+    expect(
+      reported(
+        "import console from 'node:console'\nexport function f() { console.log(1) }",
+        'console',
+      ),
+    ).toEqual(['f'])
+
+    // A local declared with no initializer is an unknown too: nothing says what is assigned to it
+    // later, and for a prohibition the uncertain direction is the one that reports.
+    expect(
+      reported(
+        'let process: { env: Record<string, string> }\nexport function f() { return process.env.A }',
+        'env',
+      ),
+    ).toEqual(['f'])
+
+    // And the other side of the distinction, unchanged: a source that could not BE a global — an
+    // object literal, a parameter — still answers "not the global".
+    expect(
+      reported(
+        'export function f() { const console = { log: (n: number) => n }; console.log(1) }',
+        'console',
+      ),
+    ).toEqual([])
+  })
+
+  it('reports a global in a project with no lib files at all', () => {
+    // The fail-closed branch — no declaration anywhere — was unreachable in every other test,
+    // because ts-morph loads its bundled lib files even in memory, so `eval` always resolved to an
+    // ambient declaration. Measured by the enforcement review; this is the fixture that reaches it.
+    const tsm = new Project({ useInMemoryFileSystem: true, skipLoadingLibFiles: true })
+    tsm.createSourceFile('/src/nolib.ts', "export function f() { return eval('1') }\n")
+    const p: ArchProject = {
+      tsConfigPath: '/tsconfig.json',
+      _project: tsm,
+      getSourceFiles: () => tsm.getSourceFiles(),
+    }
+    expect(
+      elements(
+        functions(p)
+          .should()
+          .satisfy(functionNoEval())
+          .rule({ id: 'test/0305-nolib' })
+          .violations(),
+      ),
+    ).toEqual(new Set(['f']))
+  })
+
   it('reports a global once, not once per name it is read under', () => {
     // `console.log(1)` is a property access AND two identifiers; only the access reads the chain,
     // so widening the matcher to identifiers must not double-report. Asserted by line and element
