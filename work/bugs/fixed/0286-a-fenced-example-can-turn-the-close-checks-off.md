@@ -109,7 +109,7 @@ that disagree about where a fence ends** — a regex in `findState`, mdast in `c
 - route B: the regex reads a State line after an unclosed fence as prose, so a record whose box is code is classified done with nothing to check.
 
 That disagreement is the root, and it is why
-[0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md) is not
+[0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) is not
 merely about duplication: the hand-rolled copy contradicts the parser the same
 preset already runs.
 
@@ -190,9 +190,9 @@ appear. A new `scripts/check-nonvacuity.mjs` registry row is required, with a
 ## Fix
 
 1. Handle the leaking shapes, or stop hand-rolling the lexer — see
-   [0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md), which
+   [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md), which
    owns that decision and has a fixed precedent. **Repairs route A only.**
-2. **Own the unclosed fence directly** — report an unterminated fence as its own finding. **This record owns that fix.** [0288](../0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) once proposed it for its own reproduction and retracted it there, and [0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md)'s option (4) is the same finding.
+2. **Own the unclosed fence directly** — report an unterminated fence as its own finding. **This record owns that fix.** [0288](./0288-a-four-backtick-fence-swallows-a-proposals-ruling-and-the-gate-agrees.md) once proposed it for its own reproduction and retracted it there, and [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md)'s option (4) is the same finding.
 3. The fixtures — one per route, with the three conditions above.
 4. The non-vacuity rows — **two, not one**: the routes are independent and a fix
    for one does not touch the other, so a single row leaves half the record
@@ -206,7 +206,7 @@ never be met.
 
 ## Fixed
 
-[0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md) was ruled on 2026-09-19 by the
+[0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) was ruled on 2026-09-19 by the
 library author: one owner, in the dialect, reading prose on the markdown parser it already runs, and a
 finding for an unterminated fence. This record's half is built; the line numbers elsewhere in this
 record, the ledger's included, cite 0.6.0 (`72d629a`):
@@ -259,6 +259,13 @@ own State line reports the box on 0.6.0 and `ledger/state-in-code` on the fix, w
 comment in a code block above it. Over this repo's
 own corpus at the fix's head, 0.6.0's ledger and the fix's print the same: 126 done-items across 276
 records, all 276 readable, 0 findings.
+
+**Note, 2026-09-19 (PR #145).** This fix read a fence written **inside an HTML block** as prose: CommonMark
+reads such a fence as raw HTML, so the parser has no code node for it, and 0.6.0's regex — which was
+textual — blanked it. Measured in PR #145's enforcement review: a fenced `Draft` example inside
+`<details>` or `<div>`, above a closed record's own State line, became the record's state, and its silent
+box went unreported where 0.6.0 reported it. Fixed in PR #145: the owner sets aside a closed fence inside
+an HTML block too, in both readings, and a test here pins it. eess-md had not shipped either version.
 
 ## Verification ledger
 
@@ -320,7 +327,7 @@ Deferred: none.
 
 ## Related
 
-- [0287](../0287-four-copies-of-one-fence-lexer-across-three-packages.md) — who
+- [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) — who
   owns the lexer. Split out of this record: a decision, not a defect.
 - [0284](../0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
   — the same fail-open shape reached through configuration rather than content.

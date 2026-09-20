@@ -339,11 +339,11 @@ the mistake `ledger.ts` already shows: one hard-coded regex per field name.
 
 > **Correction to this proposal's second draft.** This section proposed a new
 > `fields()` element type. The labelled-value line is **already** a first-class
-> element: `terms()` / `MdTerm` (`packages/md/src/builders/vocabulary.ts:180`,
+> element: `terms()` / `MdTerm` (`packages/md/src/builders/vocabulary.ts:177`,
 > exported from the package index). `MdTerm { value, raw, doc, line }` is the
 > proposed `MdField` minus `name`/`rawName`. Worse for the draft: its headline
 > finding — the unbolded, `·`-separated third syntax — **already works**. The
-> default extractor at `vocabulary.ts:103-107` strips `*`/`_`/backticks and then
+> default extractor at `vocabulary.ts:98-102` strips `*`/`_`/backticks and then
 > does `.replace(/\s+[·—–|].*$/, '')`, so `- Status: refining · Readiness: 🟡`
 > yields `refining` today, unchanged. The draft cited "vocabulary terms" in
 > passing and still described the element as unmodelled. Recorded rather than
@@ -351,7 +351,7 @@ the mistake `ledger.ts` already shows: one hard-coded regex per field name.
 > surveying it.**
 
 `terms(c, { label })` already yields the element, blanks fenced code
-line-preservingly (`vocabulary.ts:96-100`), scopes with `resideInFile(glob)`,
+line-preservingly, through the family’s one prose reader since bug 0287 (`vocabulary.ts:110-112`), scopes with `resideInFile(glob)`,
 and checks an enum via `resolveAgainst(vocabulary(c, { terms: [...] }))` — which
 is `beOneOf` under another name. Evidence rule 4's enum half is expressible
 today:
@@ -719,7 +719,7 @@ violation must _say_. Colour alone is not the proof; attribution is.
       clause with `mechanism: governance` goes **green**. Failing on low
       hardness rather than on missing declaration is a failed criterion.
 - [x] ~~**`fields()` — the third syntax.**~~ **Already passes.** The default
-      extractor at `vocabulary.ts:103-107` strips `*`/`_`/backticks and splits
+      extractor at `vocabulary.ts:98-102` strips `*`/`_`/backticks and splits
       on `·`, so `- Status: refining · Readiness: 🟡` yields `refining` today.
       Kept as a regression fixture, not as new work.
 - [ ] **Conditional — antecedent false.** A document whose `Status` is _not_

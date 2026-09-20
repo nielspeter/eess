@@ -33,6 +33,7 @@
  * recent review, "last in the file" and "most recent chronologically" could
  * diverge — not the case for any proposal filed to date (verified by count).
  */
+import { proseText } from '@nielspeter/eess-md/internal'
 
 /** The closed six-value vocabulary — verbatim, same casing as `PROPOSALS.md`. */
 export const RULING_VOCABULARY = [
@@ -104,16 +105,25 @@ export const ACCEPTED_RULINGS = rulingsObliging('needs-a-plan')
  */
 export const PROPOSAL_DONE_FOLDERS = ['/promoted/', '/rejected/']
 
-const FENCE_RE = /(```|~~~)[\s\S]*?\1/g
+const readings = new Map()
 
 /**
- * Blank out fenced code in place (preserve line numbers), so an illustrative
- * `**Ruling: Ship as-is**` inside an example block never misclassifies — the
- * same discipline `packages/md/src/rules/ledger.ts`'s `stripFencedCode`
- * applies to `State:` tokens.
+ * Blank out a closed fenced block in place (line numbers kept), so an
+ * illustrative `**Ruling: Ship as-is**` inside an example never misclassifies.
+ * The fences are paired by eess-md's markdown parser, not a regex that read a
+ * triple-backtick run inside a longer fence as a closer and blanked the real
+ * ruling after it (bugs 0287, 0288). Only a closed fence: this module reports no
+ * unclosed one, so it reads past it rather than drop the rest; `check:ledger`
+ * reports it on the same lanes. Cached per text, since `check:corpus` asks
+ * several questions of each document.
  */
 function stripFencedCode(text) {
-  return text.replace(FENCE_RE, (m) => '\n'.repeat((m.match(/\n/g) ?? []).length))
+  let prose = readings.get(text)
+  if (prose === undefined) {
+    prose = proseText(text, 'closed-fences')
+    readings.set(text, prose)
+  }
+  return prose
 }
 
 // Longest-first so "Ship with changes" can never be cut short by a

@@ -107,7 +107,7 @@ rule-level suggestion on a multi-branch rule. This fix would be the first, so
 ## Three ways to reach per-finding, not one
 
 The second version asserted the local helper is "the sole exception in the
-dialect". **False.** `packages/md/src/builders/vocabulary.ts:136-153` is a second
+dialect". **False.** `packages/md/src/builders/vocabulary.ts:133-150` is a second
 hand-built violation, and unlike the ledger helper it threads `ctx.suggestion`,
 `ctx.because`, `ctx.docs` and `ctx.ruleId` off the condition context.
 
@@ -116,7 +116,7 @@ So there are three options, not the one the record previously named:
 | option                                              | cost                                               |
 | --------------------------------------------------- | -------------------------------------------------- |
 | sixth optional parameter on the local helper        | smallest; keeps a second adapter in the dialect    |
-| read the remedy off `ConditionContext`              | the shape `vocabulary.ts:150` already demonstrates |
+| read the remedy off `ConditionContext`              | the shape `vocabulary.ts:147` already demonstrates |
 | converge on `mdViolation` (`model/violation.ts:13`) | also returns `ruleId`, `docs`, `codeFrame`         |
 
 The third is the only one that closes the adjacent gap: ledger findings carry no
@@ -219,7 +219,7 @@ print is required.
       right.
 - [x] Confirmed the kernel's rule-level stamp exists and would reach the finding.
 - [x] Confirmed `headerRule` emits two rule ids from one chain — 0124's trap.
-- [x] Confirmed `vocabulary.ts:136-153` is a second hand-built violation that does
+- [x] Confirmed `vocabulary.ts:133-150` is a second hand-built violation that does
       thread the context, falsifying "sole exception".
 - [x] Confirmed branch ②'s message and `because` are both false on a file in a
       declared folder.

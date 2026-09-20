@@ -339,8 +339,10 @@ const contexts = vocabulary(c, { fromFolders: 'src/contexts/*' })
 // `label` locates the reference; `value` (optional) extracts it from the rest
 // of the line. The default strips markdown emphasis, trims, AND truncates at
 // the first ` · `, ` — `, ` – ` or ` | ` — so "**Billing** — the money one"
-// yields `Billing`, not the whole tail. Fenced code is blanked before scanning,
-// so an example in a fence never becomes a reference.
+// yields `Billing`, not the whole tail. A fenced block that closes is set aside
+// before scanning, with fences paired as CommonMark pairs them, so an example
+// in one never becomes a reference. A fence that never closes is read past,
+// so a malformed document reports too much rather than nothing.
 terms(c, { label: /Bounded Context:/ })
   .that()
   .resideInFile('docs/**')

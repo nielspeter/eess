@@ -2,6 +2,7 @@ import picomatch from 'picomatch'
 import { RuleBuilder, type Condition, type Predicate, type ArchViolation } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
+import { proseText } from '../model/prose.js'
 
 /**
  * Controlled-vocabulary primitive (plan 0069 Phase 4): derive a term set from
@@ -93,12 +94,6 @@ export interface TermsOptions {
   readonly value?: (rest: string) => string
 }
 
-// Blank out fenced code (line-preserving) so example prose never yields terms.
-const FENCE_RE = /(```|~~~)[\s\S]*?\1/g
-function stripFencedCode(s: string): string {
-  return s.replace(FENCE_RE, (m) => '\n'.repeat((m.match(/\n/g) ?? []).length))
-}
-
 const defaultValue = (rest: string): string =>
   rest
     .replace(/[*_`]/g, '')
@@ -112,7 +107,9 @@ function collectTerms(corpus: Corpus, options: TermsOptions): MdTerm[] {
   const label = new RegExp(options.label.source, options.label.flags.replace(/g/g, ''))
   const out: MdTerm[] = []
   for (const doc of corpus.documents()) {
-    const lines = stripFencedCode(doc.text).split('\n')
+    // A closed fence is an example, so its prose never yields terms. Only a closed one: a builder cannot
+    // report a fence that never closes, so it reads past one rather than drop the rest (bug 0287).
+    const lines = proseText(doc.text, 'closed-fences', doc.root).split('\n')
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i] ?? ''
       const m = label.exec(line)

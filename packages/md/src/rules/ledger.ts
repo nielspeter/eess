@@ -165,7 +165,7 @@ export function findState(
 ): { state?: string; raw: string; line: number } | null {
   // Prose only, read as CommonMark reads it, so an illustrative `**State:** Draft` in a code block is
   // not the document's own (bugs 0286, 0287) — by the parser the task-box pass uses.
-  return stateIn(proseText(text, root).split('\n'), vocabulary)
+  return stateIn(proseText(text, 'commonmark', root).split('\n'), vocabulary)
 }
 
 /** The first `State:` token in the header region of these lines — `findState`'s scan. */
@@ -305,7 +305,7 @@ function hasDeferredDisposedBox(doc: MdDocument): boolean {
  * is deliberately NOT gated; only a *contradicting* one is.
  */
 function deferredNoneLieViolation(doc: MdDocument): ArchViolation | null {
-  const lines = proseText(doc.text, doc.root).split('\n')
+  const lines = proseText(doc.text, 'commonmark', doc.root).split('\n')
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i] ?? ''
     if (/^\s*>/.test(raw)) continue
@@ -398,7 +398,7 @@ function unterminatedFenceViolation(doc: MdDocument): ArchViolation | null {
  * comment, a template's skeleton — is not a heading, and counting it would end the search above the line.
  */
 function stateInCodeViolation(doc: MdDocument, known: readonly string[]): ArchViolation | null {
-  const prose = proseText(doc.text, doc.root).split('\n')
+  const prose = proseText(doc.text, 'commonmark', doc.root).split('\n')
   if (stateIn(prose, known) !== null) return null
   const raw = doc.text
     .split('\n')
