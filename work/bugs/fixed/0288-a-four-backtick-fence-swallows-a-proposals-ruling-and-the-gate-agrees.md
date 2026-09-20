@@ -114,10 +114,14 @@ ruled, which pairs fences with the markdown parser: a fence closes only on a run
 one that opened it, so the three-backtick run inside this record's four-backtick example is content.
 Both the `**Ruling:**` and the `**Implements:**` readings go through it, once per document.
 
-**A fence that never closes is read past, not reported here.** This module has no finding to report one
-with, so it sets aside only fences that close and reads a ruling after an unclosed one, as the regex did.
-`check:ledger` reports the unclosed fence itself on the proposals and plans lanes, as
-`ledger/unterminated-fence`. The corruption this record names — the contents of a four-backtick block
+**A fence with no closing line makes the ruling unreadable, and that is reported.** The module sets aside
+only fences that close, so below an unclosed one — ended by its container or by the end of the document —
+the reading is undecidable and it refuses: no ruling is read, and `hasUnparseableRuling` is true, so
+`check:corpus` reports the document as reviewed but unreadable. A ruling above such a fence still reads.
+(An earlier version of this fix read past the fence instead and leaned on `check:ledger`'s
+`ledger/unterminated-fence`; that finding covers only a fence running to the end of the document, and its
+review measured an example ruling inside a list-item-ended fence becoming the verdict —
+[0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md).) The corruption this record names — the contents of a four-backtick block
 read as a delimiter — is the one fixed.
 
 Measured on 0.6.0 against the fix: this record's reproduction reads `null` on 0.6.0 and `"Ship as-is"` on

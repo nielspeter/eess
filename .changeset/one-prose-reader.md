@@ -9,9 +9,13 @@
 reference or citation below such an example and read the ones written inside it. Both are corrected, so a
 green rule may report a reference it could not see, and a red one may lose a finding that was an example.
 
-What each shape does is unchanged from 0.6.0 otherwise: a fenced example inside an HTML block is set
-aside, a fence with no closing line — left unclosed, or ended by its list item or blockquote — is read
-past rather than dropping the rest of the document, and an indented example is read.
+A fenced example inside an HTML block is set aside however far the block's body is indented, and whatever
+the length of its fence — where the regex set aside a simple one and mis-read a longer one; an indented
+example outside an HTML block is read, as before.
+unclosed, or ended by its list item or blockquote — is read past\*\*, where the regex's behaviour depended
+on whether a later fence happened to pair with it: for `terms()` and `scenarioCitationsResolve` that
+means a reference or citation under such a fence is now checked rather than silently dropped, which can
+add a finding.
 
 `@nielspeter/eess-md/internal` is a new entry point: family plumbing for eess-crossvalidate and for
 gate scripts, not public API, as the kernel's `/internal` is (ADR-011).

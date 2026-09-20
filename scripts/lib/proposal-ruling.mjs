@@ -33,7 +33,7 @@
  * recent review, "last in the file" and "most recent chronologically" could
  * diverge — not the case for any proposal filed to date (verified by count).
  */
-import { proseText } from '@nielspeter/eess-md/internal'
+import { proseText, unclosedFences } from '@nielspeter/eess-md/internal'
 
 /** The closed six-value vocabulary — verbatim, same casing as `PROPOSALS.md`. */
 export const RULING_VOCABULARY = [
@@ -106,6 +106,37 @@ export const ACCEPTED_RULINGS = rulingsObliging('needs-a-plan')
 export const PROPOSAL_DONE_FOLDERS = ['/promoted/', '/rejected/']
 
 const readings = new Map()
+const openFences = new Map()
+
+/**
+ * The first line below which this module refuses to read a declaration, or `null`.
+ *
+ * A fence with no closing line — ended by its container or by the end of the document — makes every line
+ * under it undecidable: by CommonMark it is code, by the reading this module uses it is prose, and the
+ * two disagree. This module keeps the **last** Ruling, so guessing picks a side: bug 0287's review
+ * measured an example `**Ruling: Reject**` inside a list-item-ended fence becoming a proposal's operative
+ * verdict, with `check:corpus` then green on an accepted proposal with no plan. 0.6.0 went red there —
+ * by accident, since its regex paired the opener with the next fence run, and with no later fence it
+ * read the example too.
+ *
+ * So a declaration at or below such a fence is not read, and the document is reported as reviewed but
+ * unreadable (`hasUnparseableRuling` / `hasUnparseableImplements`) rather than quietly taking one
+ * reading. The remedy is the author's and it is small: close the fence.
+ */
+function unreadableFrom(text) {
+  let line = openFences.get(text)
+  if (line === undefined) {
+    line = unclosedFences(text)[0] ?? null
+    openFences.set(text, line)
+  }
+  return line
+}
+
+/** Is a declaration on this line below a fence this module refuses to read under? */
+function unreadableAt(text, line) {
+  const from = unreadableFrom(text)
+  return from !== null && line >= from
+}
 
 /**
  * Blank out a closed fenced block in place (line numbers kept), so an
@@ -160,7 +191,8 @@ export function operativeRuling(text) {
   const stripped = stripFencedCode(text)
   const matches = [...stripped.matchAll(RULING_LINE_RE_G)]
   const last = matches.at(-1)
-  return last ? last[1] : null
+  if (!last || last.index === undefined) return null
+  return unreadableAt(text, lineAt(stripped, last.index)) ? null : last[1]
 }
 
 /** True if the document has a line that looks like a Ruling declaration
@@ -225,6 +257,7 @@ export function declaredImplements(text) {
   const matches = [...stripped.matchAll(IMPLEMENTS_RE_G)]
   if (matches.length !== 1) return null
   const m = matches[0]
+  if (m.index === undefined || unreadableAt(text, lineAt(stripped, m.index))) return null
   // Normalized the same way as proposalNumberFromPath — "proposal 002" and
   // "proposal 2" must key identically, since the join is on the number, not
   // its zero-padding.

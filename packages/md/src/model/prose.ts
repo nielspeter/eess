@@ -75,10 +75,22 @@ function codeBlocks(text: string, root: Root): { first: number; last: number; sh
 /**
  * The closed fences written inside an HTML block. CommonMark reads such a fence as raw HTML, so the
  * parser has no code node for it; but the author fenced it as an example, and the copies this owner
- * replaced set it aside (bug 0287's review measured a fenced example inside `<details>` read as a
- * record's state and as a proposal's ruling). Paired as CommonMark pairs a fence: a closer is a run of
- * the opener's character at least as long, alone on its line. A fence with no closer inside the block is
- * not set aside.
+ * replaced set aside a simple one there — mis-reading a longer one, as they did everywhere else (bug
+ * record's state and as a proposal's ruling). Paired by run length as CommonMark pairs a fence: a closer
+ * is a run of the opener's character at least as long, alone on its line. A fence with no closer inside
+ * the block is not set aside.
+ *
+ * **Indentation carries no meaning here**, of any width or kind. CommonMark's "at most three spaces, or
+ * it is an indented code block instead" is a rule about a markdown block context, and inside an HTML
+ * block there is none: every line is raw text. Importing that bound split `<details>` bodies by how far
+ * their author indented them — four spaces or a tab and the example was read as the document's own
+ * claim, measured on the ledger and on a proposal's ruling, where 0.6.0's textual regex set both aside.
+ *
+ * **This pairing is hand-rolled, and it is the one place in the family that still is.** Bug 0287's
+ * thesis is "ask the parser", and here there is nothing to ask: the parser hands back one `html` node
+ * and no structure inside it. So this loop can drift from micromark's fence rules where they are subtler
+ * than run length and the info string — which is why it lives in the owner, under the check that allows
+ * a fence regex in this file and nowhere else.
  */
 function fencesInHtml(text: string, root: Root): { first: number; last: number }[] {
   const lines = text.split('\n')
@@ -88,7 +100,7 @@ function fencesInHtml(text: string, root: Root): { first: number; last: number }
     const column = node.position.start.column - 1
     let open: { char: string; length: number; line: number } | null = null
     for (let n = node.position.start.line; n <= lastLineOf(node); n++) {
-      const fence = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec((lines[n - 1] ?? '').slice(column))
+      const fence = /^[ \t]*(`{3,}|~{3,})(.*)$/.exec((lines[n - 1] ?? '').slice(column))
       const run = fence?.[1]
       if (run === undefined) continue
       const rest = fence?.[2] ?? ''
@@ -107,19 +119,21 @@ function fencesInHtml(text: string, root: Root): { first: number; last: number }
 /**
  * Which code a reader sets aside (bug 0287).
  *
- * - `'commonmark'` — every code block, as CommonMark reads it. For a reader that reports what it cannot
- *   read: the ledger reads this way, and reports a fence that never closes and a `State:` line found only
- *   in code.
+ * - `'code-blocks'` — every code block the parser reports, which is how CommonMark reads the document.
+ *   For a reader that reports what it cannot read: the ledger reads this way, and reports a fence that
+ *   never closes and a `State:` line found only in code. Not named `'commonmark'`: both readings deviate
+ *   from it by one deliberate step, the fenced example inside an HTML block below.
  * - `'closed-fences'` — only a fence with its closing line, the one shape that is certainly an example.
  *   For a reader that cannot report: an indented block, or a fence that never closes, is read. A reader
  *   whose findings grow with what it reads — a term, a citation — then errs toward a false red, never a
- *   silent pass. A reader that keeps only the last of something, as a proposal's ruling is kept, can
- *   instead take an example after the real line for the real one, so it needs a reader that reports the
- *   unclosed fence beside it: in this repo, `check:ledger` on the proposals lane.
+ *   silent pass. A reader that keeps only the **last** of something does not have that property: an
+ *   example read after the real line becomes the verdict. Such a reader must refuse below a fence with
+ *   no closing line rather than pick a side — {@link unclosedFences} is the fact it refuses on, and the
+ *   proposal-ruling gate script is the one that does it.
  *
  * In both, a closed fence inside an HTML block is set aside too.
  */
-export type SetAside = 'commonmark' | 'closed-fences'
+export type SetAside = 'code-blocks' | 'closed-fences'
 
 /**
  * The document's text with every line of the code it sets aside blanked, and the line count kept, so a
@@ -136,17 +150,33 @@ export function proseText(
     for (let line = first; line <= last && line <= lines.length; line++) lines[line - 1] = ''
   }
   for (const { first, last, shape } of codeBlocks(text, root)) {
-    if (setAside === 'commonmark' || shape === 'closed-fence') blank(first, last)
+    if (setAside === 'code-blocks' || shape === 'closed-fence') blank(first, last)
   }
   for (const { first, last } of fencesInHtml(text, root)) blank(first, last)
   return lines.join('\n')
 }
 
 /**
+ * The opening line of every fence with no closing line, in document order — ended by its container or by
+ * the end of the document alike.
+ *
+ * For a reader that keeps only the last of something: below such a fence, whether a line is the
+ * document's own claim or an example is not decidable, and the two readings disagree. A reader that can
+ * report should refuse rather than pick (bug 0287's review measured an example ruling inside a
+ * list-item-ended fence becoming a proposal's verdict).
+ */
+export function unclosedFences(text: string, root: Root = parseMarkdown(text)): number[] {
+  return codeBlocks(text, root)
+    .filter((b) => b.shape === 'unclosed-fence')
+    .map((b) => b.first)
+}
+
+/**
  * The line of a fenced code block that never closes and so runs to the end of the document, or
  * `null`. By CommonMark everything after such a fence is code, so a `State:` line or a task box below
  * it is not the document's own; a reader that silently agrees reports nothing at all (bug 0286). A
- * fence its container ends is not reported.
+ * fence its container ends is not reported here — it hides only what is inside that container, and
+ * {@link unclosedFences} is the wider fact.
  */
 export function unterminatedFence(text: string, root: Root): number | null {
   const lastContentLine = text.trimEnd().split('\n').length

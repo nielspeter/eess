@@ -43,8 +43,11 @@ const HOMES = {
   'packages/core/src/mask-non-comment.ts': 'the kernel borrows a lexer it cannot own (ADR-012)',
 }
 
-/** Code this repo ships or runs: every package's source, the scripts that gate it, and the kit. */
-const ROOTS = ['packages', 'scripts', 'kit', '.claude/workflows']
+/**
+ * Code this repo ships or runs: every package's source, the scripts that gate it, the kit, the workflow
+ * scripts — and the repo-root rule files, which are code too and sit in no directory of their own.
+ */
+const ROOTS = ['packages', 'scripts', 'kit', '.claude/workflows', '.']
 const CODE = /\.(?:[cm]?[jt]s|tsx)$/
 const SKIP = new Set(['node_modules', 'dist', 'tests', 'fixtures'])
 // This file spells out the patterns and the copy it replaced, so it matches itself.
@@ -57,7 +60,9 @@ const SELF = join('scripts', 'lib', 'one-fence-reader.test.mjs')
  */
 function codeFiles(root) {
   const out = []
-  const walk = (dir) => {
+  // '.' means the repo-root files themselves, not the whole tree: every directory under it is either
+  // another root or none of this check's business (node_modules, docs, work, .git).
+  const walk = (dir, depth = 0) => {
     let entries = []
     try {
       entries = readdirSync(dir, { withFileTypes: true })
@@ -67,7 +72,7 @@ function codeFiles(root) {
     for (const entry of entries) {
       const path = join(dir, entry.name)
       if (entry.isDirectory()) {
-        if (!SKIP.has(entry.name)) walk(path)
+        if (root !== '.' && !SKIP.has(entry.name)) walk(path, depth + 1)
       } else if (CODE.test(entry.name) && path !== SELF) out.push(path)
     }
   }

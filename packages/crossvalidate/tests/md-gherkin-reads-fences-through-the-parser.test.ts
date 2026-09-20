@@ -11,6 +11,10 @@ import { scenarioCitationsResolve } from '../src/md-gherkin.js'
  * triple-backtick run inside a longer fence as a closer. It blanked the real citations below such an
  * example, and read the citations inside one. It now reads prose through eess-md's parser, setting aside
  * a fence that closes; a fence that never closes is read past, since this preset does not report one.
+ *
+ * This file reads eess-md through its built `dist` — `corpus` from the package, `proseText` through
+ * `/internal` inside `md-gherkin.ts`. Editing `packages/md/src` does not move it until `npm run build`
+ * runs; `validate` and CI build first, `npm test` on its own does not.
  */
 function unresolved(text: string): string[] {
   const dir = mkdtempSync(join(tmpdir(), 'citations-fences-'))

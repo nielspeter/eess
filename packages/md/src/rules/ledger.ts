@@ -165,7 +165,7 @@ export function findState(
 ): { state?: string; raw: string; line: number } | null {
   // Prose only, read as CommonMark reads it, so an illustrative `**State:** Draft` in a code block is
   // not the document's own (bugs 0286, 0287) — by the parser the task-box pass uses.
-  return stateIn(proseText(text, 'commonmark', root).split('\n'), vocabulary)
+  return stateIn(proseText(text, 'code-blocks', root).split('\n'), vocabulary)
 }
 
 /** The first `State:` token in the header region of these lines — `findState`'s scan. */
@@ -305,7 +305,7 @@ function hasDeferredDisposedBox(doc: MdDocument): boolean {
  * is deliberately NOT gated; only a *contradicting* one is.
  */
 function deferredNoneLieViolation(doc: MdDocument): ArchViolation | null {
-  const lines = proseText(doc.text, 'commonmark', doc.root).split('\n')
+  const lines = proseText(doc.text, 'code-blocks', doc.root).split('\n')
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i] ?? ''
     if (/^\s*>/.test(raw)) continue
@@ -398,7 +398,7 @@ function unterminatedFenceViolation(doc: MdDocument): ArchViolation | null {
  * comment, a template's skeleton — is not a heading, and counting it would end the search above the line.
  */
 function stateInCodeViolation(doc: MdDocument, known: readonly string[]): ArchViolation | null {
-  const prose = proseText(doc.text, 'commonmark', doc.root).split('\n')
+  const prose = proseText(doc.text, 'code-blocks', doc.root).split('\n')
   if (stateIn(prose, known) !== null) return null
   const raw = doc.text
     .split('\n')
@@ -411,7 +411,7 @@ function stateInCodeViolation(doc: MdDocument, known: readonly string[]): ArchVi
     file: doc.file,
     line: hidden.line,
     message:
-      'the header has a State: line only inside a code block, and this is the first — by CommonMark the document states nothing, so its boxes are not checked',
+      'the header has a State: line only inside a code block, and this is the first — read as code it states nothing, so its boxes are not checked',
     because: 'a record the gate cannot read would pass with nothing checked',
     suggestion:
       "write the record's own State: line as prose in the header — if this is it, remove its indent or move it out of the fence; if it is an example, keep it and add the real line; if this document is not a record, list it in boardFiles",
