@@ -39,7 +39,7 @@ to "the floor reads function bodies and nothing else".
 
 ## Root cause
 
-`packages/ts/src/presets/recommended.ts:152` builds each spec with
+`packages/ts/src/presets/recommended.ts:152` on `main` at faf1503 — the code this record describes — built each spec with
 `functions(p, { includeObjectLiteralFunctions: true })`. There is one collection and one subject
 kind, so a condition that exists for classes or modules is never constructed. The four floor rules
 are `no-eval`, `no-function-constructor`, `no-silent-catch` and `no-empty-bodies`; the first has a
@@ -63,9 +63,11 @@ not a preference but the only shape that does not double-report.
 **A module finding now names the declaration that contains the match** (`element`), falling back to
 the file when nothing does — `c`, `S`, `F.x`, else `floor.ts`. Without it this ruling would have
 turned every finding the floor already made from `runEval` into `dangerous.ts`, and `element` is
-what `.excluding()` keys on and what a reader looks at first. A module finding's identity is keyed
-on the file and the matcher, not on `element`, so a baseline built on module rules is unaffected by
-that half.
+what `.excluding()` keys on and what a reader looks at first. A module finding's identity comes from
+`identifyMatches`, which this fix did not touch, so no existing module-rule baseline entry moves
+because of it. The identity is NOT independent of the name, though — it carries the match's own
+scope, so renaming the enclosing declaration moves the entry. An earlier draft of this record said
+renames were safe; the method review measured otherwise.
 
 **What it costs, measured:**
 
@@ -104,11 +106,35 @@ that half.
       `it('the carrier reaches EVERY rule the preset constructs')` and
       `it('declaring one rule clears ONLY that rule — by NAME, not by count')`.
 - [x] Sabotage matrix over the three preset test files, sources restored by sha256 and verified,
-      the tree unchanged. R0, as built: nothing red. R1, every rule reading a function again: 21
-      red. R2, the empty-body rule reading a module: 22 red. R3, the eval rule back on functions: 1
-      red. R4, the new module twin matching nothing: 2 red. R5, a module finding naming the file
-      only: 4 red. R6, one naming a declaration always: 2 red.
+      the tree unchanged. Every row is reported with vitest's OWN count beside the parser's, because
+      the method review of this PR caught a published row whose figure was the run's PASS column:
+
+  | row                                             | red | vitest    |
+  | ----------------------------------------------- | --- | --------- |
+  | R0, as built                                    | 0   | 0 of 27   |
+  | R1, every rule reads a function again           | 22  | 22 failed |
+  | R2, the empty-body rule reads a module          | 23  | 23 failed |
+  | R4, the new module twin matches nothing         | 2   | 2 failed  |
+  | R5, a module finding names the file only        | 4   | 4 failed  |
+  | R6, a module finding always names a declaration | 2   | 2 failed  |
+  | R7, the silent-catch rule keeps its kind name   | 1   | 1 failed  |
+
+      **A seventh row was removed rather than renumbered**, and why is the point: "the eval rule
+      reads a function again" left `functionNoEval` unimported, so the test FILES failed to load and
+      vitest printed `Tests no tests`. The parser counted an error line as one red test and the row
+      published "1 red" — a number measured from a suite that never ran. R1 covers the same
+      capability at the builder, where the files do load.
+
 - [x] a changeset — `.changeset/the-floor-reads-every-subject.md`, a breaking `minor`.
+- [x] the customer review's findings closed — the module silent-catch rule now names its subject
+      and carries a per-file identity (its findings shared one `CatchClause` bucket, so a baseline
+      accepted one catch by accepting another); the declaration name reaches the CI annotation,
+      because the `github` emitter prints the message and drops `element`; and the changeset states
+      the remedy IN ORDER, since regenerating the baseline first accepts the very finding this fix
+      exists to report.
+- [x] what the change leaves is `deferred→`
+      [0336](../0336-a-rule-that-changes-subject-re-reports-accepted-findings-with-no-diagnostic.md):
+      an accepted finding returns as new on upgrade day and no diagnostic says why.
 - [x] `npm run validate` green.
 
-Deferred: none.
+Deferred: 0336.

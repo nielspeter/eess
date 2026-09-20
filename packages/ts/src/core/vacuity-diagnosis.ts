@@ -312,9 +312,16 @@ export function expiredDeclarationViolation(facts: RuleFacts, examined: number):
   const declaration = facts.emptyDeclarationAdvice()
   const message = `${declaration} asserted this rule examines nothing, and it examined ${String(examined)} ${singularise(facts.examinedUnitNoun(), examined)}.`
   const suggestion =
-    `Remove ${declaration} and let the rule enforce itself — the thing you were waiting for has ` +
-    `appeared, and the rule now has something to check. If instead the selection is wider than you ` +
-    `meant, narrow it and keep the declaration. ` +
+    // No CAUSE is asserted here on purpose. This said "the thing you were waiting for has appeared",
+    // which names one reason among several and is wrong for the others: the rule may examine
+    // something now because the code changed, because the selection widened, or because an upgrade
+    // changed what the rule READS — measured on bug 0333's upgrade, where a floor rule moved from
+    // function subjects to module subjects and this line sent the reader hunting their own diff for
+    // code they had not written. ADR-009 rule 2: a wrong attribution sends you in circles.
+    `Remove ${declaration} and let the rule enforce itself — it has something to check now, whether ` +
+    `because the code changed, because the selection widened, or because an upgrade changed what ` +
+    `this rule reads. If instead the selection is wider than you meant, narrow it and keep the ` +
+    `declaration. ` +
     `The rule's own violations are reported as separate findings under the same rule id. ` +
     UNSUPPRESSABLE
   return {

@@ -158,9 +158,12 @@ const RULE_IDS: readonly string[] = SPECS.map((s) => s.meta.id)
  * glob is dead) is `error` regardless of severity and fails the build: `'warn'`
  * grades violations, not a rule that cannot enforce anything.
  *
- * Overlaps `agentGuardrails` on empty bodies and `eval`. For agent-focused
- * projects prefer `agentGuardrails` alone, or override the duplicated ids to
- * `'off'` in one preset.
+ * Overlaps `agentGuardrails` on empty bodies and `eval`, and the two no longer READ the same code:
+ * since bug 0333 this preset's `eval` rule reads the whole file, while `agentGuardrails` still
+ * reads function bodies — measured, its `noInlineLogic: ['eval']` reports nothing for a bare
+ * top-level `eval` or one in a static block (bug 0337). So "prefer `agentGuardrails` alone", which
+ * this comment used to advise, now means less coverage; run both and override a duplicated id to
+ * `'off'` in one of them if the doubled finding is noise.
  */
 /**
  * `report` names a delivery mode; omitting it returns the un-executed builders.

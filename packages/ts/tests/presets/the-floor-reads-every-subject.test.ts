@@ -62,6 +62,33 @@ describe('bug 0333: the floor reads every subject its rules have a variant for',
     ).toEqual(['c', 'S', 'floor.ts'])
   })
 
+  it('gives every silent catch its own subject, in its own file', () => {
+    // The customer review measured the hazard this closes: `moduleNoSilentCatch` reported every
+    // module-scope catch as `CatchClause` with one constant message and no identity, so a baseline
+    // keyed on `element::message` collapsed them into one bucket — accepting a catch in one file
+    // accepted a different catch in another, and a delete-plus-add went green.
+    const tsm = new Project({ useInMemoryFileSystem: true })
+    tsm.createSourceFile(
+      '/src/one.ts',
+      'declare function go(): void\ntry { go() } catch {}\nexport function inFn() { try { go() } catch {} }\n',
+    )
+    tsm.createSourceFile('/src/two.ts', 'declare function go2(): void\ntry { go2() } catch {}\n')
+    const p: ArchProject = {
+      tsConfigPath: '/tsconfig.json',
+      _project: tsm,
+      getSourceFiles: () => tsm.getSourceFiles(),
+    }
+    const catches = [...recommended(p, { include: '**/src/**', report: 'return' })].filter(
+      (v) => v.ruleId === 'preset/recommended/no-silent-catch',
+    )
+
+    // Three catches, three subjects — named by what contains them — and three DISTINCT identities.
+    expect(catches.map((v) => v.element)).toEqual(['one.ts', 'inFn', 'two.ts'])
+    expect(new Set(catches.map((v) => v.identity)).size).toBe(3)
+    // Each identity carries its own file, so two files cannot share a baseline entry.
+    expect(catches.filter((v) => (v.identity ?? '').includes('/src/two.ts'))).toHaveLength(1)
+  })
+
   it('keeps the empty-body rule on its function subject', () => {
     // `no-empty-bodies` is a fact about a function. The floor still reports one, and reports
     // nothing for a file that merely has no functions.

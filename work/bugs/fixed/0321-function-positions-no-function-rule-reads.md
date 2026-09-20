@@ -152,10 +152,10 @@ Measured, one position per row, `functionNoEval` over `functions(p, { includeObj
       (`class Expr`, `const Expr = class`, `namespace Expr` all reporting `Expr.m`) is named in the
       code beside the one the prefix removes.
 - [x] `npm run validate` green.
-- [x] the severity's other half re-homed, not closed: the floor still runs only `functions()`, so
-      the three ruled-out positions passed the preset an adopter installs — `deferred→`
-      [0333](./0333-the-recommended-floor-reads-functions-only.md), which has since been fixed. The class-rule
-      half of this record's last paragraph is `deferred→`
-      [0334](../0334-classes-cannot-select-a-class-expression.md).
+- [x] the severity's other half was re-homed rather than closed here: at the time of this fix the
+      floor ran only `functions()`, so the three ruled-out positions passed the preset an adopter
+      installs — `deferred→` [0333](./0333-the-recommended-floor-reads-functions-only.md), **since
+      fixed**, which is where that half now lives. The class-rule half of this record's last
+      paragraph is `deferred→` [0334](../0334-classes-cannot-select-a-class-expression.md), open.
 
 Deferred: 0333, 0334.

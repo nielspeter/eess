@@ -109,8 +109,9 @@ Each rule reads **one** subject. The kinds nest — a module search reads the wh
 built over two of them would report one call twice.
 
 A finding from a module-subject rule names the declaration that contains the match (`handler`,
-`Cache.warm`), falling back to the file when nothing does. That is the name `.excluding()` matches
-on. Its baseline identity is keyed on the file and the matcher, not on that name.
+`Cache.warm`), falling back to the file when nothing does — in both `element`, which `.excluding()`
+matches on, and the message the CI emitter prints. Its baseline identity is keyed on the **file**,
+the match's own scope and the matcher, so two findings in different files never share an entry.
 
 Because a matched file is always a subject, `expectEmpty` does not apply to the three module-subject
 rules: declaring one empty fails as the assertion it is, rather than going quiet.

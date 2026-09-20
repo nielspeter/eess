@@ -68,18 +68,28 @@ export function moduleNotContain(
           matcher.description,
         )
         result.matchingNodes.forEach((node, index) => {
+          const subjectName = enclosingScopeName(node) ?? sf.getBaseName()
           violations.push({
             rule: context.rule,
             // The declaration that CONTAINS the match, and the file only when none does (bug 0333).
             // A module rule reads the whole file, so `element` was the file for every finding — and
             // `element` is what `.excluding()` keys on and what a reader looks at first. With the
             // `recommended` floor reading module subjects, that would have turned every finding it
-            // already made from `runEval` into `dangerous.ts`. The identity is keyed on the file and
-            // the matcher, not on this, so a baseline built on module rules is unaffected.
-            element: enclosingScopeName(node) ?? sf.getBaseName(),
+            // already made from `runEval` into `dangerous.ts`.
+            //
+            // This does not change any existing baseline entry, because `identifyMatches` — which
+            // is untouched — builds the identity. It is NOT independent of the name, though: the
+            // key carries the match's own scope, so renaming the enclosing declaration moves the
+            // entry. An earlier version of this comment said renames were safe; the method review
+            // of PR #149 measured otherwise.
+            element: subjectName,
             file: sf.getFilePath(),
             line: reportedLine(node, result.triviaPositions[index]),
-            message: `${sf.getBaseName()} contains ${matcher.description} at line ${String(reportedLine(node, result.triviaPositions[index]))}`,
+            // The MESSAGE carries the same name as `element`, because the `github` emitter prints
+            // the message and drops `element` — naming the declaration only in `element` made the
+            // CI annotation LESS specific than before this rule changed subject, which the customer
+            // review measured (`runEval contains …` became `legacy.ts contains …`).
+            message: `${subjectName} contains ${matcher.description} at line ${String(reportedLine(node, result.triviaPositions[index]))}`,
             identity: identities[index],
             because: context.because,
           })
@@ -116,12 +126,16 @@ export function moduleUseInsteadOf(
           bad.description,
         )
         badResult.matchingNodes.forEach((node, index) => {
+          // Named like `moduleNotContain`'s matches (bug 0333): this is a finding ABOUT a match, so
+          // it names what contains the match. The two findings below it are about the FILE — it
+          // does not contain something — and name the file, which is the subject there.
+          const subjectName = enclosingScopeName(node) ?? sf.getBaseName()
           violations.push({
             rule: context.rule,
-            element: sf.getBaseName(),
+            element: subjectName,
             file: sf.getFilePath(),
             line: reportedLine(node, badResult.triviaPositions[index]),
-            message: `${sf.getBaseName()} contains ${bad.description} at line ${String(reportedLine(node, badResult.triviaPositions[index]))} — use ${good.description} instead`,
+            message: `${subjectName} contains ${bad.description} at line ${String(reportedLine(node, badResult.triviaPositions[index]))} — use ${good.description} instead`,
             identity: identities[index],
             because: context.because,
           })

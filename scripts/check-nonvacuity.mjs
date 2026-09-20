@@ -1056,8 +1056,15 @@ function gateFamilyReExportAggregation() {
 
 // --- Gate: baseline (the shipped `recommended` preset via check:baseline) ---
 function gateBaseline() {
-  const bad = withProbe(PROBE_EVAL, "export function probe() {\n  return eval('1 + 1')\n}\n", () =>
-    sh(process.execPath, [join('scripts', 'check-baseline.mjs'), '--format', 'json']),
+  // The `eval` sits at MODULE scope, outside any function, deliberately (bug 0333). Inside a
+  // function it is the one position the floor read before that fix too, so this probe stayed green
+  // with the fix reverted — measured by the enforcement review: putting the three `subject: 'module'`
+  // lines back left this row passing. A probe that cannot tell the capability from its absence is
+  // the shape this whole gate exists to catch.
+  const bad = withProbe(
+    PROBE_EVAL,
+    "eval('1 + 1')\nexport function probe() {\n  return 1\n}\n",
+    () => sh(process.execPath, [join('scripts', 'check-baseline.mjs'), '--format', 'json']),
   )
   // One record carrying both the probe file and the rule id. This used to assert
   // the rule's rendered *description* ("call to 'eval'") because check-baseline
