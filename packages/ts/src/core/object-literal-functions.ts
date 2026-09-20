@@ -49,10 +49,17 @@ const MAX_OBJECT_LITERAL_DEPTH = 3
  */
 export function collectObjectLiteralFunctions(
   node: Node,
-  maxDepth: number = MAX_OBJECT_LITERAL_DEPTH,
+  options: { includeAccessors?: boolean; maxDepth?: number } = {},
 ): ObjectLiteralFunction[] {
   const out: ObjectLiteralFunction[] = []
-  walk(node, [], 0, maxDepth, out)
+  walk(
+    node,
+    [],
+    0,
+    options.maxDepth ?? MAX_OBJECT_LITERAL_DEPTH,
+    out,
+    options.includeAccessors ?? false,
+  )
   return out
 }
 
@@ -62,6 +69,7 @@ function walk(
   depth: number,
   maxDepth: number,
   out: ObjectLiteralFunction[],
+  includeAccessors: boolean,
 ): void {
   if (!Node.isObjectLiteralExpression(node)) return
   if (depth >= maxDepth) return
@@ -70,6 +78,23 @@ function walk(
     // Method shorthand: { GET(req) { ... } }
     if (Node.isMethodDeclaration(prop)) {
       out.push({ node: prop, keyPath: [...keyPath, keyOf(prop)] })
+      continue
+    }
+    // An accessor is a function the object defines — the object-literal counterpart of the class
+    // accessors bug 0315 collected — so the FUNCTION collection reads it (bug 0321). The callback
+    // path does not: whether a rule about callbacks should read a function that runs on access
+    // rather than on call is an open ruling, recorded as bug 0331. Hence the option: one traversal,
+    // and the difference declared at the call site rather than discovered.
+    if (Node.isGetAccessorDeclaration(prop) || Node.isSetAccessorDeclaration(prop)) {
+      if (includeAccessors) {
+        out.push({
+          node: prop,
+          keyPath: [
+            ...keyPath,
+            `${Node.isGetAccessorDeclaration(prop) ? 'get' : 'set'} ${prop.getName()}`,
+          ],
+        })
+      }
       continue
     }
     if (!Node.isPropertyAssignment(prop)) continue
@@ -87,7 +112,7 @@ function walk(
     }
     // Nested object literal — recurse (depth-limited).
     if (Node.isObjectLiteralExpression(init)) {
-      walk(init, [...keyPath, key], depth + 1, maxDepth, out)
+      walk(init, [...keyPath, key], depth + 1, maxDepth, out, includeAccessors)
     }
   }
 }

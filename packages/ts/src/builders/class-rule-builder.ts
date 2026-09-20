@@ -1,3 +1,4 @@
+import { SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration } from 'ts-morph'
 import { RuleBuilder } from '../core/rule-builder.js'
 import type { ArchProject } from '../core/project.js'
@@ -83,7 +84,16 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
     return cache.get(this.project, SOLE_POPULATION, () => {
       const classes: ClassDeclaration[] = []
       for (const sourceFile of this.project.getSourceFiles()) {
-        classes.push(...sourceFile.getClasses())
+        // Every class declaration in the file, not only the top-level ones (bug 0321):
+        // `export namespace N { export class Inner {} }` is an ordinary class that
+        // `sourceFile.getClasses()` does not answer for, so no class rule reached it — and a class
+        // declared inside a function was invisible the same way.
+        //
+        // A class EXPRESSION is still not selected: this builder's element type is
+        // `ClassDeclaration` from its predicates to `searchClassBody`, and widening it is a
+        // separate change with its own question — what an anonymous class is called when an
+        // identity predicate asks. Its MEMBERS are read by the function rules since bug 0321.
+        classes.push(...sourceFile.getDescendantsOfKind(SyntaxKind.ClassDeclaration))
       }
       return classes
     })
