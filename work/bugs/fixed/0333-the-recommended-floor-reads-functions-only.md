@@ -63,9 +63,11 @@ not a preference but the only shape that does not double-report.
 **A module finding now names the declaration that contains the match** (`element`), falling back to
 the file when nothing does — `c`, `S`, `F.x`, else `floor.ts`. Without it this ruling would have
 turned every finding the floor already made from `runEval` into `dangerous.ts`, and `element` is
-what `.excluding()` keys on and what a reader looks at first. A module finding's identity comes from
-`identifyMatches`, which this fix did not touch, so no existing module-rule baseline entry moves
-because of it. The identity is NOT independent of the name, though — it carries the match's own
+what `.excluding()` keys on and what a reader looks at first. For the two conditions that already used
+`identifyMatches`, the identity comes from code this fix did not touch, so no existing baseline
+entry of theirs moves. **`moduleNoSilentCatch` is the exception and its entries all move**: it had
+no identity at all and reported `element: 'CatchClause'`, so every module-scope catch shared one
+subject — the false green the customer review measured — and it now has both. The identity is NOT independent of the name, though — it carries the match's own
 scope, so renaming the enclosing declaration moves the entry. An earlier draft of this record said
 renames were safe; the method review measured otherwise.
 
@@ -109,21 +111,25 @@ renames were safe; the method review measured otherwise.
       the tree unchanged. Every row is reported with vitest's OWN count beside the parser's, because
       the method review of this PR caught a published row whose figure was the run's PASS column:
 
-  | row                                             | red | vitest    |
-  | ----------------------------------------------- | --- | --------- |
-  | R0, as built                                    | 0   | 0 of 27   |
-  | R1, every rule reads a function again           | 22  | 22 failed |
-  | R2, the empty-body rule reads a module          | 23  | 23 failed |
-  | R4, the new module twin matches nothing         | 2   | 2 failed  |
-  | R5, a module finding names the file only        | 4   | 4 failed  |
-  | R6, a module finding always names a declaration | 2   | 2 failed  |
-  | R7, the silent-catch rule keeps its kind name   | 1   | 1 failed  |
+  | row                                                | red | vitest    |
+  | -------------------------------------------------- | --- | --------- |
+  | R0, as built                                       | 0   | 0 of 41   |
+  | R1, every rule reads a function again              | 22  | 22 failed |
+  | R2, the empty-body rule reads a module             | 23  | 23 failed |
+  | R4, the new module twin matches nothing            | 2   | 2 failed  |
+  | R5, a module finding names the file, never a scope | 5   | 5 failed  |
+  | R6, it never falls back to the file                | 3   | 3 failed  |
+  | R7, the silent-catch rule keeps its old subject    | 1   | 1 failed  |
+  | R8, `useInsteadOf` does not use the shared subject | 1   | 1 failed  |
 
-      **A seventh row was removed rather than renumbered**, and why is the point: "the eval rule
-      reads a function again" left `functionNoEval` unimported, so the test FILES failed to load and
-      vitest printed `Tests no tests`. The parser counted an error line as one red test and the row
-      published "1 red" — a number measured from a suite that never ran. R1 covers the same
-      capability at the builder, where the files do load.
+      **This table has needed two corrections, both kept visible.** A row was removed rather than
+      renumbered: "the eval rule reads a function again" left `functionNoEval` unimported, so the
+      test FILES failed to load, vitest printed `Tests no tests`, and the parser counted an error
+      line as one red test — a number measured from a suite that never ran. And the first correction
+      of this table was itself unreproducible: the delta review ran the matrix verbatim and two rows
+      printed `ANCHOR NOT UNIQUE`, because the fix they targeted had written the same expression
+      twice. That expression is one function now (`subjectOf`), which is both better code and the
+      reason those rows can name their site.
 
 - [x] a changeset — `.changeset/the-floor-reads-every-subject.md`, a breaking `minor`.
 - [x] the customer review's findings closed — the module silent-catch rule now names its subject
@@ -132,9 +138,14 @@ renames were safe; the method review measured otherwise.
       because the `github` emitter prints the message and drops `element`; and the changeset states
       the remedy IN ORDER, since regenerating the baseline first accepts the very finding this fix
       exists to report.
-- [x] what the change leaves is `deferred→`
-      [0336](../0336-a-rule-that-changes-subject-re-reports-accepted-findings-with-no-diagnostic.md):
-      an accepted finding returns as new on upgrade day and no diagnostic says why.
+- [x] what the change leaves is re-homed, not silent: `deferred→`
+      [0336](../0336-a-rule-that-changes-subject-re-reports-accepted-findings-with-no-diagnostic.md),
+      an accepted finding returning as new with no diagnostic; `deferred→`
+      [0338](../0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md), a match
+      with no enclosing declaration identified by position, so a within-file delete-plus-add is
+      accepted silently; and `deferred→`
+      [0337](../0337-agent-guardrails-reads-function-bodies-only.md), the sibling preset that does
+      not follow this ruling.
 - [x] `npm run validate` green.
 
-Deferred: 0336.
+Deferred: 0336, 0337, 0338.

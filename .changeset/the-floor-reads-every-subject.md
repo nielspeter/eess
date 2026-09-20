@@ -19,9 +19,16 @@ directly.
 **A module finding now names the declaration that contains the match** — `c`, `S`, `F.x` — and the
 file only when nothing does. `element` is what `.excluding()` keys on, so this keeps working for
 the rules that changed subject; it is also a change for anyone using `modules()` rules directly and
-excluding by file name. A module finding's identity is built by the same code as before, so no
-existing module-rule baseline entry moves because of this change — but it does carry the match's
+excluding by file name. For `moduleNotContain` and `moduleUseInsteadOf` the identity is built by the same code as before, so
+no existing baseline entry of theirs moves because of this change — though it does carry the match's
 scope, so renaming an enclosing declaration moves that entry, as it always has.
+
+**`moduleNoSilentCatch` is different, and its entries all move.** It is exported (`@nielspeter/eess-ts`),
+and it previously built findings with no identity and `element: 'CatchClause'` — so every
+module-scope catch in a project shared one baseline subject, and accepting one accepted another. It
+now names the declaration containing the catch and carries a per-file identity. If you baseline that
+rule, regenerate it; and an `.excluding('CatchClause')` written against the old name stops matching
+(the run reports the exclusion as unused rather than dropping it silently).
 
 **What an adopter has to do, in this order.**
 

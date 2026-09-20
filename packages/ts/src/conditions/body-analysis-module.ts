@@ -1,4 +1,4 @@
-import type { SourceFile } from 'ts-morph'
+import type { Node, SourceFile } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { identifyMatches } from './match-identity.js'
@@ -11,6 +11,18 @@ import {
 } from '../helpers/body-traversal.js'
 
 // ─── Module body conditions ────────────────────────────────────────
+
+/**
+ * What a per-match module finding is ABOUT: the declaration containing the match, and the file only
+ * when nothing does (bug 0333).
+ *
+ * One definition, because two module conditions report per-match findings and the expression was
+ * written twice — which also left the sabotage matrix unable to name either site unambiguously, in
+ * the commit that claimed to correct that matrix.
+ */
+function subjectOf(node: Node, sf: SourceFile): string {
+  return enclosingScopeName(node) ?? sf.getBaseName()
+}
 
 /**
  * Module must contain at least one node matching the matcher.
@@ -68,7 +80,7 @@ export function moduleNotContain(
           matcher.description,
         )
         result.matchingNodes.forEach((node, index) => {
-          const subjectName = enclosingScopeName(node) ?? sf.getBaseName()
+          const subjectName = subjectOf(node, sf)
           violations.push({
             rule: context.rule,
             // The declaration that CONTAINS the match, and the file only when none does (bug 0333).
@@ -127,9 +139,10 @@ export function moduleUseInsteadOf(
         )
         badResult.matchingNodes.forEach((node, index) => {
           // Named like `moduleNotContain`'s matches (bug 0333): this is a finding ABOUT a match, so
-          // it names what contains the match. The two findings below it are about the FILE — it
-          // does not contain something — and name the file, which is the subject there.
-          const subjectName = enclosingScopeName(node) ?? sf.getBaseName()
+          // it names what contains the match. The two absence findings in this file — `moduleContain`
+          // above and the `goodResult` one below — are about the FILE not containing something, and
+          // name the file, which is the subject there.
+          const subjectName = subjectOf(node, sf)
           violations.push({
             rule: context.rule,
             element: subjectName,

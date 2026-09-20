@@ -16,13 +16,18 @@
 
 ## Symptom
 
-Measured, `agentGuardrails(p, { src: '**/src/**', noInlineLogic: ['eval'], report: 'return' })`:
+Measured, `agentGuardrails(p, { src: '**/src/**', noInlineLogic: ['eval'], report: 'return' })`.
+**Every fixture holds a function**, so the preset has a subject and ADR-010's empty-selection
+finding cannot fire — the first version of this table used fixtures with no function at all, where
+the `[]` rows were accompanied by an error-severity vacuity finding, which is the opposite of a
+silent pass. The delta review of PR #149 caught that; the conclusion survived it, the evidence did
+not:
 
-| the file holds                            | reported |
-| ----------------------------------------- | -------- |
-| `export function c() { eval('x') }`       | `["c"]`  |
-| `eval('x')` at top level                  | **`[]`** |
-| `export class S { static { eval('x') } }` | **`[]`** |
+| the file holds                                         | reported |
+| ------------------------------------------------------ | -------- |
+| `export function c() { eval('x') }`                    | `["c"]`  |
+| `eval('x')` at top level, beside an unrelated function | **`[]`** |
+| `class S { static { eval('x') } }`, beside a function  | **`[]`** |
 
 ## Root cause
 
@@ -55,7 +60,8 @@ answers this record does not presume:
 
 ## Verification
 
-- [x] reproduced — the table above, on PR #149's build.
+- [x] reproduced — the table above, on PR #149's build, with a function present in every
+      fixture so that a vacuity finding cannot be mistaken for a report.
 - [ ] a pin, asserting the control is reported so a preset gone dead cannot pass
 - [ ] a ruling per rule on which subject it reads
 - [ ] the fix, with a changeset for the adopters who carry baselines
