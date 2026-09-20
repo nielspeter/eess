@@ -4,7 +4,7 @@
 
 - **State:** Fixed — the three rules read `process.env` through a string-keyed bracket or a
   global object; the two spellings that need a binding followed moved to
-  [0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md). Red test first.
+  [0305](./0305-security-rules-miss-a-global-reached-through-a-local-alias.md). Red test first.
 - **Severity:** High — **false green.** The rules documented as "No direct `process.env`
   access" passed four other reads of the same value — bracketed, destructured, through `globalThis`, and
   imported from `node:process`.
@@ -82,7 +82,7 @@ a property access or a string-keyed element access, drops one leading global obj
 `globalThis['process']['env']` are reported, and `settings.env` is not. It did not read through a type assertion, a
 non-null assertion or a second global object — [0308](./0308-security-rules-miss-a-global-read-through-a-cast.md), fixed on 2026-09-14 — and, since it reads
 names rather than bindings, it reads a local named `global`, `window` or `self` as the global
-object — [0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md).
+object — [0305](./0305-security-rules-miss-a-global-reached-through-a-local-alias.md).
 
 The three things the record had decided before the fix:
 
@@ -122,7 +122,7 @@ and named in 0305's symptom table.
       reported twice shows. The full `packages/ts` suite passes.
 - [x] The rule docs list the spellings covered, and say `import.meta.env` is not one —
       `docs/standard-rules.md`, `docs/api-reference.md` and the `noProcessEnv` JSDoc.
-- [ ] deferred→[0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md) —
+- [ ] deferred→[0305](./0305-security-rules-miss-a-global-reached-through-a-local-alias.md) —
       `const { env } = process` and `import { env } from 'node:process'`, which need the binding
       followed. Pinned by
       `it('KNOWN GAP — an environment read through destructuring or the node:process import is not reported')`.
@@ -153,5 +153,5 @@ and named in 0305's symptom table.
       The four rows for the enforcement review’s findings passed as predicted on their first run.
 - [x] `npm run validate` green.
 
-Deferred: [0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md),
+Deferred: [0305](./0305-security-rules-miss-a-global-reached-through-a-local-alias.md),
 [0308](./0308-security-rules-miss-a-global-read-through-a-cast.md)

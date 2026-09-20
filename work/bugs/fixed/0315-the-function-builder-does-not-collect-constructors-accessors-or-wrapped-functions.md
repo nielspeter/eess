@@ -54,7 +54,7 @@ Every function collected before keeps its name.
 
 Not collected, and filed in this PR: a class expression's and a namespace class's members, an object
 literal's accessors, a static block, and a function behind a call or a conditional —
-[0321](../0321-function-positions-no-function-rule-reads.md). The class metrics still name an accessor
+[0321](./0321-function-positions-no-function-rule-reads.md). The class metrics still name an accessor
 `Class.x`, and a static member is named like its instance twin on both sides —
 [0320](../0320-an-accessor-is-named-two-ways-and-static-members-collide.md).
 
@@ -165,7 +165,7 @@ the class. This rule asks whether an empty body is a stub, so a dropped paramete
 - [ ] deferred→[0320](../0320-an-accessor-is-named-two-ways-and-static-members-collide.md) — one
       accessor naming for the class and function sides, and a static member named apart from its
       instance twin, raised by #140's reviews.
-- [ ] deferred→[0321](../0321-function-positions-no-function-rule-reads.md) — the function positions
+- [ ] deferred→[0321](./0321-function-positions-no-function-rule-reads.md) — the function positions
       still not collected, raised by #140's method and enforcement reviews.
 
 Deferred: 0320, 0321.

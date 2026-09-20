@@ -1,4 +1,6 @@
+import { Node, SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration } from 'ts-morph'
+import { descendantsOfKind } from '../core/descendant-cache.js'
 import { RuleBuilder } from '../core/rule-builder.js'
 import type { ArchProject } from '../core/project.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
@@ -74,6 +76,13 @@ const cache = createElementCache<ClassDeclaration>()
  * predicates and conditions alongside the identity predicates and
  * structural conditions from the foundation plans.
  */
+/** Whether a class lies inside another class, where that class's body search already reads it. */
+function isInsideAClass(cls: ClassDeclaration): boolean {
+  return cls
+    .getAncestors()
+    .some((ancestor) => Node.isClassDeclaration(ancestor) || Node.isClassExpression(ancestor))
+}
+
 export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
   constructor(project: ArchProject) {
     super(project)
@@ -83,7 +92,24 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
     return cache.get(this.project, SOLE_POPULATION, () => {
       const classes: ClassDeclaration[] = []
       for (const sourceFile of this.project.getSourceFiles()) {
-        classes.push(...sourceFile.getClasses())
+        // Every class declaration in the file, not only the top-level ones (bug 0321):
+        // `export namespace N { export class Inner {} }` is an ordinary class that
+        // `sourceFile.getClasses()` does not answer for, so no class rule reached it — and a class
+        // declared inside a function was invisible the same way.
+        //
+        // A class EXPRESSION is still not selected: this builder's element type is
+        // `ClassDeclaration` from its predicates to `searchClassBody`, and widening it is a
+        // separate change with its own question — what an anonymous class is called when an
+        // identity predicate asks. Its MEMBERS are read by the function rules since bug 0321.
+        // Through the shared walk cache, as every other walk in this package is: this is now a
+        // whole-AST walk per file where it used to be a top-level statement scan.
+        for (const cls of descendantsOfKind(sourceFile, SyntaxKind.ClassDeclaration)) {
+          // A class INSIDE another class is not its own subject: the enclosing class's body search
+          // already reads everything in it, so collecting both reported one `eval` twice — three
+          // times at two levels of nesting. Measured by the enforcement review of bug 0321, which
+          // is the same hazard the function collection guards against with `isInsideAFunction`.
+          if (Node.isClassDeclaration(cls) && !isInsideAClass(cls)) classes.push(cls)
+        }
       }
       return classes
     })

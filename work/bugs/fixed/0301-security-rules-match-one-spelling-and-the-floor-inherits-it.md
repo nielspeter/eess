@@ -5,7 +5,7 @@
 - **State:** Fixed — every variant of the three rules, and the `recommended` floor, reads the
   global however its name is spelled at the site of use; red test first. The spellings that
   reach the global through a local alias are split to
-  [0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md).
+  [0305](./0305-security-rules-miss-a-global-reached-through-a-local-alias.md).
 - **Severity:** High — **false green in the preset every adopter installs.**
   `recommended()` passed `Function('return 1')()`, which is the same operation as
   `new Function('return 1')()` — the rule's own docs describe it as "equivalent to
@@ -102,9 +102,9 @@ is a `minor` marked breaking: the floor reports more.
     2026-09-14: filed as [0308](./0308-security-rules-miss-a-global-read-through-a-cast.md) and reversed there. The evasion argument holds, but it
     is no reason to leave the chain unread: wherever a doubled global chain evaluates, it is the
     global, so reading it cannot flag working code.
-- [ ] deferred→[0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md) —
+- [ ] deferred→[0305](./0305-security-rules-miss-a-global-reached-through-a-local-alias.md) —
       `const ev = eval`, `const F = Function` and `const { log } = console` reach the global
       through a local binding, which needs the binding followed: the design question 0297
       raises, answered once. Pinned there by a KNOWN-GAP test.
 
-Deferred: [0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md)
+Deferred: [0305](./0305-security-rules-miss-a-global-reached-through-a-local-alias.md)

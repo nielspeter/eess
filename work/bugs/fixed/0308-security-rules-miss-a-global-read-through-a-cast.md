@@ -65,7 +65,7 @@ with its other names-not-bindings cases. And a string key containing a dot reads
 
 Not changed: the rules read names, not bindings, so a local named `window` or `process` is still
 read as the global, cast or not — that is
-[0305](../0305-security-rules-miss-a-global-reached-through-a-local-alias.md).
+[0305](./0305-security-rules-miss-a-global-reached-through-a-local-alias.md).
 
 ## Verification
 

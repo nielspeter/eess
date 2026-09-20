@@ -39,6 +39,8 @@ import {
 | `moduleNoTypeAssertions()`      | modules   | Source file must not contain `as` casts (allows `as const`)     |
 | `moduleNoNonNullAssertions()`   | modules   | Source file must not contain `!` non-null assertions            |
 
+The security rules — `noEval`, `noFunctionConstructor`, `noConsole`, `noProcessEnv` and their function and module variants — read a name **through its binding** (bug 0305): `const ev = eval; ev('1')`, `const { log } = console` and `import { env } from 'node:process'` are reported, while a local that merely keeps a global's name — `function Function() {}`, a parameter called `process` — is not. A name whose binding cannot be resolved is read as written, so a missing type definition cannot turn a rule off.
+
 `noTypeAssertions` (and its variants) allow `as const` since that narrows types rather than widening them. The class variants scan all the code a class runs: its members' method, constructor and accessor bodies, parameter defaults, property initializers and static blocks, and every decorator expression, computed member name and the `extends` expression — not `implements` or docstrings. Module variants scan the entire file — broader than function/class and useful for "nowhere in src/" enforcement.
 
 ```typescript

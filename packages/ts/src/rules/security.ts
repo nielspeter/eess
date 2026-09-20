@@ -6,6 +6,7 @@ import { call, type ExpressionMatcher } from '../helpers/matchers.js'
 import { classNotContain } from '../conditions/body-analysis.js'
 import { functionNotContain } from '../conditions/body-analysis-function.js'
 import { moduleNotContain } from '../conditions/body-analysis-module.js'
+import { globalChainOf } from '../helpers/global-binding.js'
 
 // ─── Reading a global however its name is spelled (bugs 0301, 0297, 0308) ──────
 //
@@ -75,7 +76,9 @@ function chainOf(node: Node): string | undefined {
  * not the global.
  */
 function globalNameOf(node: Node): string | undefined {
-  let chain = chainOf(node)
+  // Through the binding first (bug 0305), then the leading global objects (bug 0308): a name bound
+  // to `globalThis.eval` has to lose the `globalThis.` after the binding is followed, not before.
+  let chain = globalChainOf(node, chainOf)
   if (chain === undefined) return undefined
   let dot = chain.indexOf('.')
   while (dot > 0 && GLOBAL_OBJECTS.has(chain.slice(0, dot))) {
@@ -115,8 +118,14 @@ function functionConstructor(): ExpressionMatcher {
 function consoleAccess(): ExpressionMatcher {
   return {
     description: 'access matching /^console\\./',
-    syntaxKinds: [SyntaxKind.PropertyAccessExpression, SyntaxKind.ElementAccessExpression],
-    matches: (node) => globalNameOf(node)?.startsWith('console.') === true,
+    syntaxKinds: [
+      SyntaxKind.PropertyAccessExpression,
+      SyntaxKind.ElementAccessExpression,
+      // A member destructured out of `console` is reached by a bare NAME — `const { log } =
+      // console; log(1)` — so the identifier itself has to be asked (bug 0305).
+      SyntaxKind.Identifier,
+    ],
+    matches: (node) => readsAName(node) && globalNameOf(node)?.startsWith('console.') === true,
   }
 }
 
@@ -127,9 +136,41 @@ function consoleAccess(): ExpressionMatcher {
 function processEnvAccess(): ExpressionMatcher {
   return {
     description: "access to 'process.env'",
-    syntaxKinds: [SyntaxKind.PropertyAccessExpression, SyntaxKind.ElementAccessExpression],
-    matches: (node) => globalNameOf(node) === 'process.env',
+    syntaxKinds: [
+      SyntaxKind.PropertyAccessExpression,
+      SyntaxKind.ElementAccessExpression,
+      // `const { env } = process; env.B` and `import { env } from 'node:process'` reach the
+      // environment through a bare name (bug 0305).
+      SyntaxKind.Identifier,
+    ],
+    matches: (node) => readsAName(node) && globalNameOf(node) === 'process.env',
   }
+}
+
+/**
+ * Whether a node reads a name, rather than writing one down (bug 0305).
+ *
+ * With `Identifier` in a matcher's kinds, every occurrence of a name is a candidate — including the
+ * name being DECLARED (`const { log } = console`) and the property part of an access
+ * (`console.log`, whose `log` is not the root of its own chain). Reading those would report a
+ * finding at the declaration beside the one at the use, and report `console.log` twice.
+ */
+function readsAName(node: Node): boolean {
+  if (!Node.isIdentifier(node)) return true
+  const parent = node.getParent()
+  if (parent === undefined) return false
+  if (Node.isPropertyAccessExpression(parent)) return parent.getExpression() === node
+  if (Node.isBindingElement(parent) || Node.isVariableDeclaration(parent)) {
+    return parent.getNameNode() !== node
+  }
+  if (Node.isImportSpecifier(parent) || Node.isParameterDeclaration(parent)) return false
+  // A shorthand property's name IS its value — `const o = { console }` reads the global, where
+  // `{ console: x }` writes the key and reads `x`. It changes no verdict today, because these
+  // matchers read a MEMBER access (`console.log`, `process.env`) and a bare `console` handed on as
+  // a value is not one; it is here so the predicate answers its own question truthfully.
+  if (Node.isShorthandPropertyAssignment(parent)) return true
+  if (Node.isPropertyAssignment(parent)) return parent.getNameNode() !== node
+  return true
 }
 
 /**

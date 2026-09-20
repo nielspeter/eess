@@ -1,6 +1,8 @@
 import { ArchConfigError } from '@nielspeter/eess'
 import {
   type ClassDeclaration,
+  type ClassExpression,
+  type ModuleDeclaration,
   type ConstructorDeclaration,
   type FunctionDeclaration,
   type GetAccessorDeclaration,
@@ -95,14 +97,23 @@ export interface ArchFunction {
  * subject from the one the violation names.
  */
 export function fromCallableNode(
-  node: ArrowFunction | FunctionExpression | MethodDeclaration,
+  node:
+    | ArrowFunction
+    | FunctionExpression
+    | MethodDeclaration
+    | GetAccessorDeclaration
+    | SetAccessorDeclaration,
   getName: () => string | undefined,
 ): ArchFunction {
   return {
     getName,
     getSourceFile: () => node.getSourceFile(),
     isExported: () => false,
-    isAsync: () => node.isAsync(),
+    // An accessor cannot be `async`, and ts-morph gives it no `isAsync` to ask (bug 0321).
+    isAsync: () =>
+      NodeClass.isGetAccessorDeclaration(node) || NodeClass.isSetAccessorDeclaration(node)
+        ? false
+        : node.isAsync(),
     getParameters: () => node.getParameters(),
     getReturnType: () => node.getReturnType(),
     getBody: () => node.getBody(),
@@ -171,9 +182,10 @@ export function fromFunctionInitializerDeclaration(decl: VariableDeclaration): A
  */
 export function fromMethodDeclaration(method: MethodDeclaration): ArchFunction {
   const parent = method.getParent()
-  const className = NodeClass.isClassDeclaration(parent)
-    ? (parent.getName() ?? '<anonymous>')
-    : '<anonymous>'
+  const className =
+    NodeClass.isClassDeclaration(parent) || NodeClass.isClassExpression(parent)
+      ? classNameOf(parent)
+      : '<anonymous>'
   return {
     getName: () => {
       const methodName = method.getName()
@@ -244,7 +256,7 @@ export function functionValueOf(
  * is; reported at the member, and read through `fn` — the member itself, or the property's function.
  */
 function fromClassMember(
-  cls: ClassDeclaration,
+  cls: ClassDeclaration | ClassExpression,
   member:
     | ConstructorDeclaration
     | GetAccessorDeclaration
@@ -258,11 +270,11 @@ function fromClassMember(
     | ArrowFunction
     | FunctionExpression,
 ): ArchFunction {
-  const className = cls.getName() ?? '<anonymous>'
+  const className = classNameOf(cls)
   return {
     getName: () => `${className}.${name}`,
     getSourceFile: () => member.getSourceFile(),
-    isExported: () => cls.isExported(),
+    isExported: () => (NodeClass.isClassDeclaration(cls) ? cls.isExported() : false),
     isAsync: () =>
       NodeClass.isArrowFunction(fn) || NodeClass.isFunctionExpression(fn) ? fn.isAsync() : false,
     getParameters: () => fn.getParameters(),
@@ -281,7 +293,16 @@ function fromClassMember(
  * getter and its setter share a name, and a metric's identity keys on the function's name. Each
  * property whose value is a function, as `Class.handler`.
  */
-function classMemberFunctions(cls: ClassDeclaration): ArchFunction[] {
+/**
+ * The name a class's members are reported under: the class's own, else the binding that holds it —
+ * `const Expr = class { m() {} }` reports `Expr.m` — else `<anonymous>`, as a default-exported
+ * class's members have read since bug 0315.
+ */
+function classNameOf(cls: ClassDeclaration | ClassExpression): string {
+  return cls.getName() ?? owningBindingName(cls) ?? '<anonymous>'
+}
+
+function classMemberFunctions(cls: ClassDeclaration | ClassExpression): ArchFunction[] {
   const members: ArchFunction[] = []
   for (const ctor of cls.getConstructors()) {
     if (ctor.getBody() !== undefined) members.push(fromClassMember(cls, ctor, 'constructor', ctor))
@@ -349,34 +370,29 @@ export function collectFunctions(
   const includeObjectLiteralFunctions = options?.includeObjectLiteralFunctions ?? false
   const functions: ArchFunction[] = []
 
-  // Pattern 1: FunctionDeclarations
-  for (const fn of sourceFile.getFunctions()) {
-    functions.push(fromFunctionDeclaration(fn))
-  }
-
-  // Pattern 2: const arrow functions
-  for (const varDecl of sourceFile.getVariableDeclarations()) {
-    // ArrowFunction and FunctionExpression both. `const a = function () {}` is
-    // an ordinary shape and was collected by nothing — bug 0224 measured `eval`
-    // passing the `recommended` floor inside one, because the element never
-    // reached the rule at all. (Distinct from the concise-arrow half of that
-    // bug, which was a traversal gap, not a collection gap.)
-    // Read through parentheses, `as`, `<T>`, `satisfies` and `!` too: `const f = ((x) => …) as F` is
-    // the same function, and was collected by nothing (bug 0315).
-    if (functionValueOf(varDecl.getInitializer()) !== undefined) {
-      functions.push(fromFunctionInitializerDeclaration(varDecl))
-    }
-  }
-
-  // Pattern 3: class members — each class's methods, then its other function members, which no
-  // function rule read before bug 0315.
-  if (includeMethods) {
-    for (const cls of sourceFile.getClasses()) {
-      for (const method of cls.getMethods()) {
-        functions.push(fromMethodDeclaration(method))
-      }
-      functions.push(...classMemberFunctions(cls))
-    }
+  // Patterns 1 to 3 run over the file AND over every namespace body in it (bug 0321). A namespace
+  // is a scope that holds the same declarations a file does, and `getFunctions()`,
+  // `getVariableDeclarations()` and `getClasses()` answer only for the node they are asked. So
+  // `export namespace N { export function g() { eval('…') } }` — an ordinary function, in an
+  // ordinary place — reached no function rule at all, and the `recommended` floor with it.
+  //
+  // A namespace inside a FUNCTION is left out: everything in it is already part of that function's
+  // body, and collecting it again would report one `eval` twice.
+  collectFromScope(sourceFile, functions, includeMethods)
+  for (const namespace of namespaceScopes(sourceFile)) {
+    // Qualified by the namespace path — `N.Inner.m`, not `Inner.m`. Two namespaces in one file may
+    // hold a class of the same name, and an unqualified name would make the violation ambiguous,
+    // `.excluding()` hit both, and one accepted finding silently accept the other — bug 0010's
+    // collision, which the object-literal collection already prefixes against.
+    //
+    // The prefix does not remove every collision, and the new one is worth naming: in one file
+    // `class Expr { m() {} }`, `const Expr = class { m() {} }` and `namespace Expr { function m() {} }`
+    // all report as `Expr.m`. Name-based identity cannot tell them apart, here or on the
+    // object-literal path.
+    const prefix = namespacePathOf(namespace)
+    const collected: ArchFunction[] = []
+    collectFromScope(namespace, collected, includeMethods)
+    functions.push(...collected.map((fn) => qualifiedBy(prefix, fn)))
   }
 
   // Pattern 4: object-literal function property values (opt-in, proposal 016).
@@ -396,7 +412,7 @@ export function collectFunctions(
       // findings collapsing to 2 identities). The documented example
       // (`routes["/x"].GET`) always implied this prefix; the code never added it.
       const owner = owningBindingName(root)
-      for (const found of collectObjectLiteralFunctions(root)) {
+      for (const found of collectObjectLiteralFunctions(root, { includeAccessors: true })) {
         const keyPath = owner === undefined ? found.keyPath : [owner, ...found.keyPath]
         const fn = fromObjectLiteralFunction(found.node, keyPath)
         if (fn) functions.push(fn)
@@ -405,6 +421,112 @@ export function collectFunctions(
   }
 
   return functions
+}
+
+/**
+ * Every namespace body in a file that holds code and is not inside a function, innermost ones
+ * included — the scopes bug 0321 added beside the file itself.
+ *
+ * `ModuleDeclaration` is three declarations wearing one node kind: `namespace N {}`,
+ * `declare module 'virtual:mod' {}` and `declare global {}`. Only the first holds code. Taking all
+ * three collected subjects that DECLARE rather than run — `global.gf`, and `'virtual:mod'.mg`,
+ * whose element name carries a quote and a colon — and an adopter rule about function names
+ * reported them. An ambient `declare namespace` is the same: a description, not code.
+ */
+function namespaceScopes(sourceFile: SourceFile): ModuleDeclaration[] {
+  if (sourceFile.isDeclarationFile()) return []
+  return (
+    sourceFile
+      .getDescendantsOfKind(SyntaxKind.ModuleDeclaration)
+      // AMBIENT is the whole test, and it is the only one that can fail. `declare global {}` and
+      // `declare module 'virtual:mod' {}` both carry the keyword, so both go; `namespace N {}` and the
+      // legacy `module N {}` both hold code, and both stay. Filtering by `ModuleDeclarationKind`
+      // instead dropped the legacy spelling — a false green measured while closing the ambient one —
+      // and the two extra filters that briefly guarded the other forms could not be made to fail, so
+      // they are not here.
+      .filter((namespace) => !namespace.hasDeclareKeyword())
+      .filter((namespace) => !isInsideAFunction(namespace))
+  )
+}
+
+/** The dotted path of a namespace, outermost first: `N` for `N`, `A.B` for `namespace A { namespace B {} }`. */
+function namespacePathOf(namespace: ModuleDeclaration): string {
+  const names: string[] = []
+  for (const node of [namespace, ...namespace.getAncestors()]) {
+    if (NodeClass.isModuleDeclaration(node)) names.unshift(node.getName())
+  }
+  return names.join('.')
+}
+
+/** The same function, reported under a qualified name. */
+function qualifiedBy(prefix: string, fn: ArchFunction): ArchFunction {
+  return {
+    ...fn,
+    getName: () => {
+      const name = fn.getName()
+      return name === undefined ? undefined : `${prefix}.${name}`
+    },
+  }
+}
+
+/** Whether a node lies inside a function's body, where an enclosing function already reads it. */
+function isInsideAFunction(node: Node): boolean {
+  return node
+    .getAncestors()
+    .some(
+      (ancestor) =>
+        NodeClass.isFunctionDeclaration(ancestor) ||
+        NodeClass.isFunctionExpression(ancestor) ||
+        NodeClass.isArrowFunction(ancestor) ||
+        NodeClass.isMethodDeclaration(ancestor) ||
+        NodeClass.isConstructorDeclaration(ancestor) ||
+        NodeClass.isGetAccessorDeclaration(ancestor) ||
+        NodeClass.isSetAccessorDeclaration(ancestor),
+    )
+}
+
+/** Patterns 1 to 3 over one scope — a file, or a namespace body in it (bug 0321). */
+function collectFromScope(
+  scope: SourceFile | ModuleDeclaration,
+  functions: ArchFunction[],
+  includeMethods: boolean,
+): void {
+  // Pattern 1: FunctionDeclarations
+  for (const fn of scope.getFunctions()) {
+    functions.push(fromFunctionDeclaration(fn))
+  }
+
+  // Pattern 2: const arrow functions
+  for (const varDecl of scope.getVariableDeclarations()) {
+    // ArrowFunction and FunctionExpression both. `const a = function () {}` is
+    // an ordinary shape and was collected by nothing — bug 0224 measured `eval`
+    // passing the `recommended` floor inside one, because the element never
+    // reached the rule at all. (Distinct from the concise-arrow half of that
+    // bug, which was a traversal gap, not a collection gap.)
+    // Read through parentheses, `as`, `<T>`, `satisfies` and `!` too: `const f = ((x) => …) as F` is
+    // the same function, and was collected by nothing (bug 0315).
+    if (functionValueOf(varDecl.getInitializer()) !== undefined) {
+      functions.push(fromFunctionInitializerDeclaration(varDecl))
+    }
+  }
+
+  // Pattern 3: class members — each class's methods, then its other function members, which no
+  // function rule read before bug 0315. A class EXPRESSION holds the same members as a
+  // declaration, so `const Expr = class { m() {…} }` is read too, its members named by the binding
+  // that holds it (bug 0321). One held by anything else — passed to a call, chosen by a
+  // conditional — stays out, with the inline functions bug 0315 left out on purpose.
+  if (includeMethods) {
+    const classExpressions = scope
+      .getVariableDeclarations()
+      .map((varDecl) => throughWrappers(varDecl.getInitializer()))
+      .filter((initializer) => NodeClass.isClassExpression(initializer))
+    for (const cls of [...scope.getClasses(), ...classExpressions]) {
+      for (const method of cls.getMethods()) {
+        functions.push(fromMethodDeclaration(method))
+      }
+      functions.push(...classMemberFunctions(cls))
+    }
+  }
 }
 
 /**
@@ -452,7 +574,10 @@ export function fromObjectLiteralFunction(
   if (
     NodeClass.isArrowFunction(node) ||
     NodeClass.isFunctionExpression(node) ||
-    NodeClass.isMethodDeclaration(node)
+    NodeClass.isMethodDeclaration(node) ||
+    // An object literal's accessors, the counterpart of the class accessors bug 0315 collected.
+    NodeClass.isGetAccessorDeclaration(node) ||
+    NodeClass.isSetAccessorDeclaration(node)
   ) {
     return fromCallableNode(node, () => name)
   }

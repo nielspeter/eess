@@ -24,8 +24,9 @@ import type { ArchProject } from '../../src/core/project.js'
  * `window`, `self`, `global`), a string-keyed bracket, an indirect `(0, eval)` call,
  * and — for `Function` — with or without `new`.
  *
- * A global reached through a local alias (`const ev = eval`) is bug 0305, pinned in
- * `security-rules-miss-a-global-reached-through-an-alias.test.ts`.
+ * A global reached through a local alias (`const ev = eval`) was bug 0305, fixed: the names below
+ * are now read through their bindings, and `security-rules-read-a-global-through-its-binding.test.ts`
+ * holds that half.
  *
  * Every expectation is a set of names, not a count (ADR-009 rule 5). The lookalike
  * CONTROL is the half an over-broad fix breaks: a member NAMED `eval`, `Function` or
