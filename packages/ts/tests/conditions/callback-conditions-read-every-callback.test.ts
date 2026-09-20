@@ -78,22 +78,31 @@ const CALLBACK_SHAPES = [
   'use({ opts: { handler: () => legacy(1) } });',
   'use(() => legacy(1));',
   'use(function () { return legacy(1) });',
+  // The wrapper list and the object-literal walk have to compose: measured with the decision in
+  // two places, each of these was read by neither reader (the enforcement review of this fix).
+  'use({ handler: (() => legacy(1)) });',
+  'use({ handler: (() => legacy(1)) as Fn });',
+  'use({ opts: ({ handler: () => legacy(1) }) });',
 ] as const
+
+const ALL_READ = CALLBACK_SHAPES.map(() => 1)
+const NONE_MISSING = CALLBACK_SHAPES.map(() => 0)
+const ALL_WITHIN = CALLBACK_SHAPES.map(() => true)
 
 describe('bug 0324: the callback conditions read every callback the call passes', () => {
   it('reports a callback in an options object, a method shorthand and one behind a wrapper', () => {
-    expect(CALLBACK_SHAPES.map(prohibited)).toEqual([1, 1, 1, 1, 1, 1, 1])
+    expect(CALLBACK_SHAPES.map(prohibited)).toEqual(ALL_READ)
   })
 
   it('takes the same callbacks as satisfying a requirement', () => {
     // The mirror direction: `haveCallbackContaining` reported each of these as MISSING the call.
-    expect(CALLBACK_SHAPES.map(requirementUnmet)).toEqual([0, 0, 0, 0, 0, 0, 0])
+    expect(CALLBACK_SHAPES.map(requirementUnmet)).toEqual(NONE_MISSING)
     // And it still reports a call whose callback really does not contain it.
     expect(requirementUnmet('use({ handler: () => 1 });')).toBe(1)
   })
 
   it('agrees with within(), which reads the same definition', () => {
-    expect(CALLBACK_SHAPES.map(withinReports)).toEqual([true, true, true, true, true, true, true])
+    expect(CALLBACK_SHAPES.map(withinReports)).toEqual(ALL_WITHIN)
   })
 
   it('reports nothing for an argument that holds no callback', () => {
@@ -102,19 +111,52 @@ describe('bug 0324: the callback conditions read every callback the call passes'
     expect(prohibited('use({ value: legacy(1) });')).toBe(0)
   })
 
-  it('still does not resolve a callback a name refers to, or one nested deeper than three levels', () => {
-    // The limits of the one shared definition, named rather than discovered: a reference is not
-    // resolved (it needs the type checker), and `collectObjectLiteralFunctions` stops at three
-    // object literals. Both are silent passes, and `within()` reports the same nothing.
+  it('still does not read a name, a collection, a getter, or past three object literals', () => {
+    // The limits of the one shared definition, named rather than discovered — every one a silent
+    // pass, and `within()` reports the same nothing. Filed as bug 0331.
     expect(prohibited('use(handler);')).toBe(0)
     expect(prohibited('use({ a: { b: { c: { handler: () => legacy(1) } } } });')).toBe(0)
+    expect(prohibited('use([() => legacy(1)]);')).toBe(0)
+    expect(prohibited('use({ get handler() { return legacy(1) } });')).toBe(0)
     expect(withinReports('use({ a: { b: { c: { handler: () => legacy(1) } } } });')).toBe(false)
+    expect(withinReports('use([() => legacy(1)]);')).toBe(false)
+  })
+
+  it('keeps the identity of a callback within() read before, when a wrapped one appears first', () => {
+    // `within()` walks `extractCallbacks` in order and numbers findings across the rule's subjects,
+    // so a newly reachable callback ahead of an accepted one would take its ordinal — hiding the
+    // new finding and re-reporting the accepted one. The extractor returns callbacks reached
+    // through a wrapper LAST for exactly this reason, and the wrapper may be the argument's or a
+    // property value's, so both are pinned.
+    const identities = (statement: string): Map<number, string> =>
+      new Map(
+        within(calls(project(statement)).that().withMethod('use'))
+          .functions()
+          .should()
+          .notContain(expression(/legacy/))
+          .rule({ id: 'test/0324-within-order' })
+          .violations()
+          .map((v) => [v.line, v.identity ?? '']),
+      )
+
+    // Line 6 holds the callback read before this fix; line 5 is newly reachable. The first
+    // ordinal — an identity ending in `#1` with no collision suffix — must stay on line 6.
+    const throughParens = identities('use((() => legacy(1)),\n  () => legacy(2));')
+    expect(throughParens.get(6)).toMatch(/\/#1$/)
+    expect(throughParens.get(5)).not.toMatch(/\/#1$/)
+
+    const throughAPropertyValue = identities(
+      'use({ handler: (() => legacy(1)) },\n  () => legacy(2));',
+    )
+    expect(throughAPropertyValue.get(6)).toMatch(/\/#1$/)
+    expect(throughAPropertyValue.get(5)).not.toMatch(/\/#1$/)
   })
 
   it('numbers a newly read callback after the one read before it', () => {
-    // Before this fix the direct callback on the SECOND argument was the only one read, reported as #1. The callback in
-    // the first argument's options object is newly read, so it takes #2 and the accepted identity
-    // still names the same match.
+    // The conditions have their own delta on top of the extractor's: before this fix they read a
+    // callback only when it WAS the argument, so the one in the first argument's options object is
+    // newly read and must be numbered after the direct one on the second argument, whose identity a
+    // baseline may already carry.
     const ordinals = calls(project('use({ handler: () => legacy(1) },\n  () => legacy(2));'))
       .that()
       .withMethod('use')

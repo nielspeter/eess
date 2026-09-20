@@ -13,12 +13,21 @@
 ## Symptom
 
 **What a search reads is settled across eight bug records, every one of them archived.** The
-decisions, in order: a class reads its members' code (0300); a docstring is not code and a
-must-contain rule reads member code only (0307); a destructured parameter's defaults and computed
-keys are code (0309); a function reads what its parameters run (0314); a class's non-method function
-members are collected (0315); a search tests the root it searches (0323); one definition of a
-callback, and it is `extractCallbacks` (0324); a class comment rule reads a member's parameter list,
-and no docstring (0325). [0329](./0329-the-class-search-reads-no-comment-outside-a-members-parameters.md)
+decisions, in order — linked here because a record arguing the chain cannot be found should not
+make the reader hunt for it:
+
+| ruling                                                         | record                                                                                                    |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| a class reads its members' code                                | [0300](./fixed/0300-class-body-search-reads-methods-constructors-and-accessors-only.md)                   |
+| a docstring is not code; must-contain reads member code only   | [0307](./fixed/0307-class-body-rules-skip-class-code-outside-its-members.md)                              |
+| a destructured parameter's defaults and computed keys are code | [0309](./fixed/0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md)          |
+| a function reads what its parameters run                       | [0314](./fixed/0314-the-function-rules-read-no-parameter-default.md)                                      |
+| a class's non-method function members are collected            | [0315](./fixed/0315-the-function-builder-does-not-collect-constructors-accessors-or-wrapped-functions.md) |
+| a search tests the root it searches                            | [0323](./fixed/0323-the-call-conditions-search-below-the-root.md)                                         |
+| one definition of a callback, and it is `extractCallbacks`     | [0324](./fixed/0324-the-callback-conditions-read-a-direct-callback-only.md)                               |
+| a class comment rule reads a parameter list, and no docstring  | [0325](./fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md)                                  |
+
+[0329](./0329-the-class-search-reads-no-comment-outside-a-members-parameters.md)
 is open and its whole `## Fix` section is "the same design question 0325 answered for parameters,
 one level out" — a live record whose premise is in `work/bugs/fixed/`.
 

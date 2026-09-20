@@ -60,7 +60,11 @@ const memberCodeSees = (member: string): boolean =>
     .rule({ id: 'test/0325-must-contain' })
     .violations().length === 0
 
-/** The shapes bug 0325 measured at 0 for the class rules, one per row of its table. */
+/**
+ * The shapes measured at 0 for the class rules: bug 0325's table, and the placements the
+ * enforcement review of the first fix measured — a comment on the same line as the `(` or a `,`
+ * belongs to that TOKEN, so a walk of each parameter could not reach it.
+ */
 const PARAMETER_SHAPES = [
   // inline between `=` and the default — leading trivia of neither
   '  m(g = /* TODO */ 1) { return g }',
@@ -70,6 +74,17 @@ const PARAMETER_SHAPES = [
   '  m({ a = /* TODO */ 1 }: { a?: number }) { return a }',
   // in a parameter's type annotation
   '  m(g: /* TODO */ number) { return g }',
+  // on the same line as the `(`, which is what a per-parameter walk missed
+  '  m(/* TODO */ g = 1) { return g }',
+  '  m(/* TODO */ g: number) { return g }',
+  // on the same line as a `,`
+  '  m(a: number, /* TODO */ b: number) { return a + b }',
+  // a constructor's parameter property
+  '  constructor(/* TODO */ private readonly x: number) {}',
+  // an empty parameter list — attached to no parameter at all
+  '  m(/* TODO */) { return 1 }',
+  // on its own line before the `)`
+  '  m(\n    g: number,\n    // TODO\n  ) { return g }',
 ] as const
 
 /** The shapes the class search already read, which must keep reading as one finding each. */
@@ -82,9 +97,9 @@ const ALREADY_READ = [
 
 describe('bug 0325: the class search reads a comment on a parameter', () => {
   it('reports every comment in a parameter list, as the function rules do', () => {
-    expect(PARAMETER_SHAPES.map(classFindings)).toEqual([1, 1, 1, 1])
+    expect(PARAMETER_SHAPES.map(classFindings)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
     // The two searches now agree on the same member, which is what the bug was about.
-    expect(PARAMETER_SHAPES.map(functionFindings)).toEqual([1, 1, 1, 1])
+    expect(PARAMETER_SHAPES.map(functionFindings)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
   })
 
   it('reports a comment the class search already read exactly once', () => {
@@ -94,6 +109,15 @@ describe('bug 0325: the class search reads a comment on a parameter', () => {
     expect(classFindings('  m(a = /* TODO one */ 1, b = /* TODO two */ 2) { return a + b }')).toBe(
       2,
     )
+  })
+
+  it('reads what is inside the parens and nothing outside them', () => {
+    // The span is the parameter list, so a comment in the return type or between `)` and `{` stays
+    // unread — bug 0329 — and a comment before `(` is the member's docstring, which is bug 0307's.
+    expect(classFindings('  m(): /* TODO */ number { return 1 }')).toBe(0)
+    expect(classFindings('  m() /* TODO */ { return 1 }')).toBe(0)
+    // Measured the other way: the function rules do read both, so the disagreement is 0329's scope.
+    expect(functionFindings('  m(): /* TODO */ number { return 1 }')).toBe(1)
   })
 
   it('still reads no docstring on the member itself (bug 0307)', () => {

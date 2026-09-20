@@ -20,6 +20,7 @@
 
 import { Node } from 'ts-morph'
 import type { PropertyAssignment, MethodDeclaration } from 'ts-morph'
+import { throughWrappers } from './through-wrappers.js'
 
 /**
  * A function found as a value in an object literal, with the property-key path
@@ -72,7 +73,11 @@ function walk(
       continue
     }
     if (!Node.isPropertyAssignment(prop)) continue
-    const init = prop.getInitializer()
+    // Read through parentheses, `as`, `<T>`, `satisfies` and `!`: `{ handler: (() => …) as H }`
+    // holds the same function as `{ handler: () => … }`, and the callback extractor unwraps the
+    // ARGUMENT with the same list. Measured with the two copies apart: the wrapped property value
+    // was read by neither reader (the enforcement review of bug 0324).
+    const init = throughWrappers(prop.getInitializer())
     if (!init) continue
     const key = keyOf(prop)
     // Arrow / function-expression property value.

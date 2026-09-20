@@ -228,7 +228,10 @@ type ClassBodyReach = 'member-code' | 'all-code'
  *    (`bindingPatternMatches`).
  *
  * Overload signatures have no body, defaults or decorators, so walking every constructor is the
- * same as walking the implementation. `implements` is type-only and docstrings are not code, so
+ * same as walking the implementation. An overload's parameter LIST does hold comments, which that
+ * rationale does not cover — but ts-morph's `getClasses().getMethods()` yields only the
+ * implementation (measured), so neither this search nor the function search reads them, and the
+ * two agree. Named in bug 0329 rather than closed here. `implements` is type-only and docstrings are not code, so
  * neither is read, and a `comment()` rule reads code, not documentation.
  */
 export function searchClassBody(
@@ -288,13 +291,14 @@ export function searchClassBody(
     }
   }
 
-  matchingNodes.push(...parameterComments(runnable, matcher, reach, matchingNodes))
+  matchingNodes.push(...parameterListComments(runnable, matcher, reach, matchingNodes))
 
   return toResult(matchingNodes)
 }
 
 /**
- * The comments in a member's parameter list that the passes above have not already found (bug 0325).
+ * The comments written inside a member's parameter LIST that the passes above have not already
+ * found (bug 0325) — everything between `(` and `)`, by position.
  *
  * The class search reads a parameter as CODE — its default, and a destructured parameter's defaults
  * and computed keys — so a comment matcher searching those expressions misses a comment written on
@@ -304,9 +308,17 @@ export function searchClassBody(
  * member. A comment in a parameter list is the function search's for free — it starts a trivia
  * matcher at the declaration — and a class rule that cannot see a TODO marker there is a false green.
  *
- * **A member's own docstring is still not read** (bug 0307): it is trivia of the member, and this
- * pass starts at each parameter. Measured — the class search reports 0 for `/** TODO *\/` above a
- * method, before this pass and after it.
+ * **The span, not each parameter.** A first version walked each `ParameterDeclaration`, and a
+ * comment on the same line as the `(` or a `,` belongs to that TOKEN rather than to the parameter
+ * after it — TypeScript starts collecting leading trivia only after a line break. Six placements
+ * stayed silent, `m(/* TODO *\/ g = 1)` and `m(a, /* TODO *\/ b)` among them, while the docs said the
+ * parameter list was read. So the walk takes the parens and the list, and keeps every comment
+ * POSITIONED inside them: the `(`'s trailing trivia and the `)`'s leading trivia are in, the
+ * member's docstring and anything after `)` are out, whatever node they happen to hang from.
+ *
+ * **A member's own docstring is still not read** (bug 0307): it lies before the `(`. Measured — the
+ * class search reports 0 for `/** TODO *\/` above a method, before this pass and after it. So does a
+ * comment in the return type or between `)` and `{`, which is bug 0329.
  *
  * Under `'member-code'` reach a comment inside a parameter's DECORATOR is left out, for the same
  * reason the decorator's code is (bug 0307): a must-contain rule must not be satisfied by wiring.
@@ -316,7 +328,7 @@ export function searchClassBody(
  * Deduplicated by comment position against everything already found, and pushed LAST, so a comment
  * inside a default keeps the ordinal a baseline accepted and a newly read one is numbered after it.
  */
-function parameterComments(
+function parameterListComments(
   members: readonly (
     | MethodDeclaration
     | ConstructorDeclaration
@@ -331,26 +343,31 @@ function parameterComments(
   const seen = new Set(found.map((match) => match.triviaPos))
   const out: Match[] = []
   for (const member of members) {
-    for (const parameter of member.getParameters()) {
-      const wiring =
-        reach === 'all-code'
-          ? []
-          : parameter
-              .getDecorators()
-              .map((decorator): readonly [number, number] => [
-                decorator.getFullStart(),
-                decorator.getEnd(),
-              ])
-      for (const match of findMatchesInNode(parameter, matcher)) {
-        const pos = match.triviaPos
-        if (seen.has(pos)) continue
-        if (pos !== undefined && wiring.some(([start, end]) => pos >= start && pos < end)) continue
-        seen.add(pos)
-        out.push(match)
-      }
+    const open = member.getFirstChildByKind(SyntaxKind.OpenParenToken)
+    const close = member.getFirstChildByKind(SyntaxKind.CloseParenToken)
+    if (open === undefined || close === undefined) continue
+    const wiring =
+      reach === 'all-code'
+        ? []
+        : member
+            .getParameters()
+            .flatMap((parameter) => parameter.getDecorators())
+            .map((decorator): readonly [number, number] => [
+              decorator.getFullStart(),
+              decorator.getEnd(),
+            ])
+    // The list itself carries the commas; the parens carry the trivia written against them.
+    const roots = [open, close, ...member.getChildrenOfKind(SyntaxKind.SyntaxList)]
+    const inList = (pos: number): boolean => pos >= open.getEnd() && pos < close.getStart()
+    for (const match of roots.flatMap((root) => findMatchesInNode(root, matcher))) {
+      const pos = match.triviaPos
+      if (pos === undefined || seen.has(pos) || !inList(pos)) continue
+      if (wiring.some(([start, end]) => pos >= start && pos < end)) continue
+      seen.add(pos)
+      out.push(match)
     }
   }
-  return out
+  return out.sort((a, b) => (a.triviaPos ?? 0) - (b.triviaPos ?? 0))
 }
 
 /**

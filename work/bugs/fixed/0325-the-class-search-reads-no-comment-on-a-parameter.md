@@ -45,9 +45,17 @@ instead, so it reads every comment in the parameter list.
 stands — measured, before this fix and after, a `/** TODO */` above a method is 0 for the class
 rules. A comment inside the parameter list is the other side of that line: the function search
 reports it on the same member, a class rule that cannot see a TODO marker there is a false green,
-and the parameter list is where a reader looks for one. So the reach is each `ParameterDeclaration`
-of each method, constructor and accessor — which is also why no docstring comes with it: this pass
-starts at the parameter, never at the member.
+and the parameter list is where a reader looks for one. So the reach is the SPAN between a member's
+`(` and `)`: every comment positioned inside it, whatever node it hangs from — which is also why no
+docstring comes with it, since a docstring lies before the `(`.
+
+**The span, and not each parameter, because the first version of this fix was measured wrong.** It
+walked each `ParameterDeclaration`, and the enforcement review of the PR found six placements still
+silent: a comment on the same line as the `(` or a `,` is trivia of that TOKEN, since TypeScript
+starts collecting leading trivia only after a line break. `m(/* TODO */ g = 1)`, `m(a, /* TODO */ b)`
+and a constructor's `constructor(/* TODO */ private x: number)` all stayed 0 while the docs said the
+parameter list was read. The span answers by position instead of by node, and it subsumed the first
+row of 0329, an empty parameter list.
 
 The record's two questions, both answered by construction and each with a test:
 
@@ -58,7 +66,7 @@ The record's two questions, both answered by construction and each with a test:
   found. Measured: a comment on its own line inside a default is found by both the default's search
   and this pass, and is reported once.
 
-**One thing the parameter walk would have widened, and does not.** A parameter's decorators are
+**One thing the walk would have widened, and does not.** A parameter's decorators are
 descendants of the parameter, and under `'member-code'` reach — what a must-contain rule reads —
 0307 ruled that decorator code is wiring that must not satisfy a rule. A comment inside a
 parameter's decorator, or written above it, is therefore left out under that reach and read under
@@ -66,16 +74,25 @@ parameter's decorator, or written above it, is therefore left out under that rea
 
 Measured, one member per shape, `comment(/TODO/)`, before and after:
 
-| Member                                      | class, before | class, after | function rules |
-| ------------------------------------------- | ------------- | ------------ | -------------- |
-| `m(g = /* TODO */ 1) { … }`                 | **0**         | 1            | 1              |
-| `m(` / `// TODO` / `g = 1,` / `) { … }`     | **0**         | 1            | 1              |
-| `m({ a = /* TODO */ 1 }) { … }`             | **0**         | 1            | 1              |
-| `m(g: /* TODO */ number) { … }`             | **0**         | 1            | 1              |
-| `m() { const x = /* TODO */ 1; … }`         | 1             | 1            | 1              |
-| `m(` / `g =` / `// TODO` / `1,` / `) { … }` | 1             | 1            | 1              |
-| `m(g = 1 /* TODO */) { … }`                 | 1             | 1            | 1              |
-| `/** TODO */` above the member              | 0             | 0            | 1              |
+| Member                                            | class, before | class, after | function rules |
+| ------------------------------------------------- | ------------- | ------------ | -------------- |
+| `m(g = /* TODO */ 1) { … }`                       | **0**         | 1            | 1              |
+| `m(` / `// TODO` / `g = 1,` / `) { … }`           | **0**         | 1            | 1              |
+| `m({ a = /* TODO */ 1 }) { … }`                   | **0**         | 1            | 1              |
+| `m(g: /* TODO */ number) { … }`                   | **0**         | 1            | 1              |
+| `m(/* TODO */ g = 1) { … }`                       | **0**         | 1            | 1              |
+| `m(a: number, /* TODO */ b: number) { … }`        | **0**         | 1            | 1              |
+| `constructor(/* TODO */ private x: number) {}`    | **0**         | 1            | 1              |
+| `m(/* TODO */) { … }` — an empty list             | **0**         | 1            | 1              |
+| `m(` / `g: number,` / `// TODO` / `) { … }`       | **0**         | 1            | 1              |
+| `m() { const x = /* TODO */ 1; … }`               | 1             | 1            | 1              |
+| `m(` / `g =` / `// TODO` / `1,` / `) { … }`       | 1             | 1            | 1              |
+| `m(g = 1 /* TODO */) { … }`                       | 1             | 1            | 1              |
+| `/** TODO */` above the member                    | 0             | 0            | 1              |
+| `m(): /* TODO */ number { … }` — outside the span | 0             | 0            | 1              |
+
+The last four rows are the boundary: what a reader sees inside the parentheses is read, the
+docstring stays bug 0307's, and the return type stays bug 0329's.
 
 ## Related
 
@@ -86,11 +103,10 @@ Measured, one member per shape, `comment(/TODO/)`, before and after:
 
 ## Verification
 
-- [x] reproduced and pinned —
-      `packages/ts/tests/conditions/class-search-reads-no-comment-on-a-parameter.test.ts` ·
-      `it('KNOWN GAP — a comment on a parameter or inline in its default passes a class comment rule')`,
-      with the function rules, a comment in a member's body and one on its own line inside a default as
-      controls.
+- [x] reproduced and pinned — the KNOWN-GAP test filed with this record: a comment on a parameter
+      or inline in its default passing a class comment rule, with the function rules, a comment in a
+      member's body and one on its own line inside a default as controls. That file is replaced by
+      the one below, so it is named here rather than cited.
 - [x] the pin goes red when the class search reads each parameter for comments (the sabotage run of
       0314's PR, row S7).
 - [x] the fix, numbered after the comments the class search reads today, with no comment reported

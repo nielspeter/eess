@@ -19,6 +19,7 @@ import {
   SyntaxKind,
 } from 'ts-morph'
 import { collectObjectLiteralFunctions } from '../core/object-literal-functions.js'
+import { throughWrappers } from '../core/through-wrappers.js'
 
 /**
  * Unified representation of a TypeScript function.
@@ -235,28 +236,6 @@ export function functionValueOf(
   return NodeClass.isArrowFunction(current) || NodeClass.isFunctionExpression(current)
     ? current
     : undefined
-}
-
-/**
- * The value a node holds at run time, read through the wrappers that leave it unchanged —
- * parentheses, `as`, `<T>`, `satisfies` and `!`.
- *
- * One wrapper list, two readers: {@link functionValueOf} asks whether that value is a function, and
- * the callback extractor asks what an argument passes (bug 0324) — `use((() => …))` passes the same
- * callback as `use(() => …)`, and read by two lists the two could disagree.
- */
-export function throughWrappers(node: Node | undefined): Node | undefined {
-  let current = node
-  while (
-    NodeClass.isParenthesizedExpression(current) ||
-    NodeClass.isAsExpression(current) ||
-    NodeClass.isTypeAssertion(current) ||
-    NodeClass.isSatisfiesExpression(current) ||
-    NodeClass.isNonNullExpression(current)
-  ) {
-    current = current.getExpression()
-  }
-  return current
 }
 
 /**

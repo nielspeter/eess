@@ -61,14 +61,26 @@ by a test and written in `docs/calls.md` rather than left to be discovered.
 
 **Parentheses are read where the collector already read them.** `extractCallbacks` reads each
 argument through `throughWrappers` — parentheses, `as`, `<T>`, `satisfies` and `!` — the list
-`functionValueOf` uses for a variable's initializer (bugs 0306, 0315), now shared rather than
-copied. That is what closes the parenthesized shape for `within()` too, which this record measured
-examining nothing.
+`functionValueOf` uses for a variable's initializer (bugs 0306, 0315). That is what closes the
+parenthesized shape for `within()` too, which this record measured examining nothing.
 
-**The callbacks read before the fix come first.** A match's identity is numbered within its
-enclosing declaration, so a newly reachable callback on an earlier argument would otherwise take the
-ordinal a baseline accepted on a later one. Ordered as `findMatchesInEach` orders the roots bug 0323
-made it test.
+**The list moved to `core/` so it composes with the object-literal walk.** The first version of
+this fix left the decision in two places — the extractor unwrapped the ARGUMENT, and
+`collectObjectLiteralFunctions` tested a property's raw initializer — and the enforcement review
+measured what that cost: `use({ handler: (() => legacy(1)) })` was read by neither the callback
+conditions nor the shipped `functions({ includeObjectLiteralFunctions: true })` collection. One
+module below both (`packages/ts/src/core/through-wrappers.ts`) now holds the list, and the
+object-literal walk reads a property value through it.
+
+**The callbacks read before the fix come first, in both readers.** A match's identity is numbered
+in order, so a newly reachable callback ahead of an accepted one would otherwise take its ordinal —
+hiding the new finding and re-reporting the accepted one. Ordered as `findMatchesInEach` orders the
+roots bug 0323 made it test. Two deltas, two guards: the conditions put a callback that IS the
+argument first, and `extractCallbacks` returns callbacks reached through a WRAPPER last, which
+`within()` inherits. The second was missing in the first version of this fix — the enforcement
+review measured `within()` moving an accepted `#1` — and its first repair asked whether the ARGUMENT
+was wrapped, which still moved the identity when a property VALUE was the wrapped one. It now asks
+whether the path from the argument down to the callback passes through a wrapper at all.
 
 Measured, one call per shape, `call('legacy')`, before and after:
 
@@ -79,10 +91,20 @@ Measured, one call per shape, `call('legacy')`, before and after:
 | `use((() => legacy(1)));`                      | 0                           | 1     | yes                                      | no    |
 | `use(((() => legacy(1)) as Fn));`              | 0                           | 1     | yes                                      | no    |
 | `use({ opts: { handler: () => legacy(1) } });` | 0                           | 1     | yes                                      | no    |
+| `use({ handler: (() => legacy(1)) });`         | 0                           | 1     | yes                                      | no    |
+| `use({ handler: (() => legacy(1)) as Fn });`   | 0                           | 1     | yes                                      | no    |
+| `use({ opts: ({ handler: … }) });`             | 0                           | 1     | yes                                      | no    |
 | `use(() => legacy(1));`                        | 1                           | 1     | no                                       | no    |
 | `use(legacy(1));`                              | 0                           | 0     | yes                                      | yes   |
 | `use(handler);` — a named reference            | 0                           | 0     | yes                                      | yes   |
+| `use([() => legacy(1)]);` — an array           | 0                           | 0     | yes                                      | yes   |
+| `use({ get handler() { … } });` — a getter     | 0                           | 0     | yes                                      | yes   |
 | a callback four object literals deep           | 0                           | 0     | yes                                      | yes   |
+
+The last four rows are this definition's limits, recorded as
+[0331](../0331-the-callback-definition-reads-an-object-literal-and-nothing-else.md) rather than left
+to be met. The three property-value rows above them were measured by the enforcement review, with
+the wrapper decision still in two places.
 
 `within()` was measured over the same shapes: it reported the object-literal ones before and after,
 and the parenthesized and `as` shapes only after — before, it examined nothing and said so through
@@ -95,11 +117,10 @@ ADR-010.
 
 ## Verification
 
-- [x] reproduced and pinned —
-      `packages/ts/tests/conditions/callback-conditions-read-a-direct-callback-only.test.ts` ·
-      `it('KNOWN GAP — notHaveCallbackContaining misses a callback in an object literal or in parentheses')`
-      and
-      `it('KNOWN GAP — haveCallbackContaining reports a call whose callback is in an object literal as missing it')`.
+- [x] reproduced and pinned — the two KNOWN-GAP tests filed with this record, one per condition:
+      `notHaveCallbackContaining` missing a callback in an object literal or in parentheses, and
+      `haveCallbackContaining` reporting a call whose callback is in an object literal as missing
+      it. That file is replaced by the one below, so it is named here rather than cited.
 - [x] each pin goes red when the sabotage run above collects the callbacks inside an argument (the
       sabotage run of 0323's PR, row R11).
 - [x] a ruling on where a callback is looked for, for the callback conditions and `within()` — see
@@ -110,16 +131,22 @@ ADR-010.
       and `it('takes the same callbacks as satisfying a requirement')`. The KNOWN-GAP file is
       replaced, as 0323's was. Three more tests pin what the ruling decided:
       `it('agrees with within(), which reads the same definition')`,
-      `it('still does not resolve a callback a name refers to, or one nested deeper than three levels')`
-      and `it('numbers a newly read callback after the one read before it')`.
-- [x] `docs/calls.md` updated — `haveCallbackContaining` names what is read and the two shapes that
-      are not.
+      `it('still does not read a name, a collection, a getter, or past three object literals')`,
+      `it('numbers a newly read callback after the one read before it')` and
+      `it('keeps the identity of a callback within() read before, when a wrapped one appears first')`.
+- [x] `docs/calls.md` updated — `haveCallbackContaining` names what is read and the four shapes that
+      are not, which [0331](../0331-the-callback-definition-reads-an-object-literal-and-nothing-else.md)
+      records. The denominator half is
+      [0332](../0332-the-callback-conditions-carry-no-callback-level-denominator.md).
 - [x] a changeset — `.changeset/searches-read-every-shape.md`, a breaking `minor` for
       `@nielspeter/eess-ts`: a green callback rule may now report.
 - [x] Sabotage matrix over the two test files this PR adds, sources restored by sha256 and verified,
       the tree unchanged. R0, as built: nothing red. R5, the extractor reading no wrapper: three
-      tests red. R6, the conditions reading a direct callback only — the behaviour before this fix: three red,
-      the order test among them. R7, a newly read callback numbered first: the order test red.
+      tests red — the identity guard among them. R6, the conditions reading a direct callback only —
+      the behaviour before this fix: three red. R7, a newly read callback numbered first: the
+      conditions' order test red. R8, the object-literal walk reading a raw initializer: four red.
+      R9, the extractor returning wrapped callbacks first: the `within()` identity test red. R10,
+      the wrapper check asking about the argument rather than the path: the same test red.
 - [x] `npm run validate` green.
 
 Deferred: none.
