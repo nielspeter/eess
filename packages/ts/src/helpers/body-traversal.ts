@@ -4,6 +4,10 @@ import {
   type Decorator,
   type SourceFile,
   type ParameterDeclaration,
+  type MethodDeclaration,
+  type ConstructorDeclaration,
+  type GetAccessorDeclaration,
+  type SetAccessorDeclaration,
   Node as NodeUtils,
   SyntaxKind,
 } from 'ts-morph'
@@ -284,7 +288,69 @@ export function searchClassBody(
     }
   }
 
+  matchingNodes.push(...parameterComments(runnable, matcher, reach, matchingNodes))
+
   return toResult(matchingNodes)
+}
+
+/**
+ * The comments in a member's parameter list that the passes above have not already found (bug 0325).
+ *
+ * The class search reads a parameter as CODE — its default, and a destructured parameter's defaults
+ * and computed keys — so a comment matcher searching those expressions misses a comment written on
+ * the parameter itself, and one written inline between `=` and the default, which TypeScript counts
+ * as leading trivia of neither. Measured on 0.6.1: `m(g = /* TODO *\/ 1)` and a `// TODO` on its own
+ * line before a parameter were 0 for the class rules and 1 for the function rules, on the same
+ * member. A comment in a parameter list is the function search's for free — it starts a trivia
+ * matcher at the declaration — and a class rule that cannot see a TODO marker there is a false green.
+ *
+ * **A member's own docstring is still not read** (bug 0307): it is trivia of the member, and this
+ * pass starts at each parameter. Measured — the class search reports 0 for `/** TODO *\/` above a
+ * method, before this pass and after it.
+ *
+ * Under `'member-code'` reach a comment inside a parameter's DECORATOR is left out, for the same
+ * reason the decorator's code is (bug 0307): a must-contain rule must not be satisfied by wiring.
+ * Its span covers the decorator's own leading trivia, so a comment written above `@Inject()` counts
+ * as the decorator's, as a docstring counts as the member's.
+ *
+ * Deduplicated by comment position against everything already found, and pushed LAST, so a comment
+ * inside a default keeps the ordinal a baseline accepted and a newly read one is numbered after it.
+ */
+function parameterComments(
+  members: readonly (
+    | MethodDeclaration
+    | ConstructorDeclaration
+    | GetAccessorDeclaration
+    | SetAccessorDeclaration
+  )[],
+  matcher: ExpressionMatcher,
+  reach: ClassBodyReach,
+  found: readonly Match[],
+): Match[] {
+  if (matcher.matchedTriviaPositions === undefined) return []
+  const seen = new Set(found.map((match) => match.triviaPos))
+  const out: Match[] = []
+  for (const member of members) {
+    for (const parameter of member.getParameters()) {
+      const wiring =
+        reach === 'all-code'
+          ? []
+          : parameter
+              .getDecorators()
+              .map((decorator): readonly [number, number] => [
+                decorator.getFullStart(),
+                decorator.getEnd(),
+              ])
+      for (const match of findMatchesInNode(parameter, matcher)) {
+        const pos = match.triviaPos
+        if (seen.has(pos)) continue
+        if (pos !== undefined && wiring.some(([start, end]) => pos >= start && pos < end)) continue
+        seen.add(pos)
+        out.push(match)
+      }
+    }
+  }
+  return out
 }
 
 /**
@@ -356,8 +422,8 @@ function findMatchesInExpression(node: Node, matcher: ExpressionMatcher): Match[
  * Matches in what a call condition searches — an argument, or a callback's body — including the
  * node itself unless it is a block (bug 0323).
  *
- * An argument can BE the match — `use(legacy(1))` — and so can a concise callback's body, which
- * `getFunctionBody` returns as the expression itself: `use(() => legacy(1))`. With
+ * An argument can BE the match — `use(legacy(1))` — and so can a concise callback's body, which is
+ * the expression itself: `use(() => legacy(1))`. With
  * `findMatchesInNode` alone neither was tested, under `call()` as under `expression()`. A block is
  * searched below its root, as `searchFunctionBody` searches a function's own: tested itself, a
  * block would match a broad pattern against the whole body.
@@ -475,25 +541,6 @@ export function searchFunctionBody(fn: ArchFunction, matcher: ExpressionMatcher)
     matchingNodes.push(...findMatchesInExpression(code, matcher))
   }
   return toResult(matchingNodes)
-}
-
-/**
- * Extract the body from a function-like argument node.
- *
- * Handles:
- * - ArrowFunction: () => { ... } or () => expr
- * - FunctionExpression: function() { ... }
- *
- * Returns undefined if the node is not a function-like expression.
- */
-export function getFunctionBody(node: Node): Node | undefined {
-  if (NodeUtils.isArrowFunction(node)) {
-    return node.getBody()
-  }
-  if (NodeUtils.isFunctionExpression(node)) {
-    return node.getBody()
-  }
-  return undefined
 }
 
 /**

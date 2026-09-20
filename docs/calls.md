@@ -155,7 +155,9 @@ Conditions define the assertions enforced on calls that pass the predicate filte
 
 ### `haveCallbackContaining(matcher)`
 
-At least one callback argument must contain the matched expression. Searches every arrow function and function expression passed directly as an argument: a concise arrow's body is tested itself too, so `() => authenticate(req)` contains `call('authenticate')`, and a block body is searched inside its braces. A callback inside an object literal (`{ handler: () => … }`) or behind parentheses is not searched yet (bug 0324) — use `haveArgumentContaining` for those. `within()` reads an object literal's functions, but not a callback behind parentheses.
+At least one callback argument must contain the matched expression. Searches every callback the call passes — an arrow function or function expression given as an argument, one held by a function-valued property or method shorthand of an options object (`{ handler: () => … }`, to three levels), and either behind parentheses, `as`, `<T>`, `satisfies` or `!`. A concise arrow's body is tested itself too, so `() => authenticate(req)` contains `call('authenticate')`, and a block body is searched inside its braces. `within()` reads exactly the same callbacks — one definition, since bug 0324.
+
+**Two shapes it does not read**, both silent passes: a callback a NAME refers to (`use(handler)`), which needs the type checker, and one nested deeper than three object literals. Use `haveArgumentContaining` for those — it searches an argument whole.
 
 ```typescript
 calls(p)

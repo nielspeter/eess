@@ -1,6 +1,10 @@
 import { type CallExpression, Node, SyntaxKind } from 'ts-morph'
 import type { ArchFunction } from '../models/arch-function.js'
-import { fromObjectLiteralFunction, fromCallableNode } from '../models/arch-function.js'
+import {
+  fromObjectLiteralFunction,
+  fromCallableNode,
+  throughWrappers,
+} from '../models/arch-function.js'
 import { collectObjectLiteralFunctions } from '../core/object-literal-functions.js'
 
 /**
@@ -22,9 +26,14 @@ export interface ExtractedCallback {
  * Handles:
  * - Arrow functions: `app.get('/path', (req, res) => { ... })`
  * - Function expressions: `app.get('/path', function(req, res) { ... })`
+ * - Either behind parentheses, `as`, `<T>`, `satisfies` or `!` (bug 0324)
+ * - Function-valued properties and method shorthands of an object-literal argument, to three
+ *   levels: `use({ handler: () => ... })`
  *
  * Does NOT resolve named references (e.g., `app.get('/path', myHandler)`).
- * Reference resolution requires type-checker lookups and is deferred.
+ * Reference resolution requires type-checker lookups and is deferred. A callback held by a
+ * variable, and one nested deeper than three object literals, are not found either — the
+ * limits of this one definition, shared by `within()` and the callback conditions (bug 0324).
  *
  * @returns Array of extracted callbacks with their source metadata
  */
@@ -33,7 +42,10 @@ export function extractCallbacks(callExpr: CallExpression): ExtractedCallback[] 
   const args = callExpr.getArguments()
 
   for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
+    // Read through parentheses, `as`, `<T>`, `satisfies` and `!` (bug 0324): `use((() => …))`
+    // passes the same callback as `use(() => …)`, and the wrappers are the ones the function
+    // collector already reads a variable's initializer through (bug 0315).
+    const arg = throughWrappers(args[i])
     if (!arg) continue
     const fn = extractInlineFunction(arg, callExpr, i)
     if (fn) {

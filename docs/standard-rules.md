@@ -302,7 +302,7 @@ functions(p)
   .check()
 ```
 
-Note: comments _above_ a function (its docstring and leading comments) are checked too, and so are comments in its parameter list — a comment matcher starts at the function's declaration.
+Note: comments _above_ a function (its docstring and leading comments) are checked too, and so are comments in its parameter list — a comment matcher starts at the function's declaration. The class variants read a member's parameter list as well (bug 0325), but no docstring: on a class, a comment above a member is documentation, not code (bug 0307).
 
 ### Empty body detection
 

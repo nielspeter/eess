@@ -661,7 +661,7 @@ describe('function body analysis — access, newExpr, expression, useInsteadOf',
 // ═══════════════════════════════════════════════════════════════════
 // 4. Call conditions
 //    Covers: src/conditions/call.ts, src/helpers/callback-extractor.ts,
-//            src/helpers/body-traversal.ts (getFunctionBody, findMatchesInNode)
+//            src/helpers/body-traversal.ts (findMatchesInCode, findMatchesInNode)
 // ═══════════════════════════════════════════════════════════════════
 
 describe('call conditions — haveCallbackContaining, notHaveCallbackContaining', () => {

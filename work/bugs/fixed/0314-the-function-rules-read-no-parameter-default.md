@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Fixed — the function search reads what a function's parameters run, after its body, and `functionNoSilentCatch` reads the same and a concise arrow's body. Red test first. The
-  record's comment question is split to [0325](../0325-the-class-search-reads-no-comment-on-a-parameter.md).
+  record's comment question is split to [0325](./0325-the-class-search-reads-no-comment-on-a-parameter.md).
 - **Severity:** High — **false green.** `functionNoEval` passed `function f(g = eval('w'))`, plain or
   destructured, and so did every function rule: they read a function's body only. The `recommended`
   preset runs `functionNoEval`, `functionNoFunctionConstructor` and `functionNoSilentCatch`
@@ -38,7 +38,7 @@ itself, and skipped any body that was not a block.
 
 ## Fix
 
-`codeOfParameters` (`packages/ts/src/helpers/body-traversal.ts:323`) returns what a function's
+`codeOfParameters` (`packages/ts/src/helpers/body-traversal.ts:389`) returns what a function's
 parameters run: for each parameter its default, then the code of its destructured or rest binding. A
 default runs whenever its argument is omitted; like a class member's, it is read as the function's
 code. The binding walk, `codeOfBindingPattern` (`:298`), is the one the class search reads for
@@ -63,10 +63,10 @@ collects the constructor. The metrics measure a body's shape and are unchanged.
 **The comment question, split.** The record asked the function and class searches to agree on a
 comment in a parameter's default. Measured on 0.6.0, the function search reads a comment on a
 parameter and one inline in its default — a comment matcher starts at the declaration
-(`packages/ts/src/helpers/body-traversal.ts:440`) — and the class search reads neither, though it reads
+(`packages/ts/src/helpers/body-traversal.ts:506`) — and the class search reads neither, though it reads
 a comment in a member's body. This record first said the class search reads no comment in a default at
 all; one on its own line inside a default is read (0325's table). The gap is the class search's, and closing it moves the class rules'
-comment identities, a separate change: [0325](../0325-the-class-search-reads-no-comment-on-a-parameter.md).
+comment identities, a separate change: [0325](./0325-the-class-search-reads-no-comment-on-a-parameter.md).
 
 **The comment start, decided.** For a function-valued property, the declaration a comment matcher
 starts at is the property declaration, its decorators and type annotation included (0315's choice, so a

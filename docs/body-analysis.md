@@ -285,7 +285,7 @@ classes(p)
 
 Body analysis works on both classes and functions, but the scope differs:
 
-- **`classes(p)`** -- `notContain` checks all the code each matched class runs: its members' code (method, constructor and accessor bodies, parameter defaults, property initializers and static blocks), every decorator expression, computed member names and the `extends` expression. `contain` checks member code only, so a decorator or base class cannot satisfy it
+- **`classes(p)`** -- `notContain` checks all the code each matched class runs: its members' code (method, constructor and accessor bodies, parameter defaults, property initializers and static blocks), every decorator expression, computed member names and the `extends` expression. `contain` checks member code only, so a decorator or base class cannot satisfy it. A **comment** matcher also reads the comments in a member's parameter list (bug 0325) — not the member's own docstring, which is not code — and under `contain` not one inside a parameter's decorator
 - **`functions(p)`** -- checks the code each matched function/arrow/method runs, individually: its body, and what its parameters run — a default, and a destructured or rest parameter's defaults and computed keys
 
 ```typescript

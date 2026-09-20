@@ -20,9 +20,9 @@
 
 The call conditions searched each argument, or each callback's body, with `findMatchesInNode`. That
 function tests a node's descendants and never the node itself
-(`packages/ts/src/helpers/body-traversal.ts:136`). An argument that is the match was never tested,
+(`packages/ts/src/helpers/body-traversal.ts:140`). An argument that is the match was never tested,
 and neither was a concise callback's body, which `getFunctionBody` returns as the expression itself
-(`packages/ts/src/helpers/body-traversal.ts:463`).
+(`packages/ts/src/helpers/body-traversal.ts:529`).
 
 Measured on `e90c13b`, the same with either matcher, `call('legacy')` or `expression(/legacy\(1\)/)`:
 
@@ -39,7 +39,7 @@ The requirements failed the other way: `haveArgumentContaining(call('legacy'))` 
 
 The same search had one more caller: under `{ scopeToModule: true }`, a module's `notContain` and
 `contain` search each top-level initializer with it (`collectVariableStatementMatches`,
-`packages/ts/src/helpers/body-traversal.ts:489`). `const x = legacy(1);` gave **0** findings under
+`packages/ts/src/helpers/body-traversal.ts:562`). `const x = legacy(1);` gave **0** findings under
 `call('legacy')` and `const e = process.env;` **0** under `access('process.env')`;
 `const x = 0 + legacy(1);` gave 1.
 
@@ -53,21 +53,21 @@ reports every match "found at any depth". Depth zero, the argument itself, was n
 so its root never needed testing. [0300](./0300-class-body-search-reads-methods-constructors-and-accessors-only.md)
 met the same limit for an initializer and a parameter default, which can be the match, and added
 `findMatchesInExpression`, which tests the root too
-(`packages/ts/src/helpers/body-traversal.ts:325`). The call conditions, and the module search under
+(`packages/ts/src/helpers/body-traversal.ts:391`). The call conditions, and the module search under
 `scopeToModule`, searched what can be an expression and still used `findMatchesInNode`. The other
 callers search a block, a source file, a statement or a trivia root, or test a concise body
-themselves (`searchFunctionBody`, `packages/ts/src/helpers/body-traversal.ts:399`, the path
+themselves (`searchFunctionBody`, `packages/ts/src/helpers/body-traversal.ts:465`, the path
 [0224](./0224-recommended-floor-misses-two-function-shapes.md) fixed).
 
 ## Fix
 
-`findMatchesInCode` (`packages/ts/src/helpers/body-traversal.ts:346`) searches a node that is not a
+`findMatchesInCode` (`packages/ts/src/helpers/body-traversal.ts:412`) searches a node that is not a
 block with `findMatchesInExpression`, root included, and a block with `findMatchesInNode`, below its
-root. `findMatchesInEach` (`:361`) runs it over several roots and numbers every match below a root
+root. `findMatchesInEach` (`:446`) runs it over several roots and numbers every match below a root
 before the roots that match themselves. The prohibitions use `findMatchesInEach`
-(`packages/ts/src/conditions/call.ts:132` and `:350`, and the module search at
-`packages/ts/src/helpers/body-traversal.ts:500`); the requirements, which only ask whether anything
-matched, use `findMatchesInCode` (`packages/ts/src/conditions/call.ts:163` and `:307`).
+(`packages/ts/src/conditions/call.ts:124` and `:370`, and the module search at
+`packages/ts/src/helpers/body-traversal.ts:573`); the requirements, which only ask whether anything
+matched, use `findMatchesInCode` (`packages/ts/src/conditions/call.ts:184` and `:327`).
 `findMatchesInNode` is now private to `body-traversal.ts`, so every search below a root is in one
 file.
 
@@ -105,7 +105,7 @@ inside an object literal is not searched yet.
 
 - [0322](./0322-two-broad-matches-with-one-span-remove-each-other.md) — the same searches, a
   different cause: a match that shares its span with another.
-- [0324](../0324-the-callback-conditions-read-a-direct-callback-only.md) — found by the enforcement
+- [0324](./0324-the-callback-conditions-read-a-direct-callback-only.md) — found by the enforcement
   review of this fix: the callback conditions take only a direct callback, not one in an object
   literal or behind parentheses. A different cause, filed with KNOWN-GAP tests.
 
