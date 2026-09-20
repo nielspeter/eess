@@ -20,9 +20,10 @@
 
 The call conditions searched each argument, or each callback's body, with `findMatchesInNode`. That
 function tests a node's descendants and never the node itself
-(`packages/ts/src/helpers/body-traversal.ts:140`). An argument that is the match was never tested,
-and neither was a concise callback's body, which `getFunctionBody` returns as the expression itself
-(`packages/ts/src/helpers/body-traversal.ts:529`).
+(`packages/ts/src/helpers/body-traversal.ts:141`). An argument that is the match was never tested,
+and neither was a concise callback's body, which `getFunctionBody` returned as the expression
+itself (`packages/ts/src/helpers/body-traversal.ts:489` on `main` at d592d60; that reader was deleted in PR #147, which gave the
+conditions one callback definition — bug 0324).
 
 Measured on `e90c13b`, the same with either matcher, `call('legacy')` or `expression(/legacy\(1\)/)`:
 
@@ -43,8 +44,8 @@ The same search had one more caller: under `{ scopeToModule: true }`, a module's
 `call('legacy')` and `const e = process.env;` **0** under `access('process.env')`;
 `const x = 0 + legacy(1);` gave 1.
 
-Two published claims were false: `docs/calls.md:235` said `haveArgumentContaining` "searches all
-arguments recursively at any depth", and `docs/calls.md:253` said `notHaveArgumentContaining`
+Two published claims were false: `docs/calls.md:237` said `haveArgumentContaining` "searches all
+arguments recursively at any depth", and `docs/calls.md:255` said `notHaveArgumentContaining`
 reports every match "found at any depth". Depth zero, the argument itself, was not searched.
 
 ## Root cause
@@ -53,15 +54,15 @@ reports every match "found at any depth". Depth zero, the argument itself, was n
 so its root never needed testing. [0300](./0300-class-body-search-reads-methods-constructors-and-accessors-only.md)
 met the same limit for an initializer and a parameter default, which can be the match, and added
 `findMatchesInExpression`, which tests the root too
-(`packages/ts/src/helpers/body-traversal.ts:391`). The call conditions, and the module search under
+(`packages/ts/src/helpers/body-traversal.ts:410`). The call conditions, and the module search under
 `scopeToModule`, searched what can be an expression and still used `findMatchesInNode`. The other
 callers search a block, a source file, a statement or a trivia root, or test a concise body
-themselves (`searchFunctionBody`, `packages/ts/src/helpers/body-traversal.ts:465`, the path
+themselves (`searchFunctionBody`, `packages/ts/src/helpers/body-traversal.ts:484`, the path
 [0224](./0224-recommended-floor-misses-two-function-shapes.md) fixed).
 
 ## Fix
 
-`findMatchesInCode` (`packages/ts/src/helpers/body-traversal.ts:412`) searches a node that is not a
+`findMatchesInCode` (`packages/ts/src/helpers/body-traversal.ts:431`) searches a node that is not a
 block with `findMatchesInExpression`, root included, and a block with `findMatchesInNode`, below its
 root. `findMatchesInEach` (`:446`) runs it over several roots and numbers every match below a root
 before the roots that match themselves. The prohibitions use `findMatchesInEach`
@@ -137,7 +138,7 @@ inside an object literal is not searched yet.
   - R6, the root added beside a broad match inside it: both `notHave…` tests red on the double.
   - R9, root matches numbered in place: the order test red.
   - R10, the `scopeToModule` site reverted: its test red.
-- [x] `docs/calls.md:158`, `:173`, `:235` and `:253` true — the first three reworded, the fourth
+- [x] `docs/calls.md:158`, `:175`, `:237` and `:255` true — the first three reworded, the fourth
       true as it stands.
 - [x] The changeset marks it breaking — `.changeset/call-conditions-test-the-root.md` — and the
       pending 0322 changeset no longer says 0323 is open.

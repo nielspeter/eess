@@ -107,7 +107,7 @@ Measured, one member per shape, `comment(/TODO/)`, before and after:
 - [x] `docs/body-analysis.md` and `docs/standard-rules.md` say what a class comment rule reads.
 - [x] Sabotage matrix over the two test files this PR adds, sources restored by sha256 and verified,
       the tree unchanged. R0, as built: nothing red. R1, the parameter pass reading nothing —
-      0.6.1's behaviour: four tests red. R2, no dedup: two red, the duplicate test among them. R3, a
+      the behaviour before this fix: four tests red. R2, no dedup: two red, the duplicate test among them. R3, a
       parameter decorator counted as member code: the decorator test red. R4, the pass numbered
       first: the order test red.
 - [x] `npm run validate` green.

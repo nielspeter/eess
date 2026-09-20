@@ -112,7 +112,7 @@ describe('bug 0324: the callback conditions read every callback the call passes'
   })
 
   it('numbers a newly read callback after the one read before it', () => {
-    // 0.6.1 read the direct callback on the SECOND argument and reported it as #1. The callback in
+    // Before this fix the direct callback on the SECOND argument was the only one read, reported as #1. The callback in
     // the first argument's options object is newly read, so it takes #2 and the accepted identity
     // still names the same match.
     const ordinals = calls(project('use({ handler: () => legacy(1) },\n  () => legacy(2));'))

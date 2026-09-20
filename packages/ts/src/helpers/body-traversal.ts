@@ -299,7 +299,7 @@ export function searchClassBody(
  * The class search reads a parameter as CODE — its default, and a destructured parameter's defaults
  * and computed keys — so a comment matcher searching those expressions misses a comment written on
  * the parameter itself, and one written inline between `=` and the default, which TypeScript counts
- * as leading trivia of neither. Measured on 0.6.1: `m(g = /* TODO *\/ 1)` and a `// TODO` on its own
+ * as leading trivia of neither. Measured before this fix: `m(g = /* TODO *\/ 1)` and a `// TODO` on its own
  * line before a parameter were 0 for the class rules and 1 for the function rules, on the same
  * member. A comment in a parameter list is the function search's for free — it starts a trivia
  * matcher at the declaration — and a class rule that cannot see a TODO marker there is a false green.

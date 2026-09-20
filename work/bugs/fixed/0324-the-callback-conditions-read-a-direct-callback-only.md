@@ -20,9 +20,9 @@
 ## Symptom
 
 `notHaveCallbackContaining` and `haveCallbackContaining` took an argument as a callback only when
-`getFunctionBody` returned a body for it (`packages/ts/src/conditions/call.ts:129` and `:161`, at
-0.6.1), and `getFunctionBody` answered only for an arrow function or a function expression
-(`packages/ts/src/helpers/body-traversal.ts:489` at 0.6.1; deleted in PR #147).
+`getFunctionBody` returned a body for it (`packages/ts/src/conditions/call.ts:129` and `:161`, on `main`
+at d592d60), and `getFunctionBody` answered only for an arrow function or a function expression
+(`packages/ts/src/helpers/body-traversal.ts:489` on `main` at d592d60; deleted in PR #147).
 
 Measured with `call('legacy')`, after 0323's fix:
 
@@ -118,7 +118,7 @@ ADR-010.
       `@nielspeter/eess-ts`: a green callback rule may now report.
 - [x] Sabotage matrix over the two test files this PR adds, sources restored by sha256 and verified,
       the tree unchanged. R0, as built: nothing red. R5, the extractor reading no wrapper: three
-      tests red. R6, the conditions reading a direct callback only — 0.6.1's behaviour: three red,
+      tests red. R6, the conditions reading a direct callback only — the behaviour before this fix: three red,
       the order test among them. R7, a newly read callback numbered first: the order test red.
 - [x] `npm run validate` green.
 

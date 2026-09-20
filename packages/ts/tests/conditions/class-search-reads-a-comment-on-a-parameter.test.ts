@@ -9,7 +9,7 @@ import type { ArchProject } from '../../src/core/project.js'
  * Bug 0325 — the class search read a member's parameters as CODE: each default, and a destructured
  * parameter's defaults and computed keys. A comment matcher searching those expressions missed a
  * comment attached to the parameter itself, and one written inline between `=` and the default,
- * which TypeScript counts as leading trivia of neither. Measured on 0.6.1: `m(g = /* TODO *\/ 1)`
+ * which TypeScript counts as leading trivia of neither. Measured before this fix: `m(g = /* TODO *\/ 1)`
  * was 0 for a class comment rule and 1 for a function one, on the same member.
  *
  * The class search now reads the comments in a member's parameter list as a final pass. Three
@@ -120,7 +120,7 @@ describe('bug 0325: the class search reads a comment on a parameter', () => {
   })
 
   it('numbers a comment in the parameter list after the ones read before it', () => {
-    // The body comment was reported at 0.6.1 as #1; the parameter one is new and takes #2, so a
+    // The body comment was the only one reported before this fix, as #1; the parameter one is new and
     // baseline that accepted the body finding still names it.
     const ordinals = classes(
       project('  m(g = /* TODO param */ 1) {\n    // TODO body\n    return g\n  }'),

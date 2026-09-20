@@ -163,7 +163,7 @@ export function notHaveCallbackContaining(matcher: ExpressionMatcher): Condition
 function callbackBodies(archCall: ArchCall): Node[] {
   const args = archCall.getArguments()
   const callbacks = extractCallbacks(archCall.getNode())
-  // A callback that IS the argument is what these conditions searched at 0.6.1, when they read an
+  // A callback that IS the argument is what these conditions searched before bug 0324, when they read an
   // argument's body themselves.
   const wasRead = (fn: Node): boolean => args.some((arg) => arg === fn)
   const ordered = [

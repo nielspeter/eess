@@ -41,15 +41,15 @@ itself, and skipped any body that was not a block.
 `codeOfParameters` (`packages/ts/src/helpers/body-traversal.ts:389`) returns what a function's
 parameters run: for each parameter its default, then the code of its destructured or rest binding. A
 default runs whenever its argument is omitted; like a class member's, it is read as the function's
-code. The binding walk, `codeOfBindingPattern` (`:298`), is the one the class search reads for
+code. The binding walk, `codeOfBindingPattern` (`:364`), is the one the class search reads for
 [0309](./0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md), through
-`bindingPatternMatches` (`:313`): each binding element's computed key, default and nested pattern, in
+`bindingPatternMatches` (`:379`): each binding element's computed key, default and nested pattern, in
 the order they run. The first version of this fix wrote a second walker beside it; the method review
 asked for one, as #138's architecture review had, and the class search's order is unchanged. Two sites
 read it:
 
-- `searchFunctionBody` (`:418`) searches each of them with `findMatchesInExpression` after the body
-  (`:474`), so every function rule built on it — `notContain`, `contain`, `useInsteadOf`, the security,
+- `searchFunctionBody` (`:484`) searches each of them with `findMatchesInExpression` after the body
+  (`:540`), so every function rule built on it — `notContain`, `contain`, `useInsteadOf`, the security,
   error and TypeScript function rules, `mustCall`, the `resolvers()` conditions and the
   `inconsistentSiblings` smell — reads them. Within one function, a finding a baseline accepted in the
   body keeps its identity and the new one is numbered after it.
