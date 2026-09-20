@@ -93,6 +93,29 @@ as failures. `check` reports this rather than failing silently, but the fix is
 
 `eess-ts init` scaffolds the correct form.
 
+## `recommended` — what each rule reads
+
+The floor's four rules do not all read the same subject, and the difference is visible in what they
+report (bug 0333):
+
+| rule                      | subject             | reads                                                             |
+| ------------------------- | ------------------- | ----------------------------------------------------------------- |
+| `no-eval`                 | the module (a file) | every position in the file — top level, class bodies, callbacks   |
+| `no-function-constructor` | the module          | the same                                                          |
+| `no-silent-catch`         | the module          | the same                                                          |
+| `no-empty-bodies`         | a function          | each function the collection finds; an empty body is a function's |
+
+Each rule reads **one** subject. The kinds nest — a module search reads the whole file — so a rule
+built over two of them would report one call twice.
+
+A finding from a module-subject rule names the declaration that contains the match (`handler`,
+`Cache.warm`), falling back to the file when nothing does — in both `element`, which `.excluding()`
+matches on, and the message the CI emitter prints. Its baseline identity is keyed on the **file**,
+the match's own scope and the matcher, so two findings in different files never share an entry.
+
+Because a matched file is always a subject, `expectEmpty` does not apply to the three module-subject
+rules: declaring one empty fails as the assertion it is, rather than going quiet.
+
 ## `layeredArchitecture`
 
 The most universal architecture pattern. Nearly every backend project has layers — routes/controllers at the top, services in the middle, repositories/data access at the bottom. The rule is simple: dependencies flow downward, never upward. A repository must never import from a route. A service must never reach into the HTTP layer.

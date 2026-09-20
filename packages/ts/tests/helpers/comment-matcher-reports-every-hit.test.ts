@@ -150,8 +150,11 @@ describe('the comment matcher reports every hit, once, at the right line (bug 00
     const b = scratch.createSourceFile('/b.ts', text)
     const found = moduleNotContain(comment('@ts-ignore')).evaluate([a, b], ctx)
     const expected = directiveLinesFromText().length
-    expect(found.filter((v) => v.element === 'a.ts').length).toBe(expected)
-    expect(found.filter((v) => v.element === 'b.ts').length).toBe(expected)
+    // By FILE, not by element: since bug 0333 a module finding's `element` names the declaration
+    // that contains the match, and only falls back to the file when nothing does. `file` is the
+    // field that answers "which file", and it is what this test is about.
+    expect(found.filter((v) => v.file === '/a.ts').length).toBe(expected)
+    expect(found.filter((v) => v.file === '/b.ts').length).toBe(expected)
   })
 
   it('does not report one comment twice', () => {

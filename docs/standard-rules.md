@@ -6,7 +6,7 @@ Rules come in three flavors matching the entry point they target:
 
 - **Class variants** (`noEval()`) — for `classes(p).should().satisfy(...)`
 - **Function variants** (`functionNoEval()`) — for `functions(p).should().satisfy(...)`
-- **Module variants** (`moduleNoEval()`) — for `modules(p).should().satisfy(...)`
+- **Module variants** (`moduleNoEval()`, `moduleNoFunctionConstructor()`) — for `modules(p).should().satisfy(...)`
 
 Most users want function or module variants. Class variants exist for backwards compatibility and for class-specific rules like `classMustCall`.
 

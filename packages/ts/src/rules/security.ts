@@ -277,6 +277,15 @@ export function moduleNoEval(): Condition<SourceFile> {
   return moduleNotContain(globalCall('eval'))
 }
 
+/**
+ * No Function constructor anywhere in a file — the module counterpart of
+ * {@link noFunctionConstructor}, added for bug 0333 so the `recommended` floor can read a rule over
+ * the broadest subject it has a variant for.
+ */
+export function moduleNoFunctionConstructor(): Condition<SourceFile> {
+  return moduleNotContain(functionConstructor())
+}
+
 export function moduleNoProcessEnv(): Condition<SourceFile> {
   return moduleNotContain(processEnvAccess())
 }

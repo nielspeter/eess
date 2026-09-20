@@ -12,7 +12,7 @@
 
 ## Symptom
 
-**What a search reads is settled across eight bug records, every one of them archived.** The
+**What a search reads is settled across eleven bug records, every one of them archived.** The
 decisions, in order — linked here because a record arguing the chain cannot be found should not
 make the reader hunt for it:
 
@@ -52,7 +52,7 @@ to whoever walked it.
 
 Not decided. Three candidates, and the choice is a judgement about cost:
 
-- **An ADR — "what a rule reads"** — collecting the eight rulings above as clauses, each with its
+- **An ADR — "what a rule reads"** — collecting the eleven rulings above as clauses, each with its
   Enforcement row pointing at the test that already pins it. The rows exist; this is mostly
   assembly. It is also the option that makes the next ruling a decision to be recorded rather than a
   paragraph in a bug.
@@ -71,6 +71,8 @@ reachable only through a folder the corpus gate has frozen.
   the same shape for ADR-011: a decision whose scope the code has outgrown.
 - [0329](./0329-the-class-search-reads-no-comment-outside-a-members-parameters.md) — the live record
   whose premise sits in `fixed/`.
+- [0337](./0337-agent-guardrails-reads-function-bodies-only.md) — a second preset that does not
+  follow 0333's ruling, which is what a ruling nobody can find looks like from the outside.
 
 ## Verification
 

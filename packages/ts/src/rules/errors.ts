@@ -2,7 +2,8 @@ import { Node, SyntaxKind } from 'ts-morph'
 import type { ClassDeclaration, SourceFile } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
-import { createViolation } from '../core/violation.js'
+import { createViolation, enclosingScopeName } from '../core/violation.js'
+import { identifyMatches } from '../conditions/match-identity.js'
 import type { ArchFunction } from '../models/arch-function.js'
 import { newExpr, type ExpressionMatcher } from '../helpers/matchers.js'
 import { codeOfParameters, searchClassBody } from '../helpers/body-traversal.js'
@@ -103,9 +104,28 @@ export function moduleNoSilentCatch(): Condition<SourceFile> {
     evaluate(elements: SourceFile[], context: ConditionContext): ArchViolation[] {
       const violations: ArchViolation[] = []
       for (const sf of elements) {
-        for (const result of findSilentCatches(sf)) {
-          violations.push(createViolation(result.node, result.message, context))
-        }
+        const found = [...findSilentCatches(sf)]
+        // Named and identified as the other module conditions do (bug 0333). `createViolation`
+        // alone gave every module-scope catch `element = 'CatchClause'` — a KIND name, not a
+        // subject — and no producer identity, so a baseline keyed on `element::message` collapsed
+        // every top-level silent catch in a project into ONE bucket separated by a positional
+        // suffix. Measured on an adopter project by the customer review of this fix: accepting one
+        // catch accepted a different catch in a different file, and a delete-plus-add went green.
+        // A catch inside a function was never affected — its element is the function's name — which
+        // is why this surfaced only when the floor started reading module scope.
+        const identities = identifyMatches(
+          'module-body',
+          sf.getFilePath(),
+          found.map((result) => result.node),
+          'silent catch',
+        )
+        found.forEach((result, index) => {
+          violations.push({
+            ...createViolation(result.node, result.message, context),
+            element: enclosingScopeName(result.node) ?? sf.getBaseName(),
+            identity: identities[index],
+          })
+        })
       }
       return violations
     },

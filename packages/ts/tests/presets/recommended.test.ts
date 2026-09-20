@@ -195,16 +195,25 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
     // `.expectEmpty()` is unreachable to them; without a carrier their only
     // remedy is `overrides: 'off'`, which is permanent and deletes the rule
     // rather than declaring a fact about it.
-    expect(configFindings(recommended(p, { include: EMPTY, report: 'builders' }))).toHaveLength(
-      ALL_IDS.length,
-    )
-
-    // All four clear — so the carrier reached all four, not just the first.
+    //
+    // Since bug 0333 the four rules do not read the same subject, so `EMPTY` — a file that EXISTS
+    // and holds only types — is empty for one of them and not for the other three: a module rule
+    // examines the file and finds nothing, which is an honest green. The carrier still reaches all
+    // four, and this asserts it from both sides: the function-subject rule's finding CLEARS when
+    // declared, and a module-subject rule declared empty REPORTS that the declaration is false.
     expect(
-      configFindings(
-        recommended(p, { include: EMPTY, expectEmpty: [...ALL_IDS], report: 'builders' }),
-      ),
-    ).toEqual([])
+      configFindings(recommended(p, { include: EMPTY, report: 'builders' })).map((v) => v.ruleId),
+    ).toEqual(['preset/recommended/no-empty-bodies'])
+
+    const declared = configFindings(
+      recommended(p, { include: EMPTY, expectEmpty: [...ALL_IDS], report: 'builders' }),
+    )
+    // The one that was empty is cleared; the three that examine the file now fail their own
+    // declaration — "a declaration is an assertion, not a silencer".
+    expect(declared.map((v) => v.ruleId).sort()).toEqual(
+      ALL_IDS.filter((id) => id !== 'preset/recommended/no-empty-bodies').sort(),
+    )
+    expect(declared.every((v) => (v.message ?? '').includes('expectEmpty'))).toBe(true)
   })
 
   it('declaring one rule clears ONLY that rule — by NAME, not by count', () => {
@@ -218,16 +227,29 @@ describe('expectEmpty reaches the rules a preset constructs (plan 0089)', () => 
     // compare identities, not integers. Once 0099's floor lands, a mis-bound
     // carrier leaves the declared rule failing while a DIFFERENT rule is silently
     // declared empty and stays so — the mute button the carrier must never be.
+    // Declaring the one rule that IS empty here clears that rule and nothing else: the other three
+    // stay silent because they examined the file and found nothing (bug 0333's ruling), so a
+    // blanket silencer and a correctly-bound carrier are still distinguishable — a blanket one
+    // would also have to clear the finding this asserts is gone.
     const one = recommended(p, {
+      include: EMPTY,
+      expectEmpty: ['preset/recommended/no-empty-bodies'],
+      report: 'builders',
+    })
+    expect(configFindings(one).map((v) => v.ruleId)).toEqual([])
+
+    // And binding the carrier to the WRONG rule is visible: declaring a rule that examines the
+    // file reports the false declaration under that rule's own id.
+    const misdeclared = recommended(p, {
       include: EMPTY,
       expectEmpty: ['preset/recommended/no-eval'],
       report: 'builders',
     })
     expect(
-      configFindings(one)
+      configFindings(misdeclared)
         .map((v) => v.ruleId)
         .sort(),
-    ).toEqual(ALL_IDS.filter((id) => id !== 'preset/recommended/no-eval').sort())
+    ).toEqual(['preset/recommended/no-empty-bodies', 'preset/recommended/no-eval'].sort())
   })
 
   it('a DEAD glob is not declarable — the carrier does not silence a config error', () => {

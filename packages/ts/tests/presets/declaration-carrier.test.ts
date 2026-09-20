@@ -79,14 +79,29 @@ describe('the carrier reaches every construction path (plan 0089)', () => {
       'preset/recommended/no-silent-catch',
       'preset/recommended/no-empty-bodies',
     ] as const
-    expect(ids(recommended(p, { include: EMPTY, report: 'builders' }))).toEqual([...ALL].sort())
-    // One at a time, so "reached every rule" cannot pass as "silenced everything"
-    // — and by NAME, so "reached the right rule" cannot pass as "reached a rule".
-    expect(
-      ids(recommended(p, { include: EMPTY, expectEmpty: [ALL[0]], report: 'builders' })),
-    ).toEqual(ALL.filter((id) => id !== ALL[0]).sort())
+    // `EMPTY` is a file that EXISTS and holds only types. Since bug 0333 the four rules do not read
+    // the same subject: three read the MODULE, so they examine that file and find nothing — an
+    // honest green — while `no-empty-bodies`, whose subject is a function, has nothing to examine.
+    expect(ids(recommended(p, { include: EMPTY, report: 'builders' }))).toEqual([
+      'preset/recommended/no-empty-bodies',
+    ])
+
+    // The carrier still reaches every rule, asserted by NAME from both sides: declaring all four
+    // clears the empty one and makes the other three report their own false declaration. A carrier
+    // wired to one rule, or to none, changes this set.
     expect(
       ids(recommended(p, { include: EMPTY, expectEmpty: [...ALL], report: 'builders' })),
+    ).toEqual(ALL.filter((id) => id !== 'preset/recommended/no-empty-bodies').sort())
+    // One at a time: declaring only the empty rule leaves nothing, so "reached every rule" cannot
+    // pass as "silenced everything".
+    expect(
+      ids(
+        recommended(p, {
+          include: EMPTY,
+          expectEmpty: ['preset/recommended/no-empty-bodies'],
+          report: 'builders',
+        }),
+      ),
     ).toEqual([])
   })
 
