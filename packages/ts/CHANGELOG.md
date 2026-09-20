@@ -1,5 +1,170 @@
 # @nielspeter/eess-ts
 
+## 0.7.0
+
+### Minor Changes
+
+- 81ec32e: **Breaking (@nielspeter/eess-ts):** the function rules now read what a function's parameters run — a
+  parameter's default, and a destructured or rest parameter's defaults and computed keys at any depth
+  (bug 0314). A default runs whenever its argument is omitted, and it is read as the function's code, as a
+  class member's is. The rules read the body only, so `function f(g = eval('w'))` passed
+  `functionNoEval` and the `recommended` floor. `functionNoSilentCatch` reads the same, and also a concise
+  arrow's body, which it skipped: `() => list.map(() => { try { … } catch { … } })`.
+
+  Affected: every function rule built on the body search — `notContain`, `contain` and `useInsteadOf` on
+  `functions()`, the function variants in `rules/security`, `rules/errors` and `rules/typescript`,
+  `mustCall` in `rules/architecture`, the `contain`, `notContain` and `useInsteadOf` conditions of
+  `resolvers()` in `@nielspeter/eess-ts/graphql`, the `recommended` and `agentGuardrails` presets, and
+  the `inconsistentSiblings` smell. A constructor's parameter property is read too:
+  `constructor(readonly f = eval('w')) {}`. The metrics measure a body's shape and are unchanged, and a
+  comment rule already read the parameter list.
+
+  A green rule may report new findings, and a requirement — `contain`, `mustCall`, the good side of
+  `useInsteadOf` — may now be met by a call in a default, as a class member's destructured default meets a
+  class requirement since 0.6.0. Messages are unchanged. Within one function, the parameters are read after
+  the body, so a finding a baseline accepted there keeps its identity. Across functions that share an
+  identity scope — a static and an instance method of one name, an object literal's methods — it is not
+  kept: as with any rule that reports more, a newly reported finding above an accepted one takes its
+  ordinal, the accepted one is reported as new and the new one is hidden until the baseline is reviewed.
+  Review those findings before regenerating it.
+
+- faf1503: **Breaking (@nielspeter/eess-ts):** the function collection reaches three more positions, and the
+  security rules read a name through its binding.
+
+  **Positions a function rule reads (bug 0321).** `eval` passed `functionNoEval` — and the
+  `recommended` floor — in a class EXPRESSION's members, anywhere inside a NAMESPACE, and an object
+  literal's ACCESSORS, because the collection asked the source file for its top-level functions,
+  variables and classes and nothing else. It now reads a namespace as it reads a file, a class
+  expression HELD BY A VARIABLE as it reads a class, and an accessor as it reads a method. A class
+  expression passed straight to a call is still not collected, with the inline functions bug 0315 left
+  out on purpose. A namespace's members carry
+  its path (`N.Inner.m`), a class expression's carry the binding that holds it (`Expr.m`), and an
+  object literal's accessors are named by their key (`o["get x"]`). `classes()` selects every class
+  declaration in a file, its namespaces included, not only the top-level ones — but not one nested
+  inside another class, whose body search already reads it.
+
+  Ruled out, and unchanged: a static block and a class field that holds no function are code a CLASS
+  runs, and the class rules read both; a function passed to a call or chosen by a conditional, and a
+  callback handed to a call outside any function, are anonymous inline functions the module rules
+  read. The `recommended` preset builds every rule with `functions()`, so those positions are still
+  not checked by the floor — recorded as a known gap rather than implied to be covered.
+
+  **A global is read through its binding (bug 0305).** `functionNoEval`, `functionNoFunctionConstructor`,
+  `functionNoConsole` and `functionNoProcessEnv` (and their class and module variants) read the name at
+  the site of use, which failed both ways. A global bound to a local name first — `const ev = eval`,
+  `const { log } = console`, `import { env } from 'node:process'` — was missed; a local that keeps a
+  global's name — `function Function() {}`, `const console = {…}`, a parameter called `process` — was
+  reported as the global. Both directions now follow the binding, as far as the file spells it out. A
+  declaration that is ambient — the lib, a `.d.ts`, a `declare` in a source file — IS the global, and a
+  binding that cannot be resolved falls back to the name as written, so a missing type definition
+  cannot turn a rule off.
+
+  An import of the process module is followed however it is spelled — named, default, namespace or
+  renamed — and a binding this reader cannot follow falls back to the name as written, so a `process`
+  imported from elsewhere is still reported as it was before. Ambient declarations — `declare global`,
+  `declare module 'x'`, a `.d.ts` — are read as declarations, not as code: their contents are not
+  collected as functions, and a global declared in one is still the global.
+
+  **What changes for a green build.** A rule may report findings it could not see: a global under an
+  alias, and any code in the three newly collected positions. A rule may STOP reporting a local that
+  shadows a global — if a baseline accepted one of those, it is now an unmatched baseline entry.
+  Resolving a binding asks the type checker, measured at about 1.5ms per file on the floor gate over
+  270 files. Messages are unchanged, and a baseline entry is a hash of the rule and the finding's own text
+  (`hashViolation`), not of its position in a run — so an accepted finding keeps its entry whatever is
+  reported beside it. What a baseline WILL show is new entries for the newly read positions, and
+  unmatched entries for any shadow it had accepted. Review those before regenerating it.
+
+  The `#n` identities a body search assigns within one enclosing declaration are unchanged: the newly
+  collected functions are separate subjects, not extra matches inside an existing one.
+
+- 4c84df7: **Breaking (@nielspeter/eess-ts):** two searches now read shapes they passed over in silence.
+
+  **The callback conditions read every callback a call passes (bug 0324).** `haveCallbackContaining`
+  and `notHaveCallbackContaining` took an argument as a callback only when it WAS an arrow function or
+  a function expression, so a handler in an options object — `use({ handler: () => … })`, the shape
+  the builder's own example is written for — a method shorthand, and a callback behind parentheses
+  were searched by nothing: the prohibition passed and the requirement failed, both green. They now
+  take their callbacks from the same definition `within()` uses, which also reads an argument through
+  parentheses, `as`, `<T>`, `satisfies` and `!` (as the function collector already read a variable's
+  initializer). `within()` gains the wrapped shapes with them.
+
+  That wrapper list now lives in one module, so it composes with the object-literal walk:
+  `use({ handler: (() => …) as H })` is read by the callback conditions, by `within()` **and** by
+  `functions({ includeObjectLiteralFunctions: true })` — the last a behaviour change to a shipped
+  collection, which tested a property's raw initializer before. Four limits remain, named in
+  `docs/calls.md` rather than left to be found: a callback a NAME refers to, one in an array or other
+  collection, one held by a getter, and one nested deeper than three object literals.
+
+  **A class comment rule reads the comments in a member's parameter list (bug 0325).** The class
+  search read a parameter as code — its default, and a destructured parameter's defaults and keys — so
+  `m(g = /* TODO */ 1)` and a `// TODO` on its own line before a parameter passed
+  `classes().should().notContain(comment(/TODO/))` while the function rules reported both on the same
+  member. A member's own docstring is still not read — on a class, a comment above a member is
+  documentation, not code (bug 0307) — and a comment inside a parameter's decorator does not satisfy a
+  must-contain rule, for the same reason the decorator's code does not.
+
+  A green rule may now report findings it could not see, and a requirement — `haveCallbackContaining`,
+  `contain` — may now be met by a callback or a comment that was invisible. Messages are unchanged.
+  Both searches read the new shapes LAST — the callback extractor returns an unwrapped argument's
+  callbacks before a wrapped one's, which `within()` inherits — so within one call and one class
+  member a finding a baseline accepted keeps its identity and a newly read one is numbered after it. Across declarations that
+  share an identity scope, a newly reported finding above an accepted one takes its ordinal, as with
+  any rule that reports more — review those findings before regenerating a baseline.
+
+- d9435f6: **Breaking (@nielspeter/eess-ts):** the `recommended` floor reads code outside function bodies.
+
+  Every rule the preset built read a FUNCTION, so the floor said nothing about anything else.
+  Measured over eleven positions, ten reported nothing — including a bare `eval('x')` written at the
+  top of a file, under a rule named `no-eval`. Also silent: `eval` in a class's static block, in a
+  field initializer, in a callback handed to a call, and a silent catch in any of those places.
+
+  Each rule now reads the broadest subject its condition has a variant for: `no-eval`,
+  `no-function-constructor` and `no-silent-catch` read the module — the whole file — and
+  `no-empty-bodies` keeps its function subject, because an empty body is a fact about a function and
+  has no meaning at module scope. The subject kinds nest, so a rule reads exactly one of them and no
+  call is reported twice. `moduleNoFunctionConstructor` is new and exported for callers who want it
+  directly.
+
+  **A module finding now names the declaration that contains the match** — `c`, `S`, `F.x` — and the
+  file only when nothing does. `element` is what `.excluding()` keys on, so this keeps working for
+  the rules that changed subject; it is also a change for anyone using `modules()` rules directly and
+  excluding by file name. For `moduleNotContain` and `moduleUseInsteadOf` the identity is built by the same code as before, so
+  no existing baseline entry of theirs moves because of this change — though it does carry the match's
+  scope, so renaming an enclosing declaration moves that entry, as it always has.
+
+  **`moduleNoSilentCatch` is different, and its entries all move.** It is exported (`@nielspeter/eess-ts`),
+  and it previously built findings with no identity and `element: 'CatchClause'` — so every
+  module-scope catch in a project shared one baseline subject, and accepting one accepted another. It
+  now names the declaration containing the catch and carries a per-file identity. If you baseline that
+  rule, regenerate it; and an `.excluding('CatchClause')` written against the old name stops matching
+  (the run reports the exclusion as unused rather than dropping it silently).
+
+  **What an adopter has to do, in this order.**
+  1. **Run the check and read the new findings first.** They are the code this floor never looked at:
+     a call at top level, in a class's static block or field initializer, in a callback.
+  2. **Fix or exclude what matters.**
+  3. **Regenerate the baseline last.** A baseline entry carries the subject kind, so the entries for
+     the three rules that changed subject no longer match and their findings return as new.
+
+  Regenerating FIRST accepts everything — measured: `eess-ts baseline` on an upgraded project prints
+  `+7, −1` and goes green, having silently accepted the bare top-level `eval` this release exists to
+  report. The count is not the finding.
+
+  **Two more things move for the three rules that changed subject**, both toward reporting rather than
+  away from it:
+  - **A finding's `line` is now the match's line, not the enclosing declaration's** (measured, 2 → 5
+    on one fixture). An `// eess-exclude` comment placed on the declaration line no longer covers it;
+    move it to the line the finding names.
+  - **`element` can be LESS qualified than the function subject gave** for shapes the function
+    collection named richly — `g.m` → `m`, `N.n` → `n`, `<anonymous>` → the file. An `.excluding()`
+    pattern written against the old name may stop matching; the check reports an unused exclusion
+    when it does, rather than dropping it silently.
+
+  **`expectEmpty` no longer applies to those three rules.** A matched file is always a subject, so
+  they are never empty. This does not go quiet: a declaration on one of them now fails as the
+  assertion it is — _"asserted this rule examines nothing, and it examines …"_ — telling you to
+  remove it.
+
 ## 0.6.0
 
 ### Minor Changes

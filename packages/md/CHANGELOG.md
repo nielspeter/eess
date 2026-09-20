@@ -1,5 +1,54 @@
 # @nielspeter/eess-md
 
+## 0.7.0
+
+### Minor Changes
+
+- 3ec8082: **Breaking (@nielspeter/eess-md):** `honestyAtClose` reads a record's own `State:` and `Deferred:` lines
+  the way CommonMark reads the document, through the markdown parser its task-box pass already uses (bug
+  0286). An example of a State line in a code block — fenced with any run of backticks or tildes, or
+  indented — is no longer read as the record's own. Before, a closed record showing an example of an open
+  one in a four-backtick or four-tilde fence, or an indented block, was not classified done, and every
+  silent box on it went unreported. HTML blocks are read as before.
+
+  Two new findings report a record whose State line the parser reads as code, which would otherwise pass
+  with nothing checked:
+  - `ledger/unterminated-fence` — a fenced code block that never closes and runs to the end of the
+    document, so the State line and boxes below it are code. Before, the State line after it was read but
+    the boxes, code to the parser, were not, so the record passed with nothing checked. Close the fence
+    where the example ends.
+  - `ledger/state-in-code` — a document whose header has a `State:` line only inside a code block. Four
+    spaces of indent make one: a `State:` line indented that way was read before and is code now, so it is
+    reported rather than silently dropped. A `State:` line in a three-backtick fence was already skipped
+    before, and the document read as no item; it is reported now too. The gate cannot tell a record from a
+    document that only shows the template, so a guide in the lane with a State line in a code block in its
+    header reds where it was green: name it in `boardFiles`.
+
+  A green gate may report new findings: silent boxes on records the misreading hid, and the two above.
+  Messages of the existing findings are unchanged. `findState(text, vocabulary)` keeps its form and takes
+  the parsed tree as an optional third argument; it returns `null` for a State line found only in code.
+
+- 78974f8: **Breaking (@nielspeter/eess-md, @nielspeter/eess-crossvalidate):** `terms()` and
+  `scenarioCitationsResolve` set fenced examples aside with the markdown parser instead of a regex (bug
+  0287). The regex read a triple-backtick run inside a longer fence as a closer, so it blanked the real
+  reference or citation below such an example and read the ones written inside it. Both are corrected, so a
+  green rule may report a reference it could not see, and a red one may lose a finding that was an example.
+
+  A fenced example inside an HTML block is set aside however far the block's body is indented, and whatever
+  the length of its fence — where the regex set aside a simple one and mis-read a longer one; an indented
+  example outside an HTML block is read, as before.
+  unclosed, or ended by its list item or blockquote — is read past\*\*, where the regex's behaviour depended
+  on whether a later fence happened to pair with it: for `terms()` and `scenarioCitationsResolve` that
+  means a reference or citation under such a fence is now checked rather than silently dropped, which can
+  add a finding.
+
+  `@nielspeter/eess-md/internal` is a new entry point: family plumbing for eess-crossvalidate and for
+  gate scripts, not public API, as the kernel's `/internal` is (ADR-011).
+
+  eess-crossvalidate's `md-gherkin` entry imports `@nielspeter/eess-md/internal` at runtime, so it needs
+  the eess-md release that ships it. Its peer floor on eess-md is raised to that release in the release
+  commit (`RELEASING.md` step 3a).
+
 ## 0.6.1
 
 ### Patch Changes

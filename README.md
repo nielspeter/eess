@@ -54,21 +54,22 @@ Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
 
-**Upgrading eess-ts from 0.5?** eess-ts 0.6 carries eleven breaking changes, and
-every one makes a rule report code it used to pass — so a build can go red with
-your source untouched. [Migrating to eess-ts 0.6](./docs/migrating-to-eess-ts-0.6.md)
-collects them, with what to do before you regenerate a baseline.
+**Upgrading to 0.7?** eess-ts and eess-md move to 0.7.0 with six breaking changes,
+and every one makes a check read code it used to pass — so a build can go red with
+your source untouched. The floor now reads code outside function bodies at all.
+[Migrating to 0.7](./docs/migrating-to-0.7.md) collects them, with what to do
+before you regenerate a baseline.
 
 ## Packages
 
 | Package                                                      | What it validates                                                        | Status |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------ | ------ |
 | [`@nielspeter/eess`](./packages/core)                        | The kernel — rule engine, no dialect knowledge                           | 0.5.x  |
-| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.6.x  |
+| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.7.x  |
 | [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                                                   | 0.4.x  |
-| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.6.x  |
+| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.7.x  |
 | [`@nielspeter/eess-gherkin`](./packages/gherkin)             | Gherkin features — scenarios as citable elements                         | 0.4.x  |
-| [`@nielspeter/eess-crossvalidate`](./packages/crossvalidate) | Cross-validation — diagram↔code, ADR↔test, story↔scenario, scenario↔test | 0.5.x  |
+| [`@nielspeter/eess-crossvalidate`](./packages/crossvalidate) | Cross-validation — diagram↔code, ADR↔test, story↔scenario, scenario↔test | 0.6.x  |
 
 Each dialect depends only on the kernel and its own parser (ts-morph for TS, Langium for Mermaid, mdast for Markdown, a line grammar for Gherkin). The Markdown dialect ([plan 0058](./work/plans/completed/0058-markdown-dialect-eess-md.md)) and cross-validation between dialects ([plan 0059](./work/plans/completed/0059-cross-validation-eess-crossvalidate.md)) are sibling packages on the same kernel — new dialects land without restructuring.
 

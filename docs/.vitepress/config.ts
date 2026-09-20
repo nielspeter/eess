@@ -35,6 +35,7 @@ export default defineConfig({
         // them arrive every time a train carries breaks.
         text: 'Releases & migration',
         items: [
+          { text: 'Migrating to 0.7', link: '/migrating-to-0.7' },
           { text: 'Migrating to eess-ts 0.6', link: '/migrating-to-eess-ts-0.6' },
           { text: 'Migrating to v0.5', link: '/migrating-to-0.5' },
           { text: 'Migrating from ts-archunit', link: '/migrating-from-ts-archunit' },
