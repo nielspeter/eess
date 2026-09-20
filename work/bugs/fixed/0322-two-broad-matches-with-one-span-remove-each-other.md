@@ -21,7 +21,7 @@
 ## Symptom
 
 `expression()` declares no syntax kinds (`packages/ts/src/helpers/matchers.ts:187`), so a body
-search takes the broad path (`packages/ts/src/helpers/body-traversal.ts:147`). That path tests every
+search takes the broad path (`packages/ts/src/helpers/body-traversal.ts:152`). That path tests every
 descendant and keeps only the deepest matches. The filter dropped a match whenever another match lay
 inside it, and a node with the same span lies inside it — so when several matches covered exactly
 the same text, each dropped the others, and nothing was reported.
@@ -78,7 +78,7 @@ A dropped match still counted as "inside" for the matches around it, so they wer
 the whole chain up to the body reported nothing.
 
 The comment path met the same trap and skips the filter, saying so: _"nodes with identical spans each
-remove the other — measured at zero findings"_ (`packages/ts/src/helpers/body-traversal.ts:156`).
+remove the other — measured at zero findings"_ (`packages/ts/src/helpers/body-traversal.ts:161`).
 That arrived with the port from `ts-archunit`, and the broad path kept the filter. Ties are common,
 but a deeper match usually hides them; no earlier test depended on a tie at the deepest level, and
 with the fix applied every earlier eess-ts test passes.
@@ -86,7 +86,7 @@ with the fix applied every earlier eess-ts test passes.
 ## Fix
 
 Of a tie, the filter keeps the last node in walk order, which is the deepest because the walk is
-pre-order (`packages/ts/src/helpers/body-traversal.ts:116-126`). The fix is in the one filter, so
+pre-order (`packages/ts/src/helpers/body-traversal.ts:120-130`). The fix is in the one filter, so
 every search a broad matcher takes inherits it — `expression()`, and any `ExpressionMatcher` that
 names no syntax kind: the function, class and module body conditions, the call-argument and callback
 searches, and the `inconsistentSiblings` smell, which reads `searchFunctionBody`.
@@ -102,7 +102,7 @@ an ancestor of that match, and adding it reported one match twice. In 0.5.1 a ti
 emptied the inner search, so the body was reported alone, once; keeping the tie made it twice, as it
 already was for a match strictly inside — `() => legacy(1)` under `expression(/legacy/)` was two
 findings in 0.5.1. The body is now skipped when a broad matcher matched inside it
-(`packages/ts/src/helpers/body-traversal.ts:447`), and each of those is one finding. A by-kind matcher
+(`packages/ts/src/helpers/body-traversal.ts:532`), and each of those is one finding. A by-kind matcher
 never tests the root it searches, so for it the body is a different node and still counts:
 `() => legacy(legacy(1))` under `call('legacy')` is two findings, as it should be. Found by the
 enforcement review of this PR.
@@ -117,7 +117,7 @@ it by identity (row R3). A first draft of this record called the choice unobserv
 review measured otherwise.
 
 **Where a finding's line moves.** `findMatchesInExpression`
-(`packages/ts/src/helpers/body-traversal.ts:325`) counts an initializer's root only when nothing inside
+(`packages/ts/src/helpers/body-traversal.ts:410`) counts an initializer's root only when nothing inside
 it matched. A class field or parameter default whose only match was a tie used to be reported at the
 initializer's first line, and is now reported at the match's own: `field = {` / `alpha` / `}` under
 `expression(/\balpha\b/)` said "at line 3" and now says "at line 4". The identity, `K.field::…#1`,

@@ -35,16 +35,16 @@ part of that function's body, and a default-exported class, whose method is coll
 
 ## Root cause
 
-`collectFunctions` (`packages/ts/src/models/arch-function.ts:352`):
+`collectFunctions` (`packages/ts/src/models/arch-function.ts:365`):
 
-- collects class members from `sourceFile.getClasses()` (`packages/ts/src/models/arch-function.ts:382`),
+- collects class members from `sourceFile.getClasses()` (`packages/ts/src/models/arch-function.ts:395`),
   a file's top-level class declarations, so neither a class expression nor a class inside a
   namespace;
 - collects a variable whose initializer is a function behind at most parentheses, `as`, `<T>`,
-  `satisfies` or `!` (`packages/ts/src/models/arch-function.ts:374`), so not one behind a call or a
+  `satisfies` or `!` (`packages/ts/src/models/arch-function.ts:387`), so not one behind a call or a
   conditional — and a callback passed to a call outside any function belongs to no collected function;
 - collects an object-literal value that is an arrow function, a function expression or a method
-  (`packages/ts/src/models/arch-function.ts:460`), so not an accessor;
+  (`packages/ts/src/models/arch-function.ts:473`), so not an accessor;
 - collects nothing for a static block, or for a class field whose value is not a function: neither is
   a function.
 

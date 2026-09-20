@@ -19,6 +19,7 @@ import {
   SyntaxKind,
 } from 'ts-morph'
 import { collectObjectLiteralFunctions } from '../core/object-literal-functions.js'
+import { throughWrappers } from '../core/through-wrappers.js'
 
 /**
  * Unified representation of a TypeScript function.
@@ -231,16 +232,7 @@ function accessOf(scope: Scope): 'public' | 'protected' | 'private' {
 export function functionValueOf(
   node: Node | undefined,
 ): ArrowFunction | FunctionExpression | undefined {
-  let current = node
-  while (
-    NodeClass.isParenthesizedExpression(current) ||
-    NodeClass.isAsExpression(current) ||
-    NodeClass.isTypeAssertion(current) ||
-    NodeClass.isSatisfiesExpression(current) ||
-    NodeClass.isNonNullExpression(current)
-  ) {
-    current = current.getExpression()
-  }
+  const current = throughWrappers(node)
   return NodeClass.isArrowFunction(current) || NodeClass.isFunctionExpression(current)
     ? current
     : undefined

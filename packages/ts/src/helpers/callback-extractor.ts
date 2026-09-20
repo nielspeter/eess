@@ -1,6 +1,7 @@
 import { type CallExpression, Node, SyntaxKind } from 'ts-morph'
 import type { ArchFunction } from '../models/arch-function.js'
 import { fromObjectLiteralFunction, fromCallableNode } from '../models/arch-function.js'
+import { throughWrappers, isValueWrapper } from '../core/through-wrappers.js'
 import { collectObjectLiteralFunctions } from '../core/object-literal-functions.js'
 
 /**
@@ -22,29 +23,62 @@ export interface ExtractedCallback {
  * Handles:
  * - Arrow functions: `app.get('/path', (req, res) => { ... })`
  * - Function expressions: `app.get('/path', function(req, res) { ... })`
+ * - Either behind parentheses, `as`, `<T>`, `satisfies` or `!` (bug 0324)
+ * - Function-valued properties and method shorthands of an object-literal argument, to three
+ *   levels: `use({ handler: () => ... })`
  *
  * Does NOT resolve named references (e.g., `app.get('/path', myHandler)`).
- * Reference resolution requires type-checker lookups and is deferred.
+ * Reference resolution requires type-checker lookups and is deferred. A callback held by a
+ * variable, and one nested deeper than three object literals, are not found either — the
+ * limits of this one definition, shared by `within()` and the callback conditions (bug 0324).
  *
  * @returns Array of extracted callbacks with their source metadata
  */
 export function extractCallbacks(callExpr: CallExpression): ExtractedCallback[] {
-  const callbacks: ExtractedCallback[] = []
+  const unwrapped: ExtractedCallback[] = []
+  const behindAWrapper: ExtractedCallback[] = []
   const args = callExpr.getArguments()
 
   for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
+    const raw = args[i]
+    if (!raw) continue
+    // Read through parentheses, `as`, `<T>`, `satisfies` and `!` (bug 0324): `use((() => …))`
+    // passes the same callback as `use(() => …)`, and the wrappers are the ones the function
+    // collector already reads a variable's initializer through (bug 0315).
+    const arg = throughWrappers(raw)
     if (!arg) continue
     const fn = extractInlineFunction(arg, callExpr, i)
-    if (fn) {
-      callbacks.push(fn)
-    } else {
-      // Search object literal arguments for function-valued properties
-      callbacks.push(...extractFromObjectLiteral(arg, callExpr, i))
+    const found = fn ? [fn] : extractFromObjectLiteral(arg, callExpr, i)
+    // A callback reached THROUGH a wrapper — the argument's, or a property value's — is one this
+    // function could not reach before bug 0324, so it goes LAST. A match's identity is numbered in
+    // order across the subjects of one rule, and `within()` walks this list: numbered in place, a
+    // newly reachable callback ahead of an accepted one takes its ordinal, which both hides the new
+    // finding and re-reports the accepted one. Measured in the enforcement review of 0324 on
+    // `use((() => legacy(1)), () => legacy(2))`, and again on
+    // `use({ handler: (() => legacy(1)) }, () => legacy(2))` — the second is why this asks about
+    // the PATH to the callback and not about the argument alone, which was the first answer.
+    for (const callback of found) {
+      const wrapped = reachedThroughAWrapper(callback.fn.getNode(), raw)
+      ;(wrapped ? behindAWrapper : unwrapped).push(callback)
     }
   }
 
-  return callbacks
+  return [...unwrapped, ...behindAWrapper]
+}
+
+/**
+ * Whether the path from an argument down to a callback passes through a value wrapper — the
+ * argument itself being one included. That is exactly "this callback is newly reachable since bug
+ * 0324", which decides where it is ordered (see {@link extractCallbacks}).
+ */
+function reachedThroughAWrapper(callback: Node, argument: Node): boolean {
+  let current: Node | undefined = callback
+  while (current !== undefined) {
+    if (isValueWrapper(current)) return true
+    if (current === argument) return false
+    current = current.getParent()
+  }
+  return false
 }
 
 /**

@@ -4,12 +4,8 @@ import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import type { ArchCall } from '../models/arch-call.js'
-import {
-  getFunctionBody,
-  findMatchesInCode,
-  findMatchesInEach,
-  reportedLine,
-} from '../helpers/body-traversal.js'
+import { findMatchesInCode, findMatchesInEach, reportedLine } from '../helpers/body-traversal.js'
+import { extractCallbacks } from '../helpers/callback-extractor.js'
 import { identifyMatches } from './match-identity.js'
 import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 
@@ -81,8 +77,8 @@ export function notExist(): Condition<ArchCall> {
 /**
  * Assert that at least one callback argument contains a match.
  *
- * Searches all function-like arguments (ArrowFunction, FunctionExpression)
- * for a node matching the given ExpressionMatcher.
+ * Searches every callback the call passes — see {@link callbackBodies} — for a node matching the
+ * given ExpressionMatcher.
  */
 export function haveCallbackContaining(matcher: ExpressionMatcher): Condition<ArchCall> {
   return {
@@ -109,7 +105,8 @@ export function haveCallbackContaining(matcher: ExpressionMatcher): Condition<Ar
 /**
  * Assert that NO callback argument contains a match.
  *
- * Produces one violation per matching node found in any callback.
+ * Produces one violation per matching node found in any callback — see {@link callbackBodies} for
+ * which arguments hold one.
  */
 export function notHaveCallbackContaining(matcher: ExpressionMatcher): Condition<ArchCall> {
   return {
@@ -121,15 +118,10 @@ export function notHaveCallbackContaining(matcher: ExpressionMatcher): Condition
         // produces multiple violations against the same call, and the
         // literal-shape walk inside getName({...}) is identical for each.
         const callName = callNameForMessage(archCall, context)
-        const args = archCall.getArguments()
         // Flatten across arguments before assigning identities: a per-argument
         // counter would restart at 1 for each callback, so two callbacks with a
         // match in the same enclosing declaration would collide.
-        const bodies = args.flatMap((arg) => {
-          const body = getFunctionBody(arg)
-          return body ? [body] : []
-        })
-        const matches = findMatchesInEach(bodies, matcher)
+        const matches = findMatchesInEach(callbackBodies(archCall), matcher)
         const identities = identifyMatches(
           'call-callback',
           archCall.getSourceFile().getFilePath(),
@@ -153,15 +145,43 @@ export function notHaveCallbackContaining(matcher: ExpressionMatcher): Condition
 }
 
 /**
+ * The bodies the callback conditions search: every callback the call passes, as `extractCallbacks`
+ * reads them — the definition `within()` already used (bug 0324).
+ *
+ * Before this fix these conditions had their own, narrower one: an argument that IS an arrow
+ * function or a function expression. A handler in an options object — `use({ handler: () => … })`,
+ * the shape the builder's own example is written for — and one behind parentheses were searched by
+ * nothing, so `notHaveCallbackContaining` passed over them while `notHaveArgumentContaining`
+ * reported them. Two places deciding what a callback is, is the bug; there is now one.
+ *
+ * **The callbacks read before this fix come first.** A match's identity is numbered within its
+ * enclosing declaration, so a newly reachable callback on an earlier argument would otherwise take
+ * the ordinal a baseline accepted on a later one — the same ordering `findMatchesInEach` keeps for
+ * the roots bug 0323 made it test, and `searchClassBody` for the code bugs 0300, 0307 and 0309
+ * made it read.
+ */
+function callbackBodies(archCall: ArchCall): Node[] {
+  const args = archCall.getArguments()
+  const callbacks = extractCallbacks(archCall.getNode())
+  // A callback that IS the argument is what these conditions searched before bug 0324, when they read an
+  // argument's body themselves.
+  const wasRead = (fn: Node): boolean => args.some((arg) => arg === fn)
+  const ordered = [
+    ...callbacks.filter((cb) => wasRead(cb.fn.getNode())),
+    ...callbacks.filter((cb) => !wasRead(cb.fn.getNode())),
+  ]
+  return ordered.flatMap((cb) => {
+    const body = cb.fn.getBody()
+    return body ? [body] : []
+  })
+}
+
+/**
  * Search all callback arguments of a call for a matcher hit.
  */
 function searchCallbacksFor(archCall: ArchCall, matcher: ExpressionMatcher): boolean {
-  const args = archCall.getArguments()
-  for (const arg of args) {
-    const body = getFunctionBody(arg)
-    if (!body) continue
-    const matches = findMatchesInCode(body, matcher)
-    if (matches.length > 0) return true
+  for (const body of callbackBodies(archCall)) {
+    if (findMatchesInCode(body, matcher).length > 0) return true
   }
   return false
 }
