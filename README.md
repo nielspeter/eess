@@ -54,18 +54,19 @@ Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
 
-**Upgrading to 0.7?** eess-ts and eess-md move to 0.7.0 with six breaking changes,
-and every one makes a check read code it used to pass — so a build can go red with
-your source untouched. The floor now reads code outside function bodies at all.
-[Migrating to 0.7](./docs/migrating-to-0.7.md) collects them, with what to do
-before you regenerate a baseline.
+**Upgrading to 0.8?** eess-ts moves to 0.8.0 with two breaking changes, both the
+same kind as 0.7's — a check reads code it used to pass, so a build can go red with
+your source untouched. A path glob now reads the project root, and `agentGuardrails`
+reads the whole file rather than each function body.
+[Migrating to 0.8](./docs/migrating-to-0.8.md) collects them, including the
+`// eess-exclude` comments that stop suppressing and the order to fix them in.
 
 ## Packages
 
 | Package                                                      | What it validates                                                        | Status |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------ | ------ |
 | [`@nielspeter/eess`](./packages/core)                        | The kernel — rule engine, no dialect knowledge                           | 0.5.x  |
-| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.7.x  |
+| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.8.x  |
 | [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                                                   | 0.4.x  |
 | [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.7.x  |
 | [`@nielspeter/eess-gherkin`](./packages/gherkin)             | Gherkin features — scenarios as citable elements                         | 0.4.x  |

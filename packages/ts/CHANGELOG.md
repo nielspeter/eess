@@ -1,5 +1,138 @@
 # @nielspeter/eess-ts
 
+## 0.8.0
+
+### Minor Changes
+
+- 3e15b71: `agentGuardrails` reads the whole file, not only function bodies (bug 0337)
+
+  **Breaking (@nielspeter/eess-ts):** two rules change subject, so they report findings they
+  never reported, in positions whose element name may be the FILE rather than a declaration.
+  Existing baseline entries for them stop matching and their findings return as new.
+
+  `agentGuardrails` built every rule over `functions()`, so the preset sold to agent-focused
+  projects reported an `eval` inside a function and **nothing** for a bare top-level one.
+  Measured: `noInlineLogic: ['eval']` reported `["c"]` inside a function and `[]` for top
+  level, a class static block and a field initializer. This is
+  [bug 0333](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0333-the-recommended-floor-reads-functions-only.md)'s
+  defect in the sibling preset, and 0333's ruling is what fixes it: each rule reads the
+  broadest subject its condition has a variant for, and **exactly one**, because the subject
+  kinds nest.
+  - `preset/agent/no-inline-logic/<api>` now reads the module — `moduleNotContain(call(api))`.
+  - `preset/agent/no-generic-errors` now reads the module. The test that put it in scope is
+    its own wording: the imperative is "Do NOT throw new Error()", not "…in a function", so a
+    throw at module scope was a false green against the rule as written.
+  - `preset/agent/no-stubs` and `preset/agent/no-empty-bodies` **keep** their function subject.
+    A `// TODO` above a class is genuinely unreported, and that is not a defect: this rule's
+    imperative says "in a function body", so the wording and the reading agree.
+
+  ## What you may see on upgrade
+
+  _New findings, in the positions that were silent._ A top-level `eval`, one in a static block
+  or in a field initializer, and a `throw new Error()` outside any function. Read them before
+  regenerating a baseline — each is a place a rule you configured was not looking.
+
+  _`expectEmpty` no longer applies to the two rules that moved._ A module subject exists
+  whenever the glob matches, so the declaration fails as the assertion it is. Delete it for
+  `preset/agent/no-inline-logic/<api>` and `preset/agent/no-generic-errors`; the failure names
+  the exact declaration.
+
+  _A `// eess-exclude` comment pinned to a declaration line stops covering the finding._ A single-line
+  directive covers the next line only, and for these two rules the reported line is now the **match's**
+  line, not the enclosing declaration's — so an exclusion moves out from under its finding even when the
+  element name does not change. This is the same break `docs/migrating-to-0.7.md` §2 recorded for
+  `recommended`'s three rules, now in a second preset. The run names each one with `file:line`
+  (`Exclusion comment for '<id>' at …:8 suppressed nothing`). Move the comment to the line the finding
+  names, or wrap the region with `eess-exclude-start` / `eess-exclude-end`.
+
+  **Watch the order.** A stale exclusion on its own does **not** fail the build — it prints as a
+  `[eess]` warning and the run exits 0. So if you answer the red by regenerating the baseline first, you
+  end up green with exclusion comments that no longer suppress anything and never will. Fix the
+  exclusions before you regenerate.
+
+  _Two weak buckets merge._ A top-level match and an object-literal match in the same file now share one
+  ordinal sequence, where only the object-literal ones did before. Adding a top-level `eval` therefore
+  renumbers the object-literal one and unmatches its baseline entry.
+
+  _An element name can be the file._ A match with nothing named enclosing it is reported
+  against the file (`a.ts`), and a match inside an object-literal handler is too — measured,
+  a throw in `const routes = { objectHandler: () => … }` was `routes.objectHandler` under the
+  function subject and is `handlers.ts` under the module subject. The finding is still
+  reported; what weakened is the **name you read**, not the identity — `moduleNotContain` sets an
+  `identity`, which supersedes element and message in the hash, and for this shape that identity was
+  already positional under the function subject too. So the finding is no weaker than it was; it simply
+  reads worse. Its baseline entry still unmatches, like every entry for these two rules, because the
+  identity carries the subject kind and `function-body::` becomes `module-body::`.
+
+  **Known limit, measured on this change.** Two findings in one file that share a weak element
+  name are told apart by position, so a baseline can accept the wrong one. Measured: baseline
+  two top-level `eval`s, fix the first and add a different one below — **both entries match and
+  the new call is reported as nothing**, where the same edit across two named functions
+  correctly reports one new. This is
+  [bug 0338](https://github.com/nielspeter/eess/blob/main/work/bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md),
+  which this change makes reachable through a second preset; it is not fixed here because the
+  fix is a decision about what makes a finding identifiable.
+
+- 9935eac: A path glob is no longer decided by where the project sits on disk (bug 0339)
+
+  **Breaking (@nielspeter/eess-ts):** a rule can select more subjects than before, so
+  findings may appear in a build that was green, and baseline entries may go unmatched.
+
+  picomatch's default `dot: false` stops `**` crossing a path segment that begins with
+  a `.`, and path globs are matched against the **absolute** file path. So in a
+  checkout under a dot-directory — a git-worktree manager's layout, a cache
+  directory, some CI workspaces — every `'**/…'` glob matched nothing, and
+  `'**/…'` is the spelling the tool's own glob advice tells you to write. Measured
+  over one fixture copied to two paths: `resideInFile('**/src/**')` examined 0
+  subjects under a dot-segment and 1 beside it. ADR-010's guard then reported
+  correct rules as enforcing nothing, with a remedy that says to widen the selector
+  or declare it empty — so the honest way out of the false red was a fake green.
+
+  The root-relative view of a path was already tried, but only for a
+  project-relative glob, which made the anchored spelling the one spelling that
+  never got it. Every path glob now reads both views: the absolute path, and the
+  same path named from the project root. Two exclusions are kept deliberately — a
+  glob carrying a `./` or `../` segment, and `'*/x/**'` — because both are reported
+  as faults elsewhere and matching them here would make the tool contradict itself.
+
+  Four surfaces were reading the absolute path **only**, so this also fixes a
+  project-relative glob at each of them: the `resideInFile`/`resideInFolder`
+  **conditions** (which reported every subject as a violation rather than selecting
+  none), the `inconsistentSiblings` detector's `inFolder`/`ignorePaths`, and
+  `strictBoundaries`' `folders` and `shared` discovery.
+
+  `diskSet.classify` reads both views too. It is the one producer that states a fact
+  about the filesystem, and under a dot-segment it reported a directory that exists
+  and holds TypeScript as `absent`, whose advice says no such path was found.
+
+  **What you may see on upgrade — in both directions.**
+
+  _Rules that reported nothing now report._ If your project sits under a
+  dot-directory, read the new findings before regenerating a baseline.
+
+  _A build that was red can go green, and a check can stop covering files._ The same
+  rule applies to exclusions: `inconsistentSiblings().ignorePaths('src/generated/**')`
+  previously ignored nothing and now ignores. The `resideInFile`/`resideInFolder`
+  **conditions** stop reporting every subject as a violation. `diskSet.classify` stops
+  answering `absent`. If you relied on a finding you were getting, check it is still
+  there.
+
+  _Two surfaces narrow._ `onlyBeImportedVia` and `duplicateBodies`' path filters used
+  to try the root-relative path for **every** glob; they now follow the same rule as
+  everything else, which withholds it from a `'./x'`, `'../x'` or `'*/x/**'` glob. If
+  you spell one of those, an importer that was allowed may now be reported, files that
+  were ignored may now be examined, and a `duplicateBodies(p).inFolder('*/src/**')`
+  can turn into an ADR-010 `examined 0` configuration finding. All three fail closed —
+  they red, they do not pass quietly — and `'**/x/**'` is the spelling that works.
+
+  _The boundaries discovery remedies changed text._ Both said the glob "is matched
+  against absolute file paths" and told you to prefix `'**/'`. Both were false after
+  this change, and the prefix was a no-op on a glob already starting `'**/'`. They now
+  state that both views were tried and name the causes that remain. If you spell a
+  `shared` glob relative-to-the-root, the `preset/boundaries/shared-discovery` finding
+  that used to explain why it did not work is gone, because it now works — an accepted
+  baseline entry for it will be unmatched.
+
 ## 0.7.0
 
 ### Minor Changes
