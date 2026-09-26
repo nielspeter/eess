@@ -79,11 +79,29 @@ Not decided. The candidates differ in what they claim a finding IS:
 Whatever is chosen, the file-level absence findings need an identity too, or the same decision that
 they cannot have one.
 
+### And a second sub-problem, which none of the candidates above touches
+
+The instance bug 0337 added — an arrow held in a `PropertyAssignment`, whose module-scope name is the
+FILE where the function-scope name was `routes.objectHandler` — has a different cause and a different
+fix from the three candidates above. Those are about a match with **no** enclosing declaration; this is
+a match **with** one that a second namer cannot see. Review of PR #151 flagged the risk plainly: settle
+the three candidates, tick their boxes, and this survives with nothing pointing at it.
+
+- **Teach `getStructuralName`** to name an arrow or function expression held in a `PropertyAssignment`
+  (`packages/ts/src/core/violation.ts:56` names one only when the parent is a `VariableDeclaration`).
+  Blast radius: `enclosingScopeName` feeds `getElementName`, so this moves element names for every
+  condition, and element names are baseline keys.
+- **Share the derivation instead.** `models/arch-function.ts` already computes the good name —
+  `owningBindingName` (`:540`) plus the collected key path (`:414`) — and it is module-private. Exposing
+  it is smaller than reimplementing it, and reimplementing it is the two-derivations-of-one-fact
+  failure this repository spends most of its guards on.
+
+Its own box is below, so this record cannot close over it.
+
 ## Related
 
 - [0337](./fixed/0337-agent-guardrails-reads-function-bodies-only.md) — the second preset to widen into
   this, which measured the cost above and the object-literal naming instance.
-
 - [0333](./fixed/0333-the-recommended-floor-reads-functions-only.md) — the change that made these
   positions reachable from the floor, and fixed the cross-file half.
 - [0336](./0336-a-rule-that-changes-subject-re-reports-accepted-findings-with-no-diagnostic.md) —
@@ -96,6 +114,10 @@ they cannot have one.
       about the hash.
 - [ ] a pin per row, each asserting the new finding IS reported
 - [ ] a ruling on what identifies a match with no enclosing declaration
+- [ ] the `PropertyAssignment` sub-problem — a match that HAS an enclosing function the module-scope
+      namer cannot name (added 2026-09-26 from [0337](./fixed/0337-agent-guardrails-reads-function-bodies-only.md)).
+      **None of the three candidates above addresses it**, so it carries its own box: the record must
+      not be able to close over it.
 - [ ] the fix, with the pins inverted
 - [ ] a changeset — any change here moves existing baseline entries
 - [ ] `npm run validate` green.

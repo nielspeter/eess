@@ -152,8 +152,29 @@ const EMITTERS = /(^|\.)(finishPreset|reportViolations|throwIfViolations)$/
  * `imperative` metadata so `explain --format agent` and the check JSON give the
  * agent an actionable fix.
  *
- * Uses function-variant rules so standalone functions, arrow functions, and
- * class members are all covered.
+ * **What each rule reads** (bug 0337, applying bug 0333's ruling): each rule reads
+ * the broadest subject its condition has a variant for, and exactly ONE, because
+ * the subject kinds nest — a module's search reads the whole file, so running two
+ * of them under one rule id would report the same match twice.
+ *
+ * | rule                          | reads                                   |
+ * | ----------------------------- | --------------------------------------- |
+ * | `no-inline-logic/<api>`       | the whole **file**                      |
+ * | `no-generic-errors`           | the whole **file**                      |
+ * | `no-stubs`                    | each **function** body                  |
+ * | `no-empty-bodies`             | each **function** body                  |
+ * | `no-copy-paste`               | function bodies, pairwise               |
+ * | `no-verdict-outside-rules`    | the whole **file**                      |
+ *
+ * The two file-reading rules therefore see a bare top-level call, one in a class's
+ * static block, and one in a field initializer. A match with nothing named
+ * enclosing it is reported against the file.
+ *
+ * This paragraph read "Uses function-variant rules so standalone functions, arrow
+ * functions, and class members are all covered" until 0337 made two of the six
+ * read a module. It is the hover text an adopter sees, and leaving it would have
+ * been a comment outliving its mechanism — the defect this change fixed one file
+ * over, in `recommended.ts`, and then nearly repeated here.
  */
 // Presets collect object-literal functions unconditionally. `functions()`
 // keeps these anonymous values opt-in because every inline callback would flood
@@ -239,7 +260,13 @@ export function agentGuardrails(
         .satisfy(moduleNotContain(call(api))),
       {
         id: `preset/agent/no-inline-logic/${api}`,
-        because: `${api} inline in a function is logic that belongs behind a named helper`,
+        // NOT "inline in a function" — this rule reads the whole file since bug
+        // 0337, so a top-level call would have rendered with a rationale naming a
+        // construct the code does not contain. `because` is surfaced on every
+        // violation and is the agent-actionable half, so a wrong one sends the
+        // author to the wrong place. It is not hashed (`hashViolation` composes
+        // `rule::subjectOf`), so correcting it moves no adopter's baseline entry.
+        because: `an inline ${api} call is logic that belongs behind a named helper`,
         suggestion: `extract the ${api} call into a named helper function`,
         imperative: `Do NOT call ${api} inline — extract it behind a named helper`,
       },

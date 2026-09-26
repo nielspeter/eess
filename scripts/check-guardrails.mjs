@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 /**
  * Dogfood: run eess-ts's own shipped `agentGuardrails` preset against this
- * repo's source — **four of its five rules**, and the fifth's absence is stated
+ * repo's source — **five of its six rules**, and the sixth's absence is stated
  * here rather than left to be inferred from `OPTIONS` below.
+ *
+ * It said "four of its five" until bug 0337, and the miscount was the tell:
+ * `noInlineLogic` was missing from `OPTIONS` and from the header's arithmetic, so
+ * the rule family whose silence IS 0337's headline symptom was the one this gate
+ * had never run. A dogfood gate that cannot count its own subject is the shape
+ * the paragraph below says this script exists to end.
  *
  * `noVerdictOutsideRules` is deliberately NOT enabled. It bans eess at runtime
  * outside a rule file, and this repo's dialect source IS eess: 55 of 141
@@ -72,6 +78,10 @@ const filesScanned = p.getSourceFiles().filter((sf) => matches(sf.getFilePath())
 // the rules actually constructed cannot disagree (bug 0240).
 const OPTIONS = {
   src: SRC,
+  // `eval` and the Function constructor, the two this repo bans in its own floor.
+  // Added by bug 0337: before it, this rule read function bodies only, so even had
+  // it been enabled it would not have seen a top-level call.
+  noInlineLogic: ['eval', 'Function'],
   noGenericErrors: true,
   noStubs: true,
   noEmptyBodies: true,

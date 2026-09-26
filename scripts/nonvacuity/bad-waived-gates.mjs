@@ -652,6 +652,34 @@ SCENARIOS['guardrails/generic-error'] = () => {
   }
 }
 
+SCENARIOS['guardrails/no-inline-logic'] = () => {
+  // Bug 0337. The probe is a **top-level** call, deliberately: that is the
+  // position the rule could not see until 0337 moved it from `functions()` to
+  // `modules()`, so this scenario is both the non-vacuity fixture for the rule
+  // and the dogfood proof of the fix. A probe inside a function would have gone
+  // red before the fix as well and proved nothing about it.
+  //
+  // This row exists because the rule family whose silence was 0337's headline
+  // symptom had no fixture AND no `OPTIONS` entry — the gate could not have
+  // caught the bug it is closest to.
+  const PROBE = 'packages/core/src/__nonvacuity_probe_inline_logic__.ts'
+  const r = withAddedFile(
+    PROBE,
+    '// A bare top-level eval — no enclosing function — which the guardrails\n' +
+      '// preset must object to since bug 0337.\n' +
+      "eval('a top-level call the guardrails preset must object to')\n" +
+      'export const probeInlineLogic = 1\n',
+    () => runCapture('check:guardrails'),
+  )
+  const named = r.out.includes('__nonvacuity_probe_inline_logic__')
+  if (!named || r.status === 0) {
+    vacuous(
+      `check:guardrails exited ${r.status} and ${named ? 'named' : 'never named'} the top-level-eval ` +
+        `probe — it must both SEE a call outside any function and FAIL on it (bug 0337)`,
+    )
+  }
+}
+
 SCENARIOS['guardrails/no-stubs'] = () => {
   // Bug 0240. `check:guardrails` ran four rules behind ONE fixture row, so
   // three of them could be emptied with the gate still green — the same

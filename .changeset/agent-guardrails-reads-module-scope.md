@@ -36,11 +36,32 @@ whenever the glob matches, so the declaration fails as the assertion it is. Dele
 `preset/agent/no-inline-logic/<api>` and `preset/agent/no-generic-errors`; the failure names
 the exact declaration.
 
+_A `// eess-exclude` comment pinned to a declaration line stops covering the finding._ A single-line
+directive covers the next line only, and for these two rules the reported line is now the **match's**
+line, not the enclosing declaration's — so an exclusion moves out from under its finding even when the
+element name does not change. This is the same break `docs/migrating-to-0.7.md` §2 recorded for
+`recommended`'s three rules, now in a second preset. The run names each one with `file:line`
+(`Exclusion comment for '<id>' at …:8 suppressed nothing`). Move the comment to the line the finding
+names, or wrap the region with `eess-exclude-start` / `eess-exclude-end`.
+
+**Watch the order.** A stale exclusion on its own does **not** fail the build — it prints as a
+`[eess]` warning and the run exits 0. So if you answer the red by regenerating the baseline first, you
+end up green with exclusion comments that no longer suppress anything and never will. Fix the
+exclusions before you regenerate.
+
+_Two weak buckets merge._ A top-level match and an object-literal match in the same file now share one
+ordinal sequence, where only the object-literal ones did before. Adding a top-level `eval` therefore
+renumbers the object-literal one and unmatches its baseline entry.
+
 _An element name can be the file._ A match with nothing named enclosing it is reported
 against the file (`a.ts`), and a match inside an object-literal handler is too — measured,
 a throw in `const routes = { objectHandler: () => … }` was `routes.objectHandler` under the
 function subject and is `handlers.ts` under the module subject. The finding is still
-reported; what weakened is the name, and the name is a baseline key.
+reported; what weakened is the **name you read**, not the identity — `moduleNotContain` sets an
+`identity`, which supersedes element and message in the hash, and for this shape that identity was
+already positional under the function subject too. So the finding is no weaker than it was; it simply
+reads worse. Its baseline entry still unmatches, like every entry for these two rules, because the
+identity carries the subject kind and `function-body::` becomes `module-body::`.
 
 **Known limit, measured on this change.** Two findings in one file that share a weak element
 name are told apart by position, so a baseline can accept the wrong one. Measured: baseline

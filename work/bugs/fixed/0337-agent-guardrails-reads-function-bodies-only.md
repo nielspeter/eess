@@ -4,7 +4,8 @@
 
 - **State:** Fixed — on branch `fix/0337-agent-guardrails-reads-module-scope`. The fix is the ruling
   [0333](./0333-the-recommended-floor-reads-functions-only.md) already made, applied to the sibling
-  preset, with the three questions below answered by measurement rather than presumed.
+  preset — two of the three questions below answered by measurement, the third disposed to its own
+  record.
 - **Severity:** High — **false green in a preset sold to agent-focused projects.**
   `agentGuardrails(p, { noInlineLogic: ['eval'] })` reports `eval` inside a function and nothing for
   a bare top-level `eval` or one in a class's static block. Measured on this branch's build:
@@ -38,7 +39,7 @@ made for its own SPECS table and did not generalise.
 
 ## Fix
 
-**The ruling applied, and the three open questions answered by measurement.**
+**The ruling applied. Two of the three open questions answered by measurement; the third disposed.**
 
 `agentGuardrails` built every rule over `functions()`. Two rules now read the module; two keep the
 function, and the test that separates them is **each rule's own imperative**: does it claim more than
@@ -57,12 +58,19 @@ in the positions that were silent; `expectEmpty` stops applying to the two rules
 subject exists whenever the glob matches); and an element name can now be the file.
 
 **Whether the two presets should agree by construction** — the third question — is **not** answered
-here, deliberately. `recommended` carries a `SPECS` table with an explicit `subject` field; this preset
-builds through a local `push` helper. Unifying them is a refactor of two presets' rule construction,
-which is its own change with its own risk; what exists today is the paragraph at
-`packages/ts/src/presets/recommended.ts:161`, rewritten to say that the two read the same code again
-and that nothing binds them. **The standing risk is real and stated rather than fixed**: 0333 made the
-ruling for one table and 0337 applied it to the other, two records for one decision.
+here, and is `deferred→`[0343](../0343-two-presets-carry-one-subject-ruling-in-two-tables.md) rather
+than closed. `recommended` carries a `SPECS` table with an explicit `subject` field; this preset builds
+through a local `push` helper. Unifying them is a refactor of two presets' rule construction, which is
+its own change with its own risk.
+
+The first version of this record wrote `Deferred: none` over it, on the reasoning that "answered — not
+now, and why" is a disposition. **Review refused that, correctly**: shipped source in
+`recommended.ts` calls it "the open question in 0337", and this record is in `work/bugs/fixed/`, which
+`scripts/check-corpus.mjs:159` freezes — so the deferral had a real reason and a blank `<home>`, which
+is [0330](../0330-what-a-rule-reads-is-ruled-in-archived-bug-records.md)'s defect with live code
+pointing into it. `check:ledger` could not see it, because there was no unticked box to find. **The
+standing risk is real and now has an open record**: 0333 made the ruling for one table and 0337 applied
+it to the other, two records for one decision.
 
 ### The sabotage matrix
 
@@ -113,6 +121,12 @@ beside `arch-function.ts`'s.
 
 - [0333](./0333-the-recommended-floor-reads-functions-only.md) — the same defect in
   `recommended`, fixed; its ruling is the one to apply here.
+- [0336](../0336-a-rule-that-changes-subject-re-reports-accepted-findings-with-no-diagnostic.md) —
+  what this change does to **every** existing adopter of the two moved rules, not only to the weak
+  buckets. `identifyMatches` prefixes the subject kind, so `function-body::` becomes `module-body::`
+  and every accepted finding for them re-reports as new with no diagnostic saying why. The changeset
+  states the effect; 0336 is the record for the missing diagnostic, and this is its second instance
+  after 0333.
 - [0330](../0330-what-a-rule-reads-is-ruled-in-archived-bug-records.md) — why a ruling that binds a
   second preset is hard to find when it lives in a fixed record.
 
@@ -137,4 +151,7 @@ beside `arch-function.ts`'s.
       declaring the new findings, the `expectEmpty` change, the element-name change, and the 0338 limit.
 - [x] `npm run validate` green.
 
-Deferred: none. The unification question is answered — not now, and why — rather than deferred.
+Deferred: [0343](../0343-two-presets-carry-one-subject-ruling-in-two-tables.md) — whether the two
+presets should agree by construction. Also [0344](../0344-no-stubs-reads-function-bodies-though-its-condition-has-a-module-variant.md),
+raised by review: `no-stubs`' condition HAS a module variant, so the ruling as stated selects `module`
+for it and the rule's own wording is what overrode that — a tiebreak worth settling on its own.

@@ -11,8 +11,9 @@
  *
  * **Every fixture holds an unrelated function.** Without one the preset has no subject at all and
  * ADR-010's empty-selection finding fires, which is the opposite of the silent pass under test — the
- * delta review of PR #149 caught exactly that mistake in 0337's own record, so the fixtures here are
- * built to make it impossible.
+ * delta review of PR #149 caught exactly that mistake in 0337's own record. `reported()` below
+ * THROWS on such a finding rather than filtering it away, so a fixture that stopped holding one
+ * would fail loudly instead of quietly reporting `[]`.
  */
 import fs from 'node:fs'
 import os from 'node:os'
@@ -59,14 +60,28 @@ afterAll(() => {
  * also the thing this fix CHANGES — a module-scope match is named for the broadest
  * enclosing declaration, or the file when nothing encloses it — so a count would
  * have hidden the half of the change an adopter's baseline feels.
+ *
+ * **It THROWS on a configuration finding rather than filtering one out**, and that
+ * is the difference between this version and the one review saw. Filtering
+ * `bypassFilters` discards exactly the unsuppressable ADR-010 finding that says a
+ * rule examined nothing — so a future `toEqual([])` row, added with a typo'd option
+ * name, would have been green while the preset constructed nothing. The docblock
+ * above claimed the fixtures made that "impossible"; filtering made it invisible,
+ * which is not the same thing, and the claim is now true because the helper
+ * enforces it.
  */
 function reported(body: string, options: Partial<AgentGuardrailsOptions>): string[] {
-  return agentGuardrails(fixture(body), { src: '**/src/**', report: 'return', ...options })
-    .filter((v) => v.bypassFilters !== true)
-    .map(
-      (v) =>
-        `${v.element ?? '?'} @ ${String(/at line (\d+)/.exec(v.message ?? '')?.[1] ?? v.line)}`,
+  const all = agentGuardrails(fixture(body), { src: '**/src/**', report: 'return', ...options })
+  const configFindings = all.filter((v) => v.bypassFilters === true)
+  if (configFindings.length > 0) {
+    throw new Error(
+      `the preset reported a configuration finding, so this case measures nothing about what a ` +
+        `rule READS: ${configFindings.map((v) => `${v.ruleId ?? '?'} — ${v.message ?? ''}`).join(' | ')}`,
     )
+  }
+  return all.map(
+    (v) => `${v.element ?? '?'} @ ${String(/at line (\d+)/.exec(v.message ?? '')?.[1] ?? v.line)}`,
+  )
 }
 
 describe('bug 0337: agentGuardrails reads the whole file, not only function bodies', () => {
@@ -121,6 +136,15 @@ describe('bug 0337: agentGuardrails reads the whole file, not only function bodi
         noInlineLogic: ['eval'],
       }),
     ).toEqual(['c @ 2', 'c @ 3'])
+    // The same guard for the OTHER rule that moved. Review noted the first version
+    // pinned only one of the two, which is a pin missing rather than a defect —
+    // but a nesting bug would land in whichever one nobody checked.
+    expect(
+      reported(
+        `export function c(): void {\n  throw new Error('a')\n}\nexport function d(): void {\n  throw new Error('b')\n}\n`,
+        { noGenericErrors: true },
+      ),
+    ).toEqual(['c @ 2', 'd @ 5'])
   })
 
   it('CONTROL: no-stubs stays function-scoped, because its own imperative is', () => {
