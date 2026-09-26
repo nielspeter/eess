@@ -144,7 +144,7 @@ renames were safe; the method review measured otherwise.
       [0338](../0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md), a match
       with no enclosing declaration identified by position, so a within-file delete-plus-add is
       accepted silently; and `deferred→`
-      [0337](../0337-agent-guardrails-reads-function-bodies-only.md), the sibling preset that does
+      [0337](./0337-agent-guardrails-reads-function-bodies-only.md), the sibling preset that does
       not follow this ruling.
 - [x] `npm run validate` green.
 

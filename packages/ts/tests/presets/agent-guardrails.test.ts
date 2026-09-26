@@ -293,10 +293,21 @@ describe('agentGuardrails sees handler maps', () => {
     // other. Asserting the exact pair rather than a count keeps this from
     // passing if the object-literal one were reported twice.
     expect(elementsFor('preset/agent/no-stubs')).toEqual(['namedHandler', 'routes.objectHandler'])
-    expect(elementsFor('preset/agent/no-generic-errors')).toEqual([
-      'namedHandler',
-      'routes.objectHandler',
-    ])
+    // `no-generic-errors` reads the whole file since bug 0337, and the object-literal
+    // handler's throw is therefore named by `enclosingScopeName`, which cannot name an
+    // arrow held in a `PropertyAssignment` — so it falls back to the FILE where the
+    // function-subject reading said `routes.objectHandler`.
+    //
+    // Both defects are still reported; what weakened is the name, and the name is a
+    // baseline key. It is recorded as a fresh instance on
+    // [0338](../../../../work/bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md),
+    // which owns "what makes a finding identifiable" and whose candidates are exactly
+    // about this. Not fixed here: the two ways to fix it are a global change to
+    // `enclosingScopeName` (blast radius: every condition's element names, so every
+    // adopter baseline) or a second derivation of object-literal naming beside
+    // `arch-function.ts`'s — and one fact with two derivations is the failure this
+    // repository spends most of its guards on.
+    expect(elementsFor('preset/agent/no-generic-errors')).toEqual(['handlers.ts', 'namedHandler'])
   })
 
   it('flags an empty arrow used as a handler-map value', () => {

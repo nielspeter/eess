@@ -27,6 +27,27 @@ Measured on PR #149's build:
 The cross-file direction was fixed by PR #149 (each identity carries its file). The **within-file**
 direction was not, and the absence findings were never in scope.
 
+**A second, narrower instance, measured by bug 0337 (2026-09-26).** A match can have an enclosing
+function that the module-scope namer still cannot name. `enclosingScopeName` names a class, an
+interface, a function declaration, a member, and an arrow assigned to a **variable** — but not an
+arrow held in a `PropertyAssignment`, which is the handler-map shape agents generate constantly.
+Measured on `tests/fixtures/presets/handler-map`: a `throw new Error()` inside
+`const routes = { objectHandler: () => … }` is `routes.objectHandler` under a function subject and
+**`handlers.ts`** under a module subject. So widening a rule to module scope does not only expose
+matches with no enclosing declaration — it **degrades** the identity of matches that had a perfectly
+good one, because two namers disagree about the same node. `models/arch-function.ts` already derives
+the good name (`owningBindingName` + the collected key path); `core/violation.ts` has no access to it,
+and adding a second derivation of it is the failure this repository spends most of its guards on.
+
+**0337 also measured how much widening a preset costs here**, which is the number this record lacked:
+
+| the edit, through `agentGuardrails` after 0337                       | silently accepted | reported new |
+| -------------------------------------------------------------------- | ----------------- | ------------ |
+| baseline two **top-level** `eval`s; fix the first, add another below | **2**             | **0**        |
+| the same edit with each `eval` in its own **named function**         | 1                 | **1**        |
+
+Two presets now reach this, not one.
+
 ## Root cause
 
 `identifyMatches` (`packages/ts/src/conditions/match-identity.ts:44`) buckets by
@@ -59,6 +80,9 @@ Whatever is chosen, the file-level absence findings need an identity too, or the
 they cannot have one.
 
 ## Related
+
+- [0337](./fixed/0337-agent-guardrails-reads-function-bodies-only.md) — the second preset to widen into
+  this, which measured the cost above and the object-literal naming instance.
 
 - [0333](./fixed/0333-the-recommended-floor-reads-functions-only.md) — the change that made these
   positions reachable from the floor, and fixed the cross-file half.

@@ -9,6 +9,7 @@ import { newExpr, type ExpressionMatcher } from '../helpers/matchers.js'
 import { codeOfParameters, searchClassBody } from '../helpers/body-traversal.js'
 import { classNotContain } from '../conditions/body-analysis.js'
 import { functionNotContain } from '../conditions/body-analysis-function.js'
+import { moduleNotContain } from '../conditions/body-analysis-module.js'
 import { findSilentCatches, silentCatchMessage } from '../conditions/catch-analysis.js'
 
 /**
@@ -39,6 +40,28 @@ export function functionNoGenericErrors(): Condition<ArchFunction> {
 
 export function functionNoTypeErrors(): Condition<ArchFunction> {
   return functionNotContain(newExpr('TypeError'))
+}
+
+// ─── Module variants ─────────────────────────────────────────────
+
+/**
+ * No throwing generic Error anywhere the FILE runs code — bug 0337.
+ *
+ * The third spelling of one rule, and the broadest: `noGenericErrors` reads a
+ * class, `functionNoGenericErrors` a function, this one the whole module. Each is
+ * the same `notContain(newExpr('Error'))` over a different subject, so there is no
+ * second derivation of what a generic error is.
+ *
+ * It exists because `agentGuardrails` built `no-generic-errors` over `functions()`
+ * while its own imperative says "Do NOT throw new Error()" — not "…in a
+ * function". Measured before this: a `throw new Error()` at top level and one in a
+ * class's static block were both reported as nothing.
+ *
+ * A rule reads exactly ONE of these three (bug 0333): the subject kinds nest, so
+ * running two for one rule id reports the same throw twice.
+ */
+export function moduleNoGenericErrors(): Condition<SourceFile> {
+  return moduleNotContain(newExpr('Error'))
 }
 
 // ─── Silent catch detection ──────────────────────────────────────

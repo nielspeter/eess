@@ -14,7 +14,8 @@ import type { ArchViolation } from '@nielspeter/eess'
 import { collectResult } from '@nielspeter/eess'
 import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import { call } from '../helpers/matchers.js'
-import { functionNoGenericErrors } from '../rules/errors.js'
+import { moduleNoGenericErrors } from '../rules/errors.js'
+import { moduleNotContain } from '../conditions/body-analysis-module.js'
 import { noStubComments, noEmptyBodies } from '../rules/hygiene.js'
 import { smells } from '../smells/index.js'
 import type { DuplicateBodiesBuilder } from '../smells/duplicate-bodies.js'
@@ -224,8 +225,18 @@ export function agentGuardrails(
   }
 
   for (const api of options.noInlineLogic ?? []) {
+    // `modules()`, not `functions()` — bug 0337, applying bug 0333's ruling to this
+    // preset: each rule reads the broadest subject its condition has a variant for,
+    // and exactly one, because the subject kinds nest. `moduleNotContain` reads the
+    // whole file, so a bare top-level call, one in a class's static block and one in
+    // a field initializer are reported — measured silent before this, under a rule
+    // the adopter had named `eval`.
     push(
-      functions(p, COLLECT_ALL).that().resideInFile(options.src).should().notContain(call(api)),
+      modules(p)
+        .that()
+        .resideInFile(options.src)
+        .should()
+        .satisfy(moduleNotContain(call(api))),
       {
         id: `preset/agent/no-inline-logic/${api}`,
         because: `${api} inline in a function is logic that belongs behind a named helper`,
@@ -237,12 +248,13 @@ export function agentGuardrails(
   }
 
   if (options.noGenericErrors) {
+    // `modules()` too, and the reason is this rule's OWN wording: its imperative is
+    // "Do NOT throw new Error()", not "…in a function", so a throw at module scope
+    // or in a static block was a false green against the rule as written (bug 0337).
+    // That test — does the rule's own imperative claim more than its subject reads —
+    // is what puts this rule in scope and leaves `no-stubs` out of it.
     push(
-      functions(p, COLLECT_ALL)
-        .that()
-        .resideInFile(options.src)
-        .should()
-        .satisfy(functionNoGenericErrors()),
+      modules(p).that().resideInFile(options.src).should().satisfy(moduleNoGenericErrors()),
       {
         id: 'preset/agent/no-generic-errors',
         because: 'a generic Error loses the type/context callers need to handle it',
@@ -253,6 +265,11 @@ export function agentGuardrails(
     )
   }
 
+  // `functions()`, deliberately, and bug 0337 measured the case for leaving it:
+  // a `// TODO` at the end of a file or above a class IS unreported. That is not a
+  // false green, because this rule's imperative says "in a function body" — the
+  // wording and the reading agree. Widening it would be new coverage under an
+  // existing id, which is a different change with its own adopter cost.
   if (options.noStubs) {
     push(
       functions(p, COLLECT_ALL).that().resideInFile(options.src).should().satisfy(noStubComments()),
@@ -266,6 +283,8 @@ export function agentGuardrails(
     )
   }
 
+  // `functions()`, per bug 0333's ruling: an empty body is a fact about a function
+  // and has no meaning at module scope.
   if (options.noEmptyBodies) {
     push(
       functions(p, COLLECT_ALL).that().resideInFile(options.src).should().satisfy(noEmptyBodies()),
