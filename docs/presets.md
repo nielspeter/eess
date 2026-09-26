@@ -235,7 +235,7 @@ you want.
 
 ```typescript
 agentGuardrails(p, {
-  src: 'src/**',
+  src: '**/src/**',
   noGenericErrors: true,
   noStubs: true,
   noEmptyBodies: true,
@@ -255,6 +255,38 @@ agentGuardrails(p, {
 | `preset/agent/no-empty-bodies`          | No empty function body                                          | error   |
 | `preset/agent/no-copy-paste`            | No near-identical function bodies                               | warn    |
 | `preset/agent/no-verdict-outside-rules` | eess used at runtime, or an emitter called, outside a rule file | error   |
+
+### What each rule reads
+
+Its rules do not all read the same subject, and the difference is visible in what they report
+(bug 0337 — the same ruling `recommended` follows):
+
+| rule                                    | subject             | reads                                                             |
+| --------------------------------------- | ------------------- | ----------------------------------------------------------------- |
+| `preset/agent/no-inline-logic/<api>`    | the module (a file) | every position in the file — top level, class bodies, callbacks   |
+| `preset/agent/no-generic-errors`        | the module          | the same                                                          |
+| `preset/agent/no-stubs`                 | a function          | each function body. A `// TODO` above a class is **not** reported |
+| `preset/agent/no-empty-bodies`          | a function          | each function the collection finds                                |
+| `preset/agent/no-copy-paste`            | function bodies     | pairwise, across the selection                                    |
+| `preset/agent/no-verdict-outside-rules` | the module          | every position in the file                                        |
+
+Each rule reads **one** subject. The kinds nest — a module search reads the whole file — so a rule
+built over two of them would report one call twice.
+
+A finding from a module-subject rule names the declaration that contains the match (`handler`,
+`S.field`), falling back to the file when nothing does — in both `element`, which `.excluding()`
+matches on, and the message the CI emitter prints.
+
+Because a matched file is always a subject, `expectEmpty` does not apply to the two module-subject
+rules you can switch on (`no-inline-logic`, `no-generic-errors`): declaring one empty fails as the
+assertion it is, rather than going quiet.
+
+**One limit worth knowing before you keep a baseline.** Two findings in the same file that have
+nothing named enclosing them — two top-level `eval` calls, say — are told apart by their position in
+that file. So if you accept both, then fix the first and add a different one, the new one matches the
+freed entry and is accepted silently. Findings inside named functions are not affected, and neither is
+the cross-file direction. This is tracked as bug 0338; until it is fixed, prefer reviewing a
+`baseline --diff` over trusting a green run for these two rules.
 
 ### `noVerdictOutsideRules` — where a verdict may be written
 

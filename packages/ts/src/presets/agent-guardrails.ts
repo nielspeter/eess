@@ -14,7 +14,8 @@ import type { ArchViolation } from '@nielspeter/eess'
 import { collectResult } from '@nielspeter/eess'
 import { UNSUPPRESSABLE } from '@nielspeter/eess/internal'
 import { call } from '../helpers/matchers.js'
-import { functionNoGenericErrors } from '../rules/errors.js'
+import { moduleNoGenericErrors } from '../rules/errors.js'
+import { moduleNotContain } from '../conditions/body-analysis-module.js'
 import { noStubComments, noEmptyBodies } from '../rules/hygiene.js'
 import { smells } from '../smells/index.js'
 import type { DuplicateBodiesBuilder } from '../smells/duplicate-bodies.js'
@@ -151,8 +152,29 @@ const EMITTERS = /(^|\.)(finishPreset|reportViolations|throwIfViolations)$/
  * `imperative` metadata so `explain --format agent` and the check JSON give the
  * agent an actionable fix.
  *
- * Uses function-variant rules so standalone functions, arrow functions, and
- * class members are all covered.
+ * **What each rule reads** (bug 0337, applying bug 0333's ruling): each rule reads
+ * the broadest subject its condition has a variant for, and exactly ONE, because
+ * the subject kinds nest — a module's search reads the whole file, so running two
+ * of them under one rule id would report the same match twice.
+ *
+ * | rule                          | reads                                   |
+ * | ----------------------------- | --------------------------------------- |
+ * | `no-inline-logic/<api>`       | the whole **file**                      |
+ * | `no-generic-errors`           | the whole **file**                      |
+ * | `no-stubs`                    | each **function** body                  |
+ * | `no-empty-bodies`             | each **function** body                  |
+ * | `no-copy-paste`               | function bodies, pairwise               |
+ * | `no-verdict-outside-rules`    | the whole **file**                      |
+ *
+ * The two file-reading rules therefore see a bare top-level call, one in a class's
+ * static block, and one in a field initializer. A match with nothing named
+ * enclosing it is reported against the file.
+ *
+ * This paragraph read "Uses function-variant rules so standalone functions, arrow
+ * functions, and class members are all covered" until 0337 made two of the six
+ * read a module. It is the hover text an adopter sees, and leaving it would have
+ * been a comment outliving its mechanism — the defect this change fixed one file
+ * over, in `recommended.ts`, and then nearly repeated here.
  */
 // Presets collect object-literal functions unconditionally. `functions()`
 // keeps these anonymous values opt-in because every inline callback would flood
@@ -224,11 +246,27 @@ export function agentGuardrails(
   }
 
   for (const api of options.noInlineLogic ?? []) {
+    // `modules()`, not `functions()` — bug 0337, applying bug 0333's ruling to this
+    // preset: each rule reads the broadest subject its condition has a variant for,
+    // and exactly one, because the subject kinds nest. `moduleNotContain` reads the
+    // whole file, so a bare top-level call, one in a class's static block and one in
+    // a field initializer are reported — measured silent before this, under a rule
+    // the adopter had named `eval`.
     push(
-      functions(p, COLLECT_ALL).that().resideInFile(options.src).should().notContain(call(api)),
+      modules(p)
+        .that()
+        .resideInFile(options.src)
+        .should()
+        .satisfy(moduleNotContain(call(api))),
       {
         id: `preset/agent/no-inline-logic/${api}`,
-        because: `${api} inline in a function is logic that belongs behind a named helper`,
+        // NOT "inline in a function" — this rule reads the whole file since bug
+        // 0337, so a top-level call would have rendered with a rationale naming a
+        // construct the code does not contain. `because` is surfaced on every
+        // violation and is the agent-actionable half, so a wrong one sends the
+        // author to the wrong place. It is not hashed (`hashViolation` composes
+        // `rule::subjectOf`), so correcting it moves no adopter's baseline entry.
+        because: `an inline ${api} call is logic that belongs behind a named helper`,
         suggestion: `extract the ${api} call into a named helper function`,
         imperative: `Do NOT call ${api} inline — extract it behind a named helper`,
       },
@@ -237,12 +275,13 @@ export function agentGuardrails(
   }
 
   if (options.noGenericErrors) {
+    // `modules()` too, and the reason is this rule's OWN wording: its imperative is
+    // "Do NOT throw new Error()", not "…in a function", so a throw at module scope
+    // or in a static block was a false green against the rule as written (bug 0337).
+    // That test — does the rule's own imperative claim more than its subject reads —
+    // is what puts this rule in scope and leaves `no-stubs` out of it.
     push(
-      functions(p, COLLECT_ALL)
-        .that()
-        .resideInFile(options.src)
-        .should()
-        .satisfy(functionNoGenericErrors()),
+      modules(p).that().resideInFile(options.src).should().satisfy(moduleNoGenericErrors()),
       {
         id: 'preset/agent/no-generic-errors',
         because: 'a generic Error loses the type/context callers need to handle it',
@@ -253,6 +292,11 @@ export function agentGuardrails(
     )
   }
 
+  // `functions()`, deliberately, and bug 0337 measured the case for leaving it:
+  // a `// TODO` at the end of a file or above a class IS unreported. That is not a
+  // false green, because this rule's imperative says "in a function body" — the
+  // wording and the reading agree. Widening it would be new coverage under an
+  // existing id, which is a different change with its own adopter cost.
   if (options.noStubs) {
     push(
       functions(p, COLLECT_ALL).that().resideInFile(options.src).should().satisfy(noStubComments()),
@@ -266,6 +310,8 @@ export function agentGuardrails(
     )
   }
 
+  // `functions()`, per bug 0333's ruling: an empty body is a fact about a function
+  // and has no meaning at module scope.
   if (options.noEmptyBodies) {
     push(
       functions(p, COLLECT_ALL).that().resideInFile(options.src).should().satisfy(noEmptyBodies()),

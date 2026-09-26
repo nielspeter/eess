@@ -2664,6 +2664,13 @@ const gates = [
       ]),
   ],
   [
+    'guardrails/no-inline-logic',
+    () =>
+      gateNode('bad-waived-gates.mjs', 'guardrails/no-inline-logic red on its own subject', [
+        'guardrails/no-inline-logic',
+      ]),
+  ],
+  [
     'guardrails/no-stubs',
     () =>
       gateNode('bad-waived-gates.mjs', 'guardrails/no-stubs red on its own subject', [
@@ -2942,10 +2949,15 @@ const GATE_FOR = {
     // `changeset version` would copy into six published CHANGELOGs.
     'integrity/leftover-probe-changeset',
   ],
-  // Four rules, four rows (bug 0240). One row for the whole preset let three of
-  // them be emptied with the gate still green — the trap `GATE_FOR`'s own
-  // comment records for `check:integrity`, unapplied one gate over.
+  // One row per rule (bug 0240). One row for the whole preset let three of them be
+  // emptied with the gate still green — the trap `GATE_FOR`'s own comment records
+  // for `check:integrity`, unapplied one gate over.
+  //
+  // `no-inline-logic` joined in bug 0337, and its absence was the sharper version
+  // of the same trap: the rule was missing from `check-guardrails.mjs`'s `OPTIONS`
+  // as well, so the family whose silence WAS 0337 had neither a fixture nor a run.
   'check:guardrails': [
+    'guardrails/no-inline-logic',
     'guardrails/generic-error',
     'guardrails/no-stubs',
     'guardrails/no-empty-bodies',

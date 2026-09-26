@@ -422,6 +422,7 @@ export {
   noGenericErrors,
   noTypeErrors,
   functionNoGenericErrors,
+  moduleNoGenericErrors,
   functionNoTypeErrors,
   noSilentCatch,
   functionNoSilentCatch,

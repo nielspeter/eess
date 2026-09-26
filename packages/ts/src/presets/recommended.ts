@@ -158,12 +158,27 @@ const RULE_IDS: readonly string[] = SPECS.map((s) => s.meta.id)
  * glob is dead) is `error` regardless of severity and fails the build: `'warn'`
  * grades violations, not a rule that cannot enforce anything.
  *
- * Overlaps `agentGuardrails` on empty bodies and `eval`, and the two no longer READ the same code:
- * since bug 0333 this preset's `eval` rule reads the whole file, while `agentGuardrails` still
- * reads function bodies — measured, its `noInlineLogic: ['eval']` reports nothing for a bare
- * top-level `eval` or one in a static block (bug 0337). So "prefer `agentGuardrails` alone", which
- * this comment used to advise, now means less coverage; run both and override a duplicated id to
- * `'off'` in one of them if the doubled finding is noise.
+ * Overlaps `agentGuardrails` on empty bodies and `eval`, and since bug 0337 the two READ the same
+ * code again. Between 0333 and 0337 they did not: this preset's `eval` rule read the whole file
+ * while `agentGuardrails` still read function bodies, so "prefer `agentGuardrails` alone" — which
+ * this comment once advised, then withdrew — meant less coverage. Both now read module scope for
+ * the rules this ruling moved, so running both doubles a finding rather than hiding one; override a
+ * duplicated id to `'off'` in one of them if the doubled finding is noise.
+ *
+ * "the rules this ruling MOVED" and not "the rules whose conditions have a module variant" — review
+ * caught the wider phrasing being false as written: `no-stubs`' condition has a module variant and
+ * still reads functions, deliberately
+ * ([0344](../../../../work/bugs/0344-no-stubs-reads-function-bodies-though-its-condition-has-a-module-variant.md)).
+ * This paragraph replaced one that outlived its mechanism; seeding the replacement with a claim that
+ * was already half-stale would have been the same defect in a shorter life.
+ *
+ * **Two tables, kept in step by hand, and that is the standing risk.** 0333 made the subject ruling
+ * for this preset's `SPECS` and 0337 applied it to the sibling — two records for one decision,
+ * because nothing binds them. Whether they should agree by construction is the open question in
+ * [0343](../../../../work/bugs/0343-two-presets-carry-one-subject-ruling-in-two-tables.md) — an OPEN
+ * record, deliberately: this sentence used to point at 0337, which is closed and in the folder the
+ * corpus gate freezes, so the question it called open had no live home. What exists today is this
+ * paragraph.
  */
 /**
  * `report` names a delivery mode; omitting it returns the un-executed builders.

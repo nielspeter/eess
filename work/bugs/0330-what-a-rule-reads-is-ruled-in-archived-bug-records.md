@@ -89,7 +89,7 @@ reachable only through a folder the corpus gate has frozen.
   the same shape for ADR-011: a decision whose scope the code has outgrown.
 - [0329](./0329-the-class-search-reads-no-comment-outside-a-members-parameters.md) — the live record
   whose premise sits in `fixed/`.
-- [0337](./0337-agent-guardrails-reads-function-bodies-only.md) — a second preset that does not
+- [0337](./fixed/0337-agent-guardrails-reads-function-bodies-only.md) — a second preset that does not
   follow 0333's ruling, which is what a ruling nobody can find looks like from the outside.
 
 ## Verification
