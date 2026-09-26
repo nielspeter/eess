@@ -40,6 +40,7 @@
  * the glob keeps its absolute-only meaning rather than being matched against
  * something invented.
  */
+import picomatch from 'picomatch'
 import type { Project as TsMorphProject, SourceFile } from 'ts-morph'
 
 /**
@@ -52,7 +53,33 @@ import type { Project as TsMorphProject, SourceFile } from 'ts-morph'
  * under the one that diagnoses.
  */
 export function isAnchored(glob: string): boolean {
-  return glob.startsWith('**/') || glob.startsWith('/') || /^[A-Za-z]:\//.test(glob)
+  return isGlobstarLed(glob) || glob.startsWith('/') || /^[A-Za-z]:\//.test(glob)
+}
+
+/**
+ * A glob that opens with `'**\/'` — "anywhere", the spelling `FAULT_ADVICE`
+ * recommends.
+ *
+ * Named rather than inlined because two predicates in this file read it and they
+ * must not become two lists: `isAnchored`, where it is one of three cases, and
+ * `readsRootRelativePath`, where it is the case bug 0339 found missing. Not
+ * exported — `isAnchored` is the answer any other module wants.
+ */
+function isGlobstarLed(glob: string): boolean {
+  return glob.startsWith('**/')
+}
+
+/**
+ * A glob carrying a `./` or `../` segment, anywhere in it.
+ *
+ * Extracted so `isProjectRelative` and `readsRootRelativePath` test it with ONE
+ * regex. They are the two callers and they must agree: the whole point of the
+ * exclusion is that `syntacticFault` reports `dot-segment` for such a glob, so a
+ * second copy that drifted would let it match at runtime while the gate still
+ * called it dead.
+ */
+function hasRelativeSegment(glob: string): boolean {
+  return /(?:^|\/)\.\.?\//.test(glob)
 }
 
 /**
@@ -80,7 +107,7 @@ export function isProjectRelative(glob: string): boolean {
   // `undefined` for anything above the root, deliberately, so a `../`
   // glob would normalize to nothing and be reported dead with three false
   // causes. Excluded alongside `./` — both are mistakes in both readings.
-  if (/(?:^|\/)\.\.?\//.test(glob)) return false
+  if (hasRelativeSegment(glob)) return false
   // Derived from `isAnchored`, not restated. They were two lists and disagreed:
   // `isAnchored` recognises a drive-absolute `C:/x/**` and this did not, so a
   // Windows path was declared project-relative. Benign today — it still matches
@@ -234,4 +261,143 @@ export function relativeToRoot(
   if (root === undefined) return undefined
   const prefix = prefixOf(root)
   return absolutePath.startsWith(prefix) ? absolutePath.slice(prefix.length) : undefined
+}
+
+/**
+ * Is this glob matched against the path named from the project root, as well as
+ * the absolute path?
+ *
+ * ## The case that was missing — bug 0339
+ *
+ * This used to be `isProjectRelative` alone, so `'**\/src/**'` — the one
+ * spelling `FAULT_ADVICE` tells the author to write — was the one spelling that
+ * never got the second view. picomatch's default `dot: false` stops `**`
+ * crossing a segment that begins with `.`, and these globs are matched against
+ * an ABSOLUTE path, so a checkout under `~/.tool/worktrees/app` (a worktree
+ * manager's layout, a cache directory, some CI workspaces) selected **nothing**
+ * for every rule. Measured on 0.7.0 over one fixture copied to two paths:
+ * `resideInFile('**\/src/**')` examined 0 subjects under a dot-segment and 1
+ * beside it, and ADR-010's guard then reported correct rules as enforcing
+ * nothing — with a remedy that says to widen the selector or declare it empty.
+ *
+ * It was also the last disagreement with the DIAGNOSIS: `viewsFor` takes
+ * satisfiability against the **union** of the absolute and tsconfig-relative
+ * views, unconditionally. So a `'**\/src/**'` under a dot-directory was live to
+ * `isDeadSite` and dead at runtime — two derivations disagreeing about one glob,
+ * which is the failure this file spends most of its guards on.
+ *
+ * ## Why this is not simply "every glob"
+ *
+ * Removing the gate outright was tried, and this repository's own controls
+ * refused it — both exclusions `isProjectRelative` makes are load-bearing, and
+ * neither is about anchoring:
+ *
+ * - a `./` segment stays excluded, because `syntacticFault` reports
+ *   `dot-segment` for it. picomatch matches `'./src/domain/**'` against
+ *   `src/domain`, so offering the view reinstates exactly the split verdict
+ *   `isProjectRelative`'s own comment records: 3 subjects selected AND a dead
+ *   selector reported, in one run. `../` is excluded alongside it and is a
+ *   DIFFERENT fault — `syntacticFault`'s dot-segment test is `/(?:^|\/)\.\//`,
+ *   which `'../src/**'` does not match, so it is reported `unanchored` instead.
+ *   The exclusion is right either way (nothing above the root has a second view,
+ *   so no match is forged); it is the fault name that differs, and this comment
+ *   claimed one rule for two shapes.
+ * - `'*\/x/**'` stays excluded, because it is the last reachable `unanchored`
+ *   fault for a path glob. Normalizing it made the anchor advice and the whole
+ *   `ANCHOR_ADVICE` grouping unreachable — measured as seven failures in
+ *   `tests/builders/slice-rule-builder.test.ts`, whose subject is that each
+ *   remedy is TRUE.
+ *
+ * `'/abs/x'` and a drive-absolute `'C:/x'` are excluded too, and there it makes
+ * no behavioural difference — neither can match a relative path — but the
+ * declaration stays honest about what is tried.
+ *
+ * So the rule is: the root-relative view is offered to a glob that names a
+ * location relative to the root, and to one that says "anywhere". Both readings
+ * are location-independent, which is the property the bug was about.
+ */
+export function readsRootRelativePath(glob: string): boolean {
+  if (hasRelativeSegment(glob)) return false
+  return isProjectRelative(glob) || isGlobstarLed(glob)
+}
+
+/**
+ * A compiled path glob: the matcher, and whether it reads the root-relative
+ * view.
+ *
+ * Both together, because the decision is a function of the glob and the sites
+ * that match several globs at once would otherwise carry a parallel array of
+ * booleans. Deciding it once per glob rather than once per path also keeps
+ * `picomatch()` and `readsRootRelativePath()` off the per-element path.
+ */
+export interface PathGlobMatcher {
+  readonly glob: string
+  readonly isMatch: picomatch.Matcher
+  readonly readsRootRelative: boolean
+}
+
+/** Compile one path glob. */
+export function pathGlobMatcher(glob: string): PathGlobMatcher {
+  return { glob, isMatch: picomatch(glob), readsRootRelative: readsRootRelativePath(glob) }
+}
+
+/** Compile several path globs, in order. */
+export function pathGlobMatchers(globs: readonly string[]): PathGlobMatcher[] {
+  return globs.map((glob) => pathGlobMatcher(glob))
+}
+
+/**
+ * Does this glob match this path — absolutely, or named from the project root?
+ *
+ * The one place a path glob meets a path **where a `SourceFile` is in hand**.
+ * `disk-set.ts` reimplements the decision inline over walked disk paths, which
+ * have no `SourceFile` and are named from a root of their own — that copy is
+ * deliberate and is marked as such there, so this is not "the only place" and
+ * saying so would leave the next reader trusting a claim with a second copy
+ * behind it.
+ *
+ * Every site that matched a file path against a glob had its own copy of this
+ * three-line decision and they disagreed. Over the ten that carry a sabotage row
+ * in bug 0339, measured at 0.7.0: **three** offered the second view only for a
+ * project-relative glob (`predicates/identity.ts`, `cross-layer-builder.ts`,
+ * `slice.ts`'s `resolveByDefinition`), **one** offered it always
+ * (`duplicate-bodies.ts`), and **six** never offered it at all. Bug 0339 was in
+ * the last group's shape and bug 0036 in the first's.
+ * `conditions/reverse-dependency.ts` also offered it always and needed no
+ * change, so it has no row.
+ *
+ * `undefined` from `relativeToRoot` (no root known, or a file above the root) is
+ * a genuine "there is no second view" and yields the absolute answer rather than
+ * an invented one.
+ */
+export function matchesPath(
+  matcher: PathGlobMatcher,
+  sourceFile: SourceFile,
+  absolutePath: string,
+  fallbackTsConfigPath?: string,
+): boolean {
+  if (matcher.isMatch(absolutePath)) return true
+  if (!matcher.readsRootRelative) return false
+  const fromRoot = relativeToRoot(sourceFile, absolutePath, fallbackTsConfigPath)
+  return fromRoot !== undefined && matcher.isMatch(fromRoot)
+}
+
+/**
+ * Does ANY of these globs match this path?
+ *
+ * Never `matchers.some(isMatch)` at a call site: picomatch takes the array index
+ * as its second argument and returns a truthy object from index 1 onwards, so
+ * the shorthand reports a match for every path in a list of two or more. Four
+ * files in `src/` carry a comment warning about it; this is the version that
+ * cannot be written the other way.
+ */
+export function anyMatchesPath(
+  matchers: readonly PathGlobMatcher[],
+  sourceFile: SourceFile,
+  absolutePath: string,
+  fallbackTsConfigPath?: string,
+): boolean {
+  return matchers.some((matcher) =>
+    matchesPath(matcher, sourceFile, absolutePath, fallbackTsConfigPath),
+  )
 }

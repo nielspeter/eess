@@ -1,11 +1,11 @@
 import { Node } from 'ts-morph'
-import picomatch from 'picomatch'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { createViolation, getElementFile, getElementName } from '../core/violation.js'
 import { elementCondition } from './helpers.js'
 import { globNode } from '@nielspeter/eess'
 import { marksAssertsCardinality } from '@nielspeter/eess/internal'
+import { isProjectRelative, matchesPath, pathGlobMatcher } from '../core/project-relative.js'
 
 /**
  * Elements must reside in a file matching the glob pattern.
@@ -17,18 +17,29 @@ import { marksAssertsCardinality } from '@nielspeter/eess/internal'
  * .should(resideInFile('** /repositories/*.ts'))
  */
 export function resideInFile<T extends Node>(glob: string): Condition<T> {
-  const isMatch = picomatch(glob)
+  const matcher = pathGlobMatcher(glob)
   return elementCondition<T>(
     `reside in file matching '${glob}'`,
-    (element) => isMatch(getElementFile(element)),
+    (element) => matchesPath(matcher, element.getSourceFile(), getElementFile(element)),
     (element) =>
       `${getElementName(element)} resides in '${getElementFile(element)}' which does not match '${glob}'`,
     // The generic element twin of `function.ts`'s condition and of the
-    // `identity.ts:78` predicate — same absolute path, so the same kind. Plan
-    // 0073's table listed only the `function.ts` pair; these two are exported from
-    // `index.ts:86` and used by the class, module and type builders, so they were
-    // the more reachable half of the hole.
-    globNode({ glob, kind: 'file-path' }),
+    // `identity.ts` predicate — same path, so the same kind and the same
+    // `base`. Plan 0073's table listed only the `function.ts` pair; these two
+    // are exported from `index.ts:86` and used by the class, module and type
+    // builders, so they were the more reachable half of the hole.
+    //
+    // The base declared, and the path named from the root actually read, since
+    // bug 0339 — when the census in `tests/matrix/path-glob-surfaces.ts` was
+    // measured against behaviour for the first time. It had this file classified
+    // `'normalized'` while the matcher read the absolute path alone, so a
+    // project-relative glob was reported dead here AND every subject was
+    // reported as a violation from a project path holding a dot-segment.
+    globNode({
+      glob,
+      kind: 'file-path',
+      base: isProjectRelative(glob) ? 'normalized' : 'absolute',
+    }),
   )
 }
 
@@ -43,20 +54,25 @@ export function resideInFile<T extends Node>(glob: string): Condition<T> {
  * .should(resideInFolder('** /services'))
  */
 export function resideInFolder<T extends Node>(glob: string): Condition<T> {
-  const isMatch = picomatch(glob)
+  const matcher = pathGlobMatcher(glob)
   return elementCondition<T>(
     `reside in folder matching '${glob}'`,
     (element) => {
       const filePath = getElementFile(element)
       const folder = filePath.substring(0, filePath.lastIndexOf('/'))
-      return isMatch(folder)
+      return matchesPath(matcher, element.getSourceFile(), folder)
     },
     (element) => {
       const filePath = getElementFile(element)
       const folder = filePath.substring(0, filePath.lastIndexOf('/'))
       return `${getElementName(element)} resides in folder '${folder}' which does not match '${glob}'`
     },
-    globNode({ glob, kind: 'parent-dir' }),
+    // See `resideInFile` above (bug 0339).
+    globNode({
+      glob,
+      kind: 'parent-dir',
+      base: isProjectRelative(glob) ? 'normalized' : 'absolute',
+    }),
   )
 }
 

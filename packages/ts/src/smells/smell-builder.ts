@@ -127,6 +127,19 @@ export abstract class SmellBuilder extends TerminalBuilder {
     if (this._folders.length > 0) {
       trees.push(
         stampGlobs(
+          // `every()`, and it is wrong — left alone deliberately, because the
+          // other reading is wrong in the worse direction. One `base` is
+          // collapsed over a SET whose runtime decides per glob, so a mixed
+          // `inFolder(['src/a/**', '*/b/**'])` has no honest answer here:
+          // `every` declares `'absolute'` and reports the working relative glob
+          // as dead (a false RED), while `some` declares `'normalized'` and lets
+          // the genuinely dead `'*/b/**'` — which `readsRootRelativePath`
+          // withholds the second view from — escape the `unanchored` branch
+          // entirely (a false GREEN). ADR-009 takes the red.
+          //
+          // The real answer is a per-glob base, which needs `globAnyOf` to accept
+          // one per child — a kernel surface change, recorded as bug 0341 rather
+          // than ridden in on 0339.
           globAnyOf(
             this._folders,
             'file-path',

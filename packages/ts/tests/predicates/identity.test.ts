@@ -13,7 +13,6 @@ import {
   areNotExported,
 } from '../../src/predicates/identity.js'
 import type { Named, Located, Exportable } from '../../src/predicates/identity.js'
-import type { SourceFile } from 'ts-morph'
 
 // --- Mock helpers ---
 
@@ -21,8 +20,24 @@ function named(name: string | undefined): Named {
   return { getName: () => name }
 }
 
+/**
+ * A `Located` at a path, backed by a REAL in-memory `SourceFile`.
+ *
+ * It used to be `{ getFilePath: () => filePath } as SourceFile` — a double of
+ * two methods wearing the type of a hundred, which held only because the
+ * predicates read one of them. Bug 0339 made them read `getProject()` as well
+ * (the path named from the project root is a second view of every glob), and
+ * four tests failed with `sourceFile.getProject is not a function`: the double
+ * was asserting a shape it did not have, so the `as` was the bug and not the
+ * breakage.
+ *
+ * An in-memory project records no `configFilePath`, so no root is known and the
+ * absolute path stays the only view — which is what these cases are about.
+ */
+const doubleProject = new Project({ useInMemoryFileSystem: true })
 function located(filePath: string): Located {
-  return { getSourceFile: () => ({ getFilePath: () => filePath }) as SourceFile }
+  const sourceFile = doubleProject.createSourceFile(filePath, '', { overwrite: true })
+  return { getSourceFile: () => sourceFile }
 }
 
 function exportable(exported: boolean): Exportable {

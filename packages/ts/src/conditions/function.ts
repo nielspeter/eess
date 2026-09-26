@@ -1,4 +1,3 @@
-import picomatch from 'picomatch'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import { globNode } from '@nielspeter/eess'
 import type { DeclaredGlobs } from '@nielspeter/eess'
@@ -6,6 +5,7 @@ import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchFunction } from '../models/arch-function.js'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
 import { marksAssertsCardinality } from '@nielspeter/eess/internal'
+import { isProjectRelative, matchesPath, pathGlobMatcher } from '../core/project-relative.js'
 
 /**
  * Helper to create a per-element condition for ArchFunction.
@@ -194,13 +194,21 @@ export function haveReturnTypeMatching(matcher: TypeMatcher): Condition<ArchFunc
  * cannot be used — this is the ArchFunction-specific equivalent.
  */
 export function resideInFile(glob: string): Condition<ArchFunction> {
-  const isMatch = picomatch(glob)
+  const matcher = pathGlobMatcher(glob)
   return functionCondition(
     `reside in file matching '${glob}'`,
-    (fn) => isMatch(fn.getSourceFile().getFilePath()),
+    (fn) => matchesPath(matcher, fn.getSourceFile(), fn.getSourceFile().getFilePath()),
     (fn) =>
       `${fn.getName() ?? '<anonymous>'} resides in '${fn.getSourceFile().getFilePath()}' which does not match '${glob}'`,
-    globNode({ glob, kind: 'file-path' }),
+    // Reads the path named from the project root as well as absolutely, since
+    // bug 0339 — so an unanchored glob is correct here (hence the base), and no
+    // glob is decided by the project's own location on disk. See
+    // `core/project-relative.ts` · `readsRootRelativePath`.
+    globNode({
+      glob,
+      kind: 'file-path',
+      base: isProjectRelative(glob) ? 'normalized' : 'absolute',
+    }),
   )
 }
 
@@ -210,13 +218,13 @@ export function resideInFile(glob: string): Condition<ArchFunction> {
  * cannot be used — this is the ArchFunction-specific equivalent.
  */
 export function resideInFolder(glob: string): Condition<ArchFunction> {
-  const isMatch = picomatch(glob)
+  const matcher = pathGlobMatcher(glob)
   return functionCondition(
     `reside in folder matching '${glob}'`,
     (fn) => {
       const filePath = fn.getSourceFile().getFilePath()
       const folder = filePath.substring(0, filePath.lastIndexOf('/'))
-      return isMatch(folder)
+      return matchesPath(matcher, fn.getSourceFile(), folder)
     },
     (fn) => {
       const filePath = fn.getSourceFile().getFilePath()
@@ -224,8 +232,13 @@ export function resideInFolder(glob: string): Condition<ArchFunction> {
       return `${fn.getName() ?? '<anonymous>'} resides in folder '${folder}' which does not match '${glob}'`
     },
     // `parent-dir`, not `file-path` — the glob is matched against the immediate
-    // parent directory, so it is the twin of `identity.ts:98` and needs the same
-    // kind. A `file-path` kind here would be checked against the wrong universe.
-    globNode({ glob, kind: 'parent-dir' }),
+    // parent directory, so it is the twin of `identity.ts`'s `resideInFolder`
+    // and needs the same kind. A `file-path` kind here would be checked against
+    // the wrong universe. The base is `resideInFile`'s, for the reason above.
+    globNode({
+      glob,
+      kind: 'parent-dir',
+      base: isProjectRelative(glob) ? 'normalized' : 'absolute',
+    }),
   )
 }

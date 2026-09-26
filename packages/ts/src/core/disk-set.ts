@@ -3,6 +3,7 @@ import path from 'node:path'
 import picomatch from 'picomatch'
 import type { ArchProject } from './project.js'
 import { discoverIdentityRoot } from '@nielspeter/eess/internal'
+import { readsRootRelativePath, rootFromTsConfigPath } from './project-relative.js'
 
 /**
  * Directories never worth walking.
@@ -222,15 +223,48 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   // Exactly the confidently-wrong cause ADR-009 rule 2 forbids.
   const everything = [...everyFile, ...dirs]
   const typeScript = new Set(files)
+  // TWO prefixes, not one. The walk starts at `discoverIdentityRoot(...)` — the
+  // `.git`/workspace root — while every rule-facing matcher names its second
+  // view from `rootOf(sourceFile)`, the **tsconfig's** directory. In a monorepo
+  // package those differ, and using the walk root alone left this producer
+  // answering `absent` for a `'src/**'` the runtime matcher selects: the same
+  // two-derivations-disagree failure bug 0339 is about, surviving in the one
+  // place that states a fact about the filesystem. Reported in review, and the
+  // pinning test below now carries a fixture where the two roots differ.
+  //
+  // The absolute candidate is what stays in `matched`: `holdsTypeScript` and
+  // `typeScript` are keyed by absolute path, and a second spelling in the set
+  // would be a second key for one directory.
+  const prefixes = [root, rootFromTsConfigPath(project.tsConfigPath)]
+    .filter((r): r is string => r !== undefined)
+    .map((r) => (r === '/' ? '/' : `${r.replaceAll('\\', '/')}/`))
+  const namedFromARoot = (candidate: string): string[] =>
+    prefixes
+      .filter((prefix) => candidate.startsWith(prefix))
+      .map((prefix) => candidate.slice(prefix.length))
   return {
     classify(glob: string): OnDisk {
       const isMatch = picomatch(glob)
+      // Both views of each path, as every rule-facing matcher does since bug
+      // 0339 — and here it is a claim about the FILESYSTEM, which makes getting
+      // it wrong worse than a missed match. Under a project path holding a
+      // dot-segment, picomatch's default `dot: false` stops `**` crossing it, so
+      // a `'**\/src/**'` whose directory exists and is merely excluded by the
+      // tsconfig was classified `absent` — and `absent`'s advice says no such
+      // path was found and a segment must be misspelled. Confidently wrong about
+      // a fact, which is the one thing this producer exists not to be.
+      const readsRootRelative = readsRootRelativePath(glob)
+      const hits = (candidate: string): boolean => {
+        if (isMatch(candidate)) return true
+        if (!readsRootRelative) return false
+        return namedFromARoot(candidate).some((named) => isMatch(named))
+      }
       // Never `everything.some(isMatch)` — picomatch reads the array index as
       // its second argument and returns a truthy object from index 1 onwards.
-      const matched = everything.filter((candidate) => isMatch(candidate))
+      const matched = everything.filter((candidate) => hits(candidate))
       if (matched.length === 0) {
         // Not seen is not the same as not there.
-        return pruned.some((dir) => isMatch(dir) || glob.includes(dir.slice(root.length + 1)))
+        return pruned.some((dir) => hits(dir) || glob.includes(dir.slice(root.length + 1)))
           ? 'not-determined'
           : 'absent'
       }

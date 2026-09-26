@@ -8,6 +8,7 @@ import type { GlobNode } from '@nielspeter/eess'
 import { stampGlobs } from '@nielspeter/eess/internal'
 import { globAnyOf, collectResult } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
+import { isProjectRelative } from '../core/project-relative.js'
 import type { Slice, SliceDefinition } from '../models/slice.js'
 import {
   resolveByMatching,
@@ -22,7 +23,6 @@ import {
   respectLayerOrder as respectLayerOrderCondition,
   notDependOn as notDependOnCondition,
 } from '../conditions/slice.js'
-import { isProjectRelative } from '../core/project-relative.js'
 
 /**
  * How many causes one group names before it truncates to "and N more".
@@ -160,6 +160,12 @@ export class SliceRuleBuilder extends TerminalBuilder {
         // `doctor` reds a rule that discovers slices correctly: measured, a
         // relative `assignedFrom` glob gave 0 violations and a `dead-glob`
         // diagnosis in the same run.
+        //
+        // Still `isProjectRelative` and not the wider `readsRootRelativePath`
+        // that `resolveByDefinition` matches with (bug 0339): a `'**\/'`-led glob
+        // is anchored, so the check is a no-op for it either way, and widening
+        // this would make the `unanchored` fault — and the whole anchor-advice
+        // group below — unreachable.
         globAnyOf(
           [entry.glob],
           'file-path',

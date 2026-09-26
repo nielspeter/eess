@@ -1,5 +1,5 @@
+import type { SourceFile } from 'ts-morph'
 import type { RuleDescription } from '@nielspeter/eess'
-import picomatch from 'picomatch'
 import path from 'node:path'
 import { selectionMemo } from '@nielspeter/eess/internal'
 import { SmellBuilder } from './smell-builder.js'
@@ -12,7 +12,8 @@ import type { SimilarCluster } from './clusters.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import type { ArchProject } from '../core/project.js'
 import type { ArchFunction } from '../models/arch-function.js'
-import { relativeToRoot } from '../core/project-relative.js'
+import { anyMatchesPath, pathGlobMatchers } from '../core/project-relative.js'
+import type { PathGlobMatcher } from '../core/project-relative.js'
 
 /** Test file patterns for ignoreTests(). */
 const TEST_PATTERNS = ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**']
@@ -101,23 +102,24 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
   /** Check if a file path passes all glob-based filters. */
   /**
    * The three matcher sets travel together as one `filters` — they are one
-   * configuration, and four positional `picomatch.Matcher[]` arguments in a row
+   * configuration, and four positional matcher-array arguments in a row
    * are exactly the transposition risk the parameter cap exists to prevent.
    */
   private passesFileFilters(
-    filePath: string,
+    sf: SourceFile,
     filters: {
-      folderMatchers: picomatch.Matcher[]
-      ignoreMatchers: picomatch.Matcher[]
-      testMatchers: picomatch.Matcher[]
+      folderMatchers: PathGlobMatcher[]
+      ignoreMatchers: PathGlobMatcher[]
+      testMatchers: PathGlobMatcher[]
     },
-    fromRoot?: string,
   ): boolean {
     const { folderMatchers, ignoreMatchers, testMatchers } = filters
-    // Both forms, for every set — bug 0036. A project-relative `inFolder()` or
-    // `ignorePaths()` glob could never match an absolute path.
-    const hits = (ms: picomatch.Matcher[]): boolean =>
-      ms.some((m) => m(filePath)) || (fromRoot !== undefined && ms.some((m) => m(fromRoot)))
+    // Both views, for every set — bug 0036, through the one helper every path
+    // glob in `src/` now goes through (bug 0339). A project-relative
+    // `inFolder()` or `ignorePaths()` glob could never match an absolute path; a
+    // `'**\/'`-led one could never match from a project path with a dot-segment.
+    const hits = (ms: PathGlobMatcher[]): boolean =>
+      anyMatchesPath(ms, sf, sf.getFilePath(), this.project.tsConfigPath)
     if (folderMatchers.length > 0 && !hits(folderMatchers)) return false
     if (hits(ignoreMatchers)) return false
     if (hits(testMatchers)) return false
@@ -158,20 +160,14 @@ export class DuplicateBodiesBuilder extends SmellBuilder {
 
   private collectFilteredFunctions(): ArchFunction[] {
     const sourceFiles = this.project.getSourceFiles()
-    const folderMatchers = this._folders.map((g) => picomatch(g))
-    const ignoreMatchers = this._ignorePaths.map((g) => picomatch(g))
-    const testMatchers = this._ignoreTests ? TEST_PATTERNS.map((g) => picomatch(g)) : []
+    const folderMatchers = pathGlobMatchers(this._folders)
+    const ignoreMatchers = pathGlobMatchers(this._ignorePaths)
+    const testMatchers = this._ignoreTests ? pathGlobMatchers(TEST_PATTERNS) : []
 
     const allFunctions: ArchFunction[] = []
 
     for (const sf of sourceFiles) {
-      if (
-        !this.passesFileFilters(
-          sf.getFilePath(),
-          { folderMatchers, ignoreMatchers, testMatchers },
-          relativeToRoot(sf, sf.getFilePath(), this.project.tsConfigPath),
-        )
-      ) {
+      if (!this.passesFileFilters(sf, { folderMatchers, ignoreMatchers, testMatchers })) {
         continue
       }
 

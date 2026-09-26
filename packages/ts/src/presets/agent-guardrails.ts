@@ -7,8 +7,8 @@ import { modules } from '../builders/module-rule-builder.js'
 import type { ModuleRuleBuilder } from '../builders/module-rule-builder.js'
 import { resideInFile } from '../predicates/identity.js'
 import { not, or } from '../core/combinators.js'
-import { isDeadSite } from '../core/glob-evaluator.js'
 import { isProjectRelative } from '../core/project-relative.js'
+import { isDeadSite } from '../core/glob-evaluator.js'
 import { pathUniverse } from '../core/path-universe.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import { collectResult } from '@nielspeter/eess'
@@ -483,9 +483,14 @@ function ruleFilesFindings(p: ArchProject, options: AgentGuardrailsOptions): Rul
   // of its guards on, and the remedy it printed told the adopter to WIDEN a
   // correctly-scoped exemption to silence a finding that was wrong.
   //
-  // So the derivation is `resideInFile`'s own, taken from the same helper:
-  // every other site that stamps a `GlobSite` does `relative ? 'normalized' :
-  // 'absolute'` (`identity.ts:83`, `:114`, `:157`), and this one now does too.
+  // So the derivation is `resideInFile`'s own, taken from the same helper: the
+  // exemption is applied through `resideInFile(glob)` a few lines above, and this
+  // declares the base that predicate declares. Bug 0339 widened what
+  // `resideInFile` MATCHES against (a `'**\/'`-led glob reads the root-relative
+  // view too) without widening what it DECLARES, because the anchor check is a
+  // no-op for an anchored glob and widening it would make the `unanchored` fault
+  // unreachable. The two derivations must not drift, which is what the paragraph
+  // above is about.
   const dead = declared.filter((glob) =>
     isDeadSite(
       {

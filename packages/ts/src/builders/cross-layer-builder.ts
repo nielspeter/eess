@@ -1,4 +1,3 @@
-import picomatch from 'picomatch'
 import { collectResult } from '@nielspeter/eess'
 import type { CollectResult } from '../core/terminal-builder.js'
 import type { SourceFile } from 'ts-morph'
@@ -11,22 +10,21 @@ import { stampGlobs } from '@nielspeter/eess/internal'
 import { globAnyOf } from '@nielspeter/eess'
 import { TerminalBuilder } from '../core/terminal-builder.js'
 import { shallowClone } from '@nielspeter/eess/internal'
-import { isProjectRelative, relativeToRoot } from '../core/project-relative.js'
+import { isProjectRelative, matchesPath, pathGlobMatcher } from '../core/project-relative.js'
 
 /**
  * Resolve a layer by matching its glob against the project's source files.
  */
 function resolveLayer(project: ArchProject, name: string, pattern: string): Layer {
-  const isMatch = picomatch(pattern)
-  const relative = isProjectRelative(pattern)
+  const matcher = pathGlobMatcher(pattern)
   const files: SourceFile[] = []
   for (const sf of project.getSourceFiles()) {
-    const filePath = sf.getFilePath()
     // Bug 0036: the glob is matched against an ABSOLUTE path, so a
     // project-relative one could never resolve a layer. Same rule as every
-    // other path glob — relative means from the project root.
-    const fromRoot = relative ? relativeToRoot(sf, filePath, project.tsConfigPath) : undefined
-    if (isMatch(filePath) || (fromRoot !== undefined && isMatch(fromRoot))) {
+    // other path glob — relative means from the project root, and since bug
+    // 0339 a `'**\/'`-led glob reads that view too, so a layer resolves from a
+    // project path holding a dot-segment.
+    if (matchesPath(matcher, sf, sf.getFilePath(), project.tsConfigPath)) {
       files.push(sf)
     }
   }
