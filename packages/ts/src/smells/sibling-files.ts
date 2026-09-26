@@ -1,10 +1,10 @@
 import path from 'node:path'
 import type { SourceFile } from 'ts-morph'
-import picomatch from 'picomatch'
 import type { ArchProject } from '../core/project.js'
 import type { ExpressionMatcher } from '../helpers/matchers.js'
 import { collectFunctions } from '../models/arch-function.js'
 import { searchFunctionBody } from '../helpers/body-traversal.js'
+import { anyMatchesPath, pathGlobMatchers } from '../core/project-relative.js'
 
 /** Paths treated as tests when `.ignoreTests()` is on. */
 const TEST_PATTERNS = ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**']
@@ -67,27 +67,37 @@ export function partitionByPattern(
 /** Group source files by parent folder, applying all filters. */
 export function groupFilesByFolder(scope: SiblingScope): Map<string, SourceFile[]> {
   const sourceFiles = scope.project.getSourceFiles()
-  const folderMatchers = scope.folders.map((g) => picomatch(g))
-  const ignoreMatchers = scope.ignorePaths.map((g) => picomatch(g))
-  const testMatchers = scope.ignoreTests ? TEST_PATTERNS.map((g) => picomatch(g)) : []
+  const folderMatchers = pathGlobMatchers(scope.folders)
+  const ignoreMatchers = pathGlobMatchers(scope.ignorePaths)
+  const testMatchers = scope.ignoreTests ? pathGlobMatchers(TEST_PATTERNS) : []
 
   const groups = new Map<string, SourceFile[]>()
 
   for (const sf of sourceFiles) {
     const filePath = sf.getFilePath()
+    // Every set goes through the shared matcher — bug 0339, and reading the
+    // absolute path alone was two defects here. A project-relative
+    // `inFolder('src/**')` matched nothing (the fix bug 0036 made in
+    // `duplicate-bodies.ts` was never made in this twin, while the census
+    // classified the pair `'normalized'`), and an `inFolder('**\/src/**')`
+    // matched nothing from a project path holding a dot-segment, because
+    // picomatch's default `dot: false` stops `**` crossing it. Either way every
+    // file was grouped into no folder and the detector reported itself inert.
+    const matches = (ms: typeof folderMatchers): boolean =>
+      anyMatchesPath(ms, sf, filePath, scope.project.tsConfigPath)
 
     // Folder filter: if folders specified, file must match at least one
-    if (folderMatchers.length > 0 && !folderMatchers.some((m) => m(filePath))) {
+    if (folderMatchers.length > 0 && !matches(folderMatchers)) {
       continue
     }
 
     // Ignore paths filter
-    if (ignoreMatchers.some((m) => m(filePath))) {
+    if (matches(ignoreMatchers)) {
       continue
     }
 
     // Test file filter
-    if (testMatchers.some((m) => m(filePath))) {
+    if (matches(testMatchers)) {
       continue
     }
 

@@ -1,8 +1,7 @@
-import picomatch from 'picomatch'
 import type { SourceFile } from 'ts-morph'
 import type { Predicate } from '@nielspeter/eess'
 import { globNode } from '@nielspeter/eess'
-import { isProjectRelative, relativeToRoot } from '../core/project-relative.js'
+import { isProjectRelative, matchesPath, pathGlobMatcher } from '../core/project-relative.js'
 
 /** Types that have a name — ClassDeclaration, FunctionDeclaration, InterfaceDeclaration, etc. */
 export interface Named {
@@ -74,21 +73,26 @@ export function haveNameEndingWith<T extends Named>(suffix: string): Predicate<T
  * resideInFile('** /src/*.ts')    // matches any .ts file directly in src/
  */
 export function resideInFile<T extends Located>(glob: string): Predicate<T> {
-  const isMatch = picomatch(glob)
-  const relative = isProjectRelative(glob)
+  const matcher = pathGlobMatcher(glob)
   return {
     // `base: 'normalized'` when the glob is project-relative — the anchor check
     // in `syntacticFault` calls an unanchored glob dead against absolute paths,
     // and it stops being dead exactly when it starts working (plan 0067 C).
-    globs: globNode({ glob, kind: 'file-path', base: relative ? 'normalized' : 'absolute' }),
+    //
+    // Deliberately NOT `readsRootRelativePath`, which is the wider population
+    // this predicate matches against since bug 0339: that one also holds a
+    // `'**\/'`-led glob, for which the anchor check is a no-op either way. Using
+    // it here would make `base: 'absolute'` unreachable and the `unanchored`
+    // fault with it.
+    globs: globNode({
+      glob,
+      kind: 'file-path',
+      base: isProjectRelative(glob) ? 'normalized' : 'absolute',
+    }),
     description: `reside in file matching "${glob}"`,
     test: (element) => {
       const sourceFile = element.getSourceFile()
-      const filePath = sourceFile.getFilePath()
-      if (isMatch(filePath)) return true
-      if (!relative) return false
-      const fromRoot = relativeToRoot(sourceFile, filePath)
-      return fromRoot !== undefined && isMatch(fromRoot)
+      return matchesPath(matcher, sourceFile, sourceFile.getFilePath())
     },
   }
 }
@@ -102,8 +106,7 @@ export function resideInFile<T extends Located>(glob: string): Predicate<T> {
  * resideInFolder('** /src/services/**')
  */
 export function resideInFolder<T extends Located>(glob: string): Predicate<T> {
-  const isMatch = picomatch(glob)
-  const relative = isProjectRelative(glob)
+  const matcher = pathGlobMatcher(glob)
   return {
     // `parent-dir`, not `file-path`: the test below reads the directory
     // portion, so this glob is matched against the immediate parent and
@@ -111,21 +114,20 @@ export function resideInFolder<T extends Located>(glob: string): Predicate<T> {
     globs: globNode({
       glob,
       kind: 'parent-dir',
-      base: relative ? 'normalized' : 'absolute',
+      base: isProjectRelative(glob) ? 'normalized' : 'absolute',
     }),
     description: `reside in folder matching "${glob}"`,
     test: (element) => {
       const sourceFile = element.getSourceFile()
       const filePath = sourceFile.getFilePath()
       const dirPath = filePath.substring(0, filePath.lastIndexOf('/'))
-      if (isMatch(dirPath)) return true
-      // Project-relative: the same directory, named from the project root
-      // (plan 0067 C). `'src/domain/**'` means that folder AT THE ROOT, which
-      // is narrower and more accurate than the `'**/src/domain/**'` the old
-      // advice prescribed.
-      if (!relative) return false
-      const fromRoot = relativeToRoot(sourceFile, dirPath)
-      return fromRoot !== undefined && isMatch(fromRoot)
+      // The same directory, named from the project root, as well as absolutely
+      // (plan 0067 C; bug 0339 extended it to the `'**\/'`-led spelling, which
+      // is the one that could not match from a project path holding a
+      // dot-segment). `'src/domain/**'` means that folder AT THE ROOT, which is
+      // narrower and more accurate than the `'**/src/domain/**'` the old advice
+      // prescribed.
+      return matchesPath(matcher, sourceFile, dirPath)
     },
   }
 }
@@ -151,18 +153,15 @@ export function resideInFolder<T extends Located>(glob: string): Predicate<T> {
  * modules(p).that().havePathMatching('** /services/*.ts')
  */
 export function havePathMatching(glob: string): Predicate<SourceFile> {
-  const isMatch = picomatch(glob)
-  const relative = isProjectRelative(glob)
+  const matcher = pathGlobMatcher(glob)
   return {
-    globs: globNode({ glob, kind: 'file-path', base: relative ? 'normalized' : 'absolute' }),
+    globs: globNode({
+      glob,
+      kind: 'file-path',
+      base: isProjectRelative(glob) ? 'normalized' : 'absolute',
+    }),
     description: `have path matching "${glob}"`,
-    test: (sourceFile) => {
-      const filePath = sourceFile.getFilePath()
-      if (isMatch(filePath)) return true
-      if (!relative) return false
-      const fromRoot = relativeToRoot(sourceFile, filePath)
-      return fromRoot !== undefined && isMatch(fromRoot)
-    },
+    test: (sourceFile) => matchesPath(matcher, sourceFile, sourceFile.getFilePath()),
   }
 }
 

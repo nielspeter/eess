@@ -1,7 +1,7 @@
 import type { CollectResult } from '@nielspeter/eess'
 import type { SourceFile } from 'ts-morph'
 import type { ImportOptions } from '../core/import-options.js'
-import picomatch from 'picomatch'
+import { matchesPath, pathGlobMatcher } from '../core/project-relative.js'
 import type { ArchProject } from '../core/project.js'
 import type { RuleBuilderLike } from '@nielspeter/eess'
 import { slices } from '../builders/slice-rule-builder.js'
@@ -179,11 +179,20 @@ export function strictBoundaries(
 
   // Discover boundary folders from the glob pattern
   const boundaryGlob = options.folders
-  const matcher = picomatch(boundaryGlob)
+  const matcher = pathGlobMatcher(boundaryGlob)
   const boundaryFolders: string[] = []
   for (const sf of p.getSourceFiles()) {
     const dir = sf.getFilePath().replace(/\/[^/]+$/, '')
-    if (matcher(dir) && !boundaryFolders.includes(dir)) {
+    // Through the shared matcher — bug 0339. The comment on the `shared` guard
+    // below argued for a guard over normalization, and its reason was symmetry:
+    // "`folders` is not normalized either". That reason survives, because BOTH
+    // read the root-relative view now. What did not survive is the other half of
+    // it — that the remedy "states the absolute-path contract and tells the
+    // caller how to spell it". From a project path holding a dot-segment there
+    // was no spelling that worked: picomatch's default `dot: false` stops `**`
+    // crossing it, so the documented `'**\/src/*'` discovered 0 boundaries and
+    // the guard told the adopter their correct glob was wrong.
+    if (matchesPath(matcher, sf, dir, p.tsConfigPath) && !boundaryFolders.includes(dir)) {
       boundaryFolders.push(dir)
     }
   }
@@ -241,8 +250,12 @@ export function strictBoundaries(
   // `shared-isolation` via `atPath` yet creates no allowance, so it is a genuine
   // fault here and the guard must fire for it.
   for (const sharedGlob of sharedGlobs) {
-    const matchesFile = picomatch(sharedGlob)
-    const matchedFiles = p.getSourceFiles().filter((sf) => matchesFile(sf.getFilePath()))
+    const matchesFile = pathGlobMatcher(sharedGlob)
+    // The root-relative view too, as `folders` above and as `onlyImportFrom`
+    // already did through `candidatesFor` — bug 0339.
+    const matchedFiles = p
+      .getSourceFiles()
+      .filter((sf) => matchesPath(matchesFile, sf, sf.getFilePath(), p.tsConfigPath))
     builders.push(
       ...assertDiscovered(matchedFiles, {
         id: 'preset/boundaries/shared-discovery',

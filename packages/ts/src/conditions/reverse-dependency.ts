@@ -1,11 +1,10 @@
-import picomatch from 'picomatch'
 import { type SourceFile, type Project, type ExportedDeclarations, Node } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
 import { moduleEdges } from '../core/module-edges.js'
 import { recordEdgeCoverage } from '@nielspeter/eess/internal'
 import { globAnyOf } from '@nielspeter/eess'
-import { relativeToRoot } from '../core/project-relative.js'
+import { anyMatchesPath, pathGlobMatchers, relativeToRoot } from '../core/project-relative.js'
 
 // ─── Reverse import graph (cached per ts-morph Project) ──────────
 
@@ -105,7 +104,7 @@ function getReverseImportGraph(sourceFiles: SourceFile[]): ReverseImportGraph {
  * would be wrong here.
  */
 export function onlyBeImportedVia(...globs: string[]): Condition<SourceFile> {
-  const matchers = globs.map((g) => picomatch(g))
+  const matchers = pathGlobMatchers(globs)
   const quotedGlobs = globs.map((g) => `"${g}"`).join(', ')
   return {
     // `file-path`, NOT `import-target` — and this is the row to get right. The glob
@@ -133,17 +132,14 @@ export function onlyBeImportedVia(...globs: string[]): Condition<SourceFile> {
         for (const importer of importers) {
           tested++
           const importerPath = importer.getFilePath()
-          // Also the importer's path named from the project root — bug 0036.
-          // This glob is matched against an ABSOLUTE path, so a
-          // project-relative one could never match and every importer was
-          // reported: measured, `onlyBeImportedVia('src/**')` produced 5
-          // violations where `'**/src/**'` produced none. A false red, the same
-          // shape as bug 0037 one layer over.
-          const fromRoot = relativeToRoot(importer, importerPath)
-          const matched =
-            matchers.some((m) => m(importerPath)) ||
-            (fromRoot !== undefined && matchers.some((m) => m(fromRoot)))
-          if (!matched) {
+          // Also the importer's path named from the project root — bug 0036,
+          // through the shared helper since 0339. This glob is matched against
+          // an ABSOLUTE path, so a project-relative one could never match and
+          // every importer was reported: measured,
+          // `onlyBeImportedVia('src/**')` produced 5 violations where
+          // `'**/src/**'` produced none. A false red, the same shape as bug 0037
+          // one layer over.
+          if (!anyMatchesPath(matchers, importer, importerPath)) {
             violations.push({
               rule: context.rule,
               element: sf.getBaseName(),
@@ -172,7 +168,12 @@ export function onlyBeImportedVia(...globs: string[]): Condition<SourceFile> {
               // exact-string message exclusion, which surfaces as an unused-pattern warning
               // rather than failing open — the acceptable direction, and stated in the
               // upgrading row.
-              message: `${sf.getBaseName()} is imported by ${fromRoot ?? importerPath} which does not match [${globs.join(', ')}]`,
+              // The root-relative form when there is one, computed here rather
+              // than taken from the matcher: `hashViolation` hashes this message,
+              // so the preference is held exactly as it was, and a shorter path
+              // here is readability while a changed one silently invalidates
+              // every baselined finding of this rule.
+              message: `${sf.getBaseName()} is imported by ${relativeToRoot(importer, importerPath) ?? importerPath} which does not match [${globs.join(', ')}]`,
               because: context.because,
             })
           }

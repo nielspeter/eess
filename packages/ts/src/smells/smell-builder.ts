@@ -127,10 +127,15 @@ export abstract class SmellBuilder extends TerminalBuilder {
     if (this._folders.length > 0) {
       trees.push(
         stampGlobs(
+          // One relative glob among two anchored ones used to declare the whole
+          // set `'absolute'` — `every()` read as a quorum where the runtime
+          // decides per glob. `some()` is the honest reading of a set the
+          // matcher normalizes glob by glob (bug 0036 for `duplicateBodies`, bug
+          // 0339 for `inconsistentSiblings`, which never normalized at all).
           globAnyOf(
             this._folders,
             'file-path',
-            this._folders.every((g) => isProjectRelative(g)) ? 'normalized' : 'absolute',
+            this._folders.some((g) => isProjectRelative(g)) ? 'normalized' : 'absolute',
           ),
           'discovery',
           (g) => `inFolder("${g.glob}")`,

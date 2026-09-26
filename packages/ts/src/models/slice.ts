@@ -1,5 +1,5 @@
-import picomatch from 'picomatch'
-import { isProjectRelative, relativeToRoot } from '../core/project-relative.js'
+import { matchesPath, pathGlobMatcher } from '../core/project-relative.js'
+import type { PathGlobMatcher } from '../core/project-relative.js'
 import type { SourceFile } from 'ts-morph'
 import type { ArchProject } from '../core/project.js'
 
@@ -176,13 +176,19 @@ export function resolveByMatching(project: ArchProject, glob: string): Slice[] {
   // silently pass every inter-slice condition. Returning no slices makes the
   // discovery guard fire instead (ADR-008).
   if (baseDir === '') return []
-  const isMatch = picomatch(fullGlob)
+  const matcher = pathGlobMatcher(fullGlob)
   const sourceFiles = project.getSourceFiles()
   const sliceMap = new Map<string, SourceFile[]>()
 
   for (const sf of sourceFiles) {
     const filePath = sf.getFilePath()
-    if (!isMatch(filePath)) continue
+    // The root-relative view too — bug 0339. `parseMatchingGlob` prefixes
+    // `'**\/'`, so `fullGlob` is exactly the shape that read only the absolute
+    // path: picomatch's default `dot: false` stops `**` crossing a project path
+    // segment beginning with `.`, every slice went missing, and the discovery
+    // guard blamed the author's glob. The slice NAME is still located in the
+    // absolute path below — `baseDir` occurs in both views identically.
+    if (!matchesPath(matcher, sf, filePath, project.tsConfigPath)) continue
 
     // Extract the slice name: the first directory segment after baseDir
     const baseDirIdx = filePath.indexOf(baseDir)
@@ -225,19 +231,11 @@ export function resolveByDefinition(project: ArchProject, definition: SliceDefin
   const matchers = entries.map(
     ([name, glob]): {
       name: string
-      isMatch: picomatch.Matcher
-      relative: boolean
+      matcher: PathGlobMatcher
       files: SourceFile[]
     } => ({
       name,
-      isMatch: picomatch(glob),
-      // Bug 0033. A project-relative glob matched nothing here while the path
-      // predicates and `matching()` both accepted one — so `layers: { api:
-      // 'src/api/**' }` failed beside a `shared: ['src/shared/**']` that worked,
-      // in the same preset call. Same rule as the predicates (plan 0067 C):
-      // relative means **from the project root**, which is narrower and more
-      // accurate than the `'**/src/api/**'` the old advice prescribed.
-      relative: isProjectRelative(glob),
+      matcher: pathGlobMatcher(glob),
       files: [],
     }),
   )
@@ -248,12 +246,17 @@ export function resolveByDefinition(project: ArchProject, definition: SliceDefin
     // file belongs to one of them (bug 0035). `project.tsConfigPath` is only
     // the fallback, for a project built without `project()`/`workspace()` —
     // an in-memory test double, where ts-morph records no config path either.
-    const fromRoot = relativeToRoot(sf, filePath, project.tsConfigPath)
+    //
+    // Bug 0033. A project-relative glob matched nothing here while the path
+    // predicates and `matching()` both accepted one — so `layers: { api:
+    // 'src/api/**' }` failed beside a `shared: ['src/shared/**']` that worked,
+    // in the same preset call. Same rule as the predicates (plan 0067 C):
+    // relative means **from the project root**, which is narrower and more
+    // accurate than the `'**/src/api/**'` the old advice prescribed. Since bug
+    // 0339 a `'**\/'`-led glob reads that view too, so the anchored spelling
+    // resolves from a project path holding a dot-segment.
     for (const matcher of matchers) {
-      const hit =
-        matcher.isMatch(filePath) ||
-        (matcher.relative && fromRoot !== undefined && matcher.isMatch(fromRoot))
-      if (hit) {
+      if (matchesPath(matcher.matcher, sf, filePath, project.tsConfigPath)) {
         matcher.files.push(sf)
         break // first match wins
       }

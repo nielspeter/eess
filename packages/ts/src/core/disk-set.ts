@@ -3,6 +3,7 @@ import path from 'node:path'
 import picomatch from 'picomatch'
 import type { ArchProject } from './project.js'
 import { discoverIdentityRoot } from '@nielspeter/eess/internal'
+import { readsRootRelativePath } from './project-relative.js'
 
 /**
  * Directories never worth walking.
@@ -222,15 +223,37 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   // Exactly the confidently-wrong cause ADR-009 rule 2 forbids.
   const everything = [...everyFile, ...dirs]
   const typeScript = new Set(files)
+  // The walk root's own prefix, so a candidate can be named from it. The
+  // absolute candidate is what stays in `matched`: `holdsTypeScript` and
+  // `typeScript` are keyed by absolute path, and a second spelling in the set
+  // would be a second key for one directory.
+  const walkPrefix = root === '/' ? '/' : `${root.replaceAll('\\', '/')}/`
+  const relativeToWalkRoot = (candidate: string): string | undefined =>
+    candidate.startsWith(walkPrefix) ? candidate.slice(walkPrefix.length) : undefined
   return {
     classify(glob: string): OnDisk {
       const isMatch = picomatch(glob)
+      // Both views of each path, as every rule-facing matcher does since bug
+      // 0339 — and here it is a claim about the FILESYSTEM, which makes getting
+      // it wrong worse than a missed match. Under a project path holding a
+      // dot-segment, picomatch's default `dot: false` stops `**` crossing it, so
+      // a `'**\/src/**'` whose directory exists and is merely excluded by the
+      // tsconfig was classified `absent` — and `absent`'s advice says no such
+      // path was found and a segment must be misspelled. Confidently wrong about
+      // a fact, which is the one thing this producer exists not to be.
+      const readsRootRelative = readsRootRelativePath(glob)
+      const hits = (candidate: string): boolean => {
+        if (isMatch(candidate)) return true
+        if (!readsRootRelative) return false
+        const fromRoot = relativeToWalkRoot(candidate)
+        return fromRoot !== undefined && isMatch(fromRoot)
+      }
       // Never `everything.some(isMatch)` — picomatch reads the array index as
       // its second argument and returns a truthy object from index 1 onwards.
-      const matched = everything.filter((candidate) => isMatch(candidate))
+      const matched = everything.filter((candidate) => hits(candidate))
       if (matched.length === 0) {
         // Not seen is not the same as not there.
-        return pruned.some((dir) => isMatch(dir) || glob.includes(dir.slice(root.length + 1)))
+        return pruned.some((dir) => hits(dir) || glob.includes(dir.slice(root.length + 1)))
           ? 'not-determined'
           : 'absent'
       }
