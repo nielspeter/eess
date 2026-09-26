@@ -198,6 +198,50 @@ describe('a `shared` glob that matches nothing says so (bug 0023)', () => {
     const finding = sharedFindings(run({ folders: FOLDERS, shared: ['**/no-such-dir/**'] }))[0]
     expect(finding).toBeDefined()
     expect(finding?.message).toContain('**/no-such-dir/**')
+    // Re-pinned after bug 0339. These three moved here from the test this
+    // replaced, and for a while NOTHING in the suite asserted them: the
+    // remedy, the filter bypass and the severity were all free to drift, on a
+    // finding whose entire job is to be unsuppressable and actionable.
+    expect(finding?.suggestion).toBe(
+      finding?.message.replace(/^Discovery matched 0 subjects[^.]*\. /, ''),
+    )
+    expect(finding?.bypassFilters).toBe(true)
+    expect(finding?.severity).toBe('error')
+  })
+
+  it('the remedy does not tell an anchored glob to anchor itself (ADR-009 rule 2)', () => {
+    // The loop bug 0017 is named for, in this preset. Both discovery remedies
+    // used to say the glob "is matched against absolute file paths" and to
+    // prescribe a `'**/'` prefix. After bug 0339 both halves are wrong: both
+    // views are tried, and prefixing a glob that already starts `'**/'` yields
+    // `'**/**/no-such-dir/**'` — a different string, the identical finding, and
+    // an agent that changes the glob forever.
+    const remedyFor = (options: Parameters<typeof strictBoundaries>[1]): string =>
+      run(options)
+        .filter((v) => v.bypassFilters === true)
+        .map((v) => v.suggestion ?? '')
+        .join(' ')
+
+    for (const remedy of [
+      remedyFor({ folders: FOLDERS, shared: ['**/no-such-dir/**'] }),
+      remedyFor({ folders: '**/no-such-folder/*' }),
+    ]) {
+      expect(remedy).not.toBe('')
+      expect(remedy).not.toContain("'**/**/")
+      expect(remedy).not.toMatch(/prefix/i)
+      // And it states what is actually tried, so the reader is not sent to
+      // re-spell a glob whose spelling is fine.
+      expect(remedy).toContain('named from the project root')
+    }
+  })
+
+  it('the remedy that IS a spelling remediates: adding /** clears the finding', () => {
+    // The one cause among the residual that a spelling really does fix, and the
+    // proof it does — `assertDiscovered`'s remedy is only worth printing if
+    // applying it clears the finding it was printed with.
+    const withoutSlashStar = run({ folders: FOLDERS, shared: ['**/src/shared'] })
+    expect(sharedFindings(withoutSlashStar)[0]?.suggestion).toContain("'**/src/shared/**'")
+    expect(sharedFindings(run({ folders: FOLDERS, shared: ['**/src/shared/**'] }))).toEqual([])
   })
 
   it('a folder glob with no trailing /** is a fault here, though shared-isolation accepts it', () => {

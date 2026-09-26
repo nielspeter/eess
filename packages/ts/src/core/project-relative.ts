@@ -292,11 +292,16 @@ export function relativeToRoot(
  * refused it — both exclusions `isProjectRelative` makes are load-bearing, and
  * neither is about anchoring:
  *
- * - a `./` or `../` segment stays excluded, because `syntacticFault` reports
+ * - a `./` segment stays excluded, because `syntacticFault` reports
  *   `dot-segment` for it. picomatch matches `'./src/domain/**'` against
  *   `src/domain`, so offering the view reinstates exactly the split verdict
  *   `isProjectRelative`'s own comment records: 3 subjects selected AND a dead
- *   selector reported, in one run.
+ *   selector reported, in one run. `../` is excluded alongside it and is a
+ *   DIFFERENT fault — `syntacticFault`'s dot-segment test is `/(?:^|\/)\.\//`,
+ *   which `'../src/**'` does not match, so it is reported `unanchored` instead.
+ *   The exclusion is right either way (nothing above the root has a second view,
+ *   so no match is forged); it is the fault name that differs, and this comment
+ *   claimed one rule for two shapes.
  * - `'*\/x/**'` stays excluded, because it is the last reachable `unanchored`
  *   fault for a path glob. Normalizing it made the anchor advice and the whole
  *   `ANCHOR_ADVICE` grouping unreachable — measured as seven failures in
@@ -344,11 +349,22 @@ export function pathGlobMatchers(globs: readonly string[]): PathGlobMatcher[] {
 /**
  * Does this glob match this path — absolutely, or named from the project root?
  *
- * The ONE place a path glob meets a path. Every site in `src/` that matched a
- * file path against a glob had its own copy of this three-line decision, and
- * they disagreed: three offered the second view only for a project-relative
- * glob, three offered it always, and four never offered it at all. Bug 0339 was
- * in the last group's shape and bug 0036 in the first's.
+ * The one place a path glob meets a path **where a `SourceFile` is in hand**.
+ * `disk-set.ts` reimplements the decision inline over walked disk paths, which
+ * have no `SourceFile` and are named from a root of their own — that copy is
+ * deliberate and is marked as such there, so this is not "the only place" and
+ * saying so would leave the next reader trusting a claim with a second copy
+ * behind it.
+ *
+ * Every site that matched a file path against a glob had its own copy of this
+ * three-line decision and they disagreed. Over the ten that carry a sabotage row
+ * in bug 0339, measured at 0.7.0: **three** offered the second view only for a
+ * project-relative glob (`predicates/identity.ts`, `cross-layer-builder.ts`,
+ * `slice.ts`'s `resolveByDefinition`), **one** offered it always
+ * (`duplicate-bodies.ts`), and **six** never offered it at all. Bug 0339 was in
+ * the last group's shape and bug 0036 in the first's.
+ * `conditions/reverse-dependency.ts` also offered it always and needed no
+ * change, so it has no row.
  *
  * `undefined` from `relativeToRoot` (no root known, or a file above the root) is
  * a genuine "there is no second view" and yields the absolute answer rather than

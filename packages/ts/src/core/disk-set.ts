@@ -3,7 +3,7 @@ import path from 'node:path'
 import picomatch from 'picomatch'
 import type { ArchProject } from './project.js'
 import { discoverIdentityRoot } from '@nielspeter/eess/internal'
-import { readsRootRelativePath } from './project-relative.js'
+import { readsRootRelativePath, rootFromTsConfigPath } from './project-relative.js'
 
 /**
  * Directories never worth walking.
@@ -223,13 +223,25 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   // Exactly the confidently-wrong cause ADR-009 rule 2 forbids.
   const everything = [...everyFile, ...dirs]
   const typeScript = new Set(files)
-  // The walk root's own prefix, so a candidate can be named from it. The
-  // absolute candidate is what stays in `matched`: `holdsTypeScript` and
+  // TWO prefixes, not one. The walk starts at `discoverIdentityRoot(...)` — the
+  // `.git`/workspace root — while every rule-facing matcher names its second
+  // view from `rootOf(sourceFile)`, the **tsconfig's** directory. In a monorepo
+  // package those differ, and using the walk root alone left this producer
+  // answering `absent` for a `'src/**'` the runtime matcher selects: the same
+  // two-derivations-disagree failure bug 0339 is about, surviving in the one
+  // place that states a fact about the filesystem. Reported in review, and the
+  // pinning test below now carries a fixture where the two roots differ.
+  //
+  // The absolute candidate is what stays in `matched`: `holdsTypeScript` and
   // `typeScript` are keyed by absolute path, and a second spelling in the set
   // would be a second key for one directory.
-  const walkPrefix = root === '/' ? '/' : `${root.replaceAll('\\', '/')}/`
-  const relativeToWalkRoot = (candidate: string): string | undefined =>
-    candidate.startsWith(walkPrefix) ? candidate.slice(walkPrefix.length) : undefined
+  const prefixes = [root, rootFromTsConfigPath(project.tsConfigPath)]
+    .filter((r): r is string => r !== undefined)
+    .map((r) => (r === '/' ? '/' : `${r.replaceAll('\\', '/')}/`))
+  const namedFromARoot = (candidate: string): string[] =>
+    prefixes
+      .filter((prefix) => candidate.startsWith(prefix))
+      .map((prefix) => candidate.slice(prefix.length))
   return {
     classify(glob: string): OnDisk {
       const isMatch = picomatch(glob)
@@ -245,8 +257,7 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
       const hits = (candidate: string): boolean => {
         if (isMatch(candidate)) return true
         if (!readsRootRelative) return false
-        const fromRoot = relativeToWalkRoot(candidate)
-        return fromRoot !== undefined && isMatch(fromRoot)
+        return namedFromARoot(candidate).some((named) => isMatch(named))
       }
       // Never `everything.some(isMatch)` — picomatch reads the array index as
       // its second argument and returns a truthy object from index 1 onwards.

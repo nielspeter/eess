@@ -34,9 +34,30 @@ none), the `inconsistentSiblings` detector's `inFolder`/`ignorePaths`, and
 about the filesystem, and under a dot-segment it reported a directory that exists
 and holds TypeScript as `absent`, whose advice says no such path was found.
 
-**What you may see on upgrade.** If your project sits under a dot-directory, rules
-that reported nothing now report; read the findings before regenerating a
-baseline. If you spell a `shared` glob relative-to-the-root in `strictBoundaries`,
-the `preset/boundaries/shared-discovery` finding that used to explain why it did
-not work is gone, because it now works — an accepted baseline entry for it will be
-unmatched.
+**What you may see on upgrade — in both directions.**
+
+_Rules that reported nothing now report._ If your project sits under a
+dot-directory, read the new findings before regenerating a baseline.
+
+_A build that was red can go green, and a check can stop covering files._ The same
+rule applies to exclusions: `inconsistentSiblings().ignorePaths('src/generated/**')`
+previously ignored nothing and now ignores. The `resideInFile`/`resideInFolder`
+**conditions** stop reporting every subject as a violation. `diskSet.classify` stops
+answering `absent`. If you relied on a finding you were getting, check it is still
+there.
+
+_Two surfaces narrow._ `onlyBeImportedVia` and `duplicateBodies`' path filters used
+to try the root-relative path for **every** glob; they now follow the same rule as
+everything else, which withholds it from a `'./x'`, `'../x'` or `'*/x/**'` glob. If
+you spell one of those, an importer that was allowed may now be reported, files that
+were ignored may now be examined, and a `duplicateBodies(p).inFolder('*/src/**')`
+can turn into an ADR-010 `examined 0` configuration finding. All three fail closed —
+they red, they do not pass quietly — and `'**/x/**'` is the spelling that works.
+
+_The boundaries discovery remedies changed text._ Both said the glob "is matched
+against absolute file paths" and told you to prefix `'**/'`. Both were false after
+this change, and the prefix was a no-op on a glob already starting `'**/'`. They now
+state that both views were tried and name the causes that remain. If you spell a
+`shared` glob relative-to-the-root, the `preset/boundaries/shared-discovery` finding
+that used to explain why it did not work is gone, because it now works — an accepted
+baseline entry for it will be unmatched.

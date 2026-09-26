@@ -205,17 +205,29 @@ export function strictBoundaries(
   }
 
   // --- Discovery guard: a boundaries preset that finds no boundaries is
-  //     misconfigured (globs match absolute paths — a project-relative glob
-  //     matches nothing). Fail loudly instead of generating zero rules
+  //     misconfigured. (The parenthetical here used to read "globs match
+  //     absolute paths — a project-relative glob matches nothing"; bug 0339
+  //     made that false, and the remedy below no longer says it.) Fail loudly
+  //     instead of generating zero rules
   //     (the exact false green of ADR-008 / plan 0067), rather than the old
   //     silent skip. ---
   builders.push(
     ...assertDiscovered(boundaryFolders, {
       id: 'preset/boundaries/discovery',
       glob: boundaryGlob,
+      // The remedy states what is TRUE after bug 0339, and no longer offers a
+      // prefix that would be a no-op. Discovery reads the absolute path AND the
+      // path named from the project root, so "prefix it with `**/`" is not a
+      // fix — for an already-anchored dead glob it produced
+      // `'**/**/no-such-dir/**'`, which reproduces the identical finding and
+      // loops an agent (ADR-009 rule 2: a remedy must remediate). What is left
+      // after the fix is a glob dead in BOTH views, so the honest answer is the
+      // causes, not a spelling.
       remedy:
-        `Boundary discovery matches absolute file paths, so '${boundaryGlob}' matched nothing. ` +
-        `Use a '**/'-prefixed glob (e.g. '**/${boundaryGlob.replace(/^[./]+/, '')}') or the absolute project path.`,
+        `Boundary discovery tried '${boundaryGlob}' against both the absolute file path and the ` +
+        `path named from the project root, and it matched no folder. Common causes: a path segment ` +
+        `does not match what is on disk, the folder holds no source files your tsconfig includes, or ` +
+        `a '.'/'..' segment in the glob (neither occurs in either form — remove it).`,
     }),
   )
 
@@ -238,11 +250,15 @@ export function strictBoundaries(
   // middle two rows are indistinguishable from outside — same violation count,
   // no explanation — which is what the guard fixes.
   //
-  // A GUARD, deliberately not normalization. `folders` is not normalized either;
+  // A GUARD **and** normalization, since bug 0339 — this paragraph used to argue
+  // for the guard alone, on the ground that "`folders` is not normalized either;
   // its remedy states the absolute-path contract and tells the caller how to
-  // spell it. Rewriting `shared` globs instead would make one option on this
-  // preset accept a spelling the other rejects, which is a worse asymmetry than
-  // the one being fixed.
+  // spell it". The symmetry half survives, because both options normalize now.
+  // The other half did not: from a project path holding a dot-segment there was
+  // no spelling that worked, so the remedy could not state one — and
+  // `docs/presets.md` documents the project-relative spelling for both options,
+  // which discovered nothing. The guard keeps its job for a glob dead in both
+  // views.
   //
   // Matched against FILE paths, not `atPath`'s file-or-folder: the allow list is
   // what this guard is about, and `onlyImportFrom` matches resolved file paths.
@@ -260,10 +276,23 @@ export function strictBoundaries(
       ...assertDiscovered(matchedFiles, {
         id: 'preset/boundaries/shared-discovery',
         glob: sharedGlob,
+        // Two corrections after bug 0339, both because the sentence outlived its
+        // mechanism. It said the glob "is matched against absolute file paths"
+        // (no longer true — both views are tried) and that it "creates no
+        // allowance" (never reliable: the allow list reaches `onlyImportFrom` →
+        // `candidatesFor`, which appends the root-relative resolved path
+        // UNCONDITIONALLY, so for the residual population — `'*/shared/**'`,
+        // `'./src/shared/**'` — an allowance does exist while this guard fires).
+        // ADR-009 rule 2 takes the fact the guard can support over the cause it
+        // cannot. The `'/**'` advice stays, because a folder glob with no
+        // trailing `/**` really does select files for `atPath` and create no
+        // allowance — that is this guard's own neighbouring test.
         remedy:
-          `A shared glob is matched against absolute file paths, so '${sharedGlob}' matched no file and ` +
-          `creates no allowance — every import of it is reported as a cross-boundary violation. ` +
-          `Use a '**/'-prefixed glob ending in '/**' (e.g. '**/${sharedGlob.replace(/^[./]+/, '').replace(/\/\*\*$/, '')}/**') or the absolute project path.`,
+          `A shared glob is tried against the absolute file path and the path named from the project ` +
+          `root, and '${sharedGlob}' matched no file in this project. A shared entry must match FILES ` +
+          `to create an allowance, so a folder glob needs a trailing '/**' ` +
+          `(e.g. '${sharedGlob.replace(/\/\*\*$/, '')}/**'); otherwise a path segment does not match ` +
+          `what is on disk, or the folder holds no source files your tsconfig includes.`,
       }),
     )
   }

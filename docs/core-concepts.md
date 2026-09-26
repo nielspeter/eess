@@ -120,6 +120,32 @@ Available on all entry points:
 | `areExported`             | Element is exported      |
 | `areNotExported`          | Element is not exported  |
 
+### How a path glob is matched
+
+A path glob is tried against **two** spellings of each path: the absolute file path,
+and the same path named from your tsconfig's directory. A glob matches if either
+does, so the two useful spellings keep their distinct meanings:
+
+| glob              | matches                                                                    |
+| ----------------- | -------------------------------------------------------------------------- |
+| `'src/domain/**'` | that folder **at the project root** — not a nested `packages/a/src/domain` |
+| `'**/domain/**'`  | a `domain/` **anywhere** in the project                                    |
+| `'/abs/src/**'`   | exactly that absolute path                                                 |
+
+Three spellings are deliberately **not** given the second view, because each is a
+mistake in both readings and is reported as its own fault rather than quietly made
+to work: `'./x/**'`, `'../x/**'` and `'*/x/**'` (a single wildcard segment before
+the first literal one — write `'**/x/**'`).
+
+**One case has no working anywhere-glob.** `**` does not cross a path segment that
+begins with a dot, in either spelling — so `'**/*.ts'` never reaches
+`.storybook/main.ts` or anything else under a dot-directory _inside_ your project.
+Name the segment literally instead: `'.storybook/**'` works, because a
+project-relative glob is matched from the root where the dot segment is ordinary
+text. (Before v0.8.0 this also broke every rule in a project whose **own path**
+contained a dot-segment — a worktree manager's layout, a cache directory — because
+only the absolute spelling was tried.)
+
 ### Type-Specific Predicates
 
 Each entry point adds its own predicates. See the dedicated pages: [Classes](/classes), [Functions](/functions), [Types](/types), [Modules](/modules), [Calls](/calls), [JSX Elements](/jsx).

@@ -66,7 +66,8 @@ export function haveNameEndingWith<T extends Named>(suffix: string): Predicate<T
 
 /**
  * Matches elements that reside in a file matching the given glob.
- * The glob is matched against the absolute file path using picomatch.
+ * The glob is matched against the absolute file path and, since bug 0339, the
+ * path named from the project root — see `core/project-relative.ts`.
  *
  * @example
  * resideInFile('** /routes.ts')   // matches /abs/path/src/routes.ts
@@ -80,10 +81,15 @@ export function resideInFile<T extends Located>(glob: string): Predicate<T> {
     // and it stops being dead exactly when it starts working (plan 0067 C).
     //
     // Deliberately NOT `readsRootRelativePath`, which is the wider population
-    // this predicate matches against since bug 0339: that one also holds a
-    // `'**\/'`-led glob, for which the anchor check is a no-op either way. Using
-    // it here would make `base: 'absolute'` unreachable and the `unanchored`
-    // fault with it.
+    // this predicate matches against since bug 0339 — but the reason is inertness,
+    // not reachability. The two differ only by `'**\/'`-led globs, and
+    // `syntacticFault`'s single base-sensitive branch is
+    // `base === 'absolute' && !isAnchored(glob)`, which such a glob never reaches.
+    // So declaring the wider population would change no verdict, and
+    // `base: 'absolute'` stays reachable either way — `'*/x/**'` still declares it
+    // and still trips `unanchored`. (An earlier version of this comment claimed
+    // the wider predicate would make that fault dead code. It would not; the
+    // decision is right and the stated reason was wrong.)
     globs: globNode({
       glob,
       kind: 'file-path',

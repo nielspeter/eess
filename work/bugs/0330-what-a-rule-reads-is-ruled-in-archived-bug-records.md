@@ -16,16 +16,17 @@
 decisions, in order — linked here because a record arguing the chain cannot be found should not
 make the reader hunt for it:
 
-| ruling                                                         | record                                                                                                    |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| a class reads its members' code                                | [0300](./fixed/0300-class-body-search-reads-methods-constructors-and-accessors-only.md)                   |
-| a docstring is not code; must-contain reads member code only   | [0307](./fixed/0307-class-body-rules-skip-class-code-outside-its-members.md)                              |
-| a destructured parameter's defaults and computed keys are code | [0309](./fixed/0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md)          |
-| a function reads what its parameters run                       | [0314](./fixed/0314-the-function-rules-read-no-parameter-default.md)                                      |
-| a class's non-method function members are collected            | [0315](./fixed/0315-the-function-builder-does-not-collect-constructors-accessors-or-wrapped-functions.md) |
-| a search tests the root it searches                            | [0323](./fixed/0323-the-call-conditions-search-below-the-root.md)                                         |
-| one definition of a callback, and it is `extractCallbacks`     | [0324](./fixed/0324-the-callback-conditions-read-a-direct-callback-only.md)                               |
-| a class comment rule reads a parameter list, and no docstring  | [0325](./fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md)                                  |
+| ruling                                                                               | record                                                                                                    |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| a class reads its members' code                                                      | [0300](./fixed/0300-class-body-search-reads-methods-constructors-and-accessors-only.md)                   |
+| a docstring is not code; must-contain reads member code only                         | [0307](./fixed/0307-class-body-rules-skip-class-code-outside-its-members.md)                              |
+| a destructured parameter's defaults and computed keys are code                       | [0309](./fixed/0309-a-default-inside-a-destructured-parameter-is-not-read-by-the-class-rules.md)          |
+| a function reads what its parameters run                                             | [0314](./fixed/0314-the-function-rules-read-no-parameter-default.md)                                      |
+| a class's non-method function members are collected                                  | [0315](./fixed/0315-the-function-builder-does-not-collect-constructors-accessors-or-wrapped-functions.md) |
+| a search tests the root it searches                                                  | [0323](./fixed/0323-the-call-conditions-search-below-the-root.md)                                         |
+| one definition of a callback, and it is `extractCallbacks`                           | [0324](./fixed/0324-the-callback-conditions-read-a-direct-callback-only.md)                               |
+| a class comment rule reads a parameter list, and no docstring                        | [0325](./fixed/0325-the-class-search-reads-no-comment-on-a-parameter.md)                                  |
+| a path glob also reads the root-relative view — and which globs are excluded from it | [0339](./fixed/0339-globs-match-nothing-when-the-project-sits-under-a-dot-directory.md)                   |
 
 [0329](./0329-the-class-search-reads-no-comment-outside-a-members-parameters.md)
 is open and its whole `## Fix` section is "the same design question 0325 answered for parameters,
@@ -33,6 +34,23 @@ one level out" — a live record whose premise is in `work/bugs/fixed/`.
 
 **No ADR governs it.** A grep over `adr/` for the subject returns 011 (the kernel's public API) and
 014 (evidence at emission), neither of which says what a rule reads.
+
+**0339 is the sharpest instance so far, and it arrived after this record was filed.** It rules on what
+a path glob is matched _against_ — the root-relative view for a glob that is project-relative or
+`'**/'`-led, and deliberately not for `'./x'`, `'../x'` or `'*/x/**'`. Three things make it worse than
+the eight above rather than merely one more:
+
+- it is **adopter-visible and shipped as a breaking change**, so it is part of the tool's glob language
+  rather than an internal reading rule;
+- **13 files under `packages/ts/src/` cite `0339`** for that rule (26 mentions, measured 2026-09-26), and the only statement of it is in
+  `work/bugs/fixed/`, which `scripts/check-corpus.mjs:159` freezes — the residual at the bottom of this
+  record, now with live code depending on it;
+- the rule had already been extended five times before anyone wrote it down, and 0339's own headline
+  finding is that two of those extensions were made in one twin and not the other.
+
+0339's `## Related` distinguishes itself as "about what a rule can SELECT rather than what it reads".
+That distinction is thin, and it is recorded here rather than argued there: this record's decision
+should cover both, and the candidates below are unchanged by it.
 
 **The frozen folder is not a place to look up a rule.** `scripts/check-corpus.mjs:159` lists
 `'**/fixed/**'` in `FROZEN`, and the gate's own comment says a frozen document's pointers are not
@@ -77,6 +95,8 @@ reachable only through a folder the corpus gate has frozen.
 ## Verification
 
 - [x] measured: the nine records above, the `adr/` grep, and `FROZEN` in `scripts/check-corpus.mjs`.
+- [x] a further ruling added, 2026-09-26 — [0339](./fixed/0339-globs-match-nothing-when-the-project-sits-under-a-dot-directory.md),
+      the first one live code cites by number and the first shipped as a breaking change.
 - [ ] a decision on where a read-semantics ruling lives
 - [ ] the chosen home written, with the existing rulings in it
 - [ ] `npm run validate` green.

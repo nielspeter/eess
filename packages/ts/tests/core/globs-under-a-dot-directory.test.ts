@@ -39,6 +39,8 @@ import type { ArchProject } from '../../src/core/project.js'
 let base: string
 let underDot: ArchProject
 let plain: ArchProject
+/** A package whose tsconfig root is BELOW its identity root — see the disk-set case. */
+let nestedPackage: ArchProject
 
 /**
  * The same four files, written twice: once under a dot-segment, once not.
@@ -74,6 +76,17 @@ beforeAll(() => {
   base = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0339-'))
   underDot = writeFixture(path.join(base, '.tooldir', 'worktrees', 'app'))
   plain = writeFixture(path.join(base, 'plain', 'app'))
+
+  // A workspace marker at `monorepo/`, the project at `monorepo/packages/app/`:
+  // `discoverIdentityRoot` stops at the marker, `rootOf` answers the package.
+  const monorepo = path.join(base, 'monorepo')
+  fs.mkdirSync(monorepo, { recursive: true })
+  fs.writeFileSync(
+    path.join(monorepo, 'package.json'),
+    JSON.stringify({ name: 'monorepo', private: true, workspaces: ['packages/*'] }),
+  )
+  fs.writeFileSync(path.join(monorepo, '.gitignore'), 'node_modules\n')
+  nestedPackage = writeFixture(path.join(monorepo, 'packages', 'app'))
 })
 
 afterAll(() => {
@@ -145,6 +158,20 @@ describe('bug 0339: a project under a dot-directory', () => {
     // Non-vacuity: boundaries were actually discovered, so this is not two
     // identical failures agreeing with each other.
     expect(configFindings(underDot)).toEqual([])
+  })
+
+  it('tells the truth about what is on disk when the roots differ', () => {
+    // `diskSet` walks from `discoverIdentityRoot` — the `.git`/workspace root —
+    // while every rule-facing matcher names its second view from the TSCONFIG
+    // directory. This fixture is a package nested under a workspace marker, so
+    // the two differ, and `'src/**'` is a glob only the tsconfig root can
+    // satisfy. Reported in review: the first version of this test used a fixture
+    // where the two roots coincide, so it measured nothing about the gap.
+    expect(diskSet(nestedPackage).classify('src/**')).toBe('holds-typescript')
+    // The control: from the identity root the same glob names nothing, so this
+    // cannot pass by the walk having been rooted at the package all along.
+    expect(diskSet(nestedPackage).classify('packages/app/src/**')).toBe('holds-typescript')
+    expect(diskSet(nestedPackage).classify('**/no-such-dir/**')).toBe('absent')
   })
 
   it('tells the truth about what is on disk', () => {
@@ -305,6 +332,11 @@ function reportedBy(builder: {
     .filter((v) => v.bypassFilters !== true).length
 }
 
+/** One row per (surface, probe) — the `it.each` denominator, stated and floored below. */
+const PROBE_ROWS: readonly { file: string; probe: Probe }[] = Object.entries(PROBES).flatMap(
+  ([file, probes]) => probes.map((probe) => ({ file, probe })),
+)
+
 describe('every classified path-glob surface reads the same project from two paths', () => {
   // `'**/nowhere/**'` is here for the condition probes: a glob every file
   // matches leaves an allowlist satisfied, so without one that matches nothing
@@ -312,15 +344,24 @@ describe('every classified path-glob surface reads the same project from two pat
   // (rightly) fail.
   const globs = ['**/src/**', 'src/**', '**/*.ts', '**/domain/**', '**/b.ts', '**/nowhere/**']
 
-  it('every surface the census classifies has a probe here', () => {
+  it('every surface the census classifies has a probe that measures something', () => {
     // THE guard, and the one bug 0339 needed. A surface classified `'normalized'`
     // with nothing measuring it is how three of them stayed absolute-only through
     // two releases. `'fixed'` surfaces take the library's own constants, never a
     // caller's glob, so they have nothing to measure.
+    //
+    // `length === 0`, never `=== undefined`: an EMPTY array satisfied the
+    // undefined test, contributed no row to the `it.each` below, and left the
+    // surface measured by nothing — measured in review, by setting
+    // `'conditions/structural.ts': []` and reverting that file to the absolute
+    // path alone: this file went 22 → 20 passing and the whole suite stayed
+    // green. A denominator that can fall to zero while the guard reports success
+    // is the exact shape `check:nonvacuity` exists for one level up, and this
+    // table is the ONLY falsifier several of these surfaces have.
     const owed = Object.entries(CLASSIFIED)
       .filter(([, base]) => base !== 'fixed')
       .map(([file]) => file)
-      .filter((file) => PROBES[file] === undefined)
+      .filter((file) => (PROBES[file]?.length ?? 0) === 0)
     expect(owed).toEqual([])
   })
 
@@ -328,9 +369,14 @@ describe('every classified path-glob surface reads the same project from two pat
     expect(Object.keys(PROBES).filter((file) => CLASSIFIED[file] === undefined)).toEqual([])
   })
 
-  it.each(
-    Object.entries(PROBES).flatMap(([file, probes]) => probes.map((probe) => ({ file, probe }))),
-  )('$file · $probe.name', ({ probe }) => {
+  it('the table states its own denominator', () => {
+    // The floor `every-path-glob-surface-is-classified.test.ts` states for the
+    // census it reads, held to by the half that measures it. Without it the
+    // `it.each` can shrink row by row and still report a pass.
+    expect(PROBE_ROWS.length).toBeGreaterThanOrEqual(13)
+  })
+
+  it.each(PROBE_ROWS)('$file · $probe.name', ({ probe }) => {
     // Not vacuous by construction: at least one glob has to reach something,
     // or a surface broken for EVERY glob would pass this by symmetry — two
     // zeroes agree perfectly.

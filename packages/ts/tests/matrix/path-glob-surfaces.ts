@@ -11,11 +11,19 @@
  *
  * The second reader is why this file exists (bug 0339). The census asserted
  * `'normalized'` for `conditions/structural.ts`, `conditions/function.ts` and
- * `smells/smell-builder.ts` while all three matched the absolute path alone, and
- * nothing could tell: a classification with no mechanism is a comment with a
- * type annotation. Splitting the table out is what let a behavioural test bind
- * to the same list, so a new surface cannot be classified without also being
- * measured.
+ * `smells/smell-builder.ts` while the code under those keys matched the absolute
+ * path alone — for `smell-builder.ts` that is one of the two detectors it covers
+ * (`inconsistentSiblings`; `duplicateBodies` did normalize, since bug 0036), which
+ * is the sharper version of the point: one key, two behaviours, one letter of
+ * classification. Nothing could tell, because a classification with no mechanism
+ * is a comment with a type annotation. Splitting the table out is what let a
+ * behavioural test bind to the same list, so a new surface cannot be classified
+ * without also being measured.
+ *
+ * **A module, never a suite.** `vitest.config.ts` excludes `tests/matrix/**` and
+ * `vitest.matrix.config.ts` claims it, so a file named `*.test.ts` in this
+ * directory is dropped from `npm test` and collected only by `test:matrix`. This
+ * file is safe because it is not one; do not rename it into one.
  */
 import fs from 'node:fs'
 import path from 'node:path'
