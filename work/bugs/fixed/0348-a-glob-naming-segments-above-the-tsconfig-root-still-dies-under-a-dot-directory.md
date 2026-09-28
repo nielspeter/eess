@@ -171,6 +171,24 @@ never match anything, and here is the cause" — into the generic floor one. Tha
 still worth the gate, because ADR-009 rule 2 is about naming the true cause, but it
 is not the thing the first draft said it was.
 
+**Enforcement review pressed on this correction and found something next to it.**
+Its reading was that the correction under-sells the gate — that for a `.notExist()`
+rule the ungated version was a genuine false green and the gate rescues it.
+Measured, through the real `project()`, with the gate forced on and off:
+
+| rule shape                      | gate ON                            | gate OFF               |
+| ------------------------------- | ---------------------------------- | ---------------------- |
+| `…should().notImportFrom(x)`    | 1 — dead selector, names the cause | 1 — the floor, generic |
+| `…should().satisfy(notExist())` | **0**                              | **0**                  |
+
+So the gate makes no difference to a cardinality rule: `deadSelectorFindings`
+exempts those too, not just the floor (`vacuity-diagnosis.ts:253-255`, so that
+`doctor` and `check` cannot disagree). The correction above stands for the shapes
+this gate affects. What the review actually found is a defect of its own — a
+`.notExist()` rule whose selector silently empties is green either way, and nothing
+in the stack catches it — filed as
+[0355](../0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md).
+
 The tsconfig view needs no such gate, and that too was measured rather than
 assumed: the globs the matcher withholds it from (`'*/x/**'`, anything with a
 `'./'` segment) are caught by `syntacticFault` before any view is consulted, so
@@ -395,3 +413,8 @@ this bug keeps the scope it started with:
 - [0354](../0354-the-glob-view-doctrine-is-settled-in-three-bug-records-and-no-adr.md)
   — "a verdict must not be decided by where things sit on disk" now decides three
   bugs (0339, 0348, 0349) and lives in no ADR.
+- [0355](../0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
+  — a `.notExist()` / `.expectEmpty()` rule is exempt from both the dead-selector
+  diagnosis and the evidence floor, so a silently-emptied selector is green with or
+  without this fix. A true false green, and the shape most likely to host one: a
+  ratchet nobody looks at.
