@@ -8,6 +8,8 @@ const universe: PathUniverse = {
   parentDirs: ['/root/src/domain'],
   tsconfigRelativeFilePaths: ['src/domain/user.ts'],
   tsconfigRelativeParentDirs: ['src/domain'],
+  identityRelativeFilePaths: ['apps/api/src/domain/user.ts'],
+  identityRelativeParentDirs: ['apps/api/src/domain'],
 }
 
 function site(glob: string, extra: Partial<GlobSite> = {}): GlobSite {

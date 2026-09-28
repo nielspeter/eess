@@ -274,6 +274,8 @@ describe('rule scope (bug 0011)', () => {
       parentDirs: all.parentDirs.filter(keep),
       tsconfigRelativeFilePaths: all.tsconfigRelativeFilePaths.filter(keep),
       tsconfigRelativeParentDirs: all.tsconfigRelativeParentDirs.filter(keep),
+      identityRelativeFilePaths: all.identityRelativeFilePaths.filter(keep),
+      identityRelativeParentDirs: all.identityRelativeParentDirs.filter(keep),
     }
 
     const dead: string[] = []

@@ -40,7 +40,9 @@
  * the glob keeps its absolute-only meaning rather than being matched against
  * something invented.
  */
+import path from 'node:path'
 import picomatch from 'picomatch'
+import { discoverIdentityRoot } from '@nielspeter/eess/internal'
 import type { Project as TsMorphProject, SourceFile } from 'ts-morph'
 
 /**
@@ -264,6 +266,108 @@ export function relativeToRoot(
 }
 
 /**
+ * The identity root above a tsconfig directory, memoized.
+ *
+ * `discoverIdentityRoot` walks the filesystem with `existsSync`, and this sits
+ * on the per-element match path, so it is cached by the directory asked about.
+ * The cache is keyed by an absolute directory and holds at most one entry per
+ * loaded project, so it is bounded by the rule file rather than by the corpus.
+ *
+ * The guard is on the INPUT, exactly as `disk-set.ts` does it and for the same
+ * reason: `discoverIdentityRoot` calls `path.resolve`, so a relative input —
+ * this suite's `'in-memory'` double, an `ArchProject` a user constructed by hand
+ * — would walk up from the current working directory and answer with THIS
+ * repository's root. That is a plausible-looking wrong answer rather than a
+ * missing one, which is the shape ADR-009 rule 2 forbids.
+ */
+const identityRootCache = new Map<string, string | undefined>()
+
+function identityRootOfDir(dir: string): string | undefined {
+  if (identityRootCache.has(dir)) return identityRootCache.get(dir)
+  const discovered = path.isAbsolute(dir)
+    ? discoverIdentityRoot(dir).replaceAll('\\', '/')
+    : undefined
+  identityRootCache.set(dir, discovered)
+  return discovered
+}
+
+/**
+ * The identity root for a project, from the path of its tsconfig.
+ *
+ * For the materializer in `path-universe.ts`, which holds the `ArchProject` and
+ * no `SourceFile`. It must agree with `matchesPath`'s view or the diagnosis and
+ * the runtime disagree about one glob — so both derive it here.
+ */
+export function identityRootOf(tsConfigPath: string): string | undefined {
+  const root = rootFromTsConfigPath(tsConfigPath)
+  return root === undefined ? undefined : identityRootOfDir(root)
+}
+
+/**
+ * `absolutePath` named from the identity root — the `.git`/workspace root above
+ * the tsconfig — or `undefined` when there is no such root or the path sits
+ * outside it.
+ *
+ * This is the view a monorepo's own addressing needs: `'**\/apps/api/src/**'`
+ * names segments BETWEEN the repository root and the tsconfig directory, so the
+ * tsconfig-relative view has stripped off the very thing it names.
+ */
+export function relativeToIdentityRoot(
+  sourceFile: SourceFile,
+  absolutePath: string,
+  fallbackTsConfigPath?: string,
+): string | undefined {
+  const tsConfigRoot = rootOf(sourceFile, fallbackTsConfigPath)
+  if (tsConfigRoot === undefined) return undefined
+  const identityRoot = identityRootOfDir(tsConfigRoot)
+  if (identityRoot === undefined) return undefined
+  const prefix = prefixOf(identityRoot)
+  return absolutePath.startsWith(prefix) ? absolutePath.slice(prefix.length) : undefined
+}
+
+/**
+ * Is this glob matched against the path named from the identity root, as well as
+ * the two views above?
+ *
+ * ## Globstar-led only, and that is the whole ruling — bug 0348
+ *
+ * `'**\/x'` says **anywhere**. The only reason it fails to match a file under a
+ * checkout like `~/.worktrees/repo` is picomatch's default `dot: false` applied
+ * to a prefix the author does not own — where the repository happens to sit on
+ * this machine. Naming the path from the repository root removes exactly that
+ * prefix and nothing else, so the glob gets to mean what it says. It is the same
+ * authorship argument [bug 0349](../../../../work/bugs/fixed/0349-a-path-shaped-dependency-ban-passes-silently-under-pnpm-and-yarn.md)
+ * makes for a package manager's layout: a verdict must not be decided by where
+ * things sit on disk.
+ *
+ * A **project-relative** glob (`'src/**'`) is deliberately excluded, and this is
+ * the exclusion that keeps the fix from being a widening. That spelling MEANS
+ * "relative to the project root", and `core/project-relative.ts`'s first job is
+ * that the project root is the tsconfig's directory. Offering it an identity-root
+ * view would make one spelling name two different directories in a monorepo —
+ * `packages/api/src/` and the repository's own `src/` — which is a second meaning
+ * for one glob with no bug behind it. Pinned by `a-glob-above-the-tsconfig-root.test.ts`
+ * · `it('CONTROL: a glob relative to the package root keeps meaning the package root')`.
+ *
+ * Project-relative globs need nothing here anyway: their second view is already
+ * free of the checkout path, which is why bug 0339 fixed them and left this.
+ *
+ * ## Why this adds no matches except the broken ones
+ *
+ * The identity-relative path is a SUFFIX of the absolute path. For a glob led by
+ * `'**\/'`, if it matches the suffix it also matches the whole — unless some
+ * segment of the stripped prefix begins with `.`, which is precisely the defect.
+ * So under a checkout with no dot-segment the third view selects nothing the
+ * first did not. Measured rather than argued: `it('adds no match under a
+ * checkout with no dot-segment')` compares every file in a fixture with the view
+ * on and off.
+ */
+export function readsIdentityRelativePath(glob: string): boolean {
+  if (hasRelativeSegment(glob)) return false
+  return isGlobstarLed(glob)
+}
+
+/**
  * Is this glob matched against the path named from the project root, as well as
  * the absolute path?
  *
@@ -334,11 +438,17 @@ export interface PathGlobMatcher {
   readonly glob: string
   readonly isMatch: picomatch.Matcher
   readonly readsRootRelative: boolean
+  readonly readsIdentityRelative: boolean
 }
 
 /** Compile one path glob. */
 export function pathGlobMatcher(glob: string): PathGlobMatcher {
-  return { glob, isMatch: picomatch(glob), readsRootRelative: readsRootRelativePath(glob) }
+  return {
+    glob,
+    isMatch: picomatch(glob),
+    readsRootRelative: readsRootRelativePath(glob),
+    readsIdentityRelative: readsIdentityRelativePath(glob),
+  }
 }
 
 /** Compile several path globs, in order. */
@@ -377,9 +487,17 @@ export function matchesPath(
   fallbackTsConfigPath?: string,
 ): boolean {
   if (matcher.isMatch(absolutePath)) return true
-  if (!matcher.readsRootRelative) return false
-  const fromRoot = relativeToRoot(sourceFile, absolutePath, fallbackTsConfigPath)
-  return fromRoot !== undefined && matcher.isMatch(fromRoot)
+  if (matcher.readsRootRelative) {
+    const fromRoot = relativeToRoot(sourceFile, absolutePath, fallbackTsConfigPath)
+    if (fromRoot !== undefined && matcher.isMatch(fromRoot)) return true
+  }
+  // The third view, and the last one — bug 0348. Tried after the tsconfig root
+  // because that is the narrower answer: a glob naming a location inside the
+  // package should be decided by the package, and only a glob that says
+  // "anywhere" reaches this line at all (`readsIdentityRelativePath`).
+  if (!matcher.readsIdentityRelative) return false
+  const fromIdentityRoot = relativeToIdentityRoot(sourceFile, absolutePath, fallbackTsConfigPath)
+  return fromIdentityRoot !== undefined && matcher.isMatch(fromIdentityRoot)
 }
 
 /**

@@ -235,6 +235,9 @@ export const NOT_CHECKS: readonly string[] = [
   '.:finishPreset',
   '.:pathUniverse',
   '.:relativeToRoot',
+  // Bug 0348's identity-root siblings of the two above: path derivations, not rules.
+  '.:relativeToIdentityRoot',
+  '.:identityRootOf',
   '.:reportViolations',
   '.:rootFromTsConfigPath',
   '.:rootOf',
