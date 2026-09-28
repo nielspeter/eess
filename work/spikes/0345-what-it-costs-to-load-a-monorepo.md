@@ -248,14 +248,99 @@ They rank the levers; they do not predict the number there.
   dropped.** There is now a measurement, and it says the rules are not where the
   memory is.
 
+## The third gap: which rules need resolution — measured, and the answer is not a list of rules
+
+The spike says its ruling needs "the missing measurement: which rules actually need
+resolution". Taken 2026-09-28. The answer is that **the question is the wrong shape**,
+and finding that out is the result.
+
+### Statically: 51 of 139 exports reach a resolution primitive
+
+Transitive import reachability over `packages/ts/src`, from every exported
+condition and predicate to any call of `getModuleSpecifierSourceFile`,
+`findReferencesAsNodes`, `getTypeAtLocation` or `getSymbol`:
+
+|                              | modules | exports |
+| ---------------------------- | ------- | ------- |
+| reach a resolution primitive | 10      | **51**  |
+| do not                       | 17      | **88**  |
+
+The ten: `conditions/dependency` (11), `predicates/class` (8), `conditions/slice` (7),
+`predicates/module` (7), `conditions/class` (6), `predicates/type` (5),
+`conditions/reverse-dependency` (3), `conditions/catch-analysis` (2),
+`conditions/pattern` (1), `conditions/type-level` (1) — reached via
+`core/import-candidates`, `core/module-edges`, `helpers/heritage`, or a direct
+checker call.
+
+**37% of the surface breaks outright.** That alone answers "expose the flag": no.
+
+### The other 63% do not break, and that is the more dangerous half
+
+`skipFileDependencyResolution` does not only disable a lookup. **It changes which
+files are in the Program**, so a purely syntactic rule keeps working and silently
+reads a smaller corpus. Measured on this repository's own `packages/ts`:
+
+| configuration                        | source files |
+| ------------------------------------ | ------------ |
+| default                              | **781**      |
+| `skipFileDependencyResolution: true` | **725**      |
+
+56 files, 7.2%. Three rules — one from each class — run over both, selector
+`'**/src/**'`:
+
+| rule                               | resolution on           | off                     |
+| ---------------------------------- | ----------------------- | ----------------------- |
+| `moduleNotContain(call('eval'))`   | 356 examined, 5 found   | 356 examined, 5 found   |
+| `notImportFrom(node_modules glob)` | 356 examined, 0 found   | 356 examined, 0 found   |
+| `haveNoUnusedExports()`            | 356 examined, 350 found | 356 examined, 350 found |
+
+**Every cell identical — and that result is an artefact of this corpus, not a
+finding about the flag.** The 56 files are 55 `packages/core/dist/*.d.ts` plus one
+`scripts/lib/*.d.mts`: this repo's cross-package imports resolve to a sibling's
+**built declarations**, which no rule selector names. The adopter's 844 added files
+were, in this spike's own words, "the adopter's own sources, reached across package
+boundaries" — because their monorepo resolves cross-package imports to **source**.
+
+So the second row above is vacuous too: no `node_modules` file is in the Program at
+all (`own == total`, as the earlier table already reported), so that rule had nothing
+to lose either way. Recorded rather than dropped, because a green cell that measures
+nothing is the thing this project exists to catch, and this table produced three of
+them.
+
+### What that settles
+
+**The answer is not a property of the rules. It is a property of the adopter's
+module resolution.**
+
+| cross-package imports resolve to | what resolution adds | effect of the flag on the 63%   |
+| -------------------------------- | -------------------- | ------------------------------- |
+| built declarations (this repo)   | 56 `.d.ts`, 7%       | no rule subject lost            |
+| source (the adopter)             | 844 `.ts`, 31%       | those files stop being subjects |
+
+Which means:
+
+- **Exposing the flag is unsafe**, and not only because of the 37%. For the other
+  63% it changes the answer silently, by an amount no rule author can see.
+- **Deriving it from the declared rules is also unsafe.** The rules do not carry the
+  information; the resolution topology does.
+- **It is decidable, just not from the rules.** Build the project both ways once,
+  diff the file sets, and ask whether any declared selector matches a file that only
+  resolution adds. This spike did exactly that in twenty lines. That makes it a
+  **diagnostic** — explicitly invoked, per ADR-009 rule 1's migration corollary, not
+  a warning nobody reads — that can give each adopter their own answer instead of
+  eess guessing on their behalf.
+
+**This repository cannot answer the question for anyone else**, which is the same
+caveat the spike opened with ("the corpus is deliberately not this repository") and
+which this measurement has now demonstrated rather than asserted.
+
 ## What this spike still does not answer
 
-- **Whether `skipFileDependencyResolution` is safe.** `candidatesFor`
-  (`packages/ts/src/core/import-candidates.ts`) resolves a module specifier through
-  `decl.getModuleSpecifierSourceFile()`, so every import and dependency rule
-  depends on resolution, and type-level rules need the checker. The population of
-  rules that genuinely need it is unmeasured, and that is the question a fix turns
-  on.
+- ~~**Whether `skipFileDependencyResolution` is safe.**~~ **Measured** — see "the
+  third gap" above. 51 of 139 exports break outright, and the other 88 change
+  answer silently by an amount that depends on the adopter's module resolution
+  rather than on the rule. Not exposable, not derivable from the rules, decidable
+  as a diagnostic.
 - **Whether peak or steady state matters** for a runner hosting four jobs. The flag
   is a ceiling, not a reservation.
 - **What any of this is worth on Linux.** Every adopter figure here is macOS RSS.
@@ -264,20 +349,30 @@ They rank the levers; they do not predict the number there.
 
 Three candidates, none costed beyond the table above:
 
-- **Expose the ts-morph options.** Cheapest, and it moves the decision to the
-  adopter — who cannot know which of their rules need resolution either. A
-  footgun with a 72% prize on it.
-- **Derive it.** Decide per run whether resolution is needed by asking the
-  declared rules — the glob/`GlobSite` model already makes a rule's needs
-  partly inspectable, and ADR-010's evidence discipline means a rule that
-  silently needed resolution would have to fail rather than pass thin.
+- ~~**Expose the ts-morph options.**~~ **Ruled out by measurement.** 51 of 139
+  exported conditions and predicates reach a resolution primitive and break
+  outright; the remaining 88 keep working over a smaller corpus, silently, by an
+  amount set by the adopter's resolution topology. The draft called it "a footgun
+  with a 72% prize on it" and was right about the footgun.
+- ~~**Derive it** by asking the declared rules.~~ **Ruled out by measurement**, and
+  for a reason the draft did not anticipate: the rules do not carry the
+  information. Whether the files resolution adds are rule subjects is a property of
+  how the adopter's cross-package imports resolve — to built declarations or to
+  source — and no inspection of a rule can see that. **What replaces it is a
+  diagnostic:** build both ways once, diff the file sets, report whether any
+  declared selector matches a file only resolution adds. Explicitly invoked, per
+  ADR-009 rule 1's migration corollary.
 - **Share a file cache between `project()` and `workspace()`.** Invisible to rule
   authors. The case for it is the section above: an adopter who needs both shapes
   holds both, and they share nothing. Bounded — AST and file text can be shared,
   per-Program type structures cannot — so size it before building it.
 
-**Nothing is decided here.** The next step is a ruling on which of the three, and
-that ruling needs the missing measurement: which rules actually need resolution.
+**Two of the three are now ruled out by measurement**, and the measurement the
+ruling was waiting on has been taken. What remains is a choice between **sharing a
+file cache** (bounded, unsized) and **`project()` as a view onto `workspace()`**
+(measured at ~65% of per-Program cost, blocked on named-handle scoping and
+per-package compiler options), plus the **diagnostic** that replaces the derive
+candidate. That is a decision, not a measurement gap.
 
 ## Related
 
