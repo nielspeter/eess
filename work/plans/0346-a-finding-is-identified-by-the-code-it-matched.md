@@ -12,7 +12,12 @@
   match moves.
 - **Created:** 2026-09-28
 - **Receives:** [bug 0338](../bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md),
-  whose `## Fix` carries the derivation and the spike. This plan builds it.
+  whose `## Fix` carries the derivation and the spike. This plan builds it — **and
+  does not close it.** 0338 keeps its own box for the `PropertyAssignment`
+  sub-problem, which none of these phases addresses, so the record stays open after
+  this plan ships. Said explicitly because a reader would otherwise assume the
+  opposite, and two Out-of-scope items below are homed on boxes in a record that
+  must therefore not be frozen.
 
 ## Problem
 
@@ -84,25 +89,6 @@ it:
 A spike scored four candidates over seven edits — five a baseline must tolerate,
 two where it must break. Node shape is the only one that is **7/7** (position 5/7,
 raw text 6/7, line 3/7). The table is in 0338.
-
-## Phase 0 — the ruling gets an ADR
-
-Per [bug 0330](../bugs/0330-what-a-rule-reads-is-ruled-in-archived-bug-records.md),
-a binding rule the next change must follow does not belong in a bug record. This
-one is adopter-visible, it constrains every future condition that reports a match,
-and 0338 will be frozen the moment it closes.
-
-Write **ADR-016 — a finding is identified by the code it matched**, with the tiered
-`## Enforcement` table the ADR gate requires. Clauses to enforce, at minimum:
-
-- identity is derived from the matched node's shape; position appears only to
-  separate byte-identical shapes
-- no condition may mint an identity from a line number
-- a producer that cannot derive an identity refuses to baseline rather than
-  inventing one (Phase 2)
-
-**Files:** `adr/016-…md`, the ADR index table in `CLAUDE.md`, `README.md`'s ADR
-table if it lists them.
 
 ## Phase 1 — identity gains the node's shape; it does not trade the scope away
 
@@ -354,6 +340,39 @@ remedy that overstates what it achieved is not one.
 **Files:** a `baseline --migrate` path or a one-shot script,
 `docs/migrating-to-0.9.md`, the changeset.
 
+## Phase 4 — the ruling gets an ADR, written last on purpose
+
+Per [bug 0330](../bugs/0330-what-a-rule-reads-is-ruled-in-archived-bug-records.md),
+a binding rule the next change must follow does not belong in a bug record that is
+about to be frozen. **ADR-016 — a finding is identified by the code it matched.**
+
+**It is last, not first, and an earlier draft had it first.** Method review named
+the cost: an ADR written before its mechanisms exist lands every row of its
+Enforcement table at `pending` by construction — and this repo has already paid
+that bill once. `work/plans/completed/0263-adr-014s-residual-enforcement-rows.md`
+is a five-phase plan across four PRs whose entire job was clearing ADR-014's
+`pending` rows, closing on "ADR-014 ends with **no `pending` rows**". Writing
+0016 after Phases 1–3 means each row cites a mechanism that exists and lands
+`gated`.
+
+Clauses to enforce, at minimum:
+
+- identity is derived from the matched node's shape; position appears only to
+  separate byte-identical shapes within one scope
+- no condition may mint an identity from a line number
+- a producer with a path available uses it rather than a basename (Phase 2)
+
+**Authored through the prescribed route.** CLAUDE.md prescribes the
+`eess-adr-author` skill for translating a clause into a mechanism and
+`eess-adr-validate` for the adversarial check, or
+`.claude/workflows/adr-enforce.mjs` to run both as separate agents on different
+models. That separation matters more here than usually: the ADR's author is also
+the builder of the mechanism it binds, so nobody would otherwise be checking the
+translation who had not written it.
+
+**Files:** `adr/016-…md`, the ADR index table in `CLAUDE.md`, `README.md`'s ADR
+table if it lists them.
+
 ## Out of scope
 
 - **The element _name_ for an object-literal match.** A throw in
@@ -362,10 +381,15 @@ remedy that overstates what it achieved is not one.
   Phase 1 fixes its **identity**; what remains is the displayed name and what
   `.excluding()` matches on. Separable, and it stays on 0338 as its own box.
 - **Sharing the name derivation with `arch-function.ts`.** The good name exists
-  (`owningBindingName` plus the collected key path) and is module-private. Exposing
-  it is the right fix for the line above and is its own change.
+  (`owningBindingName` plus the collected key path) and is module-private. This is
+  **already the second candidate inside that same 0338 box**, not a new deferral —
+  the box lists teaching `getStructuralName` and sharing this derivation as its two
+  options.
 - **Whether `.excluding()` and `// eess-exclude` should key on identity too.**
-  Larger, and it needs its own measurement.
+  Larger, and it needs its own measurement. **This one has no home yet**, and a
+  deferral with a blank home is the failure this plan's own ADR phase cites 0330
+  for — so it carries a ledger box below rather than sitting here unowned. It must
+  get a record, or a recorded reason it dissolves, before this plan freezes.
 
 ## Success
 
@@ -394,7 +418,9 @@ remedy that overstates what it achieved is not one.
 
 ## Progress ledger
 
-- [ ] Phase 0 — ADR-016, with its Enforcement table
+- [ ] Phase 4 — ADR-016, authored via `adr-enforce.mjs` so author ≠ validator
+- [ ] Phase 4 — **no `pending` rows** when it closes, which is why it is last
+      (plan 0263 is the precedent for what a `pending` row costs later)
 - [ ] Phase 1 — shape composed **into** the identity, pinned by the seven-edit
       table AND by the cross-declaration case review measured
 - [ ] Phase 3 — the migration joins on the old-scheme hash, never on the line
@@ -416,6 +442,8 @@ remedy that overstates what it achieved is not one.
       0 violations), so the input is a third party's tree. Named here rather than
       left to look tickable — and it must not gate the freeze, because nothing
       this plan does can produce it.
+- [ ] the `.excluding()` / `eess-exclude` question gets a record, or a recorded
+      reason it dissolves — it is the one Out-of-scope item with no home
 - [ ] a changeset — breaking; every baseline moves
 - [ ] `npm run validate` green
 

@@ -18,14 +18,19 @@
 **The digest exists and is good.** `docs/tests-cannot-lie.md:22-29` names the
 doctrine clause by clause, with links: ADR-010's `{ violations, examined }`,
 ADR-014's evidence at every seam, **ADR-009 Rule 1 by its own title** ("Actionable
-findings fail; they never warn"), Rule 2, Rule 4, and ADR-014 §5's fail-closed
-`.warn()`.
+findings fail; they never warn") and Rule 2. Rule 4 and ADR-014 §5's fail-closed
+`.warn()` are eighty lines further on, at `docs/tests-cannot-lie.md:108-109`.
+
+_An earlier version of this record cited `:22-29` for all six._ `check:corpus`
+stayed green over it because the pointer gate proves a line **exists**, not that it
+says what the citing sentence claims — this repo's own bugs 0138 and 0215, and a
+second instance of the class this record is about.
 
 Two measured gaps:
 
-| | |
-| --- | --- |
-| `grep -c "tests-cannot-lie" CLAUDE.md` | **0** |
+|                                                 |       |
+| ----------------------------------------------- | ----- |
+| `grep -c "tests-cannot-lie" CLAUDE.md`          | **0** |
 | `grep -ic "migration" docs/tests-cannot-lie.md` | **0** |
 
 1. **The digest is unreachable from the always-loaded file.** `CLAUDE.md` carries
@@ -33,8 +38,8 @@ Two measured gaps:
    for ADR-009 reads "A check that cannot fail is worth less than no check. Ported
    from `ts-archunit` ADR-008; **six binding rules**" — it says six rules exist and
    points at a 360-line document, and nothing links to the digest that lists them.
-2. **One binding clause is in no digest at all.** ADR-009 Rule 1's *migration
-   corollary* — "a migration's measuring instrument cannot be a warning either…
+2. **One binding clause is in no digest at all.** ADR-009 Rule 1's _migration
+   corollary_ — "a migration's measuring instrument cannot be a warning either…
    the release that only warns is the release nobody reads", which then prescribes
    an explicitly invoked diagnostic — appears nowhere but inside Rule 1. A reader
    planning a migration has no path to it.
@@ -44,7 +49,7 @@ Two measured gaps:
 Drafting plan 0346, with `CLAUDE.md` in context throughout:
 
 - The plan asserted **"nothing added here warns"** as an absolute. ADR-009 Rule 1
-  states the opposite discriminator explicitly — the test is whether the *remedy*
+  states the opposite discriminator explicitly — the test is whether the _remedy_
   is optional, and `recommended` ships two rules at warn deliberately for that
   reason. The absolute also contradicts [ADR-003](../../adr/003-fluent-builder-dsl.md),
   which makes `.warn()` a first-class terminal.
@@ -65,6 +70,19 @@ rules plus corollaries, a one-line takeaway is not an index — it is a title.
 
 `docs/tests-cannot-lie.md` already solved this, well, and unlinked.
 
+**And half the failure is not the documentation's.** `CLAUDE.md:54` — in the file
+this record says is in every agent's context by construction — reads, in bold:
+_"**Before writing ANY code or plan, check the ADRs.** Every ADR is binding."_ The
+always-loaded file **did** instruct the step that was skipped. What it did not do is
+make the clause cheap to reach.
+
+Recorded because this record was written by the author of the error it reports, and
+the first version located the failure entirely in the documentation's reach. A
+reader of that version would conclude the process was blameless. It was not: the
+instruction existed, in bold, in the file that was loaded. The reach gap is real and
+worth fixing regardless — the migration corollary is in no digest at all — but it is
+the second half of the cause, not the whole of it.
+
 ## Fix
 
 Not decided; the cheap shape is clear and it is **not** a new ADR.
@@ -76,7 +94,7 @@ Not decided; the cheap shape is clear and it is **not** a new ADR.
   a decision anyone shipping a breaking gate faces, and it is currently reachable
   only by reading Rule 1 to the end.
 - **The open question:** whether the index rows for the multi-rule ADRs (009 six
-  rules, 010, 014) should name what their rules *cover* rather than restate the
+  rules, 010, 014) should name what their rules _cover_ rather than restate the
   headline — "warn vs fail, remedies, snapshots, migrations" is a path in; "a check
   that cannot fail is worth less than no check" is a slogan. That is more words in
   a file whose size is itself a cost, which is why it is a question and not a

@@ -17,6 +17,12 @@ the memory the adopter is budgeting for something we could avoid?
 across measurements, peak `process.memoryUsage().rss` after constructing every
 project and calling `getSourceFiles()`.
 
+**Units: every figure here is MiB** — `rss` returns bytes and the probe divides by
+`1048576`. The adopter's own number comes from `/usr/bin/time`, which reports KiB,
+so it is MiB too. Stated because an earlier version labelled the local tables "MB"
+and the adopter's "MiB", then derived a percentage across the two. The percentage
+was right, because both were MiB — but the record could not have told you that.
+
 A first attempt ran all configurations in **one** process and is discarded: the
 heap figures accumulated, and `skipLoadingLibFiles` read _higher_ than the
 defaults, which is impossible. Recorded because the number looked plausible and
@@ -27,13 +33,17 @@ with almost no runtime dependencies; it cannot exhibit the shape under test.
 
 ## Headline numbers
 
-| configuration                       | source-file instances | peak RSS          |
-| ----------------------------------- | --------------------- | ----------------- |
-| one project                         | 1,076                 | 728 MB            |
-| **all twelve, as the adopter runs** | **2,682**             | **2,320 MB**      |
-| `skipLoadingLibFiles`               | 2,682                 | 2,175 MB (−6%)    |
-| `skipFileDependencyResolution`      | 1,838                 | **661 MB (−72%)** |
-| both                                | 1,838                 | 659 MB            |
+**Population: the twelve package tsconfigs** — a **subset** of what `projects.ts`
+actually loads. See the fifteen-project table below; the two are different
+measurements and this record says which is which wherever it compares them.
+
+| configuration                       | source-file instances | peak RSS           |
+| ----------------------------------- | --------------------- | ------------------ |
+| one project                         | 1,076                 | 728 MiB            |
+| **all twelve, as the adopter runs** | **2,682**             | **2,320 MiB**      |
+| `skipLoadingLibFiles`               | 2,682                 | 2,175 MiB (−6%)    |
+| `skipFileDependencyResolution`      | 1,838                 | **661 MiB (−72%)** |
+| both                                | 1,838                 | 659 MiB            |
 
 **Dependency resolution is nearly the whole cost.** Lib files are noise beside it.
 
@@ -84,19 +94,22 @@ each answers a need the other cannot:
 | per-package rules that cannot drift (`modules(cell)`, `modules(sdk)`) | fifteen named `project()` handles |
 | cross-workspace `noUnusedExports()` / `beImported()`                  | one `workspace()` Program         |
 
-Measured, peak RSS, isolated processes, using the real calls:
+Measured, peak RSS, isolated processes, using the real calls. **Population: all
+fifteen `project()` calls plus the workspace** — the file's real contents, where the
+table above covers twelve packages only. It was measured before this record had read
+past `projects.ts`'s first block.
 
-| what `projects.ts` loads                | peak RSS     |
-| --------------------------------------- | ------------ |
-| the fifteen `project()` instances alone | 2,943 MB     |
-| `fullWorkspace` alone                   | 1,040 MB     |
-| **both, as the file does today**        | **3,729 MB** |
+| what `projects.ts` loads                | peak RSS      |
+| --------------------------------------- | ------------- |
+| the fifteen `project()` instances alone | 2,943 MiB     |
+| `fullWorkspace` alone                   | 1,040 MiB     |
+| **both, as the file does today**        | **3,729 MiB** |
 
 **3.7 GB before a single rule executes** — which revises this spike's own earlier
 framing. Loading is roughly two-thirds of their ~6 GB step, not one-third.
 
 **One Program for fifteen configs costs ~65% less than fifteen Programs**
-(1,040 vs 2,943 MB). That is far more than the ~24% predicted from the 1.31×
+(1,040 vs 2,943 MiB). That is far more than the ~24% predicted from the 1.31×
 instance duplication, and the prediction used the wrong proxy: per-Program
 _fixed_ overhead dominates — fifteen lib sets, fifteen compiler hosts, fifteen
 sets of type structures. Duplicate file instances were never the main cost.
@@ -135,10 +148,19 @@ read this spike and replied that `skipFileDependencyResolution`, "if it lands, i
 the real memory fix for us" — so a candidate here is on someone's critical path.
 
 **They were told not to plan around it**, and the reason is the gap this spike
-already declares: 72% is a _parse-time_ saving, and roughly two-thirds of their
-footprint is rules executing plus vitest, which no flag here touches. Their own
-diagnosis also points at a kernel OOM under four concurrent runners on one 16 GB
-box — a scheduling ceiling that no eess-side change can lift.
+already declares: 72% is a _parse-time_ saving.
+
+> **A previous version of this paragraph continued "and roughly two-thirds of their
+> footprint is rules executing plus vitest, which no flag here touches." That was a
+> guess and it was wrong in the wrong direction** — the adopter's measurement, below,
+> puts loading at 60.6% of peak. It is marked here rather than deleted because the
+> guess is what the section is about: the spike's value was in refusing to claim the
+> number, and this sentence claimed it anyway.
+
+The advice it supported is unaffected, and rests on the other half: their diagnosis
+points at a kernel OOM under four concurrent runners on one 16 GB box — a scheduling
+ceiling no eess-side change can lift. 60% of 6 GiB is still 6 GiB when four run at
+once.
 
 The measurement that would close this spike's largest gap is theirs to take and
 was asked for: peak RSS of the arch step **as it actually runs**
