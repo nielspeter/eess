@@ -1,5 +1,123 @@
 # @nielspeter/eess-ts
 
+## 0.9.0
+
+### Minor Changes
+
+- 22bd95d: A path glob can name segments above the tsconfig root
+
+  **Breaking (@nielspeter/eess, @nielspeter/eess-ts):** a path glob led by `**/` is now
+  matched against a third spelling of each path — the path named from your **repository
+  root** (the nearest `.git` or workspace marker above the tsconfig) — as well as the
+  absolute path and the tsconfig-relative one.
+
+  **Are you affected?** Yes if your checkout path contains a dot-segment
+  (`~/.worktrees/…`, a cache directory, some CI workspaces) **and** any rule spells a
+  `**/` glob naming a package directory, such as `'**/apps/api/src/**'`.
+
+  **Find out before you upgrade.** Run your gates on the version you have and count the
+  selectors reporting "can never match anything in this project". Those are the rules
+  that go live. An adopter measured 61 of them in a dot-directory worktree against 0 in
+  a plain one — and, worse, one rule that caught a planted import in the plain run and
+  **passed** in the dot run.
+
+  **When you upgrade:** run your gates and **read the new findings before you regenerate
+  a baseline.** Regenerate first and you bake the vacuous pass in permanently.
+
+  Fixes [bug 0348](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md).
+  `'**/apps/api/src/**'` — how a monorepo addresses its own packages — selected
+  **nothing** under such a checkout, and the rule **passed**. Neither existing spelling
+  could express it: the absolute path carries the checkout's dot-segment, which
+  picomatch's default `dot: false` will not let `**` cross, and the tsconfig-relative
+  path has `apps/api/` stripped off the front — the very segments the glob names.
+  eess-ts 0.8.0 shipped
+  [0339](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0339-globs-match-nothing-when-the-project-sits-under-a-dot-directory.md)
+  as the fix for this symptom and covered only globs written relative to a package root.
+
+  **What changes for you.** Under an ordinary checkout, nothing: the repo-relative path
+  is a suffix of the absolute path and `**` crosses any dot-free segment, so the third
+  spelling selects nothing the first did not — measured over a fixture rather than
+  argued. Under a checkout with a dot-segment above the repository root, globs that
+  silently matched nothing now match, so **a rule that was passing vacuously can start
+  failing and a baseline can gain entries.** That is the defect being fixed, and it is
+  why this is a break rather than a patch.
+
+  A **project-relative** glob (`'src/**'`) is deliberately unchanged: that spelling means
+  "relative to the project root", the project root is the tsconfig's directory, and giving
+  it a second root would make one glob name two different directories in a monorepo. Only
+  the `**/` spelling, which says "anywhere", reaches above the tsconfig.
+
+  The third spelling is only as stable as your repository root. `.git` absent and no
+  workspace marker — a Docker build, a `git archive` tarball, some CI source artifacts —
+  resolves the package instead, and the spelling collapses onto the tsconfig-relative
+  one. It is only ever additive, so nothing breaks; a rule can select differently in CI
+  than locally.
+
+  **API, for anyone building on the kernel:** `PathUniverse` gains two **required**
+  fields, `repoRelativeFilePaths` and `repoRelativeParentDirs`, and `viewsFor` gains a
+  **required** third parameter saying whether the matcher reads them. Both are required
+  rather than optional on purpose — a caller that forgets would get the generous union,
+  and a view the matcher has and the universe lacks reports a working rule as one that
+  "can never match anything in this project". `viewsFor` ships from
+  `@nielspeter/eess/internal`, so an external two-argument call no longer typechecks.
+
+  The four sibling dialects are named at `minor` because they re-export the kernel and an
+  adopter may install one of them holding no range on `@nielspeter/eess` at all — a break
+  announced only where it happened would reach them as an inherited patch, under a
+  changelog reading "Updated dependencies". Nothing in their own behaviour changes.
+
+- 69357e9: An import glob sees every package-manager layout (bug 0349)
+
+  **Breaking (@nielspeter/eess-ts):** import globs now match across dot segments in a
+  resolved path, so a rule can report imports it used to miss — and an **allowlist**
+  can permit imports it used to report.
+
+  `notImportFrom('**/node_modules/knex/**')` is the spelling for "this package,
+  however it is imported". It matches the resolved target path, and picomatch's
+  default stops `**` crossing a segment beginning with `.` — so under pnpm
+  (`node_modules/.pnpm/knex@3/node_modules/knex/…`) and Yarn's cache
+  (`.yarn/cache/knex-npm-3/…`) it matched nothing and reported a **pass**. No
+  dot-directory checkout was involved; the dot segment is the package manager's own
+  layout inside an ordinary tree, and this was true on every released version.
+
+  The fix is one matcher, `importTargetMatcher`, used by all six import-glob sites.
+
+  ## Why this is safe where the same change was rejected for source globs
+
+  [Bug 0339](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0339-globs-match-nothing-when-the-project-sits-under-a-dot-directory.md)
+  weighed `{ dot: true }` for path globs generally and rejected it: it would change
+  which of **your own** files a rule reads, so `'**/*.ts'` would start matching
+  `.nuxt/` content. That rejection stands and is untouched — this change is confined
+  to import targets.
+
+  You author your project's paths. You do not author `node_modules`' layout. And
+  measured, the current behaviour is not safely strict, it is **inconsistent by
+  package manager**: `onlyImportFrom('**/shared/**')` against a dependency's internal
+  `shared/` directory _allows_ that import under a hoisted npm tree and _reports_ it
+  under pnpm. Same rule, same code, same dependency, different verdict — which is the
+  defect 0339 is named for, one population over.
+
+  ## What you may see on upgrade
+
+  _A dependency ban starts working._ If you ban by path and use pnpm or Yarn's cache,
+  rules that reported nothing now report. Each is an import you had already asked to
+  be told about.
+
+  _An allowlist may permit more, under pnpm and Yarn only._ `onlyImportFrom` matching
+  across dot segments brings those layouts in line with what npm already did. **A
+  loose allowlist glob was always this permissive — pnpm was accidentally hiding
+  it.** If `onlyImportFrom('**/shared/**')` was your intent, consider naming the
+  package or the folder from the project root instead, so it cannot match a
+  dependency's internals on any layout.
+
+  _Nothing changes for a bare-specifier ban._ `notImportFrom('knex')` matches the raw
+  specifier, never a path, and is unaffected on every layout.
+
+### Patch Changes
+
+- Updated dependencies [22bd95d]
+  - @nielspeter/eess@0.6.0
+
 ## 0.8.0
 
 ### Minor Changes

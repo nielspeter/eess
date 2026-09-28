@@ -116,9 +116,20 @@ is the worked example.
 
 **Where it goes**, so the next one does not re-litigate this:
 
-- The file is `docs/migrating-to-<kernel version>.md`. The name is load-bearing —
-  `check:docs-code` reads any `docs/migrating-*.md` as import claims by pattern,
-  so naming it that way is what gets its import lines compiled.
+- The file is `docs/migrating-to-<kernel version>.md`. Only the `migrating-*`
+  prefix is load-bearing — `check:docs-code` reads any `docs/migrating-*.md` as
+  import claims by pattern, so that is what gets its import lines compiled. The
+  rest of the name is for readers.
+
+  **When the kernel's new version is a tag that already exists, name the page
+  after the TAG.** The kernel reached 0.6.0 on the train tagged `v0.9.0`, because
+  `v0.6.0` had already been cut for an eess-ts-only release. Naming that page
+  `migrating-to-0.6.md` would have put it beside `migrating-to-eess-ts-0.6.md`
+  meaning something else, and an adopter arrives from the GitHub Release holding
+  the tag, not the kernel's version. So: `migrating-to-0.9.md`, with the kernel's
+  real version in the page's own version table. Written down because the rule
+  above does not cover the collision and the next person would re-decide it.
+
 - A **"Releases & migration"** group in `docs/.vitepress/config.ts`, newest first.
   Not "Introduction": that is what a new reader walks top to bottom, and a
   migration page is useless to someone installing fresh.

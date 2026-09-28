@@ -54,23 +54,25 @@ Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
 
-**Upgrading to 0.8?** eess-ts moves to 0.8.0 with two breaking changes, both the
-same kind as 0.7's — a check reads code it used to pass, so a build can go red with
-your source untouched. A path glob now reads the project root, and `agentGuardrails`
-reads the whole file rather than each function body.
-[Migrating to 0.8](./docs/migrating-to-0.8.md) collects them, including the
-`// eess-exclude` comments that stop suppressing and the order to fix them in.
+**Upgrading to 0.9?** All six packages move, with two breaking changes — both the
+same kind as 0.7's and 0.8's: a check that matched nothing, and therefore passed,
+now matches. A path glob can name segments **above** your tsconfig (how a monorepo
+names its own packages), and a dependency ban sees pnpm and Yarn layouts it used to
+miss. **0.8 shipped the first of these as fixed and it was not** — an adopter
+measured 61 selectors reporting themselves dead in a dot-directory worktree against
+0 in a plain one. [Migrating to 0.9](./docs/migrating-to-0.9.md) collects both,
+plus what this release still does not fix.
 
 ## Packages
 
 | Package                                                      | What it validates                                                        | Status |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------ | ------ |
-| [`@nielspeter/eess`](./packages/core)                        | The kernel — rule engine, no dialect knowledge                           | 0.5.x  |
-| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.8.x  |
-| [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                                                   | 0.4.x  |
-| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.7.x  |
-| [`@nielspeter/eess-gherkin`](./packages/gherkin)             | Gherkin features — scenarios as citable elements                         | 0.4.x  |
-| [`@nielspeter/eess-crossvalidate`](./packages/crossvalidate) | Cross-validation — diagram↔code, ADR↔test, story↔scenario, scenario↔test | 0.6.x  |
+| [`@nielspeter/eess`](./packages/core)                        | The kernel — rule engine, no dialect knowledge                           | 0.6.x  |
+| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.9.x  |
+| [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                                                   | 0.5.x  |
+| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.8.x  |
+| [`@nielspeter/eess-gherkin`](./packages/gherkin)             | Gherkin features — scenarios as citable elements                         | 0.5.x  |
+| [`@nielspeter/eess-crossvalidate`](./packages/crossvalidate) | Cross-validation — diagram↔code, ADR↔test, story↔scenario, scenario↔test | 0.7.x  |
 
 Each dialect depends only on the kernel and its own parser (ts-morph for TS, Langium for Mermaid, mdast for Markdown, a line grammar for Gherkin). The Markdown dialect ([plan 0058](./work/plans/completed/0058-markdown-dialect-eess-md.md)) and cross-validation between dialects ([plan 0059](./work/plans/completed/0059-cross-validation-eess-crossvalidate.md)) are sibling packages on the same kernel — new dialects land without restructuring.
 
