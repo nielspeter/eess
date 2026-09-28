@@ -113,6 +113,28 @@ function deadSelectors(p: ArchProject, selectorGlob: string): string[] {
     .map((v) => v.element ?? '')
 }
 
+/**
+ * The same, for a rule that DECLARES the empty state.
+ *
+ * Separate from `deadSelectors` because it is a different code path and the difference is the
+ * point: `deadSelectorFindings` guards on `assertsCardinality()` and has no `declaresEmpty()`
+ * guard, so a declared-empty rule is reachable by the dead-selector diagnosis — while ADR-010's
+ * evidence floor exits early for it. Remove the repo view from the diagnosis and this rule has
+ * nothing left to fail on.
+ */
+function declaredEmptyDeadSelectors(p: ArchProject, selectorGlob: string): string[] {
+  return modules(p)
+    .that()
+    .resideInFolder(selectorGlob)
+    .should()
+    .notImportFrom('**/no-such-package/**')
+    .expectEmpty()
+    .rule({ id: 'test/0348' })
+    .violations()
+    .filter((v) => v.message.includes('can never match anything in this project'))
+    .map((v) => v.element ?? '')
+}
+
 beforeAll(() => {
   base = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0348-'))
   underDot = writeFixture(path.join(base, '.worktrees', 'repo'))
@@ -161,6 +183,34 @@ describe('bug 0348: a glob naming segments above the tsconfig root', () => {
     expect(repoRootOf(plain.tsConfigPath)).toBeDefined()
   })
 
+  it('a declared-empty rule whose selector went dead still fails', () => {
+    // THE ROW THAT GOES RED TO GREEN, and the only one. Every other assertion in this file
+    // moves a finding from precise to degraded when the gate is removed — they prove the gate
+    // improves attribution, not that it prevents a pass. Enforcement review measured that gap
+    // and it was real.
+    //
+    // `.expectEmpty()` is the shape where it matters, and it is a different path from
+    // `.notExist()`: `deadSelectorFindings` guards on `assertsCardinality()` only, with no
+    // `declaresEmpty()` guard, so a declared-empty rule IS reachable by the dead-selector
+    // diagnosis — while the evidence floor exits at `vacuity-diagnosis.ts:260` because the
+    // author declared the empty state. Measured, gate forced on and off:
+    //
+    //   `…notImportFrom(x)`               gate ON 1 (precise)  gate OFF 1 (degraded floor)
+    //   `…notImportFrom(x).expectEmpty()` gate ON 1 (precise)  gate OFF 0 — GREEN
+    //
+    // A declaration is an assertion that EXPIRES, and expiry needs `examined > 0`. When the
+    // checkout path empties the selector rather than the code, expiry can never engage — so
+    // without this gate the declaration outlives the thing it was declared about, silently.
+    // Asserted by IDENTITY, not by count. `toHaveLength(1)` was the first spelling and this
+    // repo's own cardinality scan rejected it, with exactly the right reason: a dead selector
+    // yields exactly one violation, so a bare count accepts the configuration finding whether
+    // or not it is the one meant. ADR-009 rule 4.
+    expect(declaredEmptyDeadSelectors(underDot, 'apps/identity/**')).toEqual(['apps/identity/**'])
+    // And beside the dot-directory, so the assertion is about the rule SHAPE rather than the
+    // checkout.
+    expect(declaredEmptyDeadSelectors(plain, 'apps/identity/**')).toEqual(['apps/identity/**'])
+  })
+
   it('CONTROL: a glob naming a package that does not exist still selects nothing', () => {
     // Without this, "match everything" would pass every case above.
     expect(selected(underDot, '**/apps/billing/src/**')).toEqual([])
@@ -197,9 +247,11 @@ describe('bug 0348: a glob naming segments above the tsconfig root', () => {
     expect(selected(plain, '**/apps/identity/**')).toEqual(['jwt.service.ts'])
     // And it is still REPORTED as selecting nothing. This half is the fix's own near-miss,
     // measured before `viewsFor` took `readsRepoRelative`: adding the view to the universe
-    // for every glob made this one satisfiable — 0 subjects and 0 findings, a silently vacuous
-    // selector introduced by the fix for a silently vacuous rule. Deadness has to be taken
-    // against the views the MATCHER reads, not every view the universe holds.
+    // for every glob made this one satisfiable. With a positive-assertion condition that
+    // degrades the finding rather than removing it; with `.expectEmpty()` it removes it
+    // entirely — see the declared-empty test above, which is the row that goes red to green.
+    // Deadness has to be taken against the views the MATCHER reads, not every view the
+    // universe holds.
     expect(deadSelectors(plain, 'apps/identity/**')).toEqual(['apps/identity/**'])
     // And under the dot-directory too. Without this line the only proof the machinery
     // FIRES runs on the plain checkout, while every other case here is about the other one.

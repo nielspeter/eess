@@ -156,38 +156,49 @@ passes its own gate: deadness is decided against the views the MATCHER reads, no
 every view the universe holds. Pinned in both packages, and both sabotage rows
 fire.
 
-**The last column is a correction, and it matters.** The first version of this
-record, the commit message and the PR body all said this glob produced **0
-findings** — "a silently vacuous selector". That was measured with a probe that
-counted only the dead-selector class and then generalised. Re-measured against the
-whole `violations()` list, the ADR-010 evidence floor fires:
+**The last column is a correction, and this section has been corrected twice.**
+
+The first version of this record, the first commit message and the first PR body
+all said this glob produced **0 findings** — "a silently vacuous selector". That was
+measured with a probe that counted only the dead-selector class and then
+generalised. Re-measured against the whole `violations()` list, ADR-010's evidence
+floor fires, `bypassFilters: true` and unsuppressable:
 
 > This rule examined 0 subjects (the project loaded 2 files), so it enforces
 > nothing as written today.
 
-Loud, and `bypassFilters: true`, so unsuppressable. **It was never a false green.**
-What the ungated version did was degrade a precise finding — "this selector can
-never match anything, and here is the cause" — into the generic floor one. That is
-still worth the gate, because ADR-009 rule 2 is about naming the true cause, but it
-is not the thing the first draft said it was.
+**Then enforcement review asked the next question, and that correction was itself
+too broad.** Whether it was a false green depends on the rule's shape. Measured
+through the real `project()`, gate forced on and off:
 
-**Enforcement review pressed on this correction and found something next to it.**
-Its reading was that the correction under-sells the gate — that for a `.notExist()`
-rule the ungated version was a genuine false green and the gate rescues it.
-Measured, through the real `project()`, with the gate forced on and off:
+| the rule                          | gate ON (shipped)                                | gate OFF                       |
+| --------------------------------- | ------------------------------------------------ | ------------------------------ |
+| `…notImportFrom(x)`               | the dead-selector finding, which names the cause | ADR-010's floor — **degraded** |
+| `…notImportFrom(x).expectEmpty()` | the dead-selector finding                        | **nothing — green**            |
+| `…satisfy(notExist())`            | nothing                                          | nothing                        |
 
-| rule shape                      | gate ON                            | gate OFF               |
-| ------------------------------- | ---------------------------------- | ---------------------- |
-| `…should().notImportFrom(x)`    | 1 — dead selector, names the cause | 1 — the floor, generic |
-| `…should().satisfy(notExist())` | **0**                              | **0**                  |
+So **the gate does close a false green**, on the declared-empty shape, and this
+record's "it was never a false green" was wrong for it. The justification is
+ADR-009 **rule 1 and rule 2**, not rule 2 alone: rule 2 for the common shape, where
+the gate names the true cause rather than a generic one, and rule 1 for the
+declaration, where without the gate the check cannot fail at all.
 
-So the gate makes no difference to a cardinality rule: `deadSelectorFindings`
-exempts those too, not just the floor (`vacuity-diagnosis.ts:253-255`, so that
-`doctor` and `check` cannot disagree). The correction above stands for the shapes
-this gate affects. What the review actually found is a defect of its own — a
-`.notExist()` rule whose selector silently empties is green either way, and nothing
-in the stack catches it — filed as
-[0355](../0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md).
+Why the declaration is the shape that breaks: a declaration is an assertion that
+**expires**, and expiry needs `examined > 0`. When a checkout path empties the
+selector rather than the code, expiry can never engage, so the declaration silently
+outlives the thing it was declared about. Pinned by `it('a declared-empty rule whose
+selector went dead still fails')` — **the only assertion in this file that goes red
+to green.** Review measured that every other one moves a finding from precise to
+degraded, so the suite proved the gate improved attribution and never proved it
+prevented a pass. That gap was real and is closed.
+
+The third row is a different defect and not this gate's to fix: `deadSelectorFindings`
+exempts cardinality rules as well as the floor (`vacuity-diagnosis.ts:253-255`, so
+`doctor` and `check` cannot disagree), so `.notExist()` is green in both states.
+Filed as [0355](../0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md).
+Enforcement's first reading had the gate rescuing that shape too; measurement said
+otherwise, the reviewer accepted it and sharpened its finding onto the declaration —
+which is where it was right and this record was wrong.
 
 The tsconfig view needs no such gate, and that too was measured rather than
 assumed: the globs the matcher withholds it from (`'*/x/**'`, anything with a
@@ -233,20 +244,21 @@ primary config, so the two now read one input and the comment is true.
 
 ## The sabotage matrix
 
-Seven rows and a clean control, each a literal edit to the shipped source,
+Eight rows and a clean control, each a literal edit to the shipped source,
 restored from a byte-for-byte backup verified by sha256. A row that fires nothing
 is an unfalsifiable guard — pin it or delete it.
 
-| row        | the edit                                                            | what reddened                                                                                                                                                                |
-| ---------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R0 CONTROL | none                                                                | nothing — green, as a control must be                                                                                                                                        |
-| R1         | `matchesPath` never consults the third view                         | `selects the same files…`, `does not disagree with the filesystem fact…`                                                                                                     |
-| R2         | `readsRepoRelativePath` returns `true` for every glob               | `CONTROL: a project-relative glob does not reach above the tsconfig root`                                                                                                    |
-| R3         | the repository root is never discovered                             | 4 tests                                                                                                                                                                      |
-| R4         | `viewsFor` never returns the repo views                             | `does not report the selector as one that can never match`, plus both kernel view tests                                                                                      |
-| R5 REVERSE | break the TSCONFIG view this fix leaves alone                       | 0339's `keeps a project-relative glob working…` and this file's package-root CONTROL — so the second view is still independently load-bearing and the third does not mask it |
-| R6         | `viewsFor` ignores the gate and always returns the repo views       | `CONTROL: a project-relative glob…`, `withholds the identity view from a glob whose matcher does not read it`                                                                |
-| R7         | derive the repository root via `rootOf` again (the pre-review code) | `CONTROL: a project-relative glob…`, `adds no match under a checkout with no dot-segment`                                                                                    |
+| row        | the edit                                                                          | what reddened                                                                                                                                                                |
+| ---------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0 CONTROL | none                                                                              | nothing — green, as a control must be                                                                                                                                        |
+| R1         | `matchesPath` never consults the third view                                       | `selects the same files…`, `does not disagree with the filesystem fact…`                                                                                                     |
+| R2         | `readsRepoRelativePath` returns `true` for every glob                             | `CONTROL: a project-relative glob does not reach above the tsconfig root`                                                                                                    |
+| R3         | the repository root is never discovered                                           | 4 tests                                                                                                                                                                      |
+| R4         | `viewsFor` never returns the repo views                                           | `does not report the selector as one that can never match`, plus both kernel view tests                                                                                      |
+| R5 REVERSE | break the TSCONFIG view this fix leaves alone                                     | 0339's `keeps a project-relative glob working…` and this file's package-root CONTROL — so the second view is still independently load-bearing and the third does not mask it |
+| R6         | `viewsFor` ignores the gate and always returns the repo views                     | `CONTROL: a project-relative glob…`, `withholds the identity view from a glob whose matcher does not read it`                                                                |
+| R7         | derive the repository root via `rootOf` again (the pre-review code)               | `CONTROL: a project-relative glob…`, `adds no match under a checkout with no dot-segment`                                                                                    |
+| R8         | `viewsFor` ignores the gate (the pre-review code), against the declared-empty row | `a declared-empty rule whose selector went dead still fails` — the one row that goes RED to GREEN — plus the project-relative CONTROL                                        |
 
 **A second, independent matrix found two holes this one did not.** Test review ran
 12 rows of its own in an isolated worktree and reported three survivors:
@@ -378,8 +390,11 @@ figure therefore understates their exposure in a checkout without that symlink.
       `packages/ts/tests/core/a-glob-above-the-tsconfig-root.test.ts`, confirmed
       red on the selector and on the disagreement with `disk-set`, green on the
       controls. Rewritten after review to drive the real `project()`.
-- [x] a sabotage matrix — 7 rows and a clean control, published in full above
-      rather than asserted, as 0339's and 0349's records publish theirs.
+- [x] a sabotage matrix — 8 rows and a clean control, published in full above
+      rather than asserted, as 0339's and 0349's records publish theirs. R8 is the
+      only row that takes an assertion from red to green; enforcement review measured
+      that its absence meant the suite proved attribution and never proved
+      pass-prevention.
 - [x] the public docs corrected: `docs/core-concepts.md`'s "How a path glob is
       matched" taught two views and dated this defect class to before v0.8.0.
 - [x] a changeset — a rule that selects more is breaking for a baseline, and

@@ -82,10 +82,10 @@ a configuration finding, whatever it asserts. The second is decidable today with
 machinery that already exists — the exemption is applied before the question is
 asked, rather than because the answer says to.
 
-**The open question is `.expectEmpty()`**, where the author has explicitly declared
-the empty state. Arguably a declaration should not survive a dead selector either —
-ADR-010 already treats an expired declaration as a finding when `examined > 0`, and
-this is the mirror case — but that is a ruling, not an obvious call.
+`.expectEmpty()` needs nothing here — measured, it already reports, because
+`deadSelectorFindings` does not guard on `declaresEmpty()`. That asymmetry is
+itself the argument for the fix: the declaration case was given a guard and the
+cardinality case was not, and there is no reason in the records why.
 
 ## Related
 

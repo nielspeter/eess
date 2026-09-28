@@ -29,10 +29,12 @@ describe('viewsFor', () => {
 
   it('withholds the identity view from a glob whose matcher does not read it', () => {
     // The union decides whether a glob is reported dead, so a view the matcher does NOT read
-    // makes an unsatisfiable glob look live. Measured while fixing bug 0348, before this
-    // parameter existed: a project-relative `'apps/identity/**'` in a monorepo selected 0
-    // subjects and produced 0 findings — a silently vacuous selector introduced by the fix for
-    // a silently vacuous rule.
+    // makes an unsatisfiable glob look live. Measured while fixing bug 0348, with a
+    // project-relative `'apps/identity/**'` selecting 0 subjects in a monorepo: without this
+    // parameter a `…notImportFrom(x)` rule degraded from the dead-selector finding to ADR-010's
+    // generic floor, and a `…notImportFrom(x).expectEmpty()` rule went GREEN — a declaration
+    // whose expiry can never engage, because the checkout path emptied the selector rather than
+    // the code.
     expect(viewsFor(universe, 'file-path', false)).toEqual([
       universe.filePaths,
       universe.tsconfigRelativeFilePaths,

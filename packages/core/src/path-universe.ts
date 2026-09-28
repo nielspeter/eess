@@ -74,8 +74,18 @@ export interface PathUniverse {
  * `'apps/identity/**'`, a project-relative glob that selects nothing because the
  * project root is `apps/api`, matches `apps/identity/src/…` in this view and
  * stops being reported dead. Measured while fixing bug 0348, before this
- * parameter existed: that glob selected 0 subjects and produced 0 findings, a
- * silently vacuous selector introduced by the fix for a silently vacuous rule.
+ * parameter existed, with that glob selecting 0 subjects:
+ *
+ * | the rule                          | with this gate | without it |
+ * | --------------------------------- | -------------- | ---------- |
+ * | `…notImportFrom(x)`               | the dead-selector finding, which names the cause | ADR-010's floor, which does not |
+ * | `…notImportFrom(x).expectEmpty()` | the dead-selector finding | **nothing — green** |
+ *
+ * The second row is why this is a required parameter and not a default. A
+ * declaration is an assertion that EXPIRES, and expiry needs `examined > 0`
+ * (`terminal-execution.ts`); when a checkout path empties the selector rather than
+ * the code, expiry can never engage and the declaration silently outlives what it
+ * was declared about.
  *
  * The tsconfig view needs no such gate, and that was MEASURED rather than
  * assumed: the two globs the matcher withholds it from — `'*\/x/**'` and
