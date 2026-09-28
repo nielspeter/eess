@@ -1,8 +1,7 @@
-import picomatch from 'picomatch'
 import type { SourceFile, ImportDeclaration } from 'ts-morph'
 import type { Condition, ConditionContext } from '@nielspeter/eess'
 import type { ArchViolation } from '@nielspeter/eess'
-import { candidatesFor, matchedCandidate } from '../core/import-candidates.js'
+import { candidatesFor, matchedCandidate, importTargetMatcher } from '../core/import-candidates.js'
 import { recordEdgeCoverage } from '@nielspeter/eess/internal'
 import { globAnyOf } from '@nielspeter/eess'
 import {
@@ -212,7 +211,7 @@ export function onlyImportFrom(
 ): Condition<SourceFile> {
   const { globs, options } = splitGlobArgs(args)
   const ignoreType = options?.ignoreTypeImports === true
-  const matchers = globs.map((g) => picomatch(g))
+  const matchers = globs.map((g) => importTargetMatcher(g))
   const quotedGlobs = globs.map((g) => `"${g}"`).join(', ')
   return {
     // Declared so the glob is visible to `explain`, `doctor` and 0069's glob model
@@ -287,7 +286,7 @@ export function notImportFrom(
 ): Condition<SourceFile> {
   const { globs, options } = splitGlobArgs(args)
   const ignoreType = options?.ignoreTypeImports === true
-  const matchers = globs.map((g) => picomatch(g))
+  const matchers = globs.map((g) => importTargetMatcher(g))
   const quotedGlobs = globs.map((g) => `"${g}"`).join(', ')
   return {
     // Declared so the glob is visible to `explain`, `doctor` and 0069's glob model
@@ -372,7 +371,7 @@ export function dependOn(...globs: string[]): Condition<SourceFile>
 export function dependOn(...args: [string[], ImportOptions] | string[]): Condition<SourceFile> {
   const { globs, options } = splitGlobArgs(args)
   const ignoreType = options?.ignoreTypeImports === true
-  const matchers = globs.map((g) => picomatch(g))
+  const matchers = globs.map((g) => importTargetMatcher(g))
   const quotedGlobs = globs.map((g) => `"${g}"`).join(', ')
   return {
     // Declared so the glob is visible to `explain`, `doctor` and 0069's glob model
@@ -505,7 +504,7 @@ export function notHaveAliasedImports(): Condition<SourceFile> {
  *   .check()
  */
 export function onlyHaveTypeImportsFrom(...globs: string[]): Condition<SourceFile> {
-  const matchers = globs.map((g) => picomatch(g))
+  const matchers = globs.map((g) => importTargetMatcher(g))
   const quotedGlobs = globs.map((g) => `"${g}"`).join(', ')
   return {
     // Declared so the glob is visible to `explain`, `doctor` and 0069's glob model

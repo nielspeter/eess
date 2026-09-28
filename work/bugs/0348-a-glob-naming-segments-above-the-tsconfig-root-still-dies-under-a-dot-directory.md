@@ -124,7 +124,7 @@ target. Measured against `**/node_modules/knex/**`:
 
 The last row is the one that matters: the dot segment is **below** the root
 (`node_modules/.pnpm/…`), so a repo-relative view carries it too. That case is
-[0349](./0349-a-path-shaped-dependency-ban-passes-silently-under-pnpm-and-yarn.md),
+[0349](./fixed/0349-a-path-shaped-dependency-ban-passes-silently-under-pnpm-and-yarn.md),
 it needs no dot-directory at all, and this bug's fix does not address it.
 
 **A limit of the reporter's measurement, disclosed by them:** both their worktrees

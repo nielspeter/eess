@@ -1,10 +1,9 @@
-import picomatch from 'picomatch'
 import type { SourceFile } from 'ts-morph'
 import type { Predicate } from '@nielspeter/eess'
 import { globAnyOf } from '@nielspeter/eess'
 import type { ImportOptions } from '../core/import-options.js'
 import { splitGlobArgs } from '../core/import-options.js'
-import { candidatesFor } from '../core/import-candidates.js'
+import { candidatesFor, importTargetMatcher } from '../core/import-candidates.js'
 import { edgesOf, FORWARD_EDGE_KINDS } from '../core/module-edges.js'
 import { rootOf } from '../core/project-relative.js'
 
@@ -73,7 +72,7 @@ export function importFrom(...globs: string[]): Predicate<SourceFile>
 export function importFrom(...args: [string[], ImportOptions] | string[]): Predicate<SourceFile> {
   const { globs, options } = splitGlobArgs(args)
   const ignoreType = options?.ignoreTypeImports === true
-  const matchers = globs.map((g) => picomatch(g))
+  const matchers = globs.map((g) => importTargetMatcher(g))
   return {
     globs: globAnyOf(globs, 'import-target'),
     description: 'import from ' + globs.map((g) => `"${g}"`).join(', '),
@@ -96,7 +95,7 @@ export function notImportFrom(
 ): Predicate<SourceFile> {
   const { globs, options } = splitGlobArgs(args)
   const ignoreType = options?.ignoreTypeImports === true
-  const matchers = globs.map((g) => picomatch(g))
+  const matchers = globs.map((g) => importTargetMatcher(g))
   return {
     // `import-target` is never checked against the path universe: an installed
     // package resolves into node_modules, which is outside the project by
