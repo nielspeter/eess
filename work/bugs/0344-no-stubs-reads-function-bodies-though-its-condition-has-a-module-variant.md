@@ -27,8 +27,21 @@ the end of a file, or above a class with no function after it, is not.
 literally, `no-stubs` selects **module**: `noStubComments()` is
 `functionNotContain(comment(pattern))` (`packages/ts/src/rules/hygiene.ts:55`), and
 `moduleNotContain(comment(STUB_PATTERNS))` is the same one-line substitution that produced
-`moduleNoGenericErrors`. Review ran it over this repo's six build projects and it returned findings,
-including file-level docstrings — **the variant exists and works.**
+`moduleNoGenericErrors`.
+
+**Verified independently, 2026-09-26** — review's own run used a matcher _forced_ to hit, which proves
+the plumbing rather than the population, so the claim was re-measured with the real stub pattern:
+
+| fixture                                        | reported |
+| ---------------------------------------------- | -------- |
+| a stub at the end of a file, no function after | `a.ts`   |
+| a stub above a class                           | `a.ts`   |
+| a stub inside a function (control)             | `c`      |
+| no stub anywhere (control)                     | none     |
+
+So **the variant exists, works, and catches exactly the positions `no-stubs` misses today.** Run
+against `eess-ts`'s own `src/` with the real pattern it reports **0** — this repo has no module-scope
+stubs, which is why there is no live false green here and why the severity is Low.
 
 What overrode the ruling was the rule's own `imperative`: "Do NOT leave stub comments (TODO/FIXME/
 'not implemented') **in a function body**". 0337 used that wording as the tiebreak, consistently, for
@@ -63,8 +76,10 @@ Not decided; the decision is what the tiebreak should be when the ruling and the
 
 ## Verification
 
-- [x] measured by review: the module variant is a one-line substitution, it works, and this repo has
-      0 module-scope stub comments in `packages/*/src` today.
+- [x] measured by review, then re-measured independently: the module variant is a one-line
+      substitution and it fires on a stub at file scope and above a class — the table above. Review's
+      own run used a forced matcher, so it proved the plumbing and not the population; with the real
+      pattern this repo reports 0.
 - [ ] a ruling on the tiebreak
 - [ ] the rule widened, or the ruling's wording narrowed
 - [ ] a changeset, if a rule's population changes
