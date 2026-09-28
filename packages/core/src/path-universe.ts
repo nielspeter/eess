@@ -26,6 +26,25 @@ export interface PathUniverse {
   readonly tsconfigRelativeFilePaths: readonly string[]
   /** `parentDirs` relative to the tsconfig directory, for message wording. */
   readonly tsconfigRelativeParentDirs: readonly string[]
+  /**
+   * `filePaths` named from the **identity root** — the `.git`/workspace root
+   * above the tsconfig, as `discoverIdentityRoot` finds it.
+   *
+   * A third view, because the first two cannot express how a monorepo addresses
+   * its own packages. `'**\/apps/api/src/**'` names segments BETWEEN the
+   * repository root and the tsconfig directory: the absolute view carries the
+   * checkout's own path (and a dot-segment in it stops `**` dead), while the
+   * tsconfig-relative view has `apps/api/` stripped off the front — the very
+   * thing the glob names. [Bug 0348](../../../work/bugs/fixed/0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md).
+   *
+   * Required rather than optional deliberately. An optional view is one a
+   * materializer can omit and still typecheck, and a missing view here makes a
+   * live glob look unsatisfiable — a dead-selector finding against a rule that
+   * works, which is ADR-009 rule 2's confidently-wrong cause.
+   */
+  readonly repoRelativeFilePaths: readonly string[]
+  /** `parentDirs` named from the identity root. See `repoRelativeFilePaths`. */
+  readonly repoRelativeParentDirs: readonly string[]
 }
 
 /**
@@ -40,12 +59,52 @@ export interface PathUniverse {
  *
  * `import-target`, `specifier` and `literal` are not path kinds and have no
  * views, so they can never be found unsatisfiable here.
+ *
+ * ## Why the identity view is asked for and the others are not
+ *
+ * `readsRepoRelative` is the caller's answer to "does the MATCHER give this
+ * glob the identity-root view?" — the dialect owns that rule (ADR-013: the
+ * kernel takes the fact, not the policy), and it is required rather than
+ * defaulted because a caller that forgets would get the generous union.
+ *
+ * Generosity is safe for the tsconfig view and is not for this one, which is the
+ * whole reason for the asymmetry. The tsconfig view differs from the absolute
+ * path only by a prefix the matcher usually strips too. The identity view adds
+ * the segments BETWEEN the repository root and the package — so in a monorepo
+ * `'apps/identity/**'`, a project-relative glob that selects nothing because the
+ * project root is `apps/api`, matches `apps/identity/src/…` in this view and
+ * stops being reported dead. Measured while fixing bug 0348, before this
+ * parameter existed, with that glob selecting 0 subjects:
+ *
+ * | the rule                          | with this gate | without it |
+ * | --------------------------------- | -------------- | ---------- |
+ * | `…notImportFrom(x)`               | the dead-selector finding, which names the cause | ADR-010's floor, which does not |
+ * | `…notImportFrom(x).expectEmpty()` | the dead-selector finding | **nothing — green** |
+ *
+ * The second row is why this is a required parameter and not a default. A
+ * declaration is an assertion that EXPIRES, and expiry needs `examined > 0`
+ * (`terminal-execution.ts`); when a checkout path empties the selector rather than
+ * the code, expiry can never engage and the declaration silently outlives what it
+ * was declared about.
+ *
+ * The tsconfig view needs no such gate, and that was MEASURED rather than
+ * assumed: the two globs the matcher withholds it from — `'*\/x/**'` and
+ * anything carrying a `'./'` segment — are caught by `syntacticFault` before
+ * any view is consulted, so each still reports as dead. A draft of this
+ * comment cited a bug for that case; there is none.
  */
 export function viewsFor(
   universe: PathUniverse,
   kind: 'file-path' | 'parent-dir' | 'import-target' | 'specifier' | 'literal',
+  readsRepoRelative: boolean,
 ): readonly (readonly string[])[] {
-  if (kind === 'file-path') return [universe.filePaths, universe.tsconfigRelativeFilePaths]
-  if (kind === 'parent-dir') return [universe.parentDirs, universe.tsconfigRelativeParentDirs]
+  if (kind === 'file-path')
+    return readsRepoRelative
+      ? [universe.filePaths, universe.tsconfigRelativeFilePaths, universe.repoRelativeFilePaths]
+      : [universe.filePaths, universe.tsconfigRelativeFilePaths]
+  if (kind === 'parent-dir')
+    return readsRepoRelative
+      ? [universe.parentDirs, universe.tsconfigRelativeParentDirs, universe.repoRelativeParentDirs]
+      : [universe.parentDirs, universe.tsconfigRelativeParentDirs]
   return []
 }

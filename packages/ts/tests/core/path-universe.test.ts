@@ -87,6 +87,20 @@ describe('pathUniverse', () => {
     expect(universe.tsconfigRelativeFilePaths.every((p) => !p.startsWith('/'))).toBe(true)
   })
 
+  it('offers an identity-relative view of both, named from the repository root', () => {
+    const FROM_REPO_ROOT = 'packages/ts/tests/fixtures/nested-slices/src/'
+    expect(universe.repoRelativeFilePaths).toHaveLength(universe.filePaths.length)
+    expect(universe.repoRelativeParentDirs).toHaveLength(universe.parentDirs.length)
+    // The segments BETWEEN the `.git` root and the tsconfig — the ones a monorepo glob names
+    // and the tsconfig-relative view has stripped off the front. Asserting the prefix rather
+    // than "not absolute" is the point: "not absolute" is satisfied by the view this one has
+    // to differ from.
+    expect(universe.repoRelativeFilePaths.every((p) => p.startsWith(FROM_REPO_ROOT))).toBe(true)
+    expect(universe.tsconfigRelativeFilePaths.every((p) => p.startsWith(FROM_REPO_ROOT))).toBe(
+      false,
+    )
+  })
+
   it('is memoized per project identity', () => {
     const p = loadProject()
     expect(pathUniverse(p)).toBe(pathUniverse(p))
@@ -100,23 +114,38 @@ describe('viewsFor', () => {
     // node_modules is outside the project by construction, so checking an
     // import glob against a path universe would fail every correct dependency
     // rule in existence.
-    expect(viewsFor(universe, 'import-target')).toEqual([])
-    expect(viewsFor(universe, 'specifier')).toEqual([])
-    expect(viewsFor(universe, 'literal')).toEqual([])
+    expect(viewsFor(universe, 'import-target', true)).toEqual([])
+    expect(viewsFor(universe, 'specifier', true)).toEqual([])
+    expect(viewsFor(universe, 'literal', true)).toEqual([])
   })
 
-  it('gives path kinds the absolute view and the tsconfig-relative one', () => {
-    // WHICH two views, not that there are two: two absolute views would have
-    // counted the same, and the claim names one of each.
+  it('gives path kinds the absolute, tsconfig-relative and identity-relative views', () => {
+    // WHICH three views, not that there are three: three absolute views would
+    // have counted the same, and the claim names one of each. The two relative
+    // views are told apart by the root they are named from — this fixture sits
+    // at `packages/ts/tests/fixtures/nested-slices` inside the repository, so
+    // the identity-relative view carries those segments and the
+    // tsconfig-relative one has them stripped. That difference IS bug 0348.
     const shapeOf = (view: readonly string[]): string => {
       // `[].every` is true, so without this an EMPTY view reads as 'absolute' and
       // `[[], ['rel/x']]` passes — a vacuity hole the `toHaveLength(2)` this
       // replaced could not have. ADR-008: if the inputs can be empty, assert they
       // are not.
       if (view.length === 0) return 'empty'
-      return view.every((p) => p.startsWith('/')) ? 'absolute' : 'tsconfig-relative'
+      if (view.every((p) => p.startsWith('/'))) return 'absolute'
+      return view.every((p) => p.startsWith('packages/ts/'))
+        ? 'identity-relative'
+        : 'tsconfig-relative'
     }
-    expect(viewsFor(universe, 'file-path').map(shapeOf)).toEqual(['absolute', 'tsconfig-relative'])
-    expect(viewsFor(universe, 'parent-dir').map(shapeOf)).toEqual(['absolute', 'tsconfig-relative'])
+    expect(viewsFor(universe, 'file-path', true).map(shapeOf)).toEqual([
+      'absolute',
+      'tsconfig-relative',
+      'identity-relative',
+    ])
+    expect(viewsFor(universe, 'parent-dir', true).map(shapeOf)).toEqual([
+      'absolute',
+      'tsconfig-relative',
+      'identity-relative',
+    ])
   })
 })

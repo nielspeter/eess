@@ -35,6 +35,8 @@ const universe: PathUniverse = {
   parentDirs: ['/repo/src'],
   tsconfigRelativeFilePaths: ['src/live.ts'],
   tsconfigRelativeParentDirs: ['src'],
+  repoRelativeFilePaths: ['packages/thing/src/live.ts'],
+  repoRelativeParentDirs: ['packages/thing/src'],
 }
 
 const site = (glob: string): GlobSite => ({

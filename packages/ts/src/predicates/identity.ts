@@ -66,8 +66,10 @@ export function haveNameEndingWith<T extends Named>(suffix: string): Predicate<T
 
 /**
  * Matches elements that reside in a file matching the given glob.
- * The glob is matched against the absolute file path and, since bug 0339, the
- * path named from the project root — see `core/project-relative.ts`.
+ * The glob is matched against the absolute file path, the path named from the
+ * project root (bug 0339) and — for a `'**\/'`-led glob only — the path named from
+ * the repository root (bug 0348). See `core/project-relative.ts`, which owns which
+ * spelling gets which.
  *
  * @example
  * resideInFile('** /routes.ts')   // matches /abs/path/src/routes.ts

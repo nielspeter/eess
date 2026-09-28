@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Fixed — on branch `fix/0349-dependency-ban-under-pnpm`. Measured; found by sizing
-  [0348](../0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md)
+  [0348](./0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md)
   and larger than it.
 - **Severity:** High — **a silent false green in an advertised use case, on every
   released version, with no dot-directory involved.** Banning a dependency is one
@@ -116,7 +116,7 @@ The first of those is the one that matters: the fix reasoned at length about
 
 ## Related
 
-- [0348](../0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md)
+- [0348](./0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md)
   — the sibling this was found while sizing; its proposed repo-relative view does
   **not** cover this case.
 - [0339](./0339-globs-match-nothing-when-the-project-sits-under-a-dot-directory.md)

@@ -1,4 +1,5 @@
 import type { ArchProject } from './project.js'
+import { repoRootOf } from './project-relative.js'
 import type { PathUniverse } from '@nielspeter/eess'
 
 /**
@@ -31,11 +32,22 @@ export function pathUniverse(project: ArchProject): PathUniverse {
     ...new Set(filePaths.map((filePath) => filePath.substring(0, filePath.lastIndexOf('/')))),
   ]
   const root = tsconfigDir(project.tsConfigPath)
+  // The SAME derivation the runtime matcher uses, from the same function — not a
+  // second walk. `viewsFor`'s union decides whether a glob is reported dead, so a
+  // view the matcher has and the universe lacks reports a working rule as
+  // enforcing nothing, and a view the universe has and the matcher lacks reports
+  // nothing at all about a rule that silently selects zero. Bug 0348 is the
+  // second shape; bug 0339's own docstring records the first.
+  const repoRoot = repoRootOf(project.tsConfigPath)
   const universe: PathUniverse = {
     filePaths,
     parentDirs,
     tsconfigRelativeFilePaths: filePaths.map((filePath) => relativeTo(root, filePath)),
     tsconfigRelativeParentDirs: parentDirs.map((dir) => relativeTo(root, dir)),
+    repoRelativeFilePaths:
+      repoRoot === undefined ? [] : filePaths.map((p) => relativeTo(repoRoot, p)),
+    repoRelativeParentDirs:
+      repoRoot === undefined ? [] : parentDirs.map((d) => relativeTo(repoRoot, d)),
   }
   cache.set(project, universe)
   return universe
