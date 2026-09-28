@@ -146,6 +146,39 @@ was asked for: peak RSS of the arch step **as it actually runs**
 the problem; near 6 GB means execution is, and the candidates below are headroom
 rather than a fix.
 
+## The largest gap is closed: loading is the majority
+
+This spike's headline caveat was that 2.3 GB (later 3.7 GB, once the fifteen
+projects and the workspace were both counted) is _parse time_, and that it could
+not see how much sat above it. The adopter took that measurement.
+
+|                                                          |                                 |
+| -------------------------------------------------------- | ------------------------------- |
+| peak RSS of the arch step as it really runs              | **6,157 MiB** (6.01 GiB), 422 s |
+| what loading accounts for, measured here                 | **3,729 MiB**                   |
+| **loading's share of peak**                              | **60.6%**                       |
+| above loading — rules executing, vitest, everything else | 2,428 MiB                       |
+
+**It is the loading half**, and this spike guessed the other way: it recorded
+"roughly two-thirds of the footprint is the rules executing plus vitest". That
+guess was wrong and is kept rather than edited out — the spike's value was in
+refusing to _claim_ the number, and the refusal is what got it measured.
+
+It does not change the advice that went with it. The reported symptom is a worker
+dying with no V8 heap message under four runners sharing a 16 GB box, which is a
+scheduling ceiling: 60% of 6 GiB is still 6 GiB when four run at once.
+
+## What this spike still does not answer
+
+- **Whether `skipFileDependencyResolution` is safe.** `candidatesFor`
+  (`packages/ts/src/core/import-candidates.ts`) resolves a module specifier through
+  `decl.getModuleSpecifierSourceFile()`, so every import and dependency rule
+  depends on resolution, and type-level rules need the checker. The population of
+  rules that genuinely need it is unmeasured, and that is the question a fix turns
+  on.
+- **Whether peak or steady state matters** for a runner hosting four jobs. The flag
+  is a ceiling, not a reservation.
+
 ## The decision this brings back
 
 Three candidates, none costed beyond the table above:

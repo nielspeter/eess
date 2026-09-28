@@ -48,6 +48,30 @@ and adding a second derivation of it is the failure this repository spends most 
 
 Two presets now reach this, not one.
 
+## The mechanism already documents this failure as the thing it exists to prevent
+
+`packages/ts/src/conditions/match-identity.ts` opens: _"Assign each matched node a
+baseline identity **that is not a coordinate**."_ It then states this bug exactly,
+as its own reason for existing:
+
+> _"add two lines at the top of a file with matches at lines 2 and 4, and the entry
+> recorded for line 4 now matches the violation that used to be at line 2 — the
+> baseline accepts the **wrong** finding, rather than merely missing one. That is
+> worse than a miss, because it silently keeps a genuinely new violation green."_
+
+And it names the defence: _"bucket by the enclosing declaration, then number the
+matches inside each bucket."_ The defence fails for the population this record is
+about, because when nothing named encloses the match `getElementName` answers with
+the node's **kind**, so the bucket degenerates into the per-file counter the same
+docstring says it was written to avoid.
+
+The file carries a measured claim about that defence — _"Measured over 596 matched
+nodes in a real 808-file project, this is 1:1"_ — which is false over this
+population, and whose figures are unreachable for anyone wanting to recheck them.
+Retiring or re-measuring it is a box on
+[plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)
+Phase 1.
+
 ## Root cause
 
 `identifyMatches` (`packages/ts/src/conditions/match-identity.ts:44`) buckets by
@@ -67,17 +91,121 @@ default preset.
 
 ## Fix
 
-Not decided. The candidates differ in what they claim a finding IS:
+**Ruled 2026-09-28. Half of it was already decided; the other half is measured —
+and an earlier version of this section did not separate the two.**
 
-- **Name the match, not its scope** — include the matched text, or a structural path, in the key.
-  Survives reordering; changes when the code changes, which is the point of a baseline entry.
-- **Fall back to the line** when nothing named encloses the match. Cheap and wrong the moment an
-  edit above moves it, which is exactly what a baseline must tolerate.
-- **Refuse to baseline what cannot be identified**: report such findings as unbaselineable rather
-  than accepting them positionally. Honest, and noisy in a way adopters will feel.
+- **Derived from the documents:** a positional entry is not an identity, and
+  neither is a line. This is not a preference.
+- **Measured, not derived:** that the _node's shape_ is the form of identity that
+  survives the edits a baseline must tolerate. The documents require a producer
+  identity rather than a coordinate; they do not name this one. **Any derivation
+  scoring 7/7 on [spike 0350](../spikes/0350-which-baseline-identity-survives-the-right-edits.md)
+  would satisfy them equally.**
 
-Whatever is chosen, the file-level absence findings need an identity too, or the same decision that
-they cannot have one.
+Enforcement review caught the overclaim: the first version said three clauses
+"select the answer", which is true of the exclusion and false of the selection.
+
+### What the documents say
+
+1. **The manifesto, on baseline mode** (`docs/manifesto.md`): "record the gap,
+   don't fake the gate, ratchet it closed." A positional entry does the opposite
+   of all three — it records gap A and forgives gap B, the gate is green for code
+   nobody reviewed, and the count stays flat while the problems rotate.
+2. **ADR-009 Rule 3's corollary**: "an escape hatch is not automatically safer
+   than none. A marker an agent can stamp on any file to go green is **worse**
+   than no marker, because it is a silent, one-line diff. Prefer exclusion **by
+   construction** (structure the scope so the exception cannot arise) over any
+   list, marker, or flag." A positional entry is that marker, and worse than the
+   one the rule describes: the agent does not have to stamp it, it transfers on
+   its own.
+
+   **It proves less than the first version of this record claimed.** Read strictly,
+   "over any list, marker, or flag" condemns a shape-keyed baseline entry as
+   readily as a positional one — a baseline is a list either way. What the
+   corollary establishes is the _ordering_: an entry that transfers without anyone
+   touching it is worse than one that does not. It rules a positional entry out; it
+   does not rule a shape-keyed entry in, and this record no longer says it does.
+   (Enforcement review, which called the original framing proving-too-much.)
+
+3. **ADR-010**: a pass is constructed from evidence. A pass inherited from a
+   _different_ finding's evidence is a default wearing evidence's clothes.
+4. **And the one this record first missed** — `packages/core/src/violation.ts`,
+   which states the question directly and was cited nowhere:
+
+   > _"a positional suffix makes an entry a **slot**, while a producer identity
+   > makes it a **reference**, and only the latter survives a sibling being
+   > deleted."_
+
+   That is this bug in one sentence, written down before it was filed. It names the
+   remedy's shape — a **producer** identity — without naming its form, which is
+   exactly the derived/measured split above.
+
+And the audience decides the weight. eess's consumer is an AI agent, and
+"fix the flagged thing, add a new thing" is not an edge case for that audience —
+it is the modal behaviour. This is the failure mode the tool exists to prevent,
+reachable from its own default floor.
+
+**So: identity must be a producer identity rather than a coordinate — never a
+position, never a line.** Which producer identity is the measured half, and this
+record's answer is the node's shape. Line-fallback is ruled out outright — a line number is a
+property of the file's formatting, not of the code.
+
+### The spike: which identity actually survives the right edits
+
+A baseline identity has two duties, and they pull against each other: it must
+**survive** edits that do not change the finding, and **break** when the finding
+changes. Four candidates, seven edits — the run, its script and its caveats are
+[spike 0350](../spikes/0350-which-baseline-identity-survives-the-right-edits.md).
+
+_It was filed because of this record._ The table was cited as evidence in three
+places while the script that produced it had been deleted, and method review
+refused it on this repo's own standard: an unreproducible measurement is a claim,
+whatever was actually run.
+
+| edit                         | must survive? | position   | line        | matched text | node shape |
+| ---------------------------- | ------------- | ---------- | ----------- | ------------ | ---------- |
+| reformat (whitespace)        | yes           | kept       | kept        | **broke ✗**  | kept       |
+| insert a line above          | yes           | kept       | **broke ✗** | kept         | kept       |
+| add a comment above          | yes           | kept       | **broke ✗** | kept         | kept       |
+| rename an unrelated binding  | yes           | kept       | kept        | kept         | kept       |
+| move the match down          | yes           | kept       | **broke ✗** | kept         | kept       |
+| **change the matched code**  | **no**        | **kept ✗** | **kept ✗**  | broke        | broke      |
+| **fix the first, add a new** | **no**        | **kept ✗** | broke       | broke        | broke      |
+| **score**                    |               | **5/7**    | **3/7**     | **6/7**      | **7/7**    |
+
+**Node shape is 7 of 7.** It is the node's kind plus its leaf tokens' text —
+`CallExpression|Identifier(eval)|OpenParenToken|…|StringLiteral('a')|…` — so
+formatting outside a string cannot move it and whitespace _inside_ one is
+preserved (`eval('a b')` and `eval('ab')` are correctly distinct).
+
+Raw matched text scores 6/7 and fails only on reformatting, because normalising
+whitespace by regex cannot tell code from string contents. That is the reason to
+derive from the AST rather than the source text, and it is the whole difference
+between the two columns.
+
+### Position survives, in exactly one place, and that is not a compromise
+
+Two **byte-identical** matches in one file still need separating, and the shape
+identity gives them the same key. The spike measures this: `eval(x)` twice yields
+`…#1` and `…#2`.
+
+That residue is correct rather than tolerated. Two identical problems in one file
+**are** interchangeable — forgiving one and having the other inherit it is not a
+lie, because there is no fact that distinguishes them. The defect this record is
+about is a _different_ problem inheriting a forgiveness, and shape identity
+closes it: `eval('a')` and `eval('b')` no longer share a bucket, so fixing the
+first and adding `eval('c')` reports the new one.
+
+### What is still open
+
+The ruling is settled and the mechanism is proven. What is not measured:
+
+- **The cost.** Every existing baseline entry for an unnamed match changes
+  identity, so they all unmatch on upgrade and their findings return as new. That
+  is a breaking change on a scale nobody has counted.
+- **The key's size and stability across TypeScript versions.** A shape string is
+  long, and it embeds ts-morph's kind names.
+- **The two sub-problems below**, neither of which this ruling touches.
 
 ### And a second sub-problem, which none of the candidates above touches
 
@@ -113,7 +241,13 @@ Its own box is below, so this record cannot close over it.
 - [x] reproduced — the table above, against `generateBaseline` and `filterNew`, not by reasoning
       about the hash.
 - [ ] a pin per row, each asserting the new finding IS reported
-- [ ] a ruling on what identifies a match with no enclosing declaration
+- [x] a ruling on what identifies a match with no enclosing declaration — **the
+      exclusion is derived, the selection is measured**. The manifesto's baseline
+      clause, ADR-009 Rule 3's corollary, ADR-010 and `violation.ts`'s
+      slot-versus-reference paragraph each rule out a positional entry; which
+      surviving form to use is [spike 0350](../spikes/0350-which-baseline-identity-survives-the-right-edits.md),
+      where node shape is the only candidate tried that is 7/7.
+- [ ] the cost measured — every existing entry for an unnamed match moves
 - [ ] the `PropertyAssignment` sub-problem — a match that HAS an enclosing function the module-scope
       namer cannot name (added 2026-09-26 from [0337](./fixed/0337-agent-guardrails-reads-function-bodies-only.md)).
       **None of the three candidates above addresses it**, so it carries its own box: the record must
