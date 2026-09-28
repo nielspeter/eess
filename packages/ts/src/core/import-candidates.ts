@@ -1,3 +1,4 @@
+import picomatchFactory from 'picomatch'
 import type picomatch from 'picomatch'
 import type { ImportDeclaration } from 'ts-morph'
 
@@ -89,6 +90,52 @@ function relativeTo(root: string | undefined, absolutePath: string): string | un
   if (root === undefined) return undefined
   const prefix = root === '/' ? '/' : `${root}/`
   return absolutePath.startsWith(prefix) ? absolutePath.slice(prefix.length) : undefined
+}
+
+/**
+ * The matcher an import glob is matched with — `dot: true`, deliberately.
+ *
+ * ## Why this differs from a project-source glob (bug 0349)
+ *
+ * picomatch's default `dot: false` stops `**` crossing a path segment that begins
+ * with `.`. Under pnpm a package resolves to
+ * `node_modules/.pnpm/knex@3/node_modules/knex/…` and under Yarn's cache to
+ * `.yarn/cache/knex-npm-3/…`, so `notImportFrom('**\/node_modules/knex/**')` — the
+ * spelling for "this package, however it is imported" — matched nothing and
+ * reported a **pass**. No dot-directory checkout is involved; the dot segment is
+ * the package manager's own layout, inside an ordinary tree.
+ *
+ * [Bug 0339](../../../../work/bugs/fixed/0339-globs-match-nothing-when-the-project-sits-under-a-dot-directory.md)
+ * weighed `{ dot: true }` for path globs generally and **rejected** it, because it
+ * would change matching inside the project: `'**\/*.ts'` would begin matching
+ * `.nuxt/` or `.next/` content. That rejection stands and is not touched here.
+ *
+ * **It does not transfer to an import target, for a reason and a measurement.**
+ *
+ * The reason: an adopter authors their project's paths, so crossing `.storybook/`
+ * changes which of *their* files a rule reads — their decision to make. They do
+ * not author `node_modules`' layout. A dot segment there is the resolver's
+ * implementation detail, and refusing to cross it means the glob cannot name the
+ * package it is about.
+ *
+ * The measurement, which is the stronger half. Today the SAME rule gives different
+ * verdicts for the same dependency depending only on how `node_modules` was laid
+ * out — `onlyImportFrom('**\/shared/**')` against a dependency's internal
+ * `shared/` directory **allows** it under a hoisted npm tree and **reports** it
+ * under pnpm. So the current behaviour is not safely strict, it is inconsistent by
+ * package manager, which is the same defect 0339 is named for: a verdict that
+ * depends on where things sit on disk rather than on the code. `dot: true` makes
+ * every layout agree, on what the majority layout already does.
+ *
+ * **The consequence to state plainly:** an allowlist widens under pnpm and Yarn to
+ * match what it always did under npm. A sloppy allowlist glob was always this
+ * permissive; those layouts were accidentally hiding it.
+ *
+ * One definition rather than six call sites, because six copies of a matching rule
+ * is how this area has repeatedly drifted.
+ */
+export function importTargetMatcher(glob: string): picomatch.Matcher {
+  return picomatchFactory(glob, { dot: true })
 }
 
 /**
