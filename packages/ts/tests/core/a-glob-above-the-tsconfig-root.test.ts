@@ -22,12 +22,12 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { Project } from 'ts-morph'
 import { modules } from '../../src/builders/module-rule-builder.js'
+import { project } from '../../src/core/project.js'
 import { resideInFile } from '../../src/predicates/identity.js'
 import { notImportFrom } from '../../src/conditions/dependency.js'
 import { diskSet } from '../../src/core/disk-set.js'
-import { pathGlobMatcher, relativeToIdentityRoot } from '../../src/core/project-relative.js'
+import { pathGlobMatcher, relativeToRepoRoot, repoRootOf } from '../../src/core/project-relative.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 let base: string
@@ -64,8 +64,13 @@ function writeFixture(repoRoot: string): ArchProject {
     tsConfigPath,
     JSON.stringify({ compilerOptions: { strict: true }, include: ['src'] }),
   )
-  const tsm = new Project({ tsConfigFilePath: tsConfigPath })
-  return { tsConfigPath, _project: tsm, getSourceFiles: () => tsm.getSourceFiles() }
+  // The REAL `project()`, not a hand-built `ArchProject`. It calls
+  // `registerProjectRoots`, which makes `rootOf` fail closed for any file outside the
+  // tsconfig's own directory — so a fixture that skips it cannot see the cross-package
+  // case at all. Review of this branch measured exactly that: the first version of this
+  // file hand-built the project, its suite was green, and `'**\/apps/identity/**'`
+  // selected nothing under the dot-directory through the API an adopter actually uses.
+  return project(tsConfigPath)
 }
 
 /** Subjects a selector reaches — the number ADR-010 reads as `examined`. */
@@ -143,6 +148,19 @@ describe('bug 0348: a glob naming segments above the tsconfig root', () => {
     expect(selected(underDot, ABOVE_THE_TSCONFIG).length).toBeGreaterThan(0)
   })
 
+  it('answers no repository root for a relative tsconfig path, rather than the wrong one', () => {
+    // `repoRootOfDir` guards on `path.isAbsolute` before walking, and its docstring argues
+    // the guard is load-bearing: `discoverIdentityRoot` calls `path.resolve`, so a relative
+    // input walks up from the CURRENT WORKING DIRECTORY and answers with *this* repository's
+    // root — a plausible-looking wrong answer, which ADR-009 rule 2 forbids, rather than a
+    // missing one. Review dropped the guard and the whole suite stayed green, so the
+    // argument had no falsifier. This is it.
+    expect(repoRootOf('./tsconfig.json')).toBeUndefined()
+    expect(repoRootOf('sub/tsconfig.json')).toBeUndefined()
+    // The other half, so "always undefined" cannot pass it.
+    expect(repoRootOf(plain.tsConfigPath)).toBeDefined()
+  })
+
   it('CONTROL: a glob naming a package that does not exist still selects nothing', () => {
     // Without this, "match everything" would pass every case above.
     expect(selected(underDot, '**/apps/billing/src/**')).toEqual([])
@@ -170,13 +188,22 @@ describe('bug 0348: a glob naming segments above the tsconfig root', () => {
     // nothing. Only the `'**\/'` spelling, which says "anywhere", reaches it.
     expect(selected(underDot, 'apps/identity/**')).toEqual([])
     expect(selected(plain, 'apps/identity/**')).toEqual([])
+    // BOTH checkouts, not just the plain one. Asserting only `plain` here is how the first
+    // version of this file stayed green while the cross-package case was still broken —
+    // it was one line from red and the line was missing.
+    expect(selected(underDot, '**/apps/identity/**')).toEqual(
+      selected(plain, '**/apps/identity/**'),
+    )
     expect(selected(plain, '**/apps/identity/**')).toEqual(['jwt.service.ts'])
     // And it is still REPORTED as selecting nothing. This half is the fix's own near-miss,
-    // measured before `viewsFor` took `readsIdentityRelative`: adding the view to the universe
+    // measured before `viewsFor` took `readsRepoRelative`: adding the view to the universe
     // for every glob made this one satisfiable — 0 subjects and 0 findings, a silently vacuous
     // selector introduced by the fix for a silently vacuous rule. Deadness has to be taken
     // against the views the MATCHER reads, not every view the universe holds.
     expect(deadSelectors(plain, 'apps/identity/**')).toEqual(['apps/identity/**'])
+    // And under the dot-directory too. Without this line the only proof the machinery
+    // FIRES runs on the plain checkout, while every other case here is about the other one.
+    expect(deadSelectors(underDot, 'apps/identity/**')).toEqual(['apps/identity/**'])
   })
 
   it('adds no match under a checkout with no dot-segment', () => {
@@ -188,24 +215,30 @@ describe('bug 0348: a glob naming segments above the tsconfig root', () => {
     // fix had to answer — does not hold for this one.
     const files = plain.getSourceFiles()
     expect(files.length).toBeGreaterThan(0)
-    let compared = 0
+    let repoViewMatches = 0
     for (const glob of ['**/apps/api/src/**', '**/src/**', '**/services/**', '**/thing.ts']) {
       const matcher = pathGlobMatcher(glob)
-      expect(matcher.readsIdentityRelative).toBe(true)
+      expect(matcher.readsRepoRelative).toBe(true)
       for (const sf of files) {
         const absolute = sf.getFilePath()
-        const fromIdentityRoot = relativeToIdentityRoot(sf, absolute, plain.tsConfigPath)
-        expect(fromIdentityRoot, `no identity view for ${absolute}`).toBeDefined()
-        compared += 1
-        if (fromIdentityRoot !== undefined && matcher.isMatch(fromIdentityRoot)) {
+        const fromRepoRoot = relativeToRepoRoot(sf, absolute, plain.tsConfigPath)
+        expect(fromRepoRoot, `no repo view for ${absolute}`).toBeDefined()
+        if (fromRepoRoot !== undefined && matcher.isMatch(fromRepoRoot)) {
+          repoViewMatches += 1
           expect(matcher.isMatch(absolute), `${glob} gained ${absolute} from the third view`).toBe(
             true,
           )
         }
       }
     }
-    // The denominator. Without it the loop proves the property over nothing.
-    expect(compared).toBe(4 * files.length)
+    // The denominator, and it has to count the times the third view actually MATCHED.
+    // An iteration counter here was `4 * files.length` BY CONSTRUCTION — true however
+    // dead the view was — so a view that matched nothing, or that was silently the
+    // absolute path, satisfied "repo match implies absolute match" trivially and this
+    // test stayed green. Review measured exactly that hole. Not pinned to a literal
+    // count either (ADR-009 rule 4): one hit per file is the floor, and it scales with
+    // the fixture.
+    expect(repoViewMatches).toBeGreaterThanOrEqual(files.length)
   })
 
   it('CONTROL: a glob relative to the package root keeps meaning the package root', () => {

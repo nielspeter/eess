@@ -1,5 +1,5 @@
 import type { ArchProject } from './project.js'
-import { identityRootOf } from './project-relative.js'
+import { repoRootOf } from './project-relative.js'
 import type { PathUniverse } from '@nielspeter/eess'
 
 /**
@@ -38,16 +38,16 @@ export function pathUniverse(project: ArchProject): PathUniverse {
   // enforcing nothing, and a view the universe has and the matcher lacks reports
   // nothing at all about a rule that silently selects zero. Bug 0348 is the
   // second shape; bug 0339's own docstring records the first.
-  const identityRoot = identityRootOf(project.tsConfigPath)
+  const repoRoot = repoRootOf(project.tsConfigPath)
   const universe: PathUniverse = {
     filePaths,
     parentDirs,
     tsconfigRelativeFilePaths: filePaths.map((filePath) => relativeTo(root, filePath)),
     tsconfigRelativeParentDirs: parentDirs.map((dir) => relativeTo(root, dir)),
-    identityRelativeFilePaths:
-      identityRoot === undefined ? [] : filePaths.map((p) => relativeTo(identityRoot, p)),
-    identityRelativeParentDirs:
-      identityRoot === undefined ? [] : parentDirs.map((d) => relativeTo(identityRoot, d)),
+    repoRelativeFilePaths:
+      repoRoot === undefined ? [] : filePaths.map((p) => relativeTo(repoRoot, p)),
+    repoRelativeParentDirs:
+      repoRoot === undefined ? [] : parentDirs.map((d) => relativeTo(repoRoot, d)),
   }
   cache.set(project, universe)
   return universe

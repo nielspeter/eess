@@ -2,7 +2,7 @@ import picomatch from 'picomatch'
 import type { GlobLeaf, GlobNode, GlobSite } from '@nielspeter/eess'
 import { isGlobNode, isOpaqueGlob } from '@nielspeter/eess/internal'
 import type { PathUniverse } from './path-universe.js'
-import { readsIdentityRelativePath } from './project-relative.js'
+import { readsRepoRelativePath } from './project-relative.js'
 import { viewsFor } from '@nielspeter/eess/internal'
 import { syntacticFault } from './glob-diagnosis.js'
 
@@ -68,7 +68,7 @@ export function isDeadSite(site: GlobSite, universe: PathUniverse): boolean {
   // Which views the MATCHER gives this glob, not every view the universe holds. A view the
   // matcher does not read makes an unsatisfiable glob look live, and an unreported dead selector
   // is a rule that certifies nothing while passing — see `viewsFor`'s own note.
-  const views = viewsFor(universe, site.kind, readsIdentityRelativePath(site.glob))
+  const views = viewsFor(universe, site.kind, readsRepoRelativePath(site.glob))
   if (views.length === 0) return false
   if (syntacticFault(site.glob, site.kind, site.base) !== undefined) return true
   const isMatch = picomatch(site.glob)

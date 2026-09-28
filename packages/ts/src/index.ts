@@ -489,11 +489,6 @@ export type {
 // the copy had already damaged. (Phase 2's exclusion list made exactly that
 // mistake, and its record says so.)
 export { rootFromTsConfigPath, rootOf, relativeToRoot } from './core/project-relative.js'
-// The identity-root sibling of `relativeToRoot` — the third view a `'**\/'` glob is matched
-// against since bug 0348. Published for the same reason its sibling is: a consumer writing a
-// path matcher of their own needs every view this dialect's own matcher reads, or theirs
-// disagrees with the gate's.
-export { relativeToIdentityRoot, identityRootOf } from './core/project-relative.js'
 export { syntacticFault } from './core/glob-diagnosis.js'
 export { dispatchRule, finishPreset } from '@nielspeter/eess'
 

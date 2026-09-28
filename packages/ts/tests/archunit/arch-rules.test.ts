@@ -274,8 +274,8 @@ describe('rule scope (bug 0011)', () => {
       parentDirs: all.parentDirs.filter(keep),
       tsconfigRelativeFilePaths: all.tsconfigRelativeFilePaths.filter(keep),
       tsconfigRelativeParentDirs: all.tsconfigRelativeParentDirs.filter(keep),
-      identityRelativeFilePaths: all.identityRelativeFilePaths.filter(keep),
-      identityRelativeParentDirs: all.identityRelativeParentDirs.filter(keep),
+      repoRelativeFilePaths: all.repoRelativeFilePaths.filter(keep),
+      repoRelativeParentDirs: all.repoRelativeParentDirs.filter(keep),
     }
 
     const dead: string[] = []
@@ -1339,6 +1339,7 @@ it('VACUITY: the orphan check really reads our directives', () => {
     'core/disk-set.ts',
     'core/import-candidates.ts',
     'core/object-literal-functions.ts',
+    'core/project-relative.ts',
     'core/vacuity-diagnosis.ts',
     'graphql/schema-loader.ts',
     'helpers/baseline.ts',

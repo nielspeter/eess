@@ -89,13 +89,13 @@ describe('pathUniverse', () => {
 
   it('offers an identity-relative view of both, named from the repository root', () => {
     const FROM_REPO_ROOT = 'packages/ts/tests/fixtures/nested-slices/src/'
-    expect(universe.identityRelativeFilePaths).toHaveLength(universe.filePaths.length)
-    expect(universe.identityRelativeParentDirs).toHaveLength(universe.parentDirs.length)
+    expect(universe.repoRelativeFilePaths).toHaveLength(universe.filePaths.length)
+    expect(universe.repoRelativeParentDirs).toHaveLength(universe.parentDirs.length)
     // The segments BETWEEN the `.git` root and the tsconfig — the ones a monorepo glob names
     // and the tsconfig-relative view has stripped off the front. Asserting the prefix rather
     // than "not absolute" is the point: "not absolute" is satisfied by the view this one has
     // to differ from.
-    expect(universe.identityRelativeFilePaths.every((p) => p.startsWith(FROM_REPO_ROOT))).toBe(true)
+    expect(universe.repoRelativeFilePaths.every((p) => p.startsWith(FROM_REPO_ROOT))).toBe(true)
     expect(universe.tsconfigRelativeFilePaths.every((p) => p.startsWith(FROM_REPO_ROOT))).toBe(
       false,
     )

@@ -122,29 +122,51 @@ Available on all entry points:
 
 ### How a path glob is matched
 
-A path glob is tried against **two** spellings of each path: the absolute file path,
-and the same path named from your tsconfig's directory. A glob matches if either
-does, so the two useful spellings keep their distinct meanings:
+A path glob is tried against up to **three** spellings of each path, and matches if
+any of them does:
 
-| glob              | matches                                                                    |
-| ----------------- | -------------------------------------------------------------------------- |
-| `'src/domain/**'` | that folder **at the project root** — not a nested `packages/a/src/domain` |
-| `'**/domain/**'`  | a `domain/` **anywhere** in the project                                    |
-| `'/abs/src/**'`   | exactly that absolute path                                                 |
+1. the **absolute** file path;
+2. the path named from your **tsconfig's directory** — the "project root";
+3. the path named from your **repository root** (the nearest `.git` or workspace
+   marker above the tsconfig) — for a `'**/'`-led glob only, since v0.9.0.
 
-Three spellings are deliberately **not** given the second view, because each is a
-mistake in both readings and is reported as its own fault rather than quietly made
-to work: `'./x/**'`, `'../x/**'` and `'*/x/**'` (a single wildcard segment before
-the first literal one — write `'**/x/**'`).
+So the useful spellings keep their distinct meanings:
+
+| glob                   | matches                                                                    |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `'src/domain/**'`      | that folder **at the project root** — not a nested `packages/a/src/domain` |
+| `'**/domain/**'`       | a `domain/` **anywhere** — including above the project root                |
+| `'**/apps/api/src/**'` | how a monorepo names one package's folder from a rule run in that package  |
+| `'/abs/src/**'`        | exactly that absolute path                                                 |
+
+**Why the third spelling exists.** In a monorepo your rules run against one
+package's tsconfig, and `'**/apps/api/src/**'` names segments that sit _above_ that
+package. Neither of the first two spellings can express it — the absolute path
+carries wherever the repository happens to sit on this machine, and the
+tsconfig-relative path has `apps/api/` stripped off the front. Only the third one
+can, which is why it exists.
+
+**Why a project-relative glob does not get it.** `'src/**'` means "relative to the
+project root", and the project root is your tsconfig's directory. Giving it a second
+root would make one spelling name two different directories in a monorepo. If you
+mean the repository's, write `'**/'`.
+
+Three spellings are deliberately **not** given the second or third view, because
+each is a mistake in both readings and is reported as its own fault rather than
+quietly made to work: `'./x/**'`, `'../x/**'` and `'*/x/**'` (a single wildcard
+segment before the first literal one — write `'**/x/**'`).
 
 **One case has no working anywhere-glob.** `**` does not cross a path segment that
 begins with a dot, in either spelling — so `'**/*.ts'` never reaches
 `.storybook/main.ts` or anything else under a dot-directory _inside_ your project.
 Name the segment literally instead: `'.storybook/**'` works, because a
 project-relative glob is matched from the root where the dot segment is ordinary
-text. (Before v0.8.0 this also broke every rule in a project whose **own path**
-contained a dot-segment — a worktree manager's layout, a cache directory — because
-only the absolute spelling was tried.)
+text. (A dot-segment in the path the project itself sits under — a worktree manager's
+layout, a cache directory, some CI workspaces — used to break rules too, and that
+took two releases to cover: v0.8.0 fixed a glob written relative to a package root,
+and v0.9.0 fixed a `'**/'` glob naming segments above it, which is the third
+spelling above. A glob naming a dot-segment _inside_ your project is the case that
+remains, and the paragraph above is how to write it.)
 
 ### Type-Specific Predicates
 

@@ -6,8 +6,8 @@ const universe: PathUniverse = {
   parentDirs: ['/root/src'],
   tsconfigRelativeFilePaths: ['src/a.ts'],
   tsconfigRelativeParentDirs: ['src'],
-  identityRelativeFilePaths: ['pkg/src/a.ts'],
-  identityRelativeParentDirs: ['pkg/src'],
+  repoRelativeFilePaths: ['pkg/src/a.ts'],
+  repoRelativeParentDirs: ['pkg/src'],
 }
 
 describe('viewsFor', () => {
@@ -15,7 +15,7 @@ describe('viewsFor', () => {
     expect(viewsFor(universe, 'file-path', true)).toEqual([
       universe.filePaths,
       universe.tsconfigRelativeFilePaths,
-      universe.identityRelativeFilePaths,
+      universe.repoRelativeFilePaths,
     ])
   })
 
@@ -23,7 +23,7 @@ describe('viewsFor', () => {
     expect(viewsFor(universe, 'parent-dir', true)).toEqual([
       universe.parentDirs,
       universe.tsconfigRelativeParentDirs,
-      universe.identityRelativeParentDirs,
+      universe.repoRelativeParentDirs,
     ])
   })
 
@@ -47,8 +47,13 @@ describe('viewsFor', () => {
     // `viewsFor` is the one place the union is decided, and a view the universe holds and this
     // never returns is a view no rule can ever be checked against. Counted rather than listed:
     // adding a `*FilePaths` field without adding it here fails this.
-    const fileViews = Object.keys(universe).filter((k) => k.toLowerCase().includes('filepath'))
-    const dirViews = Object.keys(universe).filter((k) => k.toLowerCase().includes('parentdir'))
+    // `endsWith`, not a substring: a fourth view named `repoRelativePaths` slips past
+    // `includes('filepath')` and the guard silently stops guarding. The naming rule it
+    // depends on is that every view field ENDS in `filePaths` or `parentDirs`, the base
+    // view included — case-insensitive, so `filePaths` counts alongside
+    // `tsconfigRelativeFilePaths`.
+    const fileViews = Object.keys(universe).filter((k) => k.toLowerCase().endsWith('filepaths'))
+    const dirViews = Object.keys(universe).filter((k) => k.toLowerCase().endsWith('parentdirs'))
     expect(viewsFor(universe, 'file-path', true)).toHaveLength(fileViews.length)
     expect(viewsFor(universe, 'parent-dir', true)).toHaveLength(dirViews.length)
   })

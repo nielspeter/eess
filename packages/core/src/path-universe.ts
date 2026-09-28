@@ -42,9 +42,9 @@ export interface PathUniverse {
    * live glob look unsatisfiable — a dead-selector finding against a rule that
    * works, which is ADR-009 rule 2's confidently-wrong cause.
    */
-  readonly identityRelativeFilePaths: readonly string[]
-  /** `parentDirs` named from the identity root. See `identityRelativeFilePaths`. */
-  readonly identityRelativeParentDirs: readonly string[]
+  readonly repoRelativeFilePaths: readonly string[]
+  /** `parentDirs` named from the identity root. See `repoRelativeFilePaths`. */
+  readonly repoRelativeParentDirs: readonly string[]
 }
 
 /**
@@ -62,7 +62,7 @@ export interface PathUniverse {
  *
  * ## Why the identity view is asked for and the others are not
  *
- * `readsIdentityRelative` is the caller's answer to "does the MATCHER give this
+ * `readsRepoRelative` is the caller's answer to "does the MATCHER give this
  * glob the identity-root view?" — the dialect owns that rule (ADR-013: the
  * kernel takes the fact, not the policy), and it is required rather than
  * defaulted because a caller that forgets would get the generous union.
@@ -86,19 +86,15 @@ export interface PathUniverse {
 export function viewsFor(
   universe: PathUniverse,
   kind: 'file-path' | 'parent-dir' | 'import-target' | 'specifier' | 'literal',
-  readsIdentityRelative: boolean,
+  readsRepoRelative: boolean,
 ): readonly (readonly string[])[] {
   if (kind === 'file-path')
-    return readsIdentityRelative
-      ? [universe.filePaths, universe.tsconfigRelativeFilePaths, universe.identityRelativeFilePaths]
+    return readsRepoRelative
+      ? [universe.filePaths, universe.tsconfigRelativeFilePaths, universe.repoRelativeFilePaths]
       : [universe.filePaths, universe.tsconfigRelativeFilePaths]
   if (kind === 'parent-dir')
-    return readsIdentityRelative
-      ? [
-          universe.parentDirs,
-          universe.tsconfigRelativeParentDirs,
-          universe.identityRelativeParentDirs,
-        ]
+    return readsRepoRelative
+      ? [universe.parentDirs, universe.tsconfigRelativeParentDirs, universe.repoRelativeParentDirs]
       : [universe.parentDirs, universe.tsconfigRelativeParentDirs]
   return []
 }
