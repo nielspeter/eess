@@ -190,6 +190,64 @@ It does not change the advice that went with it. The reported symptom is a worke
 dying with no V8 heap message under four runners sharing a 16 GB box, which is a
 scheduling ceiling: 60% of 6 GiB is still 6 GiB when four run at once.
 
+## The second gap is closed too: the rules are not the cost
+
+The spike asked whether the ~2.4 GiB sitting above loading could be attributed —
+`noUnusedExports()` over a merged workspace Program being the obvious suspect. The
+adopter took that measurement as well. Same tree, same planted violations, guarded,
+macOS, `/usr/bin/time -l`, eess-ts 0.8.0:
+
+| configuration                                                            | peak RSS     | wall  |
+| ------------------------------------------------------------------------ | ------------ | ----- |
+| baseline, run 1                                                          | 4.98 GiB     | 445 s |
+| baseline, run 2                                                          | 6.29 GiB     | 506 s |
+| Unused-exports block deleted, **`fullWorkspace` still built**            | 5.22 GiB     | 360 s |
+| Unused-exports block deleted **and** `fullWorkspace` never built         | 4.66 GiB     | 397 s |
+| **lazy `projects.ts` stand-ins + `resetProjectCache()`, all rules kept** | **3.49 GiB** | 483 s |
+
+**The answer is a negative result: at this noise floor the `noUnusedExports` rules
+have no resolvable cost.** The one-variable run lands at 5.22, inside a baseline
+band of 4.98–6.29 whose own spread is **1.31 GiB on n=2**. Nothing smaller than that
+can be resolved here, and the effect is not bigger than that.
+
+**The first attempt confounded two variables** — it deleted the rules _and_ stopped
+building `fullWorkspace` — and produced a "0.3 to 1.6 GiB saving" by differencing
+one run against two baselines that disagree by more than the effect. That range is
+withdrawn. It is recorded because it is the same shape of error this spike has now
+made twice in its own voice: a number that looks like a measurement and is an
+artefact of the variance.
+
+**Corroboration, not measurement, for the workspace Program.** The two removal runs
+differ by 0.56 GiB in the direction of `fullWorkspace` costing something (4.66
+without it, 5.22 with it). Two single runs inside a 1.31 GiB band establish nothing
+— but the direction agrees with this spike's own independently measured 1,040 MiB
+for that Program at load time. Stated as corroboration so a later reader does not
+promote it.
+
+**What did clear the noise floor is the adopter's own fix**, and it is not one of
+the three candidates below: lazy stand-ins in `projects.ts` plus `resetProjectCache()`
+where the rule loops switch project, at **3.49 GiB** — 1.49 GiB below the lower
+baseline, with the finding set identical, compared per violation. Their diagnosis of
+why is the durable part: "the module-scope `project()` calls in `projects.ts` ran on
+ANY import and filled eess's process-wide cache in the first file." Filed as
+[0356](../bugs/0356-project-memoizes-for-process-lifetime-so-a-module-scope-export-builds-every-project.md).
+
+**The caveat that travels with all of it:** these are macOS RSS figures, which
+exclude compressed pages, and the OOM that started this is on a Linux CI runner.
+They rank the levers; they do not predict the number there.
+
+### What this changes about the three candidates
+
+- **Expose `skipFileDependencyResolution`** — unchanged. Still the biggest number
+  and still mostly unavailable to an adopter whose rules are imports and
+  dependencies.
+- **`project()` as a view onto `workspace()`** — **strengthened.** If roughly a GiB
+  of the peak is a second Program holding the same files, that is the thing to
+  remove.
+- **A rule-scoping option for `noUnusedExports`** — **weakened to the point of being
+  dropped.** There is now a measurement, and it says the rules are not where the
+  memory is.
+
 ## What this spike still does not answer
 
 - **Whether `skipFileDependencyResolution` is safe.** `candidatesFor`
@@ -200,6 +258,7 @@ scheduling ceiling: 60% of 6 GiB is still 6 GiB when four run at once.
   on.
 - **Whether peak or steady state matters** for a runner hosting four jobs. The flag
   is a ceiling, not a reservation.
+- **What any of this is worth on Linux.** Every adopter figure here is macOS RSS.
 
 ## The decision this brings back
 
