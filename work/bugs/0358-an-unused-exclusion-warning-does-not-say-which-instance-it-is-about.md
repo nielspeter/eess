@@ -15,26 +15,28 @@
 
 ## Symptom
 
-An adopter builds the same rule once per application, in a loop, with one id:
+An adopter builds the same rule once per package, in a loop, with one id. Re-sourced to
+this corpus's vocabulary per `BUGS.md`'s intake rule — the reporter's own file and rule
+names were in the first draft, which is the material that rule exists to keep out:
 
 ```ts
-for (const [name, p] of uiApps) {
+for (const [name, p] of packages) {
   jsxElements(p)
     .that()
     .areHtmlElements('input')
     .and()
     .resideInFolder('**/src/**')
-    .excluding(/FileDropzone\.tsx$/)
+    .excluding(/LegacyWidget\.tsx$/)
     .should()
     .notExist()
-    .rule({ id: 'jsx/no-raw-input', because: '…' })
+    .rule({ id: 'jsx/no-raw-element', because: '…' })
     .check()
 }
 ```
 
-`FileDropzone.tsx` exists in one app and not the other. The run prints:
+`LegacyWidget.tsx` exists in one app and not the other. The run prints:
 
-> `[eess] Unused exclusion '/FileDropzone\.tsx$/' in rule 'jsx/no-raw-input'. It
+> `[eess] Unused exclusion '/LegacyWidget\.tsx$/' in rule 'jsx/no-raw-element'. It
 matched zero violations — it may be stale after a rename.`
 
 Measured by the reporter, one instance at a time:

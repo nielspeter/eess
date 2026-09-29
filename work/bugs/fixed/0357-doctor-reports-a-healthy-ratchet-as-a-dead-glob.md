@@ -83,7 +83,7 @@ reported `zero-subjects` instead of `dead-glob`, and a boolean cannot tell those
 control now asserts the finding KIND. Recorded because "a row that fires nothing" has two
 causes and this was the second one, for the second time in this pair of bugs.
 
-**A row also failed to apply twice before that**, because `prettier` reflowed the `if` onto one
+**Two rows also failed to apply before that**, because `prettier` reflowed the `if` onto one
 line after the edit was written and the anchor stopped matching — a green that meant the
 sabotage never ran. Worth the line: a matrix keyed on source text has to be re-anchored after
 formatting, and a row reporting ALL GREEN is the same output either way.
