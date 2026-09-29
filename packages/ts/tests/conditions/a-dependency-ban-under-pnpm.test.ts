@@ -21,7 +21,12 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Project } from 'ts-morph'
 import { modules } from '../../src/builders/module-rule-builder.js'
-import { notImportFrom, onlyImportFrom, dependOn } from '../../src/conditions/dependency.js'
+import {
+  notImportFrom,
+  onlyImportFrom,
+  dependOn,
+  onlyHaveTypeImportsFrom,
+} from '../../src/conditions/dependency.js'
 import * as modulePredicates from '../../src/predicates/module.js'
 import type { ArchProject } from '../../src/core/project.js'
 
@@ -137,7 +142,17 @@ describe('bug 0349: a path-shaped dependency ban sees every package-manager layo
     }
   })
 
-  /** Every import-glob surface, so a fix that reached one and missed five cannot pass. */
+  /**
+   * Every import-glob surface — **all six**, verified by enumeration against
+   * `grep -rn importTargetMatcher packages/ts/src`, not by counting what was convenient.
+   *
+   * This list held FOUR while its own comment said "every", and the two it omitted
+   * (`onlyHaveTypeImportsFrom`, and the `notImportFrom` PREDICATE) had zero regression
+   * protection — the sabotage row named "bypass one of the six call sites" happened to
+   * bypass a covered one, went red, and the class was declared closed. A row named for six,
+   * satisfied by four, with "all four" written in its own remedy column. Found by a
+   * retrospective review after this shipped in two releases.
+   */
   const SURFACES: [string, (p: ArchProject, glob: string) => string[]][] = [
     ['notImportFrom (condition)', (p, g) => findings(p, notImportFrom(g))],
     ['dependOn (condition)', (p, g) => findings(p, dependOn(g))],
@@ -145,6 +160,18 @@ describe('bug 0349: a path-shaped dependency ban sees every package-manager layo
     // makes the allowance vanish and every import is reported — the opposite
     // direction from the ban, and the one the reasoning for this fix turns on.
     ['onlyImportFrom (condition)', (p, g) => findings(p, onlyImportFrom(g))],
+    // The scope-in shape: fail-CLOSED under the fix (it reports more), and untested until
+    // the retrospective review measured it changing.
+    ['onlyHaveTypeImportsFrom (condition)', (p, g) => findings(p, onlyHaveTypeImportsFrom(g))],
+    [
+      'notImportFrom (PREDICATE, not the condition)',
+      (p, g) =>
+        modules(p)
+          .that()
+          .satisfy(modulePredicates.notImportFrom(g))
+          .subjects()
+          .map((sf) => sf.getBaseName()),
+    ],
     [
       'importFrom (predicate)',
       (p, g) =>

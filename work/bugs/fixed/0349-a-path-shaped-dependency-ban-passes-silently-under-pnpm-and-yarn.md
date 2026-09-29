@@ -122,6 +122,44 @@ The first of those is the one that matters: the fix reasoned at length about
 - [0339](./0339-globs-match-nothing-when-the-project-sits-under-a-dot-directory.md)
   — the first of the three, and the record that weighed and rejected `{ dot: true }`.
 
+## What a retrospective review found, after this shipped
+
+This bug was **merged with zero review lenses** — the only change in this line of work that
+had none — and released in 0.9.0. A retrospective enforcement review found two Criticals.
+Both are in the test and the declaration rather than the behaviour, which is what made them
+survivable and also what made them invisible.
+
+**1. "Every import-glob surface" covered four of six.** The `SURFACES` table carried the
+comment _"Every import-glob surface, so a fix that reached one and missed five cannot pass"_
+and listed four. `onlyHaveTypeImportsFrom` and the `notImportFrom` **predicate** had zero
+regression protection — only one test file in the repository touches pnpm or Yarn layouts.
+Both were measured to change under the fix, so both carried the identical defect at identical
+magnitude.
+
+**The sabotage matrix is how it got through.** The row named "bypass one of the six call
+sites" happened to bypass a _covered_ one, went red, and the class was declared closed — with
+"all four condition/predicate surfaces are covered" written in its own remedy column, under a
+row named for six. A row that measures something narrower than the thing it is named for.
+
+**2. The declared blast radius named one of two fail-open inversions.** Widening a matcher is
+fail-closed for a ban and fail-OPEN for an allowlist or a requirement, and these six are not
+symmetric. Measured without touching source, by giving each condition a glob that cannot
+match (the pre-fix state) against one that can:
+
+| site                         | shape       | matcher misses | matcher matches | direction                    |
+| ---------------------------- | ----------- | -------------- | --------------- | ---------------------------- |
+| `notImportFrom` (condition)  | ban         | 0              | 1               | reports more — fail-closed   |
+| `onlyHaveTypeImportsFrom`    | scope-in    | 0              | 1               | reports more — fail-closed   |
+| `onlyImportFrom` (condition) | allowlist   | 1              | 0               | **reports less — fail-open** |
+| `dependOn` (condition)       | requirement | 1              | 0               | **reports less — fail-open** |
+
+The changeset declared `onlyImportFrom` and not `dependOn`. `dependOn('**/logging/**')` —
+"this module must depend on logging" — enforces less under pnpm and Yarn than it did, and
+nobody was told. [`docs/migrating-to-0.9.md`](../../../docs/migrating-to-0.9.md) is corrected.
+
+Both are pinned now: all six surfaces are in `SURFACES`, and reverting the shared matcher
+reds all six rows plus three others.
+
 ## Verification
 
 - [x] measured: the table above, in a plain checkout, with the pinned picomatch.
