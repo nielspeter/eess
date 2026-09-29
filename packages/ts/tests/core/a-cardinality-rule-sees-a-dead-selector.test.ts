@@ -38,7 +38,7 @@ let p: ArchProject
  * `include`. That is the whole fixture: a path the rule's author is asserting about, present
  * on disk, that the rule cannot see.
  */
-function writeFixture(repoRoot: string): string {
+function writeFixture(repoRoot: string, include: string[] = ['src']): string {
   fs.mkdirSync(path.join(repoRoot, 'apps', 'api', 'src'), { recursive: true })
   fs.mkdirSync(path.join(repoRoot, 'apps', 'legacy', 'src'), { recursive: true })
   fs.writeFileSync(
@@ -48,10 +48,7 @@ function writeFixture(repoRoot: string): string {
   fs.writeFileSync(path.join(repoRoot, 'apps', 'legacy', 'src', 'old.ts'), 'export const old = 1\n')
   fs.writeFileSync(path.join(repoRoot, 'apps', 'api', 'src', 'a.ts'), 'export const a = 1\n')
   const tsConfigPath = path.join(repoRoot, 'apps', 'api', 'tsconfig.json')
-  fs.writeFileSync(
-    tsConfigPath,
-    JSON.stringify({ compilerOptions: { strict: true }, include: ['src'] }),
-  )
+  fs.writeFileSync(tsConfigPath, JSON.stringify({ compilerOptions: { strict: true }, include }))
   return tsConfigPath
 }
 
@@ -115,6 +112,41 @@ describe('bug 0355: a cardinality rule sees a dead selector', () => {
     expect(modules(p).that().resideInFolder(GENUINELY_GONE).subjects()).toHaveLength(0)
     expect(diskSet(p).classify(ON_DISK)).toBe('holds-typescript')
     expect(diskSet(p).classify(GENUINELY_GONE)).toBe('absent')
+  })
+
+  it('reports when a tsconfig include stops covering the path — the adopter shape', () => {
+    // How this actually happens in the wild, reported by an adopter: nobody deletes a folder,
+    // somebody edits `include`. The files stay on disk and the project stops loading them, so
+    // every `.notExist()` rule over them goes quiet.
+    //
+    // Two sub-cases that take DIFFERENT paths, which is why both are pinned:
+    //  - `include` drops the path but still loads something → the disk check here
+    //  - `include` loads nothing at all → the empty-project branch, which runs BEFORE the
+    //    cardinality exemption and already reported before this fix
+    const partial = project(writeFixture(path.join(base, 'partial'), ['src']))
+    expect(
+      modules(partial)
+        .that()
+        .resideInFolder(ON_DISK)
+        .should()
+        .satisfy(notExist())
+        .rule({ id: 'test/0355' })
+        .violations()
+        .map((v) => v.element ?? ''),
+    ).toEqual([ON_DISK])
+
+    const nothing = project(writeFixture(path.join(base, 'nothing'), []))
+    const findings = modules(nothing)
+      .that()
+      .resideInFolder(ON_DISK)
+      .should()
+      .satisfy(notExist())
+      .rule({ id: 'test/0355' })
+      .violations()
+    // Named by its cause, not merely counted: the empty project is the fault here, and
+    // reporting the glob instead would send the reader to fix a glob that is fine.
+    const phrase = 'The project loaded 0 source files'
+    expect(findings.map((v) => v.message.slice(0, phrase.length))).toEqual([phrase])
   })
 
   it('CONTROL: a positive-assertion condition still reports, as it always did', () => {

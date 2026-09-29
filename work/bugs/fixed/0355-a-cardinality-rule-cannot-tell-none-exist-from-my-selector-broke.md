@@ -144,6 +144,28 @@ the row that does.
 obvious over-reach — report whenever a cardinality rule examines zero — passes the
 defect test and breaks every healthy ratchet. Both red the control that pins it.
 
+## Confirmed by an adopter on two more shapes
+
+Reported while this fix was in flight, on eess-ts 0.8.0, and measured here against the
+branch. Both are the same defect authored the way it actually happens — nobody deletes
+a folder, somebody edits `include`:
+
+| shape                                                    | files loaded | findings on the fix | reported via                                                          |
+| -------------------------------------------------------- | ------------ | ------------------- | --------------------------------------------------------------------- |
+| `include` drops the path, project still loads something  | 1            | **1**               | the disk check above                                                  |
+| `include` drops everything, project loads nothing        | 0            | **1**               | the empty-project branch, which runs BEFORE the cardinality exemption |
+| a **JSX** rule, `include: ["tests"]`, planted `<button>` | 1            | **1**               | the disk check                                                        |
+
+The third row closes a limit this record stated rather than glossed: the fix lives in
+`evidenceFloor`, which every builder's terminal goes through, but it had been verified
+only on `modules()`. The adopter supplied the JSX recipe and could not run it against
+an unbuilt branch, so it was measured here. Both `modules()` and `jsxElements()` now
+confirmed.
+
+The first two rows take **different paths**, which is worth knowing: an `include` that
+loads nothing was already reported before this fix; an `include` that loads _some_ files
+and not the asserted path was not.
+
 ## Found while fixing, filed rather than widened
 
 - [0357](../0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md) — `doctor` reports
