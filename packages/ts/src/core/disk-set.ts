@@ -140,7 +140,7 @@ const cache = new WeakMap<ArchProject, DiskSet>()
  * for the gate half, [0357](../../../../work/bugs/fixed/0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md)
  * for the preview.
  */
-export function absenceClaimIsContradicted(project: ArchProject, glob: string): boolean {
+function absenceClaimIsContradicted(project: ArchProject, glob: string): boolean {
   return contradictsAbsence(diskSet(project).classify(glob))
 }
 
@@ -160,6 +160,35 @@ export function absenceClaimIsContradicted(project: ArchProject, glob: string): 
 // eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function contradictsAbsence(onDisk: OnDisk): boolean {
   return onDisk === 'holds-typescript'
+}
+
+/**
+ * Is a dead site on a CARDINALITY rule a real fault, given the glob and the disk?
+ *
+ * Two independent ways to be one, and the second was missing for a release:
+ *
+ * 1. **The glob is broken in every possible project** — a syntactic fault, decided from the
+ *    text with no filesystem and no universe. `'./src/**'` is one character wrong and matches
+ *    nothing anywhere.
+ * 2. **The filesystem contradicts the absence claim** — `contradictsAbsence` above.
+ *
+ * Bug 0357 added the disk test and, by placing it after `isDeadSite`, dropped the first.
+ * Measured on a healthy project with `src/a.ts` loaded: a `.notExist()` over `'./src/**'`
+ * went green in `doctor` AND `check`, while the same glob on a positive-assertion rule
+ * reported — so a ratchet broken by one character said nothing in either tool, and the
+ * directory it names exists, is in the project, and holds TypeScript. Shipped in 0.10.0 and
+ * caught by a review of the review's own fixes.
+ *
+ * `diagnose.ts` states the principle twice about itself — syntactic faults "are properties of
+ * the glob text, not of what loaded", and survive even an empty project. They must survive
+ * this narrowing too.
+ */
+export function cardinalityDeadSiteIsAtFault(
+  project: ArchProject,
+  glob: string,
+  hasSyntacticFault: boolean,
+): boolean {
+  return hasSyntacticFault || absenceClaimIsContradicted(project, glob)
 }
 
 export function diskSet(project: ArchProject): DiskSet {

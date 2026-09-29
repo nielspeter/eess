@@ -64,6 +64,15 @@ const ON_DISK = '**/apps/legacy/**'
 const GENUINELY_GONE = '**/apps/deleted-long-ago/**'
 /** In the project — the rule fails for the ordinary reason. */
 const LIVE = '**/apps/api/src/**'
+/**
+ * Broken by one character. `'./src/**'` matches nothing in ANY project — picomatch will not
+ * cross a `./` segment — so the fault is decidable from the glob text with no filesystem.
+ * The directory exists, is in the project and holds TypeScript, which is what makes the
+ * silence so bad: 0357's first fix dropped every syntactic fault for cardinality rules by
+ * placing the disk test after `isDeadSite`, and this went green in BOTH tools. Shipped in
+ * 0.10.0; caught by a review of 0357's own fix.
+ */
+const TYPO = './src/**'
 
 beforeAll(() => {
   base = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0357-'))
@@ -79,10 +88,14 @@ describe('bug 0357: doctor and check agree about a cardinality rule', () => {
     // The invariant, asserted as an invariant. A table rather than three assertions so a
     // future reader sees the shape the two tools have to share, and so a drift in either
     // direction fails — `doctor` over-reporting (this bug) or `check` under-reporting (0355).
-    expect([ON_DISK, GENUINELY_GONE, LIVE].map((g) => verdicts(g))).toEqual([
+    expect([ON_DISK, GENUINELY_GONE, LIVE, TYPO].map((g) => verdicts(g))).toEqual([
       { doctor: true, check: true },
       { doctor: false, check: false },
       { doctor: false, check: true },
+      // A syntactic fault is a property of the glob text, so BOTH tools must speak — and the
+      // row sits beside GENUINELY_GONE deliberately: both match nothing, and only one is the
+      // author's mistake. That is the whole discrimination this pair of bugs is about.
+      { doctor: true, check: true },
     ])
   })
 
