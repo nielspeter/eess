@@ -4,7 +4,8 @@
 
 - **State:** Draft — measured; the mechanism and the threshold are both confirmed.
 - **Severity:** High — **a gate that turns itself off, silently, for a whole
-  repository.** Above the walk's entry budget every cardinality rule in the run
+  repository**, with the threshold measured at ~3× a real adopter monorepo rather
+  than the remote figure this record first estimated. Above the walk's entry budget every cardinality rule in the run
   loses the [0355](./fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
   floor at once, for a reason unrelated to any of their paths, and nothing says so.
 - **Origin:** enforcement review of the v0.10 pair, which found it in the comment
@@ -30,16 +31,26 @@ whether a `.notExist()` rule reports. `not-determined` means "stay green" — th
 right policy for one unanswerable path, and the wrong outcome when it means _the
 walk gave up on the entire repository_.
 
-|                                |                                                   |
-| ------------------------------ | ------------------------------------------------- |
-| `ENTRY_BUDGET`                 | **50,000** dirents (`ts/src/core/disk-set.ts:46`) |
-| this repository                | ~3,500 entries — about 7% of it                   |
-| the threshold, in repositories | roughly 14× this one                              |
+|                                                              | entries (after the walk's own prune list) | share of budget |
+| ------------------------------------------------------------ | ----------------------------------------- | --------------- |
+| `ENTRY_BUDGET` (`ts/src/core/disk-set.ts:46`)                | **50,000**                                | —               |
+| this repository                                              | ~3,500                                    | 7%              |
+| **an adopter's monorepo** — 15 packages, 5,815 tracked files | **16,770**                                | **34%**         |
 
-A monorepo that size is not absurd. It is also exactly the population that writes
-ratchets — "this package is gone", "no one calls this any more" — because it is
-large enough to have deleted things. Nobody discovers this by accident; they
+**The adopter row is measured, and it moves this record's own estimate by an order of
+magnitude.** A first version of this table carried only eess's own number and put the
+threshold at "roughly 14× this repository", which reads as remote. Against a real monorepo
+the budget is **about 3× away** — and a tree that has grown, or one with a generated-code
+directory the prune list does not name, is inside it.
+
+That is also exactly the population that writes ratchets: large enough to have deleted
+things, and large enough that nobody reads a green. Nobody discovers this by accident; they
 discover it by their ratchets having been green for a year.
+
+**Asked for and supplied by the adopter within the hour**, after the 0.10 release note told
+them to check. Worth recording as method as well as data: the number existed and nobody on
+our side could produce it, because eess's own tree cannot exhibit the shape — the same limit
+[spike 0345](../spikes/0345-what-it-costs-to-load-a-monorepo.md) had to state about itself.
 
 ## Root cause
 
@@ -104,6 +115,12 @@ patched.
       per project.
 - [x] the budget read from source (50,000) and this repository measured against it
       (~7%).
+- [x] **an adopter's monorepo measured at 16,770 — 34% of budget**, supplied on request
+      after the 0.10 release note told them to check. The threshold is ~3× a real
+      monorepo, not the ~14× this record first estimated from eess's own tree.
+- [x] the adopter's own mitigation confirmed as adequate for now: 26 `.notExist()`
+      instances planted against and verified red, plus four permanent `prove:rules`
+      probes. That is what a run should be doing FOR them, which is this bug.
 - [ ] a ruling on which shape, and on whether a verdict may depend on a bounded walk
 - [ ] a red-first test: a project whose walk exhausts, asserting the run says so
 - [ ] a changeset
