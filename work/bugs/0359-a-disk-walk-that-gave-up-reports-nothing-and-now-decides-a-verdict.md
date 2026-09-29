@@ -72,6 +72,73 @@ number.
 
 That comment is corrected as part of the v0.10 work; this record is the behaviour.
 
+## The budget's justification is not supported — spike 0360
+
+[Spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md) measured the walk,
+because the budget is defended by a claim about time that had never been measured: "a
+failing run that then hangs inside a 5s vitest timeout".
+
+|                                        |                                        |
+| -------------------------------------- | -------------------------------------- |
+| the budget, 50,000 entries             | **76 ms**                              |
+| 6× the budget, 316,000 entries         | **491 ms** — a tenth of the 5s timeout |
+| entries needed to reach 5s             | **~3.2 million**                       |
+| the adopter's monorepo, 16,770 entries | ~25 ms                                 |
+
+Roughly **1.5 µs per entry**, linear, and the walk is performed **once per project**
+(memoized on a `WeakMap`), not per rule. So the budget sits about two orders of
+magnitude below what its own reasoning requires, and the price of that misplacement
+is this bug.
+
+**That does not reduce this to "raise the number."** At any budget, exhaustion still
+answers `not-determined` for every glob, still means green, and still says nothing.
+The two changes are independent, and only one of them is optional.
+
+## Pruning is not the cheap lever it looks like — it trades cost for reach
+
+An adopter enumerated every dot-directory outside `node_modules`/`.git` in their tree, with
+counts. The headline is striking: **9,753 of their 16,833 entries — 58% — are `.wrangler`
+tool state**, across three locations, and `.wrangler` is not on the prune list. `.terraform`
+adds 144 across four roots. Extending the list would take them from 34% of budget to ~15%.
+
+That reads as an obvious win and it is not, for a reason the module's own docstring already
+states:
+
+> The list cannot be complete — a real TypeScript monorepo may hold a Rust `target/`, a
+> Python `.venv`, a `.gradle` — **which is why the entry budget below exists rather than a
+> longer list.**
+
+**And since 0355, pruning has a correctness cost it did not have before.** A pruned directory
+classifies `absent`, which is the "ratchet holding" answer — silence. So every name added to
+the list is a place the 0355 gate can no longer see, and the case it matters for is precisely
+a file that is on disk and _not_ loaded.
+
+**`.next` is the worked example, and it is DERIVED rather than observed.** It is on the list,
+and a standard Next.js `tsconfig.json` includes `.next/types/**/*.ts`. So for a project that
+runs eess over a Next app, generated route types dropped from `include` would sit on disk,
+classify `absent`, and a cardinality rule over them would stay green — the exact shape 0355
+exists to catch, hidden by a prune entry added when this classification only affected message
+wording.
+
+**Nobody has demonstrated it.** The adopter whose data produced this section has two Next
+projects and checked: neither is an eess project — no `project()` or `workspace()` is built
+over them, and the only architecture test touching them reads `.mdx` with `fs`. So the one
+tree that could have tested this cannot, and the case rests on two true premises rather than
+on a run. Recorded that way deliberately: this record has already been corrected once for
+stating a derived number as a measured one, and the reasoning stands on its own without
+being dressed up.
+
+So the adopter's data is evidence for **moving the budget**, not for lengthening the list:
+with the budget where [spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md)
+measured it belongs, their 16,833 entries are under 2% of it and `.wrangler` costs ~15ms
+nobody notices.
+
+**The one addition safe on its own terms** is a directory no tsconfig can include — IDE and
+agent state (`.idea`, `.serena`, `.playwright-mcp`). The adopter drew that line themselves
+and drew it correctly: they excluded `.claude` and `.github` from their own suggestion,
+because `.claude/` holds their project's skills and docs. Worth recording as the test for any
+future entry: **not "is it tool output" but "can a tsconfig include it".**
+
 ## Fix
 
 Not decided. The shape is that an instrument which could not answer must say so —
@@ -88,14 +155,22 @@ ADR-009's own subject.
 - **A line in the gate summary.** Cheapest, and it is a warning — which ADR-009
   rule 1 says the primary consumer does not read. Adequate for "the walk was
   slow", not for "a gate is off".
-- **Raise or remove the budget.** Does not fix it; moves it. Worth measuring what
-  the walk actually costs on a large repository before assuming the budget is the
-  right instrument at all.
+- **Move the budget to where its justification puts it.** Measured in 0360: between
+  500,000 and 1,000,000 entries is 0.8–1.5s warm, which puts every realistic
+  repository inside it. **Not unbounded** — the cold-cache cost is unmeasured and a
+  bound nobody can reach is still a bound. This does not fix the silence; it makes
+  the silence unreachable in practice, which is a different and lesser thing.
 
 **The open question is whether a verdict may depend on a bounded walk at all.** If
-the answer is no, 0355's discriminator needs a different source of truth and this
-is a redesign rather than a report. That question is why this is filed rather than
-patched.
+the answer is no, 0355's discriminator needs a different source of truth and this is
+a redesign rather than a report.
+
+0360 makes that question **less pressing and does not answer it**: with the budget
+where its justification puts it and exhaustion reported, the bound sits far from any
+real tree and reaching it is stated rather than silent. It stays open here rather
+than being declared closed by a number — a bound that is merely hard to reach is
+still a bound, and this project's whole subject is what happens at the edge nobody
+tests.
 
 ## Related
 
@@ -121,6 +196,12 @@ patched.
 - [x] the adopter's own mitigation confirmed as adequate for now: 26 `.notExist()`
       instances planted against and verified red, plus four permanent `prove:rules`
       probes. That is what a run should be doing FOR them, which is this bug.
+- [x] the budget's justification measured, and found unsupported —
+      [spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md): 50,000
+      entries costs 76 ms against a 5s claim.
+- [x] the prune list weighed as an alternative lever and found to trade cost for reach —
+      `.next` is already over-pruned for a Next.js project, and since 0355 every prune entry
+      is a place this gate cannot see.
 - [ ] a ruling on which shape, and on whether a verdict may depend on a bounded walk
 - [ ] a red-first test: a project whose walk exhausts, asserting the run says so
 - [ ] a changeset
