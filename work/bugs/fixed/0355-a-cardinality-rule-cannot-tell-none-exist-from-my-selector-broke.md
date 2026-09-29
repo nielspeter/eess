@@ -4,11 +4,25 @@
 
 - **State:** Fixed — the disk discriminator, with a red-first test through the real
   `project()` and a four-row sabotage matrix.
-- **Severity:** High — **a true false green.** A `.notExist()` or `.expectEmpty()`
-  rule whose selector silently stops matching produces **zero findings** and exit 0.
-  Every other rule shape has the ADR-010 evidence floor beneath it; these two are
-  exempt from the floor _and_ from the dead-selector diagnosis, by design, and the
-  design cannot tell the two cases apart.
+- **Severity:** High — **a true false green.** A rule asserting CARDINALITY
+  (`.notExist()` and friends) whose selector silently stops matching produces
+  **zero findings** and exit 0. Every other rule shape has something beneath it —
+  the dead-selector diagnosis, or the ADR-010 evidence floor. This one is exempt
+  from **both**, by design, and the design cannot tell "none exist" from "my
+  selector broke".
+- **Scope — narrowed after measurement, and this record twice said otherwise.**
+  `.expectEmpty()` is **not** this bug. `deadSelectorFindings` guards on
+  `assertsCardinality()` only (`ts/src/core/vacuity-diagnosis.ts:417`) and has no
+  `declaresEmpty()` guard, and `.expectEmpty()` sets the latter, not the former —
+  so a declared-empty rule IS reachable by the dead-selector diagnosis and already
+  reported. Measured while fixing
+  [0348](./0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md),
+  where it is the row that goes red to green.
+  **The correction was written once and never landed** — a `str.replace` without an
+  assert, silently a no-op — so the Severity and Symptom above carried the wrong
+  claim while the Verification below carried the right one, and only method review
+  caught the contradiction. That asymmetry is the reason this note is a bullet
+  rather than a quiet edit.
 - **Origin:** enforcement review of
   [0348](./0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md).
   The reviewer's own framing was that 0348's gate rescues this shape; measurement
@@ -28,7 +42,8 @@ from `apps/api`'s root:
 | `…should().satisfy(notExist())`         | **0**    | green |
 
 Both rules have the same selector, selecting the same nothing. One reports; the
-other is silent. The same holds for a rule carrying `.expectEmpty()`.
+other is silent. A third shape, `…notImportFrom(x).expectEmpty()`, **also reports** —
+see the scope note in Status.
 
 ## Root cause
 
@@ -107,6 +122,26 @@ what the rule asserts. `not-determined` stays green, because blaming the author 
 a walk we could not complete is the confidently-wrong remedy `disk-set.ts` exists
 not to give.
 
+**The limit that policy hides, named because enforcement review found it in the
+comment that licensed it.** `not-determined` is not only a per-path answer. The
+walk has an entry budget — 50,000 dirents — and on exhaustion `buildDiskSet`
+returns a single `UNDETERMINED` whose `classify` answers `not-determined` for
+**every** glob, memoized per project. So one repository above that threshold
+silences this gate for _every_ cardinality rule in the run at once, for a reason
+that has nothing to do with any of their paths, and nothing reports that the walk
+gave up.
+
+This repository sits at roughly 7% of the budget, so the threshold is about
+fourteen repositories this size — large, but exactly the population that writes
+ratchets, because it is large enough to have deleted things.
+
+**It is not a regression:** before this fix those rules were silent everywhere.
+It is an undisclosed limit on a fix, and disclosing it is the minimum. Surfacing
+exhaustion so a run says "I could not answer" is
+[0359](../0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md),
+and it carries the harder question this ruling does not settle: whether a verdict
+may depend on a bounded walk at all.
+
 ### What this costs, stated before it is built
 
 The check is **not free**: it needs the disk walk, which `deadSelectorFindings`
@@ -160,11 +195,55 @@ The third row closes a limit this record stated rather than glossed: the fix liv
 `evidenceFloor`, which every builder's terminal goes through, but it had been verified
 only on `modules()`. The adopter supplied the JSX recipe and could not run it against
 an unbuilt branch, so it was measured here. Both `modules()` and `jsxElements()` now
-confirmed.
+confirmed — **and retained**, by
+`it('reaches a JSX rule too, not only modules() — the builder-independence claim')`.
+Method review caught that this was the one row carrying the load-bearing claim and the
+one row pinned by nothing; it had been measured in a throwaway probe and deleted.
 
 The first two rows take **different paths**, which is worth knowing: an `include` that
 loads nothing was already reported before this fix; an `include` that loads _some_ files
 and not the asserted path was not.
+
+## What the v0.10 review round found, and what it changed
+
+Six lenses ran on this pair before release. Two Criticals and four Importants changed the
+code or the record; the round found more than the change did.
+
+**The remedy told the reader to delete the ratchet.** Found independently by three lenses.
+`cardinalitySelectorMissedDisk` reused `deadSelectorViolation` verbatim, so the new finding
+read _"so it has no subjects and cannot fail … Correct the glob, or remove the rule"_ — and
+for a rule satisfied BY having no subjects, the first clause describes it passing and the
+second offers to delete it. On a `bypassFilters` finding, deletion is the only achievable
+exit, and the primary consumer is an agent that takes it. The fix for a silently-passing
+ratchet shipped an instruction to delete the ratchet, contradicting this release's own
+changeset. Now branched on cardinality, with the remedy alone in `suggestion` so the `Fix:`
+line exists at all. **No test caught it because no test asserted the message**; two now do,
+in both directions.
+
+**The policy was stated four times and enforced nowhere.** Test review sabotaged the
+`holds-typescript`-only threshold three ways — accept `not-determined`, accept
+`no-typescript`, accept anything but `absent` — and all three reddened **nothing across
+3,884 tests**. The narrowing lived in this record, in two docstrings and in the changeset,
+and no falsifier. The policy is now a total function on the four-value `OnDisk` union,
+pinned exhaustively by `an-absence-claim-is-contradicted-only-on-disk.test.ts`; all three
+rows fire. A `Record<OnDisk, boolean>` rather than a list, so a fifth classification stops
+it compiling instead of silently leaving a case uncovered.
+
+**The entry budget makes this gate self-disabling**, disclosed in the ruling above and filed
+as [0359](../0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
+
+**This record contradicted itself about `.expectEmpty()`**, and the correction that should
+have fixed it had silently not landed — see the scope note in Status.
+
+**Three of 0357's pointers resolved to the wrong lines.** `check:corpus` proves a cited line
+EXISTS, not that it says what the prose claims, which is the drift class the gate
+structurally cannot see.
+
+One thing the round did not settle, and it is recorded rather than decided: a ratchet
+written `'**/legacy/**'` in one package's rule file now reports when a _sibling_ package has
+that folder. Either a false red on a clean package, or a true statement that the rule claims
+"anywhere" while the project is one package and can never check it. Narrowing the walk to
+the tsconfig root would fix the first reading and break the adopter case this bug came from.
 
 ## Found while fixing, filed rather than widened
 

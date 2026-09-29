@@ -172,13 +172,33 @@ function deadSelectorViolation(
   // noun alone ships a grammatical sentence that is still false.
   const isDiscovery = site.position === 'discovery'
   const what = isDiscovery ? 'discovery glob' : 'selector'
-  const consequence = isDiscovery
-    ? 'so it discovers nothing to check and cannot fail'
-    : 'so it has no subjects and cannot fail'
+  // Cardinality varies BOTH clauses too, for the same reason `discovery` does —
+  // and here getting it wrong was worse than a grammatical slip. A rule asserting
+  // `.notExist()` is SATISFIED by having no subjects, so "it has no subjects and
+  // cannot fail" describes the rule PASSING, and the sentence then offered "or
+  // remove the rule" as a co-equal remedy. On a finding that is `bypassFilters`
+  // — unsuppressable by `.warn()`, `.excluding()`, a comment, a baseline or
+  // diff-aware mode — deletion is the only achievable exit, and the primary
+  // consumer is an agent that does not read warnings and takes the achievable
+  // branch. So the fix for a silently-passing ratchet shipped an instruction to
+  // delete the ratchet, contradicting its own changeset. Three independent
+  // review lenses found this before release; no test caught it, because no test
+  // asserted the message.
+  const isCardinality = facts.assertsCardinality()
+  const consequence = isCardinality
+    ? 'so the absence it asserts was never actually checked'
+    : isDiscovery
+      ? 'so it discovers nothing to check and cannot fail'
+      : 'so it has no subjects and cannot fail'
+  // Never "remove the rule" for a ratchet: it is the thing that noticed.
+  const remedy = isCardinality
+    ? 'Widen the tsconfig include to cover this path, or correct the selector — ' +
+      'do not delete this rule, it is what detected the gap.'
+    : 'Correct the glob, or remove the rule.'
   const advice =
     `This rule's ${what} ${site.origin} can never match anything in this project, ` +
     `${consequence} — ${cause}. ` +
-    `Correct the glob, or remove the rule. ${UNSUPPRESSABLE}`
+    `${remedy} ${UNSUPPRESSABLE}`
   return {
     rule: name,
     ruleId: described.id,
@@ -188,7 +208,12 @@ function deadSelectorViolation(
     message: advice,
     // Its own remedy, never the author's (bug 0021): their `suggestion` is
     // for a violation of the rule, and this says the rule cannot produce one.
-    suggestion: advice,
+    //
+    // For a cardinality rule the remedy ALONE, not the whole advice: `format.ts`
+    // drops the `Fix:` line when `message` and `suggestion` are equal, so the
+    // population most likely to be deleted rather than debugged was shipping with
+    // no `Fix:` line at all and its remedy buried mid-sentence.
+    suggestion: isCardinality ? remedy : advice,
     bypassFilters: true,
   }
 }

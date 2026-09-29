@@ -31,13 +31,13 @@ Row two is the defect. The path is genuinely gone, which is the ratchet **holdin
 ## Root cause
 
 `diagnose()` exempts cardinality rules in `zeroSubjectsFinding`
-(`packages/ts/src/core/diagnose.ts:484`) and **not** on its universe-based dead-glob
-path (`diagnose.ts:415-418`). So a `.notExist()` rule whose selector matches nothing
+(`ts/src/core/diagnose.ts:492`) and **not** on its universe-based dead-glob
+path (`ts/src/core/diagnose.ts:424`, where the guard now is). So a `.notExist()` rule whose selector matches nothing
 — which is every healthy ratchet — takes the dead-glob branch before the exemption
 is ever consulted.
 
 The gate has the mirror of this and got it right: `deadSelectorFindings` exempts
-cardinality outright (`vacuity-diagnosis.ts:382`). 0355 then gave the gate's floor
+cardinality outright (`ts/src/core/vacuity-diagnosis.ts:417`). 0355 then gave the gate's floor
 the discriminator that tells a holding ratchet from a broken selector — the
 filesystem, via `diskSet` — and `doctor` did not get it.
 
