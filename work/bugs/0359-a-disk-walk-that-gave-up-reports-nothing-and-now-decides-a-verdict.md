@@ -113,11 +113,20 @@ classifies `absent`, which is the "ratchet holding" answer — silence. So every
 the list is a place the 0355 gate can no longer see, and the case it matters for is precisely
 a file that is on disk and _not_ loaded.
 
-**`.next` is the live example, already shipped.** It is on the list, and a standard Next.js
-`tsconfig.json` includes `.next/types/**/*.ts`. So for a Next project, generated route types
-dropped from `include` sit on disk, classify `absent`, and a cardinality rule over them stays
-green — the exact shape 0355 exists to catch, hidden by a prune entry added when this
-classification only affected message wording.
+**`.next` is the worked example, and it is DERIVED rather than observed.** It is on the list,
+and a standard Next.js `tsconfig.json` includes `.next/types/**/*.ts`. So for a project that
+runs eess over a Next app, generated route types dropped from `include` would sit on disk,
+classify `absent`, and a cardinality rule over them would stay green — the exact shape 0355
+exists to catch, hidden by a prune entry added when this classification only affected message
+wording.
+
+**Nobody has demonstrated it.** The adopter whose data produced this section has two Next
+projects and checked: neither is an eess project — no `project()` or `workspace()` is built
+over them, and the only architecture test touching them reads `.mdx` with `fs`. So the one
+tree that could have tested this cannot, and the case rests on two true premises rather than
+on a run. Recorded that way deliberately: this record has already been corrected once for
+stating a derived number as a measured one, and the reasoning stands on its own without
+being dressed up.
 
 So the adopter's data is evidence for **moving the budget**, not for lengthening the list:
 with the budget where [spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md)
