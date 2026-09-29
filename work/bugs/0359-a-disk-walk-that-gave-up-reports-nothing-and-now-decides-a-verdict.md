@@ -72,6 +72,28 @@ number.
 
 That comment is corrected as part of the v0.10 work; this record is the behaviour.
 
+## The budget's justification is not supported — spike 0360
+
+[Spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md) measured the walk,
+because the budget is defended by a claim about time that had never been measured: "a
+failing run that then hangs inside a 5s vitest timeout".
+
+|                                        |                                        |
+| -------------------------------------- | -------------------------------------- |
+| the budget, 50,000 entries             | **76 ms**                              |
+| 6× the budget, 316,000 entries         | **491 ms** — a tenth of the 5s timeout |
+| entries needed to reach 5s             | **~3.2 million**                       |
+| the adopter's monorepo, 16,770 entries | ~25 ms                                 |
+
+Roughly **1.5 µs per entry**, linear, and the walk is performed **once per project**
+(memoized on a `WeakMap`), not per rule. So the budget sits about two orders of
+magnitude below what its own reasoning requires, and the price of that misplacement
+is this bug.
+
+**That does not reduce this to "raise the number."** At any budget, exhaustion still
+answers `not-determined` for every glob, still means green, and still says nothing.
+The two changes are independent, and only one of them is optional.
+
 ## Fix
 
 Not decided. The shape is that an instrument which could not answer must say so —
@@ -88,14 +110,22 @@ ADR-009's own subject.
 - **A line in the gate summary.** Cheapest, and it is a warning — which ADR-009
   rule 1 says the primary consumer does not read. Adequate for "the walk was
   slow", not for "a gate is off".
-- **Raise or remove the budget.** Does not fix it; moves it. Worth measuring what
-  the walk actually costs on a large repository before assuming the budget is the
-  right instrument at all.
+- **Move the budget to where its justification puts it.** Measured in 0360: between
+  500,000 and 1,000,000 entries is 0.8–1.5s warm, which puts every realistic
+  repository inside it. **Not unbounded** — the cold-cache cost is unmeasured and a
+  bound nobody can reach is still a bound. This does not fix the silence; it makes
+  the silence unreachable in practice, which is a different and lesser thing.
 
 **The open question is whether a verdict may depend on a bounded walk at all.** If
-the answer is no, 0355's discriminator needs a different source of truth and this
-is a redesign rather than a report. That question is why this is filed rather than
-patched.
+the answer is no, 0355's discriminator needs a different source of truth and this is
+a redesign rather than a report.
+
+0360 makes that question **less pressing and does not answer it**: with the budget
+where its justification puts it and exhaustion reported, the bound sits far from any
+real tree and reaching it is stated rather than silent. It stays open here rather
+than being declared closed by a number — a bound that is merely hard to reach is
+still a bound, and this project's whole subject is what happens at the edge nobody
+tests.
 
 ## Related
 
@@ -121,6 +151,9 @@ patched.
 - [x] the adopter's own mitigation confirmed as adequate for now: 26 `.notExist()`
       instances planted against and verified red, plus four permanent `prove:rules`
       probes. That is what a run should be doing FOR them, which is this bug.
+- [x] the budget's justification measured, and found unsupported —
+      [spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md): 50,000
+      entries costs 76 ms against a 5s claim.
 - [ ] a ruling on which shape, and on whether a verdict may depend on a bounded walk
 - [ ] a red-first test: a project whose walk exhausts, asserting the run says so
 - [ ] a changeset
