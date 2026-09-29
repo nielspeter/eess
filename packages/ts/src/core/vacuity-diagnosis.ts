@@ -8,10 +8,16 @@ import type { GlobNode, GlobSite, RuleDescription } from '@nielspeter/eess'
 // coincidence to stop relying on rather than a contract.
 import type { PathUniverse } from './path-universe.js'
 import { DECLARE_INSTEAD, isFaultPosition, UNSUPPRESSABLE } from '@nielspeter/eess/internal'
-import { diagnoseGlob, syntacticFault, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
+import {
+  diagnoseGlob,
+  isSyntacticFault,
+  syntacticFault,
+  FAULT_ADVICE,
+  ON_DISK_ADVICE,
+} from './glob-diagnosis.js'
 import { globSitesOf, isDeadGlobTree, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'
-import { cardinalityDeadSiteIsAtFault, diskSet } from './disk-set.js'
+import { cardinalityDeadSiteIsAtFault, contradictsAbsence, diskSet } from './disk-set.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
 
 /**
@@ -191,12 +197,57 @@ function deadSelectorViolation(
       ? 'so it discovers nothing to check and cannot fail'
       : 'so it has no subjects and cannot fail'
   // Never "remove the rule" for a ratchet: it is the thing that noticed.
-  const remedy = isCardinality
-    ? 'Widen the tsconfig include to cover this path, or correct the selector — ' +
-      'do not delete this rule, it is what detected the gap.'
-    : 'Correct the glob, or remove the rule.'
+  //
+  // Derived from the DIAGNOSIS, not from the rule shape. Keying it on `isCardinality`
+  // alone was sound while `holds-typescript` was the only way a cardinality rule reached
+  // this sentence. Bug 0362 added a second route — a glob with a syntactic fault — and for
+  // that route both halves were false: no `include` can make `'./src/**'` match anything,
+  // and a rule that never ran "detected" nothing. Measured, the finding then carried a
+  // cause saying "remove the `./` and anchor instead" beside a `Fix:` saying "widen the
+  // tsconfig include", with the impossible branch first, on an unsuppressable finding whose
+  // remedy is the only achievable exit.
+  //
+  // That is the same class this function's history already records twelve lines above —
+  // reintroduced one cause over, and again with no test asserting the message. The new row
+  // asserted booleans.
+  //
+  // The threshold — WHICH classification contradicts an absence claim — is
+  // `contradictsAbsence`'s, never re-spelled here. It was hand-copied as
+  // `=== 'holds-typescript'` in the first draft of this fix, which is the precedent
+  // `disk-set.ts` records one function above: `isFaultPosition` grew two hand-maintained
+  // copies, they disagreed about `discovery`, and `doctor` reported a dead layer glob while
+  // the build stayed green.
+  //
+  // The INPUT is `diagnosis.onDisk` and deliberately not `diskSet(project).classify(glob)`,
+  // and the two are not interchangeable. `classify` answers about any path, always;
+  // `diagnosis.onDisk` is `undefined` unless the disk was the deciding question —
+  // `diagnoseGlob` returns before consulting it for a syntactic fault and for
+  // `file-not-folder`. The remedy needs "was the tsconfig the lever", which is the second
+  // question. Reading `classify` here would tell a `file-not-folder` author to widen an
+  // `include` that cannot help them, because the glob names a file and the predicate reads
+  // directories.
+  const onDiskContradicts = diagnosis.onDisk !== undefined && contradictsAbsence(diagnosis.onDisk)
+  const remedy = !isCardinality
+    ? 'Correct the glob, or remove the rule.'
+    : onDiskContradicts
+      ? 'Widen the tsconfig include to cover this path, or correct the selector — ' +
+        'do not delete this rule, it is what detected the gap.'
+      : 'Correct the selector — this rule has not been enforcing anything. Do not delete it.'
+  // "in this project" understates a syntactic fault by exactly the scope that invites the
+  // tsconfig reading: such a glob can never match in ANY project, which is why no
+  // filesystem answer is relevant to it.
+  //
+  // A property of the glob TEXT, so it is keyed on the text and on nothing else. The first
+  // draft also required `isCardinality && !onDiskContradicts`: the second conjunct is dead
+  // (a syntactic fault leaves `onDisk` undefined, so it is never false when the third is
+  // true — measured: deleting it reddened nothing), and the first made the same broken glob
+  // print two different scope claims depending on whether the author wrote `.notExist()` or
+  // `.notImportFrom()`. Three review lenses flagged the same conjunct independently.
+  const scope = isSyntacticFault(diagnosis.fault)
+    ? 'can never match anything in any project'
+    : 'can never match anything in this project'
   const advice =
-    `This rule's ${what} ${site.origin} can never match anything in this project, ` +
+    `This rule's ${what} ${site.origin} ${scope}, ` +
     `${consequence} — ${cause}. ` +
     `${remedy} ${UNSUPPRESSABLE}`
   return {
@@ -213,7 +264,15 @@ function deadSelectorViolation(
     // drops the `Fix:` line when `message` and `suggestion` are equal, so the
     // population most likely to be deleted rather than debugged was shipping with
     // no `Fix:` line at all and its remedy buried mid-sentence.
-    suggestion: isCardinality ? remedy : advice,
+    //
+    // The CAUSE rides with it, because the remedy alone does not name an edit. "Correct
+    // the selector" says change it — to what is in `FAULT_ADVICE`, which for a
+    // `dot-segment` glob spells the exact character-level fix ("./src/x/**" ->
+    // "**/src/x/**"). Without this the one route where eess knows precisely what to type
+    // was the one route whose `Fix:` line withheld it, from the consumer that reads `Fix:`
+    // and not the prose, on a finding no filter can suppress. Still distinct from
+    // `message`, so `format.ts` still prints it.
+    suggestion: isCardinality ? `${cause}. ${remedy}` : advice,
     bypassFilters: true,
   }
 }

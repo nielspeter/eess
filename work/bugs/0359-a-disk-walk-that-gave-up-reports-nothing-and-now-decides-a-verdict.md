@@ -15,7 +15,7 @@
 ## Symptom
 
 `buildDiskSet` walks the repository with a budget. On exhaustion
-(`packages/ts/src/core/disk-set.ts:230`):
+(`packages/ts/src/core/disk-set.ts:299`):
 
 ```ts
 walk(root.replaceAll('\\', '/'))
@@ -23,7 +23,7 @@ if (exhausted) return UNDETERMINED
 ```
 
 `UNDETERMINED` is a single object whose `classify` answers `'not-determined'` for
-**every** glob (`ts/src/core/disk-set.ts:315-317`), and the result is memoized per project. So
+**every** glob (`ts/src/core/disk-set.ts:384`), and the result is memoized per project. So
 exhaustion is **whole-set, not per-glob**.
 
 Since 0355, `absenceClaimIsContradicted` consumes that classification to decide
@@ -33,7 +33,7 @@ walk gave up on the entire repository_.
 
 |                                                              | entries (after the walk's own prune list) | share of budget |
 | ------------------------------------------------------------ | ----------------------------------------- | --------------- |
-| `ENTRY_BUDGET` (`ts/src/core/disk-set.ts:46`)                | **50,000**                                | —               |
+| `ENTRY_BUDGET` (`ts/src/core/disk-set.ts:68`)                | **50,000**                                | —               |
 | this repository                                              | ~3,500                                    | 7%              |
 | **an adopter's monorepo** — 15 packages, 5,815 tracked files | **16,770**                                | **34%**         |
 
@@ -185,8 +185,8 @@ tests.
 
 ## Verification
 
-- [x] the mechanism confirmed: whole-set `UNDETERMINED` at `ts/src/core/disk-set.ts:230`,
-      `classify` answering `not-determined` for every glob at `:315-317`, memoized
+- [x] the mechanism confirmed: whole-set `UNDETERMINED` at `ts/src/core/disk-set.ts:299`,
+      `classify` answering `not-determined` for every glob at `:384-386`, memoized
       per project.
 - [x] the budget read from source (50,000) and this repository measured against it
       (~7%).

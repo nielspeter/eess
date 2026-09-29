@@ -192,7 +192,7 @@ describe('bug 0348: a glob naming segments above the tsconfig root', () => {
     // `.expectEmpty()` is the shape where it matters, and it is a different path from
     // `.notExist()`: `deadSelectorFindings` guards on `assertsCardinality()` only, with no
     // `declaresEmpty()` guard, so a declared-empty rule IS reachable by the dead-selector
-    // diagnosis — while the evidence floor exits at `vacuity-diagnosis.ts:260` because the
+    // diagnosis — while the evidence floor exits at `vacuity-diagnosis.ts:354` because the
     // author declared the empty state. Measured, gate forced on and off:
     //
     //   `…notImportFrom(x)`               gate ON 1 (precise)  gate OFF 1 (degraded floor)
