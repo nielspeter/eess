@@ -94,6 +94,42 @@ is this bug.
 answers `not-determined` for every glob, still means green, and still says nothing.
 The two changes are independent, and only one of them is optional.
 
+## Pruning is not the cheap lever it looks like — it trades cost for reach
+
+An adopter enumerated every dot-directory outside `node_modules`/`.git` in their tree, with
+counts. The headline is striking: **9,753 of their 16,833 entries — 58% — are `.wrangler`
+tool state**, across three locations, and `.wrangler` is not on the prune list. `.terraform`
+adds 144 across four roots. Extending the list would take them from 34% of budget to ~15%.
+
+That reads as an obvious win and it is not, for a reason the module's own docstring already
+states:
+
+> The list cannot be complete — a real TypeScript monorepo may hold a Rust `target/`, a
+> Python `.venv`, a `.gradle` — **which is why the entry budget below exists rather than a
+> longer list.**
+
+**And since 0355, pruning has a correctness cost it did not have before.** A pruned directory
+classifies `absent`, which is the "ratchet holding" answer — silence. So every name added to
+the list is a place the 0355 gate can no longer see, and the case it matters for is precisely
+a file that is on disk and _not_ loaded.
+
+**`.next` is the live example, already shipped.** It is on the list, and a standard Next.js
+`tsconfig.json` includes `.next/types/**/*.ts`. So for a Next project, generated route types
+dropped from `include` sit on disk, classify `absent`, and a cardinality rule over them stays
+green — the exact shape 0355 exists to catch, hidden by a prune entry added when this
+classification only affected message wording.
+
+So the adopter's data is evidence for **moving the budget**, not for lengthening the list:
+with the budget where [spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md)
+measured it belongs, their 16,833 entries are under 2% of it and `.wrangler` costs ~15ms
+nobody notices.
+
+**The one addition safe on its own terms** is a directory no tsconfig can include — IDE and
+agent state (`.idea`, `.serena`, `.playwright-mcp`). The adopter drew that line themselves
+and drew it correctly: they excluded `.claude` and `.github` from their own suggestion,
+because `.claude/` holds their project's skills and docs. Worth recording as the test for any
+future entry: **not "is it tool output" but "can a tsconfig include it".**
+
 ## Fix
 
 Not decided. The shape is that an instrument which could not answer must say so —
@@ -154,6 +190,9 @@ tests.
 - [x] the budget's justification measured, and found unsupported —
       [spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md): 50,000
       entries costs 76 ms against a 5s claim.
+- [x] the prune list weighed as an alternative lever and found to trade cost for reach —
+      `.next` is already over-pruned for a Next.js project, and since 0355 every prune entry
+      is a place this gate cannot see.
 - [ ] a ruling on which shape, and on whether a verdict may depend on a bounded walk
 - [ ] a red-first test: a project whose walk exhausts, asserting the run says so
 - [ ] a changeset
