@@ -39,9 +39,31 @@ const PRUNE = new Set([
  * contributor who has run `cargo build` inside a TypeScript monorepo has tens
  * of thousands of entries under one directory, and a *failing* run that then
  * hangs inside a 5s vitest timeout is a worse experience than the false green
- * this whole mechanism exists to remove. Above the budget the classification
- * degrades to `not-determined`, which costs message quality and nothing else —
- * the enrichment is already fail-open.
+ * this whole mechanism exists to remove.
+ *
+ * ## Exhaustion is VERDICT-BEARING since 0355. It did not used to be.
+ *
+ * This docstring used to end "above the budget the classification degrades to
+ * `not-determined`, which costs message quality and nothing else — the
+ * enrichment is already fail-open." **That is no longer true**, and the sentence
+ * was a licence to lower the budget on the belief that nothing but wording
+ * depended on it.
+ *
+ * `absenceClaimIsContradicted` below consumes this classification to decide
+ * whether a cardinality rule (`.notExist()` and friends) reports at all. And the
+ * degradation is **whole-set, not per-glob** — `build()` returns the single
+ * `UNDETERMINED` object, whose `classify` answers `not-determined` for every
+ * glob, and it is memoized per project. So one repository above the budget
+ * silences that gate for *every* cardinality rule in the run at once, for a
+ * reason that has nothing to do with any of their paths.
+ *
+ * That is not a regression — before 0355 those rules were silent everywhere —
+ * but it is an undisclosed limit on a fix, and nothing currently reports that
+ * the walk gave up. Surfacing exhaustion is
+ * [bug 0359](../../../../work/bugs/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
+ *
+ * Anyone changing this number: it is the threshold at which a shipped gate
+ * turns itself off silently. Measure before you lower it.
  */
 const ENTRY_BUDGET = 50_000
 
@@ -91,6 +113,55 @@ const cache = new WeakMap<ArchProject, DiskSet>()
  * never touches the filesystem. An eager version would charge every `check()`
  * a recursive walk to answer a question no fault asked.
  */
+/**
+ * Does the filesystem CONTRADICT a rule's claim that nothing matching this glob exists?
+ *
+ * The one owner of a policy two tools have to share — the gate's evidence floor
+ * (`vacuity-diagnosis.ts`) and the preview (`diagnose.ts`). It is written here, beside the
+ * classification it reads, because the pair has already grown two hand-maintained copies of one
+ * rule and had them disagree: `isFaultPosition` was inverse lists in both files, differing over
+ * exactly `discovery`, so `doctor` reported a dead layer glob and the build stayed green.
+ *
+ * ## Why only `holds-typescript`
+ *
+ * A rule asserting cardinality — `.notExist()` and friends — is SATISFIED by having no
+ * subjects, so examining zero is normally the rule working. The trouble is that a holding
+ * ratchet and a selector that silently stopped matching are identical from the glob and the
+ * path universe: both match nothing. Only disk tells them apart.
+ *
+ * | classification     | verdict | why                                                              |
+ * | ------------------ | ------- | ---------------------------------------------------------------- |
+ * | `holds-typescript` | **contradicted** | the code being asserted away is right there, unexamined |
+ * | `absent`           | consistent | the ratchet holding — the common case, and it must stay silent |
+ * | `no-typescript`    | consistent | no TypeScript means no modules, which is what the rule asserts  |
+ * | `not-determined`   | consistent | the walk could not answer; blaming the author for that is the confidently-wrong remedy this module exists not to give |
+ *
+ * [Bug 0355](../../../../work/bugs/fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
+ * for the gate half, [0357](../../../../work/bugs/fixed/0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md)
+ * for the preview.
+ */
+export function absenceClaimIsContradicted(project: ArchProject, glob: string): boolean {
+  return contradictsAbsence(diskSet(project).classify(glob))
+}
+
+/**
+ * The policy alone, as a TOTAL function on the four classifications.
+ *
+ * Split from the lookup above so it can be pinned exhaustively. Test review sabotaged the
+ * threshold three ways — accepting `not-determined`, accepting `no-typescript`, and simply
+ * "anything but `absent`" — and **all three reddened nothing across 3,884 tests**. The
+ * narrowing was stated in four places in prose (this docstring, `vacuity-diagnosis.ts`, both
+ * bug records, and the shipped changeset) and enforced by none of them. An unfalsifiable
+ * guard is pinned or deleted; this one is load-bearing, so it is pinned.
+ *
+ * Exhaustive by construction: `OnDisk` is a four-value union, so a test that enumerates it
+ * cannot silently stop covering a case when a fifth is added — it stops compiling.
+ */
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
+export function contradictsAbsence(onDisk: OnDisk): boolean {
+  return onDisk === 'holds-typescript'
+}
+
 export function diskSet(project: ArchProject): DiskSet {
   const cached = cache.get(project)
   if (cached) return cached

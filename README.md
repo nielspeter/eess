@@ -54,14 +54,12 @@ Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
 
-**Upgrading to 0.9?** All six packages move, with two breaking changes — both the
-same kind as 0.7's and 0.8's: a check that matched nothing, and therefore passed,
-now matches. A path glob can name segments **above** your tsconfig (how a monorepo
-names its own packages), and a dependency ban sees pnpm and Yarn layouts it used to
-miss. **0.8 shipped the first of these as fixed and it was not** — an adopter
-measured 61 selectors reporting themselves dead in a dot-directory worktree against
-0 in a plain one. [Migrating to 0.9](./docs/migrating-to-0.9.md) collects both,
-plus what this release still does not fix.
+**Upgrading to 0.10?** `eess-ts` moves to 0.10.0 with one breaking change, the same kind as
+0.7's through 0.9's: a check that matched nothing — and therefore passed — now matches. **A
+`.notExist()` rule could pass while enforcing nothing**, which is the worst shape to lose it
+on: ratchets are designed never to fire, so a green is unremarkable and nobody looks.
+[Migrating to 0.10](./docs/migrating-to-0.10.md) covers it, including why a holding ratchet
+stays green and how your glob's spelling decides how much of the repo counts.
 
 ## Packages
 
