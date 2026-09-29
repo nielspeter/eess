@@ -252,7 +252,17 @@ export function evidenceFloor(
   // `.notExist()` and friends examine zero BECAUSE that is what they
   // assert. Exempt since 0.34.0, and `diagnose()` exempts it too — the two
   // must agree or `doctor` and `check` disagree about a working rule.
-  if (facts.assertsCardinality()) return violations
+  //
+  // The exemption is right and it was total, which left this one rule shape with
+  // nothing beneath it — exempt here AND in `deadSelectorFindings`, so a
+  // `.notExist()` whose selector silently stopped matching reported nothing and
+  // exited 0 ([bug 0355](../../../../work/bugs/fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)).
+  // It is the worst shape to lose: a ratchet is designed never to fire, so a green
+  // is unremarkable and nobody looks.
+  if (facts.assertsCardinality()) {
+    const onDisk = cardinalitySelectorMissedDisk(facts, project)
+    return onDisk.length > 0 ? onDisk : violations
+  }
   // The author said empty is the point. `declaresEmpty()` — not
   // `_expectEmpty` — because `CrossProjectBuilder` declares per side and
   // overrides this; asking a fully-declared crossProject to declare would
@@ -401,6 +411,45 @@ export function deadSelectorFindings(facts: RuleFacts): {
     return { selector: [emptyProjectViolation(facts, project)], discovery: [] }
 
   return deadSitesIn(facts, trees, project)
+}
+
+/**
+ * A cardinality rule's selectors that examined zero while the path they name **holds
+ * TypeScript on disk**.
+ *
+ * The discriminator is the filesystem, and it has to be — a holding ratchet and a broken
+ * selector are identical from the glob and the path universe. `.notExist()` over
+ * `'**\/legacy/**'` matches nothing after you delete `legacy/` BECAUSE the rule is working,
+ * so keying on glob satisfiability would fire on every ratchet doing its job. Measured, on a
+ * fixture where `apps/legacy/` exists on disk outside the tsconfig's `include`:
+ *
+ * | case                                             | subjects | `classify` |
+ * | ------------------------------------------------ | -------- | ---------- |
+ * | files on disk, examined 0 — the selector missed  | 0        | `holds-typescript` |
+ * | genuinely absent — the ratchet holding           | 0        | `absent`   |
+ *
+ * So only `holds-typescript` reports: the code being asserted about is right there and the
+ * rule did not see it. `absent` is the ratchet working. `no-typescript` means no modules are
+ * there, which is what the rule asserts. `not-determined` means the walk could not answer, and
+ * blaming the author for that is the confidently-wrong remedy `disk-set.ts` exists not to give.
+ *
+ * Reached only from `evidenceFloor`, which runs when `violations` is empty AND `examined` is
+ * zero — so the disk walk never sits on the common path, and a live selector never gets here.
+ */
+function cardinalitySelectorMissedDisk(
+  facts: RuleFacts,
+  project: ArchProject | undefined,
+): ArchViolation[] {
+  if (project === undefined) return []
+  const trees = facts.globs()
+  if (trees.length === 0) return []
+  const disk = diskSet(project)
+  // `deadSitesIn` rather than a second derivation: the finding a cardinality rule gets must be
+  // the same one every other rule gets for the same fault, or two shapes of rule explain one
+  // defect differently.
+  return deadSitesIn(facts, trees, project).selector.filter(
+    (v) => v.element !== undefined && disk.classify(v.element) === 'holds-typescript',
+  )
 }
 
 /** The value behind `TerminalBuilder.zeroSubjectsAdvice()`. */
