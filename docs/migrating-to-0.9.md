@@ -82,10 +82,24 @@ layout (`node_modules/.pnpm/…`, `.yarn/cache/…`) inside an ordinary tree.
 Import globs are now matched with `dot: true`. You author your project's paths; you do not author
 `node_modules`' layout.
 
-**Declared, not discovered: an allowlist widens.** `onlyImportFrom('**/shared/**')` now also
-allows a dependency's internal `shared/` under pnpm and Yarn, where it previously reported it.
-A loose allowlist glob was always this permissive — those layouts were accidentally hiding it. If
-you rely on one, tighten it to name your own paths.
+**Two rules report LESS, and this page originally named only one of them.** Corrected
+2026-09-29, after a retrospective review measured all six import-glob surfaces:
+
+| rule                   | means                            | under pnpm / Yarn, since 0.9.0                                                             |
+| ---------------------- | -------------------------------- | ------------------------------------------------------------------------------------------ |
+| `onlyImportFrom(glob)` | "only these imports are allowed" | **allows more** — a dependency's internal `shared/` is now permitted where it was reported |
+| `dependOn(glob)`       | "this module must import this"   | **reports less** — an import it previously could not see now satisfies the requirement     |
+
+Both were always this permissive; those layouts were accidentally hiding it, and the fix
+made every layout agree. But if you rely on a loose `onlyImportFrom` or `dependOn` glob,
+**it enforces less than it did** — tighten it to name your own paths.
+
+The other four surfaces (`notImportFrom` as a condition and as a predicate,
+`onlyHaveTypeImportsFrom`, `importFrom`) report **more**, which is the fix working.
+
+_Why this correction exists:_ the original text named `onlyImportFrom` alone because that was
+the one measured. `dependOn` is the same inversion and was not. It shipped undeclared in
+0.9.0 and is still present.
 
 Measured, and this is the reason the change is right rather than merely convenient — before 0.9
 the same rule gave different answers for the same dependency depending only on how `node_modules`
