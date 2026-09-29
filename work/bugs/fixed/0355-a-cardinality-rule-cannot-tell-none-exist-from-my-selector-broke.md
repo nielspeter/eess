@@ -179,6 +179,16 @@ the row that does.
 obvious over-reach — report whenever a cardinality rule examines zero — passes the
 defect test and breaks every healthy ratchet. Both red the control that pins it.
 
+**A disclosure this record was missing, and 0357's record pointed at.** 0357 notes its
+R4 correction was "the second one, for the second time in this pair of bugs" — naming a
+prior row-fires-nothing incident here, which this section did not admit. It is this:
+**an earlier run of R2 and R3 reported ALL GREEN meaninglessly**, because the shell
+quoting in the re-run broke and the sabotage edits never applied. It was caught only
+because Python printed a `SyntaxError`, and the rows were re-run with per-row assertions
+that the edit had changed the file. A row reporting `ALL GREEN` looks identical whether
+the guard is unfalsifiable or the sabotage never ran — which is exactly why this belongs
+in the record rather than in the author's memory.
+
 ## Confirmed by an adopter on two more shapes
 
 Reported while this fix was in flight, on eess-ts 0.8.0, and measured here against the
@@ -290,6 +300,48 @@ That makes it a **documentation** obligation rather than a code one, and a sharp
 and pinned in both directions by
 `it('the glob spelling decides how much of the repository counts as evidence')` — so the
 documented behaviour is a claim the build can falsify.
+
+## What this does NOT catch
+
+Named because the changeset says "You will now be told", and for three shapes that is
+false. Two of them were found by review after the release shipped; an adopter planting
+against their ratchets on our advice will hit them and conclude the fix is in.
+
+**1. A ratchet with no path glob at all.** `cardinalitySelectorMissedDisk` opens
+`const trees = facts.globs(); if (trees.length === 0) return []`. So a selector that is a
+name, a decorator or a `satisfy()` predicate is exactly as vacuous as before. Measured — a
+`.notExist()` over `haveNameMatching(/…/)` reports **0**. Both of these shapes are taught
+in this project's own docs:
+
+```ts
+classes(p).that().haveDecorator('Deprecated').should().notExist().warn()
+classes(p).that().satisfy(hasManyMethods(15)).should().notExist().check()
+```
+
+The mechanism is scoped to the selector KIND; the changeset's promise reads as scoped to
+the rule SHAPE. That gap is the release's, not the reader's.
+
+**2. A well-formed selector that names nothing — a typo, a rename, a moved directory.**
+`'**/lgeacy/**'`, or `'**/legacy/**'` after `git mv legacy/ legacy-code/`. Globstar-led, no
+syntactic fault, classifies `absent` — and `absent` is silent by this ruling, because it is
+indistinguishable from the ratchet holding. That is inherent to the discriminator and is
+not a defect in it.
+
+**What IS worth saying is that 0357 closed the only surface that spoke about it.** `doctor`
+used to report every dead cardinality selector — unconditional noise with no discriminating
+power, which is why 0357 was right to stop. But the trade was noise for silence, and
+`packages/ts/src/cli/index.ts` still tells the reader that `doctor` "uniquely catches a dead
+glob … `check` exits 0 with no output on such a rule while `doctor` names the site and exits
+1". For a cardinality rule that is now false in both tools. Corrected there.
+
+**3. A repository above the disk walk's entry budget**, where the whole classification
+degrades to `not-determined` and every cardinality rule loses the floor at once, silently —
+[0359](../0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md), with
+the budget measured 100× too low in [spike 0360](../../spikes/0360-what-the-disk-walk-actually-costs.md).
+
+**The changeset for 0.10.0 says none of this, and it has shipped**, so the correction cannot
+be made where it was written. It belongs in the next release's changeset and in
+`docs/migrating-to-0.10.md`, both of which now carry it.
 
 ## Found while fixing, filed rather than widened
 

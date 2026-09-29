@@ -76,10 +76,34 @@ package's folders; only `'**/'` reaches the rest of the repository.
 
 ## What this release does not fix
 
-- **A large repository turns this gate off, silently.** The disk walk stops after 50,000
+**Read this before you conclude a green ratchet is a verified one.** Three shapes are still
+silent, and §1's promise does not reach them.
+
+- **A ratchet whose selector is not a path glob.** The check keys on the selector's _globs_,
+  so a rule selecting by name, decorator or `satisfy()` predicate is exactly as vacuous as
+  before:
+
+  ```ts
+  classes(p).that().haveDecorator('Deprecated').should().notExist().warn()
+  ```
+
+  If you are planting violations against your `.notExist()` rules to check them — and you
+  should — expect this shape to stay green. That is not evidence the rule works.
+
+- **A selector that is well-formed but names nothing** — a typo, or a directory you renamed
+  without updating the rule. `'**/legacy/**'` after `git mv legacy/ legacy-code/` matches
+  nothing, which is indistinguishable from the ratchet holding. Neither `check` nor `doctor`
+  reports it. Before 0.10.0 `doctor` did, along with every _healthy_ ratchet, which is why
+  that signal was removed — but the trade was noise for silence, and it is a trade.
+
+- **A large repository turns this gate off silently.** The disk walk stops after 50,000
   directory entries and then answers "could not determine" for _every_ path at once — which
-  means green. Nothing reports that it gave up. Tracked; if your repository is in that range,
-  treat a green `.notExist()` as unverified.
-- **A cardinality rule over a path that genuinely holds no TypeScript** stays green, by
-  design. If you assert the absence of something that is not TypeScript, this does not check
-  it.
+  means green — and nothing reports that it gave up. Count yours; if it is near that, treat a
+  green `.notExist()` as unverified.
+
+- **A path holding no TypeScript** stays green by design. If you assert the absence of
+  something that is not TypeScript, this does not check it.
+
+**A correction to this release's own changeset.** It says "Are you affected? … You will now
+be told." That is true for a path-glob selector over a path holding TypeScript on disk, and
+false for the three shapes above. The claim was written before they were measured.

@@ -281,9 +281,21 @@ export async function run(args: string[]): Promise<void> {
     // What it uniquely catches is a **dead glob** — a rule whose selector can
     // never match, so it certifies nothing. `check` does not call `diagnose()`
     // at all, and measured, it exits **0 with no output** on such a rule while
-    // `doctor` names the site and exits 1. That is the ADR-008 false green this
+    // `doctor` names the site and exits 1. That is the ADR-009 false green this
     // whole area exists for, and until 0069's R3b flips it into a check-time
     // failure, `doctor` and `diagnose()` are the only surfaces that see it.
+    //
+    // **One exception since 0357, and it is the shape this claim most needs to
+    // be true of.** A rule asserting CARDINALITY (`.notExist()` and friends)
+    // matches nothing *because that is what it asserts*, so `doctor` reported
+    // every healthy ratchet as a dead glob — unconditional noise with no
+    // discriminating power, which is why 0357 narrowed it to the case the
+    // filesystem contradicts. The trade was noise for silence: a ratchet whose
+    // selector is well-formed but names nothing (a typo, or a directory renamed
+    // without updating the rule) is now green here too. Recorded in 0355's
+    // "What this does NOT catch" rather than left for the next reader of this
+    // paragraph to discover — it was found by review reading exactly this
+    // comment against the new behaviour.
     //
     // NOT load failures, which an earlier version of this comment claimed:
     // `check` already reports an unloadable rule file as an error-severity
