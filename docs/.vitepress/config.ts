@@ -35,6 +35,7 @@ export default defineConfig({
         // them arrive every time a train carries breaks.
         text: 'Releases & migration',
         items: [
+          { text: 'Migrating to 0.10', link: '/migrating-to-0.10' },
           { text: 'Migrating to 0.9', link: '/migrating-to-0.9' },
           { text: 'Migrating to 0.8', link: '/migrating-to-0.8' },
           { text: 'Migrating to 0.7', link: '/migrating-to-0.7' },

@@ -83,6 +83,54 @@ const ON_DISK = '**/apps/legacy/**'
 /** A path that is genuinely not there — the ratchet holding. */
 const GENUINELY_GONE = '**/apps/deleted-long-ago/**'
 
+/** Findings a cardinality rule reports in a given project, by the element they name. */
+function cardinalityFindingsIn(proj: ArchProject, selectorGlob: string): string[] {
+  return modules(proj)
+    .that()
+    .resideInFolder(selectorGlob)
+    .should()
+    .satisfy(notExist())
+    .rule({ id: 'test/0355' })
+    .violations()
+    .map((v) => v.element ?? '')
+}
+
+/** `apps/api` is CLEAN; the sibling `apps/other` holds `legacy/`. */
+function writeSiblingFixture(repoRoot: string): string {
+  fs.mkdirSync(path.join(repoRoot, 'apps', 'api', 'src'), { recursive: true })
+  fs.mkdirSync(path.join(repoRoot, 'apps', 'other', 'legacy'), { recursive: true })
+  fs.writeFileSync(
+    path.join(repoRoot, 'package.json'),
+    JSON.stringify({ name: 'r', workspaces: ['apps/*'] }),
+  )
+  fs.writeFileSync(path.join(repoRoot, 'apps', 'api', 'src', 'a.ts'), 'export const a = 1\n')
+  fs.writeFileSync(path.join(repoRoot, 'apps', 'other', 'legacy', 'old.ts'), 'export const o = 1\n')
+  const tsConfigPath = path.join(repoRoot, 'apps', 'api', 'tsconfig.json')
+  fs.writeFileSync(
+    tsConfigPath,
+    JSON.stringify({ compilerOptions: { strict: true }, include: ['src'] }),
+  )
+  return tsConfigPath
+}
+
+/** `apps/api` holds its OWN `legacy/`, outside its `include`. */
+function writeOwnLegacyFixture(repoRoot: string): string {
+  fs.mkdirSync(path.join(repoRoot, 'apps', 'api', 'src'), { recursive: true })
+  fs.mkdirSync(path.join(repoRoot, 'apps', 'api', 'legacy'), { recursive: true })
+  fs.writeFileSync(
+    path.join(repoRoot, 'package.json'),
+    JSON.stringify({ name: 'r', workspaces: ['apps/*'] }),
+  )
+  fs.writeFileSync(path.join(repoRoot, 'apps', 'api', 'src', 'a.ts'), 'export const a = 1\n')
+  fs.writeFileSync(path.join(repoRoot, 'apps', 'api', 'legacy', 'old.ts'), 'export const o = 1\n')
+  const tsConfigPath = path.join(repoRoot, 'apps', 'api', 'tsconfig.json')
+  fs.writeFileSync(
+    tsConfigPath,
+    JSON.stringify({ compilerOptions: { strict: true }, include: ['src'] }),
+  )
+  return tsConfigPath
+}
+
 beforeAll(() => {
   base = fs.mkdtempSync(path.join(os.tmpdir(), 'eess-0355-'))
   p = project(writeFixture(path.join(base, 'repo')))
@@ -228,6 +276,28 @@ describe('bug 0355: a cardinality rule sees a dead selector', () => {
         .violations()
         .map((v) => v.element ?? ''),
     ).toEqual(['**/src/**'])
+  })
+
+  it('the glob spelling decides how much of the repository counts as evidence', () => {
+    // Review asked whether a CLEAN package's ratchet should report because a SIBLING package
+    // has that folder. It does, and that is `'**/'` doing exactly what bug 0348 taught
+    // adopters it does — "anywhere" means anywhere on disk. The project-relative spelling
+    // means "relative to this project" and does not reach the sibling.
+    //
+    // Pinned because it is the documented answer: an author who means their own package
+    // writes `'legacy/**'`. Narrowing the disk evidence to the project root was proposed
+    // instead and MEASURED WRONG — it silences a tsconfig whose `include` reached above its
+    // own directory and then stopped, which is the defect this bug exists to catch.
+    const sibling = project(writeSiblingFixture(path.join(base, 'sibling')))
+    expect(cardinalityFindingsIn(sibling, '**/legacy/**')).toEqual(['**/legacy/**'])
+    expect(cardinalityFindingsIn(sibling, 'legacy/**')).toEqual([])
+
+    // And the same two spellings against the package's OWN folder, outside `include`: both
+    // report, because both reach it. Without this the row above passes if the
+    // project-relative spelling simply never reports anything.
+    const own = project(writeOwnLegacyFixture(path.join(base, 'own')))
+    expect(cardinalityFindingsIn(own, '**/legacy/**')).toEqual(['**/legacy/**'])
+    expect(cardinalityFindingsIn(own, 'legacy/**')).toEqual(['legacy/**'])
   })
 
   it('CONTROL: a positive-assertion condition still reports, as it always did', () => {

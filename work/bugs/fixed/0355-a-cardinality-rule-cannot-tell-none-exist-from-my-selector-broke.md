@@ -239,11 +239,57 @@ have fixed it had silently not landed — see the scope note in Status.
 EXISTS, not that it says what the prose claims, which is the drift class the gate
 structurally cannot see.
 
-One thing the round did not settle, and it is recorded rather than decided: a ratchet
-written `'**/legacy/**'` in one package's rule file now reports when a _sibling_ package has
-that folder. Either a false red on a clean package, or a true statement that the rule claims
-"anywhere" while the project is one package and can never check it. Narrowing the walk to
-the tsconfig root would fix the first reading and break the adopter case this bug came from.
+### The one open question, settled by spike rather than argument
+
+Product review found that a ratchet written `'**/legacy/**'` in one package's rule file
+reports when a **sibling** package has that folder. The first reading was a false red; the
+proposed fix was to narrow the disk evidence to the project's own root. **Both were wrong,
+and three spikes say so.**
+
+**Spike 1 — does a cross-package import break the narrowing?** No, and for a reason worth
+keeping: when a sibling's file is reachable it IS in the project, so subjects > 0 and the
+ordinary failure fires. By construction every file this code decides about is one the
+project did not load.
+
+| sibling `legacy/` | loaded | subjects | finding                                              |
+| ----------------- | ------ | -------- | ---------------------------------------------------- |
+| not imported      | 1      | none     | "can never match anything in this project"           |
+| imported          | 2      | `old.ts` | "SourceFile should not exist" — the ordinary failure |
+
+**Spike 2 — does the narrowing keep what this bug was filed for?** **No.** A tsconfig whose
+`include` reaches _above_ its own directory (`['src', '../shared/src']`) and then stops
+covering it is exactly this bug, and the on-disk match sits outside the project root:
+
+| case                           | subjects | today            | under the proposed narrowing |
+| ------------------------------ | -------- | ---------------- | ---------------------------- |
+| `../shared` included (healthy) | `old.ts` | ordinary failure | —                            |
+| `../shared` **dropped**        | none     | **reports**      | **silent**                   |
+
+So narrowing would have reintroduced the defect for any monorepo whose tsconfig reaches
+outside its own directory — the shape
+[0348](./0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md)
+is entirely about. The recommendation to narrow was made before this was measured, and it
+was wrong.
+
+**Spike 3 — is there a signal that separates the two cases?** Yes: the glob's own spelling,
+which is 0348's ruling doing its job.
+
+| fixture                                            | `'**/legacy/**'` | `'legacy/**'` |
+| -------------------------------------------------- | ---------------- | ------------- |
+| a **sibling** package has `legacy/`                | reports          | **silent**    |
+| the package's **own** `legacy/`, outside `include` | reports          | reports       |
+
+**So there is no defect and no code change.** `'**/'` says _anywhere_ and means anywhere on
+disk; the project-relative spelling says _relative to this project_ and means that. An author
+who means their own package writes `'legacy/**'`. What product found is `'**/'` doing what
+0348 taught adopters it does, meeting a rule shape where "anywhere" is a larger claim than
+they probably intended.
+
+That makes it a **documentation** obligation rather than a code one, and a sharp one, because
+0348 spent a release teaching people to reach for `'**/'`. It is in the 0.10 migration page,
+and pinned in both directions by
+`it('the glob spelling decides how much of the repository counts as evidence')` — so the
+documented behaviour is a claim the build can falsify.
 
 ## Found while fixing, filed rather than widened
 
