@@ -6,7 +6,7 @@ import type { OnDisk } from './disk-set.js'
 import { diagnoseGlob, syntacticFault, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
 import { globSitesOf, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'
-import { absenceClaimIsContradicted, diskSet } from './disk-set.js'
+import { cardinalityDeadSiteIsAtFault, diskSet } from './disk-set.js'
 import { isDeadGlobTree } from './glob-evaluator.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
 import type { RuleBuilderLike } from '@nielspeter/eess'
@@ -421,7 +421,14 @@ export function diagnose(
         // correctly stayed green — the disagreement `vacuity-diagnosis.ts` warns about, and
         // bug 0357. The exemption lived only in `zeroSubjectsFinding` below, which this path
         // never reaches.
-        if (rule.assertsCardinality?.() === true && !absenceClaimIsContradicted(target, site.glob))
+        if (
+          rule.assertsCardinality?.() === true &&
+          !cardinalityDeadSiteIsAtFault(
+            target,
+            site.glob,
+            syntacticFault(site.glob, site.kind, site.base) !== undefined,
+          )
+        )
           continue
         findings.push(describe(site, name, universe, target))
       }

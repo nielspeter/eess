@@ -8,10 +8,10 @@ import type { GlobNode, GlobSite, RuleDescription } from '@nielspeter/eess'
 // coincidence to stop relying on rather than a contract.
 import type { PathUniverse } from './path-universe.js'
 import { DECLARE_INSTEAD, isFaultPosition, UNSUPPRESSABLE } from '@nielspeter/eess/internal'
-import { diagnoseGlob, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
+import { diagnoseGlob, syntacticFault, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
 import { globSitesOf, isDeadGlobTree, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'
-import { absenceClaimIsContradicted, diskSet } from './disk-set.js'
+import { cardinalityDeadSiteIsAtFault, diskSet } from './disk-set.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
 
 /**
@@ -472,8 +472,26 @@ function cardinalitySelectorMissedDisk(
   // the same one every other rule gets for the same fault, or two shapes of rule explain one
   // defect differently. `absenceClaimIsContradicted` for the same reason one level up — it is
   // the policy `diagnose()` must apply identically, and it is owned in `disk-set.ts`.
+  // The globs whose fault is decidable from the TEXT, with no filesystem. They must survive
+  // the disk narrowing below — `diagnose.ts` states twice that syntactic faults are
+  // properties of the glob text rather than of what loaded, and 0357 dropped them here for
+  // one rule shape. Collected as a set because the filter below sees an `ArchViolation`,
+  // whose `element` is the glob, not the site that carries `kind` and `base`.
+  const syntacticallyBroken = new Set(
+    trees.flatMap((tree) =>
+      globSitesOf(tree)
+        .filter(
+          (site) =>
+            isFaultPosition(site.position) &&
+            syntacticFault(site.glob, site.kind, site.base) !== undefined,
+        )
+        .map((site) => site.glob),
+    ),
+  )
   return deadSitesIn(facts, trees, project).selector.filter(
-    (v) => v.element !== undefined && absenceClaimIsContradicted(project, v.element),
+    (v) =>
+      v.element !== undefined &&
+      cardinalityDeadSiteIsAtFault(project, v.element, syntacticallyBroken.has(v.element)),
   )
 }
 
