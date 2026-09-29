@@ -91,6 +91,37 @@ const cache = new WeakMap<ArchProject, DiskSet>()
  * never touches the filesystem. An eager version would charge every `check()`
  * a recursive walk to answer a question no fault asked.
  */
+/**
+ * Does the filesystem CONTRADICT a rule's claim that nothing matching this glob exists?
+ *
+ * The one owner of a policy two tools have to share — the gate's evidence floor
+ * (`vacuity-diagnosis.ts`) and the preview (`diagnose.ts`). It is written here, beside the
+ * classification it reads, because the pair has already grown two hand-maintained copies of one
+ * rule and had them disagree: `isFaultPosition` was inverse lists in both files, differing over
+ * exactly `discovery`, so `doctor` reported a dead layer glob and the build stayed green.
+ *
+ * ## Why only `holds-typescript`
+ *
+ * A rule asserting cardinality — `.notExist()` and friends — is SATISFIED by having no
+ * subjects, so examining zero is normally the rule working. The trouble is that a holding
+ * ratchet and a selector that silently stopped matching are identical from the glob and the
+ * path universe: both match nothing. Only disk tells them apart.
+ *
+ * | classification     | verdict | why                                                              |
+ * | ------------------ | ------- | ---------------------------------------------------------------- |
+ * | `holds-typescript` | **contradicted** | the code being asserted away is right there, unexamined |
+ * | `absent`           | consistent | the ratchet holding — the common case, and it must stay silent |
+ * | `no-typescript`    | consistent | no TypeScript means no modules, which is what the rule asserts  |
+ * | `not-determined`   | consistent | the walk could not answer; blaming the author for that is the confidently-wrong remedy this module exists not to give |
+ *
+ * [Bug 0355](../../../../work/bugs/fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
+ * for the gate half, [0357](../../../../work/bugs/fixed/0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md)
+ * for the preview.
+ */
+export function absenceClaimIsContradicted(project: ArchProject, glob: string): boolean {
+  return diskSet(project).classify(glob) === 'holds-typescript'
+}
+
 export function diskSet(project: ArchProject): DiskSet {
   const cached = cache.get(project)
   if (cached) return cached

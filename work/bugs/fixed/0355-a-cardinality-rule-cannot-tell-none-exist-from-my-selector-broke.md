@@ -168,7 +168,7 @@ and not the asserted path was not.
 
 ## Found while fixing, filed rather than widened
 
-- [0357](../0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md) — `doctor` reports
+- [0357](./0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md) — `doctor` reports
   a _healthy_ `.notExist()` ratchet as a dead glob, where `check` correctly stays
   green. Measured across three globs in both tools. It is **pre-existing**: before
   this fix the two disagreed on two of three rows, and now on one. `diagnose()`

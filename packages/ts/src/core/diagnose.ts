@@ -6,7 +6,7 @@ import type { OnDisk } from './disk-set.js'
 import { diagnoseGlob, syntacticFault, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
 import { globSitesOf, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'
-import { diskSet } from './disk-set.js'
+import { absenceClaimIsContradicted, diskSet } from './disk-set.js'
 import { isDeadGlobTree } from './glob-evaluator.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
 import type { RuleBuilderLike } from '@nielspeter/eess'
@@ -415,6 +415,14 @@ export function diagnose(
         // finding and never read, so both fired.
         if (!isFaultPosition(site.position)) continue
         if (!isDeadSite(site, universe)) continue
+        // A cardinality rule matches nothing BECAUSE that is what it asserts, so a dead
+        // selector is the ratchet holding unless the filesystem says otherwise. Without
+        // this, `doctor` reported every healthy `.notExist()` as a dead glob while `check`
+        // correctly stayed green — the disagreement `vacuity-diagnosis.ts` warns about, and
+        // bug 0357. The exemption lived only in `zeroSubjectsFinding` below, which this path
+        // never reaches.
+        if (rule.assertsCardinality?.() === true && !absenceClaimIsContradicted(target, site.glob))
+          continue
         findings.push(describe(site, name, universe, target))
       }
     }

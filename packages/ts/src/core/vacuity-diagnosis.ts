@@ -11,7 +11,7 @@ import { DECLARE_INSTEAD, isFaultPosition, UNSUPPRESSABLE } from '@nielspeter/ee
 import { diagnoseGlob, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
 import { globSitesOf, isDeadGlobTree, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'
-import { diskSet } from './disk-set.js'
+import { absenceClaimIsContradicted, diskSet } from './disk-set.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
 
 /**
@@ -443,12 +443,12 @@ function cardinalitySelectorMissedDisk(
   if (project === undefined) return []
   const trees = facts.globs()
   if (trees.length === 0) return []
-  const disk = diskSet(project)
   // `deadSitesIn` rather than a second derivation: the finding a cardinality rule gets must be
   // the same one every other rule gets for the same fault, or two shapes of rule explain one
-  // defect differently.
+  // defect differently. `absenceClaimIsContradicted` for the same reason one level up — it is
+  // the policy `diagnose()` must apply identically, and it is owned in `disk-set.ts`.
   return deadSitesIn(facts, trees, project).selector.filter(
-    (v) => v.element !== undefined && disk.classify(v.element) === 'holds-typescript',
+    (v) => v.element !== undefined && absenceClaimIsContradicted(project, v.element),
   )
 }
 
