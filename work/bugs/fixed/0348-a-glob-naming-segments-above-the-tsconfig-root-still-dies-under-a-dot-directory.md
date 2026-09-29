@@ -195,7 +195,7 @@ prevented a pass. That gap was real and is closed.
 The third row is a different defect and not this gate's to fix: `deadSelectorFindings`
 exempts cardinality rules as well as the floor (`vacuity-diagnosis.ts:253-255`, so
 `doctor` and `check` cannot disagree), so `.notExist()` is green in both states.
-Filed as [0355](../0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md).
+Filed as [0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md).
 Enforcement's first reading had the gate rescuing that shape too; measurement said
 otherwise, the reviewer accepted it and sharpened its finding onto the declaration —
 which is where it was right and this record was wrong.
@@ -428,7 +428,7 @@ this bug keeps the scope it started with:
 - [0354](../0354-the-glob-view-doctrine-is-settled-in-three-bug-records-and-no-adr.md)
   — "a verdict must not be decided by where things sit on disk" now decides three
   bugs (0339, 0348, 0349) and lives in no ADR.
-- [0355](../0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
+- [0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
   — a `.notExist()` / `.expectEmpty()` rule is exempt from both the dead-selector
   diagnosis and the evidence floor, so a silently-emptied selector is green with or
   without this fix. A true false green, and the shape most likely to host one: a
