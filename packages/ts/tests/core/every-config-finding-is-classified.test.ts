@@ -150,6 +150,13 @@ const CLASSIFIED: Readonly<Record<string, Classification>> = {
     verified:
       'behavioural: assertion-gate.test.ts — the text equals doctor\u2019s, and a loaded project still blames the glob',
   },
+  'src/core/vacuity-diagnosis.ts::walkExhaustedViolation': {
+    remedy: 'own',
+    verified:
+      'behavioural: a-walk-that-gave-up-says-so.test.ts — removing the directory the message names ' +
+      'clears the finding and the rule resumes reporting, plus a control that a completed walk ' +
+      'produces no exhaustion finding at all',
+  },
   'src/core/vacuity-diagnosis.ts::deadSelectorViolation': {
     remedy: 'own',
     verified: 'behavioural: a-dead-discovery-glob-fails.test.ts — a live glob produces no finding',

@@ -138,7 +138,7 @@ ratchets, because it is large enough to have deleted things.
 **It is not a regression:** before this fix those rules were silent everywhere.
 It is an undisclosed limit on a fix, and disclosing it is the minimum. Surfacing
 exhaustion so a run says "I could not answer" is
-[0359](../0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md),
+[0359](./0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md),
 and it carries the harder question this ruling does not settle: whether a verdict
 may depend on a bounded walk at all.
 
@@ -240,7 +240,7 @@ rows fire. A `Record<OnDisk, boolean>` rather than a list, so a fifth classifica
 it compiling instead of silently leaving a case uncovered.
 
 **The entry budget makes this gate self-disabling**, disclosed in the ruling above and filed
-as [0359](../0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
+as [0359](./0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
 
 **This record contradicted itself about `.expectEmpty()`**, and the correction that should
 have fixed it had silently not landed — see the scope note in Status.
@@ -336,7 +336,7 @@ glob … `check` exits 0 with no output on such a rule while `doctor` names the 
 
 **3. A repository above the disk walk's entry budget**, where the whole classification
 degrades to `not-determined` and every cardinality rule loses the floor at once, silently —
-[0359](../0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md), with
+[0359](./0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md), with
 the budget measured far below what the walk can afford — 3.2M entries to the 5s timeout
 against a 50,000 budget is 64× ([spike 0360](../../spikes/0360-what-the-disk-walk-actually-costs.md),
 whose own table gives both figures and whose headline rounds it to "about two orders of

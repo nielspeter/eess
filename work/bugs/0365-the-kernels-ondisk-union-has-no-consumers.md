@@ -41,7 +41,7 @@ Bug 0362's second fix leans on exhaustiveness over this union in three places �
 that guesses. That protection is real, and it is one layer deep: it fires when the
 **dialect's** union grows. A contributor adding walk-exhaustion to the kernel's union
 (the live candidate —
-[0359](./0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md))
+[0359](./fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md))
 would get no signal at all.
 
 ## Fix
@@ -59,7 +59,7 @@ patch.
   this sits on.
 - [ADR-011](../../adr/011-the-kernels-public-api-is-explicit.md) — what the kernel root
   is for.
-- [0359](./0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md) —
+- [0359](./fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md) —
   the change most likely to add the fifth member.
 
 ## Verification

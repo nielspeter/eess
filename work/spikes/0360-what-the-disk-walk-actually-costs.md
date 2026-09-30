@@ -1,7 +1,7 @@
 # Spike 0360: what the disk walk actually costs, and whether its budget is in the right place
 
 Measured 2026-09-29 for
-[bug 0359](../bugs/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
+[bug 0359](../bugs/fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
 
 ## The question
 
@@ -101,7 +101,7 @@ declared closed by a number.
 
 ## Related
 
-- [0359](../bugs/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md)
+- [0359](../bugs/fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md)
   — the defect this spike serves. Its adopter measurement (16,770 entries, 34% of
   budget) is what made the budget's placement worth measuring at all.
 - [0345](./0345-what-it-costs-to-load-a-monorepo.md) — the other spike about what eess

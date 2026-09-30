@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import picomatch from 'picomatch'
 import type { ArchProject } from './project.js'
-import { discoverIdentityRoot } from '@nielspeter/eess/internal'
+import { byCodepoint, discoverIdentityRoot } from '@nielspeter/eess/internal'
 import { readsRootRelativePath, rootFromTsConfigPath } from './project-relative.js'
 
 /**
@@ -29,6 +29,34 @@ const PRUNE = new Set([
   '.gradle',
   '.yarn',
   '.cache',
+  // Added for bug 0359. Pruning — not repository size — is what decides whether
+  // the walk finishes: measured on this repository, the list above removes
+  // **88.9%** of entries, and unpruned this small repo would sit at 41% of the
+  // old 50,000 budget by itself (spike 0368). The list named fourteen and missed
+  // the one that mattered — an adopter's `.wrangler` was **58% of their entries**
+  // in the monorepo that measured closest to the budget.
+  //
+  // Only the FIRST of these has a measured share; the rest are the same class of
+  // thing — build, cache and framework output no rule can usefully scope to — and
+  // are cheap to prune. Named individually rather than matched by a leading dot,
+  // because `.claude/`, `.changeset/` and `.github/` are content this repo's own
+  // corpus gate reads.
+  '.wrangler',
+  '.svelte-kit',
+  '.nuxt',
+  '.output',
+  '.parcel-cache',
+  '.vite',
+  '.astro',
+  '.docusaurus',
+  '.serverless',
+  '.terraform',
+  'storybook-static',
+  '.pnpm-store',
+  '.angular',
+  '.expo',
+  '.dart_tool',
+  '.sst',
 ])
 
 /**
@@ -60,12 +88,30 @@ const PRUNE = new Set([
  * That is not a regression — before 0355 those rules were silent everywhere —
  * but it is an undisclosed limit on a fix, and nothing currently reports that
  * the walk gave up. Surfacing exhaustion is
- * [bug 0359](../../../../work/bugs/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
+ * [bug 0359](../../../../work/bugs/fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md),
+ * and it is now surfaced: `exhaustion` on the returned `DiskSet` carries the
+ * fact and what consumed the walk, and the cardinality path reports it rather
+ * than going quiet.
  *
- * Anyone changing this number: it is the threshold at which a shipped gate
- * turns itself off silently. Measure before you lower it.
+ * ## Why 500,000, and why the old 50,000 was far too low
+ *
+ * The justification above is a claim about TIME — a 5s vitest timeout. Measured
+ * at **2.09 µs/entry** (spike 0367; spike 0360 got 1.55 µs/entry by a different
+ * method, which is what makes either trustworthy), 50,000 entries is about
+ * **105 ms of work**. The cutoff fired roughly **48× below its own stated
+ * reason**, and silenced a gate to do it.
+ *
+ * 500,000 is 0.8–1.5s warm (spike 0360) and puts every repository measured so
+ * far far inside it: this one at ~2,300 entries after pruning, an adopter's
+ * 15-package monorepo at 16,770. **Not unbounded** — the cold-cache cost is
+ * still unmeasured, which is exactly why 0360 declined to recommend removing the
+ * bound, and raising it is supported by measurement where removing it is not.
+ *
+ * Anyone changing this number: it is the threshold at which a shipped gate stops
+ * being able to answer. It no longer does so silently, which is the fix — but a
+ * reported degradation is still a degradation. Measure before you lower it.
  */
-const ENTRY_BUDGET = 50_000
+const ENTRY_BUDGET = 500_000
 
 // `.d.ts` and its `.d.mts`/`.d.cts` siblings count. They ARE TypeScript for
 // the question this set answers — "does this path contain TypeScript your
@@ -101,9 +147,70 @@ export type OnDisk = 'holds-typescript' | 'no-typescript' | 'absent' | 'not-dete
 export interface DiskSet {
   /** Classify a glob by what exists on disk under the paths it matches. */
   classify(glob: string): OnDisk
+  /**
+   * Present ONLY when the walk gave up, and then verdict-bearing.
+   *
+   * `classify` answers `not-determined` for every glob in that state, which
+   * since 0355 means a cardinality rule stays green — so the caller that
+   * consumes a classification has to be able to tell "the disk says no" from
+   * "the walk never looked". Reading `classify` alone cannot.
+   */
+  readonly exhaustion?: WalkExhaustion
 }
 
-const cache = new WeakMap<ArchProject, DiskSet>()
+/**
+ * What the walk read before it stopped, and what dominated it.
+ *
+ * `consumers` exists because of ADR-009 rule 2: the remedy has to be real, and
+ * "your repository is too large" is not one — the adopter cannot act on it.
+ * [Spike 0368](../../../../work/spikes/0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md)
+ * measured why naming directories IS actionable: pruning removes **88.9%** of
+ * entries in a repository with no generated output at all, so a repository that
+ * exhausts is overwhelmingly carrying directories that should never have been
+ * walked. One adopter's `.wrangler` was **58%** of their entries by itself.
+ */
+export interface WalkExhaustion {
+  /** The directory the walk started from. */
+  readonly root: string
+  /** The budget it exceeded. */
+  readonly budget: number
+  /** Largest first — the directories to name in the finding. */
+  readonly consumers: readonly WalkConsumer[]
+}
+
+/** One subtree's share of the walk. Not exported: `WalkExhaustion` carries it. */
+interface WalkConsumer {
+  /** Path relative to `root`. */
+  readonly dir: string
+  readonly entries: number
+}
+
+let cache = new WeakMap<ArchProject, DiskSet>()
+
+/**
+ * Budget override for the MEMOIZED path. Tests only.
+ *
+ * `buildDiskSet` above already takes an injectable budget and is documented
+ * "exported for tests only" — but it bypasses the memo, and the production
+ * consumer of a classification is `absenceClaimIsContradicted`, which goes
+ * through `diskSet(project)`. So a test could construct an exhausted set and
+ * could not make a RULE see one, which left bug 0359's defect reachable only
+ * below the public entry point. A test that drives a stand-in instead of
+ * `violations()` is how a suite stays green while the defect survives.
+ *
+ * Reaching exhaustion honestly is not an option: the budget is 500,000 entries.
+ *
+ * This overrides the constant and clears the memo, so the walk really runs, the
+ * real `classify` answers, and the finding travels the real path — only the
+ * number differs from production.
+ */
+// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
+export function setDiskWalkBudgetForTests(limit: number | undefined): void {
+  budgetForTests = limit
+  cache = new WeakMap()
+}
+
+let budgetForTests: number | undefined
 
 /**
  * The project's disk set, walked at most once and only when asked.
@@ -157,7 +264,6 @@ function absenceClaimIsContradicted(project: ArchProject, glob: string): boolean
  * Exhaustive by construction: `OnDisk` is a four-value union, so a test that enumerates it
  * cannot silently stop covering a case when a fifth is added — it stops compiling.
  */
-// eess-exclude eess/no-unused-exports: consumed by the test suite; the build tsconfig this gate reads excludes tests, so `src` is the only usage it can see
 export function contradictsAbsence(onDisk: OnDisk): boolean {
   return onDisk === 'holds-typescript'
 }
@@ -194,7 +300,7 @@ export function cardinalityDeadSiteIsAtFault(
 export function diskSet(project: ArchProject): DiskSet {
   const cached = cache.get(project)
   if (cached) return cached
-  const built = build(project, ENTRY_BUDGET)
+  const built = build(project, budgetForTests ?? ENTRY_BUDGET)
   cache.set(project, built)
   return built
 }
@@ -226,6 +332,22 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   if (!path.isAbsolute(project.tsConfigPath)) return UNDETERMINED
   const root = discoverIdentityRoot(path.dirname(project.tsConfigPath))
   if (!fs.existsSync(root)) return UNDETERMINED
+  // The FILESYSTEM root is never a project root, and walking it is never
+  // meaningful. `discoverIdentityRoot` falls back to its own argument when it
+  // finds no marker, so a tsconfig path with nothing above it resolves to `/`
+  // and this walked the entire disk.
+  //
+  // Found by bug 0359's own fix: that walk always happened, exhausted, and
+  // returned the silent `UNDETERMINED`, so nobody could see it. The moment
+  // exhaustion started reporting, every in-memory double in this suite surfaced a
+  // finding — 0359's thesis landing in a second place. `not-determined` was the
+  // right answer all along; it now arrives without reading the whole disk first.
+  //
+  // Narrow on purpose. A first draft refused any root without a `.git` or
+  // `package.json` and reddened two legitimate fixtures: a bare directory holding
+  // only a tsconfig IS a project, and eess must not require a manifest it never
+  // asked for. The pathology is reaching `/`, not lacking a marker.
+  if (path.dirname(root) === root) return UNDETERMINED
 
   const files: string[] = []
   /** Every file, TypeScript or not — so `absent` means absent, not "not TypeScript". */
@@ -243,6 +365,13 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   const pruned: string[] = []
   let budget = budgetLimit
   let exhausted = false
+  /**
+   * Entries read per top-level subtree of `root`, so exhaustion can name what
+   * consumed the walk instead of blaming the repository's size (spike 0368).
+   * Attributed to the FIRST segment below `root` and no deeper: the remedy is
+   * "stop walking this tree", which is a decision about a top-level directory.
+   */
+  const perSubtree = new Map<string, number>()
 
   const walk = (dir: string): void => {
     if (exhausted) return
@@ -253,6 +382,13 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
       void err // unreadable or gone: not a finding, just not walkable
       return
     }
+    // Count BEFORE the budget check, so the subtree that pushed the walk over
+    // is the one the finding names. Counting after would attribute the
+    // decisive read to nobody — the directory that exhausted the budget would
+    // be missing from the list of what exhausted it.
+    const rel = path.relative(root, dir).replaceAll('\\', '/')
+    const top = rel === '' ? '.' : (rel.split('/')[0] ?? '.')
+    perSubtree.set(top, (perSubtree.get(top) ?? 0) + entries.length)
     budget -= entries.length
     if (budget < 0) {
       exhausted = true
@@ -296,7 +432,13 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
     }
   }
   walk(root.replaceAll('\\', '/'))
-  if (exhausted) return UNDETERMINED
+  // NOT the shared `UNDETERMINED` constant. It is deliberately identity-free so
+  // it can be returned from the guards above, where there is nothing to say; a
+  // walk that gave up has something to say, and bug 0359 is that it said
+  // nothing. `classify` still answers `not-determined` for every glob — the
+  // classification is unchanged and still honest. What changes is that the
+  // caller can now discover WHY.
+  if (exhausted) return exhaustedDiskSet(root, budgetLimit, perSubtree)
 
   // Containment is TRANSITIVE, and that is load-bearing. Using each file's
   // immediate parent instead labels `docs/` "contains no TypeScript" while
@@ -383,4 +525,39 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
 
 const UNDETERMINED: DiskSet = {
   classify: () => 'not-determined',
+}
+
+/**
+ * How many consuming directories the exhaustion finding names.
+ *
+ * Four, not all of them: the finding is a sentence an agent acts on, and a list
+ * of forty directories is the ADR-009 rule 4 noise problem moved inside one
+ * message. Four was enough to cover 91% of this repository's entries when
+ * measured (spike 0368), and the total is reported alongside so the reader can
+ * tell a dominated walk from an evenly-spread one.
+ */
+export const NAMED_CONSUMERS = 4
+
+/**
+ * The walk gave up, and says what it read.
+ *
+ * Its own object rather than the shared `UNDETERMINED`, because the consumers
+ * differ per project and a shared constant cannot carry them.
+ */
+function exhaustedDiskSet(
+  root: string,
+  budget: number,
+  perSubtree: ReadonlyMap<string, number>,
+): DiskSet {
+  const consumers = [...perSubtree]
+    .map(([dir, entries]) => ({ dir, entries }))
+    // NOT `localeCompare`: this order decides which directories the message names,
+    // the message reaches a baseline identity, and the host locale would make the
+    // same finding hash differently on a laptop and in CI. The repo's own
+    // `scan-locale-ordering` gate caught this.
+    .sort((a, b) => b.entries - a.entries || byCodepoint(a.dir, b.dir))
+  return {
+    classify: () => 'not-determined',
+    exhaustion: { root, budget, consumers },
+  }
 }
