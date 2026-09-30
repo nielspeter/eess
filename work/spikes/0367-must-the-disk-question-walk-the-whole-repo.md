@@ -81,9 +81,19 @@ cannot short-circuit out of it. So there is no glob-bounded source of truth to s
 That settles 0359 in favour of the two options its record already leaned toward, now measured
 rather than argued:
 
-1. **Report exhaustion, once per project.** The precedent is `emptyProjectViolation` — the
+1. **Report exhaustion, once per project.** ~~The precedent is `emptyProjectViolation` — the
    fault's identity is the walk, not any glob, so one finding rather than one per rule
-   (ADR-009 rule 4). This is the half that fixes the defect, because the defect is silence.
+   (ADR-009 rule 4).~~ This is the half that fixes the defect, because the defect is silence.
+
+   **Correction, 2026-09-30 — the struck sentence is false.** `emptyProjectViolation` is one
+   finding **per rule**: measured, three rules over an empty project give three findings, one
+   per rule name. It takes a single rule's `facts` and cannot do otherwise. The claim was read
+   off the function's name and its reasoning about _attribution_, never measured. One-per-project
+   is still reachable, via a different mechanism that already exists —
+   `dedupeConfigFindings` collapsing on a project-constant identity — and only in the CLI path,
+   not for a direct `violations()` caller. See
+   [0368 Result 4](./0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md).
+
 2. **Raise the budget.** Secondary, and honestly lesser: it moves the cliff out of reach
    without removing it.
 
