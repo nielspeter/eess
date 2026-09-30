@@ -1,5 +1,106 @@
 # @nielspeter/eess-ts
 
+## 0.10.1
+
+### Patch Changes
+
+- b691647: A ratchet broken by one character reports again
+
+  Fixes [bug 0362](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0362-a-typod-ratchet-is-green-in-both-tools.md),
+  a regression introduced in 0.10.0.
+
+  A `.notExist()` rule whose selector reads `'./src/**'` instead of `'src/**'` reported
+  **nothing** — not in `check`, not in `doctor` — while the directory it names exists, is in
+  the project, and holds TypeScript. The same glob on a rule asserting something positive
+  reported normally. Only the ratchet was silent.
+
+  0.10.0 taught cardinality rules to read the filesystem, and placed that test where it also
+  narrowed faults that need no filesystem at all. A `'./'` segment makes a glob match nothing
+  in **any** project; the disk cannot have an opinion about it. Both tools now report a
+  syntactically broken glob on a cardinality rule, and a genuinely absent path still stays
+  green — that discrimination is the point, and it is pinned in both directions.
+
+  **If you upgrade and a `.notExist()` rule starts reporting a dead glob**, it was broken
+  before 0.10.0 too: 0.10.0 silenced the report, and this restores it. Fix the glob — the usual
+  cause is a leading `./`.
+
+  **The finding's own `Fix:` line is corrected too, and that is a second change.** Restoring
+  the syntactic route gave the cardinality branch a second way in, and its remedy had been
+  written for the first: a glob broken in every project was being told to _"widen the tsconfig
+  include"_ — which no `include` can satisfy — beside a cause saying to remove the `./`. On a
+  finding that no `.warn()`, `.excluding()`, comment, baseline or diff-aware mode can suppress,
+  that first branch is the one an agent acts on. Three things change in the output:
+  - **the remedy is chosen by the diagnosis, not the rule shape.** A broken glob now reads
+    `Correct the selector — this rule has not been enforcing anything. Do not delete it.`
+    The tsconfig is offered only where the tsconfig is actually the lever.
+  - **the `Fix:` line names the edit.** It now carries the cause with it, so a `./` glob's
+    fix line spells the change (`"./src/x/**" -> "**/src/x/**"`) instead of only saying that
+    one is needed.
+  - **the scope clause is keyed on the glob text alone.** A syntactically broken glob reads
+    _"can never match anything in **any** project"_. **This wording changes for
+    non-cardinality rules too** — in 0.10.0 they said "in this project" for such a glob,
+    which understates a fault that holds everywhere. If you match on that sentence, it moved.
+    No rule changes verdict, and these findings never enter a baseline.
+
+  Neither cardinality remedy ever offers deletion, and that is pinned in both directions.
+
+- f15ad10: Pin all six import-glob surfaces, and correct what 0.9 said widened
+
+  No behaviour change. Two corrections to what shipped in 0.9.0, found by a retrospective
+  review of [bug 0349](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0349-a-path-shaped-dependency-ban-passes-silently-under-pnpm-and-yarn.md)
+  — the only change in that line of work that was merged without any review.
+
+  **Two of six import-glob surfaces had no regression protection.** The test table claiming
+  "every import-glob surface" listed four; `onlyHaveTypeImportsFrom` and the `notImportFrom`
+  _predicate_ were absent, and both were measured to change under the fix. All six are pinned
+  now, and reverting the shared matcher reds every one.
+
+  **`dependOn` reports less under pnpm and Yarn, and 0.9 did not say so.** Widening a matcher
+  is fail-closed for a ban and fail-open for a requirement:
+
+  ```ts
+  import { dependOn, onlyImportFrom } from '@nielspeter/eess-ts'
+  ```
+
+  `dependOn('**/logging/**')` means "this module must import logging" — an import it previously
+  could not see now satisfies the requirement, so it enforces less than it did. Same inversion
+  as `onlyImportFrom`, which 0.9 _did_ declare. If you rely on a loose glob in either, tighten
+  it to name your own paths. `docs/migrating-to-0.9.md` is corrected.
+
+- 50e1737: Correcting what 0.10.0's changeset promised
+
+  0.10.0 said, of the new cardinality check: _"Are you affected? You have a rule of the form
+  'this package is gone' … **You will now be told.**"_ That is true for a path-glob selector
+  over a path holding TypeScript on disk. It is **false for three shapes**, and that entry has
+  shipped, so the correction lands here instead of where it was written.
+
+  If you are planting violations against your `.notExist()` rules to verify them — and you
+  should — these are the ones that stay green for reasons that are not "the rule works":
+
+  **1. A ratchet whose selector is not a path glob.** The check keys on the selector's globs,
+  so a rule selecting by name, decorator, or `satisfy()` predicate is exactly as vacuous as
+  before:
+
+  ```ts
+  import { classes } from '@nielspeter/eess-ts'
+  ```
+
+  `classes(p).that().haveDecorator('Deprecated').should().notExist()` gets nothing. This shape
+  is taught in our own docs, so the promise reads as covering it and the mechanism does not.
+
+  **2. A selector that is well-formed but names nothing** — a typo, or a directory renamed
+  without updating the rule. It matches nothing, which is indistinguishable from the ratchet
+  holding, so it stays green. Before 0.10.0 `doctor` reported it — along with every _healthy_
+  ratchet, which is why that signal was narrowed. The trade was noise for silence, and it is a
+  trade rather than a pure win.
+
+  **3. A repository above the disk walk's 50,000-entry budget.** The whole classification
+  degrades to "could not determine" — which means green — for every path at once, and nothing
+  says so.
+
+  `docs/migrating-to-0.10.md` now carries all three. Nothing here changes behaviour; it changes
+  what we claimed.
+
 ## 0.10.0
 
 ### Minor Changes
