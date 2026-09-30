@@ -216,7 +216,7 @@ describe('conditions declare their globs', () => {
   it('does not hand a path-universe kind to the import family, or withhold one from onlyBeImportedVia', () => {
     // The single most consequential row, stated as its own assertion because
     // getting it wrong fails in the direction that looks fine. `import-target`
-    // deliberately has no path-universe views (`path-universe.ts:72`) because a
+    // deliberately has no path-universe views (`packages/core/src/path-universe.ts:60-61`) because a
     // bare specifier legitimately matches no project path — bug 0014. So
     // declaring `onlyBeImportedVia` as `import-target` would hand a genuinely
     // checkable path glob to machinery that cannot check it, silently.
@@ -428,10 +428,11 @@ describe('the declaration reaches the surfaces that consume it', () => {
   it('reports nothing new for a condition glob that IS checkable', () => {
     /**
      * The assertion above is **vacuous with respect to the skip**, and that was
-     * measured rather than reasoned: removing
-     * `site.position === 'condition'` from `diagnose.ts:169` leaves it green.
+     * measured rather than reasoned: removing the `'condition'` case from the
+     * skip — `isFaultPosition` (`packages/core/src/glob-site.ts:86`), applied at
+     * `diagnose.ts:416` — leaves it green.
      *
-     * `notImportFrom` declares `import-target`, which `path-universe.ts:72`
+     * `notImportFrom` declares `import-target`, which `packages/core/src/path-universe.ts:60-61`
      * deliberately gives no views, so `isDeadSite` is false for it whether the
      * skip is there or not — it is exempt by **kind** before the position is ever
      * consulted. So the test proved the exemption it did not intend to test.

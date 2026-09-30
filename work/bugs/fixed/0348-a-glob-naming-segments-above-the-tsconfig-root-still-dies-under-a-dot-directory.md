@@ -193,7 +193,7 @@ degraded, so the suite proved the gate improved attribution and never proved it
 prevented a pass. That gap was real and is closed.
 
 The third row is a different defect and not this gate's to fix: `deadSelectorFindings`
-exempts cardinality rules as well as the floor (`vacuity-diagnosis.ts:253-255`, so
+exempts cardinality rules as well as the floor (`vacuity-diagnosis.ts:336-338`, so
 `doctor` and `check` cannot disagree), so `.notExist()` is green in both states.
 Filed as [0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md).
 Enforcement's first reading had the gate rescuing that shape too; measurement said

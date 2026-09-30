@@ -220,7 +220,7 @@ export function onlyImportFrom(
     // live glob as dead, which is the 0.18.1 withdrawal in the other direction
     // (`glob-site.ts:185`).
     //
-    // `import-target` has no path-universe views by design (`path-universe.ts:72`), so
+    // `import-target` has no path-universe views by design (`packages/core/src/path-universe.ts:60-61`), so
     // declaring changes no verdict — a bare specifier legitimately matches no project
     // path, which is what bug 0014 was fixed to support.
     globs: globAnyOf(globs, 'import-target'),
@@ -295,7 +295,7 @@ export function notImportFrom(
     // live glob as dead, which is the 0.18.1 withdrawal in the other direction
     // (`glob-site.ts:185`).
     //
-    // `import-target` has no path-universe views by design (`path-universe.ts:72`), so
+    // `import-target` has no path-universe views by design (`packages/core/src/path-universe.ts:60-61`), so
     // declaring changes no verdict — a bare specifier legitimately matches no project
     // path, which is what bug 0014 was fixed to support.
     globs: globAnyOf(globs, 'import-target'),
@@ -380,7 +380,7 @@ export function dependOn(...args: [string[], ImportOptions] | string[]): Conditi
     // live glob as dead, which is the 0.18.1 withdrawal in the other direction
     // (`glob-site.ts:185`).
     //
-    // `import-target` has no path-universe views by design (`path-universe.ts:72`), so
+    // `import-target` has no path-universe views by design (`packages/core/src/path-universe.ts:60-61`), so
     // declaring changes no verdict — a bare specifier legitimately matches no project
     // path, which is what bug 0014 was fixed to support.
     globs: globAnyOf(globs, 'import-target'),
@@ -513,7 +513,7 @@ export function onlyHaveTypeImportsFrom(...globs: string[]): Condition<SourceFil
     // live glob as dead, which is the 0.18.1 withdrawal in the other direction
     // (`glob-site.ts:185`).
     //
-    // `import-target` has no path-universe views by design (`path-universe.ts:72`), so
+    // `import-target` has no path-universe views by design (`packages/core/src/path-universe.ts:60-61`), so
     // declaring changes no verdict — a bare specifier legitimately matches no project
     // path, which is what bug 0014 was fixed to support.
     globs: globAnyOf(globs, 'import-target'),

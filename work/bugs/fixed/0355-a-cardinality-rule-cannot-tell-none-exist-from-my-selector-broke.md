@@ -12,7 +12,7 @@
   selector broke".
 - **Scope — narrowed after measurement, and this record twice said otherwise.**
   `.expectEmpty()` is **not** this bug. `deadSelectorFindings` guards on
-  `assertsCardinality()` only (`ts/src/core/vacuity-diagnosis.ts:417`) and has no
+  `assertsCardinality()` only (`ts/src/core/vacuity-diagnosis.ts:476`) and has no
   `declaresEmpty()` guard, and `.expectEmpty()` sets the latter, not the former —
   so a declared-empty rule IS reachable by the dead-selector diagnosis and already
   reported. Measured while fixing
@@ -50,7 +50,7 @@ see the scope note in Status.
 Two exemptions, each correct on its own, with no mechanism between them.
 
 1. **The dead-selector diagnosis exempts cardinality rules.**
-   `packages/ts/src/core/vacuity-diagnosis.ts:253-255`: "`.notExist()` and friends
+   `packages/ts/src/core/vacuity-diagnosis.ts:336-338`: "`.notExist()` and friends
    examine zero BECAUSE that is what they assert. Exempt since 0.34.0, and
    `diagnose()` exempts it too — the two must agree or `doctor` and `check`
    disagree about a working rule."
@@ -337,7 +337,13 @@ glob … `check` exits 0 with no output on such a rule while `doctor` names the 
 **3. A repository above the disk walk's entry budget**, where the whole classification
 degrades to `not-determined` and every cardinality rule loses the floor at once, silently —
 [0359](../0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md), with
-the budget measured 100× too low in [spike 0360](../../spikes/0360-what-the-disk-walk-actually-costs.md).
+the budget measured far below what the walk can afford — 3.2M entries to the 5s timeout
+against a 50,000 budget is 64× ([spike 0360](../../spikes/0360-what-the-disk-walk-actually-costs.md),
+whose own table gives both figures and whose headline rounds it to "about two orders of
+magnitude"). **64× is the headroom, not the recommendation**: 0360 rules for 500,000–1,000,000
+(10–20×) and deliberately stops short of 3.2M because the cold-cache gap is unmeasured. _This
+line read "100× too low" until 2026-09-29; the figure was taken from the headline rounding
+rather than divided. Commit `843f90b`'s title carries the old number permanently._
 
 **The changeset for 0.10.0 says none of this, and it has shipped**, so the correction cannot
 be made where it was written. It belongs in the next release's changeset and in

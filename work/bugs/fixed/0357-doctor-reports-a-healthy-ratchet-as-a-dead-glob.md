@@ -31,17 +31,17 @@ Row two is the defect. The path is genuinely gone, which is the ratchet **holdin
 ## Root cause
 
 `diagnose()` exempts cardinality rules in `zeroSubjectsFinding`
-(`ts/src/core/diagnose.ts:492`) and **not** on its universe-based dead-glob
+(`ts/src/core/diagnose.ts:499`) and **not** on its universe-based dead-glob
 path (`ts/src/core/diagnose.ts:424`, where the guard now is). So a `.notExist()` rule whose selector matches nothing
 — which is every healthy ratchet — takes the dead-glob branch before the exemption
 is ever consulted.
 
 The gate has the mirror of this and got it right: `deadSelectorFindings` exempts
-cardinality outright (`ts/src/core/vacuity-diagnosis.ts:417`). 0355 then gave the gate's floor
+cardinality outright (`ts/src/core/vacuity-diagnosis.ts:476`). 0355 then gave the gate's floor
 the discriminator that tells a holding ratchet from a broken selector — the
 filesystem, via `diskSet` — and `doctor` did not get it.
 
-**The invariant this breaks is written down.** `vacuity-diagnosis.ts:253-255`:
+**The invariant this breaks is written down.** `vacuity-diagnosis.ts:336-338`:
 "Exempt since 0.34.0, and `diagnose()` exempts it too — **the two must agree or
 `doctor` and `check` disagree about a working rule**." That is exactly what happens.
 
@@ -66,13 +66,13 @@ author for that is the confidently-wrong remedy `disk-set.ts` exists not to give
 
 Four rows and a clean control, literal edits, restores sha256-verified.
 
-| row        | the edit                                                           | what reddened                                                  |
-| ---------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
-| R0 CONTROL | none                                                               | nothing — green                                                |
-| R1         | `diagnose()` skips the new guard (the pre-fix code)                | `agree on all three cases`                                     |
-| R2         | the shared predicate accepts everything                            | `agree on all three cases`, and 0355's ratchet-holding control |
-| R3         | the shared predicate accepts nothing                               | `agree on all three cases`, and both of 0355's defect tests    |
-| R4 REVERSE | drop the cardinality condition, so the guard applies to EVERY rule | `CONTROL: a non-cardinality rule is untouched in both tools`   |
+| row        | the edit                                                           | what reddened                                                 |
+| ---------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| R0 CONTROL | none                                                               | nothing — green                                               |
+| R1         | `diagnose()` skips the new guard (the pre-fix code)                | `agree on all four cases`                                     |
+| R2         | the shared predicate accepts everything                            | `agree on all four cases`, and 0355's ratchet-holding control |
+| R3         | the shared predicate accepts nothing                               | `agree on all four cases`, and both of 0355's defect tests    |
+| R4 REVERSE | drop the cardinality condition, so the guard applies to EVERY rule | `CONTROL: a non-cardinality rule is untouched in both tools`  |
 
 **R2 and R3 red tests in the OTHER bug's file**, which is the point of a shared predicate: one
 edit has to be visible from both sides, or the two tools have separate policies again.

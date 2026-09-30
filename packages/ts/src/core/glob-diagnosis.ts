@@ -114,6 +114,29 @@ export function diagnoseGlob(
  * The remedy for each fault, or an honest list of causes where no remedy is
  * verifiable.
  */
+/**
+ * Is this fault a property of the glob TEXT, decidable with no filesystem and no project?
+ *
+ * The same question `syntacticFault` answers about a raw glob, asked of a diagnosis that
+ * has already answered it — so callers holding a `GlobDiagnosis` stop re-deriving it from
+ * `(glob, kind, base)` and cannot drift by being handed a different `kind` or `base`. That
+ * drift is not hypothetical: the same question was being asked at four separate sites
+ * before this existed.
+ *
+ * Exhaustive by construction, like `contradictsAbsence` and `isFaultPosition`: a fifth
+ * `GlobFault` stops this compiling rather than falling into a default that guesses.
+ */
+export function isSyntacticFault(fault: GlobFault): boolean {
+  switch (fault) {
+    case 'dot-segment':
+    case 'unanchored':
+      return true
+    case 'file-not-folder':
+    case 'no-match':
+      return false
+  }
+}
+
 export const FAULT_ADVICE: Readonly<Record<GlobFault, string>> = {
   'dot-segment':
     'a "./" segment never occurs in an absolute file path — remove it and anchor instead ("./src/x/**" -> "**/src/x/**")',

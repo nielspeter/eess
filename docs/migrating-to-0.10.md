@@ -26,9 +26,19 @@ nobody looks.
 
 1. Upgrade, run your gates, and **read the new findings before you regenerate a baseline.**
 2. For any `.notExist()` rule that now reports: **fix the selector, do not delete the rule.**
-   It has not been enforcing anything, and it is the thing that noticed.
-3. If a rule reports and you cannot see why, check your tsconfig `include`/`exclude` first —
-   that is the commonest cause.
+   It has not been enforcing anything. Whether it is also "the thing that noticed" depends
+   on _why_ it reports — read the finding's own `Fix:` line, which now says which case you
+   are in:
+   - _"Widen the tsconfig include to cover this path…"_ — the code you assert is gone is on
+     disk and your project never loaded it. The rule did notice a real gap.
+   - _"Correct the selector — this rule has not been enforcing anything."_ — the glob is
+     broken, in this project and in every other one. The rule never ran, so it noticed
+     nothing; the `Fix:` line spells the edit.
+3. If a rule reports and you cannot see why, check your tsconfig `include`/`exclude` **only
+   when the finding names it**. A glob with a `./` segment, or one naming a file where a
+   directory is read, can never match whatever your tsconfig says — and for those the
+   finding does not mention the tsconfig at all. (In 0.10.0 it did, which was the
+   misdirection this corrects.)
 
 ## 1. A cardinality rule now reports when the code it asserts away is on disk
 
