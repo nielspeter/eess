@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — measured; the mechanism and the threshold are both confirmed.
+- **State:** Draft — measured; the mechanism and the threshold are both confirmed, and
+  [spike 0367](../spikes/0367-must-the-disk-question-walk-the-whole-repo.md) has settled
+  the fix shape: this is a **report, not a redesign**. Ready to build.
 - **Severity:** High — **a gate that turns itself off, silently, for a whole
   repository**, with the threshold measured at ~3× a real adopter monorepo rather
   than the remote figure this record first estimated. Above the walk's entry budget every cardinality rule in the run
@@ -141,8 +143,27 @@ future entry: **not "is it tool output" but "can a tsconfig include it".**
 
 ## Fix
 
-Not decided. The shape is that an instrument which could not answer must say so —
-ADR-009's own subject.
+**Decided by [spike 0367](../spikes/0367-must-the-disk-question-walk-the-whole-repo.md):
+options 2 and 4 below — report exhaustion once per project, and raise the budget.** The
+shape is that an instrument which could not answer must say so — ADR-009's own subject.
+
+**What the spike settled, and how.** The question below — whether a verdict may depend on a
+bounded walk at all — would have been _dissolved_ rather than answered if `classify(glob)`
+could be served by a walk bounded by the glob's own text. It cannot, and the measurement is
+one-sided:
+
+- Per-glob pruning is a 250–1000× win for a glob with a literal prefix (5 entries instead of
+  50,525) and a **2× loss** for a glob led by `**/`, which can prune nothing.
+- **A holding ratchet can never short-circuit.** It matches nothing by definition, so it must
+  exhaust the searchable space. The worst case is the case the feature exists for.
+- **Every glob in this repo's own rule files is `**/`-led: 9 of 9, zero anchored** — and
+[0348](./fixed/0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md)
+made that convention load-bearing, since the identity-root view applies to `'\*\*/'`-led
+  globs only.
+
+So there is no glob-bounded source of truth to swap in, 0355's discriminator does not need
+replacing, and **replacing the eager walk with per-glob pruning is measured wrong** — it was
+the spike's own hypothesis. The whole-repo walk is what the question requires.
 
 - **A configuration finding.** The strongest option and the most disruptive: a run
   whose disk walk exhausted reports it, unsuppressably, the way an empty project
@@ -161,9 +182,12 @@ ADR-009's own subject.
   bound nobody can reach is still a bound. This does not fix the silence; it makes
   the silence unreachable in practice, which is a different and lesser thing.
 
-**The open question is whether a verdict may depend on a bounded walk at all.** If
-the answer is no, 0355's discriminator needs a different source of truth and this is
-a redesign rather than a report.
+**The open question is whether a verdict may depend on a bounded walk at all.** Spike 0367
+answers the operative half: it may, **provided exhaustion is reported**, because no
+unbounded-free alternative exists for the globs people write. What the spike explicitly does
+**not** settle is whether the bound could be removed outright — every figure it took is warm,
+and the cold-cache cost stays uncosted for the same reason 0360 declined to recommend it. So
+**raising** the budget is supported by measurement; **removing** it is not.
 
 0360 makes that question **less pressing and does not answer it**: with the budget
 where its justification puts it and exhaustion reported, the bound sits far from any
