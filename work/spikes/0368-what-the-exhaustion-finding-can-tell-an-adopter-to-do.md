@@ -100,6 +100,36 @@ budget". That is not wrong, but the ordering inverts the measured effect sizes, 
 answer to the ADR-009 rule 2 question at all. The report must name consumers, and the prune list
 is the lever — the budget is the fallback.
 
+## Result 4 — the "one finding per project" precedent does not exist, and the mechanism that provides it is a different one
+
+**Correcting this spike and its predecessor.** [0367](./0367-must-the-disk-question-walk-the-whole-repo.md)
+ruled that exhaustion should be reported "once per project ... on the `emptyProjectViolation`
+pattern — one walk, one failure, one finding, rather than one per rule", and bug 0359's record
+says the same. **Measured, `emptyProjectViolation` is one finding PER RULE.** Three rules over an
+empty project:
+
+| loaded files | rules | findings | elements            |
+| ------------ | ----- | -------- | ------------------- |
+| 0            | 3     | **3**    | `r/1`, `r/2`, `r/3` |
+
+It takes `facts` — a single rule's facts — and sets `element` to that rule's name, so it cannot
+be anything else. The claim was asserted from the function's name and its docstring's reasoning
+about _attribution_ ("the identity of that fault is the tsconfig rather than any glob"), which is
+true of the message and not of the count.
+
+**One-per-project is still achievable, by a mechanism that already exists and is not this one.**
+`dedupeConfigFindings` (`packages/core/src/dedupe-config-findings.ts:116`) keys a configuration
+finding on `(ruleId ?? rule, element)` and collapses matches, appending a note stating how many
+rules were affected. So an exhaustion finding that carries a **project-constant identity** — a
+fixed `rule` label and the repository root as `element`, rather than the per-rule name — collapses
+to one report and states its own fan-out for free.
+
+**With one precision the earlier claim would have hidden:** `dedupeConfigFindings` is applied in
+`check-all.ts`, the **CLI** path. A consumer calling `violations()` directly still receives one
+finding per rule, which is correct — every one of those rules really did lose its floor. So "one
+finding" is a true statement about the CLI's report and a false one about the API, and the fix
+must say which.
+
 ## Honest limits
 
 - **One repository, and it is the wrong one.** Every figure in Results 1 and 2 is this
@@ -112,3 +142,7 @@ is the lever — the budget is the fallback.
   low-risk, but the effect size is unknown for 16 of 17.
 - **Not measured: whether naming consumers is enough.** Whether an adopter shown "`.wrangler`
   was 58% of the walk" actually resolves it is a question about people, and no spike settles it.
+- **Result 4 is why this section exists.** Two spikes and a bug record asserted a precedent that
+  a one-line probe falsified. The probe was three rules and an empty tsconfig; it cost a minute
+  and it changed the design. Nothing in the corpus had measured it, and the gate cannot — a claim
+  about how many findings a function produces is not a `path:line` citation.

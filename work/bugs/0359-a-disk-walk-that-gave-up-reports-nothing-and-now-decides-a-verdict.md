@@ -153,9 +153,21 @@ is ADR-009 rule 2.
 
 **In measured priority order:**
 
-1. **Report exhaustion once per project, NAMING the top consuming directories.** Not "your
-   repository is too large", which is unactionable and would make this a new unsuppressable
-   finding with no achievable exit — 0362's defect one layer up.
+1. **Report exhaustion, NAMING the top consuming directories.** Not "your repository is too
+   large", which is unactionable and would make this a new unsuppressable finding with no
+   achievable exit — 0362's defect one layer up.
+
+   **One report, not N, and the mechanism is not the one this record first named.**
+   `emptyProjectViolation` is one finding **per rule** — measured, three rules over an empty
+   project give three findings ([0368 Result 4](../spikes/0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md));
+   the "one finding for the project" claim below was asserted from its name. What actually
+   delivers it is `dedupeConfigFindings`, which keys on `(ruleId ?? rule, element)` and states
+   its own fan-out: give the exhaustion finding a **project-constant identity** (a fixed `rule`
+   label, the repository root as `element`) and N rules collapse to one report. Precision that
+   must reach the message: that collapse happens in `check-all.ts`, the **CLI** path, so a direct
+   `violations()` caller still sees one per rule — which is right, since each of those rules
+   really did lose its floor.
+
 2. **Extend the prune list.** The biggest single win, and this record did not consider it.
    Pruning already removes **88.9%** of entries; the list names 15 directories and misses 17
    ordinary generated ones, including `.wrangler` — which was **58% of the entries** in the
@@ -192,10 +204,11 @@ the spike's own hypothesis. The whole-repo walk is what the question requires.
   whose disk walk exhausted reports it, unsuppressably, the way an empty project
   does. It is honest, and it fires on every rule in a large repository at once,
   which is the noise ADR-009 rule 4 warns against — one cause, many findings.
-- **One finding for the project, not one per rule.** The precedent is
+- **One finding for the project, not one per rule.** ~~The precedent is
   `emptyProjectViolation`, which exists because the identity of that fault is the
-  tsconfig rather than any glob. Exhaustion has the same shape: one walk, one
-  failure, one thing to say.
+  tsconfig rather than any glob.~~ Exhaustion has the same shape: one walk, one
+  failure, one thing to say. **The precedent named here is wrong** — it is per-rule,
+  measured; see the Fix above for the mechanism that does deliver one report.
 - **A line in the gate summary.** Cheapest, and it is a warning — which ADR-009
   rule 1 says the primary consumer does not read. Adequate for "the walk was
   slow", not for "a gate is off".
