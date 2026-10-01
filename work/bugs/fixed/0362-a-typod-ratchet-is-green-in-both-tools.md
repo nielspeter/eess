@@ -140,7 +140,7 @@ are constructed and then discarded. The call is kept for the one owner (the hand
 `=== 'holds-typescript'` in the first draft is the precedent `disk-set.ts` records about
 `isFaultPosition` growing two copies that disagreed), and the narrowing that makes it
 equivalent is now itself pinned: **S7 reds**, so widening the filter — surfacing walk
-exhaustion, [0359](../0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md),
+exhaustion, [0359](./0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md),
 is the live candidate — fails loudly instead of silently reaching a branch written for a
 different cause.
 

@@ -18,6 +18,8 @@ import {
 import { globSitesOf, isDeadGlobTree, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'
 import { cardinalityDeadSiteIsAtFault, contradictsAbsence, diskSet } from './disk-set.js'
+import { NAMED_CONSUMERS } from './disk-set.js'
+import type { WalkExhaustion } from './disk-set.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
 
 /**
@@ -345,7 +347,27 @@ export function evidenceFloor(
   // is unremarkable and nobody looks.
   if (facts.assertsCardinality()) {
     const onDisk = cardinalitySelectorMissedDisk(facts, project)
-    return onDisk.length > 0 ? onDisk : violations
+    if (onDisk.length > 0) return onDisk
+    // The exemption above is only sound while the disk can ANSWER. When the walk
+    // gave up, `classify` says `not-determined` for every glob — so this rule is
+    // not passing, it is unexamined, and returning `violations` (empty) is the
+    // fail-open bug 0359 records: one walk over budget silenced every cardinality
+    // rule in the run at once, for a reason unrelated to any of their paths.
+    // …and only for a rule the disk was ever going to DECIDE. A cardinality rule
+    // selecting by name, decorator or predicate has no path glob, so the walk's failure
+    // changed nothing for it: blaming it would be a confidently wrong message, and
+    // consulting `diskSet` at all would walk the whole repository for an answer that
+    // cannot be used — falsifying this module's own "lazy, only from an already-firing
+    // fault" claim. Found by independent validation of
+    // [ADR-016](../../../../adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md),
+    // measured red before this guard existed. That shape stays uncovered, which the 0.10
+    // changeset already says plainly; uncovered is honest, blamed is not.
+    const exhausted =
+      project === undefined || !hasDiskDecidableGlob(facts)
+        ? undefined
+        : diskSet(project).exhaustion
+    if (exhausted !== undefined) return [walkExhaustedViolation(facts, exhausted)]
+    return violations
   }
   // The author said empty is the point. `declaresEmpty()` — not
   // `_expectEmpty` — because `CrossProjectBuilder` declares per side and
@@ -384,6 +406,93 @@ function emptyProjectViolation(facts: RuleFacts, project: ArchProject): ArchViol
     message: advice,
     // Its own remedy, never the author's (bug 0021).
     suggestion: advice,
+    bypassFilters: true,
+  }
+}
+
+/**
+ * Does this rule carry a glob whose emptiness the FILESYSTEM could decide?
+ *
+ * The same population `cardinalitySelectorMissedDisk` narrows to — a fault-position site —
+ * asked before the walk rather than after it, so a rule the disk cannot decide never
+ * triggers one. Without this, a name-selecting `.notExist()` walked the whole repository and
+ * was then told the walk's failure had left its absence unchecked, which it had not.
+ */
+function hasDiskDecidableGlob(facts: RuleFacts): boolean {
+  return facts
+    .globs()
+    .some((tree) => globSitesOf(tree).some((site) => isFaultPosition(site.position)))
+}
+
+/**
+ * The walk gave up, so this rule was never checked — [bug 0359](../../../../work/bugs/fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
+ *
+ * **Identity is the WALK, not the rule.** `ruleId`, `rule` and `element` are all
+ * constant per project, so `dedupeConfigFindings` — which keys on
+ * `(file, ruleId ?? rule, element)` — collapses every affected rule into one report
+ * and appends its own count of how many. One walk, one failure, one thing to say.
+ *
+ * **`ruleId` is the load-bearing half, and setting `rule` alone is not enough.** The
+ * builder stamps `ruleId` with each rule's own id on the way out, and the key prefers
+ * `ruleId`. The first draft of this set only `rule`, claimed one report in this very
+ * docstring, and produced one per rule — the ADR-009 rule 4 noise it says it avoids.
+ * Measured by `it('three rules that all lost the check collapse to one report')`,
+ * which was written because the claim had been asserted rather than run.
+ *
+ * That collapse happens in `check-all.ts`, the CLI path. A consumer calling
+ * `violations()` directly still receives one per rule, which is correct: each of
+ * those rules really did lose its floor. An earlier draft of this claimed
+ * `emptyProjectViolation` was the precedent for one-per-project; measured, that
+ * one is per-rule, and the count came from `dedupeConfigFindings` all along
+ * ([spike 0368](../../../../work/spikes/0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md)).
+ *
+ * **The remedy names directories.** ADR-009 rule 2 — a stated fix that cannot be
+ * carried out is worse than none, and "your repository is too large" is not a fix
+ * an adopter can act on. Pruning removes 88.9% of entries in a repository with no
+ * generated output at all, so a repository that exhausts is overwhelmingly
+ * carrying trees that should never have been walked. Naming the largest is
+ * something to DO.
+ */
+function walkExhaustedViolation(facts: RuleFacts, exhaustion: WalkExhaustion): ArchViolation {
+  const described = facts.describeRule()
+  const named = exhaustion.consumers.slice(0, NAMED_CONSUMERS)
+  const total = exhaustion.consumers.reduce((sum, c) => sum + c.entries, 0)
+  const share = (n: number) => (total === 0 ? '0%' : `${Math.round((n / total) * 100)}%`)
+  const list = named.map((c) => `${c.dir} (${c.entries} entries, ${share(c.entries)})`).join(', ')
+  const advice =
+    `The filesystem walk that decides this rule gave up after ${exhaustion.budget} ` +
+    `directory entries, so the absence it asserts was never actually checked — and ` +
+    `every other cardinality rule whose selector the filesystem decides lost the same ` +
+    `check, for a reason that has nothing to do with any of their paths. ` +
+    `Largest first, what the walk read under ${exhaustion.root}: ${list}. ` +
+    `${UNSUPPRESSABLE}`
+  const remedy =
+    `Stop the walk reaching generated output: delete or relocate the directories above ` +
+    `that hold build, cache or framework output — that is what exhausts the budget, not ` +
+    `the size of your repository. If one of them is code your rules genuinely scope to, ` +
+    `this rule cannot be checked here and the gap is real, not a configuration mistake.`
+  return {
+    // CONSTANT per project, deliberately: this is the dedupe key, and keying it on
+    // the rule would defeat the collapse and report the same walk N times.
+    rule: 'eess-ts: disk walk',
+    // ALSO `ruleId`, and that is the load-bearing half. `dedupeConfigFindings` keys
+    // on `ruleId ?? rule`, and the builder stamps `ruleId` with each rule's own id
+    // on the way out — so setting `rule` alone left three rules with three distinct
+    // keys and no collapse. Measured: the first draft of this claimed one report and
+    // produced one per rule.
+    ruleId: 'eess-ts: disk walk',
+    element: exhaustion.root,
+    file: '',
+    line: 0,
+    message: advice,
+    // Its own remedy, never the author's (bug 0021).
+    suggestion: remedy,
+    because:
+      `A cardinality rule is exempt from the evidence floor because examining zero is ` +
+      `what it asserts. That exemption is only sound while the filesystem can say ` +
+      `whether the path is really gone. Above the walk's budget it cannot, so the rule ` +
+      `is not passing — it is unexamined, and ${described.id || described.rule || facts.ruleClass.name} ` +
+      `would otherwise have reported nothing at all.`,
     bypassFilters: true,
   }
 }

@@ -1,7 +1,7 @@
 # Spike 0367: must the disk question walk the whole repository?
 
 Measured 2026-09-30 for
-[bug 0359](../bugs/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
+[bug 0359](../bugs/fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md).
 
 ## The question
 

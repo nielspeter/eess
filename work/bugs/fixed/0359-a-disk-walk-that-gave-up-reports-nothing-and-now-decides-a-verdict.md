@@ -2,13 +2,15 @@
 
 ## Status
 
-- **State:** Draft — measured; the mechanism and the threshold are both confirmed, and
-  [spike 0367](../spikes/0367-must-the-disk-question-walk-the-whole-repo.md) has settled
-  the fix shape: this is a **report, not a redesign**. Ready to build.
+- **State:** Fixed — the walk that gives up now says so, names what consumed it, and the
+  budget sits where its own justification puts it. Two spikes settled the shape (0367) and
+  the message (0368); the fix also closed a second, invisible instance of this bug's own
+  thesis — a walk of the entire filesystem root. One item deferred to
+  [0369](../0369-the-prune-list-has-no-extension-point.md).
 - **Severity:** High — **a gate that turns itself off, silently, for a whole
   repository**, with the threshold measured at ~3× a real adopter monorepo rather
   than the remote figure this record first estimated. Above the walk's entry budget every cardinality rule in the run
-  loses the [0355](./fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
+  loses the [0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
   floor at once, for a reason unrelated to any of their paths, and nothing says so.
 - **Origin:** enforcement review of the v0.10 pair, which found it in the comment
   that licensed it.
@@ -52,7 +54,7 @@ discover it by their ratchets having been green for a year.
 **Asked for and supplied by the adopter within the hour**, after the 0.10 release note told
 them to check. Worth recording as method as well as data: the number existed and nobody on
 our side could produce it, because eess's own tree cannot exhibit the shape — the same limit
-[spike 0345](../spikes/0345-what-it-costs-to-load-a-monorepo.md) had to state about itself.
+[spike 0345](../../spikes/0345-what-it-costs-to-load-a-monorepo.md) had to state about itself.
 
 ## Root cause
 
@@ -76,7 +78,7 @@ That comment is corrected as part of the v0.10 work; this record is the behaviou
 
 ## The budget's justification is not supported — spike 0360
 
-[Spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md) measured the walk,
+[Spike 0360](../../spikes/0360-what-the-disk-walk-actually-costs.md) measured the walk,
 because the budget is defended by a claim about time that had never been measured: "a
 failing run that then hangs inside a 5s vitest timeout".
 
@@ -131,7 +133,7 @@ stating a derived number as a measured one, and the reasoning stands on its own 
 being dressed up.
 
 So the adopter's data is evidence for **moving the budget**, not for lengthening the list:
-with the budget where [spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md)
+with the budget where [spike 0360](../../spikes/0360-what-the-disk-walk-actually-costs.md)
 measured it belongs, their 16,833 entries are under 2% of it and `.wrangler` costs ~15ms
 nobody notices.
 
@@ -144,9 +146,9 @@ future entry: **not "is it tool output" but "can a tsconfig include it".**
 ## Fix
 
 **Decided by two spikes.**
-[0367](../spikes/0367-must-the-disk-question-walk-the-whole-repo.md) settled that this is a
+[0367](../../spikes/0367-must-the-disk-question-walk-the-whole-repo.md) settled that this is a
 report rather than a redesign;
-[0368](../spikes/0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md) settled what
+[0368](../../spikes/0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md) settled what
 the report must SAY, and reordered the fix. The shape is that an instrument which could not
 answer must say so — ADR-009's own subject — and that what it says must be actionable, which
 is ADR-009 rule 2.
@@ -159,7 +161,7 @@ is ADR-009 rule 2.
 
    **One report, not N, and the mechanism is not the one this record first named.**
    `emptyProjectViolation` is one finding **per rule** — measured, three rules over an empty
-   project give three findings ([0368 Result 4](../spikes/0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md));
+   project give three findings ([0368 Result 4](../../spikes/0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md));
    the "one finding for the project" claim below was asserted from its name. What actually
    delivers it is `dedupeConfigFindings`, which keys on `(ruleId ?? rule, element)` and states
    its own fan-out: give the exhaustion finding a **project-constant identity** (a fixed `rule`
@@ -192,7 +194,7 @@ one-sided:
 - **A holding ratchet can never short-circuit.** It matches nothing by definition, so it must
   exhaust the searchable space. The worst case is the case the feature exists for.
 - **Every glob in this repo's own rule files is `**/`-led: 9 of 9, zero anchored** — and
-[0348](./fixed/0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md)
+[0348](./0348-a-glob-naming-segments-above-the-tsconfig-root-still-dies-under-a-dot-directory.md)
 made that convention load-bearing, since the identity-root view applies to `'\*\*/'`-led
   globs only.
 
@@ -238,14 +240,81 @@ tests.
 
 ## Related
 
-- [0355](./fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
+- [0355](./0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
   — the fix that made this classification verdict-bearing. Its ruling enumerates
   the four classifications and does not say that one of them can apply to
   everything at once.
-- [0357](./fixed/0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md) — the
+- [0357](./0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md) — the
   same predicate in `doctor`, so exhaustion silences the preview identically.
-- [0352](./0352-disk-set-offers-the-repo-root-naming-to-a-glob-the-matcher-refuses.md)
+- [0352](../0352-disk-set-offers-the-repo-root-naming-to-a-glob-the-matcher-refuses.md)
   — the other open defect in what `disk-set` answers.
+
+## A defect in the fix, found by testing a claim instead of asserting it
+
+The docstring said the finding collapses to one report per project via
+`dedupeConfigFindings`. Written, not measured — and **false**: setting a constant `rule`
+is not enough, because the builder stamps `ruleId` with each rule's own id and the dedupe
+key prefers `ruleId`. Three rules produced **three** reports, which is the ADR-009 rule 4
+noise this fix claims to avoid.
+
+Caught by writing `it('three rules that all lost the check collapse to one report')`
+specifically because the same class of error had already happened twice this round — a
+precedent read off a function's name, and a count read off a docstring. Third time, and
+the only one of the three caught before it shipped. Fixed by setting `ruleId` as well; the
+test now pins 3 before the collapse and 1 after, with the fan-out stated.
+
+## What independent validation of ADR-016 found in this fix
+
+The ADR this fix embodies was validated by a separate agent on a different model, per the
+repo's author-≠-verifier rule. It found a defect nothing else had:
+
+**The exhaustion lookup ran for every zero-examined cardinality rule, including rules with no
+path glob.** A `.notExist()` selecting by name, decorator or predicate has nothing the disk
+can decide — so two things were wrong. It triggered a **whole-repository walk** for an answer
+it could not use, falsifying `diskSet`'s own "lazy, only ever reached from an already-firing
+fault" docstring. And on exhaustion it was told _"the absence it asserts was never actually
+checked"_, which is false: the walk's failure changed nothing for it. The 0.10 changeset
+already admits that shape is uncovered; uncovered is honest, **blamed is not**.
+
+Measured red (`expected 1 to be 0`), then guarded by `hasDiskDecidableGlob`, which asks the
+same fault-position question `cardinalitySelectorMissedDisk` narrows to — but _before_ the
+walk rather than after it. Pinned by `it('a rule with no path glob is neither walked for nor
+blamed')`, which asserts zero `readdirSync` calls rather than merely zero findings.
+
+Validation also tightened three tests that passed for the wrong reason: an alternation
+(`/generated-output|apps/`) that a **wrong** attribution satisfied, a "not walked at all"
+title whose assertions could not tell a skipped walk from a fruitless one, and a
+`classify() === 'not-determined'` check that the **pre-fix** code also satisfied. And it
+corrected two inflated tiers in the ADR's own table.
+
+## The sabotage matrix
+
+Each row a literal edit to the shipped source, restored from a sha256-verified backup with
+the restore verified. `t1` is `a-walk-that-gave-up-says-so.test.ts`, `t2` `the-floor.test.ts`.
+
+| row | edit                                                                    | result                              |
+| --- | ----------------------------------------------------------------------- | ----------------------------------- |
+| R0  | control, unmodified                                                     | green (both)                        |
+| S1  | exhaustion returns the silent `UNDETERMINED` again — the shipped defect | **RED** (4)                         |
+| S2  | the cardinality branch ignores exhaustion and goes green                | **RED** (3)                         |
+| S3  | the finding stops naming consumers (ADR-009 rule 2)                     | **RED** (2)                         |
+| S4  | consumers unsorted, so the named ones are arbitrary                     | **RED** (1)                         |
+| S5  | the filesystem-root guard dropped                                       | **RED** in t1 **and** t2            |
+| S6  | counting moved AFTER the budget check                                   | **RED** (3)                         |
+| S7  | REVERSE — break the non-cardinality remedy this fix must not touch      | green in t1, **RED** in the sibling |
+
+**S1 is the defect test.** It restores the exact pre-fix line and four assertions fail,
+which is what makes the fix falsifiable rather than merely present.
+
+**S6 is worth keeping.** Moving the per-subtree count below the budget check looks harmless
+and is not: the subtree whose read exhausted the budget would be missing from the list of
+what exhausted it — the finding would name everything except the cause.
+
+**S7 is a covered-elsewhere row, not an unfalsifiable guard**, and the distinction is
+measured rather than assumed: it fires nothing against this bug's own file and reds
+`a-cardinality-rule-sees-a-dead-selector.test.ts` ·
+`it('CONTROL: a positive-assertion rule keeps the old remedy')`. A matrix run only against
+the file under edit would have reported this row as proving nothing.
 
 ## Verification
 
@@ -261,14 +330,40 @@ tests.
       instances planted against and verified red, plus four permanent `prove:rules`
       probes. That is what a run should be doing FOR them, which is this bug.
 - [x] the budget's justification measured, and found unsupported —
-      [spike 0360](../spikes/0360-what-the-disk-walk-actually-costs.md): 50,000
+      [spike 0360](../../spikes/0360-what-the-disk-walk-actually-costs.md): 50,000
       entries costs 76 ms against a 5s claim.
 - [x] the prune list weighed as an alternative lever and found to trade cost for reach —
       `.next` is already over-pruned for a Next.js project, and since 0355 every prune entry
       is a place this gate cannot see.
-- [ ] a ruling on which shape, and on whether a verdict may depend on a bounded walk
-- [ ] a red-first test: a project whose walk exhausts, asserting the run says so
-- [ ] a changeset
-- [ ] `npm run validate` green.
+- [x] a ruling on which shape — [0367](../../spikes/0367-must-the-disk-question-walk-the-whole-repo.md)
+      (a report, not a redesign: no glob-bounded alternative exists for the `**/`-led globs
+      people write) and [0368](../../spikes/0368-what-the-exhaustion-finding-can-tell-an-adopter-to-do.md)
+      (what the report must SAY, and pruning as the dominant lever).
+      **On whether a verdict may depend on a bounded walk: it may, provided exhaustion is
+      reported** — and only the operative half is settled. Whether the bound could be
+      REMOVED is still uncosted, because every figure taken is warm-cache;
+      `done-otherwise`, and the docstring says so at the constant.
+- [x] a red-first test: `a-walk-that-gave-up-says-so.test.ts` drives a real rule's
+      `violations()` through a real exhausted walk, and was measured RED before the fix
+      (`expected 0 to be greater than 0` — the rule was green with nothing said).
+- [x] a **remedy-remediates** test, beyond the red one: removing the directory the message
+      names clears the finding and the rule resumes reporting. ADR-009 rule 2's corollary,
+      and the `every-config-finding-is-classified` gate requires it.
+- [x] a changeset — an adopter-visible new finding plus a raised budget.
+- [x] `npm run validate` green.
 
-Deferred: none.
+**Found while fixing, and fixed here because the fix exposed it:** a tsconfig with no
+repository above it resolved to the FILESYSTEM ROOT and the walk read the entire disk —
+always, invisibly, because exhaustion returned the silent `UNDETERMINED`. That is this
+bug's own thesis landing in a second place. A narrow guard now returns `not-determined`
+without walking. Narrow on purpose: a first draft refused any root lacking `.git` or
+`package.json` and reddened two legitimate fixtures, because a bare directory holding only
+a tsconfig IS a project.
+
+Deferred: one item, re-homed rather than dropped.
+
+- **An extension point for the prune list** → `deferred→`
+  [0369](../0369-the-prune-list-has-no-extension-point.md). 0368 listed it third of four;
+  it is not needed for this fix (the remedy names directories the adopter can delete, and
+  the default list now covers the measured cases) and it is public API, which wants a
+  proposal rather than a bug fix's judgement call.

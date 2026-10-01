@@ -1,7 +1,7 @@
 # Spike 0368: when the walk gives up, what can the finding tell an adopter to DO?
 
 Measured 2026-09-30 for
-[bug 0359](../bugs/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md),
+[bug 0359](../bugs/fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md),
 after [spike 0367](./0367-must-the-disk-question-walk-the-whole-repo.md) settled that 0359 is
 a report rather than a redesign.
 
@@ -62,7 +62,7 @@ Not named, all of them ordinary generated or cache output:
 
 **`.wrangler` is the one that matters, and it is measured, not hypothetical.** An adopter
 profiling their own 15-package monorepo for
-[0359](../bugs/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md)
+[0359](../bugs/fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md)
 found `.wrangler` accounting for **58% of their entries** — a single unpruned generated
 directory, more than half the walk, in the repository that measured closest to the budget.
 
