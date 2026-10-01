@@ -109,7 +109,7 @@ export function diagnoseGlob(
   // fault without evidence.
   if (
     site.kind === 'parent-dir' &&
-    (matchesAny(site.glob, universe.filePaths) || diskSet?.matchesOnlyFiles(site.glob) === true)
+    (matchesAny(site.glob, universe.filePaths) || diskSet?.matchesOnlyFiles?.(site.glob) === true)
   ) {
     return { fault: 'file-not-folder' }
   }
@@ -132,9 +132,16 @@ export function diagnoseGlob(
  * ([bug 0363](../../../../work/bugs/fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md)).
  *
  * `undefined` means "not a fault" — a holding ratchet, which is the common case and must stay
- * green. Exhaustive over `GlobFault` by construction, like `contradictsAbsence` and
- * `isFaultPosition`: a fifth fault stops this compiling rather than falling into a default
- * that guesses.
+ * green. Exhaustive over `GlobFault` **by the `never` witness in the default branch**, not by
+ * the shape of the switch — a distinction that was got wrong here and measured by architecture
+ * review. Because `undefined` is a legal return value, a switch missing a case falls off the end
+ * and **compiles**, so a fifth fault became silently "not a fault"; the module reddened at
+ * `FAULT_ADVICE` instead, a different line with a different fix. `isFaultPosition`
+ * (`packages/core/src/glob-site.ts:86`) carries the same witness for the same reason.
+ *
+ * _`contradictsAbsence` was cited here as a model and should not have been: it also compiles
+ * clean against a fifth `OnDisk`. What is exhaustive there is the TEST enumerating the union,
+ * not the function._
  */
 export type DeadSiteRoute = 'syntactic' | 'names-a-file' | 'contradicted-by-disk'
 
@@ -146,11 +153,19 @@ export function deadSiteRoute(diagnosis: GlobDiagnosis): DeadSiteRoute | undefin
     case 'file-not-folder':
       return 'names-a-file'
     case 'no-match':
-      // The disk is the only thing that can tell a holding ratchet from a broken
-      // selector here, and `contradictsAbsence` owns WHICH classification counts.
+      // The disk is the only thing that can tell a holding ratchet from a broken selector here,
+      // and `contradictsAbsence` owns WHICH classification counts — `disk-set.ts` carries the
+      // four-row table saying why `holds-typescript` is the only admitting answer.
       return diagnosis.onDisk !== undefined && contradictsAbsence(diagnosis.onDisk)
         ? 'contradicted-by-disk'
         : undefined
+    default: {
+      // The witness, not a comment claiming one. Measured with the repo's own `tsc`: without
+      // this, a fifth `GlobFault` left the function at exit 0 returning `undefined` — "not a
+      // fault" — and the predecessor `isSyntacticFault(fault): boolean` could not have.
+      const exhaustive: never = diagnosis.fault
+      return exhaustive
+    }
   }
 }
 
@@ -172,9 +187,13 @@ export const CARDINALITY_REMEDY: Readonly<Record<DeadSiteRoute, string>> = {
   syntactic: 'Correct the selector — this rule has not been enforcing anything. Do not delete it.',
   // The tsconfig cannot help either, for a different reason: the predicate reads the
   // directory portion and the glob names a file, so no `include` makes it match.
+  // Names `resideInFile()` verbatim, not "the file-level predicate". Review caught the vaguer
+  // phrasing: the CAUSE riding immediately before this already says `resideInFile()`, so the
+  // remedy was offering the same option under a second name that appears nowhere in the
+  // dialect's vocabulary — and offering it LAST, which is where an agent reading `Fix:` lands.
   'names-a-file':
-    'Correct the selector to name the DIRECTORY you mean, or use the file-level predicate — ' +
-    'this rule has not been enforcing anything. Do not delete it.',
+    'Correct the selector to name the DIRECTORY you mean, or use `resideInFile()` if you meant ' +
+    'the file — this rule has not been enforcing anything. Do not delete it.',
   // Here, and only here, the tsconfig IS the lever.
   'contradicted-by-disk':
     'Widen the tsconfig include to cover this path, or correct the selector — ' +

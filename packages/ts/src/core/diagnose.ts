@@ -628,7 +628,10 @@ function describe(
   // positive-assertion rule's dead glob is answered by `check`'s "correct the glob, or
   // remove the rule", and offering "do not delete this rule" for it would be false.
   const route = deadSiteRoute(diagnosis)
-  const remedy = isCardinality && route !== undefined ? ` ${CARDINALITY_REMEDY[route]}` : ''
+  // Joined with ". " exactly as `check` does. A bare space produced "…inside a directory
+  // Correct the selector…" — two sentences run together — which architecture review measured
+  // in the shipped `doctor` output.
+  const remedy = isCardinality && route !== undefined ? `. ${CARDINALITY_REMEDY[route]}` : ''
   return {
     kind: 'dead-glob',
     rule,

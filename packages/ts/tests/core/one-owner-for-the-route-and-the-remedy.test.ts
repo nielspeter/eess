@@ -25,6 +25,10 @@ import { project } from '../../src/core/project.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { notExist } from '../../src/conditions/structural.js'
 import { diagnose } from '../../src/core/diagnose.js'
+import { Project } from 'ts-morph'
+import { diskSet } from '../../src/core/disk-set.js'
+import { CARDINALITY_REMEDY } from '../../src/core/glob-diagnosis.js'
+import type { DeadSiteRoute } from '../../src/core/glob-diagnosis.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 let base: string
@@ -33,6 +37,25 @@ let p: ArchProject
 function writeFixture(repoRoot: string): string {
   fs.mkdirSync(path.join(repoRoot, 'apps', 'api', 'src'), { recursive: true })
   fs.mkdirSync(path.join(repoRoot, 'apps', 'legacy', 'src'), { recursive: true })
+  // A PRUNED directory that really holds TypeScript. The walk refuses to enter `dist`, so it
+  // lands in neither the file list nor the directory list — and reading its absence from the
+  // directory list as "no directory here" asserts a universal negative over ground the walk
+  // declined to look at.
+  fs.mkdirSync(path.join(repoRoot, 'apps', 'legacy', 'dist'), { recursive: true })
+  fs.writeFileSync(path.join(repoRoot, 'apps', 'legacy', 'dist', 'old.ts'), 'export const d = 1\n')
+  // A non-TypeScript file on disk, outside the project: the shape whose admission changed.
+  fs.writeFileSync(path.join(repoRoot, 'apps', 'legacy', 'notes.md'), '# notes\n')
+  // A real PRUNED directory holding TypeScript, plus a `.ts` sibling sharing its prefix — the
+  // sibling is what makes a `vendor**` glob match a file, which is what made the walk's missing
+  // directory witness look like evidence.
+  fs.mkdirSync(path.join(repoRoot, 'apps', 'legacy', 'vendor'), { recursive: true })
+  fs.writeFileSync(path.join(repoRoot, 'apps', 'legacy', 'vendor', 'v.ts'), 'export const v = 1\n')
+  fs.writeFileSync(path.join(repoRoot, 'apps', 'legacy', 'vendor-notes.ts'), 'export const n = 1\n')
+  // A real directory holding TypeScript, reached by a SYMLINK — recorded as a file because
+  // `Dirent.isDirectory()` is false for a link.
+  fs.mkdirSync(path.join(repoRoot, 'real-target'), { recursive: true })
+  fs.writeFileSync(path.join(repoRoot, 'real-target', 'old.ts'), 'export const o = 1\n')
+  fs.symlinkSync(path.join(repoRoot, 'real-target'), path.join(repoRoot, 'apps', 'shared'), 'dir')
   fs.writeFileSync(path.join(repoRoot, 'package.json'), JSON.stringify({ name: 'repo' }))
   fs.writeFileSync(path.join(repoRoot, 'apps', 'legacy', 'src', 'old.ts'), 'export const o = 1\n')
   fs.writeFileSync(path.join(repoRoot, 'apps', 'api', 'src', 'a.ts'), 'export const a = 1\n')
@@ -52,6 +75,30 @@ const ON_DISK_FOLDER = '**/apps/legacy/**'
  * offered anyway.
  */
 const ON_DISK_FILE = '**/apps/legacy/src/old**'
+
+/**
+ * One glob text at TWO fault-position sites, in either order.
+ *
+ * `resideInFolder` declares a `parent-dir` glob and `resideInFile` a `file-path` one, so the
+ * same text sits at two sites whose routes differ — the shape that broke when admission was a
+ * map keyed on glob text with last-write-wins.
+ */
+const twoSites = (order: 'folder-first' | 'file-first' | 'no-and') => {
+  const G = '**/apps/legacy/notes**'
+  const base = modules(p).that()
+  const chained =
+    order === 'folder-first'
+      ? base.resideInFolder(G).and().resideInFile(G)
+      : order === 'file-first'
+        ? base.resideInFile(G).and().resideInFolder(G)
+        : // Without `.and()` — the exact expression enforcement review measured going green in
+          // `check` while `doctor` reported. `resideInFile` returns `this`, so it chains.
+          base.resideInFolder(G).resideInFile(G)
+  return chained
+    .should()
+    .satisfy(notExist())
+    .rule({ id: `test/0363-${order}` })
+}
 
 const ratchet = (glob: string) =>
   modules(p).that().resideInFolder(glob).should().satisfy(notExist()).rule({ id: 'test/0363' })
@@ -96,15 +143,136 @@ describe('bugs 0363 + 0364: one owner for the route and the remedy', () => {
   it('doctor and check give the SAME remedy on each route', () => {
     // The invariant that stops the two growing a second copy. Asserted as agreement rather
     // than as either tool's wording, so a drift in either direction reds.
-    for (const glob of [ON_DISK_FOLDER, ON_DISK_FILE]) {
-      const checkSuggestion = ratchet(glob).violations()[0]?.suggestion ?? ''
-      const doctorAdvice = diagnose([ratchet(glob)])[0]?.advice ?? ''
-      expect(checkSuggestion).not.toBe('')
-      expect(doctorAdvice).not.toBe('')
-      // `doctor` states the cause and then the remedy; `check` puts the cause in `message`
-      // and the remedy in `suggestion`. What must match is the REMEDY.
-      const remedy = checkSuggestion.slice(checkSuggestion.indexOf('Widen') >= 0 ? 0 : 0)
-      expect(doctorAdvice.includes(remedy.split('.')[0] ?? '')).toBe(true)
+    // Against the TABLE, not against a slice of one tool's output. A first draft compared
+    // `checkSuggestion.slice(x.indexOf('Widen') >= 0 ? 0 : 0)` — both branches are `0`, so the
+    // conditional was decoration and the comparison was "does doctor contain check's first
+    // sentence". That happens to hold, but it asserts the two agree with each other rather
+    // than that both read the one owner, which is the actual invariant.
+    const expected: ReadonlyArray<readonly [string, DeadSiteRoute]> = [
+      [ON_DISK_FOLDER, 'contradicted-by-disk'],
+      [ON_DISK_FILE, 'names-a-file'],
+    ]
+    for (const [glob, route] of expected) {
+      const remedy = CARDINALITY_REMEDY[route]
+      // `toContain`, not `toBe`: both surfaces lead with the CAUSE and then the remedy —
+      // `check` because a `Fix:` line that names no edit is only half a remedy, `doctor`
+      // because its one `advice` field carries both. What must be identical is the remedy,
+      // and it must come from the table rather than from either tool's own words.
+      expect(ratchet(glob).violations()[0]?.suggestion).toContain(remedy)
+      expect(diagnose([ratchet(glob)])[0]?.advice).toContain(remedy)
     }
+    // …and the two routes really are different sentences, or the row above would pass with
+    // one table entry serving both and the discrimination lost.
+    expect(CARDINALITY_REMEDY['names-a-file']).not.toBe(CARDINALITY_REMEDY['contradicted-by-disk'])
+  })
+
+  it('a cardinality rule is never told to remove itself, on any route or none', () => {
+    // The invariant `CARDINALITY_REMEDY`'s docstring states and a draft of this change broke:
+    // `route === undefined` was folded into the non-cardinality arm, so a `.notExist()` could
+    // reach "Correct the glob, or remove the rule." On an unsuppressable finding deletion is
+    // the only achievable exit and the rule is the thing that noticed — ADR-009 rule 2, and the
+    // defect this family has already shipped once. Found by enforcement review, not by this
+    // suite, so it is now asserted over every glob shape the fixture offers.
+    const globs = [ON_DISK_FOLDER, ON_DISK_FILE, '**/apps/legacy/notes**', '**/nothing-here/**']
+    const single = globs.flatMap((g) => ratchet(g).violations())
+    // BOTH orders of the two-site shape. The deletion sentence was reachable only here — a
+    // first version of this test swept single-site globs only and could not red, which
+    // measurement showed before review did.
+    const twoSite = [
+      twoSites('folder-first').violations(),
+      twoSites('file-first').violations(),
+      twoSites('no-and').violations(),
+    ].flat()
+    expect(twoSite.length).toBeGreaterThan(0) // guard the guard: the shape must produce findings
+    for (const v of [...single, ...twoSite]) {
+      expect(v.suggestion ?? '').not.toContain('remove the rule')
+      expect(v.message ?? '').not.toContain('remove the rule')
+    }
+  })
+
+  it('doctor and check agree when one glob sits at two fault positions', () => {
+    // Admission was a Map keyed on glob TEXT with `set` overwriting, so a second site's "no
+    // route" erased the first site's route: `check` filtered the finding out while `doctor` —
+    // which keys per site — reported it. A green build beside a preview saying broken is the
+    // disagreement `doctor-and-check-agree-about-a-ratchet.test.ts` exists to forbid.
+    // Both orders: the overwrite made the outcome depend on which site was visited last, so
+    // one order went green and the other reported twice. Architecture review measured both.
+    for (const order of ['folder-first', 'file-first', 'no-and'] as const) {
+      const checkSpoke = twoSites(order).violations().length > 0
+      const doctorSpoke = diagnose([twoSites(order)]).length > 0
+      expect({ order, checkSpoke }).toEqual({ order, checkSpoke: doctorSpoke })
+    }
+  })
+
+  it('doctor carries the remedy on the SYNTACTIC route too, not only the disk ones', () => {
+    // Test review: a mutation removing `doctor`'s remedy on the syntactic route ALONE stayed
+    // green across all 318 files. The other rows drive the disk routes, so `doctor`'s remedy was
+    // pinned on two of three — and the syntactic route is the one 0362 was about.
+    const typo = modules(p)
+      .that()
+      .resideInFolder('./src/**')
+      .should()
+      .satisfy(notExist())
+      .rule({ id: 'test/0363-syntactic' })
+    expect(diagnose([typo])[0]?.advice ?? '').toContain(CARDINALITY_REMEDY['syntactic'])
+    expect(typo.violations()[0]?.suggestion ?? '').toContain(CARDINALITY_REMEDY['syntactic'])
+  })
+
+  it('doctor does not hand the cardinality remedy to a positive-assertion rule', () => {
+    // Test review: dropping `doctor`'s `isCardinality` guard stayed green across 318 files. The
+    // guard matters — "do not delete this rule, it is what detected the gap" is false for a rule
+    // asserting something positive, whose dead glob really is its author's to remove.
+    const positive = modules(p)
+      .that()
+      .resideInFolder(ON_DISK_FOLDER)
+      .should()
+      .notImportFrom('**/no-such-package/**')
+      .rule({ id: 'test/0363-positive' })
+    const advice = diagnose([positive])[0]?.advice ?? ''
+    expect(advice).not.toBe('')
+    for (const route of ['syntactic', 'names-a-file', 'contradicted-by-disk'] as const)
+      expect(advice).not.toContain(CARDINALITY_REMEDY[route])
+  })
+
+  it('a set with no evidence refuses the kind question too', () => {
+    // Test review: flipping `UNDETERMINED.matchesOnlyFiles` to `true` stayed green across 318
+    // files, while making it THROW reddened — so the path runs and the value was asserted by
+    // nothing. "Not seen is not the same as not there" has to hold for the no-evidence set as
+    // much as for a pruned path.
+    const tsm = new Project({ useInMemoryFileSystem: true })
+    const orphan: ArchProject = {
+      tsConfigPath: '/tsconfig.json',
+      _project: tsm,
+      getSourceFiles: () => tsm.getSourceFiles(),
+    }
+    // `?.` because the member is OPTIONAL on the public `DiskSet` — a required one broke every
+    // hand-built value a consumer might have, which architecture review caught.
+    expect(diskSet(orphan).matchesOnlyFiles?.('**/anything/**')).toBe(false)
+    expect(diskSet(orphan).classify('**/anything/**')).toBe('not-determined')
+  })
+
+  it('a directory the walk could not witness is never called a file', () => {
+    // `matchesOnlyFiles` asserts "files and NO directory". Two kinds of ground make that
+    // unwitnessable, and BOTH were answered `true` before this change — a confidently wrong
+    // claim about a directory, on the one route whose point is that the tsconfig is not your
+    // lever. Fixtures supplied by architecture review, which measured both; my own attempts to
+    // construct them failed and the first version of this test was vacuous as a result.
+    //
+    // PRUNED: `vendor` is in the prune list, so its entry is recorded before `isDirectory()` is
+    // asked and lands in neither list. The `.ts` sibling sharing its prefix is what makes the
+    // glob match a file at all.
+    const pruned = ratchet('**/apps/legacy/vendor**').violations()[0]
+    expect(pruned?.message ?? '').not.toContain('matches a FILE')
+    // …and it is still correctly told the tsconfig IS its lever, so refusing one claim did not
+    // cost the true one.
+    expect(pruned?.suggestion ?? '').toContain('Widen the tsconfig include')
+
+    // SYMLINKED: `Dirent.isDirectory()` is false for a symlink, so a symlinked directory is
+    // recorded as a file. `classify` lives with that deliberately — being wrong that way only
+    // weakens a message — but a claim of "no directory" cannot, because the kind is exactly
+    // what the walk declined to resolve.
+    const linked = ratchet('**/apps/shared**').violations()[0]
+    expect(linked?.message ?? '').not.toContain('matches a FILE')
+    expect(linked?.suggestion ?? '').not.toContain('name the DIRECTORY you mean')
   })
 })

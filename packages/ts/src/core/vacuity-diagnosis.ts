@@ -223,12 +223,17 @@ function deadSelectorViolation(
   // can never make a directory read match a file (bug 0363). Three fixes to this one sentence
   // had each keyed it on something nearer to hand than the actual reason.
   const route = deadSiteRoute(diagnosis)
-  const remedy =
-    !isCardinality || route === undefined
-      ? // No route means no fault to remedy, and a non-cardinality rule's dead glob is its
-        // author's to delete. Kept total rather than defaulted: a message that guesses is
-        // what this family of bugs is about.
-        'Correct the glob, or remove the rule.'
+  const remedy = !isCardinality
+    ? 'Correct the glob, or remove the rule.'
+    : // NEVER "remove the rule" for a cardinality rule, on any route or none. The finding is
+      // unsuppressable, so deletion is the only achievable exit, and the rule is the thing
+      // that noticed — which is the ADR-009 rule 2 defect this family has already shipped
+      // once. A first draft of this collapsed `route === undefined` into the non-cardinality
+      // arm and reached that sentence; enforcement review measured it, with the `Fix:` line
+      // reading "this path exists but contains no TypeScript. Correct the glob, or remove the
+      // rule." on a `.notExist()` rule. `CARDINALITY_REMEDY`'s own docstring forbids it.
+      route === undefined
+      ? 'Correct the selector — this rule has not been enforcing anything. Do not delete it.'
       : CARDINALITY_REMEDY[route]
   // "in this project" understates a fault that holds everywhere by exactly the scope that
   // invites the tsconfig reading, and the route is what knows which it is.
@@ -638,14 +643,31 @@ function cardinalitySelectorMissedDisk(
   // message from `diagnosis.onDisk`, and those disagree for a glob naming a file: bug 0363.
   const universe = pathUniverse(project)
   const disk = diskSet(project)
-  const routeByGlob = new Map<string, DeadSiteRoute | undefined>()
+  // A DISJUNCTION over sites, not a last-one-wins assignment. One glob text can sit at two
+  // fault-position sites with different `kind`/`base` — `GlobBase`'s docstring says the base
+  // affects the verdict — and `Map.set` overwrote, so the second site's `undefined` erased the
+  // first site's route and the finding was filtered out. Measured by enforcement review:
+  // `.resideInFolder(G).resideInFile(G)` went green in `check` while `doctor` reported, which
+  // is exactly the disagreement `doctor-and-check-agree-about-a-ratchet.test.ts` exists to
+  // forbid — and `doctor` keys per site, so it was right and this was wrong.
+  //
+  // Keeping the first defined route restores what the predicate this replaced actually did:
+  // `hasSyntacticFault || contradictsAbsence(...)` is a disjunction, and the syntactic half
+  // was a SET over all sites.
+  const routeByGlob = new Map<string, DeadSiteRoute>()
   for (const tree of trees)
     for (const site of globSitesOf(tree)) {
       if (!isFaultPosition(site.position)) continue
-      routeByGlob.set(site.glob, deadSiteRoute(diagnoseGlob(site, universe, disk)))
+      // `diagnoseGlob`'s contract: "Call only on a site already known to be dead." Without
+      // this the loop diagnosed LIVE sites, and a live site's answer decided a dead site's
+      // admission.
+      if (!isDeadSite(site, universe)) continue
+      if (routeByGlob.has(site.glob)) continue
+      const route = deadSiteRoute(diagnoseGlob(site, universe, disk))
+      if (route !== undefined) routeByGlob.set(site.glob, route)
     }
   return deadSitesIn(facts, trees, project).selector.filter(
-    (v) => v.element !== undefined && routeByGlob.get(v.element) !== undefined,
+    (v) => v.element !== undefined && routeByGlob.has(v.element),
   )
 }
 

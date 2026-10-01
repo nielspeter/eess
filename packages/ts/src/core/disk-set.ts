@@ -160,7 +160,7 @@ export interface DiskSet {
    * `false` when the walk cannot say — an absent path, or a walk that gave up. A claim this
    * specific must be earned, and "I did not look" is not evidence for it.
    */
-  matchesOnlyFiles(glob: string): boolean
+  matchesOnlyFiles?(glob: string): boolean
   /**
    * Present ONLY when the walk gave up, and then verdict-bearing.
    *
@@ -317,6 +317,19 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
    * beginning "a path segment is misspelled".
    */
   const pruned: string[] = []
+  /**
+   * Entries whose KIND the walk declined to resolve — symlinks.
+   *
+   * `Dirent.isDirectory()` is false for a symlink under `withFileTypes`, so a symlinked
+   * DIRECTORY is recorded as a file. That trade is deliberate and documented below: following
+   * the link risks a walk that never terminates, and for `classify` being wrong this way only
+   * weakens a message.
+   *
+   * `matchesOnlyFiles` cannot live with it, because it asserts "and NO directory" — and a
+   * symlink's kind is precisely what was not resolved. Kept as its own list rather than
+   * changing what `everyFile` holds, so `classify`'s documented behaviour is untouched.
+   */
+  const kindUnknown: string[] = []
   let budget = budgetLimit
   let exhausted = false
   /**
@@ -380,6 +393,7 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
         dirs.push(full)
         walk(full)
       } else {
+        if (entry.isSymbolicLink()) kindUnknown.push(full)
         everyFile.push(full)
         if (TS_FILE.test(entry.name)) files.push(full)
       }
@@ -434,6 +448,26 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   const prefixes = [root, rootFromTsConfigPath(project.tsConfigPath)]
     .filter((r): r is string => r !== undefined)
     .map((r) => (r === '/' ? '/' : `${r.replaceAll('\\', '/')}/`))
+  /**
+   * Does this glob reach ground the walk refused to enter?
+   *
+   * Shared by `classify` and `matchesOnlyFiles`, deliberately: both have to refuse to answer
+   * over a pruned path, and this module already records what happened the last time one fact
+   * grew two hand-maintained copies.
+   */
+  const matchesPruned = (glob: string): boolean => {
+    // Deliberately NOT guarded by `readsRootRelativePath`, unlike the two consumers below.
+    // Being liberal here makes this answer `true` more often, and `true` means "refuse to
+    // answer" — so the error direction is fail-closed. The guard exists to stop a liberal view
+    // manufacturing a false POSITIVE claim; this one manufactures a false abstention.
+    const isMatch = picomatch(glob)
+    return pruned.some(
+      (dir) =>
+        isMatch(dir) ||
+        namedFromARoot(dir).some((view) => isMatch(view)) ||
+        glob.includes(dir.slice(root.length + 1)),
+    )
+  }
   const namedFromARoot = (candidate: string): string[] =>
     prefixes
       .filter((prefix) => candidate.startsWith(prefix))
@@ -448,13 +482,35 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
      */
     matchesOnlyFiles(glob: string): boolean {
       const isMatch = picomatch(glob)
+      // The SAME guard `classify` applies below, and for the same reason (bug 0339): the
+      // root-relative view is only consulted for a glob that actually reads root-relative
+      // paths. Applying it unconditionally made this predicate more liberal than `classify`
+      // about the same paths — two derivations of one question, which is the defect this whole
+      // change exists to remove. Product review flagged the asymmetry without constructing an
+      // input; mirroring the guard costs one line and removes the question.
+      const readsRootRelative = readsRootRelativePath(glob)
       const hits = (candidates: readonly string[]): boolean =>
-        candidates.some(
-          (candidate) =>
-            isMatch(candidate) || namedFromARoot(candidate).some((view) => isMatch(view)),
-        )
+        candidates.some((candidate) => {
+          if (isMatch(candidate)) return true
+          if (!readsRootRelative) return false
+          return namedFromARoot(candidate).some((view) => isMatch(view))
+        })
       // A directory match means the glob is usable as a `parent-dir` glob, whatever else it
       // also matches — so this is "files and NO directory", not "more files than directories".
+      //
+      // And NOT SEEN IS NOT NOT THERE. A pruned entry is recorded before `isDirectory()` is
+      // asked, so it is in neither `dirs` nor `everyFile` — reading its absence from `dirs` as
+      // evidence of "no directory" is exactly the inference `classify` refuses ten lines below.
+      // Measured by enforcement review: a glob naming `.../dist/**`, a real directory holding
+      // real TypeScript, was told it "matches a FILE but is used where a directory is read"
+      // because `dist` is pruned. This claim is a universal negative; a bounded walk cannot
+      // earn one over ground it declined to look at.
+      // Two ways the walk cannot witness "no directory", and both must refuse rather than
+      // answer. Pruned: the entry was recorded before `isDirectory()` was asked, so it is in
+      // neither list. Symlinked: the kind was never resolved and the entry sits in `everyFile`
+      // looking like a file — measured, a symlinked directory holding TypeScript was told
+      // "this matches a FILE but is used where a directory is read".
+      if (matchesPruned(glob) || hits(kindUnknown)) return false
       return hits(everyFile) && !hits(dirs)
     },
     classify(glob: string): OnDisk {
@@ -478,9 +534,7 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
       const matched = everything.filter((candidate) => hits(candidate))
       if (matched.length === 0) {
         // Not seen is not the same as not there.
-        return pruned.some((dir) => hits(dir) || glob.includes(dir.slice(root.length + 1)))
-          ? 'not-determined'
-          : 'absent'
+        return matchesPruned(glob) ? 'not-determined' : 'absent'
       }
       // Per GLOB, not per path: one glob routinely matches paths in both
       // categories — `**/tests/**` matched 44 directories of mixed kind on the

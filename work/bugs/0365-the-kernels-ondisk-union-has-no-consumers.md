@@ -44,6 +44,22 @@ that guesses. That protection is real, and it is one layer deep: it fires when t
 [0359](./fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md))
 would get no signal at all.
 
+## A third member of the same wart, added 2026-10-01
+
+Product review of PR #168 folded a related finding here rather than widening that PR.
+`packages/ts/src/index.ts` publishes `DiskSet`, `OnDisk` **and** `diskSet` — and **no public
+function accepts a `DiskSet`**. Its only consumer, `diagnoseGlob`, is unexported. So the
+published surface asks adopters to understand a type they have no way to hand to anything, which
+is the consumer-principle question this record already opens for the kernel side, now measurable
+on the dialect side too. `check:surface` reports it as part of eess-ts's undocumented exports
+(bug 0220, no ruling).
+
+The practical consequence while that is undecided: #168 added a member to `DiskSet` and made it
+**optional** rather than required, because a required member would have stopped
+`const d: DiskSet = { classify }` compiling for anyone who had built one — a break neither
+`check:release` (which reads a marker) nor `check:surface` (which tracks export names) can see.
+Inert today precisely because nobody has a reason to implement one, which is the wart.
+
 ## Fix
 
 Not decided, and the choice is a product one rather than a mechanical one: either the
