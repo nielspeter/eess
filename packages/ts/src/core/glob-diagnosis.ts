@@ -2,6 +2,7 @@ import picomatch from 'picomatch'
 import type { GlobSite } from '@nielspeter/eess'
 import type { PathUniverse } from './path-universe.js'
 import type { DiskSet, OnDisk } from './disk-set.js'
+import { contradictsAbsence } from './disk-set.js'
 
 /**
  * Why a glob matches nothing.
@@ -100,7 +101,16 @@ export function diagnoseGlob(
   // glob written at a file can never match. Verifiable, and therefore safe to
   // assert — measured instance: '**/src/predicates/module**' matches 1 file
   // and 0 parent directories.
-  if (site.kind === 'parent-dir' && matchesAny(site.glob, universe.filePaths)) {
+  // The project's own files answer this for a path inside it; the DISK answers it for a path
+  // outside, which the universe cannot see. Without the second half the fault was invisible
+  // for an out-of-project file and the author was offered a tsconfig `include` that can never
+  // make a directory read match a file — [bug 0363](../../../../work/bugs/fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md).
+  // `matchesOnlyFiles` answers `false` when the walk cannot say, so this never claims the
+  // fault without evidence.
+  if (
+    site.kind === 'parent-dir' &&
+    (matchesAny(site.glob, universe.filePaths) || diskSet?.matchesOnlyFiles(site.glob) === true)
+  ) {
     return { fault: 'file-not-folder' }
   }
   if (site.kind === 'file-path' && matchesAny(site.glob, universe.parentDirs)) {
@@ -111,32 +121,91 @@ export function diagnoseGlob(
 }
 
 /**
- * The remedy for each fault, or an honest list of causes where no remedy is
- * verifiable.
- */
-/**
- * Is this fault a property of the glob TEXT, decidable with no filesystem and no project?
+ * WHY a dead site on a cardinality rule is a real fault — the route, not a boolean.
  *
- * The same question `syntacticFault` answers about a raw glob, asked of a diagnosis that
- * has already answered it — so callers holding a `GlobDiagnosis` stop re-deriving it from
- * `(glob, kind, base)` and cannot drift by being handed a different `kind` or `base`. That
- * drift is not hypothetical: the same question was being asked at four separate sites
- * before this existed.
+ * One owner, consulted by the admission gate AND by both tools' messages, so the reason a
+ * finding was admitted and the reason its message gives cannot be two different derivations.
+ * Before this, the gate asked `classify(glob)` directly while the message read
+ * `diagnosis.onDisk`, and the two disagree for `file-not-folder`: the gate admitted the
+ * finding *because the disk contradicted the claim* and the message then offered to widen a
+ * tsconfig `include`, which can never make a glob naming a FILE match a directory read
+ * ([bug 0363](../../../../work/bugs/fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md)).
  *
- * Exhaustive by construction, like `contradictsAbsence` and `isFaultPosition`: a fifth
- * `GlobFault` stops this compiling rather than falling into a default that guesses.
+ * `undefined` means "not a fault" — a holding ratchet, which is the common case and must stay
+ * green. Exhaustive over `GlobFault` by construction, like `contradictsAbsence` and
+ * `isFaultPosition`: a fifth fault stops this compiling rather than falling into a default
+ * that guesses.
  */
-export function isSyntacticFault(fault: GlobFault): boolean {
-  switch (fault) {
+export type DeadSiteRoute = 'syntactic' | 'names-a-file' | 'contradicted-by-disk'
+
+export function deadSiteRoute(diagnosis: GlobDiagnosis): DeadSiteRoute | undefined {
+  switch (diagnosis.fault) {
     case 'dot-segment':
     case 'unanchored':
-      return true
+      return 'syntactic'
     case 'file-not-folder':
+      return 'names-a-file'
     case 'no-match':
-      return false
+      // The disk is the only thing that can tell a holding ratchet from a broken
+      // selector here, and `contradictsAbsence` owns WHICH classification counts.
+      return diagnosis.onDisk !== undefined && contradictsAbsence(diagnosis.onDisk)
+        ? 'contradicted-by-disk'
+        : undefined
   }
 }
 
+/**
+ * The remedy a CARDINALITY rule gets on each route, owned once.
+ *
+ * `check` puts this in `suggestion` (the `Fix:` line) and `doctor` appends it to its own
+ * advice, so the two cannot drift — which is
+ * [bug 0364](../../../../work/bugs/fixed/0364-doctor-states-the-cause-and-never-the-remedy.md):
+ * three rounds of work on what this sentence must say reached only the tool an adopter
+ * reaches second.
+ *
+ * **None of them offers deletion.** On a finding no filter can suppress, deletion is the only
+ * achievable exit, and the rule is the thing that noticed — so an instruction to delete it is
+ * the ADR-009 rule 2 defect this family has already shipped once.
+ */
+export const CARDINALITY_REMEDY: Readonly<Record<DeadSiteRoute, string>> = {
+  // The tsconfig cannot help: the glob matches nothing in any project.
+  syntactic: 'Correct the selector — this rule has not been enforcing anything. Do not delete it.',
+  // The tsconfig cannot help either, for a different reason: the predicate reads the
+  // directory portion and the glob names a file, so no `include` makes it match.
+  'names-a-file':
+    'Correct the selector to name the DIRECTORY you mean, or use the file-level predicate — ' +
+    'this rule has not been enforcing anything. Do not delete it.',
+  // Here, and only here, the tsconfig IS the lever.
+  'contradicted-by-disk':
+    'Widen the tsconfig include to cover this path, or correct the selector — ' +
+    'do not delete this rule, it is what detected the gap.',
+}
+
+/**
+ * Does the route's fault hold in EVERY project, or only in this one?
+ *
+ * A property of the glob text for the syntactic and file-naming routes, and of this project's
+ * `include` for the disk route. "in this project" understates the first two by exactly the
+ * scope that invites a tsconfig reading.
+ */
+export const ROUTE_HOLDS_IN_ANY_PROJECT: Readonly<Record<DeadSiteRoute, boolean>> = {
+  // Decidable from the glob TEXT, with no filesystem and no project: `'./src/**'` matches
+  // nothing anywhere.
+  syntactic: true,
+  // **False, and a first draft had it true.** The fault is contingent on what is on disk: the
+  // same glob matches fine in a project where that name is a directory rather than a file. The
+  // pinning row in `doctor-and-check-agree-about-a-ratchet.test.ts` caught the error — it
+  // exists precisely because that route is the one input separating this claim from a
+  // constant, and asserting "any project" there would be confidently wrong.
+  'names-a-file': false,
+  // Contingent on this project's `include`.
+  'contradicted-by-disk': false,
+}
+
+/**
+ * The remedy for each fault, or an honest list of causes where no remedy is
+ * verifiable.
+ */
 export const FAULT_ADVICE: Readonly<Record<GlobFault, string>> = {
   'dot-segment':
     'a "./" segment never occurs in an absolute file path — remove it and anchor instead ("./src/x/**" -> "**/src/x/**")',

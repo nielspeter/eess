@@ -3,10 +3,17 @@ import type { ArchProject } from './project.js'
 import type { GlobPosition, GlobSite } from '@nielspeter/eess'
 import type { GlobFault } from './glob-diagnosis.js'
 import type { OnDisk } from './disk-set.js'
-import { diagnoseGlob, syntacticFault, FAULT_ADVICE, ON_DISK_ADVICE } from './glob-diagnosis.js'
+import {
+  deadSiteRoute,
+  diagnoseGlob,
+  syntacticFault,
+  CARDINALITY_REMEDY,
+  FAULT_ADVICE,
+  ON_DISK_ADVICE,
+} from './glob-diagnosis.js'
 import { globSitesOf, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'
-import { cardinalityDeadSiteIsAtFault, diskSet } from './disk-set.js'
+import { diskSet } from './disk-set.js'
 import { isDeadGlobTree } from './glob-evaluator.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
 import type { RuleBuilderLike } from '@nielspeter/eess'
@@ -423,14 +430,10 @@ export function diagnose(
         // never reaches.
         if (
           rule.assertsCardinality?.() === true &&
-          !cardinalityDeadSiteIsAtFault(
-            target,
-            site.glob,
-            syntacticFault(site.glob, site.kind, site.base) !== undefined,
-          )
+          deadSiteRoute(diagnoseGlob(site, universe, diskSet(target))) === undefined
         )
           continue
-        findings.push(describe(site, name, universe, target))
+        findings.push(describe(site, name, universe, target, rule.assertsCardinality?.() === true))
       }
     }
 
@@ -607,11 +610,25 @@ function describe(
   rule: string,
   universe: ReturnType<typeof pathUniverse>,
   project: ArchProject,
+  isCardinality: boolean,
 ): DiagnosticFinding {
   // The disk set is reached only from here, so a project with no dead globs
   // never walks the filesystem.
   const diagnosis = diagnoseGlob(site, universe, diskSet(project))
   const onDiskAdvice = diagnosis.onDisk ? ON_DISK_ADVICE[diagnosis.onDisk] : ''
+  const cause = onDiskAdvice === '' ? FAULT_ADVICE[diagnosis.fault] : onDiskAdvice
+  // The REMEDY too, from the same table `check` uses — bug 0364. `doctor` is what an adopter
+  // reaches first, and it carried the cause and nothing to do about it, so three rounds of
+  // work on what this sentence must say (never offer deletion, name the achievable lever)
+  // reached only the second tool. Shared rather than copied: this pair grew two
+  // hand-maintained copies of one predicate once, they disagreed about `discovery`, and the
+  // build stayed green.
+  //
+  // Only for a CARDINALITY rule, because `CARDINALITY_REMEDY` is that shape's remedy — a
+  // positive-assertion rule's dead glob is answered by `check`'s "correct the glob, or
+  // remove the rule", and offering "do not delete this rule" for it would be false.
+  const route = deadSiteRoute(diagnosis)
+  const remedy = isCardinality && route !== undefined ? ` ${CARDINALITY_REMEDY[route]}` : ''
   return {
     kind: 'dead-glob',
     rule,
@@ -620,7 +637,7 @@ function describe(
     position: site.position,
     fault: diagnosis.fault,
     onDisk: diagnosis.onDisk,
-    advice: onDiskAdvice === '' ? FAULT_ADVICE[diagnosis.fault] : onDiskAdvice,
+    advice: `${cause}${remedy}`,
   }
 }
 

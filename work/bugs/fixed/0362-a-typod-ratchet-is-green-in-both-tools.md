@@ -191,7 +191,7 @@ the rows above are the answer._
 - [x] `npm run validate` green.
 
 Deferred: three findings recorded rather than fixed here, each with its own record —
-[0363](../0363-a-remedy-that-cannot-remediate-survives-one-input-over.md),
-[0364](../0364-doctor-states-the-cause-and-never-the-remedy.md),
+[0363](./0363-a-remedy-that-cannot-remediate-survives-one-input-over.md),
+[0364](./0364-doctor-states-the-cause-and-never-the-remedy.md),
 [0365](../0365-the-kernels-ondisk-union-has-no-consumers.md). See each for why it is not
 this fix's scope.

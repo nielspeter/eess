@@ -2,13 +2,17 @@
 
 ## Status
 
-- **State:** Draft — found by enforcement review of bug 0362's second fix.
+- **State:** Fixed — `doctor` carries the remedy from the same table `check` uses, so the two
+  cannot drift. Fixed together with
+  [0363](./0363-a-remedy-that-cannot-remediate-survives-one-input-over.md): same seam,
+  and fixing one alone would have grown the second hand-maintained copy both records warned
+  about.
 - **Severity:** Medium — **no wrong verdict, and no contradiction between the tools.**
   `doctor` does not say "remove the rule" either; it says nothing about what to do. The
   cost is that two rounds of work went into making one sentence correct, in the surface
   an adopter reads second.
 - **Origin:** enforcement review of
-  [0362](./fixed/0362-a-typod-ratchet-is-green-in-both-tools.md), whose own changeset
+  [0362](./0362-a-typod-ratchet-is-green-in-both-tools.md), whose own changeset
   says "`doctor` is what you would reach for first".
 - **Reported:** 2026-09-29
 
@@ -44,28 +48,41 @@ nothing can drift, because `doctor` carries no remedy at all to drift from.
 
 ## Fix
 
-Not decided. The cheap shape is for `diagnose()` to read the same remedy construction
-`check` does, which would mean lifting the remedy out of `deadSelectorViolation` into
-something both call — the same "one owner" move bug 0363 proposes for the route, and
-plausibly the same change. Worth deciding together rather than twice.
+**As proposed, and it was the same change as 0363.** The remedy is lifted out of
+`deadSelectorViolation` into `CARDINALITY_REMEDY` in `glob-diagnosis.ts`, keyed on the route
+that one owner now derives. `doctor` appends it to its own advice; `check` puts it in
+`suggestion`. Neither constructs it.
 
-The thing to avoid is a second hand-maintained copy: `disk-set.ts` records what happened
-the last time this pair grew two copies of one predicate — they disagreed about
-`discovery`, `doctor` reported a dead layer glob, and the build stayed green.
+Only for a **cardinality** rule, deliberately: `CARDINALITY_REMEDY` is that shape's remedy,
+and offering "do not delete this rule, it is what detected the gap" for a positive-assertion
+rule's dead glob would be false — that one is answered by "correct the glob, or remove the
+rule".
+
+The second copy both records warned about was avoided by construction rather than by
+discipline: there is one table, and a test asserts the two tools give the same remedy on each
+route, so a copy would have to disagree to exist.
 
 ## Related
 
 - [0363](./0363-a-remedy-that-cannot-remediate-survives-one-input-over.md) — the other
   half of the same boundary, and probably the same fix.
-- [0362](./fixed/0362-a-typod-ratchet-is-green-in-both-tools.md) — established what the
+- [0362](./0362-a-typod-ratchet-is-green-in-both-tools.md) — established what the
   remedy must say.
-- [0357](./fixed/0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md) — established
+- [0357](./0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md) — established
   the agreement the two tools do hold.
 
 ## Verification
 
-- [ ] a red-first test asserting `doctor` carries a remedy for each admission route.
-- [ ] the remedy owned once, not copied — the `isFaultPosition` precedent is the thing to
-      not repeat.
-- [ ] the existing agreement test still green, and extended to cover the remedy so the
-      two surfaces cannot drift once both carry one.
+- [x] a red-first test — `one-owner-for-the-route-and-the-remedy.test.ts` ·
+      `it('doctor carries the remedy, not only the cause')`, measured red
+      (`expected 'this path exists and contains TypeScript…' to contain 'Widen the tsconfig
+include'`).
+- [x] the remedy owned once, not copied — one `Readonly<Record<DeadSiteRoute, string>>`,
+      consulted by both tools.
+- [x] the agreement extended to the remedy — `it('doctor and check give the SAME remedy on
+each route')` asserts the agreement rather than either tool's wording, so a drift in
+      either direction reds.
+- [x] a sabotage matrix row that stops `doctor` carrying the remedy: **red**.
+- [x] `npm run validate` green.
+
+Deferred: none.
