@@ -77,7 +77,7 @@ const PRUNE = new Set([
  * was a licence to lower the budget on the belief that nothing but wording
  * depended on it.
  *
- * `absenceClaimIsContradicted` below consumes this classification to decide
+ * `contradictsAbsence` below is the policy that consumes this classification to decide
  * whether a cardinality rule (`.notExist()` and friends) reports at all. And the
  * degradation is **whole-set, not per-glob** — `build()` returns the single
  * `UNDETERMINED` object, whose `classify` answers `not-determined` for every
@@ -148,6 +148,20 @@ export interface DiskSet {
   /** Classify a glob by what exists on disk under the paths it matches. */
   classify(glob: string): OnDisk
   /**
+   * Does this glob match FILES on disk and no directory at all?
+   *
+   * The kind-aware question `classify` cannot answer. A `parent-dir` glob — what
+   * `resideInFolder` reads — can never match a file, so a glob naming one is broken in a way
+   * no tsconfig `include` can fix. `glob-diagnosis` already detects that from the project's
+   * own file list; a file OUTSIDE the project is not in that list, and before this the fault
+   * was invisible there and the author was offered the tsconfig instead
+   * ([bug 0363](../../../../work/bugs/fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md)).
+   *
+   * `false` when the walk cannot say — an absent path, or a walk that gave up. A claim this
+   * specific must be earned, and "I did not look" is not evidence for it.
+   */
+  matchesOnlyFiles?(glob: string): boolean
+  /**
    * Present ONLY when the walk gave up, and then verdict-bearing.
    *
    * `classify` answers `not-determined` for every glob in that state, which
@@ -192,7 +206,7 @@ let cache = new WeakMap<ArchProject, DiskSet>()
  *
  * `buildDiskSet` above already takes an injectable budget and is documented
  * "exported for tests only" — but it bypasses the memo, and the production
- * consumer of a classification is `absenceClaimIsContradicted`, which goes
+ * consumer of a classification is `deadSiteRoute` in `glob-diagnosis.ts`, which goes
  * through `diskSet(project)`. So a test could construct an exhausted set and
  * could not make a RULE see one, which left bug 0359's defect reachable only
  * below the public entry point. A test that drives a stand-in instead of
@@ -221,37 +235,6 @@ let budgetForTests: number | undefined
  * a recursive walk to answer a question no fault asked.
  */
 /**
- * Does the filesystem CONTRADICT a rule's claim that nothing matching this glob exists?
- *
- * The one owner of a policy two tools have to share — the gate's evidence floor
- * (`vacuity-diagnosis.ts`) and the preview (`diagnose.ts`). It is written here, beside the
- * classification it reads, because the pair has already grown two hand-maintained copies of one
- * rule and had them disagree: `isFaultPosition` was inverse lists in both files, differing over
- * exactly `discovery`, so `doctor` reported a dead layer glob and the build stayed green.
- *
- * ## Why only `holds-typescript`
- *
- * A rule asserting cardinality — `.notExist()` and friends — is SATISFIED by having no
- * subjects, so examining zero is normally the rule working. The trouble is that a holding
- * ratchet and a selector that silently stopped matching are identical from the glob and the
- * path universe: both match nothing. Only disk tells them apart.
- *
- * | classification     | verdict | why                                                              |
- * | ------------------ | ------- | ---------------------------------------------------------------- |
- * | `holds-typescript` | **contradicted** | the code being asserted away is right there, unexamined |
- * | `absent`           | consistent | the ratchet holding — the common case, and it must stay silent |
- * | `no-typescript`    | consistent | no TypeScript means no modules, which is what the rule asserts  |
- * | `not-determined`   | consistent | the walk could not answer; blaming the author for that is the confidently-wrong remedy this module exists not to give |
- *
- * [Bug 0355](../../../../work/bugs/fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md)
- * for the gate half, [0357](../../../../work/bugs/fixed/0357-doctor-reports-a-healthy-ratchet-as-a-dead-glob.md)
- * for the preview.
- */
-function absenceClaimIsContradicted(project: ArchProject, glob: string): boolean {
-  return contradictsAbsence(diskSet(project).classify(glob))
-}
-
-/**
  * The policy alone, as a TOTAL function on the four classifications.
  *
  * Split from the lookup above so it can be pinned exhaustively. Test review sabotaged the
@@ -266,35 +249,6 @@ function absenceClaimIsContradicted(project: ArchProject, glob: string): boolean
  */
 export function contradictsAbsence(onDisk: OnDisk): boolean {
   return onDisk === 'holds-typescript'
-}
-
-/**
- * Is a dead site on a CARDINALITY rule a real fault, given the glob and the disk?
- *
- * Two independent ways to be one, and the second was missing for a release:
- *
- * 1. **The glob is broken in every possible project** — a syntactic fault, decided from the
- *    text with no filesystem and no universe. `'./src/**'` is one character wrong and matches
- *    nothing anywhere.
- * 2. **The filesystem contradicts the absence claim** — `contradictsAbsence` above.
- *
- * Bug 0357 added the disk test and, by placing it after `isDeadSite`, dropped the first.
- * Measured on a healthy project with `src/a.ts` loaded: a `.notExist()` over `'./src/**'`
- * went green in `doctor` AND `check`, while the same glob on a positive-assertion rule
- * reported — so a ratchet broken by one character said nothing in either tool, and the
- * directory it names exists, is in the project, and holds TypeScript. Shipped in 0.10.0 and
- * caught by a review of the review's own fixes.
- *
- * `diagnose.ts` states the principle twice about itself — syntactic faults "are properties of
- * the glob text, not of what loaded", and survive even an empty project. They must survive
- * this narrowing too.
- */
-export function cardinalityDeadSiteIsAtFault(
-  project: ArchProject,
-  glob: string,
-  hasSyntacticFault: boolean,
-): boolean {
-  return hasSyntacticFault || absenceClaimIsContradicted(project, glob)
 }
 
 export function diskSet(project: ArchProject): DiskSet {
@@ -363,6 +317,19 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
    * beginning "a path segment is misspelled".
    */
   const pruned: string[] = []
+  /**
+   * Entries whose KIND the walk declined to resolve — symlinks.
+   *
+   * `Dirent.isDirectory()` is false for a symlink under `withFileTypes`, so a symlinked
+   * DIRECTORY is recorded as a file. That trade is deliberate and documented below: following
+   * the link risks a walk that never terminates, and for `classify` being wrong this way only
+   * weakens a message.
+   *
+   * `matchesOnlyFiles` cannot live with it, because it asserts "and NO directory" — and a
+   * symlink's kind is precisely what was not resolved. Kept as its own list rather than
+   * changing what `everyFile` holds, so `classify`'s documented behaviour is untouched.
+   */
+  const kindUnknown: string[] = []
   let budget = budgetLimit
   let exhausted = false
   /**
@@ -426,6 +393,7 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
         dirs.push(full)
         walk(full)
       } else {
+        if (entry.isSymbolicLink()) kindUnknown.push(full)
         everyFile.push(full)
         if (TS_FILE.test(entry.name)) files.push(full)
       }
@@ -480,11 +448,71 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
   const prefixes = [root, rootFromTsConfigPath(project.tsConfigPath)]
     .filter((r): r is string => r !== undefined)
     .map((r) => (r === '/' ? '/' : `${r.replaceAll('\\', '/')}/`))
+  /**
+   * Does this glob reach ground the walk refused to enter?
+   *
+   * Shared by `classify` and `matchesOnlyFiles`, deliberately: both have to refuse to answer
+   * over a pruned path, and this module already records what happened the last time one fact
+   * grew two hand-maintained copies.
+   */
+  const matchesPruned = (glob: string): boolean => {
+    // Deliberately NOT guarded by `readsRootRelativePath`, unlike the two consumers below.
+    // Being liberal here makes this answer `true` more often, and `true` means "refuse to
+    // answer" — so the error direction is fail-closed. The guard exists to stop a liberal view
+    // manufacturing a false POSITIVE claim; this one manufactures a false abstention.
+    const isMatch = picomatch(glob)
+    return pruned.some(
+      (dir) =>
+        isMatch(dir) ||
+        namedFromARoot(dir).some((view) => isMatch(view)) ||
+        glob.includes(dir.slice(root.length + 1)),
+    )
+  }
   const namedFromARoot = (candidate: string): string[] =>
     prefixes
       .filter((prefix) => candidate.startsWith(prefix))
       .map((prefix) => candidate.slice(prefix.length))
   return {
+    /**
+     * Files yes, directories no — the kind-aware answer `classify` cannot give.
+     *
+     * Both root views, exactly as `classify` does: a single view left this answering about a
+     * monorepo package's `'src/**'` from the wrong prefix, which is bug 0339's shape in the
+     * one producer whose whole defence is that it states only facts.
+     */
+    matchesOnlyFiles(glob: string): boolean {
+      const isMatch = picomatch(glob)
+      // The SAME guard `classify` applies below, and for the same reason (bug 0339): the
+      // root-relative view is only consulted for a glob that actually reads root-relative
+      // paths. Applying it unconditionally made this predicate more liberal than `classify`
+      // about the same paths — two derivations of one question, which is the defect this whole
+      // change exists to remove. Product review flagged the asymmetry without constructing an
+      // input; mirroring the guard costs one line and removes the question.
+      const readsRootRelative = readsRootRelativePath(glob)
+      const hits = (candidates: readonly string[]): boolean =>
+        candidates.some((candidate) => {
+          if (isMatch(candidate)) return true
+          if (!readsRootRelative) return false
+          return namedFromARoot(candidate).some((view) => isMatch(view))
+        })
+      // A directory match means the glob is usable as a `parent-dir` glob, whatever else it
+      // also matches — so this is "files and NO directory", not "more files than directories".
+      //
+      // And NOT SEEN IS NOT NOT THERE. A pruned entry is recorded before `isDirectory()` is
+      // asked, so it is in neither `dirs` nor `everyFile` — reading its absence from `dirs` as
+      // evidence of "no directory" is exactly the inference `classify` refuses ten lines below.
+      // Measured by enforcement review: a glob naming `.../dist/**`, a real directory holding
+      // real TypeScript, was told it "matches a FILE but is used where a directory is read"
+      // because `dist` is pruned. This claim is a universal negative; a bounded walk cannot
+      // earn one over ground it declined to look at.
+      // Two ways the walk cannot witness "no directory", and both must refuse rather than
+      // answer. Pruned: the entry was recorded before `isDirectory()` was asked, so it is in
+      // neither list. Symlinked: the kind was never resolved and the entry sits in `everyFile`
+      // looking like a file — measured, a symlinked directory holding TypeScript was told
+      // "this matches a FILE but is used where a directory is read".
+      if (matchesPruned(glob) || hits(kindUnknown)) return false
+      return hits(everyFile) && !hits(dirs)
+    },
     classify(glob: string): OnDisk {
       const isMatch = picomatch(glob)
       // Both views of each path, as every rule-facing matcher does since bug
@@ -506,9 +534,7 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
       const matched = everything.filter((candidate) => hits(candidate))
       if (matched.length === 0) {
         // Not seen is not the same as not there.
-        return pruned.some((dir) => hits(dir) || glob.includes(dir.slice(root.length + 1)))
-          ? 'not-determined'
-          : 'absent'
+        return matchesPruned(glob) ? 'not-determined' : 'absent'
       }
       // Per GLOB, not per path: one glob routinely matches paths in both
       // categories — `**/tests/**` matched 44 directories of mixed kind on the
@@ -525,6 +551,9 @@ function build(project: ArchProject, budgetLimit: number): DiskSet {
 
 const UNDETERMINED: DiskSet = {
   classify: () => 'not-determined',
+  // Not "no files" — "no evidence". The caller must not read a confident shape out of a
+  // walk that did not happen.
+  matchesOnlyFiles: () => false,
 }
 
 /**
@@ -558,6 +587,7 @@ function exhaustedDiskSet(
     .sort((a, b) => b.entries - a.entries || byCodepoint(a.dir, b.dir))
   return {
     classify: () => 'not-determined',
+    matchesOnlyFiles: () => false,
     exhaustion: { root, budget, consumers },
   }
 }

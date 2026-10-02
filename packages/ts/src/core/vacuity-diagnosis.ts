@@ -8,16 +8,18 @@ import type { GlobNode, GlobSite, RuleDescription } from '@nielspeter/eess'
 // coincidence to stop relying on rather than a contract.
 import type { PathUniverse } from './path-universe.js'
 import { DECLARE_INSTEAD, isFaultPosition, UNSUPPRESSABLE } from '@nielspeter/eess/internal'
+import type { DeadSiteRoute } from './glob-diagnosis.js'
 import {
+  deadSiteRoute,
   diagnoseGlob,
-  isSyntacticFault,
-  syntacticFault,
+  CARDINALITY_REMEDY,
   FAULT_ADVICE,
   ON_DISK_ADVICE,
+  ROUTE_HOLDS_IN_ANY_PROJECT,
 } from './glob-diagnosis.js'
 import { globSitesOf, isDeadGlobTree, isDeadSite } from './glob-evaluator.js'
 import { pathUniverse } from './path-universe.js'
-import { cardinalityDeadSiteIsAtFault, contradictsAbsence, diskSet } from './disk-set.js'
+import { diskSet } from './disk-set.js'
 import { NAMED_CONSUMERS } from './disk-set.js'
 import type { WalkExhaustion } from './disk-set.js'
 import { emptyProjectAdvice, loadedNothing } from './empty-project-advice.js'
@@ -213,41 +215,32 @@ function deadSelectorViolation(
   // reintroduced one cause over, and again with no test asserting the message. The new row
   // asserted booleans.
   //
-  // The threshold — WHICH classification contradicts an absence claim — is
-  // `contradictsAbsence`'s, never re-spelled here. It was hand-copied as
-  // `=== 'holds-typescript'` in the first draft of this fix, which is the precedent
-  // `disk-set.ts` records one function above: `isFaultPosition` grew two hand-maintained
-  // copies, they disagreed about `discovery`, and `doctor` reported a dead layer glob while
-  // the build stayed green.
-  //
-  // The INPUT is `diagnosis.onDisk` and deliberately not `diskSet(project).classify(glob)`,
-  // and the two are not interchangeable. `classify` answers about any path, always;
-  // `diagnosis.onDisk` is `undefined` unless the disk was the deciding question —
-  // `diagnoseGlob` returns before consulting it for a syntactic fault and for
-  // `file-not-folder`. The remedy needs "was the tsconfig the lever", which is the second
-  // question. Reading `classify` here would tell a `file-not-folder` author to widen an
-  // `include` that cannot help them, because the glob names a file and the predicate reads
-  // directories.
-  const onDiskContradicts = diagnosis.onDisk !== undefined && contradictsAbsence(diagnosis.onDisk)
+  // Both the remedy and the scope come from the ROUTE, and the route is the same value the
+  // ADMISSION gate uses — so the reason a finding exists and the reason its message gives
+  // cannot be two derivations. They were: the gate asked `classify(glob)` while the message
+  // read `diagnosis.onDisk`, and those disagree for a glob naming a file, so such a glob was
+  // admitted because the disk contradicted the claim and then told to widen an `include` that
+  // can never make a directory read match a file (bug 0363). Three fixes to this one sentence
+  // had each keyed it on something nearer to hand than the actual reason.
+  const route = deadSiteRoute(diagnosis)
   const remedy = !isCardinality
     ? 'Correct the glob, or remove the rule.'
-    : onDiskContradicts
-      ? 'Widen the tsconfig include to cover this path, or correct the selector — ' +
-        'do not delete this rule, it is what detected the gap.'
-      : 'Correct the selector — this rule has not been enforcing anything. Do not delete it.'
-  // "in this project" understates a syntactic fault by exactly the scope that invites the
-  // tsconfig reading: such a glob can never match in ANY project, which is why no
-  // filesystem answer is relevant to it.
-  //
-  // A property of the glob TEXT, so it is keyed on the text and on nothing else. The first
-  // draft also required `isCardinality && !onDiskContradicts`: the second conjunct is dead
-  // (a syntactic fault leaves `onDisk` undefined, so it is never false when the third is
-  // true — measured: deleting it reddened nothing), and the first made the same broken glob
-  // print two different scope claims depending on whether the author wrote `.notExist()` or
-  // `.notImportFrom()`. Three review lenses flagged the same conjunct independently.
-  const scope = isSyntacticFault(diagnosis.fault)
-    ? 'can never match anything in any project'
-    : 'can never match anything in this project'
+    : // NEVER "remove the rule" for a cardinality rule, on any route or none. The finding is
+      // unsuppressable, so deletion is the only achievable exit, and the rule is the thing
+      // that noticed — which is the ADR-009 rule 2 defect this family has already shipped
+      // once. A first draft of this collapsed `route === undefined` into the non-cardinality
+      // arm and reached that sentence; enforcement review measured it, with the `Fix:` line
+      // reading "this path exists but contains no TypeScript. Correct the glob, or remove the
+      // rule." on a `.notExist()` rule. `CARDINALITY_REMEDY`'s own docstring forbids it.
+      route === undefined
+      ? 'Correct the selector — this rule has not been enforcing anything. Do not delete it.'
+      : CARDINALITY_REMEDY[route]
+  // "in this project" understates a fault that holds everywhere by exactly the scope that
+  // invites the tsconfig reading, and the route is what knows which it is.
+  const scope =
+    route !== undefined && ROUTE_HOLDS_IN_ANY_PROJECT[route]
+      ? 'can never match anything in any project'
+      : 'can never match anything in this project'
   const advice =
     `This rule's ${what} ${site.origin} ${scope}, ` +
     `${consequence} — ${cause}. ` +
@@ -645,21 +638,36 @@ function cardinalitySelectorMissedDisk(
   // properties of the glob text rather than of what loaded, and 0357 dropped them here for
   // one rule shape. Collected as a set because the filter below sees an `ArchViolation`,
   // whose `element` is the glob, not the site that carries `kind` and `base`.
-  const syntacticallyBroken = new Set(
-    trees.flatMap((tree) =>
-      globSitesOf(tree)
-        .filter(
-          (site) =>
-            isFaultPosition(site.position) &&
-            syntacticFault(site.glob, site.kind, site.base) !== undefined,
-        )
-        .map((site) => site.glob),
-    ),
-  )
+  // The ROUTE per glob, from the sites this function already walks — one owner, shared with
+  // the message. The previous shape derived admission from `(glob, hasSyntacticFault)` and the
+  // message from `diagnosis.onDisk`, and those disagree for a glob naming a file: bug 0363.
+  const universe = pathUniverse(project)
+  const disk = diskSet(project)
+  // A DISJUNCTION over sites, not a last-one-wins assignment. One glob text can sit at two
+  // fault-position sites with different `kind`/`base` — `GlobBase`'s docstring says the base
+  // affects the verdict — and `Map.set` overwrote, so the second site's `undefined` erased the
+  // first site's route and the finding was filtered out. Measured by enforcement review:
+  // `.resideInFolder(G).resideInFile(G)` went green in `check` while `doctor` reported, which
+  // is exactly the disagreement `doctor-and-check-agree-about-a-ratchet.test.ts` exists to
+  // forbid — and `doctor` keys per site, so it was right and this was wrong.
+  //
+  // Keeping the first defined route restores what the predicate this replaced actually did:
+  // `hasSyntacticFault || contradictsAbsence(...)` is a disjunction, and the syntactic half
+  // was a SET over all sites.
+  const routeByGlob = new Map<string, DeadSiteRoute>()
+  for (const tree of trees)
+    for (const site of globSitesOf(tree)) {
+      if (!isFaultPosition(site.position)) continue
+      // `diagnoseGlob`'s contract: "Call only on a site already known to be dead." Without
+      // this the loop diagnosed LIVE sites, and a live site's answer decided a dead site's
+      // admission.
+      if (!isDeadSite(site, universe)) continue
+      if (routeByGlob.has(site.glob)) continue
+      const route = deadSiteRoute(diagnoseGlob(site, universe, disk))
+      if (route !== undefined) routeByGlob.set(site.glob, route)
+    }
   return deadSitesIn(facts, trees, project).selector.filter(
-    (v) =>
-      v.element !== undefined &&
-      cardinalityDeadSiteIsAtFault(project, v.element, syntacticallyBroken.has(v.element)),
+    (v) => v.element !== undefined && routeByGlob.has(v.element),
   )
 }
 
