@@ -11,7 +11,7 @@ architecture decisions in `adr/` (kept at the repo root by convention). eess fol
 | Lane                        | What                                          | Board                                      | Terminal (frozen) subfolders |
 | --------------------------- | --------------------------------------------- | ------------------------------------------ | ---------------------------- |
 | [`plans/`](./plans)         | Implementation plans                          | [`ROADMAP.md`](./plans/ROADMAP.md)         | `completed/`, `wont-do/`     |
-| [`bugs/`](./bugs)           | Concrete defects in the code                  | [`BUGS.md`](./bugs/BUGS.md)                | `fixed/`, `wont-do/`         |
+| [`bugs/`](./bugs)           | Concrete defects in the code                  | [`BUGS.md`](./bugs/BUGS.md)                | `fixed/`, `rejected/`        |
 | [`proposals/`](./proposals) | Design under debate, before it becomes a plan | [`PROPOSALS.md`](./proposals/PROPOSALS.md) | `promoted/`, `declined/`     |
 | [`spikes/`](./spikes)       | Dated measurements of something we don't own  | none — a spike is terminal when written    | the whole lane               |
 
@@ -23,9 +23,17 @@ cargo-cult while four existed — see
 
 The other three columns are prose, not claims a gate has checked. The terminal
 subfolders in particular are **conventions, created when a lane first needs one**:
-`plans/wont-do/`, `bugs/wont-do/` and `proposals/declined/` are named here and do
-not exist on disk yet. Read the column as where a thing goes, not as what is
-there.
+`plans/wont-do/` and `proposals/declined/` are named here and do not exist on disk
+yet. Read the column as where a thing goes, not as what is there.
+
+**One correction worth the line.** This row said the bugs lane closes into
+`wont-do/`, and it does not — it closes into `rejected/`, which exists and which
+`scripts/check-ledger.mjs` enforces alongside the lane's state vocabulary
+(`Draft`, `Ready`, `Fixed`, `Rejected`, `Parked`). Someone following this table
+filed a rejected bug into `bugs/wont-do/` with `State: Won't-do`, and the ledger
+gate caught the state but not the folder — the folder names in this column are
+checked by nothing. So the column is prose in a sharper sense than the paragraph
+above admits: it can be wrong about a convention a gate already enforces.
 
 Further lanes — `refinement/` (volatile pre-plan discovery), `support/` (customer
 cases) — are the same skeleton and appear only when the work calls for them. They

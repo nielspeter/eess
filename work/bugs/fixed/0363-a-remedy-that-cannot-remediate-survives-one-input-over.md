@@ -126,7 +126,7 @@ place — `RuleBuilder` (`packages/ts/src/core/rule-builder.ts:221`) — and eve
 five builders extends `TerminalBuilder` or `GraphqlRuleBuilder` directly and overrides nothing.
 A rule that stamps a discovery glob therefore always answers `false`, and never enters the
 cardinality path these exemptions live on. Carried to
-[0371](../0371-can-a-cardinality-rule-have-a-dead-discovery-glob.md), including the part
+[0371](../rejected/0371-can-a-cardinality-rule-have-a-dead-discovery-glob.md), including the part
 nothing guards: a future builder that both stamps a discovery glob and overrides
 `assertsCardinality()` would reopen it silently.
 
@@ -298,8 +298,8 @@ S7 and S8 were added after review, and both fire.
 - [x] a sabotage matrix — **published below**, not merely counted.
 - [x] `npm run validate` green.
 - [ ] the discovery-glob question measured, and either filed or closed with the evidence —
-      `deferred→`[0371](../0371-can-a-cardinality-rule-have-a-dead-discovery-glob.md). Not
+      `deferred→`[0371](../rejected/0371-can-a-cardinality-rule-have-a-dead-discovery-glob.md). Not
       needed by this fix, and recorded rather than carried: a question asked three times and
       answered none is how a bug record becomes an argument.
 
-Deferred: [0371](../0371-can-a-cardinality-rule-have-a-dead-discovery-glob.md).
+Deferred: [0371](../rejected/0371-can-a-cardinality-rule-have-a-dead-discovery-glob.md).
