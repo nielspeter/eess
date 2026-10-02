@@ -1,6 +1,6 @@
 {
   "name": "@nielspeter/eess-ts",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "description": "Architecture testing for TypeScript — the TS dialect of the eess family (formerly ts-archunit)",
   "type": "module",
   "exports": {
