@@ -7,8 +7,9 @@ import type { TypeMatcher } from '../helpers/type-matchers.js'
 import { extendsByName, implementsByName } from '../helpers/heritage.js'
 
 /**
- * Assert that classes directly extend the named base class — written as its name, or through
- * an aliased import, a namespace member or a mixin call.
+ * Assert that classes extend the named base class, directly or through intermediate classes
+ * (bug 0295, ADR-017) — at each level written as its name, or through an aliased import, a
+ * namespace member or a mixin call.
  */
 export function shouldExtend(className: string): Condition<ClassDeclaration> {
   return elementCondition<ClassDeclaration>(
@@ -19,8 +20,9 @@ export function shouldExtend(className: string): Condition<ClassDeclaration> {
 }
 
 /**
- * Assert that classes implement the named interface in their own `implements` clause — as
- * written, or through an aliased import.
+ * Assert that classes implement the named interface — in their own `implements` clause, an
+ * ancestor class's, or through an interface that extends it (bug 0295, ADR-017) — at each level
+ * as written, or through an aliased import.
  */
 export function shouldImplement(interfaceName: string): Condition<ClassDeclaration> {
   return elementCondition<ClassDeclaration>(

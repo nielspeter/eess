@@ -221,7 +221,7 @@ classes(p).that().extend('BaseRepository').should().notContain(call('parseInt'))
 The fluent API maps directly to the intent:
 
 - **`classes(p).that()`** — select which classes
-- **`.extend('BaseRepository')`** — filter to subclasses
+- **`.extend('BaseRepository')`** — filter to subclasses, at any depth
 - **`.should().notContain(call('parseInt'))`** — assert what must be true
 - **`.check()`** — run and fail if violated
 

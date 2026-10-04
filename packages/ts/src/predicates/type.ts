@@ -1,7 +1,7 @@
 import { Node, type InterfaceDeclaration, type TypeAliasDeclaration } from 'ts-morph'
 import type { Predicate } from '@nielspeter/eess'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
-import { clauseResolvesTo } from '../helpers/heritage.js'
+import { clauseResolvesTo, interfaceChainReaches } from '../helpers/heritage.js'
 
 /**
  * Union type representing both interface and type alias declarations.
@@ -72,8 +72,9 @@ export function havePropertyOfType(name: string, matcher: TypeMatcher): Predicat
 }
 
 /**
- * Matches interfaces that directly extend the given type name — as written, or through an
- * aliased import or a namespace member.
+ * Matches interfaces that extend the given type name, directly or through another interface
+ * (bug 0295, ADR-017) — at each level as written, or through an aliased import or a namespace
+ * member.
  * For type aliases, checks if the type text references the name.
  *
  * @example
@@ -86,9 +87,10 @@ export function extendType(name: string): Predicate<TypeDeclaration> {
       if (Node.isInterfaceDeclaration(element)) {
         const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         const nameRegex = new RegExp(`^${escaped}(\\b|$|<)`)
-        return element
-          .getExtends()
-          .some((ext) => nameRegex.test(ext.getText()) || clauseResolvesTo(ext, name))
+        return interfaceChainReaches(
+          element,
+          (ext) => nameRegex.test(ext.getText()) || clauseResolvesTo(ext, name),
+        )
       }
       // For type aliases, check if the type directly references the named type
       // Use word boundary matching to avoid false positives (e.g., "BaseConfig" inside "{ bar: BaseConfig }")

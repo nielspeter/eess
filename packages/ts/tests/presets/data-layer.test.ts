@@ -67,6 +67,20 @@ describe('dataLayerIsolation preset', () => {
     expect(violations.length).toBeGreaterThan(0)
   })
 
+  it('accepts a repository that extends the base through an intermediate class (bug 0295)', () => {
+    // AuditRepository extends ScopedRepository, which extends BaseRepository: it keeps every
+    // guarantee the base gives, so the rule's own rationale says it conforms. The extend
+    // condition read only the direct clause and red it.
+    const repositories = '**/repositories/scoped/audit-repo.ts'
+    const reported = (baseClass: string) =>
+      dataLayerIsolation(p, { repositories, baseClass, report: 'builders' })
+        .flatMap((r) => r.violations())
+        .map((v) => `${v.ruleId ?? ''} ${v.element}`)
+    // Positive anchor: the glob selects AuditRepository — a base it does not reach reds it.
+    expect(reported('UnrelatedBase')).toContain('preset/data/extend-base AuditRepository')
+    expect(reported('BaseRepository')).toEqual([])
+  })
+
   it('passes for a good repo named by a file glob', () => {
     // The original assertion, kept — but now meaningful, because the file glob
     // actually selects the class. Guarded against emptiness by the two cases

@@ -3,9 +3,10 @@ import type { Predicate } from '@nielspeter/eess'
 import { decoratorNames, extendsByName, implementsByName } from '../helpers/heritage.js'
 
 /**
- * Matches classes whose direct base is the named class — written as its name, or through an
- * aliased import, a namespace member or a mixin call. `class Foo extends Bar` matches
- * `extend('Bar')`. A class that reaches `Bar` through an intermediate class is not matched.
+ * Matches classes that extend the named class, directly or through intermediate classes (bug
+ * 0295, ADR-017) — at each level written as its name, or through an aliased import, a namespace
+ * member or a mixin call. `class Foo extends Bar` and `class Baz extends Foo` both match
+ * `extend('Bar')`.
  */
 export function extend(className: string): Predicate<ClassDeclaration> {
   return {
@@ -15,8 +16,9 @@ export function extend(className: string): Predicate<ClassDeclaration> {
 }
 
 /**
- * Matches classes whose own `implements` clause names the interface — as written, or through
- * an aliased import.
+ * Matches classes that implement the interface: in their own `implements` clause, an ancestor
+ * class's, or through an interface that extends it (bug 0295, ADR-017) — at each level as
+ * written, or through an aliased import.
  */
 export function implement(interfaceName: string): Predicate<ClassDeclaration> {
   return {

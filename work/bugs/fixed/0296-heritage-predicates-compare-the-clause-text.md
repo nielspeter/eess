@@ -9,7 +9,7 @@
   parent. An aliased import is an ordinary way to avoid a name collision.
 - **Origin:** self-found · probing `eess-ts` against the findings of an external code-quality
   audit of an adopter monorepo; split from
-  [0295](../0295-extend-and-implement-read-only-the-direct-clause.md) by review, because this
+  [0295](./0295-extend-and-implement-read-only-the-direct-clause.md) by review, because this
   half needs no semantics ruling.
 - **Reported:** 2026-09-14 · **Fixed:** 2026-09-14
 
