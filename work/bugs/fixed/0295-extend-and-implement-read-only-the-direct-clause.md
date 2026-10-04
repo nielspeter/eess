@@ -117,8 +117,8 @@ The docs can be corrected now, without the ruling, to say what the predicates do
       `it('CONTROL — extend() selects a generic base and a base the checker cannot resolve')`.
 - [x] a ruling — [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md),
       covering all four. `eess-mermaid`'s `extend` is ruled on and not built:
-      deferred→[bug 0374](../0374-eess-mermaid-extend-reads-one-edge.md), and ADR-017's C6 row is
-      `pending` on it.
+      deferred→[bug 0374](./0374-eess-mermaid-extend-reads-one-edge.md), and ADR-017's C6 row was
+      `pending` on it (built since, in 0374, and the row is gated).
 - [x] the docs (`docs/index.md`, `docs/classes.md`, `docs/types.md`, `docs/api-reference.md`)
       and both builders' JSDoc say the predicates walk; `docs/migrating-to-0.12.md` written.
 - [x] the fix, with the KNOWN-GAP tests inverted into red-first tests —
@@ -165,4 +165,4 @@ Two edits outside the record: `docs/migrating-to-0.11.md` now says the bug-0372 
 Deferred: [bug 0373](../0373-an-unresolved-base-ends-the-heritage-walk-silently.md),
 [bug 0375](../0375-the-heritage-walk-cannot-climb-three-resolved-shapes.md),
 [bug 0376](../0376-extendtype-on-a-type-alias-reads-the-alias-name.md),
-[bug 0374](../0374-eess-mermaid-extend-reads-one-edge.md).
+[bug 0374](./0374-eess-mermaid-extend-reads-one-edge.md).
