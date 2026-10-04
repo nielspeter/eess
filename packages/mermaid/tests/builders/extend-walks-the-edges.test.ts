@@ -132,8 +132,11 @@ describe('bug 0374: eess-mermaid heritage words walk the edges', () => {
   })
 
   it('the path named is the shortest one, whichever edge is drawn first', () => {
-    // The longer branch is drawn first, so a depth-first walk in source order would name it.
-    const diamond = diagram(
+    // Two diamonds, mirrored: Leaf draws its longer branch first, Leaf2 draws it last. A walk
+    // that took edges in source order would name the long branch for Leaf; one that took them
+    // in reverse (a depth-first stack) would name it for Leaf2. Breadth-first names the short
+    // one for both.
+    const diamonds = diagram(
       [
         'classDiagram',
         'class Base',
@@ -147,18 +150,30 @@ describe('bug 0374: eess-mermaid heritage words walk the edges', () => {
         'X --|> Base',
         'Leaf --|> A',
         'A --|> Base',
+        'class A2',
+        'class B2',
+        'class X2',
+        'class Leaf2',
+        'Leaf2 --|> A2',
+        'A2 --|> Base',
+        'Leaf2 --|> B2',
+        'B2 --|> X2',
+        'X2 --|> Base',
       ].join('\n'),
     )
-    const reported = classes(diamond)
+    const reported = classes(diamonds)
       .that()
-      .haveNameMatching(/^Leaf$/)
+      .haveNameMatching(/^Leaf2?$/)
       .should()
       .notExtendStereotype('repository')
       .rule({ id: 'test/0374-shortest' })
       .violations()
-    expect(reported.map((v) => v.message)).toEqual([
-      'Leaf extends Base (via A) which has stereotype <<repository>>',
-    ])
+    expect(new Map(reported.map((v) => [v.element, v.message]))).toEqual(
+      new Map([
+        ['Leaf', 'Leaf extends Base (via A) which has stereotype <<repository>>'],
+        ['Leaf2', 'Leaf2 extends Base (via A2) which has stereotype <<repository>>'],
+      ]),
+    )
   })
 
   it('an edge drawn twice reports once, and a stereotyped class on a cycle reports reaching itself', () => {

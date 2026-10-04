@@ -145,6 +145,11 @@ The docs can be corrected now, without the ruling, to say what the predicates do
       base class, and in the declaration merge one does (`B→A`) but `A` has none. Every chain
       ends, so the guard could never fire. _First written as "no class on a circular chain has
       a base class", which the merge shape contradicts; method review caught it._
+      The seven shapes now run in the suite (block _the checker breaks every circular class
+      chain_), each with a positive anchor — the classes loaded, and where the walk enters the
+      chain, `extend` selects exactly the classes that reach the named one. _Added after
+      post-merge testing review: the first version asserted only an empty result, which a shape
+      that stopped loading would also give._
 - [x] `npm run validate` green on the tree before review (exit 0, 649s, eess-ts 3926 tests);
       and on the final tree after review (exit 0, 560s, eess-ts 3930 tests).
 

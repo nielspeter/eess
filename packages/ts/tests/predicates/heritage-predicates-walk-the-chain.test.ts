@@ -389,67 +389,118 @@ describe('bug 0295: the walk reaches past depth 2', () => {
 
 /**
  * ADR-017 rule 5 says the checker breaks every circular class chain, so the class walk needs no
- * guard. These are the seven shapes that claim was measured on, kept here so the evidence
- * can be re-run. Asking for a base nothing extends makes the walk climb every chain to its end;
- * if one never ended, the test would crash its worker rather than pass.
+ * guard. These are the seven shapes that claim was measured on, kept here so the evidence can be
+ * re-run. Each test walks every chain to its end — a class walk builds its whole chain before
+ * matching — and, if one never ended, would fail with a RangeError after about 80 seconds.
+ *
+ * Each also carries a positive anchor, so a shape that silently stopped loading (a filter that
+ * dropped `.d.ts` or `.js` files) reds instead of passing on an empty selection: the classes are
+ * selected by name, and where the walk can enter the chain, `extend` selects exactly the classes
+ * whose chain reaches the named one. The mixin shape has no `extend` anchor: the walk does not
+ * climb a mixin call (bug 0375), so it ends there whether or not the chain is circular, and it is
+ * evidence for loading, not for rule 5.
  */
 describe('bug 0295: the checker breaks every circular class chain', () => {
-  const shapes: Record<string, Record<string, string>> = {
-    'self-extend': { '/src/a.ts': 'export class A extends A {}\n' },
-    pair: { '/src/a.ts': 'export class A extends B {}\nexport class B extends A {}\n' },
-    'cross-file pair': {
-      '/src/a.ts': "import { B } from './b'\nexport class A extends B {}\n",
-      '/src/b.ts': "import { A } from './a'\nexport class B extends A {}\n",
+  const shapes: {
+    name: string
+    files: Record<string, string>
+    allowJs?: boolean
+    extendAnchor?: [string, string[]]
+  }[] = [
+    {
+      name: 'self-extend',
+      files: { '/src/a.ts': 'export class A extends A {}\n' },
+      extendAnchor: ['A', ['A']],
     },
-    'declaration merge': {
-      '/src/a.ts':
-        'export class A extends B {}\nexport interface B extends A {}\nexport class B {}\n',
+    {
+      name: 'pair',
+      files: { '/src/a.ts': 'export class A extends B {}\nexport class B extends A {}\n' },
+      extendAnchor: ['A', ['B']],
     },
-    mixin: {
-      '/src/a.ts':
-        'type Ctor = new (...a: never[]) => object\nconst M = <T extends Ctor>(b: T) => class extends b {}\nexport class A extends M(B) {}\nexport class B extends M(A) {}\n',
+    {
+      name: 'cross-file pair',
+      files: {
+        '/src/a.ts': "import { B } from './b'\nexport class A extends B {}\n",
+        '/src/b.ts': "import { A } from './a'\nexport class B extends A {}\n",
+      },
+      extendAnchor: ['A', ['B']],
     },
-    'ambient pair': {
-      '/src/a.d.ts': 'declare class A extends B {}\ndeclare class B extends A {}\n',
+    {
+      name: 'declaration merge',
+      files: {
+        '/src/a.ts':
+          'export class A extends B {}\nexport interface B extends A {}\nexport class B {}\n',
+      },
+      extendAnchor: ['B', ['A', 'B']],
     },
-  }
-  for (const [name, files] of Object.entries(shapes)) {
-    it(`a circular chain ends — ${name}`, () => {
-      const tsm = new Project({ useInMemoryFileSystem: true })
-      for (const [path, text] of Object.entries(files)) tsm.createSourceFile(path, text)
+    {
+      name: 'mixin',
+      files: {
+        '/src/a.ts':
+          'type Ctor = new (...a: never[]) => object\nconst M = <T extends Ctor>(b: T) => class extends b {}\nexport class A extends M(B) {}\nexport class B extends M(A) {}\n',
+      },
+    },
+    {
+      name: 'ambient pair',
+      files: { '/src/a.d.ts': 'declare class A extends B {}\ndeclare class B extends A {}\n' },
+      extendAnchor: ['A', ['B']],
+    },
+    {
+      name: 'JS file',
+      files: { '/src/a.js': 'class A extends B {}\nclass B extends A {}\n' },
+      allowJs: true,
+      extendAnchor: ['A', ['B']],
+    },
+  ]
+  for (const shape of shapes) {
+    it(`a circular chain ends — ${shape.name}`, () => {
+      const tsm = new Project({
+        useInMemoryFileSystem: true,
+        compilerOptions: shape.allowJs === true ? { allowJs: true } : {},
+      })
+      for (const [path, text] of Object.entries(shape.files)) tsm.createSourceFile(path, text)
       const p: ArchProject = {
         tsConfigPath: '/tsconfig.json',
         _project: tsm,
         getSourceFiles: () => tsm.getSourceFiles(),
       }
-      const selected = elements(
+      const id = (what: string) => `test/0295-circular-${shape.name}-${what}`
+      // Positive anchor: the shape's classes loaded.
+      const loaded = elements(
         classes(p)
           .that()
-          .extend('Nowhere')
+          .haveNameMatching(/^[AB]$/)
           .should()
           .notExist()
-          .rule({ id: `test/0295-circular-${name}` })
+          .rule({ id: id('loaded') })
           .violations(),
       )
-      expect(selected).toEqual(new Set())
+      expect(loaded.size).toBeGreaterThan(0)
+      expect(
+        elements(
+          classes(p)
+            .that()
+            .extend('Nowhere')
+            .should()
+            .notExist()
+            .rule({ id: id('none') })
+            .violations(),
+        ),
+      ).toEqual(new Set())
+      if (shape.extendAnchor !== undefined) {
+        const [base, expected] = shape.extendAnchor
+        expect(
+          elements(
+            classes(p)
+              .that()
+              .extend(base)
+              .should()
+              .notExist()
+              .rule({ id: id('anchor') })
+              .violations(),
+          ),
+        ).toEqual(new Set(expected))
+      }
     })
   }
-
-  it('a circular chain ends — JS file', () => {
-    const tsm = new Project({ useInMemoryFileSystem: true, compilerOptions: { allowJs: true } })
-    tsm.createSourceFile('/src/a.js', 'class A extends B {}\nclass B extends A {}\n')
-    const p: ArchProject = {
-      tsConfigPath: '/tsconfig.json',
-      _project: tsm,
-      getSourceFiles: () => tsm.getSourceFiles(),
-    }
-    const examined = classes(p)
-      .that()
-      .extend('Nowhere')
-      .should()
-      .notExist()
-      .rule({ id: 'test/0295-circular-js' })
-      .violations()
-    expect(elements(examined)).toEqual(new Set())
-  })
 })

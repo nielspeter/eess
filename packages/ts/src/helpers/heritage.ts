@@ -40,9 +40,11 @@ function directlyExtends(cls: ClassDeclaration, className: string): boolean {
 /**
  * `cls` and every class it reaches through `extends`. There is no cycle guard because the
  * checker breaks every circular chain, leaving some class on it with no base class — measured
- * over a self-extend, a pair, a cross-file pair, a declaration merge, a JS file, a mixin and an
- * ambient pair. A guard that cannot fire is not a guard. If this ever stopped holding, the
- * heritage-cycle test would crash its worker (the loop is synchronous, so no timeout fires).
+ * over a self-extend, a pair, a cross-file pair, a declaration merge, a JS file and an ambient
+ * pair (a mixin shape ends for another reason: the walk does not climb a mixin call). A guard
+ * that cannot fire is not a guard. If this ever stopped holding, the circular-chain tests would
+ * fail when the chain array runs out — measured at 26 to 87 seconds, as a RangeError, since the
+ * loop is synchronous and no test timeout can interrupt it.
  */
 function classChain(cls: ClassDeclaration): ClassDeclaration[] {
   const chain: ClassDeclaration[] = []
