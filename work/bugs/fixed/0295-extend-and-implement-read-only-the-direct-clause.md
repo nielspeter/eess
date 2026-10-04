@@ -39,17 +39,18 @@ since fixed — the predicates now match the direct clause as written or as reso
 
 ## Root cause
 
-Every heritage predicate compares the text of the class's **own** clause:
+_Pointers are to main at `cc95c48`, before the fix._
 
-- `extend` — predicate `packages/ts/src/predicates/class.ts:13`, condition
-  `packages/ts/src/conditions/class.ts:14`
-- `implement` — predicate `packages/ts/src/predicates/class.ts:26`, condition
-  `packages/ts/src/conditions/class.ts:25`
-- `extendType` — `packages/ts/src/predicates/type.ts:87`
+Every heritage predicate compared the text of the class's **own** clause:
 
-Nothing walks the chain. The builder's JSDoc, which is what an IDE shows, says
-"filter classes that extend the given class" (`packages/ts/src/builders/class-rule-builder.ts:169-172`);
-only the standalone predicate's docstring mentions the text match.
+- `extend` — the predicate in `packages/ts/src/predicates/class.ts` and `shouldExtend` in
+  `packages/ts/src/conditions/class.ts`, both through `extendsByName`
+- `implement` — the predicate and `shouldImplement`, both through `implementsByName`
+- `extendType` — `packages/ts/src/predicates/type.ts`
+
+Nothing walked the chain. The builder's JSDoc on `extend()`, which is what an IDE shows, said
+"filter classes that extend the given class"; only the standalone predicate's docstring
+mentioned the text match.
 
 ## Why it matters
 
@@ -101,7 +102,8 @@ The docs can be corrected now, without the ruling, to say what the predicates do
 
 ## Verification
 
-- [x] KNOWN-GAP tests pinned the old behaviour (inverted by the fix, below) —
+- [x] KNOWN-GAP tests pinned the old behaviour (inverted by the fix, below; the titles and file
+      name here are the pre-rename ones) —
       `packages/ts/tests/predicates/extend-reads-the-direct-parent.test.ts` ·
       `it('KNOWN GAP — extend() as a selector drops a grandchild, so its violation is never reported')`,
       `it('KNOWN GAP — extend() as a condition reds a grandchild of the base it names')`,
@@ -126,18 +128,41 @@ The docs can be corrected now, without the ruling, to say what the predicates do
       and `it('a heritage cycle ends the walk instead of looping')`. The shipped preset:
       `packages/ts/tests/presets/data-layer.test.ts` ·
       `it('accepts a repository that extends the base through an intermediate class (bug 0295)')`.
-- [x] sabotage matrix, seven rows, sha256-verified restores. Six turn red: the walk replaced by
-      the direct check (4 red), `implement` ignoring ancestors (2), no interface walk (4), no
-      interface cycle guard (1), each level compared as resolved only (3), `extendType` direct
-      only (1). The seventh — removing the class-chain cycle guard — turned nothing red, so it
-      was probed: the checker gives no base class to a circular chain in all seven shapes tried
-      (self-extend, pair, cross-file pair, declaration merge, JS file, mixin, ambient pair). The
-      guard could never fire and was deleted rather than kept as an unfalsifiable check.
-- [x] `npm run validate` green.
+- [x] sabotage matrix, run on the final tree after review, twelve rows — one per branch of each
+      function in the walk — sha256-verified restores, over this file,
+      `packages/ts/tests/predicates/heritage-predicates-compare-the-clause-text.test.ts` and the
+      preset test (32 tests, 39s). **All twelve red:** chain is the subject alone (9), chain
+      capped at depth 2 (2), interface walk does not recurse (2), interface walk absent (7),
+      interface cycle guard absent (1), `implement` ignores ancestors (4), and each of the six
+      written/resolved arms removed for `extend`, `implement` and `extendType` (1–3 each).
+      _A first, seven-row matrix ran before review and missed four mutations that stayed green
+      — depth capped at 2, no interface recursion, and the written arm of `implement` and
+      `extendType`. Testing review found them; the tests at depth 3 and with unresolved
+      `implements`/`extends` clauses were added for them._
+- [x] the class-chain cycle guard deleted. Its sabotage row turned nothing red, so it was
+      probed: in seven circular shapes (self-extend, pair, cross-file pair, declaration merge,
+      JS file, mixin, ambient pair) the checker breaks the cycle — in six no class on it has a
+      base class, and in the declaration merge one does (`B→A`) but `A` has none. Every chain
+      ends, so the guard could never fire. _First written as "no class on a circular chain has
+      a base class", which the merge shape contradicts; method review caught it._
+- [x] `npm run validate` green on the tree before review (exit 0, 649s, eess-ts 3926 tests);
+      re-run on the final tree before merge — validation-owed until that run is recorded here.
 
 A walk can only climb what the checker resolves: above an unresolved base it stops and says
 nothing — deferred→[bug 0373](../0373-an-unresolved-base-ends-the-heritage-walk-silently.md).
 The direct check had the same blind spot one level down, so nothing selected before is dropped.
 
+Review found more the walk cannot climb — a class expression, an intersection, a class named
+in `implements` — deferred→[bug 0375](../0375-the-heritage-walk-cannot-climb-three-resolved-shapes.md);
+and that `extendType`'s type-alias branch, untouched here, reads the alias's own name —
+deferred→[bug 0376](../0376-extendtype-on-a-type-alias-reads-the-alias-name.md).
+
+Two edits outside the record: `docs/migrating-to-0.11.md` now says the bug-0372 wording ships in
+0.12.0 rather than 0.11.1, which is true only because this change bumps `minor`; and the
+`BUGS.md` header counts were recounted from the files, since main's were already stale
+(141/104/1 against 143/108/2 on disk).
+
 Deferred: [bug 0373](../0373-an-unresolved-base-ends-the-heritage-walk-silently.md),
+[bug 0375](../0375-the-heritage-walk-cannot-climb-three-resolved-shapes.md),
+[bug 0376](../0376-extendtype-on-a-type-alias-reads-the-alias-name.md),
 [bug 0374](../0374-eess-mermaid-extend-reads-one-edge.md).

@@ -49,14 +49,44 @@ So the change goes both ways:
   had excluded such a class to get past the old behaviour, the exclusion is no longer needed and
   can go.
 
-Nothing that matched before stops matching. Every level is still compared as written and as the
-checker resolves it (aliases, namespace members, mixin calls), so a base the checker cannot
-resolve — `extends Model` from a package without types — is still matched by its name.
+- **Under `not(…)` both reverse.** `.that().satisfy(not(extend('BaseEntity')))` now selects
+  fewer classes: every grandchild of `BaseEntity` leaves the rule, so it can stop reporting on code
+  you did not change. A negated condition reports more. If you use a baseline, this is the case
+  where violations disappear.
+
+On its own, each predicate still holds for every class it held for before. Every level is
+compared as written and as the checker resolves it (aliases, namespace members, mixin calls), so
+a base the checker cannot resolve — `extends Model` from a package without types — is still
+matched by its name.
 
 ## If you meant "directly extends"
 
-No predicate says that today, deliberately: no documented rule needed it. If yours does, open an
-issue. It would be a new predicate with a name that says "directly", not a flag on `extend`.
+No built-in predicate says that, deliberately: no documented rule needed it. Until one does, a
+custom predicate gives you the old reading:
+
+```ts
+import { definePredicate, classes } from '@nielspeter/eess-ts'
+import type { ClassDeclaration } from 'ts-morph'
+
+const extendsDirectly = (name: string) =>
+  definePredicate<ClassDeclaration>(
+    `extend "${name}" directly`,
+    (cls) => cls.getExtends()?.getExpression().getText() === name,
+  )
+
+// "Nothing extends LegacyBase directly — go through the adapter."
+classes(p).that().satisfy(extendsDirectly('LegacyBase')).should().notExist().check()
+```
+
+It reads the clause as written, so a base imported under an alias is not matched. If you need this, open
+an issue so it can become a named predicate.
+
+## Also in 0.12: one message changed wording
+
+A dead-glob finding for a glob naming a file where a directory is read no longer states its
+scope twice, and no longer chooses between its two fixes for you
+([bug 0372](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0372-the-file-not-folder-sentence-says-it-can-never-match-twice.md)).
+No verdict changes. [Migrating to 0.11](./migrating-to-0.11.md) quotes the new text.
 
 ## What this release does not fix
 
@@ -64,6 +94,13 @@ issue. It would be a new predicate with a name that says "directly", not a flag 
   `class Order extends OrmModel`, where `OrmModel` comes from a package without types,
   `extend('OrmModel')` matches and anything `OrmModel` extends is unknown.
   [Bug 0373](https://github.com/nielspeter/eess/blob/main/work/bugs/0373-an-unresolved-base-ends-the-heritage-walk-silently.md).
+- **Three shapes end the walk even though the checker resolves them:** a class whose parent is
+  a class expression, an interface extending an intersection, and a class named in
+  `implements`.
+  [Bug 0375](https://github.com/nielspeter/eess/blob/main/work/bugs/0375-the-heritage-walk-cannot-climb-three-resolved-shapes.md).
+- **`extendType` on a type alias** reads the alias's own name, so
+  `type X = BaseConfig & { … }` is not selected by `extendType('BaseConfig')`. Not new in 0.12.
+  [Bug 0376](https://github.com/nielspeter/eess/blob/main/work/bugs/0376-extendtype-on-a-type-alias-reads-the-alias-name.md).
 - **`eess-mermaid`'s `extend` still reads one diagram edge.** ADR-017 says the word means the
   same thing across the family, and that dialect does not yet comply.
   [Bug 0374](https://github.com/nielspeter/eess/blob/main/work/bugs/0374-eess-mermaid-extend-reads-one-edge.md).

@@ -9,7 +9,7 @@
 the semantics are decided in
 [ADR-017](https://github.com/nielspeter/eess/blob/main/adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md).
 
-These predicates read only the subject's **own** clause. `classes(p).that().extend('BaseRepository')`
+Until 0.12 these predicates read only the subject's **own** clause. `classes(p).that().extend('BaseRepository')`
 skipped every class that reached `BaseRepository` through an intermediate class. Its violations
 were never reported, and `examined` stayed above zero, so nothing noticed. Now:
 
@@ -27,6 +27,10 @@ The same in a selector and in a condition. What moves:
   `dataLayer`'s `baseClass` rule is one of these, and its own rationale says the grandchild
   conforms.
 
-Nothing that matched before stops matching. Each level is still compared as written and as
-resolved, so a base the checker cannot resolve is still matched by its name. See
-`docs/migrating-to-0.12.md`.
+- **Under `not(…)` both reverse.** `.that().satisfy(not(extend('Base')))` selects fewer classes,
+  so a rule can stop reporting on code you did not change; a negated condition reports more.
+
+On its own, each predicate still holds for every class it held for before. Each level is
+compared as written and as resolved, so a base the checker cannot resolve is still matched by
+its name. See `docs/migrating-to-0.12.md`, which also shows a stopgap if you meant "directly
+extends".

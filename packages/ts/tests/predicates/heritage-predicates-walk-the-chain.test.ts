@@ -283,3 +283,104 @@ describe('bug 0295: heritage predicates walk the chain', () => {
     ).toEqual(new Set(['C']))
   })
 })
+
+/**
+ * Added after review: every chain above is two levels deep, so a walk that climbed one
+ * level, or an interface walk that did not recurse, stayed green. And the text arm of the
+ * per-level comparison was proven for `extend` only. These reach depth 3, and put an
+ * unresolved name in an `implements` clause and an interface's `extends` clause.
+ */
+function deepProject(): ArchProject {
+  const p = heritageProject()
+  const tsm = p._project
+  tsm.createSourceFile(
+    '/src/ledger.ts',
+    "import { AuditRepository as AuditAlias } from './audit'\nexport class LedgerRepository extends AuditAlias {\n  post(): string {\n    return this.db('ledger')\n  }\n}\n",
+  )
+  tsm.createSourceFile(
+    '/src/generic-deep.ts',
+    "import { Generic } from './base'\nexport class GenericMid<T> extends Generic<T> {}\nexport class GenericDeep extends GenericMid<number> {}\n",
+  )
+  tsm.createSourceFile(
+    '/src/deep-interfaces.ts',
+    "import type { IChild } from './interfaces'\nimport type { GrandCfg } from './config'\nexport interface IGrandChild extends IChild {}\nexport interface GreatCfg extends GrandCfg {}\nexport class DeepImpl implements IGrandChild {\n  x = 1\n}\nexport class ViaChildBase implements IChild {\n  x = 1\n}\nexport class ViaChildSub extends ViaChildBase {}\nexport class ViaChildSubSub extends ViaChildSub {}\n",
+  )
+  tsm.createSourceFile(
+    '/src/orm.ts',
+    "import type { IOrm } from 'not-installed-orm'\nexport class OrmImpl implements IOrm {}\nexport class OrmSub extends OrmImpl {}\nexport interface IOrmExt extends IOrm {}\nexport interface IOrmExt2 extends IOrmExt {}\nexport class OrmViaExt implements IOrmExt2 {}\n",
+  )
+  return p
+}
+
+function selectedClasses(p: ArchProject, by: 'extend' | 'implement', name: string): Set<string> {
+  const that = classes(p).that()
+  return elements(
+    (by === 'extend' ? that.extend(name) : that.implement(name))
+      .should()
+      .notExist()
+      .rule({ id: `test/0295-deep-${by}-${name}` })
+      .violations(),
+  )
+}
+
+describe('bug 0295: the walk reaches past depth 2', () => {
+  it('extend() reaches a great-grandchild written through an aliased import, and a generic base two levels up', () => {
+    const p = deepProject()
+    expect(reportedBySubclassRule(p)).toContain('LedgerRepository')
+    const reported = elements(
+      classes(p)
+        .that()
+        .haveNameMatching(/^(Ledger|Unrelated)Repository$/)
+        .should()
+        .extend('BaseRepository')
+        .rule({ id: 'test/0295-deep-extend-condition' })
+        .violations(),
+    )
+    expect(reported).toContain('UnrelatedRepository')
+    expect(reported).not.toContain('LedgerRepository')
+    expect(selectedClasses(p, 'extend', 'Generic')).toEqual(
+      new Set(['GenericChild', 'GenericMid', 'GenericDeep']),
+    )
+  })
+
+  it('implement() and extendType() recurse through more than one extended interface', () => {
+    const p = deepProject()
+    // DeepImpl → IGrandChild → IChild → IBase: two interface steps past the clause.
+    expect(selectedClasses(p, 'implement', 'IBase')).toContain('DeepImpl')
+    const types_ = elements(
+      types(p)
+        .that()
+        .extendType('BaseConfig')
+        .should()
+        .notExist()
+        .rule({ id: 'test/0295-deep-extend-type' })
+        .violations(),
+    )
+    expect(types_).toEqual(new Set(['Mid', 'GrandCfg', 'GreatCfg']))
+  })
+
+  it('implement() reaches through an ancestor that implements a sub-interface', () => {
+    const selected = selectedClasses(deepProject(), 'implement', 'IBase')
+    for (const name of ['ViaChildBase', 'ViaChildSub', 'ViaChildSubSub']) {
+      expect(selected).toContain(name)
+    }
+    expect(selected).not.toContain('UnrelatedRepository')
+  })
+
+  it('an unresolved name in an implements or interface extends clause still matches by its text', () => {
+    const p = deepProject()
+    expect(selectedClasses(p, 'implement', 'IOrm')).toEqual(
+      new Set(['OrmImpl', 'OrmSub', 'OrmViaExt']),
+    )
+    const types_ = elements(
+      types(p)
+        .that()
+        .extendType('IOrm')
+        .should()
+        .notExist()
+        .rule({ id: 'test/0295-deep-unresolved-type' })
+        .violations(),
+    )
+    expect(types_).toEqual(new Set(['IOrmExt', 'IOrmExt2']))
+  })
+})

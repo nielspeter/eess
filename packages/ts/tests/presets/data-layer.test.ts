@@ -75,9 +75,9 @@ describe('dataLayerIsolation preset', () => {
     const reported = (baseClass: string) =>
       dataLayerIsolation(p, { repositories, baseClass, report: 'builders' })
         .flatMap((r) => r.violations())
-        .map((v) => v.element)
+        .map((v) => `${v.ruleId ?? ''} ${v.element}`)
     // Positive anchor: the glob selects AuditRepository — a base it does not reach reds it.
-    expect(reported('UnrelatedBase')).toContain('AuditRepository')
+    expect(reported('UnrelatedBase')).toContain('preset/data/extend-base AuditRepository')
     expect(reported('BaseRepository')).toEqual([])
   })
 

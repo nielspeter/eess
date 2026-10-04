@@ -18,7 +18,9 @@ import type {
  * Each check walks the chain (bug 0295, ADR-017): a grandchild of `Base` extends `Base`. At every
  * level the clause is compared as written and as resolved, so a level the checker cannot resolve
  * still matches by its text — the walk adds matches to the direct check and never removes one.
- * It stops where it cannot see further: a base it cannot resolve has no clauses to read.
+ * It stops where it cannot climb, and says nothing: a base it cannot resolve has no clauses to
+ * read (bug 0373), and a class expression, an intersection or a class named in `implements`
+ * is not walked (bug 0375).
  */
 
 /** Whether a heritage clause (`implements X`, an interface's `extends X`) resolves to `name`. */
@@ -37,10 +39,10 @@ function directlyExtends(cls: ClassDeclaration, className: string): boolean {
 
 /**
  * `cls` and every class it reaches through `extends`. There is no cycle guard because the
- * checker gives a class on a circular chain no base class — measured over a self-extend, a
- * pair, a cross-file pair, a declaration merge, a JS file, a mixin and an ambient pair; a
- * guard that cannot fire is not a guard, and the heritage-cycle test fails by timeout if it
- * ever stops holding.
+ * checker breaks every circular chain, leaving some class on it with no base class — measured
+ * over a self-extend, a pair, a cross-file pair, a declaration merge, a JS file, a mixin and an
+ * ambient pair. A guard that cannot fire is not a guard. If this ever stopped holding, the
+ * heritage-cycle test would crash its worker (the loop is synchronous, so no timeout fires).
  */
 function classChain(cls: ClassDeclaration): ClassDeclaration[] {
   const chain: ClassDeclaration[] = []

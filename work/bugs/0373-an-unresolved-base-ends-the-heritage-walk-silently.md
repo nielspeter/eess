@@ -4,10 +4,11 @@
 
 - **State:** Draft — the mechanism is measured; no red test yet, and whether it is a defect
   or a stated limit is the open question.
-- **Severity:** Medium — **a silent narrowing of selection.** Not High: the direct check had
-  the same blind spot one level down, so nothing that was selected before
-  [bug 0295](./fixed/0295-extend-and-implement-read-only-the-direct-clause.md) is dropped
-  now. But it is the ADR-016 shape — an instrument that stops short, and says nothing.
+- **Severity:** Medium — **a silent narrowing of selection**, the shape
+  [bug 0295](./fixed/0295-extend-and-implement-read-only-the-direct-clause.md) was rated High
+  for. Medium on reach, not on kind: it needs a base without types in the middle of a chain,
+  and in the configuration findings' own terms a project that cannot resolve its base classes
+  has a gap those findings may already report. Measure that before treating it as narrow.
 - **Origin:** self-found while fixing 0295, recorded rather than folded in.
 - **Reported:** 2026-10-04
 
@@ -27,6 +28,14 @@ the project cannot resolve and itself extends `BaseRepository`:
 
 `examined` stays non-zero whenever some other subclass is resolved, so the ADR-010 floor
 does not fire.
+
+## Also here
+
+Matching by text at every level (ADR-017 rule 4) means a condition can pass a class whose
+distant ancestor, in a library's declarations, names an unrelated class with the same name.
+Bug 0296 kept the text match for unresolved bases; the walk widens where it applies. Whatever
+this record decides about unresolved levels should decide whether text matching is limited to
+them.
 
 ## Fix
 
