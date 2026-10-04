@@ -27,7 +27,7 @@ import { notExist } from '../../src/conditions/structural.js'
 import { diagnose } from '../../src/core/diagnose.js'
 import { Project } from 'ts-morph'
 import { diskSet } from '../../src/core/disk-set.js'
-import { CARDINALITY_REMEDY } from '../../src/core/glob-diagnosis.js'
+import { CARDINALITY_REMEDY, FAULT_ADVICE } from '../../src/core/glob-diagnosis.js'
 import type { DeadSiteRoute } from '../../src/core/glob-diagnosis.js'
 import type { ArchProject } from '../../src/core/project.js'
 
@@ -120,8 +120,13 @@ describe('bugs 0363 + 0364: one owner for the route and the remedy', () => {
     // detection fix alone produces it — so it could not tell the one-owner change from its
     // absence. Measured the hard way: a stray `git checkout` reverted the refactor, the suite
     // stayed green at 3910, and only the architecture gate's unused-export rule noticed.
-    // `names-a-file` has its own sentence, and only the route table can produce it.
-    expect(v?.suggestion).toContain('name the DIRECTORY you mean')
+    // `names-a-file` has its own sentence, and only the route table can produce it. Asserted
+    // against the TABLE rather than a quoted phrase: bug 0372 reworded this entry, and a quoted
+    // phrase would have had to move with it — or, for a negative assertion, gone silently vacuous.
+    expect(v?.suggestion).toContain(CARDINALITY_REMEDY['names-a-file'])
+    // …and the entry really is distinct from `syntactic`, or a hand-rolled copy that emits
+    // `syntactic`'s sentence for every non-disk route would pass the row above (0363's S7).
+    expect(CARDINALITY_REMEDY['names-a-file']).not.toBe(CARDINALITY_REMEDY['syntactic'])
     expect(v?.suggestion).toContain('Do not delete it')
   })
 
@@ -164,6 +169,59 @@ describe('bugs 0363 + 0364: one owner for the route and the remedy', () => {
     // …and the two routes really are different sentences, or the row above would pass with
     // one table entry serving both and the discrimination lost.
     expect(CARDINALITY_REMEDY['names-a-file']).not.toBe(CARDINALITY_REMEDY['contradicted-by-disk'])
+  })
+
+  it('the Fix line names resideInFile() once, not twice', () => {
+    // Bug 0372. For a cardinality rule the `Fix:` line is cause-then-remedy, and both halves
+    // named `resideInFile()`. Counted on a word boundary rather than the exact `resideInFile()`
+    // token: test review showed a remedy saying "use resideInFile" without parens would have
+    // duplicated the advice and passed a parens-keyed count.
+    const fix = ratchet(ON_DISK_FILE).violations()[0]?.suggestion ?? ''
+    expect(fix.match(/resideInFile\b/g)?.length ?? 0).toBe(1)
+  })
+
+  it('the scope is claimed once, by the headline', () => {
+    // Bug 0372's other half. The headline says "can never match anything in this project" —
+    // correct, since the same text matches fine where that name is a directory. A first fix
+    // QUALIFIED the cause's second claim to "as a folder glob", which is still universal:
+    // `**/src/domain/user.ts` does match as a folder glob where `user.ts` is a directory. The
+    // invariant is not "qualify the second claim" but "make only one". So: count it.
+    const v = ratchet(ON_DISK_FILE).violations()[0]
+    expect(v?.message ?? '').toContain('can never match anything in this project')
+    expect((v?.message ?? '').match(/can never match/g)?.length ?? 0).toBe(1)
+    // …and the cause table itself makes no scope claim, so no other surface reading it repeats one.
+    expect(FAULT_ADVICE['file-not-folder']).not.toMatch(/never match/)
+  })
+
+  it('the remedy does not choose between the two fixes the cause offers', () => {
+    // Product review of 0372's first fix. The cause offers TWO edits — `resideInFile()` for a
+    // file, `/**` for a directory — and a remedy reading "name the DIRECTORY you mean" picked one.
+    // It is the LAST sentence, where an agent acts, so it overrode the cause. For a `.notExist()`
+    // rule meaning a file is the common case, and an agent told to name a directory widens the
+    // rule to the parent folder — changing what it asserts. The remedy now defers.
+    const remedy = CARDINALITY_REMEDY['names-a-file']
+    expect(remedy).not.toMatch(/DIRECTORY|directory|folder/)
+    expect(remedy).not.toMatch(/resideInFile/)
+    expect(FAULT_ADVICE['file-not-folder']).toContain('resideInFile()')
+    expect(FAULT_ADVICE['file-not-folder']).toContain('/**')
+  })
+
+  it('a positive-assertion rule still learns resideInFile() from the cause', () => {
+    // The half of the deduplication that decides WHICH copy goes. The cause keeps the API name
+    // because a non-cardinality rule's remedy — "Correct the glob, or remove the rule." — names
+    // no edit at all, so the cause is its only concrete guidance. Test review measured that this
+    // was asserted by nothing: swapping the name from the cause into the remedy stayed green
+    // across all 3,921 tests, because the count above runs only the cardinality route, where
+    // cause and remedy are concatenated and the total stays at one.
+    const positive = modules(p)
+      .that()
+      .resideInFolder(ON_DISK_FILE)
+      .should()
+      .notImportFrom('**/no-such-package/**')
+      .rule({ id: 'test/0372-positive' })
+    const v = positive.violations()[0]
+    expect(v).toBeDefined()
+    expect(`${v?.message ?? ''} ${v?.suggestion ?? ''}`).toContain('resideInFile()')
   })
 
   it('a cardinality rule is never told to remove itself, on any route or none', () => {
@@ -273,6 +331,8 @@ describe('bugs 0363 + 0364: one owner for the route and the remedy', () => {
     // what the walk declined to resolve.
     const linked = ratchet('**/apps/shared**').violations()[0]
     expect(linked?.message ?? '').not.toContain('matches a FILE')
-    expect(linked?.suggestion ?? '').not.toContain('name the DIRECTORY you mean')
+    // Against the table, not a phrase: when bug 0372 reworded this remedy, a quoted
+    // `not.toContain('name the DIRECTORY you mean')` would have passed forever, testing nothing.
+    expect(linked?.suggestion ?? '').not.toContain(CARDINALITY_REMEDY['names-a-file'])
   })
 })

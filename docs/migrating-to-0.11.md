@@ -37,13 +37,24 @@ suppressible.
 1. Upgrade, run your gates, and **read the new findings before you regenerate a baseline.**
 2. For any rule that now reports, the finding tells you which of three cases you are in, and the
    `Fix:` line names the edit rather than the direction:
-   - _"Correct the selector to name the DIRECTORY you mean, or use `resideInFile()` if you meant
-     the file"_ — the glob names a file. `resideInFile()` is the predicate for that.
+   - _"this matches a FILE but is used where a directory is read — use `resideInFile()` for a
+     file, or append `/**` to name the files inside a directory. Apply whichever of those two fixes
+     you meant"_ — the glob names a file. **Decide which you meant before you edit.** If the rule
+     is about that one file — "`legacy/old.ts` must not come back" — use `resideInFile()`; widening
+     the glob to the parent folder changes what the rule asserts. The example above is this case:
+     `'**/docs/readme**'` almost certainly means the file.
+
+     _This wording is from 0.11.1. In 0.11.0 the last sentence read "Correct the selector to name
+     the DIRECTORY you mean, or use `resideInFile()` if you meant the file" — and an earlier draft
+     of the fix dropped the file option from it, which would have steered exactly the author of
+     the example above toward the wrong edit ([bug 0372](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0372-the-file-not-folder-sentence-says-it-can-never-match-twice.md))._
+
    - _"Widen the tsconfig include to cover this path, or correct the selector"_ — the code you
      assert is gone is on disk and your project never loaded it. Here the tsconfig **is** the
      lever, and the rule found a real gap.
    - _"Correct the selector — this rule has not been enforcing anything"_ — the glob is broken in
      this project and in every other one. A leading `./` is the usual cause.
+
 3. **Do not delete the rule.** None of the three remedies offers that, deliberately: the finding
    cannot be suppressed, so deletion would be the only achievable exit, and the rule is the thing
    that noticed.

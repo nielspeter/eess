@@ -24,6 +24,7 @@ import { project } from '../../src/core/project.js'
 import { modules } from '../../src/builders/module-rule-builder.js'
 import { notExist } from '../../src/conditions/structural.js'
 import { diagnose } from '../../src/core/diagnose.js'
+import { CARDINALITY_REMEDY } from '../../src/core/glob-diagnosis.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 let base: string
@@ -248,7 +249,11 @@ describe('bug 0357: doctor and check agree about a cardinality rule', () => {
       .satisfy(notExist())
       .rule({ id: 'test/0357' })
       .violations()[0]
-    expect(v?.suggestion).toContain('Correct the selector')
+    // The route's own remedy, from the TABLE rather than a quoted phrase. This asserted
+    // `toContain('Correct the selector')` until bug 0372 reworded `names-a-file` to defer to the
+    // cause's two options — and broke here, in a file the reword's author did not re-run. A
+    // phrase quoted from a table entry is a copy of it, and copies drift.
+    expect(v?.suggestion).toContain(CARDINALITY_REMEDY['names-a-file'])
     expect(v?.suggestion).not.toContain('tsconfig')
     expect(v?.suggestion).not.toContain('remove the rule')
     // The input that separates the scope guard from a constant, and the only one that
