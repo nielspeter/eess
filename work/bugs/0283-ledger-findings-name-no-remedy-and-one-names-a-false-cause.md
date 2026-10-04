@@ -7,7 +7,7 @@
 - **Severity:** Medium — three of the five messages that predate PR #144 leave the author with no remedy,
   and one of those three asserts something untrue about the repository. Acting on
   the first of them can reach
-  [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md),
+  [0284](./fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md),
   which is the High one.
 - **Origin:** self-found · while verifying an external report; widened on review
   to cover every `ledger/*` message, since they are one file, one class, one
@@ -18,6 +18,14 @@
   its line numbers are restated for that PR's `ledger.ts`.
 
 ## Symptom
+
+_Code pointers in this record are to main at `2987764`, before bug 0284's fix moved them. Since
+that fix (2026-10-04), passing `states` without `terminalStates` — or the reverse — throws an
+`ArchConfigError` instead of defaulting the other half. So where this record says applying
+`states` alone "clears every finding", it now refuses; a remedy this record writes must name
+both options, or it names a crash. The silent pass remains for an author who passes both and
+leaves a closing token out of `terminalStates` — 0284 deferred that to this record, because the
+message the author follows is what decides which list the token lands in._
 
 ### 1. `ledger/unknown-state` names the vocabulary it wanted, never the option
 
@@ -172,7 +180,7 @@ only the first:
   finding by deleting its subject is the `checkAll([])` failure this fixture exists
   to prevent. The assertion must be that after applying the remedy the document
   **stays examined** and a control finding still reds. That fail-open is
-  [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md).
+  [0284](./fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md).
 - **A declaring remedy must expire.** Named for the same reason.
 
 **One constraint on the wording.** Passing `states` + `terminalStates` does not
@@ -229,12 +237,17 @@ print is required.
       corrective — the document stays examined and a control still reds.
 - [ ] The `check-nonvacuity.mjs` registry row.
 - [ ] `CLAUDE.md:174-177` reconciled — no box above covers it; this is it.
+- [ ] The remedy says which list a refused token belongs in: `states` for every token,
+      `terminalStates` too if it means closed. Handed here by
+      [0284](./fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md):
+      an author who passes both lists and leaves a closing token out of `terminalStates` still
+      gets a silent pass, and no mechanism can tell it from intent — only the advice can.
 
 Deferred: none.
 
 ## Related
 
-- [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
+- [0284](./fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
   — where acting on symptom 1's advice can land: a silent green.
 - [0124](./0124-correspondence-stamps-one-remedy-onto-opposite-branches.md) — why
   the cheap rule-level stamp is wrong here.

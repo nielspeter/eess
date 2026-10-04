@@ -2,7 +2,9 @@
 
 ## Status
 
-- **State:** Draft — measured; no red test yet.
+- **State:** Fixed — `states` and `terminalStates` are declared together or not at all; a
+  half throws an `ArchConfigError` naming both and the corrective edit. Breaking, marked
+  `minor` for `eess-md`.
 - **Severity:** **High** — a **green build on a corrupt record**. Not a false red,
   not a misdirection: `honestyAtClose` examines the record, reads its state,
   classifies nothing as done, finds nothing, and reports a pass with a
@@ -13,6 +15,8 @@
 - **Reported:** 2026-09-12
 
 ## Symptom
+
+_Code pointers in this record are to main at `2987764`, before the fix._
 
 `states` and `terminalStates` default independently. Override one and not the
 other, and a token the author treats as closing is not in `terminalStates` — so the
@@ -78,7 +82,7 @@ honestyAtClose(c, { states: ['Draft', 'Promoted'] }) // green, and wrong
 
 `terminalStates` is a second option they were never told about, on a second axis
 they had no reason to consider. That the message names no option at all is
-[0283](./0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md); that
+[0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md); that
 following it can land on a silent green is this record, and it is the worse half.
 
 **This repo never meets it** because `scripts/check-ledger.mjs:53` passes both
@@ -117,12 +121,12 @@ So the corruption to gate is **per record**: a record closed by a token its auth
 This is the branch's recurring shape once more: the protection is written, and it
 is in this repo's gate script rather than in the package an adopter installs — the
 same asymmetry as the per-lane `LANES` table and the missing reference
-`check-ledger.mjs` ([0151](./0151-honesty-at-close-options-undiscoverable-past-source.md)).
+`check-ledger.mjs` ([0151](../0151-honesty-at-close-options-undiscoverable-past-source.md)).
 
 ### What it catches — and the claim retracted here
 
 **An earlier version of this section said the same signature covers
-[0286](./fixed/0286-a-fenced-example-can-turn-the-close-checks-off.md)'s first route, and
+[0286](./0286-a-fenced-example-can-turn-the-close-checks-off.md)'s first route, and
 that "two of the three fail-opens on this branch are one missing guard". Measured
 false, and the measurement that produced it was a fixture of my own making.**
 
@@ -178,6 +182,40 @@ registry row in `scripts/check-nonvacuity.mjs` is required, with a `mustSay` tok
 only the new check can print; extending the existing fixture is not sufficient,
 because a probe that asserts ids fire stays green when a whole check goes dark.
 
+## Fix
+
+**The prior question, answered: remove the class, don't report the pair.** Both silent-green
+shapes in this record — the empty intersection and the commoner non-empty one — come from
+passing one option and letting the other default. So does a third this record did not name:
+`terminalStates` alone keeps the default `states`, and `Done` becomes a known state that no
+longer closes. Reporting an incoherent pair would catch only the first. Requiring the pair
+catches all three, and costs nothing for a caller who passes neither (the defaults agree) or
+both (every caller in this repo, and `terminalStates: []` stays supported).
+
+**What it does not cover — added 2026-10-04 after enforcement and method review.** Requiring
+the pair removes the route where a default chose the terminal set for the author. An author who
+passes both and leaves a closing token out of `terminalStates` still gets this record's exact
+reproduction: measured on the mixed corpus with `states` = defaults + `Promoted` and
+`terminalStates` = `['Done', "Won't-do"]`, zero findings and `doneItems: 1`. No mechanism can
+tell that from a token that really does not close — whether `Promoted` means closed is a
+semantic decision the preset cannot make. dropped-on-purpose as a mechanism; what can prevent
+it is the advice an author follows when a token is refused, which names neither option today —
+deferred→[0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md). The
+refusal now names both options and says which tokens belong in `terminalStates`, so the choice
+is at least made in front of the author.
+
+The same review found a case variant across the two lists (`done` in one, `Done` in the other)
+silently drops the placement check — a separate defect in how the two paths canonicalise,
+filed as [0379](../0379-a-case-variant-across-the-vocabulary-pair-drops-the-placement-check.md).
+
+`resolveVocabulary` in `packages/md/src/rules/ledger.ts` is the one place both
+`honestyAtClose` and `ledgerStats` read the pair, so the denominator cannot disagree with the
+check. A half throws `ArchConfigError` (ADR-014's configuration finding): it names both
+options and the edit that keeps the defaults while adding tokens.
+
+`docs/markdown.md`'s own example passed `terminalStates` alone — this record's configuration,
+taught in the docs. It now passes both and says why.
+
 ## Verification ledger
 
 - [x] Reproduced: the four-column table above, from a corpus seeded the way
@@ -202,26 +240,49 @@ because a probe that asserts ids fire stays green when a whole check goes dark.
 - [x] **Falsified this record's own claim that the guard covers 0286's first route
       and that two fail-opens are one missing guard** — measured silent on a
       two-record lane; it fires only at total lane blackout.
-- [ ] Red first, in [0283](./0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md)'s
+- [x] Red first, in [0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md)'s
       honest form, **not** "the finding names both options" — a constant string
       satisfies that, which is the trap 0283 warns about and an earlier version of
       this box walked into. Assert instead: the finding fires **by rule id** on the mixed corpus in the table above, which has a done item, and the remedy it names is **corrective** — after applying it the record is classified done and its open box reports. A test on a corpus with zero done-items would pass a fix that ships only the lane guard.
-- [ ] A `check-nonvacuity.mjs` registry row with its own fixture and `mustSay`.
-- [ ] The prior question answered: report the incoherent pair, or remove the class
-      by changing how `terminalStates` defaults.
+      _Done-otherwise: the fix throws a configuration error rather than emitting a finding,
+      so there is no rule id to fire. What is asserted instead, on the mixed corpus (a done
+      item beside the victim):_ `packages/md/tests/rules/a-partial-vocabulary-is-a-configuration-error.test.ts`
+      · `it('states without terminalStates is a configuration error naming both options')` —
+      an `ArchConfigError`, not a string match — and
+      `it('the remedy the error names is corrective: the victim is classified done and its box reports')`,
+      which applies the named edit and asserts `ledger/silent-open-box` on the victim and
+      `doneItems: 2`. **Three of the five tests at `be052d1` measured red before the fix** (the sixth, added in
+      review for the `terminalStates`-alone remedy, also fails on the pre-fix code) — the two
+      refusals and the `ledgerStats` one. The corrective test was green before the fix too: with
+      both options passed the old code ran the same path, so it shows the remedy works and is not
+      red-first evidence. _Corrected 2026-10-04: first written "four of the five", counted from a
+      run where that test failed on my own assertion bug (`ruleId` for `rule`); method review
+      measured three against the pre-fix source._ The red-first evidence is the three refusal
+      tests and the fixture below going from exit 0 to exit 1.
+- [x] A `check-nonvacuity.mjs` registry row with its own fixture and `mustSay` —
+      `corpus/ledger/half-vocabulary`, `scripts/nonvacuity/bad-ledger-vocabulary.mjs`, over
+      the same mixed corpus, with ``mustSay: without `terminalStates` ``. Measured: exit 0
+      (vacuous) on the pre-fix build, exit 1 after; the fixture also proves the remedy
+      reports the box, so a gate that refused everything could not pass it.
+- [x] The prior question answered: remove the class — see Fix.
+- [x] `npm run check:nonvacuity` green, 102 fixtures, 365 s. The fixture also refuses
+      `terminalStates` alone since review: a sabotage that let that half default again turned the
+      row red (exit 0), measured.
+- [x] `npm run validate` green on `be052d1` (exit 0, 468 s) and on `621ebec`, after review
+      (exit 0, 472 s); the commit after that changes records only.
 
-Deferred: none.
+Deferred: [0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md).
 
 ## Related
 
-- [0283](./0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md) — the
+- [0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md) — the
   message whose advice leads here, and which names no option at all.
-- [0120](./0120-no-state-and-cannot-find-it-are-the-same-answer.md) — the decision
+- [0120](../0120-no-state-and-cannot-find-it-are-the-same-answer.md) — the decision
   that an unreadable state is reported rather than skipped. This record is its
   mirror: a state that is readable, declared, and renders the check inert.
-- [0151](./0151-honesty-at-close-options-undiscoverable-past-source.md) — none of
+- [0151](../0151-honesty-at-close-options-undiscoverable-past-source.md) — none of
   these options is documented where an adopter reads, which is why only one of the
   pair gets passed.
-- [0174](./0174-eess-ts-reports-a-clean-gate-with-no-denominator.md) — the open
+- [0174](../0174-eess-ts-reports-a-clean-gate-with-no-denominator.md) — the open
   half about a green gate proving declaration rather than examination. Here the
   denominator is printed and still says nothing about the check that went dark.

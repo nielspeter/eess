@@ -116,7 +116,7 @@ preset already runs.
 `closeInPlace` is a documented option, and any lane whose folder is not in
 `doneFolders` reaches the same branch, which is the situation
 [0282](../rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)'s
-successor territory and [0284](../0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
+successor territory and [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
 are both about. The three records share one shape: **a configuration or a document
 can make the close checks select nothing, and the gate reports a clean pass.**
 
@@ -329,7 +329,7 @@ Deferred: none.
 
 - [0287](./0287-four-copies-of-one-fence-lexer-across-three-packages.md) — who
   owns the lexer. Split out of this record: a decision, not a defect.
-- [0284](../0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
+- [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
   — the same fail-open shape reached through configuration rather than content.
 - [0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md) —
   same file, same fixture, same non-vacuity gap.

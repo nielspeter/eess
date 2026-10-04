@@ -1,4 +1,9 @@
-import { finishPreset, type PresetReportOptions, mergeCollectResults } from '@nielspeter/eess'
+import {
+  ArchConfigError,
+  finishPreset,
+  type PresetReportOptions,
+  mergeCollectResults,
+} from '@nielspeter/eess'
 import type { Condition, ConditionContext, Predicate } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
 import type { MdDocument } from '../model/document.js'
@@ -55,15 +60,19 @@ export interface HonestyAtCloseOptions extends PresetReportOptions {
   readonly closeInPlace?: boolean
   /**
    * The full `State:` vocabulary this corpus uses. A token outside it is
-   * **reported** (`ledger/unknown-state`), not ignored. Default: the plan lane's
-   * enum. A bug-shaped lane passes its own, e.g.
-   * `['Draft', 'Ready', 'Fixed', 'Rejected', 'Parked']`.
+   * **reported** (`ledger/unknown-state`), not ignored. A bug-shaped lane passes its own,
+   * e.g. `['Draft', 'Ready', 'Fixed', 'Rejected', 'Parked']`.
+   *
+   * **Declare it together with {@link terminalStates}, or omit both** for the plan lane's
+   * defaults. One alone throws an `ArchConfigError` (bug 0284).
    */
   readonly states?: readonly string[]
   /**
-   * Which of {@link states} mean *closed*. Default `['Done', "Won't-do"]`; a
-   * bug lane passes `['Fixed', 'Rejected']`. Members are treated as known states
-   * whether or not they also appear in {@link states}.
+   * Which of {@link states} mean *closed*; a bug lane passes `['Fixed', 'Rejected']`.
+   * Members are treated as known states whether or not they also appear in {@link states}.
+   *
+   * **Declare it together with {@link states}, or omit both** for the defaults
+   * (`['Done', "Won't-do"]`). One alone throws an `ArchConfigError` (bug 0284).
    */
   readonly terminalStates?: readonly string[]
   /**
@@ -87,6 +96,53 @@ const DEFAULT_DONE_FOLDERS = ['/completed/', '/fixed/', '/wont-do/', '/delivered
 const DEFAULT_BOARD_FILES = ['ROADMAP.md', 'BUGS.md', 'REFINEMENT.md', 'SUPPORT.md', 'README.md']
 const DEFAULT_STATES = ['Draft', 'Ready', 'Open', 'Done', "Won't-do"]
 const DEFAULT_TERMINAL_STATES = ['Done', "Won't-do"]
+
+/**
+ * The vocabulary and its terminal subset, declared together or not at all (bug 0284).
+ *
+ * They used to default independently. Passing `states` alone kept the default
+ * `terminalStates`, so a closing token the author added — exactly what
+ * `ledger/unknown-state` tells them to do — was readable and never terminal: the record
+ * was never classified done, every close check selected nothing, and the gate reported
+ * a clean pass over an undisposed box. Passing `terminalStates` alone did the mirror:
+ * the default `Done` stayed a known state that no longer closed. Each half is
+ * meaningful only beside the other, so a half is a configuration error, not a default.
+ *
+ * What this removes is the route where a default chose the terminal set for the author.
+ * An author who passes both and leaves a closing token out of `terminalStates` still gets
+ * a record that is never done, and no mechanism can tell that from a token that really
+ * does not close. The refusal makes that choice explicit; it cannot check it.
+ */
+function resolveVocabulary(
+  options: HonestyAtCloseOptions,
+  caller: 'honestyAtClose' | 'ledgerStats',
+): {
+  states: readonly string[]
+  terminalStates: readonly string[]
+} {
+  const { states, terminalStates } = options
+  if (states === undefined && terminalStates === undefined) {
+    return { states: DEFAULT_STATES, terminalStates: DEFAULT_TERMINAL_STATES }
+  }
+  if (states !== undefined && terminalStates !== undefined) return { states, terminalStates }
+  const list = (xs: readonly string[]) => xs.map((x) => JSON.stringify(x)).join(', ')
+  const why =
+    'The two declare one vocabulary — `states` lists every State: token, `terminalStates` the ' +
+    'ones that mean closed — and a half takes the other from the defaults, which can leave a ' +
+    'closing token outside the terminal set: its records are never treated as done, and their ' +
+    'open boxes pass unchecked.'
+  const remedy =
+    states === undefined
+      ? 'Pass `states` too, as your full vocabulary: every State: token your records use, ' +
+        'including these terminal ones.'
+      : 'Pass `terminalStates` too: the tokens in `states` that mean closed. To keep the ' +
+        `defaults and add your own, extend both — states: [${list(DEFAULT_STATES)}, …yours], ` +
+        `terminalStates: [${list(DEFAULT_TERMINAL_STATES)}, …your closing ones].`
+  throw new ArchConfigError(
+    caller,
+    `${caller} was given ${states === undefined ? '`terminalStates` without `states`' : '`states` without `terminalStates`'}. ${why} ${remedy}`,
+  )
+}
 
 // The `State:` label. A colon is **required** in every form: making it optional
 // turned any line beginning with the word "State" into a state declaration, so
@@ -577,8 +633,7 @@ export function honestyAtClose(
   const doneFolders = options.doneFolders ?? DEFAULT_DONE_FOLDERS
   const boardFiles = new Set(options.boardFiles ?? DEFAULT_BOARD_FILES)
   const closeInPlace = options.closeInPlace ?? false
-  const states = options.states ?? DEFAULT_STATES
-  const terminalStates = options.terminalStates ?? DEFAULT_TERMINAL_STATES
+  const { states, terminalStates } = resolveVocabulary(options, 'honestyAtClose')
   const expectEmptyHeaders = options.expectEmptyHeaders ?? false
 
   let headerRule = docs(corpus)
@@ -680,8 +735,7 @@ export interface LedgerStats {
 export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {}): LedgerStats {
   const doneFolders = options.doneFolders ?? DEFAULT_DONE_FOLDERS
   const boardFiles = new Set(options.boardFiles ?? DEFAULT_BOARD_FILES)
-  const states = options.states ?? DEFAULT_STATES
-  const terminalStates = options.terminalStates ?? DEFAULT_TERMINAL_STATES
+  const { states, terminalStates } = resolveVocabulary(options, 'ledgerStats')
   const known = [...new Set([...states, ...terminalStates])]
 
   let scanned = 0

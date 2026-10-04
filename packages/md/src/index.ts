@@ -36,6 +36,8 @@ export {
   // arrive as an `ArchConfigError` a caller has to recognise.
   reportViolations,
   isArchConfigError,
+  // Bug 0284: `honestyAtClose` throws it for a half-declared vocabulary.
+  ArchConfigError,
 } from '@nielspeter/eess'
 // `correspondence`/`CorrespondenceBuilder`: not touched by this package's
 // OWN source (so the family.rules.ts code-import scan can't see this gap —

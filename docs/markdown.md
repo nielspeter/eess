@@ -499,6 +499,8 @@ import { honestyAtClose, ledgerStats } from '@nielspeter/eess-md/rules/ledger'
 const c = corpus({ roots: ['work/**'] })
 const opts = {
   doneFolders: ['completed', 'fixed'],
+  // Declared together or not at all — see below.
+  states: ['Draft', 'Ready', 'Open', 'Done', "Won't-do"],
   terminalStates: ['Done', "Won't-do"],
 }
 
@@ -518,7 +520,11 @@ closes items where they sit instead of moving them), `states` and
 `terminalStates` (the full `State:` vocabulary and which of it counts as
 closed — a bug lane passes `['Draft', 'Ready', 'Fixed', 'Rejected', 'Parked']`
 / `['Fixed', 'Rejected']` where a plan lane passes the default `Done`/`Won't-do`
-shape), and `expectEmptyHeaders` (declare that a freshly-bootstrapped lane may
+shape). **Pass `states` and `terminalStates` together, or neither**: either one alone throws
+an `ArchConfigError`. They declare one vocabulary, and a half used to take the other from the
+defaults — so a closing token you added to `states` was never terminal, its records were never
+treated as done, and their open boxes passed with no finding at all (bug 0284). To keep the
+defaults and add your own tokens, extend both lists. Then there is `expectEmptyHeaders` (declare that a freshly-bootstrapped lane may
 legitimately hold zero items yet — the declaration expires the day a real
 document appears).
 

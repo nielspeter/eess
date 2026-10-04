@@ -19,7 +19,7 @@
   Reproduced end to end by three independent reviewers. The field-slices are
   [0251](./0251-the-corpus-map-teaches-a-close-vocabulary-the-gate-rejects.md)
   (vocabulary) and
-  [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
+  [0284](./fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
   (what a partial declaration does), and this record is the structure all of them
   are slices of. It is still the shape that is wrong; the shape is now load-bearing.
 
