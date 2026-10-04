@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — reproduced, and pinned by KNOWN-GAP tests. The fix needs a
-  ruling on public DSL semantics before code.
+- **State:** Fixed — [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md)
+  rules that a heritage predicate names a relation; `extend`, `implement` and `extendType`
+  walk the chain, as selectors and as conditions. Breaking, marked `minor`.
 - **Severity:** High — **false green.** As a selector, `extend('Base')` drops every
   class that reaches `Base` through an intermediate class, and `examined` stays
   above zero, so the ADR-010 floor has nothing to fire on. As a condition the same
@@ -33,7 +34,7 @@ checker cannot resolve (`extends Model`, imported from an uninstalled package, i
 selected by `extend('Model')` — by its text).
 
 A base written through an alias, a namespace or a mixin call was a **different**
-defect with a different fix: [0296](./fixed/0296-heritage-predicates-compare-the-clause-text.md),
+defect with a different fix: [0296](./0296-heritage-predicates-compare-the-clause-text.md),
 since fixed — the predicates now match the direct clause as written or as resolved.
 
 ## Root cause
@@ -64,7 +65,16 @@ only the standalone predicate's docstring mentions the text match.
 
 ## Fix
 
-Not decided. It is a ruling on DSL semantics ([ADR-003](../../adr/003-fluent-builder-dsl.md)),
+**Ruled in [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md):
+the relation.** `packages/ts/src/helpers/heritage.ts` walks the class chain through
+`getBaseClass()` and the interface chain through each clause's resolved declarations, and at
+every level keeps 0296's comparison (as written, or as resolved). Every documented use and
+`dataLayer`'s own rationale read `extend` as "an ancestor"; the clause reading failed open as a
+selector. The ruling's reasoning is in the ADR. What follows is the question as it was filed.
+
+### As filed
+
+It is a ruling on DSL semantics ([ADR-003](../../../adr/003-fluent-builder-dsl.md)),
 and the ruling has to cover more than `extend`:
 
 - **Transitive `extend`/`implement`/`extendType`, or a separately named transitive
@@ -91,7 +101,7 @@ The docs can be corrected now, without the ruling, to say what the predicates do
 
 ## Verification
 
-- [x] KNOWN-GAP tests pin today's behaviour —
+- [x] KNOWN-GAP tests pinned the old behaviour (inverted by the fix, below) —
       `packages/ts/tests/predicates/extend-reads-the-direct-parent.test.ts` ·
       `it('KNOWN GAP — extend() as a selector drops a grandchild, so its violation is never reported')`,
       `it('KNOWN GAP — extend() as a condition reds a grandchild of the base it names')`,
@@ -103,11 +113,31 @@ The docs can be corrected now, without the ruling, to say what the predicates do
 - [x] CONTROLs that must survive any fix —
       `it('CONTROL — extend() selects a direct child and not an unrelated class')` and
       `it('CONTROL — extend() selects a generic base and a base the checker cannot resolve')`.
-- [ ] a ruling — an ADR if binding — covering `extend`, `implement`, `extendType` and
-      `eess-mermaid`'s `extend`
-- [ ] the docs (`docs/index.md:224`, `docs/classes.md:31`, `docs/classes.md:60`)
-      and the builder JSDoc say what the predicates do
-- [ ] the fix, with the KNOWN-GAP tests inverted into red-first tests
-- [ ] `npm run validate` green.
+- [x] a ruling — [ADR-017](../../../adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md),
+      covering all four. `eess-mermaid`'s `extend` is ruled on and not built:
+      deferred→[bug 0374](../0374-eess-mermaid-extend-reads-one-edge.md), and ADR-017's C6 row is
+      `pending` on it.
+- [x] the docs (`docs/index.md`, `docs/classes.md`, `docs/types.md`, `docs/api-reference.md`)
+      and both builders' JSDoc say the predicates walk; `docs/migrating-to-0.12.md` written.
+- [x] the fix, with the KNOWN-GAP tests inverted into red-first tests —
+      `packages/ts/tests/predicates/heritage-predicates-walk-the-chain.test.ts` (renamed from
+      `extend-reads-the-direct-parent.test.ts`): five inverted, all measured red before the walk,
+      plus `it('the walk still matches by name where a level of the chain cannot be resolved')`
+      and `it('a heritage cycle ends the walk instead of looping')`. The shipped preset:
+      `packages/ts/tests/presets/data-layer.test.ts` ·
+      `it('accepts a repository that extends the base through an intermediate class (bug 0295)')`.
+- [x] sabotage matrix, seven rows, sha256-verified restores. Six turn red: the walk replaced by
+      the direct check (4 red), `implement` ignoring ancestors (2), no interface walk (4), no
+      interface cycle guard (1), each level compared as resolved only (3), `extendType` direct
+      only (1). The seventh — removing the class-chain cycle guard — turned nothing red, so it
+      was probed: the checker gives no base class to a circular chain in all seven shapes tried
+      (self-extend, pair, cross-file pair, declaration merge, JS file, mixin, ambient pair). The
+      guard could never fire and was deleted rather than kept as an unfalsifiable check.
+- [x] `npm run validate` green.
 
-Deferred: none.
+A walk can only climb what the checker resolves: above an unresolved base it stops and says
+nothing — deferred→[bug 0373](../0373-an-unresolved-base-ends-the-heritage-walk-silently.md).
+The direct check had the same blind spot one level down, so nothing selected before is dropped.
+
+Deferred: [bug 0373](../0373-an-unresolved-base-ends-the-heritage-walk-silently.md),
+[bug 0374](../0374-eess-mermaid-extend-reads-one-edge.md).

@@ -26,16 +26,16 @@ classes(p).that().extend('BaseRepository').should().beExported().check()
 
 Predicates narrow down which classes a rule applies to. Chain them with `.and()` to combine multiple filters. All identity predicates (`haveNameMatching`, `resideInFolder`, `areExported`, etc.) work on classes. In addition, class-specific predicates let you filter by inheritance, decorators, and members:
 
-| Predicate                   | Description                           | Example                                 |
-| --------------------------- | ------------------------------------- | --------------------------------------- |
-| `extend(name)`              | Class extends the given base class    | `.that().extend('BaseRepository')`      |
-| `implement(name)`           | Class implements the given interface  | `.that().implement('Serializable')`     |
-| `haveDecorator(name)`       | Class has the given decorator         | `.that().haveDecorator('Injectable')`   |
-| `haveDecoratorMatching(re)` | Class has a decorator matching regex  | `.that().haveDecoratorMatching(/^Api/)` |
-| `areAbstract`               | Class is abstract                     | `.that().areAbstract()`                 |
-| `haveMethodNamed(name)`     | Class has a method with the name      | `.that().haveMethodNamed('execute')`    |
-| `haveMethodMatching(re)`    | Class has a method matching the regex | `.that().haveMethodMatching(/^handle/)` |
-| `havePropertyNamed(name)`   | Class has a property with the name    | `.that().havePropertyNamed('logger')`   |
+| Predicate                   | Description                                                                                    | Example                                 |
+| --------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `extend(name)`              | Class extends the given base class, at any depth                                               | `.that().extend('BaseRepository')`      |
+| `implement(name)`           | Class implements the given interface, directly or through an ancestor or an extended interface | `.that().implement('Serializable')`     |
+| `haveDecorator(name)`       | Class has the given decorator                                                                  | `.that().haveDecorator('Injectable')`   |
+| `haveDecoratorMatching(re)` | Class has a decorator matching regex                                                           | `.that().haveDecoratorMatching(/^Api/)` |
+| `areAbstract`               | Class is abstract                                                                              | `.that().areAbstract()`                 |
+| `haveMethodNamed(name)`     | Class has a method with the name                                                               | `.that().haveMethodNamed('execute')`    |
+| `haveMethodMatching(re)`    | Class has a method matching the regex                                                          | `.that().haveMethodMatching(/^handle/)` |
+| `havePropertyNamed(name)`   | Class has a property with the name                                                             | `.that().havePropertyNamed('logger')`   |
 
 ## Available Conditions
 
@@ -55,20 +55,20 @@ Structural conditions apply to any declaration type and cover basic concerns lik
 
 These conditions assert on class structure -- inheritance, methods, properties, and parameter types. Use them to enforce patterns like "all repositories must extend BaseRepository" or "services must not accept a raw database client."
 
-| Condition                              | Description                                | Example                                                          |
-| -------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------- |
-| `extend(name)`                         | Class must extend the named base class     | `.should().extend('BaseRepository')`                             |
-| `implement(name)`                      | Class must implement the named interface   | `.should().implement('Disposable')`                              |
-| `haveMethodNamed(name)`                | Class must have a method with the name     | `.should().haveMethodNamed('dispose')`                           |
-| `shouldNotHaveMethodMatching(re)`      | Class must not have methods matching regex | `.should().shouldNotHaveMethodMatching(/^_/)`                    |
-| `shouldHavePropertyNamed(...names)`    | All named properties must exist            | `.should().shouldHavePropertyNamed('logger')`                    |
-| `shouldNotHavePropertyNamed(...names)` | None of the named properties may exist     | `.should().shouldNotHavePropertyNamed('offset')`                 |
-| `havePropertyMatching(pattern)`        | At least one property matches regex        | `.should().havePropertyMatching(/^id$/)`                         |
-| `notHavePropertyMatching(pattern)`     | No property matches regex                  | `.should().notHavePropertyMatching(/^data$/)`                    |
-| `haveOnlyReadonlyProperties()`         | All properties must be readonly            | `.should().haveOnlyReadonlyProperties()`                         |
-| `maxProperties(n)`                     | Property count must not exceed n           | `.should().maxProperties(10)`                                    |
-| `acceptParameterOfType(matcher)`       | At least one parameter matches TypeMatcher | `.should().acceptParameterOfType(matching(/DatabaseClient/))`    |
-| `notAcceptParameterOfType(matcher)`    | No parameter matches TypeMatcher           | `.should().notAcceptParameterOfType(matching(/DatabaseClient/))` |
+| Condition                              | Description                                                                                        | Example                                                          |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `extend(name)`                         | Class must extend the named base class, at any depth                                               | `.should().extend('BaseRepository')`                             |
+| `implement(name)`                      | Class must implement the named interface, directly or through an ancestor or an extended interface | `.should().implement('Disposable')`                              |
+| `haveMethodNamed(name)`                | Class must have a method with the name                                                             | `.should().haveMethodNamed('dispose')`                           |
+| `shouldNotHaveMethodMatching(re)`      | Class must not have methods matching regex                                                         | `.should().shouldNotHaveMethodMatching(/^_/)`                    |
+| `shouldHavePropertyNamed(...names)`    | All named properties must exist                                                                    | `.should().shouldHavePropertyNamed('logger')`                    |
+| `shouldNotHavePropertyNamed(...names)` | None of the named properties may exist                                                             | `.should().shouldNotHavePropertyNamed('offset')`                 |
+| `havePropertyMatching(pattern)`        | At least one property matches regex                                                                | `.should().havePropertyMatching(/^id$/)`                         |
+| `notHavePropertyMatching(pattern)`     | No property matches regex                                                                          | `.should().notHavePropertyMatching(/^data$/)`                    |
+| `haveOnlyReadonlyProperties()`         | All properties must be readonly                                                                    | `.should().haveOnlyReadonlyProperties()`                         |
+| `maxProperties(n)`                     | Property count must not exceed n                                                                   | `.should().maxProperties(10)`                                    |
+| `acceptParameterOfType(matcher)`       | At least one parameter matches TypeMatcher                                                         | `.should().acceptParameterOfType(matching(/DatabaseClient/))`    |
+| `notAcceptParameterOfType(matcher)`    | No parameter matches TypeMatcher                                                                   | `.should().notAcceptParameterOfType(matching(/DatabaseClient/))` |
 
 ### Body Analysis Conditions
 

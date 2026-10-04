@@ -6,19 +6,16 @@ import { call } from '../../src/helpers/matchers.js'
 import type { ArchProject } from '../../src/core/project.js'
 
 /**
- * Bug 0295 — `extend()`, `implement()` and `extendType()` compare the text of the
- * subject's OWN clause, so a subject that reaches the base through an intermediate
- * class or interface is neither selected nor accepted.
+ * Bug 0295 — `extend()`, `implement()` and `extendType()` compared the text of the
+ * subject's OWN clause, so a subject that reached the base through an intermediate
+ * class or interface was neither selected nor accepted. ADR-017 rules that they walk
+ * the chain; these tests were KNOWN-GAP pins of the direct reading, inverted by the fix.
  *
- * The KNOWN GAP tests detect a fix that makes the predicates transitive, and turn
- * red under it: invert them in the same change, and say so in the record. Under a
- * ruling that keeps direct semantics they stay green, and the record says so too.
- *
- * Each selector gap is shown by two derivations (ADR-009 rule 5): what the
+ * Each selector case is shown by two derivations (ADR-009 rule 5): what the
  * predicate's rule reports, and what a rule selecting by name reports over the same
- * project — the second proves the dropped subject really violates. The CONTROLs
- * must survive any fix: an unrelated class stays unselected, and a base the checker
- * cannot resolve stays selected, which a walk-only fix would silently drop.
+ * project — the second proves the reached subject really violates. The CONTROLs
+ * predate the fix and must survive it: an unrelated class stays unselected, and a base
+ * the checker cannot resolve stays selected, which a walk-only fix would silently drop.
  */
 function heritageProject(): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })
@@ -99,7 +96,7 @@ function reportedByEveryRepositoryRule(p: ArchProject): Set<string> {
   )
 }
 
-describe('bug 0295: heritage predicates read only the direct clause', () => {
+describe('bug 0295: heritage predicates walk the chain', () => {
   it('CONTROL — extend() selects a direct child and not an unrelated class', () => {
     const reported = reportedBySubclassRule(heritageProject())
     expect(reported).toContain('DirectRepository')
@@ -122,31 +119,32 @@ describe('bug 0295: heritage predicates read only the direct clause', () => {
     expect(selectedBy('Model')).toContain('UnresolvedEntity')
   })
 
-  it('KNOWN GAP — extend() as a selector drops a grandchild, so its violation is never reported', () => {
+  it('extend() as a selector reaches a grandchild, so its violation is reported', () => {
     const p = heritageProject()
     const reported = reportedBySubclassRule(p)
-    // Positive anchor: the rule selects and reports something.
     expect(reported).toContain('DirectRepository')
-    expect(reported).not.toContain('AuditRepository')
-    // …and AuditRepository does violate, by a rule that selects it.
+    expect(reported).toContain('AuditRepository')
+    // Second derivation (ADR-009 rule 5): a rule selecting by name agrees it violates.
     expect(reportedByEveryRepositoryRule(p)).toContain('AuditRepository')
   })
 
-  it('KNOWN GAP — extend() as a condition reds a grandchild of the base it names', () => {
+  it('extend() as a condition accepts a grandchild of the base it names', () => {
     const reported = elements(
       classes(heritageProject())
         .that()
-        .haveNameMatching(/^(Direct|Audit)Repository$/)
+        .haveNameMatching(/^(Direct|Audit|Unrelated)Repository$/)
         .should()
         .extend('BaseRepository')
         .rule({ id: 'test/0295-extend-condition' })
         .violations(),
     )
-    expect(reported).toContain('AuditRepository')
+    // Positive anchor: the condition still reds a class outside the hierarchy.
+    expect(reported).toContain('UnrelatedRepository')
+    expect(reported).not.toContain('AuditRepository')
     expect(reported).not.toContain('DirectRepository')
   })
 
-  it('KNOWN GAP — implement() as a selector drops a class that reaches the interface indirectly', () => {
+  it('implement() as a selector reaches a class that implements the interface indirectly', () => {
     const selected = elements(
       classes(heritageProject())
         .that()
@@ -157,26 +155,28 @@ describe('bug 0295: heritage predicates read only the direct clause', () => {
         .violations(),
     )
     expect(selected).toContain('DirectImpl')
-    expect(selected).not.toContain('ViaChildImpl')
-    expect(selected).not.toContain('SubImpl')
+    expect(selected).toContain('ViaChildImpl')
+    expect(selected).toContain('SubImpl')
+    expect(selected).not.toContain('UnrelatedRepository')
   })
 
-  it('KNOWN GAP — implement() as a condition reds a class that reaches the interface indirectly', () => {
+  it('implement() as a condition accepts a class that implements the interface indirectly', () => {
     const reported = elements(
       classes(heritageProject())
         .that()
-        .haveNameEndingWith('Impl')
+        .haveNameMatching(/Impl$|^UnrelatedRepository$/)
         .should()
         .implement('IBase')
         .rule({ id: 'test/0295-implement-condition' })
         .violations(),
     )
-    expect(reported).toContain('ViaChildImpl')
-    expect(reported).toContain('SubImpl')
+    expect(reported).toContain('UnrelatedRepository')
+    expect(reported).not.toContain('ViaChildImpl')
+    expect(reported).not.toContain('SubImpl')
     expect(reported).not.toContain('DirectImpl')
   })
 
-  it('KNOWN GAP — extendType() drops an interface that reaches the base through another interface', () => {
+  it('extendType() reaches an interface that extends the base through another interface', () => {
     const selected = elements(
       types(heritageProject())
         .that()
@@ -187,6 +187,99 @@ describe('bug 0295: heritage predicates read only the direct clause', () => {
         .violations(),
     )
     expect(selected).toContain('Mid')
-    expect(selected).not.toContain('GrandCfg')
+    expect(selected).toContain('GrandCfg')
+    expect(selected).not.toContain('IBase')
+  })
+
+  it('the walk still matches by name where a level of the chain cannot be resolved', () => {
+    // UnresolvedEntity resolves; its own base, Model, does not. The walk reaches
+    // UnresolvedEntity and matches its clause by text, as the direct check did.
+    const p = heritageProject()
+    p._project.createSourceFile(
+      '/src/order.ts',
+      "import { UnresolvedEntity } from './unresolved'\nexport class Order extends UnresolvedEntity {}\n",
+    )
+    const selected = elements(
+      classes(p)
+        .that()
+        .extend('Model')
+        .should()
+        .notExist()
+        .rule({ id: 'test/0295-unresolved-level' })
+        .violations(),
+    )
+    expect(selected).toContain('UnresolvedEntity')
+    expect(selected).toContain('Order')
+  })
+
+  it('a heritage cycle ends the walk instead of looping', () => {
+    const tsm = new Project({ useInMemoryFileSystem: true })
+    tsm.createSourceFile(
+      '/src/cycle.ts',
+      'export class A extends B {}\nexport class B extends A {}\nexport interface I extends J {}\nexport interface J extends I {}\nexport class C implements I {}\n',
+    )
+    const p: ArchProject = {
+      tsConfigPath: '/tsconfig.json',
+      _project: tsm,
+      getSourceFiles: () => tsm.getSourceFiles(),
+    }
+    expect(
+      elements(
+        classes(p)
+          .that()
+          .extend('Nowhere')
+          .should()
+          .notExist()
+          .rule({ id: 'test/0295-cycle-a' })
+          .violations(),
+      ),
+    ).toEqual(new Set())
+    expect(
+      elements(
+        classes(p)
+          .that()
+          .implement('Nowhere')
+          .should()
+          .notExist()
+          .rule({ id: 'test/0295-cycle-i' })
+          .violations(),
+      ),
+    ).toEqual(new Set())
+    expect(
+      elements(
+        types(p)
+          .that()
+          .extendType('Nowhere')
+          .should()
+          .notExist()
+          .rule({ id: 'test/0295-cycle-t' })
+          .violations(),
+      ),
+    ).toEqual(new Set())
+    // Positive anchors: the clauses are still read. The checker gives a class on a circular
+    // chain no base class, so each matches only its own clause; the interfaces resolve, so
+    // C reaches J through I.
+    expect(
+      elements(
+        classes(p)
+          .that()
+          .extend('A')
+          .should()
+          .notExist()
+          .rule({ id: 'test/0295-cycle-a2' })
+          .violations(),
+      ),
+    ).toEqual(new Set(['B']))
+    expect(
+      elements(
+        classes(p)
+          .that()
+          .implement('J')
+          .should()
+          .notExist()
+          .rule({ id: 'test/0295-cycle-j' })
+          .violations(),
+      ),
+    ).toEqual(new Set(['C']))
   })
 })

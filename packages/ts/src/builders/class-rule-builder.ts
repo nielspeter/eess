@@ -193,16 +193,17 @@ export class ClassRuleBuilder extends RuleBuilder<ClassDeclaration> {
   // --- Class-specific predicate methods ---
 
   /**
-   * After `.that()`: filter classes that extend the given class.
-   * After `.should()`: assert matched classes extend the given class.
+   * After `.that()`: filter classes that extend the given class, directly or through
+   * intermediate classes (ADR-017). After `.should()`: assert matched classes extend it.
    */
   extend(className: string): this {
     return this.dualUse(conditionExtend(className), predicateExtend(className))
   }
 
   /**
-   * After `.that()`: filter classes that implement the given interface.
-   * After `.should()`: assert matched classes implement the given interface.
+   * After `.that()`: filter classes that implement the given interface — in their own clause,
+   * an ancestor's, or through an interface that extends it (ADR-017). After `.should()`: assert
+   * matched classes implement it.
    */
   implement(interfaceName: string): this {
     return this.dualUse(conditionImplement(interfaceName), predicateImplement(interfaceName))

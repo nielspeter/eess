@@ -121,7 +121,8 @@ export class TypeRuleBuilder extends RuleBuilder<TypeDeclaration> {
   }
 
   /**
-   * Narrows the selection to types that extend the type `name`.
+   * Narrows the selection to types that extend the type `name` — for an interface, directly
+   * or through another interface (ADR-017).
    *
    * **Predicate only**, unlike the dual-use methods on this builder: it never
    * becomes an assertion. Written after `.should()` it still filters, and the

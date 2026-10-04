@@ -44,7 +44,7 @@ suppressible.
      the glob to the parent folder changes what the rule asserts. The example above is this case:
      `'**/docs/readme**'` almost certainly means the file.
 
-     _This wording is from 0.11.1. In 0.11.0 the last sentence read "Correct the selector to name
+     _This wording is from 0.12.0. In 0.11.0 the last sentence read "Correct the selector to name
      the DIRECTORY you mean, or use `resideInFile()` if you meant the file" — and an earlier draft
      of the fix dropped the file option from it, which would have steered exactly the author of
      the example above toward the wrong edit ([bug 0372](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0372-the-file-not-folder-sentence-says-it-can-never-match-twice.md))._

@@ -1,4 +1,10 @@
-import type { ClassDeclaration, Decorator, ExpressionWithTypeArguments } from 'ts-morph'
+import { Node } from 'ts-morph'
+import type {
+  ClassDeclaration,
+  Decorator,
+  ExpressionWithTypeArguments,
+  InterfaceDeclaration,
+} from 'ts-morph'
 
 /**
  * Heritage and decorator names, as written and as resolved (bug 0296).
@@ -7,8 +13,12 @@ import type { ClassDeclaration, Decorator, ExpressionWithTypeArguments } from 't
  * import, a namespace member or a mixin call was missed. Each check here keeps the written
  * comparison — a namespace-qualified name and a base the checker cannot resolve still match
  * exactly as before — and adds the name the checker resolves the clause to. That only ever
- * adds matches. Only the DIRECT clause is read: a grandchild is not a direct child, which is
- * bug 0295's question, not this one.
+ * adds matches.
+ *
+ * Each check walks the chain (bug 0295, ADR-017): a grandchild of `Base` extends `Base`. At every
+ * level the clause is compared as written and as resolved, so a level the checker cannot resolve
+ * still matches by its text — the walk adds matches to the direct check and never removes one.
+ * It stops where it cannot see further: a base it cannot resolve has no clauses to read.
  */
 
 /** Whether a heritage clause (`implements X`, an interface's `extends X`) resolves to `name`. */
@@ -17,7 +27,7 @@ export function clauseResolvesTo(clause: ExpressionWithTypeArguments, name: stri
 }
 
 /** Whether `cls` names `className` as its direct base, as written or as resolved. */
-export function extendsByName(cls: ClassDeclaration, className: string): boolean {
+function directlyExtends(cls: ClassDeclaration, className: string): boolean {
   const clause = cls.getExtends()
   if (clause === undefined) return false
   return (
@@ -25,15 +35,77 @@ export function extendsByName(cls: ClassDeclaration, className: string): boolean
   )
 }
 
-/** Whether `cls` names `interfaceName` in its own `implements` clause, as written or as resolved. */
+/**
+ * `cls` and every class it reaches through `extends`. There is no cycle guard because the
+ * checker gives a class on a circular chain no base class — measured over a self-extend, a
+ * pair, a cross-file pair, a declaration merge, a JS file, a mixin and an ambient pair; a
+ * guard that cannot fire is not a guard, and the heritage-cycle test fails by timeout if it
+ * ever stops holding.
+ */
+function classChain(cls: ClassDeclaration): ClassDeclaration[] {
+  const chain: ClassDeclaration[] = []
+  for (let cur: ClassDeclaration | undefined = cls; cur !== undefined; cur = cur.getBaseClass()) {
+    chain.push(cur)
+  }
+  return chain
+}
+
+/** The interface declarations a heritage clause resolves to; none when it does not resolve. */
+function interfacesOf(clause: ExpressionWithTypeArguments): InterfaceDeclaration[] {
+  return (clause.getType().getSymbol()?.getDeclarations() ?? []).filter((d) =>
+    Node.isInterfaceDeclaration(d),
+  )
+}
+
+/** Whether a heritage clause names `name`, as written or as resolved. */
+function clauseNames(clause: ExpressionWithTypeArguments, name: string): boolean {
+  return clause.getExpression().getText() === name || clauseResolvesTo(clause, name)
+}
+
+/**
+ * Whether any of `clauses`, or any clause of an interface they reach through `extends`,
+ * satisfies `matches`. `seen` holds the interfaces already walked, so a cycle ends the walk.
+ */
+function clausesReach(
+  clauses: readonly ExpressionWithTypeArguments[],
+  matches: (clause: ExpressionWithTypeArguments) => boolean,
+  seen: Set<InterfaceDeclaration>,
+): boolean {
+  for (const clause of clauses) {
+    if (matches(clause)) return true
+    for (const iface of interfacesOf(clause)) {
+      if (seen.has(iface)) continue
+      seen.add(iface)
+      if (clausesReach(iface.getExtends(), matches, seen)) return true
+    }
+  }
+  return false
+}
+
+/** Whether `cls` reaches `className` through its `extends` chain, as written or as resolved. */
+export function extendsByName(cls: ClassDeclaration, className: string): boolean {
+  return classChain(cls).some((c) => directlyExtends(c, className))
+}
+
+/**
+ * Whether `cls` reaches `interfaceName` — through its own `implements` clause, an ancestor's,
+ * or an interface either one extends — as written or as resolved.
+ */
 export function implementsByName(cls: ClassDeclaration, interfaceName: string): boolean {
-  return cls
-    .getImplements()
-    .some(
-      (clause) =>
-        clause.getExpression().getText() === interfaceName ||
-        clauseResolvesTo(clause, interfaceName),
-    )
+  const seen = new Set<InterfaceDeclaration>()
+  const matches = (clause: ExpressionWithTypeArguments) => clauseNames(clause, interfaceName)
+  return classChain(cls).some((c) => clausesReach(c.getImplements(), matches, seen))
+}
+
+/**
+ * Whether an interface's `extends` chain holds a clause satisfying `matches` — the caller
+ * supplies how one level is compared, and this supplies the walk.
+ */
+export function interfaceChainReaches(
+  iface: InterfaceDeclaration,
+  matches: (clause: ExpressionWithTypeArguments) => boolean,
+): boolean {
+  return clausesReach(iface.getExtends(), matches, new Set([iface]))
 }
 
 /**

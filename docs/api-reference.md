@@ -144,16 +144,16 @@ Available on all entry points via `.that()`.
 
 ## Class Predicates
 
-| Export                  | Signature                           | Description                           |
-| ----------------------- | ----------------------------------- | ------------------------------------- |
-| `extend`                | `extend(name: string)`              | Class extends the named base class.   |
-| `implement`             | `implement(name: string)`           | Class implements the named interface. |
-| `haveDecorator`         | `haveDecorator(name: string)`       | Class has the named decorator.        |
-| `haveDecoratorMatching` | `haveDecoratorMatching(re: RegExp)` | Class has a decorator matching regex. |
-| `areAbstract`           | `areAbstract`                       | Class is abstract.                    |
-| `classHaveMethodNamed`  | `haveMethodNamed(name: string)`     | Class has a method with the name.     |
-| `haveMethodMatching`    | `haveMethodMatching(re: RegExp)`    | Class has a method matching regex.    |
-| `havePropertyNamed`     | `havePropertyNamed(name: string)`   | Class has a property with the name.   |
+| Export                  | Signature                           | Description                                                                                     |
+| ----------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `extend`                | `extend(name: string)`              | Class extends the named base class, at any depth.                                               |
+| `implement`             | `implement(name: string)`           | Class implements the named interface, directly or through an ancestor or an extended interface. |
+| `haveDecorator`         | `haveDecorator(name: string)`       | Class has the named decorator.                                                                  |
+| `haveDecoratorMatching` | `haveDecoratorMatching(re: RegExp)` | Class has a decorator matching regex.                                                           |
+| `areAbstract`           | `areAbstract`                       | Class is abstract.                                                                              |
+| `classHaveMethodNamed`  | `haveMethodNamed(name: string)`     | Class has a method with the name.                                                               |
+| `haveMethodMatching`    | `haveMethodMatching(re: RegExp)`    | Class has a method matching regex.                                                              |
+| `havePropertyNamed`     | `havePropertyNamed(name: string)`   | Class has a property with the name.                                                             |
 
 ## Function Predicates
 
@@ -178,13 +178,13 @@ Available on all entry points via `.that()`.
 
 ## Type Predicates
 
-| Export               | Signature                                      | Description                               |
-| -------------------- | ---------------------------------------------- | ----------------------------------------- |
-| `areInterfaces`      | `areInterfaces`                                | Type is an interface.                     |
-| `areTypeAliases`     | `areTypeAliases`                               | Type is a type alias.                     |
-| `haveProperty`       | `haveProperty(name: string)`                   | Type has a property with the name.        |
-| `havePropertyOfType` | `havePropertyOfType(name: string, re: RegExp)` | Property exists with type matching regex. |
-| `extendType`         | `extendType(name: string)`                     | Interface extends the named type.         |
+| Export               | Signature                                      | Description                                                              |
+| -------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ |
+| `areInterfaces`      | `areInterfaces`                                | Type is an interface.                                                    |
+| `areTypeAliases`     | `areTypeAliases`                               | Type is a type alias.                                                    |
+| `haveProperty`       | `haveProperty(name: string)`                   | Type has a property with the name.                                       |
+| `havePropertyOfType` | `havePropertyOfType(name: string, re: RegExp)` | Property exists with type matching regex.                                |
+| `extendType`         | `extendType(name: string)`                     | Interface extends the named type, directly or through another interface. |
 
 ## Call Predicates
 
@@ -239,14 +239,14 @@ Available on all entry points via `.that()`.
 
 ## Class Conditions
 
-| Export                          | Signature                                        | Description                                           |
-| ------------------------------- | ------------------------------------------------ | ----------------------------------------------------- |
-| `shouldExtend`                  | `shouldExtend(name: string)`                     | Class must extend the named base class.               |
-| `shouldImplement`               | `shouldImplement(name: string)`                  | Class must implement the named interface.             |
-| `shouldHaveMethodNamed`         | `shouldHaveMethodNamed(name: string)`            | Class must have a method with the name.               |
-| `shouldNotHaveMethodMatching`   | `shouldNotHaveMethodMatching(re: RegExp)`        | Class must not have methods matching regex.           |
-| `classAcceptParameterOfType`    | `acceptParameterOfType(matcher: TypeMatcher)`    | At least one param (ctor/method/setter) matches type. |
-| `classNotAcceptParameterOfType` | `notAcceptParameterOfType(matcher: TypeMatcher)` | No param (ctor/method/setter) matches type.           |
+| Export                          | Signature                                        | Description                                                                                         |
+| ------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `shouldExtend`                  | `shouldExtend(name: string)`                     | Class must extend the named base class, at any depth.                                               |
+| `shouldImplement`               | `shouldImplement(name: string)`                  | Class must implement the named interface, directly or through an ancestor or an extended interface. |
+| `shouldHaveMethodNamed`         | `shouldHaveMethodNamed(name: string)`            | Class must have a method with the name.                                                             |
+| `shouldNotHaveMethodMatching`   | `shouldNotHaveMethodMatching(re: RegExp)`        | Class must not have methods matching regex.                                                         |
+| `classAcceptParameterOfType`    | `acceptParameterOfType(matcher: TypeMatcher)`    | At least one param (ctor/method/setter) matches type.                                               |
+| `classNotAcceptParameterOfType` | `notAcceptParameterOfType(matcher: TypeMatcher)` | No param (ctor/method/setter) matches type.                                                         |
 
 ## Function Conditions
 
