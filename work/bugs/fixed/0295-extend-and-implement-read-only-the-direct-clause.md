@@ -146,7 +146,7 @@ The docs can be corrected now, without the ruling, to say what the predicates do
       ends, so the guard could never fire. _First written as "no class on a circular chain has
       a base class", which the merge shape contradicts; method review caught it._
 - [x] `npm run validate` green on the tree before review (exit 0, 649s, eess-ts 3926 tests);
-      re-run on the final tree before merge — validation-owed until that run is recorded here.
+      and on the final tree after review (exit 0, 560s, eess-ts 3930 tests).
 
 A walk can only climb what the checker resolves: above an unresolved base it stops and says
 nothing — deferred→[bug 0373](../0373-an-unresolved-base-ends-the-heritage-walk-silently.md).
