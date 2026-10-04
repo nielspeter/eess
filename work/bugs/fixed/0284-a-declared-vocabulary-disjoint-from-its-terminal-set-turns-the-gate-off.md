@@ -206,7 +206,7 @@ is at least made in front of the author.
 
 The same review found a case variant across the two lists (`done` in one, `Done` in the other)
 silently drops the placement check — a separate defect in how the two paths canonicalise,
-filed as [0379](../0379-a-case-variant-across-the-vocabulary-pair-drops-the-placement-check.md).
+filed as [0379](./0379-a-case-variant-across-the-vocabulary-pair-drops-the-placement-check.md).
 
 `resolveVocabulary` in `packages/md/src/rules/ledger.ts` is the one place both
 `honestyAtClose` and `ledgerStats` read the pair, so the denominator cannot disagree with the

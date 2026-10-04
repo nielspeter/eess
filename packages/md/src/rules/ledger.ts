@@ -258,14 +258,42 @@ function stateIn(
   return null
 }
 
+/** A state token as compared for terminality: case and apostrophe glyph folded. */
+const foldState = (t: string): string => t.toLowerCase().replace(/’/g, "'")
+
+/**
+ * Whether `doc` carries a terminal state. The state is read **once**, against the whole
+ * vocabulary — `states` and `terminalStates` together, longest token first — and that one
+ * token is then compared to `terminalStates`, case and apostrophe folded. Both checks ask
+ * here, so they cannot disagree.
+ *
+ * Two earlier reads were each wrong one way (bug 0379):
+ * - the placement check read against the whole vocabulary but compared the token it got —
+ *   the `states` spelling — case-sensitively, so `done` beside a terminal `Done` was open;
+ * - `isDoneItem` read against `terminalStates` alone, and the matcher accepts prose after a
+ *   token, so a declared non-terminal `Done pending review` read as `Done`. A first fix
+ *   shared that second read, and review measured it losing a done-folder finding.
+ */
+function hasTerminalState(
+  doc: MdDocument,
+  states: readonly string[],
+  terminalStates: readonly string[],
+): boolean {
+  const known = [...new Set([...states, ...terminalStates])]
+  const found = findState(doc.text, known, doc.root)
+  if (found?.state === undefined) return false
+  const token = foldState(found.state)
+  return terminalStates.some((t) => foldState(t) === token)
+}
+
 function isDoneItem(
   doc: MdDocument,
   doneFolders: readonly string[],
+  states: readonly string[],
   terminalStates: readonly string[],
 ): boolean {
   if (doneFolders.some((seg) => `/${doc.relPath}`.includes(seg))) return true
-  const found = findState(doc.text, terminalStates, doc.root)
-  return found?.state !== undefined && terminalStates.includes(found.state)
+  return hasTerminalState(doc, states, terminalStates)
 }
 
 const v = (
@@ -312,7 +340,7 @@ function headerStateViolation(
     )
   }
 
-  const terminal = terminalStates.includes(found.state)
+  const terminal = hasTerminalState(doc, states, terminalStates)
   if (inDoneFolder && !terminal) {
     return v(
       'ledger/state-folder-mismatch',
@@ -390,11 +418,12 @@ function notBoardFile(boardFiles: ReadonlySet<string>): Predicate<MdDocument> {
 /** Predicate: this document is a done-item under the caller's own vocabulary. */
 function isDoneItemPredicate(
   doneFolders: readonly string[],
+  states: readonly string[],
   terminalStates: readonly string[],
 ): Predicate<MdDocument> {
   return {
     description: 'is a done item',
-    test: (doc) => isDoneItem(doc, doneFolders, terminalStates),
+    test: (doc) => isDoneItem(doc, doneFolders, states, terminalStates),
   }
 }
 
@@ -414,11 +443,12 @@ function isDoneItemPredicate(
  */
 function belongsToADoneItem(
   doneFolders: readonly string[],
+  states: readonly string[],
   terminalStates: readonly string[],
 ): Predicate<MdTaskItem> {
   return {
     description: 'belongs to a done item',
-    test: (t) => isDoneItem(t.doc, doneFolders, terminalStates),
+    test: (t) => isDoneItem(t.doc, doneFolders, states, terminalStates),
   }
 }
 
@@ -663,12 +693,12 @@ export function honestyAtClose(
   // than through that predicate object, so a corruption of
   // `belongsToADoneItem` itself doesn't also blind this peek.
   const anyOpenBoxOnADoneItem = openTaskItems.some((t) =>
-    isDoneItem(t.doc, doneFolders, terminalStates),
+    isDoneItem(t.doc, doneFolders, states, terminalStates),
   )
   let silentBoxRule = taskItems(corpus)
     .that()
     .areOpen()
-    .satisfy(belongsToADoneItem(doneFolders, terminalStates))
+    .satisfy(belongsToADoneItem(doneFolders, states, terminalStates))
     .should()
     .satisfy(dispositionCondition())
   if (!anyOpenBoxOnADoneItem) silentBoxRule = silentBoxRule.expectEmpty()
@@ -683,11 +713,13 @@ export function honestyAtClose(
   // so a corruption of `hasDeferredDisposedBox`'s own body doesn't blind this
   // peek too.
   const anyDeferredDisposedBoxOnADoneItem = openTaskItems.some(
-    (t) => isDoneItem(t.doc, doneFolders, terminalStates) && DEFERRED_DISPOSITION_RE.test(t.text),
+    (t) =>
+      isDoneItem(t.doc, doneFolders, states, terminalStates) &&
+      DEFERRED_DISPOSITION_RE.test(t.text),
   )
   let deferredLieRule = docs(corpus)
     .that()
-    .satisfy(isDoneItemPredicate(doneFolders, terminalStates))
+    .satisfy(isDoneItemPredicate(doneFolders, states, terminalStates))
     .satisfy({
       description: 'carries a box disposed as deferred→<home>',
       test: (doc: MdDocument) => hasDeferredDisposedBox(doc),
@@ -749,7 +781,7 @@ export function ledgerStats(corpus: Corpus, options: HonestyAtCloseOptions = {})
     const found = findState(doc.text, known, doc.root)
     if (found?.state !== undefined) withReadableState += 1
     else if (found !== null) unreadableState += 1
-    if (isDoneItem(doc, doneFolders, terminalStates)) doneItems += 1
+    if (isDoneItem(doc, doneFolders, states, terminalStates)) doneItems += 1
   }
   return { scanned, withReadableState, unreadableState, doneItems }
 }
