@@ -353,21 +353,21 @@ terms(c, { label: /Bounded Context:/ })
 
 ## ADR enforcement tables
 
-`eess-md` ships an `adrEnforcement()` preset that validates the `## Enforcement` table convention: every ADR ends with a **Clause | Tier | Mechanism | Status** table, tiers are valid, and cited file paths resolve. Binding those cited `it('…')` test titles against the real test AST is the cross-validation step — see [`eess-crossvalidate`](/crossvalidate).
+`eess-md` ships an `adrEnforcement()` preset that validates the `## Enforcement` table convention: every ADR ends with a **Clause | Tier | Mechanism | Status** table, tiers are valid, and cited file paths resolve. It does **not** check that a cited `it('…')` title names a real test: that is `eess-crossvalidate`'s `adrCitationsResolve`, which reads the test AST — see [`eess-crossvalidate`](/crossvalidate). If your ADRs cite test titles, run it too; with `eess-md` alone, a title citation is not verified by anything.
 
 `adrEnforcement(corpus, options?)` takes `AdrEnforcementOptions`: `dir` (glob
 selecting ADR files, default `docs/adr/**`), `section` (default
 `/^enforcement$/i`), `columns` (header patterns for the tier/mechanism/status
 columns, default English), `tiers` (valid tier numbers, default `[1,2,3,4,5]`),
 and `verifyCitations` (default `true` — turn off to gate on the table's shape
-without resolving citations). It extends the kernel's `PresetBaseOptions`, so
+without checking cited paths). It extends the kernel's `PresetBaseOptions`, so
 `overrides` can downgrade or disable its three rule ids individually
 (`adr/enforcement-declared`, `adr/valid-tiers`, `adr/citations-resolve`).
 
 ### Citing something that is not a file or a test
 
-`adrEnforcement` resolves two citation forms in a Mechanism cell: a backticked
-file path, and an `it('…')` title. A team whose mechanism is a **named rule in
+`adrEnforcement` resolves one citation form in a Mechanism cell, a backticked
+file path; an `it('…')` title is `eess-crossvalidate`'s to resolve. A team whose mechanism is a **named rule in
 its own architecture tool** — `` `acme/handlers-validate-input` ``, defined in
 its `arch.rules.ts` — cites neither, and the preset takes no plugin for it: what
 counts as a _live_ id is the team's fact, not the corpus's, and a plugin host
@@ -381,7 +381,7 @@ import { corpus, rows, correspondence, type MdRow } from '@nielspeter/eess-md'
 
 const c = corpus({ roots: ['docs/adr/**'] })
 
-// Your citation form. The preset's two are a path and an it('…') title.
+// Your citation form. The preset's is a path; an it('…') title is eess-crossvalidate's.
 const RULE_ID = /`(acme\/[a-z0-9-]+)`/g
 
 // Every Enforcement-table row, then one element per id a row cites — each

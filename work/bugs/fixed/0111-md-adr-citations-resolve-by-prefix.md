@@ -2,10 +2,11 @@
 
 ## Status
 
-- **State:** Draft — reproduced against the shipped `adrEnforcement` and against
-  the raw regex; no red test written yet.
+- **State:** Fixed — option 1, ruled by the user 2026-10-04: `eess-md` no longer resolves
+  `it('…')` titles; `eess-crossvalidate`'s AST-grounded `adrCitationsResolve` is the only
+  title check. Breaking, marked `minor` for `eess-md`.
 - **Severity:** High — **false green.** A `gated` mechanism reports OK over a
-  citation whose test does not exist. This is [0104](./fixed/0104-it-title-capture-stops-at-any-quote.md)'s
+  citation whose test does not exist. This is [0104](./0104-it-title-capture-stops-at-any-quote.md)'s
   defect in a second package, in a stronger form.
 - **Origin:** self-found · architect + enforcement review of 0104's fix, which
   found it independently of each other
@@ -95,12 +96,43 @@ Two honest options, to be decided:
 Either way this is a behaviour change for `eess-md` consumers who rely on
 `verifyCitations`, so it needs a decision before a patch.
 
+## Ruling and fix
+
+**Option 1, ruled by the user on 2026-10-04.** A first attempt took option 2 instead (keep
+md's resolver, make it exact) without asking, against this record's recommendation. Review
+measured it: on 16 cases the two packages disagreed on 8, six of them md false greens — a
+title present only in a commented-out test, in a string, inside `submit('…')` or
+`suite.it(…)` — and closing those needs a TypeScript lexer in a markdown dialect, which is
+option 1's reason. That attempt was never pushed. Put to the user with both options and their
+costs, the ruling was option 1.
+
+`packages/md/src/rules/adr.ts` now checks only the file paths a Mechanism cell cites. The
+title extractor and the text resolver are deleted. `verifyCitations`' JSDoc, the preset's
+JSDoc, `docs/markdown.md`, the package README and `CLAUDE.md` say a title is
+`eess-crossvalidate`'s to resolve — and that with `eess-md` alone, nothing verifies one.
+
+**The cost, stated.** An adopter who runs only `eess-md` and cites test titles had a check
+that was wrong; now they have none, and the docs say so. That is the ruling's accepted risk.
+This repo is unaffected: `check:crossval` resolves every cited title against the AST.
+
 ## Verification
 
-- [ ] Red test written first: a citation that is a strict prefix of a real title
-      does **not** resolve. Passes today.
-- [ ] A citation to a template-literal-delimited title behaves the same way in
-      `eess-md` and `eess-crossvalidate`, or `eess-md` no longer claims to answer.
-- [ ] `npm run validate` green.
+- [x] Red test written first: a citation that is a strict prefix of a real title
+      does **not** resolve — in the one package that still answers:
+      `packages/crossvalidate/tests/md-ts.test.ts` ·
+      `it('does not resolve a citation that is a strict prefix of a real title')`, over
+      `it('exist')` and `it('e')` against the fixture's `it('exists')`. It passed on first
+      run: `adrCitationsResolve` was already right, so this pins it rather than fixing it.
+- [x] done-otherwise: `eess-md` no longer claims to answer —
+      `packages/md/tests/adr-citations-check-paths-not-titles.test.ts` ·
+      `it('reports no finding about a cited it() title, present or absent')` and
+      `it('still reports a cited file path that does not exist')`. Both measured red before
+      the deletion: the old code reported the absent title, and reported it again beside the
+      missing path.
+- [x] `npm run validate` green.
 
-Deferred: none.
+The `test(…)` question [0105](./0105-md-ts-drops-modifier-forms.md) deferred here — whether
+the contract accepts `test(…)` beside `it(…)` — is no longer `eess-md`'s: it now concerns
+only `adrCitationsResolve`. deferred→[0380](../0380-adr-citations-resolve-does-not-say-whether-test-counts.md).
+
+Deferred: [0380](../0380-adr-citations-resolve-does-not-say-whether-test-counts.md).

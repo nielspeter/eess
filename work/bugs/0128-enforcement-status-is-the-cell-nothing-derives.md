@@ -81,7 +81,7 @@ whether CI blocks, which is a fact about the repo.
 Related, one layer down and already filed:
 [0116](./0116-gated-row-resolves-against-a-skipped-test.md) — a `gated` row that
 resolved against `it.skip(…)`, so even a case-level citation proved nothing about
-whether the test runs — and [0111](./0111-md-adr-citations-resolve-by-prefix.md),
+whether the test runs — and [0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md),
 where the resolver matched by prefix. This record is the third: those two are about
 the resolver being wrong; this one is about how few rows it reaches at all.
 

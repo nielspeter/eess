@@ -37,8 +37,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Every ADR ends with a `## Enforcement` section: a table with **Clause | Tier |
 Mechanism | Status** rows, one per enforceable clause. This is gated in CI —
 `check:corpus` runs eess-md's `adrEnforcement` (section + tier validity +
-citations resolve), and `check:crossval` resolves cited `it('…')` titles against
-the real test AST. Rules:
+cited paths exist), and `check:crossval` resolves cited `it('…')` titles against
+the real test AST — the only title check since bug 0111. Rules:
 
 - **Tier** (1–5, per the EESS manifesto): 1 static · 2 behavioral · 3 operational · 4 semantic · 5 ratification.
 - **Mechanism**: name what actually checks the clause. Cite file paths in backticks (they must exist) and test citations as `` `path/to/file.test.ts` `` · `it('exact title')` on the same row (the title must exist in that file, and be unique across the suite — duplicate titles are ambiguous to the resolver).

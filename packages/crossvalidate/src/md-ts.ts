@@ -121,11 +121,11 @@ function extractTestDefs(project: ArchProject): TestDef[] {
 
 /**
  * Cross-validate that every `it('…')` cited in an ADR's enforcement table
- * actually exists as a test in the project. The AST-grounded upgrade of the
- * text-level citation check in `eess-md`'s `adrEnforcement` — it resolves titles
- * against real test call expressions (via eess-ts's public API; no ts-morph
- * here, per ADR-007), so it also sees `it(\`no-substitution template\`)` titles
- * the regex missed.
+ * actually exists as a test in the project. It resolves titles against real test
+ * call expressions (via eess-ts's public API; no ts-morph here, per ADR-007). Since
+ * bug 0111 it is the only title check in the family: `eess-md`'s `adrEnforcement`
+ * checks cited paths and leaves titles here, because its text-level reading matched
+ * a title as a prefix and could not tell a commented-out test from a live one.
  */
 export function adrCitationsResolve(
   corpus: Corpus,

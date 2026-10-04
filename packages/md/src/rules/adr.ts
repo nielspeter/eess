@@ -1,5 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import {
   dispatchRule,
   finishPreset,
@@ -35,23 +33,21 @@ export interface AdrEnforcementOptions extends PresetBaseOptions {
   readonly columns?: { tier: RegExp; mechanism: RegExp; status: RegExp }
   /** Valid tier numbers. Default `[1,2,3,4,5]`. */
   readonly tiers?: readonly number[]
-  /** Verify cited file paths exist and cited `it('…')` titles resolve. Default `true`. */
+  /**
+   * Verify that the file paths a Mechanism cell cites exist. Default `true`.
+   *
+   * A cited `it('…')` **title** is not resolved here. Whether it names a real test is
+   * `eess-crossvalidate`'s `adrCitationsResolve`, which reads the test AST: a markdown
+   * dialect reading test files as text matched `it('r')` against any test beginning with
+   * `r`, and could not tell a commented-out test from a live one (bug 0111). Run that
+   * check too if your ADRs cite test titles.
+   */
   readonly verifyCitations?: boolean
 }
 
 const RULE_IDS = ['adr/enforcement-declared', 'adr/valid-tiers', 'adr/citations-resolve'] as const
 
 const PATH_RE = /`([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)`/g
-const IT_CITE_RE = /it(?:\.\w+)?\(\s*['"]([^'"]+)['"]/g
-
-/** Does `testFile` define a test titled `title`? (Text-level; 0059 upgrades to AST.) */
-function testDefinesIt(testAbs: string, title: string): boolean {
-  if (!existsSync(testAbs)) return false
-  const content = readFileSync(testAbs, 'utf8')
-  const esc = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`it(?:\\.\\w+)?\\(\\s*['"\`]${esc}`).test(content)
-}
-
 function validateTier(ctx: TableRowContext, tiers: ReadonlySet<number>): string[] {
   const clause = ctx.cells[0] ?? ''
   const match = ctx.get('tier').match(/[1-5]/)
@@ -65,43 +61,29 @@ function validateCitations(ctx: TableRowContext, corpus: Corpus): string[] {
   const clause = ctx.cells[0] ?? ''
   const mech = ctx.get('mechanism')
   const problems: string[] = []
-  const citedPaths: string[] = []
 
   for (const m of mech.matchAll(PATH_RE)) {
     const p = m[1]
     if (p === undefined) continue
-    citedPaths.push(p)
     if (!corpus.fileIndex.has(p)) {
       problems.push(`clause "${clause}" cites missing file \`${p}\``)
     }
   }
 
-  const testFiles = citedPaths.filter((p) => p.endsWith('.ts'))
-  for (const m of mech.matchAll(IT_CITE_RE)) {
-    const title = m[1]
-    if (title === undefined) continue
-    const found = testFiles.some((p) => testDefinesIt(join(corpus.root, p), title))
-    if (!found) {
-      problems.push(
-        `clause "${clause}" cites it('${title}') not found in ${
-          testFiles.length ? testFiles.join(', ') : 'any cited test file'
-        }`,
-      )
-    }
-  }
   return problems
 }
 
 /**
  * OPINIONATED preset: gate a repo's ADRs on the EESS enforcement-tier model.
  * Gates on *declaration* — an ADR fails for a missing `## Enforcement` table, a
- * clause with no valid tier, or (when `verifyCitations`) a citation that doesn't
- * resolve; a soft-tier clause declared as such passes.
+ * clause with no valid tier, or (when `verifyCitations`) a cited file path that
+ * doesn't exist; a soft-tier clause declared as such passes.
  *
  * Emits per-rule ids so `overrides` can downgrade/disable individual checks.
  *
- * The citation check resolves two forms — a backticked file path and an
- * `it('…')` title. A Mechanism cell that cites something else (a rule id in
+ * The citation check resolves one form, a backticked file path. A cited `it('…')`
+ * title is `eess-crossvalidate`'s `adrCitationsResolve` to resolve, against the
+ * test AST (bug 0111). A Mechanism cell that cites something else (a rule id in
  * your own architecture tool, a CI job) is not resolved here, and this preset
  * takes no plugin for it: what counts as a live id is your fact, not the
  * corpus's. Compose that check from `rows()` + `correspondence()` against the

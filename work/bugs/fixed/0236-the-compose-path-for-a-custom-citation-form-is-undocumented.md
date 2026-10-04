@@ -83,10 +83,11 @@ compiles:
 
 **What the recipe deliberately does not do.** It does not present the preset's
 resolver as the reference for correctness while
-[0111](../0111-md-adr-citations-resolve-by-prefix.md) is open — the built-in
+[0111](./0111-md-adr-citations-resolve-by-prefix.md) is open — the built-in
 `it('…')` resolution matches by prefix. The recipe goes through the kernel's
 correspondence and never touches that regex, which is the honest reason it can be
-written before 0111 is fixed.
+written before 0111 is fixed. _(2026-10-04: 0111 is fixed — the preset no longer resolves
+titles at all.)_
 
 ## Verification
 

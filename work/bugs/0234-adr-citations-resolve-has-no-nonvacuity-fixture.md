@@ -8,9 +8,11 @@
   this is not a live false green. It is an uncovered gate: `adr/citations-resolve`
   could be emptied and `check:nonvacuity` would still print
   `no fixture is silently green`. That the rule ALSO has an open High-severity
-  correctness bug ([0111](./0111-md-adr-citations-resolve-by-prefix.md)) is what
+  correctness bug ([0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md)) is what
   moves this off Low — the one rule in `adrEnforcement` known to be wrong is the
-  one with no fixture.
+  one with no fixture. _(2026-10-04: 0111 is fixed, by removing title resolution, so
+  that premise has lapsed. The rule now checks cited paths only, and is still
+  unfixtured; Medium stands for a gated rule nothing falsifies, not for 0111.)_
 - **Origin:** self-found · surfaced while reviewing
   [proposal 008](../proposals/promoted/008-md-adr-citation-form-for-bare-identifiers.md),
   which proposes extending this rule with a pluggable citation form. **Not
@@ -82,7 +84,10 @@ behind.
 
 ## Sequencing
 
-**Fix [0111](./0111-md-adr-citations-resolve-by-prefix.md) first, or alongside.**
+_(2026-10-04: 0111 is fixed — `eess-md` no longer resolves titles, so the fixture this
+record asks for pins the path check only. This section is the reasoning as written.)_
+
+**Fix [0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md) first, or alongside.**
 0111 is open, High severity, and filed as a false green against this very rule —
 the resolution regex at `adr.ts:51` has no closing delimiter, so `it('r')` resolves
 against any test whose title starts with `r`, and `IT_CITE_RE` at `:44` truncates
@@ -103,7 +108,7 @@ its red test for free.
 
 ## Related
 
-- [0111](./0111-md-adr-citations-resolve-by-prefix.md) — the correctness bug in the
+- [0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md) — the correctness bug in the
   rule this record leaves uncovered. Sequence it first.
 - [proposal 008](../proposals/promoted/008-md-adr-citation-form-for-bare-identifiers.md) —
   ruled `Docs-only`; its review names this gap and 0111 as outranking the ask.

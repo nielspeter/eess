@@ -49,7 +49,7 @@ the AST engine's by construction. ADR-007's Rule 2 row is `manual` / tier 4,
 
 0104 was a defect in exactly this re-lexing, and it shipped in two packages
 because the capability had no home. A third copy lives in `eess-md`
-([0111](./0111-md-adr-citations-resolve-by-prefix.md)). Every consumer that needs
+([0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md)). Every consumer that needs
 a literal argument writes the grammar again, and gets it wrong the same way.
 
 There is also a live inconsistency to settle: `withStringArg` matches on
@@ -89,5 +89,7 @@ once it stops parsing.
 - [ ] `npm run validate` green.
 
 Deferred: none — but this record is a prerequisite for retiring the duplicate in
-[0111](./0111-md-adr-citations-resolve-by-prefix.md), and should be sequenced
-before it.
+[0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md), and should be sequenced
+before it. _(2026-10-04: 0111 retired `eess-md`'s copy outright instead — it no longer
+resolves titles at all — so that sequencing no longer applies, and the copies this record
+counts are one fewer.)_

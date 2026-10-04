@@ -226,7 +226,7 @@ Deferred — each re-homed, none left with this record:
 - **`eess-md` carries the same defect, in a stronger form** — its citation check
   resolves by _prefix_. It cannot import this module (crossvalidate → md, and
   `eess/md-isolated` forbids the reverse), so the fix is a design decision, not a
-  patch. **→ [0111](../0111-md-adr-citations-resolve-by-prefix.md)** (High).
+  patch. **→ [0111](./0111-md-adr-citations-resolve-by-prefix.md)** (High).
 - **Three of `check:crossval`'s five presets still have no fixture** — code→diagram,
   `haveUniqueTitles`, `scenariosCovered`. **→ [0112](../0112-three-crossval-presets-have-no-fixture.md)**.
 - **`correspondence()` drops `.rule({ suggestion })`**, so this rule's remedy had
