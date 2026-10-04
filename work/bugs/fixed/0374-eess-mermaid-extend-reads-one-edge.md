@@ -84,7 +84,8 @@ ending it, validate — are covered by the boxes below._
       mid-chain test made 113, the figure this box first carried; the testing review's two tests
       make 115. (Corrected 2026-10-04: an earlier note said "three tests from the testing
       review", which was wrong arithmetic for the right total.)_
-- [x] `npm run validate` green on the final tree (exit 0, 473s; eess-ts 3937 tests).
+- [x] `npm run validate` green on the final tree (exit 0, 473s; eess-ts 3937 tests), and again
+      after the post-merge review's test changes (exit 0, 533s, same counts, follow-up PR).
 
 ### The sabotage matrix, so it can be rebuilt
 
