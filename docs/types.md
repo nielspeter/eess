@@ -41,13 +41,13 @@ eess-ts uses the TypeScript type checker to resolve types. This means:
 
 Predicates narrow which interfaces and type aliases a rule applies to. Use `areInterfaces` or `areTypeAliases` to distinguish between the two, and property predicates to filter by shape. All identity predicates (`haveNameMatching`, `resideInFolder`, `areExported`, etc.) work on types. In addition:
 
-| Predicate                   | Description                                                             | Example                                      |
-| --------------------------- | ----------------------------------------------------------------------- | -------------------------------------------- |
-| `areInterfaces`             | Type is an interface declaration                                        | `.that().areInterfaces()`                    |
-| `areTypeAliases`            | Type is a type alias                                                    | `.that().areTypeAliases()`                   |
-| `haveProperty(name)`        | Type has a property with the given name                                 | `.that().haveProperty('orderBy')`            |
-| `havePropertyOfType(n, re)` | Property exists with type matching regex                                | `.that().havePropertyOfType('id', /string/)` |
-| `extendType(name)`          | Interface extends the named type, directly or through another interface | `.that().extendType('BaseEntity')`           |
+| Predicate                   | Description                                                                                         | Example                                      |
+| --------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `areInterfaces`             | Type is an interface declaration                                                                    | `.that().areInterfaces()`                    |
+| `areTypeAliases`            | Type is a type alias                                                                                | `.that().areTypeAliases()`                   |
+| `haveProperty(name)`        | Type has a property with the given name                                                             | `.that().haveProperty('orderBy')`            |
+| `havePropertyOfType(n, re)` | Property exists with type matching regex                                                            | `.that().havePropertyOfType('id', /string/)` |
+| `extendType(name)`          | Interface extends the named type, directly or through another interface; a type alias intersects it | `.that().extendType('BaseEntity')`           |
 
 ## Available Conditions
 
