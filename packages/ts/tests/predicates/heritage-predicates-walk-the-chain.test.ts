@@ -326,7 +326,8 @@ function selectedClasses(p: ArchProject, by: 'extend' | 'implement', name: strin
 describe('bug 0295: the walk reaches past depth 2', () => {
   it('extend() reaches a great-grandchild written through an aliased import, and a generic base two levels up', () => {
     const p = deepProject()
-    expect(reportedBySubclassRule(p)).toContain('LedgerRepository')
+    // The condition is asserted first, so it reds on its own when the walk stops short —
+    // not only because the selector assertion before it already failed.
     const reported = elements(
       classes(p)
         .that()
@@ -338,6 +339,7 @@ describe('bug 0295: the walk reaches past depth 2', () => {
     )
     expect(reported).toContain('UnrelatedRepository')
     expect(reported).not.toContain('LedgerRepository')
+    expect(reportedBySubclassRule(p)).toContain('LedgerRepository')
     expect(selectedClasses(p, 'extend', 'Generic')).toEqual(
       new Set(['GenericChild', 'GenericMid', 'GenericDeep']),
     )
@@ -382,5 +384,72 @@ describe('bug 0295: the walk reaches past depth 2', () => {
         .violations(),
     )
     expect(types_).toEqual(new Set(['IOrmExt', 'IOrmExt2']))
+  })
+})
+
+/**
+ * ADR-017 rule 5 says the checker breaks every circular class chain, so the class walk needs no
+ * guard. These are the seven shapes that claim was measured on, kept here so the evidence
+ * can be re-run. Asking for a base nothing extends makes the walk climb every chain to its end;
+ * if one never ended, the test would crash its worker rather than pass.
+ */
+describe('bug 0295: the checker breaks every circular class chain', () => {
+  const shapes: Record<string, Record<string, string>> = {
+    'self-extend': { '/src/a.ts': 'export class A extends A {}\n' },
+    pair: { '/src/a.ts': 'export class A extends B {}\nexport class B extends A {}\n' },
+    'cross-file pair': {
+      '/src/a.ts': "import { B } from './b'\nexport class A extends B {}\n",
+      '/src/b.ts': "import { A } from './a'\nexport class B extends A {}\n",
+    },
+    'declaration merge': {
+      '/src/a.ts':
+        'export class A extends B {}\nexport interface B extends A {}\nexport class B {}\n',
+    },
+    mixin: {
+      '/src/a.ts':
+        'type Ctor = new (...a: never[]) => object\nconst M = <T extends Ctor>(b: T) => class extends b {}\nexport class A extends M(B) {}\nexport class B extends M(A) {}\n',
+    },
+    'ambient pair': {
+      '/src/a.d.ts': 'declare class A extends B {}\ndeclare class B extends A {}\n',
+    },
+  }
+  for (const [name, files] of Object.entries(shapes)) {
+    it(`a circular chain ends — ${name}`, () => {
+      const tsm = new Project({ useInMemoryFileSystem: true })
+      for (const [path, text] of Object.entries(files)) tsm.createSourceFile(path, text)
+      const p: ArchProject = {
+        tsConfigPath: '/tsconfig.json',
+        _project: tsm,
+        getSourceFiles: () => tsm.getSourceFiles(),
+      }
+      const selected = elements(
+        classes(p)
+          .that()
+          .extend('Nowhere')
+          .should()
+          .notExist()
+          .rule({ id: `test/0295-circular-${name}` })
+          .violations(),
+      )
+      expect(selected).toEqual(new Set())
+    })
+  }
+
+  it('a circular chain ends — JS file', () => {
+    const tsm = new Project({ useInMemoryFileSystem: true, compilerOptions: { allowJs: true } })
+    tsm.createSourceFile('/src/a.js', 'class A extends B {}\nclass B extends A {}\n')
+    const p: ArchProject = {
+      tsConfigPath: '/tsconfig.json',
+      _project: tsm,
+      getSourceFiles: () => tsm.getSourceFiles(),
+    }
+    const examined = classes(p)
+      .that()
+      .extend('Nowhere')
+      .should()
+      .notExist()
+      .rule({ id: 'test/0295-circular-js' })
+      .violations()
+    expect(elements(examined)).toEqual(new Set())
   })
 })
