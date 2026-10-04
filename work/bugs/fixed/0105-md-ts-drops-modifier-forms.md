@@ -156,7 +156,7 @@ text-level check is `it`-only too (`packages/md/src/rules/adr.ts:44` and `:51`
 both read `it(?:\.\w+)?\(`). Widening `md-ts` alone would put `check:crossval`
 and `check:corpus` out of sync about what an ADR may cite — one gate green and
 the other red on the same table row. The contract has three implementations and
-no binding home; that is [0111](../0111-md-adr-citations-resolve-by-prefix.md)'s
+no binding home; that is [0111](./0111-md-adr-citations-resolve-by-prefix.md)'s
 territory, and the `test` question is one clause of it.
 
 **The guard is not what performs the exclusion.** `itTitleOf` is anchored on the
@@ -203,8 +203,10 @@ Deferred — each re-homed, none left with this record:
 - **Whether `md-ts` should also accept `test(…)`**, as `gherkin-ts` does — a
   contract question for the ADR enforcement table, not a parser fix. Now pinned
   by a failing test rather than a comment (`0008-not-tests.md`), so the decision
-  cannot drift silently while it waits. **→ [0111](../0111-md-adr-citations-resolve-by-prefix.md)**,
-  which owns the three-implementation contract this is a clause of.
+  cannot drift silently while it waits. **→ [0111](./0111-md-adr-citations-resolve-by-prefix.md)**,
+  which owns the three-implementation contract this is a clause of. _(2026-10-04: 0111
+  closed by removing `eess-md`'s implementation, so the question is `eess-crossvalidate`'s
+  alone; re-homed to [0380](../0380-adr-citations-resolve-does-not-say-whether-test-counts.md).)_
 - **`it.skipIf(cond)(…)` / `it.runIf(cond)(…)` still show this bug's symptom** —
   a static, citable title that resolves to nothing, because the callee is itself
   a call. **→ [0117](../0117-conditional-modifier-tests-are-invisible.md)**.

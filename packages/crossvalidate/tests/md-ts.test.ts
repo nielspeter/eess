@@ -64,6 +64,18 @@ describe('adrCitationsResolve() — a title ends at the delimiter that opened it
     expect(violations[0]?.message).toMatch(/catches `GONE` in a deleted test.*no matching test/)
   })
 
+  it('does not resolve a citation that is a strict prefix of a real title', () => {
+    // Bug 0111's reproduction. The project holds `it('exists')`; `it('exist')` and `it('e')`
+    // are prefixes of it and name no test. eess-md's text resolver accepted both; since
+    // 0111 eess-md no longer resolves titles, so this check is the only one, and it must red.
+    const violations = violationsOf(() =>
+      adrCitationsResolve(c(['docs/adr/0009-prefix.md']), proj()),
+    )
+    expect(violations.map((v) => v.message).join('\n')).toMatch(/it\('exist'\).*no matching test/)
+    expect(violations.map((v) => v.message).join('\n')).toMatch(/it\('e'\).*no matching test/)
+    expect(violations).toHaveLength(2)
+  })
+
   it('round-trips titles delimited by ", ` and one holding an escaped quote', () => {
     // Its own denominator: `not.toThrow()` is trivially true if the ADR side
     // extracted nothing at all, so pin the citation count first.
