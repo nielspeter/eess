@@ -192,6 +192,22 @@ longer closes. Reporting an incoherent pair would catch only the first. Requirin
 catches all three, and costs nothing for a caller who passes neither (the defaults agree) or
 both (every caller in this repo, and `terminalStates: []` stays supported).
 
+**What it does not cover — added 2026-10-04 after enforcement and method review.** Requiring
+the pair removes the route where a default chose the terminal set for the author. An author who
+passes both and leaves a closing token out of `terminalStates` still gets this record's exact
+reproduction: measured on the mixed corpus with `states` = defaults + `Promoted` and
+`terminalStates` = `['Done', "Won't-do"]`, zero findings and `doneItems: 1`. No mechanism can
+tell that from a token that really does not close — whether `Promoted` means closed is a
+semantic decision the preset cannot make. dropped-on-purpose as a mechanism; what can prevent
+it is the advice an author follows when a token is refused, which names neither option today —
+deferred→[0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md). The
+refusal now names both options and says which tokens belong in `terminalStates`, so the choice
+is at least made in front of the author.
+
+The same review found a case variant across the two lists (`done` in one, `Done` in the other)
+silently drops the placement check — a separate defect in how the two paths canonicalise,
+filed as [0379](../0379-a-case-variant-across-the-vocabulary-pair-drops-the-placement-check.md).
+
 `resolveVocabulary` in `packages/md/src/rules/ledger.ts` is the one place both
 `honestyAtClose` and `ledgerStats` read the pair, so the denominator cannot disagree with the
 check. A half throws `ArchConfigError` (ADR-014's configuration finding): it names both
@@ -235,16 +251,25 @@ taught in the docs. It now passes both and says why.
       an `ArchConfigError`, not a string match — and
       `it('the remedy the error names is corrective: the victim is classified done and its box reports')`,
       which applies the named edit and asserts `ledger/silent-open-box` on the victim and
-      `doneItems: 2`. Four of the five tests measured red before the fix.
+      `doneItems: 2`. **Three of the five tests measured red before the fix** — the two
+      refusals and the `ledgerStats` one. The corrective test was green before the fix too: with
+      both options passed the old code ran the same path, so it shows the remedy works and is not
+      red-first evidence. _Corrected 2026-10-04: first written "four of the five", counted from a
+      run where that test failed on my own assertion bug (`ruleId` for `rule`); method review
+      measured three against the pre-fix source._ The red-first evidence is the three refusal
+      tests and the fixture below going from exit 0 to exit 1.
 - [x] A `check-nonvacuity.mjs` registry row with its own fixture and `mustSay` —
       `corpus/ledger/half-vocabulary`, `scripts/nonvacuity/bad-ledger-vocabulary.mjs`, over
       the same mixed corpus, with ``mustSay: without `terminalStates` ``. Measured: exit 0
       (vacuous) on the pre-fix build, exit 1 after; the fixture also proves the remedy
       reports the box, so a gate that refused everything could not pass it.
 - [x] The prior question answered: remove the class — see Fix.
-- [x] `npm run check:nonvacuity` green, 102 fixtures, 365 s.
+- [x] `npm run check:nonvacuity` green, 102 fixtures, 365 s. The fixture also refuses
+      `terminalStates` alone since review: a sabotage that let that half default again turned the
+      row red (exit 0), measured.
+- [x] `npm run validate` green on the fix commit (exit 0, 468 s).
 
-Deferred: none.
+Deferred: [0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md).
 
 ## Related
 

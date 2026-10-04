@@ -19,6 +19,14 @@
 
 ## Symptom
 
+_Code pointers in this record are to main at `2987764`, before bug 0284's fix moved them. Since
+that fix (2026-10-04), passing `states` without `terminalStates` — or the reverse — throws an
+`ArchConfigError` instead of defaulting the other half. So where this record says applying
+`states` alone "clears every finding", it now refuses; a remedy this record writes must name
+both options, or it names a crash. The silent pass remains for an author who passes both and
+leaves a closing token out of `terminalStates` — 0284 deferred that to this record, because the
+message the author follows is what decides which list the token lands in._
+
 ### 1. `ledger/unknown-state` names the vocabulary it wanted, never the option
 
 From `packages/md/src/rules/ledger.ts:249-256`:

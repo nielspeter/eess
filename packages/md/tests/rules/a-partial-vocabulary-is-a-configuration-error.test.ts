@@ -51,6 +51,7 @@ describe('bug 0284: states and terminalStates are declared together or not at al
     )
     expect(err.message).toContain('`states`')
     expect(err.message).toContain('`terminalStates`')
+    expect(err.message).toMatch(/^honestyAtClose was given `states` without `terminalStates`/)
   })
 
   it('terminalStates without states is a configuration error too', () => {
@@ -63,7 +64,28 @@ describe('bug 0284: states and terminalStates are declared together or not at al
   })
 
   it('ledgerStats refuses the same partial pair, so the denominator cannot disagree', () => {
-    configErrorOf(() => ledgerStats(mixedCorpus(), { states: DEFAULTS_PLUS_PROMOTED }))
+    const err = configErrorOf(() => ledgerStats(mixedCorpus(), { states: DEFAULTS_PLUS_PROMOTED }))
+    // It names the function the caller actually called.
+    expect(err.message).toMatch(/^ledgerStats was given/)
+  })
+
+  it('the remedy for terminalStates alone is corrective too: states as the full vocabulary', () => {
+    // A bug-shaped lane passing only its terminal set. The remedy is not "extend the
+    // defaults" — that would make Done and Won't-do known in a lane that never uses them.
+    const err = configErrorOf(() =>
+      honestyAtClose(mixedCorpus(), { terminalStates: ['Done', 'Promoted'], report: 'return' }),
+    )
+    expect(err.message).toContain('Pass `states` too, as your full vocabulary')
+    const findings = honestyAtClose(mixedCorpus(), {
+      states: ['Done', 'Promoted'],
+      terminalStates: ['Done', 'Promoted'],
+      report: 'return',
+    })
+    expect(
+      findings
+        .filter((v) => v.rule === 'ledger/silent-open-box')
+        .map((v) => v.file.replace(/^.*work\//, 'work/')),
+    ).toEqual(['work/proposals/promoted/0001-p.md'])
   })
 
   it('the remedy the error names is corrective: the victim is classified done and its box reports', () => {

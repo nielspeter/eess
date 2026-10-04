@@ -53,6 +53,19 @@ try {
   refusal = err.message
 }
 
+// The mirror half: terminalStates alone must be refused too, or a sabotage that kept only
+// the first branch would leave this row green.
+try {
+  honestyAtClose(c, { terminalStates: ['Done', 'Promoted'], report: 'return' })
+  console.error('bad-ledger-vocabulary: terminalStates without states was accepted')
+  process.exit(0)
+} catch (err) {
+  if (!(err instanceof Error) || !isArchConfigError(err)) {
+    console.error(`bad-ledger-vocabulary: unexpected error on the mirror run — ${String(err)}`)
+    process.exit(2)
+  }
+}
+
 // The clean direction, so a gate that refused everything cannot pass for a working one:
 // the remedy the refusal names — both options — must classify the victim done and report it.
 let reconciled

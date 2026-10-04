@@ -25,6 +25,13 @@ honestyAtClose(corpus, {
 })
 ```
 
+`docs/markdown.md`'s own example passed `terminalStates` alone, so a config copied from the
+guide is the likeliest to be caught; it passes both now.
+
+What this removes is the route where a default chose for you. If you pass both and leave a
+closing token out of `terminalStates`, its records are still never treated as done — the tool
+cannot tell that from a token that really does not close, so declare closing tokens there.
+
 Passing neither, or both, behaves as before — including `terminalStates: []` for a lane where
 nothing is ledger-closed by design. If your config passes only one of the two, it now fails on
 the first run; add the other.
