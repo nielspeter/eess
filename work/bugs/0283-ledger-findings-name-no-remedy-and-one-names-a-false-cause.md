@@ -7,7 +7,7 @@
 - **Severity:** Medium — three of the five messages that predate PR #144 leave the author with no remedy,
   and one of those three asserts something untrue about the repository. Acting on
   the first of them can reach
-  [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md),
+  [0284](./fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md),
   which is the High one.
 - **Origin:** self-found · while verifying an external report; widened on review
   to cover every `ledger/*` message, since they are one file, one class, one
@@ -172,7 +172,7 @@ only the first:
   finding by deleting its subject is the `checkAll([])` failure this fixture exists
   to prevent. The assertion must be that after applying the remedy the document
   **stays examined** and a control finding still reds. That fail-open is
-  [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md).
+  [0284](./fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md).
 - **A declaring remedy must expire.** Named for the same reason.
 
 **One constraint on the wording.** Passing `states` + `terminalStates` does not
@@ -234,7 +234,7 @@ Deferred: none.
 
 ## Related
 
-- [0284](./0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
+- [0284](./fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md)
   — where acting on symptom 1's advice can land: a silent green.
 - [0124](./0124-correspondence-stamps-one-remedy-onto-opposite-branches.md) — why
   the cheap rule-level stamp is wrong here.

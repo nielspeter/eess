@@ -2453,6 +2453,14 @@ const gates = [
     'corpus/ledger/dead-selector',
     () => gateNode('bad-ledger-dead-selector.mjs', 'examined zero units'),
   ],
+  // Bug 0284: a half-declared vocabulary (`states` without `terminalStates`) produced NO
+  // finding — the closing token the author added was never terminal, so its record's open
+  // box passed. The rows above assert that rule ids fire, and cannot see an absence; this
+  // one asserts the refusal, and that the remedy it names reports the box.
+  [
+    'corpus/ledger/half-vocabulary',
+    () => gateNode('bad-ledger-vocabulary.mjs', 'without `terminalStates`'),
+  ],
   // The reverse check (bug 0121): a work/ subdirectory no LANES entry claims,
   // but which carries State:-shaped records, must fail loudly — not silently
   // widen the "not scanned" gap the way work/proposals/** did for two rounds.
@@ -2908,6 +2916,7 @@ const GATE_FOR = {
     'corpus/ledger/state',
     'corpus/ledger/deferred-lie',
     'corpus/ledger/dead-selector',
+    'corpus/ledger/half-vocabulary',
     'corpus/ledger/uncovered-lane',
     'corpus/ledger/lane-done-vacuous',
     'corpus/ledger/finished-not-closed',
