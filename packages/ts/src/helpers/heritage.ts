@@ -43,8 +43,10 @@ function directlyExtends(cls: ClassDeclaration, className: string): boolean {
  * over a self-extend, a pair, a cross-file pair, a declaration merge, a JS file and an ambient
  * pair (a mixin shape ends for another reason: the walk does not climb a mixin call). A guard
  * that cannot fire is not a guard. If this ever stopped holding, the circular-chain tests would
- * fail when the chain array runs out — measured at 26 to 87 seconds, as a RangeError, since the
- * loop is synchronous and no test timeout can interrupt it.
+ * fail with `RangeError: Invalid array length` when the chain array overflows — no test timeout
+ * can interrupt a synchronous loop. How long that takes depends on the cycle, not on this code:
+ * reviews forcing a loop measured 11 s to about 87 s for one looping shape, and a run over the
+ * whole block of shapes did not finish in 200 s.
  */
 function classChain(cls: ClassDeclaration): ClassDeclaration[] {
   const chain: ClassDeclaration[] = []

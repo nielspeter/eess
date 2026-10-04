@@ -90,18 +90,19 @@ ending it, validate — are covered by the boxes below._
 
 Each row replaces one anchor, which must occur exactly once, in
 `packages/mermaid/src/models/arch-class.ts` (or `conditions/class.ts` for the last), runs the
-two builder test files, and restores the file, checking its sha256.
+two builder test files, and restores the file, checking its sha256. Before the first row, run the
+two files unmutated and require exit 0, so a red row means the mutation and not a broken tree.
 
-| row                               | anchor → replacement                                                                |
-| --------------------------------- | ----------------------------------------------------------------------------------- |
-| walk climbs one edge              | delete `for (const name of parents.get(next.name) ?? []) queue.push({ name, via })` |
-| no visited guard                  | delete `if (reached.has(next.name)) continue`                                       |
-| an arrow dropped (×4)             | remove that arrow from `INHERITANCE_ARROWS`                                         |
-| `<\|--` / `<\|..` read backwards  | remove it from `if (arrow === '<\|--' \|\| arrow === '<\|..')`                      |
-| `--\|>` / `..\|>` read backwards  | add it to that condition                                                            |
-| path not recorded                 | `const via = [...next.via, next.name]` → `const via = next.via`                     |
-| depth-first                       | both `queue.shift()` → `queue.pop()`                                                |
-| empty `(via )` on a direct parent | `via.length > 0 ? … : ''` → always `` ` (via ${via.join(', ')})` ``                 |
+| row                               | anchor → replacement                                                                                                                |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| walk climbs one edge              | delete `for (const name of parents.get(next.name) ?? []) queue.push({ name, via })`                                                 |
+| no visited guard                  | delete `if (reached.has(next.name)) continue`                                                                                       |
+| an arrow dropped (×4)             | remove that arrow from `INHERITANCE_ARROWS`                                                                                         |
+| `<\|--` / `<\|..` read backwards  | remove it from `if (arrow === '<\|--' \|\| arrow === '<\|..')`                                                                      |
+| `--\|>` / `..\|>` read backwards  | add it to that condition                                                                                                            |
+| path not recorded                 | `const via = [...next.via, next.name]` → `const via = next.via`                                                                     |
+| depth-first                       | the loop header `for (let next = queue.shift(); next !== undefined; next = queue.shift())` → the same with both calls `queue.pop()` |
+| empty `(via )` on a direct parent | `via.length > 0 ? … : ''` → always `` ` (via ${via.join(', ')})` ``                                                                 |
 
 Deferred: [bug 0377](../0377-eess-mermaid-extend-also-means-implement.md).
 
