@@ -166,6 +166,29 @@ describe('bugs 0363 + 0364: one owner for the route and the remedy', () => {
     expect(CARDINALITY_REMEDY['names-a-file']).not.toBe(CARDINALITY_REMEDY['contradicted-by-disk'])
   })
 
+  it('the Fix line names resideInFile() once, not twice', () => {
+    // Bug 0372. For a cardinality rule the `Fix:` line is cause-then-remedy, and both halves
+    // named `resideInFile()` — one sentence saying the same thing twice. The CAUSE keeps it,
+    // because a non-cardinality rule's remedy is "correct the glob, or remove the rule" and
+    // names no edit at all; the remedy dropped it.
+    const fix = ratchet(ON_DISK_FILE).violations()[0]?.suggestion ?? ''
+    expect(fix).toContain('resideInFile()')
+    expect(fix.split('resideInFile()').length - 1).toBe(1)
+  })
+
+  it('the scope is claimed once, and qualified to the shape', () => {
+    // Bug 0372's other half. The headline says "in this project" — correct, since the fault is
+    // contingent on the filesystem: the same text matches where that name is a directory. The
+    // cause clause then said "so it can never match", unqualified, so one sentence made two
+    // claims of different strength on the one route whose point is that the tsconfig is not the
+    // lever.
+    const v = ratchet(ON_DISK_FILE).violations()[0]
+    expect(v?.message ?? '').toContain('can never match anything in this project')
+    expect(v?.message ?? '').toContain('can never match as a folder glob')
+    // …and the unqualified form is gone, or the two claims still disagree.
+    expect(v?.message ?? '').not.toMatch(/so it can never match(?! as a folder glob)/)
+  })
+
   it('a cardinality rule is never told to remove itself, on any route or none', () => {
     // The invariant `CARDINALITY_REMEDY`'s docstring states and a draft of this change broke:
     // `route === undefined` was folded into the non-cardinality arm, so a `.notExist()` could

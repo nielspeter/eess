@@ -2,8 +2,10 @@
 
 ## Status
 
-- **State:** Draft — filed out of
-  [0363](./fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md) on product
+- **State:** Fixed — the cause clause now qualifies its claim to the shape ("as a folder glob")
+  instead of repeating the headline's scope unqualified, and the remedy no longer repeats the
+  API name the cause already gives. Both halves pinned. Filed out of
+  [0363](./0363-a-remedy-that-cannot-remediate-survives-one-input-over.md) on product
   review's call: pre-existing wording whose audience 0363 widened, not something 0363 broke.
 - **Severity:** Low — **no wrong verdict and no unactionable instruction.** The remedy names a
   real API verbatim, so a reader who reaches the end knows the lever. What is wrong is an
@@ -52,26 +54,49 @@ incoherent headline rather than an unactionable instruction.
 
 ## Fix
 
-One decision covering both, after #168 ships:
+**Both halves, decided together as the record asked.**
 
-- should `FAULT_ADVICE['file-not-folder']` read "so it can never match **as a folder glob**",
-  qualifying the second claim instead of repeating the first?
-- should that cause entry still carry its own remedy clause ("use `resideInFile()` … or append
-  `/**`") now that `CARDINALITY_REMEDY` owns remedies per route? The cause tables predate the
-  route table; the overlap is the seam.
+**The scope claim is qualified to the shape.** `FAULT_ADVICE['file-not-folder']` now reads "so it
+can never match **as a folder glob**". The headline's "in this project" was already right — the
+fault is contingent on the filesystem, since the same text matches fine where that name is a
+directory — so the unqualified clause was the half that overstated.
 
-Not decided here. It is a wording question about tables two tools and a test corpus read, which
-makes it cheap to get wrong and cheap to defer.
+**The duplication is removed from the REMEDY, not the cause.** Which way round matters, and the
+reason decides it: for a cardinality rule the `Fix:` line is `${cause}. ${remedy}`, so
+`resideInFile()` was appearing twice inside **one sentence**. The cause keeps it, because a
+non-cardinality rule's remedy is "Correct the glob, or remove the rule" and names no edit at all
+— strip the cause and that author loses the only concrete guidance they get. So
+`CARDINALITY_REMEDY['names-a-file']` dropped the clause instead:
+
+> Correct the selector to name the DIRECTORY you mean — this rule has not been enforcing
+> anything. Do not delete it.
+
+**Measured after the change**, the full `Fix:` line for an out-of-project file glob:
+
+> this matches a FILE but is used where a directory is read, so it can never match as a folder
+> glob — use resideInFile() for a file, or append "/\*\*" to name the files inside a directory.
+> Correct the selector to name the DIRECTORY you mean — this rule has not been enforcing
+> anything. Do not delete it.
 
 ## Related
 
-- [0363](./fixed/0363-a-remedy-that-cannot-remediate-survives-one-input-over.md) — gave the
+- [0363](./0363-a-remedy-that-cannot-remediate-survives-one-input-over.md) — gave the
   route table remedies, which is what made the cause tables' remedy clauses an overlap.
-- [0358](./0358-an-unused-exclusion-warning-does-not-say-which-instance-it-is-about.md) — the
+- [0358](../0358-an-unused-exclusion-warning-does-not-say-which-instance-it-is-about.md) — the
   other open record about a message that reads wrong rather than computing wrong.
 
 ## Verification
 
-- [ ] the decision taken on both halves together, since they share one seam.
-- [ ] if reworded: the change declared, because both tools emit it and adopters may match on it.
-- [ ] the measured sentence above re-pasted after the change, so the record shows both.
+- [x] the decision taken on both halves together, since they share one seam.
+- [x] both halves pinned — `it('the Fix line names resideInFile() once, not twice')` counts the
+      occurrences rather than asserting presence, and `it('the scope is claimed once, and
+qualified to the shape')` asserts the qualifier AND that the unqualified form is gone.
+      Nothing pinned either before: the whole suite stayed at 3,919 tests across both edits,
+      which is how a wording change ships unnoticed.
+- [x] a two-row sabotage matrix, both red: removing the qualifier reds one, restoring the
+      duplication reds the other.
+- [x] the change declared — both tools emit this text and an adopter may match on it.
+- [x] the measured sentence re-pasted in the Fix above, so the record shows before and after.
+- [x] `npm run validate` green.
+
+Deferred: none.

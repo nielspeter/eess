@@ -192,8 +192,8 @@ export const CARDINALITY_REMEDY: Readonly<Record<DeadSiteRoute, string>> = {
   // remedy was offering the same option under a second name that appears nowhere in the
   // dialect's vocabulary — and offering it LAST, which is where an agent reading `Fix:` lands.
   'names-a-file':
-    'Correct the selector to name the DIRECTORY you mean, or use `resideInFile()` if you meant ' +
-    'the file — this rule has not been enforcing anything. Do not delete it.',
+    'Correct the selector to name the DIRECTORY you mean — this rule has not been enforcing ' +
+    'anything. Do not delete it.',
   // Here, and only here, the tsconfig IS the lever.
   'contradicted-by-disk':
     'Widen the tsconfig include to cover this path, or correct the selector — ' +
@@ -230,8 +230,12 @@ export const FAULT_ADVICE: Readonly<Record<GlobFault, string>> = {
     'a "./" segment never occurs in an absolute file path — remove it and anchor instead ("./src/x/**" -> "**/src/x/**")',
   unanchored:
     'these are matched against ABSOLUTE file paths, so a project-relative glob matches nothing — prefix these with "**/"',
+  // "as a folder glob", not "ever". The headline this rides behind says "in this project",
+  // correctly: the fault is contingent on the filesystem, since the same text matches fine where
+  // that name is a directory. An unqualified "can never match" beside a scoped headline left one
+  // sentence making two claims of different strength — [bug 0372](../../../../work/bugs/fixed/0372-the-file-not-folder-sentence-says-it-can-never-match-twice.md).
   'file-not-folder':
-    'this matches a FILE but is used where a directory is read, so it can never match — use resideInFile() for a file, or append "/**" to name the files inside a directory',
+    'this matches a FILE but is used where a directory is read, so it can never match as a folder glob — use resideInFile() for a file, or append "/**" to name the files inside a directory',
   'no-match':
     'these are anchored but matched no file. Common causes: the glob names a directory rather than the files inside it (append "/**"), a path segment is misspelled, or the directory holds no source files',
 }
