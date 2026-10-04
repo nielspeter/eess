@@ -237,6 +237,11 @@ print is required.
       corrective — the document stays examined and a control still reds.
 - [ ] The `check-nonvacuity.mjs` registry row.
 - [ ] `CLAUDE.md:174-177` reconciled — no box above covers it; this is it.
+- [ ] The remedy says which list a refused token belongs in: `states` for every token,
+      `terminalStates` too if it means closed. Handed here by
+      [0284](./fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md):
+      an author who passes both lists and leaves a closing token out of `terminalStates` still
+      gets a silent pass, and no mechanism can tell it from intent — only the advice can.
 
 Deferred: none.
 

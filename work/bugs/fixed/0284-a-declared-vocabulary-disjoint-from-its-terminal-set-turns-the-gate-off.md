@@ -251,7 +251,8 @@ taught in the docs. It now passes both and says why.
       an `ArchConfigError`, not a string match — and
       `it('the remedy the error names is corrective: the victim is classified done and its box reports')`,
       which applies the named edit and asserts `ledger/silent-open-box` on the victim and
-      `doneItems: 2`. **Three of the five tests measured red before the fix** — the two
+      `doneItems: 2`. **Three of the five tests at `be052d1` measured red before the fix** (the sixth, added in
+      review for the `terminalStates`-alone remedy, also fails on the pre-fix code) — the two
       refusals and the `ledgerStats` one. The corrective test was green before the fix too: with
       both options passed the old code ran the same path, so it shows the remedy works and is not
       red-first evidence. _Corrected 2026-10-04: first written "four of the five", counted from a
@@ -267,7 +268,8 @@ taught in the docs. It now passes both and says why.
 - [x] `npm run check:nonvacuity` green, 102 fixtures, 365 s. The fixture also refuses
       `terminalStates` alone since review: a sabotage that let that half default again turned the
       row red (exit 0), measured.
-- [x] `npm run validate` green on the fix commit (exit 0, 468 s).
+- [x] `npm run validate` green on `be052d1` (exit 0, 468 s) and on `621ebec`, after review
+      (exit 0, 472 s); the commit after that changes records only.
 
 Deferred: [0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md).
 
