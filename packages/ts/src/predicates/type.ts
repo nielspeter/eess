@@ -1,4 +1,10 @@
-import { Node, type InterfaceDeclaration, type TypeAliasDeclaration } from 'ts-morph'
+import {
+  Node,
+  type ExpressionWithTypeArguments,
+  type InterfaceDeclaration,
+  type TypeAliasDeclaration,
+  type TypeNode,
+} from 'ts-morph'
 import type { Predicate } from '@nielspeter/eess'
 import type { TypeMatcher } from '../helpers/type-matchers.js'
 import { clauseResolvesTo, interfaceChainReaches } from '../helpers/heritage.js'
@@ -84,24 +90,59 @@ export function extendType(name: string): Predicate<TypeDeclaration> {
   return {
     description: `extend type "${name}"`,
     test: (element) => {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const clauseRegex = new RegExp(`^${escaped}(\\b|$|<)`)
+      const clauseNames = (ext: ExpressionWithTypeArguments) =>
+        clauseRegex.test(ext.getText()) || clauseResolvesTo(ext, name)
       if (Node.isInterfaceDeclaration(element)) {
-        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        const nameRegex = new RegExp(`^${escaped}(\\b|$|<)`)
-        return interfaceChainReaches(
-          element,
-          (ext) => nameRegex.test(ext.getText()) || clauseResolvesTo(ext, name),
-        )
+        return interfaceChainReaches(element, clauseNames)
       }
-      // For type aliases, check if the type directly references the named type
-      // Use word boundary matching to avoid false positives (e.g., "BaseConfig" inside "{ bar: BaseConfig }")
+      // For type aliases, test the printed type. For most aliases that prints as the alias's own
+      // name, which is why `{ bar: BaseConfig }` does not match — not the word boundary. It also
+      // matches a module path and some generic arguments (bug 0384).
       const typeText = element.getType().getText()
-      const nameRegex = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`)
-      return nameRegex.test(typeText)
+      const nameRegex = new RegExp(`\\b${escaped}\\b`)
+      // The printed type is the alias's own name for most aliases, so an intersection — the
+      // alias shape most likely to mean "extends" — never matched (bug 0376). The type node
+      // is read as well: kept beside the printed-type test, so what matched before still does.
+      return nameRegex.test(typeText) || intersectionNames(element.getTypeNode(), name, clauseNames)
     },
   }
 }
 
 // --- Internal helpers ---
+
+/**
+ * Whether an alias's type node is an intersection with a member that names `name` — as
+ * written, as resolved (an aliased import), or through the member interface's own `extends`
+ * chain (ADR-017). Parentheses and nested intersections are looked through. Only an
+ * intersection is read: a member of a union, or a property of an object type, does not make
+ * the alias extend it.
+ */
+function intersectionNames(
+  node: TypeNode | undefined,
+  name: string,
+  clauseNames: (ext: ExpressionWithTypeArguments) => boolean,
+): boolean {
+  if (node === undefined) return false
+  if (Node.isParenthesizedTypeNode(node)) {
+    return intersectionNames(node.getTypeNode(), name, clauseNames)
+  }
+  if (!Node.isIntersectionTypeNode(node)) return false
+  return node.getTypeNodes().some((member) => {
+    // A nested intersection always arrives parenthesised: the parser flattens `A & B & C`.
+    if (Node.isParenthesizedTypeNode(member)) {
+      return intersectionNames(member, name, clauseNames)
+    }
+    if (!Node.isTypeReference(member)) return false
+    if (member.getTypeName().getText() === name) return true
+    const symbol = member.getType().getSymbol()
+    if (symbol?.getName() === name) return true
+    return (symbol?.getDeclarations() ?? []).some(
+      (d) => Node.isInterfaceDeclaration(d) && interfaceChainReaches(d, clauseNames),
+    )
+  })
+}
 
 /**
  * Resolve a TypeDeclaration to its ts-morph Type.

@@ -161,7 +161,7 @@ The direct check had the same blind spot one level down, so nothing selected bef
 Review found more the walk cannot climb — a class expression, an intersection, a class named
 in `implements` — deferred→[bug 0375](../0375-the-heritage-walk-cannot-climb-three-resolved-shapes.md);
 and that `extendType`'s type-alias branch, untouched here, reads the alias's own name —
-deferred→[bug 0376](../0376-extendtype-on-a-type-alias-reads-the-alias-name.md).
+deferred→[bug 0376](./0376-extendtype-on-a-type-alias-reads-the-alias-name.md).
 
 Two edits outside the record: `docs/migrating-to-0.11.md` now says the bug-0372 wording ships in
 0.12.0 rather than 0.11.1, which is true only because this change bumps `minor`; and the
@@ -170,5 +170,5 @@ Two edits outside the record: `docs/migrating-to-0.11.md` now says the bug-0372 
 
 Deferred: [bug 0373](../0373-an-unresolved-base-ends-the-heritage-walk-silently.md),
 [bug 0375](../0375-the-heritage-walk-cannot-climb-three-resolved-shapes.md),
-[bug 0376](../0376-extendtype-on-a-type-alias-reads-the-alias-name.md),
+[bug 0376](./0376-extendtype-on-a-type-alias-reads-the-alias-name.md),
 [bug 0374](./0374-eess-mermaid-extend-reads-one-edge.md).

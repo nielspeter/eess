@@ -8,10 +8,11 @@
 | `@nielspeter/eess-ts`      | 0.11.0 | 0.12.0 |
 | `@nielspeter/eess-mermaid` | 0.5.0  | 0.6.0  |
 
-**One breaking change, in two dialects: the heritage words now walk the inheritance chain** —
+**Two breaking changes. The heritage words now walk the inheritance chain, in two dialects** —
 `extend`, `implement` and `extendType` in `eess-ts`, and `extendName`, `extend` and
 `notExtendStereotype` in `eess-mermaid`. No export is removed or renamed, and no signature
-changes. What changes is which classes the words match.
+changes. What changes is which classes the words match. And `extendType` now also selects a
+type alias that intersects the named type — see below.
 
 ## If you only read one thing
 
@@ -98,6 +99,16 @@ direction — so in a diagram `extend` still also means "implements"
 ([bug 0377](https://github.com/nielspeter/eess/blob/main/work/bugs/0377-eess-mermaid-extend-also-means-implement.md)).
 A cycle drawn in the diagram ends the walk; a class on it counts as reaching itself.
 
+## Also in 0.12: `extendType` reads an intersection alias
+
+`types(p).that().extendType('BaseConfig')` now selects `type X = BaseConfig & { … }` — and an
+intersection member written through an aliased import, or an interface that reaches the type
+by its own chain. Before, it read the alias's printed type, which is the alias's own name, so
+an intersection was never selected
+([bug 0376](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0376-extendtype-on-a-type-alias-reads-the-alias-name.md)). A selector
+can report new violations; an alias that matched before still matches, and one that only
+holds the type in a property (`{ inner: BaseConfig }`) still does not.
+
 ## Also in 0.12: one message changed wording
 
 A dead-glob finding for a glob naming a file where a directory is read no longer states its
@@ -115,9 +126,12 @@ No verdict changes. [Migrating to 0.11](./migrating-to-0.11.md) quotes the new t
   a class expression, an interface extending an intersection, and a class named in
   `implements`.
   [Bug 0375](https://github.com/nielspeter/eess/blob/main/work/bugs/0375-the-heritage-walk-cannot-climb-three-resolved-shapes.md).
-- **`extendType` on a type alias** reads the alias's own name, so
-  `type X = BaseConfig & { … }` is not selected by `extendType('BaseConfig')`. Not new in 0.12.
-  [Bug 0376](https://github.com/nielspeter/eess/blob/main/work/bugs/0376-extendtype-on-a-type-alias-reads-the-alias-name.md).
+- **`extendType` on an alias reads one level.** `type Derived = Inner & {…}`, where `Inner` is
+  itself an intersection with the type, is not selected, nor is a plain alias of a
+  sub-interface or a wrapped member like `Partial<BaseConfig> & {…}`
+  ([bug 0383](https://github.com/nielspeter/eess/blob/main/work/bugs/0383-extendtype-stops-at-one-alias-level.md)).
+  And its older printed-type test can select by a module's file name
+  ([bug 0384](https://github.com/nielspeter/eess/blob/main/work/bugs/0384-extendtype-printed-type-matches-by-module-path.md)).
 - **`eess-mermaid`'s `extend` also means "implements"**, so it agrees with `eess-ts` on depth
   and not yet on edge kinds.
   [Bug 0377](https://github.com/nielspeter/eess/blob/main/work/bugs/0377-eess-mermaid-extend-also-means-implement.md).

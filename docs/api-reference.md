@@ -178,13 +178,13 @@ Available on all entry points via `.that()`.
 
 ## Type Predicates
 
-| Export               | Signature                                      | Description                                                              |
-| -------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ |
-| `areInterfaces`      | `areInterfaces`                                | Type is an interface.                                                    |
-| `areTypeAliases`     | `areTypeAliases`                               | Type is a type alias.                                                    |
-| `haveProperty`       | `haveProperty(name: string)`                   | Type has a property with the name.                                       |
-| `havePropertyOfType` | `havePropertyOfType(name: string, re: RegExp)` | Property exists with type matching regex.                                |
-| `extendType`         | `extendType(name: string)`                     | Interface extends the named type, directly or through another interface. |
+| Export               | Signature                                      | Description                                                                                          |
+| -------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `areInterfaces`      | `areInterfaces`                                | Type is an interface.                                                                                |
+| `areTypeAliases`     | `areTypeAliases`                               | Type is a type alias.                                                                                |
+| `haveProperty`       | `haveProperty(name: string)`                   | Type has a property with the name.                                                                   |
+| `havePropertyOfType` | `havePropertyOfType(name: string, re: RegExp)` | Property exists with type matching regex.                                                            |
+| `extendType`         | `extendType(name: string)`                     | Interface extends the named type, directly or through another interface; a type alias intersects it. |
 
 ## Call Predicates
 
