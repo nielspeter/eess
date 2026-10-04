@@ -187,14 +187,26 @@ export const CARDINALITY_REMEDY: Readonly<Record<DeadSiteRoute, string>> = {
   syntactic: 'Correct the selector — this rule has not been enforcing anything. Do not delete it.',
   // The tsconfig cannot help either, for a different reason: the predicate reads the
   // directory portion and the glob names a file, so no `include` makes it match.
-  // Names `resideInFile()` verbatim, not "the file-level predicate". Review caught the vaguer
-  // phrasing: the CAUSE riding immediately before this already says `resideInFile()`, so the
-  // remedy was offering the same option under a second name that appears nowhere in the
-  // dialect's vocabulary — and offering it LAST, which is where an agent reading `Fix:` lands.
+  //
+  // **The rule for this table, stated where a table author will see it:** the CAUSE in
+  // `FAULT_ADVICE` owns the concrete edit, and a route remedy here must neither repeat it nor
+  // choose between its options. For a cardinality rule the `Fix:` line is `${cause}. ${remedy}`,
+  // so anything said here is said a second time, and the remedy is the LAST sentence — where an
+  // agent reading `Fix:` acts.
+  //
+  // History, kept because it is the argument for getting this wrong again. 0363's review had this
+  // name `resideInFile()` verbatim, which duplicated the cause in one sentence. Bug 0372's first
+  // fix removed that by saying "name the DIRECTORY you mean" — and product review measured the
+  // consequence: the cause offers TWO edits (`resideInFile()` for a file, `/**` for a directory),
+  // and a last sentence naming only one of them overrides the cause. For a `.notExist()` rule,
+  // meaning a file is the common case ("legacy/old.ts must not come back"), and an agent told to
+  // name a directory widens the rule to the parent folder — changing what it asserts. So it
+  // defers to the cause's choice instead, and stays a distinct sentence from `syntactic` so a
+  // hand-rolled copy of this table remains detectable (0363's S7).
+  // See [bug 0372](../../../../work/bugs/fixed/0372-the-file-not-folder-sentence-says-it-can-never-match-twice.md).
   'names-a-file':
-    'Correct the selector to name the DIRECTORY you mean — this rule has not been enforcing ' +
-    'anything. Do not delete it.',
-  // Here, and only here, the tsconfig IS the lever.
+    'Apply whichever of those two fixes you meant — this rule has not been enforcing anything. ' +
+    'Do not delete it.',
   'contradicted-by-disk':
     'Widen the tsconfig include to cover this path, or correct the selector — ' +
     'do not delete this rule, it is what detected the gap.',
@@ -230,12 +242,15 @@ export const FAULT_ADVICE: Readonly<Record<GlobFault, string>> = {
     'a "./" segment never occurs in an absolute file path — remove it and anchor instead ("./src/x/**" -> "**/src/x/**")',
   unanchored:
     'these are matched against ABSOLUTE file paths, so a project-relative glob matches nothing — prefix these with "**/"',
-  // "as a folder glob", not "ever". The headline this rides behind says "in this project",
-  // correctly: the fault is contingent on the filesystem, since the same text matches fine where
-  // that name is a directory. An unqualified "can never match" beside a scoped headline left one
-  // sentence making two claims of different strength — [bug 0372](../../../../work/bugs/fixed/0372-the-file-not-folder-sentence-says-it-can-never-match-twice.md).
+  // NO scope claim here — the headline owns scope, and states it correctly as "in this project"
+  // (the same text matches fine where that name is a directory). A cause that also states scope
+  // can only repeat the headline or contradict it. The first version said "so it can never
+  // match", unqualified; the second qualified it "as a folder glob", which product review showed
+  // is STILL universal — `**/src/domain/user.ts` matches as a folder glob where `user.ts` is a
+  // directory. Qualifying by shape fixed the wrong axis. "Used where a directory is read"
+  // already says why it fails here — [bug 0372](../../../../work/bugs/fixed/0372-the-file-not-folder-sentence-says-it-can-never-match-twice.md).
   'file-not-folder':
-    'this matches a FILE but is used where a directory is read, so it can never match as a folder glob — use resideInFile() for a file, or append "/**" to name the files inside a directory',
+    'this matches a FILE but is used where a directory is read — use resideInFile() for a file, or append "/**" to name the files inside a directory',
   'no-match':
     'these are anchored but matched no file. Common causes: the glob names a directory rather than the files inside it (append "/**"), a path segment is misspelled, or the directory holds no source files',
 }
