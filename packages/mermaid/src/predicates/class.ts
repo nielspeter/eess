@@ -1,5 +1,6 @@
 import type { Predicate } from '@nielspeter/eess'
 import type { ArchClass } from '../models/arch-class.js'
+import { ancestorsOf } from '../models/arch-class.js'
 
 export function haveStereotype(name: string): Predicate<ArchClass> {
   return {
@@ -64,20 +65,10 @@ export function haveNoMembers(): Predicate<ArchClass> {
   }
 }
 
+/** Matches classes that reach `superName` through inheritance or realization edges, at any depth (ADR-017). */
 export function extendName(superName: string): Predicate<ArchClass> {
   return {
     description: `extend ${superName}`,
-    test: (c) => {
-      const project = c.project
-      for (const r of project.ast.relationships) {
-        if (r.arrow !== '<|--' && r.arrow !== '<|..' && r.arrow !== '--|>' && r.arrow !== '..|>') {
-          continue
-        }
-        const sub = r.arrow === '<|--' || r.arrow === '<|..' ? r.rhs.$refText : r.lhs.$refText
-        const sup = r.arrow === '<|--' || r.arrow === '<|..' ? r.lhs.$refText : r.rhs.$refText
-        if (sub === c.name && sup === superName) return true
-      }
-      return false
-    },
+    test: (c) => ancestorsOf(c.project, c.name).has(superName),
   }
 }

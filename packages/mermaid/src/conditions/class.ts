@@ -3,9 +3,13 @@ import { marksAssertsCardinality } from '@nielspeter/eess/internal'
 import type { ArchViolation } from '../core/violation.js'
 import { createViolation } from '../core/violation.js'
 import type { ArchClass } from '../models/arch-class.js'
-import { collectRelationships, getClassLine } from '../models/arch-class.js'
-
-const INHERITANCE_ARROWS = new Set(['<|--', '<|..', '--|>', '..|>'])
+import {
+  ancestorPaths,
+  ancestorsOf,
+  collectRelationships,
+  getClassLine,
+  inheritsBetween,
+} from '../models/arch-class.js'
 
 function classViolation(c: ArchClass, message: string, ctx: ConditionContext): ArchViolation {
   return createViolation(
@@ -18,22 +22,6 @@ function classViolation(c: ArchClass, message: string, ctx: ConditionContext): A
     message,
     ctx,
   )
-}
-
-function isExtensionEdge(arrow: string): boolean {
-  return INHERITANCE_ARROWS.has(arrow)
-}
-
-function inheritsBetween(
-  arrow: string,
-  source: string,
-  target: string,
-): { sub: string; sup: string } | undefined {
-  if (!isExtensionEdge(arrow)) return undefined
-  if (arrow === '<|--' || arrow === '<|..') {
-    return { sub: target, sup: source }
-  }
-  return { sub: source, sup: target }
 }
 
 export function notExtendStereotype(name: string): Condition<ArchClass> {
@@ -55,16 +43,14 @@ export function notExtendStereotype(name: string): Condition<ArchClass> {
 
       const violations: ArchViolation[] = []
       for (const c of elements) {
-        for (const r of collectRelationships(project)) {
-          const inh = inheritsBetween(r.arrow, r.source, r.target)
-          if (!inh) continue
-          if (inh.sub !== c.name) continue
-          const supStereotypes = allClasses.get(inh.sup) ?? []
+        for (const [sup, via] of ancestorPaths(project, c.name)) {
+          const supStereotypes = allClasses.get(sup) ?? []
           if (supStereotypes.includes(name)) {
+            const path = via.length > 0 ? ` (via ${via.join(', ')})` : ''
             violations.push(
               classViolation(
                 c,
-                `${c.name} extends ${inh.sup} which has stereotype <<${name}>>`,
+                `${c.name} extends ${sup}${path} which has stereotype <<${name}>>`,
                 context,
               ),
             )
@@ -85,12 +71,7 @@ export function extendClass(superName: string): Condition<ArchClass> {
       const project = first.project
       const violations: ArchViolation[] = []
       for (const c of elements) {
-        const extends_ = collectRelationships(project)
-          .map((r) => inheritsBetween(r.arrow, r.source, r.target))
-          .filter((inh): inh is { sub: string; sup: string } => inh !== undefined)
-          .filter((inh) => inh.sub === c.name)
-          .map((inh) => inh.sup)
-        if (!extends_.includes(superName)) {
+        if (!ancestorsOf(project, c.name).has(superName)) {
           violations.push(classViolation(c, `${c.name} does not extend ${superName}`, context))
         }
       }
@@ -153,7 +134,9 @@ export function notHaveStereotype(name: string): Condition<ArchClass> {
 
 function dependenciesOf(c: ArchClass): string[] {
   return collectRelationships(c.project)
-    .filter((r) => r.source === c.name && !INHERITANCE_ARROWS.has(r.arrow))
+    .filter(
+      (r) => r.source === c.name && inheritsBetween(r.arrow, r.source, r.target) === undefined,
+    )
     .map((r) => r.target)
 }
 

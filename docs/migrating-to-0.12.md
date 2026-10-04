@@ -1,15 +1,17 @@
 # Migrating to 0.12
 
-> Written for the release that will be tagged `v0.12.0`. Only `@nielspeter/eess-ts` moves. Check
-> what you have with `npm ls @nielspeter/eess-ts`.
+> Written for the release that will be tagged `v0.12.0`. Two packages move. Check what you have
+> with `npm ls @nielspeter/eess-ts @nielspeter/eess-mermaid`.
 
-| package               | from   | to     |
-| --------------------- | ------ | ------ |
-| `@nielspeter/eess-ts` | 0.11.0 | 0.12.0 |
+| package                    | from   | to     |
+| -------------------------- | ------ | ------ |
+| `@nielspeter/eess-ts`      | 0.11.0 | 0.12.0 |
+| `@nielspeter/eess-mermaid` | 0.5.0  | 0.6.0  |
 
-**One breaking change: `extend`, `implement` and `extendType` now walk the inheritance chain.**
-No export is removed or renamed, and no signature changes. What changes is which classes the words
-match.
+**One breaking change, in two dialects: the heritage words now walk the inheritance chain** —
+`extend`, `implement` and `extendType` in `eess-ts`, and `extendName`, `extend` and
+`notExtendStereotype` in `eess-mermaid`. No export is removed or renamed, and no signature
+changes. What changes is which classes the words match.
 
 ## If you only read one thing
 
@@ -81,6 +83,21 @@ classes(p).that().satisfy(extendsDirectly('LegacyBase')).should().notExist().che
 It reads the clause as written, so a base imported under an alias is not matched. If you need this, open
 an issue so it can become a named predicate.
 
+## In `eess-mermaid`
+
+The same change, over a diagram's edges. Given `Base <|-- Mid` and `Mid <|-- Leaf`:
+
+| you wrote                               | before                         | from `eess-mermaid` 0.6 |
+| --------------------------------------- | ------------------------------ | ----------------------- |
+| `.that().extendName('Base')`            | `Mid` only                     | `Mid` and `Leaf`        |
+| `.should().extend('Base')`              | **red** on `Leaf`              | passes on `Leaf`        |
+| `.should().notExtendStereotype('repo')` | the direct parent's stereotype | any ancestor's          |
+
+Which edges count is unchanged: inheritance and realization (`<|..`) alike, in either arrow
+direction — so in a diagram `extend` still also means "implements"
+([bug 0377](https://github.com/nielspeter/eess/blob/main/work/bugs/0377-eess-mermaid-extend-also-means-implement.md)).
+A cycle drawn in the diagram ends the walk; a class on it counts as reaching itself.
+
 ## Also in 0.12: one message changed wording
 
 A dead-glob finding for a glob naming a file where a directory is read no longer states its
@@ -101,6 +118,6 @@ No verdict changes. [Migrating to 0.11](./migrating-to-0.11.md) quotes the new t
 - **`extendType` on a type alias** reads the alias's own name, so
   `type X = BaseConfig & { … }` is not selected by `extendType('BaseConfig')`. Not new in 0.12.
   [Bug 0376](https://github.com/nielspeter/eess/blob/main/work/bugs/0376-extendtype-on-a-type-alias-reads-the-alias-name.md).
-- **`eess-mermaid`'s `extend` still reads one diagram edge.** ADR-017 says the word means the
-  same thing across the family, and that dialect does not yet comply.
-  [Bug 0374](https://github.com/nielspeter/eess/blob/main/work/bugs/0374-eess-mermaid-extend-reads-one-edge.md).
+- **`eess-mermaid`'s `extend` also means "implements"**, so it agrees with `eess-ts` on depth
+  and not yet on edge kinds.
+  [Bug 0377](https://github.com/nielspeter/eess/blob/main/work/bugs/0377-eess-mermaid-extend-also-means-implement.md).

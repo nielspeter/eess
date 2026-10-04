@@ -82,19 +82,22 @@ export class ClassRuleBuilder extends RuleBuilder<ArchClass, ArchProject> {
     return this.addPredicate(predHaveNoMembers())
   }
 
-  /** Filter to classes that extend the named superclass. */
+  /**
+   * Filter to classes that extend the named superclass at any depth, through inheritance or
+   * realization edges (ADR-017).
+   */
   extendName(superName: string): this {
     return this.addPredicate(predExtendName(superName))
   }
 
   // --- Condition methods (after .should()) ---
 
-  /** Assert matched classes do not extend a class carrying the `<<name>>` stereotype. */
+  /** Assert matched classes have no ancestor, at any depth, carrying the `<<name>>` stereotype. */
   notExtendStereotype(name: string): this {
     return this.addCondition(condNotExtendStereotype(name))
   }
 
-  /** Assert matched classes extend the named superclass. */
+  /** Assert matched classes extend the named superclass at any depth (ADR-017). */
   extend(superName: string): this {
     return this.addCondition(condExtendClass(superName))
   }
