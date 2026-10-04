@@ -12,7 +12,7 @@
 
 ## Symptom
 
-`citedItTitles` (`packages/crossvalidate/src/it-title.ts:116`) extracts a title only between
+`citedItTitles` (`packages/crossvalidate/src/it-title.ts:117`) extracts a title only between
 matching delimiters, so `` `it('foo")` `` and an unterminated `` `it('foo` `` yield no
 citation at all. Until
 [0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md), `eess-md`'s extractor closed a
