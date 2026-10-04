@@ -1,10 +1,9 @@
 /**
  * The `it('…')` title grammar for this package — one definition, because both of
- * its presets read it. Not the family's only copy: `eess-md`'s `adr.ts` carries a
- * third, on the same ADR-citation contract, and cannot import this one (the
- * dependency runs crossvalidate → md, and `eess/md-isolated` forbids the
- * reverse). See bug 0111 for that, and 0114 for why the grammar arguably belongs
- * behind eess-ts's engine boundary rather than here at all.
+ * its presets read it. `eess-md`'s `adr.ts` used to carry another copy, on the same
+ * ADR-citation contract; bug 0111 removed it, so this is the only reader of a cited
+ * title. See 0114 for why the grammar arguably belongs behind eess-ts's engine
+ * boundary rather than here at all.
  *
  * `md-ts` (ADR citations) and `gherkin-ts` (scenario citations) both have to
  * recover the title a test declares from source text, and both got it wrong the

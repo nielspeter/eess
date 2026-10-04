@@ -73,7 +73,8 @@ citation.
 Our own three citations (`adr/003-fluent-builder-dsl.md:283`, `:284`,
 `adr/006-framework-rules-architecture.md:102`) resolve **exactly** today, so
 nothing is currently green on a lie — the same posture 0104 had before it was
-fixed. The exposure is latent, not active.
+fixed. The exposure is latent, not active. _(2026-10-04: that count was long stale — at the fix there were 43 cited
+titles across 17 ADRs; `check:crossval` prints the live number.)_
 
 ## Fix
 
@@ -113,12 +114,17 @@ JSDoc, `docs/markdown.md`, the package README and `CLAUDE.md` say a title is
 
 **The cost, stated.** An adopter who runs only `eess-md` and cites test titles had a check
 that was wrong; now they have none, and the docs say so. That is the ruling's accepted risk.
-This repo is unaffected: `check:crossval` resolves every cited title against the AST.
+In this repo, `check:crossval` resolves every cited title it can parse against the AST — all
+43 today. Two things are lost that this repo had, both found by review and filed: a title cited
+beside the wrong file used to be reported and now is not
+([0382](../0382-a-cited-title-is-not-bound-to-the-file-cited-beside-it.md)), and a citation
+with mismatched quotes used to be reported and is now parsed by neither package
+([0381](../0381-a-citation-with-mismatched-quotes-is-checked-by-nothing.md)).
 
 ## Verification
 
-- [x] Red test written first: a citation that is a strict prefix of a real title
-      does **not** resolve — in the one package that still answers:
+- [x] done-otherwise: a citation that is a strict prefix of a real title does **not**
+      resolve — pinned, not red-first, in the one package that still answers:
       `packages/crossvalidate/tests/md-ts.test.ts` ·
       `it('does not resolve a citation that is a strict prefix of a real title')`, over
       `it('exist')` and `it('e')` against the fixture's `it('exists')`. It passed on first
@@ -129,10 +135,13 @@ This repo is unaffected: `check:crossval` resolves every cited title against the
       `it('still reports a cited file path that does not exist')`. Both measured red before
       the deletion: the old code reported the absent title, and reported it again beside the
       missing path.
-- [x] `npm run validate` green.
+- [x] `npm run validate` green on `996afd0` (exit 0, 492 s). The review commit after it
+      changes docs, records and comments only.
 
 The `test(…)` question [0105](./0105-md-ts-drops-modifier-forms.md) deferred here — whether
 the contract accepts `test(…)` beside `it(…)` — is no longer `eess-md`'s: it now concerns
 only `adrCitationsResolve`. deferred→[0380](../0380-adr-citations-resolve-does-not-say-whether-test-counts.md).
 
-Deferred: [0380](../0380-adr-citations-resolve-does-not-say-whether-test-counts.md).
+Deferred: [0380](../0380-adr-citations-resolve-does-not-say-whether-test-counts.md),
+[0381](../0381-a-citation-with-mismatched-quotes-is-checked-by-nothing.md),
+[0382](../0382-a-cited-title-is-not-bound-to-the-file-cited-beside-it.md).

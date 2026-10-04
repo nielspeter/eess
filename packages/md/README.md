@@ -144,7 +144,9 @@ a `correspondence()` against the set you hold, both directions. The docs page's
 ```typescript
 import { adrEnforcement } from '@nielspeter/eess-md/rules/adr'
 
-adrEnforcement(c, { dir: 'docs/adr/**' }) // section+table present, valid tiers, cited paths exist
+// section+table present, valid tiers, cited paths exist. A cited it('…') title is not
+// checked here — run eess-crossvalidate's adrCitationsResolve for that.
+adrEnforcement(c, { dir: 'docs/adr/**' })
 ```
 
 An index/schema doc in the ADR directory (`README.md` or `index.md`) is exempt —

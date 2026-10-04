@@ -31,8 +31,8 @@ adrCitationsResolve(corpus({ roots: ['docs/**'] }), project('tsconfig.json'))
 ```
 
 AST-grounded: cited titles are resolved against actual `it()` call expressions
-(via eess-ts's public API — no ts-morph here, per ADR-007), so it also catches
-no-substitution template titles the text-level check misses.
+(via eess-ts's public API — no ts-morph here, per ADR-007). It is the family's only
+title check: `eess-md`'s `adrEnforcement` checks cited file paths and leaves titles here.
 
 ## Markdown ↔ Gherkin
 

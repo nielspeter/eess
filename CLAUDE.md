@@ -38,10 +38,10 @@ Every ADR ends with a `## Enforcement` section: a table with **Clause | Tier |
 Mechanism | Status** rows, one per enforceable clause. This is gated in CI —
 `check:corpus` runs eess-md's `adrEnforcement` (section + tier validity +
 cited paths exist), and `check:crossval` resolves cited `it('…')` titles against
-the real test AST — the only title check since bug 0111. Rules:
+the real test AST — the only title check since bug 0111, and it resolves only `packages/ts`'s tests (bug 0262). Rules:
 
 - **Tier** (1–5, per the EESS manifesto): 1 static · 2 behavioral · 3 operational · 4 semantic · 5 ratification.
-- **Mechanism**: name what actually checks the clause. Cite file paths in backticks (they must exist) and test citations as `` `path/to/file.test.ts` `` · `it('exact title')` on the same row (the title must exist in that file, and be unique across the suite — duplicate titles are ambiguous to the resolver).
+- **Mechanism**: name what actually checks the clause. Cite file paths in backticks (they must exist) and test citations as `` `path/to/file.test.ts` `` · `it('exact title')` on the same row (the title must exist in the project's tests and be unique across the suite — duplicate titles are ambiguous to the resolver. Cite the file that defines it: since bug 0111 nothing checks the title is in _that_ file — bug 0382).
   - **"Exact" means the raw source text of the title, character for character** — the resolver compares what the test file _says_, not what the string evaluates to. A title containing an escaped delimiter is cited with the escape: `it('it\'s fine')`, not `it('it's fine')`. A title containing a backtick is cited whole, which means the code span needs a double-backtick fence: ``` ``it('catches `HACK` in a comment')`` ```. Prefer titles that need no escaping — a raw-text key is your formatter's to change, so `prettier` restyling a quoted title can turn a correct citation red.
 - **Status** (fixed vocabulary): `gated` (mechanism runs in CI, failing blocks) · `warn` (runs, reports, doesn't block) · `pending` (decided, mechanism known, not yet green/wired) · `manual` (human review; no mechanism possible) · `n/a` (context/rationale; nothing to enforce) · `deprecated` (no longer in force, kept for history).
 

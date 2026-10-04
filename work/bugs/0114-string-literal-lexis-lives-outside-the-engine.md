@@ -48,8 +48,8 @@ the AST engine's by construction. ADR-007's Rule 2 row is `manual` / tier 4,
 ## Why it matters
 
 0104 was a defect in exactly this re-lexing, and it shipped in two packages
-because the capability had no home. A third copy lives in `eess-md`
-([0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md)). Every consumer that needs
+because the capability had no home. A third copy lived in `eess-md`
+([0111](./fixed/0111-md-adr-citations-resolve-by-prefix.md); removed 2026-10-04). Every consumer that needs
 a literal argument writes the grammar again, and gets it wrong the same way.
 
 There is also a live inconsistency to settle: `withStringArg` matches on
