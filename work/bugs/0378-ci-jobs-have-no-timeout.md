@@ -22,12 +22,15 @@ Synchronous walks are the known way to hang: the heritage walks in `eess-ts` and
 instrument that can run out. If a guard on one of them regressed, vitest's per-test timeout
 could not interrupt the loop. Measured for `eess-mermaid`: removing its visited guard makes a
 cycle test run until killed (60 s in the sabotage matrix, killed by process group). The
-`eess-ts` class walk crashes its worker in about 26 s instead, measured by the 0295 review.
+`eess-ts` class walk instead fails with `RangeError: Invalid array length` when its chain array
+overflows — in seconds to a minute or so for one looping shape, longer for a whole block (see
+`classChain` in `packages/ts/src/helpers/heritage.ts`). _Corrected 2026-10-04: first written as
+"crashes its worker in about 26 s", which was neither the failure mode nor a bound._
 
 ## Fix
 
 Not decided: a `timeout-minutes` on each job, set from the measured duration of a green run
-(validate takes about 8–11 minutes locally) with headroom, per ADR-016 clause 5. Measure CI's
+(local `npm run validate` runs measured 473–649 s on 2026-10-04) _(corrected 2026-10-04: first written as "about 8–11 minutes", which was not measured)_ with headroom, per ADR-016 clause 5. Measure CI's
 own duration first.
 
 ## Verification

@@ -55,7 +55,8 @@ ending it, validate — are covered by the boxes below._
       `it('a cycle in the diagram ends the walk')`. Each chain is three levels deep.
 - [x] the condition, the predicate and `notExtendStereotype` walk the edges; a cycle ends the walk.
       `notExtendStereotype` was not in the record as filed — it is the same word, so ADR-017
-      rule 6 covers it. At depth its message names the path — for example `Deep extends Base (via Leaf, Mid)` — since the class has no edge to the ancestor to go and find — added after
+      rule 6 covers it. At depth its message names the path — for example `Deep extends Base (via Leaf, Mid)` (corrected 2026-10-04: first quoted without
+      the parentheses, which never matched the code) — since the class has no edge to the ancestor to go and find — added after
       enforcement review.
 - [x] the edge set pinned unchanged —
       `it('a realization edge is walked like an inheritance edge, as it was before the walk')` and
@@ -63,10 +64,13 @@ ending it, validate — are covered by the boxes below._
       was added after enforcement review found the walk had widened the condition's leniency to
       a mixed chain, which 0377 now records.
 - [x] sabotage matrix on the final tree, thirteen rows, sha256-verified restores, each run in
-      its own process group: walk climbs one edge (8 red); each of the four arrows dropped
+      its own process group, over the two builder test files (`extend-walks-the-edges.test.ts` and
+      `class-rule-builder.test.ts`): walk climbs one edge (8 red); each of the four arrows dropped
       (`<|--` 10, `<|..` 2, `--|>` 4, `..|>` 1) and each read backwards (10, 2, 4, 1); path not
       recorded (3); depth-first instead of breadth-first, so the named path is not the shortest
-      (1); a direct parent printing an empty `(via )` (1); visited guard removed — the run
+      (1 — _this row first changed only the loop's update clause, a half-depth-first walk; a real
+      one passed every test, which post-merge testing review found. A mirrored diamond now reds
+      both, re-measured 2026-10-04_); a direct parent printing an empty `(via )` (1); visited guard removed — the run
       never finishes, killed at 60s. _Testing review found three of these rows surviving an
       earlier five-row matrix — `..|>` alone (never drawn in any test), DFS, and the empty
       path — and the tests for them were added: a `..|>` edge, a diamond whose longer branch is
@@ -76,8 +80,31 @@ ending it, validate — are covered by the boxes below._
       would be an ADR-016 instrument that can run out. _First written "and CI's job timeout still reds it" — but no workflow sets a timeout, so the run would hold a runner for GitHub's six-hour default before failing; testing review found it, and the gap is [bug 0378](../0378-ci-jobs-have-no-timeout.md)._
 - [x] the `eess-mermaid` and `eess-crossvalidate` suites pass — 115 and 94 tests, counted by
       `vitest run` on the final tree. _An earlier "111" was counted before the realization pin
-      was added; method review measured 112 at that commit, and three
-      tests from the testing review make 115._
-- [x] `npm run validate` green on the final tree (exit 0, 473s; eess-ts 3937 tests).
+      was added; method review measured 112 at that commit; the enforcement review's
+      mid-chain test made 113, the figure this box first carried; the testing review's two tests
+      make 115. (Corrected 2026-10-04: an earlier note said "three tests from the testing
+      review", which was wrong arithmetic for the right total.)_
+- [x] `npm run validate` green on the final tree (exit 0, 473s; eess-ts 3937 tests), and again
+      after the post-merge review's test changes (exit 0, 533s, same counts, follow-up PR).
 
-Deferred: [bug 0377](../0377-eess-mermaid-extend-also-means-implement.md), [bug 0378](../0378-ci-jobs-have-no-timeout.md).
+### The sabotage matrix, so it can be rebuilt
+
+Each row replaces one anchor, which must occur exactly once, in
+`packages/mermaid/src/models/arch-class.ts` (or `conditions/class.ts` for the last), runs the
+two builder test files, and restores the file, checking its sha256. Before the first row, run the
+two files unmutated and require exit 0, so a red row means the mutation and not a broken tree.
+
+| row                               | anchor → replacement                                                                                                                |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| walk climbs one edge              | delete `for (const name of parents.get(next.name) ?? []) queue.push({ name, via })`                                                 |
+| no visited guard                  | delete `if (reached.has(next.name)) continue`                                                                                       |
+| an arrow dropped (×4)             | remove that arrow from `INHERITANCE_ARROWS`                                                                                         |
+| `<\|--` / `<\|..` read backwards  | remove it from `if (arrow === '<\|--' \|\| arrow === '<\|..')`                                                                      |
+| `--\|>` / `..\|>` read backwards  | add it to that condition                                                                                                            |
+| path not recorded                 | `const via = [...next.via, next.name]` → `const via = next.via`                                                                     |
+| depth-first                       | the loop header `for (let next = queue.shift(); next !== undefined; next = queue.shift())` → the same with both calls `queue.pop()` |
+| empty `(via )` on a direct parent | `via.length > 0 ? … : ''` → always `` ` (via ${via.join(', ')})` ``                                                                 |
+
+Deferred: [bug 0377](../0377-eess-mermaid-extend-also-means-implement.md).
+
+Filed while closing, not part of this bug: [bug 0378](../0378-ci-jobs-have-no-timeout.md).
