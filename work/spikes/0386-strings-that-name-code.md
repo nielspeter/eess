@@ -210,16 +210,16 @@ Only for named declarations. Measured: for a module rule, `element` is the gener
 string matches by equality, so it **never matches** — the entry points still report, with a
 stderr warning. It fails closed, so it is not a false green, but it leaves an adopter reaching
 for `/index/` or `/.*/`: the path from a free-text exclusion to a switched-off rule, shipped in
-the docs. Filed as [bug 0387](../bugs/0387-a-basename-exclusion-never-matches.md). So the
+the docs. Filed as [bug 0387](../bugs/0387-a-basename-exclusion-waives-every-file-with-that-name.md). So the
 structured form must be **a file path, resolved against the project**, or **an element name**
-where the element is a declaration — not one string compared to three fields.
+where the element is a declaration — not one string compared to three fields. _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_
 
 ### 4. Prior art
 
 Tools that faced this converged on the same pieces:
 
 - **Scope in the rule, not an ignore list** — dependency-cruiser rules carve exceptions with
-  `pathNot` inside the rule's `from`/`to` selection, "rather than … separate ignore lists".
+  `pathNot` inside the rule's `from`/`to` selection, "rather than … separate ignore lists". _(Wrong — the page says the opposite; superseded below.)_
 - **No blanket suppression** — ESLint's `eslint-comments/no-unlimited-disable` forbids an
   `eslint-disable` that names no rule, because it "may cause to overlook some ESLint warnings
   unintentionally".
@@ -230,27 +230,26 @@ Tools that faced this converged on the same pieces:
   `reportUnusedDisableDirectives` does the same, at `warn` by default.
 - **The counterexample is eess's current design** — ArchUnit's `archunit_ignore_patterns.txt`
   matches regexes against the violation message, and "if all violations match ignore patterns,
-  the rule passes": the switched-off-rule shape, with no guard.
+  the rule passes": the switched-off-rule shape, with no guard. _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_ _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_
 
 ### Conclusion
 
-The research supports the choice. Concretely:
+The research supports the choice. Concretely: _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_
 
 1. **Scope moves to `.that()`.** A folder or a naming convention is a selection, resolved like
    any selector (dead-glob and ADR-010 floor included), and the denominator becomes honest.
 2. **`.excluding()` takes exact targets** — a file path resolved against the project, or an
-   element name — and a target that names nothing real is a finding (this would have caught
-   0387). That is resolve-or-refuse, applied where the target set is knowable.
+   element name — and a target that names nothing real is a finding (this would have caught 0387) _(wrong — 0387 over-matches; superseded below)_. That is resolve-or-refuse, applied where the target set is knowable.
 3. **A regex is an explicit escape carrying a reason**, reported with the finding it waives
    (as an `eess-exclude` comment's reason is), and probed for patterns that match arbitrary
    text. 3 of 83 measured patterns need it.
 4. **Out of this ruling, still open:** whether a stale exclusion is a finding (the kernel's
    `isFaultPosition` says no today, and `silent()` depends on it — the ESLint and TypeScript
-   precedents say report it; adopter cost unmeasured), and rule 2 of the draft ADR (names).
+   precedents say report it; adopter cost unmeasured), and rule 2 of the draft ADR (names). _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_
 
 **Cost, measured:** all 7 of this repo's exclusions and 83 documented patterns migrate; the
 regex-without-reason form becomes a configuration error, which is a breaking change in the
-kernel and every dialect. **Not measured:** adopters' own exclusions.
+kernel and every dialect. **Not measured:** adopters' own exclusions. _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_
 
 Sources: [eslint-comments no-unlimited-disable](https://eslint-community.github.io/eslint-plugin-eslint-comments/rules/no-unlimited-disable.html),
 [require-description](https://eslint-community.github.io/eslint-plugin-eslint-comments/rules/require-description.html),
@@ -261,7 +260,7 @@ Sources: [eslint-comments no-unlimited-disable](https://eslint-community.github.
 
 ## Adversarial review of the research — 2026-10-05: not ready to rule
 
-An independent reviewer tried to break the research above. It did, in four places, and the
+An independent reviewer tried to break the research above. It did, and the
 claims above stand corrected by this section rather than being rewritten:
 
 - **Bug 0387 was backwards.** The probe behind it used `notExist()`, whose `element` is
@@ -293,6 +292,21 @@ claims above stand corrected by this section rather than being rewritten:
   dialect can scope by name" was asserted, not measured. `ENTRY_POINTS` is 29 files, derived
   from the packages' `exports`/`bin` maps.
 
+- **The structured-target point contradicts itself.** "A target that names nothing real" needs
+  a set to check against. File paths and declarations have one; cycle edges, tsconfig flags, JSX
+  tags and call-site identities have only the rule's own violations — so for them, "names
+  nothing real" _is_ the stale-exclusion finding the conclusion puts out of scope.
+- **The regex escape is still a switch-off.** The arbitrary-text probe misses `/\//`,
+  `/\.ts$/` and message-template patterns (see the first review), and a required reason is a
+  Tier 1 presence check: `.excluding(/\//)` with the reason `'x'` passes. Whether a reason
+  justifies a waiver is Tier 4/5.
+- **No break classes or non-vacuity fixtures** were named for the new findings (a regex without
+  a reason, a target that resolves to nothing, the catch-all probe). Needed before any ADR is
+  accepted.
+- Smaller: most of the "13 exact file paths" are basenames, which over-match (0387); and the
+  test fixtures that deliberately match nothing (`'NonExistent'`, `'NoSuchElement'`) should be
+  set aside like the `/.*/` ones.
+
 **What the review points to instead.** The real question is not "pattern or name" but **what a
 waiver identifies**: a container (a file, a class, a function — which waives the future too) or
 a **violation** (which waives exactly what was found, and goes stale when it is fixed). The tools
@@ -305,6 +319,8 @@ scope. eess already has the violation-identity mechanism: the baseline. That ref
 - **known violations** belong in the baseline, waived by identity and ratcheted closed;
 - `.excluding()` may then have no job left that one of those does not do better — or a small
   one (a waiver that must carry a reason) — and **its future is the decision**.
+
+**What closes 0233 is therefore not answered here:** exact names, single-target rules and narrow `.that()` scopes all reproduce it, so it needs either a violation-identity waiver or a signal beyond the zero-examined floor.
 
 That depends on violation identity being trustworthy, which is exactly what bugs 0159 and 0338
 say it is not yet. So the order is likely: settle identity (0159, 0338), then decide
