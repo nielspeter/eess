@@ -258,3 +258,54 @@ Sources: [eslint-comments no-unlimited-disable](https://eslint-community.github.
 [TypeScript 3.9 `@ts-expect-error`](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-9.html),
 [ArchUnit user guide](https://www.archunit.org/userguide/html/000_Index.html),
 [dependency-cruiser rules reference](https://github.com/sverweij/dependency-cruiser/blob/main/doc/rules-reference.md).
+
+## Adversarial review of the research — 2026-10-05: not ready to rule
+
+An independent reviewer tried to break the research above. It did, in four places, and the
+claims above stand corrected by this section rather than being rewritten:
+
+- **Bug 0387 was backwards.** The probe behind it used `notExist()`, whose `element` is
+  `'SourceFile'`. The condition the docs pair with `'index.ts'`, `noDeadModules`, reports the
+  **basename**, so the documented exclusion matches — and over-matches: it also waives every
+  other `index.ts` (measured: an unnamed `src/feature/index.ts` disappears). Fail-open, not
+  fail-closed; 0387 is rewritten and rated High. Point 2's claim that resolving targets "would
+  have caught 0387" falls with it, and resolving `'index.ts'` as a path would red every adopter
+  who copied the recipe.
+- **Two prior-art claims were wrong.** The dependency-cruiser quote ("rather than … separate
+  ignore lists") came from a page summary, not the page; the rules reference recommends the
+  opposite — its `ignore-known` mechanism, a known-violations file made with `--baseline`,
+  with `pathNot` as an alternative. ArchUnit was misquoted and miscast: its guide recommends
+  narrowing the `that(..)` clause first, ships `FreezingArchRule` — record existing violations,
+  shrink the store as they are fixed — and fails an empty `should` by default
+  (`failOnEmptyShould`), the ADR-010 floor. The ESLint rules cited are a community plugin, not
+  ESLint core.
+- **"Exact targets" do not close 0233.** A real name can still switch a rule off: a **kind**
+  (`'CatchClause'`, `'<button>'`), a **container** (a function's name waives every current and
+  future `eval` in it — bugs 0159/0338's identity problem), a **shared name** (`TerminalBuilder`
+  exists in core and ts; this repo's `max-methods` exclusion waives both), or the **only
+  target** of a single-target rule (`tsconfig().excluding('strict')` cannot fail — 0233's own
+  symptom). A narrow `.that()` scope that selects 1 of 1000 passes the floor, and
+  `haveNameMatching(regex)` moves the unguarded regex into `.that()`.
+- **The census understates the regex residue.** Dependency and slice edges carry the forbidden
+  target only in the message; call-site families waive by argument prefix; positional
+  identities (0338) cannot be named; `CorpusOptions.ignore` and `FilesOptions.ignore` exclude at
+  load time with no reason. eess-md and eess-mermaid had no `.excluding()` sites, so "every
+  dialect can scope by name" was asserted, not measured. `ENTRY_POINTS` is 29 files, derived
+  from the packages' `exports`/`bin` maps.
+
+**What the review points to instead.** The real question is not "pattern or name" but **what a
+waiver identifies**: a container (a file, a class, a function — which waives the future too) or
+a **violation** (which waives exactly what was found, and goes stale when it is fixed). The tools
+that faced this for longest converged on the second for known violations — ArchUnit's
+`FreezingArchRule`, dependency-cruiser's `ignore-known` — and on narrowing the selection for
+scope. eess already has the violation-identity mechanism: the baseline. That reframes the choice:
+
+- **scope** belongs in `.that()`, resolved and counted (the ADR-010 floor, which would need a
+  "selected far less than the project" signal to catch a narrow scope);
+- **known violations** belong in the baseline, waived by identity and ratcheted closed;
+- `.excluding()` may then have no job left that one of those does not do better — or a small
+  one (a waiver that must carry a reason) — and **its future is the decision**.
+
+That depends on violation identity being trustworthy, which is exactly what bugs 0159 and 0338
+say it is not yet. So the order is likely: settle identity (0159, 0338), then decide
+`.excluding()`'s role. Not ready to rule on until that is laid out and measured.
