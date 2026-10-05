@@ -4,7 +4,9 @@
 
 - **State:** Draft — the ruling is settled and the mechanism is measured; what is
   unbuilt is the migration, and it is the part that decides whether this fix is
-  honest.
+  honest. Refreshed 2026-10-05 against `main`: Phase 2 widened from one producer to
+  the six a probe measured colliding, the ADR renumbered, the exclusions question
+  homed.
 - **Priority:** High — it closes the last known way eess lies about green from its
   own default floor, and the 0.8.0 release widened the population it reaches.
 - **Effort:** Medium — one derivation changed, one ADR written, one migration
@@ -18,9 +20,10 @@
   this plan ships. Said explicitly because a reader would otherwise assume the
   opposite, and two Out-of-scope items below are homed on boxes in a record that
   must therefore not be frozen.
-- **Build beside:** [bug 0159](../bugs/0159-violation-identities-collide-across-distinct-findings.md)'s
-  open half — `beImported` orphan findings need the same path-in-identity fix as Phase 2's
-  module-absence findings, and the same baseline migration (noted 2026-10-05).
+- **Receives also:** [bug 0159](../bugs/0159-violation-identities-collide-across-distinct-findings.md)'s
+  open half — `beImported` orphan findings. Phase 2 is the fix, and **this plan closes
+  0159** when it ships: the record's KNOWN-GAP test,
+  `packages/ts/tests/core/a-baselined-orphan-forgives-the-next-one.test.ts`, flips.
 
 ## Problem
 
@@ -279,8 +282,55 @@ forgiven" does both ends — `generateBaseline` filters `bypassFilters` so it is
 never written, **and** `filterNew` re-keeps it so an older or hand-edited file
 cannot resurrect the suppression.
 
-**Files:** `packages/ts/src/conditions/body-analysis-module.ts` (both absence
-sites).
+### Six producers, measured — not one
+
+The paragraphs above were written about module absence alone. Re-checked on
+2026-10-05, the same shape — basename `element`, basename message, no `identity` —
+is in more producers than that one, so the question was which of them **collide**
+rather than which look alike. A probe ran each condition twice over
+`src/a/index.ts` and `src/b/index.ts`: run 1 has `a` violating, the baseline is
+written, and run 2 has `a` fixed and `b` violating. Then it asked whether `b` is
+reported.
+
+| condition                    | site                      | `b` reported? |
+| ---------------------------- | ------------------------- | ------------- |
+| `notHaveDefaultExport`       | `exports.ts`              | **no**        |
+| `haveDefaultExport`          | `exports.ts`              | **no**        |
+| `moduleContain` (absence)    | `body-analysis-module.ts` | **no**        |
+| `haveNoUnusedExports`        | `reverse-dependency.ts`   | **no**        |
+| `beImported` (bug 0159)      | `reverse-dependency.ts`   | **no**        |
+| `onlyBeImportedVia`          | `reverse-dependency.ts`   | **no**        |
+| `moduleNotContain` — control | carries a node identity   | yes           |
+| `haveMaxExports` — control   | carries a path identity   | yes           |
+
+The controls show the probe can tell the two apart. `onlyBeImportedVia` is the
+least obvious: its message names the importer's path, so it is safe for two
+importers of one file. But the **target** appears only by basename, so the same
+importer moving from `a/index.ts` to `b/index.ts` inherits the entry.
+
+**Bundled because they share the root cause and one change closes them.** Every one of
+them is fixed by setting `identity` to a kind tag plus `sf.getFilePath()` plus
+whatever already discriminates within the file, which is the message's non-basename
+part. All six also move baseline entries, so they go through Phase 3's single
+migration. Shipping them separately would mean shipping two migrations. Said here
+so the grouping can be overruled.
+
+**`element` stays the basename.** `reverse-dependency.ts` already records why: `.excluding()`
+matches on `element`, so promoting it to a path would silently break every
+`.excluding('index.ts')` in the wild. That is [bug 0387](../bugs/0387-a-basename-exclusion-waives-every-file-with-that-name.md)'s
+problem, and it stays there. This phase changes the identity, not what an
+exclusion sees.
+
+**Not probed:** `cross-layer.ts`'s two file-level findings (`haveMatchingCounterpart`,
+`haveConsistentExports`). By construction their messages name files by basename too,
+but two files with the same basename inside one layer is a narrower case and has
+not been run. Whoever builds this probes them first. They join this phase only if
+they collide, and otherwise the record says why not.
+
+**Files:** `packages/ts/src/conditions/body-analysis-module.ts`,
+`packages/ts/src/conditions/exports.ts`,
+`packages/ts/src/conditions/reverse-dependency.ts` (and `cross-layer.ts` if its
+probe says so).
 
 ## Phase 3 — the migration must not become the lie
 
@@ -340,14 +390,17 @@ command must say so rather than implying the migration made the baseline correct
 That is ADR-009 Rule 2: every failure carries its own sanctioned remedy, and a
 remedy that overstates what it achieved is not one.
 
-**Files:** a `baseline --migrate` path or a one-shot script,
-`docs/migrating-to-0.9.md`, the changeset.
+**Files:** a `baseline --migrate` path or a one-shot script, the migration page
+for the release this ships in (`docs/migrating-to-0.12.md` while 0.12.0 is still
+unreleased, otherwise a new page for the next release), and the changeset.
 
 ## Phase 4 — the ruling gets an ADR, written last on purpose
 
 Per [bug 0330](../bugs/0330-what-a-rule-reads-is-ruled-in-archived-bug-records.md),
 a binding rule the next change must follow does not belong in a bug record that is
-about to be frozen. **ADR-016 — a finding is identified by the code it matched.**
+about to be frozen. **ADR-019 — a finding is identified by the code it matched.** (The
+number is the next free one on 2026-10-05: 016 and 017 are taken and 018 is held in Proposed.
+Re-take it when this phase is written.)
 
 **It is last, not first, and an earlier draft had it first.** Method review named
 the cost: an ADR written before its mechanisms exist lands every row of its
@@ -355,7 +408,7 @@ Enforcement table at `pending` by construction — and this repo has already pai
 that bill once. `work/plans/completed/0263-adr-014s-residual-enforcement-rows.md`
 is a five-phase plan across four PRs whose entire job was clearing ADR-014's
 `pending` rows, closing on "ADR-014 ends with **no `pending` rows**". Writing
-0016 after Phases 1–3 means each row cites a mechanism that exists and lands
+the ADR after Phases 1–3 means each row cites a mechanism that exists and lands
 `gated`.
 
 Clauses to enforce, at minimum:
@@ -363,7 +416,8 @@ Clauses to enforce, at minimum:
 - identity is derived from the matched node's shape; position appears only to
   separate byte-identical shapes within one scope
 - no condition may mint an identity from a line number
-- a producer with a path available uses it rather than a basename (Phase 2)
+- a producer with a path available puts it in the identity, rather than leaving
+  the subject a basename (Phase 2)
 
 **Authored through the prescribed route.** CLAUDE.md prescribes the
 `eess-adr-author` skill for translating a clause into a mechanism and
@@ -373,7 +427,7 @@ models. That separation matters more here than usually: the ADR's author is also
 the builder of the mechanism it binds, so nobody would otherwise be checking the
 translation who had not written it.
 
-**Files:** `adr/016-…md`, the ADR index table in `CLAUDE.md`, `README.md`'s ADR
+**Files:** `adr/019-…md`, the ADR index table in `CLAUDE.md`, `README.md`'s ADR
 table if it lists them.
 
 ## Out of scope
@@ -389,10 +443,13 @@ table if it lists them.
   the box lists teaching `getStructuralName` and sharing this derivation as its two
   options.
 - **Whether `.excluding()` and `// eess-exclude` should key on identity too.**
-  Larger, and it needs its own measurement. **This one has no home yet**, and a
-  deferral with a blank home is the failure this plan's own ADR phase cites 0330
-  for — so it carries a ledger box below rather than sitting here unowned. It must
-  get a record, or a recorded reason it dissolves, before this plan freezes.
+  Now homed in [spike 0386](../spikes/0386-strings-that-name-code.md), which asks
+  whether a waiver should identify a **container** or a **violation**. It finds the
+  second choice depends on this plan: violation identity has to be trustworthy first.
+  The decision is held in Proposed
+  [ADR-018](../../adr/018-a-string-that-names-code-is-resolved-or-the-rule-says-why-not.md)
+  and [bug 0233](../bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md).
+  This plan is upstream of that decision and does not make it.
 
 ## Success
 
@@ -405,6 +462,9 @@ table if it lists them.
 - Two files sharing a basename, each missing the same thing, produce **distinct**
   baseline entries — accepting one does not accept the other. Today they collide
   and are separated by position.
+- **The cross-run case, for each of Phase 2's six producers:** baseline `a/index.ts`,
+  fix it, break `b/index.ts`, and `b` is reported. This is the probe's table turned
+  into tests. 0159's KNOWN-GAP test is one row of it, and it flips.
 - An adopter's existing baseline migrates without forgiving anything new, and the
   command says what it cannot promise.
 - Every finding added here **fails**, and by ADR-009 Rule 1's discriminator rather
@@ -421,7 +481,7 @@ table if it lists them.
 
 ## Progress ledger
 
-- [ ] Phase 4 — ADR-016, authored via `adr-enforce.mjs` so author ≠ validator
+- [ ] Phase 4 — ADR-019, authored via `adr-enforce.mjs` so author ≠ validator
 - [ ] Phase 4 — **no `pending` rows** when it closes, which is why it is last
       (plan 0263 is the precedent for what a `pending` row costs later)
 - [ ] Phase 1 — shape composed **into** the identity, pinned by the seven-edit
@@ -434,8 +494,12 @@ table if it lists them.
       matched nodes in a real 808-file project, this is 1:1"_, and rewrite its
       opening line, which claims an identity "that is not a coordinate" for a
       population where it is one. Whoever builds this reads that file.
-- [ ] Phase 2 — the absence findings carry a path-based identity, pinned the way
-      bug 0063's was: two files sharing a basename get distinct entries
+- [ ] Phase 2 — the six measured producers carry a path-based identity, each pinned
+      cross-run (fix `a`, break `b`, `b` reported) and the way bug 0063's was
+- [ ] Phase 2 — `cross-layer.ts`'s two file-level findings probed: joined if they
+      collide, recorded why not if they don't
+- [ ] 0159 closed in the PR that ships Phase 2 — its KNOWN-GAP test flipped, not
+      deleted
 - [ ] Phase 3 — the migration, and what it cannot promise
 - [ ] a `check:nonvacuity` row for the baseline filter itself — plant a finding
       behind a baseline and require it reported
@@ -445,8 +509,8 @@ table if it lists them.
       0 violations), so the input is a third party's tree. Named here rather than
       left to look tickable — and it must not gate the freeze, because nothing
       this plan does can produce it.
-- [ ] the `.excluding()` / `eess-exclude` question gets a record, or a recorded
-      reason it dissolves — it is the one Out-of-scope item with no home
+- [x] the `.excluding()` / `eess-exclude` question gets a record, or a recorded
+      reason it dissolves — homed 2026-10-05 in spike 0386 and Proposed ADR-018
 - [ ] a changeset — breaking; every baseline moves
 - [ ] `npm run validate` green
 
