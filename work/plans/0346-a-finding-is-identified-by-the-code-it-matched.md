@@ -18,6 +18,9 @@
   this plan ships. Said explicitly because a reader would otherwise assume the
   opposite, and two Out-of-scope items below are homed on boxes in a record that
   must therefore not be frozen.
+- **Build beside:** [bug 0159](../bugs/0159-violation-identities-collide-across-distinct-findings.md)'s
+  open half — `beImported` orphan findings need the same path-in-identity fix as Phase 2's
+  module-absence findings, and the same baseline migration (noted 2026-10-05).
 
 ## Problem
 

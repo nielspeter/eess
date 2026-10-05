@@ -2,9 +2,11 @@
 
 ## Status
 
-- **State:** Draft — fix **built and measured** in an isolated worktree, all
-  three collisions plus content, stability and denominator rows (see Fix); no
-  red test committed yet.
+- **State:** Draft — **half fixed.** Within one run, the identity repair pass separates every
+  collision below (it shipped with #72; this record was not updated). **Across runs, collision
+  3 still fails open**, measured 2026-10-05 through the real baseline: fix the orphan you
+  baselined, add a different one of the same name, and the baseline forgives it. Pinned as a
+  known gap; see "State on 2026-10-05".
 - **Severity:** High — false green. Baselining is the documented way to adopt
   eess on an existing codebase. When two distinct findings share one identity,
   accepting one silently accepts the other, and the second never reappears.
@@ -102,18 +104,18 @@ green rather than a nuisance.
 Built and measured in an isolated worktree against a green baseline
 (kernel 145/145, md 113/113 before any patch).
 
-| check                                                      | before    | after      |
-| ---------------------------------------------------------- | --------- | ---------- |
-| (1) two spellings of one module — distinct hashes          | **1**     | **2** ✓    |
-| (2) three same-named functions — distinct identities       | **1**     | **3** ✓    |
-| (2) three same-named functions — distinct hashes           | **1**     | **3** ✓    |
-| (3) reverse-dep — every finding carries an identity        | **false** | **true** ✓ |
-| (3) reverse-dep — distinct hashes                          | **1**     | **2** ✓    |
-| CONTENT: an identity names `alpha`, not just "is distinct" | false     | **true** ✓ |
-| STABILITY: two runs over one corpus → same identity set    | true      | **true** ✓ |
-| DENOMINATOR: findings produced (3 and 2)                   | 3 / 2     | 3 / 2      |
-| `check:arch` · `check:family` · `check:spec`               | green     | green      |
-| kernel / md suites                                         | 145 / 113 | 145 / 113  |
+| check                                                                                                                                      | before    | after      |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ---------- |
+| (1) two spellings of one module — distinct hashes                                                                                          | **1**     | **2** ✓    |
+| (2) three same-named functions — distinct identities                                                                                       | **1**     | **3** ✓    |
+| (2) three same-named functions — distinct hashes                                                                                           | **1**     | **3** ✓    |
+| (3) reverse-dep — every finding carries an identity _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_        | **false** | **true** ✓ |
+| (3) reverse-dep — distinct hashes                                                                                                          | **1**     | **2** ✓    |
+| CONTENT: an identity names `alpha`, not just "is distinct" _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_ | false     | **true** ✓ |
+| STABILITY: two runs over one corpus → same identity set                                                                                    | true      | **true** ✓ |
+| DENOMINATOR: findings produced (3 and 2)                                                                                                   | 3 / 2     | 3 / 2      |
+| `check:arch` · `check:family` · `check:spec`                                                                                               | green     | green      |
+| kernel / md suites                                                                                                                         | 145 / 113 | 145 / 113  |
 
 > **Correction — this record's own prescription was wrong.** It said to
 > discriminate the duplicate-pair identity _"but not with a run-ordinal"_,
@@ -148,14 +150,13 @@ the thing it repairs: after it runs there is nothing left for a guard to see,
 so a colliding producer looks fixed. Collisions are therefore recorded _before_
 the repair and exposed (with `resetIdentityCollisions()` for `beforeEach`).
 Measured: it names the exact rule and subject that collided. This is what keeps
-the net from becoming a blindfold, and it is re-exported from `eess-ts` because
-the guards that use it live in a dialect's own suite.
+the net from becoming a blindfold, and it is exported from `@nielspeter/eess/internal`, where the guards in a dialect's own suite import it _(corrected 2026-10-05: first written "re-exported from `eess-ts`", which it is not)_.
 
 **Only one producer actually needed fixing.** Reverse-dependency findings set
 no `identity` at all, so the baseline subject fell back to
 `element::message` — and `element` is the **basename**, so two orphan
 `index.ts` files in different folders produced byte-identical subjects. They
-now carry `reverse-dep::<full path>::not-imported`. The duplicate-pair
+now carry `reverse-dep::<full path>::not-imported`. _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_ The duplicate-pair
 producer is left alone: its identity string is **byte-identical to upstream's**,
 which never fixed it either — the repair pass is the answer there, and the
 disclosure keeps it honest.
@@ -163,6 +164,48 @@ disclosure keeps it honest.
 **A gate caught the fix, again.** The three new kernel exports were not
 reachable from `eess-ts`, which plan 0089's standalone-sufficiency contract
 (`check:family`) reports. Re-exported.
+
+## State on 2026-10-05
+
+Re-measured on `main` after a close was attempted and withdrawn — testing review found the
+close claimed more than was true. What holds and what does not:
+
+- **Within one run: fixed.** `disambiguateIdentities` (`packages/core/src/violation.ts`), run in
+  eess-ts's `applyFilters`, separates every colliding group by position, and the first member
+  keeps its pre-repair identity. Already pinned, with values rather than counts, by
+  `packages/ts/tests/core/identity-uniqueness.test.ts` —
+  `it('beImported reports both orphans with distinct hashes')` and
+  `it('and the first orphan keeps the identity a pre-fix baseline recorded')`, and the bug-0064
+  block for collision 1.
+- **Across runs: collision 3 is still open.** `beImported`
+  (`packages/ts/src/conditions/reverse-dependency.ts`) sets no `identity`; its `element` and its
+  `message` are both the basename, so every orphan `index.ts` in a project has one identity, and
+  the position the repair gives it is all that separates it. Measured through
+  `generateBaseline` / `withBaseline().filterNew`: run 1's one orphan `src/a/index.ts` is
+  baselined; in run 2 it is imported and `src/b/index.ts` is the new orphan; `filterNew` reports
+  nothing. Pinned as a known gap by
+  `packages/ts/tests/core/a-baselined-orphan-forgives-the-next-one.test.ts`, which flips red
+  when the identity carries the path (measured: it does).
+  _The Fix section above says reverse-dependency findings carry
+  `reverse-dep::<full path>::not-imported`, and the withdrawn close said "its message now
+  carries the path". Neither is true for `beImported`: the path-carrying message belongs to
+  `onlyBeImportedVia`._
+- **Collisions 1 and 2 across runs:** their members are indistinguishable by content, so a
+  positional identity is all there is (`violation.ts` records this as a known fail-open). That
+  is [bug 0338](./0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md)'s
+  class, and [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md) its
+  fix.
+- **Collision 2 has changed shape:** the duplicate-bodies detector now reports one finding per
+  cluster, and two clusters of same-named functions still collide (only reachable from code
+  `tsc` rejects: duplicate function implementations).
+- **Not measured:** whether eess-md, eess-mermaid or eess-gherkin producers can collide. Their
+  `applyFilters` (the kernel's) does not run the repair pass at all, so if they can, it is a live
+  false green in `check:corpus` and `check:diagram`.
+
+**The fix for collision 3** is the one bug 0063 used for dependency findings and plan 0346's
+Phase 2 prescribes for module-absence findings: put the path in the identity
+(`reverse-dep::<path>::not-imported`). It changes the hash of every baselined orphan finding,
+so it needs the same migration decision as 0346's Phase 2 — build the two together.
 
 ## Verification
 
