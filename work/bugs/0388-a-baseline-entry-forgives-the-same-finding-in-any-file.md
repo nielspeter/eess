@@ -58,7 +58,7 @@ warning list.
 
 ## Fix
 
-**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by plan 0346's Phase 2. The baseline matcher also checks the `file` each entry records. Grouping stays as it is (E0): the spike's first version grouped per file and was measured greener than today on two paths. The hash derivation does not change and, measured on 400 findings with unchanged code, no entry moves.
+**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by plan 0346's Phase 2. The baseline matcher also checks the `file` each entry records, grouping is per file, an `accepted` list compares `file::subject`, and missing data fails closed (E+). Measured: never greener than today on any path probed, and exact on edits to duplicates across files. The hash derivation does not change; entries today's code suffixed across files move (4 of 400 in the spike) and are reported once.
 
 The options as they were put:
 
@@ -71,6 +71,7 @@ The options as they were put:
 
 - [ ] a red test per probed shape above, driven through the public builders: fix `a`,
       break `b`, and `b` is reported
+- [ ] an `accepted` list written for one file does not accept the same finding in another
 - [ ] a guard that does not depend on a list of producers, so the next producer cannot
       reopen it
 - [ ] the comments at `packages/ts/src/helpers/baseline.ts:86` and `packages/core/src/baseline.ts:11`

@@ -4,7 +4,8 @@
 
 - **State:** Draft — Phase 2's decision is taken (**E**, 2026-10-06, after
   [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md)); what
-  remains before Ready is splitting this into one-PR plans. Phase 1's ruling is settled
+  remains before Ready is splitting this into one-PR plans and the two measurements Phase 2
+  owes (identity-bearing and metric renames). Phase 1's ruling is settled
   and measured; the migration is unbuilt, and it decides whether this fix is honest. Refreshed 2026-10-05 against `main`. Review of that
   refresh found that Phase 2's producer list was the symptom: the cause is one kernel
   derivation.
@@ -14,8 +15,8 @@
   version said this closes "the last known way" eess lies about green from its floor.
   0388 was found the same day, so the plan no longer claims that.)
 - **Effort:** Large — not one PR. Phase 1 changes eess-ts's match identity and needs a
-  migration; Phase 2 adds a file check to both baselines' matchers and moves no hash (spike
-  0390, E0); an ADR is written. **It is split into plans of about one PR each** — see
+  migration; Phase 2 adds a file check to both baselines' matchers and per-file grouping,
+  which moves only entries suffixed across files (spike 0390, E+); an ADR is written. **It is split into plans of about one PR each** — see
   "The split" below. The cost to adopters is unmeasured.
 - **Created:** 2026-09-28
 - **Receives:** [bug 0338](../bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md),
@@ -317,11 +318,9 @@ In short:
 
 **Measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md):**
 both close all 12 cases. On 400 findings from this repo, A moves 315 of 315 identity-less
-entries. The spike's first E grouped per file and moved 4, and review then measured that the
-per-file grouping made two paths greener than today. **E0**, E's file check with grouping
-unchanged, closes the 12, keeps both of those paths as red as today, and moves 0 entries.
-Under every variant the `accepted` list still forgives a fixed-and-replaced finding, which is
-why `accepted` gets its own change below.
+entries and E moves 4. **E+**, E with `accepted` comparing `file::subject` and an entry with no
+recorded `file` failing closed, closes the 12, closes the `accepted` hole, and is never greener
+than today on any path probed, including edits to duplicates across files.
 
 **The decision, as it was put.** Four reviews (architecture, product,
 enforcement, method; 2026-10-05) agree the cause is the kernel's fallback and that C is
@@ -348,27 +347,34 @@ Enforcement's Critical on Phase 3 (below) disappears for this class.
   baselines, require an entry's recorded `file` to equal the finding's, for a finding whose
   `file` is not empty. **The hash does not change for this class**, so bug 0388 needs no
   migration of its own.
-- **Grouping is unchanged (E0).** The spike's first E grouped per file. Enforcement review
-  measured that this removes today's cross-file `#1` suffix, which is what catches two paths
-  today: an `accepted` list absorbing a second file's duplicate, and a baseline entry with no
-  recorded `file`. Both went green under per-file grouping and stay red under E0. E0 also moves
-  0 entries on unchanged code, and keeps the guard tests the per-file version broke
-  (`deferred-warning.test.ts`, `identity-uniqueness.test.ts`). The maintainer chose E;
-  per-file grouping was the spike's implementation, not the choice, and E0 replaces it here so it
-  can be overruled.
+- **Grouping is per file, as the maintainer approved (E+).** `disambiguateIdentities` and the
+  collision check group on `rule::file::subject`. This record briefly specified E0 (grouping
+  unchanged) after enforcement review found per-file grouping greener than today on two paths.
+  Method review then showed E0's cost on edits, and both were measured (spike 0390, "Edits, and
+  E+"):
+  - E0 false-reds whenever a duplicate across files is edited: fix `a`, and the reviewed `b`
+    is reported; add an earlier-sorted file, and every later sibling is reported.
+  - Per-file grouping gets both edits exactly right, and also removes a false green today's code
+    has (a new earlier-sorted duplicate inherits the first slot).
+  - Per-file grouping's two greener paths are closed by two rules this plan already requires:
+    `accepted` compares `file::subject`, and an entry with no recorded `file` fails closed.
+    Measured together as E+: never greener than today on any path probed.
+  - Per-file grouping moves the entries today's code suffixed across files (4 of 400 in the
+    spike). They are reported once on upgrade, and the remedy below names them.
 - **The file check needs a comparable recorded file, decided per baseline:**
-  - eess-ts compares when the file records its root (written since the engine was brought in,
-    #72), against the **recorded** root, not an override. An explicit `root` override changes
-    hashing, not the file comparison.
+  - eess-ts compares against the **recorded** root, not an override; an explicit `root`
+    override changes hashing, not the file comparison.
   - The kernel always compares: it has always written `file` relative to the baseline file. It
-    normalises separators first, so a baseline written on Windows still compares on Linux.
-  - An eess-ts baseline with no recorded root (written before eess) cannot be compared. Under
-    E0 the hash and today's suffixing still apply to it, so it is never greener than today. The
-    check is off, and one finding says so. **Its severity is still open**, and nothing in
-    this plan assumes it — the break class above is that the finding is _emitted_. The trade: failing reverses
-    `baseline-compat.test.ts` · `it('stays green when its entries match, despite the older format')`,
-    and the only remedy, regenerating, re-forgives everything. Decide it before the Phase 2 plan
-    is Ready.
+    normalises separators first, so a baseline written on Windows still compares on Linux. A
+    relative `v.file`, or a baseline file moved to another directory, would also change the
+    comparison: both fail closed, and the kernel row of the break-class list covers them.
+  - **An eess-ts baseline with no recorded root fails closed.** Turning the check off is ruled
+    out under per-file grouping: measured, it forgives a new duplicate in another file that
+    today reports. So no entry of such a baseline matches, and one finding says why and names
+    the remedy (regenerate once; the new file records its root). That reverses
+    `baseline-compat.test.ts` · `it('stays green when its entries match, despite the older format')`
+    for baselines written before eess, and the regenerate re-accepts whatever that baseline held.
+    Both are stated in the changeset.
   - An entry with no recorded `file` **does not match** a finding that has one. Missing data
     fails closed; it is not an off-switch.
 - **The check applies to every finding with a file, identity-bearing ones included.** A moved
@@ -376,26 +382,28 @@ Enforcement's Critical on Phase 3 (below) disappears for this class.
   not measured: the Phase 2 plan measures the rename row for one identity-bearing and one metric
   producer before it is Ready.
 - **`accepted` lists get the file through the subject.** A list of subjects records no file, so
-  under E, as today, it still forgives a fixed-and-replaced finding in another file. The `accepted` comparison
+  without this, as today, it forgives a fixed-and-replaced finding in another file. The `accepted` comparison
   alone uses A's derivation, the root-scrubbed `file::subject`, which needs bug 0389's portable
   subject first. Existing `accepted` strings stop matching and escalate to error, which fails
   closed, and the advice text prints the new form.
-- **A renamed file is reported again**, and costs one re-accept. The same price under A; today a
+- **A renamed file is reported again**, and costs one regenerate, reviewed (below). The same price under A; today a
   rename is silently still accepted.
 
 **The diagnosis must name the file, not blame the rule.** Measured under E0 (enforcement
-review, 2026-10-06): in the 0388 case and on every rename, `filterNew` adds the
+review, 2026-10-06), and the mechanism is the same under E+: in the 0388 case and on every rename, `filterNew` adds the
 description-change meta-finding — "the rule was edited", with `was` and `now` identical — and
 its Fix is "regenerate the baseline", which forgives the new finding again. The cause is
 `renamedRuleFor` (`packages/ts/src/helpers/baseline-diagnostics.ts:54-64`): it uses
-`hasEntry` as "the description is unchanged", and under E0 a hash match in another file makes
-`hasEntry` false. So Phase 2 also:
+`hasEntry` as "the description is unchanged", and once the matcher checks the file, a hash match in another
+file makes `hasEntry` false. So Phase 2 also:
 
 - separates "the hash matched" from "the hash and the file matched" in `BaselineFacts`, and
   `renamedRuleFor` excludes the first;
-- adds an attribution that names the recorded file and the finding's file, with a remedy per
-  cause ("fixed there and made here: fix this one"; "renamed: re-accept"), never a blanket
-  regenerate;
+- adds an attribution that names the recorded file and the finding's file, and tells the two
+  causes apart by whether the recorded file is still in the run: still there, "fixed there and
+  made here: fix this one"; gone, "moved or renamed". eess-ts cannot accept one entry, so the
+  remedy for the second is "regenerate, and review the diff: only these entries should
+  change", the shape the description-change Fix already uses. Never an unqualified regenerate;
 - re-checks the other readers of `hasEntry` and of hash-only lookups: the `matched` count
   behind `unmatchedBaselineFinding` (whose causes do not include "a file moved"), and the
   accepted-measurement lookup for metric findings.
@@ -411,8 +419,11 @@ probes called `isKnown` and missed the line above.
 - the recorded-root comparison;
 - the missing-file rule;
 - separator normalisation (a baseline written with `\` still matches on POSIX);
-- the file-naming attribution (the 0388 fixture reports `b` and **no** description-change
-  finding).
+- the file-naming attribution: the 0388 fixture reports `b`, **no** description-change
+  finding, and a Fix that says "fix this one", not "regenerate";
+- per-file grouping's edit rows: fix `a` with `b` reviewed reports nothing; a new
+  earlier-sorted duplicate reports only itself;
+- the no-root rule: such a baseline matches nothing and emits its finding.
 
 These are Tier-2 suite rows. One of them, the replacement case below, is also a
 `check:nonvacuity` row. This repo keeps no baseline, so its own gates never exercise the
@@ -424,7 +435,7 @@ matcher; the suite rows are the only dogfood, and the record says so.
   `accepted` lists already hold absolute paths. One kernel `portableSubjectOf(v, root)`,
   used by both hashes, `hashSubject`, the `accepted` comparison and its advice text.
 - The grouping key equals the hash key only if every copy uses one definition. Kernel
-  `hashViolation` inlines its own fallback (`packages/core/src/baseline.ts:131`), and
+  `hashViolation` inlines its own fallback (`packages/core/src/baseline.ts:129-132`), and
   `packages/ts/src/core/terminal-builder.ts:94` re-spells `groupKeyOf`. Both move to the shared function.
 - A finding with an empty `file` keeps today's `element::message` form; nothing
   discriminates better, and it should not move for nothing.
@@ -437,8 +448,8 @@ matcher; the suite rows are the only dogfood, and the record says so.
 violating fixture for a condition it has never seen, so "every exported condition over
 two files" was a list after all. Instead: a property test that two findings differing
 only in `file` are distinct to the matcher **across runs**: baseline one, present only the
-other, and require it reported. A within-run version is vacuous under E0, because today's
-`#1` suffix already separates two such findings in one batch. Plus a check that a
+other, and require it reported. A within-run version is vacuous: a baseline written
+from both findings accepts both whether or not the file check exists. Plus a check that a
 producer-set identity for a finding about a file names it. That is what covers a new producer
 on arrival.
 
@@ -534,7 +545,8 @@ was renamed. Enforcement review showed that carrying it with a note re-keys the 
 group the migration can see is wrong into an acceptance that looks reviewed, and erases
 the evidence. So those K entries are **not carried**: their findings report as new,
 and a renamed file costs one re-accept. (Under option E the matcher already does this,
-and K is always zero.) The command exits non-zero while K or J is above zero.
+and K is always zero for a baseline that records its root.) The command exits non-zero
+while K or J is above zero.
 
 An entry in a slot that `disambiguateIdentities` suffixed (`subject#n`) is ambiguous:
 to match it at all, the migration replays the **old** grouping and suffixing over each
@@ -618,14 +630,18 @@ Four plans, about one PR each, grouped by what each one closes:
 
 1. **Bug 0389 — `accepted` compares a portable subject.** A live defect on its own, and the
    precondition for 2's `accepted` change.
-2. **Phase 2, E0 — the matcher checks the file**, in both baselines, with the per-baseline
-   comparability rule, `accepted` comparing `file::subject`, and a diagnosis that names the
-   file. Closes bug 0388 and 0159's collision 3 **for every baseline that records its root**.
-   If the no-root finding only warns, 0388 closes with that residual named. It moves no hash,
-   so it **may ship before 3** and needs no migration of its own; it must ship first, because
-   3's migration joins on what 2 defines as a match.
+2. **Phase 2, E+ — the matcher checks the file**, in both baselines, with per-file grouping,
+   the per-baseline comparability rule, `accepted` comparing `file::subject`, missing data
+   failing closed, and a diagnosis that names the file. All of it in **one** change: per-file
+   grouping without the other rules is the greener variant review measured. Closes bug 0388
+   and 0159's collision 3. It moves only the entries suffixed across files, which are reported
+   once with a reviewed-regenerate remedy, so it needs no migration command. It **must ship
+   before 3**, because 3's migration joins on what 2 defines as a match.
+   The `taken.add` guard in `identity-uniqueness.test.ts` loses its colliding fixture under
+   per-file grouping and is re-homed to a same-file fixture in this plan.
 3. **Phases 1 and 3 — the shape identity and its migration** (bug 0338's identity, `--migrate`,
-   the `HASH_VERSION` bump, the refusal to regenerate over an older version). Together because
+   the `HASH_VERSION` bump, the refusal to regenerate over an older version; its ledger also
+   re-checks the no-root remedy once regenerating over an older version is refused). Together because
    Phase 1 is what moves entries, and shipping it without the migration would leave regenerating
    as the only path.
 4. **Phase 4 — the ADR**, last, once 2 and 3 have mechanisms to cite.
@@ -661,8 +677,8 @@ Four plans, about one PR each, grouped by what each one closes:
   insertion above, comments, sibling renames and code movement; it breaks when the
   matched code changes and when one is fixed and another added.
 - Two files sharing a basename, each missing the same thing: accepting one does not accept
-  the other **across runs**. (Within one run they are already separated, by today's
-  positional `#1`, and E0 keeps that.)
+  the other **across runs**. (Within one run, per-file grouping gives both the same hash
+  and the matcher separates them by file.)
 - **The cross-run case, for every exported condition rather than a list:** baseline the
   finding in one file, fix it, make the same finding in another file, and the second is
   reported. 0388's table is its first rows. 0159's KNOWN-GAP test is one of them, and
@@ -706,14 +722,14 @@ Four plans, about one PR each, grouped by what each one closes:
       matched nodes in a real 808-file project, this is 1:1"_, and rewrite its
       opening line, which claims an identity "that is not a coordinate" for a
       population where it is one. Whoever builds this reads that file.
-- [ ] Phase 2 — the matcher checks the recorded file in both baselines, grouping
-      unchanged (E0), and a baseline without a recorded root says the check is off; guarded
-      by the cross-run structural property test
+- [ ] Phase 2 — E+ in one change: the matcher checks the recorded file in both
+      baselines, grouping per file, `accepted` compares `file::subject`, missing data and
+      baselines without a recorded root fail closed; guarded by the cross-run structural
+      property test
 - [ ] Phase 2 — the diagnosis names the file: no description-change finding on a hash
       match in another file, and a remedy per cause, never a blanket regenerate
-- [ ] Phase 2 — the no-root finding's severity decided before Ready; if it is the regenerate
-      remedy, plan 3 re-verifies it once regenerating over an older version is refused
-- [ ] Phase 2 — `accepted` compares the portable `file::subject`, and its advice prints it
+- [ ] Phase 2 — the `taken.add` guard re-homed to a same-file fixture
+- [ ] Phase 2 — the identity-bearing and metric rename rows measured before Ready
 - [ ] Phase 2 — bug 0389 fixed first: one `portableSubjectOf`, used by every hash and
       by `accepted`
 - [ ] Phase 2 — both "rule + file" comments say what the matcher covers
@@ -721,7 +737,8 @@ Four plans, about one PR each, grouped by what each one closes:
       file check only, because under E no kernel hash moves
 - [ ] the plan split into one-PR plans, per "The split"
 - [ ] Phase 1 — re-measure the "400 files" kind-name figure, or stop resting on it
-- [ ] 0388 closed in the PR that ships Phase 2; 0159's collision 3 recorded as fixed
+- [ ] 0388 closed in the PR that ships Phase 2 (E+ leaves no baseline unchecked: one
+      without a recorded root fails closed); 0159's collision 3 recorded as fixed
       and its KNOWN-GAP test flipped, not deleted; 0159's pointer at this plan narrowed to that
       collision
 - [ ] 0338's own boxes for what this plan built ticked in the same PR — the record

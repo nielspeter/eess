@@ -165,18 +165,54 @@ root. The guard tests the per-file version broke pass under E0.
 edited rule and tells the author to regenerate, which forgives the new finding again.
 Enforcement review measured it; plan 0346's Phase 2 now requires the diagnosis to name the file.
 
+## Edits, and E+
+
+Method review then reasoned a cost of E0 that the "unchanged code" movement row cannot see:
+with grouping unchanged, a duplicate across files is accepted as `subject#1`, so editing its
+siblings shifts it. Measured at `169a591` in four fresh trees (today, E per-file, E0, and **E+**:
+E per-file plus `accepted` comparing `file::subject` plus an entry with no recorded `file`
+failing closed). Each tree's kernel resolution was proven as before. The baseline holds the same
+finding in `a` and `b`:
+
+| edit                                               | today                                  | E (per-file) | E0                        | E+       |
+| -------------------------------------------------- | -------------------------------------- | ------------ | ------------------------- | -------- |
+| fix `a`; `b` reviewed and unchanged                | nothing                                | nothing      | **`b` reported** + meta   | nothing  |
+| fix `b`                                            | nothing                                | nothing      | nothing                   | nothing  |
+| add the same finding in an earlier-sorted `0/x.ts` | **`b` reported; the new `0` forgiven** | `0` only     | `0`, `a` and `b` reported | `0` only |
+
+And E+ against the paths that made per-file E greener than today:
+
+| case                                                 | today        | E (per-file)    | E+                                  |
+| ---------------------------------------------------- | ------------ | --------------- | ----------------------------------- |
+| the 12 cross-file cases                              | 0 of 12      | 12 of 12        | 12 of 12                            |
+| `accepted` from `a`; `a` stays, `b` added            | both `error` | **both `warn`** | `a` `warn`, `b` `error`             |
+| `accepted` from `a`; `a` fixed, `b` added (0388)     | `b` `warn`   | `b` `warn`      | **`b` `error`**: the hole closes    |
+| entry with no `file`; `a` stays, `b` added           | `b` reported | **nothing**     | `a` and `b` reported (fails closed) |
+| baseline with no recorded root; `a` stays, `b` added | `b` reported | `a` and `b`     | `a` and `b` (fails closed)          |
+
+Suites, E+ against a fresh control (about 40 s each): 13 extra failures, every one fail-closed or
+a format change: `accepted` lists written in the old string form now escalate (7 in
+`deferred-warning.test.ts`), the old cross-file `#1` pins (3 in `identity-uniqueness.test.ts`,
+including the `taken.add` mutation guard, whose fixtures no longer collide), 0159's KNOWN-GAP
+test, and the two `baseline-compat.test.ts` root cases. None is a test that expected red and got
+green.
+
+**"Turn the check off" for a baseline with no recorded root is ruled out under per-file
+grouping:** that is the C2 path enforcement measured greener than today. Such a baseline must
+fail closed.
+
 ## Recommendation
 
-**E0 for the baseline matcher, plus A's derivation for `accepted` only** (behind bug 0389's
-portable subject). E0 closes the 12, is never greener than today on any path measured, and moves
-no entry. The `accepted` change is still needed: under every variant a list of subjects
-forgives a fixed-and-replaced finding in another file. The maintainer chose E; E0 is E without
-the spike's grouping change.
+**E+**: the baseline matcher checks the file each entry records, grouping is per file,
+`accepted` compares the portable `file::subject` (behind bug 0389), and missing data — an entry
+with no `file`, a baseline with no recorded root — fails closed. All four in one change: per-file
+grouping without the other rules is the greener variant. E+ closes the 12 and the `accepted`
+hole, is exact on edits to duplicates across files, and was never greener than today on any path
+probed. It moves only entries today's code suffixed across files. The maintainer chose E with
+per-file grouping; E+ is that, plus two rules plan 0346 already required.
 
 Not decided here:
 
-- **The no-root baseline's finding.** E0 is not greener than today on it, but it false-reds, and
-  whether the finding that says so fails the build is open.
 - **Identity-bearing findings that move file.** The check applies to them too; the rename row was
   measured only for findings without an identity.
 - **The sibling dialects.** Their suites ran with no extra failures, but no sibling cross-file
@@ -191,4 +227,6 @@ produced them are listed in "Method" so a re-measure can be built. E0 is E's mat
 alone: `isKnown` and `hasEntry` in both baselines also require the entry's recorded `file`
 to equal the finding's (portable form in eess-ts, baseline-relative in the kernel), and an
 entry recorded without a file is let through. That last detail is the spike's; plan 0346 makes
-it fail closed instead.
+it fail closed instead. E+ is the first E (per-file grouping in the kernel's group key and
+`terminal-builder.ts`'s collision check) plus two changes: `accepted` compares
+`${file}::${subject}`, and an entry with no recorded file does not match.
