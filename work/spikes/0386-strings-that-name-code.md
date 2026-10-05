@@ -166,3 +166,95 @@ against the rule's violations, with scoping done by resolved `.that()` selectors
 That is the maintainer's to decide; ADR-018 is rewritten after it.
 
 The full reviews: architecture, product and enforcement, in the session's scratchpad.
+
+## Research for the exclusions ruling — 2026-10-05
+
+The maintainer chose **structured exclusions, with a regex allowed only alongside a reason** —
+"if it is a well-researched answer". Four questions decide whether it is.
+
+### 1. Can real exclusions be expressed structurally?
+
+**This repo: 7 of 7.** `ENV_ADAPTERS` (2 files), `REGISTRY_HOMES` (2 files) and
+`ENTRY_POINTS` (about 25 files) are regexes that spell out specific files — exact file lists.
+`GENERATED` is a folder — the same file already scopes another rule out of a folder with
+`.that().satisfy(not(inFolder('**/src/cli/**')))`. `eess/max-methods` excludes nine named
+classes — exact element names.
+
+**Docs, tests, presets and rule packs, 86 literal patterns:**
+
+| shape                                         | count | structured form                                                       |
+| --------------------------------------------- | ----- | --------------------------------------------------------------------- |
+| exact element name (`'Asset.getImageUrl'`)    | 40    | exact element                                                         |
+| exact file path (`'src/components/Icon.tsx'`) | 13    | exact file                                                            |
+| exact cycle edge (`'a -> b'`)                 | 11    | exact element                                                         |
+| name-shaped regex (`/Compat$/`, `/Helper$/`)  | 10    | a naming convention in `.that()`: `not(haveNameEndingWith('Compat'))` |
+| path regex (`/\.d\.ts$/`, `/images\.ts/`)     | 6     | `.that()` folder scope, or a file list                                |
+| partial-message regex (`/extractCount/`)      | 3     | **regex with a reason**                                               |
+| universal (`/.*/`)                            | 3     | all in tests, on purpose                                              |
+
+Leaving out the three deliberate `/.*/` test fixtures, **80 of the other 83** patterns have a structured form and 3 need the regex escape. (The 86 include test files, which use `.excluding()` the way an adopter would; they are a proxy for adopters, not a measurement of them.)
+
+### 2. Can every dialect scope by selection?
+
+The kernel's `not()` and `.satisfy()` work in every dialect; `resideInFolder` exists in eess-ts
+and eess-md and composes with `not()`. eess-mermaid and eess-gherkin have no folders — their
+subjects are diagram nodes and scenarios — so they scope by name, which they already support.
+Moving scope into `.that()` also fixes ADR-010's denominator: the selection shrinks, so
+`examined` counts what the rule actually checks, instead of a pre-exclusion count.
+
+### 3. Is a violation's `element` something a person can name?
+
+Only for named declarations. Measured: for a module rule, `element` is the generic
+`'SourceFile'` and `file` is the absolute path. That exposed a live defect: `docs/recipes.md`, and the JSDoc example on `noDeadModules` in the
+`hygiene.ts` rule pack, teach `.excluding('index.ts', 'main.ts')`, and a
+string matches by equality, so it **never matches** — the entry points still report, with a
+stderr warning. It fails closed, so it is not a false green, but it leaves an adopter reaching
+for `/index/` or `/.*/`: the path from a free-text exclusion to a switched-off rule, shipped in
+the docs. Filed as [bug 0387](../bugs/0387-a-basename-exclusion-never-matches.md). So the
+structured form must be **a file path, resolved against the project**, or **an element name**
+where the element is a declaration — not one string compared to three fields.
+
+### 4. Prior art
+
+Tools that faced this converged on the same pieces:
+
+- **Scope in the rule, not an ignore list** — dependency-cruiser rules carve exceptions with
+  `pathNot` inside the rule's `from`/`to` selection, "rather than … separate ignore lists".
+- **No blanket suppression** — ESLint's `eslint-comments/no-unlimited-disable` forbids an
+  `eslint-disable` that names no rule, because it "may cause to overlook some ESLint warnings
+  unintentionally".
+- **A suppression carries a reason** — `eslint-comments/require-description` requires
+  `-- <why>` on every directive.
+- **A suppression that suppresses nothing is reported** — TypeScript added `@ts-expect-error`
+  (3.9) because `@ts-ignore` "does nothing if the line is valid"; ESLint's
+  `reportUnusedDisableDirectives` does the same, at `warn` by default.
+- **The counterexample is eess's current design** — ArchUnit's `archunit_ignore_patterns.txt`
+  matches regexes against the violation message, and "if all violations match ignore patterns,
+  the rule passes": the switched-off-rule shape, with no guard.
+
+### Conclusion
+
+The research supports the choice. Concretely:
+
+1. **Scope moves to `.that()`.** A folder or a naming convention is a selection, resolved like
+   any selector (dead-glob and ADR-010 floor included), and the denominator becomes honest.
+2. **`.excluding()` takes exact targets** — a file path resolved against the project, or an
+   element name — and a target that names nothing real is a finding (this would have caught
+   0387). That is resolve-or-refuse, applied where the target set is knowable.
+3. **A regex is an explicit escape carrying a reason**, reported with the finding it waives
+   (as an `eess-exclude` comment's reason is), and probed for patterns that match arbitrary
+   text. 3 of 83 measured patterns need it.
+4. **Out of this ruling, still open:** whether a stale exclusion is a finding (the kernel's
+   `isFaultPosition` says no today, and `silent()` depends on it — the ESLint and TypeScript
+   precedents say report it; adopter cost unmeasured), and rule 2 of the draft ADR (names).
+
+**Cost, measured:** all 7 of this repo's exclusions and 83 documented patterns migrate; the
+regex-without-reason form becomes a configuration error, which is a breaking change in the
+kernel and every dialect. **Not measured:** adopters' own exclusions.
+
+Sources: [eslint-comments no-unlimited-disable](https://eslint-community.github.io/eslint-plugin-eslint-comments/rules/no-unlimited-disable.html),
+[require-description](https://eslint-community.github.io/eslint-plugin-eslint-comments/rules/require-description.html),
+[ESLint unused disable directives](https://eslint.org/docs/latest/use/configure/rules#report-unused-eslint-disable-comments),
+[TypeScript 3.9 `@ts-expect-error`](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-9.html),
+[ArchUnit user guide](https://www.archunit.org/userguide/html/000_Index.html),
+[dependency-cruiser rules reference](https://github.com/sverweij/dependency-cruiser/blob/main/doc/rules-reference.md).
