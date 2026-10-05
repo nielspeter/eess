@@ -104,18 +104,18 @@ green rather than a nuisance.
 Built and measured in an isolated worktree against a green baseline
 (kernel 145/145, md 113/113 before any patch).
 
-| check                                                      | before    | after      |
-| ---------------------------------------------------------- | --------- | ---------- | ------------------------------------------------------------------------------- |
-| (1) two spellings of one module — distinct hashes          | **1**     | **2** ✓    |
-| (2) three same-named functions — distinct identities       | **1**     | **3** ✓    |
-| (2) three same-named functions — distinct hashes           | **1**     | **3** ✓    |
-| (3) reverse-dep — every finding carries an identity        | **false** | **true** ✓ | _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_ |
-| (3) reverse-dep — distinct hashes                          | **1**     | **2** ✓    |
-| CONTENT: an identity names `alpha`, not just "is distinct" | false     | **true** ✓ | _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_ |
-| STABILITY: two runs over one corpus → same identity set    | true      | **true** ✓ |
-| DENOMINATOR: findings produced (3 and 2)                   | 3 / 2     | 3 / 2      |
-| `check:arch` · `check:family` · `check:spec`               | green     | green      |
-| kernel / md suites                                         | 145 / 113 | 145 / 113  |
+| check                                                                                                                                      | before    | after      |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ---------- |
+| (1) two spellings of one module — distinct hashes                                                                                          | **1**     | **2** ✓    |
+| (2) three same-named functions — distinct identities                                                                                       | **1**     | **3** ✓    |
+| (2) three same-named functions — distinct hashes                                                                                           | **1**     | **3** ✓    |
+| (3) reverse-dep — every finding carries an identity _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_        | **false** | **true** ✓ |
+| (3) reverse-dep — distinct hashes                                                                                                          | **1**     | **2** ✓    |
+| CONTENT: an identity names `alpha`, not just "is distinct" _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_ | false     | **true** ✓ |
+| STABILITY: two runs over one corpus → same identity set                                                                                    | true      | **true** ✓ |
+| DENOMINATOR: findings produced (3 and 2)                                                                                                   | 3 / 2     | 3 / 2      |
+| `check:arch` · `check:family` · `check:spec`                                                                                               | green     | green      |
+| kernel / md suites                                                                                                                         | 145 / 113 | 145 / 113  |
 
 > **Correction — this record's own prescription was wrong.** It said to
 > discriminate the duplicate-pair identity _"but not with a run-ordinal"_,
