@@ -58,17 +58,14 @@ warning list.
 
 ## Fix
 
-**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by plan 0346's Phase 2. The options as they were put:
+**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by plan 0346's Phase 2. The baseline matcher also checks the `file` each entry records. Grouping stays as it is (E0): the spike's first version grouped per file and was measured greener than today on two paths. The hash derivation does not change and, measured on 400 findings with unchanged code, no entry moves.
 
-- put the root-relative file into the fallback subject (one change, one migration);
-- or make `identity` required on every finding;
-- or patch producers one at a time and leave a known residual.
+The options as they were put:
 
-- or match on the `file` each baseline entry already stores, as well as the hash (option E,
-  raised by review).
-
-Under A every baseline entry without an `identity` moves, so it ships through the same
-migration as 0346. Under E no hash moves.
+- **A** — put the root-relative file into the fallback subject (one change, one migration);
+- **B** — make `identity` required on every finding;
+- **C** — patch producers one at a time and leave a known residual;
+- **E** — match on the `file` each baseline entry already stores, as well as the hash.
 
 ## Verification
 

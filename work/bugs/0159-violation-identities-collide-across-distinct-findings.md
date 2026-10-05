@@ -208,8 +208,8 @@ close claimed more than was true. What holds and what does not:
 **The fix for collision 3** is now
 [bug 0388](./0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)'s. Review of plan
 0346 found that `beImported` is one instance of a kernel fault: with no `identity`, the file is
-not in a finding's baseline hash at all. Plan 0346's Phase 2 fixes that class and its
-migration covers it. When that ships, this record says collision 3 is fixed and its KNOWN-GAP
+not in a finding's baseline hash at all. Plan 0346's Phase 2 fixes that class by checking
+the file each baseline entry records, which moves no hash. When that ships, this record says collision 3 is fixed and its KNOWN-GAP
 test has flipped; collisions 1 and 2 keep it open.
 
 ## Verification

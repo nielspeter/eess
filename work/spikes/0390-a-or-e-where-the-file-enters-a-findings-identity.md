@@ -30,9 +30,9 @@ each tree's `@nielspeter/eess` realpath is its own `packages/core`, and each bui
 `dist/violation.js` carries its own variant marker. A whole-directory symlink would have
 resolved every tree's kernel to the main checkout and measured nothing.
 
-The two variants are spike code, not the design to ship. A is 4 changed lines in the kernel. E
-is about 40 lines across both baselines, the kernel's group key and `terminal-builder.ts`'s
-collision check. All builds took about 5 seconds.
+The two variants are spike code, not the design to ship. A is +7/−6 lines in two kernel files.
+E is +42/−6 across both baselines, the kernel's group key and `terminal-builder.ts`'s collision
+check. Builds were not timed.
 
 Three instruments:
 
@@ -41,14 +41,18 @@ Three instruments:
    - **unchanged:** re-run the same code against its own baseline;
    - **rename:** move `a/` to `z/`, where the fixture allows it.
 
-   It also covers the `accepted` warning-list path. About 7 seconds per tree.
+   It also covers the `accepted` warning-list path. About 2 seconds of vitest time per tree.
 
 2. **The suites.** The whole-repo vitest run in each tree, about 40 seconds each, compared
    against the control's run in the same environment. The worktrees lack the gitignored root
-   `tsconfig.json`, so about 41 tests fail in all three trees alike; only the difference from
-   the control counts.
+   `tsconfig.json`, so 22 test files never load in any tree (about 241 tests, some of them on
+   the baseline path) and 19 tests fail in the control. Only the difference from the control
+   counts, and **a file that never loads cannot show a difference**: those 22 were not compared.
+   The control's tree also held the probe file (4567 tests against A's and E's 4554).
 3. **Movement.** A baseline written by the control's code from 400 findings over
-   `packages/ts/src` (six rules, chosen to produce many identity-less findings), then read by
+   `packages/ts/src` (six rules declared, chosen to produce many identity-less findings; four produced findings:
+   `beExported` 291, `extend` 24, `haveMaxExports(2)` 79, `notContain(call('push'))` 6. Files with
+   an empty `file` are left out of the reported-new count), then read by
    each tree's code with the source unchanged. Every finding a tree reports as new is an entry
    that tree moved. The control reading its own baseline must report 0, and it does. An
    earlier run reported 400 for the control too: vitest overwrites `process.env.MODE`, so the
@@ -57,7 +61,7 @@ Three instruments:
 
 ## What was measured
 
-### 1. Both close the class; neither forgives a different file
+### 1. Both close the 12 cases; under both, an `accepted` list still forgives
 
 | scenario                          | M (today)                   | A                        | E                                     |
 | --------------------------------- | --------------------------- | ------------------------ | ------------------------------------- |
@@ -69,13 +73,17 @@ Three instruments:
 The `accepted` subject under A is `/proj/src/a/x.ts::handle::handle is not exported`: it now
 holds the author's absolute path, which is bug 0389's defect widened to every finding.
 
-### 2. The suites: test churn, no false green
+### 2. The suites: test churn, and one misread guard
 
 Failures beyond the control's: **15 under A, 9 under E.** They fall in three groups:
 
 - **Expected under both:** tests that pin today's cross-file collision and its `#1` suffix
   (`deferred-warning.test.ts`, `identity-uniqueness.test.ts`). Also 0159's KNOWN-GAP test,
-  which flips as designed.
+  which flips as designed. **Misread, corrected after review:** under E,
+  `deferred-warning.test.ts` · `it('the swap, reproduced with a colliding subject: a genuinely new finding is escalated, not silently absorbed')`
+  failed because the new finding was **absorbed** — a false green, not churn. Under A the same
+  test fails as churn. Three of A's `identity-uniqueness` failures are within one file and
+  belong in the next group: they fail because A changes the subject string.
 - **A only — the file now matters to the hash:**
   - `rule-builder-options.test.ts` (4) and `rule-builder-exclusions.test.ts` (1) hand-build a
     baseline with no root and check it under `/project`. A root mismatch that was harmless
@@ -103,8 +111,9 @@ one needs the migration. E moves 4: the entries today's code had suffixed **acro
 are exactly the positional slots 0388 says may already be inheriting. Reporting them on upgrade is
 the fail-closed behaviour Phase 3 was trying to build by hand.
 
-The ratio is structural, not a property of this sample. A rehashes everything without an
-identity; E rehashes only what today's grouping suffixed across files.
+The mechanism is structural: A rehashes everything without an identity; E rehashes only what
+today's grouping suffixed across files. The ratio is this sample's: it depends on how often a
+codebase repeats names.
 
 ## What this changes in the decision
 
@@ -124,25 +133,57 @@ identity; E rehashes only what today's grouping suffixed across files.
 - **Both report a renamed file again.** Today a rename is silently still accepted. Under either
   option it costs one re-accept. That is the price of the fix, and it is the same price.
 
+## Review, and E0
+
+Enforcement review of this record (2026-10-06) measured two paths where the E above is
+**greener than today**, both caused by its per-file grouping. Grouping per file removes today's
+cross-file `#1` suffix, and that suffix is what catches:
+
+- an `accepted` list built from `a` alone, when `b` adds the same finding while `a` stays;
+- a baseline entry with no recorded `file`, when `b` adds the same finding.
+
+So **E0** was measured: E's file check in both matchers, with grouping and the collision check
+left exactly as today. Same three-tree method, against a fresh control at `a86f9fc`:
+
+| case                                                      | today        | E (per-file grouping) | E0                                      |
+| --------------------------------------------------------- | ------------ | --------------------- | --------------------------------------- |
+| the 12 cross-file cases                                   | 0 of 12      | 12 of 12              | 12 of 12                                |
+| `accepted` from `a`; `a` stays, `b` added                 | both `error` | **both `warn`**       | both `error`                            |
+| entry with no `file`; `a` stays, `b` added                | `b` reported | **nothing reported**  | `b` reported                            |
+| baseline with no recorded root; `a` stays, `b` added      | `b` reported | —                     | `a` and `b` reported (false red on `a`) |
+| `accepted` from `a`; `a` fixed, `b` added (the 0388 case) | `b` `warn`   | `b` `warn`            | `b` `warn`                              |
+| entries moved, 400 findings, unchanged code               | 0            | 4                     | **0**                                   |
+| failures beyond the control's                             | —            | 9                     | **3**                                   |
+
+E0's three extra failures are 0159's KNOWN-GAP test (flips as designed) and two in
+`baseline-compat.test.ts`: the no-root baseline, and an explicit `root` override. Both are false
+reds, and both are settled by deciding which recorded file the matcher can compare, against which
+root. The guard tests the per-file version broke pass under E0.
+
 ## Recommendation
 
-**E for the baseline matcher, plus A's derivation for `accepted` only** (behind bug 0389's portable
-subject). The measured reason is the movement table: E reaches the same 12/12 with 4 entries
-moved rather than 315, and the 4 are the suspect ones. A's single-string cleanliness costs a
-full-file migration that review found hard to make fail-closed. That decision is the
-maintainer's.
+**E0 for the baseline matcher, plus A's derivation for `accepted` only** (behind bug 0389's
+portable subject). E0 closes the 12, is never greener than today on any path measured, and moves
+no entry. The `accepted` change is still needed: under every variant a list of subjects
+forgives a fixed-and-replaced finding in another file. The maintainer chose E; E0 is E without
+the spike's grouping change.
 
-The record does not decide two things:
+Not decided here:
 
-- **The spike's E groups per file inside `disambiguateIdentities`.** That changes the grouping
-  key the kernel and `terminal-builder.ts` share. A version that leaves grouping alone moves 0
-  entries but keeps cross-file positional suffixes. It was not measured.
-- **The sibling dialects.** Only eess-ts suites and baselines were measured. The kernel baseline
-  got the same E change and its suites ran (no extra failures in md, mermaid, gherkin or
-  crossvalidate), but no sibling cross-file probe was run.
+- **The no-root baseline's finding.** E0 is not greener than today on it, but it false-reds, and
+  whether the finding that says so fails the build is open.
+- **Identity-bearing findings that move file.** The check applies to them too; the rename row was
+  measured only for findings without an identity.
+- **The sibling dialects.** Their suites ran with no extra failures, but no sibling cross-file
+  probe was run.
 
 ## Reproducing
 
-The variant patches, the probe and the movement test were written for this spike and were not
-kept in the repo; the red tests plan 0346 builds replace them. Every change is described in
-"Method" above, and the probe fixtures are bug 0388's table.
+The variant patches, the probes and the movement test were written for this spike and are **not
+in the repo**. Section 1's cases are bug 0388's table, and plan 0346's red tests reproduce them.
+**Section 3's movement counts cannot be re-run from the repo**; the rules and filters that
+produced them are listed in "Method" so a re-measure can be built. E0 is E's matcher change
+alone: `isKnown` and `hasEntry` in both baselines also require the entry's recorded `file`
+to equal the finding's (portable form in eess-ts, baseline-relative in the kernel), and an
+entry recorded without a file is let through. That last detail is the spike's; plan 0346 makes
+it fail closed instead.

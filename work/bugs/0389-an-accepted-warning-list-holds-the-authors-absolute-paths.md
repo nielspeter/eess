@@ -30,8 +30,7 @@ The architecture reviewer measured one such subject on `HEAD`:
 
 Compare, and print, the subject with the identity root scrubbed, in the same form the
 baseline hash uses: one kernel function (`portableSubjectOf(v, root)`) called by both. Plan 0346's
-Phase 2 option A depends on this, because under A every finding without an `identity` carries
-its file in the subject.
+Phase 2 depends on this: its `accepted` comparison uses the portable `file::subject`.
 
 ## Verification
 
