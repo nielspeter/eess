@@ -207,7 +207,7 @@ Moving scope into `.that()` also fixes ADR-010's denominator: the selection shri
 Only for named declarations. Measured: for a module rule, `element` is the generic
 `'SourceFile'` and `file` is the absolute path. That exposed a live defect: `docs/recipes.md`, and the JSDoc example on `noDeadModules` in the
 `hygiene.ts` rule pack, teach `.excluding('index.ts', 'main.ts')`, and a
-string matches by equality, so it **never matches** — the entry points still report, with a
+string matches by equality, so it **never matches** _(wrong — it over-matches; superseded below)_ — the entry points still report, with a
 stderr warning. It fails closed, so it is not a false green, but it leaves an adopter reaching
 for `/index/` or `/.*/`: the path from a free-text exclusion to a switched-off rule, shipped in
 the docs. Filed as [bug 0387](../bugs/0387-a-basename-exclusion-waives-every-file-with-that-name.md). So the
@@ -230,7 +230,7 @@ Tools that faced this converged on the same pieces:
   `reportUnusedDisableDirectives` does the same, at `warn` by default.
 - **The counterexample is eess's current design** — ArchUnit's `archunit_ignore_patterns.txt`
   matches regexes against the violation message, and "if all violations match ignore patterns,
-  the rule passes": the switched-off-rule shape, with no guard. _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_ _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_
+  the rule passes": the switched-off-rule shape, with no guard. _(Superseded 2026-10-05 — see "Adversarial review of the research" below.)_
 
 ### Conclusion
 
