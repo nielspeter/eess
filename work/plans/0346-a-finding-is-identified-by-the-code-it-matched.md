@@ -364,7 +364,8 @@ Enforcement's Critical on Phase 3 (below) disappears for this class.
     normalises separators first, so a baseline written on Windows still compares on Linux.
   - An eess-ts baseline with no recorded root (written before eess) cannot be compared. Under
     E0 the hash and today's suffixing still apply to it, so it is never greener than today. The
-    check is off, and one finding says so. **Its severity is still open:** failing reverses
+    check is off, and one finding says so. **Its severity is still open**, and nothing in
+    this plan assumes it — the break class above is that the finding is _emitted_. The trade: failing reverses
     `baseline-compat.test.ts` · `it('stays green when its entries match, despite the older format')`,
     and the only remedy, regenerating, re-forgives everything. Decide it before the Phase 2 plan
     is Ready.
@@ -382,9 +383,40 @@ Enforcement's Critical on Phase 3 (below) disappears for this class.
 - **A renamed file is reported again**, and costs one re-accept. The same price under A; today a
   rename is silently still accepted.
 
-**Every new path gets a break class and a non-vacuity row:** deleting the file check, the
-`accepted` file comparison, the no-root finding, the recorded-root comparison, or the
-missing-file rule must each turn a fixture red.
+**The diagnosis must name the file, not blame the rule.** Measured under E0 (enforcement
+review, 2026-10-06): in the 0388 case and on every rename, `filterNew` adds the
+description-change meta-finding — "the rule was edited", with `was` and `now` identical — and
+its Fix is "regenerate the baseline", which forgives the new finding again. The cause is
+`renamedRuleFor` (`packages/ts/src/helpers/baseline-diagnostics.ts:54-64`): it uses
+`hasEntry` as "the description is unchanged", and under E0 a hash match in another file makes
+`hasEntry` false. So Phase 2 also:
+
+- separates "the hash matched" from "the hash and the file matched" in `BaselineFacts`, and
+  `renamedRuleFor` excludes the first;
+- adds an attribution that names the recorded file and the finding's file, with a remedy per
+  cause ("fixed there and made here: fix this one"; "renamed: re-accept"), never a blanket
+  regenerate;
+- re-checks the other readers of `hasEntry` and of hash-only lookups: the `matched` count
+  behind `unmatchedBaselineFinding` (whose causes do not include "a file moved"), and the
+  accepted-measurement lookup for metric findings.
+
+**Every red test drives `filterNew` or `check({ baseline })`**, not `isKnown`: the spike's
+probes called `isKnown` and missed the line above.
+
+**Every new path gets a break class.** Deleting any of these must turn a fixture red:
+
+- the file check, once for the kernel baseline and once for eess-ts's (separate code);
+- the `accepted` file comparison;
+- the no-root finding;
+- the recorded-root comparison;
+- the missing-file rule;
+- separator normalisation (a baseline written with `\` still matches on POSIX);
+- the file-naming attribution (the 0388 fixture reports `b` and **no** description-change
+  finding).
+
+These are Tier-2 suite rows. One of them, the replacement case below, is also a
+`check:nonvacuity` row. This repo keeps no baseline, so its own gates never exercise the
+matcher; the suite rows are the only dogfood, and the record says so.
 
 **Preconditions (recorded while both options were open; still true under E):**
 
@@ -404,9 +436,11 @@ missing-file rule must each turn a fixture red.
 **The guard is structural, not a fixture per condition.** A suite cannot write a
 violating fixture for a condition it has never seen, so "every exported condition over
 two files" was a list after all. Instead: a property test that two findings differing
-only in `file` are distinct to the matcher (under A, to both hashes; under E, to
-`isKnown`), plus a check that a producer-set identity for a finding about a file names
-it. That is what covers a new producer on arrival.
+only in `file` are distinct to the matcher **across runs**: baseline one, present only the
+other, and require it reported. A within-run version is vacuous under E0, because today's
+`#1` suffix already separates two such findings in one batch. Plus a check that a
+producer-set identity for a finding about a file names it. That is what covers a new producer
+on arrival.
 
 **`element` stays as it is.** `reverse-dependency.ts` already records why:
 `.excluding()` matches on `element`, so promoting it to a path would silently break
@@ -436,8 +470,12 @@ and the ones that were already inheriting are forgiven permanently and silently.
 So the upgrade ships a **migration that carries forward exactly what is forgiven
 today**: read the old baseline, re-run, and for every finding compute **both** its
 old-scheme and new-scheme identity. Match each baseline entry by its **old-scheme
-hash**, and write the new-scheme one. Nothing new is forgiven, because every new
-entry is derived from an entry that already matched.
+hash and its recorded file**, which is what "matched" means once Phase 2 ships, and write
+the new-scheme one. Nothing new is forgiven, because every new entry is derived from an
+entry that already matched. A join on the hash alone would bring 0388 back: the entry
+written for `a` would be carried onto `b`. The hash-only join applies only where Phase 2's
+check is off (a baseline with no recorded root), and it says so. Break class: the 0388
+fixture, then `--migrate`, then `b` is still reported.
 
 **Not by line.** An earlier draft said "match each old entry to the finding at its
 recorded position", which architecture review caught: `BaselineEntry.line` is
@@ -581,8 +619,11 @@ Four plans, about one PR each, grouped by what each one closes:
 1. **Bug 0389 — `accepted` compares a portable subject.** A live defect on its own, and the
    precondition for 2's `accepted` change.
 2. **Phase 2, E0 — the matcher checks the file**, in both baselines, with the per-baseline
-   comparability rule, and `accepted` comparing `file::subject`. Closes bug 0388 and 0159's
-   collision 3. It moves no hash, so it **may ship before 3** and needs no migration of its own.
+   comparability rule, `accepted` comparing `file::subject`, and a diagnosis that names the
+   file. Closes bug 0388 and 0159's collision 3 **for every baseline that records its root**.
+   If the no-root finding only warns, 0388 closes with that residual named. It moves no hash,
+   so it **may ship before 3** and needs no migration of its own; it must ship first, because
+   3's migration joins on what 2 defines as a match.
 3. **Phases 1 and 3 — the shape identity and its migration** (bug 0338's identity, `--migrate`,
    the `HASH_VERSION` bump, the refusal to regenerate over an older version). Together because
    Phase 1 is what moves entries, and shipping it without the migration would leave regenerating
@@ -619,16 +660,17 @@ Four plans, about one PR each, grouped by what each one closes:
 - The seven-edit table from 0338's spike, as a test: identity survives reformatting,
   insertion above, comments, sibling renames and code movement; it breaks when the
   matched code changes and when one is fixed and another added.
-- Two files sharing a basename, each missing the same thing, produce **distinct**
-  baseline entries — accepting one does not accept the other. Today they collide
-  and are separated by position.
+- Two files sharing a basename, each missing the same thing: accepting one does not accept
+  the other **across runs**. (Within one run they are already separated, by today's
+  positional `#1`, and E0 keeps that.)
 - **The cross-run case, for every exported condition rather than a list:** baseline the
   finding in one file, fix it, make the same finding in another file, and the second is
   reported. 0388's table is its first rows. 0159's KNOWN-GAP test is one of them, and
   it flips.
 - An adopter's existing baseline migrates without forgiving anything new, and the
   command says what it cannot promise.
-- Every finding added here **fails**, and by ADR-009 Rule 1's discriminator rather
+- Every finding added here **fails** (except the no-root finding, whose severity is the
+  open decision above), and by ADR-009 Rule 1's discriminator rather
   than by blanket rule: each one has a single correct answer, so none of them is a
   finding the reader is expected to judge. (An earlier draft of this plan said
   "nothing added here warns" as an absolute, which contradicts Rule 1's own
@@ -655,7 +697,8 @@ Four plans, about one PR each, grouped by what each one closes:
       (plan 0263 is the precedent for what a `pending` row costs later)
 - [ ] Phase 1 — shape composed **into** the identity, pinned by the seven-edit
       table AND by the cross-declaration case review measured
-- [ ] Phase 3 — the migration joins on the old-scheme hash, never on the line
+- [ ] Phase 3 — the migration joins on the old-scheme hash and the recorded file, never on
+      the line
 - [ ] Phase 3 — the report names the ambiguous buckets, not a blanket disclaimer
 - [ ] Phase 1 — the ts-morph version recorded beside `hashVersion`, and
       `unmatchedBaselineFinding` able to name it as a cause once something moved
@@ -663,9 +706,13 @@ Four plans, about one PR each, grouped by what each one closes:
       matched nodes in a real 808-file project, this is 1:1"_, and rewrite its
       opening line, which claims an identity "that is not a coordinate" for a
       population where it is one. Whoever builds this reads that file.
-- [ ] Phase 2 — the matcher checks the recorded file in both baselines, grouping is per
-      file, and a baseline without a recorded root says the check is off; guarded by the
-      structural property test, not a fixture per condition
+- [ ] Phase 2 — the matcher checks the recorded file in both baselines, grouping
+      unchanged (E0), and a baseline without a recorded root says the check is off; guarded
+      by the cross-run structural property test
+- [ ] Phase 2 — the diagnosis names the file: no description-change finding on a hash
+      match in another file, and a remedy per cause, never a blanket regenerate
+- [ ] Phase 2 — the no-root finding's severity decided before Ready; if it is the regenerate
+      remedy, plan 3 re-verifies it once regenerating over an older version is refused
 - [ ] Phase 2 — `accepted` compares the portable `file::subject`, and its advice prints it
 - [ ] Phase 2 — bug 0389 fixed first: one `portableSubjectOf`, used by every hash and
       by `accepted`

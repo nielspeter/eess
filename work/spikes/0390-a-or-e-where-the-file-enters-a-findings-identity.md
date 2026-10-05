@@ -46,7 +46,7 @@ Three instruments:
 2. **The suites.** The whole-repo vitest run in each tree, about 40 seconds each, compared
    against the control's run in the same environment. The worktrees lack the gitignored root
    `tsconfig.json`, so 22 test files never load in any tree (about 241 tests, some of them on
-   the baseline path) and 19 tests fail in the control. Only the difference from the control
+   the baseline path) and 17 to 19 tests fail in the control, depending on the run. Only the difference from the control
    counts, and **a file that never loads cannot show a difference**: those 22 were not compared.
    The control's tree also held the probe file (4567 tests against A's and E's 4554).
 3. **Movement.** A baseline written by the control's code from 400 findings over
@@ -107,9 +107,9 @@ Failures beyond the control's: **15 under A, 9 under E.** They fall in three gro
 | E    | 400      | 315                | 6             | **4**                                 |
 
 A moves 315 of 315 by construction: every entry without an `identity` changes hash, so every
-one needs the migration. E moves 4: the entries today's code had suffixed **across files**. Those
-are exactly the positional slots 0388 says may already be inheriting. Reporting them on upgrade is
-the fail-closed behaviour Phase 3 was trying to build by hand.
+one needs the migration. E (per-file grouping) moves 4: the entries today's code had suffixed
+**across files**. They were correct entries on unchanged code, so reporting them costs a
+re-accept, not a review. E0, measured later, moves none (see "Review, and E0").
 
 The mechanism is structural: A rehashes everything without an identity; E rehashes only what
 today's grouping suffixed across files. The ratio is this sample's: it depends on how often a
@@ -150,7 +150,7 @@ left exactly as today. Same three-tree method, against a fresh control at `a86f9
 | the 12 cross-file cases                                   | 0 of 12      | 12 of 12              | 12 of 12                                |
 | `accepted` from `a`; `a` stays, `b` added                 | both `error` | **both `warn`**       | both `error`                            |
 | entry with no `file`; `a` stays, `b` added                | `b` reported | **nothing reported**  | `b` reported                            |
-| baseline with no recorded root; `a` stays, `b` added      | `b` reported | —                     | `a` and `b` reported (false red on `a`) |
+| baseline with no recorded root; `a` stays, `b` added      | `b` reported | `a` and `b` reported  | `a` and `b` reported (false red on `a`) |
 | `accepted` from `a`; `a` fixed, `b` added (the 0388 case) | `b` `warn`   | `b` `warn`            | `b` `warn`                              |
 | entries moved, 400 findings, unchanged code               | 0            | 4                     | **0**                                   |
 | failures beyond the control's                             | —            | 9                     | **3**                                   |
@@ -159,6 +159,11 @@ E0's three extra failures are 0159's KNOWN-GAP test (flips as designed) and two 
 `baseline-compat.test.ts`: the no-root baseline, and an explicit `root` override. Both are false
 reds, and both are settled by deciding which recorded file the matcher can compare, against which
 root. The guard tests the per-file version broke pass under E0.
+
+**What these tables do not show.** Every probe here called `isKnown`. Driven through
+`filterNew`, E0 also emits a meta-finding in the 0388 case and on a rename that blames an
+edited rule and tells the author to regenerate, which forgives the new finding again.
+Enforcement review measured it; plan 0346's Phase 2 now requires the diagnosis to name the file.
 
 ## Recommendation
 
