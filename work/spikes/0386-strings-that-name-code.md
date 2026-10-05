@@ -323,5 +323,8 @@ scope. eess already has the violation-identity mechanism: the baseline. That ref
 **What closes 0233 is therefore not answered here:** exact names, single-target rules and narrow `.that()` scopes all reproduce it, so it needs either a violation-identity waiver or a signal beyond the zero-examined floor.
 
 That depends on violation identity being trustworthy, which is exactly what bugs 0159 and 0338
-say it is not yet. So the order is likely: settle identity (0159, 0338), then decide
+say it is not yet — and bug 0388 (a baseline entry forgives the same finding in any file)
+widened on 2026-10-05. All three are built by
+[plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md). So the order is
+likely: settle identity (0159, 0338, 0388), then decide
 `.excluding()`'s role. Not ready to rule on until that is laid out and measured.
