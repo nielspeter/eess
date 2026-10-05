@@ -126,3 +126,43 @@ This repo's rule files say "nothing", but they are written by the people who wro
   heritage bugs point at one decision instead of each carrying a version of it.
 - After the ruling: 0233 built as point 1 (it is the measured production case), with the stale
   half as its own change, since it turns an existing warning into a finding.
+
+## Review — 2026-10-05: not ready to rule as drafted
+
+Architecture, product and enforcement review read this spike, spike 0385 and the draft ADR-018.
+All three: **do not accept as drafted.** What they found, verified where cheap:
+
+- **The universal probe is weaker than claimed.** It catches a pattern that matches arbitrary
+  text (`/.*/`, `/./`, `/^[\s\S]*$/`). It misses patterns that match every real violation
+  without matching arbitrary text: a pattern on every file path (`/\//`, `/\.ts$/`), a pattern
+  on a message template (`notImportFrom` words every finding "… which matches forbidden …", so
+  `.excluding(/forbidden/)` switches it off), and a string equal to a common element
+  (`.excluding('CatchClause')`, recorded in the 0.7 migration notes). The production case in
+  proposal 007 says "a catch-all", not which pattern — calling it universal was an inference.
+  Refusing `/.*/` teaches the next-shortest path.
+- **The stale half reverses a recorded decision.** The kernel's `isFaultPosition`
+  (`packages/core/src/glob-site.ts`) and proposal 006 hold that an exclusion matching nothing is
+  remedy-optional and never a fault, and `silent()` exists for exclusion lists shared across
+  workspaces (`docs/recipes.md`). An unsuppressable stale finding with `silent()` exempting
+  nothing removes that public API and gives the shared-list recipe no achievable remedy. This
+  repo has the shape too: `GENERATED` and `ENTRY_POINTS` are shared by two rules each.
+- **Rule 2 contradicts itself and ADR-016.** `call()`, `newExpr()` and `jsxElement()` are text
+  matchers (`packages/ts/src/helpers/matchers.ts`), mostly used in bans — `notContain(call('eval'))`
+  — where matching nothing is the goal, the same absence case rule 3 exempts for globs. Position
+  and combinator decide whether "matches nothing" is a fault (`or(dead, live)` is a working
+  rule), which the kernel's glob-site tree already encodes. "Disclosed, not refused" contradicts
+  ADR-016 clause 1, which bug 0373 names as its standard. And none of the group-C bugs is a case
+  a refusal would have caught: they are relation-walking bugs ADR-017 already decided.
+- **Group C mixed populations.** Its "8 High of 12" combines symbol references (`extend`,
+  `implement`) with text matchers that belong beside group G, so the headline does not stand.
+
+**What survives:** spike 0385's lens — universal, scoped and named exclusions differ by whether
+the rule can still fail — and the decision to keep path globs. **What is open is deeper than
+drafted:** no static test separates a switched-off rule from a scoped one in general, because
+`.excluding()` matches free text against element, file _and_ message. The real choice for
+exclusions is between keeping free-text patterns and detecting the obvious catch-alls (with
+gaps), and giving exclusions a structured form that resolves (an exact element or file, checked
+against the rule's violations, with scoping done by resolved `.that()` selectors instead).
+That is the maintainer's to decide; ADR-018 is rewritten after it.
+
+The full reviews: architecture, product and enforcement, in the session's scratchpad.

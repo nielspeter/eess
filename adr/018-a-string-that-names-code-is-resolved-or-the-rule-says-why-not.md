@@ -1,7 +1,8 @@
 # ADR-018: A string that names code is resolved, or the rule says why not
 
-- **Status:** Proposed (2026-10-05) — awaiting the maintainer's ruling. Nothing below binds
-  until it is accepted.
+- **Status:** Proposed (2026-10-05) — **not ready to rule**: review found the decision below
+  over-claims and contradicts ADR-016 and the kernel's position logic (spike 0386, Review). It
+  is rewritten after the maintainer decides how exclusions should work. Nothing below binds.
 - **Context:** [spike 0386](../work/spikes/0386-strings-that-name-code.md),
   [spike 0385](../work/spikes/0385-what-makes-an-exclusion-switch-a-rule-off.md),
   [bug 0233](../work/bugs/0233-an-exclusion-that-suppresses-every-violation-is-silent.md),
