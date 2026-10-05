@@ -59,8 +59,10 @@ describe('bug 0159: a baselined orphan forgives the next orphan of the same name
     const after = orphans(run2)
     expect(after.map((v) => v.file)).toEqual(['/proj/src/b/index.ts'])
 
-    // The correct answer is ['/proj/src/b/index.ts']: a finding nobody reviewed. Today the
-    // baseline entry written for a/index.ts accepts it.
+    // The correct answer includes /proj/src/b/index.ts: a finding nobody reviewed. Today the
+    // baseline entry written for a/index.ts accepts it. Measured under a path identity, the
+    // flipped result also carries a "baseline matched 0 of its 1 entry" finding, whose
+    // stated causes (an upgrade, regenerate) do not describe this case — plan 0346 decides it.
     expect(withBaseline(baseline, { root: '/proj' }).filterNew([...after])).toEqual([])
   })
 })

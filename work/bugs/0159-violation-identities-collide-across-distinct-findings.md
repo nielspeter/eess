@@ -105,13 +105,13 @@ Built and measured in an isolated worktree against a green baseline
 (kernel 145/145, md 113/113 before any patch).
 
 | check                                                      | before    | after      |
-| ---------------------------------------------------------- | --------- | ---------- |
+| ---------------------------------------------------------- | --------- | ---------- | ------------------------------------------------------------------------------- |
 | (1) two spellings of one module — distinct hashes          | **1**     | **2** ✓    |
 | (2) three same-named functions — distinct identities       | **1**     | **3** ✓    |
 | (2) three same-named functions — distinct hashes           | **1**     | **3** ✓    |
-| (3) reverse-dep — every finding carries an identity        | **false** | **true** ✓ |
+| (3) reverse-dep — every finding carries an identity        | **false** | **true** ✓ | _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_ |
 | (3) reverse-dep — distinct hashes                          | **1**     | **2** ✓    |
-| CONTENT: an identity names `alpha`, not just "is distinct" | false     | **true** ✓ |
+| CONTENT: an identity names `alpha`, not just "is distinct" | false     | **true** ✓ | _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_ |
 | STABILITY: two runs over one corpus → same identity set    | true      | **true** ✓ |
 | DENOMINATOR: findings produced (3 and 2)                   | 3 / 2     | 3 / 2      |
 | `check:arch` · `check:family` · `check:spec`               | green     | green      |
@@ -150,14 +150,13 @@ the thing it repairs: after it runs there is nothing left for a guard to see,
 so a colliding producer looks fixed. Collisions are therefore recorded _before_
 the repair and exposed (with `resetIdentityCollisions()` for `beforeEach`).
 Measured: it names the exact rule and subject that collided. This is what keeps
-the net from becoming a blindfold, and it is re-exported from `eess-ts` because
-the guards that use it live in a dialect's own suite.
+the net from becoming a blindfold, and it is exported from `@nielspeter/eess/internal`, where the guards in a dialect's own suite import it _(corrected 2026-10-05: first written "re-exported from `eess-ts`", which it is not)_.
 
 **Only one producer actually needed fixing.** Reverse-dependency findings set
 no `identity` at all, so the baseline subject fell back to
 `element::message` — and `element` is the **basename**, so two orphan
 `index.ts` files in different folders produced byte-identical subjects. They
-now carry `reverse-dep::<full path>::not-imported`. The duplicate-pair
+now carry `reverse-dep::<full path>::not-imported`. _(built in the 2026-08-19 worktree; never shipped — see "State on 2026-10-05")_ The duplicate-pair
 producer is left alone: its identity string is **byte-identical to upstream's**,
 which never fixed it either — the repair pass is the answer there, and the
 disclosure keeps it honest.
@@ -187,7 +186,7 @@ close claimed more than was true. What holds and what does not:
   nothing. Pinned as a known gap by
   `packages/ts/tests/core/a-baselined-orphan-forgives-the-next-one.test.ts`, which flips red
   when the identity carries the path (measured: it does).
-  _An earlier version of this section's predecessor said reverse-dependency findings carry
+  _The Fix section above says reverse-dependency findings carry
   `reverse-dep::<full path>::not-imported`, and the withdrawn close said "its message now
   carries the path". Neither is true for `beImported`: the path-carrying message belongs to
   `onlyBeImportedVia`._
@@ -199,8 +198,9 @@ close claimed more than was true. What holds and what does not:
 - **Collision 2 has changed shape:** the duplicate-bodies detector now reports one finding per
   cluster, and two clusters of same-named functions still collide (only reachable from code
   `tsc` rejects: duplicate function implementations).
-- **Not measured:** the kernel's own `applyFilters`, which eess-md, eess-mermaid and
-  eess-gherkin run on, does not run the repair pass at all.
+- **Not measured:** whether eess-md, eess-mermaid or eess-gherkin producers can collide. Their
+  `applyFilters` (the kernel's) does not run the repair pass at all, so if they can, it is a live
+  false green in `check:corpus` and `check:diagram`.
 
 **The fix for collision 3** is the one bug 0063 used for dependency findings and plan 0346's
 Phase 2 prescribes for module-absence findings: put the path in the identity
