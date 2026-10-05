@@ -317,6 +317,11 @@ In short:
   producer reopens it. The first version of the list also left out
   `moduleUseInsteadOf`'s absence half, in a file it already named.
 
+**Measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md):**
+both close all 12 cases with no false green. On 400 findings from this repo, A moves 315 of 315
+identity-less entries and E moves 4 (the cross-file positional ones). E leaves the `accepted`
+hole open. The spike recommends E for the matcher plus A's derivation for `accepted` alone.
+
 **The decision — held for the maintainer.** Four reviews (architecture, product,
 enforcement, method; 2026-10-05) agree the cause is the kernel's fallback and that C is
 wrong. They split on A versus E, which two of them raised independently.
