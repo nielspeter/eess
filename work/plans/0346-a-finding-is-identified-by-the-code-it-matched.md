@@ -2,10 +2,10 @@
 
 ## Status
 
-- **State:** Draft — **held on one design decision in Phase 2** (where the file enters
-  a finding's identity, [bug 0388](../bugs/0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)).
-  Phase 1's ruling is settled and measured; the migration is unbuilt, and it decides
-  whether this fix is honest. Refreshed 2026-10-05 against `main`. Review of that
+- **State:** Draft — Phase 2's decision is taken (**E**, 2026-10-06, after
+  [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md)); what
+  remains before Ready is splitting this into one-PR plans. Phase 1's ruling is settled
+  and measured; the migration is unbuilt, and it decides whether this fix is honest. Refreshed 2026-10-05 against `main`. Review of that
   refresh found that Phase 2's producer list was the symptom: the cause is one kernel
   derivation.
 - **Priority:** High — a baseline that forgives a finding nobody reviewed is a false
@@ -322,7 +322,7 @@ both close all 12 cases with no false green. On 400 findings from this repo, A m
 identity-less entries and E moves 4 (the cross-file positional ones). E leaves the `accepted`
 hole open. The spike recommends E for the matcher plus A's derivation for `accepted` alone.
 
-**The decision — held for the maintainer.** Four reviews (architecture, product,
+**The decision, as it was put.** Four reviews (architecture, product,
 enforcement, method; 2026-10-05) agree the cause is the kernel's fallback and that C is
 wrong. They split on A versus E, which two of them raised independently.
 
@@ -341,7 +341,32 @@ see is wrong, entries now matching a finding in another file, is corrected **by 
 matcher on upgrade**, with no migration step to get wrong and no file format change.
 Enforcement's Critical on Phase 3 (below) disappears for this class.
 
-**Preconditions either way:**
+**Decided 2026-10-06 by the maintainer: E.** What that means for the build:
+
+- **The matcher checks the file.** `isKnown` and `hasEntry`, in both the kernel and eess-ts
+  baselines, require an entry's recorded `file` to equal the finding's, for a finding whose
+  `file` is not empty. **The hash does not change for this class**, so bug 0388 needs no
+  migration of its own.
+- **Grouping is per file.** `disambiguateIdentities` groups on `rule::file::subject`, so two
+  findings in different files never collide and are never suffixed. That moves only the entries
+  today's code suffixed across files: 4 of 315 in the spike, and they are the suspect ones.
+  `packages/ts/src/core/terminal-builder.ts:94`'s collision check uses the same key, through one
+  shared function.
+- **The file check needs a comparable recorded file.** eess-ts has written `file`
+  root-relative, with the root recorded, since the engine was brought in (#72); the kernel has
+  always written it relative to the baseline file. A baseline that records no root (one written
+  before eess) cannot be compared: the check is off for it, and one finding says so and names the
+  remedy. It must not fail silently either way, and the spike measured that it otherwise
+  false-reds (`packages/ts/tests/helpers/baseline-compat.test.ts`).
+- **`accepted` lists get the file through the subject.** A list of subjects records no file, so
+  under E it would still forgive the same finding in another file. The `accepted` comparison
+  alone uses A's derivation, the root-scrubbed `file::subject`, which needs bug 0389's portable
+  subject first. Existing `accepted` strings stop matching and escalate to error, which fails
+  closed, and the advice text prints the new form.
+- **A renamed file is reported again**, and costs one re-accept. The same price under A; today a
+  rename is silently still accepted.
+
+**Preconditions (recorded while both options were open; still true under E):**
 
 - [bug 0389](../bugs/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md):
   `accepted` lists already hold absolute paths. One kernel `portableSubjectOf(v, root)`,
@@ -423,9 +448,9 @@ says so. Both ends get a test, and a non-vacuity row that reds when the refusal 
 deleted.
 
 **`check` against an old baseline is one finding, not N "new" ones:** "baseline is
-version 5; run `--migrate`". The kernel baseline has no version today
-(`packages/core/src/baseline.ts:85`), so it gains one, with the same refusal and
-finding, or the sibling dialects' only path is to regenerate.
+version 5; run `--migrate`". Under E this is eess-ts only: Phase 1 changes eess-ts's
+identities, and E changes no kernel hash, so the kernel baseline (which has no version,
+`packages/core/src/baseline.ts:85`) gains the file check and nothing to migrate.
 
 **One door cannot be shut, and the release notes name it:** deleting the file and
 generating afresh is indistinguishable from first use, and it re-forgives everything.
@@ -477,9 +502,9 @@ command must say so rather than implying the migration made the baseline correct
 That is ADR-009 Rule 2: every failure carries its own sanctioned remedy, and a
 remedy that overstates what it achieved is not one.
 
-**Files:** a `baseline --migrate` path, in eess-ts and in the kernel (a sibling-dialect
-adopter cannot be told to install eess-ts to migrate); the migration page for this
-plan's own release after 0.12; and the changeset. The old derivation ships beside the
+**Files:** a `baseline --migrate` path in eess-ts (under E the kernel baseline has no
+hash to migrate); the migration page for this plan's own release after 0.12; and the
+changeset. The old derivation ships beside the
 new one for one release, and a baseline older than that is refused by name.
 
 ## Phase 4 — the ruling gets an ADR, written last on purpose
@@ -506,7 +531,7 @@ Clauses to enforce, at minimum:
 - identity is derived from the matched node's shape; position appears only to
   separate byte-identical shapes within one scope
 - no condition may mint an identity from a line number
-- a finding about a file is keyed by its file (Phase 2). Not "every finding": a
+- a finding about a file is matched by its file (Phase 2). Not "every finding": a
   slice cycle edge or a duplicate cluster belongs to no single file, and a finding with
   an empty `file` keeps today's key
 
@@ -588,8 +613,8 @@ table if it lists them.
 
 ## Progress ledger
 
-- [ ] Phase 2 — the maintainer's decision (A or E) recorded here, and carried into
-      Phase 4's ADR, before any Phase 2 code
+- [x] Phase 2 — the maintainer's decision recorded here before any Phase 2 code: **E**,
+      2026-10-06, measured in spike 0390. Phase 4's ADR carries it
 - [ ] Phase 4 — the ADR, authored via `adr-enforce.mjs` so author ≠ validator
 - [ ] Phase 4 — **no `pending` rows** when it closes, which is why it is last
       (plan 0263 is the precedent for what a `pending` row costs later)
@@ -603,12 +628,15 @@ table if it lists them.
       matched nodes in a real 808-file project, this is 1:1"_, and rewrite its
       opening line, which claims an identity "that is not a coordinate" for a
       population where it is one. Whoever builds this reads that file.
-- [ ] Phase 2 — a finding about a file is keyed by its file (A or E), guarded by the
+- [ ] Phase 2 — the matcher checks the recorded file in both baselines, grouping is per
+      file, and a baseline without a recorded root says the check is off; guarded by the
       structural property test, not a fixture per condition
+- [ ] Phase 2 — `accepted` compares the portable `file::subject`, and its advice prints it
 - [ ] Phase 2 — bug 0389 fixed first: one `portableSubjectOf`, used by every hash and
       by `accepted`
 - [ ] Phase 2 — both "rule + file" comments say what the matcher covers
-- [ ] Phase 3 — the kernel baseline gains a version, the refusal and `--migrate`
+- [ ] Phase 3 — the refusal and `--migrate` are eess-ts's; the kernel baseline gets the
+      file check only, because under E no kernel hash moves
 - [ ] the plan split into one-PR plans once the decision is taken, on one train
 - [ ] Phase 1 — re-measure the "400 files" kind-name figure, or stop resting on it
 - [ ] 0388 closed in the PR that ships Phase 2; 0159's collision 3 recorded as fixed

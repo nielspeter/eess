@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — measured on `main`; no red test yet. The fix is a design decision held
-  in [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2.
+- **State:** Draft — measured; no red test yet. Fix decided (option E, 2026-10-06) and built by
+  [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2.
 - **Severity:** High — **a baseline forgives a finding nobody reviewed.** Fix the file you
   baselined, make the same mistake in another file, and the build stays green. Of the floor's
   rules, `no-empty-bodies` was probed, through a hand-built builder with the preset's rule id
@@ -58,7 +58,7 @@ warning list.
 
 ## Fix
 
-The fix is a decision, and it is held in plan 0346's Phase 2:
+**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by plan 0346's Phase 2. The options as they were put:
 
 - put the root-relative file into the fallback subject (one change, one migration);
 - or make `identity` required on every finding;
