@@ -324,7 +324,9 @@ scope. eess already has the violation-identity mechanism: the baseline. That ref
 
 That depends on violation identity being trustworthy, which is exactly what bugs 0159 and 0338
 say it is not yet — and bug 0388 (a baseline entry forgives the same finding in any file)
-widened on 2026-10-05. All three are built by
-[plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md). So the order is
-likely: settle identity (0159, 0338, 0388), then decide
+widened on 2026-10-05.
+[Plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md) builds 0338's
+identity and 0388. It does not settle everything: 0159's collisions 1 and 2 and 0338's
+`PropertyAssignment` case stay open after it. So the order is likely: settle identity (0346,
+then what 0159 and 0338 still hold), then decide
 `.excluding()`'s role. Not ready to rule on until that is laid out and measured.

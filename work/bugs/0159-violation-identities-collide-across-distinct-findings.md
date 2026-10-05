@@ -3,8 +3,9 @@
 ## Status
 
 - **State:** Draft — **half fixed.** Within one run, the identity repair pass separates every
-  collision below (it shipped with #72; this record was not updated). **Across runs, collision
-  3 still fails open**, measured 2026-10-05 through the real baseline: fix the orphan you
+  collision below (it shipped with #72; this record was not updated). **Across runs, collisions
+  1, 2 and 3 can all fail open** (see "State on 2026-10-05"). Collision 3 was measured 2026-10-05
+  through the real baseline: fix the orphan you
   baselined, add a different one of the same name, and the baseline forgives it. Pinned as a
   known gap; see "State on 2026-10-05".
 - **Severity:** High — false green. Baselining is the documented way to adopt
@@ -208,7 +209,8 @@ close claimed more than was true. What holds and what does not:
 [bug 0388](./0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)'s. Review of plan
 0346 found that `beImported` is one instance of a kernel fault: with no `identity`, the file is
 not in a finding's baseline hash at all. Plan 0346's Phase 2 fixes that class and its
-migration covers it, so collision 3 is ticked here when that ships.
+migration covers it. When that ships, this record says collision 3 is fixed and its KNOWN-GAP
+test has flipped; collisions 1 and 2 keep it open.
 
 ## Verification
 

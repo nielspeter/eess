@@ -4,9 +4,11 @@
 
 - **State:** Draft — measured on `main`; no red test yet. The fix is a design decision held
   in [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s Phase 2.
-- **Severity:** High — **a baseline forgives a finding nobody reviewed**, and it reaches the
-  default floor. Fix the file you baselined, make the same mistake in another file, and the
-  build stays green.
+- **Severity:** High — **a baseline forgives a finding nobody reviewed.** Fix the file you
+  baselined, make the same mistake in another file, and the build stays green. Of the floor's
+  rules, `no-empty-bodies` was probed, through a hand-built builder with the preset's rule id
+  rather than through the preset. It ships at `warn`, so it fails a build only when an adopter
+  raises it to error.
 - **Origin:** enforcement review of plan 0346's refresh, 2026-10-05, which widened a
   six-producer probe into this class.
 - **Reported:** 2026-10-05
@@ -19,7 +21,9 @@ not spell out its path has one baseline entry for every file it can occur in.
 
 Each probe ran a rule twice. Run 1 has the finding in `src/a/…` and writes the baseline.
 Run 2 has `a` fixed and the same finding in `src/b/…`, and then asks whether `b` is reported.
-Measured on `main` on 2026-10-05. **`b` was not reported in any of these:**
+Measured on 2026-10-05 in throwaway worktrees of `main` at `9423420`. The probe sources were not
+kept in the repo; the red tests in Verification replace them. **`b` was not reported in any of
+these twelve:**
 
 | condition                                                                | where the two files share |
 | ------------------------------------------------------------------------ | ------------------------- |
@@ -32,7 +36,7 @@ Measured on `main` on 2026-10-05. **`b` was not reported in any of these:**
 | `recommended`'s `no-empty-bodies` condition (`functionNotHaveEmptyBody`) | function name `noop`      |
 
 The controls carry an identity that names the path: `moduleNotContain` and `haveMaxExports`.
-Both report `b`, and both also report the stale entry for `a`.
+Both report `b`, plus one stale-baseline finding for the entry that matched nothing.
 
 The list above is what was probed; it is not a census. The defect is in the shared
 derivation, so every producer that leaves `identity` unset is exposed whenever its element
@@ -60,8 +64,11 @@ The fix is a decision, and it is held in plan 0346's Phase 2:
 - or make `identity` required on every finding;
 - or patch producers one at a time and leave a known residual.
 
-Whichever is chosen, every baseline entry without an `identity` moves, so it ships through
-the same migration as 0346.
+- or match on the `file` each baseline entry already stores, as well as the hash (option E,
+  raised by review).
+
+Under A every baseline entry without an `identity` moves, so it ships through the same
+migration as 0346. Under E no hash moves.
 
 ## Verification
 
@@ -69,7 +76,8 @@ the same migration as 0346.
       break `b`, and `b` is reported
 - [ ] a guard that does not depend on a list of producers, so the next producer cannot
       reopen it
-- [ ] `packages/ts/src/helpers/baseline.ts:86`'s comment says what the hash actually covers
+- [ ] the comments at `packages/ts/src/helpers/baseline.ts:86` and `packages/core/src/baseline.ts:11`
+      say what the hash actually covers
 - [ ] `npm run validate` green.
 
 Deferred: none.
