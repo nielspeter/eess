@@ -19,7 +19,7 @@ Nothing scrubs the root out of it, unlike the baseline hash, which runs `normali
 Producer identities interpolate the absolute path. For example, `dependency.ts` sets
 `identity: \`${sourceFile.getFilePath()}::${subject}\``
 (`packages/ts/src/conditions/dependency.ts:190`). And the advice an adopter is told to paste from
-prints the same raw subjects (`packages/ts/src/core/terminal-builder.ts:919`). So the list an
+prints the same raw subjects (`packages/ts/src/core/terminal-builder.ts:919`on`91b420a`, before the fix). So the list an
 adopter writes holds their checkout path.
 
 The architecture reviewer measured one such subject on `HEAD`:
@@ -37,15 +37,34 @@ Phase 2 depends on this: its `accepted` comparison uses the portable `file::subj
 definition. Both baseline hashes call it, with unchanged output. The `accepted` comparison and the
 advice text in `packages/ts/src/core/terminal-builder.ts` call it too.
 
-- **Where the root comes from.** The builder has no root of its own, and only 7 of the 15
-  builders that extend `TerminalBuilder` name their project. So the root is the identity root
-  above the project's tsconfig when the builder names one (the `disk-set.ts` precedent), and
-  otherwise the identity root above the finding's own file.
+- **Where the root comes from.** The builder has no root of its own. Of the 15 concrete builders
+  that descend from `TerminalBuilder`, 10 always name their project, 2 name it when given one,
+  and 3 never do (counted by method review; an earlier version of this record said 7, which did
+  not reproduce). So the root is the identity root above the project's tsconfig when the builder
+  names one (the `disk-set.ts` precedent), and otherwise the identity root above the finding's
+  own file. A `file` that is not an absolute path (`''`, or a placeholder such as `<schema>`)
+  gives no root, because its directory would be the process's working directory.
 - **A filesystem root is treated as no root.** Scrubbing `/` would turn every separator in a
   subject into the token.
 - **Both sides are scrubbed.** The accepted strings are scrubbed with the same root, so a list
   pasted before the fix, holding raw paths, still matches in the checkout it was written in. A
   list written elsewhere with a raw path still escalates, as it always did.
+- **The collision guard compares what the matcher compares.** Enforcement review measured that a
+  builder naming no project finds a root per finding, so two findings under different package
+  roots with the same relative path scrubbed to one subject. One accepted entry then forgave
+  both, while the guard, comparing raw subjects, saw nothing. The guard now also checks the
+  scrubbed key; on such a collision every finding escalates, and the advice names this cause and
+  its remedy (one `.git` or workspace marker above both).
+
+**Residuals, stated.**
+
+- Portability rests on root discovery finding the same relative root in both checkouts. A
+  checkout without `.git` or a workspace marker can stop at a different package; that fails
+  closed (nothing matches), and the baseline has the same dependency.
+- The rule that a non-absolute `file` gives no root has no test that can go red: no public builder
+  was found that reaches it with a path-bearing subject.
+- The scrub itself replaces the root inside a path as well as at its start: filed as
+  [bug 0391](../0391-the-identity-scrub-replaces-the-root-inside-a-path.md). It predates this fix.
 
 ## Verification
 
@@ -55,13 +74,25 @@ advice text in `packages/ts/src/core/terminal-builder.ts` call it too.
       `error`. It is green after. Its other rows pin that the fixture's identity really carries
       the path, that a list from before the fix still holds where it was written, and that a
       different finding still escalates.
-- [x] the advice text prints the portable subject — same file. Sabotage matrix, run in a
-      worktree whose kernel resolution was proven: - comparing raw subjects again reds the cross-checkout row; - printing raw subjects again reds the advice row and the cross-checkout row.
+- [x] the advice text prints the portable subject — same file.
+- [x] the root rules and the collision guard, each with a row that can fail — same file:
+      two package roots and one pasted entry escalate both; the advice's remedy (a `.git` above
+      both) clears it; a builder that names its project scrubs against the root above its
+      tsconfig; a filesystem root leaves the subject as it is.
 
-      Not sabotaged: dropping the scrub on the accepted side. The compatibility row exists for
-      that, but no sabotage run proved it can go red.
+Sabotage matrix, run in a worktree whose kernel resolution was proven. Each row reds its own test:
 
-- [x] `npm run validate` green at `62820bb`, 486 s, exit 0. That covers 3,948 eess-ts tests
+| removed                                  | red                                              |
+| ---------------------------------------- | ------------------------------------------------ |
+| the scrub on the subject (compare raw)   | the cross-checkout row                           |
+| the scrub in the advice text             | the advice row and the cross-checkout row        |
+| the scrub on the accepted side           | the row for a list pasted before the fix         |
+| the scrubbed-key collision check         | the two-package-roots row                        |
+| the project's tsconfig taking precedence | the precedence row (and the filesystem-root row) |
+| the filesystem-root rule                 | the filesystem-root row                          |
+
+- [x] `npm run validate` green. The run recorded here, at `62820bb`, predates the review fixes;
+      the run on the final commit is recorded below. At `62820bb`: 486 s, exit 0. That covers 3,948 eess-ts tests
       plus the kernel and sibling suites, and all 102 nonvacuity fixtures fired. The first run, at
       `85d1852`, failed one test:
       `held-builder-is-immutable.test.ts` · `it('every in-place-mutated container field is copied for the clone')`.

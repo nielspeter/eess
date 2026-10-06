@@ -338,7 +338,7 @@ is now its own record (see "The split").
 - **`accepted` lists need the file.** A list of subjects records no file, so it forgives a
   fixed-and-replaced finding in another file (measured under today's code, E and E0). Comparing
   `file::subject` closes it, measured under E+ **with absolute paths** — that is bug 0389's
-  defect, not its fix. The root-scrubbed form needs 0389 first and is not measured. Existing `accepted` strings stop matching and escalate to error, which fails
+  defect, not its fix. Bug 0389 landed the root-scrubbed subject on 2026-10-06; the scrubbed `file::subject` form Phase 2 needs is still unmeasured. Existing `accepted` strings stop matching and escalate to error, which fails
   closed.
 - **Under per-file grouping, an entry with no recorded `file` must not match** a finding that
   has one: letting it through was measured greener than today there. Under E0, letting it

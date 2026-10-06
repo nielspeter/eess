@@ -90,14 +90,29 @@ export type { CollectResult }
  * instrumentation. This is a pure recomputation instead, using the same
  * `rule::subject` grouping key `disambiguateIdentities()` itself groups on.
  */
-function hasIdentityCollision(violations: readonly ArchViolation[]): boolean {
+function hasIdentityCollision(
+  violations: readonly ArchViolation[],
+  portableKey?: (v: ArchViolation) => string,
+): 'raw' | 'portable' | undefined {
   const seen = new Set<string>()
   for (const v of violations) {
     const key = `${v.rule}::${subjectOf(v)}`
-    if (seen.has(key)) return true
+    if (seen.has(key)) return 'raw'
     seen.add(key)
   }
-  return false
+  if (portableKey === undefined) return undefined
+  // Bug 0389. The `accepted` comparison scrubs each subject against its own identity root, and a
+  // builder that names no project finds that root per finding. Two findings under different roots
+  // with the same relative path then compare equal while their raw subjects differ, so one
+  // accepted entry would forgive both. Checking the key the matcher actually compares is what
+  // keeps this guard honest about that case.
+  const portable = new Set<string>()
+  for (const v of violations) {
+    const key = `${v.rule}::${portableKey(v)}`
+    if (portable.has(key)) return 'portable'
+    portable.add(key)
+  }
+  return undefined
 }
 
 /**
@@ -832,7 +847,9 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     // own doc comment for why checking post-repair identities would miss
     // exactly the case this exists to catch. Only computed when it can matter.
     const unsafe =
-      sev === 'warn' && this._acceptedWarnings !== undefined && hasIdentityCollision(raw)
+      sev === 'warn' &&
+      this._acceptedWarnings !== undefined &&
+      hasIdentityCollision(raw, (v) => portableSubjectOf(v, this.identityRootFor(v))) !== undefined
     return collectResult(
       filtered.map((v) => ({
         ...v,
@@ -870,7 +887,9 @@ export abstract class TerminalBuilder extends RuleDeclaration {
   /**
    * The root an `accepted` subject is scrubbed against: the identity root above the project's
    * tsconfig when the builder names its project (the `disk-set.ts` precedent), otherwise above the
-   * finding's own file, so builders that name no project are covered too. A filesystem root is no
+   * finding's own file, so builders that name no project are covered too. A `file` that is not an
+   * absolute path (`''`, or a placeholder such as `<schema>`) gives no root: its directory would be
+   * the process's working directory, not the finding's. A filesystem root is no
    * root: scrubbing `/` would turn every separator in a subject into the token. Not memoized: it
    * runs only for a deferred warning, a few `existsSync` calls per finding, and a builder field
    * holding a cache would be shared by every clone (bug 0016's guard).
@@ -880,7 +899,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     const dir =
       project !== undefined
         ? path.dirname(project.tsConfigPath)
-        : v.file !== ''
+        : path.isAbsolute(v.file)
           ? path.dirname(v.file)
           : undefined
     if (dir === undefined) return undefined
@@ -939,7 +958,21 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     if (breaching.length === 0) return ''
     const described = this.describeRule()
     const name = described.id || described.rule || this.constructor.name
-    if (hasIdentityCollision(this.collectWithAssertionGuard())) {
+    const collision = hasIdentityCollision(this.collectWithAssertionGuard(), (v) =>
+      portableSubjectOf(v, this.identityRootFor(v)),
+    )
+    if (collision === 'portable') {
+      return (
+        `"${name}" is a deferred warning, but two or more of its findings read the same once each ` +
+        `one's checkout path is removed: they sit under different identity roots (this builder ` +
+        `names no project, so each finding's root is found above its own file) with the same path ` +
+        `inside them. One \`accepted\` entry would forgive all of them, so every finding here is ` +
+        `escalated to error. Give the checkout one root that covers them all — a \`.git\`, or a ` +
+        `\`package.json\` declaring \`workspaces\`, above both — or make each finding's identity ` +
+        `distinct on its own.`
+      )
+    }
+    if (collision === 'raw') {
       return (
         `"${name}" is a deferred warning, but its findings are not reliably identifiable: two or ` +
         `more share one subject (rule + element + message, with no producer-set \`identity\`), so ` +
