@@ -1,12 +1,14 @@
 /**
- * Bug 0389. A deferred warning's `accepted` list keeps a finding at `warn` only when its subject
- * is in the list. Producer identities interpolate the absolute path, and the comparison used the
- * raw subject, so a list written on one checkout matched nothing on another: every accepted finding
- * escalated to `error` on CI, and the advice an adopter pastes from printed the author's path.
+ * Bug 0389, built as spike 0392's C5. A deferred warning's `accepted` list keeps a finding at
+ * `warn` only when its subject is in the list. Producer identities carry the absolute path, so a
+ * list written on one checkout matched nothing on another, and the advice an adopter pastes from
+ * printed the author's path.
  *
- * The fix compares, and prints, the subject with the identity root scrubbed — the form the
- * baseline hash already uses. These rows drive the public path an adopter takes: run the rule,
- * copy the subjects the advice prints, put them in `accepted`, run again somewhere else.
+ * The advice now prints a portable form: every path token under the repository's root becomes
+ * `<root:NAME>/relative/path`, where NAME is the root `package.json` name. A finding matches an
+ * entry by its raw subject or by that form. The rows below are the spike's cases, driven through the
+ * public path an adopter takes: run the rule, paste from the advice, run again. Root discovery reads
+ * the real disk, so every row builds a real layout; the in-memory project's paths name it.
  */
 import { afterAll, describe, expect, it } from 'vitest'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -14,17 +16,43 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { Project } from 'ts-morph'
 import { modules, TerminalBuilder, collectResult } from '../../src/index.js'
-import { subjectOf } from '@nielspeter/eess/internal'
+import { portableTokens, subjectOf } from '@nielspeter/eess/internal'
 import type { ArchViolation, CollectResult } from '@nielspeter/eess'
 import type { ArchProject } from '../../src/core/project.js'
 
-/** The same code, checked out under `root` — what a laptop and a CI runner differ by. */
-function checkout(root: string): ArchProject {
+const scratchDirs: string[] = []
+afterAll(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true })
+})
+
+type Marker = 'gitdir' | 'gitfile' | 'workspaces' | 'pkg'
+/** A real directory tree: each entry is a directory, a marker, and an optional package name. */
+function layout(spec: Record<string, [Marker | 'dir', string?]>): string {
+  const base = mkdtempSync(path.join(tmpdir(), 'eess-0389-'))
+  scratchDirs.push(base)
+  for (const [rel, [marker, name]] of Object.entries(spec)) {
+    const dir = path.join(base, rel)
+    mkdirSync(dir, { recursive: true })
+    if (marker === 'gitdir') mkdirSync(path.join(dir, '.git'))
+    if (marker === 'gitfile') writeFileSync(path.join(dir, '.git'), 'gitdir: elsewhere\n')
+    const manifest: Record<string, unknown> = {}
+    if (marker === 'workspaces') manifest.workspaces = ['*']
+    if (name !== undefined) manifest.name = name
+    if (marker === 'pkg' || Object.keys(manifest).length > 0) {
+      writeFileSync(path.join(dir, 'package.json'), JSON.stringify(manifest))
+    }
+  }
+  return base
+}
+
+/** A project whose tsconfig sits in `dir`, with one aliased import in `dir/<file>`. */
+function projectIn(dir: string, file = 'src/a.ts', alias = 'y'): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })
-  tsm.createSourceFile(`${root}/src/a.ts`, "import { x as y } from './b'\nexport const a = y\n")
-  tsm.createSourceFile(`${root}/src/b.ts`, 'export const x = 1\n')
+  const abs = path.join(dir, file)
+  tsm.createSourceFile(abs, `import { x as ${alias} } from './b'\nexport const a = ${alias}\n`)
+  tsm.createSourceFile(path.join(path.dirname(abs), 'b.ts'), 'export const x = 1\n')
   return {
-    tsConfigPath: `${root}/tsconfig.json`,
+    tsConfigPath: path.join(dir, 'tsconfig.json'),
     _project: tsm,
     getSourceFiles: () => tsm.getSourceFiles(),
   }
@@ -39,88 +67,121 @@ const rule = (p: ArchProject) =>
     .rule({ id: 'test/0389' })
 
 /** The subjects the advice tells the author to paste, read back out of its own text. */
-function pastedFromAdvice(p: ArchProject): string[] {
-  const advice = rule(p).asSeverity('warn', { accepted: [] }).deferredWarningAdvice()
+function pastedFrom(builder: TerminalBuilder): string[] {
+  const advice = builder.asSeverity('warn', { accepted: [] }).deferredWarningAdvice()
   const listed = /fail at check\(\) time: (.*)\. Either fix it/.exec(advice)?.[1]
   return listed === undefined ? [] : listed.split(', ')
 }
 
-const ALICE = '/home/alice/repo'
-const CI = '/runner/work/repo'
+const severities = (builder: TerminalBuilder, accepted: string[]) =>
+  builder
+    .asSeverity('warn', { accepted })
+    .violations()
+    .map((v) => v.severity)
 
-describe('bug 0389: an accepted list written on one checkout holds on another', () => {
+describe('bug 0389: a list pasted on one checkout holds on another', () => {
+  const alice = path.join(layout({ repo: ['gitdir', 'acme'] }), 'repo')
+  const ci = path.join(layout({ repo: ['gitdir', 'acme'] }), 'repo')
+
   it('the fixture produces a finding whose identity carries the checkout path', () => {
-    const [finding] = rule(checkout(ALICE)).violations()
+    const [finding] = rule(projectIn(alice)).violations()
     expect(finding).toBeDefined()
-    expect(subjectOf(finding!)).toContain(ALICE)
+    expect(subjectOf(finding!)).toContain(alice)
   })
 
-  it('the advice prints a subject without the author checkout path', () => {
-    const pasted = pastedFromAdvice(checkout(ALICE))
+  it('the advice prints the portable form, not the author checkout path', () => {
+    const pasted = pastedFrom(rule(projectIn(alice)))
     expect(pasted).toHaveLength(1)
-    expect(pasted[0]).not.toContain(ALICE)
+    expect(pasted[0]).toContain('<root:acme>/src/a.ts')
+    expect(pasted[0]).not.toContain(alice)
   })
 
   it('a list pasted from the advice on one checkout keeps the finding at warn on another', () => {
-    const accepted = pastedFromAdvice(checkout(ALICE))
-    const severities = rule(checkout(CI))
-      .asSeverity('warn', { accepted })
-      .violations()
-      .map((v) => v.severity)
-    expect(severities).toEqual(['warn'])
+    const accepted = pastedFrom(rule(projectIn(alice)))
+    expect(severities(rule(projectIn(ci)), accepted)).toEqual(['warn'])
   })
 
   it('a list pasted before the fix, with the raw path, still holds in the checkout it was written in', () => {
-    const accepted = rule(checkout(ALICE))
+    const accepted = rule(projectIn(alice))
       .violations()
       .map((v) => subjectOf(v))
-    expect(accepted[0]).toContain(ALICE)
-    const severities = rule(checkout(ALICE))
-      .asSeverity('warn', { accepted })
-      .violations()
-      .map((v) => v.severity)
-    expect(severities).toEqual(['warn'])
+    expect(accepted[0]).toContain(alice)
+    expect(severities(rule(projectIn(alice)), accepted)).toEqual(['warn'])
   })
 
   it('a different finding is still escalated, so the list did not become a blanket pass', () => {
-    const accepted = pastedFromAdvice(checkout(ALICE))
-    const tsm = new Project({ useInMemoryFileSystem: true })
-    tsm.createSourceFile(`${CI}/src/a.ts`, "import { x as z } from './b'\nexport const a = z\n")
-    tsm.createSourceFile(`${CI}/src/b.ts`, 'export const x = 1\n')
-    const moved: ArchProject = {
-      tsConfigPath: `${CI}/tsconfig.json`,
-      _project: tsm,
-      getSourceFiles: () => tsm.getSourceFiles(),
-    }
-    const severities = rule(moved)
-      .asSeverity('warn', { accepted })
-      .violations()
-      .map((v) => v.severity)
-    expect(severities).toEqual(['error'])
+    const accepted = pastedFrom(rule(projectIn(alice)))
+    expect(severities(rule(projectIn(ci, 'src/a.ts', 'z')), accepted)).toEqual(['error'])
+  })
+
+  it('a worktree, whose .git is a file, is the same repository', () => {
+    const worktree = path.join(layout({ wt: ['gitfile', 'acme'] }), 'wt')
+    const accepted = pastedFrom(rule(projectIn(alice)))
+    expect(severities(rule(projectIn(worktree)), accepted)).toEqual(['warn'])
+  })
+
+  it('a checkout without .git is the same repository when a workspace manifest names it', () => {
+    const laptop = path.join(layout({ repo: ['workspaces', 'acme'] }), 'repo')
+    const docker = path.join(layout({ app: ['workspaces', 'acme'] }), 'app')
+    const accepted = pastedFrom(rule(projectIn(laptop)))
+    expect(severities(rule(projectIn(docker)), accepted)).toEqual(['warn'])
   })
 })
 
-/**
- * Roots are found on the real disk, so these rows build real directories. The in-memory project's
- * paths name them; ts-morph never reads them.
- */
-const scratchDirs: string[] = []
-function scratch(): string {
-  const dir = mkdtempSync(path.join(tmpdir(), 'eess-0389-'))
-  scratchDirs.push(dir)
-  return dir
-}
-afterAll(() => {
-  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true })
-})
-function aliasedProject(tsConfigPath: string, files: string[]): ArchProject {
-  const tsm = new Project({ useInMemoryFileSystem: true })
-  for (const f of files) {
-    tsm.createSourceFile(f, "import { x as y } from './b'\nexport const a = y\n")
-    tsm.createSourceFile(path.join(path.dirname(f), 'b.ts'), 'export const x = 1\n')
+describe('bug 0389: a portable entry never accepts a different finding (spike 0392)', () => {
+  /** List pasted from pkgA's builder; pkgA fixed; the same finding appears in pkgB's builder. */
+  function fixedThenNew(spec: Record<string, [Marker | 'dir', string?]>): (string | undefined)[] {
+    const base = layout(spec)
+    const accepted = pastedFrom(rule(projectIn(path.join(base, 'pkgA'))))
+    return severities(rule(projectIn(path.join(base, 'pkgB'))), accepted)
   }
-  return { tsConfigPath, _project: tsm, getSourceFiles: () => tsm.getSourceFiles() }
-}
+
+  it('two packages with their own package.json and no repository marker', () => {
+    expect(fixedThenNew({ pkgA: ['pkg', 'a'], pkgB: ['pkg', 'b'] })).toEqual(['error'])
+  })
+
+  it('two packages inside one repository that share a package name, such as copied templates', () => {
+    // The root is the repository, never a package's own package.json: under that fallback both
+    // would be `<root:template>/src/a.ts`, and one entry would cover both.
+    expect(
+      fixedThenNew({
+        '.': ['gitdir', 'mono'],
+        pkgA: ['pkg', 'template'],
+        pkgB: ['pkg', 'template'],
+      }),
+    ).toEqual(['error'])
+  })
+
+  it('submodules: each package has a .git file inside one repository', () => {
+    expect(
+      fixedThenNew({ '.': ['gitdir', 'mono'], pkgA: ['gitfile', 'a'], pkgB: ['gitfile', 'b'] }),
+    ).toEqual(['error'])
+  })
+
+  it('two separate repositories under one rule file', () => {
+    expect(fixedThenNew({ pkgA: ['gitdir', 'a'], pkgB: ['gitdir', 'b'] })).toEqual(['error'])
+  })
+
+  it('a repository with no package name keeps the raw subject, so nothing is shared', () => {
+    expect(fixedThenNew({ pkgA: ['gitdir'], pkgB: ['gitdir'] })).toEqual(['error'])
+    const unnamed = path.join(layout({ repo: ['gitdir'] }), 'repo')
+    expect(pastedFrom(rule(projectIn(unnamed)))[0]).toContain(unnamed)
+  })
+
+  it('KNOWN RESIDUAL — two separate repositories that share one package name do share an entry', () => {
+    // Spike 0392's floor: nothing machine-independent tells two repositories apart that carry the
+    // same name. Accepted by the maintainer 2026-10-06. If this row turns red, the residual is gone.
+    expect(fixedThenNew({ pkgA: ['gitdir', 'same'], pkgB: ['gitdir', 'same'] })).toEqual(['warn'])
+  })
+
+  it('whole path tokens, not substrings: a root that spells a path segment keeps two files apart', () => {
+    // Bug 0391's shape. Under a root `/app`, the old substring scrub turned both into one subject.
+    const repo = { root: '/app', name: 'acme' }
+    expect(portableTokens('/app/src/app/user.ts::m', repo)).toBe('<root:acme>/src/app/user.ts::m')
+    expect(portableTokens('/app/src/appuser.ts::m', repo)).toBe('<root:acme>/src/appuser.ts::m')
+    expect(portableTokens('/app2/src/x.ts::m', repo)).toBe('/app2/src/x.ts::m')
+  })
+})
 
 /**
  * The shape an adopter's own dialect takes: a builder that names no project. Its findings are real
@@ -135,73 +196,12 @@ class NoProjectBuilder extends TerminalBuilder {
   }
 }
 
-function pastedFrom(builder: TerminalBuilder): string[] {
-  const advice = builder.asSeverity('warn', { accepted: [] }).deferredWarningAdvice()
-  const listed = /fail at check\(\) time: (.*)\. Either fix it/.exec(advice)?.[1]
-  return listed === undefined ? [] : listed.split(', ')
-}
-
-describe('bug 0389: which root a subject is scrubbed against', () => {
-  it('a builder that names no project leaves its subjects as they are', () => {
-    const dir = scratch()
-    const a = path.join(dir, 'pkgA/src/a.ts')
-    const found = rule(aliasedProject(path.join(dir, 'tsconfig.json'), [a])).violations()
+describe('bug 0389: a builder that names no project', () => {
+  it('leaves its subjects as they are', () => {
+    const repo = path.join(layout({ repo: ['gitdir', 'acme'] }), 'repo')
+    const found = rule(projectIn(repo)).violations()
     const pasted = pastedFrom(new NoProjectBuilder(found))
     expect(pasted).toHaveLength(1)
-    expect(pasted[0]).toContain(a)
-  })
-
-  it('an entry pasted for a fixed finding does not accept a new one under another package root', () => {
-    // Enforcement review measured this `warn` when the root was found per finding: two package
-    // roots scrub `pkgA/src/a.ts` and `pkgB/src/a.ts` to one subject, and the guard cannot see a
-    // collision with a finding that is no longer in the run. `main` said `error`.
-    const dir = scratch()
-    for (const pkg of ['pkgA', 'pkgB']) {
-      mkdirSync(path.join(dir, pkg), { recursive: true })
-      writeFileSync(path.join(dir, pkg, 'package.json'), '{}')
-    }
-    const a = path.join(dir, 'pkgA/src/a.ts')
-    const b = path.join(dir, 'pkgB/src/a.ts')
-    const found = rule(aliasedProject(path.join(dir, 'tsconfig.json'), [a, b])).violations()
-    const accepted = pastedFrom(new NoProjectBuilder(found.filter((v) => v.file === a)))
-
-    const later = new NoProjectBuilder(found.filter((v) => v.file === b))
-      .asSeverity('warn', { accepted })
-      .violations()
-      .map((v) => v.severity)
-    expect(later).toEqual(['error'])
-  })
-
-  it('a builder that names its project scrubs against the root above its tsconfig, not above the file', () => {
-    const dir = scratch()
-    writeFileSync(path.join(dir, 'package.json'), '{}')
-    mkdirSync(path.join(dir, 'libs/x'), { recursive: true })
-    writeFileSync(path.join(dir, 'libs/x/package.json'), '{}')
-    const file = path.join(dir, 'libs/x/src/a.ts')
-    const pasted = pastedFrom(rule(aliasedProject(path.join(dir, 'tsconfig.json'), [file])))
-    expect(pasted).toHaveLength(1)
-    expect(pasted[0]).toContain('libs/x/src/a.ts')
-    expect(pasted[0]).not.toContain(dir)
-  })
-
-  it('two findings that scrub to one subject escalate together (the guard sees what the matcher sees)', () => {
-    // Bug 0391: the scrub replaces the root inside a path too, so under `/app` the files
-    // `src/app/user.ts` and `src/appuser.ts` scrub to one subject. One pasted entry would forgive
-    // both; the collision guard compares the scrubbed key, so neither stays at warn.
-    const user = '/app/src/app/user.ts'
-    const other = '/app/src/appuser.ts'
-    const p = aliasedProject('/app/tsconfig.json', [user, other])
-    const accepted = pastedFrom(rule(aliasedProject('/app/tsconfig.json', [user])))
-    expect(accepted).toHaveLength(1)
-    const both = rule(p).asSeverity('warn', { accepted })
-    expect(both.violations().map((v) => v.severity)).toEqual(['error', 'error'])
-    expect(both.deferredWarningAdvice()).toContain('bug 0391')
-  })
-
-  it('a filesystem root is no root: the subject is left as it is', () => {
-    const pasted = pastedFrom(rule(aliasedProject('/tsconfig.json', ['/src/a.ts'])))
-    expect(pasted).toHaveLength(1)
-    expect(pasted[0]).toContain('/src/a.ts')
-    expect(pasted[0]).not.toContain('<root>')
+    expect(pasted[0]).toContain(repo)
   })
 })

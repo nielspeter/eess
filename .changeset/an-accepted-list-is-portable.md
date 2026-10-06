@@ -3,12 +3,10 @@
 '@nielspeter/eess-ts': patch
 ---
 
-A deferred warning's `accepted` list now holds across checkouts (bug 0389). `asSeverity('warn', { accepted })` compared each finding's raw subject. Producer identities carry the absolute path, so a list written on one machine matched nothing on another and every accepted finding escalated to error on CI. The advice text also printed the author's path for adopters to paste.
+A deferred warning's `accepted` list now holds across checkouts of the same repository, for a builder that names its project (bug 0389). `asSeverity('warn', { accepted })` compared each finding's raw subject. Producer identities carry the absolute path, so a list written on one machine matched nothing on another, and the advice text printed the author's path for adopters to paste.
 
-The subject is now compared, and printed, with the identity root scrubbed out. That is the form the baseline hash already used. The root is the identity root above the project's tsconfig. A builder that names no project gets no root and keeps its raw subjects, as before: a root found per finding was measured to let an entry for one package forgive the same finding in another.
+The advice now prints a portable form: each path in the subject becomes `<root:NAME>/relative/path`, where the root is the nearest `.git` or workspace marker above the project's tsconfig and NAME is that root's `package.json` `name`. A finding matches an entry by its raw subject or by that form, so a list written before this change still matches in the checkout it was written in.
 
-The collision guard now also compares the scrubbed subject. If two findings scrub to one subject in a run (the checkout path can appear inside a file path), every finding of that deferred warning escalates to error, and the advice names the cause.
+No portable form, and so the old behaviour, for a builder that names no project, a repository without a root `package.json` name, or a path written inside prose. One known residual is stated and tested: two different repositories that share one `package.json` name, checked by one rule file with one list, share an entry for the same relative path.
 
-A list pasted before this change, holding raw paths, still matches in the checkout it was written in. A list written elsewhere with a raw path still escalates to error, as before.
-
-Kernel: `portableSubjectOf(violation, root?)` in `@nielspeter/eess/internal` is now the single definition that both baseline hashes and the `accepted` comparison use. Hash values are unchanged.
+Kernel: `discoverNamedRepository` and `portableTokens` in `@nielspeter/eess/internal`. `portableSubjectOf` is now the one definition both baseline hashes use. Hash values are unchanged.

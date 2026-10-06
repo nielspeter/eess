@@ -397,10 +397,10 @@ per-file grouping removes. They are Tier-2 suite rows; the replacement case belo
 **Preconditions (recorded while A and E were both open; still true):**
 
 - [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md),
-  fixed 2026-10-06. One kernel `portableSubjectOf(v, root)` is used by both hashes, `hashSubject`,
-  the `accepted` comparison and its advice text. For builders that name no project, `accepted`
-  still compares raw subjects (a root per finding was measured greener than `main`), so Phase 2's
-  `file::subject` change inherits that limit.
+  fixed 2026-10-06 as spike 0392's C5: `accepted` matches a raw subject or a portable form that
+  names the repository (`<root:NAME>/path`, whole path tokens). Phase 2's `file::subject` change
+  should use that form, not the substring scrub `portableSubjectOf` keeps for the hashes (bug
+  0391). For builders that name no project, `accepted` still compares raw subjects.
 - The grouping key equals the hash key only if every copy uses one definition. Kernel
   `hashViolation` inlines its own fallback (`packages/core/src/baseline.ts:129-132`), and
   `packages/ts/src/core/terminal-builder.ts:99` re-spells `groupKeyOf`. Both move to the shared function.

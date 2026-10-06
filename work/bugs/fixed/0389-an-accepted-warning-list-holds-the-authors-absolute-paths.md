@@ -28,85 +28,79 @@ The architecture reviewer measured one such subject on `HEAD`:
 
 ## Fix
 
-Compare, and print, the subject with the identity root scrubbed, in the same form the
-baseline hash uses: one kernel function (`portableSubjectOf(v, root)`) called by both. Plan 0346's
-Phase 2 depends on this: its `accepted` comparison uses the portable `file::subject`.
+**Built as spike 0392's C5, decided by the maintainer on 2026-10-06** after three review rounds each
+found a version of this fix that accepted a finding `main` reports. The spike measured six matchers
+over fifteen cases; [spike 0392](../../spikes/0392-what-makes-an-accepted-entry-portable.md) holds
+the table and the harness.
 
-**As built.** `portableSubjectOf(violation, root?)` in the kernel
-(`packages/core/src/violation.ts`, exported from `@nielspeter/eess/internal`) is the one
-definition. Both baseline hashes call it, with unchanged output. The `accepted` comparison and the
-advice text in `packages/ts/src/core/terminal-builder.ts` call it too.
-
-- **Where the root comes from.** The identity root above the project's tsconfig (the
-  `disk-set.ts` precedent). **A builder that names no project gets no root**, and keeps the raw
-  subject exactly as before this fix. Of the 15 concrete builders that descend from
-  `TerminalBuilder`, 10 always name their project, 2 name it when given one, and 3 never do
-  (counted by method review; an earlier version of this record said 7, which did not reproduce).
-  - _Why not a root per finding, which an earlier cut of this fix used._ Enforcement review
-    measured it greener than `main`: with two package roots, `pkgA/src/a.ts` and `pkgB/src/a.ts`
-    scrub to one subject, so an entry pasted for A accepted a B that appeared after A was fixed —
-    `warn` where `main` said `error`, in a no-marker tree, a two-`package.json` tree and a
-    submodule tree alike. No check over one run can see a collision with a finding that is no
-    longer in the run, so the root must be one per run, and only the project gives one.
-- **A filesystem root is treated as no root.** Scrubbing `/` would turn every separator in a
-  subject into the token.
-- **Both sides are scrubbed.** The accepted strings are scrubbed with the same root, so a list
-  pasted before the fix, holding raw paths, still matches in the checkout it was written in. A
-  list written elsewhere with a raw path still escalates, as it always did.
-- **The collision guard compares what the matcher compares.** With one root per run, two raw
-  subjects can still scrub to one when the checkout path also appears inside a file path (bug
-  0391: under `/app`, `src/app/user.ts` and `src/appuser.ts`). The guard checks the scrubbed key
-  as well as the raw one, so within one run every finding escalates and the advice names the
-  cause.
+- **The portable form.** Every `::`-delimited path token under the repository's root becomes
+  `<root:NAME>/relative/path`, where NAME is the root `package.json` `name`
+  (`portableTokens` and `discoverNamedRepository` in `packages/core/src/identity-root.ts`,
+  exported from `@nielspeter/eess/internal`).
+  - **The root** is the nearest ancestor holding `.git` (a directory, or the file a worktree or
+    submodule has) or a workspace marker. A bare `package.json` is never a root: a package's own
+    directory as root let two packages, or two copies of a template, share one entry.
+  - **The name** is what makes it an identity: a root-relative path alone makes the same layout in
+    two repositories look alike. No name, no portable form.
+  - **Whole tokens, not substrings,** so a root that spells a path segment (`/app` and
+    `src/app/user.ts`) keeps two files apart — bug 0391's shape, which the baseline hash still has.
+- **The match.** An entry matches a finding by its raw subject (what a list written before the fix
+  holds) or by its portable form. The entry itself is never rewritten.
+- **The advice** prints the portable form.
+- **Where the repository comes from.** The project's tsconfig, so there is one per builder. A
+  builder that names no project gets none and keeps raw subjects, as before: a repository found per
+  finding was measured to let an entry for one package accept the same finding in another.
+- **The collision guard** compares raw subjects, as on `main`. Whole-token replacement under one
+  repository cannot make two different subjects equal.
+- **The baseline hashes are unchanged.** `portableSubjectOf` (`packages/core/src/violation.ts`) is
+  the one definition both hashes use; it keeps the substring scrub, which is bug 0391's to fix.
 
 **Residuals, stated.**
 
-- **Builders that name no project are not fixed.** For the 3 that never name one, and the 2 when
-  not given one, an `accepted` list still holds raw paths and is not portable, as before this fix.
-- **Portability rests on root discovery** finding the same relative root in both checkouts. A
-  checkout without `.git` or a workspace marker can stop at a different package; that fails closed
-  (nothing matches), and the baseline has the same dependency.
-- **Across runs, bug 0391 still lets one entry forgive a different file** whose path scrubs to the
-  same subject; the guard sees only one run. That is 0391's to fix, and it predates this one.
+- **Two different repositories that share one `package.json` name** share an entry for the same
+  relative path, under one rule file with one list. Nothing machine-independent tells them apart.
+  Accepted by the maintainer; pinned by a `KNOWN RESIDUAL` test that turns red if it is ever closed.
+- **Not portable, and fails closed:** builders that name no project (3 never do, 2 only when given
+  one, of 15), repositories without a root `package.json` name, and paths written inside prose
+  rather than as a `::` token.
+- **Earlier versions of this fix, recorded so they are not rebuilt:** a substring scrub of both
+  sides with a root per finding, then with a root per builder. Each was measured greener than
+  `main` (spike 0392, column H: 10 rows).
 
 ## Verification
 
 - [x] a red test: an `accepted` list written under one root keeps the finding at `warn` under
-      another — `packages/ts/tests/core/an-accepted-list-is-portable.test.ts`. It went red
-      before the fix: the advice printed `/home/alice/repo/…`, and the pasted list escalated to
-      `error`. It is green after. Its other rows pin that the fixture's identity really carries
-      the path, that a list from before the fix still holds where it was written, and that a
-      different finding still escalates.
+      another — `packages/ts/tests/core/an-accepted-list-is-portable.test.ts`. It went red before
+      the fix: the advice printed the checkout path, and the pasted list escalated to `error`.
 - [x] the advice text prints the portable subject — same file.
-- [x] the root rules and the collision guard, each with a row that can fail — same file: a
-      builder that names no project leaves its subjects as they are; an entry pasted for a fixed
-      finding does not accept a new one under another package root; two findings that scrub to one
-      subject escalate together; a builder that names its project scrubs against the root above
-      its tsconfig; a filesystem root leaves the subject as it is.
+- [x] each of spike 0392's cases through the public path — same file: another checkout, a list
+      written before the fix, a worktree, a checkout without `.git`, a different finding,
+      two packages without a repository marker, two same-named packages inside one repository,
+      submodules, separate repositories, an unnamed repository, a builder that names no project,
+      whole tokens under `/app`, and the known residual.
 
-Sabotage matrix, run against the code that ships, in a worktree whose kernel resolution was
-proven. Each row reds its own test:
+Sabotage matrix, run against the shipping code in a worktree whose kernel resolution was proven.
+Each row reds its own test:
 
-| removed                                       | red                                                                 |
-| --------------------------------------------- | ------------------------------------------------------------------- |
-| the scrub on the subject (compare raw)        | the cross-checkout row and the row for a list pasted before the fix |
-| the scrub in the advice text                  | the advice row, the cross-checkout row and the precedence row       |
-| the scrub on the accepted side                | the row for a list pasted before the fix                            |
-| no-project-no-root (a root per finding again) | the no-project row and the fixed-then-new row                       |
-| the filesystem-root rule                      | the filesystem-root row                                             |
-| the scrubbed-key collision check              | the scrub-to-one-subject row                                        |
+| removed                                       | red                                                       |
+| --------------------------------------------- | --------------------------------------------------------- |
+| the portable match (raw only)                 | another checkout, worktree, no `.git`, and the residual   |
+| the repository-marker requirement             | two same-named packages inside one repository             |
+| the name in the token                         | the advice row, submodules, separate repositories, `/app` |
+| `.git` as a file counting as a marker         | worktree                                                  |
+| whole tokens (a substring scrub instead)      | `/app`                                                    |
+| no repository for a builder without a project | the no-project row                                        |
+| no name, no portable form                     | the unnamed-repository row                                |
 
-- [x] `npm run validate` green on the final code, `f384f25`. All runs, in order:
+- [x] `npm run validate` green on the final code (recorded below). Earlier runs, in order:
   - `85d1852` failed one test,
     `held-builder-is-immutable.test.ts` · `it('every in-place-mutated container field is copied for the clone')`:
-    a per-directory memo of the identity root was a builder field every clone would share. It was
-    dropped rather than copied.
+    a per-directory memo of the root was a builder field every clone would share. Dropped.
   - `62820bb`: 486 s, exit 0, 3,948 eess-ts tests, 102 nonvacuity fixtures fired.
-  - `593d8e6` stopped on this repo's own `check:arch`: the review fixes had pushed
-    `deferredWarningAdvice` past 30 lines and complexity 10, and `TerminalBuilder` past 150 lines.
-    The root lookup, the match and the message text moved to module functions (`edcf329`), with
-    the advice text unchanged.
+  - `593d8e6` stopped on this repo's own `check:arch` (method length, complexity, class size);
+    the helpers moved to module functions in `edcf329`.
   - `edcf329`: 516 s, exit 0, 3,952 eess-ts tests, 102 nonvacuity fixtures fired.
-  - `f384f25`, the final code: 469 s, exit 0, 3,953 eess-ts tests, 102 nonvacuity fixtures fired.
+  - `f384f25`: 469 s, exit 0, 3,953 eess-ts tests, 102 nonvacuity fixtures fired. That code was
+    then replaced by C5, after enforcement review measured it greener than `main`.
 
 Deferred: none.

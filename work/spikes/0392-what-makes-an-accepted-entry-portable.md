@@ -76,7 +76,13 @@ Each row's layout is built fresh; the harness ran in under a second.
   can tell them apart; a git remote would, but not in a checkout without `.git`. C5 is greener than
   `main` there and nowhere else measured.
 
-## Where this leaves the decision
+## Decision
+
+**Decided by the maintainer, 2026-10-06: C5, with the shared-package-name case accepted as a named
+residual.** Built in PR #181 for bug 0389, where the residual is pinned by a test that turns red if
+it is ever closed.
+
+## Where this left the decision
 
 C5 is the only measured form that ports and is greener than `main` on a single, named case. Whether
 that case is an acceptable residual is the maintainer's call, because accepting a risk is. If it is

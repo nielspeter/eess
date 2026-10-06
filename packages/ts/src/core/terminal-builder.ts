@@ -5,8 +5,9 @@ import type { RuleFacts } from './vacuity-diagnosis.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import { collectResult } from '@nielspeter/eess'
 import path from 'node:path'
-import { severityFor, subjectOf, portableSubjectOf } from '@nielspeter/eess/internal'
-import { discoverIdentityRoot, normalizeIdentityText } from '@nielspeter/eess/internal'
+import { severityFor, subjectOf } from '@nielspeter/eess/internal'
+import { discoverNamedRepository, portableTokens } from '@nielspeter/eess/internal'
+import type { NamedRepository } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import type { ArchProject } from './project.js'
 import type { CheckOptions } from '@nielspeter/eess'
@@ -90,86 +91,56 @@ export type { CollectResult }
  * instrumentation. This is a pure recomputation instead, using the same
  * `rule::subject` grouping key `disambiguateIdentities()` itself groups on.
  */
-function hasIdentityCollision(
-  violations: readonly ArchViolation[],
-  portableKey?: (v: ArchViolation) => string,
-): 'raw' | 'portable' | undefined {
+function hasIdentityCollision(violations: readonly ArchViolation[]): boolean {
   const seen = new Set<string>()
   for (const v of violations) {
     const key = `${v.rule}::${subjectOf(v)}`
-    if (seen.has(key)) return 'raw'
+    if (seen.has(key)) return true
     seen.add(key)
   }
-  if (portableKey === undefined) return undefined
-  // Bug 0389. The `accepted` comparison compares scrubbed subjects, so the guard must check the
-  // key the matcher actually compares. Two subjects that differ raw can scrub to one when the
-  // checkout path also appears inside a file path (bug 0391); one accepted entry would then forgive
-  // both. Within one run this catches it; across runs it cannot, which is 0391's to fix.
-  const portable = new Set<string>()
-  for (const v of violations) {
-    const key = `${v.rule}::${portableKey(v)}`
-    if (portable.has(key)) return 'portable'
-    portable.add(key)
-  }
-  return undefined
+  return false
 }
 
 /**
- * The root an `accepted` subject is scrubbed against (bug 0389): the identity root above the
- * project's tsconfig (the `disk-set.ts` precedent), or no root when the builder names no project.
- *
- * **No project, no scrub — on purpose.** An earlier cut fell back to the root above each finding's
- * own file. Enforcement review measured that this forgives a finding it should not: two package
- * roots give `pkgA/src/x.ts` and `pkgB/src/x.ts` one scrubbed subject, so an entry pasted for A
- * accepts a B that appears after A is fixed — `warn` where `main` said `error`. No check over one
- * run can see a collision with a finding that is no longer in it, so the root has to be one per
- * run, and only the project gives one. A builder that names no project keeps the raw subject,
- * exactly as before this fix.
- *
- * A filesystem root is no root: scrubbing `/` would turn every separator in a subject into the
- * token. Not memoized: it runs only for a deferred warning, and a builder field holding a cache
- * would be shared by every clone (bug 0016's guard).
+ * The repository a deferred warning's subjects are made portable against (bug 0389, spike 0392):
+ * the named repository above the project's tsconfig, or none when the builder names no project.
+ * One per builder: a root found per finding was measured to let an entry for one package accept the
+ * same finding in another. No repository, no portable form; the raw subject stays, exactly as
+ * before the fix.
  */
-function identityRootFor(project: ArchProject | undefined): string | undefined {
-  if (project === undefined) return undefined
-  const root = discoverIdentityRoot(path.dirname(project.tsConfigPath))
-  return path.parse(root).root === root ? undefined : root
+function repositoryOf(project: ArchProject | undefined): NamedRepository | undefined {
+  return project === undefined
+    ? undefined
+    : discoverNamedRepository(path.dirname(project.tsConfigPath))
+}
+
+/** The form the advice prints and a portable entry is compared against. */
+function portableSubject(v: ArchViolation, repo: NamedRepository | undefined): string {
+  const raw = subjectOf(v)
+  return repo === undefined ? raw : portableTokens(raw, repo)
 }
 
 /**
- * Whether a deferred warning's `accepted` list holds this finding. Both sides are scrubbed with the
- * same root (bug 0389): the subject, because producer identities carry the absolute path; the
- * accepted strings, so a list pasted before the fix still matches in the checkout it was written
- * in. A list written elsewhere with a raw path still fails closed, as it always did.
+ * Whether a deferred warning's `accepted` list holds this finding: its raw subject, which is what a
+ * list written before the fix holds, or its portable form (bug 0389). The entry itself is never
+ * rewritten: scrubbing the accepted side let a raw list written for one file match another.
  */
 function isAccepted(
   accepted: readonly string[],
   v: ArchViolation,
-  root: string | undefined,
+  repo: NamedRepository | undefined,
 ): boolean {
-  const subject = portableSubjectOf(v, root)
-  return accepted.some(
-    (entry) => (root === undefined ? entry : normalizeIdentityText(entry, root)) === subject,
-  )
+  return accepted.includes(subjectOf(v)) || accepted.includes(portableSubject(v, repo))
 }
 
 /** The text `deferredWarningAdvice()` returns, by cause. */
 function deferredWarningMessage(
   name: string,
-  collision: 'raw' | 'portable' | undefined,
+  collision: boolean,
   acceptedCount: number,
   subjects: readonly string[],
 ): string {
-  if (collision === 'portable') {
-    return (
-      `"${name}" is a deferred warning, but two or more of its findings read the same once the ` +
-      `checkout path is removed from them, although they differ before (the checkout path also ` +
-      `appears inside a file path — bug 0391). One \`accepted\` entry would forgive all of them, ` +
-      `so every finding here is escalated to error until each finding's identity is distinct on ` +
-      `its own.`
-    )
-  }
-  if (collision === 'raw') {
+  if (collision) {
     return (
       `"${name}" is a deferred warning, but its findings are not reliably identifiable: two or ` +
       `more share one subject (rule + element + message, with no producer-set \`identity\`), so ` +
@@ -923,9 +894,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     // own doc comment for why checking post-repair identities would miss
     // exactly the case this exists to catch. Only computed when it can matter.
     const unsafe =
-      sev === 'warn' &&
-      this._acceptedWarnings !== undefined &&
-      hasIdentityCollision(raw, (v) => this.portableSubject(v)) !== undefined
+      sev === 'warn' && this._acceptedWarnings !== undefined && hasIdentityCollision(raw)
     return collectResult(
       filtered.map((v) => ({
         ...v,
@@ -946,18 +915,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    */
   private fallbackSeverityFor(v: ArchViolation, sev: 'error' | 'warn'): 'error' | 'warn' {
     if (sev !== 'warn' || this._acceptedWarnings === undefined) return sev
-    // Both sides scrubbed with the same root (bug 0389): the subject, because producer identities
-    // carry the absolute path; the accepted strings, so a list pasted before this fix still
-    // matches in the checkout it was written in. A list written elsewhere with a raw path still
-    // fails closed, as it always did.
-    return isAccepted(this._acceptedWarnings, v, identityRootFor(this.getProject()))
-      ? 'warn'
-      : 'error'
-  }
-
-  /** The subject the `accepted` comparison sees: scrubbed against this finding's root (bug 0389). */
-  private portableSubject(v: ArchViolation): string {
-    return portableSubjectOf(v, identityRootFor(this.getProject()))
+    return isAccepted(this._acceptedWarnings, v, repositoryOf(this.getProject())) ? 'warn' : 'error'
   }
 
   /**
@@ -1012,9 +970,9 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     const described = this.describeRule()
     return deferredWarningMessage(
       described.id || described.rule || this.constructor.name,
-      hasIdentityCollision(this.collectWithAssertionGuard(), (v) => this.portableSubject(v)),
+      hasIdentityCollision(this.collectWithAssertionGuard()),
       this._acceptedWarnings.length,
-      breaching.map((v) => this.portableSubject(v)),
+      breaching.map((v) => portableSubject(v, repositoryOf(this.getProject()))),
     )
   }
 
