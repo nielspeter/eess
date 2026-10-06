@@ -8,8 +8,8 @@
  * baseline hash already uses. These rows drive the public path an adopter takes: run the rule,
  * copy the subjects the advice prints, put them in `accepted`, run again somewhere else.
  */
-import { describe, expect, it } from 'vitest'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { afterAll, describe, expect, it } from 'vitest'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { Project } from 'ts-morph'
@@ -104,9 +104,15 @@ describe('bug 0389: an accepted list written on one checkout holds on another', 
  * Roots are found on the real disk, so these rows build real directories. The in-memory project's
  * paths name them; ts-morph never reads them.
  */
+const scratchDirs: string[] = []
 function scratch(): string {
-  return mkdtempSync(path.join(tmpdir(), 'eess-0389-'))
+  const dir = mkdtempSync(path.join(tmpdir(), 'eess-0389-'))
+  scratchDirs.push(dir)
+  return dir
 }
+afterAll(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true })
+})
 function aliasedProject(tsConfigPath: string, files: string[]): ArchProject {
   const tsm = new Project({ useInMemoryFileSystem: true })
   for (const f of files) {
@@ -136,28 +142,20 @@ function pastedFrom(builder: TerminalBuilder): string[] {
 }
 
 describe('bug 0389: which root a subject is scrubbed against', () => {
-  it('two findings under different package roots with one relative path are not forgiven by one entry', () => {
+  it('a builder that names no project leaves its subjects as they are', () => {
     const dir = scratch()
-    for (const pkg of ['pkgA', 'pkgB']) {
-      mkdirSync(path.join(dir, pkg), { recursive: true })
-      writeFileSync(path.join(dir, pkg, 'package.json'), '{}')
-    }
     const a = path.join(dir, 'pkgA/src/a.ts')
-    const b = path.join(dir, 'pkgB/src/a.ts')
-    const found = rule(aliasedProject(path.join(dir, 'tsconfig.json'), [a, b])).violations()
-    const inA = found.filter((v) => v.file === a)
-    expect(inA).toHaveLength(1)
-    const accepted = pastedFrom(new NoProjectBuilder(inA))
-    expect(accepted).toHaveLength(1)
-
-    const both = new NoProjectBuilder(found).asSeverity('warn', { accepted })
-    expect(both.violations().map((v) => v.severity)).toEqual(['error', 'error'])
-    expect(both.deferredWarningAdvice()).toContain('read the same once')
+    const found = rule(aliasedProject(path.join(dir, 'tsconfig.json'), [a])).violations()
+    const pasted = pastedFrom(new NoProjectBuilder(found))
+    expect(pasted).toHaveLength(1)
+    expect(pasted[0]).toContain(a)
   })
 
-  it("the advice's remedy clears it: one .git above both packages gives one root", () => {
+  it('an entry pasted for a fixed finding does not accept a new one under another package root', () => {
+    // Enforcement review measured this `warn` when the root was found per finding: two package
+    // roots scrub `pkgA/src/a.ts` and `pkgB/src/a.ts` to one subject, and the guard cannot see a
+    // collision with a finding that is no longer in the run. `main` said `error`.
     const dir = scratch()
-    mkdirSync(path.join(dir, '.git'))
     for (const pkg of ['pkgA', 'pkgB']) {
       mkdirSync(path.join(dir, pkg), { recursive: true })
       writeFileSync(path.join(dir, pkg, 'package.json'), '{}')
@@ -167,14 +165,11 @@ describe('bug 0389: which root a subject is scrubbed against', () => {
     const found = rule(aliasedProject(path.join(dir, 'tsconfig.json'), [a, b])).violations()
     const accepted = pastedFrom(new NoProjectBuilder(found.filter((v) => v.file === a)))
 
-    const severities = new NoProjectBuilder(found)
+    const later = new NoProjectBuilder(found.filter((v) => v.file === b))
       .asSeverity('warn', { accepted })
       .violations()
-      .map((v) => [v.file === a ? 'a' : 'b', v.severity])
-    expect(severities.sort()).toEqual([
-      ['a', 'warn'],
-      ['b', 'error'],
-    ])
+      .map((v) => v.severity)
+    expect(later).toEqual(['error'])
   })
 
   it('a builder that names its project scrubs against the root above its tsconfig, not above the file', () => {
@@ -187,6 +182,20 @@ describe('bug 0389: which root a subject is scrubbed against', () => {
     expect(pasted).toHaveLength(1)
     expect(pasted[0]).toContain('libs/x/src/a.ts')
     expect(pasted[0]).not.toContain(dir)
+  })
+
+  it('two findings that scrub to one subject escalate together (the guard sees what the matcher sees)', () => {
+    // Bug 0391: the scrub replaces the root inside a path too, so under `/app` the files
+    // `src/app/user.ts` and `src/appuser.ts` scrub to one subject. One pasted entry would forgive
+    // both; the collision guard compares the scrubbed key, so neither stays at warn.
+    const user = '/app/src/app/user.ts'
+    const other = '/app/src/appuser.ts'
+    const p = aliasedProject('/app/tsconfig.json', [user, other])
+    const accepted = pastedFrom(rule(aliasedProject('/app/tsconfig.json', [user])))
+    expect(accepted).toHaveLength(1)
+    const both = rule(p).asSeverity('warn', { accepted })
+    expect(both.violations().map((v) => v.severity)).toEqual(['error', 'error'])
+    expect(both.deferredWarningAdvice()).toContain('bug 0391')
   })
 
   it('a filesystem root is no root: the subject is left as it is', () => {

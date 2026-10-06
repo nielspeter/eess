@@ -82,7 +82,7 @@ against the kernel symbols **the whole package's `src/**` imports**
 (`scripts/lib/family-re-exports.mjs:11`). Those are not the same set. A
 consumer needs to *name* a kernel symbol only when the dialect's public surface
 exposes it; `shallowClone` is called once, inside a method body
-(`packages/ts/src/core/terminal-builder.ts:578`), and no consumer will ever
+(`packages/ts/src/core/terminal-builder.ts:671`), and no consumer will ever
 name it — yet the rule forces it onto eess-ts's published barrel, where
 `check:docs-code` then reports it as undocumented public API. It is neither.
 
@@ -101,7 +101,7 @@ could simply be narrowed and no new entry point would be needed. It cannot be.
 The third looks principled: `tsc` emits `import type { X } from
 '@nielspeter/eess'` into a `.d.ts` only when `X` is needed to describe the
 public type surface. It correctly keeps `GlobNode`, which is a public return
-type (`packages/ts/src/core/terminal-builder.ts:444`), and correctly drops
+type (`packages/ts/src/core/terminal-builder.ts:537`), and correctly drops
 `shallowClone`. It is still wrong, and this repo's own code proves it: the
 instrument reports `not`, `and` and `or` as surplus for eess-mermaid and
 eess-md, while `family.rules.ts:22` reads

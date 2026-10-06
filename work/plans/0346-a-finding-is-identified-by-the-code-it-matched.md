@@ -390,18 +390,20 @@ recorded-root comparison, separator normalisation (a baseline written with `\` s
 POSIX), the file-naming attribution (the 0388 fixture reports `b`, no description-change finding,
 and a Fix that is not "regenerate"), and, if grouping is per file, the edit rows (each asserting no description-change finding too)
 and one row per re-keyed consumer, including the escalation text at
-`packages/ts/src/core/terminal-builder.ts:908-916`, which explains a cross-file collision
+`deferredWarningMessage` (`packages/ts/src/core/terminal-builder.ts:157`), which explains a cross-file collision
 per-file grouping removes. They are Tier-2 suite rows; the replacement case below is also a
 `check:nonvacuity` row. This repo keeps no baseline, so its own gates never exercise the matcher.
 
 **Preconditions (recorded while A and E were both open; still true):**
 
-- [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md):
-  `accepted` lists already hold absolute paths. One kernel `portableSubjectOf(v, root)`,
-  used by both hashes, `hashSubject`, the `accepted` comparison and its advice text.
+- [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md),
+  fixed 2026-10-06. One kernel `portableSubjectOf(v, root)` is used by both hashes, `hashSubject`,
+  the `accepted` comparison and its advice text. For builders that name no project, `accepted`
+  still compares raw subjects (a root per finding was measured greener than `main`), so Phase 2's
+  `file::subject` change inherits that limit.
 - The grouping key equals the hash key only if every copy uses one definition. Kernel
   `hashViolation` inlines its own fallback (`packages/core/src/baseline.ts:129-132`), and
-  `packages/ts/src/core/terminal-builder.ts:94` re-spells `groupKeyOf`. Both move to the shared function.
+  `packages/ts/src/core/terminal-builder.ts:99` re-spells `groupKeyOf`. Both move to the shared function.
 - A finding with an empty `file` keeps today's `element::message` form; nothing
   discriminates better, and it should not move for nothing.
 - Within one file the sibling dialects still merge collisions: the kernel `applyFilters`

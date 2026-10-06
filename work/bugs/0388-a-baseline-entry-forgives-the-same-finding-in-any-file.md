@@ -53,7 +53,7 @@ and message can repeat across files.
 - `packages/ts/src/helpers/baseline.ts:86` documents the identity as "rule + file + content
   hash". The hash does not implement that, and `isKnown` matches on the hash alone.
 
-The same subject also keys `asSeverity('warn', { accepted })` (`packages/ts/src/core/terminal-builder.ts:854`) and
+The same subject also keys `asSeverity('warn', { accepted })` (`packages/ts/src/core/terminal-builder.ts:145`, `isAccepted`) and
 `disambiguateIdentities`'s grouping (`packages/core/src/violation.ts:248`), so the same hole is in an accepted
 warning list.
 

@@ -101,11 +101,10 @@ function hasIdentityCollision(
     seen.add(key)
   }
   if (portableKey === undefined) return undefined
-  // Bug 0389. The `accepted` comparison scrubs each subject against its own identity root, and a
-  // builder that names no project finds that root per finding. Two findings under different roots
-  // with the same relative path then compare equal while their raw subjects differ, so one
-  // accepted entry would forgive both. Checking the key the matcher actually compares is what
-  // keeps this guard honest about that case.
+  // Bug 0389. The `accepted` comparison compares scrubbed subjects, so the guard must check the
+  // key the matcher actually compares. Two subjects that differ raw can scrub to one when the
+  // checkout path also appears inside a file path (bug 0391); one accepted entry would then forgive
+  // both. Within one run this catches it; across runs it cannot, which is 0391's to fix.
   const portable = new Set<string>()
   for (const v of violations) {
     const key = `${v.rule}::${portableKey(v)}`
@@ -117,23 +116,23 @@ function hasIdentityCollision(
 
 /**
  * The root an `accepted` subject is scrubbed against (bug 0389): the identity root above the
- * project's tsconfig when the builder names its project (the `disk-set.ts` precedent), otherwise
- * above the finding's own file, so builders that name no project are covered too. A `file` that is
- * not an absolute path (`''`, or a placeholder such as `<schema>`) gives no root: its directory
- * would be the process's working directory, not the finding's. A filesystem root is no root:
- * scrubbing `/` would turn every separator in a subject into the token. Not memoized: it runs only
- * for a deferred warning, a few `existsSync` calls per finding, and a builder field holding a cache
+ * project's tsconfig (the `disk-set.ts` precedent), or no root when the builder names no project.
+ *
+ * **No project, no scrub — on purpose.** An earlier cut fell back to the root above each finding's
+ * own file. Enforcement review measured that this forgives a finding it should not: two package
+ * roots give `pkgA/src/x.ts` and `pkgB/src/x.ts` one scrubbed subject, so an entry pasted for A
+ * accepts a B that appears after A is fixed — `warn` where `main` said `error`. No check over one
+ * run can see a collision with a finding that is no longer in it, so the root has to be one per
+ * run, and only the project gives one. A builder that names no project keeps the raw subject,
+ * exactly as before this fix.
+ *
+ * A filesystem root is no root: scrubbing `/` would turn every separator in a subject into the
+ * token. Not memoized: it runs only for a deferred warning, and a builder field holding a cache
  * would be shared by every clone (bug 0016's guard).
  */
-function identityRootFor(project: ArchProject | undefined, v: ArchViolation): string | undefined {
-  const dir =
-    project !== undefined
-      ? path.dirname(project.tsConfigPath)
-      : path.isAbsolute(v.file)
-        ? path.dirname(v.file)
-        : undefined
-  if (dir === undefined) return undefined
-  const root = discoverIdentityRoot(dir)
+function identityRootFor(project: ArchProject | undefined): string | undefined {
+  if (project === undefined) return undefined
+  const root = discoverIdentityRoot(path.dirname(project.tsConfigPath))
   return path.parse(root).root === root ? undefined : root
 }
 
@@ -163,13 +162,11 @@ function deferredWarningMessage(
 ): string {
   if (collision === 'portable') {
     return (
-      `"${name}" is a deferred warning, but two or more of its findings read the same once each ` +
-      `one's checkout path is removed: they sit under different identity roots (this builder ` +
-      `names no project, so each finding's root is found above its own file) with the same path ` +
-      `inside them. One \`accepted\` entry would forgive all of them, so every finding here is ` +
-      `escalated to error. Give the checkout one root that covers them all — a \`.git\`, or a ` +
-      `\`package.json\` declaring \`workspaces\`, above both — or make each finding's identity ` +
-      `distinct on its own.`
+      `"${name}" is a deferred warning, but two or more of its findings read the same once the ` +
+      `checkout path is removed from them, although they differ before (the checkout path also ` +
+      `appears inside a file path — bug 0391). One \`accepted\` entry would forgive all of them, ` +
+      `so every finding here is escalated to error until each finding's identity is distinct on ` +
+      `its own.`
     )
   }
   if (collision === 'raw') {
@@ -953,14 +950,14 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     // carry the absolute path; the accepted strings, so a list pasted before this fix still
     // matches in the checkout it was written in. A list written elsewhere with a raw path still
     // fails closed, as it always did.
-    return isAccepted(this._acceptedWarnings, v, identityRootFor(this.getProject(), v))
+    return isAccepted(this._acceptedWarnings, v, identityRootFor(this.getProject()))
       ? 'warn'
       : 'error'
   }
 
   /** The subject the `accepted` comparison sees: scrubbed against this finding's root (bug 0389). */
   private portableSubject(v: ArchViolation): string {
-    return portableSubjectOf(v, identityRootFor(this.getProject(), v))
+    return portableSubjectOf(v, identityRootFor(this.getProject()))
   }
 
   /**

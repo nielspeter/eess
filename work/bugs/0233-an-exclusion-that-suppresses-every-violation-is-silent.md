@@ -40,7 +40,7 @@ cardinality.** Verified structurally, not assumed:
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `examined` is computed from the predicate-filtered set  | `packages/ts/src/core/rule-builder.ts:380` — `const examined = filtered.length`                                |
 | `evidenceFloor(...)` runs on the **raw** collect result | `packages/ts/src/core/terminal-execution.ts:66-70`                                                             |
-| `.excluding()` is applied afterwards                    | `violations()` → `applyFilters(raw, this.filterContext())`, `packages/ts/src/core/terminal-builder.ts:788-792` |
+| `.excluding()` is applied afterwards                    | `violations()` → `applyFilters(raw, this.filterContext())`, `packages/ts/src/core/terminal-builder.ts:881-885` |
 
 So `{ violations, examined }` — the seam [ADR-010](../../adr/010-a-pass-is-constructed-from-evidence.md)
 exists to make a pass constructible from — never sees the suppression. `examined`
