@@ -108,7 +108,7 @@ the table and the harness.
       another — `packages/ts/tests/core/an-accepted-list-is-portable.test.ts`. It went red before
       the fix: the advice printed the checkout path, and the pasted list escalated to `error`.
 - [x] the advice text prints the portable subject — same file.
-- [x] each of spike 0392's cases (23 of the 26 tests through the public path, 3 on the kernel
+- [x] each of spike 0392's cases (24 of the 27 tests through the public path, 3 on the kernel
       function `portableTokens`) — same file: another checkout, a list
       written before the fix, a worktree, a checkout without `.git`, a different finding,
       two packages without a repository marker, two same-named packages inside one repository,
@@ -126,30 +126,29 @@ Sabotage matrix, run against the shipping code in a worktree whose kernel resolu
 Its script and output were kept in the session scratchpad (`sab9.py`, `sab9.out`), which is not part
 of the repository; the table is the output. Each row reds the tests listed:
 
-| removed                                         | red                                                                   |
-| ----------------------------------------------- | --------------------------------------------------------------------- |
-| the portable match (raw only)                   | another checkout, worktree, no `.git`, both residuals                 |
-| the repository-marker requirement               | two same-named packages inside one repository                         |
-| the name in the token                           | 11 rows, among them advice, submodules, separate repositories, `/app` |
-| `.git` as a file counting as a marker           | worktree                                                              |
-| whole tokens, in the kernel                     | `/app`, builder whole tokens                                          |
-| whole tokens, in the builder                    | builder whole tokens                                                  |
-| no repository for a builder without a project   | the no-project row, the pasted-advice row                             |
-| no name, no portable form                       | the unnamed-repository row                                            |
-| portable matching off for a marker subject      | the five rows for that case                                           |
-| the cause in its advice                         | the advice row, the pasted-advice row, the remedy row                 |
-| element and message counting, not only identity | the identity-less row                                                 |
-| separators normalised on POSIX                  | the backslash-at-the-prefix row                                       |
-| its advice listing raw subjects to paste        | the pasted-advice row                                                 |
-| a collision reported before it                  | the collision-order row                                               |
-| its remedy saying to remove the old entry       | the remedy row                                                        |
-| its advice saying excluded findings count       | the excluded-finding row (`sab10.out`)                                |
-| the remedy telling the author to keep the entry | the remedy row (`sab10.out`)                                          |
-| the rest of a path kept verbatim                | the backslash row                                                     |
+| removed                                         | red                                                                                                                                                       |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the portable match (raw only)                   | another checkout, worktree, no `.git`, both residuals                                                                                                     |
+| the repository-marker requirement               | two same-named packages inside one repository                                                                                                             |
+| the name in the token                           | 11 rows, among them advice, submodules, separate repositories, `/app`                                                                                     |
+| `.git` as a file counting as a marker           | worktree                                                                                                                                                  |
+| whole tokens, in the kernel                     | `/app`, builder whole tokens                                                                                                                              |
+| whole tokens, in the builder                    | builder whole tokens                                                                                                                                      |
+| no repository for a builder without a project   | the no-project row, the pasted-advice row                                                                                                                 |
+| no name, no portable form                       | the unnamed-repository row                                                                                                                                |
+| portable matching off for a marker subject      | the five rows for that case                                                                                                                               |
+| the cause in its advice                         | the advice row, the pasted-advice row, the remedy row                                                                                                     |
+| element and message counting, not only identity | the identity-less row                                                                                                                                     |
+| separators normalised on POSIX                  | the backslash-at-the-prefix row                                                                                                                           |
+| its advice listing raw subjects to paste        | the pasted-advice row                                                                                                                                     |
+| a collision reported before it                  | the collision-order row                                                                                                                                   |
+| its remedy saying to remove the old entry       | the remedy row (also with the text changed to "do not remove"; `sab10.out` shows two green runs first, against the looser assertion this commit replaced) |
+| its advice saying excluded findings count       | the excluded-finding row (`sab10.out`)                                                                                                                    |
+| the rest of a path kept verbatim                | the backslash row                                                                                                                                         |
 
 - [x] `npm run validate` green on the last code commit, `ab0fed6` (code as of `9eb8fdf`): 492 s,
       exit 0, 3,968 eess-ts tests, 102 nonvacuity fixtures fired. The commit after it changes only
-      the test file (two tightened assertions and one added row, 26 tests) and records; that test
+      the test file (one tightened assertion and one added row, and one row for the silent case, 27 tests) and records; that test
       file was run alone, and CI runs the full chain. Earlier runs, in order:
   - `85d1852` failed one test,
     `held-builder-is-immutable.test.ts` · `it('every in-place-mutated container field is copied for the clone')`:

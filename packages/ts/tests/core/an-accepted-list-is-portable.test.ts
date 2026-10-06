@@ -294,6 +294,14 @@ describe('bug 0389: a subject that already spells the portable syntax turns port
     ).toContain("and remove the finding's old entry from `accepted`")
   })
 
+  it('reports nothing when every finding is accepted, judging exactly as main did', () => {
+    const builder = new ProjectBuilder(p, [literal, real!]).asSeverity('warn', {
+      accepted: [portable, subjectOf(real!)],
+    })
+    expect(builder.violations().map((v) => v.severity)).toEqual(['warn', 'warn'])
+    expect(builder.deferredWarningAdvice()).toBe('')
+  })
+
   it('says an excluded finding still counts, when that is the one that spells the syntax', () => {
     const advice = new ProjectBuilder(p, [literal, real!])
       .excluding(literal.file)
