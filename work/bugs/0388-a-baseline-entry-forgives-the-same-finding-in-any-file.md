@@ -58,7 +58,7 @@ warning list.
 
 ## Fix
 
-**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by plan 0346's Phase 2. The baseline matcher also checks the `file` each entry records, grouping is per file, an `accepted` list compares `file::subject`, and missing data fails closed (E+). Measured: never greener than today on any path probed, and exact on edits to duplicates across files. The hash derivation does not change; entries today's code suffixed across files move (4 of 400 in the spike) and are reported once.
+**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by plan 0346's Phase 2. The baseline matcher also checks the `file` each entry records; that closes the 12 cases. The rest of the design (grouping, every consumer keyed by hash alone, a baseline with no recorded root) is open and settled by a spike at the start of plan 0346's Phase 2: three review rounds each found a variant greener than today on another path (spike 0390, "Where this leaves the decision"). Proven so far: an `accepted` list must compare the file too, and an entry with no recorded `file` must not match.
 
 The options as they were put:
 

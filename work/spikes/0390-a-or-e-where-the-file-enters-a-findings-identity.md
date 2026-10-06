@@ -109,13 +109,13 @@ Failures beyond the control's: **15 under A, 9 under E.** They fall in three gro
 A moves 315 of 315 by construction: every entry without an `identity` changes hash, so every
 one needs the migration. E (per-file grouping) moves 4: the entries today's code had suffixed
 **across files**. They were correct entries on unchanged code, so reporting them costs a
-re-accept, not a review. E0, measured later, moves none (see "Review, and E0").
+regenerate that must be reviewed. E0, measured later, moves none (see "Review, and E0").
 
 The mechanism is structural: A rehashes everything without an identity; E rehashes only what
 today's grouping suffixed across files. The ratio is this sample's: it depends on how often a
 codebase repeats names.
 
-## What this changes in the decision
+## What this changes in the decision (as first written; superseded by the sections below)
 
 - **E removes most of Phase 3 for this class.** Under A, the migration must replay the old
   grouping, rewrite every entry in both baseline formats, version the kernel baseline and
@@ -131,7 +131,7 @@ codebase repeats names.
   give false reds. The file check must be keyed to the baseline's format version, or skipped
   where the recorded form cannot be compared, and the skip must be visible.
 - **Both report a renamed file again.** Today a rename is silently still accepted. Under either
-  option it costs one re-accept. That is the price of the fix, and it is the same price.
+  option it costs a reviewed regenerate (eess-ts cannot accept one entry). That is the price of the fix, and it is the same price.
 
 ## Review, and E0
 
@@ -174,11 +174,11 @@ E per-file plus `accepted` comparing `file::subject` plus an entry with no recor
 failing closed). Each tree's kernel resolution was proven as before. The baseline holds the same
 finding in `a` and `b`:
 
-| edit                                               | today                                  | E (per-file) | E0                        | E+       |
-| -------------------------------------------------- | -------------------------------------- | ------------ | ------------------------- | -------- |
-| fix `a`; `b` reviewed and unchanged                | nothing                                | nothing      | **`b` reported** + meta   | nothing  |
-| fix `b`                                            | nothing                                | nothing      | nothing                   | nothing  |
-| add the same finding in an earlier-sorted `0/x.ts` | **`b` reported; the new `0` forgiven** | `0` only     | `0`, `a` and `b` reported | `0` only |
+| edit                                               | today                                  | E (per-file)    | E0                               | E+              |
+| -------------------------------------------------- | -------------------------------------- | --------------- | -------------------------------- | --------------- |
+| fix `a`; `b` reviewed and unchanged                | nothing                                | nothing         | **`b` reported** + meta          | nothing         |
+| fix `b`                                            | nothing                                | nothing         | nothing                          | nothing         |
+| add the same finding in an earlier-sorted `0/x.ts` | **`b` reported; the new `0` forgiven** | `0` only + meta | `0`, `a` and `b` reported + meta | `0` only + meta |
 
 And E+ against the paths that made per-file E greener than today:
 
@@ -188,35 +188,59 @@ And E+ against the paths that made per-file E greener than today:
 | `accepted` from `a`; `a` stays, `b` added            | both `error` | **both `warn`** | `a` `warn`, `b` `error`             |
 | `accepted` from `a`; `a` fixed, `b` added (0388)     | `b` `warn`   | `b` `warn`      | **`b` `error`**: the hole closes    |
 | entry with no `file`; `a` stays, `b` added           | `b` reported | **nothing**     | `a` and `b` reported (fails closed) |
-| baseline with no recorded root; `a` stays, `b` added | `b` reported | `a` and `b`     | `a` and `b` (fails closed)          |
+| baseline with no recorded root; `a` stays, `b` added | `b` reported | `a` and `b`     | `a` and `b` (see below)             |
 
 Suites, E+ against a fresh control (about 40 s each): 13 extra failures, every one fail-closed or
-a format change: `accepted` lists written in the old string form now escalate (7 in
-`deferred-warning.test.ts`), the old cross-file `#1` pins (3 in `identity-uniqueness.test.ts`,
+a format change: in `deferred-warning.test.ts`, 7 (4 because `accepted` lists written in the old
+string form now escalate, 3 because the cross-file collision tests no longer collide), the old cross-file `#1` pins (3 in `identity-uniqueness.test.ts`,
 including the `taken.add` mutation guard, whose fixtures no longer collide), 0159's KNOWN-GAP
 test, and the two `baseline-compat.test.ts` root cases. None is a test that expected red and got
 green.
 
-**"Turn the check off" for a baseline with no recorded root is ruled out under per-file
-grouping:** that is the C2 path enforcement measured greener than today. Such a baseline must
-fail closed.
+"+ meta" is the description-change meta-finding, "the rule was edited", whose Fix is
+"regenerate"; it fires on a new duplicate in another file under every E variant, so no variant is
+yet exact on edits.
 
-## Recommendation
+**The no-root row does not measure a no-root rule.** The probe deleted `root` and loaded the
+baseline from a directory where root discovery did not find the in-memory `/proj`, so every file
+mismatched by accident. None of these variants has a no-root rule. "Turn the check off" is ruled
+out under per-file grouping: that is the C2 path enforcement measured greener than today. The
+other options were not measured.
 
-**E+**: the baseline matcher checks the file each entry records, grouping is per file,
-`accepted` compares the portable `file::subject` (behind bug 0389), and missing data — an entry
-with no `file`, a baseline with no recorded root — fails closed. All four in one change: per-file
-grouping without the other rules is the greener variant. E+ closes the 12 and the `accepted`
-hole, is exact on edits to duplicates across files, and was never greener than today on any path
-probed. It moves only entries today's code suffixed across files. The maintainer chose E with
-per-file grouping; E+ is that, plus two rules plan 0346 already required.
+**E+ was then measured greener than today on three more paths** (enforcement review of this
+record, against a fresh control at `e1b2909`):
 
-Not decided here:
+| path                                                                                   | today               | E+          |
+| -------------------------------------------------------------------------------------- | ------------------- | ----------- |
+| metric finding whose identity omits the file; baseline `a`=3, `b`=10; `a` worsens to 9 | `a` reported        | **nothing** |
+| a finding with `file: ''`, same rule and subject as a baselined file finding           | reported            | **nothing** |
+| regenerate summary when `a` stays and `b` duplicates it                                | `+1`, "now accepts" | **`+0`**    |
 
-- **Identity-bearing findings that move file.** The check applies to them too; the rename row was
-  measured only for findings without an identity.
-- **The sibling dialects.** Their suites ran with no extra failures, but no sibling cross-file
-  probe was run.
+All three have one cause: under per-file grouping the same hash can legitimately appear more than
+once, and each consumer keyed by hash alone (the accepted-measurement map, the cross-file
+collision that gave `''` its own `#1`, the regenerate delta) changes meaning.
+
+## Where this leaves the decision
+
+No variant is recommended here. Three review rounds each found another path where the variant
+then specified forgives something today's code reports, so the maintainer chose (2026-10-06) to
+record what is proven and settle the rest in a time-boxed spike at the start of plan 0346's
+Phase 2.
+
+**Proven:**
+
+- Checking the file each entry records closes the 12 cases (E, E0, E+).
+- A list of `accepted` subjects forgives a fixed-and-replaced finding in another file unless it
+  compares the file too (open under today's code, E and E0; closed under E+).
+- An entry with no recorded `file` must not match a finding that has one.
+- The current diagnosis blames an edited rule and says "regenerate" when a hash matches in
+  another file; it must name the file.
+- A renamed file is reported again under every E variant.
+
+**Open, for that spike:** E0 (never greener by construction, false reds on edits) against
+per-file grouping (exact on edits, but every consumer keyed by hash alone must be re-keyed, and
+nobody has yet listed them all); the no-root rule; the attribution's discriminator;
+identity-bearing and metric findings that move file; the sibling dialects.
 
 ## Reproducing
 
