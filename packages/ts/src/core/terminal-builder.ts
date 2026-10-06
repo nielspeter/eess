@@ -116,6 +116,85 @@ function hasIdentityCollision(
 }
 
 /**
+ * The root an `accepted` subject is scrubbed against (bug 0389): the identity root above the
+ * project's tsconfig when the builder names its project (the `disk-set.ts` precedent), otherwise
+ * above the finding's own file, so builders that name no project are covered too. A `file` that is
+ * not an absolute path (`''`, or a placeholder such as `<schema>`) gives no root: its directory
+ * would be the process's working directory, not the finding's. A filesystem root is no root:
+ * scrubbing `/` would turn every separator in a subject into the token. Not memoized: it runs only
+ * for a deferred warning, a few `existsSync` calls per finding, and a builder field holding a cache
+ * would be shared by every clone (bug 0016's guard).
+ */
+function identityRootFor(project: ArchProject | undefined, v: ArchViolation): string | undefined {
+  const dir =
+    project !== undefined
+      ? path.dirname(project.tsConfigPath)
+      : path.isAbsolute(v.file)
+        ? path.dirname(v.file)
+        : undefined
+  if (dir === undefined) return undefined
+  const root = discoverIdentityRoot(dir)
+  return path.parse(root).root === root ? undefined : root
+}
+
+/**
+ * Whether a deferred warning's `accepted` list holds this finding. Both sides are scrubbed with the
+ * same root (bug 0389): the subject, because producer identities carry the absolute path; the
+ * accepted strings, so a list pasted before the fix still matches in the checkout it was written
+ * in. A list written elsewhere with a raw path still fails closed, as it always did.
+ */
+function isAccepted(
+  accepted: readonly string[],
+  v: ArchViolation,
+  root: string | undefined,
+): boolean {
+  const subject = portableSubjectOf(v, root)
+  return accepted.some(
+    (entry) => (root === undefined ? entry : normalizeIdentityText(entry, root)) === subject,
+  )
+}
+
+/** The text `deferredWarningAdvice()` returns, by cause. */
+function deferredWarningMessage(
+  name: string,
+  collision: 'raw' | 'portable' | undefined,
+  acceptedCount: number,
+  subjects: readonly string[],
+): string {
+  if (collision === 'portable') {
+    return (
+      `"${name}" is a deferred warning, but two or more of its findings read the same once each ` +
+      `one's checkout path is removed: they sit under different identity roots (this builder ` +
+      `names no project, so each finding's root is found above its own file) with the same path ` +
+      `inside them. One \`accepted\` entry would forgive all of them, so every finding here is ` +
+      `escalated to error. Give the checkout one root that covers them all — a \`.git\`, or a ` +
+      `\`package.json\` declaring \`workspaces\`, above both — or make each finding's identity ` +
+      `distinct on its own.`
+    )
+  }
+  if (collision === 'raw') {
+    return (
+      `"${name}" is a deferred warning, but its findings are not reliably identifiable: two or ` +
+      `more share one subject (rule + element + message, with no producer-set \`identity\`), so ` +
+      `the repair that keeps them distinct assigns a POSITIONAL "#1"/"#2" suffix — not stable ` +
+      `across runs, so a fixed finding and a genuinely new one can land on the same suffix and ` +
+      `\`accepted\` would silently treat the new one as already-known debt. Every finding here is ` +
+      `escalated to error until this is fixed: qualify the condition's message, or set ` +
+      `ArchViolation.identity explicitly, so each finding's subject is unique on its own.`
+    )
+  }
+  const n = subjects.length
+  return (
+    `"${name}" is a deferred warning (accepted: ${String(acceptedCount)} finding` +
+    `${acceptedCount === 1 ? '' : 's'}), and ${String(n)} current ` +
+    `finding${n === 1 ? '' : 's'} ${n === 1 ? 'is' : 'are'} not in ` +
+    `that list — a new finding this deferral did not accept, which will fail at check() time: ` +
+    `${subjects.join(', ')}. Either fix it, or extend \`accepted\` if it is genuinely more debt of ` +
+    `the same kind you already deferred.`
+  )
+}
+
+/**
  * The declaration half of every rule builder: what the author states.
  *
  * Owns `because`, `rule`, `excluding`, `describeRule`, `asSeverity`, the two
@@ -849,7 +928,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     const unsafe =
       sev === 'warn' &&
       this._acceptedWarnings !== undefined &&
-      hasIdentityCollision(raw, (v) => portableSubjectOf(v, this.identityRootFor(v))) !== undefined
+      hasIdentityCollision(raw, (v) => this.portableSubject(v)) !== undefined
     return collectResult(
       filtered.map((v) => ({
         ...v,
@@ -874,37 +953,14 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     // carry the absolute path; the accepted strings, so a list pasted before this fix still
     // matches in the checkout it was written in. A list written elsewhere with a raw path still
     // fails closed, as it always did.
-    const root = this.identityRootFor(v)
-    const subject = portableSubjectOf(v, root)
-    return this._acceptedWarnings.some(
-      (accepted) =>
-        (root === undefined ? accepted : normalizeIdentityText(accepted, root)) === subject,
-    )
+    return isAccepted(this._acceptedWarnings, v, identityRootFor(this.getProject(), v))
       ? 'warn'
       : 'error'
   }
 
-  /**
-   * The root an `accepted` subject is scrubbed against: the identity root above the project's
-   * tsconfig when the builder names its project (the `disk-set.ts` precedent), otherwise above the
-   * finding's own file, so builders that name no project are covered too. A `file` that is not an
-   * absolute path (`''`, or a placeholder such as `<schema>`) gives no root: its directory would be
-   * the process's working directory, not the finding's. A filesystem root is no
-   * root: scrubbing `/` would turn every separator in a subject into the token. Not memoized: it
-   * runs only for a deferred warning, a few `existsSync` calls per finding, and a builder field
-   * holding a cache would be shared by every clone (bug 0016's guard).
-   */
-  private identityRootFor(v: ArchViolation): string | undefined {
-    const project = this.getProject()
-    const dir =
-      project !== undefined
-        ? path.dirname(project.tsConfigPath)
-        : path.isAbsolute(v.file)
-          ? path.dirname(v.file)
-          : undefined
-    if (dir === undefined) return undefined
-    const root = discoverIdentityRoot(dir)
-    return path.parse(root).root === root ? undefined : root
+  /** The subject the `accepted` comparison sees: scrubbed against this finding's root (bug 0389). */
+  private portableSubject(v: ArchViolation): string {
+    return portableSubjectOf(v, identityRootFor(this.getProject(), v))
   }
 
   /**
@@ -957,40 +1013,11 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     const breaching = this.violations().filter((v) => v.severity === 'error')
     if (breaching.length === 0) return ''
     const described = this.describeRule()
-    const name = described.id || described.rule || this.constructor.name
-    const collision = hasIdentityCollision(this.collectWithAssertionGuard(), (v) =>
-      portableSubjectOf(v, this.identityRootFor(v)),
-    )
-    if (collision === 'portable') {
-      return (
-        `"${name}" is a deferred warning, but two or more of its findings read the same once each ` +
-        `one's checkout path is removed: they sit under different identity roots (this builder ` +
-        `names no project, so each finding's root is found above its own file) with the same path ` +
-        `inside them. One \`accepted\` entry would forgive all of them, so every finding here is ` +
-        `escalated to error. Give the checkout one root that covers them all — a \`.git\`, or a ` +
-        `\`package.json\` declaring \`workspaces\`, above both — or make each finding's identity ` +
-        `distinct on its own.`
-      )
-    }
-    if (collision === 'raw') {
-      return (
-        `"${name}" is a deferred warning, but its findings are not reliably identifiable: two or ` +
-        `more share one subject (rule + element + message, with no producer-set \`identity\`), so ` +
-        `the repair that keeps them distinct assigns a POSITIONAL "#1"/"#2" suffix — not stable ` +
-        `across runs, so a fixed finding and a genuinely new one can land on the same suffix and ` +
-        `\`accepted\` would silently treat the new one as already-known debt. Every finding here is ` +
-        `escalated to error until this is fixed: qualify the condition's message, or set ` +
-        `ArchViolation.identity explicitly, so each finding's subject is unique on its own.`
-      )
-    }
-    const subjects = breaching.map((v) => portableSubjectOf(v, this.identityRootFor(v)))
-    return (
-      `"${name}" is a deferred warning (accepted: ${String(this._acceptedWarnings.length)} finding` +
-      `${this._acceptedWarnings.length === 1 ? '' : 's'}), and ${String(breaching.length)} current ` +
-      `finding${breaching.length === 1 ? '' : 's'} ${breaching.length === 1 ? 'is' : 'are'} not in ` +
-      `that list — a new finding this deferral did not accept, which will fail at check() time: ` +
-      `${subjects.join(', ')}. Either fix it, or extend \`accepted\` if it is genuinely more debt of ` +
-      `the same kind you already deferred.`
+    return deferredWarningMessage(
+      described.id || described.rule || this.constructor.name,
+      hasIdentityCollision(this.collectWithAssertionGuard(), (v) => this.portableSubject(v)),
+      this._acceptedWarnings.length,
+      breaching.map((v) => this.portableSubject(v)),
     )
   }
 
