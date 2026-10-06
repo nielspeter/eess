@@ -4,7 +4,7 @@
 
 - **State:** Draft — Phase 2's direction is taken (**E**: the matcher checks the file,
   2026-10-06, after [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md));
-  the rest of its design is open and settled by its own time-boxed spike. What remains is the
+  the rest of its design is open and laid out by its own time-boxed spike for a decision. What remains is the
   split into five records; this plan then closes as their parent (see "The split"). Phase 1's ruling is settled
   and measured; the migration is unbuilt, and it decides whether this fix is honest. Refreshed 2026-10-05 against `main`. Review of that
   refresh found that Phase 2's producer list was the symptom: the cause is one kernel
@@ -16,7 +16,7 @@
   0388 was found the same day, so the plan no longer claims that.)
 - **Effort:** Large — not one PR. Phase 1 changes eess-ts's match identity and needs a
   migration; Phase 2 adds a file check to both baselines' matchers, with its grouping and
-  the consumers it re-keys settled first by the Phase 2 spike, a record of its own (spike 0390
+  the consumers it re-keys laid out first by the Phase 2 spike for a decision, a record of its own (spike 0390
   measured the options but did not settle them); an ADR is written. **It is split into plans of about one PR each** — see
   "The split" below. The cost to adopters is unmeasured.
 - **Created:** 2026-09-28
