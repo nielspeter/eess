@@ -96,7 +96,7 @@ proven. Each row reds its own test:
 | the filesystem-root rule                      | the filesystem-root row                                             |
 | the scrubbed-key collision check              | the scrub-to-one-subject row                                        |
 
-- [x] `npm run validate` green on the final commit (recorded below). Earlier runs, in order:
+- [x] `npm run validate` green on the final code, `f384f25`. All runs, in order:
   - `85d1852` failed one test,
     `held-builder-is-immutable.test.ts` · `it('every in-place-mutated container field is copied for the clone')`:
     a per-directory memo of the identity root was a builder field every clone would share. It was
@@ -107,5 +107,6 @@ proven. Each row reds its own test:
     The root lookup, the match and the message text moved to module functions (`edcf329`), with
     the advice text unchanged.
   - `edcf329`: 516 s, exit 0, 3,952 eess-ts tests, 102 nonvacuity fixtures fired.
+  - `f384f25`, the final code: 469 s, exit 0, 3,953 eess-ts tests, 102 nonvacuity fixtures fired.
 
 Deferred: none.
