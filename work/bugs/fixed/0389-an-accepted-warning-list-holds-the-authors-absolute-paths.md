@@ -17,9 +17,9 @@ list (`packages/ts/src/core/terminal-builder.ts:854` on `91b420a`). The comparis
 Nothing scrubs the root out of it, unlike the baseline hash, which runs `normalizeIdentityText`.
 
 Producer identities interpolate the absolute path. For example, `dependency.ts` sets
-`identity: \`${sourceFile.getFilePath()}::${subject}\``
+`` identity: `${sourceFile.getFilePath()}::${subject}` ``
 (`packages/ts/src/conditions/dependency.ts:190`). And the advice an adopter is told to paste from
-prints the same raw subjects (`packages/ts/src/core/terminal-builder.ts:919`on`91b420a`, before the fix). So the list an
+prints the same raw subjects (`packages/ts/src/core/terminal-builder.ts:919` on `91b420a`, before the fix). So the list an
 adopter writes holds their checkout path.
 
 The architecture reviewer measured one such subject on `HEAD`:
