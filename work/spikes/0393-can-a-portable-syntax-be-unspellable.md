@@ -56,7 +56,8 @@ then (through `diagnose`). So the findings' claim that "the rule reports the ref
 finding is present" does not hold. The behaviour is never more lenient than `main`, which is what
 option A was for; the report half is not delivered.
 
-**What A does not close.** The findings above say "every list written from now on". That is too
+**What A does not close.** The findings above say "nothing produced after the release can
+collide", and the Recommendation below says "every list written from now on". That is too
 strong: an entry kept for a literal finding still equals another finding's portable form once the
 literal finding is fixed, whenever the entry was written. Bug 0389 records it as a residual, and a
 test pins it.

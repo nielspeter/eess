@@ -291,7 +291,16 @@ describe('bug 0389: a subject that already spells the portable syntax turns port
       new ProjectBuilder(p, [literal, real!])
         .asSeverity('warn', { accepted: [] })
         .deferredWarningAdvice(),
-    ).toContain('remove the')
+    ).toContain("and remove the finding's old entry from `accepted`")
+  })
+
+  it('says an excluded finding still counts, when that is the one that spells the syntax', () => {
+    const advice = new ProjectBuilder(p, [literal, real!])
+      .excluding(literal.file)
+      .asSeverity('warn', { accepted: [] })
+      .deferredWarningAdvice()
+    expect(advice).toContain('portable matching is off')
+    expect(advice).toContain('.excluding()')
   })
 
   it('a collision is reported before it, because a collision escalates every finding', () => {

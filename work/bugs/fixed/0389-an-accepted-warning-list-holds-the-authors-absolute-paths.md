@@ -60,9 +60,11 @@ the table and the harness.
   - **a subject that already spells the portable syntax**, which turns portable matching off for
     its rule (below).
 - **A subject that spells the portable syntax turns portable matching off for its rule** (spike
-  0393; option A, taken by the coordinating agent on the maintainer's instruction). If any finding of a deferred warning has `<root:` in its raw subject (identity, or element
-  and message), that rule compares raw subjects only, exactly as on `main`, and the advice names the
-  subjects that spell it. No portable syntax can be made unspellable: `identity` is a plain string
+  0393; option A's matching half, taken by the coordinating agent on the maintainer's instruction;
+  its "report a finding" half was not built). If any finding of a deferred warning has `<root:` in its raw subject (identity, or element
+  and message), that rule compares raw subjects only, exactly as on `main`. When another finding of
+  the rule is outside the list, its advice names the subjects that spell it and the remedy; when none
+  is, nothing is reported, and the rule judges exactly as `main` did. No portable syntax can be made unspellable: `identity` is a plain string
   and messages are free text. No producer template in eess spells `<root:`, though values a template
   interpolates (module specifiers, names, matcher descriptions) are user-controlled. (`bcfe457`
   escalated every finding of such a rule instead; review measured that as stricter than `main` for a
@@ -106,7 +108,8 @@ the table and the harness.
       another — `packages/ts/tests/core/an-accepted-list-is-portable.test.ts`. It went red before
       the fix: the advice printed the checkout path, and the pasted list escalated to `error`.
 - [x] the advice text prints the portable subject — same file.
-- [x] each of spike 0392's cases through the public path — same file: another checkout, a list
+- [x] each of spike 0392's cases (23 of the 26 tests through the public path, 3 on the kernel
+      function `portableTokens`) — same file: another checkout, a list
       written before the fix, a worktree, a checkout without `.git`, a different finding,
       two packages without a repository marker, two same-named packages inside one repository,
       submodules, separate repositories, an unnamed repository, a builder that names no project,
@@ -140,10 +143,14 @@ of the repository; the table is the output. Each row reds the tests listed:
 | its advice listing raw subjects to paste        | the pasted-advice row                                                 |
 | a collision reported before it                  | the collision-order row                                               |
 | its remedy saying to remove the old entry       | the remedy row                                                        |
+| its advice saying excluded findings count       | the excluded-finding row (`sab10.out`)                                |
+| the remedy telling the author to keep the entry | the remedy row (`sab10.out`)                                          |
 | the rest of a path kept verbatim                | the backslash row                                                     |
 
-- [x] `npm run validate` green on the C5 code, `57b4d14`: 500 s, exit 0, 3,958 eess-ts tests, 102
-      nonvacuity fixtures fired. Earlier runs, in order:
+- [x] `npm run validate` green on the last code commit, `ab0fed6` (code as of `9eb8fdf`): 492 s,
+      exit 0, 3,968 eess-ts tests, 102 nonvacuity fixtures fired. The commit after it changes only
+      the test file (two tightened assertions and one added row, 26 tests) and records; that test
+      file was run alone, and CI runs the full chain. Earlier runs, in order:
   - `85d1852` failed one test,
     `held-builder-is-immutable.test.ts` · `it('every in-place-mutated container field is copied for the clone')`:
     a per-directory memo of the root was a builder field every clone would share. Dropped.
@@ -153,5 +160,8 @@ of the repository; the table is the output. Each row reds the tests listed:
   - `edcf329`: 516 s, exit 0, 3,952 eess-ts tests, 102 nonvacuity fixtures fired.
   - `f384f25`: 469 s, exit 0, 3,953 eess-ts tests, 102 nonvacuity fixtures fired. That code was
     then replaced by C5, after enforcement review measured it greener than `main`.
+  - `57b4d14`, the C5 build: 500 s, exit 0, 3,958 eess-ts tests.
+  - `bcfe457`: 500 s, exit 0.
+  - `877bc80`: 497 s, exit 0, 3,965 eess-ts tests.
 
 Deferred: none.
