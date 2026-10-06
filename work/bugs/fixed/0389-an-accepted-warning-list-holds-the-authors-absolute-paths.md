@@ -61,6 +61,12 @@ advice text in `packages/ts/src/core/terminal-builder.ts` call it too.
       Not sabotaged: dropping the scrub on the accepted side. The compatibility row exists for
       that, but no sabotage run proved it can go red.
 
-- [x] `npm run validate` green — see the result recorded below.
+- [x] `npm run validate` green at `62820bb`, 486 s, exit 0. That covers 3,948 eess-ts tests
+      plus the kernel and sibling suites, and all 102 nonvacuity fixtures fired. The first run, at
+      `85d1852`, failed one test:
+      `held-builder-is-immutable.test.ts` · `it('every in-place-mutated container field is copied for the clone')`.
+      A per-directory memo of the identity root was a builder field that every clone would share.
+      The memo was dropped rather than copied: discovery runs only for a deferred warning, and a
+      cache would add a staleness question for no measured gain.
 
 Deferred: none.
