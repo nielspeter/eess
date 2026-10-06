@@ -16,7 +16,8 @@
   0388 was found the same day, so the plan no longer claims that.)
 - **Effort:** Large — not one PR. Phase 1 changes eess-ts's match identity and needs a
   migration; Phase 2 adds a file check to both baselines' matchers, with its grouping and
-  the consumers it re-keys settled by a spike first (spike 0390); an ADR is written. **It is split into plans of about one PR each** — see
+  the consumers it re-keys settled first by the Phase 2 spike, a record of its own (spike 0390
+  measured the options but did not settle them); an ADR is written. **It is split into plans of about one PR each** — see
   "The split" below. The cost to adopters is unmeasured.
 - **Created:** 2026-09-28
 - **Receives:** [bug 0338](../bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md),
@@ -327,7 +328,9 @@ records**, in both the kernel and eess-ts baselines, for a finding whose `file` 
 path where the variant then specified forgives something today's code reports (spike 0390,
 "Edits, and E+" and "Where this leaves the decision"). On 2026-10-06 the maintainer chose to
 record what is proven here and settle the rest in a time-boxed spike at the start of the Phase 2
-plan, rather than in this record.
+plan, rather than in this record. The same day, method review applied the working rule that a
+task needing a decision before it can be built is split into a spike and a build, so that spike
+is now its own record (see "The split").
 
 **Proven (each with the variants it was measured under):**
 
@@ -356,7 +359,7 @@ plan, rather than in this record.
 - **A renamed file is reported again** under every E variant, measured for findings without an
   identity (question 5 covers the rest). Today a rename is silently still accepted.
 
-**Open — the Phase 2 plan's spike settles these before any Phase 2 code:**
+**Open — the Phase 2 spike lays these out for a decision before any Phase 2 code:**
 
 1. **Grouping.** Leaving it unchanged (E0) only adds a condition, so it cannot be greener than
    today, but it falsely reports a reviewed finding when a duplicate across files is edited
@@ -507,7 +510,7 @@ entry whose matched finding is now in a **different file** was inherited, or the
 was renamed. Enforcement review showed that carrying it with a note re-keys the one
 group the migration can see is wrong into an acceptance that looks reviewed, and erases
 the evidence. So those K entries are **not carried**: their findings report as new,
-and a renamed file costs a reviewed regenerate. (Under option E the matcher already does this,
+and a renamed file costs a regenerate whose diff is reviewed. (Under option E the matcher already does this,
 and K is always zero for a baseline that records its root.) The command exits non-zero
 while K or J is above zero.
 
@@ -592,7 +595,7 @@ table if it lists them.
 Five records, about one PR each, grouped by what each one closes:
 
 1. **Bug 0389 — `accepted` compares a portable subject.** A live defect on its own, and the
-   precondition for 2's `accepted` change.
+   precondition for 3's `accepted` change.
 2. **The Phase 2 spike**, its own record, time-boxed to one working day. It answers the five open
    questions above: first a census, from the code, of every consumer keyed by hash alone; then E0
    against per-file grouping across that whole census; then the options for a baseline with no
@@ -609,7 +612,8 @@ Five records, about one PR each, grouped by what each one closes:
    as the only path.
 5. **Phase 4 — the ADR**, last, once 3 and 4 have mechanisms to cite.
 
-**How this plan closes.** Once the five records exist, every open box here is disposed
+**How this plan closes.** The Phase 2 build plan can only be written from the spike's decision,
+so this plan stays open, as a Draft, until then. Once all five records exist, every open box here is disposed
 `deferred→<the record that now owns it>`, and this plan moves to `completed/` as the parent of
 the split. It does not become one of the five.
 
@@ -690,7 +694,7 @@ the split. It does not become one of the five.
       opening line, which claims an identity "that is not a coordinate" for a
       population where it is one. Whoever builds this reads that file.
 - [ ] Phase 2 — the spike: a census of every consumer keyed by hash alone, E0 against
-      per-file grouping across it, and the no-root rule decided by the maintainer
+      per-file grouping across it, and the no-root options laid out for the maintainer
 - [ ] Phase 2 — the matcher checks the recorded file in both baselines, `accepted` compares
       `file::subject`, missing data fails closed; guarded by the cross-run structural
       property test
@@ -698,7 +702,8 @@ the split. It does not become one of the five.
       match in another file, and a remedy per cause, never a blanket regenerate
 - [ ] Phase 2 — if grouping is per file, the `taken.add` guard and the bug-0065 pins
       re-homed to same-file fixtures
-- [ ] Phase 2 — the identity-bearing and metric rename rows measured before Ready
+- [ ] Phase 2 — the identity-bearing and metric rename rows measured before the Phase 2 build
+      plan is Ready
 - [ ] Phase 2 — bug 0389 fixed first: one `portableSubjectOf`, used by every hash and
       by `accepted`
 - [ ] Phase 2 — both "rule + file" comments say what the matcher covers
