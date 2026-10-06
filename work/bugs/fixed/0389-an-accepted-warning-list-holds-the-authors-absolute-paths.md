@@ -92,7 +92,11 @@ Sabotage matrix, run in a worktree whose kernel resolution was proven. Each row 
 | the filesystem-root rule                 | the filesystem-root row                          |
 
 - [x] `npm run validate` green. The run recorded here, at `62820bb`, predates the review fixes;
-      the run on the final commit is recorded below. At `62820bb`: 486 s, exit 0. That covers 3,948 eess-ts tests
+      the final run is at `edcf329`: 516 s, exit 0, 3,952 eess-ts tests, all 102 nonvacuity fixtures
+      fired. Between them, the run at `593d8e6` stopped on this repo's own `check:arch`: the
+      review fixes had pushed `deferredWarningAdvice` past 30 lines and complexity 10 and
+      `TerminalBuilder` past 150 lines. The root lookup, the match and the message text moved to
+      module functions (`edcf329`), with the advice text unchanged. At `62820bb`: 486 s, exit 0. That covers 3,948 eess-ts tests
       plus the kernel and sibling suites, and all 102 nonvacuity fixtures fired. The first run, at
       `85d1852`, failed one test:
       `held-builder-is-immutable.test.ts` · `it('every in-place-mutated container field is copied for the clone')`.
