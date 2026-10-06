@@ -1,8 +1,10 @@
 # Spike 0394: the Phase 2 design for a file-aware baseline
 
 Started 2026-10-06 for [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md)'s
-Phase 2, as the second of its five records. Time box: one working day. It ends in a design brought
-back to the maintainer for a decision, not in code.
+Phase 2, as the second of its records. Time box: one working day. It ends in a design brought
+back for a decision, not in code. The decision was delegated and is recorded under Decision
+(2026-10-06, revised 2026-10-07 after review); one part of it moved to
+[spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md).
 
 ## The question
 
@@ -167,8 +169,8 @@ here with that source, and the probes are not appended.
   keyed without the file: `[X, X, X#1]` gave `X, X#1, X#1`.
 - **`rediscover` is not strictly fail-closed.** With the author's root at `r`, the baseline at
   `r/pkg/b.json`, and `r/pkg` later given its own `.git`, EP2 does two things at once: it reports the
-  unchanged finding at its recorded path and forgives a new one at `pkg/src/a/x.ts`. `main` does
-  neither. A kernel-written baseline read from a subdirectory records `../src/a.ts` and false-reds
+  unchanged finding at its recorded path and forgives a new one at `pkg/src/a/x.ts`. `main` forgives
+  the new one too (bug 0388) and does not false-red the unchanged one. A kernel-written baseline read from a subdirectory records `../src/a.ts` and false-reds
   unchanged code (1 finding under EP2, 0 on `main`). R11 put the baseline at the repository root,
   the one place both path conventions agree.
 - **The attribution prototype gives a false cause** on two of five harder shapes (a clean new file at
@@ -179,10 +181,10 @@ here with that source, and the probes are not appended.
 **EP2** fixes the first two. Measured on the full eess-ts suite (3,970 tests, about 40 s per variant,
 all with `SPIKE_NOROOT` at its default, `rediscover`):
 
-| variant | failing (`main` fails 18; the same 18 fail under every variant) | failing only under the variant |
-| ------- | --------------------------------------------------------------- | ------------------------------ |
-| EP      | 27                                                              | 9                              |
-| EP2     | 25                                                              | 7                              |
+| variant | failing (`main` fails 18; the same 18 fail under EP and EP2) | failing only under the variant |
+| ------- | ------------------------------------------------------------ | ------------------------------ |
+| EP      | 27                                                           | 9                              |
+| EP2     | 25                                                           | 7                              |
 
 EP2's seven:
 
@@ -204,21 +206,22 @@ The two `deferred-warning` tests that EP broke pass under EP2.
 
 Enforcement review then compared EP2 against `main` directly: 128 `accepted` cases and 5,832
 baseline cases, including baselines written by `main` and read by EP2 and findings that already end
-in `#n`. EP2 was green where `main` was red in none of them, except two metric shapes built by hand
-with an identity that carries no file (entries `a:10`, `b:3`, then `a` rises to 9; and an entry
-`a:3` plus a `b` entry with no measurement, then `b` rises to 9). There `main` reports a finding
-against another file's ceiling, and EP2 forgives it against its own: more correct, not looser. Real
+in `#n`. EP2 was green where `main` was red in none of them. Two further metric probes, run
+separately and built by hand with an identity that carries no file, did differ: entries `a:10` and
+`b:3`, then `a` rises to 9; and an entry `a:3` plus a `b` entry with no measurement, then `b` rises
+to 9. In both, `main` reports a finding against another file's ceiling, and EP2 forgives it against
+its own: more correct, not looser. Real
 metric identities carry the path.
 
 ## What this answers
 
 1. **Grouping: per file, as EP2.** E0 is never more lenient than `main`, but false-reds both edit rows
    (R3, R4). EP2 is exact on both (Results) and keeps the collision guard that protects `accepted`
-   lists. Within each group `main` forgives at most `min(new, old)` findings by position, and
+   lists, as long as those lists hold entries with no file (see Decision). Within each group `main` forgives at most `min(new, old)` findings by position, and
    per-file matching forgives the sum over files of `min(new_f, old_f)`, which is never more
    findings. Per-file ceilings can forgive a metric that `main` reported against another file's
    ceiling (Review). The argument does not carry over to `accepted`, which has no counts and no
-   files, which is why C13 stays blind to files.
+   files, which is why C13 stayed blind to files.
 2. **Every consumer keyed by hash alone:** the census, with C8a and C12a added and C13 moved. Measured
    re-keyed: C3, C5, C7, C10, C12, C12a. Reasoned, not measured: C4, C6, C8a. C14 still reports a
    subject in its old form under EP2 (enforcement review), and now sees fewer collisions, because
@@ -240,58 +243,120 @@ Three more things the Phase 2 build must carry:
   file-qualified advice form. A raw entry with no file cannot be checked against a file at all.
 - **The `ArchViolation.identity` contract changes.** It says an identity is "unique per finding
   within a rule" (`packages/core/src/violation.ts:79-80`). Under EP2 it is unique per rule and file:
-  `X#1` can appear in both `a.ts` and `b.ts`. Sibling dialects (C15) still need the per-rule form.
+  `X#1` can appear in both `a.ts` and `b.ts`. Sibling dialects (C15) never add suffixes, so for them
+  the per-rule form already implies the per-file one; the field can carry one meaning.
 - **Per-file grouping moves the entries today's code suffixed across files**, so it ships with plan
-  0346's Phase 3 migration. Without the migration EP2 fails closed (false reds on upgrade, none
-  greener in the 2,916 cases where `main` wrote the baseline), but those false reds arrive with
-  R13's note telling the adopter to regenerate, which forgives without review. That contradicts
-  plan 0346's split, which ships the Phase 2 build before the migration.
+  0346's Phase 3 migration. Without the migration EP2 fails closed (none greener in the 2,916 cases
+  where `main` wrote the baseline, by review's count; the false reds on upgrade are reasoned from
+  the moved entries), but those false reds arrive with
+  R13's note telling the adopter to regenerate, which forgives without review. That contradicted
+  plan 0346's split as written on 2026-10-06, which shipped the Phase 2 build before the
+  migration; decision 3 supersedes it.
 
 ## Decision
 
 Made 2026-10-06 by the coordinating agent, on the maintainer's instruction ("you are more capable
-of making this decession based on all the work you have done"). The maintainer can overrule any of
-them.
+of making this decession based on all the work you have done"), and revised 2026-10-07 after
+method, enforcement and product review. The maintainer can overrule any of them. Decisions 2 and 4
+accept a risk on adopters' behalf, which is the maintainer's to accept; they are recorded here so
+that the risk is named, not so that it is settled.
 
-1. **Grouping: EP2.** Per-file grouping (C12); the collision guard (C13) unchanged and blind to files;
-   the suffix reservation (C12a) per file; every other census item keyed by `(hash, file)`. It is
-   the only variant that is exact on both edit rows and never forgave a finding `main` reported,
-   apart from the two hand-built metric shapes where it is the more correct of the two.
-2. **A baseline with no recorded root matches nothing** (`none`), and the run reports one finding,
-   not one per entry, that names the baseline and says to run `--migrate`. `off` keeps bug 0388
-   open, and `rediscover` can forgive when the root moved; `none` cannot forgive, and the cost of
-   its false reds is one command. It is safe only if `--migrate` exists in the same release, which
-   decision 3 secures.
-3. **The split: separate PRs, one release.** The Phase 2 build and Phases 1 and 3 stay separate
-   records and pull requests, so each can be reviewed in one sitting. No release goes out between
-   them: EP2 without the migration fails closed, but its false reds come with advice to regenerate.
-   Both changesets name the other, and the release is held until both have merged. Nothing gates
-   that hold; it is the maintainer's to keep.
-4. **Raw `accepted` entries with no file stop matching** from that release. A finding they used to
-   cover escalates to `error`, and the advice names each such entry with its file-qualified
-   replacement. This is breaking and is marked so in the changeset: on `0.x`, a `minor`.
+1. **Grouping: EP2.** Per-file grouping (C12), the suffix reservation (C12a) per file, and every
+   other census item keyed by `(hash, file)`. It is the only variant that is exact on both edit
+   rows. In review's comparisons it never forgave a finding `main` reported, apart from two
+   hand-built metric shapes where it was the more correct of the two. **How the collision guard
+   (C13) is keyed is not decided here**; it depends on decision 4 (below).
+2. **An eess-ts baseline with no recorded root matches nothing.** The run reports one finding per
+   baseline, not one per entry. It is an `error`, it cannot be suppressed, and filters do not drop
+   it: no regenerate records it, and `.excluding()` and `--changed` do not drop it (ADR-016, one
+   finding per instrument failure). It names the baseline and says to run `--migrate`. `off` keeps
+   bug 0388 open, and `rediscover` can false-red and, like `main`, forgive (Review). `none` cannot
+   forgive.
+   - **Scope.** This covers eess-ts's baseline format only. The kernel's baseline (C9) never
+     records a root and does not need one: it writes and reads `file` relative to the baseline's
+     own directory. Its matcher gains the file check against that path. An eess-ts reader given a
+     kernel-written file sees a file with no root, so decision 2 applies to it. That replaces the
+     partial false red measured from a subdirectory with one finding and a remedy.
+   - **The remedy has to remediate.** `--migrate` on a rootless file has to assume a root. It must
+     print the root it assumed, and report, not forgive, every entry whose recorded file does not
+     resolve under that root. Otherwise it writes `rediscover`'s failure into the file for good.
+     The test for this belongs to the migration's PR.
+   - **Not decided:** a rootless file read with an explicit `options.root` (unmeasured under E0).
+3. **The split: separate PRs on an integration branch.** The Phase 2 build and Phases 1 and 3
+   remain separate records and pull requests, each reviewable in one sitting. Both target a branch
+   cut from `main`, and the Phase 2 build merges into it first. That branch merges to `main` once,
+   when both are in.
+   - No state of `main` holds one without the other, so no release can split them, and `main` stays
+     releasable for unrelated fixes meanwhile.
+   - Between the two merges, the branch's no-root finding and R13's replacement name a `--migrate`
+     that the second PR adds. The Phase 2 build's ledger records that as `deferred→` the migration
+     record, not as done.
+   - This replaces the first version of this decision, which held `main`'s release by hand. Nothing
+     gated that hold, and a hotfix released in the window would have shipped Phase 2 without
+     `--migrate`.
+   - Stacked PRs: retarget the child before deleting a branch.
+4. **Raw `accepted` entries with no file: reopened, moved to
+   [spike 0395](./0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md).**
+   - **What the first version decided:** such entries stop matching.
+   - **Why it is reopened.** That premise is the one decision 1 kept C13 file-blind for. With no
+     file-less entry left matching, the C13 pin named in the first version (the swap test) builds
+     its list from file-less subjects, so it stays green with C13 deleted. A file-blind C13 would
+     also escalate `a::X` and `b::X` with advice about positional suffixes, which no longer exist
+     under EP2: a false cause (ADR-009 rule 2).
+   - **The advice was unsafe as well.** It printed a "file-qualified replacement" built from where
+     the subject matches now. On the 0388 shape, that accepts `b` without review, the remedy R13
+     is rejected for.
+   - **What spike 0395 measures,** under EP2, in both C13 keyings: file-qualified lists, with and
+     without decision 4, on EP's Critical shapes. It also settles one spelling for a
+     file-qualified entry, aligned with bug 0389's `<root:NAME>/path` portable form.
 
-Each Phase 2 mechanism ships with a test that goes red when it is broken:
+Each Phase 2 mechanism ships with a test that goes red when it is broken. Harness rows named here
+are ported into the eess-ts suite, so "red when reverted" is a CI fact. The census items have rows
+too, since three of them (C4, C6, C8a) were only reasoned.
 
-| mechanism                     | the test that must go red                                                                                                                                                                  |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| the file check (C1, C9)       | R1's six cross-file cases, in both baselines, red when the check is reverted                                                                                                               |
-| C13 stays blind to files      | `deferred-warning.test.ts` · `it('the swap, reproduced with a colliding subject: a genuinely new finding is escalated, not silently absorbed')`, which passes under EP2 and fails under EP |
-| the per-file reservation      | `it('a generated suffix never lands on a subject a producer already emits')`, rewritten to three colliding findings in one file, red when `taken.add` is deleted                           |
-| the no-root rule              | a baseline with no root, unchanged code: one finding naming `--migrate`, and no entry matches                                                                                              |
-| the note on the 0388 case     | R13's shape: the note neither lists "you upgraded" nor advises regenerating; today's text turns it red                                                                                     |
-| raw `accepted` entries        | a list holding a raw, file-less entry escalates its finding, and the advice prints the file-qualified form                                                                                 |
-| the attribution, when written | each attribution's remedy, applied, clears the finding (ADR-009)                                                                                                                           |
+| mechanism                             | the test that must go red                                                                                                                            |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the file check (C1, C9)               | R1's six cross-file cases, in both baselines                                                                                                         |
+| the per-file reservation (C12a)       | `it('a generated suffix never lands on a subject a producer already emits')`, rewritten to three colliding findings in one file; `taken.add` deleted |
+| per-file grouping (C12)               | R3 and R4: `b` stays forgiven when `a` is fixed, and only the new finding is reported                                                                |
+| per-file ceilings (C3, C10)           | R5's shape, with the map reverted to hash keys                                                                                                       |
+| the stale-measurement diagnosis (C4)  | a ceiling recorded for `a` is not reported stale because `b` has the same hash                                                                       |
+| the description-change diagnosis (C5) | the same subject in two files, one renamed: only that one is diagnosed                                                                               |
+| the "matched nothing" count (C6)      | R13's shape: a cross-file hash match is not counted as matched                                                                                       |
+| the regenerate summary (C7)           | R7: `+1`, not `+0`                                                                                                                                   |
+| `Baseline.size` (C8a)                 | two entries sharing a hash count as two                                                                                                              |
+| C14's subject                         | a same-file collision is reported with the subject it is grouped on                                                                                  |
+| the no-root rule                      | a rootless baseline, unchanged code: one unsuppressable `error` that names `--migrate`, and no entry matches                                         |
+| the note on the 0388 case             | R13's shape: a note is present, names the recorded file and the current one, and neither lists "you upgraded" nor advises regenerating               |
+| the attribution                       | each attribution's remedy, applied, clears the finding (ADR-009); it is part of the Phase 2 build                                                    |
+| C13, once spike 0395 decides          | named by spike 0395                                                                                                                                  |
 
-The build also rewrites the docstring of `hasIdentityCollision`
-(`packages/ts/src/core/terminal-builder.ts:92`), which says the guard uses the grouping key
-`disambiguateIdentities()` groups on. Under EP2 that is false, and a "consistency fix" to match it
-would rebuild EP's Critical. It should say the guard protects `accepted` and ignores files on
-purpose. It also fixes C14's subject parse, and updates the identity contract text.
+The build also rewrites three docstrings that EP2 makes false:
+
+- **`hasIdentityCollision`** (`packages/ts/src/core/terminal-builder.ts:92`). It says the guard uses
+  the grouping key `disambiguateIdentities()` groups on. Its new text waits for spike 0395.
+- **`disambiguateIdentities`'s "theorem"** that no existing baseline entry moves
+  (`packages/core/src/violation.ts:280-284`). Under EP2, entries that today's code suffixed across
+  files move.
+- **The `identity` contract** (`packages/core/src/violation.ts:79-80`) becomes unique per rule and
+  file.
+
+**What breaks, and in which package.** On `0.x` a break is a `minor`, marked `**Breaking**`, and a
+break in a package others depend on names them (bugs 0184, 0185).
+
+| package               | breaks                                                                                                                                                                                                    | names                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `@nielspeter/eess`    | the kernel baseline stops forgiving a finding in another file; `disambiguateIdentities` groups per file; `identity` may repeat across files for one rule, which a reader keying on `rule + identity` sees | every dialect whose `check` honours `baseline` through the kernel |
+| `@nielspeter/eess-ts` | cross-file forgiveness stops; entries suffixed across files move (`--migrate` carries them); a rootless baseline matches nothing; and whatever spike 0395 decides for `accepted`                          | —                                                                 |
+
+With the release train's other breaking changesets, this passes `RELEASING.md`'s three-break
+threshold, so the release carries a migration page covering `--migrate`, rootless baselines and
+`accepted`. That page belongs to the migration's record.
 
 Not measured: sibling dialects beyond the kernel matcher (they never disambiguate, plan 0188), a real
-`git worktree`, Windows paths, and the kernel baseline's separator and cwd dependence. Time box: one
-working day, kept (2026-10-06).
+`git worktree`, Windows paths, and the kernel baseline's separator and cwd dependence. The last is
+owed by the build as a measurement, since the kernel's file check depends on it. Time box: one
+working day, kept (2026-10-06); the review revision on 2026-10-07 added no measurement.
 
 ## Appendix A: the variant patch
 

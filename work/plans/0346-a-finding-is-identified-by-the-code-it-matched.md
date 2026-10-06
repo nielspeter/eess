@@ -5,7 +5,7 @@
 - **State:** Draft — Phase 2's direction is taken (**E**: the matcher checks the file,
   2026-10-06, after [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md));
   the rest of its design is open and laid out by its own time-boxed spike for a decision. What remains is the
-  split into five records; this plan then closes as their parent (see "The split"). Phase 1's ruling is settled
+  split into six records; this plan then closes as their parent (see "The split"). Phase 1's ruling is settled
   and measured; the migration is unbuilt, and it decides whether this fix is honest. Refreshed 2026-10-05 against `main`. Review of that
   refresh found that Phase 2's producer list was the symptom: the cause is one kernel
   derivation.
@@ -596,7 +596,7 @@ table if it lists them.
 
 ## The split
 
-Five records, about one PR each, grouped by what each one closes:
+Six records, about one PR each, grouped by what each one closes:
 
 1. **Bug 0389 — `accepted` compares a portable subject.** A live defect on its own, and the
    precondition for 3's `accepted` change.
@@ -604,13 +604,16 @@ Five records, about one PR each, grouped by what each one closes:
    questions above: first a census, from the code, of every consumer keyed by hash alone; then E0
    against per-file grouping across that whole census; then the options for a baseline with no
    recorded root, for the maintainer to decide. It ends in a design brought back for a decision,
-   not in code.
+   not in code. Its review found that its `accepted` decision contradicts its grouping decision,
+   so that part moved to
+   [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md),
+   time-boxed to half a day, which the build plan waits for.
 3. **The Phase 2 build**, a plan written from the spike's decision: the file check in both
    baselines, `accepted` comparing `file::subject`, the missing-file rule, and a diagnosis that
-   names the file, in one change. Closes bug 0388 and 0159's collision 3. It ships **in the same release as 4**,
-   as its own PR: 4's migration joins on what it defines as a match, and per-file grouping moves
-   entries only the migration carries over (spike 0394's decision 3). No release goes out between
-   them.
+   names the file, in one change. Closes bug 0388 and 0159's collision 3. It merges **before 4**, because 4's migration joins on what it defines as a match, and both
+   merge to an integration branch that reaches `main` once, because per-file grouping moves entries
+   only the migration carries over (spike 0394's decision 3). Its own advice names `--migrate`,
+   which 4 adds, so its ledger records that as `deferred→` 4.
 4. **Phases 1 and 3 — the shape identity and its migration** (bug 0338's identity, `--migrate`,
    the `HASH_VERSION` bump, the refusal to regenerate over an older version; its ledger also
    re-checks the no-root remedy once regenerating over an older version is refused). Together because
@@ -619,9 +622,9 @@ Five records, about one PR each, grouped by what each one closes:
 5. **Phase 4 — the ADR**, last, once 3 and 4 have mechanisms to cite.
 
 **How this plan closes.** The Phase 2 build plan can only be written from the spike's decision,
-so this plan stays open, as a Draft, until then. Once all five records exist, every open box here is disposed
+so this plan stays open, as a Draft, until then. Once all six records exist, every open box here is disposed
 `deferred→<the record that now owns it>`, and this plan moves to `completed/` as the parent of
-the split. It does not become one of the five.
+the split. It does not become one of the six.
 
 ## Out of scope
 
@@ -715,7 +718,7 @@ the split. It does not become one of the five.
 - [ ] Phase 2 — both "rule + file" comments say what the matcher covers
 - [ ] Phase 3 — the refusal and `--migrate` are eess-ts's; the kernel baseline gets the
       file check only, unless the grouping decision moves kernel hashes
-- [ ] the plan split into the five records in "The split", and every open box here disposed
+- [ ] the plan split into the six records in "The split", and every open box here disposed
       `deferred→` its owner
 - [ ] Phase 1 — re-measure the "400 files" kind-name figure, or stop resting on it
 - [ ] 0388 closed in the PR that ships Phase 2, with the no-root rule's residual named
