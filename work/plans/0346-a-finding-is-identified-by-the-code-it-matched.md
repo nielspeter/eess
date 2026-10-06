@@ -607,8 +607,10 @@ Five records, about one PR each, grouped by what each one closes:
    not in code.
 3. **The Phase 2 build**, a plan written from the spike's decision: the file check in both
    baselines, `accepted` comparing `file::subject`, the missing-file rule, and a diagnosis that
-   names the file, in one change. Closes bug 0388 and 0159's collision 3. It **must ship before
-   4**, because 4's migration joins on what it defines as a match.
+   names the file, in one change. Closes bug 0388 and 0159's collision 3. It ships **in the same release as 4**,
+   as its own PR: 4's migration joins on what it defines as a match, and per-file grouping moves
+   entries only the migration carries over (spike 0394's decision 3). No release goes out between
+   them.
 4. **Phases 1 and 3 — the shape identity and its migration** (bug 0338's identity, `--migrate`,
    the `HASH_VERSION` bump, the refusal to regenerate over an older version; its ledger also
    re-checks the no-root remedy once regenerating over an older version is refused). Together because
