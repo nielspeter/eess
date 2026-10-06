@@ -58,7 +58,7 @@ warning list.
 
 ## Fix
 
-**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by plan 0346's Phase 2. The baseline matcher also checks the `file` each entry records; that closes the 12 cases. The rest of the design (grouping, every consumer keyed by hash alone, a baseline with no recorded root) is open and settled by a spike at the start of plan 0346's Phase 2: three review rounds each found a variant greener than today on another path (spike 0390, "Where this leaves the decision"). Proven so far: an `accepted` list must compare the file too, and an entry with no recorded `file` must not match.
+**Decided 2026-10-06: option E**, measured in [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md) and built by plan 0346's Phase 2. The baseline matcher also checks the `file` each entry records; that closes the 12 cases. The rest of the design (grouping, every consumer keyed by hash alone, a baseline with no recorded root) is open and settled by plan 0346's Phase 2 spike, a record of its own: three review rounds each found a variant greener than today on another path (spike 0390, "Where this leaves the decision"). Proven so far: an `accepted` list must compare the file too, and the diagnosis must name the file rather than blame an edited rule.
 
 The options as they were put:
 
@@ -72,6 +72,10 @@ The options as they were put:
 - [ ] a red test per probed shape above, driven through the public builders: fix `a`,
       break `b`, and `b` is reported
 - [ ] an `accepted` list written for one file does not accept the same finding in another
+- [ ] the diagnosis names the file: no description-change finding when a hash matches in another
+      file
+- [ ] what a baseline with no recorded root does, decided by the maintainer, and its residual
+      named here before this record closes
 - [ ] a guard that does not depend on a list of producers, so the next producer cannot
       reopen it
 - [ ] the comments at `packages/ts/src/helpers/baseline.ts:86` and `packages/core/src/baseline.ts:11`

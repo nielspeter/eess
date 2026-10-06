@@ -4,8 +4,8 @@
 
 - **State:** Draft — Phase 2's direction is taken (**E**: the matcher checks the file,
   2026-10-06, after [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md));
-  the rest of its design is open and settled by a spike at the start of the Phase 2 plan.
-  What remains before this plan is Ready is splitting it into one-PR plans. Phase 1's ruling is settled
+  the rest of its design is open and settled by its own time-boxed spike. What remains is the
+  split into five records; this plan then closes as their parent (see "The split"). Phase 1's ruling is settled
   and measured; the migration is unbuilt, and it decides whether this fix is honest. Refreshed 2026-10-05 against `main`. Review of that
   refresh found that Phase 2's producer list was the symptom: the cause is one kernel
   derivation.
@@ -329,35 +329,42 @@ path where the variant then specified forgives something today's code reports (s
 record what is proven here and settle the rest in a time-boxed spike at the start of the Phase 2
 plan, rather than in this record.
 
-**Proven, and true under every variant measured:**
+**Proven (each with the variants it was measured under):**
 
 - Checking the file closes the 12 cases.
 - **`accepted` lists need the file.** A list of subjects records no file, so it forgives a
   fixed-and-replaced finding in another file (measured under today's code, E and E0). Comparing
-  the root-scrubbed `file::subject` closes it (measured under E+). It needs bug 0389's portable
-  subject first. Existing `accepted` strings stop matching and escalate to error, which fails
+  `file::subject` closes it, measured under E+ **with absolute paths** — that is bug 0389's
+  defect, not its fix. The root-scrubbed form needs 0389 first and is not measured. Existing `accepted` strings stop matching and escalate to error, which fails
   closed.
-- **An entry with no recorded `file` must not match** a finding that has one: letting it through
-  was measured greener than today under per-file grouping.
-- **The diagnosis must name the file, not blame the rule.** Measured under E0 and E+: in the
-  0388 case, on a rename, and on a new duplicate in another file, `filterNew` adds the
+- **Under per-file grouping, an entry with no recorded `file` must not match** a finding that
+  has one: letting it through was measured greener than today there. Under E0, letting it
+  through behaves as today, and failing closed also reports the unchanged finding; which rule
+  applies is part of question 1.
+- **The diagnosis must name the file, not blame the rule.** Measured under E0 in the 0388 case,
+  on a rename and on a new duplicate in another file, and under E+ on the new duplicate (its
+  0388 and rename rows are inferred, not measured): `filterNew` adds the
   description-change meta-finding ("the rule was edited", `was` and `now` identical) and its Fix
   is "regenerate the baseline", which forgives the new finding again. The cause is
-  `renamedRuleFor` (`packages/ts/src/helpers/baseline-diagnostics.ts:54-64`), which reads
-  `hasEntry` as "the description is unchanged". eess-ts cannot accept a single entry, so no
+  in `renamedRuleFor` (`packages/ts/src/helpers/baseline-diagnostics.ts:54-64`): once the matcher
+  checks the file, `hasEntry` is false for a hash match in another file, and the lookup
+  `knownSubjects.get(hashSubject(…))` that follows has no file in its key, so the match reads as
+  "the rule was renamed". eess-ts cannot accept a single entry, so no
   remedy may be an unqualified regenerate.
 - **Every red test drives `filterNew` or `check({ baseline })`**, not `isKnown`: the spike's first
   probes called `isKnown` and missed the line above.
-- **A renamed file is reported again** under every variant. Today a rename is silently still
-  accepted.
+- **A renamed file is reported again** under every E variant, measured for findings without an
+  identity (question 5 covers the rest). Today a rename is silently still accepted.
 
 **Open — the Phase 2 plan's spike settles these before any Phase 2 code:**
 
 1. **Grouping.** Leaving it unchanged (E0) only adds a condition, so it cannot be greener than
    today, but it falsely reports a reviewed finding when a duplicate across files is edited
    (fix `a` and the reviewed `b` is reported; add an earlier-sorted duplicate and every later
-   sibling is reported). Grouping per file gets those edits exactly right, and removes a false
-   green today's code has, but lets the same hash legitimately appear more than once.
+   sibling is reported). Grouping per file reports the right files on those edits, and removes a
+   false green today's code has, but still emits the misattributed description-change finding on
+   a new duplicate (until the diagnosis fix), and lets the same hash legitimately appear more
+   than once.
 2. **Every consumer keyed by hash alone.** Under per-file grouping each must be keyed by
    (hash, file), or it changes meaning. Found by review so far, not by a census: the
    accepted-measurement map (a metric ceiling that worsened was forgiven, measured), the
@@ -378,8 +385,10 @@ plan, rather than in this record.
 baseline, separate code), the `accepted` file comparison, the missing-file rule, the
 recorded-root comparison, separator normalisation (a baseline written with `\` still matches on
 POSIX), the file-naming attribution (the 0388 fixture reports `b`, no description-change finding,
-and a Fix that is not "regenerate"), and, if grouping is per file, the edit rows and one row per
-re-keyed consumer. They are Tier-2 suite rows; the replacement case below is also a
+and a Fix that is not "regenerate"), and, if grouping is per file, the edit rows (each asserting no description-change finding too)
+and one row per re-keyed consumer, including the escalation text at
+`packages/ts/src/core/terminal-builder.ts:908-916`, which explains a cross-file collision
+per-file grouping removes. They are Tier-2 suite rows; the replacement case below is also a
 `check:nonvacuity` row. This repo keeps no baseline, so its own gates never exercise the matcher.
 
 **Preconditions (recorded while A and E were both open; still true):**
@@ -498,7 +507,7 @@ entry whose matched finding is now in a **different file** was inherited, or the
 was renamed. Enforcement review showed that carrying it with a note re-keys the one
 group the migration can see is wrong into an acceptance that looks reviewed, and erases
 the evidence. So those K entries are **not carried**: their findings report as new,
-and a renamed file costs one re-accept. (Under option E the matcher already does this,
+and a renamed file costs a reviewed regenerate. (Under option E the matcher already does this,
 and K is always zero for a baseline that records its root.) The command exits non-zero
 while K or J is above zero.
 
@@ -580,23 +589,29 @@ table if it lists them.
 
 ## The split
 
-Four plans, about one PR each, grouped by what each one closes:
+Five records, about one PR each, grouped by what each one closes:
 
 1. **Bug 0389 — `accepted` compares a portable subject.** A live defect on its own, and the
    precondition for 2's `accepted` change.
-2. **Phase 2 — the matcher checks the file.** It **starts with a time-boxed spike** that answers
-   the five open questions above: first a census, from the code, of every consumer keyed by hash
-   alone; then E0 against per-file grouping across that whole census; then the no-root rule for
-   the maintainer. Only then the build: the file check in both baselines, `accepted` comparing
-   `file::subject`, missing data failing closed, and a diagnosis that names the file, in one
-   change. Closes bug 0388 and 0159's collision 3. It **must ship before 3**, because 3's
-   migration joins on what 2 defines as a match.
-3. **Phases 1 and 3 — the shape identity and its migration** (bug 0338's identity, `--migrate`,
+2. **The Phase 2 spike**, its own record, time-boxed to one working day. It answers the five open
+   questions above: first a census, from the code, of every consumer keyed by hash alone; then E0
+   against per-file grouping across that whole census; then the options for a baseline with no
+   recorded root, for the maintainer to decide. It ends in a design brought back for a decision,
+   not in code.
+3. **The Phase 2 build**, a plan written from the spike's decision: the file check in both
+   baselines, `accepted` comparing `file::subject`, the missing-file rule, and a diagnosis that
+   names the file, in one change. Closes bug 0388 and 0159's collision 3. It **must ship before
+   4**, because 4's migration joins on what it defines as a match.
+4. **Phases 1 and 3 — the shape identity and its migration** (bug 0338's identity, `--migrate`,
    the `HASH_VERSION` bump, the refusal to regenerate over an older version; its ledger also
    re-checks the no-root remedy once regenerating over an older version is refused). Together because
    Phase 1 is what moves entries, and shipping it without the migration would leave regenerating
    as the only path.
-4. **Phase 4 — the ADR**, last, once 2 and 3 have mechanisms to cite.
+5. **Phase 4 — the ADR**, last, once 3 and 4 have mechanisms to cite.
+
+**How this plan closes.** Once the five records exist, every open box here is disposed
+`deferred→<the record that now owns it>`, and this plan moves to `completed/` as the parent of
+the split. It does not become one of the five.
 
 ## Out of scope
 
@@ -689,7 +704,8 @@ Four plans, about one PR each, grouped by what each one closes:
 - [ ] Phase 2 — both "rule + file" comments say what the matcher covers
 - [ ] Phase 3 — the refusal and `--migrate` are eess-ts's; the kernel baseline gets the
       file check only, unless the grouping decision moves kernel hashes
-- [ ] the plan split into one-PR plans, per "The split"
+- [ ] the plan split into the five records in "The split", and every open box here disposed
+      `deferred→` its owner
 - [ ] Phase 1 — re-measure the "400 files" kind-name figure, or stop resting on it
 - [ ] 0388 closed in the PR that ships Phase 2, with the no-root rule's residual named
       in it; 0159's collision 3 recorded as fixed

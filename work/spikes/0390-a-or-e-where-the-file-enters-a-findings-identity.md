@@ -231,16 +231,20 @@ Phase 2.
 
 - Checking the file each entry records closes the 12 cases (E, E0, E+).
 - A list of `accepted` subjects forgives a fixed-and-replaced finding in another file unless it
-  compares the file too (open under today's code, E and E0; closed under E+).
-- An entry with no recorded `file` must not match a finding that has one.
+  compares the file too (open under today's code, E and E0; closed under E+, measured with
+  absolute paths — the portable form is bug 0389's and unmeasured).
+- Under per-file grouping, an entry with no recorded `file` must not match a finding that has one
+  (under E0 that is a policy choice, not a proof).
 - The current diagnosis blames an edited rule and says "regenerate" when a hash matches in
   another file; it must name the file.
-- A renamed file is reported again under every E variant.
+- A renamed file is reported again under every E variant (measured for findings without an
+  identity).
 
 **Open, for that spike:** E0 (never greener by construction, false reds on edits) against
-per-file grouping (exact on edits, but every consumer keyed by hash alone must be re-keyed, and
-nobody has yet listed them all); the no-root rule; the attribution's discriminator;
-identity-bearing and metric findings that move file; the sibling dialects.
+per-file grouping (right files on edits, still the misattributed meta-finding on a new duplicate,
+and every consumer keyed by hash alone must be re-keyed, which nobody has yet listed); the no-root rule; the attribution's discriminator;
+identity-bearing and metric findings that move file. (Sibling dialects colliding within one
+file is plan 0188's: the kernel `applyFilters` does not disambiguate at all.)
 
 ## Reproducing
 
