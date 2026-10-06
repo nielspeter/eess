@@ -3,8 +3,9 @@
 ## Status
 
 - **State:** Draft — **half fixed.** Within one run, the identity repair pass separates every
-  collision below (it shipped with #72; this record was not updated). **Across runs, collision
-  3 still fails open**, measured 2026-10-05 through the real baseline: fix the orphan you
+  collision below (it shipped with #72; this record was not updated). **Across runs, collisions
+  1, 2 and 3 can all fail open** (see "State on 2026-10-05"). Collision 3 was measured 2026-10-05
+  through the real baseline: fix the orphan you
   baselined, add a different one of the same name, and the baseline forgives it. Pinned as a
   known gap; see "State on 2026-10-05".
 - **Severity:** High — false green. Baselining is the documented way to adopt
@@ -193,8 +194,10 @@ close claimed more than was true. What holds and what does not:
 - **Collisions 1 and 2 across runs:** their members are indistinguishable by content, so a
   positional identity is all there is (`violation.ts` records this as a known fail-open). That
   is [bug 0338](./0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md)'s
-  class, and [plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md) its
-  fix.
+  class. [Plan 0346](../plans/0346-a-finding-is-identified-by-the-code-it-matched.md) does
+  **not** fix them: its Phase 1 changes only `identifyMatches`, which `dependency.ts` and the
+  duplicate-bodies detector do not call. They stay open here (narrowed 2026-10-05 after method
+  review of the plan).
 - **Collision 2 has changed shape:** the duplicate-bodies detector now reports one finding per
   cluster, and two clusters of same-named functions still collide (only reachable from code
   `tsc` rejects: duplicate function implementations).
@@ -202,10 +205,13 @@ close claimed more than was true. What holds and what does not:
   `applyFilters` (the kernel's) does not run the repair pass at all, so if they can, it is a live
   false green in `check:corpus` and `check:diagram`.
 
-**The fix for collision 3** is the one bug 0063 used for dependency findings and plan 0346's
-Phase 2 prescribes for module-absence findings: put the path in the identity
-(`reverse-dep::<path>::not-imported`). It changes the hash of every baselined orphan finding,
-so it needs the same migration decision as 0346's Phase 2 — build the two together.
+**The fix for collision 3** is now
+[bug 0388](./0388-a-baseline-entry-forgives-the-same-finding-in-any-file.md)'s. Review of plan
+0346 found that `beImported` is one instance of a kernel fault: with no `identity`, the file is
+not in a finding's baseline hash at all. Plan 0346's Phase 2 fixes that class by checking
+the file each baseline entry records. Whether collision 3's own entry moves depends on Phase 2's
+grouping decision, which is open. When that ships, this record says collision 3 is fixed and its KNOWN-GAP
+test has flipped; collisions 1 and 2 keep it open.
 
 ## Verification
 
