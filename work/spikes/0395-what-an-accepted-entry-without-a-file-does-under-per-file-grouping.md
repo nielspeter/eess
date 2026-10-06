@@ -37,6 +37,18 @@ Under EP2, with the guard keyed blind to files and keyed per file:
 
 Each answer is compared against `main` the way spike 0394's review did: no shape may be green where
 `main` is red, and every escalation must state its true cause.
+Each option is also costed for adopters: `accepted` lives in rule source, so `--migrate` cannot
+rewrite it, and an option that breaks existing lists needs a recipe for editing them by hand.
+
+## Who decides
+
+The coordinating agent, under the delegation recorded in spike 0394's Decision, unless an option
+accepts a risk on adopters' behalf; that goes to the maintainer. Two outcomes go back to the
+maintainer by rule:
+
+- no C13 keying is both no greener than `main` and free of false causes under EP2: spike 0394's
+  decision 1 is reopened;
+- any measurement here contradicts EP2: the question returns to spike 0394.
 
 ## Out of scope
 
