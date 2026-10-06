@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Fixed — on branch `fix/0389-portable-accepted`, 2026-10-06.
+- **State:** Fixed — PR #181, 2026-10-06.
 - **Severity:** Medium — **fails closed, but teaches the wrong reflex.** A deferred warning's
   `accepted` list written on one machine matches nothing on another, so every accepted finding
   escalates to error on CI. Nothing is forgiven that should not be. But the obvious remedy is to
