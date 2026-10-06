@@ -51,15 +51,20 @@ the table and the harness.
   builder that names no project gets none and keeps raw subjects, as before: a repository found per
   finding was measured to let an entry for one package accept the same finding in another.
 - **The collision guard** compares raw subjects, as on `main`. Two different raw subjects can still
-  share a portable form in two contrived ways, both measured by enforcement review of `57b4d14`: a
-  path whose separators differ (`src\a.ts` and `src/a.ts` are two files on POSIX), now closed by
-  keeping the rest of each path verbatim; and a subject that already spells the portable syntax,
-  now refused (below).
-- **A subject that spells the portable syntax is refused** (spike 0393, decided 2026-10-06). If any
-  finding of a deferred warning has `<root:` in its raw subject, portable matching is off for that
-  rule, every finding escalates to error, and the advice names the cause. No portable syntax can be
-  made unspellable: `identity` is a plain string and messages are free text. None of eess's 21
-  identity producers emits `<`.
+  share a portable form in two contrived ways, both measured by enforcement review:
+  - **a separator.** On POSIX a backslash is part of a file name, so `repo\src/a.ts` and
+    `repo/src/a.ts` are two files. Separators are normalised only where `\` is one (Windows),
+    anywhere in the token, so the two stay apart. (The first attempt normalised the root prefix and
+    kept only the rest verbatim; review of `bcfe457` measured the prefix case still colliding.)
+  - **a subject that already spells the portable syntax**, refused (below).
+- **A subject that spells the portable syntax turns portable matching off for its rule** (spike
+  0393; option A, taken by the coordinating agent on the maintainer's instruction). If any finding of a deferred warning has `<root:` in its raw subject (identity, or element
+  and message), that rule compares raw subjects only, exactly as on `main`, and the advice names the
+  subjects that spell it. No portable syntax can be made unspellable: `identity` is a plain string
+  and messages are free text. No producer template in eess spells `<root:`, though values a template
+  interpolates (module specifiers, names, matcher descriptions) are user-controlled. (`bcfe457`
+  escalated every finding of such a rule instead; review measured that as stricter than `main` for a
+  raw list and stricter than the spike's option A, and it was narrowed.)
 - **The baseline hashes are unchanged.** `portableSubjectOf` (`packages/core/src/violation.ts`) is
   the one definition both hashes use; it keeps the substring scrub, which is bug 0391's to fix.
 
@@ -72,9 +77,8 @@ the table and the harness.
   by the maintainer on 2026-10-06; pinned by a `KNOWN RESIDUAL` test that turns red if it is ever
   closed.
 - **An entry kept for a finding that spelled the portable syntax.** While that finding is present
-  the rule is refused; once it is fixed, an entry kept for it equals another finding's portable form.
-  Such an entry never held anything at `warn` after this release. Pinned by a second `KNOWN RESIDUAL`
-  test (spike 0393).
+  the rule matches raw subjects only; once it is fixed, an entry kept for it can equal another
+  finding's portable form. Pinned by a second `KNOWN RESIDUAL` test (spike 0393).
 - **Not portable, and fails closed:** builders that name no project (3 never do, 2 only when given
   one, of 15), repositories without a root `package.json` name, and paths written inside prose
   rather than as a `::` token.
@@ -104,28 +108,33 @@ the table and the harness.
       written before the fix, a worktree, a checkout without `.git`, a different finding,
       two packages without a repository marker, two same-named packages inside one repository,
       submodules, separate repositories, an unnamed repository, a builder that names no project,
-      a path that spells the root again, a backslash in a file name, a subject that spells the
-      portable syntax, and both known residuals. Three of the spike's rows have no test of their
+      a path that spells the root again, a backslash in a file name and at the root prefix, a
+      subject that spells the portable syntax (with and without an identity), and both known
+      residuals. Three of the spike's rows have no test of their
       own: `/app` itself (a test cannot create it, so its whole-token rule is tested on the kernel
       function and, through the builder, with a path that spells the temporary root again), "no
       markers" and "two repositories with one directory name" (closed by the same mechanisms the
       separate-repositories and two-packages rows pin).
 
-Sabotage matrix, run against the shipping code in a worktree whose kernel resolution was proven;
-the run's output is kept beside its script. Each row reds its own test:
+Sabotage matrix, run against the shipping code in a worktree whose kernel resolution was proven.
+Its script and output were kept in the session scratchpad (`sab8.py`, `sab8.out`), which is not part
+of the repository; the table is the output. Each row reds the tests listed:
 
-| removed                                       | red                                                                                         |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| the portable match (raw only)                 | another checkout, worktree, no `.git`, and both residuals                                   |
-| the repository-marker requirement             | two same-named packages inside one repository                                               |
-| the name in the token                         | advice, submodules, separate repositories, `/app`, backslash, builder whole tokens, refusal |
-| `.git` as a file counting as a marker         | worktree                                                                                    |
-| whole tokens, in the kernel                   | `/app`, builder whole tokens                                                                |
-| whole tokens, in the builder                  | builder whole tokens                                                                        |
-| no repository for a builder without a project | the no-project row                                                                          |
-| no name, no portable form                     | the unnamed-repository row                                                                  |
-| the refusal of a subject spelling the syntax  | the refusal row                                                                             |
-| the rest of a path kept verbatim              | backslash                                                                                   |
+| removed                                       | red                                                                                    |
+| --------------------------------------------- | -------------------------------------------------------------------------------------- |
+| the portable match (raw only)                 | another checkout, worktree, no `.git`, both residuals                                  |
+| the repository-marker requirement             | two same-named packages inside one repository                                          |
+| the name in the token                         | 9 rows: advice, submodules, separate repositories, `/app`, backslash, builder, refusal |
+| `.git` as a file counting as a marker         | worktree                                                                               |
+| whole tokens, in the kernel                   | `/app`, builder whole tokens                                                           |
+| whole tokens, in the builder                  | builder whole tokens                                                                   |
+| no repository for a builder without a project | the no-project row                                                                     |
+| no name, no portable form                     | the unnamed-repository row                                                             |
+| the refusal                                   | the three refusal rows                                                                 |
+| the refusal's cause in the advice             | the advice-names-the-cause row                                                         |
+| the refusal reading element and message       | the identity-less refusal row                                                          |
+| separators normalised on POSIX                | the backslash-at-the-prefix row                                                        |
+| the rest of a path kept verbatim              | the backslash row                                                                      |
 
 - [x] `npm run validate` green on the C5 code, `57b4d14`: 500 s, exit 0, 3,958 eess-ts tests, 102
       nonvacuity fixtures fired. Earlier runs, in order:

@@ -515,7 +515,7 @@ producer. The dialect already has the producer: `assertEnabled`
 its own `ruleId`, `bypassFilters` and remedy, and today only two of the five
 presets call it (`packages/ts/src/presets/agent-guardrails.ts:213`,
 `packages/ts/src/presets/data-layer.ts:145`). So: delete the kernel constructor
-and its `/internal` export (`packages/core/src/internal.ts:50`), route all five
+and its `/internal` export (`packages/core/src/internal.ts:52`), route all five
 presets through `assertEnabled` from `deliver()`, and key the preset fixtures on
 the id it already stamps. The kernel's generic finding — for a receipt with no
 declaration and zero examined — is **new**, gets its own stable `ruleId`, and

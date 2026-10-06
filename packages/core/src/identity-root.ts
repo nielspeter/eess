@@ -235,14 +235,16 @@ function packageName(manifestPath: string): string | undefined {
  * that subject stays unportable and fails closed rather than aliasing.
  */
 export function portableTokens(subject: string, repo: NamedRepository): string {
-  const root = normalizeSeparators(repo.root)
+  // Separators are normalised only where `\\` is one. On POSIX a backslash is part of a file name,
+  // so `repo\\src/a.ts` and `repo/src/a.ts` are different files and must not share a form.
+  const separators = path.sep === '\\' ? normalizeSeparators : (value: string): string => value
+  const root = separators(repo.root)
   const prefix = root.endsWith('/') ? root : root + '/'
   return subject
     .split('::')
     .map((token) =>
-      // The prefix is matched on a separator-normalised copy, so a Windows root matches; the rest of
-      // the token is kept verbatim, so `src\a.ts` and `src/a.ts` — two files on POSIX — stay apart.
-      normalizeSeparators(token.slice(0, prefix.length)) === prefix
+      // The rest of the token is kept verbatim: only the root is replaced.
+      separators(token.slice(0, prefix.length)) === prefix
         ? `<root:${repo.name}>/${token.slice(prefix.length)}`
         : token,
     )

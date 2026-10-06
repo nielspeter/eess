@@ -121,20 +121,22 @@ function portableSubject(v: ArchViolation, repo: NamedRepository | undefined): s
 }
 
 /**
- * Whether a deferred warning's `accepted` list holds this finding: its raw subject, which is what a
- * list written before the fix holds, or its portable form (bug 0389). The entry itself is never
- * rewritten: scrubbing the accepted side let a raw list written for one file match another.
- */
-/**
- * Whether a finding's raw subject already spells the portable syntax (spike 0393). An entry for such
- * a finding would be indistinguishable from another finding's portable form, so a rule that has one
- * gets no portable matching and is escalated, like an unidentifiable collision.
+ * Whether a finding's raw subject (identity, or element and message) already spells the portable
+ * syntax (spike 0393). An entry for such a finding would be indistinguishable from another finding's
+ * portable form, so a rule that has one gets no portable matching: it compares raw subjects, exactly
+ * as `main` did. Read before exclusions, like the collision guard.
  */
 function spellsPortableSyntax(violations: readonly ArchViolation[]): boolean {
   return violations.some((v) => subjectOf(v).includes(PORTABLE_MARKER))
 }
 
 const PORTABLE_MARKER = '<root:'
+
+/**
+ * Whether a deferred warning's `accepted` list holds this finding: its raw subject, which is what a
+ * list written before the fix holds, or its portable form (bug 0389). The entry itself is never
+ * rewritten: scrubbing the accepted side let a raw list written for one file match another.
+ */
 
 function isAccepted(
   accepted: readonly string[],
@@ -150,13 +152,16 @@ function deferredWarningMessage(
   cause: 'collision' | 'portable-syntax' | undefined,
   acceptedCount: number,
   subjects: readonly string[],
+  spelling: readonly string[] = [],
 ): string {
   if (cause === 'portable-syntax') {
     return (
-      `"${name}" is a deferred warning, but a finding's subject contains \`${PORTABLE_MARKER}\`, ` +
-      `the syntax a portable \`accepted\` entry is written in, so an entry for it could not be told ` +
-      `apart from another finding's portable form. Every finding here is escalated to error until ` +
-      `that producer's identity no longer contains \`${PORTABLE_MARKER}\`.`
+      `"${name}" is a deferred warning, and portable matching is off for it: these findings' ` +
+      `subjects (identity, or element and message) contain \`${PORTABLE_MARKER}\`, the syntax a ` +
+      `portable \`accepted\` entry is written in, so an entry for one could not be told apart from ` +
+      `another finding's portable form: ${spelling.join(', ')}. Entries are compared by raw subject ` +
+      `only until no subject contains \`${PORTABLE_MARKER}\`; change that identity, or give the ` +
+      `finding one. Not in the list: ${subjects.join(', ')}.`
     )
   }
   if (cause === 'collision') {
@@ -913,9 +918,13 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     // own doc comment for why checking post-repair identities would miss
     // exactly the case this exists to catch. Only computed when it can matter.
     const deferred = sev === 'warn' && this._acceptedWarnings !== undefined
-    const unsafe = deferred && (hasIdentityCollision(raw) || spellsPortableSyntax(raw))
-    // One repository per run, looked up once rather than per finding.
-    const repo = deferred && !unsafe ? repositoryOf(this.getProject()) : undefined
+    const unsafe = deferred && hasIdentityCollision(raw)
+    // One repository per run, looked up once rather than per finding; none when a subject already
+    // spells the portable syntax, so that rule matches raw subjects only (spike 0393).
+    const repo =
+      deferred && !unsafe && !spellsPortableSyntax(raw)
+        ? repositoryOf(this.getProject())
+        : undefined
     return collectResult(
       filtered.map((v) => ({
         ...v,
@@ -994,16 +1003,14 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     if (breaching.length === 0) return ''
     const described = this.describeRule()
     const raw = this.collectWithAssertionGuard()
-    const repo = repositoryOf(this.getProject())
+    const refused = spellsPortableSyntax(raw)
+    const repo = refused ? undefined : repositoryOf(this.getProject())
     return deferredWarningMessage(
       described.id || described.rule || this.constructor.name,
-      spellsPortableSyntax(raw)
-        ? 'portable-syntax'
-        : hasIdentityCollision(raw)
-          ? 'collision'
-          : undefined,
+      hasIdentityCollision(raw) ? 'collision' : refused ? 'portable-syntax' : undefined,
       this._acceptedWarnings.length,
       breaching.map((v) => portableSubject(v, repo)),
+      raw.map((v) => subjectOf(v)).filter((subject) => subject.includes(PORTABLE_MARKER)),
     )
   }
 

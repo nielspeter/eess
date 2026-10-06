@@ -79,7 +79,7 @@ declaration a reader writes the function's comment on.
 an instance method of one name, an object literal's methods, cast-wrapped arrows — a new parameter
 finding in an earlier function takes the identity a baseline accepted in a later one: measured by the
 enforcement review on five shapes, which both floor presets collect. That is the documented residual of
-shared scopes (`packages/core/src/violation.ts:295`), and every rule that reports more carries it; the
+shared scopes (`packages/core/src/violation.ts:310`), and every rule that reports more carries it; the
 changeset says so and asks for a review before regenerating. Emitting every function's new reach after
 every function's old one would change how all the function conditions order their findings, and is not
 done here.

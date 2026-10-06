@@ -1,7 +1,8 @@
 # Spike 0393: can a portable syntax be one no producer can spell?
 
 Measured 2026-10-06 for [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md),
-at the maintainer's request ("spike it first"), after enforcement review of
+at the maintainer's request (they chose the option "Spike it first" when asked), after
+enforcement review of
 [spike 0392](./0392-what-makes-an-accepted-entry-portable.md)'s C5 build found a second way an entry
 matches a finding `main` reports.
 
@@ -40,14 +41,24 @@ accepted where `main` reports it. Is there a portable syntax that no raw subject
 
 ## Decision
 
-**A, 2026-10-06.** Asked to choose, the maintainer replied that this should not need a decision when a
-spike could settle it. The spike's finding is that no syntax is unspellable and that refusing the
-marker closes the case for every list written from now on, so the recommended option was taken and
-reported, to be overruled if wrong. Built in PR #181 and pinned by tests, with the remaining window
-pinned as a known residual.
+**A, taken 2026-10-06 by the coordinating agent, on the maintainer's instruction.** Asked to choose
+between A and B, the maintainer answered "and this cannot be decide by investatgion or a spike" (sic),
+which the coordinator read as: a question a spike can settle should not come back to them. The coordinator took the
+recommended option and reported it, open to being overruled.
+
+**As built** (bug 0389, PR #181): a rule with a subject containing `<root:` compares raw subjects
+only, exactly as on `main`, and its advice names the subjects. A first build (`bcfe457`) escalated
+every finding of such a rule instead; review measured that as stricter than option A and than
+`main`, and it was narrowed.
+
+**What A does not close.** The findings above say "every list written from now on". That is too
+strong: an entry kept for a literal finding still equals another finding's portable form once the
+literal finding is fixed, whenever the entry was written. Bug 0389 records it as a residual, and a
+test pins it.
 
 ## Recommendation
 
 **A.** It closes the case for every list written from now on, at the cost of portability only for an
 adopter whose own producer spells `<root:`, and leaves a window that needs a pre-release list holding
-a string identical to another finding's portable form. The decision is the maintainer's.
+a string identical to another finding's portable form. (Recommendation as written before the
+decision; see Decision for who took it.)

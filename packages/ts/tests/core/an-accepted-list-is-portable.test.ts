@@ -189,6 +189,12 @@ describe('bug 0389: a portable entry never accepts a different finding (spike 03
     expect(portableTokens('/r/src/a.ts::m', repo)).toBe('<root:acme>/src/a.ts::m')
   })
 
+  it('a backslash at the root prefix is part of a file name, not a separator, on POSIX', () => {
+    if (path.sep === '\\') return
+    const repo = { root: '/r', name: 'acme' }
+    expect(portableTokens('/r\\src/a.ts::m', repo)).toBe('/r\\src/a.ts::m')
+  })
+
   it('the builder replaces whole tokens: a path that spells the root again keeps it', () => {
     const repo = path.join(layout({ repo: ['gitdir', 'acme'] }), 'repo')
     const pasted = pastedFrom(rule(projectIn(repo, `src${repo}/a.ts`)))
@@ -248,12 +254,35 @@ describe('bug 0389: a subject that already spells the portable syntax (spike 039
     identity: portable,
   }
 
-  it('escalates every finding of the rule and names the cause', () => {
-    const builder = new ProjectBuilder(p, [literal, real!])
-    expect(severities(builder, [portable])).toEqual(['error', 'error'])
-    expect(builder.asSeverity('warn', { accepted: [portable] }).deferredWarningAdvice()).toContain(
-      '<root:',
-    )
+  it('turns portable matching off for the rule, which then judges exactly as main did', () => {
+    // The literal finding matches its entry raw, as on `main`; the real one is not matched through
+    // its portable form.
+    expect(severities(new ProjectBuilder(p, [literal, real!]), [portable])).toEqual([
+      'warn',
+      'error',
+    ])
+  })
+
+  it('names the cause and the subject that spells the syntax', () => {
+    const advice = new ProjectBuilder(p, [literal, real!])
+      .asSeverity('warn', { accepted: [portable] })
+      .deferredWarningAdvice()
+    expect(advice).toContain('portable matching is off')
+    expect(advice).toContain(portable)
+  })
+
+  it('refuses a subject without an identity too: element and message spell it', () => {
+    const viaMessage: ArchViolation = {
+      ...real!,
+      file: path.join(repo, 'src/other.ts'),
+      identity: undefined,
+      element: 'x',
+      message: portable,
+    }
+    expect(severities(new ProjectBuilder(p, [viaMessage, real!]), [portable])).toEqual([
+      'error',
+      'error',
+    ])
   })
 
   it('KNOWN RESIDUAL — once the literal finding is gone, an entry written for it matches the real one', () => {
