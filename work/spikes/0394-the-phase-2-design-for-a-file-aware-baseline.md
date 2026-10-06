@@ -28,44 +28,52 @@ Read from the code on `main` at `b1335f5`.
 
 | #   | consumer                                            | where                                               | keyed by today     |
 | --- | --------------------------------------------------- | --------------------------------------------------- | ------------------ |
-| 1   | `isKnown`, the matcher                              | `Baseline.isKnown`                                  | hash               |
-| 2   | `hasEntry`, read by both diagnostics below          | `Baseline.hasEntry`                                 | hash               |
-| 3   | the accepted-measurement map, a metric's ceiling    | `acceptedMeasurements`, `isKnown`                   | hash               |
-| 4   | the stale-measurement diagnosis                     | `acceptedMeasurements.get` in `Baseline`            | hash               |
-| 5   | the description-change diagnosis (`renamedRuleFor`) | `knownSubjects`, `baseline-diagnostics.ts`          | subject hash       |
-| 6   | the "matched nothing" diagnosis                     | `matched` count from `hasEntry`, `knownHashes.size` | hash               |
-| 7   | the regenerate summary (`+N, −N`)                   | `generateBaseline`, `readPriorHashes`               | hash               |
-| 8   | loading                                             | `withBaseline`                                      | hash, subject hash |
+| C1  | `isKnown`, the matcher                              | `Baseline.isKnown`                                  | hash               |
+| C2  | `hasEntry`, read by both diagnostics below          | `Baseline.hasEntry`                                 | hash               |
+| C3  | the accepted-measurement map, a metric's ceiling    | `acceptedMeasurements`, `isKnown`                   | hash               |
+| C4  | the stale-measurement diagnosis                     | `acceptedMeasurements.get` in `Baseline`            | hash               |
+| C5  | the description-change diagnosis (`renamedRuleFor`) | `knownSubjects`, `baseline-diagnostics.ts`          | subject hash       |
+| C6  | the "matched nothing" diagnosis                     | `matched` count from `hasEntry`, `knownHashes.size` | hash               |
+| C7  | the regenerate summary (`+N, −N`)                   | `generateBaseline`, `readPriorHashes`               | hash               |
+| C8  | loading                                             | `withBaseline`                                      | hash, subject hash |
+| C8a | the public `size` getter                            | `Baseline.size`                                     | hash count         |
 
 **Kernel baseline** (`packages/core/src/baseline.ts`), used by any dialect that baselines through
 the kernel:
 
 | #   | consumer                                    | keyed by today |
 | --- | ------------------------------------------- | -------------- |
-| 9   | `isKnown`                                   | hash           |
-| 10  | the accepted-measurement map                | hash           |
-| 11  | `generateBaseline` (no summary, no version) | hash           |
+| C9  | `isKnown`                                   | hash           |
+| C10 | the accepted-measurement map                | hash           |
+| C11 | `generateBaseline` (no summary, no version) | hash           |
 
 **Grouping and its readers:**
 
-| #   | consumer                                                               | keyed by today    |
-| --- | ---------------------------------------------------------------------- | ----------------- |
-| 12  | `groupKeyOf` in `disambiguateIdentities` (eess-ts `applyFilters` only) | `rule::subject`   |
-| 13  | `hasIdentityCollision`, the deferred-warning collision guard           | `rule::subject`   |
-| 14  | `identityCollisions()`, the disclosure channel                         | `rule::subject`   |
-| 15  | the kernel `applyFilters`, which sibling dialects use                  | no disambiguation |
+| #    | consumer                                                               | keyed by today    |
+| ---- | ---------------------------------------------------------------------- | ----------------- |
+| C12  | `groupKeyOf` in `disambiguateIdentities` (eess-ts `applyFilters` only) | `rule::subject`   |
+| C12a | the suffix reservation (`taken`) inside `disambiguateIdentities`       | `rule::candidate` |
+| C13  | `hasIdentityCollision`, the deferred-warning collision guard           | `rule::subject`   |
+| C14  | `identityCollisions()`, the disclosure channel                         | `rule::subject`   |
+| C15  | the kernel `applyFilters`, which sibling dialects use                  | no disambiguation |
 
 **Above the baseline, keyed by subject:**
 
 | #   | consumer                                                       | note                                                              |
 | --- | -------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 16  | a deferred warning's `accepted` list (bug 0389's `isAccepted`) | raw or portable subject; a subject without a path carries no file |
-| 17  | `check-all`, the CLI `check`, both `execute-rule` paths        | call `filterNew`; inherit 1                                       |
-| 18  | the CLI `baseline` command                                     | prints 7                                                          |
-| 19  | plan 0346's Phase 3 migration join                             | not built; joins on what 1 defines                                |
+| C16 | a deferred warning's `accepted` list (bug 0389's `isAccepted`) | raw or portable subject; a subject without a path carries no file |
+| C17 | `check-all`, the CLI `check`, both `execute-rule` paths        | call `filterNew`; inherit 1                                       |
+| C18 | the CLI `baseline` command                                     | prints 7                                                          |
+| C19 | plan 0346's Phase 3 migration join                             | not built; joins on what 1 defines                                |
 
 Two facts this list makes plain:
 
+- **C13 protects C16, it does not follow grouping.** The collision guard exists because an
+  `accepted` list is keyed by subject, which carries no file (its docstring says so). This census
+  first filed it under "follows per-file grouping"; enforcement review measured that keying it per
+  file lets copies in new files arrive already accepted (Review, below). Also missed at first: the
+  suffix reservation inside `disambiguateIdentities` (C12a), and the public `Baseline.size` (C8a),
+  which undercounts once two entries can share a hash.
 - **An `accepted` list has bug 0388's hole too.** A subject without a path (`element::message`)
   carries no file, so an entry for it forgives the same finding in another file, raw or portable.
   Bug 0389 did not change that; it is the same class as 0388 and belongs to this phase.
@@ -82,46 +90,52 @@ realpath is the worktree's `packages/core`, and its built `dist` carries the pat
 - `SPIKE_VARIANT=main` — today's behaviour.
 - `SPIKE_VARIANT=E0` — the matcher checks the file each entry records, in both baselines; an entry
   with no recorded file matches nothing; grouping unchanged.
-- `SPIKE_VARIANT=EP` — E0, plus per-file grouping (`groupKeyOf` and `hasIdentityCollision` key on
-  `rule::file::subject`), plus every census item re-keyed by `(hash, file)`: the accepted-measurement
-  maps (3, 10), the regenerate summary (7) and the description-change diagnosis (5).
+- `SPIKE_VARIANT=EP` — E0, plus per-file grouping (C12) and a per-file collision guard (C13), plus the
+  accepted-measurement maps keyed by `(hash, file)` (C3, C10).
+- `SPIKE_VARIANT=EP2` — added after review: EP with the collision guard left as on `main` and the
+  suffix reservation keyed like the group key.
+- **In every non-`main` variant**, not only EP, the description-change diagnosis (C5) is keyed by
+  `(subject, file)` and the regenerate summary (C7) by `(hash, file)`. So E0's cells for rows R6 and
+  R12 include those two re-keys, and no run measured either without them.
+- Not re-keyed in any variant: the stale-measurement diagnosis (C4), the "matched nothing" count (C6)
+  and `Baseline.size` (C8a). The recommendation includes them; they are reasoned, not measured.
 - `SPIKE_NOROOT=off|none|rediscover` — for a baseline that records no root: skip the file check,
   match nothing, or compare against the root rediscovered at load.
 
-Both E variants also key the description-change diagnosis by `(subject, file)`, so its misattribution
-is measured separately from grouping. The harness (Appendix B) runs each row through the public
-baseline API on a real repository on disk (a `.git` directory and a named `package.json`), so root
-discovery behaves as it does for an adopter. Each run of the harness took about 2 seconds.
+The harness (Appendix B) runs each row through the public baseline API on a real repository on disk
+(a `.git` directory and a named `package.json`). Runs were not timed individually. Rows R4, R5 and R7
+use hand-built findings, which `filterNew` receives without `disambiguateIdentities`; real eess-ts
+producers would have suffixed R4's two findings apart, though the kernel's `applyFilters` (C15)
+would not.
 
 ## Results
 
 | #   | row                                                               | `main`                                 | E0                                        | E+ (`EP`)                |
 | --- | ----------------------------------------------------------------- | -------------------------------------- | ----------------------------------------- | ------------------------ |
-| 1   | six cross-file cases (fix `a`, the same finding in `b`)           | **0 of 6** reported                    | 6 of 6                                    | 6 of 6                   |
-| 2   | unchanged code                                                    | nothing                                | nothing                                   | nothing                  |
-| 3   | fix `a`, `b` was reviewed                                         | nothing                                | **`b` reported** + a note                 | nothing                  |
-| 3   | add the same finding in an earlier-sorted file                    | **`b` reported, the new one forgiven** | all three reported + a note               | the new one only         |
-| 4   | a metric ceiling that worsened, 3 → 9, identity without the file  | **forgiven**                           | **forgiven**                              | reported                 |
-| 5   | a finding with an empty `file` against a file's entry             | **forgiven**                           | reported                                  | reported                 |
-| 6   | regenerate summary, `a` stays and `b` duplicates it               | `+0`                                   | `+1`                                      | `+1`                     |
-| 7   | an entry with no recorded file                                    | **forgives `b`**                       | reports `a` and `b`                       | reports `a` and `b`      |
-| 8   | no recorded root, `off`                                           | —                                      | forgives `b` (as `main`)                  | forgives `b` (as `main`) |
-| 8   | no recorded root, `none`                                          | —                                      | reports everything, even unchanged code   | same                     |
-| 8   | no recorded root, `rediscover`                                    | —                                      | reports `b`, unchanged code clean         | same                     |
-| 9   | a renamed file: a plain, an identity-bearing and a metric finding | all forgiven                           | all reported                              | all reported             |
-| 12  | the note on the 0388 case                                         | none                                   | "matched nothing", advising to regenerate | same                     |
-| 13  | an `accepted` list, cross-file                                    | **forgiven**                           | **forgiven**                              | **forgiven**             |
-| 14  | the kernel baseline, cross-file                                   | **forgiven**                           | reported                                  | reported                 |
+| R1  | six cross-file cases (fix `a`, the same finding in `b`)           | **0 of 6** reported                    | 6 of 6                                    | 6 of 6                   |
+| R2  | unchanged code                                                    | nothing                                | nothing                                   | nothing                  |
+| R3  | fix `a`, `b` was reviewed                                         | nothing                                | **`b` reported** + a note                 | nothing                  |
+| R4  | add the same finding in an earlier-sorted file                    | **`b` reported, the new one forgiven** | all three reported + a note               | the new one only         |
+| R5  | a metric ceiling that worsened, 3 → 9, identity without the file  | **forgiven**                           | **forgiven** (hand-built; see Method)     | reported                 |
+| R6  | a finding with an empty `file` against a file's entry             | **forgiven**                           | reported                                  | reported                 |
+| R7  | regenerate summary, `a` stays and `b` duplicates it               | `+0`                                   | `+1`                                      | `+1`                     |
+| R8  | an entry with no recorded file                                    | **forgives `b`**                       | reports `a` and `b`                       | reports `a` and `b`      |
+| R9  | no recorded root, `off`                                           | —                                      | forgives `b` (as `main`)                  | forgives `b` (as `main`) |
+| R10 | no recorded root, `none`                                          | —                                      | reports everything, even unchanged code   | same                     |
+| R11 | no recorded root, `rediscover` (baseline at the repository root)  | —                                      | reports `b`, unchanged code clean         | same                     |
+| R12 | a renamed file: a plain, an identity-bearing and a metric finding | all forgiven                           | all reported                              | all reported             |
+| R13 | the note on the 0388 case                                         | none                                   | "matched nothing", advising to regenerate | same                     |
+| R14 | an `accepted` list, cross-file                                    | **forgiven**                           | **forgiven**                              | **forgiven**             |
+| R15 | the kernel baseline, cross-file                                   | **forgiven**                           | reported                                  | reported                 |
 
-Rows 4, 5 and 7 use hand-built findings (no built-in producer reaches them); the rest use real
-producers. In row 4, `main` and E0 forgive because two hand-built findings share a hash that real
-producers would have suffixed apart; E+'s pair-keyed ceiling map reports it either way. Row 12's note is
-the "matched nothing" diagnosis (census 6), which now fires instead of the description-change note:
-its listed causes are upgrades, and its remedy is to regenerate, which forgives `b`.
+R13's note text comes from Appendix D (the harness logs only its first 50 characters). R14 shows
+`warn` for a list that holds the subject; an unaccepted subject escalates to `error`
+(`packages/ts/src/core/terminal-builder.ts:437-439`), but no control row was run.
 
-**The diagnosis.** A prototype classifier (Appendix C) for a finding whose hash an entry holds, but
-for another file, decides by three facts the baseline has: whether that entry's file still has its
-finding in this run, and whether that file still exists on disk.
+**The diagnosis.** A prototype classifier (Appendix C), **run under `EP`**, for a finding whose hash an
+entry holds but for another file, decides by whether that entry's file still has its finding in this
+run, and whether the file still exists on disk. Its "copied" branch depends on per-file grouping:
+under `main`'s grouping the copy is suffixed `#1` and reads as new.
 
 | case                             | the prototype says                   |
 | -------------------------------- | ------------------------------------ |
@@ -129,48 +143,102 @@ finding in this run, and whether that file still exists on disk.
 | `a` stays, `b` added (copied)    | "copied (still in `src/a/x.ts`)"     |
 | `a` renamed to `z`               | "moved or renamed from `src/a/x.ts`" |
 
+## Review, and EP2
+
+Enforcement and method review (2026-10-06) reproduced every Results cell, and found:
+
+- **EP is greener than `main` for an `accepted` list** (Critical). Keying the collision guard (C13) per
+  file let a finding copied into a new file arrive already accepted: with a list built from `a`,
+  `a` staying and `b` copying it gave `a:warn, b:warn` under EP against `a:error, b:error` on `main`
+  and E0. The suite pins it: under EP, `deferred-warning.test.ts` ·
+  `it('the swap, reproduced with a colliding subject: a genuinely new finding is escalated, not silently absorbed')`
+  and `it('diagnose() names the collision, not "not accepted" — a different, more urgent cause')` fail.
+- **EP produces duplicate identities** inside one file, because the suffix reservation (C12a) is still
+  keyed without the file: `[X, X, X#1]` gave `X, X#1, X#1`.
+- **`rediscover` is not strictly fail-closed.** If a rediscovered root differs from the author's (a
+  nested `.git`, or a Docker build that stops at a package's `package.json`), a different file can
+  match an entry (no greener than `main`), and a kernel-written baseline read from a subdirectory
+  false-reds unchanged code. R11 put the baseline at the repository root, the one place both path
+  conventions agree.
+- **The attribution prototype gives a false cause** on two of five harder shapes (a clean new file at
+  a moved file's old path; two copies of which one moved), states two causes for one finding in a
+  third, and in a partial run (`--changed`, `.excluding()`) claims "fixed there" about a file it did
+  not examine. It has to read the findings before filters, and say when a file was not examined.
+
+**EP2** fixes the first two. Measured on the full eess-ts suite (3,970 tests, about 40 s per variant):
+
+| variant | failing (`main` fails 18, environmental in this worktree) | failing only under the variant |
+| ------- | --------------------------------------------------------- | ------------------------------ |
+| EP      | 27                                                        | 9                              |
+| EP2     | 25                                                        | 7                              |
+
+EP2's seven, and why:
+
+- three expected: 0159's KNOWN GAP test flips (the fix landing), and `identity-uniqueness.test.ts`'s
+  two `beImported` rows pinned the cross-file `#1` suffix that per-file grouping removes;
+- two expected: `deferred-warning.test.ts` · `it('two same-named violations across files collide onto bare + "#1"')`
+  and `identity-uniqueness.test.ts` · `it('a generated suffix never lands on a subject a producer already emits')`
+  both use fixtures across files, which no longer collide. Measured directly, the reservation holds
+  within one file under EP2 (`[X, X, X#1]` gives `X, X#2, X#1`, as on `main`);
+- two that depend on the no-root decision: `baseline-compat.test.ts` ·
+  `it('stays green when its entries match, despite the older format')` and
+  `it('an explicit root still overrides the recorded one')`.
+
+The two `deferred-warning` tests that EP broke pass under EP2.
+
 ## What this answers
 
-1. **Grouping: per file (E+).** E0 is never more lenient than `main`, but it false-reds both edit rows
-   and keeps a metric ceiling keyed by hash. E+ is exact on both edit rows, and every row where
-   per-file grouping could be greener (4, 6, and 12 before the diagnosis change) closes once that
-   census item is keyed by `(hash, file)`. No row measured is greener under E+ than under `main`.
-2. **Every consumer keyed by hash alone:** the census above. Items 1–7 and 9–11 change; 12–14 follow
-   per-file grouping; 16 is not a hash consumer and needs its own change (below); 15 is plan 0188's.
-3. **A baseline with no recorded root: rediscover.** `off` keeps bug 0388 open for those baselines
-   (`main`'s behaviour), `none` reports even unchanged code, and `rediscover` is exact when the
-   rediscovered root is the author's and fails closed when it is not. This is the maintainer's call,
-   because it decides what an old baseline costs to keep.
-4. **The diagnosis:** a finding matched by hash in another file gets its own attribution with the
-   three causes above, each with its remedy (fix this one; re-accept the copy after review;
-   regenerate and review the diff for a move). The "matched nothing" diagnosis must not count such a
-   finding as unmatched. Measured on three rows; untested on a file that both moved and changed.
-5. **Identity-bearing and metric findings that move file are reported again** (row 9), like plain
-   ones. That fails closed, at the cost of one re-accept per moved finding.
+1. **Grouping (recommended): per file, as EP2.** E0 is never more lenient than `main`, but false-reds
+   both edit rows (R3, R4). EP2 is exact on both and keeps the collision guard that protects
+   `accepted` lists. Enforcement review gave the argument that the baseline side cannot be greener
+   than `main` for a baseline written by the same version: within each group `main` forgives at most
+   `min(new, old)` findings by position, and per-file matching forgives the sum over files of
+   `min(new_f, old_f)`, which is never more. It does not carry over to `accepted`, which has no
+   counts and no files, which is why C13 stays.
+2. **Every consumer keyed by hash alone:** the census, with C8a and C12a added and C13 moved. Measured
+   re-keyed: C3, C5, C7, C10, C12, C12a. Reasoned, not measured: C4, C6, C8a.
+3. **A baseline with no recorded root (the maintainer's call):** `off` keeps bug 0388 open for those
+   baselines, `none` reports even unchanged code, `rediscover` is exact when the root agrees and,
+   when it does not, either false-reds or behaves as `main`. Not measured: a baseline in a
+   subdirectory, a v1 file, and `options.root` (whose test fails under every E variant).
+4. **The diagnosis (designed, partly measured):** a finding matched by hash in another file gets its
+   own attribution. The prototype is right on the three plain cases and wrong on two of five harder
+   ones; the build must read the pre-filter findings, state one cause per finding, and say when a
+   file was not examined. Its "copied" branch exists only under per-file grouping.
+5. **Identity-bearing and metric findings that move file are reported again** (R12), like plain ones.
 
-Two things this spike found that the Phase 2 build must also carry:
+Two more things the Phase 2 build must carry:
 
-- **An `accepted` list keeps bug 0388's hole** (row 13), under every variant. A subject without a
-  path carries no file. The advice should print a file-qualified form (`<root:NAME>/path::subject`),
-  matched alongside the raw subject, so new lists close the hole and lists written before keep
-  today's behaviour. Designed, not measured.
+- **An `accepted` list keeps bug 0388's hole** (R14), under every variant. New lists can close it with a
+  file-qualified advice form. A raw entry with no file cannot be checked against a file at all, so
+  lists written before keep the hole unless such entries are reported as needing to be regenerated
+  — a choice for the maintainer.
 - **Per-file grouping moves the entries today's code suffixed across files**, so it ships with plan
-  0346's Phase 3 migration, joined on `(old hash, recorded file)`.
+  0346's Phase 3 migration. **That contradicts plan 0346's split**, which says the Phase 2 build
+  ships before records 4 (Phase 1 and the migration). If EP2 is chosen, the Phase 2 build and the
+  migration have to ship together: records 3 and 4 merge, or the grouping part of 3 waits for 4.
 
 ## Recommendation, for the maintainer to decide
 
-**E+ with every census item re-keyed by `(hash, file)`, `rediscover` for a baseline with no recorded
-root, the new attribution, and a file-qualified `accepted` form**, built as one change. Not measured
-here: sibling dialects beyond the kernel baseline's matcher (they never disambiguate, plan 0188), a
-real `git worktree` and Windows paths.
+- **EP2**: per-file grouping, the collision guard unchanged, the suffix reservation per file, and
+  every census item re-keyed by `(hash, file)`.
+- **For a baseline with no recorded root:** `rediscover`, with its limits named above; or `none`, if
+  old baselines should be regenerated on upgrade.
+- **The attribution**, built from the pre-filter findings.
+- **For `accepted`:** a file-qualified advice form, and a decision on raw entries with no file.
+- **The split:** the Phase 2 build ships with the migration, so plan 0346's records 3 and 4 merge.
+
+Not measured: sibling dialects beyond the kernel matcher (they never disambiguate, plan 0188), a real
+`git worktree`, Windows paths, and the kernel baseline's separator and cwd dependence. Time box: one
+working day, kept (2026-10-06).
 
 ## Appendix A: the variant patch
 
-Applied to `main` at `b1335f5` in the spike worktree.
+Applied to `main` at `b1335f5` in the spike worktree; includes EP2.
 
 ```diff
 diff --git a/packages/core/src/baseline.ts b/packages/core/src/baseline.ts
-index 7a8811c..14d19e1 100644
+index 7a8811c..d49887a 100644
 --- a/packages/core/src/baseline.ts
 +++ b/packages/core/src/baseline.ts
 @@ -168,9 +168,22 @@ export function withBaseline(baselinePath: string): Baseline {
@@ -233,14 +301,14 @@ index 7a8811c..14d19e1 100644
      if (violation.measured === undefined) return this.knownHashes.has(hash)
 -    const acceptedMeasurement = this.accepted.get(hash)
 +    const acceptedMeasurement =
-+      process.env.SPIKE_VARIANT === 'EP' && this.spikeAcceptedByPair !== undefined
++      (process.env.SPIKE_VARIANT === 'EP' || process.env.SPIKE_VARIANT === 'EP2') && this.spikeAcceptedByPair !== undefined
 +        ? this.spikeAcceptedByPair.get(hash + '\u0000' + toRelativePath(violation.file, this.baselineDir))
 +        : this.accepted.get(hash)
      if (acceptedMeasurement === undefined) return false
      // Bug 0171: `<=` means nothing until both numbers count the same thing.
      if (!measurementComparable(acceptedMeasurement.unit, violation.measuredUnit)) return false
 diff --git a/packages/core/src/violation.ts b/packages/core/src/violation.ts
-index 4d46ede..5eaadba 100644
+index 4d46ede..074415c 100644
 --- a/packages/core/src/violation.ts
 +++ b/packages/core/src/violation.ts
 @@ -260,6 +260,8 @@ export function portableSubjectOf(violation: ArchViolation, root?: string): stri
@@ -248,10 +316,26 @@ index 4d46ede..5eaadba 100644
   */
  function groupKeyOf(violation: ArchViolation): string {
 +  // SPIKE 0394
-+  if (process.env.SPIKE_VARIANT === 'EP') return `${violation.rule}::${violation.file}::${subjectOf(violation)}`
++  if (process.env.SPIKE_VARIANT === 'EP' || process.env.SPIKE_VARIANT === 'EP2') return `${violation.rule}::${violation.file}::${subjectOf(violation)}`
    return `${violation.rule}::${subjectOf(violation)}`
  }
 
+@@ -417,11 +419,13 @@ export function disambiguateIdentities(violations: ArchViolation[]): ArchViolati
+     const subject = subjectOf(violation)
+     let suffix = occurrence - 1
+     let candidate = `${subject}#${String(suffix)}`
+-    while (taken.has(`${violation.rule}::${candidate}`)) {
++    // SPIKE 0394 (EP2): the reservation is keyed like the group key
++    const reserve = (c: string): string => process.env.SPIKE_VARIANT === 'EP2' ? `${violation.rule}::${violation.file}::${c}` : `${violation.rule}::${c}`
++    while (taken.has(reserve(candidate))) {
+       suffix += 1
+       candidate = `${subject}#${String(suffix)}`
+     }
+-    taken.add(`${violation.rule}::${candidate}`)
++    taken.add(reserve(candidate))
+     return { ...violation, identity: candidate }
+   })
+ }
 diff --git a/packages/ts/src/core/terminal-builder.ts b/packages/ts/src/core/terminal-builder.ts
 index fbed92a..b66acbc 100644
 --- a/packages/ts/src/core/terminal-builder.ts
@@ -292,7 +376,7 @@ index 1149b72..4fbf834 100644
 
  export function descriptionChangeFinding(
 diff --git a/packages/ts/src/helpers/baseline.ts b/packages/ts/src/helpers/baseline.ts
-index ca35e2d..02cd5b4 100644
+index ca35e2d..36a63c5 100644
 --- a/packages/ts/src/helpers/baseline.ts
 +++ b/packages/ts/src/helpers/baseline.ts
 @@ -343,6 +343,13 @@ export function withBaseline(baselinePath: string, options: BaselineOptions = {}
@@ -430,7 +514,7 @@ index ca35e2d..02cd5b4 100644
      // and call it a regression.
 -    const accepted = this.acceptedMeasurements.get(hash)
 +    const accepted =
-+      spikeVariant() === 'EP' && this.spike !== undefined
++      (spikeVariant() === 'EP' || spikeVariant() === 'EP2') && this.spike !== undefined
 +        ? this.spike.acceptedByPair.get(hash + '\u0000' + this.spikeFile(violation))
 +        : this.acceptedMeasurements.get(hash)
      if (violation.measured === undefined || accepted === undefined) return true
@@ -890,5 +974,62 @@ it('classify', () => {
     )
     rmSync(r, { recursive: true, force: true })
   }
+})
+```
+
+## Appendix D: the note harness
+
+The source of R13's note text, run under `SPIKE_VARIANT=E0` and `EP`.
+
+```ts
+import { it } from 'vitest'
+import { appendFileSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { Project } from 'ts-morph'
+import { functions } from '../../src/index.js'
+import { generateBaseline, withBaseline } from '../../src/helpers/baseline.js'
+it('meta', () => {
+  const r = mkdtempSync(path.join(tmpdir(), 'm-'))
+  mkdirSync(path.join(r, '.git'))
+  writeFileSync(path.join(r, 'package.json'), '{"name":"acme"}')
+  const p = (files: Record<string, string>) => {
+    const t = new Project({ useInMemoryFileSystem: true })
+    for (const [f, c] of Object.entries(files)) t.createSourceFile(path.join(r, f), c)
+    return {
+      tsConfigPath: path.join(r, 'tsconfig.json'),
+      _project: t,
+      getSourceFiles: () => t.getSourceFiles(),
+    }
+  }
+  const run = (files: Record<string, string>) =>
+    functions(p(files))
+      .that()
+      .resideInFolder('**/src/**')
+      .should()
+      .beExported()
+      .rule({ id: 'r' })
+      .violations()
+  const f = path.join(r, 'b.json')
+  generateBaseline(
+    [
+      ...run({
+        'src/a/x.ts': 'function handle() {}\n',
+        'src/b/x.ts': 'export function handle() {}\n',
+      }),
+    ],
+    f,
+  )
+  const fresh = withBaseline(f).filterNew([
+    ...run({
+      'src/a/x.ts': 'export function handle() {}\n',
+      'src/b/x.ts': 'function handle() {}\n',
+    }),
+  ])
+  for (const v of fresh.filter((x) => x.file === ''))
+    appendFileSync(
+      process.env.PROBE_OUT!,
+      `${process.env.SPIKE_VARIANT}: ${v.message.replace(/\n/g, ' / ').slice(0, 700)}\n\n`,
+    )
 })
 ```
