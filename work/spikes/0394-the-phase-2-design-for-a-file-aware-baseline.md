@@ -290,7 +290,8 @@ carry this as a blocker.
      - **The build measures it first.** If it forgives, the kernel baseline also records its root
        and gets decision 2, and the break table below changes.
    - **A kernel-written file read by eess-ts.** It records no root, so decision 2 applies. The
-     subdirectory false red that review measured came from this reader, and decision 2 replaces it
+     subdirectory false red that review measured came from this reader, by review's account (its
+     probe is not kept), and decision 2 replaces it
      with one finding.
      - **What `--migrate` must do with it.** Its paths are relative to the baseline's directory,
        not to a root, so `--migrate` rebases them from there. If eess-ts and kernel hashes do not
@@ -303,8 +304,10 @@ carry this as a blocker.
      - The migration's PR owns the test.
    - **A rootless file read with an explicit `options.root`.** The build plan decides this, from a
      measurement. Until then, decision 2 applies.
+   - **A recorded root overridden by an explicit `options.root`**, a separate case: the file check,
+     not decision 2, makes it fail.
      - `baseline-compat.test.ts` · `it('an explicit root still overrides the recorded one')` fails
-       under EP2. That failure is fail-closed and correct.
+       under EP2 (measured). That failure is fail-closed and correct.
      - Its first assertion assumes a path-free identity "matches either way". The build rewrites
        that assertion to the rule it adopts, and must not weaken the assertion to make it pass.
 3. **The split: separate PRs on an integration branch, `release/0346-phase2`.**
@@ -315,7 +318,8 @@ carry this as a blocker.
      no branch, so PRs into it run the full gate chain.
    - No state of `main` holds one without the other, so no release cut from `main` can split them.
      `publish.yml` publishes any `v*` tag from any branch, so no tag is cut from the integration
-     branch. `main` stays releasable for unrelated fixes meanwhile.
+     branch. That rule is manual: nothing gates it. The build may gate it cheaply, by having
+     `publish.yml` refuse a tag whose commit is not an ancestor of `origin/main`. `main` stays releasable for unrelated fixes meanwhile.
    - Between the two merges, the branch's no-root finding and R13's note name a `--migrate` that
      the second PR adds. The Phase 2 build's ledger records that as `deferred→` the migration
      record, not as done.
@@ -349,24 +353,24 @@ Each Phase 2 mechanism ships with a test that goes red when it is broken. Harnes
 are ported into the eess-ts suite. A sabotage run shows each row red with its mechanism reverted;
 CI shows only that they pass. Census items C2, C8 and C11 have no row of their own: C2 (`hasEntry`)
 is read only through C5 and C6, C8 (loading) through every row, and C11 (kernel
-`generateBaseline`) through R1's kernel half and R7.
+`generateBaseline`) through R1's kernel half.
 
-| mechanism                             | the test that must go red                                                                                                                                                                                                                                                                       |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the file check (C1, C9)               | R1's six cross-file cases, in both baselines                                                                                                                                                                                                                                                    |
-| the per-file reservation (C12a)       | `it('a generated suffix never lands on a subject a producer already emits')`, rewritten to three colliding findings in one file; `taken.add` deleted                                                                                                                                            |
-| per-file grouping (C12)               | R3 and R4: `b` stays forgiven when `a` is fixed, and only the new finding is reported                                                                                                                                                                                                           |
-| per-file ceilings (C3, C10)           | R5's shape, with the map reverted to hash keys                                                                                                                                                                                                                                                  |
-| the stale-measurement diagnosis (C4)  | `a`'s own change of unit is reported stale, and `b`, which shares its hash, is not                                                                                                                                                                                                              |
-| the description-change diagnosis (C5) | the same subject in two files, one renamed: only that one is diagnosed                                                                                                                                                                                                                          |
-| the "matched nothing" note (C6)       | R13's shape: that note does not fire; with every entry stale and no hash hit anywhere, it does                                                                                                                                                                                                  |
-| the regenerate summary (C7)           | R7: `+1`, not `+0`                                                                                                                                                                                                                                                                              |
-| `Baseline.size` (C8a)                 | two entries sharing a hash count as two                                                                                                                                                                                                                                                         |
-| C14's subject                         | a same-file collision is reported with the subject it is grouped on                                                                                                                                                                                                                             |
-| the no-root rule                      | a rootless baseline, unchanged code: no entry matches, and exactly one `error` names `--migrate`; it survives `.excluding()` and `--changed`, `generateBaseline` does not record it, and two rootless baselines give two                                                                        |
-| the note on the 0388 case             | R13's shape: a note is present, names the recorded file and the current one, and neither lists "you upgraded" nor advises regenerating                                                                                                                                                          |
-| the attribution                       | on the three plain shapes an attribution is present; review's two false-cause shapes now give the true cause; each finding gets exactly one cause; under `--changed` a file that was not examined is called that, not "fixed"; each attribution's remedy, applied, clears the finding (ADR-009) |
-| C13, once spike 0395 decides          | named by spike 0395                                                                                                                                                                                                                                                                             |
+| mechanism                             | the test that must go red                                                                                                                                                                                                                                                                                         |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the file check (C1, C9)               | R1's six cross-file cases, in both baselines                                                                                                                                                                                                                                                                      |
+| the per-file reservation (C12a)       | `it('a generated suffix never lands on a subject a producer already emits')`, rewritten to three colliding findings in one file; `taken.add` deleted                                                                                                                                                              |
+| per-file grouping (C12)               | R3 and R4: `b` stays forgiven when `a` is fixed, and only the new finding is reported                                                                                                                                                                                                                             |
+| per-file ceilings (C3, C10)           | R5's shape, with the map reverted to hash keys                                                                                                                                                                                                                                                                    |
+| the stale-measurement diagnosis (C4)  | `a`'s own change of unit is reported stale, and `b`, which shares its hash, is not                                                                                                                                                                                                                                |
+| the description-change diagnosis (C5) | the same subject in two files, one renamed: only that one is diagnosed                                                                                                                                                                                                                                            |
+| the "matched nothing" note (C6)       | R13's shape: that note does not fire; with every entry stale and no hash hit anywhere, it does                                                                                                                                                                                                                    |
+| the regenerate summary (C7)           | R7: `+1`, not `+0`                                                                                                                                                                                                                                                                                                |
+| `Baseline.size` (C8a)                 | two entries sharing a hash count as two                                                                                                                                                                                                                                                                           |
+| C14's subject                         | a same-file collision is reported with the subject it is grouped on                                                                                                                                                                                                                                               |
+| the no-root rule                      | a rootless baseline, unchanged code, at least two entries: no entry matches, and exactly one `error` names `--migrate`; it survives `.excluding()` and `--changed`, `generateBaseline` does not record it, and two rootless baselines give two                                                                    |
+| the note on the 0388 case             | R13's shape: a note is present, names the recorded file and the current one, and neither lists "you upgraded" nor advises regenerating                                                                                                                                                                            |
+| the attribution                       | on the three plain shapes an attribution is present; review's two false-cause shapes now give the true cause; each finding gets exactly one cause; under `--changed` or `.excluding()` a file that was not examined is called that, not "fixed"; each attribution's remedy, applied, clears the finding (ADR-009) |
+| C13, once spike 0395 decides          | named by spike 0395                                                                                                                                                                                                                                                                                               |
 
 The build also rewrites three docstrings that EP2 makes false:
 
@@ -396,8 +400,10 @@ With the release train's other breaking changesets, the release reaches `RELEASI
 of three breaking changesets. It therefore carries a migration page covering `--migrate`, rootless
 baselines and `accepted`, which belongs to the migration's record. If spike 0395 keeps file-less
 entries from matching, the page also needs a recipe for editing rule source, since `accepted`
-lives there and `--migrate` cannot reach it. The README's `asSeverity('warn', { accepted })`
-section documents the spelling 0395 settles.
+lives there and `--migrate` cannot reach it. No README documents `accepted`
+today; only the `asSeverity` TSDoc does (`packages/ts/src/core/terminal-builder.ts:447`). The
+build updates that TSDoc with the spelling 0395 settles, and the migration page adds the README
+section.
 
 Not measured: sibling dialects beyond the kernel matcher (they never disambiguate, plan 0188), a real
 `git worktree`, Windows paths, and the kernel baseline's cwd dependence and root rediscovery (both

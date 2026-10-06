@@ -17,8 +17,8 @@
   0388 was found the same day, so the plan no longer claims that.)
 - **Effort:** Large — not one PR. Phase 1 changes eess-ts's match identity and needs a
   migration; Phase 2 adds a file check to both baselines' matchers, with its grouping and
-  the consumers it re-keys laid out first by the Phase 2 spike for a decision, a record of its own (spike 0390
-  measured the options but did not settle them); an ADR is written. **It is split into plans of about one PR each** — see
+  the consumers it re-keys laid out by the Phase 2 spike (spike 0394, decided 2026-10-07, with its
+  `accepted` part in spike 0395); an ADR is written. **It is split into plans of about one PR each** — see
   "The split" below. The cost to adopters is unmeasured.
 - **Created:** 2026-09-28
 - **Receives:** [bug 0338](../bugs/0338-a-match-with-no-enclosing-declaration-has-a-positional-identity.md),
@@ -360,7 +360,8 @@ is now its own record (see "The split").
 - **A renamed file is reported again** under every E variant, measured for findings without an
   identity (question 5 covers the rest). Today a rename is silently still accepted.
 
-**Open — the Phase 2 spike lays these out for a decision before any Phase 2 code:**
+**Open when written — the Phase 2 spike laid these out; spike 0394's Decision answers them
+(2026-10-07), except `accepted`, which spike 0395 owns:**
 
 1. **Grouping.** Leaving it unchanged (E0) only adds a condition, so it cannot be greener than
    today, but it falsely reports a reviewed finding when a duplicate across files is edited
