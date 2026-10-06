@@ -871,8 +871,9 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * The root an `accepted` subject is scrubbed against: the identity root above the project's
    * tsconfig when the builder names its project (the `disk-set.ts` precedent), otherwise above the
    * finding's own file, so builders that name no project are covered too. A filesystem root is no
-   * root: scrubbing `/` would turn every separator in a subject into the token. Memoized per
-   * directory, because discovery walks the disk.
+   * root: scrubbing `/` would turn every separator in a subject into the token. Not memoized: it
+   * runs only for a deferred warning, a few `existsSync` calls per finding, and a builder field
+   * holding a cache would be shared by every clone (bug 0016's guard).
    */
   private identityRootFor(v: ArchViolation): string | undefined {
     const project = this.getProject()
@@ -883,15 +884,9 @@ export abstract class TerminalBuilder extends RuleDeclaration {
           ? path.dirname(v.file)
           : undefined
     if (dir === undefined) return undefined
-    let root = this._identityRoots.get(dir)
-    if (root === undefined) {
-      root = discoverIdentityRoot(dir)
-      this._identityRoots.set(dir, root)
-    }
+    const root = discoverIdentityRoot(dir)
     return path.parse(root).root === root ? undefined : root
   }
-
-  private readonly _identityRoots = new Map<string, string>()
 
   /**
    * Execute the rule and throw `ArchRuleError` if any violations are found.
