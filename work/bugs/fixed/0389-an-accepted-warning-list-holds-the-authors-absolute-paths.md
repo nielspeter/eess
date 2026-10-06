@@ -92,7 +92,8 @@ Each row reds its own test:
 | no repository for a builder without a project | the no-project row                                        |
 | no name, no portable form                     | the unnamed-repository row                                |
 
-- [x] `npm run validate` green on the final code (recorded below). Earlier runs, in order:
+- [x] `npm run validate` green on the C5 code, `57b4d14`: 500 s, exit 0, 3,958 eess-ts tests, 102
+      nonvacuity fixtures fired. Earlier runs, in order:
   - `85d1852` failed one test,
     `held-builder-is-immutable.test.ts` · `it('every in-place-mutated container field is copied for the clone')`:
     a per-directory memo of the root was a builder field every clone would share. Dropped.
