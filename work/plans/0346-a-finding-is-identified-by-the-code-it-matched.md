@@ -600,7 +600,7 @@ Five records, about one PR each, grouped by what each one closes:
 
 1. **Bug 0389 — `accepted` compares a portable subject.** A live defect on its own, and the
    precondition for 3's `accepted` change.
-2. **The Phase 2 spike**, its own record, time-boxed to one working day. It answers the five open
+2. **The Phase 2 spike**, its own record ([spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)), time-boxed to one working day. It answers the five open
    questions above: first a census, from the code, of every consumer keyed by hash alone; then E0
    against per-file grouping across that whole census; then the options for a baseline with no
    recorded root, for the maintainer to decide. It ends in a design brought back for a decision,
