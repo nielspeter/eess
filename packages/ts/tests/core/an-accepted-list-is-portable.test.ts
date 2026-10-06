@@ -189,11 +189,13 @@ describe('bug 0389: a portable entry never accepts a different finding (spike 03
     expect(portableTokens('/r/src/a.ts::m', repo)).toBe('<root:acme>/src/a.ts::m')
   })
 
-  it('a backslash at the root prefix is part of a file name, not a separator, on POSIX', () => {
-    if (path.sep === '\\') return
-    const repo = { root: '/r', name: 'acme' }
-    expect(portableTokens('/r\\src/a.ts::m', repo)).toBe('/r\\src/a.ts::m')
-  })
+  it.skipIf(path.sep === '\\')(
+    'a backslash at the root prefix is part of a file name, not a separator, on POSIX',
+    () => {
+      const repo = { root: '/r', name: 'acme' }
+      expect(portableTokens('/r\\src/a.ts::m', repo)).toBe('/r\\src/a.ts::m')
+    },
+  )
 
   it('the builder replaces whole tokens: a path that spells the root again keeps it', () => {
     const repo = path.join(layout({ repo: ['gitdir', 'acme'] }), 'repo')
@@ -242,7 +244,7 @@ class ProjectBuilder extends TerminalBuilder {
   }
 }
 
-describe('bug 0389: a subject that already spells the portable syntax (spike 0393)', () => {
+describe('bug 0389: a subject that already spells the portable syntax turns portable matching off (spike 0393)', () => {
   const repo = path.join(layout({ repo: ['gitdir', 'acme'] }), 'repo')
   const p = projectIn(repo)
   const [real] = rule(p).violations()
@@ -271,7 +273,35 @@ describe('bug 0389: a subject that already spells the portable syntax (spike 039
     expect(advice).toContain(portable)
   })
 
-  it('refuses a subject without an identity too: element and message spell it', () => {
+  it('the subjects its advice lists, pasted back, clear the findings', () => {
+    const builder = new ProjectBuilder(p, [literal, real!])
+    const advice = builder.asSeverity('warn', { accepted: [] }).deferredWarningAdvice()
+    const listed = /Not in the list: (.*)\.$/.exec(advice)?.[1]
+    expect(listed).toBeDefined()
+    expect(severities(builder, listed!.split(', '))).toEqual(['warn', 'warn'])
+  })
+
+  it('following its remedy, with the old entry removed, keeps the real finding reported', () => {
+    const renamed: ArchViolation = { ...literal, identity: 'custom::id' }
+    expect(severities(new ProjectBuilder(p, [renamed, real!]), ['custom::id'])).toEqual([
+      'warn',
+      'error',
+    ])
+    expect(
+      new ProjectBuilder(p, [literal, real!])
+        .asSeverity('warn', { accepted: [] })
+        .deferredWarningAdvice(),
+    ).toContain('remove the')
+  })
+
+  it('a collision is reported before it, because a collision escalates every finding', () => {
+    const advice = new ProjectBuilder(p, [literal, literal, real!])
+      .asSeverity('warn', { accepted: [portable] })
+      .deferredWarningAdvice()
+    expect(advice).toContain('not reliably identifiable')
+  })
+
+  it('a subject without an identity counts too: element and message spell it', () => {
     const viaMessage: ArchViolation = {
       ...real!,
       file: path.join(repo, 'src/other.ts'),
@@ -286,7 +316,7 @@ describe('bug 0389: a subject that already spells the portable syntax (spike 039
   })
 
   it('KNOWN RESIDUAL — once the literal finding is gone, an entry written for it matches the real one', () => {
-    // Spike 0393: no syntax is unspellable. The refusal closes the case while the literal finding is
+    // Spike 0393: no syntax is unspellable. Turning portable matching off closes the case while the literal finding is
     // present; an entry kept from before that finding was fixed still equals the other's portable
     // form. If this row turns red, the residual is gone.
     expect(severities(new ProjectBuilder(p, [real!]), [portable])).toEqual(['warn'])

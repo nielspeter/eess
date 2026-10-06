@@ -20,8 +20,9 @@ accepted where `main` reports it. Is there a portable syntax that no raw subject
   where the message is free text. Any syntax a matcher can recognise is a string, and a producer can
   emit that string. Choosing an exotic marker only lowers the odds; it does not close the case.
 - **eess's own producers never spell it.** All 21 `identity:` sites under `packages/*/src` build
-  identities from paths, names and matcher descriptions; none contains `<`. Only a custom condition,
-  or a message that quotes the syntax, can reach the case.
+  identities from paths, names and matcher descriptions; no template contains `<`. The values a
+  template interpolates (module specifiers, names, matcher descriptions) are user-controlled, so a
+  custom condition, a message that quotes the syntax, or such a value can reach the case.
 - **What can be closed is the source.** If a raw subject containing the marker `<root:` is refused —
   reported as a finding, with portable matching off for that rule — then nothing produced after the
   release can collide. An entry pasted from such a finding cannot be relied on, because the rule
@@ -47,9 +48,13 @@ which the coordinator read as: a question a spike can settle should not come bac
 recommended option and reported it, open to being overruled.
 
 **As built** (bug 0389, PR #181): a rule with a subject containing `<root:` compares raw subjects
-only, exactly as on `main`, and its advice names the subjects. A first build (`bcfe457`) escalated
-every finding of such a rule instead; review measured that as stricter than option A and than
-`main`, and it was narrowed.
+only, exactly as on `main`, and its advice names the subjects and the remedy. A first build
+(`bcfe457`) escalated every finding of such a rule instead; review measured that as stricter than
+option A and than `main`, and it was narrowed. **Not built: a finding of its own.** Nothing is
+reported unless another finding of the rule is outside the list, because the advice is read only
+then (through `diagnose`). So the findings' claim that "the rule reports the refusal whenever that
+finding is present" does not hold. The behaviour is never more lenient than `main`, which is what
+option A was for; the report half is not delivered.
 
 **What A does not close.** The findings above say "every list written from now on". That is too
 strong: an entry kept for a literal finding still equals another finding's portable form once the

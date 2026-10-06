@@ -137,7 +137,6 @@ const PORTABLE_MARKER = '<root:'
  * list written before the fix holds, or its portable form (bug 0389). The entry itself is never
  * rewritten: scrubbing the accepted side let a raw list written for one file match another.
  */
-
 function isAccepted(
   accepted: readonly string[],
   v: ArchViolation,
@@ -160,8 +159,10 @@ function deferredWarningMessage(
       `subjects (identity, or element and message) contain \`${PORTABLE_MARKER}\`, the syntax a ` +
       `portable \`accepted\` entry is written in, so an entry for one could not be told apart from ` +
       `another finding's portable form: ${spelling.join(', ')}. Entries are compared by raw subject ` +
-      `only until no subject contains \`${PORTABLE_MARKER}\`; change that identity, or give the ` +
-      `finding one. Not in the list: ${subjects.join(', ')}.`
+      `only until no subject contains \`${PORTABLE_MARKER}\` (findings excluded with \`.excluding()\` ` +
+      `count too). To restore it, change that identity or give the finding one, and remove the ` +
+      `finding's old entry from \`accepted\`: kept, it can equal another finding's portable form. ` +
+      `Not in the list: ${subjects.join(', ')}.`
     )
   }
   if (cause === 'collision') {
@@ -1003,11 +1004,11 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     if (breaching.length === 0) return ''
     const described = this.describeRule()
     const raw = this.collectWithAssertionGuard()
-    const refused = spellsPortableSyntax(raw)
-    const repo = refused ? undefined : repositoryOf(this.getProject())
+    const portableOff = spellsPortableSyntax(raw)
+    const repo = portableOff ? undefined : repositoryOf(this.getProject())
     return deferredWarningMessage(
       described.id || described.rule || this.constructor.name,
-      hasIdentityCollision(raw) ? 'collision' : refused ? 'portable-syntax' : undefined,
+      hasIdentityCollision(raw) ? 'collision' : portableOff ? 'portable-syntax' : undefined,
       this._acceptedWarnings.length,
       breaching.map((v) => portableSubject(v, repo)),
       raw.map((v) => subjectOf(v)).filter((subject) => subject.includes(PORTABLE_MARKER)),
