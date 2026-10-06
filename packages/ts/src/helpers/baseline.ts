@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
 import type { ArchViolation } from '@nielspeter/eess'
-import { subjectOf } from '@nielspeter/eess/internal'
+import { portableSubjectOf } from '@nielspeter/eess/internal'
 import {
   discoverIdentityRoot,
   normalizeIdentityText,
@@ -244,7 +244,7 @@ export function hashViolation(violation: ArchViolation, root?: string): string {
   // ONE definition, shared with `disambiguateIdentities` — see `subjectOf`. It used to be
   // spelled out here and copied there, guarded by a test asserting the copies agree; the copy
   // is gone because `helpers/` may import from `core/` and a shared definition cannot diverge.
-  const content = `${scrub(violation.rule)}::${scrub(subjectOf(violation))}`
+  const content = `${scrub(violation.rule)}::${portableSubjectOf(violation, root)}`
   return createHash('sha256').update(content).digest('hex').slice(0, 16)
 }
 
@@ -269,12 +269,7 @@ export function hashViolation(violation: ArchViolation, root?: string): string {
  * changed. Measured before this was built.
  */
 export function hashSubject(violation: ArchViolation, root?: string): string {
-  const scrub = (text: string): string =>
-    root === undefined ? text : normalizeIdentityText(text, root)
-  return createHash('sha256')
-    .update(scrub(subjectOf(violation)))
-    .digest('hex')
-    .slice(0, 16)
+  return createHash('sha256').update(portableSubjectOf(violation, root)).digest('hex').slice(0, 16)
 }
 
 /** Forward slashes so the recorded root reads the same on Windows and CI. */

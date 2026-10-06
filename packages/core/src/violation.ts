@@ -1,4 +1,5 @@
 import { registerCacheReset } from './cache-registry.js'
+import { normalizeIdentityText } from './identity-root.js'
 
 /**
  * A single architecture rule violation.
@@ -226,6 +227,21 @@ export function byCodepoint(a: string, b: string): number {
  */
 export function subjectOf(violation: ArchViolation): string {
   return violation.identity ?? `${violation.element}::${violation.message}`
+}
+
+/**
+ * {@link subjectOf} with the identity root scrubbed out — the form every consumer that persists or
+ * compares a subject must use, so the same finding reads the same in every checkout.
+ *
+ * Producer identities interpolate the absolute path (`dependency.ts` sets
+ * `${sourceFile.getFilePath()}::…`), so the raw subject names the author's machine. The baseline
+ * hash always scrubbed it; a deferred warning's `accepted` list compared it raw, so a list written
+ * on a laptop matched nothing on CI and the advice an adopter pasted from printed the laptop's path
+ * (bug 0389). One definition, so the two cannot drift apart. Without a root it is `subjectOf`.
+ */
+export function portableSubjectOf(violation: ArchViolation, root?: string): string {
+  const subject = subjectOf(violation)
+  return root === undefined ? subject : normalizeIdentityText(subject, root)
 }
 
 /**

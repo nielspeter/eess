@@ -4,7 +4,9 @@ import { zeroSubjectsAdviceOf, zeroSubjectsViolationOf } from './vacuity-diagnos
 import type { RuleFacts } from './vacuity-diagnosis.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import { collectResult } from '@nielspeter/eess'
-import { severityFor, subjectOf } from '@nielspeter/eess/internal'
+import path from 'node:path'
+import { severityFor, subjectOf, portableSubjectOf } from '@nielspeter/eess/internal'
+import { discoverIdentityRoot, normalizeIdentityText } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import type { ArchProject } from './project.js'
 import type { CheckOptions } from '@nielspeter/eess'
@@ -851,8 +853,45 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    */
   private fallbackSeverityFor(v: ArchViolation, sev: 'error' | 'warn'): 'error' | 'warn' {
     if (sev !== 'warn' || this._acceptedWarnings === undefined) return sev
-    return this._acceptedWarnings.includes(subjectOf(v)) ? 'warn' : 'error'
+    // Both sides scrubbed with the same root (bug 0389): the subject, because producer identities
+    // carry the absolute path; the accepted strings, so a list pasted before this fix still
+    // matches in the checkout it was written in. A list written elsewhere with a raw path still
+    // fails closed, as it always did.
+    const root = this.identityRootFor(v)
+    const subject = portableSubjectOf(v, root)
+    return this._acceptedWarnings.some(
+      (accepted) =>
+        (root === undefined ? accepted : normalizeIdentityText(accepted, root)) === subject,
+    )
+      ? 'warn'
+      : 'error'
   }
+
+  /**
+   * The root an `accepted` subject is scrubbed against: the identity root above the project's
+   * tsconfig when the builder names its project (the `disk-set.ts` precedent), otherwise above the
+   * finding's own file, so builders that name no project are covered too. A filesystem root is no
+   * root: scrubbing `/` would turn every separator in a subject into the token. Memoized per
+   * directory, because discovery walks the disk.
+   */
+  private identityRootFor(v: ArchViolation): string | undefined {
+    const project = this.getProject()
+    const dir =
+      project !== undefined
+        ? path.dirname(project.tsConfigPath)
+        : v.file !== ''
+          ? path.dirname(v.file)
+          : undefined
+    if (dir === undefined) return undefined
+    let root = this._identityRoots.get(dir)
+    if (root === undefined) {
+      root = discoverIdentityRoot(dir)
+      this._identityRoots.set(dir, root)
+    }
+    return path.parse(root).root === root ? undefined : root
+  }
+
+  private readonly _identityRoots = new Map<string, string>()
 
   /**
    * Execute the rule and throw `ArchRuleError` if any violations are found.
@@ -916,7 +955,7 @@ export abstract class TerminalBuilder extends RuleDeclaration {
         `ArchViolation.identity explicitly, so each finding's subject is unique on its own.`
       )
     }
-    const subjects = breaching.map((v) => subjectOf(v))
+    const subjects = breaching.map((v) => portableSubjectOf(v, this.identityRootFor(v)))
     return (
       `"${name}" is a deferred warning (accepted: ${String(this._acceptedWarnings.length)} finding` +
       `${this._acceptedWarnings.length === 1 ? '' : 's'}), and ${String(breaching.length)} current ` +

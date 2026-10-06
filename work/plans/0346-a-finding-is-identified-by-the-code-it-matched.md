@@ -396,7 +396,7 @@ per-file grouping removes. They are Tier-2 suite rows; the replacement case belo
 
 **Preconditions (recorded while A and E were both open; still true):**
 
-- [bug 0389](../bugs/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md):
+- [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md):
   `accepted` lists already hold absolute paths. One kernel `portableSubjectOf(v, root)`,
   used by both hashes, `hashSubject`, the `accepted` comparison and its advice text.
 - The grouping key equals the hash key only if every copy uses one definition. Kernel
@@ -704,8 +704,8 @@ the split. It does not become one of the five.
       re-homed to same-file fixtures
 - [ ] Phase 2 — the identity-bearing and metric rename rows measured before the Phase 2 build
       plan is Ready
-- [ ] Phase 2 — bug 0389 fixed first: one `portableSubjectOf`, used by every hash and
-      by `accepted`
+- [x] Phase 2 — bug 0389 fixed first: one `portableSubjectOf`, used by every hash and
+      by `accepted` (fixed 2026-10-06, the first record of the split)
 - [ ] Phase 2 — both "rule + file" comments say what the matcher covers
 - [ ] Phase 3 — the refusal and `--migrate` are eess-ts's; the kernel baseline gets the
       file check only, unless the grouping decision moves kernel hashes

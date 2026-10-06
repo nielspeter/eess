@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createHash } from 'node:crypto'
-import type { ArchViolation } from './violation.js'
+import { portableSubjectOf, type ArchViolation } from './violation.js'
 import { discoverIdentityRoot, normalizeIdentityText } from './identity-root.js'
 import { writeStderr } from './stderr.js'
 
@@ -126,11 +126,7 @@ export function hashViolation(violation: ArchViolation, root?: string): string {
   // different rules that happened to produce the same identity string (e.g.
   // two metric conditions on the same class) must not collide in one
   // baseline entry.
-  const subject =
-    violation.identity !== undefined
-      ? violation.identity
-      : `${violation.element}::${violation.message}`
-  const content = `${scrub(violation.rule)}::${scrub(subject)}`
+  const content = `${scrub(violation.rule)}::${portableSubjectOf(violation, root)}`
   return createHash('sha256').update(content).digest('hex').slice(0, 16)
 }
 
