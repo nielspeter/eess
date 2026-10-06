@@ -37,8 +37,8 @@ The classification is a reading, not a mechanism.
   `packages/core/src/diff-aware.ts:39`, `packages/core/src/comment-suppression.ts:14`,
   `packages/core/src/violation.ts:312`
 - `packages/ts/src/core/element-cache.ts:28`, `packages/ts/src/core/element-cache.ts:44`,
-  `packages/ts/src/core/module-edges.ts:257`, `packages/ts/src/core/terminal-builder.ts:248`,
-  `packages/ts/src/core/terminal-builder.ts:302`, `packages/ts/src/core/terminal-builder.ts:329`,
+  `packages/ts/src/core/module-edges.ts:257`, `packages/ts/src/core/terminal-builder.ts:249`,
+  `packages/ts/src/core/terminal-builder.ts:303`, `packages/ts/src/core/terminal-builder.ts:330`,
   `packages/ts/src/core/rule-declaration.ts:32`, `packages/ts/src/core/rule-builder.ts:255`,
   `packages/ts/src/core/execute-rule.ts:166`, `packages/ts/src/core/diagnose.ts:167`
 - `packages/ts/src/builders/correspondence-builder.ts:114`,

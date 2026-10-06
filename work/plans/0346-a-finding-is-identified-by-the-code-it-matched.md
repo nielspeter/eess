@@ -390,7 +390,7 @@ recorded-root comparison, separator normalisation (a baseline written with `\` s
 POSIX), the file-naming attribution (the 0388 fixture reports `b`, no description-change finding,
 and a Fix that is not "regenerate"), and, if grouping is per file, the edit rows (each asserting no description-change finding too)
 and one row per re-keyed consumer, including the escalation text at
-`deferredWarningMessage` (`packages/ts/src/core/terminal-builder.ts:148`), which explains a cross-file collision
+`deferredWarningMessage` (`packages/ts/src/core/terminal-builder.ts:149`), which explains a cross-file collision
 per-file grouping removes. They are Tier-2 suite rows; the replacement case below is also a
 `check:nonvacuity` row. This repo keeps no baseline, so its own gates never exercise the matcher.
 
