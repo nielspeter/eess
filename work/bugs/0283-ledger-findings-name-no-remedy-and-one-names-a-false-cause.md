@@ -77,7 +77,7 @@ itself false, and it broke a true conclusion.** `configFinding`
 (`packages/core/src/vacuity-findings.ts:39-53`) sets `suggestion: message` —
 byte-identical, deliberately, its JSDoc saying "`suggestion` is the message — its
 own remedy, never the author's (bug 0021)". Every emitter then suppresses the line
-via `remedyRepeatsMessage` (`packages/core/src/violation.ts:188-190`) at
+via `remedyRepeatsMessage` (`packages/core/src/violation.ts:189-191`) at
 `packages/core/src/format.ts:54`. Measured: `suggestion === message` is `true`, and
 the rendered output contains no `Fix:`.
 

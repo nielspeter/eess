@@ -181,6 +181,20 @@ describe('bug 0389: a portable entry never accepts a different finding (spike 03
     expect(portableTokens('/app/src/appuser.ts::m', repo)).toBe('<root:acme>/src/appuser.ts::m')
     expect(portableTokens('/app2/src/x.ts::m', repo)).toBe('/app2/src/x.ts::m')
   })
+
+  it('the rest of a path is kept as written, so a backslash names a different file', () => {
+    // On POSIX, `src\\a.ts` is one file name, not a path into `src`.
+    const repo = { root: '/r', name: 'acme' }
+    expect(portableTokens('/r/src\\a.ts::m', repo)).toBe('<root:acme>/src\\a.ts::m')
+    expect(portableTokens('/r/src/a.ts::m', repo)).toBe('<root:acme>/src/a.ts::m')
+  })
+
+  it('the builder replaces whole tokens: a path that spells the root again keeps it', () => {
+    const repo = path.join(layout({ repo: ['gitdir', 'acme'] }), 'repo')
+    const pasted = pastedFrom(rule(projectIn(repo, `src${repo}/a.ts`)))
+    expect(pasted).toHaveLength(1)
+    expect(pasted[0]).toContain(`<root:acme>/src${repo}/a.ts`)
+  })
 })
 
 /**
@@ -203,5 +217,49 @@ describe('bug 0389: a builder that names no project', () => {
     const pasted = pastedFrom(new NoProjectBuilder(found))
     expect(pasted).toHaveLength(1)
     expect(pasted[0]).toContain(repo)
+  })
+})
+
+/** A builder that names its project and judges hand-picked findings: the shape a custom dialect takes. */
+class ProjectBuilder extends TerminalBuilder {
+  constructor(
+    private readonly project: ArchProject,
+    private readonly findings: readonly ArchViolation[],
+  ) {
+    super()
+  }
+  override getProject(): ArchProject {
+    return this.project
+  }
+  protected collectViolations(): CollectResult {
+    return collectResult([...this.findings], { examined: this.findings.length })
+  }
+}
+
+describe('bug 0389: a subject that already spells the portable syntax (spike 0393)', () => {
+  const repo = path.join(layout({ repo: ['gitdir', 'acme'] }), 'repo')
+  const p = projectIn(repo)
+  const [real] = rule(p).violations()
+  const portable = pastedFrom(rule(p))[0]!
+  // A custom producer whose identity literally spells another finding's portable form.
+  const literal: ArchViolation = {
+    ...real!,
+    file: path.join(repo, 'src/other.ts'),
+    identity: portable,
+  }
+
+  it('escalates every finding of the rule and names the cause', () => {
+    const builder = new ProjectBuilder(p, [literal, real!])
+    expect(severities(builder, [portable])).toEqual(['error', 'error'])
+    expect(builder.asSeverity('warn', { accepted: [portable] }).deferredWarningAdvice()).toContain(
+      '<root:',
+    )
+  })
+
+  it('KNOWN RESIDUAL — once the literal finding is gone, an entry written for it matches the real one', () => {
+    // Spike 0393: no syntax is unspellable. The refusal closes the case while the literal finding is
+    // present; an entry kept from before that finding was fixed still equals the other's portable
+    // form. If this row turns red, the residual is gone.
+    expect(severities(new ProjectBuilder(p, [real!]), [portable])).toEqual(['warn'])
   })
 })

@@ -239,9 +239,12 @@ export function portableTokens(subject: string, repo: NamedRepository): string {
   const prefix = root.endsWith('/') ? root : root + '/'
   return subject
     .split('::')
-    .map((token) => {
-      const posix = normalizeSeparators(token)
-      return posix.startsWith(prefix) ? `<root:${repo.name}>/${posix.slice(prefix.length)}` : token
-    })
+    .map((token) =>
+      // The prefix is matched on a separator-normalised copy, so a Windows root matches; the rest of
+      // the token is kept verbatim, so `src\a.ts` and `src/a.ts` — two files on POSIX — stay apart.
+      normalizeSeparators(token.slice(0, prefix.length)) === prefix
+        ? `<root:${repo.name}>/${token.slice(prefix.length)}`
+        : token,
+    )
     .join('::')
 }

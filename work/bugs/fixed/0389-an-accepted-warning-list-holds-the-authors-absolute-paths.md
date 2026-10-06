@@ -50,8 +50,16 @@ the table and the harness.
 - **Where the repository comes from.** The project's tsconfig, so there is one per builder. A
   builder that names no project gets none and keeps raw subjects, as before: a repository found per
   finding was measured to let an entry for one package accept the same finding in another.
-- **The collision guard** compares raw subjects, as on `main`. Whole-token replacement under one
-  repository cannot make two different subjects equal.
+- **The collision guard** compares raw subjects, as on `main`. Two different raw subjects can still
+  share a portable form in two contrived ways, both measured by enforcement review of `57b4d14`: a
+  path whose separators differ (`src\a.ts` and `src/a.ts` are two files on POSIX), now closed by
+  keeping the rest of each path verbatim; and a subject that already spells the portable syntax,
+  now refused (below).
+- **A subject that spells the portable syntax is refused** (spike 0393, decided 2026-10-06). If any
+  finding of a deferred warning has `<root:` in its raw subject, portable matching is off for that
+  rule, every finding escalates to error, and the advice names the cause. No portable syntax can be
+  made unspellable: `identity` is a plain string and messages are free text. None of eess's 21
+  identity producers emits `<`.
 - **The baseline hashes are unchanged.** `portableSubjectOf` (`packages/core/src/violation.ts`) is
   the one definition both hashes use; it keeps the substring scrub, which is bug 0391's to fix.
 
@@ -59,13 +67,32 @@ the table and the harness.
 
 - **Two different repositories that share one `package.json` name** share an entry for the same
   relative path, under one rule file with one list. Nothing machine-independent tells them apart.
-  Accepted by the maintainer; pinned by a `KNOWN RESIDUAL` test that turns red if it is ever closed.
+  Inside one checkout this includes two submodules with the same name, or a nested repository with
+  the outer one's name (copied templates that are not their own repositories fail closed). Accepted
+  by the maintainer on 2026-10-06; pinned by a `KNOWN RESIDUAL` test that turns red if it is ever
+  closed.
+- **An entry kept for a finding that spelled the portable syntax.** While that finding is present
+  the rule is refused; once it is fixed, an entry kept for it equals another finding's portable form.
+  Such an entry never held anything at `warn` after this release. Pinned by a second `KNOWN RESIDUAL`
+  test (spike 0393).
 - **Not portable, and fails closed:** builders that name no project (3 never do, 2 only when given
   one, of 15), repositories without a root `package.json` name, and paths written inside prose
   rather than as a `::` token.
-- **Earlier versions of this fix, recorded so they are not rebuilt:** a substring scrub of both
-  sides with a root per finding, then with a root per builder. Each was measured greener than
-  `main` (spike 0392, column H: 10 rows).
+
+**Superseded designs, kept so they are not rebuilt** (all on this PR, 2026-10-06):
+
+1. **Substring scrub, a root per finding** (`85d1852`–`593d8e6`). The root was found above the
+   project's tsconfig, or above each finding's own file when the builder named no project. A
+   scrubbed-key collision guard was added after enforcement review, and sabotage-tested. Enforcement
+   review then measured the cross-run case greener than `main`: an entry pasted for `pkgA/src/x.ts`
+   accepted `pkgB/src/x.ts` after A was fixed, in a no-marker tree, a two-`package.json` tree and a
+   submodule tree.
+2. **Substring scrub, a root per builder, none without a project** (`f384f25`). Enforcement review
+   measured one list shared across projects greener than `main`, and bug 0391's shape across runs.
+   This is spike 0392's column H: greener on 10 of its 15 rows.
+3. **The count behind "10 always, 2 when given one, 3 never".** Method review counted the 15
+   concrete builders that descend from `TerminalBuilder`. An earlier version of this record said 7
+   name their project, which did not reproduce.
 
 ## Verification
 
@@ -77,20 +104,28 @@ the table and the harness.
       written before the fix, a worktree, a checkout without `.git`, a different finding,
       two packages without a repository marker, two same-named packages inside one repository,
       submodules, separate repositories, an unnamed repository, a builder that names no project,
-      whole tokens under `/app`, and the known residual.
+      a path that spells the root again, a backslash in a file name, a subject that spells the
+      portable syntax, and both known residuals. Three of the spike's rows have no test of their
+      own: `/app` itself (a test cannot create it, so its whole-token rule is tested on the kernel
+      function and, through the builder, with a path that spells the temporary root again), "no
+      markers" and "two repositories with one directory name" (closed by the same mechanisms the
+      separate-repositories and two-packages rows pin).
 
-Sabotage matrix, run against the shipping code in a worktree whose kernel resolution was proven.
-Each row reds its own test:
+Sabotage matrix, run against the shipping code in a worktree whose kernel resolution was proven;
+the run's output is kept beside its script. Each row reds its own test:
 
-| removed                                       | red                                                       |
-| --------------------------------------------- | --------------------------------------------------------- |
-| the portable match (raw only)                 | another checkout, worktree, no `.git`, and the residual   |
-| the repository-marker requirement             | two same-named packages inside one repository             |
-| the name in the token                         | the advice row, submodules, separate repositories, `/app` |
-| `.git` as a file counting as a marker         | worktree                                                  |
-| whole tokens (a substring scrub instead)      | `/app`                                                    |
-| no repository for a builder without a project | the no-project row                                        |
-| no name, no portable form                     | the unnamed-repository row                                |
+| removed                                       | red                                                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| the portable match (raw only)                 | another checkout, worktree, no `.git`, and both residuals                                   |
+| the repository-marker requirement             | two same-named packages inside one repository                                               |
+| the name in the token                         | advice, submodules, separate repositories, `/app`, backslash, builder whole tokens, refusal |
+| `.git` as a file counting as a marker         | worktree                                                                                    |
+| whole tokens, in the kernel                   | `/app`, builder whole tokens                                                                |
+| whole tokens, in the builder                  | builder whole tokens                                                                        |
+| no repository for a builder without a project | the no-project row                                                                          |
+| no name, no portable form                     | the unnamed-repository row                                                                  |
+| the refusal of a subject spelling the syntax  | the refusal row                                                                             |
+| the rest of a path kept verbatim              | backslash                                                                                   |
 
 - [x] `npm run validate` green on the C5 code, `57b4d14`: 500 s, exit 0, 3,958 eess-ts tests, 102
       nonvacuity fixtures fired. Earlier runs, in order:

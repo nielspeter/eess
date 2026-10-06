@@ -16,7 +16,7 @@ vacuity matrix then probes _every published constructor_ over a zero-file projec
 The kernel root also exports `finishPreset(violations: ArchViolation[], options?)`
 (`packages/core/src/report.ts:77`) and `reportViolations`. Both take a bare array. Neither can tell an
 array a builder produced from an array a consumer typed. `ArchViolation` is a plain interface
-(`packages/core/src/violation.ts:27`) — `spec.rules.ts` in this very repo constructs it as an object
+(`packages/core/src/violation.ts:28`) — `spec.rules.ts` in this very repo constructs it as an object
 literal, correctly, inside a `Condition`. So the following program is type-correct, uses only root
 exports, follows three separately-documented affordances, and constructs exactly the pass ADR-010
 calls unrepresentable:

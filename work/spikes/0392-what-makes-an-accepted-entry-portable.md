@@ -79,7 +79,8 @@ Each row's layout is built fresh; the harness ran in under a second.
 ## Decision
 
 **Decided by the maintainer, 2026-10-06: C5, with the shared-package-name case accepted as a named
-residual.** Built in PR #181 for bug 0389, where the residual is pinned by a test that turns red if
+residual** (the maintainer chose the option "C5, accept the named residual" when asked in the
+session that built PR #181). Built in PR #181 for bug 0389, where the residual is pinned by a test that turns red if
 it is ever closed.
 
 ## Where this left the decision
@@ -87,7 +88,7 @@ it is ever closed.
 C5 is the only measured form that ports and is greener than `main` on a single, named case. Whether
 that case is an acceptable residual is the maintainer's call, because accepting a risk is. If it is
 not, the honest alternative is to leave `accepted` comparing raw subjects (`main`) and fix the paste
-experience instead (bug 0389 stays open). Either way PR #181's current matcher (H) should not ship:
+experience instead (bug 0389 stays open). Either way PR #181's matcher at `942e53a` (H) should not ship:
 it is greener than `main` on 10 rows here.
 
 Not measured: subjects that carry a path inside prose rather than as a `::` token (C3–C5 leave those

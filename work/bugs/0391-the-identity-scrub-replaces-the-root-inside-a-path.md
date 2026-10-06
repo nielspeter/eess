@@ -47,7 +47,8 @@ imports x` must still scrub).
 Not decided here: neither boundary alone distinguishes the checkout path from a path segment that
 spells it, as Root cause shows. Candidates are scrubbing only the first occurrence in each path
 token, or scrubbing the `file` field rather than free text. Spike 0392 measured whole-token
-replacement for bug 0389's `accepted` comparison; it is the obvious candidate here too. Enforcement review of the 0389 fix
+replacement for bug 0389's `accepted` comparison; it is a candidate here too, with the same cost:
+it leaves a path written inside prose unscrubbed, so such a subject would stop being portable. Enforcement review of the 0389 fix
 measured that requiring a left delimiter would stop scrubbing paths inside prose messages, which
 regresses portability. Any change here moves the hash of every entry
 whose text contained the root inside a path, so it needs the migration treatment plan 0346

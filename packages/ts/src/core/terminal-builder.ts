@@ -125,6 +125,17 @@ function portableSubject(v: ArchViolation, repo: NamedRepository | undefined): s
  * list written before the fix holds, or its portable form (bug 0389). The entry itself is never
  * rewritten: scrubbing the accepted side let a raw list written for one file match another.
  */
+/**
+ * Whether a finding's raw subject already spells the portable syntax (spike 0393). An entry for such
+ * a finding would be indistinguishable from another finding's portable form, so a rule that has one
+ * gets no portable matching and is escalated, like an unidentifiable collision.
+ */
+function spellsPortableSyntax(violations: readonly ArchViolation[]): boolean {
+  return violations.some((v) => subjectOf(v).includes(PORTABLE_MARKER))
+}
+
+const PORTABLE_MARKER = '<root:'
+
 function isAccepted(
   accepted: readonly string[],
   v: ArchViolation,
@@ -136,11 +147,19 @@ function isAccepted(
 /** The text `deferredWarningAdvice()` returns, by cause. */
 function deferredWarningMessage(
   name: string,
-  collision: boolean,
+  cause: 'collision' | 'portable-syntax' | undefined,
   acceptedCount: number,
   subjects: readonly string[],
 ): string {
-  if (collision) {
+  if (cause === 'portable-syntax') {
+    return (
+      `"${name}" is a deferred warning, but a finding's subject contains \`${PORTABLE_MARKER}\`, ` +
+      `the syntax a portable \`accepted\` entry is written in, so an entry for it could not be told ` +
+      `apart from another finding's portable form. Every finding here is escalated to error until ` +
+      `that producer's identity no longer contains \`${PORTABLE_MARKER}\`.`
+    )
+  }
+  if (cause === 'collision') {
     return (
       `"${name}" is a deferred warning, but its findings are not reliably identifiable: two or ` +
       `more share one subject (rule + element + message, with no producer-set \`identity\`), so ` +
@@ -893,12 +912,14 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     // subject with a positional `#1`/`#2` suffix — see `hasIdentityCollision`'s
     // own doc comment for why checking post-repair identities would miss
     // exactly the case this exists to catch. Only computed when it can matter.
-    const unsafe =
-      sev === 'warn' && this._acceptedWarnings !== undefined && hasIdentityCollision(raw)
+    const deferred = sev === 'warn' && this._acceptedWarnings !== undefined
+    const unsafe = deferred && (hasIdentityCollision(raw) || spellsPortableSyntax(raw))
+    // One repository per run, looked up once rather than per finding.
+    const repo = deferred && !unsafe ? repositoryOf(this.getProject()) : undefined
     return collectResult(
       filtered.map((v) => ({
         ...v,
-        severity: severityFor(v, unsafe ? 'error' : this.fallbackSeverityFor(v, sev)),
+        severity: severityFor(v, unsafe ? 'error' : this.fallbackSeverityFor(v, sev, repo)),
       })),
       evidence,
     )
@@ -913,9 +934,13 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * An ADVISORY warning (`_acceptedWarnings` `undefined`) is unaffected — `sev`
    * passes through unchanged, exactly today's behaviour.
    */
-  private fallbackSeverityFor(v: ArchViolation, sev: 'error' | 'warn'): 'error' | 'warn' {
+  private fallbackSeverityFor(
+    v: ArchViolation,
+    sev: 'error' | 'warn',
+    repo: NamedRepository | undefined,
+  ): 'error' | 'warn' {
     if (sev !== 'warn' || this._acceptedWarnings === undefined) return sev
-    return isAccepted(this._acceptedWarnings, v, repositoryOf(this.getProject())) ? 'warn' : 'error'
+    return isAccepted(this._acceptedWarnings, v, repo) ? 'warn' : 'error'
   }
 
   /**
@@ -968,11 +993,17 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     const breaching = this.violations().filter((v) => v.severity === 'error')
     if (breaching.length === 0) return ''
     const described = this.describeRule()
+    const raw = this.collectWithAssertionGuard()
+    const repo = repositoryOf(this.getProject())
     return deferredWarningMessage(
       described.id || described.rule || this.constructor.name,
-      hasIdentityCollision(this.collectWithAssertionGuard()),
+      spellsPortableSyntax(raw)
+        ? 'portable-syntax'
+        : hasIdentityCollision(raw)
+          ? 'collision'
+          : undefined,
       this._acceptedWarnings.length,
-      breaching.map((v) => portableSubject(v, repositoryOf(this.getProject()))),
+      breaching.map((v) => portableSubject(v, repo)),
     )
   }
 

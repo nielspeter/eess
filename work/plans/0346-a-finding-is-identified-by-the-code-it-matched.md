@@ -390,20 +390,22 @@ recorded-root comparison, separator normalisation (a baseline written with `\` s
 POSIX), the file-naming attribution (the 0388 fixture reports `b`, no description-change finding,
 and a Fix that is not "regenerate"), and, if grouping is per file, the edit rows (each asserting no description-change finding too)
 and one row per re-keyed consumer, including the escalation text at
-`deferredWarningMessage` (`packages/ts/src/core/terminal-builder.ts:157`), which explains a cross-file collision
+`deferredWarningMessage` (`packages/ts/src/core/terminal-builder.ts:148`), which explains a cross-file collision
 per-file grouping removes. They are Tier-2 suite rows; the replacement case below is also a
 `check:nonvacuity` row. This repo keeps no baseline, so its own gates never exercise the matcher.
 
-**Preconditions (recorded while A and E were both open; still true):**
+**Preconditions (recorded while A and E were both open; updated 2026-10-06 where marked):**
 
 - [bug 0389](../bugs/fixed/0389-an-accepted-warning-list-holds-the-authors-absolute-paths.md),
   fixed 2026-10-06 as spike 0392's C5: `accepted` matches a raw subject or a portable form that
-  names the repository (`<root:NAME>/path`, whole path tokens). Phase 2's `file::subject` change
-  should use that form, not the substring scrub `portableSubjectOf` keeps for the hashes (bug
-  0391). For builders that name no project, `accepted` still compares raw subjects.
+  names the repository (`<root:NAME>/path`, whole path tokens). It is an input to the
+  Phase 2 spike, not its answer: spike 0392 measured it for `accepted` only, and the spike decides
+  the key. The substring scrub `portableSubjectOf` keeps for the hashes is bug 0391's. For builders that name no project, `accepted` still compares raw subjects.
 - The grouping key equals the hash key only if every copy uses one definition. Kernel
-  `hashViolation` inlines its own fallback (`packages/core/src/baseline.ts:129-132`), and
-  `packages/ts/src/core/terminal-builder.ts:99` re-spells `groupKeyOf`. Both move to the shared function.
+  `hashViolation` used to inline its own fallback; since bug 0389 both hashes go through
+  `portableSubjectOf` (`packages/core/src/baseline.ts:129`). Still open:
+  `packages/ts/src/core/terminal-builder.ts:97` re-spells `groupKeyOf`, and moves to the shared
+  function.
 - A finding with an empty `file` keeps today's `element::message` form; nothing
   discriminates better, and it should not move for nothing.
 - Within one file the sibling dialects still merge collisions: the kernel `applyFilters`
@@ -477,7 +479,7 @@ an input moved, which is what happens here.
 **Regeneration is a door, and it has to be shut or named.** A plain `baseline` run on
 an old-scheme file writes new-scheme entries for everything it sees, and that
 re-forgives every inheritance. Today it prints only an informational line
-(`packages/ts/src/helpers/baseline.ts:594-602`). Generating over a baseline whose
+(`packages/ts/src/helpers/baseline.ts:589-597`). Generating over a baseline whose
 version is older is refused unless `--migrate`, or an override named in the flag
 itself, is passed. **The refusal lives in `generateBaseline`, not only in the CLI**, so
 the programmatic door is shut too; that is a new throw in public API, and the changeset

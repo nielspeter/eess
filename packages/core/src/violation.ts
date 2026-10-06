@@ -230,14 +230,13 @@ export function subjectOf(violation: ArchViolation): string {
 }
 
 /**
- * {@link subjectOf} with the identity root scrubbed out — the form every consumer that persists or
- * compares a subject must use, so the same finding reads the same in every checkout.
+ * {@link subjectOf} with the identity root scrubbed out — the form both baseline hashes use, so the
+ * same finding hashes the same in every checkout. One definition for the two hashes, so they cannot
+ * drift apart. Without a root it is `subjectOf`.
  *
- * Producer identities interpolate the absolute path (`dependency.ts` sets
- * `${sourceFile.getFilePath()}::…`), so the raw subject names the author's machine. The baseline
- * hash always scrubbed it; a deferred warning's `accepted` list compared it raw, so a list written
- * on a laptop matched nothing on CI and the advice an adopter pasted from printed the laptop's path
- * (bug 0389). One definition, so the two cannot drift apart. Without a root it is `subjectOf`.
+ * It replaces the root as a substring, which bug 0391 records can alias two files when the root also
+ * spells a path segment. A deferred warning's `accepted` list does not use it: it compares a raw
+ * subject or `portableTokens`' whole-token form (bug 0389, spike 0392).
  */
 export function portableSubjectOf(violation: ArchViolation, root?: string): string {
   const subject = subjectOf(violation)
