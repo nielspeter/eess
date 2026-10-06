@@ -35,10 +35,10 @@ The classification is a reading, not a mechanism.
 
 - `packages/core/src/correspondence-core.ts:12`, `packages/core/src/diff-disclosure.ts:7`,
   `packages/core/src/diff-aware.ts:39`, `packages/core/src/comment-suppression.ts:14`,
-  `packages/core/src/violation.ts:297`
+  `packages/core/src/violation.ts:312`
 - `packages/ts/src/core/element-cache.ts:28`, `packages/ts/src/core/element-cache.ts:44`,
-  `packages/ts/src/core/module-edges.ts:257`, `packages/ts/src/core/terminal-builder.ts:160`,
-  `packages/ts/src/core/terminal-builder.ts:214`, `packages/ts/src/core/terminal-builder.ts:241`,
+  `packages/ts/src/core/module-edges.ts:257`, `packages/ts/src/core/terminal-builder.ts:249`,
+  `packages/ts/src/core/terminal-builder.ts:303`, `packages/ts/src/core/terminal-builder.ts:330`,
   `packages/ts/src/core/rule-declaration.ts:32`, `packages/ts/src/core/rule-builder.ts:255`,
   `packages/ts/src/core/execute-rule.ts:166`, `packages/ts/src/core/diagnose.ts:167`
 - `packages/ts/src/builders/correspondence-builder.ts:114`,
@@ -52,14 +52,14 @@ The classification is a reading, not a mechanism.
   `packages/ts/src/graphql/resolver-rule-builder.ts:176`,
   `packages/ts/src/conditions/cross-layer.ts:25`, `packages/ts/src/conditions/cross-layer.ts:187`,
   `packages/ts/src/presets/boundaries.ts:201`, `packages/ts/src/presets/shared.ts:110`,
-  `packages/ts/src/helpers/baseline.ts:717`
+  `packages/ts/src/helpers/baseline.ts:712`
 - `scripts/check-review-harness.mjs:17`, `scripts/check-review-harness.mjs:173`
 - `.claude/agents/reviewer-enforcement.md:8`, `.claude/agents/reviewer-testing.md:26`,
   `.claude/skills/review/SKILL.md:39`
 
 ### The 6 ambiguous
 
-`packages/core/src/violation.ts:129`, `packages/md/src/index.ts:34`,
+`packages/core/src/violation.ts:130`, `packages/md/src/index.ts:34`,
 `packages/ts/src/core/glob-diagnosis.ts:18`, `packages/ts/src/core/empty-project-advice.ts:35`,
 `packages/ts/src/helpers/baseline-diagnostics.ts:123`, `packages/ts/src/presets/shared.ts:174`
 

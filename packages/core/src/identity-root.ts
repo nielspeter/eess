@@ -173,3 +173,80 @@ export function normalizeIdentityText(text: string, root: string): string {
 function normalizeSeparators(value: string): string {
   return value.replaceAll('\\', '/')
 }
+
+/** A repository's root directory and the name it carries in every checkout. */
+export interface NamedRepository {
+  readonly root: string
+  readonly name: string
+}
+
+/**
+ * The repository a path sits in, named by something that travels with it — or `undefined`.
+ *
+ * Bug 0389 and spike 0392. A machine-independent form of a subject has to identify the repository,
+ * not only a path relative to some directory: a root-relative path makes the same layout under two
+ * different roots look alike, so one `accepted` entry would match a finding in another package or
+ * another repository. Measured over fifteen cases, this is the only form that kept every
+ * portability case and matched a different finding in exactly one: two different repositories that
+ * share one `package.json` name, which nothing machine-independent can tell apart.
+ *
+ * - The root is the nearest ancestor holding `.git` (a directory, or the file a worktree or
+ *   submodule has) or a workspace marker. **No fallback to a bare `package.json`**: a package's own
+ *   directory as root is what aliased two packages.
+ * - The name is that root's `package.json` `name`. No name, no repository: the caller keeps the raw
+ *   subject, which is not portable and cannot match a different finding.
+ */
+export function discoverNamedRepository(startDir: string): NamedRepository | undefined {
+  let current = path.resolve(startDir)
+  for (;;) {
+    const marked =
+      fs.existsSync(path.join(current, '.git')) ||
+      WORKSPACE_MARKERS.some((marker) => fs.existsSync(path.join(current, marker))) ||
+      (fs.existsSync(path.join(current, 'package.json')) &&
+        declaresWorkspaces(path.join(current, 'package.json')))
+    if (marked) {
+      const name = packageName(path.join(current, 'package.json'))
+      return name === undefined ? undefined : { root: current, name }
+    }
+    const parent = path.dirname(current)
+    if (parent === current) return undefined
+    current = parent
+  }
+}
+
+function packageName(manifestPath: string): string | undefined {
+  try {
+    const parsed: unknown = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
+    if (parsed === null || typeof parsed !== 'object' || !('name' in parsed)) return undefined
+    return typeof parsed.name === 'string' && parsed.name !== '' ? parsed.name : undefined
+  } catch (error: unknown) {
+    // Missing or unreadable: no name, so no portable form — the raw subject stays.
+    void error
+    return undefined
+  }
+}
+
+/**
+ * A subject with every `::`-delimited path token under the repository's root replaced by
+ * `<root:NAME>/relative/path`.
+ *
+ * Whole tokens, never substrings (bug 0391): under a root `/app`, `/app/src/app/user.ts` and
+ * `/app/src/appuser.ts` stay distinct. A path inside prose rather than a token is left as it is, so
+ * that subject stays unportable and fails closed rather than aliasing.
+ */
+export function portableTokens(subject: string, repo: NamedRepository): string {
+  // Separators are normalised only where `\\` is one. On POSIX a backslash is part of a file name,
+  // so `repo\\src/a.ts` and `repo/src/a.ts` are different files and must not share a form.
+  const separators = path.sep === '\\' ? normalizeSeparators : (value: string): string => value
+  const root = separators(repo.root)
+  const prefix = root.endsWith('/') ? root : root + '/'
+  return subject
+    .split('::')
+    .map((token) =>
+      // The rest of the token is kept verbatim: only the root is replaced.
+      separators(token.slice(0, prefix.length)) === prefix
+        ? `<root:${repo.name}>/${token.slice(prefix.length)}`
+        : token,
+    )
+    .join('::')
+}

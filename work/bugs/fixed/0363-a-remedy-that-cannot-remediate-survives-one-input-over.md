@@ -121,7 +121,7 @@ absence** is the failure `CLAUDE.md` records about its own gate table — repeat
 author who had quoted that lesson earlier the same day.
 
 The conclusion holds for a different reason: `assertsCardinality()` is a constant `false` on
-`TerminalBuilder` (`packages/ts/src/core/terminal-builder.ts:507`), overridden in exactly one
+`TerminalBuilder` (`packages/ts/src/core/terminal-builder.ts:507` on `91b420a`), overridden in exactly one
 place — `RuleBuilder` (`packages/ts/src/core/rule-builder.ts:221`) — and every one of those
 five builders extends `TerminalBuilder` or `GraphqlRuleBuilder` directly and overrides nothing.
 A rule that stamps a discovery glob therefore always answers `false`, and never enters the

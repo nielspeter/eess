@@ -41,7 +41,7 @@ So discovery globs are ordinary, not exotic. Caught by method review, which ran 
 
 **The conclusion survives, for a reason the first version never stated.** A discovery glob and
 a cardinality assertion cannot meet, because `assertsCardinality()` is a constant `false` on
-`TerminalBuilder` (`packages/ts/src/core/terminal-builder.ts:507`) and is overridden in exactly
+`TerminalBuilder` (`packages/ts/src/core/terminal-builder.ts:507` on `91b420a`) and is overridden in exactly
 one place, `RuleBuilder` (`packages/ts/src/core/rule-builder.ts:221`) — and **every one of the
 five builders above extends `TerminalBuilder` (or `GraphqlRuleBuilder`) directly and overrides
 nothing.** A rule that stamps a discovery glob therefore always answers `false` to

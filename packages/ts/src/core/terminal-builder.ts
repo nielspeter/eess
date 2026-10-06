@@ -4,7 +4,10 @@ import { zeroSubjectsAdviceOf, zeroSubjectsViolationOf } from './vacuity-diagnos
 import type { RuleFacts } from './vacuity-diagnosis.js'
 import type { ArchViolation } from '@nielspeter/eess'
 import { collectResult } from '@nielspeter/eess'
+import path from 'node:path'
 import { severityFor, subjectOf } from '@nielspeter/eess/internal'
+import { discoverNamedRepository, portableTokens } from '@nielspeter/eess/internal'
+import type { NamedRepository } from '@nielspeter/eess/internal'
 import type { GlobNode } from '@nielspeter/eess'
 import type { ArchProject } from './project.js'
 import type { CheckOptions } from '@nielspeter/eess'
@@ -96,6 +99,92 @@ function hasIdentityCollision(violations: readonly ArchViolation[]): boolean {
     seen.add(key)
   }
   return false
+}
+
+/**
+ * The repository a deferred warning's subjects are made portable against (bug 0389, spike 0392):
+ * the named repository above the project's tsconfig, or none when the builder names no project.
+ * One per builder: a root found per finding was measured to let an entry for one package accept the
+ * same finding in another. No repository, no portable form; the raw subject stays, exactly as
+ * before the fix.
+ */
+function repositoryOf(project: ArchProject | undefined): NamedRepository | undefined {
+  return project === undefined
+    ? undefined
+    : discoverNamedRepository(path.dirname(project.tsConfigPath))
+}
+
+/** The form the advice prints and a portable entry is compared against. */
+function portableSubject(v: ArchViolation, repo: NamedRepository | undefined): string {
+  const raw = subjectOf(v)
+  return repo === undefined ? raw : portableTokens(raw, repo)
+}
+
+/**
+ * Whether a finding's raw subject (identity, or element and message) already spells the portable
+ * syntax (spike 0393). An entry for such a finding would be indistinguishable from another finding's
+ * portable form, so a rule that has one gets no portable matching: it compares raw subjects, exactly
+ * as `main` did. Read before exclusions, like the collision guard.
+ */
+function spellsPortableSyntax(violations: readonly ArchViolation[]): boolean {
+  return violations.some((v) => subjectOf(v).includes(PORTABLE_MARKER))
+}
+
+const PORTABLE_MARKER = '<root:'
+
+/**
+ * Whether a deferred warning's `accepted` list holds this finding: its raw subject, which is what a
+ * list written before the fix holds, or its portable form (bug 0389). The entry itself is never
+ * rewritten: scrubbing the accepted side let a raw list written for one file match another.
+ */
+function isAccepted(
+  accepted: readonly string[],
+  v: ArchViolation,
+  repo: NamedRepository | undefined,
+): boolean {
+  return accepted.includes(subjectOf(v)) || accepted.includes(portableSubject(v, repo))
+}
+
+/** The text `deferredWarningAdvice()` returns, by cause. */
+function deferredWarningMessage(
+  name: string,
+  cause: 'collision' | 'portable-syntax' | undefined,
+  acceptedCount: number,
+  subjects: readonly string[],
+  spelling: readonly string[] = [],
+): string {
+  if (cause === 'portable-syntax') {
+    return (
+      `"${name}" is a deferred warning, and portable matching is off for it: these findings' ` +
+      `subjects (identity, or element and message) contain \`${PORTABLE_MARKER}\`, the syntax a ` +
+      `portable \`accepted\` entry is written in, so an entry for one could not be told apart from ` +
+      `another finding's portable form: ${spelling.join(', ')}. Entries are compared by raw subject ` +
+      `only until no subject contains \`${PORTABLE_MARKER}\` (findings excluded with \`.excluding()\` ` +
+      `count too). To restore it, change that identity or give the finding one, and remove the ` +
+      `finding's old entry from \`accepted\`: kept, it can equal another finding's portable form. ` +
+      `Not in the list: ${subjects.join(', ')}.`
+    )
+  }
+  if (cause === 'collision') {
+    return (
+      `"${name}" is a deferred warning, but its findings are not reliably identifiable: two or ` +
+      `more share one subject (rule + element + message, with no producer-set \`identity\`), so ` +
+      `the repair that keeps them distinct assigns a POSITIONAL "#1"/"#2" suffix — not stable ` +
+      `across runs, so a fixed finding and a genuinely new one can land on the same suffix and ` +
+      `\`accepted\` would silently treat the new one as already-known debt. Every finding here is ` +
+      `escalated to error until this is fixed: qualify the condition's message, or set ` +
+      `ArchViolation.identity explicitly, so each finding's subject is unique on its own.`
+    )
+  }
+  const n = subjects.length
+  return (
+    `"${name}" is a deferred warning (accepted: ${String(acceptedCount)} finding` +
+    `${acceptedCount === 1 ? '' : 's'}), and ${String(n)} current ` +
+    `finding${n === 1 ? '' : 's'} ${n === 1 ? 'is' : 'are'} not in ` +
+    `that list — a new finding this deferral did not accept, which will fail at check() time: ` +
+    `${subjects.join(', ')}. Either fix it, or extend \`accepted\` if it is genuinely more debt of ` +
+    `the same kind you already deferred.`
+  )
 }
 
 /**
@@ -829,12 +918,18 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     // subject with a positional `#1`/`#2` suffix — see `hasIdentityCollision`'s
     // own doc comment for why checking post-repair identities would miss
     // exactly the case this exists to catch. Only computed when it can matter.
-    const unsafe =
-      sev === 'warn' && this._acceptedWarnings !== undefined && hasIdentityCollision(raw)
+    const deferred = sev === 'warn' && this._acceptedWarnings !== undefined
+    const unsafe = deferred && hasIdentityCollision(raw)
+    // One repository per run, looked up once rather than per finding; none when a subject already
+    // spells the portable syntax, so that rule matches raw subjects only (spike 0393).
+    const repo =
+      deferred && !unsafe && !spellsPortableSyntax(raw)
+        ? repositoryOf(this.getProject())
+        : undefined
     return collectResult(
       filtered.map((v) => ({
         ...v,
-        severity: severityFor(v, unsafe ? 'error' : this.fallbackSeverityFor(v, sev)),
+        severity: severityFor(v, unsafe ? 'error' : this.fallbackSeverityFor(v, sev, repo)),
       })),
       evidence,
     )
@@ -849,9 +944,13 @@ export abstract class TerminalBuilder extends RuleDeclaration {
    * An ADVISORY warning (`_acceptedWarnings` `undefined`) is unaffected — `sev`
    * passes through unchanged, exactly today's behaviour.
    */
-  private fallbackSeverityFor(v: ArchViolation, sev: 'error' | 'warn'): 'error' | 'warn' {
+  private fallbackSeverityFor(
+    v: ArchViolation,
+    sev: 'error' | 'warn',
+    repo: NamedRepository | undefined,
+  ): 'error' | 'warn' {
     if (sev !== 'warn' || this._acceptedWarnings === undefined) return sev
-    return this._acceptedWarnings.includes(subjectOf(v)) ? 'warn' : 'error'
+    return isAccepted(this._acceptedWarnings, v, repo) ? 'warn' : 'error'
   }
 
   /**
@@ -904,26 +1003,15 @@ export abstract class TerminalBuilder extends RuleDeclaration {
     const breaching = this.violations().filter((v) => v.severity === 'error')
     if (breaching.length === 0) return ''
     const described = this.describeRule()
-    const name = described.id || described.rule || this.constructor.name
-    if (hasIdentityCollision(this.collectWithAssertionGuard())) {
-      return (
-        `"${name}" is a deferred warning, but its findings are not reliably identifiable: two or ` +
-        `more share one subject (rule + element + message, with no producer-set \`identity\`), so ` +
-        `the repair that keeps them distinct assigns a POSITIONAL "#1"/"#2" suffix — not stable ` +
-        `across runs, so a fixed finding and a genuinely new one can land on the same suffix and ` +
-        `\`accepted\` would silently treat the new one as already-known debt. Every finding here is ` +
-        `escalated to error until this is fixed: qualify the condition's message, or set ` +
-        `ArchViolation.identity explicitly, so each finding's subject is unique on its own.`
-      )
-    }
-    const subjects = breaching.map((v) => subjectOf(v))
-    return (
-      `"${name}" is a deferred warning (accepted: ${String(this._acceptedWarnings.length)} finding` +
-      `${this._acceptedWarnings.length === 1 ? '' : 's'}), and ${String(breaching.length)} current ` +
-      `finding${breaching.length === 1 ? '' : 's'} ${breaching.length === 1 ? 'is' : 'are'} not in ` +
-      `that list — a new finding this deferral did not accept, which will fail at check() time: ` +
-      `${subjects.join(', ')}. Either fix it, or extend \`accepted\` if it is genuinely more debt of ` +
-      `the same kind you already deferred.`
+    const raw = this.collectWithAssertionGuard()
+    const portableOff = spellsPortableSyntax(raw)
+    const repo = portableOff ? undefined : repositoryOf(this.getProject())
+    return deferredWarningMessage(
+      described.id || described.rule || this.constructor.name,
+      hasIdentityCollision(raw) ? 'collision' : portableOff ? 'portable-syntax' : undefined,
+      this._acceptedWarnings.length,
+      breaching.map((v) => portableSubject(v, repo)),
+      raw.map((v) => subjectOf(v)).filter((subject) => subject.includes(PORTABLE_MARKER)),
     )
   }
 

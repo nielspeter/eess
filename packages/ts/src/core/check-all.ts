@@ -87,7 +87,7 @@ export function checkAll(rules: RuleBuilderLike[], options?: CheckOptions): void
   // ADR-008: this function owns its reporting below, so the gate runs under
   // `report: 'return'` and hands the findings back instead of emitting them.
   // An emitter finding carries `bypassFilters`, so it survives both the baseline
-  // (`packages/core/src/baseline.ts:283`) and the diff filter, and it is
+  // (`packages/core/src/baseline.ts:279`) and the diff filter, and it is
   // error-severity, so it rides the throw at the bottom.
   //
   // One option, one finding (plan 0074). A preset fans a single bad option out

@@ -1,4 +1,5 @@
 import { registerCacheReset } from './cache-registry.js'
+import { normalizeIdentityText } from './identity-root.js'
 
 /**
  * A single architecture rule violation.
@@ -226,6 +227,20 @@ export function byCodepoint(a: string, b: string): number {
  */
 export function subjectOf(violation: ArchViolation): string {
   return violation.identity ?? `${violation.element}::${violation.message}`
+}
+
+/**
+ * {@link subjectOf} with the identity root scrubbed out — the form both baseline hashes use, so the
+ * same finding hashes the same in every checkout. One definition for the two hashes, so they cannot
+ * drift apart. Without a root it is `subjectOf`.
+ *
+ * It replaces the root as a substring, which bug 0391 records can alias two files when the root also
+ * spells a path segment. A deferred warning's `accepted` list does not use it: it compares a raw
+ * subject or `portableTokens`' whole-token form (bug 0389, spike 0392).
+ */
+export function portableSubjectOf(violation: ArchViolation, root?: string): string {
+  const subject = subjectOf(violation)
+  return root === undefined ? subject : normalizeIdentityText(subject, root)
 }
 
 /**

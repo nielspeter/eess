@@ -45,16 +45,17 @@ and message can repeat across files.
 
 ## Root cause
 
-- `packages/core/src/violation.ts:227-229` — `subjectOf` returns
+- `packages/core/src/violation.ts:228-230` — `subjectOf` returns
   `violation.identity ?? \`${violation.element}::${violation.message}\``.
 - `packages/ts/src/helpers/baseline.ts:237-248` hashes `rule::subjectOf(v)`.
-- `packages/core/src/baseline.ts:122-135` is a second `hashViolation` with its own copy of the
-  same fallback.
+- `packages/core/src/baseline.ts:122-135` on `91b420a` was a second `hashViolation` with its own
+  copy of the same fallback. Bug 0389 routed both hashes through `portableSubjectOf`, without
+  changing their values, so the fallback now has one definition.
 - `packages/ts/src/helpers/baseline.ts:86` documents the identity as "rule + file + content
   hash". The hash does not implement that, and `isKnown` matches on the hash alone.
 
-The same subject also keys `asSeverity('warn', { accepted })` (`packages/ts/src/core/terminal-builder.ts:854`) and
-`disambiguateIdentities`'s grouping (`packages/core/src/violation.ts:248`), so the same hole is in an accepted
+The same subject also keys `asSeverity('warn', { accepted })` (`packages/ts/src/core/terminal-builder.ts:140`, `isAccepted`) and
+`disambiguateIdentities`'s grouping (`packages/core/src/violation.ts:263`), so the same hole is in an accepted
 warning list.
 
 ## Fix
