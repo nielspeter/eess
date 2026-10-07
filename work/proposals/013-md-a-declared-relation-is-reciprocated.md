@@ -4,7 +4,7 @@
 inbound question from an agent in a consuming project. Surveyed against this repo's source at
 `9d18f0e`, with the composition measured on a fixture (below). Revised the same day after method
 review (see "Corrections"). Not reviewed as a proposal.
-**Priority:** Medium — no false green in a shipped rule today. One consuming project checks the
+**Priority:** Medium — no shipped rule checks this property, so none is falsely green on it. One consuming project checks the
 property by hand, and the obvious composition with released parts both fails open and gives a
 false red.
 **Origin:** inbound · consuming project. Verified here: the composition below was measured on a
