@@ -351,8 +351,8 @@ on frozen targets, and overruled reviewers without saying so.
   with adversarial review and mutation.
 - **ADR-010 §1 and §3:** the examined unit of a `RuleBuilder` family is the post-filter subject set
   handed to conditions, and zero examined is a failing finding absent a declaration.
-- **ADR-017 rule 7:** a variant someone needs "is a new predicate with a name that says so, added
-  when someone needs it".
+- **ADR-017 rule 7,** by analogy: it is written for heritage predicates ("No direct-only variant
+  ships … added when someone needs it"); it is applied here to any variant nobody needs yet.
 - ADR-018 is **Proposed and not binding**; nothing here rests on it.
 
 **The validated rule.** The consumer's rule was read from its rule file (not run here). It selects
@@ -381,17 +381,22 @@ resolver and a counted exemption. The case is that narrow, and no wider.
    links carry a section path from the same block walk rather than a third heading walk (the
    architect's request). This overrules the product lens's order (section first, label later):
    the one validated user declares by label. A declaration that selects nothing in the whole corpus
-   fails under ADR-010 §3. **A near-miss in one record is reported too**: a block whose leading label
-   matches the declared label except for case, spacing or the colon is a finding naming the
-   expected spelling, because otherwise one author's capitalisation leaves that record's relations
-   unchecked while `examined` stays above zero (ADR-009 rule 1's corollary).
+   fails under ADR-010 §3. **A near-miss in one record is reported too**: a bold label with its colon that
+   matches the declared label except for case or inner spacing (`**Related To:**`), or a heading
+   that does the same for the section form, is a finding naming the expected spelling. Otherwise
+   one author's capitalisation leaves that record's relations unchecked while `examined` stays
+   above zero (ADR-009 rule 1's corollary). The bold wrapper and the colon stay required, as in the
+   ledger grammar, so prose such as "Related to bug 0253, the …" is never a near-miss.
 3. **Frozen targets are exempt, and counted.** This is the validated rule's behaviour and its pinned
    mutant: history is not edited, and the newer record citing it is enough. Reporting them would red
    the consumer's only real record with remedies that do not work there ("remove the link" deletes
-   a true relation; "add a back-link" edits history). The exemption is never silent: the run reports
-   how many links were not checked because their target is frozen. A selection in which every link
-   points into a frozen record examines zero and fails, as in the validated rule. Frozen is
-   `work/README.md`'s notion (its frozen subfolders, around line 76), which bug 0253 measured. This
+   a true relation; "add a back-link" edits history). The exemption sits in the selection, as in the validated
+   rule, so a selection in which every link points into a frozen record examines zero and fails
+   (ADR-010 §3). It is never silent: the run discloses how many links it did not select because
+   their target is frozen. That count is disclosure, not a gate; the plan names its channel (the
+   rule's result, and its JSON output). "Frozen" is the adopter's own declaration, eess-md's
+   `frozen` corpus option (`packages/md/src/corpus.ts:28`, `packages/md/src/model/document.ts:58`),
+   never this repository's folder names. This
    follows the enforcement and product lenses (exempt with a count) and overrules the architect
    lens's "report it".
 4. **A target that does not resolve is a finding of this rule,** as in the validated rule, so its
@@ -404,13 +409,20 @@ resolver and a counted exemption. The case is that narrow, and no wider.
    through `@nielspeter/eess/internal`, so a public option would move one internal import, not meet
    a need. This overrules the product lens. It is revisited with bug 0400's decision if a consumer
    appears that cannot be served otherwise.
-7. **C is `resolveLink(link, corpus, options)`, returning a result that names its case:** the
-   repository path of a target inside the corpus; a target that exists outside the corpus roots
-   (its links are not parsed, so B reports that cause, not "one-way"); a missing target; a
-   directory; or a link with no file reference (a pure `#anchor`). `linkResolves` and B both call
-   it, so there is one resolver. This takes neither lens's signature as proposed: the architect's
-   "path or `undefined`" merges these cases, and product's "every candidate" leaves each caller to
-   re-decide them.
+7. **C is `resolveLink(link, corpus, options)`, returning a result that names its case,** and B
+   gives each case a verdict, none of them a silent skip:
+   - a target inside the corpus: B checks for a link back;
+   - a target outside the corpus roots: a finding, since its links are not parsed (remedy: add its
+     folder to the corpus roots, or correct the link);
+   - a missing target: a finding (decision 4);
+   - a directory: a finding (remedy: link the record's file);
+   - a link with no file reference (a pure `#anchor`, the record pointing at itself): a finding
+     (remedy: remove it; a record does not relate to itself).
+     A resolver that sorts a link into the wrong case is caught only by fixtures, so each case has
+     its own row under decision 10. `linkResolves` and B both call
+     it, so there is one resolver. This takes neither lens's signature as proposed: the architect's
+     "path or `undefined`" merges these cases, and product's "every candidate" leaves each caller to
+     re-decide them.
 8. **Names avoid "relation."** The kernel already uses it (`preserveRelations`, `RelationSpec`).
    ADR-017 rule 6 decides this for heritage words; it is extended here by analogy. The API reads,
    for example, `links(c).that().areLabelled('Related to').should().beLinkedBack()`.
@@ -419,8 +431,9 @@ resolver and a counted exemption. The case is that narrow, and no wider.
    decision 1 does not ship; whether ADRs gain "Extended by" lines is decided with that predicate,
    when someone needs it.
 10. **The build is published API** (ADR-009 rule 6): its plan carries a sabotage matrix and an
-    adversarial review, and its non-vacuity rows run over a fixture corpus, one row per cause in
-    decisions 2, 3, 4 and 7.
+    adversarial review, and its non-vacuity rows run over a fixture corpus: one row per cause in
+    decisions 2, 3, 4 and 7, an all-frozen selection that goes red, and decision 4's test that
+    applying the shared remedy clears both findings.
 
 With these settled, the asks are buildable in order: C, then A, then B. Each stays `Held` until the
 maintainer accepts it and a plan owns it.
