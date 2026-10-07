@@ -314,3 +314,47 @@ they belong to the bug lane and close on their own terms.
 in proposal 001's shape: one criterion per submode per type, each naming its fixture file and
 the substring the assertion keys on — comparison submode, parse-failure path, and selector.
 That is the half `PROPOSALS.md` requires and this submission omitted.
+
+## Consumer evidence — 2026-10-07
+
+Recorded by the coordinating agent at the maintainer's instruction, from an inbound question by an
+agent working in a consuming project. It is evidence for the `Held` rows, not a new ruling, and it
+changes no disposition above.
+
+**The consumer.** One Markdown document holds one ` ```mermaid ` fence with a `sequenceDiagram` of
+five participants: an actor, a service, a database, a worker, and an external HTTP service. The
+external service's API is documented twice in the same repository: in prose, and as an OpenAPI
+document. **The code is Python, not TypeScript.** The project already runs eess-md, eess-ts and a
+non-vacuity harness in its gates.
+
+**What it asked for**, in its own order:
+
+1. The fence parses, and the diagram is internally consistent: every message's participants are
+   declared.
+2. Every message from the service to the external service names an endpoint, method and path,
+   that exists in the OpenAPI document.
+3. Participants map to real paths in the repository, for example the service and worker
+   directories.
+
+**Measured against this record.**
+
+- **The `sequenceDiagram` row does not fit this consumer.** It is held on a deciding measurement
+  ("what fraction of participants resolve to real classes") and an `eess-ts` cost line. Both
+  assume a TypeScript codebase on the other side. This consumer has none, so it cannot supply that
+  measurement and is not the dogfood consumer the row waits for.
+- **Ask 1 is not in this record.** It needs no binding at all: a parser plus a check that the
+  diagram agrees with itself. This proposal frames every `Held` row as diagram ↔ code. The nearest
+  shipped shape is `tableErAgree`, which checks an `erDiagram` against its own document (proposal
+  003, the ER entry).
+- **Ask 2 is not in this record or in proposal 003.** Proposal 003's OpenAPI entry binds a spec to
+  route-handler code. This asks for a diagram bound to a spec, two documents and no code. Neither
+  side has a dialect: no sequence parser, no OpenAPI reader.
+- **Ask 3 is OQ3's mechanism.** A caller-declared mapping from participant to path is what the
+  `flowchart` row is blocked on. This is a second diagram type asking for it.
+
+**What the consumer was told.** None of the three can be expressed with released packages.
+eess-mermaid models `classDiagram` and `erDiagram` only, and `eess-crossvalidate`'s fence reader
+compares class diagrams only and skips a `sequenceDiagram` fence
+(`packages/crossvalidate/src/md-mermaid.ts:42`, `:92`). A
+project-local check script with its own non-vacuity fixture is the honest stopgap, labelled as the
+project's check, not as eess-mermaid's. It was asked not to file in this repository.
