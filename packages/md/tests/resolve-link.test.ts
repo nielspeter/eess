@@ -56,8 +56,8 @@ describe('resolveLink() — the spelling table (plan 0404)', () => {
   })
 
   it('with rootDir, an existing repo-root file wins over the content root', () => {
-    // /docs/b.md exists at the repo root as written; the content-root candidate
-    // (docs/docs/b.md) does not exist. Order is repo-root first.
+    // Both candidates exist: docs/b.md as written, and docs/docs/b.md under the
+    // content root. Order is repo-root first, so docs/b.md wins.
     expect(resolve('/docs/b.md', { rootDir: 'docs' })).toMatchObject({
       kind: 'document',
       path: 'docs/b.md',

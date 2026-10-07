@@ -202,6 +202,10 @@ function fileTarget(path: string, link: LinkToResolve, corpus: Corpus): LinkTarg
  *
  * Links into the built-in ignores (`node_modules`, `.git`, `dist`, …) are
  * `missing`: `corpus()` never walks those folders, so their files are not known.
+ *
+ * The directory and document indexes are built on a corpus's first resolution
+ * and cached. A `corpus()` result never changes, so that is exact; a hand-built
+ * `Corpus` whose `documents()` returns something different later is not re-read.
  */
 export function resolveLink(
   link: LinkToResolve,

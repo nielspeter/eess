@@ -193,3 +193,12 @@ live-target.ts once they exist>).and().importFrom('**/model/resolve-link.ts').sh
 - **Not done, recorded:** the architect's suggestion that the `directory` case carry which root it
   came from, so `linkTargets` need not be exported for the hint's label. It is a cleaner shape but
   changes a published type this plan just introduced; left as it is, with the label tested.
+- **Second review, minors:** the non-vacuity row now probes both `'node:path'` and bare `'path'`;
+  the "repo-root file wins" test gained a real competing file (`docs/docs/b.md`), since without
+  one it could not fail on a reversed file loop (now measured red); `resolveLink`'s doc states that
+  the cached indexes are not re-read for a hand-built `Corpus` whose `documents()` changes
+  (architect M3).
+- **Dropped on purpose:** the architect's suggestion that the `directory` case carry its root, so
+  `linkTargets` need not be exported for the hint's label (M1). `linkTargets` is exported from the
+  model module only, not from the package root, so no adopter can depend on it; carrying the root
+  would widen a public type for an internal label.

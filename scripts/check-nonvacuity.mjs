@@ -655,17 +655,27 @@ function gateArch() {
 // 'path' spelling is the one review measured getting past a ban on 'node:path'
 // alone, so it is the spelling this row proves the rule now catches.
 function gateArchOneLinkResolver() {
-  const bad = withMutatedFile(
-    MD_LINK_CONDITION_TARGET,
-    "import { posix as __probe } from 'path'",
-    () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
-  )
-  const ok = bad.code === 1 && firedOn(bad, 'eess/md-one-link-resolver', 'conditions/resolve.ts')
+  // Two spellings: 'node:path', the one the rule was first written for, and bare
+  // 'path', the one that got past it. A ban narrowed to either alone reddens a probe.
+  const probes = ['node:path', 'path'].map((spec) => {
+    const bad = withMutatedFile(
+      MD_LINK_CONDITION_TARGET,
+      `import { posix as __probe } from '${spec}'`,
+      () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']),
+    )
+    const fired =
+      bad.code === 1 && firedOn(bad, 'eess/md-one-link-resolver', 'conditions/resolve.ts')
+    return { spec, code: bad.code, fired }
+  })
+  const ok = probes.every((p) => p.fired)
   const clean = sh(EESS_TS, ['check', 'arch.rules.ts'])
   const cleanNote = clean.code === 0 ? 'clean → green' : `clean → exit ${clean.code} (in-flight)`
+  const probeNote = probes
+    .map((p) => `'${p.spec}' → exit ${p.code}${p.fired ? '' : ' (did not fire)'}`)
+    .join(' · ')
   return {
     ok,
-    detail: `bad → exit ${bad.code} (eess/md-one-link-resolver on conditions/resolve.ts) · ${cleanNote}`,
+    detail: `${probeNote} (eess/md-one-link-resolver on conditions/resolve.ts) · ${cleanNote}`,
   }
 }
 
