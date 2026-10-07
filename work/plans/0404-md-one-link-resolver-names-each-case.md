@@ -2,10 +2,12 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-07 from proposal 013's decision 7, after the maintainer asked
+- **State:** Ready — frozen 2026-10-07, at the maintainer's request (plan-ready). written 2026-10-07 from proposal 013's decision 7, after the maintainer asked
   for plans to implement the proposal ("then lets make plans to implement the proposal 013"). A
   first freeze the same day was withdrawn after architect, enforcement, method and testing review
-  found undecided mechanisms; this version decides them. Not yet re-frozen.
+  found undecided mechanisms; this version decides them. Re-frozen
+  after a second architect, enforcement and testing review settled every remaining mechanism; each
+  decision the build depends on is restated here, and proposal 013 is linked as provenance only.
 - **Priority:** Medium — no false green today. A custom link rule has to re-implement resolution
   and gets it wrong (proposal 013's survey), and plan 0406 cannot give one finding per cause
   without it.
@@ -44,10 +46,12 @@ export type LinkTarget =
   | {
       readonly kind: 'not-in-corpus'
       readonly path: string
-      readonly reason: 'outside-roots' | 'not-markdown' | 'ignored'
+      readonly reasons: readonly NotInCorpusReason[]
     }
   | { readonly kind: 'directory'; readonly path: string }
   | { readonly kind: 'missing'; readonly tried: readonly string[] }
+
+export type NotInCorpusReason = 'not-markdown' | 'ignored' | 'outside-roots'
 
 export function resolveLink(
   link: LinkToResolve,
@@ -59,9 +63,14 @@ export function resolveLink(
 - **Total, never throwing.** An external link is `external`; malformed percent-encoding is
   `missing` with the raw URL in `tried`.
 - **`self`** is a pure `#anchor`, **or** a target that resolves to the linking document's own path.
-- **`not-in-corpus`** splits by reason, so each gets a remedy that works: `outside-roots` (add the
-  folder to the corpus `roots`), `not-markdown` (the corpus reads only `.md`), `ignored` (it matches
-  the corpus `ignore` option).
+- **`not-in-corpus`** lists every reason that applies, never just one, so a finding names every
+  remedy needed and fixing one cannot uncover another: `not-markdown` (the corpus reads only `.md`),
+  `ignored` (it matches the corpus `ignore` option), `outside-roots` (add the folder to the corpus
+  `roots`). The reasons need the corpus's `roots` and `ignore` matchers, which `corpus()` builds and
+  discards today; it now registers them in a module-private `WeakMap<Corpus, …>`, beside the two
+  indexes below. A `Corpus` built some other way, without registered matchers, reports
+  `outside-roots`. The built-in ignores (`node_modules`, `dist`, …) are never walked, so a link into
+  one is `missing`, not `ignored`; the documentation says so.
 - **Candidate order is today's.** For each target from `resolveTargets` (repo-root first, then
   content-root when `rootDir` is set) the candidates from `tryExtensions` and `tryIndex` are tried in
   order. The first existing **file** wins. Only when no candidate is a file is a directory
@@ -79,7 +88,9 @@ export function resolveLink(
 
 ### Phase 1 — extract, cache, export; behaviour unchanged
 
-**Files:** `packages/md/src/model/resolve-link.ts` (new), `packages/md/src/conditions/resolve.ts`,
+**Files:** `packages/md/src/model/resolve-link.ts` (new; it also takes `movedLinkFix`, the one other
+use of `node:path` in `conditions/resolve.ts`), `packages/md/src/corpus.ts` (registers its matchers),
+`packages/md/src/conditions/resolve.ts`,
 `packages/md/src/index.ts`, `arch.rules.ts` (the structural rule below), `docs/markdown.md` (a
 section on a custom link rule with `resolveLink`), `.changeset/` (eess-md minor, additive).
 
@@ -95,7 +106,8 @@ resolver cannot pass by accident.
   `a%20b.md`, `%E0` (`missing`), `/docs/a.md` with and without `rootDir` (both candidates in
   `tried` when missing), `./guide` with `tryExtensions: ['.md']`, `./guide/` with `tryIndex`, a
   directory with and without `resolveDirectories`, a file and a same-named directory (the file wins),
-  a file outside `roots`, a `.png` inside `roots`, an ignored file, an external URL, a missing file.
+  a file outside `roots`, a `.png` inside `roots`, an ignored file, an ignored `.md` outside `roots`
+  (`reasons` lists both), a link into `node_modules` (`missing`), an external URL, a missing file.
   `document` rows also assert `doc.relPath === path`.
 - **`linkResolves` is unchanged:** `packages/md/tests/links.test.ts` passes untouched, and a test
   drives `links(c).that().areInternal().should().resolve().check()` over the new fixture.
@@ -108,9 +120,14 @@ code:
 - an identity resolver (returns the URL as the path): the subdirectory rows go red;
 - `outside-roots` and `document` swapped: their rows go red;
 - **a second resolver reintroduced:** caught structurally, not by behaviour (a copy gives the same
-  answers). `arch.rules.ts` gains a rule that `packages/md/src/conditions/resolve.ts` imports
-  `resolveLink` and does not import from `node:path`; the row deletes the import and inlines the old
-  code, and `check:arch` goes red.
+  answers). `arch.rules.ts` gains a rule over the files that resolve links:
+  `modules(p).that().resideInFile(<conditions/resolve.ts, and plan 0406's linked-back.ts and
+live-target.ts once they exist>).and().importFrom('**/model/resolve-link.ts').should().notImportFrom('node:path')`.
+  `importFrom` is a predicate only, so a file that stops importing `resolveLink` drops out of the
+  selection, and a selection emptied that way fails with the zero-examined finding. The row deletes
+  the import and inlines the old code, and `check:arch` goes red. `notImportFrom` matches a builtin
+  specifier such as `node:path`. **Named residual:** a copy written with string operations instead
+  of `node:path` passes; that is accepted.
 
 `check:vacuity` does not reach this: `resolveLink` is a function, not a check-constructor.
 

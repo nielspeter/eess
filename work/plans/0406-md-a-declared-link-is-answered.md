@@ -2,11 +2,13 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-07 from proposal 013's decisions 1, 3, 4, 7, 8, 9 and 10, after
+- **State:** Ready — frozen 2026-10-07, at the maintainer's request (plan-ready). written 2026-10-07 from proposal 013's decisions 1, 3, 4, 7, 8, 9 and 10, after
   the maintainer asked for plans to implement the proposal. A first freeze the same day was withdrawn
   after review found the frozen filter unbuildable as placed (a condition cannot add a selection
   filter) and the production non-vacuity row satisfiable by the wrong finding; this version decides
-  both. Not yet re-frozen.
+  both. Re-frozen
+  after a second architect, enforcement and testing review settled every remaining mechanism; each
+  decision the build depends on is restated here, and proposal 013 is linked as provenance only.
 - **Priority:** Medium — no shipped rule checks this property.
 - **Effort:** Medium — one condition with options, one selector, findings per cause, a dogfood rule
   over this repository's ADRs, and non-vacuity at both tiers.
@@ -27,13 +29,14 @@ links back twice and passes green on a misspelt label (bug 0400).
 ## Design
 
 ```ts
+const resolveOptions = { tryExtensions: ['.md'] }
 links(c)
   .that()
   .areLabelled('Related to')
   .and()
-  .haveLiveTargets()
+  .haveLiveTargets(resolveOptions)
   .should()
-  .beLinkedBack({ tryExtensions: ['.md'] })
+  .beLinkedBack(resolveOptions)
   .rule({ id: 'corpus/related-links-back', because: '…', suggestion: '…' })
 ```
 
@@ -49,12 +52,15 @@ links(c)
 - **The frozen exemption is an explicit selector the author writes: `haveLiveTargets()`.** A
   condition called after `.should()` cannot add a selection filter: `addPredicate` in the condition
   phase records the predicate as misplaced, and the rule then reports that it asserts nothing (bug
-  0155). So the exemption is a predicate in `.that()`, beside `pointers()`' `areLive()`. It resolves
-  each link with `resolveLink` and keeps those whose target is not a frozen document ("frozen" is the
+  0155). So the exemption is a predicate in `.that()`, beside `pointers()`' `areLive()`:
+  `haveLiveTargets(options?: LinkResolveOptions)`, taking the same options as `beLinkedBack`, so the
+  two resolve a link the same way (the documentation passes one value to both). It resolves each
+  link with `resolveLink` and keeps those whose target is not a frozen document ("frozen" is the
   adopter's `frozen` corpus option). Because the author writes it, the exemption is part of the
   rule's own text, which `explain` and every finding show; an all-frozen selection examines zero and
-  fails. **Forgetting it fails closed:** a link into a frozen record is then examined, and the
-  finding says the target is frozen and names the selector, so the remedy works.
+  fails. **Forgetting it fails closed:** a link into a frozen record is then examined. If the frozen
+  record links back, the relation is answered and nothing is reported; if it does not, the finding
+  says the target is frozen and names the selector, so the remedy works.
 - **No count of the exempted links.** Proposal 013's decision 3 asked that the run disclose how many
   links the exemption left out. With the exemption an ordinary, visible predicate, it is like every
   other `.that()` filter, none of which is counted; and the kernel's result has no field for it.
@@ -84,7 +90,8 @@ finding clears; for `missing`, both `linkResolves` and `beLinkedBack` clear.
 ### Phase 1 — the condition and the selector
 
 **Files:** `packages/md/src/conditions/linked-back.ts` (new), `packages/md/src/predicates/live-target.ts`
-(new), `packages/md/src/builders/links.ts` (`beLinkedBack`, `haveLiveTargets`), `docs/markdown.md`,
+(new), `packages/md/src/builders/links.ts` (`beLinkedBack`, `haveLiveTargets`), `arch.rules.ts` (the two
+new files join plan 0404's structural rule), `docs/markdown.md`,
 `packages/md/src/corpus.ts` (the `frozen` option's docstring now names this use),
 `.changeset/` (eess-md minor, additive).
 
@@ -107,13 +114,15 @@ whichever records hold shifted pointers.
 
 ### Phase 3 — non-vacuity at both tiers (decision 10)
 
-- **Production row, one-way:** using the harness's `withRewrittenFile`, remove ADR-010's link back
-  to ADR-014, run the production `scripts/check-corpus.mjs --format json`, and assert a finding with
+- **Production row, one-way:** using the harness's `withRewrittenFile`, remove every link from
+  ADR-010 to ADR-014, asserting none remains after the rewrite (so a later incidental link cannot
+  make the row blame the rule), run the production `scripts/check-corpus.mjs --format json`, and assert a finding with
   this rule id **on `adr/014-…md`, whose message names ADR-010** and which is not the zero-examined
   finding (the lesson `firedNamingPayload` records in `scripts/check-nonvacuity.mjs`). No probe file
   is planted, so no gate needs an exclusion.
 - **Production row, every label removed:** rewrite ADR-014 and ADR-016 without their `**Extends:**`
-  lines and assert the zero-examined finding with this rule id. This is what catches the rule being
+  lines, as two nested `withRewrittenFile` calls (each must change its file, or the harness throws),
+  and assert the zero-examined finding with this rule id. This is what catches the rule being
   given `.expectEmpty()`.
 - **Fixture rows** under `scripts/nonvacuity/bad-linked-back/` with `bad-linked-back.mjs`: one per
   row of the finding table, an all-frozen selection, a mixed selection whose frozen target does not
@@ -137,6 +146,9 @@ Tests import from the package root, in `packages/md/tests/builders/linked-back.t
 - an all-frozen selection with `haveLiveTargets()`: red with the zero-examined finding;
 - a mixed selection whose frozen target does not link back: green with the selector, and the frozen
   finding without it;
+- an extensionless declaration into a frozen target, both methods given `tryExtensions`: green;
+- a frozen target that links back, without the selector: green;
+- a `self` declaration spelt as a path (`./self.md`): the `self` finding;
 - an empty selection: red.
 
 **Sabotage rows** (ADR-009 rule 5; published API, rule 6's deepest level), in an isolated worktree,
@@ -147,7 +159,11 @@ from a green baseline, verdicts read from exit codes, plus an adversarial review
 - the condition marked cardinality-exempt: the empty-selection row goes red;
 - one row per finding cause, its cause swapped for another: that cause's row goes red (nine rows);
 - the production rule given `.expectEmpty()`: the every-label-removed production row goes red;
-- `beLinkedBack` ignoring its options: the extensionless back-link row goes red.
+- `beLinkedBack` ignoring its options: the extensionless back-link row goes red;
+- `haveLiveTargets` ignoring its options: the extensionless frozen-target row goes red.
+
+**Merge order:** this plan's PR lands after bug 0403's record (PR #190) is on `main`, since it
+links that record.
 
 **Vacuity matrix:** it probes constructors over empty input and so reaches `links()`, not this
 condition. Covering eess-md there is [bug 0403](../bugs/0403-the-vacuity-matrix-probes-one-dialect-of-five.md)'s
