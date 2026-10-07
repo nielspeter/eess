@@ -7,4 +7,4 @@ Links resolved by `resolve-link.test.ts`, one per case:
 - [self anchor](#x), [self path](./source.md)
 - [guide](./guide), [folder](./folder/), [both](./both)
 - [outside](../../outside/out.md), [picture](./pic.png), [ignored](../ignored/i.md)
-- [nope](./nope)
+- [nope](./nope), [bad encoding](./bad%E0.md)

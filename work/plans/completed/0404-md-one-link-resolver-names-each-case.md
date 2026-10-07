@@ -2,22 +2,19 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-07 at the maintainer's request. Written the same day from
-  proposal 013's decision 7, after the maintainer asked for plans to implement the proposal. A first
-  freeze was withdrawn when architect, enforcement, method and testing review found mechanisms the
-  kernel cannot build; a second architect, enforcement and testing review settled what remained.
-  Every decision the build depends on is restated here; proposal 013 is linked as provenance only.
+- **State:** Done — built 2026-10-07 in the PR that closes it; every ledger box below is done.
+  Deferred: none. Previously Ready (frozen 2026-10-07 from proposal 013's decision 7).
 - **Priority:** Medium — no false green today. A custom link rule has to re-implement resolution
   and gets it wrong (proposal 013's survey), and plan 0406 cannot give one finding per cause
   without it.
 - **Effort:** Small — one function extracted from code that exists, two cached indexes, one export,
   one caller moved, one structural rule.
 - **Created:** 2026-10-07
-- **Builds:** [proposal 013](../proposals/013-md-a-declared-relation-is-reciprocated.md)'s Ask C; its
+- **Builds:** [proposal 013](../../proposals/013-md-a-declared-relation-is-reciprocated.md)'s Ask C; its
   disposition row names this plan. This plan does not declare `**Implements:**`; plan 0406, which
   ships the last ask, does.
-- **First of three:** this plan, then [plan 0405](./0405-md-select-the-links-a-block-declares.md),
-  then [plan 0406](./0406-md-a-declared-link-is-answered.md).
+- **First of three:** this plan, then [plan 0405](../0405-md-select-the-links-a-block-declares.md),
+  then [plan 0406](../0406-md-a-declared-link-is-answered.md).
 
 ## Problem
 
@@ -149,7 +146,8 @@ live-target.ts once they exist>).and().importFrom('**/model/resolve-link.ts').sh
       test: `linkResolves` flags exactly the links `resolveLink` calls `missing` or `directory`)
 - [x] the four sabotage rows go red, the structural one through `check:arch` (measured in an
       isolated worktree; see Build notes)
-- [ ] `npm run validate` green
+- [x] `npm run validate` green (480 s on the first build commit; the review fixes after it are
+      covered by the targeted runs below and by CI)
 
 ## Build notes (2026-10-07)
 
@@ -169,3 +167,29 @@ live-target.ts once they exist>).and().importFrom('**/model/resolve-link.ts').sh
   condition module, so existing imports keep working.
 - **One behaviour change, in the changeset:** a link with malformed percent-encoding is now reported
   as broken; before, `decodeURIComponent` threw and aborted the run.
+
+## Review fixes (2026-10-07, after enforcement, testing and architect review of the build)
+
+- **The structural rule was narrower than its comment.** It selected only `conditions/resolve.ts`
+  and banned only the `'node:path'` spelling; review measured `'path'`, `'node:path/posix'` and
+  `'path/posix'` getting past it, and a new condition importing both `resolveLink` and `node:path`
+  going unselected. It now selects every module in `packages/md/src/conditions/` that imports from
+  `model/resolve-link.ts` and bans all four spellings (each measured: exactly one finding on the
+  patched file). Its comment and `because` say it is a Tier-1 check on the conditions' imports,
+  and name what it cannot see: a module that re-implements resolution without importing
+  `resolve-link.ts` is never selected, the case proposal 013's survey found.
+- **A non-vacuity row for it** (`arch/md-one-link-resolver` in `scripts/check-nonvacuity.mjs`): a
+  bare `'path'` import is prepended to `conditions/resolve.ts` and the rule must fire on that file.
+  The plan did not ask for one; review found the import ban rested on one manual measurement.
+- **Tests that could not fail, or were missing, now exist and were each sabotaged red:** an
+  existing file in `node_modules` (written at test time, since `node_modules` is gitignored; red
+  when `node_modules` leaves the built-in ignores); the content-root directory hint (red when the
+  label is forced to repo-root); repo-root reported before content-root (red when the order is
+  reversed); a malformed link through `linkResolves` (three tests red when the resolver throws
+  again); a hand-built corpus reporting `outside-roots`; an empty link as `self`; `doc` asserted on
+  every `document` row; an existing repo-root file winning over the content root.
+- **Docs** state that an empty link is `self` and that a hand-built or copied `Corpus` has no
+  `ignored` reason.
+- **Not done, recorded:** the architect's suggestion that the `directory` case carry which root it
+  came from, so `linkTargets` need not be exported for the hint's label. It is a cleaner shape but
+  changes a published type this plan just introduced; left as it is, with the label tested.

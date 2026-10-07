@@ -209,7 +209,7 @@ takes the same `LinkResolveOptions`, never throws, and returns one named case:
 | `not-in-corpus` | an existing file the corpus did not load; `reasons` lists every one of `not-markdown`, `ignored`, `outside-roots` |
 | `directory`     | no candidate is a file, but one names a real directory                                                            |
 | `missing`       | nothing exists; `tried` lists every candidate, in order                                                           |
-| `self`          | a pure `#anchor`, or a path back to the linking document                                                          |
+| `self`          | a pure `#anchor`, an empty link, or a path back to the linking document                                           |
 | `external`      | a URL with a scheme                                                                                               |
 
 Candidates are tried in a fixed order: the repo-root target, then the
@@ -217,6 +217,9 @@ content-root one when `rootDir` is set, each as written, then with
 `tryExtensions`, then `tryIndex`. The first existing file wins; a directory is
 reported only when no candidate is a file. A link into a built-in ignored folder
 (`node_modules`, `dist`, …) is `missing`, because the corpus never walks those.
+The `not-in-corpus` reasons come from the corpus `corpus()` built; a `Corpus`
+you assemble yourself (or copy with a spread) carries no record of its `roots`
+and `ignore`, so its unloaded files are all reported `outside-roots`.
 
 ```typescript
 import { corpus, links, resolveLink } from '@nielspeter/eess-md'

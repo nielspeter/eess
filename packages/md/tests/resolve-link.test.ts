@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
@@ -51,6 +52,16 @@ describe('resolveLink() — the spelling table (plan 0404)', () => {
   it('a site-absolute link with rootDir resolves through the content root', () => {
     const target = resolve('/b.md', { rootDir: 'docs' })
     expect(target).toMatchObject({ kind: 'document', path: 'docs/b.md' })
+    if (target.kind === 'document') expect(target.doc.relPath).toBe('docs/b.md')
+  })
+
+  it('with rootDir, an existing repo-root file wins over the content root', () => {
+    // /docs/b.md exists at the repo root as written; the content-root candidate
+    // (docs/docs/b.md) does not exist. Order is repo-root first.
+    expect(resolve('/docs/b.md', { rootDir: 'docs' })).toMatchObject({
+      kind: 'document',
+      path: 'docs/b.md',
+    })
   })
 
   it.each(['#x', './source.md', 'source.md#x', '../sub/source.md'])(
@@ -61,18 +72,16 @@ describe('resolveLink() — the spelling table (plan 0404)', () => {
   )
 
   it('an extensionless link resolves with tryExtensions, and is missing without it', () => {
-    expect(resolve('./guide', { tryExtensions: ['.md'] })).toMatchObject({
-      kind: 'document',
-      path: 'docs/sub/guide.md',
-    })
+    const guide = resolve('./guide', { tryExtensions: ['.md'] })
+    expect(guide).toMatchObject({ kind: 'document', path: 'docs/sub/guide.md' })
+    if (guide.kind === 'document') expect(guide.doc.relPath).toBe('docs/sub/guide.md')
     expect(resolve('./guide')).toEqual({ kind: 'missing', tried: ['docs/sub/guide'] })
   })
 
   it('a directory link resolves through tryIndex', () => {
-    expect(resolve('./manual/', { tryIndex: 'index.md' })).toMatchObject({
-      kind: 'document',
-      path: 'docs/sub/manual/index.md',
-    })
+    const manual = resolve('./manual/', { tryIndex: 'index.md' })
+    expect(manual).toMatchObject({ kind: 'document', path: 'docs/sub/manual/index.md' })
+    if (manual.kind === 'document') expect(manual.doc.relPath).toBe('docs/sub/manual/index.md')
   })
 
   it('a directory with no file candidate is a directory, whatever resolveDirectories says', () => {
@@ -84,10 +93,9 @@ describe('resolveLink() — the spelling table (plan 0404)', () => {
   })
 
   it('a file and a same-named directory: the file wins', () => {
-    expect(resolve('./both', { tryExtensions: ['.md'] })).toMatchObject({
-      kind: 'document',
-      path: 'docs/sub/both.md',
-    })
+    const both = resolve('./both', { tryExtensions: ['.md'] })
+    expect(both).toMatchObject({ kind: 'document', path: 'docs/sub/both.md' })
+    if (both.kind === 'document') expect(both.doc.relPath).toBe('docs/sub/both.md')
   })
 
   it('a file outside the roots is not-in-corpus, outside-roots', () => {
@@ -136,11 +144,39 @@ describe('resolveLink() — the spelling table (plan 0404)', () => {
     })
   })
 
-  it('a link into a built-in ignored folder is missing, since that folder is never walked', () => {
-    expect(resolve('../../node_modules/pkg/readme.md')).toEqual({
-      kind: 'missing',
-      tried: ['node_modules/pkg/readme.md'],
+  describe('a built-in ignored folder', () => {
+    // The file must really exist, or this row passes whatever corpus() walks.
+    // It cannot be committed (node_modules is gitignored), so it is written here.
+    const dir = join(fixtureRoot, 'node_modules', 'pkg')
+    beforeAll(() => {
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(join(dir, 'readme.md'), '# A package readme\n')
     })
+    afterAll(() => {
+      rmSync(join(fixtureRoot, 'node_modules'), { recursive: true, force: true })
+    })
+
+    it('an existing file in node_modules is missing, since that folder is never walked', () => {
+      expect(resolve('../../node_modules/pkg/readme.md')).toEqual({
+        kind: 'missing',
+        tried: ['node_modules/pkg/readme.md'],
+      })
+    })
+  })
+
+  it('a hand-built Corpus without registered matchers reports outside-roots', () => {
+    const c = load()
+    const handBuilt = { documents: () => c.documents(), root: c.root, fileIndex: c.fileIndex }
+    // An ignored file: corpus() would say ignored; a corpus it did not build cannot.
+    expect(resolveLink(link('../ignored/i.md'), handBuilt)).toEqual({
+      kind: 'not-in-corpus',
+      path: 'docs/ignored/i.md',
+      reasons: ['outside-roots'],
+    })
+  })
+
+  it('an empty link is self', () => {
+    expect(resolve('')).toEqual({ kind: 'self' })
   })
 
   it('malformed percent-encoding is missing, not a thrown error', () => {
@@ -165,8 +201,6 @@ describe('resolveLink() and linkResolves agree (plan 0404)', () => {
       .violations()
       .map((x) => x.element)
       .sort()
-    const source = c.documents().find((d) => d.relPath === SOURCE)
-    expect(source).toBeDefined()
     const expected = links(c)
       .that()
       .areInternal()
@@ -180,11 +214,40 @@ describe('resolveLink() and linkResolves agree (plan 0404)', () => {
     // Without options, ./both names only the directory both/ (both.md needs
     // tryExtensions), so it is a directory here.
     expect(expected).toEqual([
+      'docs/sub/source.md → ./bad%E0.md',
       'docs/sub/source.md → ./both',
       'docs/sub/source.md → ./folder/',
       'docs/sub/source.md → ./guide',
       'docs/sub/source.md → ./nope',
     ])
     expect(flagged).toEqual(expected)
+  })
+})
+
+describe('linkResolves through resolveLink (plan 0404)', () => {
+  it('a malformed percent-encoding is one plain broken-link finding, not a thrown error', () => {
+    const v = links(load()).that().areInternal().should().resolve().violations()
+    const bad = v.filter((x) => x.element.endsWith('./bad%E0.md'))
+    expect(bad.map((x) => x.message)).toEqual([
+      'broken link: "./bad%E0.md" does not resolve to a file in the repo',
+    ])
+  })
+
+  it('a rootDir directory hint names the content root when that is the directory', () => {
+    const c = corpus({ roots: ['site/**'], cwd: fixtureRoot })
+    const v = links(c).that().areInternal().should().resolve({ rootDir: 'site' }).violations()
+    expect(v.find((x) => x.element.endsWith('/sub/'))?.message).toBe(
+      'broken link: "/sub/" does not resolve to a file in the repo — ' +
+        '"site/sub" (content-root) is a real directory; this check runs with resolveDirectories off',
+    )
+  })
+
+  it('when both roots hold the directory, the repo root is reported', () => {
+    const c = corpus({ roots: ['site/**'], cwd: fixtureRoot })
+    const v = links(c).that().areInternal().should().resolve({ rootDir: 'site' }).violations()
+    expect(v.find((x) => x.element.endsWith('/shared/'))?.message).toBe(
+      'broken link: "/shared/" does not resolve to a file in the repo — ' +
+        '"shared" (repo-root) is a real directory; this check runs with resolveDirectories off',
+    )
   })
 })
