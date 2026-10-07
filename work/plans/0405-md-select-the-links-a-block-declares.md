@@ -19,8 +19,9 @@
 
 ## Problem
 
-An author declares a relation in Markdown with a labelled block (`**Related to:** [a](a.md) ·
-[b](b.md)`, or the label followed by a list) or a section (`## See also`). eess-md cannot select the
+An author declares a relation in Markdown with a labelled block
+(`**Related to:** [a](a.md) · [b](b.md)`, or the label followed by a list) or a section
+(`## See also`). eess-md cannot select the
 links such a block owns. The line-based workaround misses the second line of a wrapped label (while
 `examined` stays above zero) and a label followed by a list. `collectLinks`
 (`packages/md/src/model/links.ts`) walks with no block context.
