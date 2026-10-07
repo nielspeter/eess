@@ -20,7 +20,8 @@ Error: corpus.rules.ts could not be loaded (project.getSourceFiles is not a func
 
 ## Reproduction
 
-Bug 0396's rule file and command.
+Bug 0396's command. Once 0396 is fixed this record has no known trigger, so its red test needs a
+rule whose diagnosis throws on purpose; it closes on its own, not with 0396.
 
 ## Root cause
 
@@ -34,8 +35,10 @@ findings.push(...diagnose(loaded).map((f) => ({ ...f, ruleFile: file })))
 ```
 
 The `catch` reports every error as a load failure, including one thrown by `diagnose()` after the
-load succeeded. A diagnosis failure is also recorded in `loadFailures`, so a `--format json`
-consumer gets the same wrong cause.
+load succeeded. Reasoned, not measured: the `catch` also records it in `loadFailures`, so a
+`--format json` consumer would get the same wrong cause. Today that output is never written:
+`doctor spec.rules.ts --format json` prints nothing to stdout, because bug 0396's uncaught throw
+(`packages/ts/src/cli/commands/doctor.ts:202`) comes first.
 
 ## Fix
 

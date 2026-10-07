@@ -23,9 +23,9 @@ Error: No rule files specified. Pass rule files as arguments or set them in eess
 
 ## Reproduction
 
-Bug 0396's directory (no `eess-ts.config.ts`):
-`node packages/ts/dist/cli/bin.js explain corpus.rules.ts --format agent`, then
-`node packages/ts/dist/cli/bin.js check --format json`. The second command exits 1.
+This repo has no `eess-ts.config.*`: `node packages/ts/dist/cli/bin.js explain spec.rules.ts
+--format agent`, then `node packages/ts/dist/cli/bin.js check --format json`. The second command
+exits 1.
 
 ## Root cause
 
