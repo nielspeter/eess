@@ -36,22 +36,36 @@ then run `npx vitest run tests/docs/cross-document-links-resolve.test.ts` in `pa
 
 ## Root cause
 
-The test strips code before it reads links, with
-`const INLINE_CODE = /`[^`\n]\*`/g` (`packages/ts/tests/docs/cross-document-links-resolve.test.ts:82`).
+The test strips code before it reads links. Line 82 of
+`packages/ts/tests/docs/cross-document-links-resolve.test.ts` is:
+
+```ts
+const INLINE_CODE = /`[^`\n]*`/g
+```
+
 The `\n` exclusion stops a code span at the end of a line. CommonMark lets a code span contain line
-endings, so a wrapped span is left in place and its contents are read as links. `check:corpus`
-parses Markdown with mdast, which reads the span correctly; the two link checkers disagree.
+endings (they become spaces), up to a blank line, which ends the paragraph. So a wrapped span is
+left in place and its contents are read as links. `check:corpus` parses Markdown with mdast, which
+reads the span correctly, so the two link checkers disagree.
+
+The same pattern also misreads a double-backtick span whose content holds a backtick, a form this
+repository uses on purpose for cited test titles. That case is not this bug, and is noted so the fix
+can cover it rather than rediscover it.
 
 ## Fix
 
-Not designed. Either the test reads Markdown the way `check:corpus` does, or its inline-code
-pattern matches across line endings as CommonMark does.
+Not designed. The recommended direction is for the test to read Markdown with mdast, as
+`check:corpus` does. Simply allowing the pattern to cross line endings is **not** enough: a code
+span also cannot cross a blank line and closes only on a backtick run of the same length, so a
+pattern that ignores those rules lets one unmatched backtick blank everything up to the next one,
+possibly paragraphs later. That would turn this false red into a false green, which is worse.
 
 ## Verification
 
 - [ ] Red test written first: a code span wrapped across two lines, containing a link, is not
       reported
 - [ ] a link outside any code span on such a line is still reported
+- [ ] an unmatched backtick does not hide a real link in a later paragraph
 - [ ] `npm run validate` green.
 
 Deferred: none.
