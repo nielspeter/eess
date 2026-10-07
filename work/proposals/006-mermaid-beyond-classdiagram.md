@@ -346,9 +346,9 @@ non-vacuity harness in its gates.
 - **Ask 1 is OQ2, asked about `sequenceDiagram`.** It needs no binding: a parser plus a check
   that the diagram agrees with itself. OQ2 asks whether that is enough for a dialect whose thesis
   is that drift fails the build, and names `validateReferences`
-  (`packages/mermaid/src/parser/validate-diagram.ts:12`) as the mechanism. The Review found that
-  `validateReferences` has no production caller; that is the cost this ask would meet. This is a
-  second consumer asking OQ2's question, for a second diagram kind.
+  (`packages/mermaid/src/parser/validate-diagram.ts:12`) as the mechanism. The Review found that `validateReferences` has no production caller, and it checks class diagrams
+  only (it reads `ast.classes`), so this ask would also need a sequence parser and validator. This
+  is the first consumer to ask OQ2's question, for a second diagram kind.
 - **Ask 2 is not in this record or in proposal 003.** Proposal 003's OpenAPI entry binds a spec to
   route-handler code. This asks for a diagram bound to a spec, two documents and no code. Neither
   side has a dialect: no sequence parser, no OpenAPI reader.
