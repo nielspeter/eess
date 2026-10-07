@@ -107,30 +107,47 @@ Every one-way `beComplete()` whose checked side can be emptied by a broken selec
   workspace on the right.
 - eess-md `rows()` + `correspondence()` compositions (`packages/md/src/index.ts:46-60`).
 
-**One caller depends on today's count.** `scripts/release-gate.mjs:596-597`: "A correspondence
+**One caller depends on today's count.** `scripts/release-gate.mjs:597-598`: "A correspondence
 examines `|left| + |right|`, so it reports zero only when both sides are empty". Its `declaredEmpty`
-values (around `:600-613`) are built on that. Counting only the checked side changes both rules'
+values (`:608-615`) are built on that. Counting only the checked side changes both rules'
 zero cases: `names-real-package` would examine zero whenever no changeset is pending.
 
 ## Fix
 
 Not designed, and it needs a decision first. Changing the unit for a one-way check amends ADR-010
-§1 ("the key sets of its two sides"), so it goes through an ADR amendment, not this record. It is a
+§1 ("the key sets of its two sides"), so it goes through an ADR amendment, not this record. The
+amendment is written with the fix, in the plan or PR that builds it; until then this record owns
+getting it written. It is a
 breaking change for adopters whose one-way correspondences start reporting, and its changeset is
 marked so.
 
-Break classes the fix must pin:
+**The decision includes the exemption, not only the count.** Fixing the count alone sends row a to
+the zero-examined branch, where `beComplete()`'s cardinality exemption is checked
+(`packages/core/src/terminal-builder.ts:318`) and returns no finding. Row a would stay green, the
+same as row d. Rows a and d make the same claim (nothing on the checked side lacks a match, and it
+is empty), so a fix that reds row a and keeps row d green has to narrow the exemption for one-way
+checks or find another way to tell them apart. The decision picks one of:
 
-1. A one-way `beComplete()` whose checked side is emptied goes red, whatever the other side holds
-   (row a, with a non-vacuity fixture that empties `crossval/adr-citations-resolve`'s citation
-   extraction).
+- **(a) One-way checks lose the exemption when their checked side is empty.** Row a goes red with
+  no declaration, and the pinned row-d test is kept only for `direction: 'both'`.
+- **(b) Only the count changes.** Row a stays green, and an author who wants it red declares
+  `.expectNonEmpty()` (row b). Rules in this repo that need it, starting with
+  `crossval/adr-citations-resolve`, declare it.
+
+Break classes the fix must pin, whichever is chosen:
+
+1. **Under (a):** a one-way `beComplete()` whose checked side is emptied goes red, whatever the other
+   side holds (row a). **Under (b):** `crossval/adr-citations-resolve` declares `.expectNonEmpty()`.
+   Either way, a non-vacuity fixture that empties its citation extraction goes red in
+   `check:nonvacuity`.
 2. `.expectNonEmpty()` on a one-way check goes red when the checked side is empty (row b).
 3. `.expectEmpty()` on a one-way check does not expire because the unchecked side is non-empty
    (row e).
-4. `preserveRelations()` counts what it compares.
+4. `preserveRelations()` over two sides that share no key does not pass silently: by the same
+   choice, it goes red under (a), or under (b) its `.expectNonEmpty()` fires.
 
 The release gate keeps "the declaration comes from the input, the count from the rule"
-(`scripts/release-gate.mjs:590-595`): its declarations become conditional on the checked side.
+(`scripts/release-gate.mjs:589-595`): its declarations become conditional on the checked side.
 
 ## Corrections
 
@@ -138,7 +155,9 @@ The first version of this record (2026-10-07) said the cardinality exemption cau
 case and called the double count "a second, smaller defect". Enforcement review showed the
 exemption is never consulted when `examined` is above zero, so the order was backwards. Method
 review found the record had missed `.expectNonEmpty()`, the eess-ts prior art, and ADR-010 §1, and
-that its fix was a decision written into a bug.
+that its fix was a decision written into a bug. A second review round found that break class 1 could
+not be met by fixing the count alone, because the exemption then applies; the decision above now
+says so.
 
 ## Verification
 
@@ -146,7 +165,11 @@ that its fix was a decision written into a bug.
       `.expectNonEmpty()` is reported
 - [ ] row e does not report an expired declaration
 - [ ] row d stays green (pinned), and row c stays red
-- [ ] `preserveRelations()` over two sides that share no key is not counted as examined
+- [ ] the non-vacuity fixture that empties `crossval/adr-citations-resolve`'s citation extraction
+      goes red in `check:nonvacuity`
+- [ ] row a: red under (a); under (b), green without a declaration and red with
+      `.expectNonEmpty()`
+- [ ] `preserveRelations()` over two sides that share no key does not pass silently (break class 4)
 - [ ] the release gate stays green on a clean tree and on a clean tree with a pending changeset
 - [ ] `npm run validate` green.
 
