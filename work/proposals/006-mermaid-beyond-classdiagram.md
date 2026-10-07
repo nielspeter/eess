@@ -338,14 +338,17 @@ non-vacuity harness in its gates.
 
 **Measured against this record.**
 
-- **The `sequenceDiagram` row does not fit this consumer.** It is held on a deciding measurement
-  ("what fraction of participants resolve to real classes") and an `eess-ts` cost line. Both
-  assume a TypeScript codebase on the other side. This consumer has none, so it cannot supply that
-  measurement and is not the dogfood consumer the row waits for.
-- **Ask 1 is not in this record.** It needs no binding at all: a parser plus a check that the
-  diagram agrees with itself. This proposal frames every `Held` row as diagram ↔ code. The nearest
-  shipped shape is `tableErAgree`, which checks an `erDiagram` against its own document (proposal
-  003, the ER entry).
+- **The `sequenceDiagram` row does not fit this consumer.** It is held on three conditions: a
+  deciding measurement ("what fraction of participants resolve to real classes"), an `eess-ts`
+  cost line, and a dogfood consumer in this repository. The cost line assumes a TypeScript
+  codebase, which this consumer does not have, and being external it cannot be the dogfood
+  consumer either.
+- **Ask 1 is OQ2, asked about `sequenceDiagram`.** It needs no binding: a parser plus a check
+  that the diagram agrees with itself. OQ2 asks whether that is enough for a dialect whose thesis
+  is that drift fails the build, and names `validateReferences`
+  (`packages/mermaid/src/parser/validate-diagram.ts:12`) as the mechanism. The Review found that
+  `validateReferences` has no production caller; that is the cost this ask would meet. This is a
+  second consumer asking OQ2's question, for a second diagram kind.
 - **Ask 2 is not in this record or in proposal 003.** Proposal 003's OpenAPI entry binds a spec to
   route-handler code. This asks for a diagram bound to a spec, two documents and no code. Neither
   side has a dialect: no sequence parser, no OpenAPI reader.
@@ -355,6 +358,10 @@ non-vacuity harness in its gates.
 **What the consumer was told.** None of the three can be expressed with released packages.
 eess-mermaid models `classDiagram` and `erDiagram` only, and `eess-crossvalidate`'s fence reader
 compares class diagrams only and skips a `sequenceDiagram` fence
-(`packages/crossvalidate/src/md-mermaid.ts:42`, `:92`). A
+(`packages/crossvalidate/src/md-mermaid.ts:42`, `:92-93`). A
 project-local check script with its own non-vacuity fixture is the honest stopgap, labelled as the
-project's check, not as eess-mermaid's. It was asked not to file in this repository.
+project's check, not as eess-mermaid's. It was asked not to file in this repository, because the maintainer decides what is recorded
+from an inbound question, and these asks are recorded here as evidence on OQ2, OQ3 and Ask B.
+
+_Correction, 2026-10-07 (method review):_ the first version of this section, and its commit
+message, said Ask 1 was not in this record. It is OQ2.
