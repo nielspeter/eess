@@ -259,10 +259,19 @@ Made 2026-10-06 by the coordinating agent, on the maintainer's instruction ("you
 of making this decession based on all the work you have done"), and revised twice on 2026-10-07
 after method, enforcement and product review. The maintainer can overrule any of them.
 
-**What is not settled.** Decision 2 accepts a risk on adopters' behalf: a rootless eess-ts baseline
-turns all-red on upgrade. Accepting that risk is the maintainer's call. Until the maintainer accepts
-or overrules it, the Phase 2 build plan cannot be made Ready; plan 0346's ledger and the ROADMAP
-carry this as a blocker.
+**Decision 2's risk: accepted by the maintainer, 2026-10-07.** Decision 2 accepts a risk on
+adopters' behalf: a rootless eess-ts baseline turns red on upgrade. That was the maintainer's call,
+so it was held as a blocker on the Phase 2 build plan. It was put to the maintainer with the
+following account, and they answered "ok":
+
+- **Who has one.** Every baseline eess-ts writes records its root
+  (`packages/ts/src/helpers/baseline.ts:441`). A rootless file is a v1 file from ts-archunit
+  before its bug 0010 fix, a kernel-written file read by eess-ts, or one written by hand.
+- **The release already asks the same of everyone.** Phase 1 bumps `HASH_VERSION`, and `check`
+  against an older baseline reports one finding saying to run `--migrate` (plan 0346, Phase 3).
+  Decision 2 puts rootless files on that same path; it adds no new kind of upgrade cost.
+- **What is left** is `--migrate` guessing a root. It prints the root it assumed and reports
+  entries that do not resolve under it, so a wrong guess gives more red, not less.
 
 1. **Grouping: EP2.** Per-file grouping (C12), the suffix reservation (C12a) per file, and every
    census item except C13 keyed by `(hash, file)`. **How the collision guard (C13) is keyed is not

@@ -5,7 +5,7 @@
 - **State:** Draft — Phase 2's direction is taken (**E**: the matcher checks the file,
   2026-10-06, after [spike 0390](../spikes/0390-a-or-e-where-the-file-enters-a-findings-identity.md));
   its design is recorded in [spike 0394](../spikes/0394-the-phase-2-design-for-a-file-aware-baseline.md)'s Decision (by delegation, 2026-10-06/07; decision 2's
-  risk awaits the maintainer), and its `accepted` part moved to spike 0395. What remains is the
+  risk accepted by the maintainer 2026-10-07), and its `accepted` part moved to spike 0395. What remains is the
   split into six records; this plan then closes as their parent (see "The split"). Phase 1's ruling is settled
   and measured; the migration is unbuilt, and it decides whether this fix is honest. Refreshed 2026-10-05 against `main`. Review of that
   refresh found that Phase 2's producer list was the symptom: the cause is one kernel
@@ -606,7 +606,7 @@ Six records under five numbers (item 2 is two spikes), about one PR each, groupe
    questions above: first a census, from the code, of every consumer keyed by hash alone; then E0
    against per-file grouping across that whole census; then the options for a baseline with no
    recorded root. It ended in a design, decided by delegation in its Decision section; decision 2's
-   risk awaits the maintainer. Its review found that its `accepted` decision contradicts its grouping decision,
+   risk was accepted by the maintainer on 2026-10-07. Its review found that its `accepted` decision contradicts its grouping decision,
    so that part moved to
    [spike 0395](../spikes/0395-what-an-accepted-entry-without-a-file-does-under-per-file-grouping.md),
    time-boxed to half a day, which the build plan waits for.
@@ -707,8 +707,9 @@ the split. It does not become one of the six.
 - [x] Phase 2 — the spike: a census of every consumer keyed by hash alone, E0 against
       per-file grouping across it, and the no-root options laid out for the maintainer
       (done 2026-10-07: spike 0394; its `accepted` part moved to spike 0395)
-- [ ] Phase 2 — the maintainer accepts or overrules spike 0394's decision 2 (a rootless eess-ts
-      baseline turns all-red on upgrade) before the Phase 2 build plan is Ready
+- [x] Phase 2 — the maintainer accepts or overrules spike 0394's decision 2 (a rootless eess-ts
+      baseline turns all-red on upgrade) before the Phase 2 build plan is Ready (accepted
+      2026-10-07)
 - [ ] Phase 2 — the matcher checks the recorded file in both baselines, `accepted` as spike
       0395 decides, missing data fails closed; guarded by the cross-run structural
       property test
