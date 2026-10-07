@@ -122,9 +122,3 @@ gates actually print, so nothing false ships while this is open.
 - [ ] `--format json` / `github` on stdout stays machine-clean; the summary is
       stderr, terminal-only.
 - [ ] `CLAUDE.md` restored to describing the real behaviour.
-
-**Note, 2026-10-07:** [plan 0406](../plans/0406-md-a-declared-link-is-answered.md) defers one more
-count here. Its `beLinkedBack()` leaves links into frozen documents out of its selection and names
-that exemption in the rule's description, but nothing counts how many links it left out:
-`CollectResult` has no field for a selection's exclusions. Whatever reports a gate's denominator
-should be able to report that count beside it.

@@ -2,119 +2,132 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-07. Written the same day from proposal 013's decision 7, at the
-  maintainer's instruction to plan the proposal's implementation, and frozen at the maintainer's
-  request. Every decision the build depends on is restated in this plan; the proposal is linked
-  as provenance only.
+- **State:** Draft — written 2026-10-07 from proposal 013's decision 7, after the maintainer asked
+  for plans to implement the proposal ("then lets make plans to implement the proposal 013"). A
+  first freeze the same day was withdrawn after architect, enforcement, method and testing review
+  found undecided mechanisms; this version decides them. Not yet re-frozen.
 - **Priority:** Medium — no false green today. A custom link rule has to re-implement resolution
-  and gets it wrong (proposal 013's survey: a consumer's rule missed `#fragment`, decoding,
-  repo-rooted links and spellings of one path), and proposal 013's B cannot give one finding per
-  cause without it.
-- **Effort:** Small — one function extracted from code that exists, one export, one caller moved.
+  and gets it wrong (proposal 013's survey), and plan 0406 cannot give one finding per cause
+  without it.
+- **Effort:** Small — one function extracted from code that exists, two cached indexes, one export,
+  one caller moved, one structural rule.
 - **Created:** 2026-10-07
 - **Builds:** [proposal 013](../proposals/013-md-a-declared-relation-is-reciprocated.md)'s Ask C; its
-  disposition row names this plan. No `**Implements:**` line: 013's ruling is
-  `Split and sequence`, and a declaration would claim this plan builds the whole proposal (the
-  precedent is plan 0235's note on proposal 009).
-- **First of three:** this plan, then [plan 0405](./0405-md-select-the-links-a-block-declares.md)
-  (Ask A), then [plan 0406](./0406-md-a-declared-link-is-answered.md) (Ask B).
+  disposition row names this plan. This plan does not declare `**Implements:**`; plan 0406, which
+  ships the last ask, does.
+- **First of three:** this plan, then [plan 0405](./0405-md-select-the-links-a-block-declares.md),
+  then [plan 0406](./0406-md-a-declared-link-is-answered.md).
 
 ## Problem
 
 eess-md resolves a link's target in one private function, `resolveTargets`
-(`packages/md/src/conditions/resolve.ts`), used only by `linkResolves`. Anyone writing a rule over
-links has to resolve targets again, and the measured re-implementation missed fragments, decoding,
-repo-rooted links and different spellings of the same path.
+(`packages/md/src/conditions/resolve.ts`), used only by `linkResolves`. A rule over links has to
+resolve targets again, and the measured re-implementation missed fragments, decoding,
+repo-rooted links and spellings of one path. `resolveTargets` also answers too little: it returns
+candidate paths and leaves each caller to decide whether one exists, is a directory, or sits
+outside the corpus.
 
-`resolveTargets` also answers too little for a second caller. It returns candidate paths, or `[]`
-for a pure anchor, and leaves each caller to decide whether a candidate exists, is a directory, or
-sits outside the corpus roots. `linkResolves` decides that inline. Proposal 013's B needs each of
-those answers as a distinct case, because each gets a different finding and remedy.
-
-## Design (decided in proposal 013, decision 7)
-
-One exported function that returns a result naming its case:
+## Design
 
 ```ts
+/** The parts of a link resolution reads. Narrower than MdLink, so a caller can build one. */
+export interface LinkToResolve {
+  readonly url: string
+  readonly external: boolean
+  readonly doc: { readonly relPath: string }
+}
+
 export type LinkTarget =
+  | { readonly kind: 'external' }
+  | { readonly kind: 'self' }
   | { readonly kind: 'document'; readonly path: string; readonly doc: MdDocument }
-  | { readonly kind: 'outside-corpus'; readonly path: string }
-  | { readonly kind: 'missing'; readonly tried: readonly string[] }
+  | {
+      readonly kind: 'not-in-corpus'
+      readonly path: string
+      readonly reason: 'outside-roots' | 'not-markdown' | 'ignored'
+    }
   | { readonly kind: 'directory'; readonly path: string }
-  | { readonly kind: 'self'; readonly fragment: string }
+  | { readonly kind: 'missing'; readonly tried: readonly string[] }
 
 export function resolveLink(
-  link: MdLink,
+  link: LinkToResolve,
   corpus: Corpus,
   options: LinkResolveOptions = {},
 ): LinkTarget
 ```
 
-- `document`: the target exists and is a loaded corpus document, so its links are parsed.
-- `outside-corpus`: the target exists in `corpus.fileIndex` but is not a loaded document (outside
-  `roots`, or not Markdown).
-- `missing`: no candidate exists; `tried` lists the candidates, so a finding can name them.
-- `directory`: the target names a directory, recognised whether or not `resolveDirectories` is on.
-  Whether a directory counts as resolved stays the caller's decision.
-- `self`: a pure `#anchor`, a link to the document itself.
-
-External links are not passed in: `resolveLink` is defined on internal links, and calling it on an
-external one throws an `ArchConfigError`, so a rule that forgets `areInternal()` fails loudly.
-
-`linkResolves` calls `resolveLink` and keeps its current verdicts exactly: `document` and
-`outside-corpus` resolve; `directory` resolves only when `resolveDirectories` is on, and otherwise
-keeps bug 0137's hint; `missing` is the broken-link finding with its move fix; `self` is skipped.
+- **Total, never throwing.** An external link is `external`; malformed percent-encoding is
+  `missing` with the raw URL in `tried`.
+- **`self`** is a pure `#anchor`, **or** a target that resolves to the linking document's own path.
+- **`not-in-corpus`** splits by reason, so each gets a remedy that works: `outside-roots` (add the
+  folder to the corpus `roots`), `not-markdown` (the corpus reads only `.md`), `ignored` (it matches
+  the corpus `ignore` option).
+- **Candidate order is today's.** For each target from `resolveTargets` (repo-root first, then
+  content-root when `rootDir` is set) the candidates from `tryExtensions` and `tryIndex` are tried in
+  order. The first existing **file** wins. Only when no candidate is a file is a directory
+  reported, the repo-root one first. When nothing exists, `missing.tried` is every candidate tried,
+  in order. This is the rule `linkResolves` applies today, made explicit.
+- **Two indexes, built once per corpus** and cached in a `WeakMap<Corpus, …>`: the directory index
+  (today rebuilt per condition) and a map from path to loaded document (`Corpus` has none).
+- **`linkResolves` calls `resolveLink`** and keeps its verdicts exactly: `document` and
+  `not-in-corpus` resolve; `directory` resolves only when `resolveDirectories` is on, and otherwise
+  keeps bug 0137's hint; `missing` is the broken-link finding with its move fix; `self` and
+  `external` are skipped.
+- **Exported from `@nielspeter/eess-md`'s root,** with `LinkToResolve` and `LinkTarget`. Additive.
 
 ## Phases
 
-### Phase 1 — extract and export, behaviour unchanged
-
-`packages/md/src/model/resolve-link.ts` holds `resolveLink`, built from `resolveTargets`,
-`candidates` and `directoryIndex`. `linkResolves` calls it. `resolveLink` and `LinkTarget` are
-exported from `@nielspeter/eess-md`'s root (ADR-011 concerns the kernel; eess-md's root is its
-public API, and custom rules are the reason this exists).
+### Phase 1 — extract, cache, export; behaviour unchanged
 
 **Files:** `packages/md/src/model/resolve-link.ts` (new), `packages/md/src/conditions/resolve.ts`,
-`packages/md/src/index.ts`, `docs/markdown.md` (a section on writing a custom link rule with
-`resolveLink`), `.changeset/` (eess-md minor, additive).
+`packages/md/src/index.ts`, `arch.rules.ts` (the structural rule below), `docs/markdown.md` (a
+section on a custom link rule with `resolveLink`), `.changeset/` (eess-md minor, additive).
 
 ## Test inventory
 
-- **The spelling table**, one row per form, each asserting its `kind` and `path`: `./a.md`,
-  `a.md`, `../dir/a.md`, `a.md#x`, `#x` (`self`), `a%20b.md`, `/docs/a.md` with and without
-  `rootDir`, `./guide` with `tryExtensions: ['.md']`, `./guide/` with `tryIndex`, a directory with
-  and without `resolveDirectories`, a file outside `roots`, a missing file.
-- **`linkResolves` is unchanged:** its existing tests in `packages/md/tests/links.test.ts` pass
-  untouched.
-- **External link:** `resolveLink` on an external link throws `ArchConfigError`.
+Tests import from the package root and live in `packages/md/tests/resolve-link.test.ts`, over a new
+fixture `packages/md/tests/fixtures/resolve-link/` (the shared `fixtures/corpus` stays untouched, so
+`links.test.ts` keeps its expectations). The source document sits in a subdirectory, so an identity
+resolver cannot pass by accident.
 
-**Break classes and sabotage rows** (ADR-009 rule 5; published API, so rule 6's deepest level):
+- **The spelling table,** each row asserting `kind`, and `path` or `tried` exactly: `./a.md`, `a.md`,
+  `../dir/a.md`, `a.md#x`, `#x` (`self`), `./self.md` and `self.md#x` from `self.md` (`self`),
+  `a%20b.md`, `%E0` (`missing`), `/docs/a.md` with and without `rootDir` (both candidates in
+  `tried` when missing), `./guide` with `tryExtensions: ['.md']`, `./guide/` with `tryIndex`, a
+  directory with and without `resolveDirectories`, a file and a same-named directory (the file wins),
+  a file outside `roots`, a `.png` inside `roots`, an ignored file, an external URL, a missing file.
+  `document` rows also assert `doc.relPath === path`.
+- **`linkResolves` is unchanged:** `packages/md/tests/links.test.ts` passes untouched, and a test
+  drives `links(c).that().areInternal().should().resolve().check()` over the new fixture.
 
-- an emptied or identity resolver (returns `missing` for everything, or the URL unchanged) turns
-  the spelling table red;
-- `linkResolves` no longer calling `resolveLink` (a second resolver reintroduced) is caught by a
-  test that stubs nothing and compares `linkResolves`' verdicts with `resolveLink`'s cases over the
-  same table;
-- swapping two cases (`outside-corpus` reported as `document`) turns a named row red.
+**Sabotage rows** (ADR-009 rule 5; published API, rule 6's deepest level), run in an isolated
+`git worktree` with its own `node_modules`, from a green baseline, each verdict read from the exit
+code:
+
+- an emptied resolver (every link `missing`): the `document` rows go red;
+- an identity resolver (returns the URL as the path): the subdirectory rows go red;
+- `outside-roots` and `document` swapped: their rows go red;
+- **a second resolver reintroduced:** caught structurally, not by behaviour (a copy gives the same
+  answers). `arch.rules.ts` gains a rule that `packages/md/src/conditions/resolve.ts` imports
+  `resolveLink` and does not import from `node:path`; the row deletes the import and inlines the old
+  code, and `check:arch` goes red.
 
 `check:vacuity` does not reach this: `resolveLink` is a function, not a check-constructor.
 
 ## Out of scope
 
-- Reference-style links (`[text][ref]`): `collectLinks` does not produce them, so they never reach
-  the resolver. Proposal 013 lists them out of scope.
+- Reference-style links (`[text][ref]`): `collectLinks` does not produce them.
 - Any change to what `linkResolves` accepts.
 
 ## Success
 
-- A custom rule resolves a link with `resolveLink` and gets the same answer `linkResolves` gets.
-- Each of the five cases is distinguishable by its `kind`.
+- A custom rule resolves a link with `resolveLink` and gets the answer `linkResolves` acts on.
+- Each case is distinguishable by `kind`, and `not-in-corpus` by `reason`.
 - `npm run validate` green.
 
 ## Progress ledger
 
-- [ ] Phase 1 — `resolveLink` extracted, exported, documented; `linkResolves` calls it
-- [ ] the spelling table, one row per form
-- [ ] the three sabotage rows go red
-- [ ] proposal 013's disposition row for Ask C names this plan
+- [ ] Phase 1 — `resolveLink` extracted, cached, exported, documented; `linkResolves` calls it
+- [ ] the spelling table
+- [ ] the four sabotage rows go red, the structural one through `check:arch`
 - [ ] `npm run validate` green

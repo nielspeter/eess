@@ -2,155 +2,179 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-07. Written the same day from proposal 013's decisions 1, 3, 4, 7, 9 and 10, at the
-  maintainer's instruction to plan the proposal's implementation, and frozen at the maintainer's
-  request. Every decision the build depends on is restated in this plan; the proposal is linked
-  as provenance only.
-- **Priority:** Medium — no shipped rule checks this property. A consuming project checks it with a
-  hand-written condition whose skips sit outside ADR-010's evidence guarantee.
-- **Effort:** Medium — one condition, its findings per cause, and a dogfood rule over this
-  repository's ADRs with a production non-vacuity row.
+- **State:** Draft — written 2026-10-07 from proposal 013's decisions 1, 3, 4, 7, 8, 9 and 10, after
+  the maintainer asked for plans to implement the proposal. A first freeze the same day was withdrawn
+  after review found the frozen filter unbuildable as placed (a condition cannot add a selection
+  filter) and the production non-vacuity row satisfiable by the wrong finding; this version decides
+  both. Not yet re-frozen.
+- **Priority:** Medium — no shipped rule checks this property.
+- **Effort:** Medium — one condition with options, one selector, findings per cause, a dogfood rule
+  over this repository's ADRs, and non-vacuity at both tiers.
 - **Created:** 2026-10-07
-- **Builds:** [proposal 013](../proposals/013-md-a-declared-relation-is-reciprocated.md)'s Ask B; its
-  disposition row names this plan. No `**Implements:**` line, for the reason plan 0404 gives.
-- **Depends on:** [plan 0404](./0404-md-one-link-resolver-names-each-case.md) (`resolveLink`) and
-  [plan 0405](./0405-md-select-the-links-a-block-declares.md) (`areLabelled`, `areInSection`).
+- **Implements:** proposal 013
+- **Why this plan declares it:** it ships the proposal's last ask, so when it closes every ask is
+  built, and the lane promotes a proposal only on such a declaration. Asks C and A are built by
+  [plan 0404](./0404-md-one-link-resolver-names-each-case.md) and
+  [plan 0405](./0405-md-select-the-links-a-block-declares.md), on which this plan depends.
 
 ## Problem
 
-When a record declares a relation to another record, by a label or a section, nothing checks that
-the other record answers. A consuming project wrote that check as a custom condition. As proposal
-013 measured, the obvious composition with released parts, `correspondence().beComplete()`, both
-gives a false red (a target that links back twice is "ambiguous") and passes green when the label is
-misspelt (bug 0400).
+When a record declares a relation to another record, nothing checks that the other record answers.
+A consuming project wrote that check as a custom condition. Proposal 013 measured that the obvious
+composition with released parts, `correspondence().beComplete()`, gives a false red on a target that
+links back twice and passes green on a misspelt label (bug 0400).
 
-## Design (decided in proposal 013)
-
-A condition on `LinkRuleBuilder`:
+## Design
 
 ```ts
 links(c)
   .that()
   .areLabelled('Related to')
+  .and()
+  .haveLiveTargets()
   .should()
-  .beLinkedBack()
+  .beLinkedBack({ tryExtensions: ['.md'] })
   .rule({ id: 'corpus/related-links-back', because: '…', suggestion: '…' })
 ```
 
-- **The answer is any link back** from the target to the source (decision 1). Several links back
-  are one answer. The documentation names the blind spot: an incidental mention counts.
-- **The check is set membership, not a join.** On first evaluate the condition builds, from every
-  internal link in the corpus resolved with `resolveLink`, an index from each document to the
-  documents that link to it. Each selected link is then looked up. `examined` is the selected links
-  (ADR-010 §1), so a selection that is empty fails with the zero-examined finding, and bug 0400
-  does not apply.
-- **Not cardinality-exempt.** The condition is not marked through `marksAssertsCardinality`; a test
-  pins that it stays outside `CARDINALITY_ASSERTERS`.
-- **Frozen targets are left out of the selection** (decision 3). `beLinkedBack()` adds a
-  selection-side filter for links whose target is a frozen document, so they are not examined, and
-  an all-frozen selection examines zero and fails. "Frozen" is the adopter's `frozen` corpus option.
-- **How the exemption is disclosed.** The filter's description is part of the rule's description
-  ("whose target is not frozen"), so `explain` and every finding name it. **It is not counted:**
-  the kernel's `CollectResult` (`packages/core/src/collect-result.ts`) has no field for links a
-  selection left out, and adding one is a kernel change outside this plan. Proposal 013's decision
-  3 asked for a count; that part is `deferred→` [bug 0174](../bugs/0174-eess-ts-reports-a-clean-gate-with-no-denominator.md),
-  which owns how a gate reports what it examined, and a note is added there.
-- **One finding per cause, on the source line, naming the target** (decisions 4 and 7):
+- **The answer is any link back** from the target to the source (decision 1). Several links back are
+  one answer. The documentation names the blind spot: an incidental mention counts.
+- **`beLinkedBack(options?: LinkResolveOptions)`** takes the options `resolve()` takes, so a corpus
+  that resolves extensionless links resolves declarations and back-links the same way.
+- **Set membership, not a join.** On first evaluate the condition builds, from every internal link in
+  the corpus resolved with `resolveLink` and the same options, an index from each document to the
+  documents that link to it. Each selected link is looked up. `examined` is the selected links
+  (ADR-010 §1), so an empty selection fails with the zero-examined finding, and bug 0400 does not
+  apply. The condition is not marked cardinality-exempt.
+- **The frozen exemption is an explicit selector the author writes: `haveLiveTargets()`.** A
+  condition called after `.should()` cannot add a selection filter: `addPredicate` in the condition
+  phase records the predicate as misplaced, and the rule then reports that it asserts nothing (bug
+  0155). So the exemption is a predicate in `.that()`, beside `pointers()`' `areLive()`. It resolves
+  each link with `resolveLink` and keeps those whose target is not a frozen document ("frozen" is the
+  adopter's `frozen` corpus option). Because the author writes it, the exemption is part of the
+  rule's own text, which `explain` and every finding show; an all-frozen selection examines zero and
+  fails. **Forgetting it fails closed:** a link into a frozen record is then examined, and the
+  finding says the target is frozen and names the selector, so the remedy works.
+- **No count of the exempted links.** Proposal 013's decision 3 asked that the run disclose how many
+  links the exemption left out. With the exemption an ordinary, visible predicate, it is like every
+  other `.that()` filter, none of which is counted; and the kernel's result has no field for it.
+  Proposal 013's disposition for Ask B becomes `Accepted, reshaped` with this reason.
+- **One finding per cause, on the declaring link's line, naming the target.** Element names carry no
+  line number (`source → target`), so an edit above a link does not stale an exclusion (ADR-018,
+  Proposed, followed here as practice):
 
-| `resolveLink` case       | finding                                                 | remedy named in the finding                                           |
-| ------------------------ | ------------------------------------------------------- | --------------------------------------------------------------------- |
-| `document`, no link back | `a.md` declares `b.md`, and `b.md` does not link back   | add a link to `a.md` in `b.md`, or remove `b.md` from the declaration |
-| `outside-corpus`         | `b.md` is outside the corpus, so its links are not read | add its folder to the corpus `roots`, or correct the link             |
-| `missing`                | `b.md` does not exist                                   | the same remedy `linkResolves` names, so one fix clears both          |
-| `directory`              | the link names a directory                              | link the record's file                                                |
-| `self`                   | the link points at this record                          | remove it; a record does not relate to itself                         |
+| `resolveLink` case               | finding                                                 | remedy named in the finding                                           |
+| -------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------- |
+| `document`, live, no link back   | `a.md` declares `b.md`, and `b.md` does not link back   | add a link to `a.md` in `b.md`, or remove `b.md` from the declaration |
+| `document`, frozen (no selector) | `b.md` is frozen and cannot answer                      | add `.haveLiveTargets()` to the rule, or remove `b.md`                |
+| `not-in-corpus`, `outside-roots` | `b.md` is outside the corpus, so its links are not read | add its folder to the corpus `roots`, or correct the link             |
+| `not-in-corpus`, `not-markdown`  | `b.png` is not a Markdown record                        | declare a record, not a file                                          |
+| `not-in-corpus`, `ignored`       | `b.md` matches the corpus `ignore` option               | correct the link, or stop ignoring the path                           |
+| `missing`                        | `b.md` does not exist                                   | the remedy `linkResolves` names, so one fix clears both               |
+| `directory`                      | the link names a directory                              | link the record's file                                                |
+| `self`                           | the link points at this record                          | remove it; a record does not relate to itself                         |
+| `external`                       | the declaration links outside the repository            | declare a record in the corpus                                        |
 
-Each remedy is verified to remediate (ADR-009 rule 2): a test applies it and shows the finding
-clears.
+Each remedy is verified to remediate (ADR-009 rule 2): a test applies it to a fixture that keeps
+another declared link (so clearing one finding cannot leave an empty selection) and shows the
+finding clears; for `missing`, both `linkResolves` and `beLinkedBack` clear.
 
 ## Phases
 
-### Phase 1 — the condition
+### Phase 1 — the condition and the selector
 
-**Files:** `packages/md/src/conditions/linked-back.ts` (new), `packages/md/src/builders/links.ts`
-(`beLinkedBack()`), `docs/markdown.md`, `.changeset/` (eess-md minor, additive).
+**Files:** `packages/md/src/conditions/linked-back.ts` (new), `packages/md/src/predicates/live-target.ts`
+(new), `packages/md/src/builders/links.ts` (`beLinkedBack`, `haveLiveTargets`), `docs/markdown.md`,
+`packages/md/src/corpus.ts` (the `frozen` option's docstring now names this use),
+`.changeset/` (eess-md minor, additive).
 
 ### Phase 2 — dogfood it on this repository's ADRs (decision 9)
 
-- ADR-014 and ADR-016 gain an `**Extends:**` line of their own, holding only the ADRs they extend
-  (ADR-014 → ADR-010; ADR-016 → ADR-009, ADR-010). Their Status prose already states these
-  relations; the line restates them and changes no decision. ADR-018 stays out until it is ruled.
-- ADR-009 and ADR-010 gain, at the end of the file, links back to the ADRs that extend them, so no
-  live `path:line` pointer into them shifts.
-- `scripts/check-corpus.mjs` runs `links(c).that().areLabelled('Extends').should().beLinkedBack()`
-  over `adr/`, with no `.expectEmpty()`, so removing every label is red under ADR-010 §3.
+- ADR-014 and ADR-016 each gain an `**Extends:**` line in their Status block, holding only the ADRs
+  they extend (ADR-014 → ADR-010; ADR-016 → ADR-009, ADR-010). Their Status prose already states
+  these relations; the line restates them and changes no decision. ADR-018 stays out until ruled.
+- ADR-009 and ADR-010 each gain an `**Extended by:**` line in their Status block, linking back.
+- Every `path:line` pointer into these four ADRs that the added lines shift is re-pointed in the
+  same change (`check:corpus` finds them; `work/proposals/010-ts-performance-at-scale.md` cites
+  ADR-014 today).
+- `scripts/check-corpus.mjs` runs the rule over `adr/` only, with no `.expectEmpty()`, and prints its
+  examined count in its summary like its other checks.
 
 **Files:** `adr/009-agent-first-failure-surfaces.md`, `adr/010-a-pass-is-constructed-from-evidence.md`,
 `adr/014-the-emitter-refuses-a-verdict-without-evidence.md`,
-`adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md`, `scripts/check-corpus.mjs`.
+`adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md`, `scripts/check-corpus.mjs`, and
+whichever records hold shifted pointers.
 
 ### Phase 3 — non-vacuity at both tiers (decision 10)
 
-- **Production row:** `check:nonvacuity` plants a probe ADR under `adr/` that declares
-  `**Extends:**` an ADR which does not link back, runs the production `scripts/check-corpus.mjs`, and
-  requires the rule id to fire. The plan names the other gates that see the probe: `adrEnforcement`
-  and `check:spec`'s ADR index, so the probe carries a valid Enforcement table and is excluded from
-  the index check, and `scripts/check-workspace-integrity.mjs` learns the probe path (bug 0231).
-- **Fixture rows,** over `scripts/nonvacuity/linked-back/`: one per cause in the table above, an
-  all-frozen selection, a misspelt label (near-miss, from plan 0405), and a control that stays
-  green, including a target that links back twice.
+- **Production row, one-way:** using the harness's `withRewrittenFile`, remove ADR-010's link back
+  to ADR-014, run the production `scripts/check-corpus.mjs --format json`, and assert a finding with
+  this rule id **on `adr/014-…md`, whose message names ADR-010** and which is not the zero-examined
+  finding (the lesson `firedNamingPayload` records in `scripts/check-nonvacuity.mjs`). No probe file
+  is planted, so no gate needs an exclusion.
+- **Production row, every label removed:** rewrite ADR-014 and ADR-016 without their `**Extends:**`
+  lines and assert the zero-examined finding with this rule id. This is what catches the rule being
+  given `.expectEmpty()`.
+- **Fixture rows** under `scripts/nonvacuity/bad-linked-back/` with `bad-linked-back.mjs`: one per
+  row of the finding table, an all-frozen selection, a mixed selection whose frozen target does not
+  link back, and a green control including a target that links back twice and back-links written
+  `a.md`, `./a.md`, `../x/a.md`, `/x/a.md` and `a%20b.md`.
 
-**Files:** `scripts/check-nonvacuity.mjs`, `scripts/nonvacuity/linked-back/**` (new),
-`scripts/check-workspace-integrity.mjs`.
+**Files:** `scripts/check-nonvacuity.mjs`, `scripts/nonvacuity/bad-linked-back/**` and
+`scripts/nonvacuity/bad-linked-back.mjs` (new).
 
 ## Test inventory
 
-- each row of the finding table, with its remedy applied and the finding cleared;
-- several links back, one with a fragment: green;
-- a back-link only inside a code fence or an HTML comment: red;
-- an all-frozen selection: red with the zero-examined finding;
-- a selection with frozen and live targets: the frozen ones left out, the live ones checked, and the
-  rule's description naming the exemption;
-- `beLinkedBack()` not in `CARDINALITY_ASSERTERS`;
-- an empty selection: red, not green.
+Tests import from the package root, in `packages/md/tests/builders/linked-back.test.ts`, over
+`packages/md/tests/fixtures/linked-back/`.
 
-**Sabotage rows** (ADR-009 rule 5; published API, so rule 6's deepest level, with adversarial
-review before merge):
+- each row of the finding table, asserted by message and remedy text, with the remedy applied and the
+  finding cleared;
+- several links back, one with a fragment: green; a back-link only inside a code fence or an HTML
+  comment: red;
+- back-link spellings (`a.md`, `./a.md`, `../x/a.md`, `/x/a.md`, `a%20b.md`, extensionless with
+  `tryExtensions`): green;
+- an all-frozen selection with `haveLiveTargets()`: red with the zero-examined finding;
+- a mixed selection whose frozen target does not link back: green with the selector, and the frozen
+  finding without it;
+- an empty selection: red.
+
+**Sabotage rows** (ADR-009 rule 5; published API, rule 6's deepest level), in an isolated worktree,
+from a green baseline, verdicts read from exit codes, plus an adversarial review before merge:
 
 - the membership lookup always true: the one-way row goes red;
-- the frozen filter moved into the condition (counted as examined): the all-frozen row goes red;
+- `haveLiveTargets` deleted (always true): the mixed-selection row goes red;
 - the condition marked cardinality-exempt: the empty-selection row goes red;
-- each finding's cause swapped with another's: its row goes red;
-- the production rule given `.expectEmpty()`: the production non-vacuity row goes red when every
-  label is removed.
+- one row per finding cause, its cause swapped for another: that cause's row goes red (nine rows);
+- the production rule given `.expectEmpty()`: the every-label-removed production row goes red;
+- `beLinkedBack` ignoring its options: the extensionless back-link row goes red.
 
 **Vacuity matrix:** it probes constructors over empty input and so reaches `links()`, not this
-condition. Covering eess-md there is bug 0403's fix, and this plan does not wait for it.
+condition. Covering eess-md there is [bug 0403](../bugs/0403-the-vacuity-matrix-probes-one-dialect-of-five.md)'s
+fix, and this plan does not wait for it.
 
 ## Out of scope
 
-- A stricter answer (a link back under the same label, or a counterpart such as "Superseded by"):
-  added as a separately named predicate when someone needs it (proposal 013, decision 1; ADR-017
-  rule 7 by analogy).
+- A stricter answer (under the same label, or a counterpart such as "Superseded by"): a separately
+  named predicate, added when someone needs it.
 - ADR-018's relation, until ADR-018 is ruled.
-- Counting the frozen exemption: `deferred→` bug 0174 (see Design).
 - A kernel "at least one counterpart" option for `correspondence()` (proposal 013, decision 6).
 
 ## Success
 
-- A one-way declared relation fails the build with a finding that names its cause and a remedy that
+- A one-way declared relation fails the build with a finding naming its cause and a remedy that
   clears it.
-- This repository's `check:corpus` runs the rule over the ADRs' Extends relation, and
-  `check:nonvacuity` proves the production run fires it.
+- This repository's `check:corpus` runs the rule over the ADRs' Extends relation, and both production
+  rows prove the real run fires it.
 - `npm run validate` green.
 
 ## Progress ledger
 
-- [ ] Phase 1 — `beLinkedBack()`, its findings per cause, docs
-- [ ] Phase 2 — ADR `**Extends:**` lines and links back; the rule in `check:corpus`
-- [ ] Phase 3 — the production non-vacuity row and the fixture rows
+- [ ] Phase 1 — `beLinkedBack`, `haveLiveTargets`, the findings per cause, docs
+- [ ] Phase 2 — ADR `**Extends:**` / `**Extended by:**` lines, pointers re-pointed, the rule in `check:corpus`
+- [ ] Phase 3 — the two production rows and the fixture rows
 - [ ] each remedy verified to remediate
-- [ ] the five sabotage rows go red; adversarial review before merge
-- [ ] proposal 013's disposition row for Ask B names this plan; 013 is closed once its three asks
-      have shipped
+- [ ] the sabotage rows go red; adversarial review before merge
+- [ ] proposal 013 moves to `promoted/` in the PR that ships this plan, since this plan declares
+      `**Implements:** proposal 013`
 - [ ] `npm run validate` green
