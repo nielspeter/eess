@@ -4,7 +4,8 @@
 inbound question from an agent in a consuming project. Surveyed against this repo's source at
 `9d18f0e`, with the composition measured on a fixture (below). Revised the same day after method
 review (see "Corrections"). Reviewed 2026-10-07 (architect · product · enforcement), ruling
-`Split and sequence`; every ask `Held` (see "Review — 2026-10-07").
+`Split and sequence`; every ask `Held`. Open questions decided by the coordinating agent at the
+maintainer's instruction, from the mission and the ADRs (see "Decision — 2026-10-07").
 **Priority:** Medium — no shipped rule checks this property, so none is falsely green on it. One consuming project checks the
 property by hand, and the obvious composition with released parts both fails open and gives a
 false red.
@@ -294,11 +295,11 @@ merge after a method review found the first synthesis unfaithful in five places.
 
 ### Disposition, per ask
 
-| ask                                        | disposition | what would unhold it                                                                                               |
-| ------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------ |
-| **C** — exported `resolveLink()`           | **Held**    | a plan owns it. Its signature is decided below (decision 7). It is the recommended first step                      |
-| **A** — selector for a declared relation   | **Held**    | a plan owns it. Open Question 1 is decided below (decision 2)                                                      |
-| **B** — reciprocity condition on `links()` | **Held**    | A and C built; the acceptance criteria above added; a plan owns it. Open Questions 2, 3, 4 and 6 are decided below |
+| ask                                        | disposition | what would unhold it                                                                                                                             |
+| ------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **C** — exported `resolveLink()`           | **Held**    | the maintainer accepts it and a plan owns it. Its signature is decided below (decision 7). It is the recommended first step                      |
+| **A** — selector for a declared relation   | **Held**    | the maintainer accepts it and a plan owns it. Open Question 1 is decided below (decision 2)                                                      |
+| **B** — reciprocity condition on `links()` | **Held**    | A and C built; the acceptance criteria above added; the maintainer accepts it and a plan owns it. Open Questions 2, 3, 4 and 6 are decided below |
 
 ### Corrections
 
@@ -330,70 +331,96 @@ finding. Confirmed by measurement; filed in the bug lane as bug 0402.
 ## Decision — 2026-10-07
 
 Made by the coordinating agent; the maintainer can overrule any of it. The first synthesis left
-these questions to the maintainer, who answered that they are not the maintainer's: none depends
-on a business priority, taste, a risk to accept or money. They are answered by eess's mission and
-its binding ADRs, read for this decision:
+these questions to the maintainer, who answered that they are not the maintainer's to decide and
+that the answers follow from eess's mission and its ADRs. That instruction covers the open
+questions. It does not cover accepting the asks into work, which stays the maintainer's call
+(see the disposition table). This section was revised before merge after method and enforcement
+review of its first version, which cited a Proposed ADR as binding, reversed the validated rule
+on frozen targets, and overruled reviewers without saying so.
+
+**What it is derived from, read for this decision:**
 
 - **The mission** (`docs/manifesto.md`, Core Thesis): spec and code are validated against each
   other, and drift in either direction fails the build. eess verifies invariants on what authors
   declare and does not prescribe how they write ("Constraints, not a map").
-- **ADR-006:** rules prove themselves in real projects first, then are extracted. Never add a rule
-  to a package without real-world validation.
-- **ADR-009:** a check that can pass while its drift is present is a false green (rule 1); every
-  finding carries a remedy that works on its path (rule 2); published API is guarded to the
-  deepest level, with adversarial review and mutation (rule 6).
-- **ADR-010 §1 and §3:** for a `RuleBuilder` family the examined unit is the post-filter subject set
-  handed to conditions; zero examined is a failing finding absent a declaration. A user-authored
-  condition that skips subjects internally is outside that guarantee.
-- **ADR-016 rule 7:** an instrument says honestly what it cannot see.
-- **ADR-017 rules 6 and 7:** one word means one thing across the family, and no variant ships until
-  someone needs it.
-- **ADR-018:** a string that names something resolves, or the rule says why not.
+- **ADR-006:** "Rules prove themselves in real projects first" (`adr/006-framework-rules-architecture.md`,
+  Decision). That ADR is written for framework packages; it is applied here by analogy to a
+  dialect's rule.
+- **ADR-009:** rule 1's corollary, "an artifact that can ship while no check ever fails is a false
+  green"; rule 2, every finding's remedy must work on its path; rule 6, published API is guarded
+  with adversarial review and mutation.
+- **ADR-010 §1 and §3:** the examined unit of a `RuleBuilder` family is the post-filter subject set
+  handed to conditions, and zero examined is a failing finding absent a declaration.
+- **ADR-017 rule 7:** a variant someone needs "is a new predicate with a name that says so, added
+  when someone needs it".
+- ADR-018 is **Proposed and not binding**; nothing here rests on it.
 
-**Why B belongs in eess-md at all.** The consumer's rule is the real-world validation ADR-006 asks
-for: it runs in that project's gate, refuses zero units, and kills four mutants. As a user-authored
-condition it skips frozen and missing targets internally, which ADR-010 §1 places outside the
-evidence guarantee. Shipping it in eess-md brings those skips inside the guarantee and gives them
-findings of their own.
+**The validated rule.** The consumer's rule was read from its rule file (not run here). It selects
+links on a `**Related to:**` line, excludes links into frozen records in that selecting predicate
+and says so in its `because`, reports a target that does not resolve itself, and checks for any
+link back. The consumer reports that it refuses zero units and that a mutation matrix catches
+four mutants, one of them "exempts nothing as frozen"; those are its reports, not measured here.
+One real record in its corpus carries the line, with 7 links, one into a frozen spike that does not
+link back (measured by enforcement review, read-only).
 
-1. **What counts as an answer: any link back from the target, by default.** This is what the
-   validated rule checks, and the consumer's convention needs it: a mail's `**Related to:**` line
-   names plans and bugs, and they link back from their own prose, not from a matching line. A
-   "counterpart" default would red that project's correct records. The condition takes one
-   optional argument, a predicate the link back must satisfy, so a symmetric convention ("Extends"
-   answered by "Extended by") is the same condition with a narrower answer, not a second variant
-   (ADR-017 rule 7). The drift this default cannot see, a link back that survives in prose after
-   the declared relation is removed, is the reason the argument exists, and the condition's
-   documentation names it.
+**Why B belongs in eess-md.** The validated rule hand-writes link resolution, and its frozen
+exemption is uncounted, so the summary cannot say how much was not checked. Shipping B gives one
+resolver and a counted exemption. The case is that narrow, and no wider.
+
+1. **What counts as an answer: any link back from the target.** This is the validated rule's
+   behaviour, and the consumer's convention needs it: records named on a `**Related to:**` line
+   link back from their own prose. A stricter default would red that project's correct records.
+   No predicate argument ships: nobody needs one yet, and ADR-017 rule 7 says such a variant is a
+   separately named predicate added when someone needs it. This overrules the enforcement lens's
+   proposed stricter default, for that reason. **The blind spot is stated in the condition's
+   documentation:** a target whose only link to the source is an incidental mention ("unlike A, …")
+   counts as linking back, though it never acknowledged the relation.
 2. **How a relation is declared: by the author, as a label or a section.** eess does not choose the
-   convention. Both are one mechanism, links owned by a Markdown block, so Ask A covers both. The
-   label form shares the ledger rule's grammar (`packages/md/src/rules/ledger.ts:147-152`). A
-   label or section that selects nothing is a failing finding (ADR-010 §3, ADR-018).
-3. **Frozen targets are reported, never silently skipped.** An unreciprocated link into a frozen
-   record is still a disagreement. The finding sits on the source line, which is editable, says
-   the target is frozen, and names the remedies that work there: remove the link from the
-   declaration, or a counted `.excluding()` that goes stale under ADR-018 (ADR-009 rule 2: "add a
-   back-link" is impossible on that path). This follows bug 0253, which decided a frozen
-   document's links are still checked. The consumer's rule exempts frozen targets and states it in
-   `because`; adopting the shipped condition moves that choice into a finding.
-4. **A target that does not resolve is a finding of its own,** not left to `linkResolves`, so this
-   rule's verdict never depends on another rule being configured (ADR-009 rule 1).
+   convention, and both are one mechanism, links owned by a Markdown block, so Ask A covers both.
+   The label form shares the ledger rule's grammar (`packages/md/src/rules/ledger.ts:147-152`), and
+   links carry a section path from the same block walk rather than a third heading walk (the
+   architect's request). This overrules the product lens's order (section first, label later):
+   the one validated user declares by label. A declaration that selects nothing in the whole corpus
+   fails under ADR-010 §3. **A near-miss in one record is reported too**: a block whose leading label
+   matches the declared label except for case, spacing or the colon is a finding naming the
+   expected spelling, because otherwise one author's capitalisation leaves that record's relations
+   unchecked while `examined` stays above zero (ADR-009 rule 1's corollary).
+3. **Frozen targets are exempt, and counted.** This is the validated rule's behaviour and its pinned
+   mutant: history is not edited, and the newer record citing it is enough. Reporting them would red
+   the consumer's only real record with remedies that do not work there ("remove the link" deletes
+   a true relation; "add a back-link" edits history). The exemption is never silent: the run reports
+   how many links were not checked because their target is frozen. A selection in which every link
+   points into a frozen record examines zero and fails, as in the validated rule. Frozen is
+   `work/README.md`'s notion (its frozen subfolders, around line 76), which bug 0253 measured. This
+   follows the enforcement and product lenses (exempt with a count) and overrules the architect
+   lens's "report it".
+4. **A target that does not resolve is a finding of this rule,** as in the validated rule, so its
+   verdict does not depend on `linkResolves` being configured. It names the same remedy
+   `linkResolves` names, so one fix clears both findings, and a test applies the fix and shows both
+   clear (ADR-009 rule 2).
 5. **The proposal↔plan check stays a script.** One of its sides is a ruling, not a link.
-6. **No kernel "at least one counterpart" option now.** With B as a condition on `links()`, nothing
-   here needs it, and the kernel takes facts, not concepts it has no consumer for (ADR-013). It is
-   revisited with bug 0400's decision if a second consumer appears.
-7. **C is `resolveLink(link, corpus, options)`,** returning the existing repository path or
-   `undefined`, and `linkResolves` calls it, so a custom rule and `linkResolves` cannot disagree
-   about where a link points.
-8. **Names avoid "relation".** The kernel already uses it (`preserveRelations`, `RelationSpec`), and
-   ADR-017 rule 6 gives one word one meaning. The proposal's title keeps its wording as history; the
-   API does not use it (for example `.should().beLinkedBack()`).
-9. **Dogfooding is not a precondition.** ADR-006 asks for validation in a real project, and the
-   consumer supplies it. This repository's nearest candidate, ADR "Extends" headers answered by
-   "Extended by", would use the predicate argument from decision 1; whether ADRs gain those lines is
-   a separate change to binding documents, decided with the build plan, not here.
+6. **No kernel "at least one counterpart" option now.** B as a condition on `links()` does not need
+   it. The product lens counts the proposal↔plan script as a consumer; that script works today
+   through `@nielspeter/eess/internal`, so a public option would move one internal import, not meet
+   a need. This overrules the product lens. It is revisited with bug 0400's decision if a consumer
+   appears that cannot be served otherwise.
+7. **C is `resolveLink(link, corpus, options)`, returning a result that names its case:** the
+   repository path of a target inside the corpus; a target that exists outside the corpus roots
+   (its links are not parsed, so B reports that cause, not "one-way"); a missing target; a
+   directory; or a link with no file reference (a pure `#anchor`). `linkResolves` and B both call
+   it, so there is one resolver. This takes neither lens's signature as proposed: the architect's
+   "path or `undefined`" merges these cases, and product's "every candidate" leaves each caller to
+   re-decide them.
+8. **Names avoid "relation."** The kernel already uses it (`preserveRelations`, `RelationSpec`).
+   ADR-017 rule 6 decides this for heritage words; it is extended here by analogy. The API reads,
+   for example, `links(c).that().areLabelled('Related to').should().beLinkedBack()`.
+9. **Dogfooding is not a precondition.** The validated rule is the real-project proof. This
+   repository's nearest candidate, ADR "Extends" headers, would need the counterpart predicate that
+   decision 1 does not ship; whether ADRs gain "Extended by" lines is decided with that predicate,
+   when someone needs it.
 10. **The build is published API** (ADR-009 rule 6): its plan carries a sabotage matrix and an
-    adversarial review, and the non-vacuity rows run over a fixture corpus.
+    adversarial review, and its non-vacuity rows run over a fixture corpus, one row per cause in
+    decisions 2, 3, 4 and 7.
 
-With these settled, the asks are buildable in order: C, then A, then B. Each disposition row stays
-`Held` until a plan owns it.
+With these settled, the asks are buildable in order: C, then A, then B. Each stays `Held` until the
+maintainer accepts it and a plan owns it.
