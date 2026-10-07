@@ -1,11 +1,14 @@
 # Proposal 013 — md: a declared relation between two documents is reciprocated
 
-**State:** Draft — filed 2026-10-07 at the maintainer's request ("yes file the proposal"), after an
-inbound question from an agent in a consuming project. Surveyed against this repo's source at
-`9d18f0e`, with the composition measured on a fixture (below). Revised the same day after method
-review (see "Corrections"). Reviewed 2026-10-07 (architect · product · enforcement), ruling
-`Split and sequence`; every ask `Held`. Open questions decided by the coordinating agent at the
-maintainer's instruction, from the mission and the ADRs (see "Decision — 2026-10-07").
+**State:** Draft — the maintainer accepted the asks on 2026-10-07 by asking for plans to implement
+them ("then lets make plans to implement the proposal 013"). Ask C is owned by
+[plan 0404](../plans/0404-md-one-link-resolver-names-each-case.md), Ask A by
+[plan 0405](../plans/0405-md-select-the-links-a-block-declares.md), Ask B by
+[plan 0406](../plans/0406-md-a-declared-link-is-answered.md), which ships last and declares
+`**Implements:** proposal 013`; this record moves to `promoted/` in that plan's PR. Filed 2026-10-07
+at the maintainer's request after an inbound question; reviewed the same day (architect · product ·
+enforcement); open questions decided by the coordinating agent at the maintainer's instruction (see
+"Decision — 2026-10-07").
 **Priority:** Medium — no shipped rule checks this property, so none is falsely green on it. One consuming project checks the
 property by hand, and the obvious composition with released parts both fails open and gives a
 false red.
@@ -295,11 +298,11 @@ merge after a method review found the first synthesis unfaithful in five places.
 
 ### Disposition, per ask
 
-| ask                                        | disposition | what would unhold it                                                                                                                             |
-| ------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **C** — exported `resolveLink()`           | **Held**    | the maintainer accepts it and a plan owns it. Its signature is decided below (decision 7). It is the recommended first step                      |
-| **A** — selector for a declared relation   | **Held**    | the maintainer accepts it and a plan owns it. Open Question 1 is decided below (decision 2)                                                      |
-| **B** — reciprocity condition on `links()` | **Held**    | A and C built; the acceptance criteria above added; the maintainer accepts it and a plan owns it. Open Questions 2, 3, 4 and 6 are decided below |
+| ask                                        | disposition            | owner                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **C** — exported `resolveLink()`           | **Accepted**           | [plan 0404](../plans/0404-md-one-link-resolver-names-each-case.md)                                                                                                                                                                                                                                                                                                             |
+| **A** — selector for a declared relation   | **Accepted**           | [plan 0405](../plans/0405-md-select-the-links-a-block-declares.md)                                                                                                                                                                                                                                                                                                             |
+| **B** — reciprocity condition on `links()` | **Accepted, reshaped** | [plan 0406](../plans/0406-md-a-declared-link-is-answered.md), after plans 0404 and 0405. Reshaped in planning: the frozen exemption is an explicit selector the author writes (`haveLiveTargets()`), because a condition cannot add a selection filter, and it is not counted, because a visible predicate is like every other `.that()` filter (decision 3 asked for a count) |
 
 ### Corrections
 
@@ -461,3 +464,10 @@ resolver and a counted exemption. The case is that narrow, and no wider.
 
 With these settled, the asks are buildable in order: C, then A, then B. Each stays `Held` until the
 maintainer accepts it and a plan owns it.
+
+**Note, 2026-10-07 (planning, after review of the plans):** two decisions changed when the plans
+met the kernel. Decision 3's exemption is an explicit selector, `haveLiveTargets()`, because a
+condition called after `.should()` cannot add a selection filter (bug 0155's guard records it as
+misplaced); being explicit and visible in the rule, it is not counted, like any other `.that()`
+filter. Decision 2's label grammar accepts the plain `Label:` form the ledger accepts, not only the
+bold one, with the colon still required. Plans 0405 and 0406 record both.
