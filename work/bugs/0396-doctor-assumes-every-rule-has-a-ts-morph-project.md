@@ -4,7 +4,7 @@
 
 - **State:** Draft — reproduced 2026-10-07 against this repo's build at `b1335f5`, on this repo's
   own `spec.rules.ts`. No red test yet. **A regression of a recorded crash:** plan 0150 found it
-  on 2026-08-18 and backed its port out; `orphanExclusions` then shipped in #103 without the guard.
+  on 2026-08-18 and backed its port out; `orphanExclusions` then shipped in #72 (2026-08-21) without the guard.
 - **Severity:** Medium — `eess-ts doctor` crashes, exit 1, on any rule file that exports a kernel
   dialect's builders (eess-md here; eess-mermaid and eess-gherkin build on the same kernel
   `RuleBuilder`; eess-crossvalidate does not). It fails loudly, so it is not a false green, but the pre-flight tool

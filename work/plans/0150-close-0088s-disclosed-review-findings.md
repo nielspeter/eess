@@ -206,8 +206,9 @@ acceptance.
       done-otherwise: already resolved by 0088 Phase 6, confirmed at freeze.
 - [ ] Phase 4 — `orphanExclusions()`. Attempted 2026-08-18, backed out
       unbuilt; blocked on bug 0154.
-      Note 2026-10-07: `orphanExclusions()` has since shipped (#103) without the
-      foreign-project guard, and the crash this plan recorded is back — `doctor
-    spec.rules.ts` crashes again, so this plan's success criterion is broken.
+      Note 2026-10-07: `orphanExclusions()` has since shipped (#72,
+      2026-08-21) without the foreign-project guard, and the crash this plan
+      recorded is back: `doctor spec.rules.ts` crashes again, so this plan's
+      success criterion is broken.
       [Bug 0396](../bugs/0396-doctor-assumes-every-rule-has-a-ts-morph-project.md)
       owns the fix.
