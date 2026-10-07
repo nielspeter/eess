@@ -143,7 +143,29 @@ live-target.ts once they exist>).and().importFrom('**/model/resolve-link.ts').sh
 
 ## Progress ledger
 
-- [ ] Phase 1 — `resolveLink` extracted, cached, exported, documented; `linkResolves` calls it
-- [ ] the spelling table
-- [ ] the four sabotage rows go red, the structural one through `check:arch`
+- [x] Phase 1 — `resolveLink` extracted, cached, exported, documented; `linkResolves` calls it
+      (`packages/md/src/model/resolve-link.ts`; `docs/markdown.md` "Resolving a link yourself")
+- [x] the spelling table (`packages/md/tests/resolve-link.test.ts`, 25 tests, plus an agreement
+      test: `linkResolves` flags exactly the links `resolveLink` calls `missing` or `directory`)
+- [x] the four sabotage rows go red, the structural one through `check:arch` (measured in an
+      isolated worktree; see Build notes)
 - [ ] `npm run validate` green
+
+## Build notes (2026-10-07)
+
+- **Sabotage, measured** (each patched, checked, restored from the index): emptied resolver, 24 of
+  25 tests red; identity resolver, 19 red; `document` reported as `not-in-corpus`, 10 red; path
+  arithmetic added to `conditions/resolve.ts`, `check:arch` red on `eess/md-one-link-resolver`.
+- **The structural rule's empty-selection half needed a correction to this plan's wording.** The
+  plan said deleting the import empties the selection. Measured: `conditions/resolve.ts` also
+  re-exports the `LinkResolveOptions` type from `model/resolve-link.ts`, and the import graph counts
+  that re-export, so the file stays selected. With both the import and the re-export removed, the
+  rule fails with the zero-examined finding, and does so without `.expectNonEmpty()` (measured with
+  and without it). The rule's comment names both residuals: a file that keeps a type re-export but
+  stops calling `resolveLink` is guarded only by the `node:path` ban, and a copy written with string
+  operations passes.
+- **`movedLinkFix` moved into `model/resolve-link.ts`** with the resolver, so `conditions/resolve.ts`
+  has no `node:path` import; `LinkResolveOptions` is defined there too and re-exported from the
+  condition module, so existing imports keep working.
+- **One behaviour change, in the changeset:** a link with malformed percent-encoding is now reported
+  as broken; before, `decodeURIComponent` threw and aborted the run.

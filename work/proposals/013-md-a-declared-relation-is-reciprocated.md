@@ -19,7 +19,7 @@ one-way `beComplete()` counts the side it never reads).
 
 ## Problem
 
-eess-md checks that a link resolves (`linkResolves`, `packages/md/src/conditions/resolve.ts:118`).
+eess-md checks that a link resolves (`linkResolves`, `packages/md/src/conditions/resolve.ts:30`).
 Nothing checks that a relation two documents declare is held from both ends.
 
 Most links are one-way by nature, so "every link must link back" is not a spec. What two corpora
@@ -210,7 +210,7 @@ merge after a method review found the first synthesis unfaithful in five places.
   (C1), product preferred it (its I3), and enforcement's criteria are met by it. For each selected
   link, the check is whether the target holds any link resolving to the source: set membership
   against an index of every internal link in the corpus, the same shape as `linkResolves`
-  (`packages/md/src/conditions/resolve.ts:118`). Built that way:
+  (`packages/md/src/conditions/resolve.ts:30`). Built that way:
   - several links back are one answer, so the measured false red disappears;
   - `examined` is the selected links only, so a misspelt marker selects nothing and the existing
     zero-examined finding fires, with no dependence on bug 0400's decision;

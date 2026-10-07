@@ -196,6 +196,55 @@ ledger reconciliation is built from (see "Ledger reconciliation" below), and
 is exported for a caller who wants task items without going through the
 corpus builder chain.
 
+### Resolving a link yourself: `resolveLink`
+
+A condition over links usually needs to know where a link points. Don't
+re-implement that: `resolveLink(link, corpus, options?)` is the resolver
+`.resolve()` itself uses, so a custom rule and `.resolve()` cannot disagree. It
+takes the same `LinkResolveOptions`, never throws, and returns one named case:
+
+| `kind`          | meaning                                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `document`      | an existing, loaded corpus document (`path`, `doc`)                                                               |
+| `not-in-corpus` | an existing file the corpus did not load; `reasons` lists every one of `not-markdown`, `ignored`, `outside-roots` |
+| `directory`     | no candidate is a file, but one names a real directory                                                            |
+| `missing`       | nothing exists; `tried` lists every candidate, in order                                                           |
+| `self`          | a pure `#anchor`, or a path back to the linking document                                                          |
+| `external`      | a URL with a scheme                                                                                               |
+
+Candidates are tried in a fixed order: the repo-root target, then the
+content-root one when `rootDir` is set, each as written, then with
+`tryExtensions`, then `tryIndex`. The first existing file wins; a directory is
+reported only when no candidate is a file. A link into a built-in ignored folder
+(`node_modules`, `dist`, …) is `missing`, because the corpus never walks those.
+
+```typescript
+import { corpus, links, resolveLink } from '@nielspeter/eess-md'
+import type { Condition, MdLink } from '@nielspeter/eess-md'
+
+const c = corpus({ roots: ['docs/**'] })
+
+const intoTheCorpus: Condition<MdLink> = {
+  description: 'point at a loaded corpus document',
+  evaluate: (found) =>
+    found.flatMap((link) => {
+      const target = resolveLink(link, c)
+      if (target.kind !== 'not-in-corpus') return []
+      return [
+        {
+          rule: 'docs/links-stay-in-the-corpus',
+          element: `${link.doc.relPath} → ${link.url}`,
+          file: link.doc.file,
+          line: link.line,
+          message: `"${link.url}" is outside the corpus: ${target.reasons.join(', ')}`,
+        },
+      ]
+    }),
+}
+
+links(c).that().areInternal().should().satisfy(intoTheCorpus).check()
+```
+
 ### Writing a condition for task items
 
 `TaskItemRuleBuilder` ships the two predicates above and **no conditions** — so

@@ -84,4 +84,28 @@ export default [
     .should()
     .notImportFrom(inPkg('ts'), inPkg('mermaid'), inPkg('md'))
     .rule({ id: 'eess/gherkin-isolated', because: 'dialects are siblings, not cross-dependent' }),
+
+  // Plan 0404 — eess-md resolves a link in one place. A file that resolves
+  // links selects itself by importing from `model/resolve-link.ts`; one that
+  // stops doing so drops out of the selection, and the emptied selection fails
+  // with the zero-examined finding (measured). One that imports it and also
+  // reaches for `node:path` is doing path arithmetic of its own — a second
+  // resolver. Named residuals: a type re-export from resolve-link.ts keeps a
+  // file selected, so a file that keeps one but stops calling resolveLink is
+  // guarded only by the `node:path` ban; and a copy written with string
+  // operations instead of `node:path` passes.
+  modules(p)
+    .that()
+    .resideInFile('**/packages/md/src/conditions/resolve.ts')
+    .and()
+    .importFrom('**/packages/md/src/model/resolve-link.ts')
+    .should()
+    .notImportFrom('node:path')
+    .rule({
+      id: 'eess/md-one-link-resolver',
+      because:
+        'two link resolvers disagree about where a link points, and a custom rule cannot tell which one is right',
+      suggestion:
+        'resolve the link with resolveLink() from model/resolve-link.ts, and keep path arithmetic there',
+    }),
 ]

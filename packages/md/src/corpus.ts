@@ -6,6 +6,7 @@ import { gfm } from 'micromark-extension-gfm'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
 import picomatch from 'picomatch'
 import { buildDocument, type MdDocument } from './model/document.js'
+import { registerCorpusMatchers } from './model/resolve-link.js'
 
 /**
  * Configuration for a markdown corpus.
@@ -91,9 +92,12 @@ export function corpus(options: CorpusOptions): Corpus {
       })
     })
 
-  return {
+  const loaded: Corpus = {
     documents: () => documents,
     root,
     fileIndex,
   }
+  // Kept so `resolveLink` can say why an existing file was not loaded (plan 0404).
+  registerCorpusMatchers(loaded, { inRoots: matchesRoot, ignored: matchesIgnore })
+  return loaded
 }
