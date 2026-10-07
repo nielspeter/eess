@@ -66,7 +66,7 @@ A `left-to-right` check reads only the left side, so a non-empty right side repo
 check that asserted nothing.
 
 - The zero-examined path, and the `.expectEmpty()` / `.expectNonEmpty()` checks with it, run only
-  when `examined === 0` (`packages/core/src/terminal-builder.ts:289`, `:315-320`). Row a never gets
+  when `examined === 0` (`packages/core/src/terminal-builder.ts:290`, `:315-320`). Row a never gets
   there, so the declaration in row b is never consulted.
 - The comment above the count states the design: "one side alone being empty is still real
   examination of the other" (`correspondence.ts:135-138`). That is true for `direction: 'both'`,
