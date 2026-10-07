@@ -3,7 +3,8 @@
 **State:** Draft — filed 2026-10-07 at the maintainer's request ("yes file the proposal"), after an
 inbound question from an agent in a consuming project. Surveyed against this repo's source at
 `9d18f0e`, with the composition measured on a fixture (below). Revised the same day after method
-review (see "Corrections"). Not reviewed as a proposal.
+review (see "Corrections"). Reviewed 2026-10-07 (architect · product · enforcement), ruling
+`Split and sequence`; every ask `Held` (see "Review — 2026-10-07").
 **Priority:** Medium — no shipped rule checks this property, so none is falsely green on it. One consuming project checks the
 property by hand, and the obvious composition with released parts both fails open and gives a
 false red.
@@ -192,82 +193,97 @@ test.
 
 Reviewed by the architect, product and enforcement lenses, after an existing-code survey that found
 no reciprocity or backlink capability in any package. All three agree the problem is real and
-correctly narrowed to declared relations. They disagree only on the verdict's name: the architect and
-enforcement lenses ruled "Ship with changes" once restructured, and the product lens ruled "Split and
-sequence". The asks are three shippable things with different risk and different blockers, so they
-are split here. No ask is accepted by this review; each row below is `Held` until the maintainer
-accepts it and a plan owns it.
+correctly narrowed to declared relations. Their verdicts differ (architect and enforcement: "Ship
+with changes" once restructured; product: "Split and sequence"), and so do their positions on
+Open Questions 1 to 4 and on a kernel gap (question 6 below). The asks are three shippable things
+with different blockers, so they are split here. No ask is accepted by this review; each row below
+is `Held` until the maintainer accepts it and a plan owns it. This section was revised before
+merge after a method review found the first synthesis unfaithful in five places.
 
-### What the review changes about the design
+### What all three lenses support
 
-- **B is a condition on `links()`, not a `correspondence()` composition** (architect). For each
-  selected link, the check is whether the target holds any link resolving to the source: set
-  membership against an index of every internal link in the corpus, the same shape as
-  `linkResolves` (`packages/md/src/conditions/resolve.ts:118`). Built that way:
+- **B is a condition on `links()`, not a `correspondence()` composition.** The architect argued it
+  (C1), product preferred it (its I3), and enforcement's criteria are met by it. For each selected
+  link, the check is whether the target holds any link resolving to the source: set membership
+  against an index of every internal link in the corpus, the same shape as `linkResolves`
+  (`packages/md/src/conditions/resolve.ts:118`). Built that way:
   - several links back are one answer, so the measured false red disappears;
   - `examined` is the selected links only, so a misspelt marker selects nothing and the existing
     zero-examined finding fires, with no dependence on bug 0400's decision;
   - each finding reports its own source line, and the condition composes through `satisfy()`.
-    The condition must not be marked cardinality-exempt (`packages/core/src/cardinality.ts`): "no
-    selected link lacks a back-link" has the form of an absence assertion, which is the reasoning that
-    made `beComplete()` exempt (enforcement).
-- **A's break class belongs to the rule that consumes the selector, not the selector.**
+- **The condition is not cardinality-exempt** (enforcement). "No selected link lacks a back-link"
+  has the form of an absence assertion, which is the reasoning that made `beComplete()` exempt
+  (`packages/core/src/cardinality.ts`); the plan must say it is not. Zero loaded documents outranks
+  an `.expectEmpty()` on it (ADR-010 §3).
+- **A's break class belongs to the rule that consumes the selector**, because
   `RuleBuilder.select()` returns a bare `Selection` with no evidence
-  (`packages/core/src/rule-builder.ts:195-197`), so a selector cannot go red (architect,
-  enforcement).
-- **"A line starting with the marker" fails open.** A header field that wraps, or a marker followed
-  by a list, leaves links unselected while `examined` stays above zero (architect), and a
-  reference-style link on a marker line is invisible (enforcement, measured). The unit is the
-  Markdown block: a paragraph or list item whose leading label matches. eess-md already has a label
-  grammar, private to the ledger rule (`packages/md/src/rules/ledger.ts:147-152`); A shares it
-  rather than writing a second one (architect). A section form, mirroring
-  `docs(c).that().haveSection()`, is the more common declaration and has no parsing ambiguity
-  (product).
-- **C is a function, not a field on `MdLink`.** The resolved target depends on
+  (`packages/core/src/rule-builder.ts:195-197`) (architect, enforcement).
+- **"A line starting with the marker" fails open** (architect, enforcement, measured): a wrapped
+  header field or a marker followed by a list leaves links unselected while `examined` stays above
+  zero, and a reference-style link on a marker line is invisible. The unit is the Markdown block. A
+  label form shares eess-md's existing label grammar, private to the ledger rule
+  (`packages/md/src/rules/ledger.ts:147-152`), rather than adding a second (architect).
+- **C is a function, not a field on `MdLink`** (architect, product): the resolved target depends on
   `LinkResolveOptions` and can be several candidates (`packages/md/src/conditions/resolve.ts:57-70`),
-  while the corpus is parsed before any rule's options exist. So: an exported
-  `resolveLink(link, options)`, used by `linkResolves` and by B (architect, product).
-- **A kernel "at least one counterpart" option for `correspondence()` is not part of this
-  proposal.** With B as a condition, this proposal no longer needs it. The gap is real but has one
-  consumer today (the proposal↔plan script, which reaches `matchSelections` through
-  `@nielspeter/eess/internal`); it belongs with bug 0400's decision (architect; the product lens
-  argued for it, before the condition shape removed this proposal's need).
+  while the corpus is parsed before any rule's options exist. The lenses disagree on its signature:
+  the architect proposes `resolveLink(link, corpus, options)` returning the one existing repo path
+  or `undefined`; product proposes `resolveLink(link, options?)` returning every candidate. B must
+  take the same `LinkResolveOptions` either way.
 
 ### What the acceptance criteria must add before any plan
 
 - **One finding per cause, each with a remedy that clears it** (enforcement, measured). Today a
-  one-way relation, a target outside the corpus roots that does link back, a missing target, and a
+  one-way relation, a target outside the corpus roots that does link back, a missing target and a
   frozen target all produce the same message with the same remedy, which works for only the first
   (ADR-009 rule 2). The finding is anchored at the source's marker line and names the target.
 - **Silent shapes are findings.** A marker block from which no link is selected (a reference-style
-  link, an unparsed form) is reported, not passed (ADR-016).
-- **A near-miss marker** in one record (`**Related To:**` beside `**Related to:**`) is either reported
-  or named as a residual; today it is silently unexamined (enforcement, measured).
-- **Self-links** are excluded with a count or reported; today one passes by construction
-  (enforcement, measured).
+  link, an unparsed form) is reported, not passed (ADR-016). A target whose back-link is
+  reference-style is a false red for B, since eess-md does not parse those (product); the plan
+  states that limit or settles reference links first.
+- **A near-miss marker** in one record (`**Related To:**` beside `**Related to:**`) is reported or
+  named as a residual; today it is silently unexamined (enforcement, measured).
+- **Self-links.** `[self](a.md#a)` passes by construction; `[self](#a)` gives a false red through a
+  hand-written resolver. Both are excluded with a count or reported (enforcement).
 - **The non-vacuity row cannot be built as written**: this repo runs no such rule. It becomes a
   fixture corpus under `scripts/nonvacuity/`, one row per cause, recorded as one tier weaker than a
   production gate (enforcement).
 - **C's break class cannot fail as worded.** It names the real corruptions: an emptied resolver
   reddens a spelling table (`./`, `../`, `#frag`, `%20`, leading `/`), and `linkResolves` not
   calling the exported function is caught (enforcement).
+- **Fixtures pin code fences and HTML comments**: a back-link only inside either stays red
+  (enforcement M5).
+- **Element names carry no line number**, or every edit above a link makes an exclusion stale
+  (ADR-018) (architect M2). The measured fixture's `identify` does this; the shipped condition does
+  not.
 - **The several-back-links row is a false-positive pin, not a break class**; it stays, relabelled
   (enforcement).
 
 ### Open questions, argued and left to the maintainer
 
-1. **How a relation is declared** blocks A. The reviewers argue for the section form first and a
-   block-scoped label second; front matter is a separate ask, since eess-md has no front-matter model.
-2. **What counts as the answer** does not block if it is a parameter. The architect and product lenses
-   argue for "any link back" as the default with a stricter form one argument away; enforcement
-   argues the reverse, since "any link" misses a relation removed from the marker but still
-   mentioned in prose, and is a weaker claim than the title.
-3. **Frozen targets** blocks B. Enforcement: exempt with a count, or report with the remedy "remove
-   the relation". Architect: bug 0253 decided frozen documents' links are still checked, so a
-   silent exemption would contradict it.
-4. **An unresolvable target** blocks B. All three lenses argue for a finding of its own here rather
-   than leaving it to `linkResolves`, which would make this rule's green depend on another rule.
-5. **The proposal↔plan check** stays a script; one side is not a link. Not blocking.
+1. **How a relation is declared.** Blocks A (all three). Product argues for the section form first
+   (mirroring `haveSection()`) and a label form once its matching rule has a fixture; the
+   architect argues for the block-scoped label, optionally with a section, and asks for a
+   `sectionPath` on links rather than a third heading walk. Front matter is a separate ask: eess-md
+   has no front-matter model.
+2. **What counts as the answer.** Not blocking if it is a parameter. Architect and product argue for
+   "any link back" as the default; enforcement argues the reverse, since "any link" misses a
+   relation removed from the marker but still mentioned in prose.
+3. **Frozen targets.** Enforcement calls it blocking for B; the architect and product do not.
+   Enforcement: exempt with a count in the summary, or report with the remedy "remove the
+   relation". Product: add `areLive()`/`areFrozen()` to `links()`, the words `pointers()` already
+   has, and count frozen targets. Architect: no new mechanism; bug 0253 decided frozen documents'
+   links are still checked, so an uncounted exemption would contradict it, and the remedy is on the
+   editable source line.
+4. **An unresolvable target.** Enforcement and the architect call it blocking for B; product does
+   not, but wants it to fail closed. All three argue for a finding of its own here rather than
+   leaving it to `linkResolves`.
+5. **The proposal↔plan check** stays a script; one side is not a link. Not blocking (all three).
+6. **A public "at least one counterpart" option on the kernel's `correspondence()`.** Product calls
+   it blocking for B's shape and counts two consumers (the proposal↔plan script, which reaches
+   `matchSelections` through `@nielspeter/eess/internal`, and this proposal's composition). The
+   architect counts one, since with B as a condition this proposal no longer needs it, and would
+   build it once a second consumer appears, designed with bug 0400's count decision. No record owns
+   this gap today; it is recorded here until the maintainer decides whether it gets its own.
 
 **Dogfooding.** This repo has no link-based two-way relation today. The nearest candidate is the ADR
 "Extends" headers (ADR-016 and ADR-018 extend ADR-009, which does not link back); whether ADRs gain
@@ -275,18 +291,30 @@ accepts it and a plan owns it.
 
 ### Disposition, per ask
 
-| ask                                        | disposition | what would unhold it                                                                                                                             |
-| ------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **C** — exported `resolveLink()`           | **Held**    | the maintainer accepts it and a plan owns it. No open question blocks it; it is the recommended first step, and helps any custom link rule today |
-| **A** — selector for a declared relation   | **Held**    | Open Question 1 settled (section, label, or both), the label grammar shared with the ledger, and a plan owns it                                  |
-| **B** — reciprocity condition on `links()` | **Held**    | A and C built; Open Questions 3 and 4 settled; the acceptance criteria above added; a plan owns it                                               |
+| ask                                        | disposition | what would unhold it                                                                                                                   |
+| ------------------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **C** — exported `resolveLink()`           | **Held**    | the maintainer accepts it, its signature is chosen (one path or every candidate), and a plan owns it. It is the recommended first step |
+| **A** — selector for a declared relation   | **Held**    | Open Question 1 settled, the label grammar shared with the ledger, and a plan owns it                                                  |
+| **B** — reciprocity condition on `links()` | **Held**    | A and C built; Open Questions 3, 4 and 6 settled; the acceptance criteria above added; a plan owns it                                  |
 
 ### Corrections
 
-The submission above proposed the reciprocity rule's shape through a `correspondence()` composition,
-attached A's break class to the selector, selected by physical line, left the message unspecified,
-did not state that its "refuses zero" depended on bug 0400, and specified a non-vacuity row this
-repo cannot build. All six were found by this review and are recorded here rather than edited away.
+The submission above:
+
+1. proposed the reciprocity rule's shape through a `correspondence()` composition;
+2. attached A's break class to the selector;
+3. selected by physical line;
+4. left the message unspecified;
+5. did not state that its "refuses zero" depended on bug 0400;
+6. specified a non-vacuity row this repo cannot build;
+7. wrote a break class for C that cannot fail;
+8. labelled a false-positive pin as a break class;
+9. gave a rule example that imports `definePredicate` from `@nielspeter/eess`, which an
+   eess-md-only adopter does not have. `docs/markdown.md` (around lines 205-208) documents the
+   alternative: a plain `Predicate<MdLink>` object literal, since eess-md re-exports the types and
+   not the helper. The example stands as the measurement that was run.
+
+All nine were found by this review and are recorded here rather than edited away.
 
 **Found beside this review, recorded separately:** the architect lens found that `CorrespondenceBuilder`
 shares its checks between builders derived from one base, so one rule can report another rule's
