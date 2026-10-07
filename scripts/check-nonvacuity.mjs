@@ -2869,6 +2869,7 @@ const GATE_FOR = {
   'check:arch': [
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
+    'arch/md-one-link-resolver',
     'internal arch',
     'arch/one-fence-reader (packages)',
     'arch/one-fence-reader (scripts)',
