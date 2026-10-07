@@ -260,18 +260,26 @@ of making this decession based on all the work you have done"), and revised twic
 after method, enforcement and product review. The maintainer can overrule any of them.
 
 **Decision 2's risk: accepted by the maintainer, 2026-10-07.** Decision 2 accepts a risk on
-adopters' behalf: a rootless eess-ts baseline turns red on upgrade. That was the maintainer's call,
+adopters' behalf: a rootless eess-ts baseline turns all-red on upgrade. That was the maintainer's call,
 so it was held as a blocker on the Phase 2 build plan. It was put to the maintainer with the
 following account, and they answered "ok":
 
 - **Who has one.** Every baseline eess-ts writes records its root
   (`packages/ts/src/helpers/baseline.ts:441`). A rootless file is a v1 file from ts-archunit
   before its bug 0010 fix, a kernel-written file read by eess-ts, or one written by hand.
-- **The release already asks the same of everyone.** Phase 1 bumps `HASH_VERSION`, and `check`
+- **The release already asks the same of everyone.** Phase 3 bumps `HASH_VERSION`, and `check`
   against an older baseline reports one finding saying to run `--migrate` (plan 0346, Phase 3).
-  Decision 2 puts rootless files on that same path; it adds no new kind of upgrade cost.
-- **What is left** is `--migrate` guessing a root. It prints the root it assumed and reports
+  Decision 2 puts rootless files on that same path.
+- **What is left** is `--migrate` guessing a root. It must print the root it assumed and report
   entries that do not resolve under it, so a wrong guess gives more red, not less.
+
+Checked after the acceptance (method review, 2026-10-07): the second point holds for two of the
+three kinds of rootless file, not all three. eess-ts reads a missing `hashVersion` as version 1
+(`packages/ts/src/helpers/baseline.ts:333-334`), and neither the kernel nor pre-0010 ts-archunit
+writes one, so those files already fail the older-version check, and decision 2 costs them
+nothing extra. The exception is a hand-written file with a current `hashVersion` and no `root`:
+decision 2 alone turns it red. The account put to the maintainer said "no new class of upgrade
+pain" without that exception, and it was reported to the maintainer.
 
 1. **Grouping: EP2.** Per-file grouping (C12), the suffix reservation (C12a) per file, and every
    census item except C13 keyed by `(hash, file)`. **How the collision guard (C13) is keyed is not

@@ -456,7 +456,8 @@ hash and its recorded file**, which is what "matched" means once Phase 2 ships, 
 the new-scheme one. Nothing new is forgiven, because every new entry is derived from an
 entry that already matched. A join on the hash alone would bring 0388 back: the entry
 written for `a` would be carried onto `b`. What the migration does with a baseline that records
-no root follows Phase 2's no-root rule, which is open; it must not be a hash-only join, which
+no root follows Phase 2's no-root rule (spike 0394's decision 2, accepted
+2026-10-07); it must not be a hash-only join, which
 would carry exactly this inheritance forward. Break class: the 0388
 fixture, then `--migrate`, then `b` is still reported.
 
@@ -667,8 +668,8 @@ the split. It does not become one of the six.
   it flips.
 - An adopter's existing baseline migrates without forgiving anything new, and the
   command says what it cannot promise.
-- Every finding added here **fails** (except, possibly, the no-root finding, whose severity is the
-  open decision above), and by ADR-009 Rule 1's discriminator rather
+- Every finding added here **fails** (the no-root finding included: spike 0394's decision 2 makes it an
+  `error` that cannot be suppressed, accepted 2026-10-07), and by ADR-009 Rule 1's discriminator rather
   than by blanket rule: each one has a single correct answer, so none of them is a
   finding the reader is expected to judge. (An earlier draft of this plan said
   "nothing added here warns" as an absolute, which contradicts Rule 1's own
