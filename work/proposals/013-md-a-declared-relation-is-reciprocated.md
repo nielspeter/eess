@@ -265,9 +265,12 @@ merge after a method review found the first synthesis unfaithful in five places.
    architect argues for the block-scoped label, optionally with a section, and asks for a
    `sectionPath` on links rather than a third heading walk. Front matter is a separate ask: eess-md
    has no front-matter model.
-2. **What counts as the answer.** Not blocking if it is a parameter. Architect and product argue for
-   "any link back" as the default; enforcement argues the reverse, since "any link" misses a
-   relation removed from the marker but still mentioned in prose.
+2. **What counts as the answer.** Not blocking if it is a parameter. Product argues for a generic
+   form, a link back that satisfies a predicate, with "any link" as the default; that also covers
+   asymmetric pairs such as "Supersedes" answered by "Superseded by". It wants this decided before
+   B. The architect also argues for "any link" as the default, with the strict form one argument
+   away. Enforcement argues the reverse default, since "any link" misses a relation removed from
+   the marker but still mentioned in prose.
 3. **Frozen targets.** Enforcement calls it blocking for B; the architect and product do not.
    Enforcement: exempt with a count in the summary, or report with the remedy "remove the
    relation". Product: add `areLive()`/`areFrozen()` to `links()`, the words `pointers()` already
@@ -295,7 +298,7 @@ merge after a method review found the first synthesis unfaithful in five places.
 | ------------------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | **C** — exported `resolveLink()`           | **Held**    | the maintainer accepts it, its signature is chosen (one path or every candidate), and a plan owns it. It is the recommended first step |
 | **A** — selector for a declared relation   | **Held**    | Open Question 1 settled, the label grammar shared with the ledger, and a plan owns it                                                  |
-| **B** — reciprocity condition on `links()` | **Held**    | A and C built; Open Questions 3, 4 and 6 settled; the acceptance criteria above added; a plan owns it                                  |
+| **B** — reciprocity condition on `links()` | **Held**    | A and C built; Open Questions 2, 3, 4 and 6 settled; the acceptance criteria above added; a plan owns it                               |
 
 ### Corrections
 
@@ -310,9 +313,13 @@ The submission above:
 7. wrote a break class for C that cannot fail;
 8. labelled a false-positive pin as a break class;
 9. gave a rule example that imports `definePredicate` from `@nielspeter/eess`, which an
-   eess-md-only adopter does not have. `docs/markdown.md` (around lines 205-208) documents the
+   eess-md-only adopter does not have. `docs/markdown.md` (lines 206-209) documents the
    alternative: a plain `Predicate<MdLink>` object literal, since eess-md re-exports the types and
-   not the helper. The example stands as the measurement that was run.
+   not the helper. The example stands as the measurement that was run. The lenses read this
+   differently: product treats it as a documented limitation; the architect asked for it to be
+   recorded separately as a standalone-sufficiency gap that `check:family` cannot see. Product adds a
+   criterion either way: whatever this proposal exports (Ask C, or a kernel option under question
+   6), eess-md re-exports in the same change.
 
 All nine were found by this review and are recorded here rather than edited away.
 
