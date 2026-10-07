@@ -2,12 +2,11 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-07, at the maintainer's request (plan-ready). written 2026-10-07 from proposal 013's decision 7, after the maintainer asked
-  for plans to implement the proposal ("then lets make plans to implement the proposal 013"). A
-  first freeze the same day was withdrawn after architect, enforcement, method and testing review
-  found undecided mechanisms; this version decides them. Re-frozen
-  after a second architect, enforcement and testing review settled every remaining mechanism; each
-  decision the build depends on is restated here, and proposal 013 is linked as provenance only.
+- **State:** Ready — frozen 2026-10-07 at the maintainer's request. Written the same day from
+  proposal 013's decision 7, a, after the maintainer asked for plans to implement the proposal. A first
+  freeze was withdrawn when architect, enforcement, method and testing review found mechanisms the
+  kernel cannot build; a second architect, enforcement and testing review settled what remained.
+  Every decision the build depends on is restated here; proposal 013 is linked as provenance only.
 - **Priority:** Medium — no false green today. A custom link rule has to re-implement resolution
   and gets it wrong (proposal 013's survey), and plan 0406 cannot give one finding per cause
   without it.

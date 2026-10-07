@@ -2,12 +2,11 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-07, at the maintainer's request (plan-ready). written 2026-10-07 from proposal 013's decision 2, after the maintainer asked
-  for plans to implement the proposal. A first freeze the same day was withdrawn after review found
-  the near-miss mechanism undecided (a predicate cannot emit a finding); this version decides it.
-  Re-frozen
-  after a second architect, enforcement and testing review settled every remaining mechanism; each
-  decision the build depends on is restated here, and proposal 013 is linked as provenance only.
+- **State:** Ready — frozen 2026-10-07 at the maintainer's request. Written the same day from
+  proposal 013's decision 2, a, after the maintainer asked for plans to implement the proposal. A first
+  freeze was withdrawn when architect, enforcement, method and testing review found mechanisms the
+  kernel cannot build; a second architect, enforcement and testing review settled what remained.
+  Every decision the build depends on is restated here; proposal 013 is linked as provenance only.
 - **Priority:** Medium — the selector plan 0406 is built on. Selecting by physical line, the
   measured workaround, fails open on a wrapped label and on a label followed by a list.
 - **Effort:** Medium — the link walk gains block ownership and a section path; two predicates; a

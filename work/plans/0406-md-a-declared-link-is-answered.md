@@ -2,13 +2,11 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-07, at the maintainer's request (plan-ready). written 2026-10-07 from proposal 013's decisions 1, 3, 4, 7, 8, 9 and 10, after
-  the maintainer asked for plans to implement the proposal. A first freeze the same day was withdrawn
-  after review found the frozen filter unbuildable as placed (a condition cannot add a selection
-  filter) and the production non-vacuity row satisfiable by the wrong finding; this version decides
-  both. Re-frozen
-  after a second architect, enforcement and testing review settled every remaining mechanism; each
-  decision the build depends on is restated here, and proposal 013 is linked as provenance only.
+- **State:** Ready — frozen 2026-10-07 at the maintainer's request. Written the same day from
+  proposal 013's decisions 1, 3, 4, 7, 8, 9 and 10, a, after the maintainer asked for plans to implement the proposal. A first
+  freeze was withdrawn when architect, enforcement, method and testing review found mechanisms the
+  kernel cannot build; a second architect, enforcement and testing review settled what remained.
+  Every decision the build depends on is restated here; proposal 013 is linked as provenance only.
 - **Priority:** Medium — no shipped rule checks this property.
 - **Effort:** Medium — one condition with options, one selector, findings per cause, a dogfood rule
   over this repository's ADRs, and non-vacuity at both tiers.
