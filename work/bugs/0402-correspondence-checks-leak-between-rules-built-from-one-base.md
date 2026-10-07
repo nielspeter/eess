@@ -5,7 +5,10 @@
 - **State:** Draft — reproduced 2026-10-07 against this repo's build at `9d18f0e`. No red test yet.
 - **Severity:** Medium — a false red with a false attribution (ADR-009 rule 2). A rule reports a
   finding from a check it never declared, under its own id, so its author goes looking for a fault
-  in the wrong rule.
+  in the wrong rule. Exposure is user-written rule code: every shipped consumer builds a fresh
+  `correspondence()` per rule (`packages/crossvalidate/src/md-ts.ts:153`,
+  `packages/crossvalidate/src/md-mermaid.ts:158`, `packages/crossvalidate/src/mermaid-ts.ts:52`),
+  and no rule file in this repo derives two rules from one base.
 - **Origin:** self-found · architect review of proposal 013, 2026-10-07.
 - **Reported:** 2026-10-07
 
@@ -25,7 +28,9 @@ export default [a]
 ```
 
 Only `a` is exported, and `a` checks left to right, where `x` has its match. `eess-ts check` reports
-`r "y" has no matching l`: the right-to-left half of `b`'s check, reported by `a`. Exit 1.
+`r "y" has no matching l`: the right-to-left half of `b`'s check, reported by `a`. Exit 1. With
+`--format json` the finding carries `"ruleId": "a/left-only"`; the default terminal output prints
+`Rule: correspondence` with no id, so there the mix-up is hidden rather than misattributed.
 
 ## Reproduction
 
@@ -48,7 +53,7 @@ own comment warns about.
 
 ## Fix
 
-Not designed. `beComplete()` and `preserveRelations()` return a copy, and `CorrespondenceBuilder`
+A sketch, not a design: `beComplete()` and `preserveRelations()` return a copy, and `CorrespondenceBuilder`
 overrides `copy()` to copy its checks, so builders derived from one base are independent.
 
 ## Verification
