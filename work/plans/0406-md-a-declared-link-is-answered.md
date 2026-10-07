@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Ready — frozen 2026-10-07 at the maintainer's request. Written the same day from
-  proposal 013's decisions 1, 3, 4, 7, 8, 9 and 10, a, after the maintainer asked for plans to implement the proposal. A first
+  proposal 013's decisions 1, 3, 4, 7, 8, 9 and 10, after the maintainer asked for plans to implement the proposal. A first
   freeze was withdrawn when architect, enforcement, method and testing review found mechanisms the
   kernel cannot build; a second architect, enforcement and testing review settled what remained.
   Every decision the build depends on is restated here; proposal 013 is linked as provenance only.
