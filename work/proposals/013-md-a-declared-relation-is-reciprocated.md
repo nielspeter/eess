@@ -431,21 +431,33 @@ resolver and a counted exemption. The case is that narrow, and no wider.
    gate runs it. `scripts/check-nonvacuity.mjs` records that difference (bug 0127): rows that drive
    the production script are the strong tier, and fixture rows are "one tier weaker". So this
    repository runs B in `check:corpus` over a relation it really declares, and `check:nonvacuity`
-   plants a one-way relation into that production run and requires B's rule id to fire. The
-   relation is the ADRs': several already say they extend another ADR (ADR-014, ADR-016, ADR-018),
-   in prose that varies. The build declares those as a label (`**Extends:**`) and adds the link
-   back to each extended ADR. Under decision 1's "any link back" default that needs no new
-   predicate. This reverses the first version of this decision, which treated the consumer's
-   validation as enough; the maintainer pointed out that non-vacuity is the point.
-10. **Every constructor and condition the build ships is proven non-vacuous twice** (ADR-009 rule 6,
-    ADR-010's Enforcement):
-    - in `check:nonvacuity`: the production row from decision 9, plus fixture rows, one per cause
-      in decisions 2, 3, 4 and 7, an all-frozen selection that goes red, and decision 4's test that
-      applying the shared remedy clears both findings;
-    - in the vacuity matrix, probed over an empty corpus. The matrix does not see eess-md today
-      (bug 0403): it enumerates only `eess-ts` and the kernel. B's build either waits for that fix
-      or adds eess-md's exports to the matrix itself.
-      The plan also carries a sabotage matrix and an adversarial review.
+   plants a one-way relation into that production run and requires B's rule id to fire. This
+   reverses the first version of this decision, which treated the consumer's validation as enough;
+   the maintainer pointed out that non-vacuity is the point.
+   - **The relation is the ADRs' "Extends".** Measured: ADR-014 extends ADR-010, and ADR-016 extends
+     ADR-009 and ADR-010; neither ADR-009 nor ADR-010 links back today, so three real edges start
+     red. ADR-018 also extends both, but it is Proposed and due to be rewritten, so it stays out
+     until it is ruled.
+   - **Each `**Extends:**` label sits on its own line and holds only the extended ADRs.** Converted
+     in place, a label would own its whole block: ADR-014's paragraph also links ADR-008 (which it
+     amends, a different relation), a proposal and two plans. Moving the relation onto its own line
+     edits the Status block of an Accepted ADR without changing its decision.
+   - **The links back are appended at the end of ADR-009 and ADR-010,** so no live `path:line`
+     pointer into them shifts.
+   - **The planted probe lives where B selects (`adr/`),** so the plan names the other gates it
+     touches: `adrEnforcement` and `check:spec`'s ADR index also see it, and
+     `scripts/check-workspace-integrity.mjs` must recognise a leftover probe (bug 0231).
+   - **B's production rule declares no `.expectEmpty()`,** so removing every label is red under
+     ADR-010 §3, not green.
+10. **How each layer proves non-vacuity** (ADR-009 rule 6, ADR-010's Enforcement):
+    - **B's condition** is proven in `check:nonvacuity`: the production row from decision 9, plus
+      fixture rows, one per cause in decisions 2, 3, 4 and 7, an all-frozen selection that goes red,
+      and decision 4's test that applying the shared remedy clears both findings. Fixture rows are
+      the only layer that reaches B's own break class: documents load but no link is selected.
+    - **The vacuity matrix** probes constructors bare over an empty input, so it would reach
+      `links()`, never `beLinkedBack()`: zero loaded documents is a finding before any condition
+      runs. Covering eess-md's constructors is bug 0403's fix, not B's, and B does not wait for it.
+    - The plan also carries a sabotage matrix and an adversarial review.
 
 With these settled, the asks are buildable in order: C, then A, then B. Each stays `Held` until the
 maintainer accepts it and a plan owns it.
