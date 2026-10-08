@@ -196,6 +196,50 @@ ledger reconciliation is built from (see "Ledger reconciliation" below), and
 is exported for a caller who wants task items without going through the
 corpus builder chain.
 
+### Selecting the links a block declares: `areLabelled` and `areInSection`
+
+A record often declares a relation in one place — a `**Related to:**` line, a
+`## See also` section — and the rule is about those links only, not every link
+in the document. Two selectors on `links()` pick them out:
+
+```typescript
+// Every link a "Related to" label declares must resolve.
+links(c).that().areLabelled('Related to').should().resolve().check()
+
+// Every link under a "See also" heading (and its sub-headings) must resolve.
+links(c).that().areInSection('See also').should().resolve().check()
+```
+
+**`areLabelled(label)`** matches the label exactly, case included, in any of
+four forms, each optionally after a list marker: `**Label:**`, `**Label**:`,
+`__Label__:` and plain `Label:`. The colon is required in every form, so prose
+that merely begins with the word is not a declaration. The label owns its
+**block**: the paragraph or list item it opens (a wrapped second line included),
+a list item's nested sub-list, and — when the label stands alone on its line —
+the list directly after it. A list after an intervening paragraph is not owned,
+and a label with a link of its own does not own the list that follows it.
+
+**`areInSection(name)`** selects the links under a heading named `name` — a
+string matched exactly, or a `RegExp` — at any depth beneath it, until the next
+heading of the same or a shallower depth.
+
+A declaration that is spelt nearly right selects nothing, and a rule over an
+empty selection would otherwise be quiet about it. So a rule built with either
+selector also reports, as findings on the rule:
+
+- a wrapped label (`**Related To:**`, `**Related  to:**`) that differs from the
+  declared one only in case or inner spacing. The plain `Label:` form is never
+  reported this way: prose beginning "related to:" is common;
+- a heading that does the same for a **string** `areInSection` declaration. A
+  `RegExp` states its own tolerance, so none is reported for it;
+- a wrapped label spelt exactly right whose block holds only reference-style
+  links (`[text][ref]`), which eess-md does not read, or no link at all.
+
+These findings come from the rule — `.check()`, `.warn()`, `.violations()`. A
+`.select()` over the same chain returns the selected links and carries **no**
+near-miss check, so a correspondence side built this way states nothing about a
+misspelt declaration.
+
 ### Resolving a link yourself: `resolveLink`
 
 A condition over links usually needs to know where a link points. Don't

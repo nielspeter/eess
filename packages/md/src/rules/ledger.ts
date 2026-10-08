@@ -10,6 +10,7 @@ import type { MdDocument } from '../model/document.js'
 import type { ArchViolation } from '../model/violation.js'
 import type { Root } from 'mdast'
 import { collectTaskItems } from '../model/task-items.js'
+import { labelPattern } from '../model/label.js'
 import { proseText, unterminatedFence } from '../model/prose.js'
 import { docs } from '../builders/docs.js'
 import { taskItems, type MdTaskItem } from '../builders/task-items.js'
@@ -144,12 +145,10 @@ function resolveVocabulary(
   )
 }
 
-// The `State:` label. A colon is **required** in every form: making it optional
-// turned any line beginning with the word "State" into a state declaration, so
-// `Stateless rendering is the default` reported its state as `less` and
-// `State machine transitions are documented` reported `machine`. Both were
-// silent before and would have been build failures.
-const LABEL = String.raw`^\s*(?:[-*+]\s+)?(?:\*\*State:\*\*|\*\*State\*\*\s*:|__State__\s*:|State\s*:)\s*`
+// The `State:` label, in the grammar this dialect shares with
+// `links().areLabelled()` (`model/label.ts`, plan 0405). The colon is required in
+// every form; why is recorded there. The ledger compiles it case-insensitively.
+const LABEL = labelPattern('State')
 // An emphasis wrapper or a leading symbol on the value — `**Done**`, `` `Done` ``,
 // `✅ Done`. Markdown, not vocabulary.
 const WRAP = String.raw`(?:\*\*|__|\x60|_)?(?:[^\w\s'’-]+\s*)?`

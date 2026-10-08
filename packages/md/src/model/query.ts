@@ -1,7 +1,7 @@
 import type { MdDocument, MdTable } from './document.js'
 
 /** Match a string against a name matcher (exact string or regex). */
-function matchName(value: string, name: string | RegExp): boolean {
+export function matchName(value: string, name: string | RegExp): boolean {
   return typeof name === 'string' ? value === name : name.test(value)
 }
 

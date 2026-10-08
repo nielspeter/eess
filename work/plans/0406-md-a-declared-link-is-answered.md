@@ -15,7 +15,7 @@
 - **Why this plan declares it:** it ships the proposal's last ask, so when it closes every ask is
   built, and the lane promotes a proposal only on such a declaration. Asks C and A are built by
   [plan 0404](./completed/0404-md-one-link-resolver-names-each-case.md) and
-  [plan 0405](./0405-md-select-the-links-a-block-declares.md), on which this plan depends.
+  [plan 0405](./completed/0405-md-select-the-links-a-block-declares.md), on which this plan depends.
 
 ## Problem
 

@@ -82,6 +82,20 @@ function nodeText(node: RootContent | Root): string {
   return ''
 }
 
+/** A heading's name as `sections` records it — shared so links and tables agree on section names. */
+export function headingName(node: RootContent): string {
+  return nodeText(node).trim()
+}
+
+/**
+ * Move a running heading stack (index i is the current heading at depth i+1) past one heading.
+ * Shared by `buildDocument` (tables) and `collectLinks` (links), so both read one section path.
+ */
+export function enterHeading(stack: string[], depth: number, name: string): void {
+  stack.length = depth - 1
+  stack[depth - 1] = name
+}
+
 function lineOf(node: { position?: { start: { line: number } } }): number {
   return node.position?.start.line ?? 0
 }
@@ -108,10 +122,9 @@ export function buildDocument(args: {
 
   for (const node of args.root.children) {
     if (node.type === 'heading') {
-      const name = nodeText(node).trim()
+      const name = headingName(node)
       sections.push({ name, depth: node.depth, line: lineOf(node) })
-      headingStack.length = node.depth - 1
-      headingStack[node.depth - 1] = name
+      enterHeading(headingStack, node.depth, name)
     } else if (node.type === 'table') {
       const rowsText = node.children.map((row) => row.children.map((cell) => nodeText(cell).trim()))
       const [header = [], ...rows] = rowsText

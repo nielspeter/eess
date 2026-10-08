@@ -2,20 +2,18 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-07 at the maintainer's request. Written the same day from
-  proposal 013's decision 2, after the maintainer asked for plans to implement the proposal. A first
-  freeze was withdrawn when architect, enforcement, method and testing review found mechanisms the
-  kernel cannot build; a second architect, enforcement and testing review settled what remained.
-  Every decision the build depends on is restated here; proposal 013 is linked as provenance only.
+- **State:** Done — built 2026-10-09; all three phases, the nine sabotage rows and three
+  non-vacuity rows measured (see Build notes). Frozen Ready 2026-10-07 from proposal 013's decision
+  2; the freeze history is in the proposal's review.
 - **Priority:** Medium — the selector plan 0406 is built on. Selecting by physical line, the
   measured workaround, fails open on a wrapped label and on a label followed by a list.
 - **Effort:** Medium — the link walk gains block ownership and a section path; two predicates; a
   near-miss scan in the builder.
 - **Created:** 2026-10-07
-- **Builds:** [proposal 013](../proposals/013-md-a-declared-relation-is-reciprocated.md)'s Ask A; its
+- **Builds:** [proposal 013](../../proposals/013-md-a-declared-relation-is-reciprocated.md)'s Ask A; its
   disposition row names this plan.
-- **Second of three:** after [plan 0404](./completed/0404-md-one-link-resolver-names-each-case.md), before
-  [plan 0406](./0406-md-a-declared-link-is-answered.md).
+- **Second of three:** after [plan 0404](./0404-md-one-link-resolver-names-each-case.md), before
+  [plan 0406](../0406-md-a-declared-link-is-answered.md).
 
 ## Problem
 
@@ -165,10 +163,28 @@ the fixture's file and its message, not only the rule id.
 
 ## Progress ledger
 
-- [ ] Phase 1 — block and section on every link; the shared label grammar
-- [ ] Phase 2 — `areLabelled`, `areInSection`, the override and its findings, docs
-- [ ] Phase 3 — the non-vacuity rows
-- [ ] the nine sabotage rows go red
+- [x] Phase 1 — block and section on every link; the shared label grammar
+- [x] Phase 2 — `areLabelled`, `areInSection`, the override and its findings, docs
+- [x] Phase 3 — the non-vacuity rows
+- [x] the nine sabotage rows go red
 - [x] proposal 013 records the plain-`Label:` correction in a dated note (done when this plan was
       written)
-- [ ] `npm run validate` green
+- [x] `npm run validate` green
+
+## Build notes — 2026-10-09
+
+- **The label grammar is shared, byte for byte.** `labelPattern('State')` produces the same regex
+  source the ledger compiled before; its 61 rule tests pass unchanged.
+- **The sabotage matrix, measured** (each from a green baseline, restored after, in the plan's
+  worktree): ownership by physical line reds 4 tests, not the one the plan named — the wrapped
+  label, the label-then-list, the labelled item's sub-list and the loose item each depend on it;
+  the label paragraph not owning the list reds 1; the optional colon 1; the near-miss scan removed 2;
+  the section near-miss removed 1; the section stack not reset 1; a case-insensitive `areLabelled`
+  2; the override raising `examined` 1; `mergeCollectResults` 2 (the green control and the
+  every-misspelt row).
+- **The non-vacuity rows are fixture tier, and are claimed under `check:corpus` with that said.**
+  No production rule declares a block until plan 0406's dogfood, so the three rows prove the builder
+  `check:corpus` is written in, not a rule `check:corpus` runs. Each was sabotaged on its own (its
+  finding removed from `declarationFindings`): only that row went to exit 0; the other two stayed 1.
+- **The three findings share the rule's id**, so each row's token is a line the fixture prints only
+  when its own message is on its own file — an id match would let any one answer for the others.
