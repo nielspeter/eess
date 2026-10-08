@@ -15,9 +15,20 @@
  *                         reference-style links …".
  *   empty-declaration     bad-declared-block/empty.md declares "Related to" with
  *                         text and no link → "… names no record".
- *   mid-paragraph         bad-declared-block/mid-paragraph.md has `**Related To:**`
- *                         on a paragraph's second line → "… is inside a
- *                         paragraph, not at its start".
+ *   unread-label          bad-declared-block/unread-label.md has `**Related To:**`
+ *                         on a paragraph's second line → "… is not at the start
+ *                         of a paragraph or list item".
+ *   annotated-child       bad-declared-block/annotated.md has `- [gone](…): the
+ *                         parent record` under `**Related to:**` — an item whose
+ *                         colon once took it out of the declaration (plan 0405's
+ *                         second review) → its broken link is reported by
+ *                         `resolve()` on that file.
+ *   inner-label           bad-declared-block/inner-label.md nests `**Supersedes:**`
+ *                         inside a "Related to" declaration → "… sits inside the
+ *                         "Related to" declaration".
+ *   stands-alone          bad-declared-block/alone.md has a lone `**Related to:**`
+ *                         followed by a paragraph, no list → "… stands alone with
+ *                         no list directly under it".
  *   nested-declaration    bad-declared-block/nested.md nests `**Related To:**`
  *                         under a list item whose line holds a colon, under a
  *                         `Metadata:` label — the shape whose parent once
@@ -59,10 +70,25 @@ const SCENARIOS = {
     declare: (b) => b.areLabelled('Related to'),
     says: 'the "Related to" declaration names no record',
   },
-  'mid-paragraph': {
-    file: `${ROOT}/mid-paragraph.md`,
+  'unread-label': {
+    file: `${ROOT}/unread-label.md`,
     declare: (b) => b.areLabelled('Related to'),
-    says: 'the label "Related To" is inside a paragraph, not at its start',
+    says: 'the label "Related To" is not at the start of a paragraph or list item',
+  },
+  'annotated-child': {
+    file: `${ROOT}/annotated.md`,
+    declare: (b) => b.areLabelled('Related to'),
+    says: '"gone-annotated.md" does not resolve',
+  },
+  'inner-label': {
+    file: `${ROOT}/inner-label.md`,
+    declare: (b) => b.areLabelled('Related to'),
+    says: 'the label "Supersedes" sits inside the "Related to" declaration',
+  },
+  'stands-alone': {
+    file: `${ROOT}/alone.md`,
+    declare: (b) => b.areLabelled('Related to'),
+    says: 'the "Related to" label stands alone with no list directly under it',
   },
   'nested-declaration': {
     file: `${ROOT}/nested.md`,

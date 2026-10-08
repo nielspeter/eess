@@ -1,6 +1,6 @@
 import type { Predicate } from '@nielspeter/eess'
-import type { MdLink } from '../model/links.js'
-import { labelPattern } from '../model/label.js'
+import type { MdLink, MdLinkBlock } from '../model/links.js'
+import { labelPattern, wrappedLabelOf } from '../model/label.js'
 import { inSection } from '../model/query.js'
 
 /**
@@ -13,12 +13,33 @@ import { inSection } from '../model/query.js'
  * without recording anything, and so without the scan.
  */
 
-/** Links owned by a block whose label is exactly `label` (case-sensitive), in any label form. */
+/**
+ * The block that decides whether a link with this `path` is declared under the
+ * label `declared` matches: walking from the innermost block outwards, the first
+ * that either matches it (any form, exact case) or opens with a wrapped label of
+ * its own. A plain line that is not the label — `bug 0402: [b](b.md)`,
+ * `Metadata:`, a URL — never decides, so it neither hides a declaration nor
+ * captures one.
+ */
+export function decidingBlock(
+  path: readonly MdLinkBlock[],
+  declared: RegExp,
+): { readonly block: MdLinkBlock; readonly at: number; readonly matches: boolean } | undefined {
+  for (let at = path.length - 1; at >= 0; at--) {
+    const block = path[at]
+    if (block === undefined) continue
+    if (declared.test(block.text)) return { block, at, matches: true }
+    if (wrappedLabelOf(block.text) !== undefined) return { block, at, matches: false }
+  }
+  return undefined
+}
+
+/** Links declared under `label` (case-sensitive), in any label form, at any depth below it. */
 export function areLabelledPredicate(label: string): Predicate<MdLink> {
   const re = new RegExp(labelPattern(label))
   return {
     description: `are declared under the label "${label}"`,
-    test: (l) => l.block !== undefined && re.test(l.block.text),
+    test: (l) => decidingBlock(l.blockPath ?? [], re)?.matches === true,
   }
 }
 

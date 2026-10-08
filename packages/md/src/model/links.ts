@@ -1,7 +1,7 @@
 import type { Root, Nodes } from 'mdast'
 import { textOf } from './text-of.js'
 import { enterHeading, headingName } from './document.js'
-import { isLabelAlone, opensWithLabel, wrappedLabelOf } from './label.js'
+import { isLabelAlone } from './label.js'
 import type { MdDocument } from './document.js'
 
 /** A markdown link occurrence within a document (before doc back-reference). */
@@ -22,8 +22,14 @@ export interface MdLinkRef {
    */
   readonly urlStart?: number
   readonly urlEnd?: number
-  /** The block that owns this link (plan 0405); absent in a heading or a table cell. */
+  /** The innermost block that holds this link (plan 0405); absent in a heading or a table cell. */
   readonly block?: MdLinkBlock
+  /**
+   * Every block enclosing this link, outermost first, ending with `block` — the
+   * paragraphs and list items it sits in, and a label alone on its paragraph for
+   * the lists directly after it (plan 0405). Mirrors `sectionPath`.
+   */
+  readonly blockPath?: readonly MdLinkBlock[]
   /** The headings above this link, outermost first, as `MdTable.sectionPath` records them. */
   readonly sectionPath?: readonly string[]
 }
@@ -32,12 +38,7 @@ export interface MdLinkRef {
 const EXTERNAL_RE = /^([a-z][a-z0-9+.-]*:|\/\/)/i
 
 /**
- * The block that owns a link (plan 0405): its enclosing list item if it has
- * one, otherwise its enclosing paragraph. A paragraph that is a label alone
- * (`**Related to:**`) owns the list that follows it, and a labelled list item
- * owns its nested sub-list; in both cases the owner is recorded, since its first
- * line holds the label. A block that opens with a label of its own is always its
- * own owner — a parent never absorbs a label.
+ * A block that can hold a link (plan 0405): a paragraph or a list item.
  *
  * `line` is the block's first source line; `text` is that line from the block's
  * content column, so a list marker (`-`, `1.`), a task box (`[ ]`) and a
@@ -48,105 +49,107 @@ export interface MdLinkBlock {
   readonly text: string
 }
 
-/** One owning block and what it held — read by `areLabelled()`'s declaration scan. */
-interface MdDeclarationBlock extends MdLinkBlock {
-  /** Inline links (`[t](url)`) the block owns. */
-  readonly links: number
-  /** Reference-style links (`[t][ref]`, `[ref]`) the block owns; eess-md does not resolve these. */
-  readonly references: number
-}
-
-interface Owner {
-  readonly block: MdLinkBlock
-  /** Whether this block's text opens with a label, so what nests under it is its declaration. */
-  readonly labelled: boolean
+/** A label written where no block starts — read by `areLabelled()`'s declaration scan. */
+interface MdUnreadLabel {
+  readonly line: number
+  readonly label: string
 }
 
 const TASK_BOX = /^\[[ xX]\]\s+/
-// What may precede a paragraph's later line: indentation and blockquote markers.
-const LINE_PREFIX = /^\s*(?:>\s*)*/
+
+/**
+ * The label a `strong` node writes, or `undefined`: `**Label:**` (the colon
+ * inside) or `**Label**:` (the colon in the text after it). `__Label__:` is a
+ * `strong` node too.
+ */
+function strongLabel(node: Nodes, next: Nodes | undefined): string | undefined {
+  if (node.type !== 'strong') return undefined
+  const text = textOf(node)
+  if (text.endsWith(':')) return text.slice(0, -1).trim()
+  if (next?.type === 'text' && /^\s*:/.test(next.value)) return text.trim()
+  return undefined
+}
 
 /**
  * Collect inline markdown links (`[text](url)`) from a document tree, each with
- * its owning block and the headings above it, plus every owning block with what
- * it held, and every wrapped label that sits on a paragraph's second or later
- * line, where it owns nothing. Links inside fenced code are not parsed as `link`
+ * the blocks that enclose it and the headings above it; plus every block, the
+ * enclosing blocks of each reference-style link, and every label written where
+ * no block starts (later in a paragraph, in a table cell, in a heading), which
+ * therefore declares nothing. Links inside fenced code are not parsed as `link`
  * nodes by mdast, so they are naturally excluded.
  */
 export function collectLinkBlocks(
   root: Root,
   source?: string,
-): { links: MdLinkRef[]; blocks: MdDeclarationBlock[]; midBlockLabels: MdLinkBlock[] } {
+): {
+  links: MdLinkRef[]
+  references: (readonly MdLinkBlock[])[]
+  blocks: MdLinkBlock[]
+  unreadLabels: MdUnreadLabel[]
+} {
   const out: MdLinkRef[] = []
   const lines = source?.split('\n') ?? []
-  const counts = new Map<number, { block: MdLinkBlock; links: number; references: number }>()
-  const midBlockLabels: MdLinkBlock[] = []
+  const blocks: MdLinkBlock[] = []
+  const references: (readonly MdLinkBlock[])[] = []
+  const unreadLabels: MdUnreadLabel[] = []
   const headingStack: string[] = []
 
-  // The block a node would own: its first line, read from its content column.
-  const blockOf = (node: Nodes): Owner => {
+  // The block a node opens: its first line, read from its content column.
+  const blockOf = (node: Nodes): MdLinkBlock => {
     const first = node.type === 'listItem' ? (node.children[0] ?? node) : node
     const line = first.position?.start.line ?? 0
     const column = first.position?.start.column ?? 1
-    const text = (lines[line - 1] ?? '').slice(column - 1).replace(TASK_BOX, '')
-    return { block: { line, text }, labelled: opensWithLabel(text) }
+    return { line, text: (lines[line - 1] ?? '').slice(column - 1).replace(TASK_BOX, '') }
   }
-  const own = (o: Owner): Owner => {
-    if (!counts.has(o.block.line))
-      counts.set(o.block.line, { block: o.block, links: 0, references: 0 })
-    return o
-  }
-  // A block opening with a label owns itself; otherwise it joins a labelled owner, or owns itself.
-  const ownerFor = (node: Nodes, owner: Owner | undefined): Owner => {
-    const mine = blockOf(node)
-    if (mine.labelled || owner?.labelled !== true) return own(mine)
-    return owner
+  const enter = (path: readonly MdLinkBlock[], block: MdLinkBlock): readonly MdLinkBlock[] => {
+    if (path.at(-1)?.line === block.line) return path
+    blocks.push(block)
+    return [...path, block]
   }
 
-  const visitChildren = (children: readonly Nodes[], owner: Owner | undefined): void => {
+  const visitChildren = (
+    parent: Nodes,
+    children: readonly Nodes[],
+    path: readonly MdLinkBlock[],
+  ): void => {
     for (let i = 0; i < children.length; i++) {
       const child = children[i]
       if (child === undefined) continue
-      const next = children[i + 1]
-      // A label alone on its paragraph owns the list right after it.
-      if (child.type === 'paragraph' && next?.type === 'list') {
-        const mine = blockOf(child)
-        if (isLabelAlone(mine.block.text)) {
-          own(mine)
-          visit(child, mine)
-          visit(next, mine)
-          i++
+      // A label alone on its paragraph encloses the lists directly after it — every
+      // one, since a changed bullet starts a new list.
+      if (child.type === 'paragraph' && children[i + 1]?.type === 'list') {
+        const label = blockOf(child)
+        if (isLabelAlone(label.text)) {
+          const inner = enter(path, label)
+          visit(child, inner)
+          while (children[i + 1]?.type === 'list') {
+            const list = children[i + 1]
+            if (list !== undefined) visit(list, inner)
+            i++
+          }
           continue
         }
       }
-      visit(child, owner)
+      // A label read as a declaration opens its paragraph; anywhere else it declares nothing.
+      const label = strongLabel(child, children[i + 1])
+      if (label !== undefined && !(parent.type === 'paragraph' && i === 0)) {
+        unreadLabels.push({ line: child.position?.start.line ?? 0, label })
+      }
+      visit(child, path)
     }
   }
 
-  const visit = (node: Nodes, owner: Owner | undefined): void => {
+  const visit = (node: Nodes, path: readonly MdLinkBlock[]): void => {
     if (node.type === 'heading') {
       enterHeading(headingStack, node.depth, headingName(node))
-      visitChildren(node.children, undefined)
+      visitChildren(node, node.children, [])
       return
     }
-    if (node.type === 'listItem') {
-      visitChildren(node.children, ownerFor(node, owner))
+    if (node.type === 'listItem' || node.type === 'paragraph') {
+      visitChildren(node, node.children, enter(path, blockOf(node)))
       return
     }
-    if (node.type === 'paragraph') {
-      const start = node.position?.start.line ?? 0
-      const end = node.position?.end.line ?? start
-      for (let n = start + 1; n <= end; n++) {
-        const text = (lines[n - 1] ?? '').replace(LINE_PREFIX, '')
-        if (wrappedLabelOf(text) !== undefined) midBlockLabels.push({ line: n, text })
-      }
-      visitChildren(node.children, owner?.block.line === start ? owner : ownerFor(node, owner))
-      return
-    }
-    if (node.type === 'linkReference' && owner !== undefined) {
-      const c = counts.get(owner.block.line)
-      if (c !== undefined) c.references++
-    }
+    if (node.type === 'linkReference') references.push(path)
     if (node.type === 'link') {
       // Locate the URL's exact char span in the source (for autofix). The link
       // node's raw text is `[text](url …)`; the URL is the last occurrence of
@@ -165,10 +168,6 @@ export function collectLinkBlocks(
           urlEnd = urlStart + node.url.length
         }
       }
-      if (owner !== undefined) {
-        const c = counts.get(owner.block.line)
-        if (c !== undefined) c.links++
-      }
       out.push({
         url: node.url,
         text: textOf(node),
@@ -176,20 +175,15 @@ export function collectLinkBlocks(
         external: EXTERNAL_RE.test(node.url),
         urlStart,
         urlEnd,
-        ...(owner !== undefined ? { block: owner.block } : {}),
+        ...(path.length > 0 ? { block: path[path.length - 1], blockPath: path } : {}),
         sectionPath: headingStack.filter((h) => h !== undefined),
       })
     }
-    if ('children' in node) visitChildren(node.children, owner)
+    if ('children' in node) visitChildren(node, node.children, path)
   }
 
-  visitChildren(root.children, undefined)
-  const blocks = [...counts.values()].map((c) => ({
-    ...c.block,
-    links: c.links,
-    references: c.references,
-  }))
-  return { links: out, blocks, midBlockLabels }
+  visitChildren(root, root.children, [])
+  return { links: out, references, blocks, unreadLabels }
 }
 
 /**

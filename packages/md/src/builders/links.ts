@@ -46,19 +46,19 @@ export class LinkRuleBuilder extends RuleBuilder<MdLink, Corpus> {
   }
 
   /**
-   * Filter to links a block declares under `label` (plan 0405): links owned by a
-   * paragraph or list item whose first line opens with the label, in any of the
-   * ledger's forms (`**Label:**`, `**Label**:`, `__Label__:`, `Label:`), matched
-   * exactly and case-sensitively. A label alone on its line owns the list that
-   * follows it; a labelled list item owns its nested list.
-   *
-   * A label that opens a block of its own always owns that block, so a label
-   * nested under another labelled block is still read.
+   * Filter to links declared under `label` (plan 0405), in any of the ledger's
+   * forms (`**Label:**`, `**Label**:`, `__Label__:`, `Label:`), matched exactly
+   * and case-sensitively. A link is under the label when it sits in the block the
+   * label opens, in that block's nested lists, or — for a label alone on its line
+   * — in the lists directly after it. The nearest label decides: walking out from
+   * the link, the first block that is the label, or opens with a wrapped label of
+   * its own, settles it; a plain line that is not the label settles nothing.
    *
    * The rule also reports, over the whole corpus, what it cannot read: a wrapped
-   * label that misses the declared one only by case or spacing, a wrapped label
-   * inside a paragraph rather than at its start, a declaration holding
-   * reference-style links, and a wrapped declaration with no link. That check
+   * label that misses the declared one only by case or spacing, a different
+   * wrapped label inside the declaration, the label where no block starts, a
+   * declaration holding reference-style links, and a wrapped declaration with
+   * nothing under it. That check
    * runs through this method only: a selection taken with `.select()` carries no
    * findings, so it carries no such check either.
    */

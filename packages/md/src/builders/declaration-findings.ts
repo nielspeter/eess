@@ -1,8 +1,9 @@
 import type { ConditionContext } from '@nielspeter/eess'
 import type { Corpus } from '../corpus.js'
-import { collectLinkBlocks } from '../model/links.js'
+import { collectLinkBlocks, type MdLinkBlock } from '../model/links.js'
 import { isLabelAlone, isNearMiss, labelPattern, wrappedLabelOf } from '../model/label.js'
 import { mdViolation, type ArchViolation } from '../model/violation.js'
+import { decidingBlock } from '../predicates/declared-block.js'
 
 /** What an `areLabelled()`/`areInSection()` call declared, kept for the declaration scan. */
 export type LinkDeclaration =
@@ -18,18 +19,20 @@ export function declarationKey(d: LinkDeclaration): string {
 /**
  * Plan 0405 — findings about the declarations themselves, scanned over the whole
  * corpus (not the rule's selection: a misspelt declaration is, by definition, not
- * selected). Each says what the selector could not read (ADR-016 rule 7):
+ * selected). Each names something the selector could not read (ADR-016 rule 7):
  *
  * - **a near-miss label:** a wrapped label (`**Label:**`, `**Label**:`,
- *   `__Label__:`) that matches the declared one except for case or inner
- *   spacing. The plain `Label:` form is never a near-miss: prose beginning
- *   "related to:" is common;
- * - **a label inside a paragraph:** a wrapped label, exact or near, on a
- *   paragraph's second or later line, where it owns nothing;
- * - **reference-style links:** a block declared under the label, in any form,
- *   that holds `[text][ref]` links, which eess-md does not read;
- * - **an empty declaration:** a wrapped label with no link in its block — and,
- *   when the label stands alone, no list directly under it;
+ *   `__Label__:`) opening a block that matches the declared one except for case
+ *   or inner spacing. The plain `Label:` form is never a near-miss: prose
+ *   beginning "related to:" is common;
+ * - **a label inside the declaration:** a different wrapped label nested inside
+ *   a declaration takes the links under it out of the declaration;
+ * - **a label where no block starts:** the label, exact or near, later in a
+ *   paragraph, in a table cell or in a heading, where it declares nothing;
+ * - **reference-style links:** a declaration holding `[text][ref]` links, which
+ *   eess-md does not read;
+ * - **an empty declaration:** a wrapped label selecting no link — it names no
+ *   record, or it stands alone with no list directly under it;
  * - **a near-miss section:** a heading that misses a string declaration by case
  *   or spacing (a `RegExp` states its own tolerance).
  */
@@ -40,77 +43,104 @@ export function declarationFindings(
 ): ArchViolation[] {
   const out: ArchViolation[] = []
   for (const doc of corpus.documents()) {
-    const { blocks, midBlockLabels } = collectLinkBlocks(doc.root, doc.text)
-    const at = (line: number) => ({ file: doc.file, line, sourceText: doc.text, context })
+    const { links, references, blocks, unreadLabels } = collectLinkBlocks(doc.root, doc.text)
+    const report = (line: number, element: string, message: string): void => {
+      out.push(
+        mdViolation({ file: doc.file, line, sourceText: doc.text, context, element, message }),
+      )
+    }
     for (const d of declarations) {
-      if (d.kind === 'label') {
-        const declared = new RegExp(labelPattern(d.label))
-        for (const block of blocks) {
-          const found = wrappedLabelOf(block.text)
-          const element = `${doc.relPath} → label "${found ?? d.label}"`
-          if (found !== undefined && isNearMiss(found, d.label)) {
-            out.push(
-              mdViolation({
-                ...at(block.line),
-                element,
-                message:
-                  `the label "${found}" is not the declared "${d.label}", so the links under it are not checked — ` +
-                  `write it "${d.label}"`,
-              }),
-            )
-            continue
-          }
-          if (!declared.test(block.text)) continue
-          if (block.references > 0) {
-            out.push(
-              mdViolation({
-                ...at(block.line),
-                element,
-                message:
-                  `the "${d.label}" declaration holds reference-style links, which eess-md does not read — ` +
-                  'write them as inline links ([text](path))',
-              }),
-            )
-          } else if (found === d.label && block.links === 0) {
-            out.push(
-              mdViolation({
-                ...at(block.line),
-                element,
-                message: isLabelAlone(block.text)
-                  ? `the "${d.label}" label stands alone with no list directly under it, so it declares nothing — ` +
-                    'put its list right after it, or its links on its line'
-                  : `the "${d.label}" declaration names no record — add the links it declares, or remove the label`,
-              }),
-            )
-          }
-        }
-        for (const mid of midBlockLabels) {
-          const found = wrappedLabelOf(mid.text)
-          if (found === undefined || (found !== d.label && !isNearMiss(found, d.label))) continue
-          out.push(
-            mdViolation({
-              ...at(mid.line),
-              element: `${doc.relPath} → label "${found}"`,
-              message:
-                `the label "${found}" is inside a paragraph, not at its start, so the links after it are not read as a declaration — ` +
-                'start a new paragraph with it',
-            }),
-          )
-        }
-      } else if (typeof d.name === 'string') {
+      if (d.kind === 'section') {
+        if (typeof d.name !== 'string') continue
         const declared = d.name
         for (const section of doc.sections) {
           if (!isNearMiss(section.name, declared)) continue
-          out.push(
-            mdViolation({
-              ...at(section.line),
-              element: `${doc.relPath} → section "${section.name}"`,
-              message:
-                `the heading "${section.name}" is not the declared section "${declared}", so the links under it are not checked — ` +
-                `write it "${declared}"`,
-            }),
+          report(
+            section.line,
+            `${doc.relPath} → section "${section.name}"`,
+            `the heading "${section.name}" is not the declared section "${declared}", so the links under it are not checked — ` +
+              `write it "${declared}"`,
           )
         }
+        continue
+      }
+      const L = d.label
+      const declared = new RegExp(labelPattern(L))
+      const element = (found: string): string => `${doc.relPath} → label "${found}"`
+
+      for (const block of blocks) {
+        const found = wrappedLabelOf(block.text)
+        if (found === undefined || !isNearMiss(found, L)) continue
+        report(
+          block.line,
+          element(found),
+          `the label "${found}" is not the declared "${L}", so the links under it are not checked — write it "${L}"`,
+        )
+      }
+
+      // Which declaration blocks select a link, which hold a reference, which enclose anything.
+      const selects = new Set<number>()
+      const holdsReference = new Set<number>()
+      const encloses = new Set<number>()
+      const taken = new Map<number, string>()
+      const classify = (path: readonly MdLinkBlock[], isReference: boolean): void => {
+        for (const b of path) encloses.add(b.line)
+        const decision = decidingBlock(path, declared)
+        if (decision === undefined) return
+        if (decision.matches) {
+          ;(isReference ? holdsReference : selects).add(decision.block.line)
+          return
+        }
+        const found = wrappedLabelOf(decision.block.text)
+        const outer = path.slice(0, decision.at).some((b) => declared.test(b.text))
+        if (found !== undefined && outer && !isNearMiss(found, L)) {
+          taken.set(decision.block.line, found)
+        }
+      }
+      for (const l of links) classify(l.blockPath ?? [], false)
+      for (const path of references) classify(path, true)
+
+      for (const [line, found] of taken) {
+        report(
+          line,
+          element(found),
+          `the label "${found}" sits inside the "${L}" declaration and takes the links under it out of it — ` +
+            `drop the label, or move it out of the "${L}" list`,
+        )
+      }
+      for (const block of blocks) {
+        if (!declared.test(block.text)) continue
+        if (holdsReference.has(block.line)) {
+          report(
+            block.line,
+            element(L),
+            `the "${L}" declaration holds reference-style links, which eess-md does not read — ` +
+              'write them as inline links ([text](path))',
+          )
+        } else if (
+          wrappedLabelOf(block.text) === L &&
+          !selects.has(block.line) &&
+          // A link under it that is not selected is already a finding of its own.
+          !encloses.has(block.line)
+        ) {
+          report(
+            block.line,
+            element(L),
+            isLabelAlone(block.text)
+              ? `the "${L}" label stands alone with no list directly under it, so it declares nothing — ` +
+                  'put its list right after it, or its links on its line'
+              : `the "${L}" declaration names no record — add the links it declares, or remove the label`,
+          )
+        }
+      }
+      for (const u of unreadLabels) {
+        if (u.label !== L && !isNearMiss(u.label, L)) continue
+        report(
+          u.line,
+          element(u.label),
+          `the label "${u.label}" is not at the start of a paragraph or list item, so the links after it are not read as a declaration — ` +
+            'start a paragraph or list item with it',
+        )
       }
     }
   }

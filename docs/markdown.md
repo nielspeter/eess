@@ -216,13 +216,20 @@ colon is required in every form, so prose that merely begins with the word is
 not a declaration. The label is read at the start of a block's content, so it
 may follow a list marker (`-`, `1.`), a task box (`[ ]`) or a blockquote `>`.
 
-The label owns its **block**: the paragraph or list item it opens (a wrapped
-second line included), a list item's nested sub-list, and — when the label
-stands alone on its line — the list directly after it. A list after an
-intervening paragraph is not owned, and a label with a link of its own does not
-own the list that follows it. A block that opens with a label of its own always
-owns itself, so a `**Related to:**` item nested under another labelled line (an
-intro such as `Metadata:`) is still read.
+A link is declared under the label when it sits in the label's **block** or
+below it: the paragraph or list item the label opens (a wrapped second line
+included), that item's nested lists, and — when the label stands alone on its
+line — every list directly after it. A list after an intervening paragraph is
+not under the label, and a label with a link of its own does not take the list
+that follows it.
+
+The nearest label decides. Walking outwards from the link, the first block that
+is the declared label, or that opens with a wrapped label of its own, settles
+it. A plain line that is not the label — `bug 0402: [b](b.md)`, `Notes:`, a URL
+— settles nothing, so an annotated item stays in its declaration and a
+`**Related to:**` item under an intro such as `Metadata:` is still read. A
+different wrapped label inside the declaration (`- **Supersedes:** [s](s.md)`)
+takes its links out of it, and is reported.
 
 **`areInSection(name)`** selects the links under a heading named `name` — a
 string matched exactly, or a `RegExp` — at any depth beneath it, until the next
@@ -234,15 +241,18 @@ selector also reports what it cannot read, as findings on the rule:
 
 - a wrapped label (`**Related To:**`, `**Related  to:**`) that differs from the
   declared one only in case or inner spacing. The plain `Label:` form is never
-  reported this way: prose beginning "related to:" is common;
-- a wrapped label, exact or near, on a paragraph's second or later line, where
-  it owns nothing — start a new paragraph with it;
+  reported this way — prose beginning "related to:" is common — so a plain
+  `Related To:` is the one misspelling the rule does not catch;
+- a different wrapped label inside the declaration, which takes the links under
+  it out of the declaration;
+- the label, exact or near, where no block starts — later in a paragraph,
+  mid-line, in a table cell or in a heading — where it declares nothing;
 - a declaration, in any form, holding reference-style links (`[text][ref]`),
   which eess-md does not read — its inline links are still selected;
-- a wrapped label spelt exactly right with no link in its block: either it names
-  no record (`**Related to:** bug 0253`), or it stands alone with no list
-  directly under it. A template that writes `**Related to:** none` gets this
-  finding; leave the label out instead;
+- a wrapped label spelt exactly right with nothing under it: either it names no
+  record (`**Related to:** bug 0253`), or it stands alone with no list directly
+  under it. A template that writes `**Related to:** none` gets this finding;
+  leave the label out instead;
 - a heading that misses a **string** `areInSection` declaration by case or
   spacing. A `RegExp` states its own tolerance, so none is reported for it.
 

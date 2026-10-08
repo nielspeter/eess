@@ -191,6 +191,11 @@ the fixture's file and its message, not only the rule id.
 
 ## Review round — 2026-10-09
 
+> **Superseded in part by the second round below.** This round's ownership rule ("a block that opens
+> with a label owns itself") and its rationale for removing the plain-form body restriction were
+> wrong: they turned the defect around rather than closing it. Its sabotage counts were measured on
+> code that has since been replaced; the second round's counts are the current ones.
+
 Architect, product, enforcement, method and testing reviewed the build. Four measured, and product
 read, the same **Critical**: block ownership used a looser grammar than selection. Its plain form
 matched any line holding a colon, so a parent such as `Metadata:`, `- Note: x` or a URL took
@@ -257,7 +262,67 @@ removed, the empty finding removed); only that row went to exit 0.
   second dialect needs another, a kernel hook is the shape to extract (architect M6).
 - No non-vacuity row pins the selector itself against over-selection (enforcement M4); plan 0406's
   production row over its dogfood rule is where it belongs.
-- **Validate.** The first full run was red at `check:arch` on two unused type exports, fixed by
-  unexporting them; the second was green in 8m33s. The ledger's validate box was ticked before that
-  run, because `check:ledger` inside validate reads it. After this round, validate was run again on
-  the final tree (see the PR).
+
+## Second review round — 2026-10-09
+
+Architect and enforcement re-reviewed the fix and both measured a **Critical** the first round
+introduced: "a block that opens with a label owns itself" was decided by the loose plain grammar, so
+an annotated item under a correct declaration — `- bug 0402: [b](b.md)`,
+`- [c](c.md): why it matters`, an item holding a URL — claimed itself and left the declaration. It
+was neither selected nor reported, and the rule stayed green on a broken declared link. A plain
+`Notes:` paragraph inside a labelled item took the list after it, and the "stands alone" message
+fired on a label whose list was directly under it. In acaf41c those items joined their owner, so
+this was a regression, and the attempt stopped there: the ownership design was put to both lenses on
+paper before any more code. Their break attempts added two shapes — a different wrapped label
+inside a declaration (`- **plan 0406:** [e](e.md)`) taking its links out silently, and a changed
+bullet starting a list outside the label — plus a label in a table cell, a heading or mid-line,
+never scanned.
+
+**The design adopted.** Ownership is no longer decided while walking, by a grammar that cannot know
+the declared label. Every paragraph and list item is its own block, and each link carries
+`blockPath`, its enclosing blocks outermost first (mirroring `sectionPath`); a label alone on its
+line encloses every list directly after it. `areLabelled(L)` decides at selection time: walking out
+from the link, the first block that matches L (any form, exact case) or opens with a wrapped label
+of its own settles it. A plain line that is not L settles nothing. On that:
+
+- an annotated item, a URL, `Notes:` and `Metadata:` defer, so they neither hide nor capture a
+  declaration;
+- a different wrapped label inside an L declaration settles "not L" — selecting it as L would
+  silently re-file `Supersedes` links as `Related to` links — and is **reported** at the inner
+  label;
+- an empty declaration is judged by the links L actually selects, so a label whose list is all
+  annotated items is not empty, and one whose only child is `**Supersedes:**` is explained by the
+  inner-label finding rather than a misleading one;
+- references get a deciding block the same way, which removes the over-count the first draft of this
+  design accepted;
+- the "label where no block starts" scan moved to the syntax tree: any label-shaped `strong` node
+  that is not the first child of its paragraph — a later line, mid-line, a table cell, a heading —
+  and a label in code is not one. It replaces the line-based scan.
+- `opensWithLabel` lost its last caller and was removed; the plain body stays loose, because it is
+  only asked whether a line is a label alone.
+
+**Accepted gap, decided:** a plain-form near-miss (`- Related To: [x]`) defers and is not reported;
+the near-miss scan reads wrapped labels only, as decided earlier, and `docs/markdown.md` names it as
+the one misspelling the rule does not catch.
+
+**Sabotage, measured on this design** (`declared-block.test.ts` plus the ledger's rule tests, each
+restored before the next; 209 green after): the innermost block always deciding 7 red; a wrapped
+non-L label never deciding 1; the inner-label finding removed 1; a label enclosing one list only 1;
+a lone label enclosing nothing 5; the unread-label scan removed 2; that scan flagging block-opening
+labels 13; the empty finding ignoring enclosed links 1; references reported only when nothing is
+selected 1; the alone message folded 2; the task box kept 1; the content column ignored 1;
+declarations not deduped 1; declarations pushed and shared across forks 1; the optional colon 3;
+the near-miss scan removed 6; the section near-miss removed 1; the section stack not reset 1;
+case-insensitive `areLabelled` 4; the override raising `examined` 1; `mergeCollectResults` 7.
+
+**Non-vacuity:** nine rows. `mid-paragraph` became `unread-label`; `annotated-child` (a colon-annotated
+item's broken link must be reported by `resolve()` on that file — the Critical's shape, at the
+gate), `inner-label` and `stands-alone` are new. Each new row was sabotaged alone and was the only one
+to go to exit 0.
+
+**Validate.** Four full runs. The first was red at `check:arch` on two unused type exports
+(unexported), the second green in 8m33s; after the first review round, one was red at `check:arch`
+on `matchName`, exported for a caller that had moved (made private again), and the next green in
+8m17s. Since then `check:fast` runs before every full run. The ledger's validate box was ticked
+before the first run, because `check:ledger` inside validate reads it; the run on this round's final
+tree is reported in the PR.

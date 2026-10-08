@@ -160,8 +160,10 @@ const NEAR = (l: number, found = 'Related To'): string =>
   `${l} the label "${found}" is not the declared "Related to", so the links under it are not checked — write it "Related to"`
 const ALONE = (l: number): string =>
   `${l} the "Related to" label stands alone with no list directly under it, so it declares nothing — put its list right after it, or its links on its line`
-const MID = (l: number, found: string): string =>
-  `${l} the label "${found}" is inside a paragraph, not at its start, so the links after it are not read as a declaration — start a new paragraph with it`
+const UNREAD = (l: number, found: string): string =>
+  `${l} the label "${found}" is not at the start of a paragraph or list item, so the links after it are not read as a declaration — start a paragraph or list item with it`
+const TAKEN = (l: number, found: string): string =>
+  `${l} the label "${found}" sits inside the "Related to" declaration and takes the links under it out of it — drop the label, or move it out of the "Related to" list`
 
 describe('declarations nothing can read (plan 0405)', () => {
   it('a wrapped declaration of only reference-style links is reported, and nothing else', () => {
@@ -215,8 +217,47 @@ describe('a label is read wherever a block can hold it (plan 0405 review)', () =
   it('a wrapped label inside a paragraph is reported, exact or near', () => {
     expect(selectedUnderLabel(['docs/mid-block.md'])).toEqual([])
     expect(declarationFindingsOf(['docs/mid-block.md'])).toEqual([
-      MID(4, 'Related to'),
-      MID(7, 'Related To'),
+      UNREAD(4, 'Related to'),
+      UNREAD(7, 'Related To'),
+    ])
+  })
+})
+
+describe('a declaration keeps what is under it (plan 0405, second review)', () => {
+  it('an item annotated with a colon, a URL or a plain label stays in its declaration', () => {
+    expect(selectedUnderLabel(['docs/annotated.md'])).toEqual([
+      'annotated.md an1.md',
+      'annotated.md an2.md',
+      'annotated.md an4.md',
+      'annotated.md an5.md',
+      'annotated.md an6.md',
+      'annotated.md an7.md',
+      'annotated.md https://example.com/an3',
+    ])
+    expect(declarationFindingsOf(['docs/annotated.md'])).toEqual([])
+  })
+
+  it('a different wrapped label inside a declaration keeps its links, and is reported', () => {
+    expect(selectedUnderLabel(['docs/inner-label.md'])).toEqual(['inner-label.md il2.md'])
+    expect(declarationFindingsOf(['docs/inner-label.md'])).toEqual([
+      TAKEN(4, 'plan 0406'),
+      TAKEN(9, 'Supersedes'),
+    ])
+  })
+
+  it('a label alone encloses every list directly after it, whatever its bullet', () => {
+    expect(selectedUnderLabel(['docs/bullets.md'])).toEqual([
+      'bullets.md bu1.md',
+      'bullets.md bu2.md',
+    ])
+  })
+
+  it('a label in a table cell, a heading or mid-line is reported; one in code is not', () => {
+    expect(selectedUnderLabel(['docs/unread.md'])).toEqual([])
+    expect(declarationFindingsOf(['docs/unread.md'])).toEqual([
+      UNREAD(5, 'Related to'),
+      UNREAD(7, 'Related to'),
+      UNREAD(9, 'Related To'),
     ])
   })
 })

@@ -55,11 +55,13 @@
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
  *   corpus/declared-block/{label-near-miss,section-near-miss,unreadable-declaration,
- *                 empty-declaration,mid-paragraph,nested-declaration}
+ *                 empty-declaration,unread-label,nested-declaration,annotated-child,
+ *                 inner-label,stands-alone}
  *                 (plan 0405) scripts/nonvacuity/bad-declared-block/ holds one
  *                 document per declaration finding, plus the nested shape whose
- *                 parent once swallowed a label unread; each row asserts its own
- *                 finding's message on its own file — all six share one rule id.
+ *                 parent once swallowed a label unread and the annotated item that
+ *                 once escaped its declaration; each row asserts its own finding's
+ *                 message on its own file — all nine share one rule id.
  *   corpus/links/site, corpus/links/repo-native (production script — bug 0127)
  *                 a probe planted under docs/ and under work/bugs/ respectively
  *                 links a missing file, and the PRODUCTION `scripts/check-corpus.mjs`
@@ -2487,7 +2489,7 @@ const gates = [
     'corpus/ledger/state-in-code',
     () => gateNode('bad-ledger-fences.mjs', 'ledger/state-in-code', ['state-in-code']),
   ],
-  // Plan 0405: one row per declaration finding. The six share the rule's id, so each row's
+  // Plan 0405: one row per declaration finding. The nine share the rule's id, so each row's
   // token is the scenario name the fixture prints only when THAT finding is on THAT file.
   [
     'corpus/declared-block/label-near-miss',
@@ -2511,8 +2513,20 @@ const gates = [
       gateNode('bad-declared-block.mjs', 'empty-declaration: reported on', ['empty-declaration']),
   ],
   [
-    'corpus/declared-block/mid-paragraph',
-    () => gateNode('bad-declared-block.mjs', 'mid-paragraph: reported on', ['mid-paragraph']),
+    'corpus/declared-block/unread-label',
+    () => gateNode('bad-declared-block.mjs', 'unread-label: reported on', ['unread-label']),
+  ],
+  [
+    'corpus/declared-block/annotated-child',
+    () => gateNode('bad-declared-block.mjs', 'annotated-child: reported on', ['annotated-child']),
+  ],
+  [
+    'corpus/declared-block/inner-label',
+    () => gateNode('bad-declared-block.mjs', 'inner-label: reported on', ['inner-label']),
+  ],
+  [
+    'corpus/declared-block/stands-alone',
+    () => gateNode('bad-declared-block.mjs', 'stands-alone: reported on', ['stands-alone']),
   ],
   [
     'corpus/declared-block/nested-declaration',
@@ -2989,8 +3003,11 @@ const GATE_FOR = {
     'corpus/declared-block/section-near-miss',
     'corpus/declared-block/unreadable-declaration',
     'corpus/declared-block/empty-declaration',
-    'corpus/declared-block/mid-paragraph',
+    'corpus/declared-block/unread-label',
     'corpus/declared-block/nested-declaration',
+    'corpus/declared-block/annotated-child',
+    'corpus/declared-block/inner-label',
+    'corpus/declared-block/stands-alone',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],

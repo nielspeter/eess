@@ -3,7 +3,7 @@
  * `**State:** Done`, `**Related to:** [a](a.md)` (plan 0405).
  *
  * One grammar, shared by the ledger's `State:` reader, `links().areLabelled()`,
- * and the link walk's block ownership, so `**Related to**:` cannot be a label to
+ * and the link walk's label-alone test, so `**Related to**:` cannot be a label to
  * one and a misspelling to another. Every reader below is built from the same
  * fragments; none restates a form by hand. Each caller decides case sensitivity
  * when it compiles the pattern: the ledger reads `**state:**` as `State`,
@@ -33,9 +33,10 @@ const wrapped = (body: string): string =>
 const plain = (body: string): string => String.raw`${body}\s*:`
 
 /**
- * Any label's body. A plain body may be anything up to a colon: the walk lets a
- * block that opens with a label of its own own itself, so a loose plain match on
- * a parent (`See [x](https://…)`) cannot hide a nested declaration.
+ * Any label's body. A plain body may be anything up to a colon: it is read only
+ * to ask whether a line is a label alone, and a plain line that is not the
+ * declared label never decides a declaration (`decidingBlock`), so a loose match
+ * here cannot hide one.
  */
 const ANY_WRAPPED = String.raw`([^*_\n]+?)`
 const ANY_PLAIN = String.raw`[^\s:*_][^:\n]*?`
@@ -60,11 +61,6 @@ export function wrappedLabelOf(line: string): string | undefined {
   const m = WRAPPED_LABEL.exec(line)
   if (m === null) return undefined
   return m[1] ?? m[2] ?? m[3]
-}
-
-/** True when `line` opens with a label in any form. */
-export function opensWithLabel(line: string): boolean {
-  return OPENS_WITH_LABEL.test(line)
 }
 
 /** True when `line` is a label in any form and nothing else follows it. */
