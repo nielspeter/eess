@@ -44,7 +44,7 @@ Four consequences:
    citation instead of a `#fragment`.
 4. **The autofix carries a fragment it has never validated.** `movedLinkFix`
    deliberately preserves the fragment when rewriting a moved link
-   (`resolve.ts:114-115`, `:123`):
+   (`packages/md/src/model/resolve-link.ts:253-254`, `:262`; moved there from `conditions/resolve.ts` by plan 0404):
 
    ```ts
    const fragment = link.url.slice(path.length) // '' or '#anchor'

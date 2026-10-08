@@ -236,7 +236,7 @@ straight into the **unmodified** `linkResolves()` condition
 **Why this layering wins:**
 
 - `linkResolves()` and `mdViolation()` need zero changes. Reading
-  `conditions/resolve.ts:84-100`, the only fields of `MdLink`/`link.doc` they
+  `conditions/resolve.ts:30-83`, the only fields of `MdLink`/`link.doc` they
   touch are `url`, `line`, `external`, `urlStart`/`urlEnd`, and
   `doc.relPath`/`doc.file`/`doc.text` — none of `MdDocument`'s
   markdown-structural fields (`sections`, `tables`, `codeBlocks`, `root`).
@@ -252,7 +252,7 @@ straight into the **unmodified** `linkResolves()` condition
 - **Autofix comes for free.** `ArchFix` and its applier
   (`packages/core/src/apply-fixes.ts`) operate on `{file, start, end,
 replacement}` with no markdown-specific assumption anywhere in that
-  signature. `movedLinkFix()` (`conditions/resolve.ts:112-132`) already
+  signature. `movedLinkFix()` (`packages/md/src/model/resolve-link.ts:248-271`, moved from `conditions/resolve.ts` by plan 0404) already
   computes a relative-path rewrite from any `link.urlStart`/`urlEnd` inside
   any `link.doc.file` — pointed at a `.ts` file's comment instead of a `.md`
   file's prose, the same "byte-eksakt" repair `eess:fix` already gives
