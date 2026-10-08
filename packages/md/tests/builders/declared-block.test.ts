@@ -74,6 +74,10 @@ describe('areLabelled() — block ownership (plan 0405)', () => {
     ])
   })
 
+  it('a label alone inside a list item owns the list after it', () => {
+    expect(selectedUnderLabel(['docs/label-in-item.md'])).toEqual(['label-in-item.md li1.md'])
+  })
+
   it('a labelled list item owns its nested sub-list', () => {
     expect(selectedUnderLabel(['docs/item-sublist.md'])).toEqual([
       'item-sublist.md i1.md',
@@ -134,18 +138,119 @@ describe('areInSection() (plan 0405)', () => {
   })
 })
 
+/**
+ * Every declaration finding on the fixture as `line message`, the base rule's own
+ * findings (a link that does not resolve, zero examined) left out — exact sets,
+ * so a fixture producing a second, wrong finding fails too.
+ */
+function declarationFindingsOf(
+  roots: string[],
+  declare: (b: ReturnType<typeof links>) => ReturnType<typeof links> = (b) =>
+    b.areLabelled('Related to'),
+): string[] {
+  return findings(roots, declare)
+    .filter((x) => !/does not resolve|examined zero units/.test(x.message))
+    .map((x) => `${x.line} ${x.message}`)
+    .sort()
+}
+
+const REFS = (l: number): string =>
+  `${l} the "Related to" declaration holds reference-style links, which eess-md does not read — write them as inline links ([text](path))`
+const NEAR = (l: number, found = 'Related To'): string =>
+  `${l} the label "${found}" is not the declared "Related to", so the links under it are not checked — write it "Related to"`
+const ALONE = (l: number): string =>
+  `${l} the "Related to" label stands alone with no list directly under it, so it declares nothing — put its list right after it, or its links on its line`
+const MID = (l: number, found: string): string =>
+  `${l} the label "${found}" is inside a paragraph, not at its start, so the links after it are not read as a declaration — start a new paragraph with it`
+
 describe('declarations nothing can read (plan 0405)', () => {
-  it('a wrapped declaration of only reference-style links is reported', () => {
-    const v = findings(['docs/refs.md'], (b) => b.areLabelled('Related to'))
-    expect(v.map((x) => x.message).filter((m) => m.includes('reference-style'))).toEqual([
-      'the "Related to" declaration holds only reference-style links, which eess-md does not read — write them as inline links ([text](path))',
+  it('a wrapped declaration of only reference-style links is reported, and nothing else', () => {
+    expect(declarationFindingsOf(['docs/refs.md'])).toEqual([REFS(3)])
+  })
+
+  it('a declaration mixing inline and reference-style links selects the inline one and reports the rest', () => {
+    expect(selectedUnderLabel(['docs/mixed-refs.md'])).toEqual(['mixed-refs.md c.md'])
+    expect(declarationFindingsOf(['docs/mixed-refs.md'])).toEqual([REFS(3)])
+  })
+
+  it('a wrapped label alone with nothing under it says no list follows it', () => {
+    expect(declarationFindingsOf(['docs/empty.md'])).toEqual([ALONE(3)])
+  })
+
+  it('a label alone with a paragraph before its list names the cause, not a missing link', () => {
+    expect(declarationFindingsOf(['docs/intervening.md'])).toEqual([ALONE(3)])
+  })
+
+  it('a wrapped declaration of text with no link is reported as naming no record', () => {
+    expect(declarationFindingsOf(['docs/text-only.md'])).toEqual([
+      '3 the "Related to" declaration names no record — add the links it declares, or remove the label',
     ])
   })
 
-  it('a wrapped declaration with no link is reported', () => {
-    const v = findings(['docs/empty.md'], (b) => b.areLabelled('Related to'))
-    expect(v.map((x) => x.message).filter((m) => m.includes('names no record'))).toEqual([
-      'the "Related to" declaration names no record — add the links it declares, or remove the label',
+  it('a plain-form label with no link is not a finding', () => {
+    expect(declarationFindingsOf(['docs/plain-empty.md'])).toEqual([])
+  })
+})
+
+describe('a label is read wherever a block can hold it (plan 0405 review)', () => {
+  it('a label nested under a colon-bearing parent, a link or a URL is its own block', () => {
+    expect(selectedUnderLabel(['docs/nested.md'])).toEqual([
+      'nested.md c1.md',
+      'nested.md c2.md',
+      'nested.md c3.md',
+      'nested.md c4.md',
+    ])
+    expect(declarationFindingsOf(['docs/nested.md'])).toEqual([NEAR(18)])
+  })
+
+  it('a label after an ordered-list marker, a task box or a blockquote marker is read', () => {
+    expect(selectedUnderLabel(['docs/prefixes.md'])).toEqual([
+      'prefixes.md o1.md',
+      'prefixes.md q1.md',
+      'prefixes.md t1.md',
+    ])
+    expect(declarationFindingsOf(['docs/prefixes.md'])).toEqual([NEAR(11), NEAR(9)])
+  })
+
+  it('a wrapped label inside a paragraph is reported, exact or near', () => {
+    expect(selectedUnderLabel(['docs/mid-block.md'])).toEqual([])
+    expect(declarationFindingsOf(['docs/mid-block.md'])).toEqual([
+      MID(4, 'Related to'),
+      MID(7, 'Related To'),
+    ])
+  })
+})
+
+describe('the declaration record (plan 0405 review)', () => {
+  it('a label declared twice is scanned once', () => {
+    const v = declarationFindingsOf(['docs/forms.md'], (b) =>
+      b.areLabelled('Related to').and().areLabelled('Related to'),
+    )
+    expect(v).toEqual([NEAR(11), NEAR(13, 'Related  to')])
+  })
+
+  it('a fork keeps its own declarations', () => {
+    const base = links(load(['docs/forms.md'])).that()
+    base.areLabelled('Related to')
+    const other = base
+      .areLabelled('Something else')
+      .should()
+      .resolve()
+      .rule({ id: 'test/fork' })
+      .violations()
+    expect(other.filter((x) => x.message.includes('is not the declared'))).toEqual([])
+  })
+
+  it('a declaration on a rule with no condition keeps the missing-condition finding', () => {
+    const v = links(load(['docs/forms.md']))
+      .that()
+      .areLabelled('Related to')
+      .rule({ id: 'test/no-condition' })
+      .violations()
+    expect(v.map((x) => x.message.split('\n')[0]).sort()).toEqual([
+      "Rule 'test/no-condition' selects subjects but asserts nothing about them, so it cannot fail and certifies nothing.",
+      NEAR(13, 'Related  to').slice(3),
+      NEAR(11).slice(3),
     ])
   })
 })

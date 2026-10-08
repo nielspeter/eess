@@ -11,8 +11,18 @@
  *                         declared "See also" → "the heading … is not the
  *                         declared section …".
  *   unreadable-declaration bad-declared-block/unreadable.md holds a "Related to"
- *                         block of only reference-style links → "… holds only
+ *                         block of reference-style links → "… holds
  *                         reference-style links …".
+ *   empty-declaration     bad-declared-block/empty.md declares "Related to" with
+ *                         text and no link → "… names no record".
+ *   mid-paragraph         bad-declared-block/mid-paragraph.md has `**Related To:**`
+ *                         on a paragraph's second line → "… is inside a
+ *                         paragraph, not at its start".
+ *   nested-declaration    bad-declared-block/nested.md nests `**Related To:**`
+ *                         under a list item whose line holds a colon, under a
+ *                         `Metadata:` label — the shape whose parent once
+ *                         swallowed the label unread (plan 0405's review) →
+ *                         "the label … is not the declared …" on that file.
  *
  * Each document also carries a correctly declared, resolving link, so the rule
  * examines something and the zero-examined finding cannot stand in for the one
@@ -42,7 +52,22 @@ const SCENARIOS = {
   'unreadable-declaration': {
     file: `${ROOT}/unreadable.md`,
     declare: (b) => b.areLabelled('Related to'),
-    says: 'the "Related to" declaration holds only reference-style links',
+    says: 'the "Related to" declaration holds reference-style links',
+  },
+  'empty-declaration': {
+    file: `${ROOT}/empty.md`,
+    declare: (b) => b.areLabelled('Related to'),
+    says: 'the "Related to" declaration names no record',
+  },
+  'mid-paragraph': {
+    file: `${ROOT}/mid-paragraph.md`,
+    declare: (b) => b.areLabelled('Related to'),
+    says: 'the label "Related To" is inside a paragraph, not at its start',
+  },
+  'nested-declaration': {
+    file: `${ROOT}/nested.md`,
+    declare: (b) => b.areLabelled('Related to'),
+    says: 'the label "Related To" is not the declared "Related to"',
   },
 }
 

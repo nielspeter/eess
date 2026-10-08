@@ -188,3 +188,76 @@ the fixture's file and its message, not only the rule id.
   finding removed from `declarationFindings`): only that row went to exit 0; the other two stayed 1.
 - **The three findings share the rule's id**, so each row's token is a line the fixture prints only
   when its own message is on its own file — an id match would let any one answer for the others.
+
+## Review round — 2026-10-09
+
+Architect, product, enforcement, method and testing reviewed the build. Four measured, and product
+read, the same **Critical**: block ownership used a looser grammar than selection. Its plain form
+matched any line holding a colon, so a parent such as `Metadata:`, `- Note: x` or a URL took
+ownership of a nested `**Related to:**` item. That item was then neither selected nor reported, and
+the rule stayed green with `examined` above zero — the fail-open this plan exists to close. A label
+after `1.`, `[ ]` or `>`, and one on a paragraph's second line, were silent the same way. Fixed in
+this PR, since it is the plan's own capability:
+
+- **One grammar.** `label.ts` builds every reader (`labelPattern`, `wrappedLabelOf`,
+  `opensWithLabel`, `isLabelAlone`) from the same fragments; `labelPattern('State')` is still the
+  ledger's old source, pinned by the rule tests. The walk reads a block's text from its content
+  column, so list markers, task boxes and `>` never reach the grammar.
+- **A block that opens with a label owns itself**; a parent never absorbs a label. With that, the
+  plain form's looseness on a parent has no effect on selection, so the body restriction first
+  written for it was removed rather than kept as a guard nothing can fail.
+- **New findings:** a wrapped label inside a paragraph; reference-style links in any declaration,
+  not only one made of nothing else; and the empty declaration now says when the label stands alone
+  with no list under it, the actual cause, instead of sending the author to add an inline link
+  (enforcement I2).
+- **Smaller:** declarations deduped per rule; `collectResult(…, base)` passes the whole base
+  evidence; the findings moved from `predicates/` to `builders/declaration-findings.ts`; links and
+  tables share `inSection()`; `MdLinkBlock` is exported, since `MdLink.block` is public. The
+  `copy()` override was deleted: declarations are replaced, never pushed, so it could not fail; a
+  fork test pins the behaviour instead.
+- **Tests added** for every measured shape, the plain-form empty label (the inventory row the build
+  first missed — method I1), exact finding sets per fixture, a fork, a repeated declaration, and a
+  rule with no condition (bug 0155: the missing-condition finding stays beside the declaration
+  findings).
+
+**Decisions taken, not deferred:**
+
+- **The empty-declaration finding stays** (product I2 asked to drop it). A wrapped label with text and
+  no link, `**Related to:** bug 0253`, is a declared relation that no link-based rule can check —
+  the silent escape this plan is about. A template writing `**Related to:** none` gets the finding,
+  and the docs say to leave the label out.
+- **The names stay `areLabelled`/`areInSection`** (product I1, M5). In eess-md, "label" already names
+  the `**X:**` line the ledger reads, and the docs define the term; `resideIn…` names where a
+  document lives, not where a link sits under a heading.
+- **`sectionPath` stays optional** (product M6): `MdLink` is also built by adopters' own tests and
+  conditions, and a required field would break them.
+- **Declaration findings can be sanctioned** with `.excluding()`, like any finding (enforcement M2) —
+  measured, and documented.
+
+**Sabotage, measured on the reworked code** (`declared-block.test.ts` plus the ledger's rule tests,
+each mutation restored before the next): the nine new rows — a parent absorbing a label 1 red, the
+task box kept 1, the content column ignored 1, the mid-paragraph scan removed 1, references only
+when no inline link 1, the alone message folded 2, declarations not deduped 1, a lone label only at
+top level 1, declarations pushed and shared across forks 1. The nine original rows, re-run because
+the code under them moved: physical-line ownership 7, the lone label not owning its list 2, the
+optional colon 7, the near-miss scan removed 6, the section near-miss removed 1, the section stack
+not reset 1, case-insensitive `areLabelled` 4, the override raising `examined` 1,
+`mergeCollectResults` 6.
+
+**Non-vacuity:** six rows now, one per finding kind plus `nested-declaration`, the Critical's shape.
+The three new ones were each sabotaged alone (the parent absorbing the label, the mid-paragraph scan
+removed, the empty finding removed); only that row went to exit 0.
+
+**Residual, recorded here and not fixed:**
+
+- A reference to an undefined definition (`[a][missing]`) is plain text to mdast, so its block reads
+  as naming no record — the remedy still points at the right fix.
+- `declarationFindings` walks each document a second time (architect M4); a cost, not a defect.
+- This is the family's first `collectViolations()` override outside the kernel. If plan 0406 or a
+  second dialect needs another, a kernel hook is the shape to extract (architect M6).
+- No non-vacuity row pins the selector itself against over-selection (enforcement M4); plan 0406's
+  production row over its dogfood rule is where it belongs.
+- **Validate.** The first full run was red at `check:arch` on two unused type exports, fixed by
+  unexporting them; the second was green in 8m33s. The ledger's validate box was ticked before that
+  run, because `check:ledger` inside validate reads it. After this round, validate was run again on
+  the final tree (see the PR).

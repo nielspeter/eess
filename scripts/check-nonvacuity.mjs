@@ -54,11 +54,12 @@
  *                 PARSE-FAILURE path. clean-diagram.md is the sanity direction.
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
- *   corpus/declared-block/{label-near-miss,section-near-miss,unreadable-declaration}
- *                 (plan 0405) scripts/nonvacuity/bad-declared-block/ holds a
- *                 `**Related To:**` label, a `## See Also` heading, and a block of
- *                 only reference-style links; each row asserts its own finding's
- *                 message on its own file — the three share one rule id.
+ *   corpus/declared-block/{label-near-miss,section-near-miss,unreadable-declaration,
+ *                 empty-declaration,mid-paragraph,nested-declaration}
+ *                 (plan 0405) scripts/nonvacuity/bad-declared-block/ holds one
+ *                 document per declaration finding, plus the nested shape whose
+ *                 parent once swallowed a label unread; each row asserts its own
+ *                 finding's message on its own file — all six share one rule id.
  *   corpus/links/site, corpus/links/repo-native (production script — bug 0127)
  *                 a probe planted under docs/ and under work/bugs/ respectively
  *                 links a missing file, and the PRODUCTION `scripts/check-corpus.mjs`
@@ -2486,7 +2487,7 @@ const gates = [
     'corpus/ledger/state-in-code',
     () => gateNode('bad-ledger-fences.mjs', 'ledger/state-in-code', ['state-in-code']),
   ],
-  // Plan 0405: one row per declaration finding. The three share the rule's id, so each row's
+  // Plan 0405: one row per declaration finding. The six share the rule's id, so each row's
   // token is the scenario name the fixture prints only when THAT finding is on THAT file.
   [
     'corpus/declared-block/label-near-miss',
@@ -2503,6 +2504,20 @@ const gates = [
       gateNode('bad-declared-block.mjs', 'unreadable-declaration: reported on', [
         'unreadable-declaration',
       ]),
+  ],
+  [
+    'corpus/declared-block/empty-declaration',
+    () =>
+      gateNode('bad-declared-block.mjs', 'empty-declaration: reported on', ['empty-declaration']),
+  ],
+  [
+    'corpus/declared-block/mid-paragraph',
+    () => gateNode('bad-declared-block.mjs', 'mid-paragraph: reported on', ['mid-paragraph']),
+  ],
+  [
+    'corpus/declared-block/nested-declaration',
+    () =>
+      gateNode('bad-declared-block.mjs', 'nested-declaration: reported on', ['nested-declaration']),
   ],
   // Bug 0131 follow-up (six-persona review): the fold's zero-examined guard
   // must actually reach `honestyAtClose`'s `headerViolations` lane, not just
@@ -2973,6 +2988,9 @@ const GATE_FOR = {
     'corpus/declared-block/label-near-miss',
     'corpus/declared-block/section-near-miss',
     'corpus/declared-block/unreadable-declaration',
+    'corpus/declared-block/empty-declaration',
+    'corpus/declared-block/mid-paragraph',
+    'corpus/declared-block/nested-declaration',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],

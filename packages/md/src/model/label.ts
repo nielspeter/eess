@@ -2,25 +2,53 @@
  * The label grammar a Markdown record uses to declare something on a line —
  * `**State:** Done`, `**Related to:** [a](a.md)` (plan 0405).
  *
- * One grammar, shared by the ledger's `State:` reader and `links().areLabelled()`,
- * so `**Related to**:` cannot be a label to one and a misspelling to the other.
- * Each caller decides case sensitivity when it compiles the pattern: the ledger
- * reads `**state:**` as `State`, `areLabelled` matches the declared spelling exactly.
+ * One grammar, shared by the ledger's `State:` reader, `links().areLabelled()`,
+ * and the link walk's block ownership, so `**Related to**:` cannot be a label to
+ * one and a misspelling to another. Every reader below is built from the same
+ * fragments; none restates a form by hand. Each caller decides case sensitivity
+ * when it compiles the pattern: the ledger reads `**state:**` as `State`,
+ * `areLabelled` matches the declared spelling exactly.
  *
  * Accepted forms, each optionally after a list marker: `**Label:**`, `**Label**:`,
  * `__Label__:`, `Label:`. **The colon is required in every form.** Making it
  * optional turned any line beginning with the word into a declaration: the ledger
  * read `Stateless rendering is the default` as the state `less`, and `State
  * machine transitions are documented` as `machine`.
+ *
+ * The link walk hands these readers a block's text from its content column, so
+ * an ordered-list marker, a task box or a blockquote `>` never reaches them; the
+ * optional bullet marker is kept for the ledger, which reads raw lines.
  */
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
+/** Leading space and an optional bullet marker — the ledger's raw-line prefix. */
+const PREFIX = String.raw`^\s*(?:[-*+]\s+)?`
+
+/** The three wrapped forms over a label body (a regex source). */
+const wrapped = (body: string): string =>
+  String.raw`\*\*${body}:\*\*|\*\*${body}\*\*\s*:|__${body}__\s*:`
+
+/** The plain form over a label body (a regex source). */
+const plain = (body: string): string => String.raw`${body}\s*:`
+
+/**
+ * Any label's body. A plain body may be anything up to a colon: the walk lets a
+ * block that opens with a label of its own own itself, so a loose plain match on
+ * a parent (`See [x](https://…)`) cannot hide a nested declaration.
+ */
+const ANY_WRAPPED = String.raw`([^*_\n]+?)`
+const ANY_PLAIN = String.raw`[^\s:*_][^:\n]*?`
+
 /** The regex source for a line that opens with `label`, in any accepted form. */
 export function labelPattern(label: string): string {
   const l = escapeRe(label)
-  return String.raw`^\s*(?:[-*+]\s+)?(?:\*\*${l}:\*\*|\*\*${l}\*\*\s*:|__${l}__\s*:|${l}\s*:)\s*`
+  return `${PREFIX}(?:${wrapped(l)}|${plain(l)})\\s*`
 }
+
+const WRAPPED_LABEL = new RegExp(`${PREFIX}(?:${wrapped(ANY_WRAPPED)})`)
+const OPENS_WITH_LABEL = new RegExp(`${PREFIX}(?:${wrapped(ANY_WRAPPED)}|${plain(ANY_PLAIN)})`)
+const LABEL_ALONE = new RegExp(`${OPENS_WITH_LABEL.source}\\s*$`)
 
 /**
  * The text of a **wrapped** label (`**Label:**`, `**Label**:`, `__Label__:`) that
@@ -29,17 +57,19 @@ export function labelPattern(label: string): string {
  * as an attempt to declare something.
  */
 export function wrappedLabelOf(line: string): string | undefined {
-  const m =
-    /^\s*(?:[-*+]\s+)?(?:\*\*([^*\n]+?):\*\*|\*\*([^*\n]+?)\*\*\s*:|__([^_\n]+?)__\s*:)/.exec(line)
+  const m = WRAPPED_LABEL.exec(line)
   if (m === null) return undefined
   return m[1] ?? m[2] ?? m[3]
 }
 
+/** True when `line` opens with a label in any form. */
+export function opensWithLabel(line: string): boolean {
+  return OPENS_WITH_LABEL.test(line)
+}
+
 /** True when `line` is a label in any form and nothing else follows it. */
 export function isLabelAlone(line: string): boolean {
-  return /^\s*(?:\*\*[^*\n]+:\*\*|\*\*[^*\n]+\*\*\s*:|__[^_\n]+__\s*:|[^\s:*_][^:\n]*:)\s*$/.test(
-    line,
-  )
+  return LABEL_ALONE.test(line)
 }
 
 /** Two label spellings that differ only in case or inner spacing. */

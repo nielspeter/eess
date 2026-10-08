@@ -3,12 +3,12 @@ import type { Corpus } from '../corpus.js'
 import { collectLinks, type MdLink, type MdLinkRef } from '../model/links.js'
 import { stampedByDocument } from '../model/by-document.js'
 import { linkResolves, type LinkResolveOptions } from '../conditions/resolve.js'
+import { areInSectionPredicate, areLabelledPredicate } from '../predicates/declared-block.js'
 import {
-  areInSectionPredicate,
-  areLabelledPredicate,
   declarationFindings,
+  declarationKey,
   type LinkDeclaration,
-} from '../predicates/declared-block.js'
+} from './declaration-findings.js'
 
 export type { LinkResolveOptions } from '../conditions/resolve.js'
 
@@ -52,16 +52,21 @@ export class LinkRuleBuilder extends RuleBuilder<MdLink, Corpus> {
    * exactly and case-sensitively. A label alone on its line owns the list that
    * follows it; a labelled list item owns its nested list.
    *
-   * The rule also reports, over the whole corpus, a wrapped label that misses
-   * the declared one only by case or spacing, and a wrapped declaration that
-   * holds only reference-style links or none. That check runs through this
-   * method only: a selection taken with `.select()` carries no findings, so it
-   * carries no near-miss check either.
+   * A label that opens a block of its own always owns that block, so a label
+   * nested under another labelled block is still read.
+   *
+   * The rule also reports, over the whole corpus, what it cannot read: a wrapped
+   * label that misses the declared one only by case or spacing, a wrapped label
+   * inside a paragraph rather than at its start, a declaration holding
+   * reference-style links, and a wrapped declaration with no link. That check
+   * runs through this method only: a selection taken with `.select()` carries no
+   * findings, so it carries no such check either.
    */
   areLabelled(label: string): this {
-    const next = this.addPredicate(areLabelledPredicate(label))
-    next._declarations = [...next._declarations, { kind: 'label', label }]
-    return next
+    return this.addPredicate(areLabelledPredicate(label)).recordDeclaration({
+      kind: 'label',
+      label,
+    })
   }
 
   /**
@@ -71,9 +76,24 @@ export class LinkRuleBuilder extends RuleBuilder<MdLink, Corpus> {
    * is reported, as for `areLabelled()`.
    */
   areInSection(name: string | RegExp): this {
-    const next = this.addPredicate(areInSectionPredicate(name))
-    next._declarations = [...next._declarations, { kind: 'section', name }]
-    return next
+    return this.addPredicate(areInSectionPredicate(name)).recordDeclaration({
+      kind: 'section',
+      name,
+    })
+  }
+
+  /**
+   * Record a declaration once; declaring the same label twice scans it once.
+   * Called on the copy `addPredicate()` returns, and it replaces the array rather
+   * than pushing into it, so a fork never shares its parent's declarations — the
+   * kernel's shallow `copy()` is enough.
+   */
+  private recordDeclaration(d: LinkDeclaration): this {
+    const key = declarationKey(d)
+    if (!this._declarations.some((x) => declarationKey(x) === key)) {
+      this._declarations = [...this._declarations, d]
+    }
+    return this
   }
 
   /**
@@ -83,12 +103,6 @@ export class LinkRuleBuilder extends RuleBuilder<MdLink, Corpus> {
    */
   resolve(options?: LinkResolveOptions): this {
     return this.addCondition(linkResolves(this.project, options))
-  }
-
-  protected override copy(): this {
-    const clone = super.copy()
-    clone._declarations = [...this._declarations]
-    return clone
   }
 
   /**
@@ -108,13 +122,7 @@ export class LinkRuleBuilder extends RuleBuilder<MdLink, Corpus> {
       this.buildConditionContext(),
     )
     if (findings.length === 0) return base
-    return collectResult([...base, ...findings], {
-      examined: base.examined,
-      sourceEmpty: base.sourceEmpty,
-      declaredEmpty: base.declaredEmpty,
-      notRun: base.notRun,
-      deadGlob: base.deadGlob,
-    })
+    return collectResult([...base, ...findings], base)
   }
 }
 
