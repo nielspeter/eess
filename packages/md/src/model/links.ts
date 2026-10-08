@@ -1,7 +1,7 @@
 import type { Root, Nodes } from 'mdast'
 import { textOf } from './text-of.js'
 import { enterHeading, headingName } from './document.js'
-import { isLabelAlone } from './label.js'
+import { isLabelAlone, wrappedLabelOf } from './label.js'
 import type { MdDocument } from './document.js'
 
 /** A markdown link occurrence within a document (before doc back-reference). */
@@ -53,6 +53,8 @@ export interface MdLinkBlock {
 interface MdUnreadLabel {
   readonly line: number
   readonly label: string
+  /** `position`: not where a block starts; `format`: at a block's start, in a form the grammar does not read. */
+  readonly reason: 'position' | 'format'
 }
 
 const TASK_BOX = /^\[[ xX]\]\s+/
@@ -65,7 +67,9 @@ const TASK_BOX = /^\[[ xX]\]\s+/
 function strongLabel(node: Nodes, next: Nodes | undefined): string | undefined {
   if (node.type !== 'strong') return undefined
   const text = textOf(node)
-  if (text.endsWith(':')) return text.slice(0, -1).trim()
+  // `**Label:**`, and a whole line in bold (`**Label: [a](a.md)**`).
+  const inside = /^\s*([^:\n]+?)\s*:/.exec(text)
+  if (inside?.[1] !== undefined) return inside[1]
   if (next?.type === 'text' && /^\s*:/.test(next.value)) return text.trim()
   return undefined
 }
@@ -130,10 +134,23 @@ export function collectLinkBlocks(
           continue
         }
       }
-      // A label read as a declaration opens its paragraph; anywhere else it declares nothing.
+      // A label is read as a declaration only where its block starts — nothing but `*`/`_`
+      // before it on the block's line — and only in a form the line grammar reads. The tree
+      // sees every bold label, so any it finds elsewhere, or in another form, declares nothing.
       const label = strongLabel(child, children[i + 1])
-      if (label !== undefined && !(parent.type === 'paragraph' && i === 0)) {
-        unreadLabels.push({ line: child.position?.start.line ?? 0, label })
+      if (label !== undefined) {
+        const line = child.position?.start.line ?? 0
+        const block = path.at(-1)
+        const rest = (lines[line - 1] ?? '').slice((child.position?.start.column ?? 1) - 1)
+        const atStart =
+          block !== undefined &&
+          block.line === line &&
+          block.text.endsWith(rest) &&
+          /^[*_]*$/.test(block.text.slice(0, block.text.length - rest.length))
+        if (!atStart) unreadLabels.push({ line, label, reason: 'position' })
+        else if (wrappedLabelOf(block.text) !== label) {
+          unreadLabels.push({ line, label, reason: 'format' })
+        }
       }
       visit(child, path)
     }

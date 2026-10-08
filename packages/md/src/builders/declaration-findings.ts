@@ -28,7 +28,9 @@ export function declarationKey(d: LinkDeclaration): string {
  * - **a label inside the declaration:** a different wrapped label nested inside
  *   a declaration takes the links under it out of the declaration;
  * - **a label where no block starts:** the label, exact or near, later in a
- *   paragraph, in a table cell or in a heading, where it declares nothing;
+ *   paragraph, in a table cell or in a heading, where it declares nothing — or
+ *   at a block's start in a form the grammar does not read (`**_Label:_**`, a
+ *   whole line in bold);
  * - **reference-style links:** a declaration holding `[text][ref]` links, which
  *   eess-md does not read;
  * - **an empty declaration:** a wrapped label selecting no link — it names no
@@ -138,8 +140,11 @@ export function declarationFindings(
         report(
           u.line,
           element(u.label),
-          `the label "${u.label}" is not at the start of a paragraph or list item, so the links after it are not read as a declaration — ` +
-            'start a paragraph or list item with it',
+          u.reason === 'format'
+            ? `the label "${u.label}" is written with formatting eess-md does not read, so the links after it are not read as a declaration — ` +
+                `write it **${L}:**`
+            : `the label "${u.label}" is not at the start of a paragraph or list item, so the links after it are not read as a declaration — ` +
+                'start a paragraph or list item with it',
         )
       }
     }

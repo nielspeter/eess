@@ -56,12 +56,12 @@
  *                 adr/valid-tiers.
  *   corpus/declared-block/{label-near-miss,section-near-miss,unreadable-declaration,
  *                 empty-declaration,unread-label,nested-declaration,annotated-child,
- *                 inner-label,stands-alone}
+ *                 inner-label,stands-alone,formatted-label}
  *                 (plan 0405) scripts/nonvacuity/bad-declared-block/ holds one
  *                 document per declaration finding, plus the nested shape whose
  *                 parent once swallowed a label unread and the annotated item that
  *                 once escaped its declaration; each row asserts its own finding's
- *                 message on its own file — all nine share one rule id.
+ *                 message on its own file — all ten share one rule id.
  *   corpus/links/site, corpus/links/repo-native (production script — bug 0127)
  *                 a probe planted under docs/ and under work/bugs/ respectively
  *                 links a missing file, and the PRODUCTION `scripts/check-corpus.mjs`
@@ -2489,7 +2489,7 @@ const gates = [
     'corpus/ledger/state-in-code',
     () => gateNode('bad-ledger-fences.mjs', 'ledger/state-in-code', ['state-in-code']),
   ],
-  // Plan 0405: one row per declaration finding. The nine share the rule's id, so each row's
+  // Plan 0405: one row per declaration finding. The ten share the rule's id, so each row's
   // token is the scenario name the fixture prints only when THAT finding is on THAT file.
   [
     'corpus/declared-block/label-near-miss',
@@ -2515,6 +2515,10 @@ const gates = [
   [
     'corpus/declared-block/unread-label',
     () => gateNode('bad-declared-block.mjs', 'unread-label: reported on', ['unread-label']),
+  ],
+  [
+    'corpus/declared-block/formatted-label',
+    () => gateNode('bad-declared-block.mjs', 'formatted-label: reported on', ['formatted-label']),
   ],
   [
     'corpus/declared-block/annotated-child',
@@ -3008,6 +3012,7 @@ const GATE_FOR = {
     'corpus/declared-block/annotated-child',
     'corpus/declared-block/inner-label',
     'corpus/declared-block/stands-alone',
+    'corpus/declared-block/formatted-label',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],

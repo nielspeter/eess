@@ -162,6 +162,8 @@ const ALONE = (l: number): string =>
   `${l} the "Related to" label stands alone with no list directly under it, so it declares nothing — put its list right after it, or its links on its line`
 const UNREAD = (l: number, found: string): string =>
   `${l} the label "${found}" is not at the start of a paragraph or list item, so the links after it are not read as a declaration — start a paragraph or list item with it`
+const FORMAT = (l: number): string =>
+  `${l} the label "Related to" is written with formatting eess-md does not read, so the links after it are not read as a declaration — write it **Related to:**`
 const TAKEN = (l: number, found: string): string =>
   `${l} the label "${found}" sits inside the "Related to" declaration and takes the links under it out of it — drop the label, or move it out of the "Related to" list`
 
@@ -258,6 +260,18 @@ describe('a declaration keeps what is under it (plan 0405, second review)', () =
       UNREAD(5, 'Related to'),
       UNREAD(7, 'Related to'),
       UNREAD(9, 'Related To'),
+    ])
+  })
+})
+
+describe('a label at a block start in a form the grammar does not read (plan 0405, third review)', () => {
+  it('is reported with its cause, and bold prose is not', () => {
+    expect(selectedUnderLabel(['docs/formatted.md'])).toEqual(['formatted.md fm5.md'])
+    expect(declarationFindingsOf(['docs/formatted.md'])).toEqual([
+      FORMAT(3),
+      FORMAT(5),
+      FORMAT(7),
+      FORMAT(9),
     ])
   })
 })

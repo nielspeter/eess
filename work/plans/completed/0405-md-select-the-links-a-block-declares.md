@@ -320,9 +320,28 @@ item's broken link must be reported by `resolve()` on that file — the Critical
 gate), `inner-label` and `stands-alone` are new. Each new row was sabotaged alone and was the only one
 to go to exit 0.
 
-**Validate.** Four full runs. The first was red at `check:arch` on two unused type exports
-(unexported), the second green in 8m33s; after the first review round, one was red at `check:arch`
-on `matchName`, exported for a caller that had moved (made private again), and the next green in
-8m17s. Since then `check:fast` runs before every full run. The ledger's validate box was ticked
-before the first run, because `check:ledger` inside validate reads it; the run on this round's final
-tree is reported in the PR.
+## Third review round — 2026-10-09
+
+Architect and enforcement measured the built design (a9e80a3) against every shape from the two
+earlier rounds and their own new probes. Each was selected or reported, except one class both found:
+a bold label at a block's start that the syntax tree reads and the line grammar does not —
+`**_Related to:_**`, `**Related _to_:**`, a whole line in bold (`**Related to: [a](a.md)**`) — was
+skipped as "read by the grammar" and was neither selected nor reported. `***Related to:***` parsed as
+emphasis around bold was reported with the wrong cause ("not at the start"). The tree had the label
+in hand and dropped it, so it was fixed here: a bold label counts as at its block's start when only
+`*`/`_` precede it on the block's line, and there it counts as read only when the line grammar reads
+the same label; otherwise it is reported as "written with formatting eess-md does not read — write
+it `**Related to:**`". Bold prose (`**Important: read this**`) is not a finding unless its label is
+the declared one or a near miss.
+
+Sabotage, measured: the format check removed reds its test (1 of 32) and the new `formatted-label`
+non-vacuity row; the `*`/`_` prefix not counted as the block start reds its test (1 of 32). They
+replace the second round's "that scan flags block-opening labels" row, whose `i === 0` test no longer
+exists. Non-vacuity: ten rows.
+
+**Validate.** Full runs, in order: red at `check:arch` on two unused type exports (unexported);
+green in 8m33s (the build); red at `check:arch` on `matchName`, exported for a caller that had moved
+(made private again); green in 8m17s (the first round's fix); green in 8m33s (the second round's
+design). Since the second red, `check:fast` runs before every full run. The ledger's validate box
+was ticked before the first run, because `check:ledger` inside validate reads it. The run on the
+third round's final tree is reported in the PR.

@@ -246,7 +246,9 @@ selector also reports what it cannot read, as findings on the rule:
 - a different wrapped label inside the declaration, which takes the links under
   it out of the declaration;
 - the label, exact or near, where no block starts — later in a paragraph,
-  mid-line, in a table cell or in a heading — where it declares nothing;
+  mid-line, in a table cell or in a heading — where it declares nothing; or at
+  a block's start in a form it does not read (`**_Related to:_**`, a whole line
+  in bold);
 - a declaration, in any form, holding reference-style links (`[text][ref]`),
   which eess-md does not read — its inline links are still selected;
 - a wrapped label spelt exactly right with nothing under it: either it names no

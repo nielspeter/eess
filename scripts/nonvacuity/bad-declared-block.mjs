@@ -29,6 +29,10 @@
  *   stands-alone          bad-declared-block/alone.md has a lone `**Related to:**`
  *                         followed by a paragraph, no list → "… stands alone with
  *                         no list directly under it".
+ *   formatted-label       bad-declared-block/formatted.md opens a block with
+ *                         `**_Related to:_**`, which the tree reads and the line
+ *                         grammar does not (plan 0405's third review) → "… is
+ *                         written with formatting eess-md does not read".
  *   nested-declaration    bad-declared-block/nested.md nests `**Related To:**`
  *                         under a list item whose line holds a colon, under a
  *                         `Metadata:` label — the shape whose parent once
@@ -89,6 +93,11 @@ const SCENARIOS = {
     file: `${ROOT}/alone.md`,
     declare: (b) => b.areLabelled('Related to'),
     says: 'the "Related to" label stands alone with no list directly under it',
+  },
+  'formatted-label': {
+    file: `${ROOT}/formatted.md`,
+    declare: (b) => b.areLabelled('Related to'),
+    says: 'the label "Related to" is written with formatting eess-md does not read',
   },
   'nested-declaration': {
     file: `${ROOT}/nested.md`,
