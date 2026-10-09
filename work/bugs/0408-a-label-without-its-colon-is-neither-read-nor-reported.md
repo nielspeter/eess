@@ -52,8 +52,8 @@ report what the selector cannot read looks at it:
   `wrappedLabelOf` returns, and `isNearMiss` (`label.ts:72`) compares case and inner spacing only, so
   a different spelling (`Related` for `Related to`) is not a near miss either;
 - the unread-label scan (`declaration-findings.ts:152`), which reports a label at a block's start
-  "written with formatting eess-md does not read", only sees a bold run whose text ends in a colon
-  or is followed by one.
+  "written with formatting eess-md does not read", only sees a bold run whose text contains a
+  colon or is followed by one.
 
 The colon is required on purpose: it stops prose that merely begins with the word — `Related to bug
 0253, see …` — from reading as a declaration (plan 0405's decision). A bold run is weaker evidence of
