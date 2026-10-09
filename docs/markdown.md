@@ -278,6 +278,54 @@ These findings come from the rule — `.check()`, `.warn()`, `.violations()`. A
 such check, so a correspondence side built this way states nothing about a
 misspelt declaration.
 
+### A declared link is answered: `beLinkedBack` and `haveLiveTargets`
+
+A declaration is half of a relation. `beLinkedBack()` checks the other half:
+each selected link's target links back to the record that declared it.
+
+```typescript
+const resolveOptions = { tryExtensions: ['.md'] }
+links(c)
+  .that()
+  .areLabelled('Related to')
+  .and()
+  .haveLiveTargets(resolveOptions)
+  .should()
+  .beLinkedBack(resolveOptions)
+  .check()
+```
+
+**Any link back answers.** Several links back are one answer, a fragment
+(`a.md#why`) is still a link to `a.md`, and the back-link may sit anywhere in
+the target — which means an incidental mention counts too. A link inside a code
+fence or an HTML comment is not a link and does not answer. Both ends resolve
+the way `resolve()` does: `beLinkedBack()` takes the same options, so a corpus of
+extensionless links passes them once and both directions agree.
+
+**A frozen record cannot answer** — it is history, held to its own time. Add
+`haveLiveTargets()`, with the same options, to leave links into frozen folders
+out of the selection; it is an ordinary `.that()` filter, so it shows in the
+rule's own text and is not counted. Forgetting it fails closed: the link is
+examined, and if the frozen record does not link back the finding says so and
+names the selector.
+
+The selection is what is examined. A rule whose labels match nothing, or whose
+every target is frozen, fails with the zero-examined finding rather than
+passing.
+
+A target that cannot answer is one finding, on the declaring link's line, named
+`source → target`, with its remedy as the suggestion:
+
+| The target                     | The finding                                          | The remedy                                                   |
+| ------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------ |
+| a live record, no link back    | `a.md declares b.md, and b.md does not link back`    | add a link to `a.md` in `b.md`, or remove `b.md`             |
+| a frozen record, no selector   | `b.md is frozen and cannot answer`                   | add `.haveLiveTargets()`, or remove `b.md`                   |
+| a file the corpus did not load | outside the roots, ignored, or not Markdown          | widen the roots, stop ignoring the path, or declare a record |
+| nothing                        | `b.md does not exist`                                | correct the link — the same fix clears `resolve()`           |
+| a directory                    | `the link names a directory, … not a record`         | link the record's file                                       |
+| the record itself              | `the link points at this record`                     | remove it                                                    |
+| an external URL                | `the declaration links outside the repository, to …` | declare a record in the corpus                               |
+
 ### Resolving a link yourself: `resolveLink`
 
 A condition over links usually needs to know where a link points. Don't

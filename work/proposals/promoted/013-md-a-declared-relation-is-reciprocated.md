@@ -1,14 +1,13 @@
 # Proposal 013 — md: a declared relation between two documents is reciprocated
 
-**State:** Draft — the maintainer accepted the asks on 2026-10-07 by asking for plans to implement
-them ("then lets make plans to implement the proposal 013"). Ask C is owned by
-[plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md), Ask A by
-[plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md), Ask B by
-[plan 0406](../plans/0406-md-a-declared-link-is-answered.md), which ships last and declares
-`**Implements:** proposal 013`; this record moves to `promoted/` in that plan's PR. Filed 2026-10-07
-at the maintainer's request after an inbound question; reviewed the same day (architect · product ·
-enforcement); open questions decided by the coordinating agent at the maintainer's instruction (see
-"Decision — 2026-10-07").
+**State:** Promoted — every ask is built: Ask C by
+[plan 0404](../../plans/completed/0404-md-one-link-resolver-names-each-case.md), Ask A by
+[plan 0405](../../plans/completed/0405-md-select-the-links-a-block-declares.md), and Ask B by
+[plan 0406](../../plans/completed/0406-md-a-declared-link-is-answered.md), which declares
+`**Implements:** proposal 013` and shipped last (2026-10-09). The maintainer accepted the asks on
+2026-10-07 by asking for plans to implement them. Filed 2026-10-07 at the maintainer's request after
+an inbound question; reviewed the same day (architect · product · enforcement); open questions
+decided by the coordinating agent at the maintainer's instruction (see "Decision — 2026-10-07").
 **Priority:** Medium — no shipped rule checks this property, so none is falsely green on it. One consuming project checks the
 property by hand, and the obvious composition with released parts both fails open and gives a
 false red.
@@ -19,7 +18,7 @@ one-way `beComplete()` counts the side it never reads).
 
 ## Problem
 
-eess-md checks that a link resolves (`linkResolves`, `packages/md/src/conditions/resolve.ts:30`).
+eess-md checks that a link resolves (`linkResolves`, `packages/md/src/conditions/resolve.ts:31`).
 Nothing checks that a relation two documents declare is held from both ends.
 
 Most links are one-way by nature, so "every link must link back" is not a spec. What two corpora
@@ -210,7 +209,7 @@ merge after a method review found the first synthesis unfaithful in five places.
   (C1), product preferred it (its I3), and enforcement's criteria are met by it. For each selected
   link, the check is whether the target holds any link resolving to the source: set membership
   against an index of every internal link in the corpus, the same shape as `linkResolves`
-  (`packages/md/src/conditions/resolve.ts:30`). Built that way:
+  (`packages/md/src/conditions/resolve.ts:31`). Built that way:
   - several links back are one answer, so the measured false red disappears;
   - `examined` is the selected links only, so a misspelt marker selects nothing and the existing
     zero-examined finding fires, with no dependence on bug 0400's decision;
@@ -228,7 +227,7 @@ merge after a method review found the first synthesis unfaithful in five places.
   label form shares eess-md's existing label grammar, private to the ledger rule
   (`packages/md/src/rules/ledger.ts:147-152`), rather than adding a second (architect).
 - **C is a function, not a field on `MdLink`** (architect, product): the resolved target depends on
-  `LinkResolveOptions` and can be several candidates (`packages/md/src/conditions/resolve.ts:57-70`),
+  `LinkResolveOptions` and can be several candidates (`packages/md/src/conditions/resolve.ts:52-65`),
   while the corpus is parsed before any rule's options exist. The lenses disagree on its signature:
   the architect proposes `resolveLink(link, corpus, options)` returning the one existing repo path
   or `undefined`; product proposes `resolveLink(link, options?)` returning every candidate. B must
@@ -298,11 +297,11 @@ merge after a method review found the first synthesis unfaithful in five places.
 
 ### Disposition, per ask
 
-| ask                                        | disposition            | owner                                                                                                                                                                                                                                                                                                                                                                          |
-| ------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **C** — exported `resolveLink()`           | **Accepted**           | [plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md)                                                                                                                                                                                                                                                                                                   |
-| **A** — selector for a declared relation   | **Accepted**           | [plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)                                                                                                                                                                                                                                                                                                   |
-| **B** — reciprocity condition on `links()` | **Accepted, reshaped** | [plan 0406](../plans/0406-md-a-declared-link-is-answered.md), after plans 0404 and 0405. Reshaped in planning: the frozen exemption is an explicit selector the author writes (`haveLiveTargets()`), because a condition cannot add a selection filter, and it is not counted, because a visible predicate is like every other `.that()` filter (decision 3 asked for a count) |
+| ask                                        | disposition            | owner                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C** — exported `resolveLink()`           | **Accepted**           | [plan 0404](../../plans/completed/0404-md-one-link-resolver-names-each-case.md)                                                                                                                                                                                                                                                                                                             |
+| **A** — selector for a declared relation   | **Accepted**           | [plan 0405](../../plans/completed/0405-md-select-the-links-a-block-declares.md)                                                                                                                                                                                                                                                                                                             |
+| **B** — reciprocity condition on `links()` | **Accepted, reshaped** | [plan 0406](../../plans/completed/0406-md-a-declared-link-is-answered.md), after plans 0404 and 0405. Reshaped in planning: the frozen exemption is an explicit selector the author writes (`haveLiveTargets()`), because a condition cannot add a selection filter, and it is not counted, because a visible predicate is like every other `.that()` filter (decision 3 asked for a count) |
 
 ### Corrections
 

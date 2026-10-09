@@ -259,6 +259,25 @@ const stale = pointerRule.violations()
 const adrViolations = adrEnforcement(c, { dir: 'adr/**', report: 'return' })
 const adrError = adrViolations.length > 0
 
+// Plan 0406 — an ADR that declares `**Extends:** [ADR-NNN](…)` is answered by a
+// link back from the ADR it extends (an `**Extended by:**` line). Its own corpus
+// over adr/ only, so the declaration scan — a misspelt or unreadable `Extends`
+// label — reads the ADRs and nothing else. No `.expectEmpty()`: a corpus whose
+// every `Extends` label is gone examines zero and fails.
+const extendsRule = links(corpus({ roots: ['adr/**'] }))
+  .that()
+  .areLabelled('Extends')
+  .and()
+  .haveLiveTargets()
+  .should()
+  .beLinkedBack()
+  .rule({
+    id: 'corpus/adr-extends-linked-back',
+    because:
+      'an ADR that extends another is a relation both ADRs must state, or the extended one reads as complete',
+  })
+const extendsViolations = extendsRule.violations()
+
 // Proposal → plan linkage (bug 0141 / plan 0142): an accepted proposal
 // (Ruling: Ship as-is / Ship with changes) must have at least one plan that
 // DECLARES it implements that proposal — a plan's own **Implements:** header
@@ -982,6 +1001,7 @@ const receipt = mergeCollectResults([
   collectResult(broken, { examined: linksChecked }),
   collectResult(stale, { examined: pointersChecked }),
   collectResult(adrViolations, { examined: adrDocs.length }),
+  collectResult([...extendsViolations], { examined: extendsViolations.examined }),
   collectResult(proposalPlanViolations, { examined: acceptedProposalCount }),
   collectResult(boardRulingViolations, { examined: boardRowsExamined }),
   collectResult(promotedViolations, { examined: promotedProposals.length }),
@@ -1035,6 +1055,14 @@ line(
   `${adrDocs.length} enforced · ${adrError ? '✗ invalid' : '✓ tables + citations resolve'}`,
 )
 line(
+  'extends',
+  `${extendsViolations.examined} ADR Extends link(s) · ${
+    extendsViolations.length === 0
+      ? '✓ each answered by the ADR it extends'
+      : `✗ ${extendsViolations.length} finding(s)`
+  }`,
+)
+line(
   'lanes',
   `${laneRows.length} row(s) · ${laneDirs.length} directories · ${
     laneViolations.length === 0
@@ -1085,6 +1113,7 @@ const problems = [
   ...unparseableImplementsViolations,
   ...danglingImplementsViolations,
   ...laneViolations,
+  ...extendsViolations,
 ]
 if (problems.length > 0) {
   console.error('')

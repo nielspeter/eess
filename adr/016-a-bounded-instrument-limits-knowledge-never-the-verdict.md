@@ -1,6 +1,7 @@
 # ADR-016: A bounded instrument limits knowledge, never the verdict
 
 - **Status:** Accepted (2026-09-30)
+- **Extends:** [ADR-009](./009-agent-first-failure-surfaces.md) · [ADR-010](./010-a-pass-is-constructed-from-evidence.md)
 - **Context:** [bug 0359](../work/bugs/fixed/0359-a-disk-walk-that-gave-up-reports-nothing-and-now-decides-a-verdict.md),
   [bug 0355](../work/bugs/fixed/0355-a-cardinality-rule-cannot-tell-none-exist-from-my-selector-broke.md),
   [spike 0367](../work/spikes/0367-must-the-disk-question-walk-the-whole-repo.md),

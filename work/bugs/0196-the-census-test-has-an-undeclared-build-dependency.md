@@ -52,7 +52,7 @@ ADR-009 states both halves of the countermeasure and 0193 currently ports one:
 
 > Assert a green baseline before the first patch, **and hold the tree
 > exclusively** (an isolated git worktree, or nobody else running).
-> — `adr/009-agent-first-failure-surfaces.md:247-253`
+> — `adr/009-agent-first-failure-surfaces.md:249-255`
 
 ## Fix
 

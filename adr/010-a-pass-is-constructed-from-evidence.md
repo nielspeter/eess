@@ -14,6 +14,8 @@ a plan implements — the same split `ts-archunit`'s own ADR-009 names
 explicitly for its matrix's test inventory ("the test inventory that realises
 it ... is the implementing plan's").
 
+**Extended by:** [ADR-014](./014-the-emitter-refuses-a-verdict-without-evidence.md) · [ADR-016](./016-a-bounded-instrument-limits-knowledge-never-the-verdict.md)
+
 ## Context
 
 [ADR-009](./009-agent-first-failure-surfaces.md) establishes that a check

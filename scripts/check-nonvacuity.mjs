@@ -62,6 +62,14 @@
  *                 parent once swallowed a label unread and the annotated item that
  *                 once escaped its declaration; each row asserts its own finding's
  *                 message on its own file — all ten share one rule id.
+ *   corpus/adr-extends/{one-way,every-label-removed} (production script — bug 0127)
+ *                 (plan 0406) ADR-010 rewritten with no link to ADR-014 → a
+ *                 corpus/adr-extends-linked-back finding on ADR-014 naming ADR-010;
+ *                 ADR-014 and ADR-016 rewritten without their `**Extends:**` lines →
+ *                 that rule's zero-examined finding.
+ *   corpus/linked-back/* (plan 0406) scripts/nonvacuity/bad-linked-back/ holds one
+ *                 folder per finding cause and shape; each row asserts its exact
+ *                 finding set, so a missing and an extra finding both fail it.
  *   corpus/links/site, corpus/links/repo-native (production script — bug 0127)
  *                 a probe planted under docs/ and under work/bugs/ respectively
  *                 links a missing file, and the PRODUCTION `scripts/check-corpus.mjs`
@@ -2313,6 +2321,73 @@ function gateCorpusPlanImplementsUnresolved() {
   )
 }
 
+// --- Gate: corpus/adr-extends (plan 0406) — production tier (bug 0127) ---
+// The real `scripts/check-corpus.mjs` runs `beLinkedBack()` over the ADRs'
+// `**Extends:**` relation. Two sabotages of real ADRs, no probe file planted, so
+// no gate needs an exclusion.
+const ADR_010 = join(repoRoot, 'adr', '010-a-pass-is-constructed-from-evidence.md')
+const ADR_014 = join(repoRoot, 'adr', '014-the-emitter-refuses-a-verdict-without-evidence.md')
+const ADR_016 = join(
+  repoRoot,
+  'adr',
+  '016-a-bounded-instrument-limits-knowledge-never-the-verdict.md',
+)
+const LINK_TO_014 =
+  /\[[^\]]*\]\([^)]*014-the-emitter-refuses-a-verdict-without-evidence\.md[^)]*\)/g
+const EXTENDS_LINE = /^(- )?\*\*Extends:\*\*.*\n\n?/m
+
+// One-way: ADR-010 no longer links to ADR-014, so ADR-014's declaration is
+// unanswered. The rewrite must leave no link to ADR-014 at all, or a later
+// incidental link would let this row blame the rule for a link it did not remove.
+// The finding must sit on ADR-014 and name ADR-010 — not the zero-examined one.
+function gateCorpusExtendsOneWay() {
+  const rewrite = (text) => {
+    const next = text.replace(LINK_TO_014, 'ADR-014')
+    if (LINK_TO_014.test(next)) {
+      throw new Error('non-vacuity: a link from ADR-010 to ADR-014 survived the rewrite')
+    }
+    return next
+  }
+  const { json, terminal } = withRewrittenFile(ADR_010, rewrite, () => ({
+    json: sh(process.execPath, CORPUS_JSON),
+    terminal: sh(process.execPath, CORPUS_TERM),
+  }))
+  const ok =
+    json.code === 1 &&
+    terminal.code === 1 &&
+    firedNamingPayload(
+      json,
+      'corpus/adr-extends-linked-back',
+      'adr/014-the-emitter-refuses-a-verdict-without-evidence.md',
+      'adr/010-a-pass-is-constructed-from-evidence.md does not link back',
+    )
+  return {
+    ok,
+    detail: `ADR-010 stops linking ADR-014 → json exit ${json.code}, terminal exit ${terminal.code}`,
+  }
+}
+
+// Every label removed: ADR-014 and ADR-016 lose their `**Extends:**` lines, so the
+// rule selects nothing. It must fail with the zero-examined finding under its own
+// id — the row that catches the production rule being given `.expectEmpty()`.
+function gateCorpusExtendsEveryLabelRemoved() {
+  const drop = (text) => text.replace(EXTENDS_LINE, '')
+  const { json, terminal } = withRewrittenFile(ADR_014, drop, () =>
+    withRewrittenFile(ADR_016, drop, () => ({
+      json: sh(process.execPath, CORPUS_JSON),
+      terminal: sh(process.execPath, CORPUS_TERM),
+    })),
+  )
+  const ok =
+    json.code === 1 &&
+    terminal.code === 1 &&
+    firedNamingPayload(json, 'corpus/adr-extends-linked-back', '', 'examined zero units')
+  return {
+    ok,
+    detail: `no Extends label left → json exit ${json.code}, terminal exit ${terminal.code}`,
+  }
+}
+
 // --- Node-script gates (crossval / adr / links / review-harness): exit 1 = expected violation ---
 function gateNode(script, mustSay, argv = []) {
   // `argv` lets ONE fixture file answer for several rows, each row running only
@@ -2665,6 +2740,65 @@ const gates = [
   ['corpus/proposal-implements-discriminates', gateCorpusProposalImplementsDiscriminates],
   ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
   ['corpus/plan-implements-unresolved', gateCorpusPlanImplementsUnresolved],
+  ['corpus/adr-extends/one-way', gateCorpusExtendsOneWay],
+  ['corpus/adr-extends/every-label-removed', gateCorpusExtendsEveryLabelRemoved],
+  // Plan 0406: one fixture row per finding cause and shape, each asserting its exact
+  // finding set, so a dropped or an extra finding both fail it.
+  [
+    'corpus/linked-back/live-no-link-back',
+    () =>
+      gateNode('bad-linked-back.mjs', 'live-no-link-back: exactly as expected', [
+        'live-no-link-back',
+      ]),
+  ],
+  [
+    'corpus/linked-back/frozen-target',
+    () => gateNode('bad-linked-back.mjs', 'frozen-target: exactly as expected', ['frozen-target']),
+  ],
+  [
+    'corpus/linked-back/outside-roots',
+    () => gateNode('bad-linked-back.mjs', 'outside-roots: exactly as expected', ['outside-roots']),
+  ],
+  [
+    'corpus/linked-back/not-markdown',
+    () => gateNode('bad-linked-back.mjs', 'not-markdown: exactly as expected', ['not-markdown']),
+  ],
+  [
+    'corpus/linked-back/ignored',
+    () => gateNode('bad-linked-back.mjs', 'ignored: exactly as expected', ['ignored']),
+  ],
+  [
+    'corpus/linked-back/missing',
+    () => gateNode('bad-linked-back.mjs', 'missing: exactly as expected', ['missing']),
+  ],
+  [
+    'corpus/linked-back/directory',
+    () => gateNode('bad-linked-back.mjs', 'directory: exactly as expected', ['directory']),
+  ],
+  [
+    'corpus/linked-back/self',
+    () => gateNode('bad-linked-back.mjs', 'self: exactly as expected', ['self']),
+  ],
+  [
+    'corpus/linked-back/external',
+    () => gateNode('bad-linked-back.mjs', 'external: exactly as expected', ['external']),
+  ],
+  [
+    'corpus/linked-back/all-frozen',
+    () => gateNode('bad-linked-back.mjs', 'all-frozen: exactly as expected', ['all-frozen']),
+  ],
+  [
+    'corpus/linked-back/mixed-frozen',
+    () => gateNode('bad-linked-back.mjs', 'mixed-frozen: exactly as expected', ['mixed-frozen']),
+  ],
+  [
+    'corpus/linked-back/green-control',
+    () => gateNode('bad-linked-back.mjs', 'green-control: exactly as expected', ['green-control']),
+  ],
+  [
+    'corpus/linked-back/selector-pin',
+    () => gateNode('bad-linked-back.mjs', 'selector-pin: exactly as expected', ['selector-pin']),
+  ],
   // Second-round branch review's own mutation matrix: several of
   // proposal-ruling.mjs's exported behaviors (last-Ruling-wins scoping, the
   // markdown-link Implements form, fence-blindness, multi-Implements
@@ -3013,6 +3147,22 @@ const GATE_FOR = {
     'corpus/declared-block/inner-label',
     'corpus/declared-block/stands-alone',
     'corpus/declared-block/formatted-label',
+    // Plan 0406: the first two run the production script; the rest are FIXTURE tier.
+    'corpus/adr-extends/one-way',
+    'corpus/adr-extends/every-label-removed',
+    'corpus/linked-back/live-no-link-back',
+    'corpus/linked-back/frozen-target',
+    'corpus/linked-back/outside-roots',
+    'corpus/linked-back/not-markdown',
+    'corpus/linked-back/ignored',
+    'corpus/linked-back/missing',
+    'corpus/linked-back/directory',
+    'corpus/linked-back/self',
+    'corpus/linked-back/external',
+    'corpus/linked-back/all-frozen',
+    'corpus/linked-back/mixed-frozen',
+    'corpus/linked-back/green-control',
+    'corpus/linked-back/selector-pin',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],

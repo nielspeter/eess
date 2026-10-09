@@ -3,6 +3,7 @@ import type { Corpus } from '../corpus.js'
 import type { MdLink } from '../model/links.js'
 import { mdViolation } from '../model/violation.js'
 import {
+  basenameIndex,
   linkTargets,
   movedLinkFix,
   resolveLink,
@@ -29,13 +30,7 @@ export type { LinkResolveOptions } from '../model/resolve-link.js'
  */
 export function linkResolves(corpus: Corpus, options: LinkResolveOptions = {}): Condition<MdLink> {
   // Basename → repo files, for finding a uniquely-moved target of a broken link.
-  const byBasename = new Map<string, string[]>()
-  for (const rel of corpus.fileIndex) {
-    const base = rel.slice(rel.lastIndexOf('/') + 1)
-    const list = byBasename.get(base)
-    if (list) list.push(rel)
-    else byBasename.set(base, [rel])
-  }
+  const byBasename = basenameIndex(corpus)
 
   // Bug 0137: a link that names a real directory and one that names nothing at
   // all both reported the identical "does not resolve" message — no hint that

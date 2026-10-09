@@ -219,7 +219,7 @@ the capped remainder is unchecked and the gate says so by name on every run.
 ADR-009 records _"We deliberately do **not** dogfood these six rules"_, carries
 rule 5 (independence) as `manual`, and lists under Alternatives Considered that
 this is _"worth revisiting if a mechanical subset emerges"_. Margin **is** that
-subset — rule 5's reviewer question (`adr/009-agent-first-failure-surfaces.md:288-291`:
+subset — rule 5's reviewer question (`adr/009-agent-first-failure-surfaces.md:290-293`:
 _"what would this test do if the thing it guards were completely broken?" If the
 answer is "pass," the derivations are not independent_) computed instead of asked.
 
@@ -246,7 +246,7 @@ rule 5 covers every derivation in this repo — including the census's own
 166/185/187/231/150 history and the ADR enforcement convention — while
 `check:margin` sees 181 eess-ts primitives and nothing else. Claiming mechanical
 coverage of the remainder is "an enforced rule that is wrong" over "an
-unenforceable rule stated honestly", the inversion `adr/009-agent-first-failure-surfaces.md:292-295`
+unenforceable rule stated honestly", the inversion `adr/009-agent-first-failure-surfaces.md:294-297`
 warns against. Two rows:
 
 | clause                                                      | tier | mechanism                          | status   |
@@ -289,7 +289,7 @@ much as the number is:
 - **hold the tree exclusively.** ADR-009 states both halves and the first version
   of this plan ported one: _"Assert a green baseline before the first patch, **and
   hold the tree exclusively** (an isolated git worktree, or nobody else running)"_
-  (`adr/009-agent-first-failure-surfaces.md:247-253`). This is a guard the script
+  (`adr/009-agent-first-failure-surfaces.md:249-255`). This is a guard the script
   asserts — own worktree, fresh build, no concurrent build — not prose, because
   the cost model puts this gate in CI and in a repo where `npm run validate` runs
   beside agents.

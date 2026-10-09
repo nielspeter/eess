@@ -17,7 +17,7 @@
 
 ## Symptom
 
-`packages/md/src/conditions/resolve.ts:40` splits the fragment off and throws it
+`packages/md/src/conditions/resolve.ts:35` splits the fragment off and throws it
 away, on every path:
 
 ```ts
@@ -44,7 +44,7 @@ Four consequences:
    citation instead of a `#fragment`.
 4. **The autofix carries a fragment it has never validated.** `movedLinkFix`
    deliberately preserves the fragment when rewriting a moved link
-   (`packages/md/src/model/resolve-link.ts:253-254`, `:262`; moved there from `conditions/resolve.ts` by plan 0404):
+   (`packages/md/src/model/resolve-link.ts:265-266`, `:262`; moved there from `conditions/resolve.ts` by plan 0404):
 
    ```ts
    const fragment = link.url.slice(path.length) // '' or '#anchor'

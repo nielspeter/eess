@@ -4,6 +4,8 @@
 
 **Accepted** — 2026-09-03.
 
+**Extends:** [ADR-010](./010-a-pass-is-constructed-from-evidence.md)
+
 Drafted the same day from the review of
 [proposal 009](../work/proposals/009-core-a-verdict-cannot-be-assembled-by-hand.md),
 whose Problem section every review lens accepted and whose mechanism none did,

@@ -19,7 +19,7 @@
 ADR-010 binds "every current eess rule family (`eess-ts`'s builders, `eess-md`'s corpus rules,
 `eess-mermaid`'s diagram rules, `eess-gherkin`'s feature rules) and every future one"
 (`adr/010-a-pass-is-constructed-from-evidence.md`, Decision). Its Enforcement row for that clause
-(`adr/010-a-pass-is-constructed-from-evidence.md:293`) names `scripts/vacuity-matrix.mjs` and is
+(`adr/010-a-pass-is-constructed-from-evidence.md:295`) names `scripts/vacuity-matrix.mjs` and is
 `gated`.
 
 The matrix imports `@nielspeter/eess-ts`, its `presets` and `graphql` subpaths, and the kernel

@@ -240,6 +240,18 @@ export function resolveLink(
   return { kind: 'missing', tried }
 }
 
+/** Basename → every repo file with it, for {@link movedLinkFix}. Built once per caller. */
+export function basenameIndex(corpus: Corpus): ReadonlyMap<string, readonly string[]> {
+  const byBasename = new Map<string, string[]>()
+  for (const rel of corpus.fileIndex) {
+    const base = rel.slice(rel.lastIndexOf('/') + 1)
+    const list = byBasename.get(base)
+    if (list) list.push(rel)
+    else byBasename.set(base, [rel])
+  }
+  return byBasename
+}
+
 /**
  * If a broken link's basename uniquely names one file in the repo (the target
  * moved, not renamed), a deterministic autofix rewriting the URL to a path

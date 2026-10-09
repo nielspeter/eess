@@ -3,6 +3,8 @@ import type { Corpus } from '../corpus.js'
 import { collectLinks, type MdLink, type MdLinkRef } from '../model/links.js'
 import { stampedByDocument } from '../model/by-document.js'
 import { linkResolves, type LinkResolveOptions } from '../conditions/resolve.js'
+import { linkedBack } from '../conditions/linked-back.js'
+import { haveLiveTargetsPredicate } from '../predicates/live-target.js'
 import { areInSectionPredicate, areLabelledPredicate } from '../predicates/declared-block.js'
 import {
   declarationFindings,
@@ -103,6 +105,28 @@ export class LinkRuleBuilder extends RuleBuilder<MdLink, Corpus> {
    */
   resolve(options?: LinkResolveOptions): this {
     return this.addCondition(linkResolves(this.project, options))
+  }
+
+  /**
+   * Filter to links whose target is not a frozen document (plan 0406) — a frozen
+   * record is history and cannot be edited to answer. Pass the options you pass
+   * `beLinkedBack()`, so the two resolve a link the same way. Every other target
+   * is kept, and examined.
+   */
+  haveLiveTargets(options?: LinkResolveOptions): this {
+    return this.addPredicate(haveLiveTargetsPredicate(this.project, options))
+  }
+
+  /**
+   * Condition: each link's target links back to the link's document (plan 0406).
+   * Any link back answers; several are one answer, and an incidental mention
+   * counts. A target that cannot answer — frozen, outside the corpus, missing, a
+   * directory, the record itself, an external URL — is one finding naming its
+   * cause, with its remedy as the suggestion. Takes the options `resolve()`
+   * takes, so a corpus with extensionless links resolves both ends the same way.
+   */
+  beLinkedBack(options?: LinkResolveOptions): this {
+    return this.addCondition(linkedBack(this.project, options))
   }
 
   /**
