@@ -3,7 +3,7 @@
 **State:** Draft — the maintainer accepted the asks on 2026-10-07 by asking for plans to implement
 them ("then lets make plans to implement the proposal 013"). Ask C is owned by
 [plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md), Ask A by
-[plan 0405](../plans/0405-md-select-the-links-a-block-declares.md), Ask B by
+[plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md), Ask B by
 [plan 0406](../plans/0406-md-a-declared-link-is-answered.md), which ships last and declares
 `**Implements:** proposal 013`; this record moves to `promoted/` in that plan's PR. Filed 2026-10-07
 at the maintainer's request after an inbound question; reviewed the same day (architect · product ·
@@ -301,7 +301,7 @@ merge after a method review found the first synthesis unfaithful in five places.
 | ask                                        | disposition            | owner                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **C** — exported `resolveLink()`           | **Accepted**           | [plan 0404](../plans/completed/0404-md-one-link-resolver-names-each-case.md)                                                                                                                                                                                                                                                                                                   |
-| **A** — selector for a declared relation   | **Accepted**           | [plan 0405](../plans/0405-md-select-the-links-a-block-declares.md)                                                                                                                                                                                                                                                                                                             |
+| **A** — selector for a declared relation   | **Accepted**           | [plan 0405](../plans/completed/0405-md-select-the-links-a-block-declares.md)                                                                                                                                                                                                                                                                                                   |
 | **B** — reciprocity condition on `links()` | **Accepted, reshaped** | [plan 0406](../plans/0406-md-a-declared-link-is-answered.md), after plans 0404 and 0405. Reshaped in planning: the frozen exemption is an explicit selector the author writes (`haveLiveTargets()`), because a condition cannot add a selection filter, and it is not counted, because a visible predicate is like every other `.that()` filter (decision 3 asked for a count) |
 
 ### Corrections

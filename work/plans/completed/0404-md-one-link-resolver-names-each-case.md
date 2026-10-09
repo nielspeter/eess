@@ -13,7 +13,7 @@
 - **Builds:** [proposal 013](../../proposals/013-md-a-declared-relation-is-reciprocated.md)'s Ask C; its
   disposition row names this plan. This plan does not declare `**Implements:**`; plan 0406, which
   ships the last ask, does.
-- **First of three:** this plan, then [plan 0405](../0405-md-select-the-links-a-block-declares.md),
+- **First of three:** this plan, then [plan 0405](./0405-md-select-the-links-a-block-declares.md),
   then [plan 0406](../0406-md-a-declared-link-is-answered.md).
 
 ## Problem

@@ -196,6 +196,88 @@ ledger reconciliation is built from (see "Ledger reconciliation" below), and
 is exported for a caller who wants task items without going through the
 corpus builder chain.
 
+### Selecting the links a block declares: `areLabelled` and `areInSection`
+
+A record often declares a relation in one place — a `**Related to:**` line, a
+`## See also` section — and the rule is about those links only, not every link
+in the document. Two selectors on `links()` pick them out:
+
+```typescript
+// Every link a "Related to" label declares must resolve.
+links(c).that().areLabelled('Related to').should().resolve().check()
+
+// Every link under a "See also" heading (and its sub-headings) must resolve.
+links(c).that().areInSection('See also').should().resolve().check()
+```
+
+**`areLabelled(label)`** matches the label exactly, case included, in any of
+four forms: `**Label:**`, `**Label**:`, `__Label__:` and plain `Label:`. The
+colon is required in every form, so prose that merely begins with the word is
+not a declaration. The label is read at the start of a block's content, so it
+may follow a list marker (`-`, `1.`), a task box (`[ ]`) or a blockquote `>`.
+
+A link is declared under the label when it sits in the label's **block** or
+below it: the paragraph or list item the label opens (a wrapped second line
+included), that item's nested lists, and — when the label stands alone on its
+line — every list directly after it. A list after an intervening paragraph is
+not under the label, and a label with a link of its own does not take the list
+that follows it.
+
+The nearest label decides. Walking outwards from the link, the first block that
+is the declared label, or that opens with a wrapped label of its own, settles
+it. A plain line that is not the label — `bug 0402: [b](b.md)`, `Notes:`, a URL
+— settles nothing, so an annotated item stays in its declaration and a
+`**Related to:**` item under an intro such as `Metadata:` is still read. A
+different wrapped label inside the declaration (`- **Supersedes:** [s](s.md)`)
+takes its links out of it, and is reported.
+
+**`areInSection(name)`** selects the links under a heading named `name` — a
+string matched exactly, or a `RegExp` — at any depth beneath it, until the next
+heading of the same or a shallower depth.
+
+A declaration the selector cannot read selects nothing, and a rule over an empty
+selection would otherwise be quiet about it. So a rule built with either
+selector also reports what it cannot read, as findings on the rule:
+
+- a wrapped label (`**Related To:**`, `**Related  to:**`) that differs from the
+  declared one only in case or inner spacing. The plain `Label:` form is never
+  reported this way — prose beginning "related to:" is common — so a plain
+  `Related To:` is the one misspelling the rule does not catch;
+- a different wrapped label inside the declaration, which takes the links under
+  it out of the declaration;
+- the label, exact or near, where no block starts — later in a paragraph,
+  mid-line, in a table cell or in a heading — where it declares nothing; or at
+  a block's start in a form it does not read (`**_Related to:_**`, a whole line
+  in bold);
+- a declaration, in any form, holding reference-style links (`[text][ref]`),
+  which eess-md does not read — its inline links are still selected;
+- a wrapped label spelt exactly right with nothing under it: either it names no
+  record (`**Related to:** bug 0253`), or it stands alone with no list directly
+  under it. A template that writes `**Related to:** none` gets this finding;
+  leave the label out instead;
+- a heading that misses a **string** `areInSection` declaration by case or
+  spacing. A `RegExp` states its own tolerance, so none is reported for it.
+
+The scan covers the whole corpus, not only the rule's selection — a misspelt
+declaration is, by definition, not selected — so a rule narrowed with other
+selectors, and every rule declaring the same label, reports the same findings.
+They are ordinary findings, each with its remedy as the suggestion, and each
+names its kind at the end of its element — `(near miss)`, `(inside "…")`,
+`(not at a block start)`, `(formatting)`, `(reference links)`, `(empty)` — so
+one `.excluding()` sanctions one kind: `.excluding(/→ label "Supersedes" \(empty\)$/)`
+accepts a template's `**Supersedes:** none` and still reports everything else
+about that label.
+
+Each `MdLink` carries what the selector reads: `block`, the innermost paragraph
+or list item holding it, and `blockPath`, every block enclosing it, outermost
+first. A label alone on its line counts as enclosing the lists directly after
+it, though Markdown does not nest them under it.
+
+These findings come from the rule — `.check()`, `.warn()`, `.violations()`. A
+`.select()` over the same chain returns the selected links and carries **no**
+such check, so a correspondence side built this way states nothing about a
+misspelt declaration.
+
 ### Resolving a link yourself: `resolveLink`
 
 A condition over links usually needs to know where a link points. Don't

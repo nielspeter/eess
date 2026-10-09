@@ -15,7 +15,7 @@
 - **Why this plan declares it:** it ships the proposal's last ask, so when it closes every ask is
   built, and the lane promotes a proposal only on such a declaration. Asks C and A are built by
   [plan 0404](./completed/0404-md-one-link-resolver-names-each-case.md) and
-  [plan 0405](./0405-md-select-the-links-a-block-declares.md), on which this plan depends.
+  [plan 0405](./completed/0405-md-select-the-links-a-block-declares.md), on which this plan depends.
 
 ## Problem
 
@@ -127,6 +127,11 @@ whichever records hold shifted pointers.
   link back, and a green control including a target that links back twice and back-links written
   `a.md`, `./a.md`, `../x/a.md`, `/x/a.md` and `a%20b.md`.
 
+- **Selector pin** (added 2026-10-09, deferred here from plan 0405's final review): no row yet
+  pins `areLabelled()` itself. A row over the dogfood rule's selection must go red when it
+  over-selects (a link outside every `**Extends:**` declaration selected) and when it under-selects
+  (an `**Extends:**` item annotated `- [ADR-010](…): why` dropped).
+
 **Files:** `scripts/check-nonvacuity.mjs`, `scripts/nonvacuity/bad-linked-back/**` and
 `scripts/nonvacuity/bad-linked-back.mjs` (new).
 
@@ -187,6 +192,7 @@ fix, and this plan does not wait for it.
 - [ ] Phase 1 — `beLinkedBack`, `haveLiveTargets`, the findings per cause, docs
 - [ ] Phase 2 — ADR `**Extends:**` / `**Extended by:**` lines, pointers re-pointed, the rule in `check:corpus`
 - [ ] Phase 3 — the two production rows and the fixture rows
+- [ ] the selector pin: a row red on over- and on under-selection (added 2026-10-09)
 - [ ] each remedy verified to remediate
 - [ ] the sabotage rows go red; adversarial review before merge
 - [ ] proposal 013 moves to `promoted/` in the PR that ships this plan, since this plan declares

@@ -54,6 +54,14 @@
  *                 PARSE-FAILURE path. clean-diagram.md is the sanity direction.
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
+ *   corpus/declared-block/{label-near-miss,section-near-miss,unreadable-declaration,
+ *                 empty-declaration,unread-label,nested-declaration,annotated-child,
+ *                 inner-label,stands-alone,formatted-label}
+ *                 (plan 0405) scripts/nonvacuity/bad-declared-block/ holds one
+ *                 document per declaration finding, plus the nested shape whose
+ *                 parent once swallowed a label unread and the annotated item that
+ *                 once escaped its declaration; each row asserts its own finding's
+ *                 message on its own file — all ten share one rule id.
  *   corpus/links/site, corpus/links/repo-native (production script — bug 0127)
  *                 a probe planted under docs/ and under work/bugs/ respectively
  *                 links a missing file, and the PRODUCTION `scripts/check-corpus.mjs`
@@ -2481,6 +2489,54 @@ const gates = [
     'corpus/ledger/state-in-code',
     () => gateNode('bad-ledger-fences.mjs', 'ledger/state-in-code', ['state-in-code']),
   ],
+  // Plan 0405: one row per declaration finding. The ten share the rule's id, so each row's
+  // token is the scenario name the fixture prints only when THAT finding is on THAT file.
+  [
+    'corpus/declared-block/label-near-miss',
+    () => gateNode('bad-declared-block.mjs', 'label-near-miss: reported on', ['label-near-miss']),
+  ],
+  [
+    'corpus/declared-block/section-near-miss',
+    () =>
+      gateNode('bad-declared-block.mjs', 'section-near-miss: reported on', ['section-near-miss']),
+  ],
+  [
+    'corpus/declared-block/unreadable-declaration',
+    () =>
+      gateNode('bad-declared-block.mjs', 'unreadable-declaration: reported on', [
+        'unreadable-declaration',
+      ]),
+  ],
+  [
+    'corpus/declared-block/empty-declaration',
+    () =>
+      gateNode('bad-declared-block.mjs', 'empty-declaration: reported on', ['empty-declaration']),
+  ],
+  [
+    'corpus/declared-block/unread-label',
+    () => gateNode('bad-declared-block.mjs', 'unread-label: reported on', ['unread-label']),
+  ],
+  [
+    'corpus/declared-block/formatted-label',
+    () => gateNode('bad-declared-block.mjs', 'formatted-label: reported on', ['formatted-label']),
+  ],
+  [
+    'corpus/declared-block/annotated-child',
+    () => gateNode('bad-declared-block.mjs', 'annotated-child: reported on', ['annotated-child']),
+  ],
+  [
+    'corpus/declared-block/inner-label',
+    () => gateNode('bad-declared-block.mjs', 'inner-label: reported on', ['inner-label']),
+  ],
+  [
+    'corpus/declared-block/stands-alone',
+    () => gateNode('bad-declared-block.mjs', 'stands-alone: reported on', ['stands-alone']),
+  ],
+  [
+    'corpus/declared-block/nested-declaration',
+    () =>
+      gateNode('bad-declared-block.mjs', 'nested-declaration: reported on', ['nested-declaration']),
+  ],
   // Bug 0131 follow-up (six-persona review): the fold's zero-examined guard
   // must actually reach `honestyAtClose`'s `headerViolations` lane, not just
   // its detection logic — a regression back to hand-rolled iteration (or an
@@ -2944,6 +3000,19 @@ const GATE_FOR = {
     'corpus/plan-implements-unparseable',
     'corpus/plan-implements-unresolved',
     'corpus/proposal-ruling-module',
+    // Plan 0405 — FIXTURE tier (bug 0127), and narrower than the gate: they prove the eess-md
+    // builder `check:corpus` is written in reports each declaration finding, but no
+    // production rule declares a block until plan 0406 dogfoods `areLabelled()`.
+    'corpus/declared-block/label-near-miss',
+    'corpus/declared-block/section-near-miss',
+    'corpus/declared-block/unreadable-declaration',
+    'corpus/declared-block/empty-declaration',
+    'corpus/declared-block/unread-label',
+    'corpus/declared-block/nested-declaration',
+    'corpus/declared-block/annotated-child',
+    'corpus/declared-block/inner-label',
+    'corpus/declared-block/stands-alone',
+    'corpus/declared-block/formatted-label',
   ],
   'check:review-harness': ['review-harness'],
   'check:numbers': ['work/numbers'],
