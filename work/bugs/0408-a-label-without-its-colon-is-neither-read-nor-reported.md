@@ -4,11 +4,12 @@
 
 - **State:** Draft — reproduced 2026-10-09 against this repository's build at `2b6f491`. No red
   test yet.
-- **Severity:** Medium — a false green the instrument does not disclose (ADR-016 rule 7). A
-  declaration written `**Related to** [b](b.md)` is not selected by an `areLabelled()` rule for
-  that label, and nothing reports it, so a rule over the declared links passes while that relation goes
-  unchecked. Exposure: every `areLabelled()` rule; in this repository, ADR-018's
-  `- **Extends** [ADR-009](…)` is outside the ADR Extends rule for this reason alone (plan 0406).
+- **Severity:** Medium — an honesty gap between a stated claim and its mechanism (`BUGS.md`'s
+  Medium row). `docs/markdown.md:240` promises that a rule built with `areLabelled()` "also reports
+  what it cannot read", including a label "at a block's start in a form it does not read" (`:250`).
+  `**Related to** [c](c.md)` is that case and is not reported, so a rule over the declared links
+  passes while that relation goes unchecked. Not High: the rule does not claim to read the
+  colon-less form, and every `**Label:**` declaration it does select is checked.
 - **Origin:** self-found · enforcement and architect review of plan 0406, 2026-10-09.
 - **Reported:** 2026-10-09
 
@@ -43,36 +44,52 @@ r.rule({ id: 'x' }).violations() // one finding: the `related to` near miss
 
 ## Root cause
 
-Plan 0405's label grammar requires the colon in every form (`packages/md/src/model/label.ts`), so
-a bold word with no colon is not a label to `wrappedLabelOf`, and the near-miss scan only runs over
-what `wrappedLabelOf` returns. `isNearMiss` compares case and inner spacing only, so a different
-spelling (`Related` for `Related to`) is not a near miss either.
+Plan 0405's label grammar requires the colon in every form (`packages/md/src/model/label.ts:13`), so
+a bold word with no colon is not a label to `wrappedLabelOf` (`:60`). Neither of the two scans that
+report what the selector cannot read looks at it:
 
-The colon is required on purpose: it stops prose that merely begins with the word — `Related to
-bug 0253, see …` — from reading as a declaration (plan 0405's decision). That reason holds for
-plain text. It is weaker for a **bold** word that opens a block and is followed by a link, which an
-author writes only as a label.
+- the near-miss scan (`packages/md/src/builders/declaration-findings.ts:84`) runs only over what
+  `wrappedLabelOf` returns, and `isNearMiss` (`label.ts:72`) compares case and inner spacing only, so
+  a different spelling (`Related` for `Related to`) is not a near miss either;
+- the unread-label scan (`declaration-findings.ts:152`), which reports a label at a block's start
+  "written with formatting eess-md does not read", only sees a bold run whose text ends in a colon
+  or is followed by one.
+
+The colon is required on purpose: it stops prose that merely begins with the word — `Related to bug
+0253, see …` — from reading as a declaration (plan 0405's decision). A bold run is weaker evidence of
+prose, but not none. ADR-018's Status block opens a prose sentence with one:
+
+```md
+- **Extends** [ADR-009](…) (rule 1, and rule 3's corollary) and [ADR-010](…) to the strings a rule
+  is written in. Applies [ADR-016](…) where the checker cannot see.
+```
+
+Reading that as a label would make ADR-016 a declared target. That line is the counter-example any
+fix is measured against.
+
+ADR-018 is outside plan 0406's ADR Extends rule because it is Proposed, and that plan keeps it out
+until it is ruled; its missing colon means the rule could not read it in any case.
 
 ## Fix
 
-Not designed. The decision is plan 0405's grammar, so the fix is a change to it, measured against
-this repository's corpus for false positives before it is chosen. Directions to weigh:
-
-- report a bold run that opens a block and matches the declared label except for its missing
-  colon, as a near miss with the remedy "add the colon";
-- whether a different spelling (`Related` / `Extend`) is in scope at all, or stays the documented
-  blind spot it is now (plan 0406's dogfood rule states it).
-
-Selecting the colon-less form, rather than reporting it, would re-open the prose false positive the
-colon exists to prevent.
+Not designed. The grammar is plan 0405's, so the fix is a change to it, measured against this
+repository's corpus — ADR-018's sentence above among it — for false positives before it is chosen.
+To weigh: reporting, not selecting, a bold run that opens a block and matches the declared label but
+for its colon (selecting it would re-open the prose false positive the colon exists to prevent); and
+whether a different spelling (`Related` / `Extend`) is in scope, or a blind spot the documentation
+names, as `docs/markdown.md:245` names the plain-form case one.
 
 ## Verification
 
-- [ ] Red test written first: `- **Related to** [b](b.md)` and `**Related to** [c](c.md)` are
-      each reported, on their own line, with a remedy that clears the finding
+- [ ] Red test first, through the public entry point (`links().…rule().violations()`, not
+      `wrappedLabelOf`): `- **Related to** [b](b.md)` and `**Related to** [c](c.md)` are each
+      reported on their own line, or the documentation names the form as unread — whichever the fix
+      decides — and a sabotage row goes red when that is undone
 - [ ] `Related to bug 0253, see [x](x.md)` (plain, no colon) stays unreported and unselected
-- [ ] ADR-018 is decided either way: given its colon (and answered by ADR-009 and ADR-010), or
-      left out on purpose with the reason stated
+- [ ] ADR-018's prose sentence is not read as a declaration of ADR-016
+- [ ] a different spelling (`**Related:**`) is either reported or named as a blind spot in the
+      documentation
+- [ ] plan 0406's exclusion of ADR-018 is unchanged by the fix
 - [ ] `npm run validate` green.
 
 Deferred: none.
