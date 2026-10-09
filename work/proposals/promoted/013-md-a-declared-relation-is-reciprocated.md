@@ -397,7 +397,7 @@ resolver and a counted exemption. The case is that narrow, and no wider.
    (ADR-010 §3). It is never silent: the run discloses how many links it did not select because
    their target is frozen. That count is disclosure, not a gate; the plan names its channel (the
    rule's result, and its JSON output). "Frozen" is the adopter's own declaration, eess-md's
-   `frozen` corpus option (`packages/md/src/corpus.ts:28`, `packages/md/src/model/document.ts:58`),
+   `frozen` corpus option (`packages/md/src/corpus.ts:32`, `packages/md/src/model/document.ts:58`),
    never this repository's folder names. This
    follows the enforcement and product lenses (exempt with a count) and overrules the architect
    lens's "report it".

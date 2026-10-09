@@ -62,9 +62,11 @@
  *                 parent once swallowed a label unread and the annotated item that
  *                 once escaped its declaration; each row asserts its own finding's
  *                 message on its own file — all ten share one rule id.
- *   corpus/adr-extends/{one-way,every-label-removed} (production script — bug 0127)
+ *   corpus/adr-extends/{one-way,list-item,every-label-removed} (production script — bug 0127)
  *                 (plan 0406) ADR-010 rewritten with no link to ADR-014 → a
  *                 corpus/adr-extends-linked-back finding on ADR-014 naming ADR-010;
+ *                 ADR-009 rewritten with no link to ADR-016 → the same, on ADR-016's
+ *                 list-item declaration, naming ADR-009;
  *                 ADR-014 and ADR-016 rewritten without their `**Extends:**` lines →
  *                 that rule's zero-examined finding.
  *   corpus/linked-back/* (plan 0406) scripts/nonvacuity/bad-linked-back/ holds one
@@ -2367,6 +2369,41 @@ function gateCorpusExtendsOneWay() {
   }
 }
 
+// One-way through a list item: ADR-009 no longer links to ADR-016, so ADR-016's
+// `- **Extends:**` list item is unanswered for ADR-009. ADR-016 is the one ADR
+// whose declaration is a list item, so this is the production row for that shape;
+// without it, a selector that stopped reading list items would leave ADR-014's
+// paragraph keeping the count above zero and the two rows above green.
+const ADR_009 = join(repoRoot, 'adr', '009-agent-first-failure-surfaces.md')
+const LINK_TO_016 =
+  /\[[^\]]*\]\([^)]*016-a-bounded-instrument-limits-knowledge-never-the-verdict\.md[^)]*\)/g
+function gateCorpusExtendsListItem() {
+  const rewrite = (text) => {
+    const next = text.replace(LINK_TO_016, 'ADR-016')
+    if (LINK_TO_016.test(next)) {
+      throw new Error('non-vacuity: a link from ADR-009 to ADR-016 survived the rewrite')
+    }
+    return next
+  }
+  const { json, terminal } = withRewrittenFile(ADR_009, rewrite, () => ({
+    json: sh(process.execPath, CORPUS_JSON),
+    terminal: sh(process.execPath, CORPUS_TERM),
+  }))
+  const ok =
+    json.code === 1 &&
+    terminal.code === 1 &&
+    firedNamingPayload(
+      json,
+      'corpus/adr-extends-linked-back',
+      'adr/016-a-bounded-instrument-limits-knowledge-never-the-verdict.md',
+      'adr/009-agent-first-failure-surfaces.md does not link back',
+    )
+  return {
+    ok,
+    detail: `ADR-009 stops linking ADR-016 → json exit ${json.code}, terminal exit ${terminal.code}`,
+  }
+}
+
 // Every label removed: ADR-014 and ADR-016 lose their `**Extends:**` lines, so the
 // rule selects nothing. It must fail with the zero-examined finding under its own
 // id — the row that catches the production rule being given `.expectEmpty()`.
@@ -2741,6 +2778,7 @@ const gates = [
   ['corpus/plan-implements-unparseable', gateCorpusPlanImplementsUnparseable],
   ['corpus/plan-implements-unresolved', gateCorpusPlanImplementsUnresolved],
   ['corpus/adr-extends/one-way', gateCorpusExtendsOneWay],
+  ['corpus/adr-extends/list-item', gateCorpusExtendsListItem],
   ['corpus/adr-extends/every-label-removed', gateCorpusExtendsEveryLabelRemoved],
   // Plan 0406: one fixture row per finding cause and shape, each asserting its exact
   // finding set, so a dropped or an extra finding both fail it.
@@ -2794,6 +2832,10 @@ const gates = [
   [
     'corpus/linked-back/green-control',
     () => gateNode('bad-linked-back.mjs', 'green-control: exactly as expected', ['green-control']),
+  ],
+  [
+    'corpus/linked-back/fence',
+    () => gateNode('bad-linked-back.mjs', 'fence: exactly as expected', ['fence']),
   ],
   [
     'corpus/linked-back/selector-pin',
@@ -3149,6 +3191,7 @@ const GATE_FOR = {
     'corpus/declared-block/formatted-label',
     // Plan 0406: the first two run the production script; the rest are FIXTURE tier.
     'corpus/adr-extends/one-way',
+    'corpus/adr-extends/list-item',
     'corpus/adr-extends/every-label-removed',
     'corpus/linked-back/live-no-link-back',
     'corpus/linked-back/frozen-target',
@@ -3162,6 +3205,7 @@ const GATE_FOR = {
     'corpus/linked-back/all-frozen',
     'corpus/linked-back/mixed-frozen',
     'corpus/linked-back/green-control',
+    'corpus/linked-back/fence',
     'corpus/linked-back/selector-pin',
   ],
   'check:review-harness': ['review-harness'],

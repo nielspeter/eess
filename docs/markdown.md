@@ -311,20 +311,31 @@ names the selector.
 
 The selection is what is examined. A rule whose labels match nothing, or whose
 every target is frozen, fails with the zero-examined finding rather than
-passing.
+passing. `haveLiveTargets()` filters on the **target**; a declaration made
+_inside_ a frozen record is still examined, and its live target must link back.
+That is answerable, so it is checked; to leave history's declarations out, filter
+on the source as well — `.and().satisfy({ description: 'are in live records',
+test: (l) => !l.doc.frozen })` — the way `pointers().areLive()` filters on the
+document a pointer sits in.
 
 A target that cannot answer is one finding, on the declaring link's line, named
-`source → target`, with its remedy as the suggestion:
+`source → target`, with its remedy as the suggestion. The target is the resolved
+repo path, except for a missing or external one, which has none and is named by
+its URL — write an exclusion against what the finding shows. A file the corpus
+did not load for several reasons is reported for the one whose remedy comes
+first: not Markdown, then ignored, then outside the roots.
 
-| The target                     | The finding                                          | The remedy                                                   |
-| ------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------ |
-| a live record, no link back    | `a.md declares b.md, and b.md does not link back`    | add a link to `a.md` in `b.md`, or remove `b.md`             |
-| a frozen record, no selector   | `b.md is frozen and cannot answer`                   | add `.haveLiveTargets()`, or remove `b.md`                   |
-| a file the corpus did not load | outside the roots, ignored, or not Markdown          | widen the roots, stop ignoring the path, or declare a record |
-| nothing                        | `b.md does not exist`                                | correct the link — the same fix clears `resolve()`           |
-| a directory                    | `the link names a directory, … not a record`         | link the record's file                                       |
-| the record itself              | `the link points at this record`                     | remove it                                                    |
-| an external URL                | `the declaration links outside the repository, to …` | declare a record in the corpus                               |
+| The target                   | The finding                                             | The remedy                                                |
+| ---------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
+| a live record, no link back  | `a.md declares b.md, and b.md does not link back`       | add a link to `a.md` in `b.md`, or remove `b.md`          |
+| a frozen record, no selector | `b.md is frozen and cannot answer`                      | add `.haveLiveTargets()`, or remove `b.md`                |
+| outside the corpus roots     | `b.md is outside the corpus, so its links are not read` | add its folder to the corpus `roots`, or correct the link |
+| ignored by the corpus        | `b.md matches the corpus ignore option, …`              | correct the link, or stop ignoring the path               |
+| not a Markdown file          | `b.png is not a Markdown record`                        | declare a record, not a file — a `.png` cannot link back  |
+| nothing                      | `b.md does not exist`                                   | correct the link — the same fix clears `resolve()`        |
+| a directory                  | `the link names a directory, … not a record`            | link the record's file                                    |
+| the record itself            | `the link points at this record`                        | remove it                                                 |
+| an external URL              | `the declaration links outside the repository, to …`    | declare a record in the corpus                            |
 
 ### Resolving a link yourself: `resolveLink`
 

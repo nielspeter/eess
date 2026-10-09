@@ -14,6 +14,8 @@
  *                   selector, the frozen finding without it;
  *   green-control   back-links in every spelling, twice, with a fragment: no
  *                   finding, and six links examined;
+ *   fence           a back-link only inside a code fence or an HTML comment is
+ *                   not a link, so the declaration is still unanswered;
  *   selector-pin    the selection itself (deferred here from plan 0405): an
  *                   annotated item (`- [b](b.md): why`) is declared, a link
  *                   outside the label is not — under- and over-selection both
@@ -38,32 +40,33 @@ function run(dir, o = {}) {
   const found = v
     .map((x) => {
       const first = x.message.split('\n')[0] ?? ''
-      return first.startsWith(ZERO) ? ZERO : `${x.element} | ${first}`
+      return first.startsWith(ZERO) ? ZERO : `${x.line} ${x.element} | ${first}`
     })
     .sort()
   return { found, examined: v.examined }
 }
 
-const one = (element, message) => [`${element} | ${message}`]
+const one = (line, element, message) => [`${line} ${element} | ${message}`]
 
+// A finding is keyed by its line too, so one reported on the wrong line fails.
 const SCENARIOS = {
-  'live-no-link-back': () => [run('oneway'), one('a.md → b.md', 'a.md declares b.md, and b.md does not link back')],
-  'frozen-target': () => [run('frozen'), one('a.md → archived/f.md', 'archived/f.md is frozen and cannot answer')],
+  'live-no-link-back': () => [run('oneway'), one(3, 'a.md → b.md', 'a.md declares b.md, and b.md does not link back')],
+  'frozen-target': () => [run('frozen'), one(3, 'a.md → archived/f.md', 'archived/f.md is frozen and cannot answer')],
   'outside-roots': () => [
     run('outside', { roots: ['in/**'] }),
-    one('in/a.md → out/o.md', 'out/o.md is outside the corpus, so its links are not read'),
+    one(3, 'in/a.md → out/o.md', 'out/o.md is outside the corpus, so its links are not read'),
   ],
-  'not-markdown': () => [run('not-markdown'), one('a.md → p.png', 'p.png is not a Markdown record')],
+  'not-markdown': () => [run('not-markdown'), one(3, 'a.md → p.png', 'p.png is not a Markdown record')],
   ignored: () => [
     run('ignored', { ignore: ['ig/**'] }),
-    one('a.md → ig/x.md', 'ig/x.md matches the corpus ignore option, so its links are not read'),
+    one(3, 'a.md → ig/x.md', 'ig/x.md matches the corpus ignore option, so its links are not read'),
   ],
-  missing: () => [run('missing'), one('a.md → gone.md', 'gone.md does not exist')],
-  directory: () => [run('directory'), one('a.md → sub', 'the link names a directory, sub, not a record')],
-  self: () => [run('self'), one('a.md → a.md', 'the link points at this record')],
+  missing: () => [run('missing'), one(3, 'a.md → gone.md', 'gone.md does not exist')],
+  directory: () => [run('directory'), one(3, 'a.md → sub', 'the link names a directory, sub, not a record')],
+  self: () => [run('self'), one(3, 'a.md → a.md', 'the link points at this record')],
   external: () => [
     run('external'),
-    one('a.md → https://example.com/e', 'the declaration links outside the repository, to https://example.com/e'),
+    one(3, 'a.md → https://example.com/e', 'the declaration links outside the repository, to https://example.com/e'),
   ],
   'all-frozen': () => [run('all-frozen', { live: true }), [ZERO]],
   'mixed-frozen': () => {
@@ -73,14 +76,15 @@ const SCENARIOS = {
       withSelector.found.length === 0 &&
       withSelector.examined === 1 &&
       JSON.stringify(without.found) ===
-        JSON.stringify(one('a.md → archived/f.md', 'archived/f.md is frozen and cannot answer'))
+        JSON.stringify(one(3, 'a.md → archived/f.md', 'archived/f.md is frozen and cannot answer'))
     return [{ found: ok ? ['mixed'] : [...withSelector.found, '||', ...without.found], examined: 1 }, ['mixed']]
   },
   'green-control': () => {
     const r = run('spellings', { resolve: { tryExtensions: ['.md'] } })
     return [{ found: r.examined === 6 ? r.found : [`examined ${r.examined}`], examined: r.examined }, []]
   },
-  'selector-pin': () => [run('selector'), one('a.md → b.md', 'a.md declares b.md, and b.md does not link back')],
+  fence: () => [run('fence'), one(3, 'a.md → b.md', 'a.md declares b.md, and b.md does not link back')],
+  'selector-pin': () => [run('selector'), one(5, 'a.md → b.md', 'a.md declares b.md, and b.md does not link back')],
 }
 
 const name = process.argv[2]

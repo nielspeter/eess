@@ -39,7 +39,7 @@ function unanswered(link: MdLink, target: LinkTarget): Unanswered {
         ? {
             target: target.path,
             message: `${target.path} is frozen and cannot answer`,
-            suggestion: `add .haveLiveTargets() to the rule, or remove ${target.path} from the declaration`,
+            suggestion: `add .haveLiveTargets() to the rule, passing it the options you pass beLinkedBack(), or remove ${target.path} from the declaration`,
           }
         : {
             target: target.path,

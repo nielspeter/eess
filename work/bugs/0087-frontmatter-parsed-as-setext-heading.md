@@ -49,7 +49,7 @@ Verified 2026-08-09 against the built workspace package.
 
 ## Root cause
 
-`packages/md/src/corpus.ts:74-77` parses with `fromMarkdown` using the GFM
+`packages/md/src/corpus.ts:77-80` parses with `fromMarkdown` using the GFM
 extensions only:
 
 ```ts
