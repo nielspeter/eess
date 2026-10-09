@@ -41,6 +41,10 @@ from a TypeScript project and from nothing else.
 - **The presets allow several tests per scenario.** `scenariosCovered` checks membership in a set of
   cited keys (`:246`–`:267`), and `citedScenarioSites` keeps one site per scenario when two tests
   cite it (`:200`–`:203`).
+- **Stale exemptions are already a decided check.** `scenarioExemptionsCurrent` is what
+  [proposal 005](./promoted/005-crossvalidate-stale-wip-detection.md) asked for: a scenario still
+  tagged exempt once a test cites it is a finding. A supplied-side form inherits it rather than
+  re-deciding it.
 - **The kernel can already join any two lists.** `correspondence()` is public
   (`packages/core/src/index.ts:68`); a side is a plain `{ label, elements, identify }`, so a list of
   citations is a valid side, and eess-gherkin's `features().scenarios()` is the other. eess-gherkin
@@ -55,7 +59,7 @@ from a TypeScript project and from nothing else.
 ## Measured: the composition with released parts
 
 **Fixture** — one feature file, `features/credits.feature`: two live scenarios, `A credit is booked`
-and `A credit is reversed`; `A credit is split` tagged `@plan-0093` and `A credit is merged` tagged
+and `A credit is reversed`; `A credit is split` tagged `@pending` and `A credit is merged` tagged
 `@untested` (exempt; tags are stored without `@`). The right side is a hand-built list of
 `{ id, file, line }` citations, the shape a pytest hook would write as JSON.
 
