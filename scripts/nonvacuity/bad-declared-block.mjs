@@ -42,8 +42,8 @@
  * Each document also carries a correctly declared, resolving link, so the rule
  * examines something and the zero-examined finding cannot stand in for the one
  * the scenario names. The finding is matched on message AND file, not on the
- * rule id: all three kinds share the rule's id, so an id match would let any
- * one of them answer for the other two (bug 0110's class).
+ * rule id: every finding kind shares the rule's id, so an id match would let
+ * any one of them answer for the others (bug 0110's class).
  *
  * Exit codes (consumed by scripts/check-nonvacuity.mjs):
  *   1 = the named finding was reported on the named file — OK

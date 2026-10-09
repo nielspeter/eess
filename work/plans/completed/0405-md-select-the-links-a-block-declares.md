@@ -2,9 +2,10 @@
 
 ## Status
 
-- **State:** Done — built 2026-10-09; all three phases, the nine sabotage rows and three
-  non-vacuity rows measured (see Build notes). Frozen Ready 2026-10-07 from proposal 013's decision
-  2; the freeze history is in the proposal's review.
+- **State:** Done — built 2026-10-09 and reviewed in four rounds; the design and counts in force are
+  the second round's design as amended by the third and final rounds (see "Final review round").
+  Frozen Ready 2026-10-07 from proposal 013's decision 2; the freeze history is in the proposal's
+  review.
 - **Priority:** Medium — the selector plan 0406 is built on. Selecting by physical line, the
   measured workaround, fails open on a wrapped label and on a label followed by a list.
 - **Effort:** Medium — the link walk gains block ownership and a section path; two predicates; a
@@ -25,6 +26,13 @@ links such a block owns. The line-based workaround misses the second line of a w
 (`packages/md/src/model/links.ts`) walks with no block context.
 
 ## Design
+
+> **Superseded in part by the second review round.** The frozen design below decides ownership while
+> walking (an owner, a labelled list item owning its sub-list), reports reference-style links only
+> for a block made of nothing else, and adds only `block?`/`sectionPath?` to `MdLinkRef`. As built,
+> every block owns itself, each link carries `blockPath`, the nearest label decides at selection
+> time, references are reported in any declaration, and `MdLink` also gains `blockPath`. The text
+> below is kept as frozen.
 
 - **Block ownership.** A link's block is its enclosing list item if it has one, otherwise its
   enclosing paragraph; a loose list item with two paragraphs is one block. A paragraph consisting of
@@ -152,6 +160,8 @@ the fixture's file and its message, not only the rule id.
 - Front matter: eess-md has no front-matter model (proposal 013, open question 1).
 - Reference-style links as selectable links; this plan only reports a declaration made of them.
 - The answer check: plan 0406.
+- A `RegExp` argument to `areLabelled` (`areInSection` and `terms({ label })` take one): additive
+  later, not needed by plan 0406 (product review, final round).
 
 ## Success
 
@@ -172,6 +182,9 @@ the fixture's file and its message, not only the rule id.
 - [x] `npm run validate` green
 
 ## Build notes — 2026-10-09
+
+> **Describes the first build (acaf41c) only** — its three non-vacuity rows and nine sabotage rows.
+> The review rounds below replaced the ownership walk; their counts are the current ones.
 
 - **The label grammar is shared, byte for byte.** `labelPattern('State')` produces the same regex
   source the ledger compiled before; its 61 rule tests pass unchanged.
@@ -260,8 +273,9 @@ removed, the empty finding removed); only that row went to exit 0.
 - `declarationFindings` walks each document a second time (architect M4); a cost, not a defect.
 - This is the family's first `collectViolations()` override outside the kernel. If plan 0406 or a
   second dialect needs another, a kernel hook is the shape to extract (architect M6).
-- No non-vacuity row pins the selector itself against over-selection (enforcement M4); plan 0406's
-  production row over its dogfood rule is where it belongs.
+- No non-vacuity row pins the selector itself against over-selection (enforcement M4), nor against
+  under-selection (testing, final round): deferred→plan 0406, which now carries it as a dated
+  Phase 3 item and a ledger box.
 
 ## Second review round — 2026-10-09
 
@@ -339,9 +353,52 @@ non-vacuity row; the `*`/`_` prefix not counted as the block start reds its test
 replace the second round's "that scan flags block-opening labels" row, whose `i === 0` test no longer
 exists. Non-vacuity: ten rows.
 
+## Final review round — 2026-10-09
+
+Product, method and testing, who had seen only the first build, reviewed the whole PR. No Critical.
+
+- **Product:** the declaration findings shared one element, so `.excluding()` could not sanction
+  only "this label is intentionally empty" — the docs' claim was coarser than true. Each finding now
+  ends its element with its kind (`(near miss)`, `(inside "…")`, `(not at a block start)`,
+  `(formatting)`, `(reference links)`, `(empty)`), and the docs show
+  `.excluding(/→ label "Supersedes" \(empty\)$/)`, measured to sanction `**Supersedes:** none` while
+  a reference-link finding on the same label stays. Each remedy moved from the message into the
+  suggestion, so the findings print a `Fix:` line like every other. The docs explain `block` and
+  `blockPath`; a `RegExp` `areLabelled` is listed out of scope.
+- **Testing:** six mutants survived the suite. Pinned now: the `**Label**:` form (colon outside the
+  bold) mid-paragraph, which failed open; the inner-label finding's "inside a declaration" guard,
+  whose loss would red every other wrapped label (the green control now holds an outside
+  `**Supersedes:**`); a later line repeating the first (`block.line === line`); a nested near miss
+  reported once, not also as "inside". The `endsWith` conjunct was dead and was removed. The
+  misspelt-corpus test is an exact set. A heading inside a list item, which misdescribes the cause
+  as "stands alone", is recorded as residual.
+- **Method:** the Design, Build notes and State line now carry their supersession; the
+  over-/under-selection residual has a real home in plan 0406; stale comments were fixed.
+
+**Sabotage, the whole matrix re-run on this final tree** (`declared-block.test.ts` plus the ledger's
+rule tests, 94 tests; each row restored before the next; 211 green after). 28 rows, every one red:
+the twenty rows carried from the second and third rounds (the innermost block always deciding 7; a
+wrapped non-L label never deciding 1; the inner-label finding removed 1; one list only 1; a lone
+label enclosing nothing 5; the unread scan removed 2; the empty finding ignoring enclosed links 1;
+references only when nothing is selected 1; the alone message folded 2; the task box kept 1; the
+content column ignored 4; not deduped 1; pushed across forks 1; the optional colon 3; the near-miss
+scan removed 7; the section near miss removed 1; the section stack not reset 1; case-insensitive 5;
+`examined` raised 1; `mergeCollectResults` 7), the third round's two (the format check removed 1; the
+`*`/`_` prefix not the block start 1), and six new (the colon-outside-bold form 1; the "inside"
+guard 1; a later line as the block start 1; a nested near miss also "inside" 1; no suggestion 12;
+one shared element 2). Counted: 21 − 1 + 2 + 6 = 28 (the second round's 21, less the scan row
+the third replaced, plus its two, plus six).
+
+**Residual added:** a heading inside a list item (`- **Related to:**` / `  ## [g](g.md)`) is reported
+as "stands alone" rather than for its real cause; not silent, exotic, left.
+
 **Validate.** Full runs, in order: red at `check:arch` on two unused type exports (unexported);
 green in 8m33s (the build); red at `check:arch` on `matchName`, exported for a caller that had moved
 (made private again); green in 8m17s (the first round's fix); green in 8m33s (the second round's
 design). Since the second red, `check:fast` runs before every full run. The ledger's validate box
-was ticked before the first run, because `check:ledger` inside validate reads it. The run on the
-third round's final tree is reported in the PR.
+was ticked before the first run, because `check:ledger` inside validate reads it. On the third
+round's tree: red at `check:nonvacuity`, where a scripted edit had put a stray row name into the
+`stands-alone` row of `scripts/check-nonvacuity.mjs` (the harness's self-check caught it); after the
+one-line fix, `check:integrity` plus every step from `check:nonvacuity` to the end of the chain green
+in 7m35s, and CI green on the PR in 15m35s. On the final round's tree: red at `typecheck` on an unguarded index in a new test line
+(`noUncheckedIndexedAccess`), guarded; then one complete `npm run validate`, green in 8m42s.

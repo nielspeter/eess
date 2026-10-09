@@ -46,9 +46,18 @@ export function declarationFindings(
   const out: ArchViolation[] = []
   for (const doc of corpus.documents()) {
     const { links, references, blocks, unreadLabels } = collectLinkBlocks(doc.root, doc.text)
-    const report = (line: number, element: string, message: string): void => {
+    // Each finding names its kind in its element, so one `.excluding()` sanctions one kind
+    // (`→ label "Supersedes" (empty)`), and carries its own remedy as the suggestion.
+    const report = (line: number, element: string, message: string, suggestion: string): void => {
       out.push(
-        mdViolation({ file: doc.file, line, sourceText: doc.text, context, element, message }),
+        mdViolation({
+          file: doc.file,
+          line,
+          sourceText: doc.text,
+          context: { ...context, suggestion },
+          element,
+          message,
+        }),
       )
     }
     for (const d of declarations) {
@@ -59,24 +68,26 @@ export function declarationFindings(
           if (!isNearMiss(section.name, declared)) continue
           report(
             section.line,
-            `${doc.relPath} → section "${section.name}"`,
-            `the heading "${section.name}" is not the declared section "${declared}", so the links under it are not checked — ` +
-              `write it "${declared}"`,
+            `${doc.relPath} → section "${section.name}" (near miss)`,
+            `the heading "${section.name}" is not the declared section "${declared}", so the links under it are not checked`,
+            `write it "${declared}"`,
           )
         }
         continue
       }
       const L = d.label
       const declared = new RegExp(labelPattern(L))
-      const element = (found: string): string => `${doc.relPath} → label "${found}"`
+      const element = (found: string, kind: string): string =>
+        `${doc.relPath} → label "${found}" (${kind})`
 
       for (const block of blocks) {
         const found = wrappedLabelOf(block.text)
         if (found === undefined || !isNearMiss(found, L)) continue
         report(
           block.line,
-          element(found),
-          `the label "${found}" is not the declared "${L}", so the links under it are not checked — write it "${L}"`,
+          element(found, 'near miss'),
+          `the label "${found}" is not the declared "${L}", so the links under it are not checked`,
+          `write it "${L}"`,
         )
       }
 
@@ -105,9 +116,9 @@ export function declarationFindings(
       for (const [line, found] of taken) {
         report(
           line,
-          element(found),
-          `the label "${found}" sits inside the "${L}" declaration and takes the links under it out of it — ` +
-            `drop the label, or move it out of the "${L}" list`,
+          element(found, `inside "${L}"`),
+          `the label "${found}" sits inside the "${L}" declaration and takes the links under it out of it`,
+          `drop the label, or move it out of the "${L}" list`,
         )
       }
       for (const block of blocks) {
@@ -115,9 +126,9 @@ export function declarationFindings(
         if (holdsReference.has(block.line)) {
           report(
             block.line,
-            element(L),
-            `the "${L}" declaration holds reference-style links, which eess-md does not read — ` +
-              'write them as inline links ([text](path))',
+            element(L, 'reference links'),
+            `the "${L}" declaration holds reference-style links, which eess-md does not read`,
+            'write them as inline links ([text](path))',
           )
         } else if (
           wrappedLabelOf(block.text) === L &&
@@ -125,13 +136,16 @@ export function declarationFindings(
           // A link under it that is not selected is already a finding of its own.
           !encloses.has(block.line)
         ) {
+          const alone = isLabelAlone(block.text)
           report(
             block.line,
-            element(L),
-            isLabelAlone(block.text)
-              ? `the "${L}" label stands alone with no list directly under it, so it declares nothing — ` +
-                  'put its list right after it, or its links on its line'
-              : `the "${L}" declaration names no record — add the links it declares, or remove the label`,
+            element(L, 'empty'),
+            alone
+              ? `the "${L}" label stands alone with no list directly under it, so it declares nothing`
+              : `the "${L}" declaration names no record`,
+            alone
+              ? 'put its list right after it, or its links on its line'
+              : 'add the links it declares, or remove the label',
           )
         }
       }
@@ -139,12 +153,11 @@ export function declarationFindings(
         if (u.label !== L && !isNearMiss(u.label, L)) continue
         report(
           u.line,
-          element(u.label),
+          element(u.label, u.reason === 'format' ? 'formatting' : 'not at a block start'),
           u.reason === 'format'
-            ? `the label "${u.label}" is written with formatting eess-md does not read, so the links after it are not read as a declaration — ` +
-                `write it **${L}:**`
-            : `the label "${u.label}" is not at the start of a paragraph or list item, so the links after it are not read as a declaration — ` +
-                'start a paragraph or list item with it',
+            ? `the label "${u.label}" is written with formatting eess-md does not read, so the links after it are not read as a declaration`
+            : `the label "${u.label}" is not at the start of a paragraph or list item, so the links after it are not read as a declaration`,
+          u.reason === 'format' ? `write it **${L}:**` : 'start a paragraph or list item with it',
         )
       }
     }

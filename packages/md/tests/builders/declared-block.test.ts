@@ -52,8 +52,8 @@ describe('areLabelled() — label forms (plan 0405)', () => {
     const v = findings(['docs/forms.md'], (b) => b.areLabelled('Related to'))
     const declarationFindings = v.filter((x) => x.message.includes('is not the declared'))
     expect(declarationFindings.map((x) => x.element).sort()).toEqual([
-      'docs/forms.md → label "Related  to"',
-      'docs/forms.md → label "Related To"',
+      'docs/forms.md → label "Related  to" (near miss)',
+      'docs/forms.md → label "Related To" (near miss)',
     ])
     expect(declarationFindings.map((x) => x.line).sort()).toEqual([11, 13])
   })
@@ -132,14 +132,14 @@ describe('areInSection() (plan 0405)', () => {
         .map((x) => x.element)
         .sort(),
     ).toEqual([
-      'docs/section-near-miss.md → section "See  also"',
-      'docs/section-near-miss.md → section "See Also"',
+      'docs/section-near-miss.md → section "See  also" (near miss)',
+      'docs/section-near-miss.md → section "See Also" (near miss)',
     ])
   })
 })
 
 /**
- * Every declaration finding on the fixture as `line message`, the base rule's own
+ * Every declaration finding on the fixture as `line message — suggestion`, the base rule's own
  * findings (a link that does not resolve, zero examined) left out — exact sets,
  * so a fixture producing a second, wrong finding fails too.
  */
@@ -150,7 +150,7 @@ function declarationFindingsOf(
 ): string[] {
   return findings(roots, declare)
     .filter((x) => !/does not resolve|examined zero units/.test(x.message))
-    .map((x) => `${x.line} ${x.message}`)
+    .map((x) => `${x.line} ${x.message} — ${x.suggestion ?? ''}`)
     .sort()
 }
 
@@ -216,11 +216,40 @@ describe('a label is read wherever a block can hold it (plan 0405 review)', () =
     expect(declarationFindingsOf(['docs/prefixes.md'])).toEqual([NEAR(11), NEAR(9)])
   })
 
-  it('a wrapped label inside a paragraph is reported, exact or near', () => {
-    expect(selectedUnderLabel(['docs/mid-block.md'])).toEqual([])
+  it('a wrapped label inside a paragraph is reported, in either colon form, exact or near', () => {
+    expect(selectedUnderLabel(['docs/mid-block.md'])).toEqual([
+      'mid-block.md m4.md',
+      'mid-block.md m5.md',
+    ])
     expect(declarationFindingsOf(['docs/mid-block.md'])).toEqual([
+      UNREAD(10, 'Related to'),
+      UNREAD(13, 'Related to'),
       UNREAD(4, 'Related to'),
       UNREAD(7, 'Related To'),
+    ])
+  })
+})
+
+describe('a finding names its kind (plan 0405, final review)', () => {
+  it('each kind has its own element, so one exclusion sanctions one kind', () => {
+    const v = findings(['docs/text-only.md', 'docs/refs.md'], (b) =>
+      b.areLabelled('Related to'),
+    ).filter((x) => !/does not resolve|examined zero units/.test(x.message))
+    expect(v.map((x) => x.element).sort()).toEqual([
+      'docs/refs.md → label "Related to" (reference links)',
+      'docs/text-only.md → label "Related to" (empty)',
+    ])
+    const kept = links(load(['docs/text-only.md', 'docs/refs.md']))
+      .that()
+      .areLabelled('Related to')
+      .should()
+      .resolve()
+      .rule({ id: 'test/kinds' })
+      .excluding(/\(empty\)$/)
+      .violations()
+      .filter((x) => !/does not resolve|examined zero units/.test(x.message))
+    expect(kept.map((x) => x.element)).toEqual([
+      'docs/refs.md → label "Related to" (reference links)',
     ])
   })
 })
@@ -242,6 +271,7 @@ describe('a declaration keeps what is under it (plan 0405, second review)', () =
   it('a different wrapped label inside a declaration keeps its links, and is reported', () => {
     expect(selectedUnderLabel(['docs/inner-label.md'])).toEqual(['inner-label.md il2.md'])
     expect(declarationFindingsOf(['docs/inner-label.md'])).toEqual([
+      NEAR(12),
       TAKEN(4, 'plan 0406'),
       TAKEN(9, 'Supersedes'),
     ])
@@ -304,8 +334,8 @@ describe('the declaration record (plan 0405 review)', () => {
       .violations()
     expect(v.map((x) => x.message.split('\n')[0]).sort()).toEqual([
       "Rule 'test/no-condition' selects subjects but asserts nothing about them, so it cannot fail and certifies nothing.",
-      NEAR(13, 'Related  to').slice(3),
-      NEAR(11).slice(3),
+      'the label "Related  to" is not the declared "Related to", so the links under it are not checked',
+      'the label "Related To" is not the declared "Related to", so the links under it are not checked',
     ])
   })
 })
@@ -313,12 +343,15 @@ describe('the declaration record (plan 0405 review)', () => {
 describe('the builder override keeps the base evidence (plan 0405)', () => {
   it('a corpus whose every declaration is misspelt reports the near-miss AND the zero-examined finding', () => {
     const v = findings(['misspelt/**'], (b) => b.areLabelled('Related to'))
-    expect(v.some((x) => x.message.includes('is not the declared "Related to"'))).toBe(true)
-    expect(v.some((x) => /examined zero units/.test(x.message))).toBe(true)
-    expect(v).toHaveLength(2)
+    expect(
+      v.map((x) => `${x.line} ${(x.message.split('\n')[0] ?? '').slice(0, 41)}`).sort(),
+    ).toEqual([
+      '0 this rule examined zero units. If this is',
+      '3 the label "Related To" is not the declare',
+    ])
   })
 
-  it('a correctly declared corpus reports nothing (the green control)', () => {
+  it('a correctly declared corpus reports nothing, a different label outside any declaration included (the green control)', () => {
     const v = findings(['control/**'], (b) => b.areLabelled('Related to'))
     expect([...v]).toEqual([])
     expect(v.examined).toBe(2)

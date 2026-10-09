@@ -3001,7 +3001,7 @@ const GATE_FOR = {
     'corpus/plan-implements-unresolved',
     'corpus/proposal-ruling-module',
     // Plan 0405 — FIXTURE tier (bug 0127), and narrower than the gate: they prove the eess-md
-    // builder `check:corpus` is written in reports the three declaration findings, but no
+    // builder `check:corpus` is written in reports each declaration finding, but no
     // production rule declares a block until plan 0406 dogfoods `areLabelled()`.
     'corpus/declared-block/label-near-miss',
     'corpus/declared-block/section-near-miss',

@@ -261,8 +261,17 @@ selector also reports what it cannot read, as findings on the rule:
 The scan covers the whole corpus, not only the rule's selection — a misspelt
 declaration is, by definition, not selected — so a rule narrowed with other
 selectors, and every rule declaring the same label, reports the same findings.
-They are ordinary findings: `.excluding()` can sanction one, as it can any
-other.
+They are ordinary findings, each with its remedy as the suggestion, and each
+names its kind at the end of its element — `(near miss)`, `(inside "…")`,
+`(not at a block start)`, `(formatting)`, `(reference links)`, `(empty)` — so
+one `.excluding()` sanctions one kind: `.excluding(/→ label "Supersedes" \(empty\)$/)`
+accepts a template's `**Supersedes:** none` and still reports everything else
+about that label.
+
+Each `MdLink` carries what the selector reads: `block`, the innermost paragraph
+or list item holding it, and `blockPath`, every block enclosing it, outermost
+first. A label alone on its line counts as enclosing the lists directly after
+it, though Markdown does not nest them under it.
 
 These findings come from the rule — `.check()`, `.warn()`, `.violations()`. A
 `.select()` over the same chain returns the selected links and carries **no**

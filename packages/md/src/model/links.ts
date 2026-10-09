@@ -145,7 +145,6 @@ export function collectLinkBlocks(
         const atStart =
           block !== undefined &&
           block.line === line &&
-          block.text.endsWith(rest) &&
           /^[*_]*$/.test(block.text.slice(0, block.text.length - rest.length))
         if (!atStart) unreadLabels.push({ line, label, reason: 'position' })
         else if (wrappedLabelOf(block.text) !== label) {
