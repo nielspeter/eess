@@ -10,11 +10,11 @@
 - **Effort:** Small — one function extracted from code that exists, two cached indexes, one export,
   one caller moved, one structural rule.
 - **Created:** 2026-10-07
-- **Builds:** [proposal 013](../../proposals/013-md-a-declared-relation-is-reciprocated.md)'s Ask C; its
+- **Builds:** [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md)'s Ask C; its
   disposition row names this plan. This plan does not declare `**Implements:**`; plan 0406, which
   ships the last ask, does.
 - **First of three:** this plan, then [plan 0405](./0405-md-select-the-links-a-block-declares.md),
-  then [plan 0406](../0406-md-a-declared-link-is-answered.md).
+  then [plan 0406](./0406-md-a-declared-link-is-answered.md).
 
 ## Problem
 

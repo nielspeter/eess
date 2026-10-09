@@ -72,7 +72,7 @@ check that asserted nothing.
   examination of the other" (`correspondence.ts:135-138`). That is true for `direction: 'both'`,
   where L=[] and R=[x] does go red (`x` has no matching left). It is false for one direction.
 - ADR-010 §1 fixes the unit for `correspondence()` as "the key sets of its two sides"
-  (`adr/010-a-pass-is-constructed-from-evidence.md:122-123`). For a one-way check, that unit
+  (`adr/010-a-pass-is-constructed-from-evidence.md:124-125`). For a one-way check, that unit
   includes a side nothing reads.
 
 **`preserveRelations()` has the same root.** It shares the count and the exemption

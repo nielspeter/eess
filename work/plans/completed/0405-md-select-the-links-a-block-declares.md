@@ -11,10 +11,10 @@
 - **Effort:** Medium — the link walk gains block ownership and a section path; two predicates; a
   near-miss scan in the builder.
 - **Created:** 2026-10-07
-- **Builds:** [proposal 013](../../proposals/013-md-a-declared-relation-is-reciprocated.md)'s Ask A; its
+- **Builds:** [proposal 013](../../proposals/promoted/013-md-a-declared-relation-is-reciprocated.md)'s Ask A; its
   disposition row names this plan.
 - **Second of three:** after [plan 0404](./0404-md-one-link-resolver-names-each-case.md), before
-  [plan 0406](../0406-md-a-declared-link-is-answered.md).
+  [plan 0406](./0406-md-a-declared-link-is-answered.md).
 
 ## Problem
 

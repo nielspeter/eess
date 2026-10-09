@@ -22,6 +22,9 @@ export interface CorpusOptions {
    * false (bug 0253): a frozen document's LINKS are still checked, and its code
    * pointers are excluded from `pointers().areLive()` — so they are not examined
    * at all. They are not "reported but never failed"; nothing reports them.
+   * A frozen record also cannot answer a declared relation: `links().haveLiveTargets()`
+   * drops a link into one, and `beLinkedBack()` reports it as frozen without it
+   * (plan 0406).
    *
    * Defaults to the near-universal `completed`/`archived`; extend for your
    * project's lifecycle folders (`delivered`, `wont-do`, …).

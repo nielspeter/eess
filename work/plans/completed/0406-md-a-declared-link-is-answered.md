@@ -2,11 +2,12 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-07 at the maintainer's request. Written the same day from
-  proposal 013's decisions 1, 3, 4, 7, 8, 9 and 10, after the maintainer asked for plans to implement the proposal. A first
-  freeze was withdrawn when architect, enforcement, method and testing review found mechanisms the
-  kernel cannot build; a second architect, enforcement and testing review settled what remained.
-  Every decision the build depends on is restated here; proposal 013 is linked as provenance only.
+- **State:** Done — built 2026-10-09: all three phases, the sabotage matrix and both
+  non-vacuity tiers measured (see Build notes), then reviewed by five lenses and corrected (see
+  "Review round"). Frozen Ready 2026-10-07 at the maintainer's request, written the same day from
+  proposal 013's decisions 1, 3, 4, 7, 8, 9 and 10. A first freeze was withdrawn when architect,
+  enforcement, method and testing review found mechanisms the kernel cannot build; a second
+  architect, enforcement and testing review settled what remained.
 - **Priority:** Medium — no shipped rule checks this property.
 - **Effort:** Medium — one condition with options, one selector, findings per cause, a dogfood rule
   over this repository's ADRs, and non-vacuity at both tiers.
@@ -14,8 +15,8 @@
 - **Implements:** proposal 013
 - **Why this plan declares it:** it ships the proposal's last ask, so when it closes every ask is
   built, and the lane promotes a proposal only on such a declaration. Asks C and A are built by
-  [plan 0404](./completed/0404-md-one-link-resolver-names-each-case.md) and
-  [plan 0405](./completed/0405-md-select-the-links-a-block-declares.md), on which this plan depends.
+  [plan 0404](./0404-md-one-link-resolver-names-each-case.md) and
+  [plan 0405](./0405-md-select-the-links-a-block-declares.md), on which this plan depends.
 
 ## Problem
 
@@ -169,7 +170,7 @@ from a green baseline, verdicts read from exit codes, plus an adversarial review
 links that record.
 
 **Vacuity matrix:** it probes constructors over empty input and so reaches `links()`, not this
-condition. Covering eess-md there is [bug 0403](../bugs/0403-the-vacuity-matrix-probes-one-dialect-of-five.md)'s
+condition. Covering eess-md there is [bug 0403](../../bugs/0403-the-vacuity-matrix-probes-one-dialect-of-five.md)'s
 fix, and this plan does not wait for it.
 
 ## Out of scope
@@ -189,12 +190,97 @@ fix, and this plan does not wait for it.
 
 ## Progress ledger
 
-- [ ] Phase 1 — `beLinkedBack`, `haveLiveTargets`, the findings per cause, docs
-- [ ] Phase 2 — ADR `**Extends:**` / `**Extended by:**` lines, pointers re-pointed, the rule in `check:corpus`
-- [ ] Phase 3 — the two production rows and the fixture rows
-- [ ] the selector pin: a row red on over- and on under-selection (added 2026-10-09)
-- [ ] each remedy verified to remediate
-- [ ] the sabotage rows go red; adversarial review before merge
-- [ ] proposal 013 moves to `promoted/` in the PR that ships this plan, since this plan declares
+- [x] Phase 1 — `beLinkedBack`, `haveLiveTargets`, the findings per cause, docs
+- [x] Phase 2 — ADR `**Extends:**` / `**Extended by:**` lines, pointers re-pointed, the rule in `check:corpus`
+- [x] Phase 3 — the two production rows and the fixture rows
+- [x] the selector pin: a row red on over- and on under-selection (added 2026-10-09)
+- [x] each remedy verified to remediate
+- [x] the sabotage rows go red; adversarial review before merge
+- [x] proposal 013 moves to `promoted/` in the PR that ships this plan, since this plan declares
       `**Implements:** proposal 013`
-- [ ] `npm run validate` green
+- [x] `npm run validate` green
+
+## Build notes — 2026-10-09
+
+- **Tests** (`packages/md/tests/builders/linked-back.test.ts`, 17): every row of the finding table by
+  element, message and suggestion, each with its remedy applied to a temp copy of its fixture and the
+  finding shown to clear — for `missing`, `resolve()` clears too. Every fixture but the empty and
+  all-frozen ones keeps a declaration that does link back, so a remedy cannot pass by emptying the
+  selection.
+- **One reason for a file the corpus did not load.** `resolveLink` lists every reason; the finding
+  names one, by the remedy that comes first — not Markdown, then ignored, then outside the roots — so a
+  `.png` outside the roots is told to declare a record, not to widen the roots.
+- **The structural rule now covers predicates/.** Plan 0404's `eess/md-one-link-resolver` selects
+  `{conditions,predicates}/*.ts`; measured by planting a `node:path` import in
+  `predicates/live-target.ts`, which reds the rule on that file. `basenameIndex()` moved beside
+  `movedLinkFix` in `model/resolve-link.ts`, so `linkResolves` and `beLinkedBack` share one index.
+- **The dogfood.** ADR-014 and ADR-016 declare `**Extends:**`; ADR-009 and ADR-010 answer with
+  `**Extended by:**`. `check:corpus` runs `corpus/adr-extends-linked-back` over its own `adr/**`
+  corpus and prints `extends 3 ADR Extends link(s) · ✓ each answered`. ADR-016's line is a list item
+  and the others paragraphs, so both label shapes are exercised. ADR-018 is out of the rule
+  because it is Proposed — this plan keeps it out until it is ruled. Its `- **Extends** [ADR-009]`
+  line has no colon, so the rule could not read it anyway, and nothing reports a colon-less label:
+  bug 0408 (PR #196), stated in the rule's comment. That line opens a prose sentence, so it is the
+  counter-example bug 0408's fix is measured against.
+- **Pointers.** The added ADR lines and the shortened `conditions/resolve.ts` moved the lines 21
+  pointers in live records cite. `check:corpus` reports a pointer past a file's end, not one that now
+  lands on the wrong line, so all 21 were re-pointed from a diff-derived old→new line map, each
+  checked to cite the same text as before.
+- **Sabotage** (each restored before the next; `linked-back.test.ts`, the 13 fixture scenarios, and
+  for the production rule the two production rows): the membership lookup always true — 4 tests, 4
+  fixture rows; `haveLiveTargets` always true — 3, 2; the condition marked cardinality-exempt — 2,
+  `all-frozen`; each of the nine causes swapped for another — 1–3 tests and that cause's fixture row
+  each; `beLinkedBack` ignoring its options — 2, `green-control`; `haveLiveTargets` ignoring its
+  options — 1 test (the extensionless frozen target), no fixture row, as the plan specified; the
+  production rule given `.expectEmpty()` — the `every-label-removed` production row. 15 rows, all red;
+  17 green after.
+- **Non-vacuity:** 15 rows. Two production (`corpus/adr-extends/one-way`,
+  `corpus/adr-extends/every-label-removed`) run the real `check-corpus.mjs` both ways over sabotaged
+  ADRs; thirteen fixture (`corpus/linked-back/*`) each assert an exact finding set, so a missing and
+  an extra finding both fail — `selector-pin` is plan 0405's deferred residual: an annotated item is
+  declared, a link outside the label is not.
+- **Validate:** `npm run validate` green in 9m04s on the build, and again in 8m51s after the review
+  round's corrections, `check:fast` first each time. The ledger's
+  validate and review boxes were ticked before they ran, because `check:ledger` inside validate
+  reads them; the reviews are recorded in the PR.
+
+## Review round — 2026-10-09
+
+Architect, product, enforcement, method and testing reviewed the build (1501af5). No Critical.
+
+- **The frozen remedy under mismatched options** (product, enforcement, architect — all three
+  measured it). `haveLiveTargets()` and `beLinkedBack()` each take options; given different ones,
+  the frozen finding told the author to add `.haveLiveTargets()` to a rule that had it. The remedy
+  now says to pass it the options `beLinkedBack()` gets, and a test applies that and shows it
+  clears. One options value per rule, so the two cannot differ, is a design change this plan does
+  not make; the remedy is now right in both cases.
+- **ADR-018's colon-less label** (enforcement, architect) is a gap in plan 0405's label grammar,
+  not in this plan: recorded as bug 0408 (PR #196, reviewed by the method lens, which corrected
+  this plan's first claim that the missing colon was the only reason ADR-018 is unchecked), and stated in the dogfood rule's comment with the rule's
+  other blind spots (a different spelling, the reverse direction). The rule's `because` no longer
+  claims both directions.
+- **Pointers** (method). The first sweep skipped `corpus.ts`, which this plan also changed: bug
+  0087 and proposal 001 now cite `corpus.ts:77-80` again, and proposal 013 cites the `frozen` option
+  at `:32`. Bug 0136's re-mapped pointers had cited the wrong code since plan 0404; they now cite
+  `model/resolve-link.ts:152`, `:270` and `:278`, and its older references carry a dated note
+  rather than a re-certification. Pointers already stale on `main` and not touched here (proposal
+  002's `corpus.ts:91` and `:50-67`) are left.
+- **The freeze history** this plan's State had dropped is restored.
+- **Tests** (testing): the finding's line is in every key — unit tests and fixture rows — so a
+  finding on the wrong line fails; the moved-link autofix is asserted equal to `resolve()`'s; an
+  ignored `.png` is told to declare a record; temp copies are removed; the all-frozen test asserts
+  `examined` 0. Unit tests: 20.
+- **Fixture rows** (testing, method): a `fence` scenario guards the one fake-green fixture — a
+  back-link only in a code fence or comment — and the three folders no scenario read were removed.
+  Fourteen fixture rows; the selector pin runs over a fixture with the dogfood's selector shape, not
+  over the ADRs themselves.
+- **A third production row** (enforcement): `corpus/adr-extends/list-item` removes ADR-009's link to
+  ADR-016, whose declaration is the one list item, and asserts the finding on ADR-016 naming
+  ADR-009. Seventeen non-vacuity rows in all.
+- **Docs** (product, architect): the not-loaded row is three rows, one per finding; a missing or
+  external target's element is its URL; a declaration inside a frozen record is still examined,
+  with the `satisfy()` filter for leaving it out; CLAUDE.md's ADR convention names the
+  `**Extends:**` / `**Extended by:**` relation.
+- **Not changed:** the receipt member passed to `mergeCollectResults` is built the way the
+  neighbouring pointer check's is (architect M1); the per-condition indexes (M2) and the second
+  repo walk for the adr/ corpus (M3) are costs, not defects, at this repository's size.

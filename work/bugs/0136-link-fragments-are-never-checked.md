@@ -14,10 +14,15 @@
   [proposal 001](../proposals/001-md-corpus-rule-coverage.md) during the
   proposal-003/004 review round
 - **Reported:** 2026-08-13
+- **Pointers (2026-10-09, plan 0406's review):** the fragment split and the autofix moved to
+  `model/resolve-link.ts` in plan 0404; the Symptom's pointers now cite them there. The other
+  `resolve.ts` and `corpus.ts` line references below (`resolveTargets` at `resolve.ts:39-51`, the
+  bare `:41`, `:69-70`, `:83`, `:88`, and `corpus.ts:40`) predate that move and are kept as
+  history, not re-certified.
 
 ## Symptom
 
-`packages/md/src/conditions/resolve.ts:40` splits the fragment off and throws it
+`packages/md/src/model/resolve-link.ts:152` splits the fragment off and throws it
 away, on every path:
 
 ```ts
@@ -44,7 +49,7 @@ Four consequences:
    citation instead of a `#fragment`.
 4. **The autofix carries a fragment it has never validated.** `movedLinkFix`
    deliberately preserves the fragment when rewriting a moved link
-   (`packages/md/src/model/resolve-link.ts:253-254`, `:262`; moved there from `conditions/resolve.ts` by plan 0404):
+   (`packages/md/src/model/resolve-link.ts:270`, `:278`; moved there from `conditions/resolve.ts` by plan 0404):
 
    ```ts
    const fragment = link.url.slice(path.length) // '' or '#anchor'

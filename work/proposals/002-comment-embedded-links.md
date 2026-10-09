@@ -131,7 +131,7 @@ submitting one: a source file citing a doc is invisible to `corpus()`, the
 citation rots on the corpus's own normal lifecycle, and nothing watches it.
 The layering analysis is the strongest part of the submission — every field it
 claims `linkResolves()` and `mdViolation()` read was checked against
-`packages/md/src/conditions/resolve.ts:72` and found accurate, so the "condition
+`packages/md/src/conditions/resolve.ts:67` and found accurate, so the "condition
 runs unmodified" and "autofix comes for free" claims both hold. That is what
 makes the rework cheap rather than a rewrite.
 
@@ -231,12 +231,12 @@ existing `extractPointers()` technique — line-by-line regex over raw text,
 shape, backed by a minimal document carrier built from the real source
 file's real text — not a synthetic markdown-parsed document. Feed the result
 straight into the **unmodified** `linkResolves()` condition
-(`conditions/resolve.ts:72`).
+(`conditions/resolve.ts:67`).
 
 **Why this layering wins:**
 
 - `linkResolves()` and `mdViolation()` need zero changes. Reading
-  `conditions/resolve.ts:30-83`, the only fields of `MdLink`/`link.doc` they
+  `conditions/resolve.ts:31-78`, the only fields of `MdLink`/`link.doc` they
   touch are `url`, `line`, `external`, `urlStart`/`urlEnd`, and
   `doc.relPath`/`doc.file`/`doc.text` — none of `MdDocument`'s
   markdown-structural fields (`sections`, `tables`, `codeBlocks`, `root`).
@@ -252,7 +252,7 @@ straight into the **unmodified** `linkResolves()` condition
 - **Autofix comes for free.** `ArchFix` and its applier
   (`packages/core/src/apply-fixes.ts`) operate on `{file, start, end,
 replacement}` with no markdown-specific assumption anywhere in that
-  signature. `movedLinkFix()` (`packages/md/src/model/resolve-link.ts:248-271`, moved from `conditions/resolve.ts` by plan 0404) already
+  signature. `movedLinkFix()` (`packages/md/src/model/resolve-link.ts:260-283`, moved from `conditions/resolve.ts` by plan 0404) already
   computes a relative-path rewrite from any `link.urlStart`/`urlEnd` inside
   any `link.doc.file` — pointed at a `.ts` file's comment instead of a `.md`
   file's prose, the same "byte-eksakt" repair `eess:fix` already gives
