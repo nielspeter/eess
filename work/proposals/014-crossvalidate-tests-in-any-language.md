@@ -173,6 +173,42 @@ So the composition works, with three costs the presets do not have:
 - Any change to the TypeScript form of the presets.
 - Bug 0400's one-way count, which has its own record.
 
+## Consumer evidence — 2026-10-10
+
+The consuming project sent the citation format it shipped (reported by its agent; its suite was not
+run here). Recorded as evidence for the review, not as a decision.
+
+- **The marker.** One string literal on a pytest marker, `"<file>.feature › <Scenario title>"`:
+  `<file>` is the name inside the project's one, flat `features/` folder, the separator is `›`
+  (U+203A) with a space each side, and the title is exact.
+- **Where it may sit.** A `test_*` function, a `test_*` method of a `Test*` class, a `Test*` class
+  (decorator or the class's own `pytestmark`), or a module's `pytestmark`. Several markers per test.
+  Only files pytest collects are read.
+- **The extractor.** The project's own, on Python's standard `ast`, run on every check, writing JSON
+  to stdout: `files`, `citations` (`key`, `file`, `line`) and `errors` (`file`, `line`, `message`).
+  No citations file is kept. A marker anywhere else, a non-literal argument, a citing test that is
+  skipped or expected to fail (on itself, its class or its module, including through a module-level
+  name or `pytest.param(marks=…)`), a citing test defined twice, and a file that does not parse are
+  each an **error**, never zero citations.
+- **The gate.** Citations collapsed by key, sites kept for messages, then one `correspondence()` with
+  `direction: 'both'` and `.expectNonEmpty()`; exempt scenarios (two tags) filtered off the left,
+  with a `suggest.right` that names a cited exempt scenario's tag as stale.
+- **At landing:** 122 scenarios, 59 cited by 72 citations in 18 files, 63 tagged untested.
+
+What it bears on, for the review to weigh:
+
+- **Open question 1** (where citations come from): the consumer's own runner, re-read every run —
+  eess parsed no Python.
+- **Open question 3** (a stale list): no list is kept, so freshness is the caller's by
+  construction. One consumer's choice, not yet evidence that every caller would make it.
+- **The missing-source break class** in Ask A: the consumer already treats an unreadable source as
+  an error. A supplied-side form needs a way to receive those errors, or it reads them as an empty
+  list.
+- **The key.** The consumer keys a scenario by its path inside `features/`, not its repo path; the
+  TypeScript presets accept a unique path suffix, so a supplied-side form needs the same.
+- **Several tests per scenario** was not hypothetical: 72 citations for 59 scenarios, and the
+  collapse was needed at once.
+
 ## Origin note
 
 Asked on 2026-10-09 by an agent working in a consuming project with pytest and TypeScript browser
