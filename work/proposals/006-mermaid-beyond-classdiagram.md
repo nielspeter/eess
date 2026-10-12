@@ -365,3 +365,71 @@ from an inbound question, and these asks are recorded here as evidence on OQ2, O
 
 _Correction, 2026-10-07 (method review):_ the first version of this section, and its commit
 message, said Ask 1 was not in this record. It is OQ2.
+
+## Consumer evidence — 2026-10-12
+
+Recorded by the coordinating agent at the maintainer's instruction. Same consuming project as the
+2026-10-07 evidence above; reported by its agent unless marked measured here.
+
+**What happened.** An edit to the project's one `sequenceDiagram` added two messages with a `;` in
+their text — in Mermaid, `;` ends a statement — and GitHub showed "Unable to render rich display —
+Parse error on line 8 … Expecting '()', 'SOLID_OPEN_ARROW', … got 'NEWLINE'" instead of the
+diagram. None of the project's gates noticed; it was seen by a person opening the page. The
+project recorded it as its own bug, open until after its proof of concept.
+
+**What it needs** (its words, condensed): every Mermaid block parses. Participants being declared
+would be welcome, but second — the defect class was syntax. A finding needs the file, the
+fence's opening line, the line inside the diagram, and the parser's message verbatim. A docs check
+should fit in seconds (its corpus job takes ~25 s); a browser in CI is costly, not ruled out.
+
+**Its inventory:** three fences, all in `docs/` — one `sequenceDiagram`, two `flowchart`.
+
+**Measured here, 2026-10-12** — `mermaid` 11.17.2, Node 24, in a scratch directory; nothing added
+to eess. `mermaid.parse(text)` over the project's two broken message lines (with participant lines
+of our own), the same lines repaired, a valid flowchart and a broken one:
+
+| Environment         | broken sequence                                  | repaired | valid flowchart                                  | broken flowchart |
+| ------------------- | ------------------------------------------------ | -------- | ------------------------------------------------ | ---------------- |
+| plain Node          | error — the same "… got 'NEWLINE'" GitHub showed | ok       | **error: `DOMPurify.addHook is not a function`** | error            |
+| Node + `jsdom` shim | error — the same                                 | ok       | ok (`flowchart-v2`)                              | error            |
+
+- Plain Node is a false red on a valid flowchart: that diagram's path needs a DOM. With a `jsdom`
+  window installed before `mermaid` is imported, every case is right.
+- Cost: 179 MB installed (`mermaid` 153 MB), no browser; ~210 ms to start (30 ms the shim, 180 ms
+  the import), then 2–8 ms per block.
+- What it does not show: `parse()` is syntax, not rendering; GitHub pins its own `mermaid`
+  version, so a block can parse here and fail there; only `sequenceDiagram` and `flowchart` were
+  tried.
+
+**What it bears on.** OQ2 asks whether "it parses and validates internal references" is enough for
+a dialect whose thesis is that drift fails the build. This consumer asks for less — that a diagram
+parses at all — and for a reason OQ2 does not consider: the manifesto's "the AI generates; the
+validator checks … at every layer: spec, schema, rule, diagram" (`docs/manifesto.md:155`). An agent
+edited a diagram, broke it, and no validator ran. Today `md-mermaid` parses a `classDiagram` fence
+and reports one that fails, but skips every other legal kind by design
+(`packages/crossvalidate/src/md-mermaid.ts:86-100`), so this defect passes every eess gate.
+
+## Ask C — every Mermaid fence parses (added 2026-10-12)
+
+_Not in the submission. Added at the maintainer's instruction from the evidence above, so that it
+can be ruled on apart from Ask B, which it does not depend on: parsing a fence binds it to
+nothing._
+
+- **C.** Every ` ```mermaid ` fence in a corpus parses, whatever its kind, by **Mermaid's own
+  parser** — the authority GitHub renders with, so eess does not keep a second grammar per kind that
+  can disagree with it. A fence that fails is a finding.
+
+**Acceptance criteria.**
+
+- **Break class:** a fence with a syntax error — the evidence's `;` in a message — is reported with
+  the file, the fence's opening line, the line inside the diagram and the parser's message.
+- **Break class (false red):** a valid fence of each kind the check claims to read passes; the
+  plain-Node `DOMPurify` failure above is the row that pins it.
+- **Break class:** the parser cannot be loaded — not installed, or a version it cannot use — is a
+  finding, never a pass and never "zero fences" (ADR-009, ADR-016).
+- **Break class:** a corpus with no fences fails with the zero-examined finding unless the rule
+  declares it expects none (ADR-010).
+- **Disclosure:** the parser's version is part of what the check reports, since a different
+  version can read a fence differently (ADR-016 rule 7).
+- **Non-vacuity:** a fixture row per break class, and one row through this repository's own gate if
+  it adopts the check.
