@@ -365,3 +365,178 @@ from an inbound question, and these asks are recorded here as evidence on OQ2, O
 
 _Correction, 2026-10-07 (method review):_ the first version of this section, and its commit
 message, said Ask 1 was not in this record. It is OQ2.
+
+## Consumer evidence — 2026-10-12
+
+Recorded by the coordinating agent at the maintainer's instruction. Same consuming project as the
+2026-10-07 evidence above; reported by its agent unless marked measured here.
+
+**What happened.** An edit to the project's one `sequenceDiagram` added two messages with a `;` in
+their text — in Mermaid, `;` ends a statement — and GitHub showed "Unable to render rich display —
+Parse error on line 8 … Expecting '()', 'SOLID_OPEN_ARROW', … got 'NEWLINE'" instead of the
+diagram. None of the project's gates noticed; it was seen by a person opening the page. The
+project recorded it as its own bug, open until after its proof of concept.
+
+**What it needs** (its words, condensed): every Mermaid block parses. Participants being declared
+would be welcome, but second — the defect class was syntax. A finding needs the file, the
+fence's opening line, the line inside the diagram, and the parser's message verbatim. A docs check
+should fit in seconds (its corpus job takes ~25 s); a browser in CI is costly, not ruled out.
+
+**Its inventory:** three fences, all in `docs/` — one `sequenceDiagram`, two `flowchart`.
+
+**Measured here, 2026-10-12** — `mermaid` 11.17.2, Node 24, in a scratch directory; nothing added
+to eess. `mermaid.parse(text)` over the project's two broken message lines (with participant lines
+of our own), the same lines repaired, a valid flowchart and a broken one:
+
+| Environment         | broken sequence                                  | repaired | valid flowchart                                  | broken flowchart |
+| ------------------- | ------------------------------------------------ | -------- | ------------------------------------------------ | ---------------- |
+| plain Node          | error — the same "… got 'NEWLINE'" GitHub showed | ok       | **error: `DOMPurify.addHook is not a function`** | error            |
+| Node + `jsdom` shim | error — the same                                 | ok       | ok (`flowchart-v2`)                              | error            |
+
+- Plain Node is a false red on a valid flowchart: that diagram's path needs a DOM. With a `jsdom`
+  window installed before `mermaid` is imported, every case is right.
+- Cost: 179 MB installed (`mermaid` 153 MB), no browser; ~210 ms to start (30 ms the shim, 180 ms
+  the import), then 2–8 ms per block.
+- What it does not show: `parse()` is syntax, not rendering; GitHub pins its own `mermaid`
+  version, so a block can parse here and fail there; only `sequenceDiagram` and `flowchart` were
+  tried.
+
+**What it bears on.** OQ2 asks whether "it parses and validates internal references" is enough for
+a dialect whose thesis is that drift fails the build. This consumer asks for less — that a diagram
+parses at all — and for a reason OQ2 does not consider: the manifesto's "the AI generates; the
+validator checks … at every layer: spec, schema, rule, diagram" (`docs/manifesto.md:155`). An agent
+edited a diagram, broke it, and no validator ran. Today `md-mermaid` parses a `classDiagram` fence
+and reports one that fails, but skips every other legal kind by design
+(`packages/crossvalidate/src/md-mermaid.ts:86-100`), so this defect passes every eess gate.
+
+## Ask C — every Mermaid fence parses (added 2026-10-12)
+
+_Not in the submission. Added at the maintainer's instruction from the evidence above, so that it
+can be ruled on apart from Ask B, which it does not depend on: parsing a fence binds it to
+nothing._
+
+- **C.** Every ` ```mermaid ` fence in a corpus parses, whatever its kind, by **Mermaid's own
+  parser** — the authority GitHub renders with, so eess does not keep a second grammar per kind that
+  can disagree with it. A fence that fails is a finding.
+
+**Acceptance criteria.**
+
+- **Break class:** a fence with a syntax error — the evidence's `;` in a message — is reported with
+  the file, the fence's opening line, the line inside the diagram and the parser's message.
+- **Break class (false red):** a valid fence of each kind the check claims to read passes; the
+  plain-Node `DOMPurify` failure above is the row that pins it.
+- **Break class:** the parser cannot be loaded — not installed, or a version it cannot use — is a
+  finding, never a pass and never "zero fences" (ADR-009, ADR-016).
+- **Break class:** a corpus with no fences fails with the zero-examined finding unless the rule
+  declares it expects none (ADR-010).
+- **Disclosure:** the parser's version is part of what the check reports, since a different
+  version can read a fence differently (ADR-016 rule 7).
+- **Non-vacuity:** a fixture row per break class, and one row through this repository's own gate if
+  it adopts the check.
+
+## Review — 2026-10-12
+
+**Ruling: Split and sequence**
+
+Ask C only (architect · product · enforcement), with the existing-code survey run first. Asks A1–A3
+and B keep their 2026-08-22 dispositions; this ruling restates the whole record's, unchanged, and
+adds Ask C's row.
+
+**Survey.** _Partly exists:_ `embeddedDiagramsMatchCode` already reports a `classDiagram` fence
+that fails eess-mermaid's Langium grammar, at the Markdown file and fence line
+(`packages/crossvalidate/src/md-mermaid.ts:122-150`), and skips every other legal kind by its
+`FOREIGN_HEADER` list (`:41-42`, `:187-192`). _Precedent:_ eess-ts loads its optional `graphql` peer
+through one guarded loader that reports a missing or broken install (`packages/ts/package.json:109-116`,
+`packages/ts/src/graphql/schema-loader.ts:84-145`). _Genuinely new:_ parsing every kind, by the
+`mermaid` package; no eess package depends on it. _Dogfood:_ this repository's own corpus
+(`work/`, `adr/`, `docs/`) holds 9 `mermaid` fences — 6 at a document's top level, all of which
+parse with `mermaid` 11.17.2 (measured), and 3 nested in a list, which no eess reader sees.
+
+**What all three lenses support.** The ask is generic — any project that renders Mermaid on GitHub
+or GitLab wants its blocks to parse — and correctly split from Ask B: parsing binds a fence to
+nothing, so it inherits none of B's Held conditions. Using Mermaid's own parser rather than a
+grammar per kind is right, and it needs no list of kinds, so it adds nothing to OQ4. The evidence
+is recorded faithfully, and the criteria are written as break classes with a false-red row. Cost
+holds: all 39 fences in this repository, fixtures included, parse in 0.78 s including the imports.
+
+**Why it is held, not yet a plan.** Four things decide whether it can be built inside the family's
+contracts, and the record leaves them open:
+
+1. **`mermaid.parse()` is asynchronous; every rule surface in the family is synchronous**
+   (measured: it returns a `Promise`; `check()`, `violations()`, `finishPreset` and every preset are
+   synchronous). Either the family gains its first asynchronous rule surface — a change to ADR-014's
+   doors, which is an ADR — or an asynchronous step builds the facts (every fence parsed in one
+   batch) and a synchronous rule reads them, the shape ADR-007 and ADR-013 already set. The architect
+   argued for the second; it is the author's to decide.
+2. **Nested fences are not read** (bug 0290, High, fail-open): a fence in a list item or blockquote
+   never reaches `MdDocument.codeBlocks`, so "every fence" is false on this repository's own corpus,
+   and the zero-examined guard cannot see it. Ask C is sequenced after bug 0290, or it discloses the
+   unread fences beside its count.
+3. **Two parsers would judge one `classDiagram` fence, and they disagree** (measured: of 11
+   class-diagram probes, 8 disagree — `mermaid` accepts generics, `namespace`, `note`, `style`,
+   `click`, `direction`, a quoted label and `classDiagram-v2`, which eess-mermaid's grammar rejects;
+   this repository's own "unparseable" ER fixture is valid Mermaid). The record must state which
+   verdict owns "this fence is valid". The one the evidence implies — Mermaid owns syntax; a fence it
+   accepts and eess-mermaid cannot model is a gap in eess, not an error in the document — needs
+   md-mermaid's message to change, which is bug 0409.
+4. **Placement and the dependency** are unargued. Not the kernel. `eess-crossvalidate/md-mermaid`
+   imports eess-ts, which a parse-only check does not need; eess-mermaid owning the fence loop is
+   OQ1's "corpus dialect" branch, already ruled to need an ADR; product argued a smaller shape — eess-md
+   checking a language's code blocks with a parser the caller passes, so eess never depends on
+   Mermaid. Whatever the home, `mermaid` and `jsdom` are an optional peer loaded on first use, behind
+   one boundary that keeps the shim's globals out of the caller's process (measured: it adds
+   `window`, `document`, `DOMParser`, `Element` to `globalThis`; under vitest that reaches the
+   adopter's other tests).
+
+**Criteria the record owes** (enforcement and architect, measured):
+
+- _The line inside the diagram._ Mermaid counts lines after removing frontmatter, a directive and
+  leading blank lines: the same error reads "line 3" at body lines 3, 4, 5 and 6. Rows for
+  frontmatter, a one-line and a multi-line directive, a blank lead, and one kind on the Langium
+  parser (its error carries the line only in its text), each asserting the exact Markdown line; if
+  the line cannot be recovered, the finding says so. Reuse the preamble walk in `declaredKind`
+  (plan 0214), not a third copy.
+- _Mermaid present, DOM absent._ Under plain Node a labelled flowchart, a `classDiagram`, a
+  `stateDiagram-v2` and a `mindmap` fail with `DOMPurify.addHook is not a function`; an unlabelled
+  flowchart, a sequence and an ER diagram pass. An exception that is not a parse error is one
+  instrument finding per run, unsuppressable, naming the environment — not one syntax finding per
+  fence. The false-red row must use content that reaches the sanitizer (a labelled node), or it
+  passes with or without the shim.
+- _A fence no diagram type matches_ — empty, a directive or comment only, a misspelt kind, a kind
+  newer than the pinned parser (`zenuml` is not in core) — each gets its own remedy, verified to
+  clear; none is "delete the fence".
+- _What a green means:_ "parses with `mermaid` X.Y.Z", never "renders" — GitHub pins its own version
+  and renders in a browser, and `parse()` accepted a `mindmap` with an unclosed `root((r)`. The
+  version comes from `mermaid/package.json` (`mermaid.version` is undefined in 11.17.2), and the
+  success line is asserted to carry it. A supported version range is declared, so "a version it
+  cannot use" has something to test against.
+- `parse(text, { suppressErrors: true })` returns `false` instead of throwing; the check must not
+  take that path.
+- _Dogfood is not optional:_ a production row through this repository's own gate, over the
+  top-level fences in `work/`, `adr/`, `docs/` (the fixture fences that are broken on purpose stay
+  out by glob, not by exclusion). The break for `docs/manifesto.md`'s `graph` fence is
+  flowchart-specific (`;` is legal there); a dangling `Route -->` reds it (measured).
+
+**Corrections to Ask C as filed** (kept, not edited away):
+
+- "So eess does not keep a second grammar per kind that can disagree with it" is false for
+  `classDiagram` and `erDiagram`, which eess-mermaid already parses — see condition 3.
+- "The authority GitHub renders with" holds only per version; the criterion above replaces it.
+- ADR-016 governs instruments that run out; a missing peer is ADR-009's (fail closed), and version
+  disclosure follows from the tier argument above, not from rule 7. Rule 7 fits the nested-fence
+  disclosure in condition 2.
+- The empty-corpus criterion reads as a user opt-out the kernel deliberately does not offer
+  (`packages/core/src/cardinality.ts`); it should name the existing mechanism or make "no fences" a
+  configuration finding.
+- The pointer `md-mermaid.ts:86-100` resolves but cites the options interface; the skip is at
+  `:41-42` and `:187-192`.
+
+**Found by this review, filed separately:** md-mermaid tells an author to "fix the diagram syntax"
+for legal Mermaid that eess-mermaid's grammar does not model — a wrong remedy in shipped code (ADR-009
+rule 2), recorded as bug 0409, on its own branch.
+
+### Disposition, Ask C
+
+| ask                                | disposition | owner                                                                                                                                                                                                                                                      |
+| ---------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C** — every Mermaid fence parses | **Held**    | accepted in principle by all three lenses; held on the four conditions above — the asynchronous shape, bug 0290 or a disclosure, the rule for which parser owns `classDiagram` syntax (with bug 0409), and placement — and on the criteria the record owes |
