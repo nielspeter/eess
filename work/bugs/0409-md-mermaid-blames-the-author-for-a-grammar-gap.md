@@ -4,18 +4,23 @@
 
 - **State:** Draft — measured 2026-10-12 against this repository's build at `9765605`, with `mermaid`
   11.17.2 as the reference parser. No red test yet.
-- **Severity:** Medium — a wrong remedy (ADR-009 rule 2), not a false green. The build is red when it
-  should be, but the finding tells the author their diagram has a syntax error when the diagram is
-  valid Mermaid that eess-mermaid's grammar does not model. Following the remedy means removing a
-  correct construct from the document to satisfy the tool — an agent's cheapest path to green.
-- **Origin:** self-found · architect and enforcement review of proposal 006, Ask C, 2026-10-12.
+- **Severity:** Medium — an honesty gap between a stated claim and its mechanism (`BUGS.md`'s
+  Medium row), and a wrong remedy (ADR-009 rule 2), not a false green: the build is red when it
+  should be. The code states the principle itself — "blaming the author's syntax for a grammar gap
+  is the wrong attribution" (`packages/crossvalidate/src/md-mermaid.ts:36-38`) — but its mechanism
+  covers one diagram header and no construct inside a diagram. So the finding tells the author their
+  valid diagram has a syntax error, and the cheapest path to green is removing a correct construct.
+- **Origin:** self-found · architect and enforcement review of
+  [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)'s Ask C, 2026-10-12 — Ask C and
+  that review are in PR #199, not yet on `main`.
 - **Reported:** 2026-10-12
 
 ## Symptom
 
 `embeddedDiagramsMatchCode` reports a `classDiagram` fence that eess-mermaid's grammar rejects as
 `embedded classDiagram does not parse as a Mermaid class diagram: …`, with the suggestion "Fix the
-diagram syntax so it parses as a Mermaid class diagram"
+diagram syntax so it parses as a Mermaid class diagram. If this fence is a diagram kind
+eess-mermaid does not model, report it rather than deleting the fence"
 (`packages/crossvalidate/src/md-mermaid.ts:136`, `:147`). The same constructs, measured against
 Mermaid's own parser and against `diagram()` from `@nielspeter/eess-mermaid`, the parse md-mermaid
 uses:
@@ -39,15 +44,31 @@ The ER binding has the same shape. `md-mermaid-er` reports a fence its parser re
 `erDiagram does not parse as standard Mermaid ER syntax: …` with "fix the syntax"
 (`packages/crossvalidate/src/md-mermaid-er.ts:104-105`). This repository's own fixture for that
 path, `packages/crossvalidate/tests/fixtures/table-er/bad-unparseable.md`, whose one relation is
-`JobSchedule o{--o{ Bonus`, is accepted by `mermaid.parse()` (`{"diagramType":"er"}`), so the message's claim about
-"standard Mermaid ER syntax" is false for the case it was written to test.
+`JobSchedule o{--o{ Bonus`, is accepted by `mermaid.parse()` (`{"diagramType":"er"}`). Whether it is
+"standard" is disputed rather than false: Mermaid's documented cardinality table lists `o{` only on
+the right-hand side, and the fixture labels itself "non-standard cardinality", so the parser is
+looser than the docs. That is the same question proposal 006's review held Ask C on — which parser
+owns syntax — and this record does not settle it. What holds either way: a fence Mermaid's parser
+accepts and renders is not fixed by "fix the syntax". The test over that fixture
+(`packages/crossvalidate/tests/md-mermaid-er.test.ts:80-84`) asserts the current message.
 
 ## Reproduction
 
 With `mermaid` and `jsdom` installed outside the repository and a `jsdom` window on `globalThis`
 before `mermaid` is imported, call `await mermaid.parse(text)` and
-`diagram(text)` from `@nielspeter/eess-mermaid` on each row above; for the ER case, parse the fence
-in `bad-unparseable.md`.
+`diagram(text)` from `@nielspeter/eess-mermaid` on each fence below; for the ER case, parse the
+fence in `bad-unparseable.md`.
+
+```text
+classDiagram\n  class A\n  class B\n  A --> B
+classDiagram\n  direction RL\n  class A\n  class B\n  A --> B
+classDiagram\n  class Box~T~\n  class B\n  Box --> B
+classDiagram\n  namespace N {\n    class A\n  }
+classDiagram\n  class A\n  note for A "a note"
+classDiagram\n  class A\n  style A fill:#f9f
+classDiagram-v2\n  class A\n  class B\n  A --> B
+classDiagram\n  class A; class B
+```
 
 ## Root cause
 
@@ -71,12 +92,15 @@ Not designed. Two directions, which do not exclude each other:
 
 ## Verification
 
-- [ ] Red test first, through `embeddedDiagramsMatchCode`: a `classDiagram` fence using
-      `direction RL`, valid Mermaid, does not tell the author to fix its syntax
-- [ ] a fence with a real syntax error (`class A; class B`) is still reported, and its remedy still
-      names the syntax
-- [ ] the ER binding no longer claims a fence Mermaid accepts is not "standard Mermaid ER syntax"
-- [ ] no remedy removes valid content from the document (ADR-009 rule 2)
+These hold whichever direction the fix takes.
+
+- [ ] Red test first, through `embeddedDiagramsMatchCode`: for a `classDiagram` fence Mermaid accepts
+      (`direction RL`), neither the message nor the suggestion asserts a syntax error in the
+      document, and the suggestion removes no valid content — exact-string assertions
+- [ ] a fence both parsers reject (`class A; class B`) is still reported
+- [ ] the ER binding's message no longer asserts what "standard Mermaid ER syntax" accepts for a
+      fence Mermaid's parser accepts; its test (`md-mermaid-er.test.ts:80-84`) is either kept on a
+      fence Mermaid's parser rejects, or rewritten to the new wording on purpose
 - [ ] `npm run validate` green.
 
 Deferred: none.
