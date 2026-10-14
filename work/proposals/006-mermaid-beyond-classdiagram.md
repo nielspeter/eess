@@ -752,6 +752,49 @@ review of this record followed, and its corrections are applied here.
 
 ### Disposition, Ask C (2026-10-14)
 
-| ask                                | disposition | owner                                                                                                                                                                                                                                     |
-| ---------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **C** — every Mermaid fence parses | **Held**    | the design is accepted by all three lenses (conditions 1–13 above); held only until the two plans, A (eess-md) and B (eess-mermaid), are drafted against them after PR #204 merges, at which point this row becomes Accepted, naming both |
+| ask                                | disposition  | owner                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C** — every Mermaid fence parses | **Accepted** | [plan 0412](../plans/0412-a-code-block-parses-with-the-parser-the-caller-names.md) (A, eess-md: the loop, the port and the evidence), then [plan 0413](../plans/0413-eess-mermaid-ships-mermaids-own-parser.md) (B, eess-mermaid: Mermaid's own parser in a worker), both Draft, against conditions 1–13 above. Was `Held` until the plans were drafted after PR #204 merged |
+
+### Amendment to conditions 2, 4, 5 and 10 — 2026-10-14, from the plans' review
+
+Method and enforcement reviewed plans 0412 and 0413 against the conditions above. Each found the
+same two defects, and both were in the conditions themselves, not only in the plans. The plans carry
+the corrected text. This amendment records what changed, so the conditions above are read with it.
+
+- **Condition 2, the port, was too narrow to carry condition 5.**
+  - `{ name, version, parse(texts) }` passed no budget, no way to cancel and no progress back, and had
+    no way to return a cause's remedy. So when eess-md stopped waiting, the worker kept the process
+    alive, and the block in flight could not reach the finding.
+  - The port is now `{ name, version, canaries, parse(texts, { signal, budgetMs }) }`.
+  - A parser may reject with a structured failure (`remedy`, `blockIndex`), which eess-md reads by
+    shape.
+  - A synchronous parser's overrun is detected after it returns. One that never returns is unbounded,
+    and the docs say so.
+- **Condition 4 claimed canaries a stub would never run.**
+  - Canaries inside plan B's worker never see a stub the caller passes in, so "an always-valid stub
+    fails on the canary" could not fire. The residual "forges both identity and canaries" described
+    canaries that the caller did not supply.
+  - The parser now **declares** its canaries, and **eess-md runs them** (plan A). A stub must then
+    forge both, which makes the residual true.
+  - Plan B's canary row becomes "a `mermaid` that stops throwing fails on the canaries". That was the
+    break class the worker-side canaries really guarded.
+  - The non-vacuity table above is corrected by this: the canary row moves to plan A, and plan B
+    gains the rewritten row.
+- **Condition 5, "once".** A constant `ruleId` alone does not collapse findings. The dedupe key is
+  `file`, `ruleId` and `element`, and a per-block emission gives one finding per block. Plan A pins
+  all three fields and emits once per rule from the fact object.
+- **Condition 9's "any finding passes through"** now holds by construction. A parser with no identity
+  or no canaries throws `ArchConfigError` from `parseCodeBlocks`, before anything is selected.
+- **Condition 10.** What counts as a "near-miss" was not defined above. Plan A defines it as equal
+  only when case-folded, and makes that its own decision. The zero-examined finding names a near-miss
+  that caused it, so the author is sent to the spelling and not to `.expectEmpty()`.
+- **Plan A's ADR-015 sentence moved to the docs.** It would have added a binding clause with no
+  mechanism to an Accepted ADR that is about module resolution.
+- **Correction, the install size.** "About 180 MB … (`du`, spike install)" is this review's own
+  measurement. Spike 0411 records no disk figure. Plan B re-measures it.
+- **Also added:**
+  - a registry, so a hand-built fact object is refused;
+  - validation of each verdict's line, message and remedy;
+  - two plan A rows: an `invalid` verdict reds, and a malformed verdict reds as the instrument;
+  - a production-tier row for plan B's dogfood gate.
