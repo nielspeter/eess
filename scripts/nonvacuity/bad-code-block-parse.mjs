@@ -22,6 +22,10 @@
  *                       with the parser's remedy, never worded as a syntax error.
  *   forged-facts        a hand-built fact object passed to codeBlocks() → ArchConfigError.
  *   canary-may-pass     a canary declared `expect: 'valid'` → ArchConfigError from parseCodeBlocks.
+ *   sync-overrun        a synchronous parser runs past a 5 ms budget → the instrument, after it returns.
+ *   cannot-be-excluded  the parser throws and the rule excludes every element with a match-all
+ *                       pattern →
+ *                       the instrument is still reported.
  *
  * Each finding is matched on its message (and file, where it has one), not on a rule id alone:
  * every instrument finding shares one id, so an id match would let any one of them answer for
@@ -130,6 +134,30 @@ const SCENARIOS = {
       ),
   },
   'forged-facts': { dir: 'valid', forge: true, throws: 'takes the object' },
+  'sync-overrun': {
+    dir: 'valid',
+    parser: {
+      parse: (texts) => {
+        const until = Date.now() + 30
+        while (Date.now() < until) {
+          // a synchronous parser cannot be interrupted
+        }
+        return texts.map(judge)
+      },
+    },
+    budget: { startUpMs: 5, perBlockMs: 0 },
+    found: instrument('past its budget'),
+  },
+  'cannot-be-excluded': {
+    dir: 'valid',
+    parser: {
+      parse: () => {
+        throw new Error('excluded or not')
+      },
+    },
+    excludeAll: true,
+    found: instrument('excluded or not'),
+  },
   'canary-may-pass': {
     dir: 'valid',
     parser: { canaries: [{ text: 'BROKEN', expect: 'valid' }] },
@@ -157,6 +185,7 @@ try {
   const facts = scenario.forge === true ? { ...parsed } : parsed
   let rule = codeBlocks(facts).should().parse().rule({ id: 'nonvacuity/code-block-parse' })
   if (scenario.expectEmpty === true) rule = rule.expectEmpty()
+  if (scenario.excludeAll === true) rule = rule.excluding(/.*/)
   violations = rule.violations()
 } catch (err) {
   if (scenario.throws !== undefined && isArchConfigError(err) && String(err.message).includes(scenario.throws)) {

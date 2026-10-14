@@ -562,7 +562,9 @@ what was parsed. No rule surface becomes async; an async `check()` would need an
     body line, or is `null`;
   - `{ outcome: 'unrecognised', message, remedy }`, for a block the parser cannot classify. It is
     never worded as the author's syntax error.
-- **A verdict is checked, not trusted.** Each is read once. Anything that is not one of the three
+- **A verdict is checked, not trusted.** Annotating your parser's results as `CodeBlockVerdict`, as
+  the example does, is the only check at compile time, since `parse` may return any values. Each is
+  read once. Anything that is not one of the three
   shapes, or has an empty message or remedy, is reported as the instrument, never read as `valid`.
 - **A parser names itself, and declares canaries:** blocks it must reject, each with the outcome it
   must give, `invalid` or `unrecognised`.

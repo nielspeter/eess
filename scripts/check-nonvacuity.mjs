@@ -67,7 +67,7 @@
  *   corpus/code-block-parse/{invalid-verdict,malformed-verdict,zero-blocks,no-markdown,
  *                 no-identity,no-canaries,canary-valid,parser-hangs,parser-throws,
  *                 dropped-block,near-miss,unrecognised-verdict,forged-facts,
- *                 canary-may-pass}
+ *                 canary-may-pass,sync-overrun,cannot-be-excluded}
  *                 (plan 0412, fixture tier) scripts/nonvacuity/bad-code-block-parse.mjs
  *                 drives parseCodeBlocks + codeBlocks().should().parse() with a stub
  *                 parser over bad-code-block-parse/; each row asserts its own finding's
@@ -2721,6 +2721,15 @@ const gates = [
     'corpus/code-block-parse/canary-may-pass',
     () => gateNode('bad-code-block-parse.mjs', 'canary-may-pass: reported', ['canary-may-pass']),
   ],
+  [
+    'corpus/code-block-parse/sync-overrun',
+    () => gateNode('bad-code-block-parse.mjs', 'sync-overrun: reported', ['sync-overrun']),
+  ],
+  [
+    'corpus/code-block-parse/cannot-be-excluded',
+    () =>
+      gateNode('bad-code-block-parse.mjs', 'cannot-be-excluded: reported', ['cannot-be-excluded']),
+  ],
   // Bug 0131 follow-up (six-persona review): the fold's zero-examined guard
   // must actually reach `honestyAtClose`'s `headerViolations` lane, not just
   // its detection logic — a regression back to hand-rolled iteration (or an
@@ -3277,6 +3286,8 @@ const GATE_FOR = {
     'corpus/code-block-parse/unrecognised-verdict',
     'corpus/code-block-parse/forged-facts',
     'corpus/code-block-parse/canary-may-pass',
+    'corpus/code-block-parse/sync-overrun',
+    'corpus/code-block-parse/cannot-be-excluded',
     // Plan 0406: the first two run the production script; the rest are FIXTURE tier.
     'corpus/adr-extends/one-way',
     'corpus/adr-extends/list-item',

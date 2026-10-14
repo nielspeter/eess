@@ -14,7 +14,7 @@ returns a frozen `ParsedCodeBlocks`. `codeBlocks(parsed)` returns a `CodeBlockRu
   It returns one `CodeBlockVerdict` per text, `valid`, `invalid` or `unrecognised`, synchronously or
   as a promise. Its `CodeBlockCanary` entries are blocks it must reject.
 - **Failures are never a pass.** Each of these is one unsuppressable finding per rule, with the rule
-  id `CODE_BLOCK_PARSER_INSTRUMENT`:
+  id `eess-md: code-block parser`, exported as `CODE_BLOCK_PARSER_INSTRUMENT`:
   - the parser throws;
   - it runs past its `CodeBlockBudget`;
   - it returns a malformed or missing verdict;

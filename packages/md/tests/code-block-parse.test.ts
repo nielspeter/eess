@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { dedupeConfigFindings } from '@nielspeter/eess/internal'
@@ -18,6 +18,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/code-block-
 const at = (dir: string) => corpus({ roots: [`${dir}/**`], cwd: root })
 
 const INSTRUMENT = 'eess-md: code-block parser'
+
+/** An `ArchConfigError` whose message matches: the class and the reason, both. */
+const configError =
+  (says: RegExp) =>
+  (error: unknown): boolean =>
+    isArchConfigError(error) && error instanceof Error && says.test(error.message)
 
 /** A stub verdict per text: `BROKEN` on body line N is invalid at N; `UNKNOWN` is unrecognised. */
 function judge(text: string): CodeBlockVerdict {
@@ -411,9 +417,9 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
         // test sets them past the type checker.
         const parser = stub()
         Object.defineProperty(parser, 'canaries', { value: canaries })
-        await expect(parseCodeBlocks(at('valid'), { language: 'mermaid', parser })).rejects.toThrow(
-          /is not a block the parser must reject/,
-        )
+        await expect(
+          parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
+        ).rejects.toSatisfy(configError(/is not a block the parser must reject/))
       }
     })
 
@@ -534,14 +540,14 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
       ]) {
         await expect(
           parseCodeBlocks(at('valid'), { language: 'mermaid', parser: stub(), budget }),
-        ).rejects.toThrow(/must be a whole number of milliseconds/)
+        ).rejects.toSatisfy(configError(/must be a whole number of milliseconds/))
       }
     })
 
     it('refuses an empty language', async () => {
-      await expect(parseCodeBlocks(at('valid'), { language: '', parser: stub() })).rejects.toThrow(
-        /`language` is empty/,
-      )
+      await expect(
+        parseCodeBlocks(at('valid'), { language: '', parser: stub() }),
+      ).rejects.toSatisfy(configError(/`language` is empty/))
     })
 
     it('waits out the grace for a parser that reports its block shortly after the abort', async () => {
@@ -587,9 +593,13 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
       class Hollow<T> extends Array<T> {}
       // `map`, `slice` and spread on a Hollow build through this, which reports a length and holds nothing.
       Object.defineProperty(Hollow, Symbol.species, {
+        // The shape the defect had: an object that reports one entry and yields none.
         get: () =>
           class {
-            length = 1
+            length = 1;
+            *entries(): Generator<[number, unknown]> {
+              // yields nothing
+            }
           },
       })
       const canaries = new Hollow<{ text: string; expect: 'invalid' }>()
@@ -714,6 +724,94 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
       expect(found[0]?.message).toMatch(/ran past its budget/)
       expect(found[0]?.message).not.toMatch(/at the block/)
       expect(found[0]?.suggestion).not.toBe('too late')
+    })
+
+    // Fourth round: the third review of PR #209.
+    it('refuses a canary list whose read throws, naming the parser', async () => {
+      const parser = stub()
+      Object.defineProperty(parser, 'canaries', {
+        value: new Proxy([], {
+          get: (target, key) => {
+            if (key === 'length') throw new Error('length exploded')
+            const value: unknown = Reflect.get(target, key)
+            return value
+          },
+        }),
+      })
+      await expect(parseCodeBlocks(at('valid'), { language: 'mermaid', parser })).rejects.toSatisfy(
+        configError(/canaries of stub@1\.0\.0 could not be read: length exploded/),
+      )
+    })
+
+    it('caps a budget past the longest timer and hands the parser the cap', async () => {
+      let seen = -1
+      const parser = stub({
+        parse: (texts, { budgetMs }) => {
+          seen = budgetMs
+          return texts.map(judge)
+        },
+      })
+      await parseCodeBlocks(at('valid'), {
+        language: 'mermaid',
+        parser,
+        budget: { startUpMs: 2_147_483_647, perBlockMs: 1 },
+      })
+      expect(seen).toBe(2_147_483_647)
+    })
+
+    // A synchronous parser's overrun is measured with `performance.now()`. A fake clock reaches the
+    // default budget, and the cap, without waiting for either.
+    const overrunBy = (ms: number): CodeBlockParser =>
+      stub({
+        parse: (texts) => {
+          vi.advanceTimersByTime(ms)
+          return texts.map(judge)
+        },
+      })
+    const withFakeClock = async <T>(run: () => Promise<T>): Promise<T> => {
+      vi.useFakeTimers({ toFake: ['performance', 'Date'] })
+      try {
+        return await run()
+      } finally {
+        vi.useRealTimers()
+      }
+    }
+
+    it('names the defaults when the caller set no part of the budget', async () => {
+      for (const budget of [undefined, {}]) {
+        const parsed = await withFakeClock(() =>
+          parseCodeBlocks(at('valid'), {
+            language: 'mermaid',
+            parser: overrunBy(20_000),
+            ...(budget !== undefined && { budget }),
+          }),
+        )
+        expect(instrumentOf(parsed)[0]?.message).toMatch(/11000 ms .*from the defaults\)/)
+      }
+    })
+
+    it("names the caller's budget when the caller set only one part of it", async () => {
+      const parsed = await withFakeClock(() =>
+        parseCodeBlocks(at('valid'), {
+          language: 'mermaid',
+          parser: overrunBy(20_000),
+          budget: { perBlockMs: 1 },
+        }),
+      )
+      expect(instrumentOf(parsed)[0]?.message).toMatch(/from the caller's budget\)/)
+    })
+
+    it('says a budget past the longest timer was capped', async () => {
+      const parsed = await withFakeClock(() =>
+        parseCodeBlocks(at('valid'), {
+          language: 'mermaid',
+          parser: overrunBy(2 ** 31 + 1000),
+          budget: { startUpMs: 2_147_483_647, perBlockMs: 1 },
+        }),
+      )
+      expect(instrumentOf(parsed)[0]?.message).toMatch(
+        /capped from 2147483651 ms at the longest a timer holds/,
+      )
     })
   })
 })

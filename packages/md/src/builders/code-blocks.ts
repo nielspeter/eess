@@ -37,6 +37,8 @@ function parse(parsed: ParsedCodeBlocks): Condition<ParsedCodeBlock> {
       elements.flatMap((e): ArchViolation[] => {
         const v = e.verdict
         // No verdict is never a pass: it exists only beside a failure, which the builder reports.
+        // `parseCodeBlocks` guarantees that pairing by construction (every path yields one verdict
+        // per text or a failure), so no second check here: one that can never fire proves nothing.
         if (v === null || v.outcome === 'valid') return []
         const where = `${e.doc.relPath}:${String(e.block.line)}`
         if (v.outcome === 'unrecognised') {

@@ -31,32 +31,52 @@ A parser that fails makes every rule over `parseCodeBlocks`' result report one i
 
 ## Reproduction
 
+Runs as pasted, from the repository root after `npm run build` (re-run 2026-10-15):
+
 ```js
-// Node, against packages/md/dist and packages/core/dist
-const parser = (msg) => ({
+// Run from the repository root after `npm run build`.
+import { corpus, codeBlocks, parseCodeBlocks } from '@nielspeter/eess-md'
+import { dedupeConfigFindings } from '@nielspeter/eess/internal'
+
+const FIXTURES = 'packages/md/tests/fixtures/code-block-parse'
+const failing = (cause) => ({
   name: 'stub',
   version: '1.0.0',
   canaries: [{ text: 'x', expect: 'invalid' }],
   parse: () => {
-    throw new Error(msg)
+    throw new Error(cause)
   },
 })
-const p1 = await parseCodeBlocks(corpus({ roots: ['…/broken/**'] }), {
-  language: 'mermaid',
-  parser: parser('cause one'),
-})
-codeBlocks(p1).should().parse().excluding('…/broken/c.md:3').rule({ id: 'x' }).violations()
-// stderr: [eess] Unused exclusion '…/broken/c.md:3' in rule 'x'. It matched zero violations — it may be stale after a rename.
+const parse = (dir, cause) =>
+  parseCodeBlocks(corpus({ roots: [`${FIXTURES}/${dir}/**`] }), {
+    language: 'mermaid',
+    parser: failing(cause),
+  })
 
-const p2 = await parseCodeBlocks(corpus({ roots: ['…/valid/**'] }), {
-  language: 'mermaid',
-  parser: parser('cause two'),
-})
-dedupeConfigFindings([...rulesOver(p1), ...rulesOver(p2)])
-// 2 instrument findings before, 1 after: "… the parser threw: cause one. … they are one edit."
+// Part 1: stderr says the exclusion "may be stale after a rename"; c.md:3 is a real block.
+const one = await parse('broken', 'cause one')
+codeBlocks(one)
+  .should()
+  .parse()
+  .excluding(`${FIXTURES}/broken/c.md:3`)
+  .rule({ id: 'x' })
+  .violations()
+
+// Part 2: two failures, two causes; one finding survives, "cause two" is gone.
+const two = await parse('valid', 'cause two')
+const all = [
+  ...codeBlocks(one).should().parse().rule({ id: 'a' }).violations(),
+  ...codeBlocks(two).should().parse().rule({ id: 'b' }).violations(),
+]
+const kept = dedupeConfigFindings(all).filter((v) => v.ruleId === 'eess-md: code-block parser')
+console.log(
+  kept.length,
+  kept.map((v) => v.message),
+)
 ```
 
-The fixtures are `packages/md/tests/fixtures/code-block-parse/broken/` and `…/valid/`.
+It prints the stale-exclusion warning on stderr, then `1` and the surviving message, which names
+"cause one" and says "they are one edit".
 
 ## Root cause
 

@@ -2,10 +2,10 @@
 
 ## Status
 
-- **State:** Done — built 2026-10-14 in one PR, closed in the same PR. All three phases are built,
-  every ledger box is ticked, and the ledger records three places the build changed the plan. Frozen
-  to Ready the same day. Written against the 2026-10-14 review of proposal 006's Ask C, which split
-  the ask into this plan (A, eess-md) and [plan 0413](../0413-eess-mermaid-ships-mermaids-own-parser.md)
+- **State:** Done — built 2026-10-14 to 2026-10-15 in one PR, over four review rounds, and closed in
+  the same PR. All three phases are built. One ledger item is deferred to bug 0420. Frozen to Ready
+  on 2026-10-14. Written against the 2026-10-14 review of proposal 006's Ask C, which split the ask
+  into this plan (A, eess-md) and [plan 0413](../0413-eess-mermaid-ships-mermaids-own-parser.md)
   (B, eess-mermaid), in that order.
 - **Implements:** proposal 006 — Ask C, the half that is useful without Mermaid. The conditions
   cited by number below are that review's.
@@ -38,15 +38,15 @@ So eess-md owns the **loop** and the **evidence**, and the caller names the pars
 The review conditions this plan answers, from proposal 006's `## Review — 2026-10-14` and its
 amendment the same day. They are recorded here so the build depends on this file, not on that one.
 
-| #   | condition, as amended                                                                                                                                   | answered in        |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| 1   | One async call parses one language's blocks in one batch into a fact object; the builder is built from it; no rule surface becomes async                | Facts, then a rule |
-| 2   | The port is `{ name, version, canaries, parse(texts, { signal, budgetMs }) }`; a parser with no identity is a configuration error                       | The port           |
-| 4   | The parser declares canaries and eess-md runs them; the residual (a caller who forges identity and canaries) is stated                                  | The port           |
-| 5   | Every instrument failure is one unsuppressable finding per run, naming its cause with a remedy; once means one dedupe key (`file`, `ruleId`, `element`) | What can go wrong  |
-| 9   | No Markdown loaded outranks everything, `.expectEmpty()` included; no block of the language is the zero-examined finding unless `.expectEmpty()`        | What can go wrong  |
-| 10  | The tag is matched exactly; a near-miss is disclosed as unread beside the count                                                                         | Selection          |
-| 13  | A block broken on purpose is kept out by glob or `.excluding()`, never by a skip comment                                                                | Selection          |
+| #   | condition, as amended                                                                                                                                                                                                           | answered in        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 1   | One async call parses one language's blocks in one batch into a fact object; the builder is built from it; no rule surface becomes async                                                                                        | Facts, then a rule |
+| 2   | The port is `{ name, version, canaries, parse(texts, { signal, budgetMs }) }`; a parser with no identity is a configuration error                                                                                               | The port           |
+| 4   | The parser declares canaries and eess-md runs them; the residual (a caller who forges identity and canaries) is stated                                                                                                          | The port           |
+| 5   | Every instrument failure is one unsuppressable finding per run, naming its cause with a remedy; once means one dedupe key (`file`, `ruleId`, `element`)                                                                         | What can go wrong  |
+| 9   | No Markdown loaded outranks everything, `.expectEmpty()` included; no block of the language is the zero-examined finding unless `.expectEmpty()`                                                                                | What can go wrong  |
+| 10  | The tag is matched exactly; a near-miss is disclosed as unread beside the count                                                                                                                                                 | Selection          |
+| 13  | A block broken on purpose is kept out by glob or `.excluding()`, never by a skip comment _(the docs now teach a third way, retagging it ` ```text `, because an `.excluding()` by `file:line` goes stale on any edit above it)_ | Selection          |
 
 _Two rows narrow the condition as written, noted after review (2026-10-15):_
 
@@ -190,10 +190,11 @@ Neither depends on what a rule selects, so neither can be lost to an empty selec
   - 0.99 s;
   - 0.78 s.
 
-  Once the worker is up, that is about 5 to 15 ms a block, or 20 ms if the third timing holds no
-  cold start. The defaults allow 250 ms a block, at least 12.5× the slowest reading, and 10 s of
-  start-up, 25× the cold start. _(Corrected twice after review: the first version said "about 15
-  ms", and the second missed the 20 ms reading.)_ A budget is a hang detector, not a performance gate. A false red on a
+  The record does not say which timings include a worker's cold start (about 400 ms), so take the
+  worst case: with none, the three readings are about 15, 25 and 20 ms a block. The defaults allow
+  250 ms a block, at least 10× the slowest, and 10 s of start-up, 25× the cold start. _(Corrected
+  three times after review: "about 15 ms", then a missed 20 ms reading, then an unsourced claim that
+  the 0.99 s run included a cold start.)_ A budget is a hang detector, not a performance gate. A false red on a
   slow CI runner costs more than a long wait on a real hang, so the margin is wide. 39 blocks get
   about 20 s. A test pins both defaults. When the budget runs out, eess-md aborts the `signal` it
   passed. Stopping is the parser's job, and plan 0413's worker terminates on it.
@@ -431,20 +432,74 @@ two items without a home.
   - S10 is now tested: a line that is not a whole number.
   - S11 is now tested: the canary named by a structured failure.
   - S13 is now tested: a message of spaces.
-  - **S12** is `dropped-on-purpose`. The "from the defaults" label appears only in a timeout, and the
-    default budget is 10 s, too slow for a unit test. The caller's label is tested instead.
+  - **S12** was dropped in this round as "too slow for a unit test". That reason was wrong (testing
+    review 3): a fake clock reaches it in milliseconds. It is tested in round 4.
   - **S14** is `dropped-on-purpose`: the dead-glob diagnosis beside a parser failure is unreachable.
     The diagnosis needs zero blocks of the language; a failure needs at least one.
 - **New tests** cover the `Array` subclass, a throwing getter, frozen verdicts and the frozen failure,
   a rejection after the grace window, and config errors asserted by message.
-- **The third matrix** had ten mutations: nine red. The tenth, a count check after the canary loop,
-  could not fire, because the plain copy makes the counts equal by construction. It was **deleted**,
+- **The third matrix** had ten mutations, and nine turned red:
+  - canaries copied by `map` again;
+  - a throwing getter left unwrapped;
+  - a message of spaces accepted;
+  - a non-integer line accepted;
+  - the canary index off by one;
+  - the caller's label lost;
+  - verdicts not frozen;
+  - the failure not frozen;
+  - the grace window ignoring the budget.
+
+  The tenth, a count check after the canary loop, stayed green: it could not fire, because the plain
+  copy makes the counts equal by construction. It was **deleted**,
   together with the "block without a verdict" guard, which the testing review showed cannot fire
   either. The invariant is stated where the guard was.
+
 - **Non-vacuity.** The fixture's stub now declares two canaries. All fourteen rows were shown again,
-  on this round's code, to go vacuous (exit 0) with their own mechanism removed and the package
-  rebuilt, and to fire (exit 1) once restored.
-- **`npm run validate`** ran green on this round's code in 559 s, with 144 non-vacuity fixtures firing.
+  on this round's code, to stop firing (exit 0) with their own mechanism removed the way this ledger
+  names, and the package rebuilt, and to fire (exit 1) once restored. Removed another way, a row can
+  stop with a different code: `parser-hangs` with its timer deleted exits 13, an unsettled top-level
+  `await` (testing review 3). The gate is red either way.
+- **`npm run validate`** ran green on this round's code (`3e51e44f`): 144 non-vacuity fixtures fired.
+  It took 559 s, timed by the shell around the run.
+- **The Hollow test did not reproduce its defect** (enforcement and testing, review 3). Its species
+  class had no `entries()`, so the old `map` copy failed by throwing, which already failed closed.
+  Fixed in round 4.
+
+**Review 3, three lenses on round 3: none critical.** Enforcement found no fail-open path, confirmed
+the `Array` subclass path closed, and confirmed bug 0420's reproduction. Testing approved after two
+fixes. Method found bug 0420's board row with two of its six cells, and this plan's State line stale.
+
+**Round 4: 53 tests.**
+
+- **Code.** A canary list whose read throws is an `ArchConfigError` naming the parser, not a bare
+  `Error`.
+- **Tests:**
+  - The Hollow test's species now reports one entry and yields none, the defect's shape. With the
+    old `map` copy restored it goes red by **passing** a broken corpus, not by throwing.
+  - The three config-error tests assert the class and the message.
+  - A canary list whose `length` getter throws is refused.
+  - A budget past the longest timer is capped, and the cap is handed to the parser.
+  - **S12 and the budget labels, with a fake clock:** "from the defaults" with no budget and with
+    `budget: {}`; "the caller's budget" when only `perBlockMs` is set; the "capped from" note.
+- **The fourth matrix** had six mutations, and each turned red:
+  - canaries copied by `map` (now red by a false pass);
+  - the canary-read wrapper removed;
+  - the cap removed;
+  - `||` turned to `&&` in the label;
+  - the round-2 label check;
+  - the cap note removed.
+- **Non-vacuity: two rows added**, `sync-overrun` and `cannot-be-excluded`, sixteen in all. Each new
+  row was shown to stop firing (exit 0) without its mechanism: the overrun check off for one,
+  `bypassFilters` off for the other. Both fire once restored, and all sixteen fire on the rebuilt
+  package.
+- **Records:**
+  - bug 0420's board row has its six cells, and its reproduction runs as pasted;
+  - the State line, the budget premise and condition row 13 are corrected;
+  - the changeset names the rule id;
+  - the docs say the parser's `CodeBlockVerdict` annotation is its only compile-time check.
+- **Validation.** This round's targeted gates ran green: corpus, ledger, numbers, docs code,
+  typecheck, lint, and eess-md's 298 tests. The full `npm run validate` for this round is CI's on the
+  PR; the last local full run was round 3's.
 
 **Decided, overrulable:**
 
@@ -455,6 +510,10 @@ two items without a home.
   - the name sits beside `MdDocument.codeBlocks`, which means every fence in a document.
 
 **Dropped on purpose:**
+
+- **The condition reads a missing verdict as no finding** (enforcement, review 3, n1).
+  `parseCodeBlocks` guarantees every block a verdict or a failure by construction, and a second check
+  in the condition could never fire. The guarantee is stated where the check would be. Overrulable.
 
 - **The instrument finding does not name the rule that lost its check** (architect). It is about the
   parser, and it is keyed to collapse across rules. Naming each rule would keep one rule's name and

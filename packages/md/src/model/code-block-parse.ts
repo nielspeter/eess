@@ -179,7 +179,15 @@ function snapshotParser(parser: CodeBlockParser): {
     )
   }
   const declared: unknown = parser.canaries
-  const list: readonly unknown[] = plainCopy(declared) ?? []
+  let list: readonly unknown[]
+  try {
+    list = plainCopy(declared) ?? []
+  } catch (error) {
+    throw new ArchConfigError(
+      'parseCodeBlocks',
+      `parseCodeBlocks: the canaries of ${name}@${version} could not be read: ${messageOf(error)}`,
+    )
+  }
   if (list.length === 0) {
     throw new ArchConfigError(
       'parseCodeBlocks',
