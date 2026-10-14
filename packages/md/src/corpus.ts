@@ -1,11 +1,9 @@
 import { walkFiles } from '@nielspeter/eess/internal'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { fromMarkdown } from 'mdast-util-from-markdown'
-import { gfm } from 'micromark-extension-gfm'
-import { gfmFromMarkdown } from 'mdast-util-gfm'
 import picomatch from 'picomatch'
 import { buildDocument, type MdDocument } from './model/document.js'
+import { parseMarkdown } from './model/prose.js'
 import { registerCorpusMatchers } from './model/resolve-link.js'
 
 /**
@@ -74,18 +72,13 @@ export function corpus(options: CorpusOptions): Corpus {
     options.ignore && options.ignore.length > 0 ? picomatch([...options.ignore]) : () => false
 
   const fileIndex = new Set(allFiles)
-  const gfmExt = gfm()
-  const gfmMdast = gfmFromMarkdown()
 
   const documents: MdDocument[] = allFiles
     .filter((rel) => rel.endsWith('.md') && matchesRoot(rel) && !matchesIgnore(rel))
     .map((rel) => {
       const abs = join(root, rel)
       const text = readFileSync(abs, 'utf8')
-      const tree = fromMarkdown(text, {
-        extensions: [gfmExt],
-        mdastExtensions: [gfmMdast],
-      })
+      const tree = parseMarkdown(text)
       return buildDocument({
         file: abs,
         relPath: rel,

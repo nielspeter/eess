@@ -1,0 +1,2 @@
+# A fixture that must keep CRLF line endings and its byte-order mark (bug 0087).
+packages/md/tests/fixtures/frontmatter/docs/crlf.md -text

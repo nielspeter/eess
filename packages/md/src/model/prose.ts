@@ -2,6 +2,9 @@ import type { Nodes, Root } from 'mdast'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfm } from 'micromark-extension-gfm'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
+import { frontmatter } from 'micromark-extension-frontmatter'
+import { frontmatterFromMarkdown } from 'mdast-util-frontmatter'
+import { isMap, parseDocument } from 'yaml'
 
 /**
  * Which lines of a markdown document are prose, read with the parser the corpus is read with (bugs 0286
@@ -16,12 +19,53 @@ import { gfmFromMarkdown } from 'mdast-util-gfm'
  * design question, not decided here.
  */
 
-const GFM = gfm()
-const GFM_MDAST = gfmFromMarkdown()
+const GFM_ONLY = { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] }
+const WITH_FRONT_MATTER = {
+  extensions: [gfm(), frontmatter(['yaml'])],
+  mdastExtensions: [gfmFromMarkdown(), frontmatterFromMarkdown(['yaml'])],
+}
 
-/** Parse markdown as the corpus does. */
-function parseMarkdown(text: string): Root {
-  return fromMarkdown(text, { extensions: [GFM], mdastExtensions: [GFM_MDAST] })
+// A URL with a scheme or `//` points outside the repository — the same test `MdLink.external` uses.
+const EXTERNAL = /^([a-z][a-z0-9+.-]*:|\/\/)/i
+
+/** True when Markdown a reader checks — a task box, or a link into the repository — is in `root`. */
+function holdsCheckedMarkdown(root: Root): boolean {
+  const visit = (node: Nodes): boolean => {
+    if (node.type === 'listItem' && typeof node.checked === 'boolean') return true
+    if (node.type === 'link' && !EXTERNAL.test(node.url)) return true
+    return 'children' in node && node.children.some(visit)
+  }
+  return visit(root)
+}
+
+/**
+ * Whether a line-1 `---` block is front matter (bug 0087). Only if it is a YAML mapping that parses
+ * with no error — the yaml library hands back a mapping even beside an error, so the errors decide —
+ * and holds nothing a Markdown reader checks: a task box or a link into the repository, which a
+ * YAML value can carry on an indented continuation line and still parse. Anything else is read as
+ * Markdown, as it was before front matter was parsed, so no box or link is hidden by it.
+ */
+function isFrontMatter(value: string): boolean {
+  const doc = parseDocument(value)
+  if (doc.errors.length > 0 || !isMap(doc.contents) || doc.contents.items.length === 0) return false
+  return !holdsCheckedMarkdown(fromMarkdown(value, GFM_ONLY))
+}
+
+/**
+ * Parse markdown — the one parser for eess-md: `corpus()` reads every document with it, and the
+ * readers here default to it, so the two cannot disagree about where a code block or a section is.
+ *
+ * GFM, and YAML front matter, which parses to a `yaml` node. Without it, CommonMark reads the
+ * closing `---` as a setext underline and the YAML above it becomes a depth-2 section (bug 0087).
+ * A line-1 `---` block that is not front matter by {@link isFrontMatter} is read as Markdown instead,
+ * so it fails closed: every reader sees what it holds. Text-line readers — `terms()`, `pointers()`,
+ * the ledger — see front-matter lines either way, since only code blocks are set aside.
+ */
+export function parseMarkdown(text: string): Root {
+  const root = fromMarkdown(text, WITH_FRONT_MATTER)
+  const first = root.children[0]
+  if (first?.type !== 'yaml' || isFrontMatter(first.value)) return root
+  return fromMarkdown(text, GFM_ONLY)
 }
 
 /**
