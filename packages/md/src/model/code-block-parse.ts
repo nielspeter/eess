@@ -149,6 +149,20 @@ function readVerdict(value: unknown): { verdict: CodeBlockVerdict } | { problem:
   return { problem: 'has a line that is neither a whole number nor null' }
 }
 
+/**
+ * Copy an array with a plain index loop into a fresh plain array. Not `map`, `slice` or spread: on an
+ * `Array` subclass those build the result through its own species constructor, which can hand back
+ * an object that reports a length and yields nothing (review of PR #209).
+ */
+function plainCopy(value: unknown): unknown[] | null {
+  if (!Array.isArray(value)) return null
+  const source: readonly unknown[] = value
+  const length = source.length
+  const copy: unknown[] = []
+  for (let i = 0; i < length; i++) copy.push(source[i])
+  return copy
+}
+
 /** The parser's identity and canaries, read once and checked. Throws before anything is selected. */
 function snapshotParser(parser: CodeBlockParser): {
   name: string
@@ -165,9 +179,7 @@ function snapshotParser(parser: CodeBlockParser): {
     )
   }
   const declared: unknown = parser.canaries
-  const list: readonly unknown[] = Array.isArray(declared)
-    ? declared.map((entry: unknown): unknown => entry)
-    : []
+  const list: readonly unknown[] = plainCopy(declared) ?? []
   if (list.length === 0) {
     throw new ArchConfigError(
       'parseCodeBlocks',
@@ -200,7 +212,7 @@ function budgetPart(value: number | undefined, fallback: number, field: string):
   if (!Number.isInteger(value) || value < 0 || value > MAX_TIMER_MS) {
     throw new ArchConfigError(
       'parseCodeBlocks',
-      `parseCodeBlocks: budget.${field} is ${String(value)}; it must be a whole number of ` +
+      `parseCodeBlocks: budget.${field} is ${JSON.stringify(value) ?? String(value)}; it must be a whole number of ` +
         `milliseconds from 0 to ${String(MAX_TIMER_MS)}.`,
     )
   }
@@ -284,11 +296,15 @@ export async function parseCodeBlocks(
     ...canaries.map((c) => c.text),
     ...located.map((l) => l.block.value),
   ])
-  const budgetMs = Math.min(startUpMs + perBlockMs * texts.length, MAX_TIMER_MS)
-  const budgetSource = options.budget === undefined ? 'the defaults' : "the caller's budget"
+  const wanted = startUpMs + perBlockMs * texts.length
+  const budgetMs = Math.min(wanted, MAX_TIMER_MS)
+  const fromCaller =
+    options.budget?.startUpMs !== undefined || options.budget?.perBlockMs !== undefined
+  const budgetSource = fromCaller ? "the caller's budget" : 'the defaults'
   const budgetText =
     `${String(budgetMs)} ms (${String(startUpMs)} ms start-up + ${String(perBlockMs)} ms × ` +
-    `${String(texts.length)} texts, from ${budgetSource})`
+    `${String(texts.length)} texts, from ${budgetSource}` +
+    `${wanted > MAX_TIMER_MS ? `, capped from ${String(wanted)} ms at the longest a timer holds` : ''})`
 
   const where = (index: number | undefined): string => {
     if (index === undefined) return ''
@@ -333,14 +349,8 @@ export async function parseCodeBlocks(
   const blocks: ParsedCodeBlock[] = located.map((l, i) =>
     Object.freeze({ doc: l.doc, block: l.block, verdict: verdicts?.[i] ?? null }),
   )
-  // A block left without a verdict and no failure to say why would read as a pass. It cannot happen
-  // through the paths above; this makes it impossible, not merely unlikely.
-  if (failure === null && blocks.some((b) => b.verdict === null)) {
-    failure = {
-      cause: 'the parser left a block without a verdict',
-      remedy: 'A parser returns exactly one verdict per text, in order.',
-    }
-  }
+  // Every block has a verdict or there is a failure: `readAll` returns one verdict per text or a
+  // failure, and the other two outcomes are failures. No block is left without either.
   const finalFailure = failure === null ? null : Object.freeze({ ...failure })
   const identity = Object.freeze({ name, version })
   const frozenNearMisses = Object.freeze(nearMisses)
@@ -403,9 +413,17 @@ function readAll(
     }
   }
   // Copied once: a value that changes between two reads is read as it was the first time.
-  const values: readonly unknown[] | null = Array.isArray(returned)
-    ? returned.map((value: unknown): unknown => value)
-    : null
+  let values: readonly unknown[] | null
+  try {
+    values = plainCopy(returned)
+  } catch (error) {
+    return {
+      failure: {
+        cause: `reading the parser's answer threw: ${messageOf(error)}`,
+        remedy: 'A parser returns a plain array of plain verdict objects.',
+      },
+    }
+  }
   if (values?.length !== textCount) {
     const got = values === null ? 'no array of' : String(values.length)
     return {
@@ -417,7 +435,12 @@ function readAll(
   }
   const verdicts: CodeBlockVerdict[] = []
   for (const [i, value] of values.entries()) {
-    const read = readVerdict(value)
+    let read: ReturnType<typeof readVerdict>
+    try {
+      read = readVerdict(value)
+    } catch (error) {
+      read = { problem: `could not be read (${messageOf(error)})` }
+    }
     if ('problem' in read) {
       return {
         failure: {
@@ -438,8 +461,8 @@ function readAll(
         failure: {
           cause:
             `canary ${String(i + 1)} was answered wrongly: expected "${canary.expect}", got ` +
-            `"${got?.outcome ?? 'nothing'}". A parser that accepts a block it must reject cannot be ` +
-            'trusted to reject a broken one.',
+            `"${got?.outcome ?? 'nothing'}"; a parser that accepts a block it must reject cannot be ` +
+            'trusted to reject a broken one',
           remedy:
             'Check that the parser is the real one, at a version whose errors its canaries were ' +
             'written for, and that it is not catching its own errors.',

@@ -597,8 +597,8 @@ what was parsed. No rule surface becomes async; an async `check()` would need an
 **The instrument** is one unsuppressable finding per rule. Its rule id is
 `eess-md: code-block parser` (exported as `CODE_BLOCK_PARSER_INSTRUMENT`), and its element
 `name@version`. While it stands, `examined` still counts the blocks of the language, none of which
-has a verdict, so the rule cannot pass. Several rules over one failed parse each carry it. The eess
-CLI's `check` collapses findings with the same rule id and element to one, so two different failures
+has a verdict, so the rule cannot pass. Several rules over one failed parse each carry it. `eess-ts check`
+collapses findings with the same rule id and element to one, so two different failures
 of one parser over two corpora would collapse too and show one cause. A script gate that collects
 findings itself sees one per rule.
 

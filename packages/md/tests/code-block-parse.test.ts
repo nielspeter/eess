@@ -411,9 +411,9 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
         // test sets them past the type checker.
         const parser = stub()
         Object.defineProperty(parser, 'canaries', { value: canaries })
-        await expect(
-          parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
-        ).rejects.toSatisfy(isArchConfigError)
+        await expect(parseCodeBlocks(at('valid'), { language: 'mermaid', parser })).rejects.toThrow(
+          /is not a block the parser must reject/,
+        )
       }
     })
 
@@ -534,14 +534,14 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
       ]) {
         await expect(
           parseCodeBlocks(at('valid'), { language: 'mermaid', parser: stub(), budget }),
-        ).rejects.toSatisfy(isArchConfigError)
+        ).rejects.toThrow(/must be a whole number of milliseconds/)
       }
     })
 
     it('refuses an empty language', async () => {
-      await expect(
-        parseCodeBlocks(at('valid'), { language: '', parser: stub() }),
-      ).rejects.toSatisfy(isArchConfigError)
+      await expect(parseCodeBlocks(at('valid'), { language: '', parser: stub() })).rejects.toThrow(
+        /`language` is empty/,
+      )
     })
 
     it('waits out the grace for a parser that reports its block shortly after the abort', async () => {
@@ -580,6 +580,140 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
         await parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
       )
       expect(found[0]?.message).toMatch(/empty message/)
+    })
+
+    // Third round: the second review of PR #209.
+    it('refuses an Array subclass whose copies report a length and yield no canary', async () => {
+      class Hollow<T> extends Array<T> {}
+      // `map`, `slice` and spread on a Hollow build through this, which reports a length and holds nothing.
+      Object.defineProperty(Hollow, Symbol.species, {
+        get: () =>
+          class {
+            length = 1
+          },
+      })
+      const canaries = new Hollow<{ text: string; expect: 'invalid' }>()
+      canaries.push({ text: '%%canary-invalid', expect: 'invalid' })
+      // Accepts every block, so only a checked canary can catch it.
+      const parser = stub({ canaries, parse: (texts) => texts.map(() => ({ outcome: 'valid' })) })
+      const parsed = await parseCodeBlocks(at('broken'), { language: 'mermaid', parser })
+      expect(instrumentOf(parsed)[0]?.message).toMatch(/canary 1 was answered wrongly/)
+    })
+
+    it('reports a verdict whose getter throws as the instrument, naming the text', async () => {
+      const parser = stub({
+        parse: (texts) =>
+          texts.map((t, i) => {
+            if (i !== 3) return judge(t)
+            return {
+              get outcome(): string {
+                throw new Error('getter exploded')
+              },
+            }
+          }),
+      })
+      const found = instrumentOf(
+        await parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
+      )
+      expect(found[0]?.message).toMatch(/text 4 could not be read \(getter exploded\)/)
+    })
+
+    it('reports a line that is not a whole number as the instrument', async () => {
+      const parser = stub({
+        parse: (texts) =>
+          texts.map((t) => {
+            const v = judge(t)
+            return v.outcome === 'invalid' && !t.startsWith('%%') ? { ...v, line: 2.5 } : v
+          }),
+      })
+      const found = instrumentOf(
+        await parseCodeBlocks(at('broken'), { language: 'mermaid', parser }),
+      )
+      expect(found[0]?.message).toMatch(/neither a whole number nor null/)
+    })
+
+    it('reports a message of only spaces as empty', async () => {
+      const parser = stub({
+        parse: (texts) =>
+          texts.map((t): CodeBlockVerdict => {
+            const v = judge(t)
+            return v.outcome === 'invalid' ? { ...v, message: '   ' } : v
+          }),
+      })
+      const found = instrumentOf(
+        await parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
+      )
+      expect(found[0]?.message).toMatch(/empty message/)
+    })
+
+    it('names the canary a structured failure points at', async () => {
+      const parser = stub({
+        parse: () => {
+          throw Object.assign(new Error('worker exited'), { remedy: 'reinstall', blockIndex: 1 })
+        },
+      })
+      const found = instrumentOf(
+        await parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
+      )
+      expect(found[0]?.message).toMatch(/while parsing canary 2/)
+    })
+
+    it("names the caller's budget in an overrun", async () => {
+      const parser = stub({
+        parse: (texts) => {
+          const until = Date.now() + 30
+          while (Date.now() < until) {
+            // overrun
+          }
+          return texts.map(judge)
+        },
+      })
+      const found = instrumentOf(
+        await parseCodeBlocks(at('valid'), {
+          language: 'mermaid',
+          parser,
+          budget: { startUpMs: 5, perBlockMs: 0 },
+        }),
+      )
+      expect(found[0]?.message).toMatch(/from the caller's budget/)
+    })
+
+    it('freezes each verdict and the failure, so neither can be edited into a pass', async () => {
+      const broken = await parseCodeBlocks(at('broken'), { language: 'mermaid', parser: stub() })
+      const verdicts = broken.blocks.map((b) => b.verdict)
+      expect(verdicts.every((v) => v !== null && Object.isFrozen(v))).toBe(true)
+      const failed = await parseCodeBlocks(at('valid'), {
+        language: 'mermaid',
+        parser: stub({
+          parse: () => {
+            throw new Error('boom')
+          },
+        }),
+      })
+      expect(failed.failure !== null && Object.isFrozen(failed.failure)).toBe(true)
+    })
+
+    it('reports a rejection that arrives after the grace window without naming a block', async () => {
+      const parser = stub({
+        parse: (_texts, { signal }) =>
+          new Promise<readonly CodeBlockVerdict[]>((_resolve, reject) => {
+            signal.addEventListener('abort', () => {
+              setTimeout(() => {
+                reject(Object.assign(new Error('late'), { remedy: 'too late', blockIndex: 3 }))
+              }, 200)
+            })
+          }),
+      })
+      const found = instrumentOf(
+        await parseCodeBlocks(at('valid'), {
+          language: 'mermaid',
+          parser,
+          budget: { startUpMs: 20, perBlockMs: 0 },
+        }),
+      )
+      expect(found[0]?.message).toMatch(/ran past its budget/)
+      expect(found[0]?.message).not.toMatch(/at the block/)
+      expect(found[0]?.suggestion).not.toBe('too late')
     })
   })
 })

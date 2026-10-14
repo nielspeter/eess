@@ -132,7 +132,7 @@ export class CodeBlockRuleBuilder extends RuleBuilder<ParsedCodeBlock, ParsedCod
       file: '',
       line: 0,
       message:
-        `the ${this.project.language} blocks were not checked: ${failure.cause}. No block of the ` +
+        `the ${this.project.language} blocks were not checked: ${failure.cause.replace(/\.$/, '')}. No block of the ` +
         `language has a verdict, so this rule cannot pass.`,
       suggestion: failure.remedy,
       bypassFilters: true,

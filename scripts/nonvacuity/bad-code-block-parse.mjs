@@ -52,7 +52,10 @@ function judge(text) {
 const stub = (overrides = {}) => ({
   name: 'stub',
   version: '1.0.0',
-  canaries: [{ text: '%%canary', expect: 'invalid' }],
+  canaries: [
+    { text: '%%canary', expect: 'invalid' },
+    { text: 'UNKNOWN canary', expect: 'unrecognised' },
+  ],
   parse: (texts) => texts.map(judge),
   ...overrides,
 })
@@ -110,7 +113,7 @@ const SCENARIOS = {
   'dropped-block': {
     dir: 'valid',
     parser: { parse: (texts) => texts.slice(1).map(judge) },
-    found: instrument('2 texts, 1 verdicts'),
+    found: instrument('3 texts, 2 verdicts'),
   },
   'near-miss': {
     dir: 'near',
