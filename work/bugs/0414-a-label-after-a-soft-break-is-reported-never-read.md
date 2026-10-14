@@ -85,15 +85,8 @@ first version of this decision; what they found is folded in below.
   - The blank-line form, which the consumer already uses, is two sibling paragraphs. The fix makes
     the soft-break form read the same way.
 - **A label alone on the paragraph's last line encloses the list directly after it**, exactly as a
-  label-alone paragraph does today (plan 0405's ownership rule):
-
-  ```md
-  **Status:** Draft
-  **Related to:**
-
-  - [a](a.md)
-  ```
-
+  label-alone paragraph does today (plan 0405's ownership rule). The shape is `**Status:** Draft`,
+  then `**Related to:**` alone on the next line, then a blank line and the list `- [a](a.md)`.
   Without this, the label would fall into the empty-declaration branch, whose "stands alone with no
   list directly under it" would be false (ADR-009 rule 2).
 
