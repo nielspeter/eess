@@ -2,7 +2,7 @@
 
 Measured 2026-10-14 for [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md) Ask C, whose
 review held it on four conditions. This spike answers condition 4, placement and the dependency. Condition 2, nested fences,
-is [bug 0290](../bugs/0290-a-code-block-nested-in-a-list-is-never-checked.md), fixed separately.
+is [bug 0290](../bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md), fixed separately.
 
 ## The question
 
