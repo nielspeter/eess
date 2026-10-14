@@ -125,7 +125,8 @@ are one row), so read them as proportions.
 
 - **tree-sitter recovers from an error and keeps going.** It returns facts for the rest of the file,
   so a broken file reads as a file with facts. The error is detectable only if the caller checks
-  `rootNode.hasError`.
+  `rootNode.hasError`. _Corrected by review: for the four **clean** rows above `hasError` is false,
+  so no caller can recover them. See Corrections._
 - **That check is easy to get wrong.** The spike's own first error walk tested for `ERROR` nodes and
   `isMissing`, and reported Django's deliberately broken `tests_syntax_error.py` as clean. Its error
   is a `MISSING` newline, which the walk did not catch; `hasError` was true. That is a fail-open
@@ -146,7 +147,8 @@ are one row), so read them as proportions.
   greater". It cannot make an older interpreter accept newer syntax.
 - **tree-sitter accepted all seven**, whatever version the project targets.
 
-**5. Imports resolve to files without a type checker.**
+**5. Imports resolve to files without a type checker.** _The resolver that produced this table
+had a bug; the counts survive its fix. See Corrections._
 
 | Project | Resolved to a file | Standard library | Third-party | Unresolved |
 | ------- | ------------------ | ---------------- | ----------- | ---------- |
@@ -193,7 +195,9 @@ reporting stay in TypeScript on the eess kernel, like every other dialect.
 - **Files that do not parse, imports that do not resolve, and names that are neither under a root
   nor installed** are findings, never skipped. Result 5's silent "external" is the shape to refuse.
   The helper can ask the interpreter whether a top-level name is installed, with
-  `importlib.util.find_spec`. That was not measured.
+  `importlib.util.find_spec`. That was not measured. _Falsified by review: an editable install
+  makes the project's own package "installed", and `find_spec` runs package code. See
+  Corrections._
 - **No type checker in the first slice.** Type-level conditions read the annotation as written, or
   wait for a later proposal.
 
@@ -214,6 +218,37 @@ the mission (ADR-009, ADR-010, ADR-016), and it can be overruled.
 - **Whether the helper should run `compile` as well**, for the checks only it makes (`return`
   outside a function), and what that costs.
 - **Windows**, and an interpreter inside a virtual environment in a monorepo.
+
+## Corrections after review (2026-10-14)
+
+Proposal 016's review (architect, product, enforcement) found these errors in this record. The
+claims above are annotated in place, not edited away.
+
+- **Nothing can recover tree-sitter's four clean files** (enforcement). Result 3 said a broken file's
+  error "is detectable only if the caller checks `rootNode.hasError`". That holds for the five rows
+  marked _error_. For the four marked **clean**, `hasError` is false: no check recovers them. The
+  case for `ast` is stronger than stated. Counting only grammar errors (the seven rows that are not
+  compile-only), tree-sitter is clean on 2 of 7 and `ast` on 0 of 7.
+- **The resolver re-anchored an impossible relative import** (architect, enforcement). A relative
+  import that climbs above the top-level package must fail. The resolver's slice
+  `base[:len(base) - (level - 1)]` instead produced a shorter package, or wrapped around on a
+  negative index. Django's one unresolved import was caught by luck: it landed on a name that
+  happens not to exist. Fixed by refusing `level - 1 >= len(base)`, and re-run: the counts in
+  Result 5 are unchanged. Django's one unresolved import is now reported as "climbs above the
+  top-level package".
+- **`find_spec` does not close Result 5's silent "external"** (enforcement, measured). In a src-layout
+  project after `uv sync`, the project itself is installed in editable mode. So `find_spec('myapp')`
+  says the project's own package is installed, and with `src` undeclared, `notImportFrom` stays
+  green. `find_spec('a.b')` also runs `a/__init__.py`, so a "stdlib-only" helper would run project
+  code. The way that holds is to classify by path: a module whose origin is inside the project but
+  under no declared root is a finding.
+- **`compile` closes the last two probe rows, at about the cost of parsing** (enforcement, measured).
+  `compile` of the parsed tree rejects both `return` outside a function and the duplicate
+  parameter, in 2.55 s over all 3,016 files.
+- **The harness printed here was not the one that ran** (enforcement). The run had a catch-all
+  `except Exception`, now shown in the harness.
+- **Files were read as UTF-8** (architect, enforcement). A valid file with a latin-1 coding cookie
+  would read as broken. The helper must pass bytes to `ast.parse`, which honours the cookie.
 
 ## Harness
 
@@ -244,6 +279,8 @@ for p in sys.stdin.read().split('\n'):
         out[p] = facts(p, open(p, encoding='utf-8').read())
     except SyntaxError as e:
         out[p] = {'error': f'SyntaxError line {e.lineno}: {e.msg}'}
+    except Exception as e:  # the run had this; the first printed harness left it out
+        out[p] = {'error': f'{type(e).__name__}: {e}'}
 sys.stderr.write(f'ast: {len(out)} files in {time.time()-t0:.2f}s\n')
 json.dump(out, sys.stdout)
 ```
