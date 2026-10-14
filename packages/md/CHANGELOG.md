@@ -1,5 +1,131 @@
 # @nielspeter/eess-md
 
+## 0.9.0
+
+### Minor Changes
+
+- cb336f4: `honestyAtClose` reads a closed state the same way in both of its checks
+
+  **Breaking — a finding that went missing now fires.** Fixes
+  [bug 0379](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0379-a-case-variant-across-the-vocabulary-pair-drops-the-placement-check.md).
+
+  With the same token spelled differently in the two lists — `states: ['Draft', 'done']`
+  beside `terminalStates: ['Done']` — the placement check read a record's `State: Done` as
+  `done`, compared it to `Done` case-sensitively, and treated the record as open. A closed record
+  left outside a done-folder lost its `ledger/state-folder-mismatch` finding; one inside a
+  done-folder got a false one. The box checks, which read the state against the terminal set
+  alone, already answered correctly, so the two halves of the preset disagreed about the same
+  record.
+
+  Now the state is read once, against both lists, longest token first, and compared to
+  `terminalStates` with case and apostrophe glyph folded — by both checks and by `ledgerStats`.
+  That also fixes a declared multi-word state that begins with a terminal token
+  (`Done pending review` beside a terminal `Done`), which the box check read as closed.
+
+  If your lists spell a token differently, you may see an orphaned-close finding you were not
+  seeing before; it is real. If you use a multi-word state like the one above, a record of it no
+  longer has its open boxes checked as a closed record's.
+
+- 8677fd8: `honestyAtClose` and `ledgerStats` refuse `states` without `terminalStates`, and the reverse
+
+  **Breaking.** Fixes
+  [bug 0284](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0284-a-declared-vocabulary-disjoint-from-its-terminal-set-turns-the-gate-off.md).
+
+  The two options defaulted independently. Pass `states` alone — which is what
+  `ledger/unknown-state`'s advice leads to, "declare the token" — and the default
+  `terminalStates` stayed in force, so a closing token you added (`Promoted`, say) was readable
+  but never terminal. Its records were never treated as done, their open boxes were never
+  checked, and the gate reported a clean pass with a denominator: no finding at all. Pass
+  `terminalStates` alone and the mirror happened: the default `Done` stayed a known state that
+  no longer closed.
+
+  Now either one alone throws an `ArchConfigError` naming both options and how to keep the
+  defaults while adding your own:
+
+  ```ts
+  honestyAtClose(corpus, {
+    states: ['Draft', 'Ready', 'Open', 'Done', "Won't-do", 'Promoted'],
+    terminalStates: ['Done', "Won't-do", 'Promoted'],
+  })
+  ```
+
+  `docs/markdown.md`'s own example passed `terminalStates` alone, so a config copied from the
+  guide is the likeliest to be caught; it passes both now.
+
+  What this removes is the route where a default chose for you. If you pass both and leave a
+  closing token out of `terminalStates`, its records are still never treated as done — the tool
+  cannot tell that from a token that really does not close, so declare closing tokens there.
+
+  Passing neither, or both, behaves as before — including `terminalStates: []` for a lane where
+  nothing is ledger-closed by design. If your config passes only one of the two, it now fails on
+  the first run; add the other.
+
+- 2b6f491: `links()` gains `areLabelled(label)` and `areInSection(name)`, which select the links a record
+  declares under a label or under a heading:
+
+  ```ts
+  links(c).that().areLabelled('Related to').should().resolve().check()
+  ```
+
+  A label is read in any of four forms (`**Label:**`, `**Label**:`, `__Label__:`, `Label:`), after a
+  list marker, task box or blockquote marker. Walking out from a link through the blocks enclosing it,
+  the nearest label decides, so an annotated item (`bug 0402: [b](b.md)`) stays in its declaration. A rule built with either
+  selector also reports what it cannot read: a label or heading that misses the declared spelling by
+  case or spacing, a different label nested inside the declaration, the label where no block starts
+  (mid-paragraph, in a table cell or heading) or in a form it does not read, a declaration holding reference-style links, and a
+  correctly spelt label with nothing under it. Each finding names its kind in its element, so one `.excluding()` sanctions one
+  kind, and carries its remedy as the suggestion. `MdLink` gains the optional `block`, `blockPath`
+  and `sectionPath` fields; the block type `MdLinkBlock` is exported. The ledger's `State:` reader shares the same
+  label grammar, with no change in what it reads.
+
+- 3057a31: `links()` gains `beLinkedBack(options?)`, a condition that each selected link's target links back to
+  the record that declared it, and `haveLiveTargets(options?)`, a selector that leaves out links into
+  frozen records, which cannot answer:
+
+  ```ts
+  links(c).that().areLabelled('Related to').and().haveLiveTargets().should().beLinkedBack().check()
+  ```
+
+  Any link back answers. A target that cannot — frozen, outside the corpus, missing, a directory, the
+  record itself, or an external URL — is one finding naming its cause, with its remedy as the
+  suggestion. An empty selection fails with the zero-examined finding. Both take the options
+  `resolve()` takes.
+
+- 16f2c1a: `adrEnforcement` no longer resolves cited `it('…')` titles — only cited file paths
+
+  **Breaking.** Fixes
+  [bug 0111](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0111-md-adr-citations-resolve-by-prefix.md).
+
+  `adr/citations-resolve` read test files as text and matched a cited title as a **prefix**:
+  `it('r')` resolved against any test whose title began with `r`, so a renamed test kept its
+  citation green. Making it exact was not enough — read as text, a title in a commented-out
+  test, a string or `submit('…')` still resolved, and telling those apart needs a TypeScript
+  lexer that a markdown dialect should not carry.
+
+  So `eess-md` now checks only that the file paths a Mechanism cell cites exist. Whether a cited
+  title names a real test is answered by `eess-crossvalidate`'s `adrCitationsResolve`, which
+  reads the test AST.
+
+  **If your ADRs cite test titles, run `adrCitationsResolve` as well.** With `eess-md` alone,
+  nothing verifies a title. Previously something did, wrongly; a citation that only resolved by
+  prefix was never checked at all.
+
+- 47236ee: `resolveLink(link, corpus, options?)` is exported: the one resolver `links().resolve()` uses, so a custom rule over links can ask where a link points without re-implementing resolution. It returns a named case — `document`, `not-in-corpus` (with every reason: `not-markdown`, `ignored`, `outside-roots`), `directory`, `missing` (with every candidate tried), `self` or `external` — and never throws. `.resolve()` behaves as before, except that a link with malformed percent-encoding is now reported as broken instead of aborting the run. Plan 0404.
+
+### Patch Changes
+
+- 0660234: YAML front matter is no longer read as a section. A document opening with `---` front matter used
+  to report a depth-2 section named with the YAML's own text, which `docs().haveSection()` could
+  match and a table's `sectionPath` inherited (bug 0087). Now a line-1 `---` block is front matter —
+  a `yaml` node, not a section — when it is a YAML mapping that parses without error and holds no task
+  box and no link into the repository. Any other `---` block is read as Markdown, as before, so a
+  document that merely opens with a horizontal rule keeps every box and link checked, and front matter
+  that is not valid YAML still shows its old phantom section. `terms()`, `pointers()` and the ledger
+  read front-matter lines either way. Adds `micromark-extension-frontmatter`, `mdast-util-frontmatter`
+  and `yaml`.
+- Updated dependencies [b1335f5]
+  - @nielspeter/eess@0.6.1
+
 ## 0.8.0
 
 ### Minor Changes
