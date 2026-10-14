@@ -2,10 +2,11 @@
 
 ## Status
 
-- **State:** Ready — frozen 2026-10-14. The conditions it answers are recorded by value below, and
-  the budget defaults are decided. Written the same day against the 2026-10-14 review of proposal
-  006's Ask C, which split the ask into this plan (A, eess-md) and
-  [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) (B, eess-mermaid), in that order.
+- **State:** Done — built 2026-10-14 in one PR, closed in the same PR. All three phases are built,
+  every ledger box is ticked, and the ledger records three places the build changed the plan. Frozen
+  to Ready the same day. Written against the 2026-10-14 review of proposal 006's Ask C, which split
+  the ask into this plan (A, eess-md) and [plan 0413](../0413-eess-mermaid-ships-mermaids-own-parser.md)
+  (B, eess-mermaid), in that order.
 - **Implements:** proposal 006 — Ask C, the half that is useful without Mermaid. The conditions
   cited by number below are that review's.
 - **Priority:** Medium — a new capability with one consumer waiting on it (proposal 006's consumer
@@ -15,7 +16,7 @@
 - **Effort:** Medium — one PR. A model file, a builder, a condition and one async function in
   eess-md; no kernel change. Additive, eess-md `minor`.
 - **Created:** 2026-10-14
-- **Depends on:** [bug 0290](../bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md),
+- **Depends on:** [bug 0290](../../bugs/fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md),
   fixed — `MdDocument.codeBlocks` reads blocks at any depth, so a loop over it misses none.
 
 ## Problem
@@ -313,10 +314,28 @@ row's red into a green, and the gate catches it.
 
 ## Progress ledger
 
-- [ ] Phase 1 — model and port, red-first
-- [ ] Phase 2 — builder and condition, exported
-- [ ] Phase 3 — non-vacuity rows, docs
-- [ ] budget defaults (decided at the freeze) pinned by a test
-- [ ] changeset: eess-md `minor`
+- [x] Phase 1 — model and port, red-first: `packages/md/src/model/code-block-parse.ts`. Red first: the
+      suite failed to import before the module existed. 26 tests now pass. A sabotage matrix of ten
+      mutations turned each one red, then the code was restored: - the condition emptied; - the canary check off; - a malformed verdict read as valid; - the registry off; - the instrument not appended; - no abort on timeout; - a synchronous overrun ignored; - `sourceEmpty` off; - the near-miss diagnosis off; - the verdict-count check off.
+- [x] Phase 2 — builder and condition, exported: `packages/md/src/builders/code-blocks.ts`, exported
+      from the eess-md root with the port's types.
+- [x] Phase 3 — non-vacuity rows, docs: - `scripts/nonvacuity/bad-code-block-parse.mjs`, with eleven rows in `check-nonvacuity.mjs`, one
+      per row of the table above. Each scenario was run and fires. - `no-markdown` was tightened to its own message, and shown to go vacuous with `sourceEmpty`
+      removed. - Docs: `docs/markdown.md` "Code blocks that parse" and a README section.
+- [x] budget defaults (decided at the freeze) pinned by a test.
+- [x] changeset: eess-md `minor` (`.changeset/code-blocks-parse.md`).
+
+**What the build changed from the plan, and why:**
+
+- **`parse` returns `readonly unknown[]`**, not `readonly CodeBlockVerdict[]`. eess-md checks every
+  verdict's shape anyway. With the narrower type, the malformed-verdict tests (`undefined`,
+  `{ outcome: 'ok' }`) could not be written without an `as` (ADR-005). The doc comment says to
+  return `CodeBlockVerdict`s.
+- **The docs do not tell a script gate to call `dedupeConfigFindings`.** It is exported only from
+  `@nielspeter/eess/internal`, which ADR-011 makes family plumbing, not consumer API. The docs say
+  instead that `eess-ts check` collapses the instrument to one, and that a script collecting findings
+  itself sees one per rule. Plan 0413's own gate is in this repository and may import it.
+- **The budget's caller-facing option** is `budget: { startUpMs, perBlockMs }`, as frozen. The total
+  passed to `parse` is named in the instrument, together with which budget it came from.
 
 Deferred: none

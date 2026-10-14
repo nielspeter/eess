@@ -3,7 +3,7 @@
 ## Status
 
 - **State:** Draft — written 2026-10-14 against the 2026-10-14 review of proposal 006's Ask C. This is
-  plan B of that review's split; [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md)
+  plan B of that review's split; [plan 0412](./completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md)
   (A, eess-md) defines the port this plan's parser fills and is built first.
 - **Implements:** proposal 006 — Ask C, "every Mermaid fence parses, by Mermaid's own parser". The
   conditions cited by number below are that review's.
@@ -14,7 +14,7 @@
   release moves with bug 0409.
 - **Created:** 2026-10-14
 - **Depends on**, in order:
-  - [plan 0412](./0412-a-code-block-parses-with-the-parser-the-caller-names.md) — the port.
+  - [plan 0412](./completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) — the port.
   - [plan 0214](./0214-extract-the-diagram-kind-predicate.md) — moves the preamble walk into
     eess-mermaid as `diagramKind()`. Conditions 6 and 7 extend that walk; there is no third copy.
     0214 is a Draft and must reach Ready and land first; this plan does not take it over.
