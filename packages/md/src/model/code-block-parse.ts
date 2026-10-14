@@ -41,13 +41,18 @@ export interface CodeBlockParser {
    * worker's message), so eess-md checks the shape of every verdict it is handed and reports one
    * that is not a verdict as the instrument. It never reads one as `valid`.
    *
+   * `texts` holds the canaries first, in declared order, then the blocks in document order.
+   *
    * A parser that knows why it failed rejects with an error carrying `remedy: string` and
    * `blockIndex: number | null` (an index into `texts`). eess-md reads both by shape.
+   *
+   * `signal` is aborted only when the budget runs out. A parser that holds a resource (a worker,
+   * a process) releases it itself once it has answered.
    */
   parse(
     texts: readonly string[],
     options: { readonly signal: AbortSignal; readonly budgetMs: number },
-  ): readonly unknown[] | Promise<readonly unknown[]>
+  ): readonly unknown[] | PromiseLike<readonly unknown[]>
 }
 
 /** The time a parse may take: a start-up allowance plus an allowance per text. */
@@ -60,7 +65,10 @@ export interface CodeBlockBudget {
  * The defaults, decided when plan 0412 was frozen: about 25× a worker's measured cold start and 16×
  * its measured cost per block. A budget is a hang detector, not a performance gate.
  */
-export const DEFAULT_CODE_BLOCK_BUDGET = { startUpMs: 10_000, perBlockMs: 250 } as const
+export const DEFAULT_CODE_BLOCK_BUDGET: Readonly<Required<CodeBlockBudget>> = Object.freeze({
+  startUpMs: 10_000,
+  perBlockMs: 250,
+})
 
 export interface ParseCodeBlocksOptions {
   /** The info-string language, matched exactly: `mermaid` does not read a `Mermaid` block. */
@@ -97,7 +105,10 @@ export interface ParsedCodeBlocks {
   readonly failure: CodeBlockInstrumentFailure | null
   readonly nearMisses: readonly NearMissTag[]
   readonly documentsLoaded: number
-  /** "N mermaid blocks parsed with mermaid 11.17.2", plus any near-miss tags left unread. */
+  /**
+   * "N mermaid blocks parsed with mermaid 11.17.2", plus any near-miss tags left unread. When the
+   * parser failed, it says so and gives the cause: no block was checked.
+   */
   summary(): string
 }
 
@@ -112,37 +123,92 @@ function nonEmpty(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
-function verdictProblem(value: unknown): string | undefined {
+/**
+ * Read one value a parser returned, ONCE. Each field is read a single time into a local, so a value
+ * whose getters answer differently on a second read cannot pass one check and fail the next.
+ */
+function readVerdict(value: unknown): { verdict: CodeBlockVerdict } | { problem: string } {
   if (typeof value !== 'object' || value === null || !('outcome' in value)) {
-    return 'is not a verdict'
+    return { problem: 'is not a verdict' }
   }
-  const { outcome } = value
-  if (outcome === 'valid') return undefined
+  const outcome: unknown = value.outcome
+  if (outcome === 'valid') return { verdict: { outcome: 'valid' } }
   if (outcome !== 'invalid' && outcome !== 'unrecognised') {
-    return `is not a verdict (outcome ${JSON.stringify(outcome) ?? 'undefined'})`
+    return { problem: `is not a verdict (outcome ${JSON.stringify(outcome) ?? 'undefined'})` }
   }
-  if (!('message' in value) || !nonEmpty(value.message)) return `has an empty message`
-  if (!('remedy' in value) || !nonEmpty(value.remedy)) return `has an empty remedy`
-  if (outcome === 'invalid') {
-    const line = 'line' in value ? value.line : undefined
-    if (line !== null && !(typeof line === 'number' && Number.isInteger(line))) {
-      return 'has a line that is neither a whole number nor null'
-    }
+  const message: unknown = 'message' in value ? value.message : undefined
+  const remedy: unknown = 'remedy' in value ? value.remedy : undefined
+  if (!nonEmpty(message)) return { problem: 'has an empty message' }
+  if (!nonEmpty(remedy)) return { problem: 'has an empty remedy' }
+  if (outcome === 'unrecognised') return { verdict: { outcome, message, remedy } }
+  const line: unknown = 'line' in value ? value.line : undefined
+  if (line === null) return { verdict: { outcome, message, line: null, remedy } }
+  if (typeof line === 'number' && Number.isInteger(line)) {
+    return { verdict: { outcome, message, line, remedy } }
   }
-  return undefined
+  return { problem: 'has a line that is neither a whole number nor null' }
 }
 
-/** Narrow a value `verdictProblem` accepted. No assertion: each field is read by shape. */
-function toVerdict(value: unknown): CodeBlockVerdict | undefined {
-  if (verdictProblem(value) !== undefined) return undefined
-  if (typeof value !== 'object' || value === null || !('outcome' in value)) return undefined
-  if (value.outcome === 'valid') return { outcome: 'valid' }
-  const message = 'message' in value && typeof value.message === 'string' ? value.message : ''
-  const remedy = 'remedy' in value && typeof value.remedy === 'string' ? value.remedy : ''
-  if (value.outcome === 'unrecognised') return { outcome: 'unrecognised', message, remedy }
-  const line = 'line' in value && typeof value.line === 'number' ? value.line : null
-  return { outcome: 'invalid', message, line, remedy }
+/** The parser's identity and canaries, read once and checked. Throws before anything is selected. */
+function snapshotParser(parser: CodeBlockParser): {
+  name: string
+  version: string
+  canaries: readonly CodeBlockCanary[]
+} {
+  const name: unknown = parser.name
+  const version: unknown = parser.version
+  if (!nonEmpty(name) || !nonEmpty(version)) {
+    throw new ArchConfigError(
+      'parseCodeBlocks',
+      `parseCodeBlocks: the parser has no ${nonEmpty(name) ? 'version' : 'name'}. ` +
+        'A parser names itself, so a finding can say what judged the block.',
+    )
+  }
+  const declared: unknown = parser.canaries
+  const list: readonly unknown[] = Array.isArray(declared)
+    ? declared.map((entry: unknown): unknown => entry)
+    : []
+  if (list.length === 0) {
+    throw new ArchConfigError(
+      'parseCodeBlocks',
+      `parseCodeBlocks: the parser ${name}@${version} declares no canaries. A parser declares at ` +
+        'least one block it must reject, so a parser that accepts everything is caught.',
+    )
+  }
+  const canaries: CodeBlockCanary[] = []
+  for (const [i, entry] of list.entries()) {
+    const text: unknown =
+      typeof entry === 'object' && entry !== null && 'text' in entry ? entry.text : undefined
+    const expect: unknown =
+      typeof entry === 'object' && entry !== null && 'expect' in entry ? entry.expect : undefined
+    if (!nonEmpty(text) || (expect !== 'invalid' && expect !== 'unrecognised')) {
+      throw new ArchConfigError(
+        'parseCodeBlocks',
+        `parseCodeBlocks: canary ${String(i + 1)} of ${name}@${version} is not a block the parser ` +
+          `must reject: it needs a non-empty \`text\` and \`expect\` of "invalid" or "unrecognised" ` +
+          `(got ${JSON.stringify(expect) ?? 'undefined'}). A canary the parser may accept catches nothing.`,
+      )
+    }
+    canaries.push(Object.freeze({ text, expect }))
+  }
+  return { name, version, canaries: Object.freeze(canaries) }
 }
+
+/** A whole number of milliseconds a timer can hold, or a configuration error. */
+function budgetPart(value: number | undefined, fallback: number, field: string): number {
+  if (value === undefined) return fallback
+  if (!Number.isInteger(value) || value < 0 || value > MAX_TIMER_MS) {
+    throw new ArchConfigError(
+      'parseCodeBlocks',
+      `parseCodeBlocks: budget.${field} is ${String(value)}; it must be a whole number of ` +
+        `milliseconds from 0 to ${String(MAX_TIMER_MS)}.`,
+    )
+  }
+  return value
+}
+
+/** The longest delay `setTimeout` honours; past it Node fires after 1 ms. */
+const MAX_TIMER_MS = 2_147_483_647
 
 interface Located {
   readonly doc: MdDocument
@@ -183,21 +249,23 @@ export async function parseCodeBlocks(
   options: ParseCodeBlocksOptions,
 ): Promise<ParsedCodeBlocks> {
   const { language, parser } = options
-  if (!nonEmpty(parser.name) || !nonEmpty(parser.version)) {
+  if (!nonEmpty(language)) {
     throw new ArchConfigError(
       'parseCodeBlocks',
-      `parseCodeBlocks: the parser has no ${nonEmpty(parser.name) ? 'version' : 'name'}. ` +
-        'A parser names itself, so a finding can say what judged the block.',
+      'parseCodeBlocks: `language` is empty. Name the info-string tag to check, e.g. "mermaid".',
     )
   }
-  if (parser.canaries.length === 0) {
-    throw new ArchConfigError(
-      'parseCodeBlocks',
-      `parseCodeBlocks: the parser ${parser.name}@${parser.version} declares no canaries. ` +
-        'A parser declares at least one block it must reject, so a parser that accepts everything ' +
-        'is caught.',
-    )
-  }
+  const { name, version, canaries } = snapshotParser(parser)
+  const startUpMs = budgetPart(
+    options.budget?.startUpMs,
+    DEFAULT_CODE_BLOCK_BUDGET.startUpMs,
+    'startUpMs',
+  )
+  const perBlockMs = budgetPart(
+    options.budget?.perBlockMs,
+    DEFAULT_CODE_BLOCK_BUDGET.perBlockMs,
+    'perBlockMs',
+  )
 
   const documents = corpus.documents()
   const located: Located[] = []
@@ -207,16 +275,16 @@ export async function parseCodeBlocks(
     for (const block of doc.codeBlocks) {
       if (block.lang === language) located.push({ doc, block })
       else if (block.lang?.toLowerCase() === folded) {
-        nearMisses.push({ tag: block.lang, file: doc.relPath, line: block.line })
+        nearMisses.push(Object.freeze({ tag: block.lang, file: doc.relPath, line: block.line }))
       }
     }
   }
 
-  const canaries = parser.canaries
-  const texts = [...canaries.map((c) => c.text), ...located.map((l) => l.block.value)]
-  const startUpMs = options.budget?.startUpMs ?? DEFAULT_CODE_BLOCK_BUDGET.startUpMs
-  const perBlockMs = options.budget?.perBlockMs ?? DEFAULT_CODE_BLOCK_BUDGET.perBlockMs
-  const budgetMs = startUpMs + perBlockMs * texts.length
+  const texts = Object.freeze([
+    ...canaries.map((c) => c.text),
+    ...located.map((l) => l.block.value),
+  ])
+  const budgetMs = Math.min(startUpMs + perBlockMs * texts.length, MAX_TIMER_MS)
   const budgetSource = options.budget === undefined ? 'the defaults' : "the caller's budget"
   const budgetText =
     `${String(budgetMs)} ms (${String(startUpMs)} ms start-up + ${String(perBlockMs)} ms × ` +
@@ -250,46 +318,61 @@ export async function parseCodeBlocks(
             '`budget: { startUpMs, perBlockMs }` if the parser is merely slow.',
       }
     } else {
-      failure = checkVerdicts(outcome.values, {
+      const read = readAll(outcome.values, {
         textCount: texts.length,
         canaries,
         budgetMs,
         budgetText,
         elapsedMs: outcome.elapsedMs,
       })
-      if (failure === null) {
-        const read: CodeBlockVerdict[] = []
-        for (const value of outcome.values) {
-          const v = toVerdict(value)
-          if (v !== undefined) read.push(v)
-        }
-        verdicts = read.slice(canaries.length)
-      }
+      if ('failure' in read) failure = read.failure
+      else verdicts = read.verdicts.slice(canaries.length)
     }
   }
 
-  const blocks: ParsedCodeBlock[] = located.map((l, i) => ({
-    doc: l.doc,
-    block: l.block,
-    verdict: verdicts?.[i] ?? null,
-  }))
-  const identity = { name: parser.name, version: parser.version }
-  const parsed: ParsedCodeBlocks = {
+  const blocks: ParsedCodeBlock[] = located.map((l, i) =>
+    Object.freeze({ doc: l.doc, block: l.block, verdict: verdicts?.[i] ?? null }),
+  )
+  // A block left without a verdict and no failure to say why would read as a pass. It cannot happen
+  // through the paths above; this makes it impossible, not merely unlikely.
+  if (failure === null && blocks.some((b) => b.verdict === null)) {
+    failure = {
+      cause: 'the parser left a block without a verdict',
+      remedy: 'A parser returns exactly one verdict per text, in order.',
+    }
+  }
+  const finalFailure = failure === null ? null : Object.freeze({ ...failure })
+  const identity = Object.freeze({ name, version })
+  const frozenNearMisses = Object.freeze(nearMisses)
+  const parsed: ParsedCodeBlocks = Object.freeze({
     language,
     parser: identity,
-    blocks,
-    failure,
-    nearMisses,
+    blocks: Object.freeze(blocks),
+    failure: finalFailure,
+    nearMisses: frozenNearMisses,
     documentsLoaded: documents.length,
-    summary: () => {
-      const n = blocks.length
-      const head = `${String(n)} ${language} block${n === 1 ? '' : 's'} parsed with ${identity.name} ${identity.version}`
-      if (nearMisses.length === 0) return head
-      return `${head}; not read, tagged ${describeNearMisses(nearMisses)}`
-    },
-  }
+    summary: () => summarise(language, identity, blocks, finalFailure, frozenNearMisses),
+  })
   REGISTERED.add(parsed)
   return parsed
+}
+
+function summarise(
+  language: string,
+  identity: { readonly name: string; readonly version: string },
+  blocks: readonly ParsedCodeBlock[],
+  failure: CodeBlockInstrumentFailure | null,
+  nearMisses: readonly NearMissTag[],
+): string {
+  const n = blocks.length
+  const noun = `${language} block${n === 1 ? '' : 's'}`
+  const by = `${identity.name} ${identity.version}`
+  const head =
+    failure === null
+      ? `${String(n)} ${noun} parsed with ${by}`
+      : `0 of ${String(n)} ${noun} checked: ${by} failed — ${failure.cause}`
+  if (nearMisses.length === 0) return head
+  return `${head}; not read, tagged ${describeNearMisses(nearMisses)}`
 }
 
 /** `Mermaid` at docs/a.md:3, … */
@@ -297,8 +380,8 @@ export function describeNearMisses(nearMisses: readonly NearMissTag[]): string {
   return nearMisses.map((n) => `\`${n.tag}\` at ${n.file}:${String(n.line)}`).join(', ')
 }
 
-function checkVerdicts(
-  values: readonly unknown[],
+function readAll(
+  returned: unknown,
   run: {
     readonly textCount: number
     readonly canaries: readonly CodeBlockCanary[]
@@ -306,61 +389,71 @@ function checkVerdicts(
     readonly budgetText: string
     readonly elapsedMs: number
   },
-): CodeBlockInstrumentFailure | null {
+): { failure: CodeBlockInstrumentFailure } | { verdicts: readonly CodeBlockVerdict[] } {
   const { textCount, canaries, budgetMs, budgetText, elapsedMs } = run
   if (elapsedMs > budgetMs) {
     // A synchronous parser cannot be interrupted, so its overrun is found after it returns.
     return {
-      cause: `the parse took ${String(Math.round(elapsedMs))} ms, past its budget of ${budgetText}`,
-      remedy:
-        'Find the block that slows the parser, or raise the budget with ' +
-        '`budget: { startUpMs, perBlockMs }` if the parser is merely slow.',
-    }
-  }
-  if (!Array.isArray(values) || values.length !== textCount) {
-    const got = Array.isArray(values) ? String(values.length) : 'no array of'
-    return {
-      cause: `the parser returned the wrong number of verdicts: ${String(textCount)} texts, ${got} verdicts`,
-      remedy: 'A parser returns exactly one verdict per text, in order.',
-    }
-  }
-  for (const [i, value] of values.entries()) {
-    const problem = verdictProblem(value)
-    if (problem !== undefined) {
-      return {
-        cause: `the parser's answer for text ${String(i + 1)} ${problem}`,
+      failure: {
+        cause: `the parse took ${String(Math.round(elapsedMs))} ms, past its budget of ${budgetText}`,
         remedy:
-          "Return { outcome: 'valid' }, { outcome: 'invalid', message, line, remedy } or " +
-          "{ outcome: 'unrecognised', message, remedy } for every text, with a non-empty message " +
-          'and remedy.',
+          'Find the block that slows the parser, or raise the budget with ' +
+          '`budget: { startUpMs, perBlockMs }` if the parser is merely slow.',
+      },
+    }
+  }
+  // Copied once: a value that changes between two reads is read as it was the first time.
+  const values: readonly unknown[] | null = Array.isArray(returned)
+    ? returned.map((value: unknown): unknown => value)
+    : null
+  if (values?.length !== textCount) {
+    const got = values === null ? 'no array of' : String(values.length)
+    return {
+      failure: {
+        cause: `the parser returned the wrong number of verdicts: ${String(textCount)} texts, ${got} verdicts`,
+        remedy: 'A parser returns exactly one verdict per text, in order.',
+      },
+    }
+  }
+  const verdicts: CodeBlockVerdict[] = []
+  for (const [i, value] of values.entries()) {
+    const read = readVerdict(value)
+    if ('problem' in read) {
+      return {
+        failure: {
+          cause: `the parser's answer for text ${String(i + 1)} ${read.problem}`,
+          remedy:
+            "Return { outcome: 'valid' }, { outcome: 'invalid', message, line, remedy } or " +
+            "{ outcome: 'unrecognised', message, remedy } for every text, with a non-empty message " +
+            'and remedy.',
+        },
       }
     }
+    verdicts.push(Object.freeze(read.verdict))
   }
   for (const [i, canary] of canaries.entries()) {
-    const got = toVerdict(values[i])
+    const got = verdicts[i]
     if (got?.outcome !== canary.expect) {
       return {
-        cause:
-          `canary ${String(i + 1)} was answered wrongly: expected "${canary.expect}", got ` +
-          `"${got?.outcome ?? 'nothing'}". A parser that accepts a block it must reject cannot be ` +
-          'trusted to reject a broken one.',
-        remedy:
-          'Check that the parser is the real one, at a version whose errors its canaries were written ' +
-          'for, and that it is not catching its own errors.',
+        failure: {
+          cause:
+            `canary ${String(i + 1)} was answered wrongly: expected "${canary.expect}", got ` +
+            `"${got?.outcome ?? 'nothing'}". A parser that accepts a block it must reject cannot be ` +
+            'trusted to reject a broken one.',
+          remedy:
+            'Check that the parser is the real one, at a version whose errors its canaries were ' +
+            'written for, and that it is not catching its own errors.',
+        },
       }
     }
   }
-  return null
+  return { verdicts }
 }
 
 type RunOutcome =
-  | { readonly kind: 'returned'; readonly values: readonly unknown[]; readonly elapsedMs: number }
+  | { readonly kind: 'returned'; readonly values: unknown; readonly elapsedMs: number }
   | { readonly kind: 'threw'; readonly error: unknown }
   | { readonly kind: 'timeout'; readonly error: unknown }
-
-function isPromise(value: unknown): value is Promise<readonly unknown[]> {
-  return value instanceof Promise
-}
 
 /**
  * Run the parser under its budget. On overrun the signal is aborted and the parser is given a short
@@ -373,19 +466,21 @@ async function runParser(
 ): Promise<RunOutcome> {
   const controller = new AbortController()
   const started = performance.now()
-  let result: readonly unknown[] | Promise<readonly unknown[]>
+  let result: unknown
   try {
     result = parser.parse(texts, { signal: controller.signal, budgetMs })
   } catch (error) {
     return { kind: 'threw', error }
   }
-  if (!isPromise(result)) {
+  if (Array.isArray(result)) {
     return { kind: 'returned', values: result, elapsedMs: performance.now() - started }
   }
 
-  // Settle the parser's promise into a value, so a rejection after we stop waiting is never unhandled.
-  const settled: Promise<RunOutcome> = result.then(
-    (values): RunOutcome => ({
+  // Anything else is awaited, so a thenable that is not a native Promise is still a promise here. A
+  // value that is neither resolves to itself and is reported as "no array of verdicts". The parser's
+  // promise is settled into a value, so a rejection after we stop waiting is never unhandled.
+  const settled: Promise<RunOutcome> = Promise.resolve(result).then(
+    (values: unknown): RunOutcome => ({
       kind: 'returned',
       values,
       elapsedMs: performance.now() - started,

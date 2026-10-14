@@ -18,6 +18,10 @@
  *   parser-throws       the parser throws → the instrument, with its message.
  *   dropped-block       the parser returns one verdict too few → the instrument.
  *   near-miss           near/ holds only a `Mermaid` block → the zero-examined finding names it.
+ *   unrecognised-verdict unknown/unknown.md has a block the stub cannot classify → a finding
+ *                       with the parser's remedy, never worded as a syntax error.
+ *   forged-facts        a hand-built fact object passed to codeBlocks() → ArchConfigError.
+ *   canary-may-pass     a canary declared `expect: 'valid'` → ArchConfigError from parseCodeBlocks.
  *
  * Each finding is matched on its message (and file, where it has one), not on a rule id alone:
  * every instrument finding shares one id, so an id match would let any one of them answer for
@@ -38,6 +42,9 @@ function judge(text) {
   const broken = lines.findIndex((l) => l.includes('BROKEN') || l.startsWith('%%canary'))
   if (broken !== -1) {
     return { outcome: 'invalid', message: 'unexpected token', line: broken + 1, remedy: 'fix it' }
+  }
+  if (text.startsWith('UNKNOWN')) {
+    return { outcome: 'unrecognised', message: 'no such kind', remedy: 'name a diagram kind' }
   }
   return { outcome: 'valid' }
 }
@@ -109,6 +116,22 @@ const SCENARIOS = {
     dir: 'near',
     found: (vs) => vs.some((v) => v.message.includes('`Mermaid` at ')),
   },
+  'unrecognised-verdict': {
+    dir: 'unknown',
+    found: (vs) =>
+      vs.some(
+        (v) =>
+          v.message.includes('does not recognise this `mermaid` block: no such kind') &&
+          v.suggestion === 'name a diagram kind' &&
+          !/syntax/i.test(v.message),
+      ),
+  },
+  'forged-facts': { dir: 'valid', forge: true, throws: 'takes the object' },
+  'canary-may-pass': {
+    dir: 'valid',
+    parser: { canaries: [{ text: 'BROKEN', expect: 'valid' }] },
+    throws: 'is not a block the parser must reject',
+  },
 }
 
 const name = process.argv[2]
@@ -128,12 +151,13 @@ try {
     parser: stub(scenario.parser),
     ...(scenario.budget !== undefined && { budget: scenario.budget }),
   })
-  let rule = codeBlocks(parsed).should().parse().rule({ id: 'nonvacuity/code-block-parse' })
+  const facts = scenario.forge === true ? { ...parsed } : parsed
+  let rule = codeBlocks(facts).should().parse().rule({ id: 'nonvacuity/code-block-parse' })
   if (scenario.expectEmpty === true) rule = rule.expectEmpty()
   violations = rule.violations()
 } catch (err) {
   if (scenario.throws !== undefined && isArchConfigError(err) && String(err.message).includes(scenario.throws)) {
-    console.error(`bad-code-block-parse: ${name}: reported — parseCodeBlocks threw "${scenario.throws}"`)
+    console.error(`bad-code-block-parse: ${name}: reported — it threw "${scenario.throws}"`)
     process.exit(1)
   }
   console.error(`bad-code-block-parse: ${name}: unexpected error — ${String(err)}`)

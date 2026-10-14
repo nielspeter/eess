@@ -59,7 +59,7 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
     expect(r.examined).toBe(2)
   })
 
-  it('reports an invalid verdict at the block line plus the verdict line, nested blocks included', async () => {
+  it('reports an invalid verdict at the block line plus the verdict line', async () => {
     const parsed = await parseCodeBlocks(at('broken'), { language: 'mermaid', parser: stub() })
     const r = rule(parsed).violations()
     const invalid = r.find((v) => v.message.includes('unexpected token'))
@@ -315,7 +315,7 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
         parser: stub(),
       })
       const r = rule(parsed).expectEmpty().violations()
-      expect(r.length).toBeGreaterThan(0)
+      expect(r.map((v) => v.message).join('\n')).toMatch(/source loaded zero units/)
     })
 
     it('reports files with no block of the language without expectEmpty, and passes with it', async () => {
@@ -323,7 +323,12 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
         language: 'mermaid',
         parser: stub(),
       })
-      expect(rule(parsed).violations().length).toBeGreaterThan(0)
+      expect(
+        rule(parsed)
+          .violations()
+          .map((v) => v.message)
+          .join('\n'),
+      ).toMatch(/examined zero units/)
       expect(rule(parsed).expectEmpty().violations()).toHaveLength(0)
     })
 
@@ -357,5 +362,224 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
     expect(all.length).toBe(2)
     expect(none).toHaveLength(0)
     expect(none.examined).toBe(0)
+  })
+
+  // Second round: the review of PR #209.
+  describe('after review', () => {
+    const instrumentOf = (parsed: ParsedCodeBlocks) =>
+      rule(parsed)
+        .violations()
+        .filter((v) => v.ruleId === INSTRUMENT)
+
+    it('reports an invalid verdict in a block nested in a list at its own Markdown line', async () => {
+      const parsed = await parseCodeBlocks(at('nested-invalid'), {
+        language: 'mermaid',
+        parser: stub(),
+      })
+      const invalid = rule(parsed)
+        .violations()
+        .find((v) => v.message.includes('unexpected token'))
+      // The fence opens on line 5, inside the list item; BROKEN is body line 3, so line 8.
+      expect(invalid?.line).toBe(8)
+    })
+
+    it('checks every canary against its own expected outcome, not only the first', async () => {
+      const parser = stub({
+        parse: (texts) =>
+          texts.map((t): CodeBlockVerdict => {
+            // The second canary must be unrecognised; this parser calls it invalid.
+            if (t.startsWith('%%canary-unrecognised')) {
+              return { outcome: 'invalid', message: 'x', line: 1, remedy: 'y' }
+            }
+            return judge(t)
+          }),
+      })
+      const found = instrumentOf(
+        await parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
+      )
+      expect(found).toHaveLength(1)
+      expect(found[0]?.message).toMatch(/canary 2 .*expected "unrecognised".*"invalid"/)
+    })
+
+    it('refuses a canary the parser is allowed to accept, before anything is selected', async () => {
+      for (const canaries of [
+        [{ text: 'BROKEN', expect: 'valid' }],
+        [{ text: '', expect: 'invalid' }],
+        [{ text: 'BROKEN' }],
+      ]) {
+        // A parser declared in JavaScript: eess-md cannot trust the canaries' types, so the
+        // test sets them past the type checker.
+        const parser = stub()
+        Object.defineProperty(parser, 'canaries', { value: canaries })
+        await expect(
+          parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
+        ).rejects.toSatisfy(isArchConfigError)
+      }
+    })
+
+    it('reads each verdict once, so a verdict that changes on a second read still counts', async () => {
+      const parser = stub({
+        parse: (texts) =>
+          texts.map((t) => {
+            if (!t.includes('BROKEN')) return judge(t)
+            let reads = 0
+            return {
+              get outcome() {
+                reads += 1
+                return reads === 1 ? 'invalid' : 'valid'
+              },
+              message: 'unexpected token',
+              line: 3,
+              remedy: 'fix it',
+            }
+          }),
+      })
+      const r = rule(
+        await parseCodeBlocks(at('broken'), { language: 'mermaid', parser }),
+      ).violations()
+      expect(r.some((v) => v.message.includes('unexpected token'))).toBe(true)
+    })
+
+    it('freezes the result, so a failed parse cannot be edited into a pass', async () => {
+      const parser = stub({
+        parse: () => {
+          throw new Error('boom')
+        },
+      })
+      const parsed = await parseCodeBlocks(at('valid'), { language: 'mermaid', parser })
+      expect(Object.isFrozen(parsed)).toBe(true)
+      expect(Object.isFrozen(parsed.blocks)).toBe(true)
+      expect(parsed.blocks.every((b) => Object.isFrozen(b))).toBe(true)
+      expect(Object.isFrozen(parsed.parser)).toBe(true)
+      expect(Object.isFrozen(parsed.nearMisses)).toBe(true)
+      expect(Object.isFrozen(DEFAULT_CODE_BLOCK_BUDGET)).toBe(true)
+      expect(() => Object.assign(parsed, { failure: null })).toThrow()
+      expect(instrumentOf(parsed)).toHaveLength(1)
+    })
+
+    it('says in the summary that nothing was checked when the parser failed', async () => {
+      const parser = stub({
+        parse: () => {
+          throw new Error('boom')
+        },
+      })
+      const parsed = await parseCodeBlocks(at('valid'), { language: 'mermaid', parser })
+      expect(parsed.summary()).toMatch(/^0 of 2 mermaid blocks checked: stub 1\.0\.0 failed .*boom/)
+      expect(parsed.summary()).not.toMatch(/parsed with/)
+    })
+
+    it('passes an async parser that resolves valid verdicts', async () => {
+      const parser = stub({ parse: async (texts) => Promise.resolve(texts.map(judge)) })
+      const r = rule(
+        await parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
+      ).violations()
+      expect(r).toHaveLength(0)
+      expect(r.examined).toBe(2)
+    })
+
+    it('awaits a thenable that is not a native Promise', async () => {
+      const parser = stub({
+        parse: (texts) => {
+          // Not a native Promise: a plain object with a `then`, as a worker library might return.
+          const inner = Promise.resolve(texts.map(judge))
+          const thenable: PromiseLike<readonly CodeBlockVerdict[]> = {
+            then: (onFulfilled, onRejected) => inner.then(onFulfilled, onRejected),
+          }
+          return thenable
+        },
+      })
+      const r = rule(
+        await parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
+      ).violations()
+      expect(r).toHaveLength(0)
+      expect(r.examined).toBe(2)
+    })
+
+    it('hands the parser the default budget: ten seconds plus a quarter second a text', async () => {
+      let seen = -1
+      const parser = stub({
+        parse: (texts, { budgetMs }) => {
+          seen = budgetMs
+          return texts.map(judge)
+        },
+      })
+      await parseCodeBlocks(at('valid'), { language: 'mermaid', parser })
+      // Two canaries and two blocks.
+      expect(seen).toBe(10_000 + 250 * 4)
+    })
+
+    it("hands the parser the caller's budget, start-up plus each text", async () => {
+      let seen = -1
+      const parser = stub({
+        parse: (texts, { budgetMs }) => {
+          seen = budgetMs
+          return texts.map(judge)
+        },
+      })
+      await parseCodeBlocks(at('valid'), {
+        language: 'mermaid',
+        parser,
+        budget: { startUpMs: 100, perBlockMs: 7 },
+      })
+      expect(seen).toBe(100 + 7 * 4)
+    })
+
+    it('refuses a budget a timer cannot hold', async () => {
+      for (const budget of [
+        { startUpMs: Number.NaN },
+        { startUpMs: -1 },
+        { perBlockMs: Number.POSITIVE_INFINITY },
+        { startUpMs: 1.5 },
+        { startUpMs: 2 ** 31 },
+      ]) {
+        await expect(
+          parseCodeBlocks(at('valid'), { language: 'mermaid', parser: stub(), budget }),
+        ).rejects.toSatisfy(isArchConfigError)
+      }
+    })
+
+    it('refuses an empty language', async () => {
+      await expect(
+        parseCodeBlocks(at('valid'), { language: '', parser: stub() }),
+      ).rejects.toSatisfy(isArchConfigError)
+    })
+
+    it('waits out the grace for a parser that reports its block shortly after the abort', async () => {
+      const parser = stub({
+        parse: (_texts, { signal }) =>
+          new Promise<readonly CodeBlockVerdict[]>((_resolve, reject) => {
+            signal.addEventListener('abort', () => {
+              // A worker reports asynchronously, after the abort has been delivered.
+              setTimeout(() => {
+                reject(
+                  Object.assign(new Error('stopped'), { remedy: 'split the block', blockIndex: 3 }),
+                )
+              }, 15)
+            })
+          }),
+      })
+      const parsed = await parseCodeBlocks(at('valid'), {
+        language: 'mermaid',
+        parser,
+        budget: { startUpMs: 40, perBlockMs: 0 },
+      })
+      const found = instrumentOf(parsed)
+      expect(found[0]?.message).toMatch(/valid\/a\.md:10/)
+      expect(found[0]?.suggestion).toBe('split the block')
+    })
+
+    it('reports an invalid verdict with an empty message as the instrument', async () => {
+      const parser = stub({
+        parse: (texts) =>
+          texts.map((t): CodeBlockVerdict => {
+            const v = judge(t)
+            return v.outcome === 'invalid' ? { ...v, message: '' } : v
+          }),
+      })
+      const found = instrumentOf(
+        await parseCodeBlocks(at('valid'), { language: 'mermaid', parser }),
+      )
+      expect(found[0]?.message).toMatch(/empty message/)
+    })
   })
 })

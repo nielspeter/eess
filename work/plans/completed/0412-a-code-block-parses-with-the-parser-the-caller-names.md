@@ -176,13 +176,15 @@ Neither depends on what a rule selects, so neither can be lost to an empty selec
   through `parseCodeBlocks(corpus, { …, budget: { startUpMs, perBlockMs } })`. eess-md computes
   `budgetMs = startUpMs + perBlockMs × texts.length` (canaries included) and passes that total to
   `parse`. **Decided at the freeze:** `startUpMs = 10_000` and `perBlockMs = 250`. The evidence is
-  three measured timings for 39 blocks, each including a worker's cold start of about 400 ms:
+  three measured timings for 39 blocks. The first two include a worker's cold start of about 400 ms;
+  the record does not say whether the third does:
   - 588 ms;
   - 0.99 s;
   - 0.78 s.
 
-  That is about 15 ms a block once the worker is up. The defaults sit at roughly 25× the cold start
-  and 16× the per-block cost. A budget is a hang detector, not a performance gate. A false red on a
+  Once the worker is up, that is 5 to 15 ms a block; the defaults were set from the slowest. They sit
+  at roughly 25× the cold start and 16× that per-block cost. _(Wording corrected after review: the
+  first version said "about 15 ms" without saying it was the slowest of three.)_ A budget is a hang detector, not a performance gate. A false red on a
   slow CI runner costs more than a long wait on a real hang, so the margin is wide. 39 blocks get
   about 20 s. A test pins both defaults. When the budget runs out, eess-md aborts the `signal` it
   passed. Stopping is the parser's job, and plan 0413's worker terminates on it.
@@ -314,28 +316,94 @@ row's red into a green, and the gate catches it.
 
 ## Progress ledger
 
-- [x] Phase 1 — model and port, red-first: `packages/md/src/model/code-block-parse.ts`. Red first: the
-      suite failed to import before the module existed. 26 tests now pass. A sabotage matrix of ten
-      mutations turned each one red, then the code was restored: - the condition emptied; - the canary check off; - a malformed verdict read as valid; - the registry off; - the instrument not appended; - no abort on timeout; - a synchronous overrun ignored; - `sourceEmpty` off; - the near-miss diagnosis off; - the verdict-count check off.
+- [x] Phase 1 — model and port, red-first: `packages/md/src/model/code-block-parse.ts`.
+  - Red first: the suite failed to import before the module existed.
+  - The first round shipped 26 tests, and a sabotage matrix of ten mutations turned each one red.
 - [x] Phase 2 — builder and condition, exported: `packages/md/src/builders/code-blocks.ts`, exported
       from the eess-md root with the port's types.
-- [x] Phase 3 — non-vacuity rows, docs: - `scripts/nonvacuity/bad-code-block-parse.mjs`, with eleven rows in `check-nonvacuity.mjs`, one
-      per row of the table above. Each scenario was run and fires. - `no-markdown` was tightened to its own message, and shown to go vacuous with `sourceEmpty`
-      removed. - Docs: `docs/markdown.md` "Code blocks that parse" and a README section.
+- [x] Phase 3 — non-vacuity rows and docs.
+  - `scripts/nonvacuity/bad-code-block-parse.mjs` has fourteen scenarios: the cases named in the
+    seven rows of the table above, plus three added after review.
+  - Docs: `docs/markdown.md` "Code blocks that parse", and a README section.
 - [x] budget defaults (decided at the freeze) pinned by a test.
 - [x] changeset: eess-md `minor` (`.changeset/code-blocks-parse.md`).
 
 **What the build changed from the plan, and why:**
 
-- **`parse` returns `readonly unknown[]`**, not `readonly CodeBlockVerdict[]`. eess-md checks every
-  verdict's shape anyway. With the narrower type, the malformed-verdict tests (`undefined`,
-  `{ outcome: 'ok' }`) could not be written without an `as` (ADR-005). The doc comment says to
-  return `CodeBlockVerdict`s.
+- **`parse` returns `unknown`**, not `readonly CodeBlockVerdict[]`. eess-md checks every verdict's
+  shape anyway. With the narrower type, the malformed-verdict tests could not be written without an
+  `as` (ADR-005). The doc comment says to return `CodeBlockVerdict`s.
 - **The docs do not tell a script gate to call `dedupeConfigFindings`.** It is exported only from
-  `@nielspeter/eess/internal`, which ADR-011 makes family plumbing, not consumer API. The docs say
-  instead that `eess-ts check` collapses the instrument to one, and that a script collecting findings
-  itself sees one per rule. Plan 0413's own gate is in this repository and may import it.
-- **The budget's caller-facing option** is `budget: { startUpMs, perBlockMs }`, as frozen. The total
-  passed to `parse` is named in the instrument, together with which budget it came from.
+  `@nielspeter/eess/internal`, which ADR-011 makes family plumbing. The docs say instead that the
+  CLI's `check` collapses the instrument, and that a script collecting findings itself sees one per
+  rule. Plan 0413's own gate is in this repository and may import it.
+- **The budget's caller-facing option** is `budget: { startUpMs, perBlockMs }`, as frozen.
+
+### Review round, 2026-10-15 (PR #209)
+
+Five lenses reviewed the build (architect, product, testing, enforcement, method). None found
+anything critical. These were fixed in the same PR:
+
+- **Fail-open paths, all measured by enforcement:**
+  - a canary declared `expect: 'valid'` was never checked, so an accept-everything parser passed a
+    broken block;
+  - a verdict whose getters answer differently on a second read could leave a block with no verdict
+    and no failure, read as a pass;
+  - the result could be edited after the parse (`failure = null`), which turned a red into a green.
+- **What changed in the code:**
+  - The parser's name, version and canaries are read once and checked, and each canary must expect
+    `invalid` or `unrecognised` with non-empty text.
+  - Each verdict is read once, field by field.
+  - A block left without a verdict is a failure by construction.
+  - The result, its blocks, parser, near-misses and the default budget are frozen.
+- **`summary()`** said "parsed" after a failed parse (architect, product). It now says "0 of N …
+  checked" and gives the cause.
+- **A thenable that is not a native `Promise`** was reported as "no array of verdicts". Any
+  non-array is now awaited.
+- **The budget** is validated: a whole number of milliseconds from 0 to 2³¹−1, or `ArchConfigError`.
+  An empty `language` throws too.
+- **The evidence** is passed through whole (`collectResult([...base, instrument], base)`).
+- **Tests: 26 became 40.** The testing review's matrix found 14 mutations that stayed green. Each is
+  now covered:
+  - every canary checked against its own outcome;
+  - the default and the caller's `budgetMs` asserted as handed to the parser;
+  - the grace window, with a parser that reports after the abort;
+  - an async parser that resolves;
+  - an empty message;
+  - the timeout remedy;
+  - the empty cases asserted by message;
+  - an invalid verdict in a nested block, which the first round's test only claimed by its title.
+- **A second sabotage matrix of 18 mutations** turned each one red: the testing review's survivors
+  plus each new guard. The first round's ten mutations were re-run against the rewritten code, and
+  each still turns a test red.
+- **Non-vacuity:** three rows were added (`unrecognised-verdict`, `forged-facts`, `canary-may-pass`).
+  Then **every one of the fourteen rows was shown to go vacuous** (exit 0) with its own mechanism
+  removed and the package rebuilt, and to fire again once restored. The first round had shown this
+  for one row only, and the record over-claimed it (method).
+- **Docs:** the example is now a real `JSON.parse` parser over ` ```json ` blocks. The first one was
+  a stub over `mermaid` that would have been a fake gate if copied (enforcement, product). The docs
+  also state:
+  - canaries come first in `texts`;
+  - a parser releases its own resources;
+  - two different failures of one parser collapse in the CLI;
+  - a near-miss beside read blocks is only in `summary()`;
+  - a block broken on purpose is tagged ` ```text `, since an `.excluding()` by `file:line` goes
+    stale on any edit above it.
+- **Records:** proposal 006's disposition no longer calls plan 0412 "Draft", and the changeset names
+  every new export.
+
+**Decided, overrulable:**
+
+- **`codeBlocks(parsed)` keeps its name** (product asked). Its elements are code blocks either way.
+  A future corpus-wide rule over fences can take its facts from another fact builder and keep this
+  one entry point, rather than add a second `codeBlocks`. Renaming now would also touch plan 0413
+  and proposal 006 for no change in behaviour.
+
+**Recorded, not fixed here:**
+
+- **The instrument finding is built by hand in two dialects**: here and eess-ts's walk exhaustion. If
+  a third appears, it becomes a kernel helper.
+- **The kernel reports an unused exclusion on every failed parse**, because a failed parse leaves
+  nothing for `.excluding()` to match. That is kernel-wide behaviour, not this builder's.
 
 Deferred: none

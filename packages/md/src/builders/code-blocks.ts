@@ -93,8 +93,9 @@ export class CodeBlockRuleBuilder extends RuleBuilder<ParsedCodeBlock, ParsedCod
     if (!isParsedCodeBlocks(parsed)) {
       throw new ArchConfigError(
         'codeBlocks',
-        'codeBlocks() takes the object parseCodeBlocks() returns. A hand-built one would let any ' +
-          'verdict through unchecked.',
+        "codeBlocks() takes the object this copy of eess-md's parseCodeBlocks() returned. A " +
+          'hand-built object would let any verdict through unchecked. If you built it with ' +
+          'parseCodeBlocks, two copies of @nielspeter/eess-md are installed; dedupe them.',
       )
     }
   }
@@ -136,11 +137,8 @@ export class CodeBlockRuleBuilder extends RuleBuilder<ParsedCodeBlock, ParsedCod
       suggestion: failure.remedy,
       bypassFilters: true,
     }
-    return collectResult([...base, instrument], {
-      examined: base.examined,
-      ...(base.sourceEmpty === true && { sourceEmpty: true }),
-      ...(base.deadGlob !== undefined && { deadGlob: base.deadGlob }),
-    })
+    // The kernel's evidence, passed through whole, so no field it adds later can be dropped here.
+    return collectResult([...base, instrument], base)
   }
 
   /** Filter to blocks in documents whose repo-relative path matches the file glob. */
