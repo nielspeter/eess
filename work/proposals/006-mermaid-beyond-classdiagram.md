@@ -546,3 +546,123 @@ rule 2), recorded as bug 0409, on its own branch.
 | ask                                | disposition | owner                                                                                                                                                                                                                                                      |
 | ---------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **C** — every Mermaid fence parses | **Held**    | accepted in principle by all three lenses; held on the four conditions above — the asynchronous shape, bug 0290 or a disclosure, the rule for which parser owns `classDiagram` syntax (with bug 0409), and placement — and on the criteria the record owes |
+
+## Review — 2026-10-14
+
+**Ruling: Split and sequence**
+
+Ask C only, re-reviewed (architect · product · enforcement) on new evidence: bug 0290's fix (PR
+#204), which meets condition 2, and [spike 0411](../spikes/0411-can-the-caller-pass-mermaids-parser.md),
+which measures condition 4. Asks A1–A3 and B keep their dispositions. The 2026-10-12 criteria stand,
+and the conditions below add to them. All three lenses accept the design. It is split into two plans,
+and the row stays `Held` only until they are drafted: a disposition is `Accepted` when it names its
+owner.
+
+**Survey.** _Exists:_ `MdDocument.codeBlocks` (at any depth once #204 merges); the preamble walk
+`declaredKind` (`packages/crossvalidate/src/md-mermaid.ts:47`), which plan 0214 moves to eess-mermaid;
+the optional-peer precedent (eess-ts `graphql`, `packages/ts/package.json:112`); `.expectEmpty()`
+(`packages/core/src/cardinality.ts:37`); the bounded-instrument precedent
+(`packages/ts/src/core/disk-set.ts`). _Genuinely new:_ a code-block rule surface in eess-md (none in
+`packages/md/src/builders/`); an async step before a rule (no rule surface in the family is async);
+a worker thread (none in `packages/*/src`). _Not a consumer:_ `scripts/check-docs-code.mjs` type-checks
+TypeScript fences across files, which a per-block parse cannot express.
+
+**Placement, decided.** eess-md owns the loop and the parser port's type. eess-mermaid ships one
+parser, matching the port by shape without importing eess-md, behind optional peers `mermaid` and
+`jsdom`, and loads neither statically. The test that the real parser fits the port lives in
+eess-crossvalidate, which already depends on both. Nothing moves to the kernel: one consumer does not
+justify a seam every dialect would carry.
+
+**Conditions the plans must meet.** Each was measured by a reviewer, not argued.
+
+1. **Facts, then a synchronous rule.** An async call parses one language's blocks in one batch and
+   returns a fact object; the builder is constructed from that object, so the element set is the
+   parsed set and predicates can only narrow it. No rule surface becomes async; a later plan that
+   wants an async `check()` needs an ADR. `examined` counts the blocks of the language the corpus
+   holds, and a block with no verdict is an instrument finding, never a pass (ADR-010).
+2. **The port takes a batch and names itself:** `{ name, version, parse(texts) }`, with the version
+   read from the parser's own `package.json`. A parser with no identity is a configuration finding.
+   The success line names it: "N mermaid blocks parse with mermaid 11.17.2", never "render".
+3. **Three outcomes, by error shape only.** `valid`; `invalid` (message, line where known, remedy);
+   `unrecognised` (remedy). The Mermaid parser classifies a thrown `Error` carrying `hash` and a
+   `MermaidParseError` as `invalid`, an `UnknownDiagramError` as `unrecognised`, and anything else
+   as the instrument. No message matching. A resolved value that is not a parse result (what
+   `suppressErrors` returns) is the instrument, not `valid`.
+4. **A forged verdict is caught where it can be.** The Mermaid parser parses one known-broken canary
+   per error shape before the batch; accepting its own canary is an instrument finding. The record
+   states the residual: a caller who forges both identity and canaries can still lie to themselves.
+5. **The instrument fails once, loudly (ADR-009, ADR-016).** These are each one unsuppressable
+   finding per run, naming the cause and a remedy that clears it:
+   - a missing peer, with its install command;
+   - a worker that exits without a result;
+   - a batch that runs past its time budget, naming the block in flight (the budget is set from
+     measurement);
+   - a `mermaid` version outside the declared range;
+   - any thrown error that is not a parse error.
+     The worker is terminated on every path.
+6. **`unrecognised` is not the author's syntax error.** Empty, directive-only and comment-only
+   blocks are told apart by the preamble walk. A misspelt kind and a kind not in core (`zenuml`)
+   share one remedy that names both causes: check the spelling, or the kind needs a newer `mermaid`
+   or a plugin. There is no list of kinds, so OQ4 is untouched.
+7. **The Markdown line.** The parser returns the line counted from the block body. It is recovered
+   past frontmatter, directives and blank lines by the same preamble walk, so plan 0214's move comes
+   first, or the plan takes it over; there is no third copy. eess-md adds the block's own line.
+8. **The worker is self-contained:** only Node built-ins, `mermaid` and `jsdom`, with no relative
+   imports. Its first test runs it under vitest with the host's globals asserted before and after,
+   and once through the eess-ts CLI loader. If that test fails, the feature does not ship.
+9. **Empty, in order.** No Markdown file loaded outranks everything, `.expectEmpty()` included; any
+   finding passes through; no block of the language in loaded files is the zero-examined
+   configuration finding unless `.expectEmpty()` is declared.
+10. **The language tag** is matched exactly as `mermaid`. A near-miss tag is disclosed as unread
+    beside the count (ADR-016 rule 7).
+11. **Tier 1, static.** "Parses with mermaid X.Y.Z." `parse()` accepts a `gantt` task dated
+    `nonsense`, a `journey` step with a non-numeric score, and an unclosed `mindmap` root, all of
+    which fail at render.
+12. **Two checks may judge one `classDiagram` block, on purpose.** Each names its own parser. Bug
+    0409 is fixed before or with the eess-mermaid plan, so that md-mermaid no longer tells an author
+    to fix syntax that Mermaid accepts.
+
+**The two plans, in order.** Both come after PR #204 merges.
+
+- **A, eess-md:** the code-block parse primitive: the loop, the language selector, the port type,
+  conditions 1, 2, 5 (for any parser: budget, a block with no verdict, a thrown parse), 9 and 10.
+  It is tested with stub and in-test parsers, and is useful without Mermaid. Additive, eess-md
+  `minor`.
+- **B, eess-mermaid:** the worker-isolated parser behind optional peers, conditions 3–8 and 11, the
+  conformance test in crossvalidate, and the dogfood row. It comes after bug 0409 and plan 0214, or
+  takes 0214 over. Additive, eess-mermaid `minor`; crossvalidate moves with 0409. Its README shows the
+  full install line and the cost (`mermaid` with `jsdom`, about 179 MB on disk).
+
+**Non-vacuity rows owed**, one per break class:
+
+- a syntax error at the exact Markdown line, plus the frontmatter, directive and blank-lead rows of
+  the 2026-10-12 criteria;
+- the false-red row (a labelled flowchart passes in the worker);
+- a missing peer; a worker that exits early; a parser that hangs;
+- an always-valid stub; a batch that drops a block;
+- empty, directive-only, misspelt and `zenuml`;
+- zero blocks without `.expectEmpty()`;
+- a version out of range.
+
+**Dogfood row:** this repository's `work/`, `adr/` and `docs/` (4 top-level `mermaid` blocks, 0
+nested); a dangling `Route -->` in `docs/manifesto.md`'s `graph` block reds it.
+
+**Naming.** The API says "code block", as `MdCodeBlock` does. The result type is not called
+`ParseResult`, which the kernel already exports. The eess-mermaid export is distinct from
+`parseClassDiagram` (eess's own grammar), and its README says which parser is which.
+
+**Corrections, kept:**
+
+- The 2026-10-12 review's correction that the empty-corpus criterion "reads as a user opt-out the
+  kernel deliberately does not offer" was wrong: `.expectEmpty()` is that sanctioned opt-out.
+  Condition 9 replaces both.
+- That review's "needs no list of kinds" holds only because condition 6 gives misspelt and
+  not-in-core one remedy. Telling them apart would need a list.
+- Spike 0411 carried a message-matching fallback in its harness that its prose did not disclose,
+  and it presented 39 parses as a corpus count. Both are corrected in the spike.
+
+### Disposition, Ask C (2026-10-14)
+
+| ask                                | disposition | owner                                                                                                                                                                                                                        |
+| ---------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C** — every Mermaid fence parses | **Held**    | the design is accepted by all three lenses (conditions 1–12 above); held only until the two plans, A (eess-md) and B (eess-mermaid), are drafted against them after PR #204 merges, at which point this row becomes Accepted |
