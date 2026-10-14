@@ -2,7 +2,8 @@
 title: A page
 status: draft
 owner: Platform team
-sources: see [the overview](overview.md)
+# a YAML comment
+home: https://example.com
 ---
 # Page
 

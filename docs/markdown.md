@@ -337,6 +337,16 @@ first: not Markdown, then ignored, then outside the roots.
 | the record itself            | `the link points at this record`                        | remove it                                                 |
 | an external URL              | `the declaration links outside the repository, to …`    | declare a record in the corpus                            |
 
+### Front matter
+
+A document may open with YAML front matter between `---` lines. It is read as front matter — a
+`yaml` node in `MdDocument.root`, not a section — only when it is a YAML mapping that parses without
+error and holds no task box and no link into the repository. Anything else between a first-line
+`---` and a later one is read as Markdown, so a document that opens with a horizontal rule keeps its
+boxes, links and headings checked, and front matter with a YAML error still appears as a section.
+`terms()`, `pointers()` and the ledger read front-matter lines in both cases. TOML (`+++`) front
+matter is not recognised and is read as Markdown.
+
 ### Resolving a link yourself: `resolveLink`
 
 A condition over links usually needs to know where a link points. Don't

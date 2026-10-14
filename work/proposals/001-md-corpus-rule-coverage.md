@@ -395,7 +395,7 @@ element rather than a new one:
 
 > **Caveat on frontmatter, and a prerequisite.** Reading it is free; the _AST_ is
 > wrong about it. The corpus parses with GFM extensions only
-> (`packages/md/src/corpus.ts:77-80`) and no frontmatter extension, so the
+> (`packages/md/src/corpus.ts`, before bug 0087's fix) and no frontmatter extension, so the
 > closing `---` turns the last frontmatter line into a **setext heading**. The
 > fixture above is reported by `docs()` as having a depth-2 section named
 > `"State: Ready\ntitle: A doc"` — a phantom section at line 2. `haveSection`
@@ -681,7 +681,10 @@ violation must _say_. Colour alone is not the proof; attribution is.
       source is not reported and the winning value is the one asserted against.
       Untestable until that ruling exists — which is the point of ruling first.
 - [ ] **Frontmatter — no phantom section.** A frontmatter-bearing document
-      reports the sections it actually has. Today it does not: the closing `---`
+      reports the sections it actually has. _Fixed 2026-10-14 by bug 0087: front matter
+      that is a YAML mapping now parses to a `yaml` node
+      (`packages/md/src/model/prose.ts:64`); the rest of this item is the record as
+      written._ Today it does not: the closing `---`
       yields a depth-2 heading containing the frontmatter block
       ([bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md)). This
       criterion fails until that bug is fixed, and is the reason it is a

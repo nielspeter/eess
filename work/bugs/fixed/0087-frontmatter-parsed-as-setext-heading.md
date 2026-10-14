@@ -105,22 +105,49 @@ Deferred: none
 
 ## Fixed — 2026-10-14
 
-- **One parser.** `parseMarkdown` in `packages/md/src/model/prose.ts` now registers GFM and YAML
-  front matter, and `corpus()` calls it instead of configuring its own `fromMarkdown`. Before, the
-  two were configured separately; adding front matter to one only would have made them disagree
-  about where a section is — the two-readers defect plan 0404 removed for link resolution.
-- **Red first.** `packages/md/tests/frontmatter.test.ts` failed four ways before the fix — a phantom
-  section, no `yaml` node, a phantom `sectionPath` on a table placed before any heading, and a link
-  inside the YAML read as a link — and passes after. Removing the extension from the parser reds the
-  same four.
-- **What still reads front-matter lines**, pinned by tests: `terms()` (the regression proposal 001
-  depends on) and `pointers()` — both scan text lines and set aside code only. The ledger reads
-  through `proseText`, which also sets aside code only.
-- **A decision the fix makes:** a Markdown link written inside front matter is no longer a link. A
-  renderer shows YAML as data, not as Markdown, so it was never a link to a reader; it was read only
-  because the phantom heading held it. Stated in the changeset.
-- **This repository:** `check:corpus` on `main` and on the fix report the same counts — 270
-  documents, 2166 links, 715 pointers, 3009 checks.
-- **Dependencies:** `micromark-extension-frontmatter` 2.0.0 and `mdast-util-frontmatter` 2.0.1 (MIT).
-  The lockfile hoists them and reuses the existing micromark/mdast packages; it adds only `fault`,
-  `format` and a nested `escape-string-regexp`.
+**What is front matter.** A line-1 `---` block is front matter — a `yaml` node, not a section — only
+when it is a YAML mapping that parses with no error and holds no task box and no link into the
+repository (`isFrontMatter`, `packages/md/src/model/prose.ts:48`). Anything else is read as Markdown,
+exactly as before front matter was parsed (`parseMarkdown`, `:64`).
+
+**Why the conditions — the review round.** The first build registered the front-matter extension
+alone. Architect and enforcement both measured that it accepts anything between a line-1 `---` and
+the next `---`: a done plan whose body opened with a horizontal rule had its open task box and a dead
+link swallowed as "YAML", and `honestyAtClose` and `resolve()` went from red on `main` to green. That
+was a regression the fix created, so coding stopped and the rule was settled on paper with both
+lenses before it was rebuilt. Their measurements set each condition:
+
+- _No YAML error, not merely a mapping:_ the `yaml` library returns a mapping beside a
+  `DUPLICATE_KEY`, an `UNEXPECTED_TOKEN` or a `MULTIPLE_DOCS` error, and the last hides a box and a
+  link after a `...` line.
+- _No task box and no link into the repository:_ valid YAML can carry `  - [ ] still open` or
+  `  [the migration](missing.md)` on an indented continuation line, and `main` checked both.
+- _Kept as front matter:_ a `# comment` line and an external URL, both ordinary in real front
+  matter; rejecting a heading-like comment would reject real files.
+
+**One parser.** `parseMarkdown` is the only Markdown parser in eess-md: `corpus()` calls it, and the
+prose readers default to it, so they cannot disagree about where a section is. (`scripts/check-docs-code.mjs`
+parses on its own; it reads code blocks only and never registered front matter.)
+
+**Tests** (`packages/md/tests/frontmatter.test.ts`, 13): the phantom section, the `yaml` node, a
+table's `sectionPath`, `terms()` and `pointers()` still reading front-matter lines, a BOM and CRLF;
+and every shape that must stay Markdown — a link into the repository, a body opening with a rule, a
+box or a link on a continuation line, a box alone, a sequence, a duplicate key, a second document,
+an empty block, a blank first line, an unterminated block.
+
+**Sabotage, measured:** the pre-fix parser 4 red; YAML errors ignored 1; the mapping not required 1;
+the task box not checked 1; the repository link not checked 1; external links counted 2; the
+Markdown never inspected 3. A `linkReference` clause was removed because it could not fire: a
+reference link in YAML is already a YAML error.
+
+**This repository:** `check:corpus` reports 270 documents, 2166 links, 715 pointers and 3009 checks on
+`main`, and 269, 2166, 714 and 3008 on the fix — the difference of one is this record moving to the
+frozen `fixed/` folder, not the parser.
+
+**Dependencies:** `micromark-extension-frontmatter` 2.0.0 and `mdast-util-frontmatter` 2.0.1 (MIT);
+`yaml` 2.9.0 (ISC), already in the tree as a development dependency and now a runtime one at the same
+version. The lockfile adds `fault`, `format` (0.2.2, unmaintained, no license field) and a nested
+`escape-string-regexp`.
+
+**Not fixed here, recorded:** a `---` block that falls back to Markdown does so silently, so
+front matter with a YAML error still shows its phantom section without a word — [bug 0410](../0410-front-matter-read-as-markdown-says-nothing.md).
