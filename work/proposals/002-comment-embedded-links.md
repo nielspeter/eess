@@ -286,7 +286,7 @@ grounds:
    continuation lines are not markdown bullets, but `fromMarkdown()` doesn't
    know that — it would produce spurious list/emphasis structure with no
    fixture watching for it. This is the same class of silent misparse that
-   [bug 0087](../bugs/0087-frontmatter-parsed-as-setext-heading.md) already
+   [bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md) already
    demonstrates this parser is capable of on a different construct
    (frontmatter's closing `---` read as a setext heading). Widening the
    parser's input surface without first closing that class of bug is buying

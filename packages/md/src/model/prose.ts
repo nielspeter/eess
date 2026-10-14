@@ -2,6 +2,8 @@ import type { Nodes, Root } from 'mdast'
 import { fromMarkdown } from 'mdast-util-from-markdown'
 import { gfm } from 'micromark-extension-gfm'
 import { gfmFromMarkdown } from 'mdast-util-gfm'
+import { frontmatter } from 'micromark-extension-frontmatter'
+import { frontmatterFromMarkdown } from 'mdast-util-frontmatter'
 
 /**
  * Which lines of a markdown document are prose, read with the parser the corpus is read with (bugs 0286
@@ -16,12 +18,21 @@ import { gfmFromMarkdown } from 'mdast-util-gfm'
  * design question, not decided here.
  */
 
-const GFM = gfm()
-const GFM_MDAST = gfmFromMarkdown()
+const MICROMARK = [gfm(), frontmatter(['yaml'])]
+const MDAST = [gfmFromMarkdown(), frontmatterFromMarkdown(['yaml'])]
 
-/** Parse markdown as the corpus does. */
-function parseMarkdown(text: string): Root {
-  return fromMarkdown(text, { extensions: [GFM], mdastExtensions: [GFM_MDAST] })
+/**
+ * Parse markdown — the one parser: `corpus()` reads every document with it, and the readers here
+ * default to it, so the two cannot disagree about where a code block or a section is.
+ *
+ * GFM, and YAML front matter, which parses to a `yaml` node. Without it, CommonMark reads the
+ * closing `---` as a setext underline and the YAML above it becomes a depth-2 section (bug 0087).
+ * Text-line readers — `terms()`, `pointers()`, the ledger — still see front-matter lines, since
+ * only code blocks are set aside; link readers do not, since a renderer shows YAML as data, not as
+ * Markdown.
+ */
+export function parseMarkdown(text: string): Root {
+  return fromMarkdown(text, { extensions: MICROMARK, mdastExtensions: MDAST })
 }
 
 /**

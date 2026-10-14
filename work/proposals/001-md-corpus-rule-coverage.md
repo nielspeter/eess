@@ -401,7 +401,7 @@ element rather than a new one:
 > `"State: Ready\ntitle: A doc"` — a phantom section at line 2. `haveSection`
 > and every `sectionPath` are distorted on any frontmatter-bearing document
 > today. Filed as
-> [bug 0087](../bugs/0087-frontmatter-parsed-as-setext-heading.md); the
+> [bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md); the
 > `region: 'frontmatter'` option should land on top of a parser that models
 > frontmatter, not beside one that mis-parses it.
 
@@ -683,7 +683,7 @@ violation must _say_. Colour alone is not the proof; attribution is.
 - [ ] **Frontmatter — no phantom section.** A frontmatter-bearing document
       reports the sections it actually has. Today it does not: the closing `---`
       yields a depth-2 heading containing the frontmatter block
-      ([bug 0087](../bugs/0087-frontmatter-parsed-as-setext-heading.md)). This
+      ([bug 0087](../bugs/fixed/0087-frontmatter-parsed-as-setext-heading.md)). This
       criterion fails until that bug is fixed, and is the reason it is a
       prerequisite rather than a footnote.
 - [ ] **Field value — no false positive from examples.** A `**State:** Done`

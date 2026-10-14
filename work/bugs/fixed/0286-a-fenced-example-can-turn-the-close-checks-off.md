@@ -333,7 +333,7 @@ Deferred: none.
   — the same fail-open shape reached through configuration rather than content.
 - [0283](../0283-ledger-findings-name-no-remedy-and-one-names-a-false-cause.md) —
   same file, same fixture, same non-vacuity gap.
-- [0087](../0087-frontmatter-parsed-as-setext-heading.md) — the other open record
+- [0087](./0087-frontmatter-parsed-as-setext-heading.md) — the other open record
   where this dialect's hand-rolled markdown reading gets a CommonMark shape wrong.
   It also _contains_ a fenced `State:` example, so the shape is in this corpus.
 - [rejected/0282](../rejected/0282-the-kit-teaches-a-state-vocabulary-its-own-gate-rejects.md)
