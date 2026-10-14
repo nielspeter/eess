@@ -60,7 +60,10 @@ export interface MdDocument {
   readonly text: string
   readonly sections: readonly MdSection[]
   readonly tables: readonly MdTable[]
-  /** Fenced code blocks (e.g. embedded `mermaid` diagrams). */
+  /**
+   * Code blocks (e.g. embedded `mermaid` diagrams) at any depth, in document order — including one
+   * in a list item or a blockquote, whose `value` has the container's markers removed.
+   */
   readonly codeBlocks: readonly MdCodeBlock[]
   /** mdast root (internal / advanced) */
   readonly root: Root
@@ -101,6 +104,18 @@ function lineOf(node: { position?: { start: { line: number } } }): number {
 }
 
 /**
+ * Every code block at any depth, in document order — one in a list item or a blockquote included.
+ * Bug 0290: only the root's direct children were read, so a nested diagram was never checked.
+ */
+function collectCode(node: Root | RootContent, into: MdCodeBlock[]): void {
+  if (node.type === 'code') {
+    into.push({ lang: node.lang ?? null, value: node.value, line: lineOf(node) })
+    return
+  }
+  if ('children' in node) for (const child of node.children) collectCode(child, into)
+}
+
+/**
  * Build an `MdDocument` from a parsed mdast `Root`.
  *
  * Walks top-level nodes once, collecting headings (as sections) and GFM tables.
@@ -137,10 +152,9 @@ export function buildDocument(args: {
         line: lineOf(node),
         sectionPath: headingStack.filter((h) => h !== undefined),
       })
-    } else if (node.type === 'code') {
-      codeBlocks.push({ lang: node.lang ?? null, value: node.value, line: lineOf(node) })
     }
   }
+  collectCode(args.root, codeBlocks)
 
   return {
     file: args.file,

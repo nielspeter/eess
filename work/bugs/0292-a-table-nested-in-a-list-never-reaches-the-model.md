@@ -80,4 +80,4 @@ If nested tables simply join the list in document order, a nested example table 
 
 ## Related
 
-- [0290](./0290-a-code-block-nested-in-a-list-is-never-checked.md): the same loop, for code blocks.
+- [0290](./fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md): the same loop, for code blocks.

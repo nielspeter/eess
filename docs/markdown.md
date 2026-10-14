@@ -72,7 +72,8 @@ those two are separate mechanisms that never see each other.
 (`name`, `depth`, `line`), `MdTable` (`header`, `rows`, `rowLines` — one real
 source line per body row, parallel to `rows`, so a table finding cites the
 exact row — `line`, and `sectionPath`, the enclosing heading names outermost
-first), and `MdCodeBlock` (`lang`, `value`, `line`). Every `line` is 1-based
+first), and `MdCodeBlock` (`lang`, `value`, `line`; every code block at any depth, one in a list item or a
+blockquote included, in document order). Every `line` is 1-based
 and comes from the real mdast position, not a derived offset.
 
 Two things worth knowing:

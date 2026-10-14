@@ -44,14 +44,16 @@
  *                 it → crossval/scenario-citations-resolve, the title-missing
  *                 submode specifically.
  *   crossval/md-mermaid (plan 0096, extended by bug 0209)
- *                 six fixtures under scripts/nonvacuity/bad-md-mermaid/, all
- *                 → crossval/embedded-diagram, covering four distinct submodes:
+ *                 seven fixtures under scripts/nonvacuity/bad-md-mermaid/, all
+ *                 → crossval/embedded-diagram, covering five distinct submodes:
  *                 {drifted,emptied}-diagram.md are the leftUnmatched and
  *                 rightUnmatched COMPARISON submodes; directive-diagram.md and
  *                 mixed-diagram.md are the fence SELECTOR (a themed class
  *                 diagram must not be dropped; a foreign fence must be skipped
  *                 without dropping the document); unparseable-diagram.md is the
- *                 PARSE-FAILURE path. clean-diagram.md is the sanity direction.
+ *                 PARSE-FAILURE path; nested-diagram.md is the DOCUMENT MODEL
+ *                 (a diagram in a list item, bug 0290). clean-diagram.md is the
+ *                 sanity direction.
  *   corpus/adr    scripts/nonvacuity/bad-adr/adr/999-bad.md declares tier 9 →
  *                 adr/valid-tiers.
  *   corpus/declared-block/{label-near-miss,section-near-miss,unreadable-declaration,

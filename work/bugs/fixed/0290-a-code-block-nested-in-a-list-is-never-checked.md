@@ -2,7 +2,7 @@
 
 ## Status
 
-- **State:** Draft. Measured end to end on `main`; no red test yet.
+- **State:** Done — fixed 2026-10-14 on `fix/0290-nested-code-blocks`; see `## Fixed`.
 - **Severity:** **High**, a **fail-open**. eess-crossvalidate's md↔mermaid binding (`embeddedDiagramsMatchCode`) passes a diagram that names a class the code does not have, whenever the diagram sits inside a list item or a blockquote. The nested document also never counts toward the diagram statistics. The md↔mermaid-er binding reads the same list, so it follows by construction; it was not measured.
 - **Origin:** self-found · design review of a fence-handling fix
 - **Reported:** 2026-09-13
@@ -91,11 +91,50 @@ A diagram that names a class absent from code must be reported wherever it sits:
 
 - [x] Nested bad diagrams, in a list item and in a blockquote, pass on `main`; the top-level control is reported; a valid nested diagram adds no finding.
 - [x] Nested documents count as 0 in the statistics.
-- [ ] Red tests: `list-bad.md` and `quote-bad.md` are reported through both md↔mermaid bindings; `list-good.md` adds nothing; the nested document counts toward the statistics.
-- [ ] The fix.
-- [ ] A non-vacuity row on the nested shape.
+- [x] Red tests: `list-bad.md` and `quote-bad.md` are reported through both md↔mermaid bindings; `list-good.md` adds nothing; the nested document counts toward the statistics.
+- [x] The fix.
+- [x] A non-vacuity row on the nested shape.
+
+Deferred: none.
+
+## Fixed — 2026-10-14
+
+`buildDocument` now collects code nodes at every depth, in document order (`collectCode`,
+`packages/md/src/model/document.ts:110`). The headings and tables loop is unchanged: tables nested
+in a list stay bug 0292's.
+
+**Tests, red first through the public entry points.**
+
+- `packages/crossvalidate/tests/md-mermaid.test.ts`, four tests. A ghost class in a list item and in a
+  blockquote, each reported at its fence line (5 and 3). A valid nested diagram adds no finding. The
+  three nested documents count as 3 documents and 3 diagrams.
+- `packages/crossvalidate/tests/md-mermaid-er.test.ts`, one test: an ER attribute missing from the
+  table, in a diagram inside a list item.
+- `packages/md/tests/code-blocks.test.ts`, one test: blocks at the top level, in a list item, in a
+  blockquote and two lists deep, with lang, fence line and value. This is the first test that pins
+  nesting in eess-md itself.
+
+All six were red on `main`. The five crossvalidate tests read zero examined or found nothing.
+
+**Non-vacuity.** `scripts/nonvacuity/bad-md-mermaid/nested-diagram.md` is case 7 of the
+`crossval/md-mermaid` row. It asserts the ghost class at fence line 10.
+
+**Sabotage, measured.** With the top-level-only loop put back:
+
+- the row exits 0 and names the miss;
+- the five crossvalidate tests and the eess-md test go red.
+
+Restored, all pass again.
+
+**This repository.** `check:crossval` is unchanged: its md↔mermaid gate reads 1 diagram in 1
+document, a top-level one. Proposal 006's review counted 3 nested `mermaid` fences in `work/`,
+`adr/` and `docs/`; this gate's scope does not include them.
+
+**Release.** eess-md `minor`, marked breaking: a nested block now reaches `codeBlocks`, so an
+md↔mermaid or md↔mermaid-er rule can report findings it never saw before. eess-crossvalidate is
+named at `minor` (bug 0185), because its adopters are the ones who see the new findings.
 
 ## Related
 
-- [0289](./0289-a-fence-its-container-closes-hides-the-next-line.md): the same model, misreading where a block ends.
-- [0292](./0292-a-table-nested-in-a-list-never-reaches-the-model.md): the same loop, for tables.
+- [0289](../0289-a-fence-its-container-closes-hides-the-next-line.md): the same model, misreading where a block ends.
+- [0292](../0292-a-table-nested-in-a-list-never-reaches-the-model.md): the same loop, for tables.
