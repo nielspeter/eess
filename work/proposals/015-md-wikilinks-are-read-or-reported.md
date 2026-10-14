@@ -30,8 +30,8 @@ one in a fence, and a standard `[real](gone.md)`:
 
 - **The link walk reads `link` nodes and counts `linkReference` nodes**
   (`packages/md/src/model/links.ts:168-169`); text is not scanned for links.
-- **The parser has no wikilink extension:** `fromMarkdown` with GFM only
-  (`packages/md/src/corpus.ts:85-86`). No `wikilink`, `wiki-link` or `obsidian` appears in
+- **The parser has no wikilink extension:** `parseMarkdown` runs `fromMarkdown` with GFM and YAML
+  front matter only (`packages/md/src/model/prose.ts:65-68`, since bug 0087's fix). No `wikilink`, `wiki-link` or `obsidian` appears in
   `packages/*/src`.
 - **Resolution is `resolveLink`** (plan 0404): relative paths, with `tryExtensions`, `tryIndex`,
   `rootDir` and directories. Obsidian resolves differently — a bare name matches a file by its name
