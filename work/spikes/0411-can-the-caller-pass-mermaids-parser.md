@@ -93,14 +93,21 @@ This is decided by delegation from the measurements and can be overruled.
 
 ## Corrections after review (2026-10-14)
 
-- **The 39.** The batch was the fourteen fences above repeated to 39 so the figure matched the
-  review's count of fences in this repository, fixtures included. It is not this repository's corpus.
-  mdast counts 4 top-level `mermaid` fences and 0 nested in `work/`, `adr/` and `docs/`. The cost figure
-  stands.
+- **The 39.** The batch was the fourteen fences above repeated to 39, so the figure matched the
+  2026-10-12 review's count of fences in this repository, fixtures included. It is not that corpus.
+  Note that the two counts cover different populations: the 39 included fixtures, while mdast's 4
+  top-level and 0 nested `mermaid` fences cover only `work/`, `adr/` and `docs/`. Three timings
+  exist for 39 fences:
+  - 588 ms here;
+  - 0.99 s, the architect's re-run without the regex;
+  - 0.78 s, the 2026-10-12 review on the repository's own fences.
+
+  Proposal 006's condition 5 records all three, and the budget is set from them.
+
 - **A fourth classifier.** `worker.mjs` below also classified an error as syntax when its message
   matched `/Parsing failed|Parse error|Lexer error|Expecting/`, which the Result section did not
-  disclose. It was unnecessary: the architect re-ran without it, and enforcement measured 17 more
-  broken kinds, all falling into the three shapes. It was also fail-open in kind, since it could turn
+  disclose. It was unnecessary. The architect re-ran without it. Enforcement measured 15 further
+  broken kinds, plus the spike's own four, and every one fell into the three shapes. It was also fail-open in kind, since it could turn
   one environment failure into a syntax finding per fence. Proposal 006's 2026-10-14 review rules
   shape-only classification.
 - **Two cases the Decision missed,** both measured by enforcement:
@@ -112,6 +119,17 @@ This is decided by delegation from the measurements and can be overruled.
 - **`UnknownDiagramError` is not one break class.** An empty block, a directive or comment only, a
   misspelt kind and `zenuml` all throw it. The Decision's "invalid" bin was too coarse; the review
   gives it its own outcome, `unrecognised`.
+
+- **The Decision is superseded on two points.** Read proposal 006's 2026-10-14 review, conditions
+  2 and 4, instead of the first bullet:
+  - **The port takes a batch, not one fence.** It carries the parser's name and version, which the
+    success line prints (ADR-007's batch-first boundary; a worker cold start costs about 400 ms).
+  - **A caller-passed parser can forge every verdict.** A stub that always answers `valid` makes
+    every fence green under a real denominator. Identity and, in eess-mermaid, canaries catch what
+    they can.
+
+  The port's type lives in eess-md. eess-mermaid matches it by shape, and the conformance test lives
+  in eess-crossvalidate.
 
 The harness below is kept as it ran.
 
