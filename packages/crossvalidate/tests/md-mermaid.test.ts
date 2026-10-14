@@ -217,3 +217,45 @@ describe('embeddedDiagramsMatchCode() — embedded ```mermaid in markdown', () =
     ).toEqual({ documents: 2, diagrams: 3, skipped: 1 })
   })
 })
+
+// Bug 0290: `codeBlocks` held top-level blocks only, so a diagram in a list item or a
+// blockquote was never compared and never counted — a fail-open.
+describe('embeddedDiagramsMatchCode() — a diagram nested in a list item or blockquote (bug 0290)', () => {
+  const violationsOf = (roots: string[]) => {
+    try {
+      embeddedDiagramsMatchCode(c(roots), proj())
+    } catch (e) {
+      if (e instanceof ArchRuleError) return e.violations
+      throw e
+    }
+    return []
+  }
+
+  it('reports a missing class in a diagram inside a list item, at its fence line', () => {
+    const v = violationsOf(['docs/embedded-list-bad.md'])
+    expect(v.map((x) => [x.file.endsWith('embedded-list-bad.md'), x.line])).toEqual([[true, 5]])
+    expect(v[0]?.message).toContain('GhostClass')
+  })
+
+  it('reports a missing class in a diagram inside a blockquote, at its fence line', () => {
+    const v = violationsOf(['docs/embedded-quote-bad.md'])
+    expect(v.map((x) => [x.file.endsWith('embedded-quote-bad.md'), x.line])).toEqual([[true, 3]])
+    expect(v[0]?.message).toContain('GhostClass')
+  })
+
+  it('adds no finding for a valid nested diagram', () => {
+    expect(violationsOf(['docs/embedded-list-good.md'])).toEqual([])
+  })
+
+  it('counts nested diagrams in the statistics', () => {
+    expect(
+      embeddedDiagramStats(
+        c([
+          'docs/embedded-list-bad.md',
+          'docs/embedded-quote-bad.md',
+          'docs/embedded-list-good.md',
+        ]),
+      ),
+    ).toEqual({ documents: 3, diagrams: 3, skipped: 0 })
+  })
+})

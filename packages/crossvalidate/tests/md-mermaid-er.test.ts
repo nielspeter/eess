@@ -45,6 +45,20 @@ describe('tableErAgree() — md↔mermaid-er', () => {
     expect(violations[0]?.message).toContain("'phantomField' of 'JobSchedule' is not a row")
   })
 
+  it('flags an attribute in a diagram nested in a list item (bug 0290)', () => {
+    const violations = violationsOf(() => tableErAgree(c(['bad-nested-extra-attribute.md']), OPTS))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain("'ghostColumn' of 'JobSchedule' is not a row")
+    expect(violations[0]?.line).toBe(14)
+  })
+
+  it('flags an attribute in a diagram nested in a blockquote (bug 0290)', () => {
+    const violations = violationsOf(() => tableErAgree(c(['bad-quoted-extra-attribute.md']), OPTS))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain("'quotedGhost' of 'JobSchedule' is not a row")
+    expect(violations[0]?.line).toBe(12)
+  })
+
   it('flags a diagram that does not declare the document entity (red)', () => {
     const violations = violationsOf(() => tableErAgree(c(['bad-missing-entity.md']), OPTS))
     expect(violations).toHaveLength(1)

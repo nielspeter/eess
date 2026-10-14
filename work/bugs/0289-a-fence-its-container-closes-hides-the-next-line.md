@@ -112,4 +112,4 @@ When `end.column` is 1, take the last line as `end.line - 1`.
 ## Related
 
 - [0215](./0215-pointer-gate-proves-existence-not-aboutness.md): the pointer gate's other blind spot.
-- [0290](./0290-a-code-block-nested-in-a-list-is-never-checked.md): the same document model missing nested blocks.
+- [0290](./fixed/0290-a-code-block-nested-in-a-list-is-never-checked.md): the same document model missing nested blocks.

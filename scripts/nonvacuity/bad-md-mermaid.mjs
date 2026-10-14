@@ -28,6 +28,9 @@
  *      theme directive. Covers the fence SELECTOR, not the comparison: an
  *      allowlist keyed on `classDiagram` being the first line dropped this
  *      document silently while every gate stayed green (bug 0209 review).
+ *   7. nested-diagram.md — the same drift as (1) inside a list item. Covers
+ *      the document model: only top-level code blocks were read, so a nested
+ *      diagram passed with every gate green (bug 0290).
  *
  * Exit codes (consumed by scripts/check-nonvacuity.mjs):
  *   1 = both drift cases detected as expected, clean case clean — OK
@@ -45,7 +48,7 @@ const opts = { scope: '**/packages/core/src/**', completeness: 'both', report: '
 const run = (doc) =>
   embeddedDiagramsMatchCode(corpus({ roots: [`${ROOT}/${doc}`] }), project('packages/core/tsconfig.build.json'), opts)
 
-let drifted, emptied, clean, directive, mixed, unparseable
+let drifted, emptied, clean, directive, mixed, unparseable, nested
 try {
   drifted = run('drifted-diagram.md')
   emptied = run('emptied-diagram.md')
@@ -53,6 +56,7 @@ try {
   directive = run('directive-diagram.md')
   mixed = run('mixed-diagram.md')
   unparseable = run('unparseable-diagram.md')
+  nested = run('nested-diagram.md')
 } catch (err) {
   console.error(`bad-md-mermaid: unexpected error — ${String(err)}`)
   process.exit(2)
@@ -136,10 +140,23 @@ if (parseFinding.length === 0) {
   process.exit(0)
 }
 
+// The document model's break class: a diagram in a list item must be read (bug 0290).
+const nestedGhost = nested.filter(
+  (v) => v.ruleId === RULE && /GhostClassNested/.test(v.message) && v.line === 10,
+)
+if (nestedGhost.length === 0) {
+  const seen = nested.map((v) => `${v.ruleId}@${v.line}`).join(', ') || 'none'
+  console.error(
+    `bad-md-mermaid: nested-diagram.md produced no ${RULE} violation for GhostClassNested at ` +
+      `its fence line 10 — a diagram nested in a list item is not being read (seen: ${seen})`,
+  )
+  process.exit(0)
+}
+
 console.error(
   `bad-md-mermaid: drift detected as expected in both directions — ${RULE}, ` +
     `${ghostClass.length} ghost-class violation(s), ${emptiedFence.length} emptied-fence ` +
     `violation(s), ${themed.length} themed-fence, ${mixedGhost.length} mixed-fence, ` +
-    `${parseFinding.length} parse violation(s); clean diagram produced none`,
+    `${parseFinding.length} parse violation(s), ${nestedGhost.length} nested-fence; clean diagram produced none`,
 )
 process.exit(1)
