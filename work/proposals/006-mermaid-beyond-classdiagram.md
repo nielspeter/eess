@@ -488,6 +488,12 @@ contracts, and the record leaves them open:
    `window`, `document`, `DOMParser`, `Element` to `globalThis`; under vitest that reaches the
    adopter's other tests).
 
+   _Update 2026-10-14, on condition 2:_ bug 0290 is fixed — `codeBlocks` holds code blocks at any depth — so that
+   condition is met. And "3 nested in a list" (in the Survey above) was never true: those three
+   were bug 0290's own reproduction, text inside an outer ` ````text ` fence. Measured
+   with mdast over the 438 tracked `.md` files in `work/`, `adr/` and `docs/`: 4 `mermaid` fences
+   at the top level, 0 nested.
+
 **Criteria the record owes** (enforcement and architect, measured):
 
 - _The line inside the diagram._ Mermaid counts lines after removing frontmatter, a directive and

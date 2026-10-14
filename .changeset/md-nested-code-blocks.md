@@ -18,5 +18,9 @@ Now `codeBlocks` lists every code block, in document order, with its fence line.
 bindings, you may see findings on nested diagrams you were not seeing before; they are real. If you
 read `codeBlocks` yourself, expect the nested blocks too.
 
-`@nielspeter/eess-crossvalidate` is named because its rules are where the new findings appear; its
-own code does not change.
+An illustrative diagram you put in a list now counts too. Nesting does not mark a diagram as an
+example. For `tableErAgree`, an earlier `erDiagram` in the document can supply the entity match or
+the line a finding is reported at, as a top-level one already could.
+
+`@nielspeter/eess-crossvalidate` is named so its changelog records the break: its rules are where
+the new findings appear. Its own code does not change.

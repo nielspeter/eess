@@ -118,7 +118,8 @@ function collectCode(node: Root | RootContent, into: MdCodeBlock[]): void {
 /**
  * Build an `MdDocument` from a parsed mdast `Root`.
  *
- * Walks top-level nodes once, collecting headings (as sections) and GFM tables.
+ * Walks top-level nodes once, collecting headings (as sections) and GFM tables; code blocks are
+ * collected at every depth by `collectCode`.
  * Tables record the heading path they sit under so a rule can scope to
  * "the table in the `## Enforcement` section".
  */
