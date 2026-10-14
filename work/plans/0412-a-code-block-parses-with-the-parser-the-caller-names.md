@@ -2,13 +2,15 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-14 against the 2026-10-14 review of proposal 006's Ask C,
-  which split the ask into this plan (A, eess-md) and [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md)
-  (B, eess-mermaid), in that order.
+- **State:** Ready — frozen 2026-10-14. The conditions it answers are recorded by value below, and
+  the budget defaults are decided. Written the same day against the 2026-10-14 review of proposal
+  006's Ask C, which split the ask into this plan (A, eess-md) and
+  [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) (B, eess-mermaid), in that order.
 - **Implements:** proposal 006 — Ask C, the half that is useful without Mermaid. The conditions
   cited by number below are that review's.
 - **Priority:** Medium — a new capability with one consumer waiting on it (proposal 006's consumer
-  evidence, 2026-10-12). Nothing is green today that should be red; a corpus simply has no way to
+  evidence, 2026-10-12). As of 2026-10-14 that consumer has an open bug of its own that waits on
+  plans 0412 and 0413; the maintainer scheduled this plan next. Nothing is green today that should be red; a corpus simply has no way to
   say "every block parses".
 - **Effort:** Medium — one PR. A model file, a builder, a condition and one async function in
   eess-md; no kernel change. Additive, eess-md `minor`.
@@ -29,6 +31,24 @@ eess-md cannot own the parsers. The one with a consumer, Mermaid's, needs a DOM 
 So eess-md owns the **loop** and the **evidence**, and the caller names the parser.
 
 ## Design
+
+### The conditions, by value (as of 2026-10-14)
+
+The review conditions this plan answers, from proposal 006's `## Review — 2026-10-14` and its
+amendment the same day. They are recorded here so the build depends on this file, not on that one.
+
+| #   | condition, as amended                                                                                                                                   | answered in        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| 1   | One async call parses one language's blocks in one batch into a fact object; the builder is built from it; no rule surface becomes async                | Facts, then a rule |
+| 2   | The port is `{ name, version, canaries, parse(texts, { signal, budgetMs }) }`; a parser with no identity is a configuration error                       | The port           |
+| 4   | The parser declares canaries and eess-md runs them; the residual (a caller who forges identity and canaries) is stated                                  | The port           |
+| 5   | Every instrument failure is one unsuppressable finding per run, naming its cause with a remedy; once means one dedupe key (`file`, `ruleId`, `element`) | What can go wrong  |
+| 9   | No Markdown loaded outranks everything, `.expectEmpty()` included; no block of the language is the zero-examined finding unless `.expectEmpty()`        | What can go wrong  |
+| 10  | The tag is matched exactly; a near-miss is disclosed as unread beside the count                                                                         | Selection          |
+| 13  | A block broken on purpose is kept out by glob or `.excluding()`, never by a skip comment                                                                | Selection          |
+
+Conditions 3, 6, 7, 8, 11 and 12 (the outcome shapes, `unrecognised` wording for Mermaid, the
+Markdown line through frontmatter, the worker, the tier claim and bug 0409) belong to plan 0413.
 
 ### The port (conditions 2 and 4, as amended)
 
@@ -151,13 +171,19 @@ Neither depends on what a rule selects, so neither can be lost to an empty selec
   0413's dogfood gate is such a script.
   - Two `parseCodeBlocks` calls with one parser over two corpora would also collapse. No consumer has
     two, so this is stated in the docs rather than keyed apart.
-- **The budget is a start-up allowance plus a per-block allowance.** Both are overridable through
-  `{ budgetMs }`. The defaults are set in the build from the three measured timings for 39 blocks:
+- **The budget is a start-up allowance plus a per-block allowance.** The caller overrides either
+  through `parseCodeBlocks(corpus, { …, budget: { startUpMs, perBlockMs } })`. eess-md computes
+  `budgetMs = startUpMs + perBlockMs × texts.length` (canaries included) and passes that total to
+  `parse`. **Decided at the freeze:** `startUpMs = 10_000` and `perBlockMs = 250`. The evidence is
+  three measured timings for 39 blocks, each including a worker's cold start of about 400 ms:
   - 588 ms;
   - 0.99 s;
   - 0.78 s.
 
-  The build records what it chose and why. When the budget runs out, eess-md aborts the `signal` it
+  That is about 15 ms a block once the worker is up. The defaults sit at roughly 25× the cold start
+  and 16× the per-block cost. A budget is a hang detector, not a performance gate. A false red on a
+  slow CI runner costs more than a long wait on a real hang, so the margin is wide. 39 blocks get
+  about 20 s. A test pins both defaults. When the budget runs out, eess-md aborts the `signal` it
   passed. Stopping is the parser's job, and plan 0413's worker terminates on it.
   - **A synchronous parser cannot be interrupted.** Its overrun is detected after it returns, as the
     same finding. One that never returns is unbounded, and the docs say so.
@@ -290,7 +316,7 @@ row's red into a green, and the gate catches it.
 - [ ] Phase 1 — model and port, red-first
 - [ ] Phase 2 — builder and condition, exported
 - [ ] Phase 3 — non-vacuity rows, docs
-- [ ] budget defaults chosen from measurement and recorded here
+- [ ] budget defaults (decided at the freeze) pinned by a test
 - [ ] changeset: eess-md `minor`
 
 Deferred: none
