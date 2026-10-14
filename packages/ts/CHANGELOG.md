@@ -1,5 +1,99 @@
 # @nielspeter/eess-ts
 
+## 0.12.0
+
+### Minor Changes
+
+- 80418dd: `extendType` selects a type alias that intersects the named type
+
+  **Breaking — a selector selects more.** Fixes
+  [bug 0376](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0376-extendtype-on-a-type-alias-reads-the-alias-name.md).
+
+  For a type alias, `extendType` tested its name against the alias's **printed** type, and for
+  most aliases that is the alias's own name. So `type X = BaseConfig & { b: 1 }` — the alias
+  shape most likely to mean "extends" — was never selected by `extendType('BaseConfig')`.
+
+  It now also reads the alias's type node: an intersection member counts, written as the name,
+  through an aliased import, or as an interface that reaches the type by its own chain. A rule
+  selecting with `extendType` can report new violations on a tree you did not change; they are
+  real. Every alias that matched before still matches, and one that only holds the type in a
+  property (`{ inner: BaseConfig }`) still does not.
+
+  Not yet covered: an alias of an intersection alias, a plain alias of a sub-interface, and a
+  wrapped member like `Partial<BaseConfig> & {…}`
+  ([bug 0383](https://github.com/nielspeter/eess/blob/main/work/bugs/0383-extendtype-stops-at-one-alias-level.md));
+  and the older printed-type test can select by a module's file name or through some generic
+  arguments, like `Map<string, BaseConfig>`
+  ([bug 0384](https://github.com/nielspeter/eess/blob/main/work/bugs/0384-extendtype-printed-type-matches-by-module-path.md)).
+
+- ae0abd7: `extend`, `implement` and `extendType` walk the inheritance chain
+
+  **Breaking — in both directions, on purpose.** Fixes
+  [bug 0295](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0295-extend-and-implement-read-only-the-direct-clause.md);
+  the semantics are decided in
+  [ADR-017](https://github.com/nielspeter/eess/blob/main/adr/017-a-heritage-predicate-names-a-relation-not-a-clause.md).
+
+  Until 0.12 these predicates read only the subject's **own** clause. `classes(p).that().extend('BaseRepository')`
+  skipped every class that reached `BaseRepository` through an intermediate class. Its violations
+  were never reported, and `examined` stayed above zero, so nothing noticed. Now:
+  - `extend(X)` holds when `X` is an ancestor at any depth.
+  - `implement(I)` holds through the class's own `implements`, an ancestor's, or an interface that
+    extends `I`.
+  - `extendType(X)` holds through an interface's `extends` chain.
+
+  The same in a selector and in a condition. What moves:
+  - **A selector selects more.** A rule can report new violations on a tree you did not change,
+    including if you use a baseline. They are real: the grandchild breaks the rule just as a direct
+    child would.
+  - **A condition accepts more.** `.should().extend('BaseRepository')` stops failing a grandchild.
+    `dataLayer`'s `baseClass` rule is one of these, and its own rationale says the grandchild
+    conforms.
+  - **Under `not(…)` both reverse.** `.that().satisfy(not(extend('Base')))` selects fewer classes,
+    so a rule can stop reporting on code you did not change; a negated condition reports more.
+
+  On its own, each predicate still holds for every class it held for before. Each level is
+  compared as written and as resolved, so a base the checker cannot resolve is still matched by
+  its name. See `docs/migrating-to-0.12.md`, which also shows a stopgap if you meant "directly
+  extends".
+
+### Patch Changes
+
+- b1335f5: A deferred warning's `accepted` list now holds across checkouts of the same repository, for a builder that names its project (bug 0389). `asSeverity('warn', { accepted })` compared each finding's raw subject. Producer identities carry the absolute path, so a list written on one machine matched nothing on another, and the advice text printed the author's path for adopters to paste.
+
+  The advice now prints a portable form: each path in the subject becomes `<root:NAME>/relative/path`, where the root is the nearest `.git` or workspace marker above the project's tsconfig and NAME is that root's `package.json` `name`. A finding matches an entry by its raw subject or by that form, so a list written before this change still matches in the checkout it was written in.
+
+  No portable form, and so the old behaviour, for a builder that names no project, a repository without a root `package.json` name, or a path written inside prose. A finding whose own subject already contains `<root:` turns portable matching off for its rule: that rule compares raw subjects only, as before. When another finding of the rule is outside the list, the advice names those subjects and the remedy. Two known residuals are stated and tested: two different repositories that share one `package.json` name, checked by one rule file with one list, share an entry for the same relative path (this includes two same-named submodules, or a nested repository with its outer one's name); and an entry kept for a finding that spelled `<root:`, once that finding is fixed, can equal another finding's portable form.
+
+  Kernel: `discoverNamedRepository` and `portableTokens` in `@nielspeter/eess/internal`. `portableSubjectOf` is now the one definition both baseline hashes use. Hash values are unchanged.
+
+- cc95c48: A dead-glob finding states its scope once, and no longer chooses your fix for you
+
+  Fixes [bug 0372](https://github.com/nielspeter/eess/blob/main/work/bugs/fixed/0372-the-file-not-folder-sentence-says-it-can-never-match-twice.md).
+  Message text only — no rule changes verdict, and these findings never enter a baseline.
+
+  For a glob naming a **file** where a directory is read (`resideInFolder('**/docs/readme**')`), the
+  finding in 0.11.0 had three problems in one line:
+  - **It claimed its scope twice.** The headline said "can never match anything in this project" —
+    correct, since the same text matches fine where that name is a directory — and the cause then
+    said "so it can never match", unqualified. The cause now makes no scope claim; the headline owns
+    it.
+  - **It named `resideInFile()` twice**, once in the cause and once in the remedy.
+  - **Its last sentence leaned toward one fix.** The cause offers two edits — `resideInFile()` for a
+    file, or append `/**` for a directory — and the remedy is the last sentence, where an agent acts.
+    For a `.notExist()` rule meaning a file is the common case, and widening the glob to the parent
+    folder changes what the rule asserts. The remedy now defers to the cause:
+
+  > this matches a FILE but is used where a directory is read — use resideInFile() for a file, or
+  > append "/\*\*" to name the files inside a directory. Apply whichever of those two fixes you meant
+  > — this rule has not been enforcing anything. Do not delete it.
+
+  **If you match on this text,** it moved in both tools: `check`'s message and `Fix:` line, and
+  `eess-ts doctor`'s advice, which reads the same table. `docs/migrating-to-0.11.md` is updated to
+  quote it.
+
+- Updated dependencies [b1335f5]
+  - @nielspeter/eess@0.6.1
+
 ## 0.11.0
 
 ### Minor Changes

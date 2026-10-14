@@ -63,7 +63,7 @@
     "markdown"
   ],
   "dependencies": {
-    "@nielspeter/eess": "^0.6.0",
+    "@nielspeter/eess": "^0.6.1",
     "picomatch": "^4.0.4"
   },
   "peerDependencies": {

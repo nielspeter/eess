@@ -54,22 +54,22 @@ Markdown specs all sit on equal footing, validated by one shared kernel. This
 monorepo is built the same way — a dialect-independent kernel with dialects as
 sibling packages around it.
 
-**Upgrading to 0.11?** `eess-ts` moves to 0.11.0 with one breaking change, the same kind as
-0.7's through 0.10's: a check that matched nothing — and therefore passed — now matches. **A
-`parent-dir` glob naming a path that holds no TypeScript was silent**, so a `.notExist()` ratchet
-could enforce nothing and exit 0. `doctor` now states the remedy rather than only the cause, and a
-filesystem walk that gives up says so instead of answering "could not determine" for every glob at
-once. [Migrating to 0.11](./docs/migrating-to-0.11.md) covers all of it;
-[Migrating to 0.10](./docs/migrating-to-0.10.md) is still the page for the release before.
+**Upgrading to 0.12?** Four packages move, with five breaking changes. In `eess-ts` and
+`eess-mermaid`, **the heritage words walk the whole inheritance chain**: `extend('Base')` now
+selects a grandchild it used to skip, so a rule can go red on classes it never examined. In
+`eess-md`, `honestyAtClose` refuses `states` without `terminalStates` (or the reverse), and
+`adrEnforcement` no longer checks cited test titles, so add `adrCitationsResolve` if you cite them.
+[Migrating to 0.12](./docs/migrating-to-0.12.md) covers all of it;
+[Migrating to 0.11](./docs/migrating-to-0.11.md) is still the page for the release before.
 
 ## Packages
 
 | Package                                                      | What it validates                                                        | Status |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------ | ------ |
 | [`@nielspeter/eess`](./packages/core)                        | The kernel — rule engine, no dialect knowledge                           | 0.6.x  |
-| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.11.x |
-| [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                                                   | 0.5.x  |
-| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.8.x  |
+| [`@nielspeter/eess-ts`](./packages/ts)                       | TypeScript source (imports, bodies, layers, types)                       | 0.12.x |
+| [`@nielspeter/eess-mermaid`](./packages/mermaid)             | Mermaid class diagrams                                                   | 0.6.x  |
+| [`@nielspeter/eess-md`](./packages/md)                       | Markdown corpus — links, code pointers, ADR tables                       | 0.9.x  |
 | [`@nielspeter/eess-gherkin`](./packages/gherkin)             | Gherkin features — scenarios as citable elements                         | 0.5.x  |
 | [`@nielspeter/eess-crossvalidate`](./packages/crossvalidate) | Cross-validation — diagram↔code, ADR↔test, story↔scenario, scenario↔test | 0.7.x  |
 
