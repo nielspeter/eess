@@ -87,6 +87,24 @@ export type { MdTaskItem } from './builders/task-items.js'
 export { collectTaskItems } from './model/task-items.js'
 export type { MdTaskItemRef } from './model/task-items.js'
 export { vocabulary, terms, TermRuleBuilder } from './builders/vocabulary.js'
+// Plan 0412: a code block parses with the parser the caller names.
+export { parseCodeBlocks, DEFAULT_CODE_BLOCK_BUDGET } from './model/code-block-parse.js'
+export type {
+  CodeBlockVerdict,
+  CodeBlockCanary,
+  CodeBlockParser,
+  CodeBlockBudget,
+  ParseCodeBlocksOptions,
+  ParsedCodeBlock,
+  ParsedCodeBlocks,
+  CodeBlockInstrumentFailure,
+  NearMissTag,
+} from './model/code-block-parse.js'
+export {
+  codeBlocks,
+  CodeBlockRuleBuilder,
+  CODE_BLOCK_PARSER_INSTRUMENT,
+} from './builders/code-blocks.js'
 export type { Vocabulary, VocabularyOptions, MdTerm, TermsOptions } from './builders/vocabulary.js'
 
 // Conditions (for composing custom rules / presets)

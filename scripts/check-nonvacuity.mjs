@@ -64,6 +64,14 @@
  *                 parent once swallowed a label unread and the annotated item that
  *                 once escaped its declaration; each row asserts its own finding's
  *                 message on its own file — all ten share one rule id.
+ *   corpus/code-block-parse/{invalid-verdict,malformed-verdict,zero-blocks,no-markdown,
+ *                 no-identity,no-canaries,canary-valid,parser-hangs,parser-throws,
+ *                 dropped-block,near-miss,unrecognised-verdict,forged-facts,
+ *                 canary-may-pass,sync-overrun,cannot-be-excluded}
+ *                 (plan 0412, fixture tier) scripts/nonvacuity/bad-code-block-parse.mjs
+ *                 drives parseCodeBlocks + codeBlocks().should().parse() with a stub
+ *                 parser over bad-code-block-parse/; each row asserts its own finding's
+ *                 message — the instrument rows share one rule id.
  *   corpus/adr-extends/{one-way,list-item,every-label-removed} (production script — bug 0127)
  *                 (plan 0406) ADR-010 rewritten with no link to ADR-014 → a
  *                 corpus/adr-extends-linked-back finding on ADR-014 naming ADR-010;
@@ -2651,6 +2659,77 @@ const gates = [
     () =>
       gateNode('bad-declared-block.mjs', 'nested-declaration: reported on', ['nested-declaration']),
   ],
+  // Plan 0412: one row per failure the code-block parse must report. The instrument rows share one
+  // rule id, so each row's token is the scenario name the fixture prints only when THAT finding fired.
+  [
+    'corpus/code-block-parse/invalid-verdict',
+    () => gateNode('bad-code-block-parse.mjs', 'invalid-verdict: reported', ['invalid-verdict']),
+  ],
+  [
+    'corpus/code-block-parse/malformed-verdict',
+    () =>
+      gateNode('bad-code-block-parse.mjs', 'malformed-verdict: reported', ['malformed-verdict']),
+  ],
+  [
+    'corpus/code-block-parse/zero-blocks',
+    () => gateNode('bad-code-block-parse.mjs', 'zero-blocks: reported', ['zero-blocks']),
+  ],
+  [
+    'corpus/code-block-parse/no-markdown',
+    () => gateNode('bad-code-block-parse.mjs', 'no-markdown: reported', ['no-markdown']),
+  ],
+  [
+    'corpus/code-block-parse/no-identity',
+    () => gateNode('bad-code-block-parse.mjs', 'no-identity: reported', ['no-identity']),
+  ],
+  [
+    'corpus/code-block-parse/no-canaries',
+    () => gateNode('bad-code-block-parse.mjs', 'no-canaries: reported', ['no-canaries']),
+  ],
+  [
+    'corpus/code-block-parse/canary-valid',
+    () => gateNode('bad-code-block-parse.mjs', 'canary-valid: reported', ['canary-valid']),
+  ],
+  [
+    'corpus/code-block-parse/parser-hangs',
+    () => gateNode('bad-code-block-parse.mjs', 'parser-hangs: reported', ['parser-hangs']),
+  ],
+  [
+    'corpus/code-block-parse/parser-throws',
+    () => gateNode('bad-code-block-parse.mjs', 'parser-throws: reported', ['parser-throws']),
+  ],
+  [
+    'corpus/code-block-parse/dropped-block',
+    () => gateNode('bad-code-block-parse.mjs', 'dropped-block: reported', ['dropped-block']),
+  ],
+  [
+    'corpus/code-block-parse/near-miss',
+    () => gateNode('bad-code-block-parse.mjs', 'near-miss: reported', ['near-miss']),
+  ],
+  [
+    'corpus/code-block-parse/unrecognised-verdict',
+    () =>
+      gateNode('bad-code-block-parse.mjs', 'unrecognised-verdict: reported', [
+        'unrecognised-verdict',
+      ]),
+  ],
+  [
+    'corpus/code-block-parse/forged-facts',
+    () => gateNode('bad-code-block-parse.mjs', 'forged-facts: reported', ['forged-facts']),
+  ],
+  [
+    'corpus/code-block-parse/canary-may-pass',
+    () => gateNode('bad-code-block-parse.mjs', 'canary-may-pass: reported', ['canary-may-pass']),
+  ],
+  [
+    'corpus/code-block-parse/sync-overrun',
+    () => gateNode('bad-code-block-parse.mjs', 'sync-overrun: reported', ['sync-overrun']),
+  ],
+  [
+    'corpus/code-block-parse/cannot-be-excluded',
+    () =>
+      gateNode('bad-code-block-parse.mjs', 'cannot-be-excluded: reported', ['cannot-be-excluded']),
+  ],
   // Bug 0131 follow-up (six-persona review): the fold's zero-examined guard
   // must actually reach `honestyAtClose`'s `headerViolations` lane, not just
   // its detection logic — a regression back to hand-rolled iteration (or an
@@ -3191,6 +3270,24 @@ const GATE_FOR = {
     'corpus/declared-block/inner-label',
     'corpus/declared-block/stands-alone',
     'corpus/declared-block/formatted-label',
+    // Plan 0412 — FIXTURE tier (bug 0127): they prove the eess-md builder reports each failure of
+    // a code-block parse. No production rule parses code blocks until plan 0413's dogfood gate.
+    'corpus/code-block-parse/invalid-verdict',
+    'corpus/code-block-parse/malformed-verdict',
+    'corpus/code-block-parse/zero-blocks',
+    'corpus/code-block-parse/no-markdown',
+    'corpus/code-block-parse/no-identity',
+    'corpus/code-block-parse/no-canaries',
+    'corpus/code-block-parse/canary-valid',
+    'corpus/code-block-parse/parser-hangs',
+    'corpus/code-block-parse/parser-throws',
+    'corpus/code-block-parse/dropped-block',
+    'corpus/code-block-parse/near-miss',
+    'corpus/code-block-parse/unrecognised-verdict',
+    'corpus/code-block-parse/forged-facts',
+    'corpus/code-block-parse/canary-may-pass',
+    'corpus/code-block-parse/sync-overrun',
+    'corpus/code-block-parse/cannot-be-excluded',
     // Plan 0406: the first two run the production script; the rest are FIXTURE tier.
     'corpus/adr-extends/one-way',
     'corpus/adr-extends/list-item',

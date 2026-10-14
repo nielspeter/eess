@@ -504,6 +504,124 @@ a named alias kept for back-compat — it is exactly `MdRow`, and new code can
 reference `MdRow` directly. This is the primitive `adrEnforcement`'s own tier
 and citation checks are written against.
 
+## Code blocks that parse
+
+`parseCodeBlocks` checks every fenced block of one language with a parser **you** name, and
+`codeBlocks()` turns the result into an ordinary rule. eess-md owns the loop and the evidence. It
+never loads a parser itself, so it carries no dependency on any language's grammar.
+
+This parser is real and needs nothing installed: it checks every ` ```json ` block with
+`JSON.parse`.
+
+```ts
+import {
+  corpus,
+  parseCodeBlocks,
+  codeBlocks,
+  type CodeBlockParser,
+  type CodeBlockVerdict,
+} from '@nielspeter/eess-md'
+
+const json: CodeBlockParser = {
+  name: 'JSON.parse',
+  version: process.version, // a built-in parser is versioned by its runtime
+  // Blocks the parser must reject. If it ever accepts one, nothing it says can be trusted.
+  canaries: [{ text: '{ "unclosed": ', expect: 'invalid' }],
+  parse: (texts) =>
+    texts.map((text): CodeBlockVerdict => {
+      try {
+        JSON.parse(text)
+        return { outcome: 'valid' }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        return { outcome: 'invalid', message, line: null, remedy: 'Fix the JSON in this block.' }
+      }
+    }),
+}
+
+const parsed = await parseCodeBlocks(corpus({ roots: ['docs/**'] }), {
+  language: 'json',
+  parser: json,
+})
+codeBlocks(parsed).should().parse().check()
+console.error(parsed.summary()) // "N json blocks parsed with JSON.parse v24…"
+```
+
+**Facts first, then a synchronous rule.** `parseCodeBlocks` is the only async call. It parses the
+whole batch once and returns a frozen fact object, and `codeBlocks()` reads it synchronously. Its
+elements are the parsed blocks, so `.that().resideInFile()` or `.resideInFolder()` can only narrow
+what was parsed. No rule surface becomes async; an async `check()` would need an ADR.
+`codeBlocks()` refuses an object this copy of eess-md's `parseCodeBlocks` did not build.
+
+**The port.** A parser is `{ name, version, canaries, parse(texts, { signal, budgetMs }) }`.
+
+- **What `parse` is handed.** `texts` holds the canaries first, in declared order, then the blocks
+  in document order. It returns one verdict per text, in that order, synchronously or as a promise:
+  - `{ outcome: 'valid' }`;
+  - `{ outcome: 'invalid', message, line, remedy }`, where `line` counts from the block's first
+    body line, or is `null`;
+  - `{ outcome: 'unrecognised', message, remedy }`, for a block the parser cannot classify. It is
+    never worded as the author's syntax error.
+- **A verdict is checked, not trusted.** Annotating your parser's results as `CodeBlockVerdict`, as
+  the example does, is the only check at compile time, since `parse` may return any values. Each is
+  read once. Anything that is not one of the three
+  shapes, or has an empty message or remedy, is reported as the instrument, never read as `valid`.
+- **A parser names itself, and declares canaries:** blocks it must reject, each with the outcome it
+  must give, `invalid` or `unrecognised`.
+  - eess-md parses them in the same batch, and a canary answered with any other outcome is the
+    instrument.
+  - A parser with no name, no version or no canaries, or a canary with empty text or an `expect`
+    that allows a pass, makes `parseCodeBlocks` throw `ArchConfigError` before anything is
+    selected. So do an empty `language` and a budget a timer cannot hold.
+  - **What this cannot stop:** a caller who writes a parser that accepts everything except its own
+    canaries can still lie to themselves. The canaries make a forged pass deliberate, not
+    impossible.
+- **A parser that knows why it failed** rejects with an error carrying `remedy` and `blockIndex`
+  (an index into `texts`). The remedy becomes the finding's `Fix:` line, and the block its file and
+  line.
+- **A parser that holds a resource** (a worker, a process) releases it itself once it has answered.
+  eess-md aborts the `signal` only when the budget runs out.
+
+**What each failure reports.**
+
+| what happened                                    | reported as                                                                 |
+| ------------------------------------------------ | --------------------------------------------------------------------------- |
+| no Markdown file loaded                          | a finding, even with `.expectEmpty()`                                       |
+| files loaded, no block of the language           | the zero-examined finding, unless `.expectEmpty()`; it names near-miss tags |
+| `invalid`                                        | a finding at the block's Markdown line plus the verdict's line              |
+| `invalid` with no line, or one outside the body  | a finding at the fence line, saying so                                      |
+| `unrecognised`                                   | a finding with the parser's remedy                                          |
+| `parse` throws or rejects                        | the instrument                                                              |
+| `parse` runs past its budget                     | the instrument, naming the budget                                           |
+| the wrong number of verdicts, or a malformed one | the instrument                                                              |
+| a canary answered wrongly                        | the instrument                                                              |
+
+**The instrument** is one unsuppressable finding per rule. Its rule id is
+`eess-md: code-block parser` (exported as `CODE_BLOCK_PARSER_INSTRUMENT`), and its element
+`name@version`. While it stands, `examined` still counts the blocks of the language, none of which
+has a verdict, so the rule cannot pass. Several rules over one failed parse each carry it. `eess-ts check`
+collapses findings with the same rule id and element to one, so two different failures
+of one parser over two corpora would collapse too and show one cause. A script gate that collects
+findings itself sees one per rule.
+
+**`summary()`** is the line a gate prints: "N json blocks parsed with JSON.parse v24…". When the
+parser failed it says "0 of N … checked" and gives the cause, never "parsed".
+
+**The budget** is a start-up allowance plus one per text: by default 10 s plus 250 ms a text. Pass
+`budget: { startUpMs, perBlockMs }` to change either. When it runs out, eess-md aborts the `signal`
+it passed, and stopping is the parser's job. **A synchronous parser cannot be interrupted.** Its
+overrun is reported after it returns, and one that never returns is never reported.
+
+**Which blocks.** The language tag is matched exactly. A tag equal to it only when case-folded
+(`Json` for `json`) is not read.
+
+- **When it is why nothing was examined**, the zero-examined finding names it.
+- **Beside blocks that are read**, it is disclosed only in `summary()`. No finding names it, so a
+  gate that does not print the summary does not show it.
+
+A block that is broken on purpose, such as an example of an error, is kept out by its tag: write it
+` ```text `. Narrowing the corpus globs also works. There is no skip comment.
+
 ## Controlled vocabulary
 
 Two composable primitives bind free-text references in your prose to a closed

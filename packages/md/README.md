@@ -170,6 +170,16 @@ adrEnforcement(c, {
 })
 ```
 
+## Code blocks that parse: `parseCodeBlocks()` + `codeBlocks()`
+
+Check every fenced block of one language with a parser you name. eess-md owns the loop and the
+evidence, and never loads a parser itself. `parseCodeBlocks(corpus, { language, parser })` is the
+one async call; `codeBlocks(parsed).should().parse().check()` is an ordinary synchronous rule over
+what it parsed. A parser names itself and declares canaries it must reject, and every way it can
+fail (a throw, a hang past its budget, a malformed or missing verdict, a canary it accepts) is one
+unsuppressable finding, never a pass. The port and the failure table are in
+[the Markdown dialect's docs](../../docs/markdown.md#code-blocks-that-parse).
+
 ## `@nielspeter/eess-md/internal` is not API
 
 | Specifier                      | What it is                                                                                                                          |
