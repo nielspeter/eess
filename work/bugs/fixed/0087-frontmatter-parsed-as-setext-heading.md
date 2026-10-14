@@ -140,9 +140,11 @@ the task box not checked 1; the repository link not checked 1; external links co
 Markdown never inspected 3. A `linkReference` clause was removed because it could not fire: a
 reference link in YAML is already a YAML error.
 
-**This repository:** `check:corpus` reports 270 documents, 2166 links, 715 pointers and 3009 checks on
-`main`, and 269, 2166, 714 and 3008 on the fix — the difference of one is this record moving to the
-frozen `fixed/` folder, not the parser.
+**This repository:** the parser change moves no count. Measured on this branch's own tree at
+`bfeee73`, `check:corpus` reports the same documents, links, pointers and checks with the new parser
+and with the pre-fix parser swapped in — no document in its roots opens with front matter. Whole-tree
+totals are not quoted here: they move with every record a change adds or moves, and this one moved
+twice in its own PR.
 
 **Dependencies:** `micromark-extension-frontmatter` 2.0.0 and `mdast-util-frontmatter` 2.0.1 (MIT);
 `yaml` 2.9.0 (ISC), already in the tree as a development dependency and now a runtime one at the same
