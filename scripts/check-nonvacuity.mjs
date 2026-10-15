@@ -44,7 +44,7 @@
  *                 it → crossval/scenario-citations-resolve, the title-missing
  *                 submode specifically.
  *   crossval/md-mermaid (plan 0096, extended by bug 0209)
- *                 seven fixtures under scripts/nonvacuity/bad-md-mermaid/, all
+ *                 eight fixtures under scripts/nonvacuity/bad-md-mermaid/, all
  *                 → crossval/embedded-diagram, covering five distinct submodes:
  *                 {drifted,emptied}-diagram.md are the leftUnmatched and
  *                 rightUnmatched COMPARISON submodes; directive-diagram.md and

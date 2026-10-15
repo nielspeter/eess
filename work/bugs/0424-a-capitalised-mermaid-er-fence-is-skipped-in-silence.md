@@ -13,7 +13,9 @@
 
 `tableErAgree` over `packages/crossvalidate/tests/fixtures/table-er/bad-extra-attribute.md` with its
 fence retagged ` ```Mermaid `: the phantom attribute is not reported, and `tableErStats` gives
-`{"docs":0,"entities":0,"attributes":0}`. Tagged `mermaid`, the attribute is reported.
+`{"docs":0,"entities":0,"attributes":0}`. Tagged `mermaid`, the attribute is reported. On its own the
+retagged fixture still goes red, with the kernel's empty-evidence finding; beside any other ER diagram
+the run passes (PR #214's review).
 
 ## Root cause
 

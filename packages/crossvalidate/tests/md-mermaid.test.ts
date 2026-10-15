@@ -323,6 +323,6 @@ describe('embeddedDiagramsMatchCode() — a diagram nested in a list item or blo
     if (!(err instanceof ArchRuleError)) throw new Error('expected the ghost class to be reported')
     const v = err.violations.find((x) => x.message.includes('GhostClassInACapitalisedFence'))
     expect(v?.file.endsWith('embedded-capitalised.md')).toBe(true)
-    expect(embeddedDiagramStats(docs).diagrams).toBe(2)
+    expect(embeddedDiagramStats(docs)).toMatchObject({ documents: 2, diagrams: 2, skipped: 0 })
   })
 })
