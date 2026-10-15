@@ -22,7 +22,7 @@ case-folded goes to `nearMisses`. Plan 0412 chose exact matching before bug 0423
 
 ## Fix
 
-**Decided at plan 0413's freeze, 2026-10-15, overrulable: a tag is matched case-insensitively,
+**Decided by [ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md) (first at plan 0413's freeze, 2026-10-15): a tag is matched case-insensitively,
 family-wide.** A fence tagged `Mermaid` (or `JSON`) is plainly meant as that language, and reading it
 needs nothing from the author. So `parseCodeBlocks` reads a tag equal to the language when case-folded.
 The near-miss disclosure then has nothing left to disclose for a case difference, and goes, with its
