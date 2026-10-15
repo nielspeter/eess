@@ -2,10 +2,10 @@
 
 ## Status
 
-- **State:** Draft — unfrozen 2026-10-15. The post-merge architect and enforcement review of the
-  freeze found its line rule wrong after a mid-body comment, and four decisions a builder would have
-  made alone; [spike 0428](../spikes/0428-where-mermaid-puts-an-errors-line.md) measured them. The
-  re-freeze owes the items under "Owed at the re-freeze" below. First frozen 2026-10-15, after [spike 0425](../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)
+- **State:** Draft — frozen in PR #217, unfrozen in PR #218 (both 2026-10-15). The post-merge
+  architect and enforcement review found the frozen line rule wrong and four decisions left to the
+  builder; [spike 0428](../spikes/0428-where-mermaid-puts-an-errors-line.md) measured them. The
+  re-freeze owes "Owed at the re-freeze" below. The first freeze followed [spike 0425](../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)
   measured what this plan had deferred to its build. Three decisions are recorded under "Decided at
   the freeze". The dogfood gate moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md).
   Written 2026-10-14 against the 2026-10-14 review of proposal 006's Ask C, as plan B of that
@@ -104,7 +104,8 @@ codeBlocks(parsed).should().parse().check()
 
 ### The Markdown line (condition 7)
 
-**Measured (spike 0425):** Mermaid drops every line before the kind line (frontmatter, `%%` lines,
+_(Falsified by spike 0428: Mermaid drops `%%` comment lines anywhere, not only before the kind line.
+Rewritten at the re-freeze.)_ **Measured (spike 0425):** Mermaid drops every line before the kind line (frontmatter, `%%` lines,
 directives, blank lines) and counts its error line from the kind line. So the verdict's `line`, counted
 from the block's first body line as plan 0412's port requires, is Mermaid's line plus the number of
 lines before the kind line. It held for frontmatter, a directive and blank leading lines, for both
@@ -113,7 +114,8 @@ error families, and for lexical errors. Mermaid's line, by error shape:
 - **jison, with `hash.loc`** (parse errors): `hash.loc.first_line`. At the end of input the message
   names the line after the last one, so the message is not used.
 - **jison, without `hash.loc`** (lexical errors): `hash.line + 1`; `hash.line` is 0-based.
-- **Langium** (`MermaidParseError`): the message's "line N"; nothing else carries it.
+- **Langium** (`MermaidParseError`): the message's "line N"; nothing else carries it. _(Falsified by
+  spike 0428: `result.lexerErrors` / `parserErrors` carry the lines.)_
 
 eess-md then adds the block's own line. _(Corrected after PR #217's review: the first freeze took every
 jison line from `hash.loc.first_line`, which a lexical error does not have. Spike 0425 records the
@@ -270,8 +272,12 @@ Nothing below is decided until the re-freeze writes it into the sections above.
   classifies with `diagramPreamble` and the map. Name the shapes and the message union.
 - **Langium lines from `result`**, the smallest (architect I1).
 - **Test seams and the loaded version** (architect I3, enforcement I4): copy the real worker; the
-  worker reports the version it loaded, read by walking up; a mismatch is an instrument finding.
-- **Unclosed frontmatter** (enforcement I1): a reason of its own, per block, the author's error. And
+  worker reports the version it loaded, read by walking up; a mismatch is an instrument finding. The
+  stubbed-mermaid non-vacuity row matches on the canary cause text, so a range or missing-peer cause
+  cannot red it for the wrong reason (enforcement I4; bug 0110's class). The missing-peer clearing
+  test must not run `npm install` inside a test (architect I3).
+- **Unclosed frontmatter** (enforcement I1): a reason of its own, per block, the author's error;
+  closed frontmatter with no newline after it throws the same `Error` (spike 0428 Q5). And
   whether "anything else" stays batch-fatal.
 - **The reason enum's names** (architect M1, enforcement I1).
 - **Three non-vacuity rows** (enforcement I3): a non-parse throw, a resolved non-result, a hang that
@@ -281,7 +287,9 @@ Nothing below is decided until the re-freeze writes it into the sections above.
   conformance test runs the built worker (M4); zero blocks with a missing peer (architect M5,
   enforcement M1); the false-red row's polarity, per-kind canary residual, a transitive
   `ERR_MODULE_NOT_FOUND`, prerelease ranges, the rows' cost (enforcement M2–M6).
-- **Plan 0427's drift** (enforcement M7) and its priority, fixed in 0427 itself.
+- **Plan 0427's drift** (enforcement M7), its priority, its exclusion glob (condition 13) and its
+  production-tier row text, fixed in 0427 itself.
+- No ADR for the worker isolation yet (architect M6): recorded, nothing owed.
 - **The tag-case rule as an ADR** (architect I4): before bug 0426, not part of this plan.
 
 ## Progress ledger

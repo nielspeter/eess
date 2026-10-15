@@ -19,8 +19,10 @@ minutes. `mermaid` 11.17.2, `jsdom` 29.1.1, Node 24, the spike 0425 harness.
 
 ## Result
 
-**1. Four steps move lines, and a mirror of them maps every preprocessing case.** `preprocessDiagram`
-(in `dist/mermaid.core.mjs`) runs, in order:
+**1. Four steps move lines, and a mirror of them maps every measured preprocessing case.**
+`preprocessDiagram` (in `dist/mermaid.core.mjs`) runs five transformations, in order; the four below
+are the ones that touch line breaks (the fifth, `cleanupText`'s rewrite of `="…"` inside tags, moves
+no line):
 
 | step                       | regex                                                      | effect on lines                                                                                                                                                  |
 | -------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -32,9 +34,10 @@ minutes. `mermaid` 11.17.2, `jsdom` 29.1.1, Node 24, the spike 0425 harness.
 A map built by applying those four regexes to the text while carrying each character's original line
 (`linemap.mjs` in the harness) put Mermaid's line back on the true body line in **17 of 18** blocks:
 mid-body comments (one and two, indented, after a blank line, last line without a newline), a bare
-`%%`, one-line and three-line directives before and mid-body, frontmatter followed by blank lines, a
-comment before the kind line, CRLF, a jison lexical error after a mid-body comment, and the Langium
-kinds. The 18th is question 2.
+`%%`, a one-line directive mid-body, a three-line directive before and mid-body, frontmatter followed
+by blank lines, a comment before the kind line, CRLF, a jison lexical error after a mid-body comment,
+and two `packet-beta` (Langium) blocks. All jison cases are `flowchart`. The 18th is question 2. The
+"Mermaid's line" column in `checkmap.mjs` was transcribed from the probes' output, not read live.
 
 **2. No: two of Mermaid's own lexers lose a line per trailing comment.** A `%%` comment at the end of a
 code line (`A --> B %% note`) is not touched by the preprocessing, so the map cannot see it, and the
@@ -71,7 +74,8 @@ first. The error's `name` is `Error`; only `constructor.name` says `MermaidParse
 The first two are the author's error, and only the text says so: under plan 0413's outcome table they
 fall to "anything else", the instrument.
 
-**6. Yes to both, by copying the real worker.** The worker file, copied into a scratch directory whose
+**6. Yes to both, by copying a self-contained worker file.** A ten-line worker (no `jsdom`; it reads
+the version two ways and calls `parse`), placed in a scratch directory whose
 `node_modules/mermaid` is a stub (version `11.99.0`, `parse` never throws, `exports` with no `./*`),
 loaded the stub through its own bare import. Inside the worker:
 
@@ -81,9 +85,10 @@ loaded the stub through its own bare import. Inside the worker:
 
 No option on `mermaidParser()` is needed for the stub, the missing-peer or the out-of-range rows.
 
-## Decision
+## Recommendation for the re-freeze
 
-Plan 0413 goes back to Draft and is re-frozen on these results. What this spike settles:
+Plan 0413 goes back to Draft. The findings above are measured; what follows is this spike's
+recommendation to the re-freeze, which decides each item (the plan's "Owed at the re-freeze" list):
 
 - **The line comes from a map, not an offset.** eess-mermaid mirrors the four preprocessing regexes
   with each character's origin line, beside `diagramPreamble`'s walk, as an internal function. A
@@ -93,8 +98,11 @@ Plan 0413 goes back to Draft and is re-frozen on these results. What this spike 
   goes red instead of misplacing lines.
 - **After a trailing `%%` comment, the verdict claims no line.** When any line before the mapped line
   carries a `%%` after code, the verdict is attributed to the block's first line and its message says
-  Mermaid's count is unreliable after a trailing comment, quoting Mermaid's own line. The exact line
-  is claimed only where it was measured to be exact.
+  Mermaid's count is unreliable after a trailing comment, quoting Mermaid's own line. This is
+  conservative, not exact: it withholds the line in kinds measured to count right after a trailing
+  comment (sequence, class, state, packet), and it claims the mapped line in kinds nobody measured
+  (gantt, pie, gitGraph, …). That residual belongs in the README beside the one-kind-per-shape canary
+  residual.
 - **The worker posts facts; the host decides.** Per block: `{ shape: 'jison' | 'langium' |
 'unknown-diagram' | 'other' | 'non-result', locFirstLine, hashLine, langiumLines, message }`, and
   once per run the version the worker loaded. The host combines them with `diagramPreamble(text)` and
@@ -104,7 +112,7 @@ Plan 0413 goes back to Draft and is re-frozen on these results. What this spike 
   a reason of its own, the author's error, never the instrument.
 - **The version is the worker's, by the walk up.** The host compares it with the version it declared
   and reports a mismatch as an instrument finding.
-- **Tests copy the real worker** into a scratch directory with a stub or no `mermaid`. No public
+- **Tests copy the built worker file** into a scratch directory with a stub or no `mermaid`. No public
   option names a module to run (ADR-015).
 
 ## Not measured
