@@ -8,7 +8,7 @@ import {
 } from '@nielspeter/eess'
 import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
-import { diagram, classes as mmdClasses } from '@nielspeter/eess-mermaid'
+import { diagram, classes as mmdClasses, diagramKind } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
 import { identifyTsClass } from './shared.js'
 
@@ -40,38 +40,6 @@ const KNOWN_UNMODELLED = /^(?:classDiagram-v2)\b/
 
 const FOREIGN_HEADER =
   /^(?:sequenceDiagram|flowchart|graph|stateDiagram(?:-v2)?|erDiagram|gantt|journey|pie|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|sankey(?:-beta)?|xychart(?:-beta)?|block(?:-beta)?|packet(?:-beta)?|kanban|architecture(?:-beta)?|radar(?:-beta)?|treemap(?:-beta)?|zenuml|info|C4(?:Context|Container|Component|Dynamic|Deployment))\b/
-
-// Mermaid's grammar treats `%%…` lines as hidden terminals and permits a
-// `---` frontmatter block, so the diagram keyword is not necessarily the first
-// thing in the fence. Find the first line that actually declares the kind.
-function declaredKind(body: string): string {
-  const lines = body.split(/\r?\n/)
-  let i = 0
-  if (lines[0]?.trim() === '---') {
-    i = 1
-    while (i < lines.length && lines[i]?.trim() !== '---') i += 1
-    i += 1
-  }
-  let inDirective = false
-  for (; i < lines.length; i += 1) {
-    const line = lines[i]?.trim() ?? ''
-    if (line === '') continue
-    // `%%{ … }%%` may span lines. Track it, or the continuation line gets read
-    // as the declared kind — measured: a multi-line init block ahead of a
-    // sequenceDiagram made it selected, and `skipped` reported 0 (review).
-    if (inDirective) {
-      if (line.endsWith('}%%')) inDirective = false
-      continue
-    }
-    if (line.startsWith('%%{') && !line.endsWith('}%%')) {
-      inDirective = true
-      continue
-    }
-    if (line.startsWith('%%')) continue
-    return line
-  }
-  return ''
-}
 
 export interface EmbeddedDiagramsMatchCodeOptions extends PresetReportOptions {
   /** Glob (matched against a class's directory) restricting which TS classes participate. */
@@ -166,9 +134,9 @@ export function embeddedDiagramsMatchCode(
   return finishPreset(collectResult(violations, { examined }), options)
 }
 
-/** The declared kind of a fence, for phrasing a finding. */
+/** The declared kind of a fence, for phrasing a finding: "diagram" when it declares none. */
 function kindOf(body: string): string {
-  const kind = declaredKind(body).split(/[\s{]/)[0] ?? ''
+  const kind = diagramKind(body)
   return kind === '' ? 'diagram' : kind
 }
 
@@ -187,7 +155,7 @@ function detailOf(e: unknown): string {
 /** The class-diagram fences of one document — the blocks this binding models. */
 function classDiagramBlocks(doc: MdDocument) {
   return doc.codeBlocks.filter(
-    (b) => b.lang === 'mermaid' && !FOREIGN_HEADER.test(declaredKind(b.value)),
+    (b) => b.lang === 'mermaid' && !FOREIGN_HEADER.test(diagramKind(b.value)),
   )
 }
 

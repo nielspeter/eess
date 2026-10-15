@@ -8,7 +8,12 @@ import {
 } from '@nielspeter/eess'
 import { violationsFor } from './shared.js'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
-import { parseErDiagram, collectEntities, type ErEntityInfo } from '@nielspeter/eess-mermaid'
+import {
+  parseErDiagram,
+  collectEntities,
+  diagramKind,
+  type ErEntityInfo,
+} from '@nielspeter/eess-mermaid'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset, collectResult } from '@nielspeter/eess'
@@ -56,7 +61,9 @@ interface ErBlock {
 
 function erEntitiesOf(doc: MdDocument): ErBlock[] {
   return doc.codeBlocks
-    .filter((b) => (b.lang === 'mermaid' || b.lang === null) && ER_HEADER.test(b.value))
+    .filter(
+      (b) => (b.lang === 'mermaid' || b.lang === null) && ER_HEADER.test(diagramKind(b.value)),
+    )
     .map((b): ErBlock => {
       try {
         return { entities: collectEntities(parseErDiagram(b.value)), line: b.line }

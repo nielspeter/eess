@@ -96,4 +96,46 @@ describe('tableErAgree() — non-standard syntax', () => {
     expect(violations).toHaveLength(1)
     expect(violations[0]?.message).toContain('does not parse as standard Mermaid ER syntax')
   })
+
+  // Bug 0210 / plan 0214: the selector tested the raw fence body, so a diagram whose first line is a
+  // `%%{init}%%` directive or `---` frontmatter was never selected and its drift passed in silence.
+  it('selects an erDiagram behind a %%{init}%% directive and compares it (bug 0210)', () => {
+    const violations = violationsOf(() => tableErAgree(c(['bad-themed-extra-attribute.md']), OPTS))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain("'themedGhost' of 'JobSchedule' is not a row")
+    expect(tableErStats(c(['bad-themed-extra-attribute.md']), OPTS).docs).toBe(1)
+  })
+
+  // Selected, which is bug 0210's fix: before, this fence was skipped in silence. eess-mermaid's ER
+  // parser does not accept frontmatter, so it is reported as unparseable rather than compared. That
+  // grammar gap, and the message blaming the author for it, are bug 0409's.
+  it('selects an erDiagram behind --- frontmatter, so it is no longer skipped (bug 0210)', () => {
+    const violations = violationsOf(() =>
+      tableErAgree(c(['bad-frontmatter-extra-attribute.md']), OPTS),
+    )
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain('erDiagram does not parse')
+    expect(violations[0]?.line).toBe(9)
+  })
+
+  // Same as frontmatter: selected now, but eess-mermaid's ER parser rejects a multi-line init
+  // block, so it is reported as not parsing. Bug 0409 owns the gap; this pins today's behaviour.
+  it('selects an erDiagram behind a multi-line %%{init}%% block, so it is no longer skipped', () => {
+    const violations = violationsOf(() =>
+      tableErAgree(c(['bad-multiline-init-extra-attribute.md']), OPTS),
+    )
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain('erDiagram does not parse')
+    expect(violations[0]?.line).toBe(9)
+  })
+
+  it('skips a non-ER fence without skipping the document it sits in', () => {
+    const violations = violationsOf(() => tableErAgree(c(['bad-beside-a-sequence.md']), OPTS))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain("'besideGhost' of 'JobSchedule' is not a row")
+  })
+
+  it('does not select an untagged fence whose kind is not erDiagram', () => {
+    expect(tableErStats(c(['untagged-sequence-only.md']), OPTS).docs).toBe(0)
+  })
 })

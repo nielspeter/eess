@@ -42,7 +42,7 @@ anything — placement is proposal 006's open question 1 and is not settled here
 - `watch.ts` — **state in the README that watch mode is `.mmd`-only.** Not a code change.
   Adding `.md` to the pattern would teach the `eess-mermaid` CLI that Markdown is a diagram
   container, which is a _container_ fact — the exact line
-  [0214](./0214-extract-the-diagram-kind-predicate.md) draws, and the branch of proposal 006's
+  [0214](completed/0214-extract-the-diagram-kind-predicate.md) draws, and the branch of proposal 006's
   OQ1 that `arch.rules.ts`'s `eess/mermaid-isolated` gates shut. A docs plan must not settle
   a placement question by implication. (It would not trip the arch rule — there is no import
   edge — which is why it has to be caught here.)
@@ -74,4 +74,4 @@ anything — placement is proposal 006's open question 1 and is not settled here
   the "corpus dialect" branch is gated shut by `arch.rules.ts`'s `eess/mermaid-isolated`.
   Reversing a gated invariant is an ADR decision, not a docs plan.
 - `diagram()`'s provenance — [0213](./0213-diagram-provenance-for-fence-callers.md).
-- Extracting `declaredKind()` — [0214](./0214-extract-the-diagram-kind-predicate.md).
+- Extracting `declaredKind()` — [0214](completed/0214-extract-the-diagram-kind-predicate.md).

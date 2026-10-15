@@ -21,7 +21,7 @@
 `embedded classDiagram does not parse as a Mermaid class diagram: …`, with the suggestion "Fix the
 diagram syntax so it parses as a Mermaid class diagram. If this fence is a diagram kind
 eess-mermaid does not model, report it rather than deleting the fence"
-(`packages/crossvalidate/src/md-mermaid.ts:136`, `:147`). The same constructs, measured against
+(`packages/crossvalidate/src/md-mermaid.ts:104`, `:147`). The same constructs, measured against
 Mermaid's own parser and against `diagram()` from `@nielspeter/eess-mermaid`, the parse md-mermaid
 uses:
 
@@ -40,9 +40,16 @@ Five valid constructs are reported as the author's syntax error. Only `classDiag
 added clause "this is legal Mermaid that eess-mermaid does not model yet"
 (`KNOWN_UNMODELLED`, `md-mermaid.ts:39`), and its suggestion still says to fix the syntax.
 
-The ER binding has the same shape. `md-mermaid-er` reports a fence its parser rejects as
+The ER binding has the same shape. **Measured again 2026-10-15, once plan 0214 made `md-mermaid-er`
+select an `erDiagram` behind `---` frontmatter:** eess-mermaid's `parseErDiagram` rejects the
+frontmatter (`lexer:1:1 unexpected character: ->-<-`), which Mermaid accepts, and the finding says the
+diagram "does not parse as standard Mermaid ER syntax". The same holds for a **multi-line**
+`%%{init}%%` block ahead of `erDiagram` (found by PR #212's review: "found `\"theme\"`"); a one-line
+init block parses. Fixtures:
+`packages/crossvalidate/tests/fixtures/table-er/bad-frontmatter-extra-attribute.md` and
+`…/bad-multiline-init-extra-attribute.md`. `md-mermaid-er` reports a fence its parser rejects as
 `erDiagram does not parse as standard Mermaid ER syntax: …` with "fix the syntax"
-(`packages/crossvalidate/src/md-mermaid-er.ts:104-105`). This repository's own fixture for that
+(`packages/crossvalidate/src/md-mermaid-er.ts:111-112`). This repository's own fixture for that
 path, `packages/crossvalidate/tests/fixtures/table-er/bad-unparseable.md`, whose one relation is
 `JobSchedule o{--o{ Bonus`, is accepted by `mermaid.parse()` (`{"diagramType":"er"}`). Whether it is
 "standard" is disputed rather than false: Mermaid's documented cardinality table lists `o{` only on

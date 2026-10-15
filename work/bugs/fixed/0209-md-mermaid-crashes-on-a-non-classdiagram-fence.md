@@ -7,7 +7,7 @@
   a narrower version of the same silent-green, plus four verification claims that
   nothing asserted. The second round found the fix's own central behaviour had no
   production break class. All of it is recorded below rather than edited away.
-- **Deferred:** [0210](../0210-er-fence-selector-is-an-allowlist.md) — the
+- **Deferred:** [0210](0210-er-fence-selector-is-an-allowlist.md) — the
   sibling `md-mermaid-er` has the identical allowlist hole, named by review and
   filed rather than fixed opportunistically here.
 - **Found:** 2026-08-22, existing-code survey while filing
