@@ -103,8 +103,9 @@ choice. This proposal does not try to win that team. A Python-native rule API is
   capability, so eess-py supplies a Python lexer; it does not need a second parser. _(False, per
   the second review, measured on the kernel. ADR-012's capability is a masker, not a comment
   syntax, and the kernel's default scanner still runs over it. A `#` waiver is never read, and a
-  `//` waiver written inside a docstring is honoured. See change 2 and
-  [bug 0419](../bugs/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md).)_
+  `//` waiver written inside a docstring is honoured _(no longer: since bug 0419's fix the kernel reads
+  no directive in a `.py` file at all)_. See change 2 and
+  [bug 0419](../bugs/fixed/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md).)_
 - **No reader of Python exists in the family.** Proposal 014 rules it out of its own scope.
 - **ADR-002** pins ts-morph for TypeScript and rejected tree-sitter because TypeScript's rules need a
   checker. Python's first rules do not, and tree-sitter is rejected here for a different reason,
@@ -422,7 +423,7 @@ The fifteen below summarise the review. **Appendix B is the complete list**, one
      masker, not a comment syntax.
    - **Owner:** an ADR-012 amendment, inside Ask A, with a row for each case.
    - **Other file types:** reproduced 2026-10-15 for eess-gherkin, a shipped false green. Recorded
-     as [bug 0419](../bugs/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md).
+     as [bug 0419](../bugs/fixed/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md).
 
 **Important**
 
@@ -718,7 +719,7 @@ E carries review 1's I7 + ADR-017 note (enforcement's ask: MAPPED); method M10 o
 | Label | Finding                                                                                                                                                                                                                               | Where in the record                                                        | Status                                                                                |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | C1a   | ADR-012's capability is a masker, not a comment syntax; `firstCommentBody` reads `//` only, other forms `<!-- -->`; `#` needs a kernel change                                                                                         | owed 2 (bullets 1, 3)                                                      | MAPPED (pointer `:100-103` omits `:120-122`, see M-row method M13)                    |
-| C1b   | The kernel default (JS scanner for `.py`) runs _over_ the injected masker (`packages/core/src/exclusion-comments.ts:391-400`), so a Python masker is defeated; clause 3's "conservative default" holds only where the default can lex | owed 2 says "for a `.py` file the default masker is the JavaScript one"    | PARTLY: owed 2, missing the composition point (default runs over the injected masker) |
+| C1b   | The kernel default (JS scanner for `.py`) runs _over_ the injected masker (`packages/core/src/exclusion-comments.ts:396-405`), so a Python masker is defeated; clause 3's "conservative default" holds only where the default can lex | owed 2 says "for a `.py` file the default masker is the JavaScript one"    | PARTLY: owed 2, missing the composition point (default runs over the injected masker) |
 | C1c   | Kernel `executeRule` takes no masker (`packages/core/src/execute-rule.ts:151`); only eess-ts's duplicate injects one; eess-py would build on the kernel path                                                                          | —                                                                          | MISSING                                                                               |
 | C1d   | Measured: `//` directives inside `"""` honoured (block exclusion covering an import); `# eess-exclude` ignored                                                                                                                        | owed 2 ("Measured", re-run by coordinator)                                 | MAPPED                                                                                |
 | C1e   | Owner: Ask A's ADR or an explicit kernel step before C; content = ADR-012 amendment: introducer part of the dialect capability; unlexable extension → no directives + instrument finding; kernel `executeRule` accepts the masker     | owed 2 ("Owner: an ADR-012 amendment, inside Ask A"); row A cites change 2 | PARTLY: owner carried; the amendment's three content points missing                   |

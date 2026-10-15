@@ -11,7 +11,7 @@
 
 ## Symptom
 
-The kernel reads exclusion comments in a markdown file through `maskMarkdownCodeSpans` (`packages/core/src/mask-non-comment.ts:171`). The routing is at `packages/core/src/exclusion-comments.ts:393`.
+The kernel reads exclusion comments in a markdown file through `maskMarkdownCodeSpans` (`packages/core/src/mask-non-comment.ts:171`). The routing is at `packages/core/src/exclusion-comments.ts:398`.
 
 That masker finds fences with a line loop, which gets code wrong in two ways:
 
@@ -60,7 +60,7 @@ These counts come from an instrument not kept in the repository. They show that 
 ## Root cause
 
 1. **The default is not conservative for markdown.** A line loop cannot prove a line is prose once containers are involved.
-2. **No dialect can supply accuracy.** The kernel's rule executor calls `parseExclusionComments(sourceText, filePath)` with no masker (`packages/core/src/execute-rule.ts:151`), although the parser accepts one and runs it first (`packages/core/src/exclusion-comments.ts:400`). A masker also receives only text and a path (`packages/core/src/exclusion-comments.ts:355`), not a document.
+2. **No dialect can supply accuracy.** The kernel's rule executor calls `parseExclusionComments(sourceText, filePath)` with no masker (`packages/core/src/execute-rule.ts:151`), although the parser accepts one and runs it first (`packages/core/src/exclusion-comments.ts:405`). A masker also receives only text and a path (`packages/core/src/exclusion-comments.ts:355`), not a document.
 
 ## The corruption that must produce a violation
 

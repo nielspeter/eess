@@ -238,6 +238,11 @@ doSomething()
 Requires a `.rule({ id })` -- exclusion comments reference the rule by ID.
 Requires a reason -- undocumented exclusions are flagged as warnings.
 
+**Where a directive is read at all.** Only in files the kernel can lex: JavaScript and TypeScript
+(including Vue and Svelte) and Markdown. In any other file, such as `.feature`, `.yml`, `.mmd` or
+`.py`, no directive is read, so a finding there cannot be waived and stays red. An `eess-exclude`
+written in such a file is ignored without a message today; that gap is bug 0421.
+
 **A directive that cannot apply says so.** Two ways one goes inert, both of them
 previously silent (bug 0255):
 

@@ -1,5 +1,5 @@
 import type { ArchViolation } from './violation.js'
-import { maskNonCommentSpans, maskMarkdownCodeSpans } from './mask-non-comment.js'
+import { maskNonCommentSpans, maskMarkdownCodeSpans, maskEverything } from './mask-non-comment.js'
 
 /**
  * Exclusion comment parsed from source code.
@@ -385,14 +385,19 @@ export function parseExclusionComments(
   // `!CODE_LIKE`, which handed `.mmd`, `.feature`, `.yml` and everything else to
   // the markdown lexer — and a `.mmd` node label is a quoted string, which the
   // JS masker blanks and the markdown one does not. That is the very mistake this
-  // comment describes, committed by the fix for it. Anything neither code nor
-  // markdown keeps the conservative masker: over-masking hides a directive
-  // (loud), under-masking invents one (silent).
+  // comment describes, committed by the fix for it.
+  //
+  // Anything else is a file the kernel cannot lex: it reads NO directive there (bug
+  // 0419, ADR-012's second property). The JS masker used to stand in, and a `//` line
+  // inside a Gherkin doc string reached the scan and waived a real finding. Blanking
+  // everything leaves the finding red. No `mask` can undo it, since the default runs
+  // over the injected output; re-enabling is ADR-012's open amendment (bug 0291,
+  // proposal 016 change 2).
   const defaultMask = CODE_LIKE.test(filePath)
     ? maskNonCommentSpans
     : MARKDOWN_LIKE.test(filePath)
       ? maskMarkdownCodeSpans
-      : maskNonCommentSpans
+      : maskEverything
   // The dialect's masker runs FIRST and the default runs over its output, so the
   // default's protection cannot be opted out of (ADR-012). A dialect supplies
   // accuracy; it cannot supply permission.
