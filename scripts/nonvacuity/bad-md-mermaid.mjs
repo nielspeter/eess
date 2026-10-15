@@ -31,6 +31,9 @@
  *   7. nested-diagram.md — the same drift as (1) inside a list item. Covers
  *      the document model: only top-level code blocks were read, so a nested
  *      diagram passed with every gate green (bug 0290).
+ *   8. capitalised-diagram.md — the same drift as (1) in a fence tagged
+ *      `Mermaid`. Covers the tag: it was compared exactly, so the fence was
+ *      never read and the drift passed (bug 0423).
  *
  * Exit codes (consumed by scripts/check-nonvacuity.mjs):
  *   1 = both drift cases detected as expected, clean case clean — OK
@@ -48,7 +51,7 @@ const opts = { scope: '**/packages/core/src/**', completeness: 'both', report: '
 const run = (doc) =>
   embeddedDiagramsMatchCode(corpus({ roots: [`${ROOT}/${doc}`] }), project('packages/core/tsconfig.build.json'), opts)
 
-let drifted, emptied, clean, directive, mixed, unparseable, nested
+let drifted, emptied, clean, directive, mixed, unparseable, nested, capitalised
 try {
   drifted = run('drifted-diagram.md')
   emptied = run('emptied-diagram.md')
@@ -57,6 +60,7 @@ try {
   mixed = run('mixed-diagram.md')
   unparseable = run('unparseable-diagram.md')
   nested = run('nested-diagram.md')
+  capitalised = run('capitalised-diagram.md')
 } catch (err) {
   console.error(`bad-md-mermaid: unexpected error — ${String(err)}`)
   process.exit(2)
@@ -153,10 +157,23 @@ if (nestedGhost.length === 0) {
   process.exit(0)
 }
 
+// The tag's break class: a fence tagged `Mermaid` must be read (bug 0423).
+const capitalisedGhost = capitalised.filter(
+  (v) => v.ruleId === RULE && /GhostClassCapitalised/.test(v.message),
+)
+if (capitalisedGhost.length === 0) {
+  const seen = capitalised.map((v) => v.ruleId).join(', ') || 'none'
+  console.error(
+    `bad-md-mermaid: capitalised-diagram.md produced no ${RULE} violation for ` +
+      `GhostClassCapitalised — a fence tagged \`Mermaid\` is not being read (seen: ${seen})`,
+  )
+  process.exit(0)
+}
+
 console.error(
   `bad-md-mermaid: drift detected as expected in both directions — ${RULE}, ` +
     `${ghostClass.length} ghost-class violation(s), ${emptiedFence.length} emptied-fence ` +
     `violation(s), ${themed.length} themed-fence, ${mixedGhost.length} mixed-fence, ` +
-    `${parseFinding.length} parse violation(s), ${nestedGhost.length} nested-fence; clean diagram produced none`,
+    `${parseFinding.length} parse violation(s), ${nestedGhost.length} nested-fence, ${capitalisedGhost.length} capitalised-fence; clean diagram produced none`,
 )
 process.exit(1)
