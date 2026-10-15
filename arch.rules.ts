@@ -10,7 +10,7 @@
  *    import each other (siblings on the kernel; only eess-crossvalidate bridges
  *    them).
  */
-import { workspace, modules } from '@nielspeter/eess-ts'
+import { workspace, modules, type ExpressionMatcher } from '@nielspeter/eess-ts'
 
 const p = workspace([
   'packages/core/tsconfig.build.json',
@@ -23,6 +23,32 @@ const p = workspace([
 
 const only = (pkg: string): string => `**/packages/${pkg}/src/**`
 const inPkg = (pkg: string): string => `**/packages/${pkg}/**`
+
+/**
+ * ADR-019: a fence's language tag is compared in one place, eess-md's `tagIsLanguage`. This matches
+ * a comparison made anywhere else: `x.lang` (or a method called on it) on one side of `===`, `!==`,
+ * `==` or `!=`, a method called on `x.lang` (`.toLowerCase()`, `.startsWith(…)`), and
+ * `switch (x.lang)`. Asking whether there is a tag at all (`x.lang === null`) is not a comparison of
+ * one, so it passes. It reads node kinds by name because the root does not depend on ts-morph.
+ */
+const LANG = /\.lang\b/
+const NO_TAG = new Set(['null', 'undefined'])
+const EQUALITY = new Set(['===', '!==', '==', '!='])
+const langTagComparison: ExpressionMatcher = {
+  description: 'a comparison of a code block tag (`.lang`) outside tagIsLanguage',
+  matches(node) {
+    const kind = node.getKindName()
+    const parts = node.getChildren().map((c) => c.getText())
+    if (kind === 'BinaryExpression') {
+      const [left = '', op = '', right = ''] = parts
+      if (!EQUALITY.has(op)) return false
+      return (LANG.test(left) && !NO_TAG.has(right)) || (LANG.test(right) && !NO_TAG.has(left))
+    }
+    if (kind === 'CallExpression') return /\.lang\??\.\w+$/.test(parts[0] ?? '')
+    if (kind === 'SwitchStatement') return LANG.test(parts[2] ?? '')
+    return false
+  },
+}
 
 export default [
   // Kernel purity — @nielspeter/eess depends on nothing dialect-specific.
@@ -116,5 +142,22 @@ export default [
         'a link condition doing its own path arithmetic is a second resolver, and two resolvers disagree about where a link points',
       suggestion:
         'resolve the link with resolveLink() from model/resolve-link.ts, and keep path arithmetic there',
+    }),
+
+  // ADR-019 C3 — one owner of the tag comparison. What it cannot see, stated rather than implied
+  // (ADR-016 rule 7): the tag read into a variable first (`const { lang } = b`, `const t = b.lang`)
+  // and compared there; a lookup keyed on it (`map.get(b.lang)`, `tags.includes(b.lang)`); and
+  // `b['lang']`. A Tier-1 check on the spelled comparison, not proof that only one exists.
+  modules(p)
+    .that()
+    .resideInFolder('**/packages/*/src/**')
+    .should()
+    .notContain(langTagComparison)
+    .rule({
+      id: 'eess/one-code-block-tag-comparison',
+      because:
+        'ADR-019: a language tag is compared in any letter case and nothing else, in one place, so two readers never answer "is this mermaid?" differently',
+      suggestion:
+        'call tagIsLanguage(block.lang, language) from @nielspeter/eess-md/internal (inside eess-md, from model/code-block-tag.js)',
     }),
 ]

@@ -325,4 +325,13 @@ describe('embeddedDiagramsMatchCode() — a diagram nested in a list item or blo
     expect(v?.file.endsWith('embedded-capitalised.md')).toBe(true)
     expect(embeddedDiagramStats(docs)).toMatchObject({ documents: 2, diagrams: 2, skipped: 0 })
   })
+
+  // ADR-019: the tag is compared in any letter case and nothing else, so an alias is not read.
+  it('does not read a fence tagged mmd as mermaid', () => {
+    expect(embeddedDiagramStats(c(['docs/embedded-mmd.md']))).toEqual({
+      documents: 0,
+      diagrams: 0,
+      skipped: 0,
+    })
+  })
 })

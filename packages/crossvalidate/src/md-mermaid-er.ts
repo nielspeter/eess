@@ -6,7 +6,8 @@ import {
   type PresetReportOptions,
   collectResult,
 } from '@nielspeter/eess'
-import { violationsFor, GRAMMAR_GAP, grammarGapRemedy, asClause, isMermaidTag } from './shared.js'
+import { violationsFor, GRAMMAR_GAP, grammarGapRemedy, asClause } from './shared.js'
+import { isMermaidTag } from './mermaid-tag.js'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import {
   parseErDiagram,

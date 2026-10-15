@@ -673,7 +673,7 @@ review of this record followed, and its corrections are applied here.
     md-mermaid read the tag case-insensitively, so a fence tagged `Mermaid` is read there while eess-md's
     `parseCodeBlocks` reports it as unread. Neither is a false green, but the family has two rules for one
     tag. Settled at plan 0413's freeze, 2026-10-15: case-insensitive, family-wide; eess-md's side is
-    [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md).)_
+    [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md).)_
 11. **Tier 1, static** _(measured, enforcement)_. The claim is "parses with mermaid X.Y.Z".
     `parse()` accepts three things that fail at render: a `gantt` task dated `nonsense`, a `journey`
     step with a non-numeric score, and an unclosed `mindmap` root.
@@ -809,7 +809,7 @@ Plan 0413's freeze (PR #217) changed two things ruled above, on its own authorit
 overruled.
 
 - **Condition 10's tag rule is now case-insensitive, family-wide.** eess-crossvalidate already read the
-  tag that way (bugs 0423, 0424); [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md)
+  tag that way (bugs 0423, 0424); [bug 0426](../bugs/fixed/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md)
   brings `parseCodeBlocks` to the same rule and removes the near-miss disclosure. It was first
   recorded here and in that bug as a matching convention; after the architect review of the first freeze (PR #217) it is
   [ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md).

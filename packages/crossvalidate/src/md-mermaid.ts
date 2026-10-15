@@ -10,7 +10,8 @@ import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { diagram, classes as mmdClasses, diagramKind } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
-import { identifyTsClass, GRAMMAR_GAP, grammarGapRemedy, asClause, isMermaidTag } from './shared.js'
+import { identifyTsClass, GRAMMAR_GAP, grammarGapRemedy, asClause } from './shared.js'
+import { isMermaidTag } from './mermaid-tag.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset, collectResult } from '@nielspeter/eess'

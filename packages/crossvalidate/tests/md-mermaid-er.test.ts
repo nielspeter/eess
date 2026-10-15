@@ -185,4 +185,9 @@ describe('tableErAgree() — non-standard syntax', () => {
   it('does not read an erDiagram in a fence tagged as another language', () => {
     expect(tableErStats(c(['sql-tagged-er.md']), OPTS).docs).toBe(0)
   })
+
+  // ADR-019: the tag is compared in any letter case and nothing else, so an alias is not read.
+  it('does not read an erDiagram in a fence tagged mmd', () => {
+    expect(tableErStats(c(['mmd-tagged-er.md']), OPTS).docs).toBe(0)
+  })
 })

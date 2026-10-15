@@ -23,6 +23,11 @@
  *                 packages/md/src/conditions/resolve.ts gains a bare `'path'`
  *                 import (the spelling a ban on `'node:path'` alone missed) →
  *                 eess/md-one-link-resolver, on that file.
+ *   arch/one-code-block-tag-comparison (bug 0426, ADR-019 C3)
+ *                 packages/md/src/__nonvacuity_probe_tag__.ts compares `.lang`
+ *                 three ways (`===`, a method on it, `switch`), one probe each →
+ *                 eess/one-code-block-tag-comparison; a probe asking only
+ *                 `.lang === null` must NOT fire it.
  *   internal arch packages/core/src/__nonvacuity_probe_catch__.ts has a silent
  *                 `catch {}` → eess/no-silent-catch. (This gate has in-flight
  *                 violations from other agents; the clean direction is reported
@@ -69,7 +74,7 @@
  *                 message on its own file — all ten share one rule id.
  *   corpus/code-block-parse/{invalid-verdict,malformed-verdict,zero-blocks,no-markdown,
  *                 no-identity,no-canaries,canary-valid,parser-hangs,parser-throws,
- *                 dropped-block,near-miss,unrecognised-verdict,forged-facts,
+ *                 dropped-block,capitalised-tag,unrecognised-verdict,forged-facts,
  *                 canary-may-pass,sync-overrun,cannot-be-excluded}
  *                 (plan 0412, fixture tier) scripts/nonvacuity/bad-code-block-parse.mjs
  *                 drives parseCodeBlocks + codeBlocks().should().parse() with a stub
@@ -234,6 +239,7 @@ const FAMILY_REEXPORT_AGGREGATION_TARGET = join(
 )
 
 const PROBE_ARCH = join(repoRoot, 'packages', 'core', 'src', '__nonvacuity_probe__.ts')
+const PROBE_TAG = join(repoRoot, 'packages', 'md', 'src', '__nonvacuity_probe_tag__.ts')
 // Bug 0287: a fifth copy of the fence regex, one per root the check walks. `.mjs`, not `.ts`: the
 // packages' tsconfigs take `src/**/*.ts`, so a `.ts` probe reds `eess-ts` first and `check:arch`'s
 // `&&` would never reach the check under test.
@@ -638,6 +644,7 @@ function withRemovedFile(path, fn) {
 
 // Sweep any leftover probes before doing anything — they must never survive.
 rmSync(PROBE_ARCH, { force: true })
+rmSync(PROBE_TAG, { force: true })
 rmSync(PROBE_BARE_RULES, { force: true })
 rmSync(PROBE_BASELINE_OUT, { force: true })
 rmSync(PROBE_FIX_TARGET, { force: true })
@@ -707,6 +714,37 @@ function gateArchOneLinkResolver() {
   return {
     ok,
     detail: `${probeNote} (eess/md-one-link-resolver on conditions/resolve.ts) · ${cleanNote}`,
+  }
+}
+
+// --- Gate: arch/one-code-block-tag-comparison (bug 0426, ADR-019 C3) ---
+// One probe per spelling the rule claims, so narrowing it to any one of them reddens this row; and
+// one probe it must stay quiet on, so widening it to every mention of `.lang` reddens it too.
+function gateArchOneTagComparison() {
+  const head = 'export function probe(b: { lang: string | null }): boolean {\n'
+  const spellings = {
+    equality: `${head}  return b.lang === 'mermaid'\n}\n`,
+    method: `${head}  return b.lang?.toLowerCase() === 'mermaid'\n}\n`,
+    switch: `${head}  switch (b.lang) {\n    case 'mermaid':\n      return true\n  }\n  return false\n}\n`,
+  }
+  const run = (body) =>
+    withProbe(PROBE_TAG, body, () => sh(EESS_TS, ['check', 'arch.rules.ts', '--format', 'json']))
+  const probes = Object.entries(spellings).map(([name, body]) => {
+    const bad = run(body)
+    const fired =
+      bad.code === 1 &&
+      firedOn(bad, 'eess/one-code-block-tag-comparison', '__nonvacuity_probe_tag__')
+    return { name, code: bad.code, fired }
+  })
+  const quiet = run(`${head}  return b.lang === null\n}\n`)
+  const quietOk = !firedOn(quiet, 'eess/one-code-block-tag-comparison', '__nonvacuity_probe_tag__')
+  const ok = probes.every((p) => p.fired) && quietOk
+  const probeNote = probes
+    .map((p) => `${p.name} → exit ${p.code}${p.fired ? '' : ' (did not fire)'}`)
+    .join(' · ')
+  return {
+    ok,
+    detail: `${probeNote} · \`.lang === null\` → ${quietOk ? 'quiet' : 'FIRED (too broad)'}`,
   }
 }
 
@@ -2539,6 +2577,7 @@ const gates = [
   ['gate coverage', () => gateCoverage()],
   ['arch (root rules)', gateArch],
   ['arch/md-one-link-resolver', gateArchOneLinkResolver],
+  ['arch/one-code-block-tag-comparison', gateArchOneTagComparison],
   ['internal arch', gateInternalArch],
   ['arch/no-new-kernel-registry', gateNoNewKernelRegistry],
   ['family re-export (index)', gateFamilyReExportIndex],
@@ -2708,8 +2747,8 @@ const gates = [
     () => gateNode('bad-code-block-parse.mjs', 'dropped-block: reported', ['dropped-block']),
   ],
   [
-    'corpus/code-block-parse/near-miss',
-    () => gateNode('bad-code-block-parse.mjs', 'near-miss: reported', ['near-miss']),
+    'corpus/code-block-parse/capitalised-tag',
+    () => gateNode('bad-code-block-parse.mjs', 'capitalised-tag: reported', ['capitalised-tag']),
   ],
   [
     'corpus/code-block-parse/unrecognised-verdict',
@@ -3188,6 +3227,7 @@ const GATE_FOR = {
     'emitter/bare-builder-reds-the-cli',
     'arch (root rules)',
     'arch/md-one-link-resolver',
+    'arch/one-code-block-tag-comparison',
     'internal arch',
     'arch/one-fence-reader (packages)',
     'arch/one-fence-reader (scripts)',
@@ -3289,7 +3329,7 @@ const GATE_FOR = {
     'corpus/code-block-parse/parser-hangs',
     'corpus/code-block-parse/parser-throws',
     'corpus/code-block-parse/dropped-block',
-    'corpus/code-block-parse/near-miss',
+    'corpus/code-block-parse/capitalised-tag',
     'corpus/code-block-parse/unrecognised-verdict',
     'corpus/code-block-parse/forged-facts',
     'corpus/code-block-parse/canary-may-pass',

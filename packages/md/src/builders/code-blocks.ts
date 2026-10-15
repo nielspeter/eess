@@ -8,7 +8,6 @@ import {
   type Predicate,
 } from '@nielspeter/eess'
 import {
-  describeNearMisses,
   isParsedCodeBlocks,
   type ParsedCodeBlock,
   type ParsedCodeBlocks,
@@ -109,16 +108,6 @@ export class CodeBlockRuleBuilder extends RuleBuilder<ParsedCodeBlock, ParsedCod
   /** No Markdown file loaded at all outranks everything, `.expectEmpty()` included (ADR-010). */
   protected override sourceEmpty(): boolean {
     return this.project.documentsLoaded === 0
-  }
-
-  /** When near-miss tags are why nothing was examined, send the author to the spelling. */
-  protected override deadGlobDiagnosis(): string | undefined {
-    const { blocks, nearMisses, language } = this.project
-    if (blocks.length > 0 || nearMisses.length === 0) return undefined
-    return (
-      `no block is tagged \`${language}\`, and the tag is matched exactly. These are not read: ` +
-      `${describeNearMisses(nearMisses)}. Retag them \`${language}\`.`
-    )
   }
 
   /** The kernel's verdict, plus the instrument finding once per rule when the parser failed. */

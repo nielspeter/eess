@@ -306,7 +306,6 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
         parser: { name: 'stub', version: '1.0.0' },
         blocks: [],
         failure: null,
-        nearMisses: [],
         documentsLoaded: 1,
         summary: () => '',
       }
@@ -337,21 +336,35 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
       ).toMatch(/examined zero units/)
       expect(rule(parsed).expectEmpty().violations()).toHaveLength(0)
     })
+  })
 
-    it('names a near-miss tag when it is why nothing was examined', async () => {
-      const parsed = await parseCodeBlocks(at('near-miss'), {
+  // ADR-019: a tag is compared in any letter case, and nothing else is normalised (bug 0426).
+  describe('the language tag', () => {
+    it('reads a block tagged Mermaid or MERMAID as mermaid', async () => {
+      const parsed = await parseCodeBlocks(at('capitalised'), {
         language: 'mermaid',
         parser: stub(),
       })
-      const r = rule(parsed).violations()
-      expect(r.map((v) => v.message).join('\n')).toMatch(/`Mermaid`.*near-miss\/only\.md:3/s)
+      expect(parsed.blocks.map((b) => b.block.line)).toEqual([3, 8])
+      expect(rule(parsed).violations().examined).toBe(2)
+      expect(parsed.summary()).toMatch(/^2 mermaid blocks parsed with stub 1\.0\.0$/)
     })
 
-    it('discloses a near-miss tag in the summary of a green run', async () => {
+    it("folds the caller's language too, and keeps the caller's spelling in messages", async () => {
+      const parsed = await parseCodeBlocks(at('valid'), { language: 'MERMAID', parser: stub() })
+      expect(parsed.blocks).toHaveLength(2)
+      expect(parsed.summary()).toMatch(/^2 MERMAID blocks parsed/)
+    })
+
+    it('does not read a block tagged mmd as mermaid', async () => {
       const parsed = await parseCodeBlocks(at('valid'), { language: 'mermaid', parser: stub() })
-      expect(rule(parsed).violations()).toHaveLength(0)
-      expect(parsed.summary()).toMatch(/2 mermaid blocks parsed with stub 1\.0\.0/)
-      expect(parsed.summary()).toMatch(/`Mermaid`.*valid\/b\.md:3/)
+      expect(parsed.blocks.map((b) => b.doc.relPath)).not.toContain('valid/b.md')
+      expect(parsed.blocks).toHaveLength(2)
+    })
+
+    it('does not read a block tagged json5 as json', async () => {
+      const parsed = await parseCodeBlocks(at('other-lang'), { language: 'json', parser: stub() })
+      expect(parsed.blocks.map((b) => b.block.line)).toEqual([3])
     })
   })
 
@@ -457,7 +470,6 @@ describe('parseCodeBlocks + codeBlocks().should().parse() (plan 0412)', () => {
       expect(Object.isFrozen(parsed.blocks)).toBe(true)
       expect(parsed.blocks.every((b) => Object.isFrozen(b))).toBe(true)
       expect(Object.isFrozen(parsed.parser)).toBe(true)
-      expect(Object.isFrozen(parsed.nearMisses)).toBe(true)
       expect(Object.isFrozen(DEFAULT_CODE_BLOCK_BUDGET)).toBe(true)
       expect(() => Object.assign(parsed, { failure: null })).toThrow()
       expect(instrumentOf(parsed)).toHaveLength(1)
