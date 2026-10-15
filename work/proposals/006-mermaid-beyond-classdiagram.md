@@ -810,8 +810,9 @@ overruled.
 
 - **Condition 10's tag rule is now case-insensitive, family-wide.** eess-crossvalidate already read the
   tag that way (bugs 0423, 0424); [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md)
-  brings `parseCodeBlocks` to the same rule and removes the near-miss disclosure. It is a matching
-  convention recorded here and in that bug, not an ADR.
+  brings `parseCodeBlocks` to the same rule and removes the near-miss disclosure. It was first
+  recorded here and in that bug as a matching convention; after the architect review of the first freeze (PR #217) it is
+  [ADR-019](../../adr/019-a-code-blocks-language-tag-is-read-in-any-letter-case.md).
 - **Plan B's dogfood row ("Dogfood is not optional" above) moved, unchanged, to
   [plan 0427](../plans/0427-this-repository-checks-its-mermaid-blocks-parse.md)**, so the parser and the
   gate are each one reviewable PR. It is deferred, not dropped: plan 0413's ledger carries it as a
