@@ -33,10 +33,19 @@ tests, its non-vacuity row (`near-miss` in `scripts/nonvacuity/bad-code-block-pa
 whose changeset carries a `**Breaking**` line: an export goes, and a block that was disclosed is now
 parsed, so a green build can go red. Proposal 006's condition 10 gets a dated note.
 
+ADR-019 also sets the shape of the fix: one comparison function in eess-md behind
+`@nielspeter/eess-md/internal`, which `parseCodeBlocks` uses and eess-crossvalidate's `isMermaidTag`
+delegates to; an `arch.rules.ts` rule against any other `.lang` comparison; and a near-miss fixture
+on each side (` ```mmd `, ` ```json5 `) proving nothing but case is folded. The changeset carries
+ADR-019's Consequences.
+
 ## Verification
 
 - [ ] Red test first, through `parseCodeBlocks`: a `Mermaid`-tagged block is parsed and examined.
 - [ ] The near-miss machinery is removed with its tests and row, or kept only for a reason stated here.
+- [ ] One owner of the comparison; `isMermaidTag` delegates; the arch rule reds a second comparison.
+- [ ] The near-miss fixtures, on both sides.
+- [ ] ADR-019's pending Enforcement rows moved to `gated`.
 - [ ] `npm run validate` green.
 
 Deferred: none
