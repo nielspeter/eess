@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — reproduced 2026-10-15 against `main` at `247e6579`, through eess-gherkin's public
-  entry points (built `dist`). No red test yet, and the fix is not designed.
+- **State:** Fixed — 2026-10-15 on branch `fix/0419-gherkin-doc-string-waiver`, in the same PR
+  that closes it. Reproduced 2026-10-15 against `main` at `247e6579`, through eess-gherkin's public
+  entry points.
 - **Severity:** High — a false green (`BUGS.md`'s High row). Text inside a Gherkin doc string, which
   is data, not a comment, suppresses a real violation. Meanwhile the comment form Gherkin actually
   has, `#`, is never read as a waiver.
@@ -97,21 +98,34 @@ The block from the doc strings is read in both. The `#` comment on line 11 is re
 
 ## Fix
 
-Not designed. ADR-012 makes the lexer a capability a dialect supplies, and the kernel's default the
-conservative one. The fix belongs in that frame. Each candidate needs a decision:
+**Decided from ADR-012, overrulable: a file the kernel cannot lex yields no directive.** ADR-012's
+second property already says it: "when it cannot prove a span is a comment, it does not treat it as
+one. A directive is dropped rather than a violation silently suppressed." For a file that is neither
+code nor Markdown, the kernel cannot prove any span is a comment. So the default masker for such a
+file now blanks every character but line breaks (`maskEverything`,
+`packages/core/src/exclusion-comments.ts`), and the comment that called the old choice conservative
+is corrected.
 
-- **A Gherkin masker.** eess-gherkin supplies one, and the kernel's execution accepts it. Doc
-  strings are blanked, and `#` is the comment introducer.
-- **No directives at all** in a file type no masker can lex, with that said, rather than reading it
-  as JavaScript.
-- **Whether `#` waivers are wanted for `.feature` and `.yml`.** That is the same question proposal
-  016's change 2 raises for Python.
+- **Why not a Gherkin masker in eess-gherkin.** Under ADR-012's third property the kernel's default
+  runs over any masker a dialect injects, so a dialect cannot widen what is read. A Gherkin masker
+  would need that property amended, which is proposal 016's change 2 (for Python's `#`). Enabling
+  waivers in other file types is that amendment's work, not this bug's.
+- **What changes for adopters.** A `//` waiver in a `.feature`, `.yml`, `.py`, `.mmd`, `.graphql` or
+  other non-code, non-Markdown file no longer applies, and its finding reports again. That is a
+  break, marked in `.changeset/waiver-only-where-the-kernel-can-lex.md` with every dependent dialect
+  at `minor`. Nothing in this repository's docs promised waivers in those files.
 
 ## Verification
 
-- [ ] Red test first: the fixture above, through `scenarios(…).violations()`, must report the
-      duplicate title.
-- [ ] A sabotage row: restoring the JavaScript reading for `.feature` turns it green again.
-- [ ] `npm run validate` green.
+- [x] Red test first: `packages/gherkin/tests/waiver-in-doc-string.test.ts` drives
+      `scenarios(…).violations()` over `tests/fixtures/waiver-in-doc-string.feature`. It failed before
+      the fix (0 violations) and reports the duplicate title at line 7 after.
+- [x] A kernel test, `packages/core/tests/exclusion-unlexable-file-types.test.ts`, reads no directive
+      in `.feature`, `.yml`, `.yaml`, `.py`, `.mmd`, `.graphql` or `.txt`, and still reads one in
+      `.ts` and `.md`. Seven of its eight cases failed before the fix.
+- [x] A sabotage row: restoring the JavaScript reading for these files turned both tests red again (7
+      failed, and 1 failed), and they went green once restored.
+- [x] `npm run validate` green on this branch, locally. The fixture count in
+      `packages/gherkin/tests/load.test.ts` went from 5 to 6 for the new fixture.
 
 Deferred: none

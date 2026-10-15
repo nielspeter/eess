@@ -104,7 +104,7 @@ choice. This proposal does not try to win that team. A Python-native rule API is
   the second review, measured on the kernel. ADR-012's capability is a masker, not a comment
   syntax, and the kernel's default scanner still runs over it. A `#` waiver is never read, and a
   `//` waiver written inside a docstring is honoured. See change 2 and
-  [bug 0419](../bugs/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md).)_
+  [bug 0419](../bugs/fixed/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md).)_
 - **No reader of Python exists in the family.** Proposal 014 rules it out of its own scope.
 - **ADR-002** pins ts-morph for TypeScript and rejected tree-sitter because TypeScript's rules need a
   checker. Python's first rules do not, and tree-sitter is rejected here for a different reason,
@@ -422,7 +422,7 @@ The fifteen below summarise the review. **Appendix B is the complete list**, one
      masker, not a comment syntax.
    - **Owner:** an ADR-012 amendment, inside Ask A, with a row for each case.
    - **Other file types:** reproduced 2026-10-15 for eess-gherkin, a shipped false green. Recorded
-     as [bug 0419](../bugs/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md).
+     as [bug 0419](../bugs/fixed/0419-a-waiver-in-a-gherkin-doc-string-suppresses-a-real-finding.md).
 
 **Important**
 
