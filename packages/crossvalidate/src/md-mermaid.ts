@@ -10,7 +10,7 @@ import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { diagram, classes as mmdClasses, diagramKind } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
-import { identifyTsClass } from './shared.js'
+import { identifyTsClass, GRAMMAR_GAP, grammarGapRemedy, asClause } from './shared.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset, collectResult } from '@nielspeter/eess'
@@ -63,8 +63,9 @@ export interface EmbeddedDiagramsMatchCodeOptions extends PresetReportOptions {
  * whose kind is unrecognised is still parsed, so an unknown diagram costs a loud
  * finding rather than silent coverage loss.
  *
- * **This preset does not fail on an empty selection.** A corpus with no class
- * diagrams returns no violations. Gate on {@link embeddedDiagramStats} if a
+ * **An empty selection.** A corpus with no class diagrams returns no
+ * violations from the comparison; the kernel's evidence check still reports a
+ * pass over nothing examined. Gate on {@link embeddedDiagramStats} if a
  * non-empty run is what you mean to assert.
  */
 export function embeddedDiagramsMatchCode(
@@ -101,10 +102,10 @@ export function embeddedDiagramsMatchCode(
           file: doc.file,
           line: block.line,
           message:
-            `embedded ${kindOf(block.value)} does not parse as a Mermaid class diagram: ${detailOf(e)}` +
+            `embedded ${kindOf(block.value)} does not parse with eess-mermaid's class-diagram grammar: ${asClause(detailOf(e))}. ` +
             (KNOWN_UNMODELLED.test(kindOf(block.value))
-              ? ' — this is legal Mermaid that eess-mermaid does not model yet, not a syntax error in your document'
-              : ''),
+              ? 'This is legal Mermaid that eess-mermaid does not model yet, not a syntax error in your document.'
+              : GRAMMAR_GAP),
           because:
             'A diagram that cannot be parsed cannot be compared against code, so it silently stops constraining it.',
           // Deliberately offers ONE remedy. The earlier text ended "or remove the
@@ -112,8 +113,11 @@ export function embeddedDiagramsMatchCode(
           // taking that branch turns red into green over a document whose drift
           // is still there. A remedy that remediates by deleting the evidence is
           // not a remedy (ADR-009 rule 2).
-          suggestion:
-            'Fix the diagram syntax so it parses as a Mermaid class diagram. If this fence is a diagram kind eess-mermaid does not model, report it rather than deleting the fence.',
+          // Bug 0409: one remedy that is right whichever the cause is, and removes no valid content.
+          // `classDiagram-v2` is a known gap with a concrete fix that keeps the diagram checked.
+          suggestion: KNOWN_UNMODELLED.test(kindOf(block.value))
+            ? 'Change the header to `classDiagram`: it is the same language, and eess-mermaid reads it.'
+            : grammarGapRemedy('ignore it in the corpus you pass to embeddedDiagramsMatchCode'),
         })
         continue
       }

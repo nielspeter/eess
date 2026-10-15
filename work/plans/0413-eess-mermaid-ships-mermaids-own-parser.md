@@ -18,7 +18,7 @@
   - [plan 0214](completed/0214-extract-the-diagram-kind-predicate.md) — moves the preamble walk into
     eess-mermaid as `diagramKind()`. Conditions 6 and 7 extend that walk; there is no third copy.
     0214 is Done (PR #212); this plan does not take it over.
-  - [bug 0409](../bugs/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) — fixed **before** this
+  - [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) — fixed **before** this
     plan (condition 12 allowed "before or with"; "before" keeps this PR from carrying another
     record's fix and close). Otherwise a block Mermaid accepts can still be reported by md-mermaid as
     the author's syntax error, beside this plan's green for the same block.

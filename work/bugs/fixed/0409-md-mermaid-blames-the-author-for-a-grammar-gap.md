@@ -2,8 +2,9 @@
 
 ## Status
 
-- **State:** Draft — measured 2026-10-12 against this repository's build at `9765605`, with `mermaid`
-  11.17.2 as the reference parser. No red test yet.
+- **State:** Fixed — 2026-10-15, in the PR that closes it, by the first direction below. Measured
+  2026-10-12 against this repository's build at `9765605`, with `mermaid` 11.17.2 as the reference
+  parser.
 - **Severity:** Medium — an honesty gap between a stated claim and its mechanism (`BUGS.md`'s
   Medium row), and a wrong remedy (ADR-009 rule 2), not a false green: the build is red when it
   should be. The code states the principle itself — "blaming the author's syntax for a grammar gap
@@ -11,7 +12,7 @@
   covers one diagram header and no construct inside a diagram. So the finding tells the author their
   valid diagram has a syntax error, and the cheapest path to green is removing a correct construct.
 - **Origin:** self-found · architect and enforcement review of
-  [proposal 006](../proposals/006-mermaid-beyond-classdiagram.md)'s Ask C, 2026-10-12 — Ask C and
+  [proposal 006](../../proposals/006-mermaid-beyond-classdiagram.md)'s Ask C, 2026-10-12 — Ask C and
   that review are in PR #199, not yet on `main`.
 - **Reported:** 2026-10-12
 
@@ -87,27 +88,51 @@ diagram.
 
 ## Fix
 
-Not designed. Two directions, which do not exclude each other:
+**Decided 2026-10-15, from ADR-009 rule 2 and this record, overrulable: the first direction.** Until
+plan 0413 gives eess Mermaid's own parser, eess cannot tell a syntax error from a construct
+eess-mermaid does not model, so the finding says that and no more.
 
-- **Without a reference parser:** say what eess knows — the fence is not readable by eess-mermaid's
-  grammar, which may be a syntax error or Mermaid eess-mermaid does not model — and give a remedy for
-  each, none of them removing valid content. The ER message stops claiming what "standard Mermaid"
-  accepts.
-- **With one:** proposal 006's Ask C (every Mermaid fence parses, by Mermaid's own parser) would let
-  the two cases be told apart. Its review held it on, among other things, the rule for which parser
-  owns `classDiagram` syntax; this bug is that rule's first consequence, and does not wait for it.
+- **Message.** Both bindings now say the fence "does not parse with eess-mermaid's class-diagram
+  grammar" (or "ER grammar"), give the parser's detail, and add: "This is either a syntax error in
+  the document or valid Mermaid that eess-mermaid does not model yet; eess cannot tell which without
+  Mermaid's own parser." The ER message no longer claims what "standard Mermaid ER syntax" accepts.
+  The definite clause for `classDiagram-v2` (`KNOWN_UNMODELLED`) stays.
+- **Remedy, one for both causes, removing nothing valid** (`grammarGapRemedy`): check the fence in the
+  Mermaid Live Editor (`mermaid.parse` in Node needs a DOM, and fails without one, valid or not); if
+  Mermaid reports a parse error, fix it; if Mermaid accepts it, keep it and report the construct at
+  the eess issue tracker. The finding stays until eess-mermaid models the construct. To be green
+  meanwhile, move only that fence into a document of its own and leave that document out, with the
+  binding's own option, so the original document's other diagrams are still checked, and put it back
+  once the construct is modelled.
+  - _Corrected by PR #213's review:_ the first version pointed at `mermaid.parse` alone, which can
+    reject valid Mermaid in Node and so lead to "fixing" a correct fence; and it said to leave out the
+    whole document, which also stops checking its other diagrams (measured: a false green over a
+    second fence's drift). Both are replaced above.
+- **`classDiagram-v2`**, the one known gap, keeps its definite clause and gets its own fix: change the
+  header to `classDiagram`.
+- **The ER finding's remedy is its `suggestion`** (the fix line), and its `because` is a reason. The
+  first version passed the remedy where `violationsFor` takes the reason, so it printed under "Why:"
+  with no fix line (PR #213's review).
+- **Not "waive it".** The first draft of this remedy said to waive the finding with an `eess-exclude`
+  comment and a reason. A probe showed the comment does not silence this finding on either reporting
+  path, so that remedy would not have worked. Recorded as
+  [bug 0422](../0422-a-waiver-does-not-silence-an-md-mermaid-finding.md).
+- The two strings live in `packages/crossvalidate/src/shared.ts`, so both bindings say the same
+  thing.
+
+The second direction, telling the two causes apart with Mermaid's own parser, is plan 0413's.
 
 ## Verification
 
-These hold whichever direction the fix takes.
+- [x] Red test first, through `embeddedDiagramsMatchCode`: for a `classDiagram` fence Mermaid accepts
+      (`direction RL`, `packages/crossvalidate/tests/fixtures/calc/docs/embedded-grammar-gap.md`),
+      neither the message nor the suggestion asserts a syntax error in the document, and the
+      suggestion removes no valid content. Exact-string assertions in
+      `packages/crossvalidate/tests/md-mermaid.test.ts`; red before the change.
+- [x] A fence both parsers reject (`class A; class B`, `embedded-both-reject.md`) is still reported.
+- [x] The ER binding's message no longer asserts what "standard Mermaid ER syntax" accepts. Its test
+      over `bad-unparseable.md` was rewritten to the new wording on purpose, since Mermaid's parser
+      accepts that fixture.
+- [x] `npm run validate` green on this branch.
 
-- [ ] Red test first, through `embeddedDiagramsMatchCode`: for a `classDiagram` fence Mermaid accepts
-      (`direction RL`), neither the message nor the suggestion asserts a syntax error in the
-      document, and the suggestion removes no valid content — exact-string assertions
-- [ ] a fence both parsers reject (`class A; class B`) is still reported
-- [ ] the ER binding's message no longer asserts what "standard Mermaid ER syntax" accepts for a
-      fence Mermaid's parser accepts; its test (`md-mermaid-er.test.ts:80-84`) is either kept on a
-      fence Mermaid's parser rejects, or rewritten to the new wording on purpose
-- [ ] `npm run validate` green.
-
-Deferred: none.
+Deferred: none

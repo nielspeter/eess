@@ -258,4 +258,54 @@ describe('embeddedDiagramsMatchCode() — a diagram nested in a list item or blo
       ),
     ).toEqual({ documents: 3, diagrams: 3, skipped: 0 })
   })
+
+  // Bug 0409: eess-mermaid's grammar covers part of Mermaid. A fence it rejects is a syntax error OR
+  // valid Mermaid it does not model, and without Mermaid's own parser eess cannot tell which. The
+  // finding said the first, and its remedy led to deleting a correct construct.
+  const parseFinding = (doc: string) => {
+    try {
+      embeddedDiagramsMatchCode(c([doc]), proj())
+    } catch (e) {
+      if (e instanceof ArchRuleError)
+        return e.violations.find((x) => x.message.includes('does not parse'))
+    }
+    return undefined
+  }
+  const SUGGESTION =
+    'Check this fence in the Mermaid Live Editor (https://mermaid.live); in Node, mermaid.parse ' +
+    'needs a DOM such as jsdom and fails without one. If Mermaid reports a parse error, fix the ' +
+    'syntax. If Mermaid accepts it, keep the fence and report the construct at ' +
+    'https://github.com/nielspeter/eess/issues; this finding stays until eess-mermaid models it, and ' +
+    'no eess-exclude comment silences it yet. To be green meanwhile, move only this fence into a ' +
+    `document of its own and leave that document out (ignore it in the corpus you pass to embeddedDiagramsMatchCode), so the document's other ` +
+    'diagrams are still checked; put it back once the construct is modelled.'
+
+  it('does not call valid Mermaid it cannot read a syntax error (bug 0409)', () => {
+    const v = parseFinding('docs/embedded-grammar-gap.md')
+    expect(
+      v?.message.startsWith(
+        "embedded classDiagram does not parse with eess-mermaid's class-diagram grammar: ",
+      ),
+    ).toBe(true)
+    expect(v?.message).toContain(
+      "This is either a syntax error in the document or valid Mermaid that eess-mermaid does not model yet; eess cannot tell which without Mermaid's own parser.",
+    )
+    expect(v?.message).not.toMatch(/syntax error in your document/)
+    expect(v?.suggestion).toBe(SUGGESTION)
+    expect(v?.suggestion).not.toMatch(/remove|delete/i)
+  })
+
+  it('still reports a fence both parsers reject (bug 0409)', () => {
+    const v = parseFinding('docs/embedded-both-reject.md')
+    expect(v?.ruleId).toBe('crossval/embedded-diagram')
+    expect(v?.suggestion).toBe(SUGGESTION)
+  })
+
+  it('gives classDiagram-v2, a known gap, its concrete fix (bug 0409)', () => {
+    const v = parseFinding('docs/embedded-classdiagram-v2.md')
+    expect(v?.message).toContain('This is legal Mermaid that eess-mermaid does not model yet')
+    expect(v?.suggestion).toBe(
+      'Change the header to `classDiagram`: it is the same language, and eess-mermaid reads it.',
+    )
+  })
 })
