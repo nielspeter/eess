@@ -84,10 +84,10 @@ The block from the doc strings is read in both. The `#` comment on line 11 is re
 ## Root cause
 
 - **Which masker runs.** `parseExclusionComments` picks a default masker by file type
-  (`packages/core/src/exclusion-comments.ts:391`). Code files and every other non-Markdown type get
+  (`exclusion-comments.ts` line 391 at `247e6579`, before the fix; now `packages/core/src/exclusion-comments.ts:396`). Code files and every other non-Markdown type get
   the JavaScript one. It treats `"""` as string delimiters, not as a Gherkin doc string, so the
   doc string's lines reach the directive scan as if they were code. The comment beside that choice
-  (`packages/core/src/exclusion-comments.ts:388-390`) calls it the conservative one: "over-masking
+  (lines 388-390 at `247e6579`, rewritten by the fix) called it the conservative one: "over-masking
   hides a directive (loud), under-masking invents one (silent)". For a `.feature` file it
   under-masks: it invents a directive from a doc string, the silent case.
 - **Which forms are read.** The scan reads `//` and `<!-- -->` forms only. So a `//` line that
@@ -121,11 +121,19 @@ is corrected.
       `scenarios(…).violations()` over `tests/fixtures/waiver-in-doc-string.feature`. It failed before
       the fix (0 violations) and reports the duplicate title at line 7 after.
 - [x] A kernel test, `packages/core/tests/exclusion-unlexable-file-types.test.ts`, reads no directive
-      in `.feature`, `.yml`, `.yaml`, `.py`, `.mmd`, `.graphql` or `.txt`, and still reads one in
-      `.ts` and `.md`. Seven of its eight cases failed before the fix.
+      in `.feature`, `.yml`, `.yaml`, `.py`, `.mmd`, `.graphql` or `.txt`, for the `//` and `<!-- -->`
+      forms, with no masker and with an injected one, and still reads one in `.ts` and `.md`. Seven of
+      its first eight cases failed before the fix; a default that blanks only `//` fails nine of ten.
 - [x] A sabotage row: restoring the JavaScript reading for these files turned both tests red again (7
       failed, and 1 failed), and they went green once restored.
 - [x] `npm run validate` green on this branch, locally. The fixture count in
       `packages/gherkin/tests/load.test.ts` went from 5 to 6 for the new fixture.
 
-Deferred: none
+- [ ] Saying so when a directive in such a file is ignored, as the draft's second option asked
+      ("with that said"): `deferred→bug 0421`
+      ([bug 0421](../0421-a-waiver-in-a-file-the-kernel-cannot-lex-is-ignored-in-silence.md)). The docs
+      now state where directives are read.
+- [x] ADR-012 updated in the same PR, as the fix's review asked: a dated section applying property 2
+      to these files, and a `gated` Enforcement row citing the kernel test.
+
+Deferred: bug 0421

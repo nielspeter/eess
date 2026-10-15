@@ -1,5 +1,5 @@
 import type { ArchViolation } from './violation.js'
-import { maskNonCommentSpans, maskMarkdownCodeSpans } from './mask-non-comment.js'
+import { maskNonCommentSpans, maskMarkdownCodeSpans, maskEverything } from './mask-non-comment.js'
 
 /**
  * Exclusion comment parsed from source code.
@@ -85,11 +85,6 @@ const SINGLE_LINE_RE = /^[ \t]*eess-exclude[ \t]+(.+)/
  * directive, including the trailing `code // eess-exclude …` form, whose first
  * `//` is the directive's own.
  */
-/** Blank every character but line breaks: length- and line-preserving, and no directive survives. */
-function maskEverything(sourceText: string): string {
-  return sourceText.replace(/[^\r\n]/g, ' ')
-}
-
 const CODE_LIKE = /\.(?:[cm]?[jt]sx?|vue|svelte)$/i
 const MARKDOWN_LIKE = /\.(?:md|markdown|mdx)$/i
 
@@ -392,15 +387,12 @@ export function parseExclusionComments(
   // JS masker blanks and the markdown one does not. That is the very mistake this
   // comment describes, committed by the fix for it.
   //
-  // Anything neither code nor markdown is a file the kernel cannot lex, so it reads
-  // NO directive there (bug 0419, ADR-012's second property: "when it cannot prove a
-  // span is a comment, it does not treat it as one"). This used to fall back to the
-  // JS masker, called conservative here. It was not: a Gherkin doc string or a YAML
-  // block scalar is not a JS string, so `//` text inside one reached the scan and
-  // waived a real finding. Over-masking hides a directive (loud: the finding stays);
-  // under-masking invents one (silent). A dialect cannot re-enable directives for such
-  // a file through `mask`, since the default runs over its output; that needs an
-  // amendment to ADR-012 (proposal 016, change 2).
+  // Anything else is a file the kernel cannot lex: it reads NO directive there (bug
+  // 0419, ADR-012's second property). The JS masker used to stand in, and a `//` line
+  // inside a Gherkin doc string reached the scan and waived a real finding. Blanking
+  // everything leaves the finding red. No `mask` can undo it, since the default runs
+  // over the injected output; re-enabling is ADR-012's open amendment (bug 0291,
+  // proposal 016 change 2).
   const defaultMask = CODE_LIKE.test(filePath)
     ? maskNonCommentSpans
     : MARKDOWN_LIKE.test(filePath)

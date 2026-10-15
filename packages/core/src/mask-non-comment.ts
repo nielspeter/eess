@@ -266,3 +266,11 @@ function blankInlineCodeSpans(line: string): string {
   }
   return out
 }
+
+/**
+ * The default for a file the kernel cannot lex (neither code nor Markdown): blank every character
+ * but line breaks, so no directive survives (bug 0419). Length- and line-preserving, like the others.
+ */
+export function maskEverything(sourceText: string): string {
+  return blank(sourceText, 0, sourceText.length)
+}

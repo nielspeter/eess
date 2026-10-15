@@ -23,6 +23,10 @@ describe('a file type the kernel cannot lex yields no directives (bug 0419)', ()
     '      // eess-exclude-end',
     '      """',
     '// eess-exclude some/rule: even a line that looks like a JavaScript comment',
+    '      """',
+    '      <!-- eess-exclude-start some/rule: the HTML form, inside a doc string -->',
+    '      """',
+    '<!-- eess-exclude some/rule: even a line that looks like an HTML comment -->',
   ].join('\n')
 
   for (const file of [
@@ -36,6 +40,24 @@ describe('a file type the kernel cannot lex yields no directives (bug 0419)', ()
   ]) {
     it(`reads none in ${file}`, () => {
       expect(parseExclusionComments(text, file).exclusions).toEqual([])
+    })
+  }
+
+  // eess-ts injects its own masker for every file, so the default has to hold over an injected one
+  // (ADR-012's third property). The identity masker blanks nothing; the other blanks only `//`
+  // lines, the review's probe for a default that forgot the HTML form.
+  const identity = (text: string): string => text
+  const blankSlashes = (text: string): string =>
+    text
+      .split('\n')
+      .map((line) => (line.trimStart().startsWith('//') ? ' '.repeat(line.length) : line))
+      .join('\n')
+  for (const [name, mask] of [
+    ['an identity masker', identity],
+    ['a masker that blanks only //', blankSlashes],
+  ] as const) {
+    it(`reads none in a .feature file with ${name} injected`, () => {
+      expect(parseExclusionComments(text, 'features/a.feature', { mask }).exclusions).toEqual([])
     })
   }
 
