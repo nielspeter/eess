@@ -118,6 +118,17 @@ describe('tableErAgree() — non-standard syntax', () => {
     expect(violations[0]?.line).toBe(9)
   })
 
+  // Same as frontmatter: selected now, but eess-mermaid's ER parser rejects a multi-line init
+  // block, so it is reported as not parsing. Bug 0409 owns the gap; this pins today's behaviour.
+  it('selects an erDiagram behind a multi-line %%{init}%% block, so it is no longer skipped', () => {
+    const violations = violationsOf(() =>
+      tableErAgree(c(['bad-multiline-init-extra-attribute.md']), OPTS),
+    )
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.message).toContain('erDiagram does not parse')
+    expect(violations[0]?.line).toBe(9)
+  })
+
   it('skips a non-ER fence without skipping the document it sits in', () => {
     const violations = violationsOf(() => tableErAgree(c(['bad-beside-a-sequence.md']), OPTS))
     expect(violations).toHaveLength(1)

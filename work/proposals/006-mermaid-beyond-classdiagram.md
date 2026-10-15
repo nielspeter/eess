@@ -69,7 +69,7 @@ Markdown-fence extraction of mermaid diagrams is built, shipped and dogfooded.
 - `eess-crossvalidate`'s `md-mermaid` binding consumes exactly that: it selects
   mermaid fences at `packages/crossvalidate/src/md-mermaid.ts:186` and feeds the
   fence string straight to `diagram()` at
-  `packages/crossvalidate/src/md-mermaid.ts:120`.
+  `packages/crossvalidate/src/md-mermaid.ts:88`.
 
   > **These pointers went stale TWICE.** Re-anchored once after
   > [bug 0209](../bugs/fixed/0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md)
@@ -86,7 +86,7 @@ Markdown-fence extraction of mermaid diagrams is built, shipped and dogfooded.
   > citing prose claims. The claim itself is unchanged: fence extraction ships.
 
 - Its sibling `md-mermaid-er` does the same for ER, selecting on fence **content**
-  at `packages/crossvalidate/src/md-mermaid-er.ts:53`.
+  at `packages/crossvalidate/src/md-mermaid-er.ts:58`.
 
 Verified by running it: `diagram(fenceString)` parses a lifted fence today. The
 entry point at
@@ -444,7 +444,7 @@ adds Ask C's row.
 
 **Survey.** _Partly exists:_ `embeddedDiagramsMatchCode` already reports a `classDiagram` fence
 that fails eess-mermaid's Langium grammar, at the Markdown file and fence line
-(`packages/crossvalidate/src/md-mermaid.ts:122-150`), and skips every other legal kind by its
+(`packages/crossvalidate/src/md-mermaid.ts:90-118`), and skips every other legal kind by its
 `FOREIGN_HEADER` list (`:41-42`, `:187-192`). _Precedent:_ eess-ts loads its optional `graphql` peer
 through one guarded loader that reports a missing or broken install (`packages/ts/package.json:109-116`,
 `packages/ts/src/graphql/schema-loader.ts:84-145`). _Genuinely new:_ parsing every kind, by the
@@ -566,8 +566,8 @@ review of this record followed, and its corrections are applied here.
 
 - _Exists:_
   - `MdDocument.codeBlocks`, at any depth once #204 merges;
-  - the preamble walk `declaredKind` (`packages/crossvalidate/src/md-mermaid.ts:47`), which plan
-    0214 moves to eess-mermaid;
+  - the preamble walk `declaredKind` (`packages/crossvalidate/src/md-mermaid.ts:47` when written), which plan
+    0214 moved to eess-mermaid as `diagramKind` (`packages/mermaid/src/parser/diagram-kind.ts:10`);
   - the optional-peer precedent: eess-ts `graphql`, `packages/ts/package.json:112`;
   - `.expectEmpty()` (`packages/core/src/cardinality.ts:37`);
   - the bounded-instrument precedent (`packages/ts/src/core/disk-set.ts`);

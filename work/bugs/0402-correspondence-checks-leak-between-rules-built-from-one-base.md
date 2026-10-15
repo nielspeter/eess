@@ -7,7 +7,7 @@
   finding from a check it never declared, under its own id, so its author goes looking for a fault
   in the wrong rule. Exposure is user-written rule code: every shipped consumer builds a fresh
   `correspondence()` per rule (`packages/crossvalidate/src/md-ts.ts:153`,
-  `packages/crossvalidate/src/md-mermaid.ts:158`, `packages/crossvalidate/src/mermaid-ts.ts:52`),
+  `packages/crossvalidate/src/md-mermaid.ts:126`, `packages/crossvalidate/src/mermaid-ts.ts:52`),
   and no rule file in this repo derives two rules from one base.
 - **Origin:** self-found · architect review of proposal 013, 2026-10-07.
 - **Reported:** 2026-10-07

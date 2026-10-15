@@ -101,7 +101,7 @@ Every one-way `beComplete()` whose checked side can be emptied by a broken selec
   the right side (every test title) keeps `examined` above zero and it passes. Reasoned from row a,
   not run end to end; its non-vacuity row goes red through a dangling citation, not an empty
   extraction.
-- `packages/crossvalidate/src/mermaid-ts.ts:52-54` and `packages/crossvalidate/src/md-mermaid.ts:158-160`,
+- `packages/crossvalidate/src/mermaid-ts.ts:52-54` and `packages/crossvalidate/src/md-mermaid.ts:126-128`,
   whenever their direction option is one-way.
 - `release/names-real-package` (`scripts/release-gate.mjs:291-302`), left-to-right with the whole
   workspace on the right.

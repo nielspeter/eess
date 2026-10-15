@@ -99,8 +99,8 @@ across two packages:
 | `HEADER_PATTERN`         | `packages/mermaid/src/core/diagram.ts:5`         |
 | `KNOWN_UNMODELLED`       | `packages/crossvalidate/src/md-mermaid.ts:39`    |
 | `FOREIGN_HEADER`         | `packages/crossvalidate/src/md-mermaid.ts:41`    |
-| `kindOf` (normalisation) | `packages/crossvalidate/src/md-mermaid.ts:170`   |
-| `ER_HEADER`              | `packages/crossvalidate/src/md-mermaid-er.ts:42` |
+| `kindOf` (normalisation) | `packages/crossvalidate/src/md-mermaid.ts:138`   |
+| `ER_HEADER`              | `packages/crossvalidate/src/md-mermaid-er.ts:47` |
 
 **What this plan leaves undone, stated rather than gated.** Nothing keeps the grammar set and
 the selectors in lockstep. That risk is pre-existing and this plan neither closes it nor
@@ -123,7 +123,9 @@ it have each been wrong somewhere else, so it is recorded rather than half-built
 ## Files Changed
 
 - `packages/mermaid/src/parser/diagram-kind.ts` + `index.ts` — the exported, normalised `diagramKind()`
-- `packages/crossvalidate/src/md-mermaid.ts` — import instead of declare; drop `kindOf`
+- `packages/crossvalidate/src/md-mermaid.ts` — import instead of declare; `kindOf` stays as the one
+  line that phrases `''` as "diagram" (the plan first said "drop `kindOf`"; the freeze decided to keep
+  it)
 - `packages/crossvalidate/src/md-mermaid-er.ts` — test `diagramKind(b.value)`, allowlist intact
 - `scripts/nonvacuity/bad-md-mermaid-er/` **and** `bad-md-mermaid-er.mjs`, **and** its row in
   `scripts/check-nonvacuity.mjs`'s hand-maintained gates array — a fixture directory with no
@@ -142,7 +144,9 @@ updated in the same PR, so the coupling is not one-directional.
       `packages/crossvalidate/tests/md-mermaid-er.test.ts` failed before the change.
 - [x] After the fix it is selected and compared, and `tableErStats` counts it.
 - [x] A `---` frontmatter'd ER diagram likewise. done-otherwise: it is now **selected**, so it is no
-      longer skipped in silence, but eess-mermaid's `parseErDiagram` rejects frontmatter, so it is
+      longer skipped in silence, but eess-mermaid's `parseErDiagram` rejects frontmatter, and a
+      multi-line `%%{init}%%` block too (found by PR #212's review, pinned by
+      `bad-multiline-init-extra-attribute.md`), so it is
       reported as not parsing instead of being compared. The grammar gap and the message blaming the
       author are recorded in [bug 0409](../../bugs/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md),
       the next item in proposal 006's Ask C.
@@ -153,6 +157,8 @@ updated in the same PR, so the coupling is not one-directional.
       reports with the fix and goes vacuous (exit 0) with the raw-body selector restored. As the
       plan said, `tableErAgree` still has no production consumer here.
 - [x] `check:family` green.
+- [x] eess-crossvalidate's peer range for eess-mermaid raised to `>=0.7.0` (PR #212's review): it now
+      imports `diagramKind`, which no earlier eess-mermaid has. The changeset says so.
 - [x] `diagramKind()` tests (`packages/mermaid/tests/parser/diagram-kind.test.ts`, 12): each prefix
       shape, an empty fence, comments only, an unclosed init, and the header regexes reading the
       token exactly as they read the line.

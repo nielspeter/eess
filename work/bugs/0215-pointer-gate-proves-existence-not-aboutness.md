@@ -41,8 +41,8 @@ passes, silently, forever.
 | citation                                                    | drifted onto                                                                   | gate  |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------ | ----- |
 | proposal 006 → `md-mermaid.ts:56` "selects mermaid fences"  | a JSDoc line, after bug 0209's fix moved the code                              | green |
-| proposal 006, **re-anchored** → `md-mermaid.ts:143` / `:93` | `suggestion:` (a violation field) and JSDoc, after the same PR's later commits | green |
-| `PROPOSALS.md:131` board row → `md-mermaid.ts:143`          | same                                                                           | green |
+| proposal 006, **re-anchored** → `md-mermaid.ts:111` / `:93` | `suggestion:` (a violation field) and JSDoc, after the same PR's later commits | green |
+| `PROPOSALS.md:131` board row → `md-mermaid.ts:111`          | same                                                                           | green |
 
 The second row is the one that matters: the re-anchor was written _in the paragraph
 documenting this defect_, verified at the time, and invalidated by a later commit in the

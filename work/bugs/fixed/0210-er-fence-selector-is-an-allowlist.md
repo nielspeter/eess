@@ -34,7 +34,10 @@ USER { uuid id PK }
 
 ## Root cause
 
-An allowlist selector is fail-open: it drops whatever it fails to recognise.
+An allowlist selector is fail-open: it drops whatever it fails to recognise. _(Narrowed by plan 0214,
+which fixed this: the defect was that the allowlist was anchored to the raw fence body, not to the
+declared kind. The allowlist itself stays; plan 0214 explains why a denylist would be unsound
+here.)_
 This is the identical defect [bug 0209](./0209-md-mermaid-crashes-on-a-non-classdiagram-fence.md)
 found and fixed in the sibling binding, which now selects by **excluding** the
 kinds known to be something else, so an unrecognised header still reaches the

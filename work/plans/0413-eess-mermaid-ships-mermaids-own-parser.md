@@ -17,7 +17,7 @@
   - [plan 0412](./completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md) — the port.
   - [plan 0214](completed/0214-extract-the-diagram-kind-predicate.md) — moves the preamble walk into
     eess-mermaid as `diagramKind()`. Conditions 6 and 7 extend that walk; there is no third copy.
-    0214 is a Draft and must reach Ready and land first; this plan does not take it over.
+    0214 is Done (PR #212); this plan does not take it over.
   - [bug 0409](../bugs/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) — fixed **before** this
     plan (condition 12 allowed "before or with"; "before" keeps this PR from carrying another
     record's fix and close). Otherwise a block Mermaid accepts can still be reported by md-mermaid as
@@ -166,7 +166,10 @@ One PR, red-first.
 - `packages/mermaid/src/index.ts` — `mermaidParser` export.
 - `packages/mermaid/package.json` — optional peers; `files` keeps the worker.
 - `packages/mermaid/package.json` build script — copies the worker into `dist/`.
-- the moved `diagramKind()` (plan 0214's home) — the emptiness reason and skipped offsets.
+- beside the moved `diagramKind()` (plan 0214's home), a **sibling export** for the emptiness reason
+  and skipped offsets, with `diagramKind` kept as the string view of it. `diagramKind` returns a
+  `string`, so changing its return type would be a break, not the additive minor this plan claims
+  (PR #212's architect review).
 - `packages/mermaid/tests/mermaid-parser.test.ts` and fixtures — new; the parser alone, no eess-md.
 - `packages/crossvalidate/tests/mermaid-parser-port.test.ts` — new; conformance and the
   Markdown-line rows.
