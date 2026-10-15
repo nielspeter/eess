@@ -74,7 +74,7 @@ carries the verification boxes below; this record closes `done-otherwise → 021
 - [x] A `---` frontmatter'd ER diagram likewise. done-otherwise: it is now selected, so it is no
       longer skipped in silence, but eess-mermaid's ER parser rejects the frontmatter, so it is
       reported as not parsing instead of being compared. That gap, and the message blaming the
-      author for it, are recorded in [bug 0409](../0409-md-mermaid-blames-the-author-for-a-grammar-gap.md).
+      author for it, are recorded in [bug 0409](0409-md-mermaid-blames-the-author-for-a-grammar-gap.md).
 - [x] A non-ER fence is still skipped, and the document is not skipped with it.
 - [x] The selector has a break class in `scripts/nonvacuity/`: `bad-md-mermaid-er.mjs`, registered as
       `crossval/md-mermaid-er`. It reports with the fix and goes vacuous (exit 0) with the raw-body

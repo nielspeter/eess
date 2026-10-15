@@ -94,7 +94,17 @@ describe('tableErAgree() — non-standard syntax', () => {
   it('flags an unparseable erDiagram as a violation instead of crashing', () => {
     const violations = violationsOf(() => tableErAgree(c(['bad-unparseable.md']), OPTS))
     expect(violations).toHaveLength(1)
-    expect(violations[0]?.message).toContain('does not parse as standard Mermaid ER syntax')
+    // Bug 0409: rewritten on purpose. Mermaid's own parser accepts this fixture's `o{--o{`, so the
+    // finding no longer claims what "standard Mermaid ER syntax" accepts.
+    expect(
+      violations[0]?.message.startsWith(
+        "erDiagram does not parse with eess-mermaid's ER grammar: ",
+      ),
+    ).toBe(true)
+    expect(violations[0]?.message).not.toMatch(/standard Mermaid/)
+    expect(violations[0]?.message).toContain(
+      "This is either a syntax error in the document or valid Mermaid that eess-mermaid does not model yet; eess cannot tell which without Mermaid's own parser.",
+    )
   })
 
   // Bug 0210 / plan 0214: the selector tested the raw fence body, so a diagram whose first line is a

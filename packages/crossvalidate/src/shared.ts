@@ -77,3 +77,18 @@ export function violationsFor<Site>(
 ): (site: Site, message: string, because: string) => ArchViolation {
   return (site, message, because) => ({ rule, ruleId, ...locate(site), message, because })
 }
+
+// Bug 0409: eess-mermaid's grammars cover part of Mermaid. A fence they reject is a syntax error or
+// valid Mermaid they do not model, and without Mermaid's own parser eess cannot tell which, so the
+// finding says so instead of asserting the first. Shared with the ER binding.
+export const GRAMMAR_GAP =
+  "This is either a syntax error in the document or valid Mermaid that eess-mermaid does not model yet; eess cannot tell which without Mermaid's own parser."
+export const GRAMMAR_GAP_REMEDY =
+  'Check this fence with Mermaid itself (the Mermaid Live Editor, or mermaid.parse). If Mermaid ' +
+  'rejects it, fix the syntax. If Mermaid accepts it, keep the fence and report the construct to ' +
+  "eess-mermaid; until it is modelled, leave this document out of the rule's corpus globs."
+
+/** A parser's detail as the end of a sentence: trailing `.`, `:` and spaces trimmed, so a join reads. */
+export function asClause(detail: string): string {
+  return detail.replace(/[\s.:]+$/, '')
+}

@@ -10,7 +10,7 @@ import { correspondence } from '@nielspeter/eess'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import { diagram, classes as mmdClasses, diagramKind } from '@nielspeter/eess-mermaid'
 import { classes as tsClasses, type ArchProject } from '@nielspeter/eess-ts'
-import { identifyTsClass } from './shared.js'
+import { identifyTsClass, GRAMMAR_GAP, GRAMMAR_GAP_REMEDY, asClause } from './shared.js'
 
 // Kernel re-exports (plan 0089 — standalone sufficiency): see mermaid-ts.ts.
 export { finishPreset, collectResult } from '@nielspeter/eess'
@@ -101,10 +101,10 @@ export function embeddedDiagramsMatchCode(
           file: doc.file,
           line: block.line,
           message:
-            `embedded ${kindOf(block.value)} does not parse as a Mermaid class diagram: ${detailOf(e)}` +
+            `embedded ${kindOf(block.value)} does not parse with eess-mermaid's class-diagram grammar: ${asClause(detailOf(e))}. ` +
             (KNOWN_UNMODELLED.test(kindOf(block.value))
-              ? ' — this is legal Mermaid that eess-mermaid does not model yet, not a syntax error in your document'
-              : ''),
+              ? 'This is legal Mermaid that eess-mermaid does not model yet, not a syntax error in your document.'
+              : GRAMMAR_GAP),
           because:
             'A diagram that cannot be parsed cannot be compared against code, so it silently stops constraining it.',
           // Deliberately offers ONE remedy. The earlier text ended "or remove the
@@ -112,8 +112,8 @@ export function embeddedDiagramsMatchCode(
           // taking that branch turns red into green over a document whose drift
           // is still there. A remedy that remediates by deleting the evidence is
           // not a remedy (ADR-009 rule 2).
-          suggestion:
-            'Fix the diagram syntax so it parses as a Mermaid class diagram. If this fence is a diagram kind eess-mermaid does not model, report it rather than deleting the fence.',
+          // Bug 0409: one remedy that is right whichever the cause is, and removes no valid content.
+          suggestion: GRAMMAR_GAP_REMEDY,
         })
         continue
       }

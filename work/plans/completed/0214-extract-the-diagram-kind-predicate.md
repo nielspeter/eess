@@ -148,7 +148,7 @@ updated in the same PR, so the coupling is not one-directional.
       multi-line `%%{init}%%` block too (found by PR #212's review, pinned by
       `bad-multiline-init-extra-attribute.md`), so it is
       reported as not parsing instead of being compared. The grammar gap and the message blaming the
-      author are recorded in [bug 0409](../../bugs/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md),
+      author are recorded in [bug 0409](../../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md),
       the next item in proposal 006's Ask C.
 - [x] A non-ER fence is still skipped, **and the document is not skipped with it.**
 - [x] An untagged (`lang === null`) non-ER fence is still not selected.

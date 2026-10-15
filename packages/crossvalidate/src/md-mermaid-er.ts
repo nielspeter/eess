@@ -6,7 +6,7 @@ import {
   type PresetReportOptions,
   collectResult,
 } from '@nielspeter/eess'
-import { violationsFor } from './shared.js'
+import { violationsFor, GRAMMAR_GAP, GRAMMAR_GAP_REMEDY, asClause } from './shared.js'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import {
   parseErDiagram,
@@ -100,7 +100,7 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Coll
     const blocks = erEntitiesOf(doc)
     if (blocks.length === 0) continue
 
-    // A block that is not standard Mermaid ER syntax is itself drift — flag
+    // A block eess-mermaid's ER grammar cannot read is itself a finding — flag
     // it (never crash, never silently skip) and compare what did parse.
     for (const b of blocks) {
       examined++
@@ -108,8 +108,9 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Coll
         violations.push(
           v(
             { doc, line: b.line },
-            `erDiagram does not parse as standard Mermaid ER syntax: ${b.parseError}`,
-            'a diagram the standard grammar rejects cannot be validated — fix the syntax',
+            // Bug 0409: say what eess knows, not what "standard Mermaid" accepts.
+            `erDiagram does not parse with eess-mermaid's ER grammar: ${asClause(b.parseError)}. ${GRAMMAR_GAP}`,
+            GRAMMAR_GAP_REMEDY,
           ),
         )
       }
