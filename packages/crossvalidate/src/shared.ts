@@ -83,10 +83,25 @@ export function violationsFor<Site>(
 // finding says so instead of asserting the first. Shared with the ER binding.
 export const GRAMMAR_GAP =
   "This is either a syntax error in the document or valid Mermaid that eess-mermaid does not model yet; eess cannot tell which without Mermaid's own parser."
-export const GRAMMAR_GAP_REMEDY =
-  'Check this fence with Mermaid itself (the Mermaid Live Editor, or mermaid.parse). If Mermaid ' +
-  'rejects it, fix the syntax. If Mermaid accepts it, keep the fence and report the construct to ' +
-  "eess-mermaid; until it is modelled, leave this document out of the rule's corpus globs."
+/**
+ * The remedy for a fence eess-mermaid's grammar cannot read, right whichever the cause is and removing
+ * no valid content (ADR-009 rule 2). `exclude` names the binding's own way to leave a document out.
+ *
+ * It does not say "waive it": an `eess-exclude` comment does not silence these findings (bug 0422).
+ * It does not tell the author to leave out the document the fence sits in: that also stops checking
+ * every other diagram in it (PR #213's review measured the false green). It says to isolate the fence.
+ */
+export function grammarGapRemedy(exclude: string): string {
+  return (
+    'Check this fence in the Mermaid Live Editor (https://mermaid.live); in Node, mermaid.parse ' +
+    'needs a DOM such as jsdom and fails without one. If Mermaid reports a parse error, fix the ' +
+    'syntax. If Mermaid accepts it, keep the fence and report the construct at ' +
+    'https://github.com/nielspeter/eess/issues; this finding stays until eess-mermaid models it, and ' +
+    'no eess-exclude comment silences it yet. To be green meanwhile, move only this fence into a ' +
+    `document of its own and leave that document out (${exclude}), so the document's other ` +
+    'diagrams are still checked; put it back once the construct is modelled.'
+  )
+}
 
 /** A parser's detail as the end of a sentence: trailing `.`, `:` and spaces trimmed, so a join reads. */
 export function asClause(detail: string): string {

@@ -45,6 +45,11 @@ embeddedDiagramsMatchCode(corpus({ roots: ['a.md'] }), project('tsconfig.json'),
 // → one finding whose message contains "does not parse"
 ````
 
+**Wider than the table, measured by PR #213's review:** the `eess-exclude-start` / `-end` block form is
+ignored too. The kernel's only caller of `parseExclusionComments` is its rule execution
+(`packages/core/src/execute-rule.ts:151`), which the hand-built crossvalidate presets do not pass
+through, so this likely holds for every crossvalidate preset, not only md-mermaid.
+
 ## Root cause
 
 Not traced. The crossvalidate presets build their findings by hand and hand them to `finishPreset`;
@@ -54,7 +59,9 @@ pass through. Bug 0097 records related gaps in how these presets report.
 ## Fix
 
 Not designed. Either the presets apply exclusion comments like a builder's rules do, or the docs
-name these presets as ones a comment cannot waive.
+name these presets as ones a comment cannot waive. If waivers come to work here, bug 0409's remedy
+(`grammarGapRemedy` in `packages/crossvalidate/src/shared.ts`) should switch from "isolate the fence in
+its own document" to a per-finding waiver.
 
 ## Verification
 

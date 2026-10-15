@@ -6,7 +6,7 @@ import {
   type PresetReportOptions,
   collectResult,
 } from '@nielspeter/eess'
-import { violationsFor, GRAMMAR_GAP, GRAMMAR_GAP_REMEDY, asClause } from './shared.js'
+import { violationsFor, GRAMMAR_GAP, grammarGapRemedy, asClause } from './shared.js'
 import type { Corpus, MdDocument } from '@nielspeter/eess-md'
 import {
   parseErDiagram,
@@ -55,7 +55,7 @@ const v = violationsFor<{ doc: MdDocument; line: number }>(
 interface ErBlock {
   readonly entities: ErEntityInfo[]
   readonly line: number
-  /** First parse error when the block is not standard Mermaid ER syntax. */
+  /** First parse error when eess-mermaid's ER grammar cannot read the block. */
   readonly parseError?: string
 }
 
@@ -105,14 +105,16 @@ export function tableErAgree(corpus: Corpus, options: TableErAgreeOptions): Coll
     for (const b of blocks) {
       examined++
       if (b.parseError !== undefined) {
-        violations.push(
-          v(
+        // Bug 0409: say what eess knows, not what "standard Mermaid" accepts. `violationsFor`
+        // takes a reason, not a fix, so the remedy is set as the suggestion here.
+        violations.push({
+          ...v(
             { doc, line: b.line },
-            // Bug 0409: say what eess knows, not what "standard Mermaid" accepts.
             `erDiagram does not parse with eess-mermaid's ER grammar: ${asClause(b.parseError)}. ${GRAMMAR_GAP}`,
-            GRAMMAR_GAP_REMEDY,
+            'A diagram eess-mermaid cannot read cannot be compared with its property table.',
           ),
-        )
+          suggestion: grammarGapRemedy("with tableErAgree's `docs` glob"),
+        })
       }
     }
     if (blocks.every((b) => b.parseError !== undefined)) continue

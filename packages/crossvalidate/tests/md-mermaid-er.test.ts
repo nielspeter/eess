@@ -105,6 +105,20 @@ describe('tableErAgree() — non-standard syntax', () => {
     expect(violations[0]?.message).toContain(
       "This is either a syntax error in the document or valid Mermaid that eess-mermaid does not model yet; eess cannot tell which without Mermaid's own parser.",
     )
+    // The remedy is the finding's fix line, not its reason (PR #213's review), and removes nothing.
+    expect(violations[0]?.because).toBe(
+      'A diagram eess-mermaid cannot read cannot be compared with its property table.',
+    )
+    expect(violations[0]?.suggestion).toBe(
+      'Check this fence in the Mermaid Live Editor (https://mermaid.live); in Node, mermaid.parse ' +
+        'needs a DOM such as jsdom and fails without one. If Mermaid reports a parse error, fix the ' +
+        'syntax. If Mermaid accepts it, keep the fence and report the construct at ' +
+        'https://github.com/nielspeter/eess/issues; this finding stays until eess-mermaid models it, and ' +
+        'no eess-exclude comment silences it yet. To be green meanwhile, move only this fence into a ' +
+        `document of its own and leave that document out (with tableErAgree's \`docs\` glob), so the document's other ` +
+        'diagrams are still checked; put it back once the construct is modelled.',
+    )
+    expect(violations[0]?.suggestion).not.toMatch(/remove|delete/i)
   })
 
   // Bug 0210 / plan 0214: the selector tested the raw fence body, so a diagram whose first line is a

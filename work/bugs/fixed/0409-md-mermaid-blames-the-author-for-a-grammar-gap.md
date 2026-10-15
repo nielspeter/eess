@@ -97,9 +97,22 @@ eess-mermaid does not model, so the finding says that and no more.
   the document or valid Mermaid that eess-mermaid does not model yet; eess cannot tell which without
   Mermaid's own parser." The ER message no longer claims what "standard Mermaid ER syntax" accepts.
   The definite clause for `classDiagram-v2` (`KNOWN_UNMODELLED`) stays.
-- **Remedy, one for both causes, removing nothing valid:** check the fence with Mermaid itself; if
-  Mermaid rejects it, fix the syntax; if Mermaid accepts it, keep the fence, report the construct to
-  eess-mermaid, and leave the document out of the rule's corpus globs until it is modelled.
+- **Remedy, one for both causes, removing nothing valid** (`grammarGapRemedy`): check the fence in the
+  Mermaid Live Editor (`mermaid.parse` in Node needs a DOM, and fails without one, valid or not); if
+  Mermaid reports a parse error, fix it; if Mermaid accepts it, keep it and report the construct at
+  the eess issue tracker. The finding stays until eess-mermaid models the construct. To be green
+  meanwhile, move only that fence into a document of its own and leave that document out, with the
+  binding's own option, so the original document's other diagrams are still checked, and put it back
+  once the construct is modelled.
+  - _Corrected by PR #213's review:_ the first version pointed at `mermaid.parse` alone, which can
+    reject valid Mermaid in Node and so lead to "fixing" a correct fence; and it said to leave out the
+    whole document, which also stops checking its other diagrams (measured: a false green over a
+    second fence's drift). Both are replaced above.
+- **`classDiagram-v2`**, the one known gap, keeps its definite clause and gets its own fix: change the
+  header to `classDiagram`.
+- **The ER finding's remedy is its `suggestion`** (the fix line), and its `because` is a reason. The
+  first version passed the remedy where `violationsFor` takes the reason, so it printed under "Why:"
+  with no fix line (PR #213's review).
 - **Not "waive it".** The first draft of this remedy said to waive the finding with an `eess-exclude`
   comment and a reason. A probe showed the comment does not silence this finding on either reporting
   path, so that remedy would not have worked. Recorded as
