@@ -2,14 +2,17 @@
 
 ## Status
 
-- **State:** Draft — written 2026-10-14 against the 2026-10-14 review of proposal 006's Ask C. This is
-  plan B of that review's split; [plan 0412](./completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md)
-  (A, eess-md) defines the port this plan's parser fills and is built first.
+- **State:** Ready — frozen 2026-10-15, after [spike 0425](../spikes/0425-what-mermaid-in-a-worker-does-under-vitest-and-the-cli.md)
+  measured what this plan had deferred to its build. Three decisions are recorded under "Decided at
+  the freeze". The dogfood gate moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md).
+  Written 2026-10-14 against the 2026-10-14 review of proposal 006's Ask C, as plan B of that
+  review's split; [plan 0412](./completed/0412-a-code-block-parses-with-the-parser-the-caller-names.md)
+  (A, eess-md) defines the port this plan's parser fills.
 - **Implements:** proposal 006 — Ask C, "every Mermaid fence parses, by Mermaid's own parser". The
   conditions cited by number below are that review's.
 - **Priority:** Medium — the consumer's ask itself; plan 0412 alone gives them a loop with no parser.
-- **Effort:** Medium-large — one PR, larger than any of the three items it waits on. A worker, its
-  classifier, canaries, line recovery and a conformance test; no kernel change. Additive,
+- **Effort:** Medium — one PR. A worker, its classifier, canaries, line recovery and a conformance
+  test; no kernel change. The dogfood gate is plan 0427's. Additive,
   eess-mermaid `minor`. crossvalidate gains tests only, declared `none` in the changeset; its
   release moves with bug 0409.
 - **Created:** 2026-10-14
@@ -18,6 +21,9 @@
   - [plan 0214](completed/0214-extract-the-diagram-kind-predicate.md) — moves the preamble walk into
     eess-mermaid as `diagramKind()`. Conditions 6 and 7 extend that walk; there is no third copy.
     0214 is Done (PR #212); this plan does not take it over.
+  - [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md) —
+    `parseCodeBlocks` reads the tag case-insensitively, the family rule this freeze settled. Fixed
+    **before** this plan, so this PR carries no other package's change.
   - [bug 0409](../bugs/fixed/0409-md-mermaid-blames-the-author-for-a-grammar-gap.md) — fixed **before** this
     plan (condition 12 allowed "before or with"; "before" keeps this PR from carrying another
     record's fix and close). Otherwise a block Mermaid accepts can still be reported by md-mermaid as
@@ -57,9 +63,9 @@ codeBlocks(parsed).should().parse().check()
 - **No static import of `mermaid` or `jsdom`.** Both are optional peers (`peerDependenciesMeta`,
   the precedent is eess-ts's `graphql`, `packages/ts/package.json:112`); only the worker imports
   them. An adopter who never calls `mermaidParser()` installs and loads neither.
-- `version` is read from `mermaid`'s own `package.json`. Whether its `exports` map lets that file be
-  resolved is measured in Phase 1; the fallback is resolving the package entry and walking up to its
-  manifest.
+- `version` is read from `mermaid`'s own `package.json` with
+  `createRequire(import.meta.url).resolve('mermaid/package.json')`, which resolves although `mermaid`'s
+  `exports` map lists no `./package.json` (spike 0425).
 - **The worker is self-contained**: it imports only Node built-ins, `mermaid` and `jsdom`, with no
   relative import. It is authored as a plain `.mjs` file, so no loader has to transform it — ADR-015
   teaches the host resolver `.js` → `.ts` and nothing reaches a worker's own resolution. `tsc` does
@@ -70,9 +76,8 @@ codeBlocks(parsed).should().parse().check()
   does not ship, and the plan returns for a decision.
 - The README names which parser is which: `parseClassDiagram` is eess's own grammar, used to bind a
   diagram to code; `mermaidParser()` is Mermaid's, used to say a block parses. It shows the install
-  line, `npm i -D mermaid@11 jsdom`, and its cost: about 180 MB on disk, of which `mermaid` is 84 MB
-  and `jsdom` 9 MB. That figure is the 2026-10-14 review's `du` of the spike's install, not the
-  spike's own record; Phase 1 re-measures it and records the output here.
+  line, `npm i -D mermaid@11 jsdom`, and its cost: 179 MB on disk, of which `mermaid` is 83 MB and
+  `jsdom` 8.3 MB (spike 0425, `du` of a fresh install).
 
 ### Three outcomes, by error shape (conditions 3 and 6)
 
@@ -94,11 +99,13 @@ codeBlocks(parsed).should().parse().check()
 
 ### The Markdown line (condition 7)
 
-A Mermaid error line is counted from what Mermaid parsed, not from the block body: measured,
-frontmatter makes an error on body line 5 read "line 3". The walk returns the body offsets Mermaid
-skipped, and the parser adds them back, so the verdict's `line` is counted from the block's first
-body line, as plan 0412's port requires. Phase 2 measures which of frontmatter, directives and blank
-leading lines Mermaid skips when it counts, one fixture each; eess-md then adds the block's own line.
+**Measured (spike 0425):** Mermaid drops every line before the kind line (frontmatter, `%%` lines,
+directives, blank lines) and counts its error line from the kind line. So the verdict's `line`, counted
+from the block's first body line as plan 0412's port requires, is Mermaid's line plus the number of
+lines before the kind line. It held for frontmatter, a directive and blank leading lines, for both
+error families. Mermaid's line comes from `hash.loc.first_line` for the jison kinds (their message
+names the end of input, one line too far) and from the message's "line N" for the Langium kinds.
+eess-md then adds the block's own line.
 
 ### A forged verdict, and an instrument that fails (conditions 4 and 5)
 
@@ -143,28 +150,20 @@ One PR, red-first.
 2. **Classification and lines.** The outcome table, `diagramKind()`'s emptiness reason, the line
    recovery with one fixture per preamble shape.
 3. **Canaries, abort, version range.** The in-flight index and the terminate-on-every-path test.
-4. **Conformance and dogfood.** In eess-crossvalidate: the test that `mermaidParser()` satisfies
-   plan 0412's port, by type and by one run, and the Markdown-line rows through plan 0412's
-   builder. This repository's own gate (below). README and docs.
+4. **Conformance and docs.** In eess-crossvalidate: the test that `mermaidParser()` satisfies plan
+   0412's port, by type and by one run, and the Markdown-line rows through plan 0412's builder.
+   README and docs.
 
 ## Dogfood row
 
-- **Scope:** `work/`, `adr/` and `docs/`. mdast counts 4 top-level `mermaid` blocks and 0 nested
-  there (bug 0290's record, 438 files; re-run by method review, 439). The gate prints its own count.
-- **Where:** a script gate, `check:mermaid-parses`, added to the `validate` chain beside
-  `check:corpus`. It is a script, not an eess-ts rule file, so it calls `dedupeConfigFindings`
-  itself (plan 0412), and it prints the success line from the fact object's summary. CLAUDE.md's
-  gate-output table gains its row.
-- **The break:** a dangling `Route -->` added to `docs/manifesto.md`'s `graph` block reds it.
-- **Exclusions:** fixture blocks that are broken on purpose stay out by glob (condition 13).
-- **Cost:** `mermaid` and `jsdom` become root dev dependencies of this repository. The validate
-  chain's added time is measured and recorded here before merge.
+Moved to [plan 0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md) at the freeze.
 
 ## Files Changed
 
 - `packages/mermaid/src/mermaid-js/mermaid-worker.mjs`, `mermaid-parser.ts` — new.
 - `packages/mermaid/src/index.ts` — `mermaidParser` export.
-- `packages/mermaid/package.json` — optional peers; `files` keeps the worker.
+- `packages/mermaid/package.json` — optional peers; `mermaid@11` and `jsdom` as dev dependencies for
+  the tests; `files` keeps the worker.
 - `packages/mermaid/package.json` build script — copies the worker into `dist/`.
 - beside the moved `diagramKind()` (plan 0214's home), a **sibling export** for the emptiness reason
   and skipped offsets, with `diagramKind` kept as the string view of it. `diagramKind` returns a
@@ -173,10 +172,7 @@ One PR, red-first.
 - `packages/mermaid/tests/mermaid-parser.test.ts` and fixtures — new; the parser alone, no eess-md.
 - `packages/crossvalidate/tests/mermaid-parser-port.test.ts` — new; conformance and the
   Markdown-line rows.
-- `scripts/check-mermaid-parses.mjs`, `package.json` — the dogfood gate.
-- `scripts/nonvacuity/` — plan B's rows, and the new gate's production-tier row. The harness header
-  writes out no count and must not start to.
-- `CLAUDE.md` — the gate-output table row.
+- `scripts/nonvacuity/` — plan B's rows. The harness header writes out no count and must not start to.
 - `packages/mermaid/README.md`, `docs/` — the section.
 - `.changeset/` — eess-mermaid `minor`; `@nielspeter/eess-crossvalidate: none` (tests only).
 
@@ -195,25 +191,39 @@ One PR, red-first.
 - a stubbed `mermaid` module that stops throwing, under the real worker, fails on the canaries;
 - the worker is terminated after success, failure, exit and abort, and the host process exits;
 - the conformance test in crossvalidate;
-- the dogfood gate reds on the manifesto break.
 
 ## Non-vacuity rows (plan B's share of the review's table)
 
-| row                                                                                       | breaks           |
-| ----------------------------------------------------------------------------------------- | ---------------- |
-| a syntax error at the exact Markdown line, plus frontmatter, directive, blank-lead rows   | condition 7      |
-| the false red: a labelled flowchart passes in the worker                                  | condition 8      |
-| a missing peer; a worker that exits early; a version out of range                         | condition 5      |
-| a `mermaid` that stops throwing fails on the canaries                                     | condition 4      |
-| production tier: `check:mermaid-parses` reds on the manifesto break, naming file and rule | the dogfood gate |
-| empty, directive-only, misspelt and `zenuml`, each with its own remedy                    | condition 6      |
+| row                                                                                     | breaks      |
+| --------------------------------------------------------------------------------------- | ----------- |
+| a syntax error at the exact Markdown line, plus frontmatter, directive, blank-lead rows | condition 7 |
+| the false red: a labelled flowchart passes in the worker                                | condition 8 |
+| a missing peer; a worker that exits early; a version out of range                       | condition 5 |
+| a `mermaid` that stops throwing fails on the canaries                                   | condition 4 |
+| empty, directive-only, misspelt and `zenuml`, each with its own remedy                  | condition 6 |
 
-## Decide at the freeze: one rule for the Mermaid tag
+## Decided at the freeze (2026-10-15)
 
-Added 2026-10-15. eess-md's `parseCodeBlocks` (plan 0412) matches the language tag exactly and reports
-`Mermaid` as an unread near miss. eess-crossvalidate's md-mermaid now reads it, case-insensitively (bug
-0423). This plan puts Mermaid fences through `parseCodeBlocks`, so its freeze settles which rule the
-family uses, and changes the other side to match. Recorded in proposal 006 under condition 10.
+Each is overrulable.
+
+- **One rule for the tag: any letter case.** md-mermaid reads `Mermaid` since bug 0423; `parseCodeBlocks`
+  matched exactly. A fence tagged `Mermaid` is plainly meant as Mermaid, so the family reads tags
+  case-insensitively. eess-md's side is [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md),
+  fixed before this plan.
+- **A missing peer is a finding, never a throw at construction.** `parseCodeBlocks` reads a parser's
+  name and version before anything is selected, and refuses an empty one. So `mermaidParser()` never
+  throws: when `mermaid` cannot be resolved its `version` is `'not installed'`, and its `parse`
+  rejects with plan 0412's structured failure, `remedy: 'npm i -D mermaid@11 jsdom'` and
+  `blockIndex: null`. The missing peer is then one instrument finding with the install line as its fix.
+- **The preamble walk's new export is a sibling, `diagramPreamble(text)`**, returning
+  `{ kind, kindLine, reason }`, where `kindLine` is the 0-based index of the kind line (or `null`) and
+  `reason` is `'declared' | 'empty' | 'comments-only' | 'directives-only' | 'unclosed-directive'`.
+  `diagramKind(text)` stays a `string` and becomes `diagramPreamble(text).kind`, so nothing that
+  exists changes.
+- **The dogfood gate is its own plan,** [0427](./0427-this-repository-checks-its-mermaid-blocks-parse.md),
+  so each is one reviewable PR. Its design moved there unchanged. The install cost is not the reason:
+  this plan's own tests need the real `mermaid` and `jsdom`, so they become eess-mermaid's dev
+  dependencies here, and this repository's CI pays the 179 MB with this plan.
 
 ## Out of scope
 
@@ -226,18 +236,17 @@ family uses, and changes the other side to match. Recorded in proposal 006 under
 
 ## Success
 
-- The two-line example in Design runs against this repository and prints its count and parser
+- The two-line example in Design runs in eess-crossvalidate's tests and prints its count and parser
   version.
 - Every non-vacuity row reds when its mechanism is removed.
-- `npm run validate` green, with the dogfood gate's time recorded.
+- `npm run validate` green.
 
 ## Progress ledger
 
 - [ ] Phase 1 — worker, loading, globals test under vitest and the CLI loader
 - [ ] Phase 2 — classification, emptiness reason, line recovery
 - [ ] Phase 3 — canaries, budget, version range, terminate on every path
-- [ ] Phase 4 — conformance test, dogfood gate, docs
-- [ ] validate chain's added time measured and recorded
+- [ ] Phase 4 — conformance test, docs
 - [ ] changeset: eess-mermaid `minor`
 
 Deferred: none

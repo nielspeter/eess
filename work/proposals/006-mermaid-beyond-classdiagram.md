@@ -672,8 +672,8 @@ review of this record followed, and its corrections are applied here.
     unread beside the count (ADR-016 rule 7). _(Note, 2026-10-15: bug 0423's fix made eess-crossvalidate's
     md-mermaid read the tag case-insensitively, so a fence tagged `Mermaid` is read there while eess-md's
     `parseCodeBlocks` reports it as unread. Neither is a false green, but the family has two rules for one
-    tag. Plan 0413, which runs Mermaid fences through `parseCodeBlocks`, settles one; case-folding looks
-    the better rule.)_
+    tag. Settled at plan 0413's freeze, 2026-10-15: case-insensitive, family-wide; eess-md's side is
+    [bug 0426](../bugs/0426-parsecodeblocks-and-md-mermaid-read-the-mermaid-tag-differently.md).)_
 11. **Tier 1, static** _(measured, enforcement)_. The claim is "parses with mermaid X.Y.Z".
     `parse()` accepts three things that fail at render: a `gantt` task dated `nonsense`, a `journey`
     step with a non-numeric score, and an unclosed `mindmap` root.
