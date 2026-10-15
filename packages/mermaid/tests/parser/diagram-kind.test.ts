@@ -38,6 +38,12 @@ describe('diagramKind()', () => {
       '%%{init: {"theme":"dark"}}%% %%{init: {"fontSize": 12}}%%\nerDiagram',
       'erDiagram',
     ],
+    // Only the loop decides this one: after the first directive, the second still starts `%%{`.
+    [
+      'on the line of two inits',
+      '%%{init: {"theme":"dark"}}%% %%{init: {"fontSize": 12}}%% erDiagram\n  A ||--o{ B : x',
+      'erDiagram',
+    ],
     [
       'on the line of its init',
       '%%{init: {"theme":"dark"}}%% erDiagram\n  A ||--o{ B : x',
