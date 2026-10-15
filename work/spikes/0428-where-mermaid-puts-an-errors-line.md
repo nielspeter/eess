@@ -115,6 +115,13 @@ recommendation to the re-freeze, which decides each item (the plan's "Owed at th
 - **Tests copy the built worker file** into a scratch directory with a stub or no `mermaid`. No public
   option names a module to run (ADR-015).
 
+## Correction after review (2026-10-15)
+
+PR #219's enforcement review measured a trailing comment **on the kind line**: `flowchart TD %% t`,
+then a valid line, then an error on body line 3, is reported on line 1, an undercount of two, not
+one. So "one line fewer for each" in Q2 is not a law; plan 0413's re-freeze withholds the line for
+any block with a trailing comment rather than bounding the undercount.
+
 ## Not measured
 
 - Kinds other than the six above for the trailing-comment undercount; the rule above does not depend

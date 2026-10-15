@@ -2,8 +2,8 @@
 
 ## Status
 
-- **State:** Draft — fixed for plan 0413's re-freeze review (enforcement M7: wording, dependencies,
-  pinned count, exclusions, row text). Split out of [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) at its
+- **State:** Draft — fixed for plan 0413's re-freeze reviews (wording, dependencies, pinned count,
+  scope and exclusions, row text). Split out of [plan 0413](./0413-eess-mermaid-ships-mermaids-own-parser.md) at its
   freeze, 2026-10-15. Its design is 0413's original "Dogfood row", unchanged.
 - **Implements:** proposal 006 — Ask C's dogfood consumer.
 - **Priority:** Medium, the same as plan 0413 and never lower — the dogfood half of Ask C, and the
@@ -22,11 +22,16 @@ dependencies.
 
 ## Design
 
-- **Scope:** `docs/**`, `adr/**`, `work/plans/**` and `work/proposals/**`. The gate prints its own
-  count; this plan pins none, since bug 0426's case-folding changes it.
-- **Exclusions, by glob (condition 13):** `work/bugs/**` and `work/spikes/**`, which quote broken
-  diagrams on purpose as evidence, and `**/completed/**`, which is history. Nothing is excluded by
-  comment.
+- **Scope:** every tracked `*.md` file (`**/*.md`, without `node_modules`), so a diagram added to a
+  README, `kit/`, a skill or `work/*.md` is checked without anyone remembering to list it. An
+  allowlist would be bug 0210's selector class. The gate prints its own count; this plan pins none,
+  since bug 0426's case-folding changes it.
+- **Exclusions, by glob (condition 13)**, each the tree of fixtures that are broken on purpose,
+  measured 2026-10-15 over tracked Markdown: `packages/crossvalidate/tests/fixtures/**` (30 files with
+  a Mermaid fence), `packages/md/tests/fixtures/**` (6) and `scripts/nonvacuity/**` (14). The build
+  re-measures them; an exclusion that matches no block is dropped (ADR-018). The fences in
+  `work/bugs/fixed/` sit inside four-backtick fences, so they are not blocks and need no exclusion.
+  Nothing is excluded by comment.
 - **Where:** a script gate, `check:mermaid-parses`, in the `validate` chain beside `check:corpus`. It
   is a script, not an eess-ts rule file, so it calls `dedupeConfigFindings` itself (plan 0412), and it
   prints the success line from the fact object's summary. CLAUDE.md's gate-output table gains its row.
