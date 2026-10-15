@@ -46,7 +46,8 @@ them exists to **serve** the discovery, not to fence it in:
    _done_, _done-otherwise_ (what actually happened, told straight — not what was
    hoped), _deferred to a named home_, or _dropped on purpose_. Nothing vanishes
    silently. This is firm because a corpus that quietly loses scope stops being
-   trustworthy, and an untrustworthy memory is worse than none.
+   trustworthy, and an untrustworthy memory is worse than none. For a plan it is
+   sharpened into six rules, under _Plans close whole_ below.
 
 2. **Point, don't duplicate — but freeze what you commit to.** A source that is
    _still live authority and still moving_ — the code, a design still being argued
@@ -208,6 +209,34 @@ A caution worth keeping honest: **green checks prove what was built is correct, 
 that everything planned was built**, and for work that can't be tested in CI at all
 (infrastructure especially), "merged + green" means _merged, not proven_. Say so —
 mark it "validation owed" — rather than letting a green checkmark overstate it.
+
+## Plans close whole
+
+Honesty at close says nothing may vanish. For a plan it is sharpened into six rules (stated
+2026-10-15). They are firm, because each one closes a way a plan's unfinished scope goes missing:
+into a half-built phase, into a footnote of a finished plan, or into a merge that nobody comes back to.
+
+1. **A plan is done whole, in one PR.** If it cannot be done in one PR, split it before building it.
+   There are no half plans: a phase that could still be unbuilt when the rest has merged is not a
+   phase, it is another plan.
+2. **A finished plan holds nothing open.** Whatever is deferred moves to a new plan or bug, named in
+   the ledger as its home. A finished plan is never where deferred work waits, because nobody goes
+   back to a finished plan to look for it.
+3. **An acceptance criterion is never deferred.** It closes ticked, `done-otherwise` or
+   `validation-owed`, never `deferred→` or `dropped-on-purpose`. If a criterion is not met, the plan
+   is not done. This follows from 1 and 2: deferring a criterion would finish half a plan.
+4. **What you find while building is a new plan or bug,** never part of the running plan. The
+   running plan keeps the scope it was frozen with.
+5. **A plan that turns out too big while building is split then.** Record the split in both plans
+   (the date and what moved), keep building the smaller plan without a new review round, and send
+   only the new plan through the freeze.
+6. **A plan is closed in its own PR.** By the time it merges, its review and testing are done, so it
+   is closed as part of the diff (see _When is it done?_). A close left for after the merge is a step
+   nobody comes back to, and two PRs to close one plan is one too many.
+
+Rule 3 can be checked mechanically, and should be where the corpus can carry it: in a done plan, an
+open box under the plan's acceptance criteria may carry only `done-otherwise` or `validation-owed`.
+Plans dropped as a whole (`Won't-do`) are exempt, since none of their criteria were meant to be met.
 
 ## Trust a measurement less than it invites
 
